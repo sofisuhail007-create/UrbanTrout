@@ -1,9 +1,13 @@
+"use client";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 export default function Footer() {
+  const pathname = usePathname();
+  if (pathname.startsWith("/admin")) return null;
   return (
     <footer className="w-full py-16 border-t border-white/5 bg-slate-950 mt-20">
-      <div className="max-w-7xl mx-auto px-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
+      <div className="max-w-7xl mx-auto px-8 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
         <div>
           <div className="text-lg font-bold text-cyan-400 mb-4 font-headline">
             Urban Trout
@@ -37,7 +41,7 @@ export default function Footer() {
             </li>
             <li>
               <Link
-                href="/traceability"
+                href="/our-farm#traceability-reports"
                 className="hover:text-cyan-300 transition-colors duration-200"
               >
                 Traceability & Lab Reports
@@ -48,36 +52,13 @@ export default function Footer() {
 
         <div>
           <h5 className="text-on-surface font-label font-bold text-xs uppercase tracking-[0.2em] mb-6">
-            Partnership
-          </h5>
-          <ul className="space-y-3 text-sm font-body text-slate-500">
-            <li>
-              <a
-                href="#"
-                className="hover:text-cyan-300 transition-colors duration-200"
-              >
-                Sustainability Report
-              </a>
-            </li>
-            <li>
-              <a
-                href="#"
-                className="hover:text-cyan-300 transition-colors duration-200"
-              >
-                Cold-Chain Ethics
-              </a>
-            </li>
-          </ul>
-        </div>
-
-        <div>
-          <h5 className="text-on-surface font-label font-bold text-xs uppercase tracking-[0.2em] mb-6">
             Contact
           </h5>
           <div className="space-y-3 text-sm font-body text-slate-500">
-            <p>Harwan High-Altitude Lab</p>
-            <p>Srinagar, J&K — 190001</p>
-            <p className="text-cyan-400 font-medium">+91 0194 882 110</p>
+            <p>Malabagh Naseem Bagh</p>
+            <p>Srinagar — 190006</p>
+            <p className="text-xs text-slate-500">Near R P School (Girls Wing)</p>
+            <p className="text-cyan-400 font-medium">+91 70066 04148</p>
           </div>
           <div className="flex gap-3 mt-6">
             <a
@@ -118,7 +99,7 @@ export default function Footer() {
             Terms
           </a>
           <Link
-            href="/traceability"
+            href="/our-farm#traceability-reports"
             className="text-slate-600 hover:text-cyan-300 underline-offset-4 hover:underline transition-all"
           >
             Traceability

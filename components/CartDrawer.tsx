@@ -1,10 +1,13 @@
 "use client";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
+import { usePathname } from "next/navigation";
 
 export default function CartDrawer() {
   const { isOpen, closeCart, items, removeItem, updateQuantity, total } =
     useCart();
+  const pathname = usePathname();
+  if (pathname.startsWith("/admin")) return null;
 
   return (
     <>

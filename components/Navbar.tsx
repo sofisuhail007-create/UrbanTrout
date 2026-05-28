@@ -8,12 +8,12 @@ const navLinks = [
   { href: "/", label: "Home" },
   { href: "/shop", label: "Shop" },
   { href: "/our-farm", label: "Our Farm" },
-  { href: "/traceability", label: "Traceability" },
 ];
 
 export default function Navbar() {
   const pathname = usePathname();
   const { openCart, itemCount } = useCart();
+  if (pathname.startsWith("/admin")) return null;
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (

@@ -2,6 +2,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
+import { supabase } from "@/lib/supabase";
 
 export default function CheckoutPage() {
   const { items, total, updateQuantity } = useCart();
@@ -145,6 +146,33 @@ export default function CheckoutPage() {
               });
 
               const message = `*NEW HARVEST REQUEST* 🐟\n\n*Customer Details:*\nName: ${fullName}\nPhone: +91 ${phone}\nAddress: ${house}, ${locality}, ${pincode}\n\n*Requested Items:*\n${cartDetails}*Delivery Zone:* ${deliveryMode === "over5" ? "Outside 5km (₹" + deliveryFee + ")" : "Within 5km (Free)"}\n*Estimated Total:* ₹${grandTotal.toLocaleString("en-IN")}\n\n_Note: This is an estimated total. We will calculate the exact catch weight and send you the final invoice and payment link shortly._`;
+
+              // Save order to Supabase for admin panel
+              const orderPayload = {
+                customer_name: String(fullName),
+                customer_phone: String(phone),
+                customer_address: `${house}, ${locality}`,
+                customer_locality: String(locality),
+                customer_pincode: String(pincode),
+                items: items.map(i => ({ id: i.id, name: i.name, quantity: i.quantity, price: i.price, unit: i.unit, image: i.image })),
+                subtotal: total,
+                delivery_fee: deliveryFee,
+                total: grandTotal,
+                delivery_zone: deliveryMode,
+                status: 'pending',
+              };
+              supabase.from('orders').insert(orderPayload).then(() => {
+                // Upsert customer record
+                supabase.from('customers').upsert({
+                  phone: String(phone),
+                  name: String(fullName),
+                  locality: String(locality),
+                  pincode: String(pincode),
+                  last_order_at: new Date().toISOString(),
+                }, { onConflict: 'phone' }).then(() => {
+                  // Increment totals via RPC not needed — admin can view from orders
+                });
+              });
 
               const encodedMessage = encodeURIComponent(message);
               window.open(`https://wa.me/917006604148?text=${encodedMessage}`, '_blank');
