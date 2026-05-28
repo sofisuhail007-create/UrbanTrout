@@ -12,7 +12,13 @@ const TANK_LABELS: Record<string, string> = {
   tank_d: "Tank D",
 };
 
-const FEED_TYPES = ["Starter", "Grower", "Finisher", "Broodstock", "Custom"];
+const FEED_TYPES = [
+  "Starter (1.2mm)",
+  "Starter (1.8mm)",
+  "Pre-Grower (3.0mm)",
+  "Grower (6.0mm)",
+  "Brood Stock (8.0mm)",
+];
 const FEEDING_TIMES = ["Morning", "Afternoon", "Evening"];
 
 const SUB_NAV = [
@@ -32,7 +38,7 @@ export default function FeedLogPage() {
   const [form, setForm] = useState({
     tank_id: "tank_a",
     date: today(),
-    feed_type: "Grower",
+    feed_type: "Grower (6.0mm)",
     quantity_kg: "",
     feeding_time: "Morning",
     notes: "",
