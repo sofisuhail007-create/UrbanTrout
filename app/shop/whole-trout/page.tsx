@@ -196,9 +196,9 @@ export default function WholeTroutPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-6 md:h-[600px]">
+        <div className="grid grid-cols-1 gap-6">
           {/* RAS Purity Standards */}
-          <div className="md:col-span-8 bg-surface-container-low rounded-2xl ghost-border p-10 flex flex-col justify-between relative overflow-hidden group">
+          <div className="bg-surface-container-low rounded-2xl ghost-border p-10 flex flex-col justify-between relative overflow-hidden group">
             <div className="absolute -right-20 -bottom-20 w-96 h-96 bg-primary/5 rounded-full blur-[100px] group-hover:bg-primary/10 transition-colors" />
             <div className="relative z-10 space-y-8">
               <div className="flex items-center gap-4">
@@ -236,36 +236,6 @@ export default function WholeTroutPage() {
             </div>
           </div>
 
-          {/* Traceability */}
-          <div className="md:col-span-4 bg-surface-container-high rounded-2xl ghost-border p-10 flex flex-col gap-6">
-            <div className="flex items-center gap-4">
-              <span className="material-symbols-outlined text-primary-fixed">
-                location_on
-              </span>
-              <h3 className="font-headline text-2xl font-bold">Traceability</h3>
-            </div>
-            <p className="text-on-surface-variant font-body">
-              Scan your unique QR code on delivery to see the full life cycle,
-              feed composition, and water chemistry logs of this specific trout
-              specimen.
-            </p>
-            <div className="mt-auto pt-6 border-t border-outline-variant/20">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="w-16 h-16 bg-white p-1 rounded-lg">
-                  <img
-                    className="w-full h-full object-cover"
-                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuBGZeUIOhVXUzpRmdtuLI5qbmDXihcy3y4QIbLKP9BVRs59TwAdltu4Gvupv58ozFBMUFDhNM5hEOzU9EnA76eYqYdXIMtH8mRSsYKQK0AsAf8lv99LUDpbXRMFnSIvJk1OnMGwE09ycYoX4vcSffDm_EqJLlk-d-c57PZqDfbAFXHxaBpon39wBZeQUoIAFFpfepbPX0MGbdd02J4LBefe7FnoQ18D7IrSRSJYkXYSNLT1wmlnKotG3ZBZ1rgGtO8XKHl96_8Quy8P"
-                    alt="QR Code"
-                  />
-                </div>
-                <div className="font-label text-xs space-y-1">
-                  <p className="text-on-surface">UNIT_ID: 8820-X</p>
-                  <p className="text-on-surface-variant">HARVEST: 12.04.24</p>
-                  <p className="text-primary">VERIFIED ON CHAIN</p>
-                </div>
-              </div>
-            </div>
-          </div>
         </div>
       </section>
     </div>
