@@ -57,6 +57,32 @@ export default function TanksPage() {
     fetchStockings();
   }, [fetchStockings]);
 
+  const resetForm = () => {
+    setForm({ tank_id: "tank_a", stocking_date: new Date().toISOString().split("T")[0], fish_count: "", avg_size_grams: "", current_avg_size_grams: "", feed_percentage: "", batch_name: "", notes: "" });
+    setEditId(null);
+  };
+
+  const startEdit = (s: TankStocking) => {
+    setForm({
+      tank_id: s.tank_id,
+      stocking_date: s.stocking_date,
+      fish_count: String(s.fish_count),
+      avg_size_grams: String(s.avg_size_grams),
+      current_avg_size_grams: String(s.current_avg_size_grams),
+      feed_percentage: String(s.feed_percentage),
+      batch_name: s.batch_name,
+      notes: s.notes || "",
+    });
+    setEditId(s.id);
+    setShowForm(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this stocking record?")) return;
+    await supabase.from("tank_stocking").delete().eq("id", id);
+    await fetchStockings();
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -68,12 +94,14 @@ export default function TanksPage() {
       current_avg_size_grams: parseFloat(form.current_avg_size_grams || form.avg_size_grams) || 0,
       feed_percentage: parseFloat(form.feed_percentage) || 0,
       batch_name: form.batch_name,
-      mortality_count: 0,
-      status: "active" as const,
       notes: form.notes || null,
     };
-    await supabase.from("tank_stocking").insert(payload);
-    setForm({ tank_id: "tank_a", stocking_date: new Date().toISOString().split("T")[0], fish_count: "", avg_size_grams: "", current_avg_size_grams: "", feed_percentage: "", batch_name: "", notes: "" });
+    if (editId) {
+      await supabase.from("tank_stocking").update(payload).eq("id", editId);
+    } else {
+      await supabase.from("tank_stocking").insert({ ...payload, mortality_count: 0, status: "active" });
+    }
+    resetForm();
     setShowForm(false);
     await fetchStockings();
     setSaving(false);
@@ -152,7 +180,7 @@ export default function TanksPage() {
             Export (Excel)
           </button>
           <button
-            onClick={() => setShowForm(!showForm)}
+            onClick={() => { if (showForm) { resetForm(); setShowForm(false); } else { resetForm(); setShowForm(true); } }}
             className="flex items-center gap-2 px-4 py-2 bg-cyan-500/20 text-cyan-400 rounded-lg text-sm font-semibold hover:bg-cyan-500/30 transition-all"
           >
             <span className="material-symbols-outlined text-[16px]">{showForm ? "close" : "add"}</span>
@@ -165,7 +193,7 @@ export default function TanksPage() {
       {showForm && (
         <form onSubmit={handleSubmit} className="bg-slate-900/80 border border-cyan-500/20 rounded-xl p-6 space-y-5">
           <h2 className="text-lg font-bold text-slate-100" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
-            Record New Stocking
+            {editId ? "Edit Stocking Record" : "Record New Stocking"}
           </h2>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="space-y-1">
@@ -201,7 +229,7 @@ export default function TanksPage() {
           </div>
           <button type="submit" disabled={saving} className="px-6 py-3 bg-cyan-500/20 text-cyan-400 font-bold text-sm rounded-lg hover:bg-cyan-500/30 transition-all disabled:opacity-50 flex items-center gap-2">
             <span className="material-symbols-outlined text-[16px]">{saving ? "hourglass_empty" : "save"}</span>
-            {saving ? "Saving..." : "Save Stocking Record"}
+            {saving ? "Saving..." : editId ? "Update Record" : "Save Stocking Record"}
           </button>
         </form>
       )}
@@ -338,6 +366,20 @@ export default function TanksPage() {
                       Harvest
                     </button>
                   </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => startEdit(s)}
+                      className="flex-1 text-[10px] py-1.5 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 rounded-lg transition-all font-semibold uppercase tracking-wider"
+                    >
+                      ✏️ Edit All
+                    </button>
+                    <button
+                      onClick={() => handleDelete(s.id)}
+                      className="flex-1 text-[10px] py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition-all font-semibold uppercase tracking-wider"
+                    >
+                      🗑️ Delete
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <div className="relative z-10 flex flex-col items-center py-6 text-slate-600">
@@ -380,13 +422,14 @@ export default function TanksPage() {
                 <th className="text-center px-4 py-3">Alive</th>
                 <th className="text-center px-4 py-3">Feed %</th>
                 <th className="text-center px-4 py-3">Status</th>
+                <th className="text-center px-4 py-3">Actions</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan={10} className="px-4 py-8 text-center text-slate-600">Loading...</td></tr>
+                <tr><td colSpan={11} className="px-4 py-8 text-center text-slate-600">Loading...</td></tr>
               ) : stockings.length === 0 ? (
-                <tr><td colSpan={10} className="px-4 py-8 text-center text-slate-600">No stocking records yet.</td></tr>
+                <tr><td colSpan={11} className="px-4 py-8 text-center text-slate-600">No stocking records yet.</td></tr>
               ) : (
                 stockings.map((s) => (
                   <tr key={s.id} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
@@ -409,6 +452,16 @@ export default function TanksPage() {
                       >
                         {s.status}
                       </span>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <div className="flex items-center justify-center gap-1">
+                        <button onClick={() => startEdit(s)} className="p-1 rounded hover:bg-cyan-500/20 text-slate-500 hover:text-cyan-400 transition-all" title="Edit">
+                          <span className="material-symbols-outlined text-[16px]">edit</span>
+                        </button>
+                        <button onClick={() => handleDelete(s.id)} className="p-1 rounded hover:bg-red-500/20 text-slate-500 hover:text-red-400 transition-all" title="Delete">
+                          <span className="material-symbols-outlined text-[16px]">delete</span>
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
