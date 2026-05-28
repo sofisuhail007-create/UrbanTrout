@@ -54,3 +54,44 @@ export type InventoryItem = {
   available: boolean
   updated_at: string
 }
+
+export type WaterParameter = {
+  id: string
+  tank_id: string
+  date: string
+  dissolved_oxygen: number
+  ammonia: number
+  ph: number
+  temperature: number
+  nitrite: number
+  nitrate: number
+  notes: string | null
+  created_at: string
+}
+
+export type FeedLogEntry = {
+  id: string
+  tank_id: string
+  date: string
+  feed_type: string
+  quantity_kg: number
+  feeding_time: string
+  notes: string | null
+  created_at: string
+}
+
+export type TankStocking = {
+  id: string
+  tank_id: string
+  stocking_date: string
+  fish_count: number
+  avg_size_grams: number
+  current_avg_size_grams: number
+  mortality_count: number
+  feed_percentage: number
+  batch_name: string
+  status: 'active' | 'harvested' | 'transferred'
+  notes: string | null
+  created_at: string
+}
+
