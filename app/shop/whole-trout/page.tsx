@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import AddToCartButton from "@/components/AddToCartButton";
-import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Whole Rainbow Trout (Non-Gutted)",
@@ -68,7 +67,7 @@ export default function WholeTroutPage() {
               Untouched and pristine, straight from our crystal-clear waters.
               Ideal for roasting or traditional preparations. This non-gutted
               specimen retains full physiological integrity for maximum flavor
-              preservation.
+              preservation, dispatched within 4 hours of harvest.
             </p>
             <div className="flex flex-wrap gap-4 pt-2">
               {[
@@ -104,6 +103,83 @@ export default function WholeTroutPage() {
 
         </div>
       </div>
+      
+      {/* Culinary & Nutritional Bento Box */}
+      <section className="mt-24">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Culinary Notes */}
+          <div className="glass-panel p-10 md:p-12 rounded-3xl ghost-border flex flex-col justify-center">
+            <span className="px-4 py-1.5 w-fit rounded-full bg-primary/20 text-primary font-label text-xs uppercase tracking-widest border border-primary/30 mb-6">
+              Culinary Lab Notes
+            </span>
+            <h2 className="font-headline text-3xl md:text-4xl font-bold mb-4 text-on-surface">
+              Precision Roasting
+            </h2>
+            <p className="text-on-surface-variant leading-relaxed mb-8">
+              Because this trout is non-gutted, the interior temperature remains
+              more stable during roasting. We recommend a high-heat quick sear
+              followed by a 12-minute convection roast at 200°C.
+            </p>
+            <ul className="space-y-4">
+              <li className="flex items-center gap-4 text-on-surface font-body">
+                <span className="material-symbols-outlined text-primary">
+                  check_circle
+                </span>
+                Preserves natural omega oils within the tissue
+              </li>
+              <li className="flex items-center gap-4 text-on-surface font-body">
+                <span className="material-symbols-outlined text-primary">
+                  check_circle
+                </span>
+                Maintains skeletal structure for presentation
+              </li>
+              <li className="flex items-center gap-4 text-on-surface font-body">
+                <span className="material-symbols-outlined text-primary">
+                  check_circle
+                </span>
+                Deeper, richer flavor profile compared to fillets
+              </li>
+            </ul>
+          </div>
+
+          {/* Nutritional Profile */}
+          <div className="bg-surface-container-high rounded-3xl ghost-border p-10 md:p-12 relative overflow-hidden group">
+            <div className="absolute -right-20 -bottom-20 w-96 h-96 bg-primary/5 rounded-full blur-[100px] group-hover:bg-primary/10 transition-colors" />
+            <div className="relative z-10 flex flex-col h-full">
+              <span className="px-4 py-1.5 w-fit rounded-full bg-surface-variant text-on-surface-variant font-label text-xs uppercase tracking-widest border border-outline-variant/30 mb-6">
+                Nutritional Excellence
+              </span>
+              <h2 className="font-headline text-3xl md:text-4xl font-bold mb-4 text-on-surface">
+                Clinical Dietetics
+              </h2>
+              <p className="text-on-surface-variant leading-relaxed mb-8">
+                Raised in pristine RAS environments, our trout are free from microplastics, heavy metals, and antibiotics, resulting in an exceptionally clean nutritional profile.
+              </p>
+              
+              <div className="grid grid-cols-2 gap-4 md:gap-6 mt-auto">
+                <div className="bg-surface-container-highest/50 rounded-xl p-4 border border-outline-variant/10">
+                  <p className="font-label text-primary text-[10px] uppercase tracking-widest mb-1">Protein (Per 100g)</p>
+                  <p className="font-headline text-3xl font-medium text-on-surface">20.5g</p>
+                </div>
+                <div className="bg-surface-container-highest/50 rounded-xl p-4 border border-outline-variant/10">
+                  <p className="font-label text-primary text-[10px] uppercase tracking-widest mb-1">Omega-3 (EPA/DHA)</p>
+                  <p className="font-headline text-3xl font-medium text-on-surface">1,200mg</p>
+                </div>
+                <div className="bg-surface-container-highest/50 rounded-xl p-4 border border-outline-variant/10">
+                  <p className="font-label text-primary text-[10px] uppercase tracking-widest mb-1">Heavy Metals</p>
+                  <p className="font-headline text-3xl font-medium text-on-surface">ND</p>
+                  <p className="text-[10px] text-on-surface-variant uppercase tracking-wider mt-1">Not Detected</p>
+                </div>
+                <div className="bg-surface-container-highest/50 rounded-xl p-4 border border-outline-variant/10">
+                  <p className="font-label text-primary text-[10px] uppercase tracking-widest mb-1">Microplastics</p>
+                  <p className="font-headline text-3xl font-medium text-on-surface">0.0%</p>
+                  <p className="text-[10px] text-on-surface-variant uppercase tracking-wider mt-1">Lab Verified</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* Lab Systems Section */}
       <section className="mt-24 space-y-12">
@@ -189,47 +265,6 @@ export default function WholeTroutPage() {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Culinary Notes */}
-      <section className="mt-24">
-        <div className="glass-panel p-12 rounded-3xl ghost-border grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-          <div className="space-y-6">
-            <span className="px-4 py-1.5 rounded-full bg-primary/20 text-primary font-label text-xs uppercase tracking-widest border border-primary/30">
-              Culinary Lab Notes
-            </span>
-            <h2 className="font-headline text-4xl font-bold">
-              Precision Roasting
-            </h2>
-            <p className="text-on-surface-variant leading-relaxed">
-              Because this trout is non-gutted, the interior temperature remains
-              more stable during roasting. We recommend a high-heat quick sear
-              followed by a 12-minute convection roast at 200°C.
-            </p>
-            <ul className="space-y-4">
-              <li className="flex items-center gap-4 text-on-surface font-body">
-                <span className="material-symbols-outlined text-primary">
-                  check_circle
-                </span>
-                Preserves natural omega oils within the tissue
-              </li>
-              <li className="flex items-center gap-4 text-on-surface font-body">
-                <span className="material-symbols-outlined text-primary">
-                  check_circle
-                </span>
-                Maintains skeletal structure for presentation
-              </li>
-            </ul>
-          </div>
-          <div className="aspect-video rounded-2xl overflow-hidden ghost-border relative">
-            <img
-              className="w-full h-full object-cover"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuC7XSoc-m8iX2ot4lUGhn6M7uvRj3mdRPtD-4i7TqT6qUTxKKsCysBEB2SLvPditq1tu0KckXXbyrFSbz30WA8_EkMIgGzxZNWlkhXEorP4cx1OPMACz9ef9K-rXAtM556oAMR4mnhXDR-Q0k4WDbesmbyNFrqu4TYVsmsBE9cq8YNjiEozDNW9UJBHzaKMQZf-zSn5oPK2OkpZDOJPc3gmHPRxTxfo70eVUWRhGxvTte45aOsBzZSgyzFgiu5ocodX3Bax4vLnS06b"
-              alt="Gourmet roasted whole fish"
-            />
-            <div className="absolute inset-0 bg-primary/10 mix-blend-color" />
           </div>
         </div>
       </section>
