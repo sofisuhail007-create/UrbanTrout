@@ -1,0 +1,205 @@
+@import "tailwindcss";
+
+/* ─── Neon Aquatic Design Tokens ─── */
+@theme {
+  /* Colors */
+  --color-background:             #031018;
+  --color-surface:                #031018;
+  --color-surface-dim:            #031018;
+  --color-surface-container-lowest: #000000;
+  --color-surface-container-low:  #06151e;
+  --color-surface-container:      #0b1b25;
+  --color-surface-container-high: #10212c;
+  --color-surface-container-highest: #152834;
+  --color-surface-variant:        #152834;
+  --color-surface-bright:         #1a2e3b;
+
+  --color-primary:                #72ddfd;
+  --color-primary-dim:            #63cfee;
+  --color-primary-fixed:          #72ddfd;
+  --color-primary-fixed-dim:      #63cfee;
+  --color-primary-container:      #3aadcc;
+  --color-on-primary:             #004d5d;
+  --color-on-primary-fixed:       #003844;
+  --color-on-primary-fixed-variant: #005669;
+  --color-on-primary-container:   #002730;
+
+  --color-secondary:              #bce1ff;
+  --color-secondary-dim:          #aed3f1;
+  --color-secondary-fixed:        #bce1ff;
+  --color-secondary-fixed-dim:    #aed3f1;
+  --color-secondary-container:    #254a63;
+  --color-on-secondary:           #2d526b;
+  --color-on-secondary-fixed:     #183f57;
+  --color-on-secondary-fixed-variant: #375c75;
+  --color-on-secondary-container: #b0d5f2;
+
+  --color-tertiary:               #c4ebff;
+  --color-tertiary-dim:           #95d2ee;
+  --color-tertiary-fixed:         #a3e0fc;
+  --color-tertiary-fixed-dim:     #95d2ee;
+  --color-tertiary-container:     #a3e0fc;
+  --color-on-tertiary:            #135a72;
+  --color-on-tertiary-fixed:      #003d50;
+  --color-on-tertiary-fixed-variant: #145b73;
+  --color-on-tertiary-container:  #005169;
+
+  --color-on-background:          #dfedf9;
+  --color-on-surface:             #dfedf9;
+  --color-on-surface-variant:     #9fadb8;
+  --color-inverse-on-surface:     #4a5760;
+  --color-inverse-surface:        #f6faff;
+  --color-inverse-primary:        #00687e;
+
+  --color-outline:                #6a7782;
+  --color-outline-variant:        #3d4a53;
+  --color-surface-tint:           #72ddfd;
+
+  --color-error:                  #ff716c;
+  --color-error-dim:              #d7383b;
+  --color-error-container:        #9f0519;
+  --color-on-error:               #490006;
+  --color-on-error-container:     #ffa8a3;
+
+  /* Typography */
+  --font-headline: "Space Grotesk", sans-serif;
+  --font-body:     "Manrope", sans-serif;
+  --font-label:    "Inter", sans-serif;
+
+  /* Border Radius */
+  --radius:    0.25rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
+  --radius-3xl: 2rem;
+}
+
+/* ─── Base ─── */
+html {
+  color-scheme: dark;
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: #031018;
+  color: #dfedf9;
+  font-family: "Manrope", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+::selection {
+  background-color: rgba(114, 221, 253, 0.25);
+  color: #72ddfd;
+}
+
+/* ─── Material Symbols ─── */
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-smoothing: antialiased;
+  font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+}
+
+/* ─── Neon Glow Utilities ─── */
+.neon-glow-text {
+  text-shadow: 0 0 20px rgba(114, 221, 253, 0.5),
+               0 0 40px rgba(114, 221, 253, 0.2);
+}
+
+.neon-glow-icon {
+  filter: drop-shadow(0 0 6px rgba(114, 221, 253, 0.7));
+}
+
+.neon-border-glow {
+  box-shadow: 0 0 0 1px rgba(114, 221, 253, 0.15),
+              0 0 30px rgba(114, 221, 253, 0.08);
+}
+
+/* ─── Glass Components ─── */
+.glass-panel {
+  background: rgba(16, 33, 44, 0.6);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+
+.glass-nav {
+  background: rgba(3, 16, 24, 0.7);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+}
+
+.glass-card {
+  background: rgba(37, 74, 99, 0.35);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(114, 221, 253, 0.18);
+}
+
+/* ─── Ghost Border ─── */
+.ghost-border {
+  border: 1px solid rgba(61, 74, 83, 0.2);
+}
+
+/* ─── Biometric Card ─── */
+.biometric-card {
+  background: linear-gradient(145deg, #10212c 0%, #06151e 100%);
+}
+
+/* ─── Gradient Masks ─── */
+.gradient-fade-bottom {
+  mask-image: linear-gradient(to bottom, black 60%, transparent 100%);
+}
+
+/* ─── Custom Scrollbar ─── */
+::-webkit-scrollbar         { width: 5px; }
+::-webkit-scrollbar-track   { background: #031018; }
+::-webkit-scrollbar-thumb   { background: #152834; border-radius: 10px; }
+::-webkit-scrollbar-thumb:hover { background: #3aadcc; }
+
+/* ─── Micro Animations ─── */
+@keyframes shimmer {
+  0%   { background-position: -1000px 0; }
+  100% { background-position: 1000px 0; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-8px); }
+}
+
+@keyframes pulse-ring {
+  0%   { box-shadow: 0 0 0 0 rgba(114, 221, 253, 0.4); }
+  70%  { box-shadow: 0 0 0 10px rgba(114, 221, 253, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(114, 221, 253, 0); }
+}
+
+.animate-float { animation: float 4s ease-in-out infinite; }
+.animate-pulse-ring { animation: pulse-ring 2s ease-out infinite; }
+
+/* ─── Form Inputs ─── */
+input:focus, textarea:focus, select:focus {
+  outline: none;
+}
+
+/* ─── Section Divider Glow ─── */
+.section-divider {
+  border-top: 1px solid rgba(114, 221, 253, 0.08);
+  box-shadow: 0 -1px 20px rgba(114, 221, 253, 0.04);
+}
+
+/* ─── Stat Bar ─── */
+.stat-bar {
+  background: linear-gradient(90deg, #72ddfd, #3aadcc);
+  box-shadow: 0 0 12px rgba(114, 221, 253, 0.4);
+}
