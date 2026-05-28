@@ -9,7 +9,6 @@ const navLinks = [
   { href: "/shop", label: "Shop" },
   { href: "/our-farm", label: "Our Farm" },
   { href: "/traceability", label: "Traceability" },
-  { href: "/wholesale", label: "Wholesale" },
 ];
 
 export default function Navbar() {

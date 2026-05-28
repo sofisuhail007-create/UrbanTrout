@@ -52,14 +52,6 @@ export default function Footer() {
           </h5>
           <ul className="space-y-3 text-sm font-body text-slate-500">
             <li>
-              <Link
-                href="/wholesale"
-                className="hover:text-cyan-300 transition-colors duration-200"
-              >
-                Wholesale Portal
-              </Link>
-            </li>
-            <li>
               <a
                 href="#"
                 className="hover:text-cyan-300 transition-colors duration-200"
