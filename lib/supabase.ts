@@ -99,3 +99,13 @@ export type TankStocking = {
   created_at: string
 }
 
+export type EnergyLogEntry = {
+  id: string
+  date: string
+  expense_type: 'Diesel' | 'Electricity'
+  quantity: number
+  total_cost: number
+  notes: string | null
+  created_at: string
+}
+

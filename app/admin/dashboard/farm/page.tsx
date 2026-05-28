@@ -27,6 +27,7 @@ const SUB_NAV = [
   { href: "/admin/dashboard/farm/feed-log", label: "Feed Log", icon: "restaurant" },
   { href: "/admin/dashboard/farm/tanks", label: "Tanks", icon: "set_meal" },
   { href: "/admin/dashboard/farm/yield", label: "Yield & Costs", icon: "monitoring" },
+  { href: "/admin/dashboard/farm/energy", label: "Energy Log", icon: "bolt" },
 ];
 
 const today = () => new Date().toISOString().split("T")[0];
