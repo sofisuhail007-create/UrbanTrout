@@ -77,7 +77,7 @@ export default function FeedLogPage() {
   };
 
   const handleExport = async () => {
-    const XLSX = (await import("xlsx")).default;
+    const XLSX = await import("xlsx");
     const month = form.date.substring(0, 7);
     const { data } = await supabase
       .from("feed_log")

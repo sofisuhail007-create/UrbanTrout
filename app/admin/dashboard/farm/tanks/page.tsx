@@ -113,7 +113,7 @@ export default function TanksPage() {
   };
 
   const handleExport = async () => {
-    const XLSX = (await import("xlsx")).default;
+    const XLSX = await import("xlsx");
     const { data } = await supabase.from("tank_stocking").select("*").order("stocking_date", { ascending: true });
     if (!data || data.length === 0) return alert("No stocking data.");
     const rows = data.map((r: TankStocking) => ({

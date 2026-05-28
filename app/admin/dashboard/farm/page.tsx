@@ -98,7 +98,7 @@ export default function WaterParametersPage() {
   };
 
   const handleExport = async () => {
-    const XLSX = (await import("xlsx")).default;
+    const XLSX = await import("xlsx");
     const month = form.date.substring(0, 7); // YYYY-MM
     const { data } = await supabase
       .from("water_parameters")
