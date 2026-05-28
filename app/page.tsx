@@ -232,7 +232,7 @@ export default function HomePage() {
             { icon: "local_shipping", title: "Direct Delivery", sub: "Farm to door by our team" },
             { icon: "storefront", title: "Vending Centre", sub: "Pick up fresh in person" },
           ].map((t, i) => (
-            <div key={i} style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: "8px" }}>
               <span className="material-symbols-outlined" style={{ fontSize: "28px", color: C.primary, filter: "drop-shadow(0 0 6px rgba(114,221,253,0.5))" }}>{t.icon}</span>
               <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: "0.95rem", color: C.onSurface }}>{t.title}</span>
               <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.8rem", color: C.onSurfaceVariant }}>{t.sub}</span>
