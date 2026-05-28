@@ -89,8 +89,12 @@ export type TankStocking = {
   current_avg_size_grams: number
   mortality_count: number
   feed_percentage: number
+  fingerling_cost: number
+  feed_cost_per_kg: number
   batch_name: string
   status: 'active' | 'harvested' | 'transferred'
+  total_harvest_kg: number | null
+  harvest_date: string | null
   notes: string | null
   created_at: string
 }

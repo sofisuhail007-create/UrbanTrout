@@ -22,6 +22,7 @@ const SUB_NAV = [
   { href: "/admin/dashboard/farm", label: "Water Parameters", icon: "water_drop" },
   { href: "/admin/dashboard/farm/feed-log", label: "Feed Log", icon: "restaurant" },
   { href: "/admin/dashboard/farm/tanks", label: "Tanks", icon: "set_meal" },
+  { href: "/admin/dashboard/farm/yield", label: "Yield & Costs", icon: "monitoring" },
 ];
 
 export default function TanksPage() {
@@ -39,6 +40,8 @@ export default function TanksPage() {
     avg_size_grams: "",
     current_avg_size_grams: "",
     feed_percentage: "",
+    fingerling_cost: "",
+    feed_cost_per_kg: "",
     batch_name: "",
     notes: "",
   });
@@ -58,7 +61,7 @@ export default function TanksPage() {
   }, [fetchStockings]);
 
   const resetForm = () => {
-    setForm({ tank_id: "tank_a", stocking_date: new Date().toISOString().split("T")[0], fish_count: "", avg_size_grams: "", current_avg_size_grams: "", feed_percentage: "", batch_name: "", notes: "" });
+    setForm({ tank_id: "tank_a", stocking_date: new Date().toISOString().split("T")[0], fish_count: "", avg_size_grams: "", current_avg_size_grams: "", feed_percentage: "", fingerling_cost: "", feed_cost_per_kg: "", batch_name: "", notes: "" });
     setEditId(null);
   };
 
@@ -70,6 +73,8 @@ export default function TanksPage() {
       avg_size_grams: String(s.avg_size_grams),
       current_avg_size_grams: String(s.current_avg_size_grams),
       feed_percentage: String(s.feed_percentage),
+      fingerling_cost: String(s.fingerling_cost),
+      feed_cost_per_kg: String(s.feed_cost_per_kg),
       batch_name: s.batch_name,
       notes: s.notes || "",
     });
@@ -93,6 +98,8 @@ export default function TanksPage() {
       avg_size_grams: parseFloat(form.avg_size_grams) || 0,
       current_avg_size_grams: parseFloat(form.current_avg_size_grams || form.avg_size_grams) || 0,
       feed_percentage: parseFloat(form.feed_percentage) || 0,
+      fingerling_cost: parseFloat(form.fingerling_cost) || 0,
+      feed_cost_per_kg: parseFloat(form.feed_cost_per_kg) || 0,
       batch_name: form.batch_name,
       notes: form.notes || null,
     };
@@ -126,6 +133,10 @@ export default function TanksPage() {
       "Mortality": r.mortality_count,
       "Alive Count": r.fish_count - r.mortality_count,
       "Feed %": r.feed_percentage,
+      "Fingerling Cost": r.fingerling_cost,
+      "Feed Cost/Kg": r.feed_cost_per_kg,
+      "Harvest Kg": r.total_harvest_kg || "-",
+      "Harvest Date": r.harvest_date || "-",
       Status: r.status,
       Notes: r.notes || "",
     }));
@@ -219,10 +230,18 @@ export default function TanksPage() {
               <input type="number" step="0.1" placeholder="e.g. 3.0" value={form.feed_percentage} onChange={(e) => setForm({ ...form, feed_percentage: e.target.value })} className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none" />
             </div>
             <div className="space-y-1">
+              <label className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Fingerling Cost (₹)</label>
+              <input type="number" placeholder="e.g. 15000" value={form.fingerling_cost} onChange={(e) => setForm({ ...form, fingerling_cost: e.target.value })} className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none" />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Feed Cost/Kg (₹)</label>
+              <input type="number" placeholder="e.g. 120" value={form.feed_cost_per_kg} onChange={(e) => setForm({ ...form, feed_cost_per_kg: e.target.value })} className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none" />
+            </div>
+            <div className="space-y-1">
               <label className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Batch Name</label>
               <input type="text" placeholder="e.g. Batch 2026-Q2" value={form.batch_name} onChange={(e) => setForm({ ...form, batch_name: e.target.value })} className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none" />
             </div>
-            <div className="col-span-2 space-y-1">
+            <div className="col-span-2 md:col-span-4 space-y-1">
               <label className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Notes</label>
               <input type="text" placeholder="Optional" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-slate-200 focus:border-cyan-500 focus:outline-none" />
             </div>
@@ -356,9 +375,15 @@ export default function TanksPage() {
                       Update Feed %
                     </button>
                     <button
-                      onClick={() => {
-                        if (confirm(`Mark ${TANK_LABELS[tankId]} as harvested?`)) {
-                          handleUpdate(s.id, "status", "harvested");
+                      onClick={async () => {
+                        const val = prompt(`Mark ${TANK_LABELS[tankId]} as harvested? Enter final harvest weight (Kg):`);
+                        if (val && !isNaN(parseFloat(val))) {
+                          await supabase.from("tank_stocking").update({
+                            status: "harvested",
+                            total_harvest_kg: parseFloat(val),
+                            harvest_date: new Date().toISOString().split("T")[0],
+                          }).eq("id", s.id);
+                          fetchStockings();
                         }
                       }}
                       className="flex-1 text-[10px] py-1.5 bg-slate-800 hover:bg-amber-500/20 text-slate-400 hover:text-amber-400 rounded-lg transition-all font-semibold uppercase tracking-wider"
