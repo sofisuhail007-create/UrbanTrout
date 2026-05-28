@@ -227,10 +227,10 @@ export default function HomePage() {
       <section style={{ padding: "4rem 1.5rem", borderTop: "1px solid rgba(114,221,253,0.07)", background: C.bgLow }}>
         <div style={{ maxWidth: "1280px", margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "2rem" }}>
           {[
-            { icon: "ac_unit", title: "1.5°C Cold Chain", sub: "Biometric temp tracking" },
-            { icon: "verified", title: "Zero Antibiotics", sub: "Lab certified every batch" },
-            { icon: "timer", title: "4hr Harvest-to-Door", sub: "Srinagar delivery only" },
-            { icon: "qr_code_2", title: "Full Traceability", sub: "Blockchain verified" },
+            { icon: "water_drop", title: "Fresh from Our Farm", sub: "Harvested directly in Srinagar" },
+            { icon: "verified", title: "Zero Antibiotics", sub: "100% clean and natural" },
+            { icon: "local_shipping", title: "Direct Delivery", sub: "Farm to door by our team" },
+            { icon: "storefront", title: "Vending Centre", sub: "Pick up fresh in person" },
           ].map((t, i) => (
             <div key={i} style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
               <span className="material-symbols-outlined" style={{ fontSize: "28px", color: C.primary, filter: "drop-shadow(0 0 6px rgba(114,221,253,0.5))" }}>{t.icon}</span>
