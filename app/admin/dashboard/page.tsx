@@ -49,11 +49,11 @@ function getAlarms(entries: WaterParameter[]): AlarmSummary[] {
   const alarms: AlarmSummary[] = [];
   for (const e of entries) {
     const doV = validateDO(e.temperature, e.dissolved_oxygen);
-    if (doV && (doV.status === "critical" || doV.status === "hypoxic" || doV.status === "low")) {
+    if (doV && (doV.status === "danger" || doV.status === "warning" || doV.status === "supersaturated")) {
       alarms.push({ tank: TANK_LABELS[e.tank_id] ?? e.tank_id, parameter: "DO", value: `${e.dissolved_oxygen} mg/L`, color: doV.color, date: e.date });
     }
     const amm = getAmmoniaStatus(e.ammonia);
-    if (amm.status !== "safe") {
+    if (amm.status !== "optimal") {
       alarms.push({ tank: TANK_LABELS[e.tank_id] ?? e.tank_id, parameter: "Ammonia", value: `${e.ammonia} ppm`, color: amm.color, date: e.date });
     }
     const ph = getPHStatus(e.ph);
@@ -65,11 +65,11 @@ function getAlarms(entries: WaterParameter[]): AlarmSummary[] {
       alarms.push({ tank: TANK_LABELS[e.tank_id] ?? e.tank_id, parameter: "Temp", value: `${e.temperature}°C`, color: tmp.color, date: e.date });
     }
     const no2 = getNitriteStatus(e.nitrite);
-    if (no2.status !== "safe") {
+    if (no2.status !== "optimal") {
       alarms.push({ tank: TANK_LABELS[e.tank_id] ?? e.tank_id, parameter: "Nitrite", value: `${e.nitrite} ppm`, color: no2.color, date: e.date });
     }
     const no3 = getNitrateStatus(e.nitrate);
-    if (no3.status !== "safe") {
+    if (no3.status !== "optimal") {
       alarms.push({ tank: TANK_LABELS[e.tank_id] ?? e.tank_id, parameter: "Nitrate", value: `${e.nitrate} ppm`, color: no3.color, date: e.date });
     }
   }

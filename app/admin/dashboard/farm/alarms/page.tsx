@@ -36,21 +36,34 @@ function checkEntry(e: WaterParameter): AlarmEntry["alarms"] {
   const alarms: AlarmEntry["alarms"] = [];
 
   const doV = validateDO(e.temperature, e.dissolved_oxygen);
-  if (doV && doV.status !== "optimal" && doV.status !== "calibration_error") {
-    const isDanger = doV.status === "critical" || doV.status === "hypoxic";
-    if (isDanger || doV.status === "low") {
-      alarms.push({
-        parameter: "Dissolved Oxygen",
-        value: e.dissolved_oxygen,
-        status: doV.status,
-        color: doV.color,
-        message: doV.message,
-      });
-    }
+  if (doV && doV.status === "danger") {
+    alarms.push({
+      parameter: "Dissolved Oxygen",
+      value: e.dissolved_oxygen,
+      status: doV.status,
+      color: doV.color,
+      message: doV.message,
+    });
+  } else if (doV && doV.status === "warning") {
+    alarms.push({
+      parameter: "Dissolved Oxygen",
+      value: e.dissolved_oxygen,
+      status: doV.status,
+      color: doV.color,
+      message: doV.message,
+    });
+  } else if (doV && doV.status === "supersaturated") {
+    alarms.push({
+      parameter: "Dissolved Oxygen",
+      value: e.dissolved_oxygen,
+      status: doV.status,
+      color: doV.color,
+      message: doV.message,
+    });
   }
 
   const amm = getAmmoniaStatus(e.ammonia);
-  if (amm.status !== "safe") {
+  if (amm.status !== "optimal") {
     alarms.push({
       parameter: "Ammonia (NH₃)",
       value: e.ammonia,
@@ -83,7 +96,7 @@ function checkEntry(e: WaterParameter): AlarmEntry["alarms"] {
   }
 
   const no2 = getNitriteStatus(e.nitrite);
-  if (no2.status !== "safe") {
+  if (no2.status !== "optimal") {
     alarms.push({
       parameter: "Nitrite (NO₂)",
       value: e.nitrite,
@@ -94,7 +107,7 @@ function checkEntry(e: WaterParameter): AlarmEntry["alarms"] {
   }
 
   const no3 = getNitrateStatus(e.nitrate);
-  if (no3.status !== "safe") {
+  if (no3.status !== "optimal") {
     alarms.push({
       parameter: "Nitrate (NO₃)",
       value: e.nitrate,
@@ -132,7 +145,7 @@ export default function BioAlarmsPage() {
       const alarms = checkEntry(e);
       if (alarms.length === 0) return null;
       const hasDanger = alarms.some(
-        (a) => a.status === "danger" || a.status === "critical" || a.status === "hypoxic" || a.status === "high" || a.status === "toxic"
+        (a) => a.status === "danger"
       );
       return {
         entry: e,
