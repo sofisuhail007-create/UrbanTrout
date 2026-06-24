@@ -10,6 +10,10 @@ const SUB_NAV = [
   { href: "/admin/dashboard/farm/tanks", label: "Tanks", icon: "set_meal" },
   { href: "/admin/dashboard/farm/yield", label: "Yield & Costs", icon: "monitoring" },
   { href: "/admin/dashboard/farm/energy", label: "Energy Log", icon: "bolt" },
+  { href: "/admin/dashboard/farm/fcr", label: "FCR & Growth", icon: "calculate" },
+  { href: "/admin/dashboard/farm/harvest", label: "Harvest Forecast", icon: "event" },
+  { href: "/admin/dashboard/farm/costs", label: "Cost of Production", icon: "price_check" },
+  { href: "/admin/dashboard/farm/alarms", label: "Bio-Alarms", icon: "crisis_alert" },
 ];
 
 const TANK_LABELS: Record<string, string> = {

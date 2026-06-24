@@ -26,6 +26,10 @@ const SUB_NAV = [
   { href: "/admin/dashboard/farm/tanks", label: "Tanks", icon: "set_meal" },
   { href: "/admin/dashboard/farm/yield", label: "Yield & Costs", icon: "monitoring" },
   { href: "/admin/dashboard/farm/energy", label: "Energy Log", icon: "bolt" },
+  { href: "/admin/dashboard/farm/fcr", label: "FCR & Growth", icon: "calculate" },
+  { href: "/admin/dashboard/farm/harvest", label: "Harvest Forecast", icon: "event" },
+  { href: "/admin/dashboard/farm/costs", label: "Cost of Production", icon: "price_check" },
+  { href: "/admin/dashboard/farm/alarms", label: "Bio-Alarms", icon: "crisis_alert" },
 ];
 
 const today = () => new Date().toISOString().split("T")[0];
@@ -136,14 +140,17 @@ export default function WaterParametersPage() {
   return (
     <div className="p-6 md:p-8 space-y-8">
       {/* Sub Navigation */}
-      <div className="flex items-center gap-2 border-b border-slate-800 pb-4">
+      <div className="flex items-center gap-2 border-b border-slate-800 pb-4 overflow-x-auto scrollbar-thin">
         {SUB_NAV.map((item) => {
-          const active = pathname === item.href;
+          const active =
+            item.href === "/admin/dashboard/farm"
+              ? pathname === "/admin/dashboard/farm"
+              : pathname.startsWith(item.href);
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-all ${
+              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all whitespace-nowrap flex-shrink-0 ${
                 active
                   ? "bg-cyan-500/15 text-cyan-400 font-semibold"
                   : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-200"

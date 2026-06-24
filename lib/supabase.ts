@@ -43,6 +43,7 @@ export type Customer = {
   total_spent: number
   last_order_at: string | null
   created_at: string
+  notes: string | null
 }
 
 export type InventoryItem = {
