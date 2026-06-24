@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { supabase, type FeedLogEntry } from "@/lib/supabase";
 
-const TANKS = ["tank", "sump"];
+const TANKS = ["tank"];
 const TANK_LABELS: Record<string, string> = {
   tank: "Tank",
   sump: "Sump Tank",
@@ -152,7 +152,7 @@ export default function FeedLogPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
         {/* Total Today */}
         <div className="bg-slate-900/80 border border-cyan-500/20 rounded-xl p-5 space-y-2">
           <p className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Total Feed Today</p>

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { supabase, type TankStocking } from "@/lib/supabase";
 
-const TANKS = ["tank", "sump"];
+const TANKS = ["tank"];
 const TANK_LABELS: Record<string, string> = {
   tank: "Tank",
   sump: "Sump Tank",
@@ -251,7 +251,7 @@ export default function TanksPage() {
       )}
 
       {/* Tank Flash Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 gap-5 max-w-xl">
         {TANKS.map((tankId, idx) => {
           const s = activePer[idx];
           const color = TANK_COLORS[tankId];
