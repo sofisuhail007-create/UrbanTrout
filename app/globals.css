@@ -14,15 +14,15 @@
   --color-surface-variant:        #152834;
   --color-surface-bright:         #1a2e3b;
 
-  --color-primary:                #72ddfd;
-  --color-primary-dim:            #63cfee;
-  --color-primary-fixed:          #72ddfd;
-  --color-primary-fixed-dim:      #63cfee;
-  --color-primary-container:      #3aadcc;
-  --color-on-primary:             #004d5d;
-  --color-on-primary-fixed:       #003844;
-  --color-on-primary-fixed-variant: #005669;
-  --color-on-primary-container:   #002730;
+  --color-primary:                #008cb3;
+  --color-primary-dim:            #007a9e;
+  --color-primary-fixed:          #26aadb;
+  --color-primary-fixed-dim:      #008cb3;
+  --color-primary-container:      #007a9e;
+  --color-on-primary:             #e6f6fb;
+  --color-on-primary-fixed:       #002233;
+  --color-on-primary-fixed-variant: #003d52;
+  --color-on-primary-container:   #001a26;
 
   --color-secondary:              #bce1ff;
   --color-secondary-dim:          #aed3f1;
@@ -49,11 +49,11 @@
   --color-on-surface-variant:     #9fadb8;
   --color-inverse-on-surface:     #4a5760;
   --color-inverse-surface:        #f6faff;
-  --color-inverse-primary:        #00687e;
+  --color-inverse-primary:        #005574;
 
   --color-outline:                #6a7782;
   --color-outline-variant:        #3d4a53;
-  --color-surface-tint:           #72ddfd;
+  --color-surface-tint:           #008cb3;
 
   --color-error:                  #ff716c;
   --color-error-dim:              #d7383b;
@@ -90,8 +90,8 @@ body {
 }
 
 ::selection {
-  background-color: rgba(114, 221, 253, 0.25);
-  color: #72ddfd;
+  background-color: rgba(0, 140, 179, 0.25);
+  color: #26aadb;
 }
 
 /* ─── Material Symbols ─── */
@@ -113,17 +113,17 @@ body {
 
 /* ─── Neon Glow Utilities ─── */
 .neon-glow-text {
-  text-shadow: 0 0 20px rgba(114, 221, 253, 0.5),
-               0 0 40px rgba(114, 221, 253, 0.2);
+  text-shadow: 0 0 20px rgba(0, 140, 179, 0.5),
+               0 0 40px rgba(0, 140, 179, 0.2);
 }
 
 .neon-glow-icon {
-  filter: drop-shadow(0 0 6px rgba(114, 221, 253, 0.7));
+  filter: drop-shadow(0 0 6px rgba(0, 140, 179, 0.7));
 }
 
 .neon-border-glow {
-  box-shadow: 0 0 0 1px rgba(114, 221, 253, 0.15),
-              0 0 30px rgba(114, 221, 253, 0.08);
+  box-shadow: 0 0 0 1px rgba(0, 140, 179, 0.15),
+              0 0 30px rgba(0, 140, 179, 0.08);
 }
 
 /* ─── Glass Components ─── */
@@ -143,7 +143,7 @@ body {
   background: rgba(37, 74, 99, 0.35);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-top: 1px solid rgba(114, 221, 253, 0.18);
+  border-top: 1px solid rgba(0, 140, 179, 0.18);
 }
 
 /* ─── Ghost Border ─── */
@@ -165,7 +165,7 @@ body {
 ::-webkit-scrollbar         { width: 5px; }
 ::-webkit-scrollbar-track   { background: #031018; }
 ::-webkit-scrollbar-thumb   { background: #152834; border-radius: 10px; }
-::-webkit-scrollbar-thumb:hover { background: #3aadcc; }
+::-webkit-scrollbar-thumb:hover { background: #007a9e; }
 
 /* ─── Micro Animations ─── */
 @keyframes shimmer {
@@ -179,9 +179,9 @@ body {
 }
 
 @keyframes pulse-ring {
-  0%   { box-shadow: 0 0 0 0 rgba(114, 221, 253, 0.4); }
-  70%  { box-shadow: 0 0 0 10px rgba(114, 221, 253, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(114, 221, 253, 0); }
+  0%   { box-shadow: 0 0 0 0 rgba(0, 140, 179, 0.4); }
+  70%  { box-shadow: 0 0 0 10px rgba(0, 140, 179, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 140, 179, 0); }
 }
 
 .animate-float { animation: float 4s ease-in-out infinite; }
@@ -194,12 +194,12 @@ input:focus, textarea:focus, select:focus {
 
 /* ─── Section Divider Glow ─── */
 .section-divider {
-  border-top: 1px solid rgba(114, 221, 253, 0.08);
-  box-shadow: 0 -1px 20px rgba(114, 221, 253, 0.04);
+  border-top: 1px solid rgba(0, 140, 179, 0.08);
+  box-shadow: 0 -1px 20px rgba(0, 140, 179, 0.04);
 }
 
 /* ─── Stat Bar ─── */
 .stat-bar {
-  background: linear-gradient(90deg, #72ddfd, #3aadcc);
-  box-shadow: 0 0 12px rgba(114, 221, 253, 0.4);
+  background: linear-gradient(90deg, #26aadb, #008cb3);
+  box-shadow: 0 0 12px rgba(0, 140, 179, 0.4);
 }

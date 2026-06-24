@@ -10,6 +10,20 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        // Brand cyan override — all cyan-* classes now use #008cb3 palette
+        cyan: {
+          50:  "#e6f6fb",
+          100: "#b3e3f3",
+          200: "#80d0eb",
+          300: "#4dbde3",
+          400: "#26aadb",   // lighter (text, hover states)
+          500: "#008cb3",   // ← PRIMARY brand colour
+          600: "#007a9e",   // darker active/pressed
+          700: "#006789",
+          800: "#005574",
+          900: "#003d52",
+          950: "#002233",
+        },
         "on-tertiary": "#135a72",
         "surface-dim": "#031018",
         secondary: "#bce1ff",
