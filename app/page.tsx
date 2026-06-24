@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { products } from "@/lib/data";
 import ProductCard from "@/components/ProductCard";
+import { supabase } from "@/lib/supabase";
 
 export const metadata: Metadata = {
   title: "Urban Trout | Premium Srinagar Aquaculture",
@@ -30,7 +31,13 @@ const metrics = [
   { label: "Growth Cycle", value: "Optimal", icon: "monitoring", bars: [50, 50, 50, 50, 50, 50] },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  const { data: dbProducts } = await supabase.from("inventory").select("*");
+  const updatedProducts = products.map(p => {
+    const dbItem = dbProducts?.find(item => item.product_id === p.id);
+    return dbItem ? { ...p, price: dbItem.price_per_kg } : p;
+  });
+
   return (
     <div style={{ background: C.bg, minHeight: "100vh" }}>
       {/* ── Hero ── */}
@@ -216,7 +223,7 @@ export default function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
-            {products.map(p => (
+            {updatedProducts.map(p => (
               <ProductCard key={p.id} p={p} />
             ))}
           </div>

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import AddToCartButton from "@/components/AddToCartButton";
+import { supabase } from "@/lib/supabase";
 
 export const metadata: Metadata = {
   title: "Whole Rainbow Trout (Non-Gutted)",
@@ -7,7 +8,15 @@ export const metadata: Metadata = {
     "Untouched and pristine rainbow trout, straight from our crystal-clear waters. Ideal for roasting or traditional preparations.",
 };
 
-export default function WholeTroutPage() {
+export default async function WholeTroutPage() {
+  const { data } = await supabase
+    .from("inventory")
+    .select("price_per_kg")
+    .eq("product_id", "whole-trout")
+    .single();
+
+  const price = data ? data.price_per_kg : 500;
+
   return (
     <div className="pt-36 pb-16 px-6 lg:px-12 max-w-7xl mx-auto">
       {/* Product Section */}
@@ -93,7 +102,7 @@ export default function WholeTroutPage() {
             <AddToCartButton
               productId="whole-trout"
               productName="Whole Rainbow Trout (Non-Gutted)"
-              price={500}
+              price={price}
               unit="Kg"
               image="https://lh3.googleusercontent.com/aida-public/AB6AXuCfyCpJNmCwVzBHTZw6kqPtCRfTVXNYWrm9Ixqy89okmBbaSGqKYMtEAZ5Jwv4MOwZIKpC3ugBZ1ISA5EfIUrq2lWmta28vvGV-ygjESie53QYIOJoDMgX9cJJWH5V960DeAviDBjjohZeT4WWrdrHC0tY2VnrZZsvftETpZ8ocCU2eupUdyTEoqKa8lgPe2dIHnERZTds7HMPfLKCtr56KHLPC08YZCzexEINcVe6nIrChDatBpMYRAOjGBVKCP2WsVyZicAZsG-kB"
               showDynamicPrice={true}

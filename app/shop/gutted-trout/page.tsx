@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import AddToCartButton from "@/components/AddToCartButton";
+import { supabase } from "@/lib/supabase";
 
 export const metadata: Metadata = {
   title: "Premium Gutted Rainbow Trout",
@@ -7,7 +8,15 @@ export const metadata: Metadata = {
     "Expertly cleaned, gutted, and prepared for immediate cooking. Preserving flavor through precision cold-chain management.",
 };
 
-export default function GuttedTroutPage() {
+export default async function GuttedTroutPage() {
+  const { data } = await supabase
+    .from("inventory")
+    .select("price_per_kg")
+    .eq("product_id", "gutted-trout")
+    .single();
+
+  const price = data ? data.price_per_kg : 550;
+
   return (
     <div className="pt-36 pb-16 px-6 lg:px-12 max-w-7xl mx-auto">
       {/* Product Section */}
@@ -92,7 +101,7 @@ export default function GuttedTroutPage() {
             <AddToCartButton
               productId="gutted-trout"
               productName="Premium Gutted Rainbow Trout"
-              price={550}
+              price={price}
               unit="Kg"
               image="/images/gutted_trout_premium.png"
               showDynamicPrice={true}

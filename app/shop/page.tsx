@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 
@@ -11,8 +11,26 @@ const C = {
 
 import { products } from "@/lib/data";
 import ProductCard from "@/components/ProductCard";
+import { supabase } from "@/lib/supabase";
 
 export default function ShopPage() {
+  const [productList, setProductList] = useState(products);
+
+  useEffect(() => {
+    async function loadPrices() {
+      const { data } = await supabase.from("inventory").select("*");
+      if (data) {
+        setProductList(prev => 
+          prev.map(p => {
+            const dbItem = data.find(item => item.product_id === p.id);
+            return dbItem ? { ...p, price: dbItem.price_per_kg } : p;
+          })
+        );
+      }
+    }
+    loadPrices();
+  }, []);
+
   return (
     <div style={{ background: C.bg, minHeight: "100vh" }}>
       {/* ── Header ── */}
@@ -34,7 +52,7 @@ export default function ShopPage() {
 
         {/* Products Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12">
-          {products.map((p) => <ProductCard key={p.id} p={p} />)}
+          {productList.map((p) => <ProductCard key={p.id} p={p} />)}
         </div>
       </section>
 
