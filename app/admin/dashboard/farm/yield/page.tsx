@@ -13,10 +13,8 @@ const SUB_NAV = [
 ];
 
 const TANK_LABELS: Record<string, string> = {
-  tank_a: "Tank A",
-  tank_b: "Tank B",
-  tank_c: "Tank C",
-  tank_d: "Tank D",
+  tank: "Tank",
+  sump: "Sump Tank",
 };
 
 export default function YieldPage() {

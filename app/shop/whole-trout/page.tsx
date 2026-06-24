@@ -227,7 +227,7 @@ export default async function WholeTroutPage() {
               </p>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-8 pt-8">
                 {[
-                  { label: "Nitrate", val: "< 5mg/L" },
+                  { label: "Nitrate", val: "< 5ppm" },
                   { label: "Oxygen", val: "99.8%" },
                   { label: "UV Index", val: "High" },
                   { label: "Pesticides", val: "0.0%" },

@@ -14,12 +14,10 @@ import {
   type DOValidation,
 } from "@/lib/do-saturation";
 
-const TANKS = ["tank_a", "tank_b", "tank_c", "tank_d"];
+const TANKS = ["tank", "sump"];
 const TANK_LABELS: Record<string, string> = {
-  tank_a: "Tank A",
-  tank_b: "Tank B",
-  tank_c: "Tank C",
-  tank_d: "Tank D",
+  tank: "Tank",
+  sump: "Sump Tank",
 };
 
 const SUB_NAV = [
@@ -41,7 +39,7 @@ export default function WaterParametersPage() {
 
   // Form state
   const [form, setForm] = useState({
-    tank_id: "tank_a",
+    tank_id: "tank",
     date: today(),
     dissolved_oxygen: "",
     ammonia: "",
@@ -115,11 +113,11 @@ export default function WaterParametersPage() {
       Tank: TANK_LABELS[r.tank_id] || r.tank_id,
       "DO (mg/L)": r.dissolved_oxygen,
       "Max DO at Temp": getMaxDO(r.temperature) ?? "-",
-      "Ammonia (mg/L)": r.ammonia,
+      "Ammonia (ppm)": r.ammonia,
       pH: r.ph,
       "Temp (°C)": r.temperature,
-      "Nitrite (mg/L)": r.nitrite,
-      "Nitrate (mg/L)": r.nitrate,
+      "Nitrite (ppm)": r.nitrite,
+      "Nitrate (ppm)": r.nitrate,
       Notes: r.notes || "",
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
@@ -322,7 +320,7 @@ export default function WaterParametersPage() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {/* Ammonia */}
           <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Ammonia (mg/L)</label>
+            <label className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Ammonia (ppm)</label>
             <input
               type="number"
               step="0.001"
@@ -346,7 +344,7 @@ export default function WaterParametersPage() {
           </div>
           {/* Nitrite */}
           <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Nitrite (mg/L)</label>
+            <label className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Nitrite (ppm)</label>
             <input
               type="number"
               step="0.01"
@@ -358,7 +356,7 @@ export default function WaterParametersPage() {
           </div>
           {/* Nitrate */}
           <div className="space-y-1">
-            <label className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Nitrate (mg/L)</label>
+            <label className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Nitrate (ppm)</label>
             <input
               type="number"
               step="0.1"
@@ -409,10 +407,10 @@ export default function WaterParametersPage() {
                 <th className="text-center px-4 py-3">DO (mg/L)</th>
                 <th className="text-center px-4 py-3">Max DO</th>
                 <th className="text-center px-4 py-3">Sat %</th>
-                <th className="text-center px-4 py-3">NH₃</th>
+                <th className="text-center px-4 py-3">NH₃ (ppm)</th>
                 <th className="text-center px-4 py-3">pH</th>
-                <th className="text-center px-4 py-3">NO₂</th>
-                <th className="text-center px-4 py-3">NO₃</th>
+                <th className="text-center px-4 py-3">NO₂ (ppm)</th>
+                <th className="text-center px-4 py-3">NO₃ (ppm)</th>
                 <th className="text-left px-4 py-3">Notes</th>
               </tr>
             </thead>

@@ -17,7 +17,7 @@ const metrics = [
   { icon: "science", label: "pH Level", val: "7.2", unit: "pH", trend: "trending_up", msg: "Optimal range stabilized", color: "#72ddfd" },
   { icon: "air", label: "Dissolved O₂", val: "9.4", unit: "mg/L", trend: "check_circle", msg: "Saturated atmosphere", color: "#63cfee" },
   { icon: "thermostat", label: "Cold-Chain", val: "14.1", unit: "°C", trend: "remove", msg: "Constant alpine temp", color: "#aed3f1" },
-  { icon: "water_drop", label: "Bio-Filter", val: "0.02", unit: "mg/L", trend: "verified_user", msg: "Ultra-pure detection", color: "#c4ebff" },
+  { icon: "water_drop", label: "Bio-Filter", val: "0.02", unit: "ppm", trend: "verified_user", msg: "Ultra-pure detection", color: "#c4ebff" },
 ];
 
 export default function OurFarmPage() {

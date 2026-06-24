@@ -4,18 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { supabase, type TankStocking } from "@/lib/supabase";
 
-const TANKS = ["tank_a", "tank_b", "tank_c", "tank_d"];
+const TANKS = ["tank", "sump"];
 const TANK_LABELS: Record<string, string> = {
-  tank_a: "Tank A",
-  tank_b: "Tank B",
-  tank_c: "Tank C",
-  tank_d: "Tank D",
+  tank: "Tank",
+  sump: "Sump Tank",
 };
 const TANK_COLORS: Record<string, string> = {
-  tank_a: "#22d3ee",
-  tank_b: "#a78bfa",
-  tank_c: "#34d399",
-  tank_d: "#fb923c",
+  tank: "#22d3ee",
+  sump: "#a78bfa",
 };
 
 const SUB_NAV = [
@@ -35,7 +31,7 @@ export default function TanksPage() {
   const [editId, setEditId] = useState<string | null>(null);
 
   const [form, setForm] = useState({
-    tank_id: "tank_a",
+    tank_id: "tank",
     stocking_date: new Date().toISOString().split("T")[0],
     fish_count: "",
     avg_size_grams: "",
@@ -62,7 +58,7 @@ export default function TanksPage() {
   }, [fetchStockings]);
 
   const resetForm = () => {
-    setForm({ tank_id: "tank_a", stocking_date: new Date().toISOString().split("T")[0], fish_count: "", avg_size_grams: "", current_avg_size_grams: "", feed_percentage: "", fingerling_cost: "", feed_cost_per_kg: "", batch_name: "", notes: "" });
+    setForm({ tank_id: "tank", stocking_date: new Date().toISOString().split("T")[0], fish_count: "", avg_size_grams: "", current_avg_size_grams: "", feed_percentage: "", fingerling_cost: "", feed_cost_per_kg: "", batch_name: "", notes: "" });
     setEditId(null);
   };
 
@@ -255,7 +251,7 @@ export default function TanksPage() {
       )}
 
       {/* Tank Flash Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
         {TANKS.map((tankId, idx) => {
           const s = activePer[idx];
           const color = TANK_COLORS[tankId];

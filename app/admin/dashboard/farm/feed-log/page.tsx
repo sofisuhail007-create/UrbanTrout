@@ -4,12 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { supabase, type FeedLogEntry } from "@/lib/supabase";
 
-const TANKS = ["tank_a", "tank_b", "tank_c", "tank_d"];
+const TANKS = ["tank", "sump"];
 const TANK_LABELS: Record<string, string> = {
-  tank_a: "Tank A",
-  tank_b: "Tank B",
-  tank_c: "Tank C",
-  tank_d: "Tank D",
+  tank: "Tank",
+  sump: "Sump Tank",
 };
 
 const FEED_TYPES = [
@@ -38,7 +36,7 @@ export default function FeedLogPage() {
   const [saving, setSaving] = useState(false);
 
   const [form, setForm] = useState({
-    tank_id: "tank_a",
+    tank_id: "tank",
     date: today(),
     feed_type: "Grower (6.0mm)",
     quantity_kg: "",
@@ -154,7 +152,7 @@ export default function FeedLogPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {/* Total Today */}
         <div className="bg-slate-900/80 border border-cyan-500/20 rounded-xl p-5 space-y-2">
           <p className="text-[10px] uppercase tracking-wider text-slate-500 font-semibold">Total Feed Today</p>
