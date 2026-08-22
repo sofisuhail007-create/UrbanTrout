@@ -30,7 +30,7 @@ const sections = [
   },
   {
     title: "Contact",
-    body: "For any privacy-related concerns, please contact us at hello@urbantrout.in or call +91 70066 04148.",
+    body: "For any privacy-related concerns, please contact us at info.urbantrout@gmail.com or call/WhatsApp +91 84910 06127 (Alt: +91 70066 04148).",
   },
 ];
 

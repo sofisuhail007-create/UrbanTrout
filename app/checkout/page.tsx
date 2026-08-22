@@ -224,7 +224,7 @@ export default function CheckoutPage() {
                 });
 
                 const encodedMessage = encodeURIComponent(message);
-                window.open(`https://wa.me/917006604148?text=${encodedMessage}`, "_blank");
+                window.open(`https://wa.me/918491006127?text=${encodedMessage}`, "_blank");
               }}>
 
                 {/* Delivery Address */}

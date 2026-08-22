@@ -30,7 +30,7 @@ const sections = [
   },
   {
     title: "Quality Guarantee",
-    body: "All fish is dispatched within 4 hours of harvest, chilled to 1.5°C, and packed in bio-thermal insulation. If you are unsatisfied with the quality upon delivery, please contact us within 2 hours at +91 70066 04148.",
+    body: "All fish is dispatched fresh, chilled in ice, and packed in bio-thermal insulation. If you are unsatisfied with the quality upon delivery, please contact us immediately at +91 84910 06127.",
   },
   {
     title: "Cancellation",
@@ -38,7 +38,7 @@ const sections = [
   },
   {
     title: "Contact",
-    body: "For any questions or concerns, contact us at hello@urbantrout.in or +91 70066 04148.",
+    body: "For any questions or concerns, contact us at info.urbantrout@gmail.com or +91 84910 06127 (Alt: +91 70066 04148).",
   },
 ];
 

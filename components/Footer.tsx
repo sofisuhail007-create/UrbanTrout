@@ -107,18 +107,45 @@ export default function Footer() {
             <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.84rem", color: C.onSurfVar }}>Malabagh, Naseem Bagh</p>
             <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.84rem", color: C.onSurfVar }}>Srinagar — 190006</p>
             <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.76rem", color: C.outline }}>Near R P School (Girls Wing)</p>
-            <a
-              href="tel:+917006604148"
-              style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "0.95rem", fontWeight: 700, color: C.primary, textDecoration: "none", marginTop: "4px" }}
-            >
-              +91 70066 04148
-            </a>
+            
+            {/* Primary number */}
+            <div style={{ marginTop: "6px", display: "flex", flexDirection: "column", gap: "2px" }}>
+              <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", letterSpacing: "0.15em", textTransform: "uppercase", color: C.outline }}>Primary & WhatsApp</span>
+              <a
+                href="tel:+918491006127"
+                style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1rem", fontWeight: 700, color: C.primary, textDecoration: "none" }}
+              >
+                +91 84910 06127
+              </a>
+            </div>
+
+            {/* Alternate number */}
+            <div style={{ marginTop: "4px", display: "flex", flexDirection: "column", gap: "2px" }}>
+              <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", letterSpacing: "0.15em", textTransform: "uppercase", color: C.outline }}>Alternate</span>
+              <a
+                href="tel:+917006604148"
+                style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "0.88rem", fontWeight: 600, color: C.onSurfVar, textDecoration: "none" }}
+              >
+                +91 70066 04148
+              </a>
+            </div>
+
+            {/* Email */}
+            <div style={{ marginTop: "4px" }}>
+              <a
+                href="mailto:info.urbantrout@gmail.com"
+                style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.82rem", color: C.onSurfVar, textDecoration: "none" }}
+                className="hover:text-primary transition-colors"
+              >
+                info.urbantrout@gmail.com
+              </a>
+            </div>
           </div>
           {/* Social links */}
           <div style={{ display: "flex", gap: "10px" }}>
             {/* WhatsApp */}
             <a
-              href="https://wa.me/917006604148"
+              href="https://wa.me/918491006127"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center justify-center rounded-xl transition-all"
@@ -143,7 +170,7 @@ export default function Footer() {
             </a>
             {/* Email */}
             <a
-              href="mailto:hello@urbantrout.in"
+              href="mailto:info.urbantrout@gmail.com"
               className="flex items-center justify-center rounded-xl transition-all"
               style={{
                 width: "38px", height: "38px",
