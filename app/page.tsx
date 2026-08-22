@@ -85,7 +85,7 @@ export default async function HomePage() {
       />
 
       {/* ── Hero ── */}
-      <section style={{ position: "relative", height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-28 pb-16">
         <style dangerouslySetInnerHTML={{ __html: `
           @keyframes heroDrift {
             0% { transform: scale(1.05) translate(0px, 0px) rotate(0deg); }
@@ -143,7 +143,7 @@ export default async function HomePage() {
           <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "11px", letterSpacing: "0.25em", textTransform: "uppercase", color: C.primary, display: "block", marginBottom: "1rem" }}>
             Fresh Farm Catch • Srinagar, Kashmir
           </span>
-          <h1 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "clamp(3.5rem, 10vw, 7rem)", fontWeight: 800, letterSpacing: "-0.04em", lineHeight: 0.88, color: "#dfedf9", marginBottom: "1.75rem" }}>
+          <h1 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "clamp(3.25rem, 9vw, 6.5rem)", fontWeight: 800, letterSpacing: "-0.04em", lineHeight: 0.9, color: "#dfedf9", marginBottom: "1.75rem" }}>
             Fresh. Local.<br />
             <span style={{ color: "#72ddfd", textShadow: "0 0 40px rgba(114,221,253,0.5), 0 0 80px rgba(114,221,253,0.2)" }}>
               Rainbow Trout.
@@ -169,63 +169,79 @@ export default async function HomePage() {
         </div>
 
         {/* Scroll hint */}
-        <div style={{ position: "absolute", bottom: "2.5rem", left: "50%", transform: "translateX(-50%)", display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", opacity: 0.4 }}>
+        <div style={{ position: "absolute", bottom: "2rem", left: "50%", transform: "translateX(-50%)", display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", opacity: 0.4 }}>
           <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", letterSpacing: "0.25em", textTransform: "uppercase" }}>Scroll</span>
-          <div style={{ width: "1px", height: "48px", background: "linear-gradient(to bottom, #72ddfd, transparent)" }} />
+          <div style={{ width: "1px", height: "36px", background: "linear-gradient(to bottom, #72ddfd, transparent)" }} />
         </div>
       </section>
 
       {/* ── Why Choose Urban Trout ── */}
-      <section style={{ padding: "8rem 1.5rem", background: C.bg, position: "relative", overflow: "hidden" }}>
+      <section style={{ padding: "6rem 1.5rem", background: C.bg, position: "relative", overflow: "hidden" }}>
         {/* Decorative glow */}
         <div style={{ position: "absolute", top: "50%", right: 0, transform: "translate(50%, -50%)", width: "500px", height: "500px", background: "radial-gradient(circle, rgba(114,221,253,0.05) 0%, transparent 70%)", pointerEvents: "none" }} />
 
-        <div style={{ maxWidth: "1280px", margin: "0 auto" }}>
+        <div className="max-w-7xl mx-auto">
           {/* Section header */}
-          <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "5rem", gap: "2rem" }}>
+          <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
             <div>
-              <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", color: C.primary, display: "block", marginBottom: "1rem" }}>Freshness Guaranteed</span>
-              <h2 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "clamp(2.5rem, 5vw, 4rem)", fontWeight: 800, letterSpacing: "-0.03em", lineHeight: 1, color: C.onSurface, margin: 0 }}>
+              <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", color: C.primary, display: "block", marginBottom: "0.75rem" }}>Freshness Guaranteed</span>
+              <h2 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "clamp(2.25rem, 5vw, 3.5rem)", fontWeight: 800, letterSpacing: "-0.03em", lineHeight: 1, color: C.onSurface, margin: 0 }}>
                 Why Choose<br />
                 <span style={{ color: "#63cfee" }}>Urban Trout?</span>
               </h2>
             </div>
-            <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfaceVariant, maxWidth: "340px", textAlign: "right", lineHeight: 1.7, borderRight: `2px solid rgba(114,221,253,0.2)`, paddingRight: "1.5rem", fontSize: "0.95rem" }}>
+            <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfaceVariant, maxWidth: "360px", lineHeight: 1.7, borderLeft: `2px solid rgba(114,221,253,0.3)`, paddingLeft: "1.25rem", fontSize: "0.95rem" }}>
               Clean borewell water, zero antibiotics, and harvested fresh right here in Srinagar.
             </p>
           </div>
 
-          {/* Bento Grid */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(12, 1fr)", gap: "1.25rem" }}>
+          {/* Bento Grid - Robust & Responsive */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Large: Borewell */}
-            <div className="group hover:border-[#72ddfd]/15" style={{ gridColumn: "span 12", position: "relative", overflow: "hidden", borderRadius: "16px", background: C.bgLow, border: "1px solid rgba(255,255,255,0.04)", minHeight: "260px", transition: "all 0.5s" }}>
-              <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuAw2idJIrz9hjno5I1VpNsfjqfQnhqLPidbIRKttyWvaFYDCXn39gfFxbhzDkp01U8HcCCb9gTEBrCeOymPH_AzeyZBx_Yx8hr7s1Y71Cw3EAJseHs-q4N5ZCwSLxM0_DIj89VHy2rnRL-9hfVugHv39MDQ_0m368etR-norK3BNf3JBvjTaos9qVnQIaHfv3D_48h2G4W8T2Y3SlQjou3TtMSflhEb6T3b6RY5bbBsllLqCkQ2TvW96_cxg9sPUysMkjb6hK1naVV3"
-                alt="Clean borewell water trout farm Srinagar" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: 0.15 }} />
-              <div style={{ position: "relative", height: "100%", padding: "2.5rem", display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
-                <span className="material-symbols-outlined" style={{ fontSize: "36px", color: C.primary, marginBottom: "0.75rem", filter: "drop-shadow(0 0 8px #72ddfd)" }}>waves</span>
+            <div
+              className="md:col-span-2 group relative overflow-hidden rounded-2xl p-8 md:p-10 flex flex-col justify-end min-h-[280px] transition-all hover:border-[#72ddfd]/30"
+              style={{ background: C.bgLow, border: "1px solid rgba(255,255,255,0.06)" }}
+            >
+              <img
+                src="https://lh3.googleusercontent.com/aida-public/AB6AXuAw2idJIrz9hjno5I1VpNsfjqfQnhqLPidbIRKttyWvaFYDCXn39gfFxbhzDkp01U8HcCCb9gTEBrCeOymPH_AzeyZBx_Yx8hr7s1Y71Cw3EAJseHs-q4N5ZCwSLxM0_DIj89VHy2rnRL-9hfVugHv39MDQ_0m368etR-norK3BNf3JBvjTaos9qVnQIaHfv3D_48h2G4W8T2Y3SlQjou3TtMSflhEb6T3b6RY5bbBsllLqCkQ2TvW96_cxg9sPUysMkjb6hK1naVV3"
+                alt="Clean borewell water trout farm Srinagar"
+                className="absolute inset-0 w-full h-full object-cover opacity-20 group-hover:scale-105 transition-transform duration-700 pointer-events-none"
+              />
+              <div className="relative z-10">
+                <span className="material-symbols-outlined" style={{ fontSize: "36px", color: C.primary, marginBottom: "0.75rem", display: "block", filter: "drop-shadow(0 0 8px #72ddfd)" }}>waves</span>
                 <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.75rem", fontWeight: 700, margin: "0 0 0.5rem", color: C.onSurface }}>100% Deep Borewell Water</h3>
-                <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfaceVariant, maxWidth: "560px", lineHeight: 1.7, margin: 0, fontSize: "0.95rem" }}>
+                <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfaceVariant, maxWidth: "600px", lineHeight: 1.7, margin: 0, fontSize: "0.95rem" }}>
                   Raised in clean, filtered groundwater isolated from surface runoff, open canal pollution, and river silt.
                 </p>
               </div>
             </div>
 
             {/* Zero Antibiotics */}
-            <div style={{ gridColumn: "span 12 md:span 6", background: C.bgHigh, borderRadius: "16px", border: "1px solid rgba(255,255,255,0.04)", padding: "2.5rem" }}>
-              <span className="material-symbols-outlined" style={{ fontSize: "36px", color: "#63cfee", marginBottom: "1rem", display: "block", filter: "drop-shadow(0 0 6px #63cfee)" }}>eco</span>
-              <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.5rem", fontWeight: 700, color: C.onSurface, margin: "0 0 0.75rem" }}>Zero Antibiotics</h3>
-              <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfaceVariant, fontSize: "0.9rem", lineHeight: 1.7, margin: 0 }}>
-                Continuous clean water flow keeps fish naturally healthy, with zero chemical treatments or growth boosters.
-              </p>
+            <div
+              className="rounded-2xl p-8 md:p-10 flex flex-col justify-between transition-all hover:border-[#72ddfd]/30"
+              style={{ background: C.bgHigh, border: "1px solid rgba(255,255,255,0.06)" }}
+            >
+              <div>
+                <span className="material-symbols-outlined" style={{ fontSize: "36px", color: "#63cfee", marginBottom: "1rem", display: "block", filter: "drop-shadow(0 0 6px #63cfee)" }}>eco</span>
+                <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.4rem", fontWeight: 700, color: C.onSurface, margin: "0 0 0.75rem" }}>Zero Antibiotics</h3>
+                <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfaceVariant, fontSize: "0.9rem", lineHeight: 1.7, margin: 0 }}>
+                  Continuous clean water flow keeps fish naturally healthy, with zero chemical treatments or growth boosters.
+                </p>
+              </div>
             </div>
 
             {/* Harvested to Order */}
-            <div style={{ gridColumn: "span 12 md:span 6", background: C.bgHigh, borderRadius: "16px", border: "1px solid rgba(255,255,255,0.04)", padding: "2.5rem" }}>
-              <span className="material-symbols-outlined" style={{ fontSize: "36px", color: C.primary, marginBottom: "1rem", display: "block" }}>timer</span>
-              <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.5rem", fontWeight: 700, color: C.onSurface, margin: "0 0 0.75rem" }}>Harvested to Order</h3>
-              <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfaceVariant, fontSize: "0.9rem", lineHeight: 1.7, margin: 0 }}>
-                We don&apos;t store dead fish in deep freezers. We harvest exclusively when you place an order for unmatched firmness.
-              </p>
+            <div
+              className="rounded-2xl p-8 md:p-10 flex flex-col justify-between transition-all hover:border-[#72ddfd]/30"
+              style={{ background: C.bgHigh, border: "1px solid rgba(255,255,255,0.06)" }}
+            >
+              <div>
+                <span className="material-symbols-outlined" style={{ fontSize: "36px", color: C.primary, marginBottom: "1rem", display: "block" }}>timer</span>
+                <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.4rem", fontWeight: 700, color: C.onSurface, margin: "0 0 0.75rem" }}>Harvested to Order</h3>
+                <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfaceVariant, fontSize: "0.9rem", lineHeight: 1.7, margin: 0 }}>
+                  We don&apos;t store dead fish in deep freezers. We harvest exclusively when you place an order for unmatched firmness.
+                </p>
+              </div>
             </div>
           </div>
         </div>
@@ -233,12 +249,12 @@ export default async function HomePage() {
 
       {/* ── Farm Conditions Strip ── */}
       <section style={{ padding: "4rem 1.5rem", borderTop: "1px solid rgba(114,221,253,0.07)", borderBottom: "1px solid rgba(114,221,253,0.07)", background: C.bgLow }}>
-        <div style={{ maxWidth: "1280px", margin: "0 auto" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "2rem" }}>
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {farmConditions.map((item, i) => (
-              <div key={i} style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+              <div key={i} className="flex flex-col gap-2">
                 <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.15em", color: C.onSurfaceVariant }}>{item.label}</span>
-                <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "2rem", fontWeight: 800, color: C.primary, letterSpacing: "-0.02em" }}>{item.value}</span>
+                <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "clamp(1.75rem, 3vw, 2.25rem)", fontWeight: 800, color: C.primary, letterSpacing: "-0.02em" }}>{item.value}</span>
                 <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.8rem", color: C.outline }}>{item.sub}</span>
               </div>
             ))}
@@ -247,14 +263,14 @@ export default async function HomePage() {
       </section>
 
       {/* ── Product Preview ── */}
-      <section style={{ padding: "7rem 1.5rem", background: C.bg }}>
-        <div style={{ maxWidth: "1280px", margin: "0 auto" }}>
+      <section style={{ padding: "6rem 1.5rem", background: C.bg }}>
+        <div className="max-w-7xl mx-auto">
           <div style={{ textAlign: "center", marginBottom: "3.5rem" }}>
             <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", color: C.primary, display: "block", marginBottom: "1rem" }}>Fresh Catch Srinagar</span>
-            <h2 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "clamp(2rem, 4vw, 3.5rem)", fontWeight: 800, letterSpacing: "-0.03em", color: C.onSurface, margin: 0 }}>Buy Fresh Rainbow Trout</h2>
+            <h2 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "clamp(2rem, 4vw, 3.25rem)", fontWeight: 800, letterSpacing: "-0.03em", color: C.onSurface, margin: 0 }}>Buy Fresh Rainbow Trout</h2>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {updatedProducts.map(p => (
               <ProductCard key={p.id} p={p} />
             ))}
@@ -297,7 +313,7 @@ export default async function HomePage() {
 
       {/* ── Trust Bar ── */}
       <section style={{ padding: "4rem 1.5rem", borderTop: "1px solid rgba(114,221,253,0.07)", background: C.bg }}>
-        <div style={{ maxWidth: "1280px", margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "2rem" }}>
+        <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6">
           {[
             { icon: "water_drop", title: "Fresh from Our Farm", sub: "Naseem Bagh, Srinagar" },
             { icon: "verified", title: "Zero Antibiotics", sub: "100% clean & natural" },
