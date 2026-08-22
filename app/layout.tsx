@@ -7,6 +7,7 @@ import { CartProvider } from "@/context/CartContext";
 import { Toaster } from "react-hot-toast";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://urbantrout.in"),
   title: {
     default: "Urban Trout | Premium Srinagar Aquaculture",
     template: "%s | Urban Trout",
