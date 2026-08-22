@@ -17,69 +17,161 @@ export default function ProductCard({ p }: { p: Product }) {
   };
 
   return (
-    <div className="group flex flex-col w-full mx-auto rounded-3xl overflow-hidden bg-surface-container-high border border-outline-variant/10 hover:border-primary/30 transition-colors shadow-lg">
-      {/* Image container */}
-      <div className="relative aspect-[4/3] md:aspect-[16/10] overflow-hidden">
-        <img 
-          src={p.img} 
-          alt={p.name} 
-          className="w-full h-full object-cover mix-blend-luminosity hover:mix-blend-normal transition-all duration-700 group-hover:scale-105" 
+    <div
+      className="group flex flex-col w-full rounded-2xl overflow-hidden transition-all duration-300"
+      style={{
+        background: "rgba(16, 33, 44, 0.9)",
+        border: "1px solid rgba(61, 74, 83, 0.5)",
+        boxShadow: "0 4px 24px rgba(0,0,0,0.3)",
+      }}
+      onMouseEnter={(e) => {
+        (e.currentTarget as HTMLElement).style.border = "1px solid rgba(114,221,253,0.3)";
+        (e.currentTarget as HTMLElement).style.boxShadow = "0 8px 40px rgba(114,221,253,0.12), 0 4px 24px rgba(0,0,0,0.4)";
+      }}
+      onMouseLeave={(e) => {
+        (e.currentTarget as HTMLElement).style.border = "1px solid rgba(61, 74, 83, 0.5)";
+        (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 24px rgba(0,0,0,0.3)";
+      }}
+    >
+      {/* Image */}
+      <div className="relative overflow-hidden" style={{ aspectRatio: "16/9" }}>
+        <img
+          src={p.img}
+          alt={p.name}
+          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-surface-container-high/90 via-surface-container-high/20 to-transparent pointer-events-none" />
-        
-        <span className="absolute top-4 left-4 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 font-label text-[10px] uppercase tracking-widest text-primary backdrop-blur-sm">
+        {/* Gradient overlay — subtle, only at bottom */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{ background: "linear-gradient(to top, rgba(16,33,44,0.85) 0%, rgba(16,33,44,0.1) 50%, transparent 100%)" }}
+        />
+
+        {/* Label badge */}
+        <span
+          className="absolute top-4 left-4 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest backdrop-blur-sm"
+          style={{
+            background: "rgba(114,221,253,0.12)",
+            border: "1px solid rgba(114,221,253,0.35)",
+            color: "#72ddfd",
+            fontFamily: '"Inter", sans-serif',
+          }}
+        >
           {p.label}
         </span>
-        
-        <Link 
+
+        {/* Details link */}
+        <Link
           href={`/shop/${p.id}`}
-          className="absolute top-4 right-4 px-3 py-1 rounded-full bg-black/40 border border-white/10 font-label text-[10px] uppercase tracking-widest text-on-surface-variant backdrop-blur-sm hover:text-white transition-colors"
+          className="absolute top-4 right-4 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest backdrop-blur-sm transition-all duration-200"
+          style={{
+            background: "rgba(0,0,0,0.45)",
+            border: "1px solid rgba(255,255,255,0.12)",
+            color: "#9fadb8",
+            fontFamily: '"Inter", sans-serif',
+          }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLElement).style.color = "#ffffff";
+            (e.currentTarget as HTMLElement).style.border = "1px solid rgba(255,255,255,0.3)";
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLElement).style.color = "#9fadb8";
+            (e.currentTarget as HTMLElement).style.border = "1px solid rgba(255,255,255,0.12)";
+          }}
         >
-          DETAILS →
+          Details →
         </Link>
       </div>
 
       {/* Body */}
-      <div className="p-6 md:p-8 flex flex-col gap-5 flex-grow">
+      <div className="flex flex-col gap-4 p-6">
+        {/* Name + Description */}
         <div>
-          <h2 className="font-headline text-2xl md:text-3xl font-bold text-on-surface tracking-tight mb-2 line-clamp-1">{p.name}</h2>
-          <p className="font-body text-sm md:text-base text-on-surface-variant leading-relaxed line-clamp-2">{p.desc}</p>
+          <h2
+            className="font-bold tracking-tight mb-1"
+            style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.35rem", color: "#dfedf9" }}
+          >
+            {p.name}
+          </h2>
+          <p
+            className="leading-relaxed line-clamp-2"
+            style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.84rem", color: "#9fadb8" }}
+          >
+            {p.desc}
+          </p>
         </div>
 
-        <div className="flex items-baseline gap-1.5">
-          <span className="font-headline text-2xl font-bold text-primary">₹{p.price}</span>
-          <span className="font-label text-xs text-on-surface-variant">/ {p.unit}</span>
+        {/* Price */}
+        <div className="flex items-baseline gap-1">
+          <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "0.95rem", color: "#9fadb8", fontWeight: 600 }}>₹</span>
+          <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.75rem", fontWeight: 800, color: "#72ddfd", letterSpacing: "-0.03em" }}>
+            {p.price.toLocaleString("en-IN")}
+          </span>
+          <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.8rem", color: "#6a7782", marginLeft: "2px" }}>/ {p.unit}</span>
         </div>
 
-        {/* Qty + Add UI Update */}
-        <div className="flex flex-wrap gap-3 items-center mt-auto pt-2">
-          <div className="flex items-center bg-surface-container-highest rounded-lg border border-primary/10 overflow-hidden min-w-[110px] flex-shrink-0">
-            <button 
-              onClick={() => setQty(q => Math.max(1, q - 1))} 
-              className="w-9 h-11 flex items-center justify-center text-primary hover:bg-primary/10 transition-colors"
+        {/* Divider */}
+        <div style={{ height: "1px", background: "rgba(61,74,83,0.5)" }} />
+
+        {/* Qty + Add to Cart */}
+        <div className="flex items-center gap-3">
+          {/* Quantity control */}
+          <div
+            className="flex items-center rounded-xl overflow-hidden flex-shrink-0"
+            style={{ background: "rgba(3,16,24,0.8)", border: "1px solid rgba(61,74,83,0.6)" }}
+          >
+            <button
+              onClick={() => setQty((q) => Math.max(1, q - 1))}
+              className="flex items-center justify-center transition-colors duration-150"
+              style={{ width: "38px", height: "40px", color: "#72ddfd" }}
+              onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(114,221,253,0.1)")}
+              onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "transparent")}
+              aria-label="Decrease"
             >
-              <span className="material-symbols-outlined text-base">remove</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
             </button>
-            <span className="flex-1 text-center font-headline font-bold text-sm text-on-surface">
+            <span
+              className="text-center font-bold"
+              style={{ minWidth: "52px", fontFamily: '"Space Grotesk", sans-serif', fontSize: "0.85rem", color: "#dfedf9" }}
+            >
               {qty} {p.unit}
             </span>
-            <button 
-              onClick={() => setQty(q => q + 1)} 
-              className="w-9 h-11 flex items-center justify-center text-primary hover:bg-primary/10 transition-colors"
+            <button
+              onClick={() => setQty((q) => q + 1)}
+              className="flex items-center justify-center transition-colors duration-150"
+              style={{ width: "38px", height: "40px", color: "#72ddfd" }}
+              onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(114,221,253,0.1)")}
+              onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "transparent")}
+              aria-label="Increase"
             >
-              <span className="material-symbols-outlined text-base">add</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
             </button>
           </div>
-          
-          <button 
-            onClick={handleAdd} 
-            className={`flex-1 h-11 rounded-lg font-headline font-bold text-xs uppercase tracking-widest transition-all ${
-              added 
-                ? "bg-primary/15 text-primary border border-primary/30 shadow-none" 
-                : "bg-primary-container text-on-primary-container border border-transparent shadow-[0_0_15px_rgba(58,173,204,0.2)] hover:brightness-110 active:scale-95"
-            }`}
+
+          {/* Add to Cart */}
+          <button
+            onClick={handleAdd}
+            className="flex-1 relative overflow-hidden rounded-xl font-bold uppercase tracking-widest text-xs transition-all duration-200 active:scale-95"
+            style={{
+              height: "40px",
+              fontFamily: '"Space Grotesk", sans-serif',
+              background: added ? "rgba(114,221,253,0.15)" : "#3aadcc",
+              color: added ? "#72ddfd" : "#002730",
+              border: added ? "1px solid rgba(114,221,253,0.4)" : "1px solid transparent",
+              boxShadow: added ? "none" : "0 0 20px rgba(58,173,204,0.35)",
+            }}
+            onMouseEnter={(e) => {
+              if (!added) (e.currentTarget as HTMLElement).style.boxShadow = "0 0 30px rgba(58,173,204,0.55)";
+            }}
+            onMouseLeave={(e) => {
+              if (!added) (e.currentTarget as HTMLElement).style.boxShadow = "0 0 20px rgba(58,173,204,0.35)";
+            }}
           >
-            {added ? "✓ Added" : "Add to Cart"}
+            {added ? "✓ Added to Cart" : "Add to Cart"}
           </button>
         </div>
       </div>
