@@ -5,9 +5,12 @@ import ProductCard from "@/components/ProductCard";
 import { supabase } from "@/lib/supabase";
 
 export const metadata: Metadata = {
-  title: "Urban Trout | Fresh Rainbow Trout in Srinagar",
+  title: "Fresh Rainbow Trout in Srinagar | Buy Online | Urban Trout",
   description:
-    "Fresh Rainbow Trout farmed locally in Srinagar. Harvested to order and delivered straight from our farm to your kitchen within hours.",
+    "Buy fresh Rainbow Trout online in Srinagar. Farmed in Naseem Bagh in clean mountain water. Harvested to order with same-day home delivery across Srinagar.",
+  alternates: {
+    canonical: "https://urbantrout.in",
+  },
 };
 
 const C = {
@@ -31,6 +34,42 @@ const farmConditions = [
   { label: "Harvest Policy", value: "To Order", sub: "Never Stored Frozen", icon: "timer" },
 ];
 
+const faqs = [
+  {
+    q: "Where can I buy fresh trout fish in Srinagar?",
+    a: "You can order fresh trout online directly through urbantrout.in for same-day delivery anywhere in Srinagar, or pick it up fresh from our farm at Malabagh, Naseem Bagh (near R P School Girls Wing).",
+  },
+  {
+    q: "What is the price of Rainbow Trout per Kg in Srinagar?",
+    a: "Our fresh Whole Rainbow Trout is ₹500 per Kg, and our Premium Cleaned & Gutted Trout is ₹550 per Kg. Delivery is Free within 5km of our farm, and a flat ₹40 across other areas in Srinagar.",
+  },
+  {
+    q: "Do you clean and gut the trout before delivery?",
+    a: "Yes! You can choose our Premium Gutted Trout, which is expertly scaled, cleaned, and gutted so it is 100% pan-ready the moment it arrives at your home.",
+  },
+  {
+    q: "Which areas in Srinagar do you deliver to?",
+    a: "We deliver across all Srinagar localities including Hazratbal, Naseem Bagh, Lal Chowk, Rajbagh, Soura, Karan Nagar, Hyderpora, Sanat Nagar, Bemina, Jawahar Nagar, and Boulevard Road.",
+  },
+  {
+    q: "How fresh is Urban Trout compared to market fish?",
+    a: "Unlike market fish that sits on ice for days, our trout is swimming in our fresh water tanks until you place your order. It is harvested to order, packed in ice, and delivered to your doorstep within hours.",
+  },
+];
+
+const faqJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": faqs.map(item => ({
+    "@type": "Question",
+    "name": item.q,
+    "acceptedAnswer": {
+      "@type": "Answer",
+      "text": item.a
+    }
+  }))
+};
+
 export default async function HomePage() {
   const { data: dbProducts } = await supabase.from("inventory").select("*");
   const updatedProducts = products.map(p => {
@@ -40,6 +79,11 @@ export default async function HomePage() {
 
   return (
     <div style={{ background: C.bg, minHeight: "100vh" }}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+      />
+
       {/* ── Hero ── */}
       <section style={{ position: "relative", height: "100vh", display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
         <style dangerouslySetInnerHTML={{ __html: `
@@ -71,7 +115,7 @@ export default async function HomePage() {
         {/* Background image */}
         <img
           src="https://lh3.googleusercontent.com/aida-public/AB6AXuBzsgreAxmSUuY16l46SuMrUrm-FYT8H80nikIPS7yYwGm9-I2pOkscmW2FVw1BmrRVkAJ8rbYHvkA0vfdbLwR9XHXTANxRa2kukMU82pX1_ShQ9pwdsRAwYpJHu8oYRZJ2av8Qz2BIlCedGAjS8VrTId2Xh-4qjp1CDQBxGXDlmGr2AqrMblwYX-dXBXtJvuTR86Q-jzZuSEWDcYdmc_hE9qSZhQMsSwQAhoJ_Pdw832jsUMNdWKIDNLJ0u43uSnVdGze5cTFtzFD2"
-          alt="Fresh Rainbow trout"
+          alt="Fresh Rainbow Trout in Srinagar Kashmir"
           className="animate-hero-drift"
           style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: "brightness(0.35) saturate(0.8)" }}
         />
@@ -96,20 +140,23 @@ export default async function HomePage() {
 
         {/* Content */}
         <div style={{ position: "relative", zIndex: 10, textAlign: "center", padding: "0 1.5rem", maxWidth: "900px", margin: "0 auto" }}>
-          <h1 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "clamp(3.5rem, 10vw, 7.5rem)", fontWeight: 800, letterSpacing: "-0.04em", lineHeight: 0.88, color: "#dfedf9", marginBottom: "1.75rem" }}>
+          <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "11px", letterSpacing: "0.25em", textTransform: "uppercase", color: C.primary, display: "block", marginBottom: "1rem" }}>
+            Fresh Farm Catch • Srinagar, Kashmir
+          </span>
+          <h1 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "clamp(3.5rem, 10vw, 7rem)", fontWeight: 800, letterSpacing: "-0.04em", lineHeight: 0.88, color: "#dfedf9", marginBottom: "1.75rem" }}>
             Fresh. Local.<br />
             <span style={{ color: "#72ddfd", textShadow: "0 0 40px rgba(114,221,253,0.5), 0 0 80px rgba(114,221,253,0.2)" }}>
-              Sustainable.
+              Rainbow Trout.
             </span>
           </h1>
 
           <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "1.125rem", color: C.onSurfaceVariant, maxWidth: "580px", margin: "0 auto 2.5rem", lineHeight: 1.7 }}>
-            Fresh Rainbow Trout farmed right here in Srinagar. Harvested to order and delivered to your doorstep within hours.
+            Farmed right here in Naseem Bagh, Srinagar. Harvested to order and delivered to your doorstep within hours.
           </p>
 
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: "1rem" }}>
             <Link href="/shop" style={{ display: "inline-flex", alignItems: "center", gap: "10px", padding: "14px 32px", borderRadius: "10px", background: "#3aadcc", color: "#002730", fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: "0.95rem", textDecoration: "none", boxShadow: "0 0 30px rgba(58,173,204,0.4), 0 4px 20px rgba(0,0,0,0.3)", transition: "all 0.3s" }}>
-              Order Now
+              Order Fresh Trout
               <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: "18px", height: "18px" }}>
                 <line x1="5" y1="12" x2="19" y2="12"></line>
                 <polyline points="12 5 19 12 12 19"></polyline>
@@ -137,7 +184,7 @@ export default async function HomePage() {
           {/* Section header */}
           <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "space-between", alignItems: "flex-end", marginBottom: "5rem", gap: "2rem" }}>
             <div>
-              <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", color: C.primary, display: "block", marginBottom: "1rem" }}>Locally Farmed</span>
+              <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", color: C.primary, display: "block", marginBottom: "1rem" }}>Freshness Guaranteed</span>
               <h2 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "clamp(2.5rem, 5vw, 4rem)", fontWeight: 800, letterSpacing: "-0.03em", lineHeight: 1, color: C.onSurface, margin: 0 }}>
                 Why Choose<br />
                 <span style={{ color: "#63cfee" }}>Urban Trout?</span>
@@ -153,7 +200,7 @@ export default async function HomePage() {
             {/* Large: Borewell */}
             <div className="group hover:border-[#72ddfd]/15" style={{ gridColumn: "span 12", position: "relative", overflow: "hidden", borderRadius: "16px", background: C.bgLow, border: "1px solid rgba(255,255,255,0.04)", minHeight: "260px", transition: "all 0.5s" }}>
               <img src="https://lh3.googleusercontent.com/aida-public/AB6AXuAw2idJIrz9hjno5I1VpNsfjqfQnhqLPidbIRKttyWvaFYDCXn39gfFxbhzDkp01U8HcCCb9gTEBrCeOymPH_AzeyZBx_Yx8hr7s1Y71Cw3EAJseHs-q4N5ZCwSLxM0_DIj89VHy2rnRL-9hfVugHv39MDQ_0m368etR-norK3BNf3JBvjTaos9qVnQIaHfv3D_48h2G4W8T2Y3SlQjou3TtMSflhEb6T3b6RY5bbBsllLqCkQ2TvW96_cxg9sPUysMkjb6hK1naVV3"
-                alt="Borewell water" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: 0.15 }} />
+                alt="Clean borewell water trout farm Srinagar" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", opacity: 0.15 }} />
               <div style={{ position: "relative", height: "100%", padding: "2.5rem", display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
                 <span className="material-symbols-outlined" style={{ fontSize: "36px", color: C.primary, marginBottom: "0.75rem", filter: "drop-shadow(0 0 8px #72ddfd)" }}>waves</span>
                 <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.75rem", fontWeight: 700, margin: "0 0 0.5rem", color: C.onSurface }}>100% Deep Borewell Water</h3>
@@ -203,8 +250,8 @@ export default async function HomePage() {
       <section style={{ padding: "7rem 1.5rem", background: C.bg }}>
         <div style={{ maxWidth: "1280px", margin: "0 auto" }}>
           <div style={{ textAlign: "center", marginBottom: "3.5rem" }}>
-            <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", color: C.primary, display: "block", marginBottom: "1rem" }}>Fresh Catch</span>
-            <h2 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "clamp(2rem, 4vw, 3.5rem)", fontWeight: 800, letterSpacing: "-0.03em", color: C.onSurface, margin: 0 }}>From Our Farm to Your Table</h2>
+            <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", color: C.primary, display: "block", marginBottom: "1rem" }}>Fresh Catch Srinagar</span>
+            <h2 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "clamp(2rem, 4vw, 3.5rem)", fontWeight: 800, letterSpacing: "-0.03em", color: C.onSurface, margin: 0 }}>Buy Fresh Rainbow Trout</h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-12 max-w-4xl mx-auto">
@@ -215,13 +262,46 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* ── Local Srinagar FAQs (Rank Booster) ── */}
+      <section style={{ padding: "6rem 1.5rem", background: C.bgLow, borderTop: "1px solid rgba(114,221,253,0.07)" }}>
+        <div style={{ maxWidth: "860px", margin: "0 auto" }}>
+          <div style={{ textAlign: "center", marginBottom: "3.5rem" }}>
+            <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "10px", letterSpacing: "0.25em", textTransform: "uppercase", color: C.primary, display: "block", marginBottom: "0.75rem" }}>Frequently Asked Questions</span>
+            <h2 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "clamp(2rem, 4vw, 3rem)", fontWeight: 800, letterSpacing: "-0.03em", color: C.onSurface, margin: 0 }}>
+              Trout Fish Delivery in Srinagar
+            </h2>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+            {faqs.map((faq, i) => (
+              <div
+                key={i}
+                style={{
+                  padding: "1.75rem",
+                  borderRadius: "16px",
+                  background: "rgba(16,33,44,0.7)",
+                  border: "1px solid rgba(61,74,83,0.45)",
+                }}
+              >
+                <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.1rem", fontWeight: 700, color: C.onSurface, margin: "0 0 0.75rem", letterSpacing: "-0.01em" }}>
+                  {faq.q}
+                </h3>
+                <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.9rem", color: C.onSurfaceVariant, lineHeight: 1.75, margin: 0 }}>
+                  {faq.a}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
       {/* ── Trust Bar ── */}
-      <section style={{ padding: "4rem 1.5rem", borderTop: "1px solid rgba(114,221,253,0.07)", background: C.bgLow }}>
+      <section style={{ padding: "4rem 1.5rem", borderTop: "1px solid rgba(114,221,253,0.07)", background: C.bg }}>
         <div style={{ maxWidth: "1280px", margin: "0 auto", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "2rem" }}>
           {[
             { icon: "water_drop", title: "Fresh from Our Farm", sub: "Naseem Bagh, Srinagar" },
             { icon: "verified", title: "Zero Antibiotics", sub: "100% clean & natural" },
-            { icon: "local_shipping", title: "Direct Delivery", sub: "Chilled to your doorstep" },
+            { icon: "local_shipping", title: "Same-Day Delivery", sub: "Chilled to your doorstep" },
             { icon: "storefront", title: "Farm Gate Pickup", sub: "Pick up fresh in person" },
           ].map((t, i) => (
             <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: "8px" }}>

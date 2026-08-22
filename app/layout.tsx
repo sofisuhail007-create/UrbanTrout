@@ -9,25 +9,34 @@ import { Toaster } from "react-hot-toast";
 export const metadata: Metadata = {
   metadataBase: new URL("https://urbantrout.in"),
   title: {
-    default: "Urban Trout | Fresh Rainbow Trout in Srinagar",
-    template: "%s | Urban Trout",
+    default: "Urban Trout | Buy Fresh Rainbow Trout in Srinagar | Home Delivery",
+    template: "%s | Urban Trout Srinagar",
   },
   description:
-    "Fresh, locally farmed Rainbow Trout in Srinagar. Harvested to order and delivered straight from our farm to your kitchen within hours. Zero antibiotics, pure fresh water.",
+    "Order fresh Rainbow Trout in Srinagar. Harvested to order from our cold-water farm in Naseem Bagh & delivered same-day to your doorstep. Zero antibiotics, pure filtered water.",
   keywords: [
-    "Urban Trout",
-    "Srinagar trout",
-    "rainbow trout kashmir",
-    "fresh fish delivery srinagar",
-    "fresh trout online srinagar",
-    "Kashmir trout",
-    "trout farm naseem bagh",
+    "trout fish in srinagar",
     "buy trout online srinagar",
-    "best fish kashmir",
+    "fresh rainbow trout kashmir",
+    "trout fish price in srinagar",
+    "trout home delivery srinagar",
+    "best fish in srinagar",
+    "trout farm srinagar",
+    "trout farm naseem bagh",
+    "cleaned gutted trout srinagar",
+    "fresh fish delivery kashmir",
+    "rainbow trout rate per kg srinagar",
+    "buy fish online kashmir",
+    "trout fish near me srinagar",
+    "Urban Trout",
   ],
+  alternates: {
+    canonical: "https://urbantrout.in",
+  },
   openGraph: {
-    title: "Urban Trout | Fresh Rainbow Trout in Srinagar",
-    description: "Freshly harvested rainbow trout delivered directly from our farm in Srinagar to your home.",
+    title: "Urban Trout | Fresh Rainbow Trout in Srinagar | Farm to Door",
+    description:
+      "Freshly harvested Rainbow Trout delivered directly from our farm in Naseem Bagh, Srinagar to your kitchen. 100% clean water, zero antibiotics.",
     url: "https://urbantrout.in",
     siteName: "Urban Trout",
     images: [
@@ -35,11 +44,28 @@ export const metadata: Metadata = {
         url: "/images/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Urban Trout - Fresh Rainbow Trout Srinagar",
+        alt: "Urban Trout - Fresh Rainbow Trout in Srinagar",
       },
     ],
     locale: "en_IN",
     type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Urban Trout | Buy Fresh Rainbow Trout in Srinagar",
+    description: "Farm-fresh Rainbow Trout harvested to order in Srinagar. Same-day chilled home delivery.",
+    images: ["/images/og-image.png"],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
   },
   verification: {
     google: "t_h48-dHHohnXh8_rwiI8IS-Z2eANoRrIuJLO3devGU",
@@ -48,14 +74,17 @@ export const metadata: Metadata = {
 
 const jsonLd = {
   "@context": "https://schema.org",
-  "@type": "LocalBusiness",
+  "@type": ["LocalBusiness", "Store"],
   "name": "Urban Trout",
+  "alternateName": "Urban Trout Srinagar",
   "image": "https://urbantrout.in/images/og-image.png",
-  "description": "Fresh, locally farmed Rainbow Trout in Srinagar. Harvested to order and delivered directly to your doorstep.",
+  "description": "Srinagar's premier cold-water trout farm in Naseem Bagh. Providing fresh whole and cleaned Rainbow Trout harvested to order with same-day home delivery across Srinagar, Kashmir.",
   "@id": "https://urbantrout.in",
   "url": "https://urbantrout.in",
   "telephone": "+917006604148",
-  "priceRange": "₹₹",
+  "priceRange": "₹500 - ₹600 per Kg",
+  "currenciesAccepted": "INR",
+  "paymentAccepted": "Cash, UPI, Online Payment Link",
   "address": {
     "@type": "PostalAddress",
     "streetAddress": "Malabagh, Naseem Bagh, Near R P School (Girls Wing)",
@@ -83,8 +112,44 @@ const jsonLd = {
     "opens": "08:00",
     "closes": "20:00"
   },
-  "servesCuisine": "Seafood",
-  "areaServed": "Srinagar"
+  "servesCuisine": "Seafood, Freshwater Fish",
+  "areaServed": [
+    { "@type": "City", "name": "Srinagar" },
+    { "@type": "AdministrativeArea", "name": "Hazratbal" },
+    { "@type": "AdministrativeArea", "name": "Naseem Bagh" },
+    { "@type": "AdministrativeArea", "name": "Lal Chowk" },
+    { "@type": "AdministrativeArea", "name": "Rajbagh" },
+    { "@type": "AdministrativeArea", "name": "Soura" },
+    { "@type": "AdministrativeArea", "name": "Hyderpora" },
+    { "@type": "AdministrativeArea", "name": "Karan Nagar" },
+    { "@type": "AdministrativeArea", "name": "Sanat Nagar" }
+  ],
+  "hasOfferCatalog": {
+    "@type": "OfferCatalog",
+    "name": "Fresh Trout Products",
+    "itemListElement": [
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Product",
+          "name": "Premium Gutted Rainbow Trout",
+          "description": "Cleaned, gutted and ready to cook. Farmed in Srinagar."
+        },
+        "price": 550,
+        "priceCurrency": "INR"
+      },
+      {
+        "@type": "Offer",
+        "itemOffered": {
+          "@type": "Product",
+          "name": "Whole Rainbow Trout",
+          "description": "Fresh whole rainbow trout harvested to order in Srinagar."
+        },
+        "price": 500,
+        "priceCurrency": "INR"
+      }
+    ]
+  }
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
