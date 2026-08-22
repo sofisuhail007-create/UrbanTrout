@@ -110,3 +110,26 @@ export type EnergyLogEntry = {
   created_at: string
 }
 
+export type Lead = {
+  id: string
+  customer_name: string | null
+  customer_phone: string
+  customer_email: string | null
+  customer_locality: string | null
+  customer_address: string | null
+  customer_pincode: string | null
+  cart_items: CartItem[]
+  estimated_total: number
+  status: 'abandoned' | 'contacted' | 'converted' | 'lost'
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type AppSetting = {
+  key: string
+  value: string
+  description: string | null
+  updated_at: string
+}
+

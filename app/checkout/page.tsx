@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
@@ -12,21 +12,100 @@ const C = {
 };
 
 export default function CheckoutPage() {
-  const { items, total, updateQuantity } = useCart();
+  const { items, total, updateQuantity, removeItem, clearCart } = useCart();
   const router = useRouter();
   const [deliveryMode, setDeliveryMode] = useState<"under5" | "over5" | "unavailable" | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [locationMsg, setLocationMsg] = useState("");
+  const [copiedUpi, setCopiedUpi] = useState(false);
+  const [upiId, setUpiId] = useState("sofisuhail007@ybl");
+  const [utrRef, setUtrRef] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [orderSuccess, setOrderSuccess] = useState<any>(null);
+
+  // Form Fields State for automatic Lead Capture
+  const [formData, setFormData] = useState({
+    fullName: "",
+    phone: "",
+    email: "",
+    locality: "",
+    house: "",
+    pincode: "",
+  });
+
+  const leadIdRef = useRef<string | null>(null);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const deliveryFee = deliveryMode === "over5" ? 40 : 0;
   const grandTotal = total + deliveryFee;
 
-  // Redirect empty cart to shop
+  // Load configured UPI ID from settings
   useEffect(() => {
-    if (items.length === 0) {
+    async function fetchSettings() {
+      try {
+        const { data } = await supabase
+          .from("app_settings")
+          .select("value")
+          .eq("key", "upi_id")
+          .single();
+        if (data?.value) {
+          setUpiId(data.value);
+        }
+      } catch {
+        // Fallback to default sofisuhail007@ybl
+      }
+    }
+    fetchSettings();
+  }, []);
+
+  // Redirect empty cart to shop (unless order was just placed successfully)
+  useEffect(() => {
+    if (items.length === 0 && !orderSuccess) {
       router.push("/shop");
     }
-  }, [items, router]);
+  }, [items, orderSuccess, router]);
+
+  // Lead auto-capture function: captures user info as soon as they type phone/name
+  const captureLead = useCallback(async (currentData: typeof formData, currentTotal: number, currentItems: typeof items) => {
+    if (!currentData.phone || currentData.phone.length < 10) return;
+
+    try {
+      const payload = {
+        customer_name: currentData.fullName || null,
+        customer_phone: currentData.phone,
+        customer_email: currentData.email || null,
+        customer_locality: currentData.locality || null,
+        customer_address: currentData.house || null,
+        customer_pincode: currentData.pincode || null,
+        cart_items: currentItems.map(i => ({ id: i.id, name: i.name, quantity: i.quantity, price: i.price, unit: i.unit })),
+        estimated_total: currentTotal,
+        status: "abandoned",
+        updated_at: new Date().toISOString(),
+      };
+
+      if (leadIdRef.current) {
+        await supabase.from("leads").update(payload).eq("id", leadIdRef.current);
+      } else {
+        const { data } = await supabase.from("leads").insert([payload]).select("id").single();
+        if (data?.id) {
+          leadIdRef.current = data.id;
+        }
+      }
+    } catch {
+      // Background lead capture should not break the user flow
+    }
+  }, []);
+
+  // Debounced trigger on form changes
+  const handleInputChange = (field: string, value: string) => {
+    const next = { ...formData, [field]: value };
+    setFormData(next);
+
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    debounceTimerRef.current = setTimeout(() => {
+      captureLead(next, grandTotal, items);
+    }, 1200);
+  };
 
   const FARM_LAT = 34.144831;
   const FARM_LNG = 74.824280;
@@ -46,7 +125,7 @@ export default function CheckoutPage() {
 
   const detectLocation = () => {
     setIsLocating(true);
-    setLocationMsg("Locating...");
+    setLocationMsg("Locating your address in Srinagar...");
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -55,20 +134,20 @@ export default function CheckoutPage() {
           const distanceInKm = calculateDistance(FARM_LAT, FARM_LNG, userLat, userLng);
           if (distanceInKm > SRINAGAR_MAX_RADIUS_KM) {
             setDeliveryMode("unavailable");
-            setLocationMsg(`Out of zone (${distanceInKm.toFixed(1)}km away). We only deliver within Srinagar.`);
+            setLocationMsg(`Out of delivery zone (${distanceInKm.toFixed(1)}km away). We only deliver within Srinagar.`);
           } else {
             const isClose = distanceInKm <= 5;
             setDeliveryMode(isClose ? "under5" : "over5");
             setLocationMsg(
               isClose
-                ? `Within 5km (${distanceInKm.toFixed(1)}km) — Free Delivery`
-                : `Outside 5km (${distanceInKm.toFixed(1)}km) — ₹40 Fee`
+                ? `Within 5km from Naseem Bagh (${distanceInKm.toFixed(1)}km) — Free Delivery`
+                : `Outside 5km (${distanceInKm.toFixed(1)}km) — ₹40 Flat Delivery Fee`
             );
           }
           setIsLocating(false);
         },
         () => {
-          setLocationMsg("Please allow location access and try again.");
+          setLocationMsg("Please allow location access to calculate delivery.");
           setIsLocating(false);
         }
       );
@@ -78,7 +157,151 @@ export default function CheckoutPage() {
     }
   };
 
-  // Show nothing while redirecting (empty cart)
+  // Construct standard UPI Payment URL
+  const upiPayUri = `upi://pay?pa=${upiId}&pn=Urban%20Trout%20Srinagar&am=${grandTotal}&cu=INR&tn=Urban%20Trout%20Fresh%20Order`;
+  const upiQrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(upiPayUri)}&bgcolor=16-33-44&color=114-221-253&margin=2`;
+
+  const copyUpiId = () => {
+    navigator.clipboard.writeText(upiId);
+    setCopiedUpi(true);
+    setTimeout(() => setCopiedUpi(false), 2500);
+  };
+
+  const handleOrderSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!deliveryMode || deliveryMode === "unavailable") {
+      alert("Please calculate delivery location first.");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      let cartDetails = "";
+      items.forEach(item => {
+        cartDetails += `- ${item.name} (${item.quantity} ${item.unit}): ₹${(item.price * item.quantity).toLocaleString("en-IN")}\n`;
+      });
+
+      const orderPayload = {
+        customer_name: formData.fullName,
+        customer_phone: formData.phone,
+        customer_address: `${formData.house}, ${formData.locality}`,
+        customer_locality: formData.locality,
+        customer_pincode: formData.pincode,
+        items: items.map(i => ({ id: i.id, name: i.name, quantity: i.quantity, price: i.price, unit: i.unit, image: i.image })),
+        subtotal: total,
+        delivery_fee: deliveryFee,
+        total: grandTotal,
+        delivery_zone: deliveryMode,
+        status: "pending",
+      };
+
+      // 1. Insert order in Supabase
+      const { data: insertedOrder } = await supabase.from("orders").insert(orderPayload).select("*").single();
+
+      // 2. Mark lead as converted if lead exists
+      if (leadIdRef.current) {
+        await supabase.from("leads").update({
+          status: "converted",
+          notes: `Converted to Order #${insertedOrder?.order_number || ''}. Payment via UPI (${upiId}). UTR: ${utrRef || 'Direct'}`,
+          updated_at: new Date().toISOString(),
+        }).eq("id", leadIdRef.current);
+      }
+
+      // 3. Upsert customer profile
+      await supabase.from("customers").upsert({
+        phone: String(formData.phone),
+        name: String(formData.fullName),
+        locality: String(formData.locality),
+        pincode: String(formData.pincode),
+        last_order_at: new Date().toISOString(),
+      }, { onConflict: "phone" });
+
+      // 4. Create WhatsApp message for customer
+      const whatsappMessage = `*NEW HARVEST ORDER (PAID VIA UPI)* 🐟\n\n*Order ID:* #${insertedOrder?.order_number || 'NEW'}\n*Customer Details:*\nName: ${formData.fullName}\nPhone: +91 ${formData.phone}\n${formData.email ? `Email: ${formData.email}\n` : ''}Address: ${formData.house}, ${formData.locality}, ${formData.pincode}\n\n*Ordered Items:*\n${cartDetails}\n*Delivery Zone:* ${deliveryMode === "over5" ? "Outside 5km (₹" + deliveryFee + ")" : "Within 5km (Free)"}\n*Total Paid via UPI:* ₹${grandTotal.toLocaleString("en-IN")}\n*UPI ID Paid To:* ${upiId}\n${utrRef ? `*UTR / Ref No:* ${utrRef}\n` : ''}\n_Please confirm my order and dispatch fresh harvest!_`;
+
+      // Set order success state
+      setOrderSuccess({
+        orderNumber: insertedOrder?.order_number || "UT-" + Math.floor(1000 + Math.random() * 9000),
+        total: grandTotal,
+        phone: formData.phone,
+        name: formData.fullName,
+      });
+
+      // Clear the cart
+      if (clearCart) clearCart();
+
+      // Open WhatsApp in new tab
+      const encodedMsg = encodeURIComponent(whatsappMessage);
+      window.open(`https://wa.me/918491006127?text=${encodedMsg}`, "_blank");
+
+    } catch (err) {
+      console.error("Order submission error:", err);
+      alert("Order placed! We will confirm your delivery shortly.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Success Modal
+  if (orderSuccess) {
+    return (
+      <div style={{ background: C.bg, minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "2rem" }}>
+        <div
+          className="max-w-lg w-full text-center p-8 md:p-10 rounded-2xl"
+          style={{ background: "rgba(16,33,44,0.9)", border: "1px solid rgba(114,221,253,0.3)", boxShadow: "0 0 50px rgba(114,221,253,0.15)" }}
+        >
+          <div style={{ width: "72px", height: "72px", borderRadius: "50%", background: "rgba(37,211,102,0.15)", border: "1px solid #25D366", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1.5rem" }}>
+            <svg width="36" height="36" fill="none" stroke="#25D366" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <polyline points="20 6 9 17 4 12" />
+            </svg>
+          </div>
+          <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", color: C.primary }}>
+            Order Confirmed
+          </span>
+          <h2 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "2rem", fontWeight: 800, color: C.onSurface, margin: "0.5rem 0 1rem" }}>
+            Thank You, {orderSuccess.name}!
+          </h2>
+          <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.95rem", color: C.onSurfVar, lineHeight: 1.7, marginBottom: "2rem" }}>
+            Your order <strong>#{orderSuccess.orderNumber}</strong> has been received. Our farm team in Naseem Bagh is harvesting and packing your fresh trout now.
+          </p>
+
+          <div className="p-4 rounded-xl mb-6 text-left" style={{ background: "rgba(3,16,24,0.6)", border: "1px solid rgba(61,74,83,0.5)" }}>
+            <div className="flex justify-between mb-2" style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.85rem", color: C.onSurfVar }}>
+              <span>Total Paid</span>
+              <span style={{ color: C.primary, fontWeight: 700 }}>₹{orderSuccess.total.toLocaleString("en-IN")}</span>
+            </div>
+            <div className="flex justify-between" style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.85rem", color: C.onSurfVar }}>
+              <span>Support WhatsApp</span>
+              <span style={{ color: C.onSurface }}>+91 84910 06127</span>
+            </div>
+          </div>
+
+          <Link
+            href="/"
+            style={{
+              display: "inline-block",
+              width: "100%",
+              padding: "14px",
+              borderRadius: "12px",
+              background: C.primaryCont,
+              color: C.onPrimCont,
+              fontFamily: '"Space Grotesk", sans-serif',
+              fontWeight: 700,
+              fontSize: "0.9rem",
+              textTransform: "uppercase",
+              letterSpacing: "0.08em",
+              textDecoration: "none",
+            }}
+          >
+            Back to Home
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  // Show redirecting if empty
   if (items.length === 0) {
     return (
       <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: C.bg }}>
@@ -92,7 +315,7 @@ export default function CheckoutPage() {
       <div className="max-w-7xl mx-auto px-6 pt-32 pb-20">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start">
 
-          {/* ─── Left: Checkout Form ─── */}
+          {/* ─── Left: Checkout & Payment Form ─── */}
           <section className="lg:col-span-7 space-y-8">
             {/* Header */}
             <div className="flex items-center gap-4">
@@ -106,14 +329,14 @@ export default function CheckoutPage() {
                 </svg>
               </Link>
               <h1 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.75rem", fontWeight: 800, color: C.onSurface, letterSpacing: "-0.03em", margin: 0 }}>
-                Checkout
+                Checkout & Instant UPI Payment
               </h1>
             </div>
 
             {/* Main panel */}
-            <div style={{ background: "rgba(16,33,44,0.7)", borderRadius: "16px", border: `1px solid rgba(114,221,253,0.1)`, padding: "2rem" }}>
+            <div style={{ background: "rgba(16,33,44,0.7)", borderRadius: "16px", border: `1px solid rgba(114,221,253,0.12)`, padding: "2rem" }}>
 
-              {/* Smart Delivery Section */}
+              {/* 1. Smart Delivery Section */}
               <div
                 className="flex flex-wrap items-center justify-between gap-4 p-5 rounded-xl mb-8"
                 style={{ background: "rgba(3,16,24,0.6)", border: `1px solid rgba(61,74,83,0.5)` }}
@@ -123,7 +346,7 @@ export default function CheckoutPage() {
                     <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                       <circle cx="12" cy="12" r="3" /><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" />
                     </svg>
-                    Smart Delivery Pricing
+                    Step 1: Srinagar Delivery Check
                   </span>
                   {deliveryMode ? (
                     <div
@@ -143,7 +366,7 @@ export default function CheckoutPage() {
                     </div>
                   ) : (
                     <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.83rem", color: C.onSurfVar, marginTop: "4px" }}>
-                      {locationMsg || "Auto-calculate your delivery charge"}
+                      {locationMsg || "Click to verify delivery radius & calculate final fee"}
                     </span>
                   )}
                 </div>
@@ -169,148 +392,247 @@ export default function CheckoutPage() {
                   {isLocating ? (
                     <>
                       <svg className="animate-spin" width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-6.219-8.56" /></svg>
-                      Detecting…
+                      Checking…
                     </>
                   ) : (
                     <>
                       <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" /><path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" /></svg>
-                      Detect Location
+                      Detect Delivery Zone
                     </>
                   )}
                 </button>
               </div>
 
-              <form id="checkout-form" className="space-y-8" onSubmit={(e) => {
-                e.preventDefault();
-                if (!deliveryMode || deliveryMode === "unavailable") {
-                  alert("Please calculate a valid delivery zone first.");
-                  return;
-                }
-                const formData = new FormData(e.currentTarget);
-                const fullName = formData.get("fullName");
-                const phone = formData.get("phone");
-                const locality = formData.get("locality");
-                const house = formData.get("house");
-                const pincode = formData.get("pincode");
+              <form id="checkout-form" className="space-y-8" onSubmit={handleOrderSubmit}>
 
-                let cartDetails = "";
-                items.forEach(item => {
-                  cartDetails += `- ${item.name} (${item.quantity} ${item.unit}): ₹${(item.price * item.quantity).toLocaleString("en-IN")}\n`;
-                });
-
-                const message = `*NEW HARVEST REQUEST* 🐟\n\n*Customer Details:*\nName: ${fullName}\nPhone: +91 ${phone}\nAddress: ${house}, ${locality}, ${pincode}\n\n*Requested Items:*\n${cartDetails}*Delivery Zone:* ${deliveryMode === "over5" ? "Outside 5km (₹" + deliveryFee + ")" : "Within 5km (Free)"}\n*Estimated Total:* ₹${grandTotal.toLocaleString("en-IN")}\n\n_Note: This is an estimated total. We will calculate the exact catch weight and send you the final invoice and payment link shortly._`;
-
-                const orderPayload = {
-                  customer_name: String(fullName),
-                  customer_phone: String(phone),
-                  customer_address: `${house}, ${locality}`,
-                  customer_locality: String(locality),
-                  customer_pincode: String(pincode),
-                  items: items.map(i => ({ id: i.id, name: i.name, quantity: i.quantity, price: i.price, unit: i.unit, image: i.image })),
-                  subtotal: total,
-                  delivery_fee: deliveryFee,
-                  total: grandTotal,
-                  delivery_zone: deliveryMode,
-                  status: "pending",
-                };
-                supabase.from("orders").insert(orderPayload).then(() => {
-                  supabase.from("customers").upsert({
-                    phone: String(phone),
-                    name: String(fullName),
-                    locality: String(locality),
-                    pincode: String(pincode),
-                    last_order_at: new Date().toISOString(),
-                  }, { onConflict: "phone" });
-                });
-
-                const encodedMessage = encodeURIComponent(message);
-                window.open(`https://wa.me/918491006127?text=${encodedMessage}`, "_blank");
-              }}>
-
-                {/* Delivery Address */}
+                {/* 2. Customer & Address Details */}
                 <div>
                   <h2 className="flex items-center gap-2 mb-6" style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1rem", fontWeight: 700, color: C.primary }}>
                     <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                       <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" /><circle cx="12" cy="10" r="3" />
                     </svg>
-                    Srinagar Delivery Address
+                    Step 2: Delivery Details
                   </h2>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-5">
-                    {[
-                      { label: "Full Name", name: "fullName", placeholder: "e.g. Sameer Ahmed", type: "text", span: false, required: true },
-                      { label: "Phone Number (India)", name: "phone", placeholder: "10-digit mobile number", type: "tel", span: false, required: true, pattern: "[0-9]{10}", maxLength: 10, prefix: "+91" },
-                      { label: "Locality / Landmark", name: "locality", placeholder: "Near Dal Lake, Boulevard Road", type: "text", span: true, required: true },
-                      { label: "House No. / Building", name: "house", placeholder: "Plot 42, Sector B", type: "text", span: false, required: true },
-                      { label: "Pin Code", name: "pincode", placeholder: "190001", type: "text", span: false, required: true },
-                    ].map((f) => (
-                      <div key={f.label} className={`flex flex-col ${f.span ? "md:col-span-2" : ""}`}>
-                        <label style={{ fontFamily: '"Inter", sans-serif', fontSize: "10px", letterSpacing: "0.15em", textTransform: "uppercase", color: C.onSurfVar, marginBottom: "8px" }}>
-                          {f.label}{f.required && <span style={{ color: "#f87171", marginLeft: "4px" }}>*</span>}
-                        </label>
-                        <div className="relative flex items-center">
-                          {f.prefix && (
-                            <span className="absolute left-4" style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfVar, fontWeight: 600 }}>{f.prefix}</span>
-                          )}
-                          <input
-                            type={f.type}
-                            name={f.name}
-                            required={f.required}
-                            pattern={f.pattern}
-                            maxLength={f.maxLength}
-                            placeholder={f.placeholder}
-                            style={{
-                              width: "100%",
-                              background: "rgba(3,16,24,0.8)",
-                              border: `1px solid rgba(61,74,83,0.6)`,
-                              borderRadius: "10px",
-                              padding: f.prefix ? "12px 16px 12px 52px" : "12px 16px",
-                              color: C.onSurface,
-                              fontFamily: '"Manrope", sans-serif',
-                              fontSize: "0.9rem",
-                              outline: "none",
-                            }}
-                            className="focus:border-primary/60 focus:ring-1 focus:ring-primary/20 transition-all"
-                          />
-                        </div>
+                    {/* Full Name */}
+                    <div className="flex flex-col">
+                      <label style={{ fontFamily: '"Inter", sans-serif', fontSize: "10px", letterSpacing: "0.15em", textTransform: "uppercase", color: C.onSurfVar, marginBottom: "8px" }}>
+                        Full Name <span style={{ color: "#f87171" }}>*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="fullName"
+                        value={formData.fullName}
+                        onChange={(e) => handleInputChange("fullName", e.target.value)}
+                        required
+                        placeholder="e.g. Sameer Ahmed"
+                        style={{
+                          width: "100%", background: "rgba(3,16,24,0.8)", border: `1px solid rgba(61,74,83,0.6)`,
+                          borderRadius: "10px", padding: "12px 16px", color: C.onSurface, fontFamily: '"Manrope", sans-serif', fontSize: "0.9rem", outline: "none",
+                        }}
+                      />
+                    </div>
+
+                    {/* Phone Number */}
+                    <div className="flex flex-col">
+                      <label style={{ fontFamily: '"Inter", sans-serif', fontSize: "10px", letterSpacing: "0.15em", textTransform: "uppercase", color: C.onSurfVar, marginBottom: "8px" }}>
+                        Phone Number (India) <span style={{ color: "#f87171" }}>*</span>
+                      </label>
+                      <div className="relative flex items-center">
+                        <span className="absolute left-4" style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfVar, fontWeight: 600 }}>+91</span>
+                        <input
+                          type="tel"
+                          name="phone"
+                          value={formData.phone}
+                          onChange={(e) => handleInputChange("phone", e.target.value)}
+                          required
+                          pattern="[0-9]{10}"
+                          maxLength={10}
+                          placeholder="10-digit mobile number"
+                          style={{
+                            width: "100%", background: "rgba(3,16,24,0.8)", border: `1px solid rgba(61,74,83,0.6)`,
+                            borderRadius: "10px", padding: "12px 16px 12px 52px", color: C.onSurface, fontFamily: '"Manrope", sans-serif', fontSize: "0.9rem", outline: "none",
+                          }}
+                        />
                       </div>
-                    ))}
+                    </div>
+
+                    {/* Email */}
+                    <div className="flex flex-col md:col-span-2">
+                      <label style={{ fontFamily: '"Inter", sans-serif', fontSize: "10px", letterSpacing: "0.15em", textTransform: "uppercase", color: C.onSurfVar, marginBottom: "8px" }}>
+                        Email Address (Optional)
+                      </label>
+                      <input
+                        type="email"
+                        name="email"
+                        value={formData.email}
+                        onChange={(e) => handleInputChange("email", e.target.value)}
+                        placeholder="your.email@gmail.com"
+                        style={{
+                          width: "100%", background: "rgba(3,16,24,0.8)", border: `1px solid rgba(61,74,83,0.6)`,
+                          borderRadius: "10px", padding: "12px 16px", color: C.onSurface, fontFamily: '"Manrope", sans-serif', fontSize: "0.9rem", outline: "none",
+                        }}
+                      />
+                    </div>
+
+                    {/* Locality */}
+                    <div className="flex flex-col md:col-span-2">
+                      <label style={{ fontFamily: '"Inter", sans-serif', fontSize: "10px", letterSpacing: "0.15em", textTransform: "uppercase", color: C.onSurfVar, marginBottom: "8px" }}>
+                        Locality / Area Landmark <span style={{ color: "#f87171" }}>*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="locality"
+                        value={formData.locality}
+                        onChange={(e) => handleInputChange("locality", e.target.value)}
+                        required
+                        placeholder="e.g. Near Hazratbal Dargah, Naseem Bagh"
+                        style={{
+                          width: "100%", background: "rgba(3,16,24,0.8)", border: `1px solid rgba(61,74,83,0.6)`,
+                          borderRadius: "10px", padding: "12px 16px", color: C.onSurface, fontFamily: '"Manrope", sans-serif', fontSize: "0.9rem", outline: "none",
+                        }}
+                      />
+                    </div>
+
+                    {/* House No */}
+                    <div className="flex flex-col">
+                      <label style={{ fontFamily: '"Inter", sans-serif', fontSize: "10px", letterSpacing: "0.15em", textTransform: "uppercase", color: C.onSurfVar, marginBottom: "8px" }}>
+                        House / Building / Flat <span style={{ color: "#f87171" }}>*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="house"
+                        value={formData.house}
+                        onChange={(e) => handleInputChange("house", e.target.value)}
+                        required
+                        placeholder="e.g. House No. 24, Lane 2"
+                        style={{
+                          width: "100%", background: "rgba(3,16,24,0.8)", border: `1px solid rgba(61,74,83,0.6)`,
+                          borderRadius: "10px", padding: "12px 16px", color: C.onSurface, fontFamily: '"Manrope", sans-serif', fontSize: "0.9rem", outline: "none",
+                        }}
+                      />
+                    </div>
+
+                    {/* Pin Code */}
+                    <div className="flex flex-col">
+                      <label style={{ fontFamily: '"Inter", sans-serif', fontSize: "10px", letterSpacing: "0.15em", textTransform: "uppercase", color: C.onSurfVar, marginBottom: "8px" }}>
+                        Pin Code <span style={{ color: "#f87171" }}>*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="pincode"
+                        value={formData.pincode}
+                        onChange={(e) => handleInputChange("pincode", e.target.value)}
+                        required
+                        placeholder="190006"
+                        style={{
+                          width: "100%", background: "rgba(3,16,24,0.8)", border: `1px solid rgba(61,74,83,0.6)`,
+                          borderRadius: "10px", padding: "12px 16px", color: C.onSurface, fontFamily: '"Manrope", sans-serif', fontSize: "0.9rem", outline: "none",
+                        }}
+                      />
+                    </div>
                   </div>
                 </div>
 
-                {/* Payment Method */}
+                {/* 3. Direct UPI Payment Box */}
                 <div>
                   <h2 className="flex items-center gap-2 mb-6" style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1rem", fontWeight: 700, color: C.primary }}>
                     <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                       <rect x="1" y="4" width="22" height="16" rx="2" ry="2" /><line x1="1" y1="10" x2="23" y2="10" />
                     </svg>
-                    Payment Process
+                    Step 3: Direct UPI Payment
                   </h2>
-                  <div className="space-y-3">
-                    <label
-                      className="flex items-center gap-4 p-4 rounded-xl cursor-pointer"
-                      style={{ border: `1px solid rgba(114,221,253,0.3)`, background: "rgba(114,221,253,0.06)" }}
-                    >
-                      <input defaultChecked name="payment" type="radio" className="text-primary focus:ring-0 accent-teal-400" />
-                      <div className="flex flex-col flex-1">
-                        <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: "0.9rem", color: C.onSurface }}>Payment Link via WhatsApp</span>
-                        <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.78rem", color: C.onSurfVar }}>Sent after exact harvest weight is calculated</span>
-                      </div>
-                      <svg width="18" height="18" fill="none" stroke={C.primary} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-                      </svg>
-                    </label>
 
-                    <div className="flex gap-3 p-4 rounded-xl" style={{ background: "rgba(3,16,24,0.5)", border: `1px solid rgba(61,74,83,0.4)` }}>
-                      <svg width="16" height="16" fill="none" stroke={C.primary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" style={{ flexShrink: 0, marginTop: "2px" }}>
-                        <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
-                      </svg>
-                      <div>
-                        <p style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "0.85rem", fontWeight: 700, color: C.onSurface, marginBottom: "4px" }}>Why do we do this?</p>
-                        <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.78rem", color: C.onSurfVar, lineHeight: 1.65 }}>
-                          Our trout is harvested exclusively to order. We cannot guarantee the exact weight until it is pulled from the water. You will be billed for the exact catch weight via a secure payment link sent to your WhatsApp before delivery.
-                        </p>
+                  <div
+                    className="p-6 rounded-2xl"
+                    style={{
+                      background: "rgba(16,33,44,0.9)",
+                      border: `1px solid rgba(114,221,253,0.25)`,
+                      boxShadow: "0 8px 30px rgba(0,0,0,0.3)",
+                    }}
+                  >
+                    <div className="flex flex-col md:flex-row items-center gap-6">
+                      {/* Dynamic QR Code */}
+                      <div
+                        className="p-3 rounded-2xl flex-shrink-0 flex flex-col items-center"
+                        style={{ background: "#10212c", border: `1px solid rgba(114,221,253,0.3)` }}
+                      >
+                        <img
+                          src={upiQrCodeUrl}
+                          alt="Scan to Pay via UPI"
+                          style={{ width: "160px", height: "160px", borderRadius: "10px" }}
+                        />
+                        <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", color: C.primary, letterSpacing: "0.1em", marginTop: "8px", textTransform: "uppercase" }}>
+                          Scan with Any UPI App
+                        </span>
                       </div>
+
+                      {/* Payment details */}
+                      <div className="flex-1 space-y-4 text-center md:text-left">
+                        <div>
+                          <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "10px", letterSpacing: "0.15em", textTransform: "uppercase", color: C.onSurfVar }}>
+                            Pay Exactly
+                          </span>
+                          <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "2rem", fontWeight: 800, color: C.primary, letterSpacing: "-0.03em", margin: "2px 0 0" }}>
+                            ₹{grandTotal.toLocaleString("en-IN")}
+                          </h3>
+                        </div>
+
+                        {/* UPI ID with Copy Button */}
+                        <div
+                          className="flex items-center justify-between p-3 rounded-xl gap-3"
+                          style={{ background: "rgba(3,16,24,0.8)", border: "1px solid rgba(61,74,83,0.6)" }}
+                        >
+                          <div className="flex flex-col text-left">
+                            <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", color: C.outline, textTransform: "uppercase", letterSpacing: "0.1em" }}>UPI ID</span>
+                            <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "0.95rem", fontWeight: 700, color: C.onSurface }}>{upiId}</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={copyUpiId}
+                            className="px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all"
+                            style={{
+                              background: copiedUpi ? "rgba(37,211,102,0.2)" : "rgba(114,221,253,0.15)",
+                              color: copiedUpi ? "#25D366" : C.primary,
+                              border: `1px solid ${copiedUpi ? "#25D366" : "rgba(114,221,253,0.3)"}`,
+                            }}
+                          >
+                            {copiedUpi ? "Copied! ✓" : "Copy ID"}
+                          </button>
+                        </div>
+
+                        {/* Mobile Direct UPI Intent Button */}
+                        <a
+                          href={upiPayUri}
+                          className="flex md:hidden items-center justify-center gap-2 w-full py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all"
+                          style={{
+                            background: C.primaryCont,
+                            color: C.onPrimCont,
+                            textDecoration: "none",
+                            boxShadow: "0 0 20px rgba(58,173,204,0.3)",
+                          }}
+                        >
+                          <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/></svg>
+                          Open in GPay / PhonePe / Paytm
+                        </a>
+                      </div>
+                    </div>
+
+                    {/* Optional UTR Ref Input */}
+                    <div className="mt-6 pt-4" style={{ borderTop: "1px solid rgba(61,74,83,0.4)" }}>
+                      <label style={{ fontFamily: '"Inter", sans-serif', fontSize: "10px", letterSpacing: "0.15em", textTransform: "uppercase", color: C.onSurfVar, display: "block", marginBottom: "6px" }}>
+                        Transaction UTR / Reference No. (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={utrRef}
+                        onChange={(e) => setUtrRef(e.target.value)}
+                        placeholder="e.g. 423871928371 (if available)"
+                        style={{
+                          width: "100%", background: "rgba(3,16,24,0.8)", border: `1px solid rgba(61,74,83,0.5)`,
+                          borderRadius: "10px", padding: "10px 14px", color: C.onSurface, fontFamily: '"Manrope", sans-serif', fontSize: "0.85rem", outline: "none",
+                        }}
+                      />
                     </div>
                   </div>
                 </div>
@@ -365,19 +687,19 @@ export default function CheckoutPage() {
                   <div className="flex justify-between">
                     <span className="flex items-center gap-2" style={{ color: C.onSurfVar }}>
                       Delivery Fee
-                      {deliveryMode === "under5" && <span style={{ fontSize: "9px", background: "rgba(114,221,253,0.1)", color: C.primary, padding: "2px 6px", borderRadius: "4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Free</span>}
-                      {deliveryMode === "over5" && <span style={{ fontSize: "9px", background: "rgba(61,74,83,0.4)", color: C.onSurfVar, padding: "2px 6px", borderRadius: "4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>5km+</span>}
-                      {deliveryMode === "unavailable" && <span style={{ fontSize: "9px", background: "rgba(239,68,68,0.1)", color: "#f87171", padding: "2px 6px", borderRadius: "4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>N/A</span>}
+                      {deliveryMode === "under5" && <span style={{ fontSize: "9px", background: "rgba(114,221,253,0.1)", color: C.primary, padding: "2px 6px", borderRadius: "4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Free (&lt;5km)</span>}
+                      {deliveryMode === "over5" && <span style={{ fontSize: "9px", background: "rgba(61,74,83,0.4)", color: C.onSurfVar, padding: "2px 6px", borderRadius: "4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>5km+ (₹40)</span>}
+                      {deliveryMode === "unavailable" && <span style={{ fontSize: "9px", background: "rgba(239,68,68,0.1)", color: "#f87171", padding: "2px 6px", borderRadius: "4px", textTransform: "uppercase", letterSpacing: "0.05em" }}>Out of Zone</span>}
                     </span>
                     <span style={{ color: C.primary, fontWeight: 700 }}>
-                      {!deliveryMode ? "—" : deliveryMode === "unavailable" ? "—" : deliveryFee === 0 ? "Free" : `₹${deliveryFee}`}
+                      {!deliveryMode ? "Calculate First" : deliveryMode === "unavailable" ? "—" : deliveryFee === 0 ? "Free" : `₹${deliveryFee}`}
                     </span>
                   </div>
                 </div>
 
                 <div style={{ height: "1px", background: `rgba(114,221,253,0.15)` }} />
 
-                {/* Grand total + Security */}
+                {/* Grand total */}
                 <div className="flex justify-between items-end">
                   <div>
                     <p style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", letterSpacing: "0.2em", textTransform: "uppercase", color: C.outline, marginBottom: "4px" }}>Total Payable</p>
@@ -391,23 +713,25 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
-                {/* Submit Button */}
+                {/* Submit Order Button */}
                 <button
                   type="submit"
                   form="checkout-form"
-                  disabled={!deliveryMode || deliveryMode === "unavailable"}
+                  disabled={!deliveryMode || deliveryMode === "unavailable" || isSubmitting}
                   className="w-full flex items-center justify-center gap-3 font-bold uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed rounded-xl"
                   style={{
-                    height: "52px",
+                    height: "54px",
                     fontFamily: '"Space Grotesk", sans-serif',
-                    fontSize: "0.82rem",
+                    fontSize: "0.85rem",
                     background: !deliveryMode || deliveryMode === "unavailable" ? "rgba(61,74,83,0.5)" : "#25D366",
                     color: !deliveryMode || deliveryMode === "unavailable" ? C.onSurfVar : "#fff",
                     border: "none",
-                    boxShadow: !deliveryMode || deliveryMode === "unavailable" ? "none" : "0 0 24px rgba(37,211,102,0.35)",
+                    boxShadow: !deliveryMode || deliveryMode === "unavailable" ? "none" : "0 0 25px rgba(37,211,102,0.4)",
                   }}
                 >
-                  {!deliveryMode ? (
+                  {isSubmitting ? (
+                    "Confirming Order…"
+                  ) : !deliveryMode ? (
                     "Detect Location First"
                   ) : deliveryMode === "unavailable" ? (
                     "Out of Delivery Zone"
@@ -416,10 +740,13 @@ export default function CheckoutPage() {
                       <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
                         <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z" />
                       </svg>
-                      Send Request via WhatsApp
+                      Confirm & Place Order
                     </>
                   )}
                 </button>
+                <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "11px", color: C.onSurfVar, textAlign: "center", margin: "8px 0 0" }}>
+                  Instant WhatsApp notification sent to farm team upon order
+                </p>
               </div>
             </div>
           </aside>

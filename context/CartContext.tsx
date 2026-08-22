@@ -18,6 +18,7 @@ type CartContextType = {
   updateQuantity: (id: string, qty: number) => void;
   openCart: () => void;
   closeCart: () => void;
+  clearCart: () => void;
   total: number;
   itemCount: number;
 };
@@ -72,6 +73,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
     );
   };
 
+  const clearCart = () => {
+    setItems([]);
+    try {
+      localStorage.removeItem("urban_trout_cart");
+    } catch {}
+  };
+
   const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
 
@@ -85,6 +93,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         updateQuantity,
         openCart: () => setIsOpen(true),
         closeCart: () => setIsOpen(false),
+        clearCart,
         total,
         itemCount,
       }}

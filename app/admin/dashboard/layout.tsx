@@ -6,10 +6,12 @@ import Link from "next/link";
 const NAV = [
   { href: "/admin/dashboard", icon: "dashboard", label: "Dashboard" },
   { href: "/admin/dashboard/orders", icon: "receipt_long", label: "Orders" },
+  { href: "/admin/dashboard/leads", icon: "phone_callback", label: "Leads & Abandoned" },
   { href: "/admin/dashboard/inventory", icon: "inventory_2", label: "Inventory" },
   { href: "/admin/dashboard/customers", icon: "people", label: "Customers" },
   { href: "/admin/dashboard/analytics", icon: "analytics", label: "Analytics" },
   { href: "/admin/dashboard/farm", icon: "psychiatry", label: "Farm Mgmt" },
+  { href: "/admin/dashboard/settings", icon: "settings", label: "Settings" },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {

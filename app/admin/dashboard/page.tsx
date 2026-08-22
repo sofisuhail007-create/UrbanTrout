@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
-import type { Order, WaterParameter } from "@/lib/supabase";
+import type { Order, WaterParameter, Lead } from "@/lib/supabase";
 import Link from "next/link";
 import {
   validateDO,
@@ -78,6 +78,7 @@ function getAlarms(entries: WaterParameter[]): AlarmSummary[] {
 
 export default function DashboardPage() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [recentLeads, setRecentLeads] = useState<Lead[]>([]);
   const [customers, setCustomers] = useState(0);
   const [loading, setLoading] = useState(true);
   const [recentParams, setRecentParams] = useState<WaterParameter[]>([]);
@@ -85,7 +86,7 @@ export default function DashboardPage() {
   useEffect(() => {
     async function load() {
       const cutoff = new Date(Date.now() - 48 * 3600 * 1000).toISOString();
-      const [{ data: ord }, { count }, { data: wp }] = await Promise.all([
+      const [{ data: ord }, { count }, { data: wp }, { data: leadsData }] = await Promise.all([
         supabase.from("orders").select("*").order("created_at", { ascending: false }).limit(6),
         supabase.from("customers").select("*", { count: "exact", head: true }),
         supabase
@@ -93,10 +94,17 @@ export default function DashboardPage() {
           .select("*")
           .gte("created_at", cutoff)
           .order("created_at", { ascending: false }),
+        supabase
+          .from("leads")
+          .select("*")
+          .eq("status", "abandoned")
+          .order("created_at", { ascending: false })
+          .limit(4),
       ]);
       setOrders(ord ?? []);
       setCustomers(count ?? 0);
       setRecentParams((wp as WaterParameter[]) ?? []);
+      setRecentLeads((leadsData as Lead[]) ?? []);
       setLoading(false);
     }
     load();
@@ -106,15 +114,14 @@ export default function DashboardPage() {
   const todayOrders = orders.filter((o) => o.created_at?.slice(0, 10) === today);
   const todayRevenue = todayOrders.reduce((s, o) => s + (o.total ?? 0), 0);
   const pending = orders.filter((o) => o.status === "pending").length;
-  const totalRevenue = orders.reduce((s, o) => s + (o.total ?? 0), 0);
 
   const alarms = getAlarms(recentParams);
   const hasDangerAlarms = alarms.some((a) => a.color === "#f87171" || a.color === "#ef4444");
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
+    <div className="p-6 max-w-6xl mx-auto space-y-6">
       {/* Header */}
-      <div className="mb-6">
+      <div>
         <h1 className="text-2xl font-bold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>Dashboard</h1>
         <p className="text-slate-500 text-sm mt-1" style={{ fontFamily: '"Manrope", sans-serif' }}>
           {new Date().toLocaleDateString("en-IN", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
@@ -124,7 +131,7 @@ export default function DashboardPage() {
       {/* Bio-Alarm Banner */}
       {alarms.length > 0 && (
         <div
-          className="mb-6 rounded-xl border p-4"
+          className="rounded-xl border p-4"
           style={{
             background: hasDangerAlarms ? "#f8717115" : "#fbbf2415",
             borderColor: hasDangerAlarms ? "#f8717140" : "#fbbf2440",
@@ -138,12 +145,9 @@ export default function DashboardPage() {
               >
                 crisis_alert
               </span>
-              <p
-                className="font-bold text-sm"
-                style={{ color: hasDangerAlarms ? "#f87171" : "#fbbf24", fontFamily: '"Space Grotesk", sans-serif' }}
-              >
-                {alarms.length} Bio-Alarm{alarms.length > 1 ? "s" : ""} — Last 48 Hours
-              </p>
+              <span className="font-semibold text-sm" style={{ color: hasDangerAlarms ? "#f87171" : "#fbbf24" }}>
+                {alarms.length} Water Parameter Alert{alarms.length > 1 ? "s" : ""} (Last 48 hrs)
+              </span>
             </div>
             <Link
               href="/admin/dashboard/farm/alarms"
@@ -171,12 +175,68 @@ export default function DashboardPage() {
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard icon="today" label="Today's Orders" value={todayOrders.length} color="bg-cyan-500/15 text-cyan-400" />
         <StatCard icon="currency_rupee" label="Today's Revenue" value={`₹${todayRevenue.toLocaleString("en-IN")}`} color="bg-green-500/15 text-green-400" />
         <StatCard icon="pending" label="Pending Orders" value={pending} color="bg-amber-500/15 text-amber-400" sub="Needs action" />
         <StatCard icon="group" label="Total Customers" value={customers} color="bg-purple-500/15 text-purple-400" />
       </div>
+
+      {/* Abandoned Leads Alert Widget */}
+      {recentLeads.length > 0 && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-5">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-amber-400">phone_callback</span>
+              <h2 className="font-bold text-white text-base" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                Hot Leads to Call ({recentLeads.length} Abandoned Checkouts)
+              </h2>
+            </div>
+            <Link href="/admin/dashboard/leads" className="text-amber-400 hover:text-amber-300 text-xs font-bold uppercase tracking-wider">
+              View All Leads →
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {recentLeads.map((lead) => {
+              const itemsList = Array.isArray(lead.cart_items) ? lead.cart_items : [];
+              const itemsSummary = itemsList.map((i: any) => `${i.name} (${i.quantity} ${i.unit || 'Kg'})`).join(", ") || "Fresh Catch";
+              const waText = encodeURIComponent(
+                `Hi ${lead.customer_name || 'there'}! This is Urban Trout Srinagar. We noticed you started an order for ${itemsSummary}. Would you like us to confirm and arrange same-day delivery to your doorstep?`
+              );
+
+              return (
+                <div key={lead.id} className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-bold text-white text-sm truncate">{lead.customer_name || "Guest Customer"}</p>
+                    <p className="text-slate-400 text-xs font-mono">+91 {lead.customer_phone}</p>
+                    <p className="text-cyan-400 text-xs font-semibold mt-0.5">₹{Number(lead.estimated_total || 0).toLocaleString("en-IN")}</p>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <a
+                      href={`tel:+91${lead.customer_phone}`}
+                      className="px-2.5 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 text-xs font-bold flex items-center gap-1"
+                      title="Call Customer"
+                    >
+                      <span className="material-symbols-outlined text-[13px]">call</span>
+                      Call
+                    </a>
+                    <a
+                      href={`https://wa.me/91${lead.customer_phone}?text=${waText}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-2.5 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 text-xs font-bold flex items-center gap-1"
+                      title="WhatsApp Customer"
+                    >
+                      WhatsApp
+                    </a>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Recent Orders */}
       <div className="bg-slate-900/60 border border-slate-800 rounded-xl overflow-hidden">
