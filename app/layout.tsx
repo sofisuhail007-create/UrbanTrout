@@ -41,6 +41,50 @@ export const metadata: Metadata = {
     locale: "en_IN",
     type: "website",
   },
+  verification: {
+    google: "t_h48-dHHohnXh8_rwiI8IS-Z2eANoRrIuJLO3devGU",
+  },
+};
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "LocalBusiness",
+  "name": "Urban Trout",
+  "image": "https://urbantrout.in/images/og-image.png",
+  "description": "Fresh, locally farmed Rainbow Trout in Srinagar. Harvested to order and delivered directly to your doorstep.",
+  "@id": "https://urbantrout.in",
+  "url": "https://urbantrout.in",
+  "telephone": "+917006604148",
+  "priceRange": "₹₹",
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "Malabagh, Naseem Bagh, Near R P School (Girls Wing)",
+    "addressLocality": "Srinagar",
+    "addressRegion": "Jammu and Kashmir",
+    "postalCode": "190006",
+    "addressCountry": "IN"
+  },
+  "geo": {
+    "@type": "GeoCoordinates",
+    "latitude": 34.144831,
+    "longitude": 74.824280
+  },
+  "openingHoursSpecification": {
+    "@type": "OpeningHoursSpecification",
+    "dayOfWeek": [
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+      "Sunday"
+    ],
+    "opens": "08:00",
+    "closes": "20:00"
+  },
+  "servesCuisine": "Seafood",
+  "areaServed": "Srinagar"
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -59,6 +103,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link
           rel="stylesheet"
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block"
+        />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
       <body className="bg-[#031018] text-[#dfedf9] antialiased">

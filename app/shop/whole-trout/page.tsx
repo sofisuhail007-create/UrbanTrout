@@ -29,8 +29,32 @@ export default async function WholeTroutPage() {
 
   const price = data ? data.price_per_kg : 500;
 
+  const productJsonLd = {
+    "@context": "https://schema.org/",
+    "@type": "Product",
+    "name": "Whole Rainbow Trout",
+    "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuCfyCpJNmCwVzBHTZw6kqPtCRfTVXNYWrm9Ixqy89okmBbaSGqKYMtEAZ5Jwv4MOwZIKpC3ugBZ1ISA5EfIUrq2lWmta28vvGV-ygjESie53QYIOJoDMgX9cJJWH5V960DeAviDBjjohZeT4WWrdrHC0tY2VnrZZsvftETpZ8ocCU2eupUdyTEoqKa8lgPe2dIHnERZTds7HMPfLKCtr56KHLPC08YZCzexEINcVe6nIrChDatBpMYRAOjGBVKCP2WsVyZicAZsG-kB",
+    "description": "Fresh whole rainbow trout from our Srinagar farm. Ideal for roasting, whole baking, grilling, or traditional recipes.",
+    "brand": {
+      "@type": "Brand",
+      "name": "Urban Trout"
+    },
+    "offers": {
+      "@type": "Offer",
+      "url": "https://urbantrout.in/shop/whole-trout",
+      "priceCurrency": "INR",
+      "price": price,
+      "availability": "https://schema.org/InStock",
+      "itemCondition": "https://schema.org/NewCondition"
+    }
+  };
+
   return (
     <div style={{ background: C.bg, minHeight: "100vh" }}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
+      />
       <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "7rem 1.5rem 5rem" }}>
 
         {/* Breadcrumb */}

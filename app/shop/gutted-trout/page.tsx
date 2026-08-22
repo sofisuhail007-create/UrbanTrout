@@ -29,8 +29,32 @@ export default async function GuttedTroutPage() {
 
   const price = data ? data.price_per_kg : 550;
 
+  const productJsonLd = {
+    "@context": "https://schema.org/",
+    "@type": "Product",
+    "name": "Premium Gutted Rainbow Trout",
+    "image": "https://urbantrout.in/images/gutted_trout_premium.png",
+    "description": "Expertly cleaned, gutted, and prepared for immediate cooking. Farmed locally in Srinagar and delivered fresh.",
+    "brand": {
+      "@type": "Brand",
+      "name": "Urban Trout"
+    },
+    "offers": {
+      "@type": "Offer",
+      "url": "https://urbantrout.in/shop/gutted-trout",
+      "priceCurrency": "INR",
+      "price": price,
+      "availability": "https://schema.org/InStock",
+      "itemCondition": "https://schema.org/NewCondition"
+    }
+  };
+
   return (
     <div style={{ background: C.bg, minHeight: "100vh" }}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
+      />
       <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "7rem 1.5rem 5rem" }}>
 
         {/* Breadcrumb */}
