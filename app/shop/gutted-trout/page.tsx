@@ -6,7 +6,7 @@ import { supabase } from "@/lib/supabase";
 export const metadata: Metadata = {
   title: "Premium Gutted Rainbow Trout",
   description:
-    "Expertly cleaned, gutted, and prepared for immediate cooking. Preserving flavor through precision cold-chain management.",
+    "Expertly cleaned, gutted, and prepared for immediate cooking. Farmed locally in Srinagar and delivered fresh.",
 };
 
 const C = {
@@ -83,7 +83,7 @@ export default async function GuttedTroutPage() {
               />
               {/* Badges */}
               <div className="absolute bottom-5 left-5 flex gap-2">
-                {["Premium Gutted", "PH Level: 7.2"].map((badge) => (
+                {["Cleaned & Gutted", "Farm Fresh"].map((badge) => (
                   <span
                     key={badge}
                     style={{
@@ -147,7 +147,7 @@ export default async function GuttedTroutPage() {
                     color: C.primary,
                   }}
                 >
-                  Premium Processed Specimen
+                  Fresh From Our Farm
                 </span>
               </div>
               <h1
@@ -175,16 +175,15 @@ export default async function GuttedTroutPage() {
               }}
             >
               <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.9rem", color: C.onSurfVar, lineHeight: 1.75, margin: 0 }}>
-                Expertly cleaned, gutted, and prepared for immediate cooking.
-                Preserving absolute freshness through precision cold-chain management. Our
-                team ensures the fish is dispatched within 4 hours of harvest, maintaining
-                peak texture and a mild, delicate flavor profile.
+                Expertly scaled, cleaned, and gutted so it is pan-ready the moment it arrives.
+                Harvested from our fresh water tanks and packed in ice to retain peak firmness
+                and delicate, mild flavor.
               </p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem", marginTop: "1rem" }}>
                 {[
                   { icon: "🌿", label: "Zero Antibiotics" },
                   { icon: "🍳", label: "Pan-Ready" },
-                  { icon: "🔬", label: "Lab Verified" },
+                  { icon: "💧", label: "Pure Spring Water" },
                 ].map((tag) => (
                   <div key={tag.label} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                     <span style={{ fontSize: "14px" }}>{tag.icon}</span>
@@ -241,9 +240,9 @@ export default async function GuttedTroutPage() {
             >
               {[
                 { label: "Protein / 100g", value: "20.5g" },
-                { label: "Omega-3", value: "1,200mg" },
-                { label: "Heavy Metals", value: "ND" },
-                { label: "Harvest to Door", value: "< 4h" },
+                { label: "Omega-3", value: "Rich" },
+                { label: "Antibiotics", value: "Zero" },
+                { label: "Harvest", value: "To Order" },
               ].map((stat) => (
                 <div
                   key={stat.label}
@@ -284,10 +283,10 @@ export default async function GuttedTroutPage() {
           </div>
         </div>
 
-        {/* Culinary & Nutritional Section */}
+        {/* Cooking & Nutritional Section */}
         <section style={{ marginTop: "5rem" }}>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Culinary Notes */}
+            {/* Cooking Notes */}
             <div
               style={{
                 padding: "2.5rem",
@@ -312,7 +311,7 @@ export default async function GuttedTroutPage() {
                   marginBottom: "1.25rem",
                 }}
               >
-                Culinary Lab Notes
+                Cooking Tips
               </span>
               <h2
                 style={{
@@ -324,16 +323,16 @@ export default async function GuttedTroutPage() {
                   letterSpacing: "-0.03em",
                 }}
               >
-                Searing & Flaking
+                Pan-Seared or Grilled
               </h2>
               <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.88rem", color: C.onSurfVar, lineHeight: 1.75, marginBottom: "1.5rem" }}>
-                The gutted format maximizes direct heat transfer to the flesh. We recommend a high-heat pan sear with a compound butter baste.
+                Because it is already gutted and cleaned, this fish cooks evenly and quickly. Season simply with salt, pepper, garlic, and fresh lemon butter.
               </p>
               <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "12px" }}>
                 {[
-                  "Mild, delicate flavor without earthy undertones",
-                  "Flesh flakes beautifully upon contact with fork",
-                  "Skin crisps rapidly in high-heat environments",
+                  "Delicate, tender flesh that flakes cleanly",
+                  "Crispy skin when pan-seared on medium-high heat for 4-5 mins each side",
+                  "Naturally sweet and mild taste with no muddy odor",
                 ].map((item) => (
                   <li key={item} style={{ display: "flex", alignItems: "flex-start", gap: "10px", fontFamily: '"Manrope", sans-serif', fontSize: "0.88rem", color: C.onSurface }}>
                     <span style={{ color: C.primaryCont, marginTop: "2px", flexShrink: 0 }}>✓</span>
@@ -370,7 +369,7 @@ export default async function GuttedTroutPage() {
                   marginBottom: "1.25rem",
                 }}
               >
-                Nutritional Excellence
+                Health & Nutrition
               </span>
               <h2
                 style={{
@@ -382,17 +381,17 @@ export default async function GuttedTroutPage() {
                   letterSpacing: "-0.03em",
                 }}
               >
-                Clinical Dietetics
+                Naturally Healthy
               </h2>
               <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.88rem", color: C.onSurfVar, lineHeight: 1.75, marginBottom: "1.5rem" }}>
-                Raised in pristine RAS environments, free from microplastics, heavy metals, and antibiotics.
+                Grown in cold, clean water with quality feed. A lean, protein-dense superfood for your family.
               </p>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", position: "relative", zIndex: 1 }}>
                 {[
                   { label: "Protein (Per 100g)", value: "20.5g" },
-                  { label: "Omega-3 (EPA/DHA)", value: "1,200mg" },
-                  { label: "Heavy Metals", value: "ND" },
-                  { label: "Microplastics", value: "0.0%" },
+                  { label: "Omega-3 (EPA/DHA)", value: "High" },
+                  { label: "Chemicals", value: "Zero" },
+                  { label: "Calories / 100g", value: "~135 kcal" },
                 ].map((s) => (
                   <div
                     key={s.label}
@@ -404,7 +403,7 @@ export default async function GuttedTroutPage() {
                     }}
                   >
                     <p style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", letterSpacing: "0.12em", textTransform: "uppercase", color: C.primary, margin: "0 0 6px" }}>{s.label}</p>
-                    <p style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.5rem", fontWeight: 700, color: C.onSurface, margin: 0, letterSpacing: "-0.02em" }}>{s.value}</p>
+                    <p style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.35rem", fontWeight: 700, color: C.onSurface, margin: 0, letterSpacing: "-0.02em" }}>{s.value}</p>
                   </div>
                 ))}
               </div>
@@ -412,7 +411,7 @@ export default async function GuttedTroutPage() {
           </div>
         </section>
 
-        {/* RAS Systems Section */}
+        {/* Farm Freshness Promise */}
         <section style={{ marginTop: "4rem" }}>
           <div
             style={{
@@ -431,22 +430,22 @@ export default async function GuttedTroutPage() {
                   <span style={{ fontSize: "20px" }}>💧</span>
                 </div>
                 <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.5rem", fontWeight: 800, color: C.onSurface, margin: 0, letterSpacing: "-0.03em" }}>
-                  RAS Purity Standards
+                  Our Farm Freshness Promise
                 </h3>
               </div>
               <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "1rem", color: C.onSurfVar, lineHeight: 1.75, maxWidth: "640px", marginBottom: "2rem" }}>
-                Every drop of water is filtered through 12 stages of mechanical and biological processing. Ozone-sanitized environments that exceed international organic standards.
+                Raised in clean, continuously filtered cold water right here in Srinagar. Harvested only when you order, immediately chilled in ice, and delivered to your doorstep.
               </p>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "1.5rem" }}>
                 {[
-                  { label: "Nitrate", val: "< 5ppm" },
-                  { label: "Oxygen", val: "99.8%" },
-                  { label: "UV Index", val: "High" },
-                  { label: "Pesticides", val: "0.0%" },
+                  { label: "Water Source", val: "Deep Borewell" },
+                  { label: "Harvest", val: "To Order" },
+                  { label: "Antibiotics", val: "Zero" },
+                  { label: "Delivery", val: "Same Day" },
                 ].map((stat) => (
                   <div key={stat.label}>
                     <p style={{ fontFamily: '"Inter", sans-serif', fontSize: "10px", letterSpacing: "0.15em", textTransform: "uppercase", color: C.primary, margin: "0 0 6px" }}>{stat.label}</p>
-                    <p style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.75rem", fontWeight: 700, color: C.onSurface, margin: 0, letterSpacing: "-0.03em" }}>{stat.val}</p>
+                    <p style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.35rem", fontWeight: 700, color: C.onSurface, margin: 0, letterSpacing: "-0.03em" }}>{stat.val}</p>
                   </div>
                 ))}
               </div>

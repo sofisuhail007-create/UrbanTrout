@@ -60,9 +60,9 @@ export default function ShopPage() {
       <section style={{ borderTop: "1px solid rgba(114,221,253,0.07)", background: C.bgLow }}>
         <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "3.5rem 1.5rem", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "2rem 3rem" }}>
           {[
-            { icon: "ac_unit", title: "Cold Chain Guaranteed", desc: "Maintained at exactly 1.5°C with real-time biometric sensors." },
-            { icon: "verified", title: "Zero Waste Ethics", desc: "100% of harvest utilised. Minimal carbon footprint." },
-            { icon: "qr_code_2", title: "Full Traceability", desc: "Scan your QR to see the exact pond & harvest timestamp." },
+            { icon: "water_drop", title: "Pure Filtered Water", desc: "Raised in clean groundwater systems, isolated from pollutants." },
+            { icon: "set_meal", title: "Harvested to Order", desc: "We never store dead fish. Every catch is harvested fresh for you." },
+            { icon: "local_shipping", title: "Direct to Your Door", desc: "Delivered chilled within hours of harvest across Srinagar." },
           ].map(t => (
             <div key={t.title} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
               <div style={{ width: "44px", height: "44px", borderRadius: "10px", background: "rgba(114,221,253,0.08)", display: "flex", alignItems: "center", justifyContent: "center" }}>

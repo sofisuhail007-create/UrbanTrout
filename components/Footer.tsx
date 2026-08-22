@@ -40,10 +40,10 @@ export default function Footer() {
               fontSize: "0.84rem",
               color: C.onSurfVar,
               lineHeight: 1.75,
-              maxWidth: "260px",
+              maxWidth: "280px",
             }}
           >
-            Precision Aquaculture Systems. Innovating the heritage of Srinagar&apos;s streams for a sustainable future.
+            Fresh, locally farmed Rainbow Trout in Srinagar. Harvested fresh to order and delivered directly to your doorstep.
           </p>
         </div>
 
@@ -65,8 +65,9 @@ export default function Footer() {
           <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "12px" }}>
             {[
               { href: "/shop", label: "Shop Fresh Catch" },
-              { href: "/our-farm", label: "Our Farm" },
-              { href: "/our-farm#traceability-reports", label: "Traceability & Lab Reports" },
+              { href: "/our-farm", label: "About Our Farm" },
+              { href: "/shop/gutted-trout", label: "Cleaned & Gutted Trout" },
+              { href: "/shop/whole-trout", label: "Whole Rainbow Trout" },
             ].map((link) => (
               <li key={link.href}>
                 <Link
@@ -100,10 +101,10 @@ export default function Footer() {
               marginBottom: "1.25rem",
             }}
           >
-            Contact
+            Contact & Farm Location
           </h5>
           <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "1.25rem" }}>
-            <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.84rem", color: C.onSurfVar }}>Malabagh Naseem Bagh</p>
+            <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.84rem", color: C.onSurfVar }}>Malabagh, Naseem Bagh</p>
             <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.84rem", color: C.onSurfVar }}>Srinagar — 190006</p>
             <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.76rem", color: C.outline }}>Near R P School (Girls Wing)</p>
             <a
@@ -188,7 +189,7 @@ export default function Footer() {
           {[
             { href: "/privacy", label: "Privacy Policy" },
             { href: "/terms", label: "Terms" },
-            { href: "/our-farm#traceability-reports", label: "Traceability" },
+            { href: "/our-farm", label: "Our Farm" },
           ].map((link) => (
             <Link
               key={link.href}
