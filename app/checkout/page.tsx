@@ -39,6 +39,7 @@ export default function CheckoutPage() {
 
   const leadIdRef = useRef<string | null>(null);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const telegramLeadSentRef = useRef<boolean>(false);
 
   const deliveryFee = deliveryMode === "over5" ? 40 : 0;
   const grandTotal = total + deliveryFee;
@@ -107,6 +108,26 @@ export default function CheckoutPage() {
         notes: `Abandoned checkout (Cart: ₹${currentTotal} - ${currentItems.map(i => `${i.name} x ${i.quantity}`).join(", ")})`,
         last_order_at: new Date().toISOString(),
       }, { onConflict: "phone" });
+
+      // 3. Send real-time Telegram alert to admin group once per checkout session
+      if (!telegramLeadSentRef.current) {
+        telegramLeadSentRef.current = true;
+        fetch("/api/telegram-notify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "abandoned_lead",
+            data: {
+              name: currentData.fullName?.trim() || "Interested Customer",
+              phone: rawPhone.slice(-10),
+              locality: currentData.locality?.trim() || "Srinagar",
+              pincode: currentData.pincode?.trim() || "190006",
+              total: currentTotal,
+              cartSummary: currentItems.map(i => `${i.name} x ${i.quantity}`).join(", "),
+            },
+          }),
+        }).catch(() => {});
+      }
 
     } catch (err) {
       console.warn("Lead capture notice:", err);
@@ -272,7 +293,28 @@ export default function CheckoutPage() {
         last_order_at: new Date().toISOString(),
       }, { onConflict: "phone" });
 
-      // 4. Create WhatsApp message for customer
+      // 4. Send Instant Telegram Alert to Admin Group
+      fetch("/api/telegram-notify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "new_order",
+          data: {
+            orderNumber: String(insertedOrder?.order_number || "UT-" + Math.floor(1000 + Math.random() * 9000)),
+            customerName: formData.fullName,
+            phone: formData.phone,
+            locality: formData.locality,
+            address: formData.house,
+            pincode: formData.pincode,
+            items: items.map(i => ({ name: i.name, quantity: i.quantity, price: i.price, unit: i.unit })),
+            total: grandTotal,
+            paymentMethod: "UPI",
+            utrNumber: utrRef || undefined,
+          },
+        }),
+      }).catch(() => {});
+
+      // 5. Create WhatsApp message for customer
       const whatsappMessage = `*NEW HARVEST ORDER (PAID VIA UPI)* 🐟\n\n*Order ID:* #${insertedOrder?.order_number || 'NEW'}\n*Customer Details:*\nName: ${formData.fullName}\nPhone: +91 ${formData.phone}\n${formData.email ? `Email: ${formData.email}\n` : ''}Address: ${formData.house}, ${formData.locality}, ${formData.pincode}\n\n*Ordered Items:*\n${cartDetails}\n*Delivery Zone:* ${deliveryMode === "over5" ? "Outside 5km (₹" + deliveryFee + ")" : "Within 5km (Free)"}\n*Total Paid via UPI:* ₹${grandTotal.toLocaleString("en-IN")}\n*UPI ID Paid To:* ${upiId}\n${utrRef ? `*UTR / Ref No:* ${utrRef}\n` : ''}\n_Please confirm my order and dispatch fresh harvest!_`;
 
       // Set order success state

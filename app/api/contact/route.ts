@@ -51,6 +51,20 @@ export async function POST(request: Request) {
       console.warn("Contact inquiry DB notice:", dbErr);
     }
 
+    // 4. Send Instant Telegram Alert
+    try {
+      const { notifyContactInquiry } = await import("@/lib/telegram");
+      await notifyContactInquiry({
+        name: name.trim(),
+        phone: cleanPhone,
+        email: email?.trim() || undefined,
+        subject: subject || "General Inquiry",
+        message: message.trim(),
+      });
+    } catch (tgErr) {
+      console.warn("Telegram contact alert notice:", tgErr);
+    }
+
     return NextResponse.json({
       success: true,
       message: "Thank you! Your message has been sent to our farm team. We will get back to you shortly.",
