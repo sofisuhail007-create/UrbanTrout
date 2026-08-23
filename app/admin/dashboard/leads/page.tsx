@@ -73,44 +73,59 @@ export default function AdminLeadsPage() {
     fetchLeads();
   }, []);
 
-  const handleStatusChange = async (leadId: string, newStatus: Lead["status"]) => {
+  const handleStatusChange = async (leadId: string, newStatus: Lead["status"], phone?: string) => {
     setUpdatingId(leadId);
+    setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status: newStatus } : l));
     try {
-      const { error } = await supabase
+      await supabase
         .from("leads")
         .update({ status: newStatus, updated_at: new Date().toISOString() })
         .eq("id", leadId);
+    } catch (e) {}
 
-      if (!error) {
-        setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status: newStatus } : l));
-      }
-    } catch (err) {
-      console.error("Failed to update status:", err);
-    } finally {
-      setUpdatingId(null);
+    if (phone) {
+      try {
+        await supabase
+          .from("customers")
+          .update({ notes: `Status: ${newStatus}`, last_order_at: new Date().toISOString() })
+          .eq("phone", phone);
+      } catch (e) {}
     }
+    setUpdatingId(null);
   };
 
-  const handleUpdateNotes = async (leadId: string, notes: string) => {
+  const handleUpdateNotes = async (leadId: string, notes: string, phone?: string) => {
     try {
       await supabase
         .from("leads")
         .update({ notes, updated_at: new Date().toISOString() })
         .eq("id", leadId);
-    } catch (err) {
-      console.error("Failed to update notes:", err);
+    } catch (e) {}
+
+    if (phone) {
+      try {
+        await supabase
+          .from("customers")
+          .update({ notes, last_order_at: new Date().toISOString() })
+          .eq("phone", phone);
+      } catch (e) {}
     }
   };
 
-  const handleDeleteLead = async (leadId: string) => {
+  const handleDeleteLead = async (leadId: string, phone?: string) => {
     if (!confirm("Are you sure you want to delete this lead?")) return;
+    
+    // Immediate UI removal
+    setLeads(prev => prev.filter(l => l.id !== leadId && (phone ? l.customer_phone !== phone : true)));
+
     try {
-      const { error } = await supabase.from("leads").delete().eq("id", leadId);
-      if (!error) {
-        setLeads(prev => prev.filter(l => l.id !== leadId));
-      }
-    } catch (err) {
-      console.error("Failed to delete lead:", err);
+      await supabase.from("leads").delete().eq("id", leadId);
+    } catch (e) {}
+
+    if (phone) {
+      try {
+        await supabase.from("customers").delete().eq("phone", phone);
+      } catch (e) {}
     }
   };
 
@@ -307,7 +322,7 @@ export default function AdminLeadsPage() {
                         <select
                           value={lead.status}
                           disabled={updatingId === lead.id}
-                          onChange={(e) => handleStatusChange(lead.id, e.target.value as any)}
+                          onChange={(e) => handleStatusChange(lead.id, e.target.value as any, lead.customer_phone)}
                           className={`px-2.5 py-1 rounded-lg text-xs font-bold border outline-none bg-slate-950 cursor-pointer ${
                             STATUS_CONFIG[lead.status]?.bg || 'bg-slate-900'
                           } ${STATUS_CONFIG[lead.status]?.color || 'text-white'}`}
@@ -325,7 +340,7 @@ export default function AdminLeadsPage() {
                           type="text"
                           defaultValue={lead.notes || ""}
                           placeholder="Add call notes…"
-                          onBlur={(e) => handleUpdateNotes(lead.id, e.target.value)}
+                          onBlur={(e) => handleUpdateNotes(lead.id, e.target.value, lead.customer_phone)}
                           className="bg-slate-950/60 border border-slate-800 rounded px-2 py-1 text-xs text-slate-300 w-36 placeholder:text-slate-700 focus:outline-none focus:border-cyan-500/40"
                         />
                       </td>
@@ -340,7 +355,7 @@ export default function AdminLeadsPage() {
                       {/* Delete */}
                       <td className="px-3 py-4 text-right">
                         <button
-                          onClick={() => handleDeleteLead(lead.id)}
+                          onClick={() => handleDeleteLead(lead.id, lead.customer_phone)}
                           className="text-slate-600 hover:text-red-400 transition-colors p-1"
                           title="Delete Lead"
                         >
