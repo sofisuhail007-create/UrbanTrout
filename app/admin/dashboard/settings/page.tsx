@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
 export default function AdminSettingsPage() {
-  const [upiId, setUpiId] = useState("sofisuhail007@ybl");
+  const [upiId, setUpiId] = useState("urbantrout@ybl");
   const [primaryPhone, setPrimaryPhone] = useState("+918491006127");
   const [alternatePhone, setAlternatePhone] = useState("+917006604148");
   const [email, setEmail] = useState("info.urbantrout@gmail.com");
@@ -106,11 +106,11 @@ export default function AdminSettingsPage() {
                 value={upiId}
                 onChange={(e) => setUpiId(e.target.value)}
                 required
-                placeholder="e.g. sofisuhail007@ybl"
+                placeholder="e.g. urbantrout@ybl"
                 className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white font-mono focus:outline-none focus:border-cyan-400"
               />
               <p className="text-xs text-slate-500">
-                This UPI ID is used to generate the dynamic QR Code and payment intents shown to customers on the checkout page. Default: <code className="text-cyan-300">sofisuhail007@ybl</code>
+                This UPI ID is used to generate the dynamic QR Code and payment intents shown to customers on the checkout page. Default: <code className="text-cyan-300">urbantrout@ybl</code>
               </p>
             </div>
           </div>

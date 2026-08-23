@@ -119,7 +119,7 @@ export default function CheckoutPage() {
   const [isLocating, setIsLocating] = useState(false);
   const [locationMsg, setLocationMsg] = useState("");
   const [copiedUpi, setCopiedUpi] = useState(false);
-  const [upiId, setUpiId] = useState("sofisuhail007@ybl");
+  const [upiId, setUpiId] = useState("urbantrout@ybl");
   const [utrRef, setUtrRef] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState<any>(null);
