@@ -134,33 +134,7 @@ const jsonLd = {
     { "@type": "AdministrativeArea", "name": "Hyderpora" },
     { "@type": "AdministrativeArea", "name": "Karan Nagar" },
     { "@type": "AdministrativeArea", "name": "Sanat Nagar" }
-  ],
-  "hasOfferCatalog": {
-    "@type": "OfferCatalog",
-    "name": "Fresh Trout Products",
-    "itemListElement": [
-      {
-        "@type": "Offer",
-        "itemOffered": {
-          "@type": "Product",
-          "name": "Premium Gutted Rainbow Trout",
-          "description": "Cleaned, gutted and ready to cook. Farmed in Srinagar."
-        },
-        "price": 550,
-        "priceCurrency": "INR"
-      },
-      {
-        "@type": "Offer",
-        "itemOffered": {
-          "@type": "Product",
-          "name": "Whole Rainbow Trout",
-          "description": "Fresh whole rainbow trout harvested to order in Srinagar."
-        },
-        "price": 500,
-        "priceCurrency": "INR"
-      }
-    ]
-  }
+  ]
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

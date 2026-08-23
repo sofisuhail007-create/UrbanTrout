@@ -33,8 +33,9 @@ export default async function GuttedTroutPage() {
     "@context": "https://schema.org/",
     "@type": "Product",
     "name": "Premium Gutted Rainbow Trout",
-    "image": "https://urbantrout.in/images/gutted_trout_premium.png",
+    "image": ["https://urbantrout.in/images/gutted_trout_premium.png"],
     "description": "Expertly cleaned, gutted, and prepared for immediate cooking. Farmed locally in Srinagar and delivered fresh.",
+    "sku": "UT-GUTTED-TROUT",
     "brand": {
       "@type": "Brand",
       "name": "Urban Trout"
@@ -44,8 +45,13 @@ export default async function GuttedTroutPage() {
       "url": "https://urbantrout.in/shop/gutted-trout",
       "priceCurrency": "INR",
       "price": price,
+      "priceValidUntil": "2027-12-31",
       "availability": "https://schema.org/InStock",
-      "itemCondition": "https://schema.org/NewCondition"
+      "itemCondition": "https://schema.org/NewCondition",
+      "seller": {
+        "@type": "Organization",
+        "name": "Urban Trout"
+      }
     }
   };
 

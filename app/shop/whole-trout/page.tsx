@@ -33,8 +33,9 @@ export default async function WholeTroutPage() {
     "@context": "https://schema.org/",
     "@type": "Product",
     "name": "Whole Rainbow Trout",
-    "image": "https://lh3.googleusercontent.com/aida-public/AB6AXuCfyCpJNmCwVzBHTZw6kqPtCRfTVXNYWrm9Ixqy89okmBbaSGqKYMtEAZ5Jwv4MOwZIKpC3ugBZ1ISA5EfIUrq2lWmta28vvGV-ygjESie53QYIOJoDMgX9cJJWH5V960DeAviDBjjohZeT4WWrdrHC0tY2VnrZZsvftETpZ8ocCU2eupUdyTEoqKa8lgPe2dIHnERZTds7HMPfLKCtr56KHLPC08YZCzexEINcVe6nIrChDatBpMYRAOjGBVKCP2WsVyZicAZsG-kB",
+    "image": ["https://lh3.googleusercontent.com/aida-public/AB6AXuCfyCpJNmCwVzBHTZw6kqPtCRfTVXNYWrm9Ixqy89okmBbaSGqKYMtEAZ5Jwv4MOwZIKpC3ugBZ1ISA5EfIUrq2lWmta28vvGV-ygjESie53QYIOJoDMgX9cJJWH5V960DeAviDBjjohZeT4WWrdrHC0tY2VnrZZsvftETpZ8ocCU2eupUdyTEoqKa8lgPe2dIHnERZTds7HMPfLKCtr56KHLPC08YZCzexEINcVe6nIrChDatBpMYRAOjGBVKCP2WsVyZicAZsG-kB"],
     "description": "Fresh whole rainbow trout from our Srinagar farm. Ideal for roasting, whole baking, grilling, or traditional recipes.",
+    "sku": "UT-WHOLE-TROUT",
     "brand": {
       "@type": "Brand",
       "name": "Urban Trout"
@@ -44,8 +45,13 @@ export default async function WholeTroutPage() {
       "url": "https://urbantrout.in/shop/whole-trout",
       "priceCurrency": "INR",
       "price": price,
+      "priceValidUntil": "2027-12-31",
       "availability": "https://schema.org/InStock",
-      "itemCondition": "https://schema.org/NewCondition"
+      "itemCondition": "https://schema.org/NewCondition",
+      "seller": {
+        "@type": "Organization",
+        "name": "Urban Trout"
+      }
     }
   };
 
