@@ -33,8 +33,12 @@ export default function ProductCard({ p }: { p: Product }) {
         (e.currentTarget as HTMLElement).style.boxShadow = "0 4px 24px rgba(0,0,0,0.3)";
       }}
     >
-      {/* Image */}
-      <div className="relative overflow-hidden" style={{ aspectRatio: "16/9" }}>
+      {/* Clickable Image */}
+      <Link
+        href={`/shop/${p.id}`}
+        className="relative block overflow-hidden cursor-pointer"
+        style={{ aspectRatio: "16/9" }}
+      >
         <img
           src={p.img}
           alt={p.name}
@@ -48,7 +52,7 @@ export default function ProductCard({ p }: { p: Product }) {
 
         {/* Label badge */}
         <span
-          className="absolute top-4 left-4 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest backdrop-blur-sm"
+          className="absolute top-4 left-4 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest backdrop-blur-sm pointer-events-none"
           style={{
             background: "rgba(114,221,253,0.12)",
             border: "1px solid rgba(114,221,253,0.35)",
@@ -59,39 +63,32 @@ export default function ProductCard({ p }: { p: Product }) {
           {p.label}
         </span>
 
-        {/* Details link */}
-        <Link
-          href={`/shop/${p.id}`}
-          className="absolute top-4 right-4 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest backdrop-blur-sm transition-all duration-200"
+        {/* Details badge */}
+        <span
+          className="absolute top-4 right-4 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest backdrop-blur-sm transition-all duration-200 group-hover:text-white group-hover:border-white/30"
           style={{
             background: "rgba(0,0,0,0.45)",
             border: "1px solid rgba(255,255,255,0.12)",
             color: "#9fadb8",
             fontFamily: '"Inter", sans-serif',
           }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLElement).style.color = "#ffffff";
-            (e.currentTarget as HTMLElement).style.border = "1px solid rgba(255,255,255,0.3)";
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLElement).style.color = "#9fadb8";
-            (e.currentTarget as HTMLElement).style.border = "1px solid rgba(255,255,255,0.12)";
-          }}
         >
           Details →
-        </Link>
-      </div>
+        </span>
+      </Link>
 
       {/* Body */}
       <div className="flex flex-col gap-4 p-6">
         {/* Name + Description */}
         <div>
-          <h2
-            className="font-bold tracking-tight mb-1"
-            style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.35rem", color: "#dfedf9" }}
-          >
-            {p.name}
-          </h2>
+          <Link href={`/shop/${p.id}`} className="block group/title">
+            <h2
+              className="font-bold tracking-tight mb-1 transition-colors duration-200 group-hover/title:text-cyan-300"
+              style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.35rem", color: "#dfedf9" }}
+            >
+              {p.name}
+            </h2>
+          </Link>
           <p
             className="leading-relaxed line-clamp-2"
             style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.84rem", color: "#9fadb8" }}
