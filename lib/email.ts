@@ -1,12 +1,14 @@
 import { Resend } from "resend";
 
-const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
-const resend = new Resend(RESEND_API_KEY);
+function getResend() {
+  const key = process.env.RESEND_API_KEY;
+  if (!key) return null;
+  return new Resend(key);
+}
 
 const FROM_EMAIL = "Urban Trout <onboarding@resend.dev>";
 const ADMIN_EMAIL = "info.urbantrout@gmail.com";
 
-// 1. Initial Order Received & Payment Verification Email
 export async function sendOrderConfirmationEmail(order: {
   orderNumber: string;
   customerName: string;
@@ -22,6 +24,11 @@ export async function sendOrderConfirmationEmail(order: {
   paymentMethod: string;
   utrNumber?: string;
 }) {
+  const resend = getResend();
+  if (!resend) {
+    console.warn("RESEND_API_KEY is not set. Skipping order confirmation email.");
+    return;
+  }
   const itemsHtml = order.items
     .map(
       (item) => `
@@ -169,6 +176,12 @@ export async function sendOrderStatusUpdateEmail(order: {
 
   if (!order.email || !order.email.includes("@")) return;
 
+  const resend = getResend();
+  if (!resend) {
+    console.warn("RESEND_API_KEY is not set. Skipping status update email.");
+    return;
+  }
+
   const STATUS_DETAILS: Record<string, { title: string; subtitle: string; icon: string; color: string; subject: string }> = {
     processing: {
       title: "Payment Verified & Order Confirmed! 🎉",
@@ -258,6 +271,11 @@ export async function sendContactInquiryEmail(inquiry: {
   subject?: string;
   message: string;
 }) {
+  const resend = getResend();
+  if (!resend) {
+    console.warn("RESEND_API_KEY is not set. Skipping contact inquiry email.");
+    return;
+  }
   const emailHtml = `
   <!DOCTYPE html>
   <html>
