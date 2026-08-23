@@ -252,11 +252,11 @@ export default function CheckoutPage() {
           setLocationMsg(`${dist.toFixed(1)}km from our farm — outside delivery zone.`);
         } else if (dist <= DELIVERY_RADIUS_KM) {
           setDeliveryMode("under5");
-          setLocationMsg(`${dist.toFixed(1)}km from Malabagh Farm — Free Delivery ✓`);
+          setLocationMsg(`${dist.toFixed(1)}km from Urban Trout Farm — Free Delivery ✓`);
         } else {
           // Issue #4: outside 5km → unavailable (we only deliver within 5km per user directive)
           setDeliveryMode("unavailable");
-          setLocationMsg(`${dist.toFixed(1)}km from our farm — We currently deliver only within a 5km radius of Malabagh.`);
+          setLocationMsg(`${dist.toFixed(1)}km from our farm — We currently deliver only within a 5km radius of Urban Trout Farm.`);
         }
         setIsLocating(false);
       },
@@ -291,7 +291,7 @@ export default function CheckoutPage() {
       return;
     }
     if (deliveryMode === "unavailable") {
-      alert("Sorry, we currently only deliver within 5km of Malabagh Farm, Srinagar.");
+      alert("Sorry, we currently only deliver within 5km of Urban Trout Farm, Srinagar.");
       return;
     }
 
@@ -448,7 +448,7 @@ export default function CheckoutPage() {
                 Thank You, {orderSuccess.name}!
               </h2>
               <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.9rem", color: C.onSurfVar, lineHeight: 1.7, marginBottom: "1.5rem" }}>
-                Your order <strong style={{ color: C.primary }}>#{orderSuccess.orderNumber}</strong> is received. Our team at Malabagh is verifying your UPI payment — once confirmed, your fresh trout will be harvested and dispatched same-day.
+                Your order <strong style={{ color: C.primary }}>#{orderSuccess.orderNumber}</strong> is received. Our team at Urban Trout Farm is verifying your UPI payment — once confirmed, your fresh trout will be harvested and dispatched same-day.
               </p>
 
               {/* Notice box */}
@@ -695,7 +695,7 @@ export default function CheckoutPage() {
                       We Don&apos;t Deliver Here Yet
                     </h3>
                     <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.88rem", color: "#fca5a5", lineHeight: 1.7, margin: "0 0 16px" }}>
-                      Urban Trout currently delivers only within a <strong>5km radius of our Malabagh Farm &amp; Vending Center</strong>, Srinagar. Your location appears to be outside our current delivery zone.
+                      Urban Trout currently delivers only within a <strong>5km radius of Urban Trout Farm &amp; Vending Center</strong>, Srinagar. Your location appears to be outside our current delivery zone.
                     </p>
                     <div style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.2)", borderRadius: "10px", padding: "12px", fontSize: "0.83rem", color: "#fca5a5", marginBottom: "16px" }}>
                       🏪 <strong>Alternative:</strong> You can visit our Live Vending Center at<br />

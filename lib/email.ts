@@ -67,7 +67,7 @@ export async function sendOrderConfirmationEmail(order: {
             Awaiting UPI Payment Verification
           </p>
           <p style="margin: 6px 0 0; font-size: 13px; color: #9fadb8; line-height: 1.6;">
-            Thank you, <strong>${order.customerName}</strong>. Our farm team at Malabagh is verifying your incoming UPI payment. Once verified, your order will be confirmed and fresh catch harvested for same-day delivery.
+            Thank you, <strong>${order.customerName}</strong>. Our team at Urban Trout Farm is verifying your incoming UPI payment. Once verified, your order will be confirmed and fresh catch harvested for same-day delivery.
           </p>
         </div>
 
@@ -114,7 +114,7 @@ export async function sendOrderConfirmationEmail(order: {
           <p style="margin: 0; font-size: 14px; color: #dfedf9; line-height: 1.5;">
             <strong>${order.customerName}</strong> (+91 ${order.phone})<br>
             ${order.address ? `${order.address}, ` : ""}${order.locality || "Srinagar"}${order.pincode ? ` - ${order.pincode}` : ""}<br>
-            <span style="font-size: 12px; color: #9fadb8;">Farm Source: Malabagh Farm &amp; Live Vending Center</span>
+            <span style="font-size: 12px; color: #9fadb8;">Farm Source: Urban Trout Farm &amp; Live Vending Center</span>
           </p>
         </div>
 
@@ -185,7 +185,7 @@ export async function sendOrderStatusUpdateEmail(order: {
   const STATUS_DETAILS: Record<string, { title: string; subtitle: string; icon: string; color: string; subject: string }> = {
     processing: {
       title: "Payment Verified & Order Confirmed! 🎉",
-      subtitle: "We have confirmed your UPI payment. Our farm team at Malabagh is now harvesting and ice-packing your fresh Rainbow Trout.",
+      subtitle: "We have confirmed your UPI payment. Our team at Urban Trout Farm is now harvesting and ice-packing your fresh Rainbow Trout.",
       icon: "🐟",
       color: "#25d366",
       subject: `✅ Payment Verified! Order #${order.orderNumber} Confirmed - Urban Trout`,

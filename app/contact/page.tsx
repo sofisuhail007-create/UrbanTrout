@@ -146,7 +146,7 @@ export default function ContactPage() {
               lineHeight: 1.75,
             }}
           >
-            Have a question regarding same-day delivery in Srinagar, bulk supply for events, or visiting our Malabagh farm &amp; live vending center? Reach out directly to our team.
+            Have a question regarding same-day delivery in Srinagar, bulk supply for events, or visiting our Urban Trout Farm &amp; live vending center? Reach out directly to our team.
           </p>
         </div>
 
@@ -177,7 +177,7 @@ export default function ContactPage() {
                     Farm &amp; Live Vending Center
                   </span>
                   <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.15rem", fontWeight: 700, color: C.onSurface, margin: 0 }}>
-                    Malabagh Farm &amp; Vending Center
+                    Urban Trout Farm &amp; Vending Center
                   </h3>
                 </div>
               </div>
@@ -339,7 +339,7 @@ export default function ContactPage() {
                     Message Sent Successfully!
                   </h3>
                   <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.95rem", color: C.onSurfVar, maxWidth: "450px", margin: "0 auto" }}>
-                    Thank you for reaching out. A representative from our Malabagh farm team will contact you shortly.
+                    Thank you for reaching out. A representative from our Urban Trout Farm team will contact you shortly.
                   </p>
                   <button
                     type="button"
