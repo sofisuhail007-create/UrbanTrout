@@ -28,7 +28,7 @@ export default function OurFarmPage() {
               <span style={{ color: "#63cfee", textShadow: "0 0 30px rgba(99,207,238,0.4)" }}>Fresh Harvest.</span>
             </h1>
             <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "1.05rem", color: C.onSurfVar, lineHeight: 1.75, margin: "0 0 2.5rem", maxWidth: "480px" }}>
-              Located right here in Srinagar at Naseem Bagh, our farm raises Rainbow Trout in clean, continuously filtered cold water. We farm with care, harvest only when you order, and deliver fresh to your door.
+              Located in Srinagar at Malabagh, Naseem Bagh, our farm raises Rainbow Trout in clean, continuously filtered cold water. We farm with care, harvest only when you order, and deliver fresh to your door.
             </p>
             <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
               <Link href="/shop" style={{ padding: "13px 28px", borderRadius: "10px", background: C.primaryCont, color: C.onPrimCont, fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: "0.875rem", textDecoration: "none", boxShadow: "0 0 20px rgba(58,173,204,0.3)" }}>
@@ -55,7 +55,7 @@ export default function OurFarmPage() {
                   <span style={{ width: "8px", height: "8px", borderRadius: "50%", background: C.primary, boxShadow: "0 0 8px #72ddfd" }} />
                   <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", letterSpacing: "0.2em", textTransform: "uppercase", color: C.primary }}>Farm Active</span>
                 </div>
-                <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: "1rem", color: C.onSurface }}>Naseem Bagh, Srinagar</span>
+                <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: "1rem", color: C.onSurface }}>Malabagh, Srinagar</span>
               </div>
             </div>
           </div>

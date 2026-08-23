@@ -91,7 +91,7 @@ const jsonLd = {
   "name": "Urban Trout",
   "alternateName": "Urban Trout Srinagar",
   "image": "https://urbantrout.in/images/og-image.png",
-  "description": "Srinagar's premier cold-water trout farm in Naseem Bagh. Providing fresh whole and cleaned Rainbow Trout harvested to order with same-day home delivery across Srinagar, Kashmir.",
+  "description": "Srinagar's premier cold-water trout farm & live vending center located in Malabagh, Naseem Bagh. Providing fresh whole and cleaned Rainbow Trout harvested to order with delivery across a 5km radius in Srinagar, Kashmir.",
   "@id": "https://urbantrout.in",
   "url": "https://urbantrout.in",
   "telephone": "+918491006127",
@@ -109,8 +109,8 @@ const jsonLd = {
   },
   "geo": {
     "@type": "GeoCoordinates",
-    "latitude": 34.144831,
-    "longitude": 74.824280
+    "latitude": 34.144709,
+    "longitude": 74.824525
   },
   "openingHoursSpecification": {
     "@type": "OpeningHoursSpecification",
@@ -128,7 +128,7 @@ const jsonLd = {
   },
   "servesCuisine": "Seafood, Freshwater Fish",
   "areaServed": [
-    { "@type": "AdministrativeArea", "name": "5km Radius from Farm (Naseem Bagh, Srinagar)" }
+    { "@type": "AdministrativeArea", "name": "5km Radius from Farm (Malabagh, Naseem Bagh, Srinagar)" }
   ]
 };
 

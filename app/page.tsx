@@ -37,7 +37,7 @@ const farmConditions = [
 const faqs = [
   {
     q: "Where can I buy fresh trout fish in Srinagar?",
-    a: "You can order fresh trout online directly through urbantrout.in for same-day delivery within a 5km radius from our farm, or pick it up fresh from our farm at Malabagh, Naseem Bagh (near R P School Girls Wing).",
+    a: "You can order fresh trout online directly through urbantrout.in for same-day delivery within a 5km radius from our farm, or pick it up fresh from our farm and live vending center at Malabagh, Naseem Bagh (near R P School Girls Wing).",
   },
   {
     q: "What is the price of Rainbow Trout per Kg in Srinagar?",
@@ -49,7 +49,7 @@ const faqs = [
   },
   {
     q: "Which areas do you deliver to?",
-    a: "We only deliver within a 5km radius from our farm in Naseem Bagh, Srinagar. You can also pick up fresh catch directly in person at our farm gate in Malabagh.",
+    a: "We only deliver within a 5km radius from our farm in Malabagh, Srinagar. You can also pick up fresh catch directly at our farm and live vending center in Malabagh (near R P School Girls Wing).",
   },
   {
     q: "How fresh is Urban Trout compared to market fish?",
@@ -151,7 +151,7 @@ export default async function HomePage() {
           </h1>
 
           <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "1.125rem", color: C.onSurfaceVariant, maxWidth: "580px", margin: "0 auto 2.5rem", lineHeight: 1.7 }}>
-            Farmed right here in Naseem Bagh, Srinagar. Harvested to order and delivered to your doorstep within hours.
+            Farmed right here in Malabagh, Srinagar. Harvested to order and delivered to your doorstep within hours.
           </p>
 
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: "1rem" }}>
@@ -315,7 +315,7 @@ export default async function HomePage() {
       <section style={{ padding: "4rem 1.5rem", borderTop: "1px solid rgba(114,221,253,0.07)", background: C.bg }}>
         <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6">
           {[
-            { icon: "water_drop", title: "Fresh from Our Farm", sub: "Naseem Bagh, Srinagar" },
+            { icon: "water_drop", title: "Fresh from Our Farm", sub: "Malabagh, Srinagar" },
             { icon: "verified", title: "Zero Antibiotics", sub: "100% clean & natural" },
             { icon: "local_shipping", title: "Same-Day Delivery", sub: "Chilled to your doorstep" },
             { icon: "storefront", title: "Farm Gate Pickup", sub: "Pick up fresh in person" },

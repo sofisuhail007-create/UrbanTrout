@@ -146,7 +146,7 @@ export default function ContactPage() {
               lineHeight: 1.75,
             }}
           >
-            Have a question regarding same-day delivery in Srinagar, bulk supply for events, or visiting our Naseem Bagh raceway ponds? Reach out directly to our farm team.
+            Have a question regarding same-day delivery in Srinagar, bulk supply for events, or visiting our Malabagh farm &amp; live vending center? Reach out directly to our team.
           </p>
         </div>
 
@@ -174,19 +174,19 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "10px", letterSpacing: "0.15em", textTransform: "uppercase", color: C.outline }}>
-                    Farm & Raceway Location
+                    Farm &amp; Live Vending Center
                   </span>
                   <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.15rem", fontWeight: 700, color: C.onSurface, margin: 0 }}>
-                    Naseem Bagh Farm Gate
+                    Malabagh Farm &amp; Vending Center
                   </h3>
                 </div>
               </div>
               <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.9rem", color: C.onSurfVar, lineHeight: 1.7, marginBottom: "1.25rem" }}>
-                Malabagh, Naseem Bagh, Srinagar, Jammu & Kashmir — 190006<br />
+                Malabagh, Naseem Bagh, Srinagar, Jammu &amp; Kashmir — 190006<br />
                 <span className="text-slate-400 text-xs">(Near R P School Girls Wing)</span>
               </p>
               <a
-                href="https://maps.google.com/?q=34.144831,74.824280"
+                href="https://maps.google.com/?q=34.144709,74.824525"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-cyan-400 hover:text-cyan-300 transition-colors"
@@ -339,7 +339,7 @@ export default function ContactPage() {
                     Message Sent Successfully!
                   </h3>
                   <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.95rem", color: C.onSurfVar, maxWidth: "450px", margin: "0 auto" }}>
-                    Thank you for reaching out. A representative from our Naseem Bagh farm will contact you shortly.
+                    Thank you for reaching out. A representative from our Malabagh farm team will contact you shortly.
                   </p>
                   <button
                     type="button"

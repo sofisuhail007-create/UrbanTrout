@@ -139,8 +139,8 @@ export default function CheckoutPage() {
     };
   }, [formData, grandTotal, items, captureLead]);
 
-  const FARM_LAT = 34.144831;
-  const FARM_LNG = 74.824280;
+  const FARM_LAT = 34.144709;
+  const FARM_LNG = 74.824525;
   const SRINAGAR_MAX_RADIUS_KM = 25;
 
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -172,7 +172,7 @@ export default function CheckoutPage() {
             setDeliveryMode(isClose ? "under5" : "over5");
             setLocationMsg(
               isClose
-                ? `Within 5km from Naseem Bagh (${distanceInKm.toFixed(1)}km) — Free Delivery`
+                ? `Within 5km from Malabagh Farm (${distanceInKm.toFixed(1)}km) — Free Delivery`
                 : `Outside 5km (${distanceInKm.toFixed(1)}km) — ₹40 Flat Delivery Fee`
             );
           }
@@ -318,7 +318,7 @@ export default function CheckoutPage() {
             Thank You, {orderSuccess.name}!
           </h2>
           <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.95rem", color: C.onSurfVar, lineHeight: 1.7, marginBottom: "2rem" }}>
-            Your order <strong>#{orderSuccess.orderNumber}</strong> has been received. Our farm team in Naseem Bagh is harvesting and packing your fresh trout now.
+            Your order <strong>#{orderSuccess.orderNumber}</strong> has been received. Our farm team at Malabagh, Naseem Bagh is harvesting and packing your fresh trout now.
           </p>
 
           <div className="p-4 rounded-xl mb-6 text-left" style={{ background: "rgba(3,16,24,0.6)", border: "1px solid rgba(61,74,83,0.5)" }}>
