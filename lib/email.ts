@@ -6,7 +6,7 @@ function getResend() {
   return new Resend(key);
 }
 
-const FROM_EMAIL = "Urban Trout <onboarding@resend.dev>";
+const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "Urban Trout <orders@urbantrout.in>";
 const ADMIN_EMAIL = "info.urbantrout@gmail.com";
 
 export async function sendOrderConfirmationEmail(order: {
