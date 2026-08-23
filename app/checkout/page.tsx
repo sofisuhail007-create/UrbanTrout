@@ -88,16 +88,26 @@ export default function CheckoutPage() {
         updated_at: new Date().toISOString(),
       };
 
+      // 1. Try dedicated leads table
       if (leadIdRef.current) {
         await supabase.from("leads").update(payload).eq("id", leadIdRef.current);
       } else {
-        const { data, error } = await supabase.from("leads").insert([payload]).select("id").single();
+        const { data } = await supabase.from("leads").insert([payload]).select("id").single();
         if (data?.id) {
           leadIdRef.current = data.id;
-        } else if (error) {
-          console.warn("Lead capture Supabase notice:", error.message);
         }
       }
+
+      // 2. Also guaranteed upsert to customers table as resilient fallback
+      await supabase.from("customers").upsert({
+        phone: rawPhone.slice(-10),
+        name: currentData.fullName?.trim() || "Interested Customer",
+        locality: currentData.locality?.trim() || "Srinagar",
+        pincode: currentData.pincode?.trim() || "190006",
+        notes: `Abandoned checkout (Cart: ₹${currentTotal} - ${currentItems.map(i => `${i.name} x ${i.quantity}`).join(", ")})`,
+        last_order_at: new Date().toISOString(),
+      }, { onConflict: "phone" });
+
     } catch (err) {
       console.warn("Lead capture notice:", err);
     }

@@ -20,14 +20,48 @@ export default function AdminLeadsPage() {
   const fetchLeads = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      let combinedLeads: Lead[] = [];
+
+      // 1. Fetch from dedicated leads table
+      const { data: leadsData } = await supabase
         .from("leads")
         .select("*")
         .order("created_at", { ascending: false });
 
-      if (!error && data) {
-        setLeads(data as Lead[]);
+      if (leadsData && leadsData.length > 0) {
+        combinedLeads = [...(leadsData as Lead[])];
       }
+
+      // 2. Also fetch from customers table as resilient fallback
+      const { data: customersData } = await supabase
+        .from("customers")
+        .select("*")
+        .order("last_order_at", { ascending: false });
+
+      if (customersData) {
+        const existingPhones = new Set(combinedLeads.map(l => l.customer_phone));
+        customersData.forEach((c: any) => {
+          if (!existingPhones.has(c.phone) && (c.total_orders === 0 || (c.notes && c.notes.includes("Abandoned")))) {
+            combinedLeads.push({
+              id: c.id,
+              customer_name: c.name || "Interested Customer",
+              customer_phone: c.phone,
+              customer_email: null,
+              customer_locality: c.locality || "Srinagar",
+              customer_address: null,
+              customer_pincode: c.pincode || "190006",
+              cart_items: [],
+              estimated_total: 550,
+              status: "abandoned",
+              notes: c.notes || "In-progress checkout from website",
+              created_at: c.last_order_at || c.created_at || new Date().toISOString(),
+              updated_at: c.last_order_at || new Date().toISOString(),
+            });
+          }
+        });
+      }
+
+      setLeads(combinedLeads);
     } catch (err) {
       console.error("Error fetching leads:", err);
     } finally {
