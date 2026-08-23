@@ -31,22 +31,12 @@ export default function Navbar() {
       >
         <div className="flex items-center justify-between px-6 py-3">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 group">
+          <Link href="/" className="flex items-center group py-0.5">
             <img
-              src="/urbantroutlogo.png"
-              alt="Urban Trout Logo"
-              className="w-9 h-9 rounded-lg object-contain transition-transform group-hover:scale-105"
+              src="/headerfooterlogo.png"
+              alt="Urban Trout"
+              className="h-8 sm:h-9 w-auto object-contain transition-transform group-hover:scale-105"
             />
-            <span
-              className="text-xl font-black tracking-tighter"
-              style={{
-                fontFamily: '"Space Grotesk", sans-serif',
-                color: "#72ddfd",
-                textShadow: "0 0 20px rgba(114,221,253,0.4)",
-              }}
-            >
-              Urban Trout
-            </span>
           </Link>
 
           {/* Desktop Nav */}

@@ -41,16 +41,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         className={`flex flex-col border-r border-slate-800 bg-slate-950/80 transition-all duration-300 ${collapsed ? "w-16" : "w-56"}`}
       >
         {/* Logo */}
-        <div className="flex items-center gap-3 px-4 py-5 border-b border-slate-800">
-          <img
-            src="/urbantroutlogo.png"
-            alt="Urban Trout"
-            className="w-8 h-8 rounded-lg object-contain flex-shrink-0"
-          />
-          {!collapsed && (
-            <span className="font-bold text-cyan-400 text-sm" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
-              Urban Trout
-            </span>
+        <div className="flex items-center gap-2 px-3 py-4 border-b border-slate-800 overflow-hidden">
+          {!collapsed ? (
+            <img
+              src="/headerfooterlogo.png"
+              alt="Urban Trout"
+              className="h-7 w-auto object-contain"
+            />
+          ) : (
+            <img
+              src="/sitelogo.png"
+              alt="Urban Trout"
+              className="w-8 h-8 rounded-lg object-contain"
+            />
           )}
           <button
             onClick={() => setCollapsed((c) => !c)}
