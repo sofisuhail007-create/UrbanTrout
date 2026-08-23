@@ -65,6 +65,20 @@ export async function POST(request: Request) {
       console.warn("Telegram contact alert notice:", tgErr);
     }
 
+    // 5. Send Resend Email Alert to Admin
+    try {
+      const { sendContactInquiryEmail } = await import("@/lib/email");
+      await sendContactInquiryEmail({
+        name: name.trim(),
+        phone: cleanPhone,
+        email: email?.trim() || undefined,
+        subject: subject || "General Inquiry",
+        message: message.trim(),
+      });
+    } catch (emailErr) {
+      console.warn("Resend contact alert notice:", emailErr);
+    }
+
     return NextResponse.json({
       success: true,
       message: "Thank you! Your message has been sent to our farm team. We will get back to you shortly.",
