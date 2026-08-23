@@ -3,6 +3,7 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import CartDrawer from "@/components/CartDrawer";
+import WhatsAppButton from "@/components/WhatsAppButton";
 import { CartProvider } from "@/context/CartContext";
 import { Toaster } from "react-hot-toast";
 
@@ -176,6 +177,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Navbar />
           <CartDrawer />
           {children}
+          <WhatsAppButton />
           <Footer />
         </CartProvider>
       </body>
