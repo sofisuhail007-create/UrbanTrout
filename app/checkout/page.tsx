@@ -348,28 +348,34 @@ export default function CheckoutPage() {
           className="max-w-lg w-full text-center p-8 md:p-10 rounded-2xl"
           style={{ background: "rgba(16,33,44,0.9)", border: "1px solid rgba(114,221,253,0.3)", boxShadow: "0 0 50px rgba(114,221,253,0.15)" }}
         >
-          <div style={{ width: "72px", height: "72px", borderRadius: "50%", background: "rgba(37,211,102,0.15)", border: "1px solid #25D366", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1.5rem" }}>
-            <svg width="36" height="36" fill="none" stroke="#25D366" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-              <polyline points="20 6 9 17 4 12" />
-            </svg>
+          <div style={{ width: "72px", height: "72px", borderRadius: "50%", background: "rgba(114,221,253,0.15)", border: "1px solid #72ddfd", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 1.5rem" }}>
+            <span className="material-symbols-outlined text-4xl text-cyan-300">hourglass_top</span>
           </div>
-          <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", color: C.primary }}>
-            Order Confirmed
+          <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", color: "#fbbf24" }}>
+            Order Received • Awaiting Payment Verification
           </span>
           <h2 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "2rem", fontWeight: 800, color: C.onSurface, margin: "0.5rem 0 1rem" }}>
             Thank You, {orderSuccess.name}!
           </h2>
-          <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.95rem", color: C.onSurfVar, lineHeight: 1.7, marginBottom: "2rem" }}>
-            Your order <strong>#{orderSuccess.orderNumber}</strong> has been received. Our farm team at Malabagh, Naseem Bagh is harvesting and packing your fresh trout now.
+          <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.95rem", color: C.onSurfVar, lineHeight: 1.7, marginBottom: "1.5rem" }}>
+            Your order <strong>#{orderSuccess.orderNumber}</strong> has been received. Our farm team at Malabagh is currently verifying the UPI payment. Once verified, your order will be confirmed and fresh trout harvested for same-day delivery.
           </p>
+
+          {/* Verification notice box */}
+          <div className="p-3.5 rounded-xl mb-6 text-left flex items-start gap-3" style={{ background: "rgba(251,191,36,0.1)", border: "1px solid rgba(251,191,36,0.25)" }}>
+            <span className="material-symbols-outlined text-amber-400 text-lg flex-shrink-0 mt-0.5">verified_user</span>
+            <p className="text-xs text-amber-200/90 leading-relaxed m-0 font-medium">
+              <strong>Next Step:</strong> We manually verify incoming UPI payments before harvesting from ponds. You will receive an email &amp; WhatsApp status update once confirmed!
+            </p>
+          </div>
 
           <div className="p-4 rounded-xl mb-6 text-left" style={{ background: "rgba(3,16,24,0.6)", border: "1px solid rgba(61,74,83,0.5)" }}>
             <div className="flex justify-between mb-2" style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.85rem", color: C.onSurfVar }}>
-              <span>Total Paid via UPI</span>
+              <span>Total Amount (UPI)</span>
               <span style={{ color: C.primary, fontWeight: 700 }}>₹{orderSuccess.total.toLocaleString("en-IN")}</span>
             </div>
             <div className="flex justify-between" style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.85rem", color: C.onSurfVar }}>
-              <span>Support WhatsApp</span>
+              <span>Support Hotline &amp; WhatsApp</span>
               <span style={{ color: C.onSurface }}>+91 84910 06127</span>
             </div>
           </div>

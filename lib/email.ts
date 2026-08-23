@@ -3,10 +3,10 @@ import { Resend } from "resend";
 const RESEND_API_KEY = process.env.RESEND_API_KEY || "";
 const resend = new Resend(RESEND_API_KEY);
 
-// Default sender (when domain is unverified, onboarding@resend.dev is used. When urbantrout.in is verified in Resend, switch to orders@urbantrout.in)
 const FROM_EMAIL = "Urban Trout <onboarding@resend.dev>";
 const ADMIN_EMAIL = "info.urbantrout@gmail.com";
 
+// 1. Initial Order Received & Payment Verification Email
 export async function sendOrderConfirmationEmail(order: {
   orderNumber: string;
   customerName: string;
@@ -40,7 +40,7 @@ export async function sendOrderConfirmationEmail(order: {
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Order Confirmation - Urban Trout</title>
+    <title>Order Received - Urban Trout</title>
   </head>
   <body style="margin: 0; padding: 20px; background-color: #031018; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #dfedf9;">
     <div style="max-width: 600px; margin: 0 auto; background: #0b1b25; border: 1px solid #1a3648; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
@@ -54,10 +54,13 @@ export async function sendOrderConfirmationEmail(order: {
       <!-- Main Body -->
       <div style="padding: 32px 24px;">
         <div style="text-align: center; margin-bottom: 28px;">
-          <div style="display: inline-block; width: 56px; height: 56px; border-radius: 28px; background: rgba(37,211,102,0.15); line-height: 56px; font-size: 28px; color: #25d366; text-align: center; margin-bottom: 12px;">✓</div>
-          <h2 style="margin: 0; font-size: 20px; font-weight: 700; color: #ffffff;">Order Confirmed &amp; Harvest in Progress!</h2>
-          <p style="margin: 8px 0 0; font-size: 14px; color: #9fadb8; line-height: 1.6;">
-            Thank you, <strong>${order.customerName}</strong>. Your order has been scheduled for harvest at our Malabagh farm.
+          <div style="display: inline-block; width: 56px; height: 56px; border-radius: 28px; background: rgba(251,191,36,0.15); line-height: 56px; font-size: 24px; color: #fbbf24; text-align: center; margin-bottom: 12px;">⏳</div>
+          <h2 style="margin: 0; font-size: 20px; font-weight: 700; color: #ffffff;">Order Details Received</h2>
+          <p style="margin: 8px 0 0; font-size: 14px; color: #fbbf24; font-weight: 600;">
+            Awaiting UPI Payment Verification
+          </p>
+          <p style="margin: 6px 0 0; font-size: 13px; color: #9fadb8; line-height: 1.6;">
+            Thank you, <strong>${order.customerName}</strong>. Our farm team at Malabagh is verifying your incoming UPI payment. Once verified, your order will be confirmed and fresh catch harvested for same-day delivery.
           </p>
         </div>
 
@@ -91,10 +94,10 @@ export async function sendOrderConfirmationEmail(order: {
               <span>${order.deliveryFee === 0 ? "FREE (Within 5km)" : "₹" + order.deliveryFee}</span>
             </div>
             <div style="display: flex; justify-content: space-between; font-size: 16px; font-weight: 800; color: #72ddfd; border-top: 1px solid #1a2e3b; padding-top: 8px;">
-              <span>Total Paid via UPI:</span>
+              <span>Total Amount:</span>
               <span>₹${order.total.toLocaleString("en-IN")}</span>
             </div>
-            ${order.utrNumber ? `<div style="font-size: 11px; color: #6a7782; margin-top: 6px;">UTR / Reference: <code>${order.utrNumber}</code></div>` : ""}
+            ${order.utrNumber ? `<div style="font-size: 11px; color: #9fadb8; margin-top: 6px;">Submitted UTR: <code style="color: #72ddfd;">${order.utrNumber}</code> (Pending check)</div>` : ""}
           </div>
         </div>
 
@@ -104,17 +107,17 @@ export async function sendOrderConfirmationEmail(order: {
           <p style="margin: 0; font-size: 14px; color: #dfedf9; line-height: 1.5;">
             <strong>${order.customerName}</strong> (+91 ${order.phone})<br>
             ${order.address ? `${order.address}, ` : ""}${order.locality || "Srinagar"}${order.pincode ? ` - ${order.pincode}` : ""}<br>
-            <span style="font-size: 12px; color: #9fadb8;">Harvested &amp; Dispatched from: Malabagh Farm &amp; Live Vending Center</span>
+            <span style="font-size: 12px; color: #9fadb8;">Farm Source: Malabagh Farm &amp; Live Vending Center</span>
           </p>
         </div>
 
         <!-- Support Info -->
         <div style="text-align: center; padding-top: 8px;">
           <p style="font-size: 13px; color: #9fadb8; margin: 0 0 14px;">
-            Need help or want to track your dispatch rider?
+            Want to expedite your order confirmation?
           </p>
-          <a href="https://wa.me/918491006127?text=Hi%20Urban%20Trout!%20Checking%20status%20for%20order%20%23${order.orderNumber}" style="display: inline-block; background: #25d366; color: #ffffff; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 700;">
-            Chat with Farm on WhatsApp
+          <a href="https://wa.me/918491006127?text=Hi%20Urban%20Trout!%20I%20placed%20order%20%23${order.orderNumber}%20and%20paid%20via%20UPI.%20Please%20verify%20my%20payment." style="display: inline-block; background: #25d366; color: #ffffff; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 700;">
+            Send Payment Screenshot on WhatsApp
           </a>
         </div>
       </div>
@@ -130,13 +133,12 @@ export async function sendOrderConfirmationEmail(order: {
   </html>
   `;
 
-  // 1. Send to Customer (if valid email provided)
   if (order.email && order.email.includes("@")) {
     try {
       await resend.emails.send({
         from: FROM_EMAIL,
         to: order.email,
-        subject: `Order Confirmed #${order.orderNumber} - Urban Trout Srinagar`,
+        subject: `Order Received #${order.orderNumber} (Awaiting Payment Verification) - Urban Trout`,
         html: emailHtml,
       });
     } catch (err) {
@@ -144,12 +146,11 @@ export async function sendOrderConfirmationEmail(order: {
     }
   }
 
-  // 2. Always send Admin copy to info.urbantrout@gmail.com
   try {
     await resend.emails.send({
       from: FROM_EMAIL,
       to: ADMIN_EMAIL,
-      subject: `🚨 [NEW ORDER] #${order.orderNumber} - ₹${order.total} by ${order.customerName}`,
+      subject: `🚨 [NEW ORDER RECEIVED] #${order.orderNumber} - ₹${order.total} by ${order.customerName}`,
       html: emailHtml,
     });
   } catch (err) {
@@ -157,6 +158,99 @@ export async function sendOrderConfirmationEmail(order: {
   }
 }
 
+// 2. Status Transition Email (Confirmed / Out for Delivery / Delivered / Cancelled)
+export async function sendOrderStatusUpdateEmail(order: {
+  orderNumber: string;
+  customerName: string;
+  email?: string;
+  phone: string;
+  total: number;
+}, status: "pending" | "processing" | "out_for_delivery" | "delivered" | "cancelled") {
+
+  if (!order.email || !order.email.includes("@")) return;
+
+  const STATUS_DETAILS: Record<string, { title: string; subtitle: string; icon: string; color: string; subject: string }> = {
+    processing: {
+      title: "Payment Verified & Order Confirmed! 🎉",
+      subtitle: "We have confirmed your UPI payment. Our farm team at Malabagh is now harvesting and ice-packing your fresh Rainbow Trout.",
+      icon: "🐟",
+      color: "#25d366",
+      subject: `✅ Payment Verified! Order #${order.orderNumber} Confirmed - Urban Trout`,
+    },
+    out_for_delivery: {
+      title: "Your Fresh Catch is Out for Delivery! 🚚",
+      subtitle: "Your trout has been harvested fresh from our ponds, packed in crushed ice, and handed over to our delivery rider for same-day delivery to your doorstep.",
+      icon: "🛵",
+      color: "#38bdf8",
+      subject: `🚚 Out for Delivery: Order #${order.orderNumber} is on its way! - Urban Trout`,
+    },
+    delivered: {
+      title: "Order Delivered Successfully! ✨",
+      subtitle: "Your fresh Rainbow Trout has been delivered. Thank you for choosing Urban Trout! Cook fresh and enjoy the pristine Himalayan taste.",
+      icon: "✅",
+      color: "#22c55e",
+      subject: `✨ Delivered: Order #${order.orderNumber} - Urban Trout Srinagar`,
+    },
+    cancelled: {
+      title: "Order Update: Cancelled",
+      subtitle: "Your order has been cancelled. If this was unexpected or if you have questions regarding a refund/payment, please contact our farm hotline on WhatsApp.",
+      icon: "❌",
+      color: "#f87171",
+      subject: `⚠️ Order Update #${order.orderNumber} - Urban Trout`,
+    },
+    pending: {
+      title: "Payment Verification In Progress",
+      subtitle: "Our team is currently reviewing your payment reference.",
+      icon: "⏳",
+      color: "#fbbf24",
+      subject: `Order #${order.orderNumber} Payment Verification - Urban Trout`,
+    }
+  };
+
+  const current = STATUS_DETAILS[status] || STATUS_DETAILS.processing;
+
+  const emailHtml = `
+  <!DOCTYPE html>
+  <html>
+  <head><meta charset="utf-8"></head>
+  <body style="margin: 0; padding: 20px; background-color: #031018; font-family: sans-serif; color: #dfedf9;">
+    <div style="max-width: 580px; margin: 0 auto; background: #0b1b25; border: 1px solid #1a3648; border-radius: 16px; overflow: hidden; padding: 32px 24px; text-align: center;">
+      <div style="font-size: 36px; margin-bottom: 12px;">${current.icon}</div>
+      <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: ${current.color}; font-weight: 800;">Order Status Update</span>
+      <h2 style="font-size: 22px; color: #ffffff; margin: 8px 0 12px;">${current.title}</h2>
+      <p style="font-size: 14px; color: #9fadb8; line-height: 1.6; max-width: 480px; margin: 0 auto 24px;">
+        ${current.subtitle}
+      </p>
+
+      <div style="background: #06151e; border: 1px solid #152834; border-radius: 10px; padding: 14px; margin-bottom: 24px; font-size: 13px; color: #9fadb8;">
+        <div><strong>Order ID:</strong> #${order.orderNumber} | <strong>Amount:</strong> ₹${order.total}</div>
+      </div>
+
+      <a href="https://wa.me/918491006127?text=Hi%20Urban%20Trout!%20Inquiry%20regarding%20Order%20%23${order.orderNumber}" style="display: inline-block; background: #25d366; color: #ffffff; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 700;">
+        Contact Farm on WhatsApp
+      </a>
+
+      <div style="margin-top: 32px; border-top: 1px solid #152834; padding-top: 16px; font-size: 11px; color: #6a7782;">
+        Urban Trout Aquaculture • Malabagh, Naseem Bagh, Srinagar — 190006
+      </div>
+    </div>
+  </body>
+  </html>
+  `;
+
+  try {
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to: order.email,
+      subject: current.subject,
+      html: emailHtml,
+    });
+  } catch (err) {
+    console.warn("Resend status email error:", err);
+  }
+}
+
+// 3. Contact Form Alert
 export async function sendContactInquiryEmail(inquiry: {
   name: string;
   phone: string;
@@ -185,7 +279,6 @@ export async function sendContactInquiryEmail(inquiry: {
   </html>
   `;
 
-  // Send to Admin
   try {
     await resend.emails.send({
       from: FROM_EMAIL,

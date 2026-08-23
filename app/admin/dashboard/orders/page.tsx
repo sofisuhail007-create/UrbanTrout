@@ -4,8 +4,8 @@ import { supabase } from "@/lib/supabase";
 import type { Order, OrderStatus } from "@/lib/supabase";
 
 const STATUSES: { value: OrderStatus; label: string; color: string }[] = [
-  { value: "pending", label: "Pending", color: "bg-amber-500/15 text-amber-400 border-amber-500/30" },
-  { value: "processing", label: "Processing", color: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
+  { value: "pending", label: "Awaiting Verification", color: "bg-amber-500/15 text-amber-400 border-amber-500/30" },
+  { value: "processing", label: "Payment Verified / Confirmed", color: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
   { value: "out_for_delivery", label: "Out for Delivery", color: "bg-cyan-500/15 text-cyan-400 border-cyan-500/30" },
   { value: "delivered", label: "Delivered", color: "bg-green-500/15 text-green-400 border-green-500/30" },
   { value: "cancelled", label: "Cancelled", color: "bg-red-500/15 text-red-400 border-red-500/30" },
@@ -38,9 +38,18 @@ export default function OrdersPage() {
 
   async function updateStatus(id: string, status: OrderStatus) {
     setUpdating(id);
-    await supabase.from("orders").update({ status }).eq("id", id);
     setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status } : o)));
-    setUpdating(null);
+    try {
+      await fetch("/api/order-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: id, status }),
+      });
+    } catch (err) {
+      console.warn("Status update error:", err);
+    } finally {
+      setUpdating(null);
+    }
   }
 
   const filtered = filter === "all" ? orders : orders.filter((o) => o.status === filter);
