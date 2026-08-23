@@ -8,6 +8,7 @@ const navLinks = [
   { href: "/", label: "Home" },
   { href: "/shop", label: "Shop" },
   { href: "/our-farm", label: "Our Farm" },
+  { href: "/contact", label: "Contact" },
 ];
 
 export default function Navbar() {

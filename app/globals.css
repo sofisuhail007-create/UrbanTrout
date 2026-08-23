@@ -210,3 +210,9 @@ input:focus, textarea:focus, select:focus {
 .back-link:hover {
   color: #72ddfd !important;
 }
+
+/* ─── Hide Google reCAPTCHA floating badge (Disclaimer shown on forms per Google guidelines) ─── */
+.grecaptcha-badge {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}

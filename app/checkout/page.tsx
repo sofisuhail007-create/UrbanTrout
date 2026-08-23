@@ -657,7 +657,7 @@ export default function CheckoutPage() {
                   </div>
 
                   {/* Proceed to Step 2 Button */}
-                  <div className="pt-4">
+                  <div className="pt-4 space-y-3">
                     <button
                       type="submit"
                       className="w-full flex items-center justify-center gap-3 font-bold uppercase tracking-widest transition-all rounded-xl py-4"
@@ -677,6 +677,13 @@ export default function CheckoutPage() {
                         <polyline points="12 5 19 12 12 19"></polyline>
                       </svg>
                     </button>
+
+                    {/* Google reCAPTCHA disclaimer */}
+                    <p className="text-center text-[11px] text-slate-500" style={{ fontFamily: '"Manrope", sans-serif' }}>
+                      Protected by reCAPTCHA • Google{" "}
+                      <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" className="underline hover:text-cyan-400">Privacy</a> &amp;{" "}
+                      <a href="https://policies.google.com/terms" target="_blank" rel="noopener noreferrer" className="underline hover:text-cyan-400">Terms</a>
+                    </p>
                   </div>
                 </form>
               </div>
