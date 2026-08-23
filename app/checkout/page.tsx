@@ -382,13 +382,15 @@ export default function CheckoutPage() {
         cartDetails += `- ${item.name} (${item.quantity} ${item.unit}): ₹${(item.price * item.quantity).toLocaleString("en-IN")}\n`;
       });
 
+      const cleanPhone = formData.phone.replace(/\D/g, "").slice(-10);
+      const emailNote = formData.email?.trim() ? ` (Email: ${formData.email.trim()})` : "";
+
       const orderPayload = {
-        customer_name: formData.fullName,
-        customer_phone: formData.phone.replace(/\D/g, "").slice(-10),
-        customer_email: formData.email?.trim() || null,
-        customer_address: `${formData.house}, ${formData.locality}`,
-        customer_locality: formData.locality,
-        customer_pincode: formData.pincode,
+        customer_name: formData.fullName.trim(),
+        customer_phone: cleanPhone,
+        customer_address: `${formData.house.trim()}, ${formData.locality.trim()}${emailNote}`,
+        customer_locality: formData.locality.trim(),
+        customer_pincode: formData.pincode.trim(),
         items: items.map(i => ({ id: i.id, name: i.name, quantity: i.quantity, price: i.price, unit: i.unit, image: i.image })),
         subtotal: total,
         delivery_fee: deliveryFee,
@@ -397,9 +399,10 @@ export default function CheckoutPage() {
         status: "pending",
       };
 
-      const { data: insertedOrder } = await supabase.from("orders").insert(orderPayload).select("*").single();
-
-      const cleanPhone = formData.phone.replace(/\D/g, "").slice(-10);
+      const { data: insertedOrder, error: insertErr } = await supabase.from("orders").insert(orderPayload).select("*").single();
+      if (insertErr) {
+        console.error("Order Supabase insert error:", insertErr);
+      }
 
       // 1. Mark any lead matching this phone or leadId as converted
       try {

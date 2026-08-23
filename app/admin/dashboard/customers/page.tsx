@@ -63,6 +63,21 @@ export default function CustomersPage() {
     setNoteSaved(true);
   };
 
+  const handleDeleteCustomer = async (customer: CustomerWithNotes) => {
+    if (!window.confirm(`Are you sure you want to delete customer ${customer.name} (+91 ${customer.phone})? This action cannot be undone.`)) {
+      return;
+    }
+    setCustomers((prev) => prev.filter((c) => c.id !== customer.id));
+    if (selected?.id === customer.id) setSelected(null);
+
+    try {
+      await supabase.from("customers").delete().eq("id", customer.id);
+    } catch (err) {
+      console.error("Error deleting customer:", err);
+      alert("Failed to delete customer.");
+    }
+  };
+
   const filtered = customers.filter((c) => {
     const matchSearch =
       c.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -242,15 +257,26 @@ export default function CustomersPage() {
                     return null;
                   })()}
                 </div>
-                <a
-                  href={`https://wa.me/91${selected.phone}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 px-3 py-2 bg-green-500/15 text-green-400 border border-green-500/30 rounded-lg text-xs font-medium hover:bg-green-500/25 transition-colors"
-                >
-                  <span className="material-symbols-outlined text-sm">chat</span>
-                  WhatsApp
-                </a>
+                <div className="flex items-center gap-2">
+                  <a
+                    href={`https://wa.me/91${selected.phone}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1.5 px-3 py-2 bg-green-500/15 text-green-400 border border-green-500/30 rounded-lg text-xs font-medium hover:bg-green-500/25 transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-sm">chat</span>
+                    WhatsApp
+                  </a>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteCustomer(selected)}
+                    className="flex items-center gap-1 px-3 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/25 rounded-lg text-xs font-semibold transition-colors"
+                    title="Delete Customer"
+                  >
+                    <span className="material-symbols-outlined text-sm">delete</span>
+                    Delete
+                  </button>
+                </div>
               </div>
 
               {/* Stats */}

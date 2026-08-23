@@ -52,6 +52,20 @@ export default function OrdersPage() {
     }
   }
 
+  async function handleDeleteOrder(id: string, orderNumber: number) {
+    if (!window.confirm(`Are you sure you want to delete Order #${orderNumber}? This action cannot be undone.`)) {
+      return;
+    }
+    setOrders((prev) => prev.filter((o) => o.id !== id));
+    try {
+      await supabase.from("orders").delete().eq("id", id);
+    } catch (err) {
+      console.error("Error deleting order:", err);
+      alert("Failed to delete order from database.");
+      fetchOrders();
+    }
+  }
+
   const filtered = filter === "all" ? orders : orders.filter((o) => o.status === filter);
 
   return (
@@ -152,16 +166,27 @@ export default function OrdersPage() {
                     </div>
                   </div>
 
-                  {/* WhatsApp */}
-                  <a
-                    href={`https://wa.me/91${order.customer_phone}?text=${encodeURIComponent(`Hi ${order.customer_name}! Your Urban Trout order #${order.order_number} update:`)}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/15 text-green-400 border border-green-500/30 rounded-lg text-xs font-medium hover:bg-green-500/25 transition-colors"
-                  >
-                    <span className="material-symbols-outlined text-base">chat</span>
-                    WhatsApp Customer
-                  </a>
+                  {/* Actions (WhatsApp + Delete) */}
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-800/80">
+                    <a
+                      href={`https://wa.me/91${order.customer_phone}?text=${encodeURIComponent(`Hi ${order.customer_name}! Your Urban Trout order #${order.order_number} update:`)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/15 text-green-400 border border-green-500/30 rounded-lg text-xs font-medium hover:bg-green-500/25 transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-base">chat</span>
+                      WhatsApp Customer
+                    </a>
+
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteOrder(order.id, order.order_number)}
+                      className="inline-flex items-center gap-1.5 px-3 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/25 rounded-lg text-xs font-semibold transition-colors"
+                    >
+                      <span className="material-symbols-outlined text-base">delete</span>
+                      Delete Order
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
