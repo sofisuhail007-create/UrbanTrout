@@ -45,6 +45,71 @@ function validatePincode(v: string) {
   return "";
 }
 
+// ─── Field Input Component (Declared at module level to prevent remounting/focus loss) ───
+interface FieldProps {
+  label: string;
+  name: string;
+  type?: string;
+  value: string;
+  placeholder?: string;
+  required?: boolean;
+  maxLength?: number;
+  pattern?: string;
+  prefix?: string;
+  error?: string;
+  touched?: boolean;
+  onChange: (name: string, value: string) => void;
+  onBlur: (name: string) => void;
+}
+
+function Field({
+  label, name, type = "text", value, placeholder, required, maxLength, pattern, prefix,
+  error, touched, onChange, onBlur,
+}: FieldProps) {
+  const hasErr = touched && Boolean(error);
+  return (
+    <div className="flex flex-col">
+      <label style={{ fontFamily: '"Inter", sans-serif', fontSize: "10px", letterSpacing: "0.15em", textTransform: "uppercase", color: hasErr ? "#f87171" : C.onSurfVar, marginBottom: "8px", fontWeight: 600 }}>
+        {label} {required && <span style={{ color: "#f87171" }}>*</span>}
+      </label>
+      <div style={{ position: "relative" }}>
+        {prefix && (
+          <span style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", color: C.onSurfVar, fontWeight: 600, fontFamily: '"Manrope", sans-serif', fontSize: "0.9rem", pointerEvents: "none" }}>
+            {prefix}
+          </span>
+        )}
+        <input
+          type={type}
+          value={value}
+          onChange={e => onChange(name, e.target.value)}
+          onBlur={() => onBlur(name)}
+          placeholder={placeholder}
+          maxLength={maxLength}
+          pattern={pattern}
+          style={{
+            width: "100%",
+            background: "rgba(3,16,24,0.8)",
+            border: `1.5px solid ${hasErr ? "rgba(248,113,113,0.6)" : "rgba(61,74,83,0.6)"}`,
+            borderRadius: "10px",
+            padding: prefix ? "12px 16px 12px 50px" : "12px 16px",
+            color: C.onSurface,
+            fontFamily: '"Manrope", sans-serif',
+            fontSize: "0.9rem",
+            outline: "none",
+            boxSizing: "border-box",
+            transition: "border-color 0.2s",
+          }}
+        />
+      </div>
+      {hasErr && (
+        <span style={{ fontSize: "11px", color: "#f87171", marginTop: "4px", fontFamily: '"Manrope", sans-serif' }}>
+          ⚠ {error}
+        </span>
+      )}
+    </div>
+  );
+}
+
 export default function CheckoutPage() {
   const { items, total, updateQuantity, clearCart } = useCart();
   const router = useRouter();
@@ -556,56 +621,7 @@ export default function CheckoutPage() {
     );
   }
 
-  // ─── Field Input Component ─────────────────────────────────
-  const Field = ({
-    label, name, type = "text", value, placeholder, required, maxLength, pattern, prefix,
-  }: {
-    label: string; name: string; type?: string; value: string; placeholder?: string;
-    required?: boolean; maxLength?: number; pattern?: string; prefix?: string;
-  }) => {
-    const hasErr = touched[name as keyof typeof touched] && errors[name as keyof typeof errors];
-    return (
-      <div className="flex flex-col">
-        <label style={{ fontFamily: '"Inter", sans-serif', fontSize: "10px", letterSpacing: "0.15em", textTransform: "uppercase", color: hasErr ? "#f87171" : C.onSurfVar, marginBottom: "8px", fontWeight: 600 }}>
-          {label} {required && <span style={{ color: "#f87171" }}>*</span>}
-        </label>
-        <div style={{ position: "relative" }}>
-          {prefix && (
-            <span style={{ position: "absolute", left: "14px", top: "50%", transform: "translateY(-50%)", color: C.onSurfVar, fontWeight: 600, fontFamily: '"Manrope", sans-serif', fontSize: "0.9rem", pointerEvents: "none" }}>
-              {prefix}
-            </span>
-          )}
-          <input
-            type={type}
-            value={value}
-            onChange={e => handleInputChange(name, e.target.value)}
-            onBlur={() => handleBlur(name)}
-            placeholder={placeholder}
-            maxLength={maxLength}
-            pattern={pattern}
-            style={{
-              width: "100%",
-              background: "rgba(3,16,24,0.8)",
-              border: `1.5px solid ${hasErr ? "rgba(248,113,113,0.6)" : "rgba(61,74,83,0.6)"}`,
-              borderRadius: "10px",
-              padding: prefix ? "12px 16px 12px 50px" : "12px 16px",
-              color: C.onSurface,
-              fontFamily: '"Manrope", sans-serif',
-              fontSize: "0.9rem",
-              outline: "none",
-              boxSizing: "border-box",
-              transition: "border-color 0.2s",
-            }}
-          />
-        </div>
-        {hasErr && (
-          <span style={{ fontSize: "11px", color: "#f87171", marginTop: "4px", fontFamily: '"Manrope", sans-serif' }}>
-            ⚠ {errors[name as keyof typeof errors]}
-          </span>
-        )}
-      </div>
-    );
-  };
+
 
   return (
     <div style={{ background: C.bg, minHeight: "100vh" }}>
@@ -716,16 +732,80 @@ export default function CheckoutPage() {
                 {(deliveryMode === "under5" || deliveryMode === null) && (
                   <form onSubmit={handleProceedToPayment} noValidate className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-x-5 gap-y-5">
-                      <Field label="Full Name" name="fullName" value={formData.fullName} placeholder="e.g. Sameer Ahmed" required />
-                      <Field label="Phone Number (WhatsApp)" name="phone" type="tel" value={formData.phone} placeholder="10-digit mobile" required maxLength={10} prefix="+91" />
+                      <Field
+                        label="Full Name"
+                        name="fullName"
+                        value={formData.fullName}
+                        placeholder="e.g. Sameer Ahmed"
+                        required
+                        error={errors.fullName}
+                        touched={touched.fullName}
+                        onChange={handleInputChange}
+                        onBlur={handleBlur}
+                      />
+                      <Field
+                        label="Phone Number (WhatsApp)"
+                        name="phone"
+                        type="tel"
+                        value={formData.phone}
+                        placeholder="10-digit mobile"
+                        required
+                        maxLength={10}
+                        prefix="+91"
+                        error={errors.phone}
+                        touched={touched.phone}
+                        onChange={handleInputChange}
+                        onBlur={handleBlur}
+                      />
                       <div className="md:col-span-2">
-                        <Field label="Email Address (Optional — for order updates)" name="email" type="email" value={formData.email} placeholder="your.email@gmail.com" />
+                        <Field
+                          label="Email Address (Optional — for order updates)"
+                          name="email"
+                          type="email"
+                          value={formData.email}
+                          placeholder="your.email@gmail.com"
+                          error={errors.email}
+                          touched={touched.email}
+                          onChange={handleInputChange}
+                          onBlur={handleBlur}
+                        />
                       </div>
                       <div className="md:col-span-2">
-                        <Field label="Locality / Area Landmark in Srinagar" name="locality" value={formData.locality} placeholder="e.g. Near Hazratbal Dargah, Naseem Bagh" required />
+                        <Field
+                          label="Locality / Area Landmark in Srinagar"
+                          name="locality"
+                          value={formData.locality}
+                          placeholder="e.g. Near Hazratbal Dargah, Naseem Bagh"
+                          required
+                          error={errors.locality}
+                          touched={touched.locality}
+                          onChange={handleInputChange}
+                          onBlur={handleBlur}
+                        />
                       </div>
-                      <Field label="House / Flat / Lane No." name="house" value={formData.house} placeholder="e.g. House No. 24, Lane 2" required />
-                      <Field label="Pin Code" name="pincode" value={formData.pincode} placeholder="190006" required maxLength={6} />
+                      <Field
+                        label="House / Flat / Lane No."
+                        name="house"
+                        value={formData.house}
+                        placeholder="e.g. House No. 24, Lane 2"
+                        required
+                        error={errors.house}
+                        touched={touched.house}
+                        onChange={handleInputChange}
+                        onBlur={handleBlur}
+                      />
+                      <Field
+                        label="Pin Code"
+                        name="pincode"
+                        value={formData.pincode}
+                        placeholder="190006"
+                        required
+                        maxLength={6}
+                        error={errors.pincode}
+                        touched={touched.pincode}
+                        onChange={handleInputChange}
+                        onBlur={handleBlur}
+                      />
                     </div>
 
                     <div className="pt-4 space-y-3">
