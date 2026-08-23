@@ -20,28 +20,56 @@ export default function AdminLeadsPage() {
   const fetchLeads = async () => {
     setLoading(true);
     try {
+      // 1. Fetch phones of all placed orders
+      const { data: ordersData } = await supabase.from("orders").select("customer_phone, order_number");
+      const orderPhoneMap = new Map<string, string>();
+      if (ordersData) {
+        ordersData.forEach((o: any) => {
+          if (o.customer_phone) {
+            const clean = String(o.customer_phone).replace(/\D/g, "").slice(-10);
+            orderPhoneMap.set(clean, o.order_number);
+          }
+        });
+      }
+
       let combinedLeads: Lead[] = [];
 
-      // 1. Fetch from dedicated leads table
+      // 2. Fetch from dedicated leads table
       const { data: leadsData } = await supabase
         .from("leads")
         .select("*")
         .order("created_at", { ascending: false });
 
       if (leadsData && leadsData.length > 0) {
-        combinedLeads = [...(leadsData as Lead[])];
+        combinedLeads = (leadsData as Lead[]).map((l: Lead) => {
+          const cleanPhone = (l.customer_phone || "").replace(/\D/g, "").slice(-10);
+          // If this customer has an order in the orders table, they are converted
+          if (orderPhoneMap.has(cleanPhone)) {
+            return {
+              ...l,
+              status: "converted",
+              notes: l.notes && l.notes.includes("Converted") ? l.notes : `Converted to Order #${orderPhoneMap.get(cleanPhone)}`,
+            };
+          }
+          return l;
+        });
       }
 
-      // 2. Also fetch from customers table as resilient fallback
+      // 3. Fallback from customers table (ONLY for customers with NO orders who truly abandoned)
       const { data: customersData } = await supabase
         .from("customers")
         .select("*")
         .order("last_order_at", { ascending: false });
 
       if (customersData) {
-        const existingPhones = new Set(combinedLeads.map(l => l.customer_phone));
+        const existingPhones = new Set(combinedLeads.map(l => (l.customer_phone || "").replace(/\D/g, "").slice(-10)));
         customersData.forEach((c: any) => {
-          if (!existingPhones.has(c.phone) && (c.total_orders === 0 || (c.notes && c.notes.includes("Abandoned")))) {
+          const cleanPhone = (c.phone || "").replace(/\D/g, "").slice(-10);
+          const hasOrder = orderPhoneMap.has(cleanPhone) || (c.total_orders && c.total_orders > 0);
+          const isConverted = c.notes && (c.notes.toLowerCase().includes("converted") || c.notes.includes("Order #"));
+
+          // Only include if customer never placed an order and is genuinely an abandoned checkout
+          if (!existingPhones.has(cleanPhone) && !hasOrder && !isConverted && c.notes && c.notes.includes("Abandoned")) {
             combinedLeads.push({
               id: c.id,
               customer_name: c.name || "Interested Customer",

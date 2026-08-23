@@ -399,21 +399,29 @@ export default function CheckoutPage() {
 
       const { data: insertedOrder } = await supabase.from("orders").insert(orderPayload).select("*").single();
 
-      if (leadIdRef.current) {
+      const cleanPhone = formData.phone.replace(/\D/g, "").slice(-10);
+
+      // 1. Mark any lead matching this phone or leadId as converted
+      try {
         await supabase.from("leads").update({
           status: "converted",
-          notes: `Converted → Order #${insertedOrder?.order_number || ""}. UPI (${upiId}). UTR: ${utrRef || "Direct"}`,
+          notes: `Converted to Order #${insertedOrder?.order_number || ""}. Payment via UPI (${upiId}). UTR: ${utrRef || "Direct"}`,
           updated_at: new Date().toISOString(),
-        }).eq("id", leadIdRef.current);
-      }
+        }).eq("customer_phone", cleanPhone);
+      } catch (e) {}
 
-      await supabase.from("customers").upsert({
-        phone: formData.phone.replace(/\D/g, "").slice(-10),
-        name: formData.fullName,
-        locality: formData.locality,
-        pincode: formData.pincode,
-        last_order_at: new Date().toISOString(),
-      }, { onConflict: "phone" });
+      // 2. Upsert customer profile with order record
+      try {
+        await supabase.from("customers").upsert({
+          phone: cleanPhone,
+          name: formData.fullName,
+          locality: formData.locality,
+          pincode: formData.pincode,
+          notes: `Order #${insertedOrder?.order_number || ""}`,
+          total_orders: 1,
+          last_order_at: new Date().toISOString(),
+        }, { onConflict: "phone" });
+      } catch (e) {}
 
       // Telegram + Email alert
       fetch("/api/telegram-notify", {
