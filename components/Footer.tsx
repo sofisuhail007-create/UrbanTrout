@@ -22,17 +22,23 @@ export default function Footer() {
 
         {/* Brand */}
         <div>
-          <div
-            style={{
-              fontFamily: '"Space Grotesk", sans-serif',
-              fontSize: "1.1rem",
-              fontWeight: 800,
-              color: C.primary,
-              marginBottom: "1rem",
-              letterSpacing: "-0.02em",
-            }}
-          >
-            Urban Trout
+          <div className="flex items-center gap-2.5 mb-4">
+            <img
+              src="/sitelogo.png"
+              alt="Urban Trout Logo"
+              className="w-7 h-7 rounded-lg object-contain"
+            />
+            <span
+              style={{
+                fontFamily: '"Space Grotesk", sans-serif',
+                fontSize: "1.25rem",
+                fontWeight: 800,
+                color: C.primary,
+                letterSpacing: "-0.02em",
+              }}
+            >
+              Urban Trout
+            </span>
           </div>
           <p
             style={{

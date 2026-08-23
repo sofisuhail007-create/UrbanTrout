@@ -42,9 +42,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       >
         {/* Logo */}
         <div className="flex items-center gap-3 px-4 py-5 border-b border-slate-800">
-          <div className="w-8 h-8 rounded-lg bg-cyan-500/20 flex items-center justify-center flex-shrink-0">
-            <span className="material-symbols-outlined text-cyan-400 text-base">water</span>
-          </div>
+          <img
+            src="/sitelogo.png"
+            alt="Urban Trout"
+            className="w-8 h-8 rounded-lg object-contain flex-shrink-0"
+          />
           {!collapsed && (
             <span className="font-bold text-cyan-400 text-sm" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
               Urban Trout

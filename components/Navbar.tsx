@@ -31,7 +31,12 @@ export default function Navbar() {
       >
         <div className="flex items-center justify-between px-6 py-3">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2 group">
+          <Link href="/" className="flex items-center gap-2.5 group">
+            <img
+              src="/sitelogo.png"
+              alt="Urban Trout Logo"
+              className="w-8 h-8 rounded-lg object-contain transition-transform group-hover:scale-105"
+            />
             <span
               className="text-xl font-black tracking-tighter"
               style={{
