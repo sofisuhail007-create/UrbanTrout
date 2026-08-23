@@ -37,7 +37,12 @@ export default function AdminLoginPage() {
       <div className="relative w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-10">
-          <div className="inline-flex items-center gap-2 mb-3">
+          <div className="inline-flex items-center gap-3 mb-3">
+            <img
+              src="/urbantroutlogo.png"
+              alt="Urban Trout"
+              className="w-10 h-10 rounded-xl object-contain"
+            />
             <span className="text-2xl font-bold text-cyan-400" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
               Urban Trout
             </span>

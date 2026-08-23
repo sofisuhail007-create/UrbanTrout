@@ -33,9 +33,9 @@ export default function Navbar() {
           {/* Logo */}
           <Link href="/" className="flex items-center gap-2.5 group">
             <img
-              src="/sitelogo.png"
+              src="/urbantroutlogo.png"
               alt="Urban Trout Logo"
-              className="w-8 h-8 rounded-lg object-contain transition-transform group-hover:scale-105"
+              className="w-9 h-9 rounded-lg object-contain transition-transform group-hover:scale-105"
             />
             <span
               className="text-xl font-black tracking-tighter"

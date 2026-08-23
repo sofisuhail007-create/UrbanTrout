@@ -43,7 +43,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Logo */}
         <div className="flex items-center gap-3 px-4 py-5 border-b border-slate-800">
           <img
-            src="/sitelogo.png"
+            src="/urbantroutlogo.png"
             alt="Urban Trout"
             className="w-8 h-8 rounded-lg object-contain flex-shrink-0"
           />

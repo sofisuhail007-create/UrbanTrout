@@ -24,9 +24,9 @@ export default function Footer() {
         <div>
           <div className="flex items-center gap-2.5 mb-4">
             <img
-              src="/sitelogo.png"
+              src="/urbantroutlogo.png"
               alt="Urban Trout Logo"
-              className="w-7 h-7 rounded-lg object-contain"
+              className="w-8 h-8 rounded-lg object-contain"
             />
             <span
               style={{
