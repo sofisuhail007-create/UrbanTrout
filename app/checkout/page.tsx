@@ -71,16 +71,17 @@ export default function CheckoutPage() {
 
   // Lead auto-capture function: captures user info as soon as they type phone/name
   const captureLead = useCallback(async (currentData: typeof formData, currentTotal: number, currentItems: typeof items) => {
-    if (!currentData.phone || currentData.phone.length < 10) return;
+    const rawPhone = currentData.phone.replace(/\D/g, "");
+    if (!rawPhone || rawPhone.length < 10) return;
 
     try {
       const payload = {
-        customer_name: currentData.fullName || null,
-        customer_phone: currentData.phone,
-        customer_email: currentData.email || null,
-        customer_locality: currentData.locality || null,
-        customer_address: currentData.house || null,
-        customer_pincode: currentData.pincode || null,
+        customer_name: currentData.fullName?.trim() || "Interested Customer",
+        customer_phone: rawPhone.slice(-10),
+        customer_email: currentData.email?.trim() || null,
+        customer_locality: currentData.locality?.trim() || null,
+        customer_address: currentData.house?.trim() || null,
+        customer_pincode: currentData.pincode?.trim() || null,
         cart_items: currentItems.map(i => ({ id: i.id, name: i.name, quantity: i.quantity, price: i.price, unit: i.unit })),
         estimated_total: currentTotal,
         status: "abandoned",
@@ -90,17 +91,19 @@ export default function CheckoutPage() {
       if (leadIdRef.current) {
         await supabase.from("leads").update(payload).eq("id", leadIdRef.current);
       } else {
-        const { data } = await supabase.from("leads").insert([payload]).select("id").single();
+        const { data, error } = await supabase.from("leads").insert([payload]).select("id").single();
         if (data?.id) {
           leadIdRef.current = data.id;
+        } else if (error) {
+          console.warn("Lead capture Supabase notice:", error.message);
         }
       }
-    } catch {
-      // Background lead capture should not break the user flow
+    } catch (err) {
+      console.warn("Lead capture notice:", err);
     }
   }, []);
 
-  // Debounced trigger on form changes
+  // Quick trigger on form changes
   const handleInputChange = (field: string, value: string) => {
     const next = { ...formData, [field]: value };
     setFormData(next);
@@ -108,8 +111,23 @@ export default function CheckoutPage() {
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     debounceTimerRef.current = setTimeout(() => {
       captureLead(next, grandTotal, items);
-    }, 1000);
+    }, 400);
   };
+
+  // Immediate capture on tab close / switch
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (formData.phone && formData.phone.replace(/\D/g, "").length >= 10) {
+        captureLead(formData, grandTotal, items);
+      }
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    window.addEventListener("pagehide", handleBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("pagehide", handleBeforeUnload);
+    };
+  }, [formData, grandTotal, items, captureLead]);
 
   const FARM_LAT = 34.144831;
   const FARM_LNG = 74.824280;
@@ -513,6 +531,7 @@ export default function CheckoutPage() {
                         name="fullName"
                         value={formData.fullName}
                         onChange={(e) => handleInputChange("fullName", e.target.value)}
+                        onBlur={() => captureLead(formData, grandTotal, items)}
                         required
                         placeholder="e.g. Sameer Ahmed"
                         style={{
@@ -534,6 +553,7 @@ export default function CheckoutPage() {
                           name="phone"
                           value={formData.phone}
                           onChange={(e) => handleInputChange("phone", e.target.value)}
+                          onBlur={() => captureLead(formData, grandTotal, items)}
                           required
                           pattern="[0-9]{10}"
                           maxLength={10}
@@ -556,6 +576,7 @@ export default function CheckoutPage() {
                         name="email"
                         value={formData.email}
                         onChange={(e) => handleInputChange("email", e.target.value)}
+                        onBlur={() => captureLead(formData, grandTotal, items)}
                         placeholder="your.email@gmail.com"
                         style={{
                           width: "100%", background: "rgba(3,16,24,0.8)", border: `1px solid rgba(61,74,83,0.6)`,
@@ -574,6 +595,7 @@ export default function CheckoutPage() {
                         name="locality"
                         value={formData.locality}
                         onChange={(e) => handleInputChange("locality", e.target.value)}
+                        onBlur={() => captureLead(formData, grandTotal, items)}
                         required
                         placeholder="e.g. Near Hazratbal Dargah, Naseem Bagh"
                         style={{
@@ -593,6 +615,7 @@ export default function CheckoutPage() {
                         name="house"
                         value={formData.house}
                         onChange={(e) => handleInputChange("house", e.target.value)}
+                        onBlur={() => captureLead(formData, grandTotal, items)}
                         required
                         placeholder="e.g. House No. 24, Lane 2"
                         style={{
@@ -612,6 +635,7 @@ export default function CheckoutPage() {
                         name="pincode"
                         value={formData.pincode}
                         onChange={(e) => handleInputChange("pincode", e.target.value)}
+                        onBlur={() => captureLead(formData, grandTotal, items)}
                         required
                         placeholder="190006"
                         style={{
