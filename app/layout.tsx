@@ -126,15 +126,7 @@ const jsonLd = {
   },
   "servesCuisine": "Seafood, Freshwater Fish",
   "areaServed": [
-    { "@type": "City", "name": "Srinagar" },
-    { "@type": "AdministrativeArea", "name": "Hazratbal" },
-    { "@type": "AdministrativeArea", "name": "Naseem Bagh" },
-    { "@type": "AdministrativeArea", "name": "Lal Chowk" },
-    { "@type": "AdministrativeArea", "name": "Rajbagh" },
-    { "@type": "AdministrativeArea", "name": "Soura" },
-    { "@type": "AdministrativeArea", "name": "Hyderpora" },
-    { "@type": "AdministrativeArea", "name": "Karan Nagar" },
-    { "@type": "AdministrativeArea", "name": "Sanat Nagar" }
+    { "@type": "AdministrativeArea", "name": "5km Radius from Farm (Naseem Bagh, Srinagar)" }
   ]
 };
 

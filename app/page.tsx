@@ -37,19 +37,19 @@ const farmConditions = [
 const faqs = [
   {
     q: "Where can I buy fresh trout fish in Srinagar?",
-    a: "You can order fresh trout online directly through urbantrout.in for same-day delivery anywhere in Srinagar, or pick it up fresh from our farm at Malabagh, Naseem Bagh (near R P School Girls Wing).",
+    a: "You can order fresh trout online directly through urbantrout.in for same-day delivery within a 5km radius from our farm, or pick it up fresh from our farm at Malabagh, Naseem Bagh (near R P School Girls Wing).",
   },
   {
     q: "What is the price of Rainbow Trout per Kg in Srinagar?",
-    a: "Our fresh Whole Rainbow Trout is ₹500 per Kg, and our Premium Cleaned & Gutted Trout is ₹550 per Kg. Delivery is Free within 5km of our farm, and a flat ₹40 across other areas in Srinagar.",
+    a: "Our fresh Whole Rainbow Trout is ₹500 per Kg, and our Premium Cleaned & Gutted Trout is ₹550 per Kg. We deliver fresh within a 5km radius from our farm.",
   },
   {
     q: "Do you clean and gut the trout before delivery?",
     a: "Yes! You can choose our Premium Gutted Trout, which is expertly scaled, cleaned, and gutted so it is 100% pan-ready the moment it arrives at your home.",
   },
   {
-    q: "Which areas in Srinagar do you deliver to?",
-    a: "We deliver across all Srinagar localities including Hazratbal, Naseem Bagh, Lal Chowk, Rajbagh, Soura, Karan Nagar, Hyderpora, Sanat Nagar, Bemina, Jawahar Nagar, and Boulevard Road.",
+    q: "Which areas do you deliver to?",
+    a: "We only deliver within a 5km radius from our farm in Naseem Bagh, Srinagar. You can also pick up fresh catch directly in person at our farm gate in Malabagh.",
   },
   {
     q: "How fresh is Urban Trout compared to market fish?",
