@@ -4,9 +4,23 @@ import AddToCartButton from "@/components/AddToCartButton";
 import { supabase } from "@/lib/supabase";
 
 export const metadata: Metadata = {
-  title: "Whole Rainbow Trout",
+  title: "Whole Fresh Rainbow Trout | Urban Trout Srinagar",
   description:
-    "Fresh whole rainbow trout from our Srinagar farm. Ideal for roasting, whole baking, grilling, or traditional recipes.",
+    "Fresh whole Rainbow Trout from our Srinagar farm in Naseem Bagh. Ideal for roasting, whole grilling, or traditional Kashmiri recipes.",
+  openGraph: {
+    title: "Whole Fresh Rainbow Trout | Urban Trout Srinagar",
+    description: "Farm-fresh whole Rainbow Trout harvested to order in Naseem Bagh, Srinagar. Same-day delivery.",
+    url: "https://urbantrout.in/shop/whole-trout",
+    siteName: "Urban Trout",
+    images: [
+      {
+        url: "https://urbantrout.in/images/trout_pure_black.png",
+        width: 800,
+        height: 600,
+        alt: "Whole Fresh Rainbow Trout Srinagar",
+      },
+    ],
+  },
 };
 
 const C = {

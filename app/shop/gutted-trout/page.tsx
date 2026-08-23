@@ -4,9 +4,23 @@ import AddToCartButton from "@/components/AddToCartButton";
 import { supabase } from "@/lib/supabase";
 
 export const metadata: Metadata = {
-  title: "Premium Gutted Rainbow Trout",
+  title: "Premium Cleaned & Gutted Rainbow Trout | Urban Trout Srinagar",
   description:
-    "Expertly cleaned, gutted, and prepared for immediate cooking. Farmed locally in Srinagar and delivered fresh.",
+    "Expertly cleaned, scaled, gutted, and prepared for immediate cooking. Farmed in Naseem Bagh, Srinagar. Same-day delivery.",
+  openGraph: {
+    title: "Cleaned & Gutted Fresh Rainbow Trout | Urban Trout Srinagar",
+    description: "Pan-ready, 100% fresh cleaned Rainbow Trout farmed in Srinagar. Delivered same-day in ice.",
+    url: "https://urbantrout.in/shop/gutted-trout",
+    siteName: "Urban Trout",
+    images: [
+      {
+        url: "https://urbantrout.in/images/gutted_trout_premium.png",
+        width: 800,
+        height: 600,
+        alt: "Cleaned and Gutted Fresh Rainbow Trout Srinagar",
+      },
+    ],
+  },
 };
 
 const C = {

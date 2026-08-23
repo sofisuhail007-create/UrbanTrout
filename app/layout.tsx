@@ -35,17 +35,19 @@ export const metadata: Metadata = {
     canonical: "https://urbantrout.in",
   },
   openGraph: {
-    title: "Urban Trout | Fresh Rainbow Trout in Srinagar | Farm to Door",
+    title: "Urban Trout | Fresh Rainbow Trout in Srinagar",
     description:
-      "Freshly harvested Rainbow Trout delivered directly from our farm in Naseem Bagh, Srinagar to your kitchen. 100% clean water, zero antibiotics.",
+      "Order fresh Rainbow Trout in Srinagar. Farmed in clean borewell water in Naseem Bagh. Harvested fresh to order with same-day delivery.",
     url: "https://urbantrout.in",
-    siteName: "Urban Trout",
+    siteName: "Urban Trout Srinagar",
     images: [
       {
-        url: "/images/og-image.png",
+        url: "https://urbantrout.in/og-image.jpg",
+        secureUrl: "https://urbantrout.in/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "Urban Trout - Fresh Rainbow Trout in Srinagar",
+        type: "image/jpeg",
+        alt: "Urban Trout - Buy Fresh Rainbow Trout in Srinagar",
       },
     ],
     locale: "en_IN",
@@ -53,9 +55,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Urban Trout | Buy Fresh Rainbow Trout in Srinagar",
+    title: "Urban Trout | Fresh Rainbow Trout in Srinagar",
     description: "Farm-fresh Rainbow Trout harvested to order in Srinagar. Same-day chilled home delivery.",
-    images: ["/images/og-image.png"],
+    images: ["https://urbantrout.in/og-image.jpg"],
   },
   robots: {
     index: true,
