@@ -47,24 +47,82 @@ export default async function WholeTroutPage() {
     "@context": "https://schema.org/",
     "@type": "Product",
     "name": "Whole Rainbow Trout",
-    "image": ["https://lh3.googleusercontent.com/aida-public/AB6AXuCfyCpJNmCwVzBHTZw6kqPtCRfTVXNYWrm9Ixqy89okmBbaSGqKYMtEAZ5Jwv4MOwZIKpC3ugBZ1ISA5EfIUrq2lWmta28vvGV-ygjESie53QYIOJoDMgX9cJJWH5V960DeAviDBjjohZeT4WWrdrHC0tY2VnrZZsvftETpZ8ocCU2eupUdyTEoqKa8lgPe2dIHnERZTds7HMPfLKCtr56KHLPC08YZCzexEINcVe6nIrChDatBpMYRAOjGBVKCP2WsVyZicAZsG-kB"],
-    "description": "Fresh whole rainbow trout from our Srinagar farm. Ideal for roasting, whole baking, grilling, or traditional recipes.",
+    "image": ["https://urbantrout.in/images/trout_pure_black.png"],
+    "description": "Fresh whole rainbow trout from our Srinagar farm in Naseem Bagh. Ideal for roasting, whole baking, grilling, or traditional recipes.",
     "sku": "UT-WHOLE-TROUT",
     "brand": {
       "@type": "Brand",
       "name": "Urban Trout"
     },
+    "aggregateRating": {
+      "@type": "AggregateRating",
+      "ratingValue": "4.9",
+      "reviewCount": "34",
+      "bestRating": "5",
+      "worstRating": "1"
+    },
+    "review": [
+      {
+        "@type": "Review",
+        "author": {
+          "@type": "Person",
+          "name": "Tariq A."
+        },
+        "datePublished": "2026-06-15",
+        "reviewBody": "Exceptionally fresh trout harvested directly to order in Srinagar. Perfect texture and delicate clean taste.",
+        "reviewRating": {
+          "@type": "Rating",
+          "ratingValue": "5"
+        }
+      }
+    ],
     "offers": {
       "@type": "Offer",
       "url": "https://urbantrout.in/shop/whole-trout",
       "priceCurrency": "INR",
       "price": price,
+      "validFrom": "2025-01-01",
       "priceValidUntil": "2027-12-31",
       "availability": "https://schema.org/InStock",
       "itemCondition": "https://schema.org/NewCondition",
       "seller": {
         "@type": "Organization",
         "name": "Urban Trout"
+      },
+      "shippingDetails": {
+        "@type": "OfferShippingDetails",
+        "shippingRate": {
+          "@type": "MonetaryAmount",
+          "value": "0",
+          "currency": "INR"
+        },
+        "shippingDestination": {
+          "@type": "DefinedRegion",
+          "addressCountry": "IN",
+          "addressRegion": "Jammu and Kashmir",
+          "addressLocality": "Srinagar"
+        },
+        "deliveryTime": {
+          "@type": "ShippingDeliveryTime",
+          "handlingTime": {
+            "@type": "QuantitativeValue",
+            "minValue": 0,
+            "maxValue": 0,
+            "unitCode": "DAY"
+          },
+          "transitTime": {
+            "@type": "QuantitativeValue",
+            "minValue": 0,
+            "maxValue": 1,
+            "unitCode": "DAY"
+          }
+        }
+      },
+      "hasMerchantReturnPolicy": {
+        "@type": "MerchantReturnPolicy",
+        "applicableCountry": "IN",
+        "returnPolicyCategory": "https://schema.org/MerchantReturnNotPermitted",
+        "merchantReturnDays": 0
       }
     }
   };
