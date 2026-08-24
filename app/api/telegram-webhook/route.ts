@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@supabase/supabase-js";
 import {
   answerCallbackQuery,
   editTelegramMessageText,
@@ -11,6 +11,11 @@ import {
 } from "@/lib/telegram";
 import { sendOrderStatusUpdateEmail } from "@/lib/email";
 
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+);
+
 function extractEmail(order: any): string | undefined {
   if (order.customer_email && typeof order.customer_email === "string" && order.customer_email.includes("@")) {
     return order.customer_email.trim();
@@ -20,6 +25,56 @@ function extractEmail(order: any): string | undefined {
     if (match) return match[1].trim();
   }
   return undefined;
+}
+
+async function findAndUpdateOrder(rawIdOrNum: string, newStatus: string) {
+  const cleanDigits = rawIdOrNum.replace(/\D/g, "");
+  const cleanNum = cleanDigits ? parseInt(cleanDigits, 10) : NaN;
+  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawIdOrNum);
+
+  // 1. Try by numeric order_number (e.g. 8, 9, UT-8, #8)
+  if (!isNaN(cleanNum) && cleanNum > 0) {
+    const { data } = await supabase
+      .from("orders")
+      .update({ status: newStatus })
+      .eq("order_number", cleanNum)
+      .select("*")
+      .maybeSingle();
+
+    if (data) return data;
+  }
+
+  // 2. Try by UUID if it matches UUID format
+  if (isUUID) {
+    const { data } = await supabase
+      .from("orders")
+      .update({ status: newStatus })
+      .eq("id", rawIdOrNum)
+      .select("*")
+      .maybeSingle();
+
+    if (data) return data;
+  }
+
+  return null;
+}
+
+async function findOrder(queryNum: string) {
+  const cleanDigits = queryNum.replace(/\D/g, "");
+  const cleanNum = cleanDigits ? parseInt(cleanDigits, 10) : NaN;
+  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(queryNum);
+
+  if (!isNaN(cleanNum) && cleanNum > 0) {
+    const { data } = await supabase.from("orders").select("*").eq("order_number", cleanNum).maybeSingle();
+    if (data) return data;
+  }
+
+  if (isUUID) {
+    const { data } = await supabase.from("orders").select("*").eq("id", queryNum).maybeSingle();
+    if (data) return data;
+  }
+
+  return null;
 }
 
 // Helper to determine status display name
@@ -50,21 +105,9 @@ export async function POST(request: Request) {
         const orderNumberOrId = parts[2];
 
         // 1. Fetch & Update order in Supabase
-        let query = supabase.from("orders").update({
-          status: newStatus,
-          updated_at: new Date().toISOString(),
-        });
+        const updatedOrder = await findAndUpdateOrder(orderNumberOrId, newStatus);
 
-        const isNumeric = /^\d+$/.test(orderNumberOrId);
-        if (isNumeric) {
-          query = query.eq("order_number", parseInt(orderNumberOrId, 10));
-        } else {
-          query = query.eq("id", orderNumberOrId);
-        }
-
-        const { data: updatedOrder, error: dbErr } = await query.select("*").single();
-
-        if (dbErr || !updatedOrder) {
+        if (!updatedOrder) {
           await answerCallbackQuery(cq.id, `❌ Failed to find Order #${orderNumberOrId}`, true);
           return NextResponse.json({ success: false, error: "Order not found" });
         }
@@ -352,16 +395,8 @@ export async function POST(request: Request) {
       // ── Command: /order <orderNumber> (Lookup single order) ──
       if (text.startsWith("/order ")) {
         const queryNum = text.replace("/order", "").trim();
-        const isNumeric = /^\d+$/.test(queryNum);
+        const ord = await findOrder(queryNum);
 
-        let q = supabase.from("orders").select("*");
-        if (isNumeric) {
-          q = q.eq("order_number", parseInt(queryNum, 10));
-        } else {
-          q = q.eq("id", queryNum);
-        }
-
-        const { data: ord } = await q.single();
         if (!ord) {
           await sendTelegramMessage(`❌ Order <code>#${queryNum}</code> not found.`, "HTML", undefined, chatId);
           return NextResponse.json({ success: true });

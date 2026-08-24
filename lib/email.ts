@@ -145,6 +145,7 @@ export async function sendOrderConfirmationEmail(order: {
       await resend.emails.send({
         from: FROM_EMAIL,
         to: order.email,
+        replyTo: ADMIN_EMAIL,
         subject: `Order Received #${order.orderNumber} (Awaiting Payment Verification) - Urban Trout`,
         html: emailHtml,
       });
@@ -157,6 +158,7 @@ export async function sendOrderConfirmationEmail(order: {
     await resend.emails.send({
       from: FROM_EMAIL,
       to: ADMIN_EMAIL,
+      replyTo: order.email || ADMIN_EMAIL,
       subject: `🚨 [NEW ORDER RECEIVED] #${order.orderNumber} - ₹${order.total} by ${order.customerName}`,
       html: emailHtml,
     });
@@ -255,6 +257,7 @@ export async function sendOrderStatusUpdateEmail(order: {
     await resend.emails.send({
       from: FROM_EMAIL,
       to: order.email,
+      replyTo: ADMIN_EMAIL,
       subject: current.subject,
       html: emailHtml,
     });
