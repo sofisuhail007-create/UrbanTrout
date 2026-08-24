@@ -11,6 +11,17 @@ import {
 } from "@/lib/telegram";
 import { sendOrderStatusUpdateEmail } from "@/lib/email";
 
+function extractEmail(order: any): string | undefined {
+  if (order.customer_email && typeof order.customer_email === "string" && order.customer_email.includes("@")) {
+    return order.customer_email.trim();
+  }
+  if (order.customer_address && typeof order.customer_address === "string") {
+    const match = order.customer_address.match(/Email:\s*([^\s)]+@[^\s)]+)/i);
+    if (match) return match[1].trim();
+  }
+  return undefined;
+}
+
 // Helper to determine status display name
 const STATUS_NAMES: Record<string, string> = {
   pending: "Awaiting Verification",
@@ -63,12 +74,13 @@ export async function POST(request: Request) {
         await answerCallbackQuery(cq.id, `✅ Order #${updatedOrder.order_number} marked as ${statusName}!`);
 
         // 3. Send email to customer if email is recorded
-        if (updatedOrder.customer_email) {
+        const customerEmail = extractEmail(updatedOrder);
+        if (customerEmail) {
           await sendOrderStatusUpdateEmail(
             {
               orderNumber: String(updatedOrder.order_number),
               customerName: updatedOrder.customer_name,
-              email: updatedOrder.customer_email,
+              email: customerEmail,
               phone: updatedOrder.customer_phone,
               total: updatedOrder.total,
             },
@@ -94,7 +106,8 @@ export async function POST(request: Request) {
           const newKeyboard = getOrderKeyboard(
             updatedOrder.order_number,
             newStatus,
-            updatedOrder.customer_phone
+            updatedOrder.customer_phone,
+            updatedOrder.customer_name
           );
 
           await editTelegramMessageText(chatId, messageId, newText, newKeyboard);
@@ -329,7 +342,7 @@ export async function POST(request: Request) {
             pincode: ord.customer_pincode,
             items: ord.items,
           });
-          const kb = getOrderKeyboard(ord.order_number, ord.status, ord.customer_phone);
+          const kb = getOrderKeyboard(ord.order_number, ord.status, ord.customer_phone, ord.customer_name);
           await sendTelegramMessage(ordText, "HTML", kb, chatId);
         }
 
@@ -366,7 +379,7 @@ export async function POST(request: Request) {
           pincode: ord.customer_pincode,
           items: ord.items,
         });
-        const kb = getOrderKeyboard(ord.order_number, ord.status, ord.customer_phone);
+        const kb = getOrderKeyboard(ord.order_number, ord.status, ord.customer_phone, ord.customer_name);
         await sendTelegramMessage(ordText, "HTML", kb, chatId);
         return NextResponse.json({ success: true });
       }

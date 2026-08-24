@@ -141,7 +141,12 @@ export function formatInventoryItemText(item: {
 👇 <b>1-Tap Stock & Availability Controls:</b>`;
 }
 
-export function getOrderKeyboard(orderNumber: string | number, currentStatus: string = "pending", cleanPhone?: string): InlineKeyboardMarkup {
+export function getOrderKeyboard(
+  orderNumber: string | number,
+  currentStatus: string = "pending",
+  cleanPhone?: string,
+  customerName?: string
+): InlineKeyboardMarkup {
   const isPending = currentStatus === "pending";
   const isProcessing = currentStatus === "processing";
   const isOut = currentStatus === "out_for_delivery";
@@ -172,14 +177,23 @@ export function getOrderKeyboard(orderNumber: string | number, currentStatus: st
   ];
 
   if (cleanPhone) {
+    let updateMsg = `Hi ${customerName || "there"}! Urban Trout here regarding your fresh trout order #${orderNumber}.`;
+    if (isProcessing) {
+      updateMsg = `Hi ${customerName || "there"}! Your Urban Trout order #${orderNumber} is CONFIRMED! Our team in Naseem Bagh is harvesting fresh from tanks now and packing in crushed ice. 🐟`;
+    } else if (isOut) {
+      updateMsg = `Hi ${customerName || "there"}! Your fresh Rainbow Trout order #${orderNumber} is packed chilled and OUT FOR DELIVERY with our rider! 🚚`;
+    } else if (isDelivered) {
+      updateMsg = `Hi ${customerName || "there"}! Your fresh Rainbow Trout order #${orderNumber} has been DELIVERED. Thank you for choosing Urban Trout! ✨`;
+    } else if (isCancelled) {
+      updateMsg = `Hi ${customerName || "there"}! Your order #${orderNumber} has been cancelled. Please reach out if you have any questions.`;
+    }
+
+    const waUrl = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(updateMsg)}`;
+
     rows.push([
       {
-        text: "💬 WhatsApp Customer",
-        url: `https://wa.me/91${cleanPhone}?text=Hi!%20Urban%20Trout%20here%20regarding%20order%20%23${orderNumber}.`,
-      },
-      {
-        text: "📞 Call",
-        url: `tel:+91${cleanPhone}`,
+        text: "💬 Send Customer WhatsApp Update",
+        url: waUrl,
       },
     ]);
   }
@@ -251,7 +265,7 @@ export async function notifyNewOrder(order: {
 }) {
   const cleanPhone = String(order.phone || "").replace(/\D/g, "").slice(-10);
   const msg = formatOrderTelegramText(order);
-  const keyboard = getOrderKeyboard(order.orderNumber, order.status || "pending", cleanPhone);
+  const keyboard = getOrderKeyboard(order.orderNumber, order.status || "pending", cleanPhone, order.customerName);
 
   return sendTelegramMessage(msg, "HTML", keyboard);
 }
