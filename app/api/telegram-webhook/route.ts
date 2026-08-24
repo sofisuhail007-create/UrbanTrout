@@ -3,7 +3,9 @@ import { supabase } from "@/lib/supabase";
 import {
   answerCallbackQuery,
   editTelegramMessageText,
+  formatInventoryItemText,
   formatOrderTelegramText,
+  getInventoryKeyboard,
   getOrderKeyboard,
   sendTelegramMessage,
 } from "@/lib/telegram";
@@ -30,7 +32,7 @@ export async function POST(request: Request) {
       const chatId = message?.chat?.id;
       const messageId = message?.message_id;
 
-      // Handle order status callbacks: "ord:<status>:<orderNumber>"
+      // ── Handle Order Status Callbacks: "ord:<status>:<orderNumber>" ──
       if (dataStr.startsWith("ord:")) {
         const parts = dataStr.split(":");
         const newStatus = parts[1] as "pending" | "processing" | "out_for_delivery" | "delivered" | "cancelled";
@@ -42,7 +44,6 @@ export async function POST(request: Request) {
           updated_at: new Date().toISOString(),
         });
 
-        // Determine if lookup by order_number or id
         const isNumeric = /^\d+$/.test(orderNumberOrId);
         if (isNumeric) {
           query = query.eq("order_number", parseInt(orderNumberOrId, 10));
@@ -101,6 +102,87 @@ export async function POST(request: Request) {
 
         return NextResponse.json({ success: true, updated: updatedOrder.order_number, status: newStatus });
       }
+
+      // ── Handle Inventory Availability Toggle: "inv:toggle:<productId>" ──
+      if (dataStr.startsWith("inv:toggle:")) {
+        const productId = dataStr.replace("inv:toggle:", "").trim();
+
+        const { data: currentItem, error: fetchErr } = await supabase
+          .from("inventory")
+          .select("*")
+          .eq("product_id", productId)
+          .single();
+
+        if (fetchErr || !currentItem) {
+          await answerCallbackQuery(cq.id, `❌ Product "${productId}" not found.`, true);
+          return NextResponse.json({ success: false });
+        }
+
+        const newAvailable = !currentItem.available;
+        const { data: updatedItem, error: updateErr } = await supabase
+          .from("inventory")
+          .update({ available: newAvailable, updated_at: new Date().toISOString() })
+          .eq("product_id", productId)
+          .select("*")
+          .single();
+
+        if (updateErr || !updatedItem) {
+          await answerCallbackQuery(cq.id, `❌ Failed to update availability.`, true);
+          return NextResponse.json({ success: false });
+        }
+
+        const stateText = newAvailable ? "🟢 IN STOCK (Available on site)" : "🔴 OUT OF STOCK (Disabled)";
+        await answerCallbackQuery(cq.id, `✅ ${updatedItem.product_name} is now ${stateText}!`);
+
+        if (chatId && messageId) {
+          const newText = formatInventoryItemText(updatedItem);
+          const newKb = getInventoryKeyboard(updatedItem.product_id, updatedItem.available, updatedItem.stock_kg);
+          await editTelegramMessageText(chatId, messageId, newText, newKb);
+        }
+
+        return NextResponse.json({ success: true });
+      }
+
+      // ── Handle Inventory Stock Add: "inv:add:<productId>:<amount>" ──
+      if (dataStr.startsWith("inv:add:")) {
+        const parts = dataStr.split(":");
+        const productId = parts[2];
+        const addAmount = parseFloat(parts[3]) || 0;
+
+        const { data: currentItem, error: fetchErr } = await supabase
+          .from("inventory")
+          .select("*")
+          .eq("product_id", productId)
+          .single();
+
+        if (fetchErr || !currentItem) {
+          await answerCallbackQuery(cq.id, `❌ Product "${productId}" not found.`, true);
+          return NextResponse.json({ success: false });
+        }
+
+        const newStock = Math.max(0, (Number(currentItem.stock_kg) || 0) + addAmount);
+        const { data: updatedItem, error: updateErr } = await supabase
+          .from("inventory")
+          .update({ stock_kg: newStock, updated_at: new Date().toISOString() })
+          .eq("product_id", productId)
+          .select("*")
+          .single();
+
+        if (updateErr || !updatedItem) {
+          await answerCallbackQuery(cq.id, `❌ Failed to update stock.`, true);
+          return NextResponse.json({ success: false });
+        }
+
+        await answerCallbackQuery(cq.id, `✅ +${addAmount} Kg added! Total Stock: ${newStock} Kg`);
+
+        if (chatId && messageId) {
+          const newText = formatInventoryItemText(updatedItem);
+          const newKb = getInventoryKeyboard(updatedItem.product_id, updatedItem.available, updatedItem.stock_kg);
+          await editTelegramMessageText(chatId, messageId, newText, newKb);
+        }
+
+        return NextResponse.json({ success: true });
+      }
     }
 
     // ─── 2. Handle Slash Commands & Text Messages ───
@@ -109,7 +191,112 @@ export async function POST(request: Request) {
       const text: string = msg.text.trim();
       const chatId = msg.chat.id;
 
-      // Command: /orders or /pending (List recent active orders)
+      // ── Command: /stock or /inventory (Interactive Inventory Dashboard) ──
+      if (text === "/stock" || text === "/inventory") {
+        const { data: invItems, error } = await supabase
+          .from("inventory")
+          .select("*")
+          .order("product_name");
+
+        if (error || !invItems || invItems.length === 0) {
+          await sendTelegramMessage("📦 No inventory records found in database.", "HTML", undefined, chatId);
+          return NextResponse.json({ success: true });
+        }
+
+        await sendTelegramMessage(
+          `🐟 <b>LIVE FARM INVENTORY DASHBOARD</b> 📊\n━━━━━━━━━━━━━━━━━━━━\nManage stock levels and availability below:`,
+          "HTML",
+          undefined,
+          chatId
+        );
+
+        for (const item of invItems) {
+          const itemText = formatInventoryItemText(item);
+          const kb = getInventoryKeyboard(item.product_id, item.available, item.stock_kg);
+          await sendTelegramMessage(itemText, "HTML", kb, chatId);
+        }
+
+        return NextResponse.json({ success: true });
+      }
+
+      // ── Command: /setstock <whole|gutted> <amount> ──
+      if (text.startsWith("/setstock")) {
+        const parts = text.split(/\s+/);
+        if (parts.length >= 3) {
+          const productKey = parts[1].toLowerCase().includes("gut") ? "gutted-trout" : "whole-trout";
+          const newStock = parseFloat(parts[2]);
+
+          if (isNaN(newStock) || newStock < 0) {
+            await sendTelegramMessage("⚠️ Please provide a valid stock number, e.g. <code>/setstock whole 50</code>", "HTML", undefined, chatId);
+            return NextResponse.json({ success: true });
+          }
+
+          const { data: updated, error } = await supabase
+            .from("inventory")
+            .update({ stock_kg: newStock, updated_at: new Date().toISOString() })
+            .eq("product_id", productKey)
+            .select("*")
+            .single();
+
+          if (error || !updated) {
+            await sendTelegramMessage(`❌ Failed to update stock: ${error?.message}`, "HTML", undefined, chatId);
+          } else {
+            const kb = getInventoryKeyboard(updated.product_id, updated.available, updated.stock_kg);
+            await sendTelegramMessage(
+              `✅ <b>STOCK LEVEL UPDATED!</b>\n━━━━━━━━━━━━━━━━━━━━\n<b>${updated.product_name}</b> stock is now set to <b>${newStock} Kg</b>.`,
+              "HTML",
+              kb,
+              chatId
+            );
+          }
+          return NextResponse.json({ success: true });
+        } else {
+          await sendTelegramMessage("ℹ️ <b>Usage:</b> <code>/setstock whole 50</code> or <code>/setstock gutted 35</code>", "HTML", undefined, chatId);
+          return NextResponse.json({ success: true });
+        }
+      }
+
+      // ── Command: /addstock <whole|gutted> <amount> ──
+      if (text.startsWith("/addstock")) {
+        const parts = text.split(/\s+/);
+        if (parts.length >= 3) {
+          const productKey = parts[1].toLowerCase().includes("gut") ? "gutted-trout" : "whole-trout";
+          const addQty = parseFloat(parts[2]);
+
+          if (isNaN(addQty)) {
+            await sendTelegramMessage("⚠️ Please provide a valid number, e.g. <code>/addstock whole 20</code>", "HTML", undefined, chatId);
+            return NextResponse.json({ success: true });
+          }
+
+          const { data: curr } = await supabase.from("inventory").select("*").eq("product_id", productKey).single();
+          const newStock = Math.max(0, (Number(curr?.stock_kg) || 0) + addQty);
+
+          const { data: updated, error } = await supabase
+            .from("inventory")
+            .update({ stock_kg: newStock, updated_at: new Date().toISOString() })
+            .eq("product_id", productKey)
+            .select("*")
+            .single();
+
+          if (error || !updated) {
+            await sendTelegramMessage(`❌ Failed to add stock: ${error?.message}`, "HTML", undefined, chatId);
+          } else {
+            const kb = getInventoryKeyboard(updated.product_id, updated.available, updated.stock_kg);
+            await sendTelegramMessage(
+              `✅ <b>STOCK RESTOCKED!</b>\n━━━━━━━━━━━━━━━━━━━━\nAdded <b>+${addQty} Kg</b> to <b>${updated.product_name}</b>.\n<b>Total Stock:</b> ${newStock} Kg`,
+              "HTML",
+              kb,
+              chatId
+            );
+          }
+          return NextResponse.json({ success: true });
+        } else {
+          await sendTelegramMessage("ℹ️ <b>Usage:</b> <code>/addstock whole 20</code> or <code>/addstock gutted 15</code>", "HTML", undefined, chatId);
+          return NextResponse.json({ success: true });
+        }
+      }
+
+      // ── Command: /orders or /pending (List recent active orders) ──
       if (text.startsWith("/orders") || text.startsWith("/pending")) {
         const { data: recentOrders } = await supabase
           .from("orders")
@@ -149,7 +336,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: true });
       }
 
-      // Command: /order <orderNumber> (Lookup single order)
+      // ── Command: /order <orderNumber> (Lookup single order) ──
       if (text.startsWith("/order ")) {
         const queryNum = text.replace("/order", "").trim();
         const isNumeric = /^\d+$/.test(queryNum);
@@ -184,7 +371,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: true });
       }
 
-      // Command: /price <whole|gutted> <amount> (Update live price)
+      // ── Command: /price <whole|gutted> <amount> (Update live price) ──
       if (text.startsWith("/price")) {
         const parts = text.split(/\s+/);
         if (parts.length >= 3) {
@@ -211,13 +398,13 @@ export async function POST(request: Request) {
         } else {
           // Show current prices
           const { data: inv } = await supabase.from("inventory").select("*");
-          const invList = inv?.map(i => `• <b>${i.product_id}:</b> ₹${i.price_per_kg} / Kg`).join("\n") || "No inventory records.";
+          const invList = inv?.map(i => `• <b>${i.product_name || i.product_id}:</b> ₹${i.price_per_kg} / Kg (Stock: ${i.stock_kg || 0} Kg)`).join("\n") || "No inventory records.";
           await sendTelegramMessage(`💰 <b>CURRENT LIVE PRICES:</b>\n━━━━━━━━━━━━━━━━━━━━\n${invList}\n\n<i>To change price:</i> <code>/price whole 520</code> or <code>/price gutted 580</code>`, "HTML", undefined, chatId);
           return NextResponse.json({ success: true });
         }
       }
 
-      // Command: /stats or /today (Sales stats)
+      // ── Command: /stats or /today (Sales stats) ──
       if (text.startsWith("/stats") || text.startsWith("/today")) {
         const todayStart = new Date();
         todayStart.setHours(0, 0, 0, 0);
@@ -239,10 +426,10 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: true });
       }
 
-      // Command: /help or /start
+      // ── Command: /help or /start ──
       if (text.startsWith("/help") || text.startsWith("/start")) {
         await sendTelegramMessage(
-          `🐟 <b>URBAN TROUT ADMIN BOT</b> ⚡\n━━━━━━━━━━━━━━━━━━━━\nHere are the commands you can use:\n\n📦 <b>/orders</b> - View recent orders with 1-tap status buttons\n🔍 <b>/order [number]</b> - Lookup a specific order\n💰 <b>/price [whole|gutted] [amount]</b> - Update live website prices\n📊 <b>/stats</b> - View today's sales and order stats\n❓ <b>/help</b> - Show this message\n\n<i>You can also tap the inline buttons directly under any new order alert to confirm, dispatch, or mark it delivered instantly!</i>`,
+          `🐟 <b>URBAN TROUT ADMIN BOT</b> ⚡\n━━━━━━━━━━━━━━━━━━━━\nHere are all available management commands:\n\n📦 <b>INVENTORY MANAGEMENT:</b>\n• <b>/stock</b> or <b>/inventory</b> - Interactive stock dashboard with 1-tap toggles\n• <b>/setstock [whole|gutted] [kg]</b> - Set exact stock quantity (e.g. <code>/setstock whole 50</code>)\n• <b>/addstock [whole|gutted] [kg]</b> - Add quantity to stock (e.g. <code>/addstock gutted 20</code>)\n• <b>/price [whole|gutted] [price]</b> - Update live website price (e.g. <code>/price whole 520</code>)\n\n🛒 <b>ORDER MANAGEMENT:</b>\n• <b>/orders</b> - View recent orders with 1-tap action buttons\n• <b>/order [number]</b> - Lookup a specific order\n• <b>/stats</b> - View today's sales and order stats\n• <b>/help</b> - Show this help menu`,
           "HTML",
           undefined,
           chatId

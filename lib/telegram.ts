@@ -89,6 +89,58 @@ export async function answerCallbackQuery(
   }
 }
 
+export function getInventoryKeyboard(productId: string, isAvailable: boolean, stockKg: number): InlineKeyboardMarkup {
+  return {
+    inline_keyboard: [
+      [
+        {
+          text: isAvailable ? "🔴 Mark Out of Stock" : "🟢 Mark In Stock",
+          callback_data: `inv:toggle:${productId}`,
+        },
+      ],
+      [
+        {
+          text: "➕ Add 10 Kg",
+          callback_data: `inv:add:${productId}:10`,
+        },
+        {
+          text: "➕ Add 25 Kg",
+          callback_data: `inv:add:${productId}:25`,
+        },
+      ],
+    ],
+  };
+}
+
+export function formatInventoryItemText(item: {
+  product_id: string;
+  product_name: string;
+  price_per_kg: number;
+  stock_kg: number;
+  available: boolean;
+  updated_at?: string;
+}): string {
+  const isAvailable = Boolean(item.available);
+  const stock = Number(item.stock_kg || 0);
+  const isLow = stock < 10;
+
+  const statusBadge = isAvailable
+    ? "🟢 <b>IN STOCK (LIVE ON WEBSITE)</b>"
+    : "🔴 <b>OUT OF STOCK (DISABLED ON WEBSITE)</b>";
+
+  const lowStockBadge = isLow && isAvailable ? "\n⚠️ <b>Low Stock Warning:</b> Only " + stock + " Kg remaining!" : "";
+
+  return `📦 <b>INVENTORY: ${item.product_name.toUpperCase()}</b> 🐟
+━━━━━━━━━━━━━━━━━━━━
+<b>Status:</b> ${statusBadge}
+<b>Price:</b> <b>₹${item.price_per_kg} / Kg</b>
+<b>Stock:</b> <b>${stock} Kg</b>${lowStockBadge}
+<b>ID:</b> <code>${item.product_id}</code>
+
+━━━━━━━━━━━━━━━━━━━━
+👇 <b>1-Tap Stock & Availability Controls:</b>`;
+}
+
 export function getOrderKeyboard(orderNumber: string | number, currentStatus: string = "pending", cleanPhone?: string): InlineKeyboardMarkup {
   const isPending = currentStatus === "pending";
   const isProcessing = currentStatus === "processing";
