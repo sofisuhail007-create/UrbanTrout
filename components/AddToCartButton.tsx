@@ -1,7 +1,7 @@
 "use client";
+
 import { useState } from "react";
 import { useCart } from "@/context/CartContext";
-import toast from "react-hot-toast";
 
 type Props = {
   productId: string;
@@ -29,7 +29,6 @@ export default function AddToCartButton({
   const handleAdd = () => {
     addItem({ id: productId, name: productName, price, quantity: qty, unit, image });
     setAdded(true);
-    toast.success(`${qty}x ${productName} added to cart!`, { icon: "🐟" });
     setTimeout(() => setAdded(false), 2000);
   };
 
