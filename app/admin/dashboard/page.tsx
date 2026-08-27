@@ -101,38 +101,10 @@ export default function DashboardPage() {
           .order("created_at", { ascending: false })
           .limit(4),
       ]);
-      let finalLeads: Lead[] = (leadsData as Lead[]) ?? [];
-      if (finalLeads.length === 0) {
-        const { data: custData } = await supabase
-          .from("customers")
-          .select("*")
-          .order("last_order_at", { ascending: false })
-          .limit(4);
-        if (custData) {
-          finalLeads = custData
-            .filter((c: any) => c.total_orders === 0 || (c.notes && c.notes.includes("Abandoned")))
-            .map((c: any) => ({
-              id: c.id,
-              customer_name: c.name || "Interested Customer",
-              customer_phone: c.phone,
-              customer_email: null,
-              customer_locality: c.locality || "Srinagar",
-              customer_address: null,
-              customer_pincode: c.pincode || "190006",
-              cart_items: [],
-              estimated_total: 550,
-              status: "abandoned",
-              notes: c.notes || "In-progress checkout",
-              created_at: c.last_order_at || c.created_at || new Date().toISOString(),
-              updated_at: c.last_order_at || new Date().toISOString(),
-            }));
-        }
-      }
-
       setOrders(ord ?? []);
       setCustomers(count ?? 0);
       setRecentParams((wp as WaterParameter[]) ?? []);
-      setRecentLeads(finalLeads);
+      setRecentLeads((leadsData as Lead[]) ?? []);
       setLoading(false);
     }
     load();

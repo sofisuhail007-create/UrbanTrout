@@ -4,18 +4,31 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 
+interface DecodedInvoice {
+  invoiceNumber: string;
+  customerName: string;
+  customerPhone: string;
+  items: Array<{ name: string; weightKg: number; pricePerKg: number; total: number }>;
+  totalWeight: number;
+  grandTotal: number;
+  notes?: string;
+  createdAt: number;
+  isExpired: boolean;
+  expiresInHours?: number;
+}
+
 export default function PublicInvoicePage() {
   const params = useParams();
-  const idParam = (params?.id as string) || "";
-  const [order, setOrder] = useState<any>(null);
+  const rawParam = (params?.id as string) || "";
+  const [invoice, setInvoice] = useState<DecodedInvoice | null>(null);
   const [loading, setLoading] = useState(true);
   const [upiId, setUpiId] = useState("urbantrout@ybl");
   const [copiedUpi, setCopiedUpi] = useState(false);
 
   useEffect(() => {
-    async function fetchOrder() {
+    async function loadInvoice() {
       try {
-        // Fetch Store UPI ID
+        // 1. Fetch Store UPI ID
         const { data: upiData } = await supabase
           .from("app_settings")
           .select("value")
@@ -23,60 +36,99 @@ export default function PublicInvoicePage() {
           .single();
         if (upiData?.value) setUpiId(upiData.value);
 
-        // Normalize ID (support "UT-INV-16", "16", or UUID)
-        const cleanId = idParam.replace(/[^0-9a-fA-F-]/g, "");
+        // 2. Check if rawParam is a Base64 encoded token (Stateless 48-Hour Invoice)
+        let decodedObj: any = null;
+        try {
+          const jsonStr = decodeURIComponent(atob(rawParam));
+          decodedObj = JSON.parse(jsonStr);
+        } catch {}
+
+        if (decodedObj && (decodedObj.ts || decodedObj.tot)) {
+          const createdTimestamp = decodedObj.ts || Date.now();
+          const elapsedMs = Date.now() - createdTimestamp;
+          const maxAgeMs = 48 * 60 * 60 * 1000; // 48 Hours
+          const isExpired = elapsedMs > maxAgeMs;
+          const remainingHours = Math.max(0, Math.ceil((maxAgeMs - elapsedMs) / (1000 * 60 * 60)));
+
+          const formatted: DecodedInvoice = {
+            invoiceNumber: decodedObj.num || "UT-INV-LIVE",
+            customerName: decodedObj.name || "Valued Customer",
+            customerPhone: decodedObj.phone || "N/A",
+            items: (decodedObj.items || []).map((i: any) => ({
+              name: i.n || i.name,
+              weightKg: i.w ?? i.weightKg ?? 1,
+              pricePerKg: i.r ?? i.pricePerKg ?? 550,
+              total: i.t ?? i.total ?? 550,
+            })),
+            totalWeight: decodedObj.tw ?? decodedObj.totalWeight ?? 0,
+            grandTotal: decodedObj.tot ?? decodedObj.grandTotal ?? 0,
+            notes: decodedObj.notes || "",
+            createdAt: createdTimestamp,
+            isExpired,
+            expiresInHours: remainingHours,
+          };
+
+          setInvoice(formatted);
+          setLoading(false);
+          return;
+        }
+
+        // 3. Fallback: Database Lookup for Online Orders
+        const cleanId = rawParam.replace(/[^0-9a-fA-F-]/g, "");
         const numId = parseInt(cleanId, 10);
 
         let query = supabase.from("orders").select("*");
-        if (!isNaN(numId) && !idParam.includes("-") && idParam.length < 8) {
+        if (!isNaN(numId) && !rawParam.includes("-") && rawParam.length < 8) {
           query = query.eq("order_number", numId);
-        } else if (idParam.toUpperCase().startsWith("UT-INV-")) {
-          const extractedNum = parseInt(idParam.replace("UT-INV-", ""), 10);
+        } else if (rawParam.toUpperCase().startsWith("UT-INV-")) {
+          const extractedNum = parseInt(rawParam.replace("UT-INV-", ""), 10);
           if (!isNaN(extractedNum)) {
             query = query.eq("order_number", extractedNum);
           } else {
-            query = query.eq("id", idParam);
+            query = query.eq("id", rawParam);
           }
         } else {
-          query = query.eq("id", idParam);
+          query = query.eq("id", rawParam);
         }
 
-        const { data, error } = await query.single();
-        if (data) {
-          setOrder(data);
-        } else {
-          // Try fetching by order_number if not found
-          const parsed = parseInt(idParam.replace(/\D/g, ""), 10);
-          if (!isNaN(parsed)) {
-            const { data: fallbackData } = await supabase
-              .from("orders")
-              .select("*")
-              .eq("order_number", parsed)
-              .single();
-            if (fallbackData) setOrder(fallbackData);
-          }
+        const { data: dbOrder } = await query.single();
+        if (dbOrder) {
+          const orderItems = Array.isArray(dbOrder.items) ? dbOrder.items : [];
+          const tw = orderItems.reduce((s: number, i: any) => s + (parseFloat(i.quantity) || 0), 0);
+          const orderCreated = new Date(dbOrder.created_at).getTime();
+          const isExpired = Date.now() - orderCreated > 48 * 60 * 60 * 1000;
+
+          setInvoice({
+            invoiceNumber: `UT-INV-${dbOrder.order_number || dbOrder.id.slice(0, 6)}`,
+            customerName: dbOrder.customer_name || "Valued Customer",
+            customerPhone: dbOrder.customer_phone || "N/A",
+            items: orderItems.map((i: any) => ({
+              name: i.name,
+              weightKg: parseFloat(i.quantity) || 1,
+              pricePerKg: i.price || 550,
+              total: (parseFloat(i.quantity) || 1) * (i.price || 550),
+            })),
+            totalWeight: tw,
+            grandTotal: dbOrder.total || 0,
+            createdAt: orderCreated,
+            isExpired: false, // Online DB orders don't hard expire
+          });
         }
       } catch (err) {
-        console.error("Error loading invoice:", err);
+        console.error("Invoice parse error:", err);
       } finally {
         setLoading(false);
       }
     }
 
-    if (idParam) fetchOrder();
-  }, [idParam]);
+    if (rawParam) loadInvoice();
+  }, [rawParam]);
 
   const copyUpi = () => {
     navigator.clipboard.writeText(upiId);
     setCopiedUpi(true);
     setTimeout(() => setCopiedUpi(false), 2500);
   };
-
-  const grandTotal = order?.total || 0;
-  const upiPayUri = `upi://pay?pa=${upiId}&pn=Urban%20Trout%20Farm&am=${grandTotal}&cu=INR&tn=Invoice-${order?.order_number || idParam}`;
-  const upiQrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(
-    upiPayUri
-  )}&bgcolor=255-255-255&color=2-13-18&margin=2`;
 
   if (loading) {
     return (
@@ -89,14 +141,50 @@ export default function PublicInvoicePage() {
     );
   }
 
-  if (!order) {
+  // EXPIRED INVOICE STATE (48-Hour Timer Ended)
+  if (invoice?.isExpired) {
+    return (
+      <div className="min-h-screen bg-[#020d12] flex items-center justify-center p-4 text-center">
+        <div className="max-w-md bg-slate-900/90 border border-amber-500/30 rounded-3xl p-8 space-y-4 shadow-2xl">
+          <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto">
+            <span className="material-symbols-outlined text-3xl">timer_off</span>
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-white mb-2" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+              Invoice Link Expired
+            </h2>
+            <p className="text-slate-400 text-xs leading-relaxed" style={{ fontFamily: '"Manrope", sans-serif' }}>
+              This invoice link has exceeded its <strong>48-hour live validity period</strong>. To request a fresh invoice or order live-harvested trout, please contact our farm counter.
+            </p>
+          </div>
+
+          <div className="pt-2 flex flex-col gap-2">
+            <a
+              href="tel:+918491006127"
+              className="py-3 px-4 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs uppercase tracking-wider transition-all"
+            >
+              📞 Call Farm Helpline (+91 84910 06127)
+            </a>
+            <Link
+              href="/"
+              className="py-2.5 px-4 rounded-xl bg-slate-800 text-slate-300 font-bold text-xs uppercase tracking-wider hover:bg-slate-700 transition-all"
+            >
+              Go to Homepage
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!invoice) {
     return (
       <div className="min-h-screen bg-[#020d12] flex items-center justify-center p-4 text-center">
         <div className="max-w-md bg-slate-900/90 border border-slate-800 rounded-3xl p-8 space-y-4">
           <span className="material-symbols-outlined text-4xl text-slate-500">receipt_long</span>
           <h2 className="text-xl font-bold text-white">Invoice Not Found</h2>
           <p className="text-slate-400 text-xs">
-            We could not find an invoice matching reference <code className="text-cyan-400">{idParam}</code>.
+            We could not find an active invoice matching this reference.
           </p>
           <Link
             href="/"
@@ -109,30 +197,43 @@ export default function PublicInvoicePage() {
     );
   }
 
-  const items = Array.isArray(order.items) ? order.items : [];
-  const totalWeight = items.reduce((sum: number, i: any) => sum + (parseFloat(i.quantity) || 0), 0);
+  const grandTotal = invoice.grandTotal;
+  const upiPayUri = `upi://pay?pa=${upiId}&pn=Urban%20Trout%20Farm&am=${grandTotal}&cu=INR&tn=Invoice-${invoice.invoiceNumber}`;
+  const upiQrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(
+    upiPayUri
+  )}&bgcolor=255-255-255&color=2-13-18&margin=2`;
 
   return (
     <div className="min-h-screen bg-[#020d12] py-8 px-4 sm:px-6">
-      <div className="max-w-xl mx-auto space-y-6">
+      <div className="max-w-xl mx-auto space-y-5">
         {/* Top Controls (Hidden in Print) */}
         <div className="flex items-center justify-between print:hidden">
-          <Link
-            href="/"
-            className="flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-white transition-colors"
-          >
+          <Link href="/" className="flex items-center gap-2">
             <img src="/headerfooterlogo.png" alt="Urban Trout" className="h-6 w-auto object-contain" />
           </Link>
 
           <button
             type="button"
             onClick={() => window.print()}
-            className="py-2.5 px-4 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-cyan-500/20 cursor-pointer"
+            className="py-2.5 px-4 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-cyan-500/20 cursor-pointer active:scale-95"
           >
             <span className="material-symbols-outlined text-base">print</span>
             Download PDF / Print
           </button>
         </div>
+
+        {/* 48-Hour Timer Badge */}
+        {invoice.expiresInHours !== undefined && (
+          <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-between text-amber-400 text-xs font-semibold print:hidden">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-base">timer</span>
+              <span>48-Hour Live Invoice</span>
+            </div>
+            <span className="font-mono bg-amber-500/20 px-2 py-0.5 rounded text-[11px]">
+              Expires in ~{invoice.expiresInHours} Hours
+            </span>
+          </div>
+        )}
 
         {/* ─── PRINTABLE INVOICE CARD ─── */}
         <div
@@ -154,14 +255,14 @@ export default function PublicInvoicePage() {
           {/* Metadata */}
           <div className="flex justify-between text-xs text-slate-600 font-mono">
             <div>
-              <p><strong>Invoice No:</strong> UT-INV-{order.order_number || order.id?.slice(0, 6)}</p>
-              <p><strong>Customer:</strong> {order.customer_name || "Valued Customer"}</p>
-              <p><strong>Phone:</strong> {order.customer_phone || "N/A"}</p>
+              <p><strong>Invoice No:</strong> {invoice.invoiceNumber}</p>
+              <p><strong>Customer:</strong> {invoice.customerName}</p>
+              <p><strong>Phone:</strong> {invoice.customerPhone}</p>
             </div>
             <div className="text-right">
               <p>
                 <strong>Date:</strong>{" "}
-                {new Date(order.created_at || Date.now()).toLocaleDateString("en-IN", {
+                {new Date(invoice.createdAt).toLocaleDateString("en-IN", {
                   day: "2-digit",
                   month: "short",
                   year: "numeric",
@@ -169,7 +270,7 @@ export default function PublicInvoicePage() {
               </p>
               <p>
                 <strong>Status:</strong>{" "}
-                <span className="text-amber-700 font-bold uppercase">{order.status === "delivered" ? "COMPLETED" : "PAYMENT DUE"}</span>
+                <span className="text-amber-700 font-bold uppercase">PAYMENT DUE</span>
               </p>
             </div>
           </div>
@@ -186,12 +287,12 @@ export default function PublicInvoicePage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-mono">
-                {items.map((item: any, idx: number) => (
+                {invoice.items.map((item, idx) => (
                   <tr key={idx}>
                     <td className="py-2 pr-2 font-sans font-medium text-slate-800">{item.name}</td>
-                    <td className="py-2 text-center font-bold">{item.quantity} {item.unit || "Kg"}</td>
-                    <td className="py-2 text-right">₹{item.price}</td>
-                    <td className="py-2 text-right font-bold">₹{((parseFloat(item.quantity) || 1) * (item.price || 0)).toLocaleString("en-IN")}</td>
+                    <td className="py-2 text-center font-bold">{item.weightKg} Kg</td>
+                    <td className="py-2 text-right">₹{item.pricePerKg}</td>
+                    <td className="py-2 text-right font-bold">₹{item.total.toLocaleString("en-IN")}</td>
                   </tr>
                 ))}
               </tbody>
@@ -200,10 +301,10 @@ export default function PublicInvoicePage() {
 
           {/* Total Payable Summary */}
           <div className="space-y-1 text-right">
-            {totalWeight > 0 && (
+            {invoice.totalWeight > 0 && (
               <div className="flex justify-between text-xs text-slate-600 font-mono">
                 <span>Total Harvest Weight:</span>
-                <span className="font-bold">{totalWeight.toFixed(2)} Kg</span>
+                <span className="font-bold">{invoice.totalWeight.toFixed(2)} Kg</span>
               </div>
             )}
             <div className="flex justify-between text-base font-black text-slate-900 font-mono pt-2 border-t">

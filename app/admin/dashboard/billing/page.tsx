@@ -41,7 +41,6 @@ export default function POSBillingPage() {
   const [upiId, setUpiId] = useState("urbantrout@ybl");
 
   // State flags
-  const [isSaving, setIsSaving] = useState(false);
   const [invoiceModalOpen, setInvoiceModalOpen] = useState(false);
   const [generatedInvoice, setGeneratedInvoice] = useState<any>(null);
   const [copiedUpi, setCopiedUpi] = useState(false);
@@ -178,96 +177,65 @@ export default function POSBillingPage() {
     setTimeout(() => setCopiedUpi(false), 2500);
   };
 
-  // Generate & Save Invoice
-  const handleGenerateInvoice = async () => {
+  // ─── PURE REALTIME CALCULATOR (0 DB writes, 48-Hour Stateless Token) ──
+  const handleGenerateInvoice = () => {
     if (billItems.length === 0 || grandTotal <= 0) {
       alert("Please enter a valid weight greater than 0 kg.");
       return;
     }
 
-    setIsSaving(true);
+    const invoiceNumber = "UT-INV-" + Math.floor(1000 + Math.random() * 9000);
+    const cleanPhone = customerPhone.replace(/\D/g, "").slice(-10);
+
+    // Encode stateless invoice token with 48h validity timestamp
+    const tokenPayload = {
+      num: invoiceNumber,
+      name: customerName.trim() || "Valued Customer",
+      phone: cleanPhone || "N/A",
+      items: billItems.map((i) => ({ n: i.name, w: i.weightKg, r: i.pricePerKg, t: i.total })),
+      tw: totalWeight,
+      tot: grandTotal,
+      notes: customerNotes,
+      ts: Date.now(), // 48-Hour Validity Timestamp
+    };
+
+    let token = "";
     try {
-      const invoiceNumber = "UT-INV-" + Math.floor(1000 + Math.random() * 9000);
-      const cleanPhone = customerPhone.replace(/\D/g, "").slice(-10);
-
-      const orderPayload = {
-        customer_name: customerName.trim() || "Valued Customer",
-        customer_phone: cleanPhone || "9999999999",
-        customer_address: "Live Vending Center / Farm POS, Naseem Bagh, Srinagar",
-        customer_locality: "Naseem Bagh / Malabagh",
-        customer_pincode: "190006",
-        items: billItems.map((i) => ({
-          id: i.id,
-          name: i.name,
-          quantity: i.weightKg,
-          price: i.pricePerKg,
-          unit: i.unit,
-        })),
-        subtotal: grandTotal,
-        delivery_fee: 0,
-        total: grandTotal,
-        delivery_zone: "Farm POS / Live Vending",
-        status: "pending",
-      };
-
-      const { data: insertedOrder } = await supabase.from("orders").insert(orderPayload).select("*").single();
-
-      if (cleanPhone && cleanPhone.length === 10) {
-        try {
-          await supabase.from("customers").upsert(
-            {
-              phone: cleanPhone,
-              name: customerName.trim() || "Valued Customer",
-              locality: "Srinagar (Farm Counter)",
-              notes: `POS Invoice #${invoiceNumber}`,
-              last_order_at: new Date().toISOString(),
-            },
-            { onConflict: "phone" }
-          );
-        } catch (e) {}
-      }
-
-      const finalInvoiceNum = insertedOrder?.order_number
-        ? `UT-INV-${insertedOrder.order_number}`
-        : invoiceNumber;
-
-      const origin = typeof window !== "undefined" ? window.location.origin : "https://urbantrout.in";
-      const invoicePublicUrl = `${origin}/invoice/${finalInvoiceNum}`;
-
-      const invoiceData = {
-        invoiceNumber: finalInvoiceNum,
-        orderId: insertedOrder?.id || "",
-        date: new Date().toLocaleString("en-IN", {
-          day: "2-digit",
-          month: "short",
-          year: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        }),
-        customerName: customerName.trim() || "Valued Customer",
-        customerPhone: cleanPhone || "N/A",
-        items: billItems,
-        totalWeight,
-        grandTotal,
-        paymentMethod,
-        notes: customerNotes,
-        upiId,
-        upiQrCodeUrl,
-        upiPayUri,
-        invoicePublicUrl,
-      };
-
-      setGeneratedInvoice(invoiceData);
-      setInvoiceModalOpen(true);
-    } catch (err) {
-      console.error("Error generating invoice:", err);
-      alert("Failed to save invoice. Please try again.");
-    } finally {
-      setIsSaving(false);
+      token = btoa(encodeURIComponent(JSON.stringify(tokenPayload)));
+    } catch {
+      token = invoiceNumber;
     }
+
+    const origin = typeof window !== "undefined" ? window.location.origin : "https://urbantrout.in";
+    const invoicePublicUrl = `${origin}/invoice/${token}`;
+
+    const invoiceData = {
+      invoiceNumber,
+      date: new Date().toLocaleString("en-IN", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      customerName: customerName.trim() || "Valued Customer",
+      customerPhone: cleanPhone || "N/A",
+      items: billItems,
+      totalWeight,
+      grandTotal,
+      paymentMethod,
+      notes: customerNotes,
+      upiId,
+      upiQrCodeUrl,
+      upiPayUri,
+      invoicePublicUrl,
+    };
+
+    setGeneratedInvoice(invoiceData);
+    setInvoiceModalOpen(true);
   };
 
-  // ─── SIMPLE & CLEAN WHATSAPP MESSAGE (Short & Professional) ──
+  // ─── SIMPLE & CLEAN WHATSAPP MESSAGE ───
   const handleShareWhatsApp = () => {
     if (!generatedInvoice) return;
 
@@ -275,7 +243,7 @@ export default function POSBillingPage() {
       .map((item: BillItem) => `${item.name} (${item.weightKg} Kg)`)
       .join(", ");
 
-    const msg = `Hello ${generatedInvoice.customerName},\n\nThank you for your order with Urban Trout Farm, Srinagar!\n\n📄 Invoice: ${generatedInvoice.invoiceNumber}\n🐟 Items: ${itemsSummary}\n💰 Total Amount: ₹${generatedInvoice.grandTotal.toLocaleString("en-IN")}\n\n💳 Pay via UPI: ${generatedInvoice.upiId}\n\n📄 View & Download Invoice PDF:\n${generatedInvoice.invoicePublicUrl}\n\nUrban Trout Farm, Srinagar\nHelpline: +91 84910 06127`;
+    const msg = `Hello ${generatedInvoice.customerName},\n\nThank you for your order with Urban Trout Farm, Srinagar!\n\n📄 Invoice: ${generatedInvoice.invoiceNumber}\n🐟 Items: ${itemsSummary}\n💰 Total Amount: ₹${generatedInvoice.grandTotal.toLocaleString("en-IN")}\n\n💳 Pay via UPI: ${generatedInvoice.upiId}\n\n📄 View & Download Invoice PDF (Valid for 48 Hours):\n${generatedInvoice.invoicePublicUrl}\n\nUrban Trout Farm, Srinagar\nHelpline: +91 84910 06127`;
 
     const encoded = encodeURIComponent(msg);
     const phoneParam = customerPhone.replace(/\D/g, "").slice(-10);
@@ -316,6 +284,8 @@ export default function POSBillingPage() {
               <span className="text-[9px] sm:text-[10px] uppercase font-bold tracking-widest text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
                 ⚡ Real-Time Auto Calculator
               </span>
+              <span className="text-slate-500">•</span>
+              <span className="text-[10px] text-slate-400 font-mono">48-Hr Invoice Generator</span>
             </div>
             <h1 className="text-xl sm:text-2xl font-extrabold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
               Sales Billing &amp; Invoice Tool
@@ -482,7 +452,7 @@ export default function POSBillingPage() {
             {/* Bill Title */}
             <div className="flex items-center justify-between pb-3.5 border-b border-slate-800">
               <div>
-                <span className="text-[9px] uppercase font-bold tracking-widest text-slate-500 font-mono">Invoice Summary</span>
+                <span className="text-[9px] uppercase font-bold tracking-widest text-slate-500 font-mono">Live Calculator Total</span>
                 <h3 className="text-lg sm:text-2xl font-extrabold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
                   Total Payable: <span className="text-cyan-400">₹{grandTotal.toLocaleString("en-IN")}</span>
                 </h3>
@@ -575,25 +545,19 @@ export default function POSBillingPage() {
               <button
                 type="button"
                 onClick={handleGenerateInvoice}
-                disabled={isSaving || grandTotal <= 0}
+                disabled={grandTotal <= 0}
                 className="w-full py-4 rounded-xl sm:rounded-2xl bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] disabled:opacity-50 text-slate-950 font-bold uppercase tracking-wider text-xs sm:text-sm transition-all shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-2 cursor-pointer"
                 style={{ fontFamily: '"Space Grotesk", sans-serif' }}
               >
-                {isSaving ? (
-                  "Generating Invoice…"
-                ) : (
-                  <>
-                    <span className="material-symbols-outlined text-lg">receipt_long</span>
-                    Generate Invoice (₹{grandTotal.toLocaleString("en-IN")})
-                  </>
-                )}
+                <span className="material-symbols-outlined text-lg">receipt_long</span>
+                Generate Invoice (₹{grandTotal.toLocaleString("en-IN")})
               </button>
             </div>
           </div>
         </div>
       </div>
 
-      {/* ─── PRINTABLE INVOICE / PDF MODAL (WITH EASY CLOSE & PDF LINK) ─── */}
+      {/* ─── PRINTABLE INVOICE / PDF MODAL (WITH EASY CLOSE & 48-HR LINK) ─── */}
       {invoiceModalOpen && generatedInvoice && (
         <div
           onClick={(e) => {
@@ -605,7 +569,7 @@ export default function POSBillingPage() {
             {/* Sticky Top Modal Header with Clear Close Button */}
             <div className="sticky -top-5 sm:-top-8 -mx-5 sm:-mx-8 px-5 sm:px-8 py-3 bg-white/95 backdrop-blur border-b z-20 flex items-center justify-between print:hidden">
               <span className="text-[11px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full">
-                ✓ Invoice Created
+                ✓ 48-Hr Invoice Generated
               </span>
 
               <button
@@ -699,8 +663,8 @@ export default function POSBillingPage() {
               {/* Footer Note */}
               <div className="text-center pt-2 text-[10px] sm:text-[11px] text-slate-500 leading-tight">
                 <p className="font-semibold text-slate-700">Fresh Live RAS Tank Harvested Trout</p>
-                <p className="mt-0.5">Keep chilled at 0°C - 4°C. Consume fresh within 48 hours.</p>
-                <p className="font-mono text-[9px] text-slate-400 mt-1">Thank you for supporting sustainable Kashmiri aquaculture!</p>
+                <p className="mt-0.5">Keep chilled at 0°C - 4°C. Valid for 48 hours.</p>
+                <p className="font-mono text-[9px] text-slate-400 mt-1">Thank you for visiting Urban Trout Farm, Srinagar!</p>
               </div>
             </div>
 

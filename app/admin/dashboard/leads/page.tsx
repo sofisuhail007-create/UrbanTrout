@@ -43,7 +43,6 @@ export default function AdminLeadsPage() {
       if (leadsData && leadsData.length > 0) {
         combinedLeads = (leadsData as Lead[]).map((l: Lead) => {
           const cleanPhone = (l.customer_phone || "").replace(/\D/g, "").slice(-10);
-          // If this customer has an order in the orders table, they are converted
           if (orderPhoneMap.has(cleanPhone)) {
             return {
               ...l,
@@ -52,40 +51,6 @@ export default function AdminLeadsPage() {
             };
           }
           return l;
-        });
-      }
-
-      // 3. Fallback from customers table (ONLY for customers with NO orders who truly abandoned)
-      const { data: customersData } = await supabase
-        .from("customers")
-        .select("*")
-        .order("last_order_at", { ascending: false });
-
-      if (customersData) {
-        const existingPhones = new Set(combinedLeads.map(l => (l.customer_phone || "").replace(/\D/g, "").slice(-10)));
-        customersData.forEach((c: any) => {
-          const cleanPhone = (c.phone || "").replace(/\D/g, "").slice(-10);
-          const hasOrder = orderPhoneMap.has(cleanPhone) || (c.total_orders && c.total_orders > 0);
-          const isConverted = c.notes && (c.notes.toLowerCase().includes("converted") || c.notes.includes("Order #"));
-
-          // Only include if customer never placed an order and is genuinely an abandoned checkout
-          if (!existingPhones.has(cleanPhone) && !hasOrder && !isConverted && c.notes && c.notes.includes("Abandoned")) {
-            combinedLeads.push({
-              id: c.id,
-              customer_name: c.name || "Interested Customer",
-              customer_phone: c.phone,
-              customer_email: null,
-              customer_locality: c.locality || "Srinagar",
-              customer_address: null,
-              customer_pincode: c.pincode || "190006",
-              cart_items: [],
-              estimated_total: 550,
-              status: "abandoned",
-              notes: c.notes || "In-progress checkout from website",
-              created_at: c.last_order_at || c.created_at || new Date().toISOString(),
-              updated_at: c.last_order_at || new Date().toISOString(),
-            });
-          }
         });
       }
 
