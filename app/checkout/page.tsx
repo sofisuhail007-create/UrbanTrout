@@ -454,7 +454,7 @@ export default function CheckoutPage() {
   // ─── Location Detection (GPS) ────────────────────────────────
   const detectLocation = () => {
     setIsLocating(true);
-    setLocationMsg("Locating your exact GPS position in Srinagar…");
+    setLocationMsg("Detecting your location in Srinagar…");
     if (!("geolocation" in navigator)) {
       setLocationMsg("Geolocation is not supported on this browser.");
       setIsLocating(false);
@@ -469,7 +469,7 @@ export default function CheckoutPage() {
           setSelectedZoneName("GPS Detected Location");
           setLocationMsg(`${dist.toFixed(1)} km from Urban Trout Farm — Within Free Delivery Zone ✓`);
           if (!formData.locality) {
-            setFormData((prev) => ({ ...prev, locality: "Near Naseem Bagh / Srinagar GPS Verified" }));
+            setFormData((prev) => ({ ...prev, locality: "Naseem Bagh / Srinagar (GPS Verified)" }));
           }
           if (!formData.pincode) {
             setFormData((prev) => ({ ...prev, pincode: "190006" }));
@@ -477,13 +477,13 @@ export default function CheckoutPage() {
         } else {
           setDeliveryMode("unavailable");
           setLocationMsg(
-            `${dist.toFixed(1)} km from Urban Trout Farm — Outside our standard 5km fresh harvest radius.`
+            `${dist.toFixed(1)} km from Urban Trout Farm — Outside our 5km live harvest delivery radius.`
           );
         }
         setIsLocating(false);
       },
       () => {
-        setLocationMsg("Please grant location access or pick your Srinagar locality from the list below.");
+        setLocationMsg("Please allow location access or select your locality below.");
         setIsLocating(false);
       },
       { timeout: 10000, enableHighAccuracy: true }
@@ -518,7 +518,6 @@ export default function CheckoutPage() {
       alert("Please enter a valid 6-digit Indian Pin Code.");
       return;
     }
-    // Check known Srinagar 5km pincodes
     if (["190006", "190011", "190024", "190020"].includes(pin)) {
       setDeliveryMode("under5");
       setCalculatedDistance(2.5);
@@ -526,7 +525,6 @@ export default function CheckoutPage() {
       setLocationMsg(`Pin Code ${pin} is verified within our 5km live harvest delivery zone ✓`);
       setFormData((prev) => ({ ...prev, pincode: pin }));
     } else if (pin.startsWith("190")) {
-      // Srinagar outskirts or city center > 5km
       setDeliveryMode("unavailable");
       setCalculatedDistance(8.0);
       setSelectedZoneName(`Pin Code ${pin}`);
@@ -1112,11 +1110,11 @@ export default function CheckoutPage() {
           <section className="lg:col-span-7 space-y-6">
 
             {/* ══════════════════════════════════════════════════════
-                STAGE 1: CHECK DELIVERY LOCATION
+                STAGE 1: CHECK DELIVERY LOCATION (STREAMLINED & UNCLUTTERED)
                 ══════════════════════════════════════════════════════ */}
             {currentStep === 1 && (
               <div
-                className="p-6 md:p-8 rounded-2xl space-y-8"
+                className="p-6 md:p-8 rounded-2xl space-y-6"
                 style={{
                   background: C.cardBg,
                   border: `1px solid ${C.cardBorder}`,
@@ -1124,10 +1122,10 @@ export default function CheckoutPage() {
                 }}
               >
                 {/* Header */}
-                <div className="flex items-center gap-4 pb-5" style={{ borderBottom: "1px solid rgba(61,74,83,0.4)" }}>
+                <div className="flex items-center gap-4 pb-4" style={{ borderBottom: "1px solid rgba(61,74,83,0.4)" }}>
                   <Link
                     href="/shop"
-                    className="flex items-center justify-center w-10 h-10 rounded-xl transition-all"
+                    className="flex items-center justify-center w-10 h-10 rounded-xl transition-all flex-shrink-0"
                     style={{
                       background: "rgba(3,16,24,0.7)",
                       border: "1px solid rgba(61,74,83,0.6)",
@@ -1154,7 +1152,7 @@ export default function CheckoutPage() {
                       </span>
                       <span style={{ color: C.outline }}>•</span>
                       <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "11px", color: "#22c55e", fontWeight: 600 }}>
-                        5km Live Harvest Radius
+                        5km Free Delivery Radius
                       </span>
                     </div>
                     <h1
@@ -1172,181 +1170,180 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
-                {/* Subtitle / Explanation */}
-                <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.9rem", color: C.onSurfVar, lineHeight: 1.6, margin: 0 }}>
-                  To guarantee peak freshness, our mountain trout is harvested on-demand from live RAS tanks and delivered within 90 minutes. Please verify you are within our <strong>5km delivery radius</strong> from Naseem Bagh / Malabagh, Srinagar.
+                <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.88rem", color: C.onSurfVar, margin: 0 }}>
+                  We harvest live trout on demand and deliver within <strong>5km of Naseem Bagh / Malabagh</strong> in 90 minutes.
                 </p>
 
-                {/* ─── Method A: Live GPS Sonar Detection ─── */}
-                <div
-                  className="p-6 rounded-2xl space-y-4"
+                {/* ─── SLEEK HERO GPS AUTO-DETECT BUTTON ─── */}
+                <button
+                  type="button"
+                  onClick={detectLocation}
+                  disabled={isLocating}
+                  className="w-full group flex items-center justify-between p-4 rounded-xl transition-all cursor-pointer active:scale-[0.99]"
                   style={{
-                    background: "linear-gradient(145deg, rgba(6,21,30,0.95) 0%, rgba(16,33,44,0.7) 100%)",
-                    border: "1px solid rgba(114,221,253,0.25)",
-                    boxShadow: "0 0 30px rgba(114,221,253,0.05)",
+                    background: "linear-gradient(135deg, rgba(0,140,179,0.2) 0%, rgba(16,33,44,0.9) 100%)",
+                    border: "1.5px solid rgba(114,221,253,0.35)",
+                    boxShadow: "0 4px 20px rgba(0,140,179,0.15)",
                   }}
                 >
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <div className="flex items-center gap-3.5">
-                      <div
-                        className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
-                        style={{
-                          background: "rgba(114,221,253,0.12)",
-                          border: "1px solid rgba(114,221,253,0.3)",
-                        }}
-                      >
-                        <svg width="22" height="22" fill="none" stroke={C.primary} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                          <circle cx="12" cy="12" r="3" />
-                          <path d="M12 1v4M12 19v4M4.22 4.22l2.83 2.83M16.95 16.95l2.83 2.83M1 12h4M19 12h4M4.22 19.78l2.83-2.83M16.95 7.05l2.83-2.83" />
-                        </svg>
-                      </div>
-                      <div>
-                        <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: "1rem", color: C.onSurface, margin: 0 }}>
-                          Auto-Detect via Device GPS
-                        </h3>
-                        <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.82rem", color: C.onSurfVar, margin: "2px 0 0" }}>
-                          Instant Haversine distance calculation to farm
-                        </p>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={detectLocation}
-                      disabled={isLocating}
-                      className="w-full sm:w-auto px-5 py-3 rounded-xl font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 flex-shrink-0 cursor-pointer active:scale-95"
+                  <div className="flex items-center gap-3.5 text-left">
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-105"
                       style={{
-                        background: C.primaryCont,
-                        color: C.onPrimCont,
-                        fontFamily: '"Space Grotesk", sans-serif',
-                        fontSize: "0.8rem",
-                        boxShadow: "0 0 20px rgba(58,173,204,0.35)",
-                        border: "none",
-                        opacity: isLocating ? 0.7 : 1,
+                        background: "rgba(114,221,253,0.15)",
+                        border: "1px solid rgba(114,221,253,0.4)",
+                        color: C.primary,
                       }}
                     >
                       {isLocating ? (
-                        <>
-                          <svg className="animate-spin" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-                          </svg>
-                          Detecting…
-                        </>
+                        <svg className="animate-spin" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                          <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                        </svg>
                       ) : (
-                        <>
-                          <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                            <circle cx="12" cy="12" r="10" />
-                            <circle cx="12" cy="12" r="3" />
-                          </svg>
-                          Check My GPS Location
-                        </>
+                        <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                          <circle cx="12" cy="12" r="3" />
+                          <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+                          <circle cx="12" cy="12" r="8" />
+                        </svg>
                       )}
-                    </button>
+                    </div>
+                    <div>
+                      <span
+                        style={{
+                          fontFamily: '"Space Grotesk", sans-serif',
+                          fontWeight: 700,
+                          fontSize: "0.95rem",
+                          color: C.onSurface,
+                          display: "block",
+                        }}
+                      >
+                        {isLocating ? "Detecting GPS Coordinates…" : "Use My Current Location"}
+                      </span>
+                      <span
+                        style={{
+                          fontFamily: '"Manrope", sans-serif',
+                          fontSize: "0.78rem",
+                          color: C.primary,
+                        }}
+                      >
+                        {isLocating ? "Calculating distance to farm…" : "Tap to verify 5km zone automatically"}
+                      </span>
+                    </div>
                   </div>
+
+                  <span
+                    className="hidden sm:flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider"
+                    style={{
+                      background: "rgba(114,221,253,0.15)",
+                      color: C.primary,
+                      fontFamily: '"Space Grotesk", sans-serif',
+                    }}
+                  >
+                    Locate ➔
+                  </span>
+                </button>
+
+                {/* ─── CLEAN DIVIDER ─── */}
+                <div className="flex items-center gap-3 py-1">
+                  <div className="flex-1 h-[1px]" style={{ background: "rgba(61,74,83,0.4)" }} />
+                  <span
+                    style={{
+                      fontFamily: '"Inter", sans-serif',
+                      fontSize: "10px",
+                      letterSpacing: "0.15em",
+                      textTransform: "uppercase",
+                      color: C.outline,
+                      fontWeight: 600,
+                    }}
+                  >
+                    Or select your Srinagar area
+                  </span>
+                  <div className="flex-1 h-[1px]" style={{ background: "rgba(61,74,83,0.4)" }} />
                 </div>
 
-                {/* ─── Method B: Srinagar Locality Quick Chips ─── */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <span
-                      style={{
-                        fontFamily: '"Inter", sans-serif',
-                        fontSize: "11px",
-                        letterSpacing: "0.15em",
-                        textTransform: "uppercase",
-                        color: C.onSurfVar,
-                        fontWeight: 600,
-                      }}
-                    >
-                      Or Select Your Srinagar Locality:
-                    </span>
-                    <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "11px", color: C.outline }}>
-                      Distance from Naseem Bagh
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                    {SRINAGAR_ZONES.map((zone) => {
-                      const isSelected = selectedZoneName === zone.name;
-                      return (
-                        <button
-                          key={zone.name}
-                          type="button"
-                          onClick={() => handleSelectZone(zone)}
-                          className="p-3 rounded-xl text-left transition-all flex flex-col justify-between cursor-pointer active:scale-95"
-                          style={{
-                            background: isSelected
-                              ? zone.eligible
-                                ? "rgba(37,211,102,0.15)"
-                                : "rgba(248,113,113,0.15)"
-                              : "rgba(3,16,24,0.7)",
-                            border: isSelected
-                              ? zone.eligible
-                                ? "1.5px solid #25D366"
-                                : "1.5px solid #f87171"
-                              : "1px solid rgba(61,74,83,0.5)",
-                            boxShadow: isSelected ? "0 0 15px rgba(114,221,253,0.2)" : "none",
-                          }}
-                        >
-                          <div className="flex items-center justify-between w-full mb-1">
-                            <span
-                              style={{
-                                fontFamily: '"Space Grotesk", sans-serif',
-                                fontWeight: 700,
-                                fontSize: "0.85rem",
-                                color: isSelected ? C.onSurface : C.onSurface,
-                              }}
-                            >
-                              {zone.name}
-                            </span>
-                            <span
-                              style={{
-                                fontSize: "10px",
-                                fontWeight: 700,
-                                color: zone.eligible ? "#4ade80" : "#f87171",
-                              }}
-                            >
-                              {zone.eligible ? "✓" : "×"}
-                            </span>
-                          </div>
+                {/* ─── SRINAGAR LOCALITY PILL CHIPS ─── */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {SRINAGAR_ZONES.map((zone) => {
+                    const isSelected = selectedZoneName === zone.name;
+                    return (
+                      <button
+                        key={zone.name}
+                        type="button"
+                        onClick={() => handleSelectZone(zone)}
+                        className="px-3.5 py-2.5 rounded-xl text-left transition-all flex flex-col justify-between cursor-pointer active:scale-95"
+                        style={{
+                          background: isSelected
+                            ? zone.eligible
+                              ? "rgba(37,211,102,0.18)"
+                              : "rgba(248,113,113,0.18)"
+                            : "rgba(3,16,24,0.7)",
+                          border: isSelected
+                            ? zone.eligible
+                              ? "1.5px solid #25D366"
+                              : "1.5px solid #f87171"
+                            : "1px solid rgba(61,74,83,0.5)",
+                          boxShadow: isSelected ? "0 0 12px rgba(114,221,253,0.15)" : "none",
+                        }}
+                      >
+                        <div className="flex items-center justify-between w-full">
                           <span
                             style={{
-                              fontFamily: '"Manrope", sans-serif',
-                              fontSize: "11px",
-                              color: zone.eligible ? "#4ade80" : C.onSurfVar,
+                              fontFamily: '"Space Grotesk", sans-serif',
+                              fontWeight: 700,
+                              fontSize: "0.84rem",
+                              color: C.onSurface,
                             }}
                           >
-                            ~{zone.distanceKm} km • {zone.eligible ? "Free Delivery" : "Out of Zone"}
+                            {zone.name}
                           </span>
-                        </button>
-                      );
-                    })}
-                  </div>
+                          <span
+                            style={{
+                              fontSize: "10px",
+                              fontWeight: 800,
+                              color: zone.eligible ? "#4ade80" : "#f87171",
+                            }}
+                          >
+                            {zone.eligible ? "✓" : "×"}
+                          </span>
+                        </div>
+                        <span
+                          style={{
+                            fontFamily: '"Manrope", sans-serif',
+                            fontSize: "10px",
+                            color: zone.eligible ? "#86efac" : C.onSurfVar,
+                            marginTop: "2px",
+                          }}
+                        >
+                          ~{zone.distanceKm} km {zone.eligible ? "• Free" : "• Out of zone"}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
 
-                {/* ─── Method C: Srinagar Pincode Quick-Lookup ─── */}
+                {/* ─── PIN CODE QUICK SEARCH ─── */}
                 <form onSubmit={handlePincodeCheck} className="flex gap-2">
                   <input
                     type="text"
                     value={customPincodeSearch}
                     onChange={(e) => setCustomPincodeSearch(e.target.value)}
-                    placeholder="Search by 6-digit Pin Code (e.g. 190006, 190011)"
+                    placeholder="Enter Srinagar 6-digit Pin Code (e.g. 190006, 190011)"
                     maxLength={6}
                     style={{
                       flex: 1,
                       background: "rgba(3,16,24,0.85)",
                       border: "1px solid rgba(61,74,83,0.6)",
                       borderRadius: "12px",
-                      padding: "12px 16px",
+                      padding: "11px 14px",
                       color: C.onSurface,
                       fontFamily: '"Manrope", sans-serif',
-                      fontSize: "0.88rem",
+                      fontSize: "0.85rem",
                       outline: "none",
                     }}
                   />
                   <button
                     type="submit"
-                    className="px-5 py-3 rounded-xl font-bold uppercase text-xs tracking-wider transition-all cursor-pointer"
+                    className="px-4 py-2.5 rounded-xl font-bold uppercase text-xs tracking-wider transition-all cursor-pointer flex-shrink-0"
                     style={{
                       background: "rgba(114,221,253,0.15)",
                       border: "1px solid rgba(114,221,253,0.3)",
@@ -1354,60 +1351,42 @@ export default function CheckoutPage() {
                       fontFamily: '"Space Grotesk", sans-serif',
                     }}
                   >
-                    Check Pin
+                    Check
                   </button>
                 </form>
 
-                {/* ─── FEEDBACK CARDS (Eligible vs Out of Zone) ─── */}
+                {/* ─── RESULT FEEDBACK CARD ─── */}
                 {deliveryMode === "under5" && (
                   <div
-                    className="p-5 rounded-2xl space-y-3"
+                    className="p-4 rounded-xl space-y-2.5"
                     style={{
                       background: "linear-gradient(135deg, rgba(37,211,102,0.12) 0%, rgba(6,35,20,0.6) 100%)",
                       border: "1.5px solid rgba(37,211,102,0.5)",
-                      boxShadow: "0 0 30px rgba(37,211,102,0.15)",
+                      boxShadow: "0 0 25px rgba(37,211,102,0.15)",
                     }}
                   >
                     <div className="flex items-center gap-3">
                       <div
-                        className="w-8 h-8 rounded-full flex items-center justify-center"
-                        style={{ background: "#25D366", color: "#002730", fontWeight: 900 }}
+                        className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
+                        style={{ background: "#25D366", color: "#002730", fontWeight: 900, fontSize: "12px" }}
                       >
                         ✓
                       </div>
                       <div>
-                        <h3
+                        <h4
                           style={{
                             fontFamily: '"Space Grotesk", sans-serif',
                             fontWeight: 800,
                             color: "#4ade80",
-                            fontSize: "1.05rem",
+                            fontSize: "0.95rem",
                             margin: 0,
                           }}
                         >
-                          Delivery Available • Free Fresh Harvest Dispatch
-                        </h3>
-                        <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.85rem", color: "#bbf7d0", margin: "2px 0 0" }}>
-                          {locationMsg || "Your location is within our 5km live harvest radius."}
+                          Delivery Available • Free Same-Day Dispatch
+                        </h4>
+                        <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.82rem", color: "#bbf7d0", margin: "2px 0 0" }}>
+                          {locationMsg || "Your location is within our 5km live harvest delivery zone."}
                         </p>
-                      </div>
-                    </div>
-
-                    <div
-                      className="grid grid-cols-2 gap-3 pt-2"
-                      style={{ borderTop: "1px solid rgba(37,211,102,0.25)" }}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span style={{ fontSize: "14px" }}>⚡</span>
-                        <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.8rem", color: "#86efac" }}>
-                          Dispatched within 90 mins
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span style={{ fontSize: "14px" }}>🐟</span>
-                        <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.8rem", color: "#86efac" }}>
-                          Harvested live on demand
-                        </span>
                       </div>
                     </div>
                   </div>
@@ -1415,72 +1394,56 @@ export default function CheckoutPage() {
 
                 {deliveryMode === "unavailable" && (
                   <div
-                    className="p-6 rounded-2xl space-y-4 text-center"
+                    className="p-5 rounded-xl space-y-3 text-center"
                     style={{
                       background: "linear-gradient(135deg, rgba(239,68,68,0.12) 0%, rgba(40,10,10,0.6) 100%)",
                       border: "1.5px solid rgba(239,68,68,0.35)",
                     }}
                   >
-                    <div style={{ fontSize: "36px" }}>🚫</div>
                     <div>
-                      <h3
+                      <h4
                         style={{
                           fontFamily: '"Space Grotesk", sans-serif',
                           fontWeight: 800,
                           color: "#f87171",
-                          fontSize: "1.15rem",
-                          margin: "0 0 6px",
+                          fontSize: "1.05rem",
+                          margin: "0 0 4px",
                         }}
                       >
                         Outside 5km Delivery Radius
-                      </h3>
+                      </h4>
                       <p
                         style={{
                           fontFamily: '"Manrope", sans-serif',
-                          fontSize: "0.88rem",
+                          fontSize: "0.84rem",
                           color: "#fca5a5",
-                          lineHeight: 1.6,
+                          lineHeight: 1.5,
                           margin: 0,
                         }}
                       >
                         {locationMsg ||
-                          "Urban Trout delivers exclusively within a 5km radius of Naseem Bagh to preserve live cold-chain freshness."}
+                          "Urban Trout delivers exclusively within a 5km radius of Naseem Bagh to guarantee live cold-chain freshness."}
                       </p>
                     </div>
 
                     <div
-                      className="p-4 rounded-xl text-left"
+                      className="p-3 rounded-lg text-left text-xs"
                       style={{ background: "rgba(3,16,24,0.8)", border: "1px solid rgba(239,68,68,0.25)" }}
                     >
-                      <span
-                        style={{
-                          fontFamily: '"Inter", sans-serif',
-                          fontSize: "10px",
-                          letterSpacing: "0.15em",
-                          textTransform: "uppercase",
-                          color: "#fca5a5",
-                          fontWeight: 700,
-                          display: "block",
-                          marginBottom: "4px",
-                        }}
-                      >
-                        🏪 Live Vending Center Pickup Option:
+                      <strong style={{ color: "#fca5a5", display: "block", marginBottom: "2px" }}>
+                        🏪 Live Vending Center Pickup:
+                      </strong>
+                      <span style={{ color: C.onSurface }}>
+                        Malabagh, Naseem Bagh, Srinagar — 190006 (Near R P School, Girls Wing)
                       </span>
-                      <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.85rem", color: C.onSurface, margin: 0 }}>
-                        You can pick up fresh live trout directly from our farm:
-                        <br />
-                        <strong style={{ color: C.primary }}>
-                          Malabagh, Naseem Bagh, Srinagar — 190006 (Near R P School, Girls Wing)
-                        </strong>
-                      </p>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+                    <div className="flex gap-2 justify-center pt-1">
                       <a
                         href={`https://wa.me/918491006127?text=Hi%20Urban%20Trout!%20I%20am%20outside%20the%205km%20zone.%20Can%20I%20arrange%20pickup%20or%20special%20delivery?`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-6 py-3 rounded-xl font-bold uppercase text-xs tracking-wider flex items-center justify-center gap-2"
+                        className="px-4 py-2.5 rounded-lg font-bold uppercase text-xs flex items-center gap-1.5"
                         style={{
                           background: "#25D366",
                           color: "#fff",
@@ -1488,13 +1451,13 @@ export default function CheckoutPage() {
                           textDecoration: "none",
                         }}
                       >
-                        💬 Inquire on WhatsApp
+                        💬 WhatsApp Inquiry
                       </a>
                       <a
                         href="https://maps.google.com/?q=34.144709,74.824525"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-6 py-3 rounded-xl font-bold uppercase text-xs tracking-wider flex items-center justify-center gap-2"
+                        className="px-4 py-2.5 rounded-lg font-bold uppercase text-xs flex items-center gap-1.5"
                         style={{
                           background: "rgba(114,221,253,0.1)",
                           border: "1px solid rgba(114,221,253,0.25)",
@@ -1503,13 +1466,13 @@ export default function CheckoutPage() {
                           textDecoration: "none",
                         }}
                       >
-                        📍 Get Directions to Farm
+                        📍 Directions
                       </a>
                     </div>
                   </div>
                 )}
 
-                {/* ─── Action Button: Proceed to Step 2 ─── */}
+                {/* ─── ACTION BUTTON ─── */}
                 <div className="pt-2">
                   <button
                     type="button"
