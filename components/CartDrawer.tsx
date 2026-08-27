@@ -140,7 +140,8 @@ export default function CartDrawer() {
                     <div className="flex items-center rounded-lg overflow-hidden" style={{ border: `1px solid rgba(61,74,83,0.5)`, background: "rgba(3,16,24,0.6)" }}>
                       <button
                         onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                        className="flex items-center justify-center transition-colors"
+                        disabled={item.quantity <= (item.minQuantity || 1)}
+                        className="flex items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                         style={{ width: "28px", height: "28px", color: C.primary }}
                       >
                         <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12" /></svg>

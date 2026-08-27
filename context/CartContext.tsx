@@ -1,5 +1,6 @@
 "use client";
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { supabase } from "@/lib/supabase";
 
 export type CartItem = {
   id: string;
@@ -8,6 +9,7 @@ export type CartItem = {
   quantity: number;
   unit: string;
   image: string;
+  minQuantity?: number;
 };
 
 type CartContextType = {
@@ -30,14 +32,41 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
 
+  // 1. Load initial cart from localStorage & sync MOQ with live inventory
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("urban_trout_cart");
-      if (stored) setItems(JSON.parse(stored));
-    } catch (e) {
-      console.error("Failed to load cart", e);
+    async function initCart() {
+      let loadedItems: CartItem[] = [];
+      try {
+        const stored = localStorage.getItem("urban_trout_cart");
+        if (stored) loadedItems = JSON.parse(stored);
+      } catch (e) {
+        console.error("Failed to load cart", e);
+      }
+
+      // Fetch live MOQ and price from inventory table to ensure cart respects current rules
+      try {
+        const { data: invData } = await supabase.from("inventory").select("product_id, min_order_kg, price_per_kg");
+        if (invData && invData.length > 0) {
+          loadedItems = loadedItems.map((item) => {
+            const inv = invData.find((i) => i.product_id === item.id);
+            if (inv) {
+              const liveMin = Math.max(1, Number(inv.min_order_kg) || 1);
+              return {
+                ...item,
+                price: inv.price_per_kg || item.price,
+                minQuantity: liveMin,
+                quantity: Math.max(liveMin, item.quantity),
+              };
+            }
+            return item;
+          });
+        }
+      } catch (_) {}
+
+      setItems(loadedItems);
+      setIsInitialized(true);
     }
-    setIsInitialized(true);
+    initCart();
   }, []);
 
   useEffect(() => {
@@ -47,14 +76,21 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [items, isInitialized]);
 
   const addItem = (item: CartItem) => {
+    const min = Math.max(1, Number(item.minQuantity) || 1);
+    const validItem = {
+      ...item,
+      minQuantity: min,
+      quantity: Math.max(min, item.quantity),
+    };
+
     setItems((prev) => {
-      const existing = prev.find((i) => i.id === item.id);
+      const existing = prev.find((i) => i.id === validItem.id);
       if (existing) {
         return prev.map((i) =>
-          i.id === item.id ? { ...i, quantity: i.quantity + item.quantity } : i
+          i.id === validItem.id ? { ...i, quantity: i.quantity + validItem.quantity } : i
         );
       }
-      return [...prev, item];
+      return [...prev, validItem];
     });
     setIsOpen(true);
   };
@@ -64,12 +100,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const updateQuantity = (id: string, qty: number) => {
-    if (qty <= 0) {
-      removeItem(id);
-      return;
-    }
     setItems((prev) =>
-      prev.map((i) => (i.id === id ? { ...i, quantity: qty } : i))
+      prev.map((i) => {
+        if (i.id === id) {
+          const min = Math.max(1, Number(i.minQuantity) || 1);
+          return { ...i, quantity: Math.max(min, qty) };
+        }
+        return i;
+      })
     );
   };
 

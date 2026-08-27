@@ -2224,38 +2224,57 @@ export default function CheckoutPage() {
                             ₹{(item.price * item.quantity).toLocaleString("en-IN")}
                           </span>
                         </div>
-                        <div
-                          className="flex items-center gap-0 mt-1 w-max rounded-lg overflow-hidden"
-                          style={{ border: "1px solid rgba(61,74,83,0.6)", background: "rgba(3,16,24,0.8)" }}
-                        >
-                          <button
-                            type="button"
-                            onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
-                            className="w-7 h-6 flex items-center justify-center transition-colors cursor-pointer"
-                            style={{ color: C.primary, fontWeight: 700 }}
+                        <div className="flex items-center gap-2 mt-1">
+                          <div
+                            className="flex items-center gap-0 w-max rounded-lg overflow-hidden"
+                            style={{ border: "1px solid rgba(61,74,83,0.6)", background: "rgba(3,16,24,0.8)" }}
                           >
-                            −
-                          </button>
-                          <span
-                            style={{
-                              fontFamily: '"Space Grotesk", sans-serif',
-                              fontSize: "11px",
-                              color: C.onSurfVar,
-                              minWidth: "40px",
-                              textAlign: "center",
-                              fontWeight: 700,
-                            }}
-                          >
-                            {item.quantity} {item.unit}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                            className="w-7 h-6 flex items-center justify-center transition-colors cursor-pointer"
-                            style={{ color: C.primary, fontWeight: 700 }}
-                          >
-                            +
-                          </button>
+                            <button
+                              type="button"
+                              onClick={() => updateQuantity(item.id, Math.max(item.minQuantity || 1, item.quantity - 1))}
+                              disabled={item.quantity <= (item.minQuantity || 1)}
+                              className="w-7 h-6 flex items-center justify-center transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                              style={{ color: C.primary, fontWeight: 700 }}
+                            >
+                              −
+                            </button>
+                            <span
+                              style={{
+                                fontFamily: '"Space Grotesk", sans-serif',
+                                fontSize: "11px",
+                                color: C.onSurfVar,
+                                minWidth: "40px",
+                                textAlign: "center",
+                                fontWeight: 700,
+                              }}
+                            >
+                              {item.quantity} {item.unit}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                              className="w-7 h-6 flex items-center justify-center transition-colors cursor-pointer"
+                              style={{ color: C.primary, fontWeight: 700 }}
+                            >
+                              +
+                            </button>
+                          </div>
+                          {(item.minQuantity || 1) > 1 && (
+                            <span
+                              style={{
+                                fontFamily: '"Space Grotesk", sans-serif',
+                                fontSize: "10px",
+                                color: "#72ddfd",
+                                background: "rgba(114,221,253,0.1)",
+                                border: "1px solid rgba(114,221,253,0.25)",
+                                borderRadius: "6px",
+                                padding: "1px 6px",
+                                fontWeight: 700,
+                              }}
+                            >
+                              Min. {item.minQuantity} {item.unit}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
