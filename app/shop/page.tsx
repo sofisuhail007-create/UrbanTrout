@@ -23,7 +23,7 @@ export default function ShopPage() {
         setProductList(prev => 
           prev.map(p => {
             const dbItem = data.find(item => item.product_id === p.id);
-            return dbItem ? { ...p, price: dbItem.price_per_kg } : p;
+            return dbItem ? { ...p, price: dbItem.price_per_kg, minQuantity: dbItem.min_order_kg || 1 } : p;
           })
         );
       }

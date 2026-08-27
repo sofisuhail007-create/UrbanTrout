@@ -37,11 +37,12 @@ const C = {
 export default async function GuttedTroutPage() {
   const { data } = await supabase
     .from("inventory")
-    .select("price_per_kg")
+    .select("price_per_kg, min_order_kg")
     .eq("product_id", "gutted-trout")
     .single();
 
   const price = data ? data.price_per_kg : 550;
+  const minQuantity = data?.min_order_kg ? Number(data.min_order_kg) : 1;
 
   const productJsonLd = {
     "@context": "https://schema.org/",
@@ -329,6 +330,7 @@ export default async function GuttedTroutPage() {
                 unit="Kg"
                 image="/images/gutted_trout_premium.png"
                 showDynamicPrice={true}
+                minQuantity={minQuantity}
               />
             </div>
 

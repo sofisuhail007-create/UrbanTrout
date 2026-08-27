@@ -6,6 +6,7 @@ export type Product = {
   img: string;
   label: string;
   desc: string;
+  minQuantity?: number;
 };
 
 export const products: Product[] = [

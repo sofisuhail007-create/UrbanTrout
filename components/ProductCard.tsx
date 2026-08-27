@@ -7,7 +7,8 @@ import { Product } from "@/lib/data";
 
 export default function ProductCard({ p }: { p: Product }) {
   const { addItem } = useCart();
-  const [qty, setQty] = useState(1);
+  const effectiveMin = Math.max(1, Number(p.minQuantity) || 1);
+  const [qty, setQty] = useState(effectiveMin);
   const [added, setAdded] = useState(false);
 
   const handleAdd = () => {
@@ -117,8 +118,9 @@ export default function ProductCard({ p }: { p: Product }) {
             style={{ background: "rgba(3,16,24,0.8)", border: "1px solid rgba(61,74,83,0.6)" }}
           >
             <button
-              onClick={() => setQty((q) => Math.max(1, q - 1))}
-              className="flex items-center justify-center transition-colors duration-150"
+              onClick={() => setQty((q) => Math.max(effectiveMin, q - 1))}
+              disabled={qty <= effectiveMin}
+              className="flex items-center justify-center transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
               style={{ width: "38px", height: "40px", color: "#72ddfd" }}
               onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(114,221,253,0.1)")}
               onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "transparent")}

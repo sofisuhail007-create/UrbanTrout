@@ -11,6 +11,7 @@ type Props = {
   image: string;
   variant?: "primary" | "secondary";
   showDynamicPrice?: boolean;
+  minQuantity?: number;
 };
 
 export default function AddToCartButton({
@@ -21,9 +22,11 @@ export default function AddToCartButton({
   image,
   variant = "primary",
   showDynamicPrice = false,
+  minQuantity = 1,
 }: Props) {
   const { addItem } = useCart();
-  const [qty, setQty] = useState(1);
+  const effectiveMin = Math.max(1, Number(minQuantity) || 1);
+  const [qty, setQty] = useState(effectiveMin);
   const [added, setAdded] = useState(false);
 
   const handleAdd = () => {
@@ -82,8 +85,9 @@ export default function AddToCartButton({
           }}
         >
           <button
-            onClick={() => setQty((q) => Math.max(1, q - 1))}
-            className="flex items-center justify-center transition-colors duration-150"
+            onClick={() => setQty((q) => Math.max(effectiveMin, q - 1))}
+            disabled={qty <= effectiveMin}
+            className="flex items-center justify-center transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed"
             style={{ width: "44px", height: "44px", color: "#72ddfd" }}
             onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(114,221,253,0.1)")}
             onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "transparent")}
@@ -124,10 +128,11 @@ export default function AddToCartButton({
           style={{
             fontFamily: '"Manrope", sans-serif',
             fontSize: "0.8rem",
-            color: "#6a7782",
+            color: effectiveMin > 1 ? "#72ddfd" : "#6a7782",
+            fontWeight: effectiveMin > 1 ? 600 : 400,
           }}
         >
-          Min. 1 {unit}
+          Min. {effectiveMin} {unit}
         </span>
       </div>
 

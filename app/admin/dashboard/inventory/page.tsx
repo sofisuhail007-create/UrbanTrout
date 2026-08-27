@@ -92,23 +92,34 @@ export default function InventoryPage() {
                 )}
 
                 {/* Fields */}
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-3 gap-3">
                   <div>
-                    <label className="block text-xs text-slate-600 uppercase tracking-widest mb-1.5">Price / Kg (₹)</label>
+                    <label className="block text-[10px] text-slate-400 uppercase tracking-wider mb-1 font-bold">Price / Kg (₹)</label>
                     <input
                       type="number"
-                      value={String(getValue(item, "price_per_kg"))}
+                      value={String(getValue(item, "price_per_kg") ?? "")}
                       onChange={(e) => edit(item.id, "price_per_kg", Number(e.target.value))}
-                      className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500 transition-colors"
+                      className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500 transition-colors font-mono"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs text-slate-600 uppercase tracking-widest mb-1.5">Stock (Kg)</label>
+                    <label className="block text-[10px] text-slate-400 uppercase tracking-wider mb-1 font-bold">Min Order (Kg)</label>
                     <input
                       type="number"
-                      value={String(getValue(item, "stock_kg"))}
+                      min={0.5}
+                      step={0.5}
+                      value={String(getValue(item, "min_order_kg") ?? 1)}
+                      onChange={(e) => edit(item.id, "min_order_kg", Math.max(0.5, Number(e.target.value)))}
+                      className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500 transition-colors font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] text-slate-400 uppercase tracking-wider mb-1 font-bold">Stock (Kg)</label>
+                    <input
+                      type="number"
+                      value={String(getValue(item, "stock_kg") ?? "")}
                       onChange={(e) => edit(item.id, "stock_kg", Number(e.target.value))}
-                      className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500 transition-colors"
+                      className="w-full bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-500 transition-colors font-mono"
                     />
                   </div>
                 </div>

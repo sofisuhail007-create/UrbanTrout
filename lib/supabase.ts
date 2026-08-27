@@ -53,6 +53,7 @@ export type InventoryItem = {
   price_per_kg: number
   stock_kg: number
   available: boolean
+  min_order_kg?: number
   updated_at: string
 }
 

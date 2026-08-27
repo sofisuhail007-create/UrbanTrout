@@ -37,11 +37,12 @@ const C = {
 export default async function WholeTroutPage() {
   const { data } = await supabase
     .from("inventory")
-    .select("price_per_kg")
+    .select("price_per_kg, min_order_kg")
     .eq("product_id", "whole-trout")
     .single();
 
   const price = data ? data.price_per_kg : 500;
+  const minQuantity = data?.min_order_kg ? Number(data.min_order_kg) : 1;
 
   const productJsonLd = {
     "@context": "https://schema.org/",
@@ -329,6 +330,7 @@ export default async function WholeTroutPage() {
                 unit="Kg"
                 image="https://lh3.googleusercontent.com/aida-public/AB6AXuCfyCpJNmCwVzBHTZw6kqPtCRfTVXNYWrm9Ixqy89okmBbaSGqKYMtEAZ5Jwv4MOwZIKpC3ugBZ1ISA5EfIUrq2lWmta28vvGV-ygjESie53QYIOJoDMgX9cJJWH5V960DeAviDBjjohZeT4WWrdrHC0tY2VnrZZsvftETpZ8ocCU2eupUdyTEoqKa8lgPe2dIHnERZTds7HMPfLKCtr56KHLPC08YZCzexEINcVe6nIrChDatBpMYRAOjGBVKCP2WsVyZicAZsG-kB"
                 showDynamicPrice={true}
+                minQuantity={minQuantity}
               />
             </div>
 
