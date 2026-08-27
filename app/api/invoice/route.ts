@@ -1,16 +1,11 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-// Initialize Supabase client with SERVICE ROLE KEY to bypass RLS policies
-const supabaseAdmin = createClient(
+// Use anon key — the invoices table has open RLS policies (public insert/select)
+// No service role key needed for this to work on Vercel
+const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-  }
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
 );
 
 export async function POST(request: Request) {
@@ -23,22 +18,23 @@ export async function POST(request: Request) {
     }
 
     const cleanDigits = String(invoiceId).replace(/\D/g, "");
-    const key = `inv_${cleanDigits || invoiceId}`;
+    const id = cleanDigits || String(invoiceId);
 
-    const { error } = await supabaseAdmin.from("app_settings").upsert(
+    const { error } = await supabase.from("invoices").upsert(
       {
-        key,
-        value: typeof data === "string" ? data : JSON.stringify(data),
+        id,
+        data: typeof data === "object" ? data : JSON.parse(data),
+        expires_at: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
       },
-      { onConflict: "key" }
+      { onConflict: "id" }
     );
 
     if (error) {
-      console.error("Error saving invoice via supabaseAdmin:", error);
+      console.error("Error saving invoice:", error.message);
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ success: true, key });
+    return NextResponse.json({ success: true, id });
   } catch (err: any) {
     console.error("API Invoice POST error:", err);
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
@@ -55,68 +51,21 @@ export async function GET(request: Request) {
     }
 
     const cleanDigits = id.replace(/\D/g, "");
-    const key = `inv_${cleanDigits || id}`;
+    const lookupId = cleanDigits || id;
 
-    // 1. Try fetching from app_settings using service role key
-    const { data: settingRow } = await supabaseAdmin
-      .from("app_settings")
-      .select("value")
-      .eq("key", key)
+    // Fetch from invoices table
+    const { data: row, error } = await supabase
+      .from("invoices")
+      .select("data, expires_at")
+      .eq("id", lookupId)
       .single();
 
-    if (settingRow?.value) {
-      try {
-        const parsed = JSON.parse(settingRow.value);
-        return NextResponse.json({ success: true, invoice: parsed, source: "app_settings" });
-      } catch (e) {}
+    if (row?.data) {
+      return NextResponse.json({ success: true, invoice: row.data, expiresAt: row.expires_at });
     }
 
-    // 2. Try fetching by raw id if key didn't match
-    if (key !== `inv_${id}`) {
-      const { data: rawRow } = await supabaseAdmin
-        .from("app_settings")
-        .select("value")
-        .eq("key", `inv_${id}`)
-        .single();
-      if (rawRow?.value) {
-        try {
-          const parsed = JSON.parse(rawRow.value);
-          return NextResponse.json({ success: true, invoice: parsed, source: "app_settings_raw" });
-        } catch (e) {}
-      }
-    }
-
-    // 3. Try fetching from orders table (for online orders)
-    const numId = parseInt(cleanDigits, 10);
-    let query = supabaseAdmin.from("orders").select("*");
-    if (!isNaN(numId)) {
-      query = query.eq("order_number", numId);
-    } else {
-      query = query.eq("id", id);
-    }
-
-    const { data: dbOrder } = await query.single();
-    if (dbOrder) {
-      const orderItems = Array.isArray(dbOrder.items) ? dbOrder.items : [];
-      const tw = orderItems.reduce((s: number, i: any) => s + (parseFloat(i.quantity) || 0), 0);
-      const orderCreated = new Date(dbOrder.created_at).getTime();
-
-      const invoiceData = {
-        num: `UT-INV-${dbOrder.order_number || dbOrder.id.slice(0, 6)}`,
-        name: dbOrder.customer_name || "Valued Customer",
-        phone: dbOrder.customer_phone || "N/A",
-        items: orderItems.map((i: any) => ({
-          n: i.name,
-          w: parseFloat(i.quantity) || 1,
-          r: i.price || 550,
-          t: (parseFloat(i.quantity) || 1) * (i.price || 550),
-        })),
-        tw,
-        tot: dbOrder.total || 0,
-        ts: orderCreated,
-      };
-
-      return NextResponse.json({ success: true, invoice: invoiceData, source: "orders" });
+    if (error && error.code !== "PGRST116") {
+      console.error("Supabase invoice fetch error:", error.message);
     }
 
     return NextResponse.json({ success: false, error: "Invoice not found" }, { status: 404 });
