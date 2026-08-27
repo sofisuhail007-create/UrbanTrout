@@ -44,8 +44,6 @@ export default function POSBillingPage() {
   const [invoiceModalOpen, setInvoiceModalOpen] = useState(false);
   const [generatedInvoice, setGeneratedInvoice] = useState<any>(null);
   const [copiedUpi, setCopiedUpi] = useState(false);
-  const [copiedQrImage, setCopiedQrImage] = useState(false);
-  const [isSharingImage, setIsSharingImage] = useState(false);
 
   // Load Inventory prices and UPI settings from Supabase
   useEffect(() => {
@@ -169,7 +167,7 @@ export default function POSBillingPage() {
 
   // Dynamic UPI URI & High-Res QR Code
   const upiPayUri = `upi://pay?pa=${upiId}&pn=Urban%20Trout%20Farm&am=${grandTotal}&cu=INR&tn=Invoice-Payment`;
-  const upiQrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
+  const upiQrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(
     upiPayUri
   )}&bgcolor=255-255-255&color=2-13-18&margin=2`;
 
@@ -243,85 +241,21 @@ export default function POSBillingPage() {
     setInvoiceModalOpen(true);
   };
 
-  // ─── SIMPLE & CLEAN WHATSAPP MESSAGE (No broken unicode) ────
+  // ─── POLITE & WARM WHATSAPP GREETING & INVOICE MESSAGE ───
   const handleShareWhatsApp = () => {
     if (!generatedInvoice) return;
 
-    const itemsSummary = generatedInvoice.items
-      .map((item: BillItem) => `${item.name} (${item.weightKg} Kg)`)
-      .join(", ");
+    let itemLines = "";
+    generatedInvoice.items.forEach((item: BillItem) => {
+      itemLines += `• *${item.name}*: ${item.weightKg} Kg @ ₹${item.pricePerKg}/Kg = ₹${item.total.toLocaleString("en-IN")}\n`;
+    });
 
-    const msg = `Hello ${generatedInvoice.customerName},\n\nThank you for your order with Urban Trout Farm, Srinagar!\n\n*Invoice:* ${generatedInvoice.invoiceNumber}\n*Items:* ${itemsSummary}\n*Total Amount:* ₹${generatedInvoice.grandTotal.toLocaleString("en-IN")}\n\n*Pay via UPI:* ${generatedInvoice.upiId}\n\n*View & Download Invoice:*\n${generatedInvoice.invoicePublicUrl}\n\nUrban Trout Farm, Srinagar\nHelpline: +91 84910 06127`;
+    const msg = `Hello ${generatedInvoice.customerName},\n\nThank you for choosing Urban Trout, Srinagar! Here is the invoice for your freshly harvested Rainbow Trout:\n\n📄 *Invoice No:* ${generatedInvoice.invoiceNumber}\n🗓 *Date:* ${generatedInvoice.date}\n\n*Itemized Details:*\n${itemLines}\n⚖️ *Total Harvest Weight:* ${generatedInvoice.totalWeight.toFixed(2)} Kg\n💰 *Total Amount Payable:* ₹${generatedInvoice.grandTotal.toLocaleString("en-IN")}\n\n💳 *Pay via UPI ID:* ${generatedInvoice.upiId}\n\n📄 *View & Download Invoice PDF (Valid for 48 Hours):*\n${generatedInvoice.invoicePublicUrl}\n\n📍 *Farm Location:* Naseem Bagh / Malabagh, Srinagar\n📞 *Farm Helpline:* +91 84910 06127\n\n_Thank you for supporting sustainable Kashmiri aquaculture!_`;
 
     const encoded = encodeURIComponent(msg);
     const phoneParam = customerPhone.replace(/\D/g, "").slice(-10);
     const url = phoneParam.length === 10 ? `https://wa.me/91${phoneParam}?text=${encoded}` : `https://wa.me/?text=${encoded}`;
     window.open(url, "_blank");
-  };
-
-  // ─── COPY QR CODE IMAGE TO CLIPBOARD (Paste directly in WhatsApp) ───
-  const handleCopyQrImage = async () => {
-    if (!generatedInvoice) return;
-    try {
-      const res = await fetch(generatedInvoice.upiQrCodeUrl);
-      const blob = await res.blob();
-      await navigator.clipboard.write([
-        new ClipboardItem({ [blob.type]: blob }),
-      ]);
-      setCopiedQrImage(true);
-      setTimeout(() => setCopiedQrImage(false), 2500);
-    } catch (err) {
-      console.warn("Clipboard image copy not supported, downloading image instead:", err);
-      handleDownloadQrImage();
-    }
-  };
-
-  // ─── DOWNLOAD QR IMAGE FILE ───
-  const handleDownloadQrImage = async () => {
-    if (!generatedInvoice) return;
-    try {
-      const res = await fetch(generatedInvoice.upiQrCodeUrl);
-      const blob = await res.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = blobUrl;
-      link.download = `${generatedInvoice.invoiceNumber}-UPI-QR.png`;
-      link.click();
-      URL.revokeObjectURL(blobUrl);
-    } catch (err) {
-      window.open(generatedInvoice.upiQrCodeUrl, "_blank");
-    }
-  };
-
-  // ─── NATIVE MOBILE SHARE (Direct WhatsApp Share with QR Image File) ───
-  const handleNativeShareWithImage = async () => {
-    if (!generatedInvoice) return;
-    setIsSharingImage(true);
-    try {
-      const itemsSummary = generatedInvoice.items
-        .map((item: BillItem) => `${item.name} (${item.weightKg} Kg)`)
-        .join(", ");
-
-      const shareText = `Hello ${generatedInvoice.customerName},\nHere is your invoice for Fresh Rainbow Trout from Urban Trout, Srinagar:\n\n*Invoice:* ${generatedInvoice.invoiceNumber}\n*Items:* ${itemsSummary}\n*Total Amount:* ₹${generatedInvoice.grandTotal.toLocaleString("en-IN")}\n\n*Pay via UPI ID:* ${generatedInvoice.upiId}\n*View Online Invoice:* ${generatedInvoice.invoicePublicUrl}`;
-
-      const res = await fetch(generatedInvoice.upiQrCodeUrl);
-      const blob = await res.blob();
-      const file = new File([blob], `${generatedInvoice.invoiceNumber}-QR.png`, { type: "image/png" });
-
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        await navigator.share({
-          title: `Invoice ${generatedInvoice.invoiceNumber} - Urban Trout`,
-          text: shareText,
-          files: [file],
-        });
-      } else {
-        handleShareWhatsApp();
-      }
-    } catch (err) {
-      handleShareWhatsApp();
-    } finally {
-      setIsSharingImage(false);
-    }
   };
 
   const handleReset = () => {
@@ -630,7 +564,7 @@ export default function POSBillingPage() {
         </div>
       </div>
 
-      {/* ─── PRINTABLE INVOICE / PDF MODAL (WITH QR IMAGE SHARING) ─── */}
+      {/* ─── PRINTABLE INVOICE / PDF MODAL ─── */}
       {invoiceModalOpen && generatedInvoice && (
         <div
           onClick={(e) => {
@@ -733,27 +667,6 @@ export default function POSBillingPage() {
                   </p>
                   <p className="text-[11px] text-slate-500 font-mono mt-0.5">UPI ID: {generatedInvoice.upiId}</p>
                 </div>
-
-                {/* Instant QR Image Actions */}
-                <div className="flex items-center justify-center gap-2 pt-1 print:hidden">
-                  <button
-                    type="button"
-                    onClick={handleCopyQrImage}
-                    className="px-3 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 active:scale-95 text-slate-800 text-xs font-bold flex items-center gap-1 transition-all cursor-pointer"
-                  >
-                    <span className="material-symbols-outlined text-sm">content_copy</span>
-                    {copiedQrImage ? "QR Image Copied! ✓" : "Copy QR Image"}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleDownloadQrImage}
-                    className="px-3 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 active:scale-95 text-slate-800 text-xs font-bold flex items-center gap-1 transition-all cursor-pointer"
-                  >
-                    <span className="material-symbols-outlined text-sm">download</span>
-                    Save Image
-                  </button>
-                </div>
               </div>
 
               {/* Footer Note */}
@@ -778,12 +691,11 @@ export default function POSBillingPage() {
 
                 <button
                   type="button"
-                  onClick={handleNativeShareWithImage}
-                  disabled={isSharingImage}
+                  onClick={handleShareWhatsApp}
                   className="py-3 px-4 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] active:scale-95 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-md"
                 >
                   <span className="material-symbols-outlined text-base">share</span>
-                  {isSharingImage ? "Preparing Share…" : "Send WhatsApp Bill"}
+                  Send WhatsApp Bill
                 </button>
               </div>
 
