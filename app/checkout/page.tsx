@@ -483,6 +483,7 @@ export default function CheckoutPage() {
           }
         } else {
           setDeliveryMode("unavailable");
+          setSelectedZoneName("GPS Detected Location");
           setLocationMsg(`${dist.toFixed(1)} km from Farm — Outside 5km delivery zone.`);
         }
         setIsLocating(false);
@@ -511,6 +512,15 @@ export default function CheckoutPage() {
       setDeliveryMode("unavailable");
       setLocationMsg(`${zone.name} (~${zone.distanceKm} km) — Outside 5km zone.`);
     }
+  };
+
+  // ─── Reset Location Selection (to pick another) ──────────────
+  const handleResetLocation = () => {
+    setDeliveryMode(null);
+    setSelectedZoneName("");
+    setLocationMsg("");
+    setCalculatedDistance(null);
+    setSearchQuery("");
   };
 
   // ─── Manual Pincode Quick-Check (when user types 6 digits) ───
@@ -1107,7 +1117,7 @@ export default function CheckoutPage() {
           <section className="lg:col-span-7 space-y-6">
 
             {/* ══════════════════════════════════════════════════════
-                STAGE 1: CHECK DELIVERY LOCATION (MINIMALIST & CLEAN)
+                STAGE 1: CHECK DELIVERY LOCATION (AUTO-HIDES UPON SELECTION)
                 ══════════════════════════════════════════════════════ */}
             {currentStep === 1 && (
               <div
@@ -1118,7 +1128,7 @@ export default function CheckoutPage() {
                   boxShadow: "0 10px 40px rgba(0,0,0,0.5)",
                 }}
               >
-                {/* Header Row with Integrated GPS Button */}
+                {/* Header Row */}
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4" style={{ borderBottom: "1px solid rgba(61,74,83,0.4)" }}>
                   <div className="flex items-center gap-3">
                     <Link
@@ -1202,248 +1212,286 @@ export default function CheckoutPage() {
                   </button>
                 </div>
 
-                {/* Combined Search & Filter Bar */}
-                <form onSubmit={handleSearchSubmit} className="relative">
-                  <div style={{ position: "relative" }}>
-                    <span
+                {/* ─── CASE A: LOCATION IS SELECTED/DETECTED -> HIDE LOCALITY DETAILS ─── */}
+                {deliveryMode === "under5" && (
+                  <div className="space-y-5">
+                    <div
+                      className="p-5 rounded-2xl space-y-3"
                       style={{
-                        position: "absolute",
-                        left: "14px",
-                        top: "50%",
-                        transform: "translateY(-50%)",
-                        color: C.onSurfVar,
-                        pointerEvents: "none",
+                        background: "linear-gradient(135deg, rgba(37,211,102,0.15) 0%, rgba(6,35,20,0.7) 100%)",
+                        border: "1.5px solid rgba(37,211,102,0.6)",
+                        boxShadow: "0 0 30px rgba(37,211,102,0.18)",
                       }}
                     >
-                      <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                        <circle cx="11" cy="11" r="8" />
-                        <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                      </svg>
-                    </span>
-                    <input
-                      type="text"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      placeholder="Search Srinagar locality or 6-digit pin code (e.g. 190006)…"
-                      style={{
-                        width: "100%",
-                        background: "rgba(3,16,24,0.85)",
-                        border: "1.5px solid rgba(61,74,83,0.7)",
-                        borderRadius: "12px",
-                        padding: "12px 16px 12px 42px",
-                        color: C.onSurface,
-                        fontFamily: '"Manrope", sans-serif',
-                        fontSize: "0.88rem",
-                        outline: "none",
-                        boxSizing: "border-box",
-                      }}
-                      onFocus={(e) => (e.target.style.borderColor = "rgba(114,221,253,0.7)")}
-                      onBlur={(e) => (e.target.style.borderColor = "rgba(61,74,83,0.7)")}
-                    />
-                  </div>
-                </form>
-
-                {/* Srinagar Localities Chips Grid */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between text-xs text-slate-400">
-                    <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "10px", letterSpacing: "0.1em", textTransform: "uppercase", color: C.onSurfVar, fontWeight: 600 }}>
-                      Popular Srinagar Localities (from Naseem Bagh farm):
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-64 overflow-y-auto pr-1">
-                    {filteredZones.map((zone) => {
-                      const isSelected = selectedZoneName === zone.name;
-                      return (
-                        <button
-                          key={zone.name}
-                          type="button"
-                          onClick={() => handleSelectZone(zone)}
-                          className="px-3 py-2.5 rounded-xl text-left transition-all flex flex-col justify-between cursor-pointer active:scale-95"
-                          style={{
-                            background: isSelected
-                              ? zone.eligible
-                                ? "rgba(37,211,102,0.18)"
-                                : "rgba(248,113,113,0.18)"
-                              : "rgba(3,16,24,0.7)",
-                            border: isSelected
-                              ? zone.eligible
-                                ? "1.5px solid #25D366"
-                                : "1.5px solid #f87171"
-                              : "1px solid rgba(61,74,83,0.5)",
-                            boxShadow: isSelected ? "0 0 12px rgba(114,221,253,0.15)" : "none",
-                          }}
-                        >
-                          <div className="flex items-center justify-between w-full">
+                      <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-3.5">
+                          <div
+                            className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+                            style={{ background: "#25D366", color: "#002730", fontWeight: 900, fontSize: "16px" }}
+                          >
+                            ✓
+                          </div>
+                          <div>
                             <span
+                              style={{
+                                fontFamily: '"Inter", sans-serif',
+                                fontSize: "10px",
+                                letterSpacing: "0.15em",
+                                textTransform: "uppercase",
+                                color: "#86efac",
+                                fontWeight: 700,
+                                display: "block",
+                              }}
+                            >
+                              Location Verified • Free Delivery Eligible
+                            </span>
+                            <h3
                               style={{
                                 fontFamily: '"Space Grotesk", sans-serif',
-                                fontWeight: 700,
-                                fontSize: "0.84rem",
-                                color: C.onSurface,
-                              }}
-                            >
-                              {zone.name}
-                            </span>
-                            <span
-                              style={{
-                                fontSize: "10px",
                                 fontWeight: 800,
-                                color: zone.eligible ? "#4ade80" : "#f87171",
+                                color: "#ffffff",
+                                fontSize: "1.2rem",
+                                margin: "2px 0 0",
                               }}
                             >
-                              {zone.eligible ? "✓" : "×"}
-                            </span>
+                              {selectedZoneName || "GPS Location"} {calculatedDistance !== null && `(~${calculatedDistance.toFixed(1)} km from Farm)`}
+                            </h3>
+                            <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.85rem", color: "#bbf7d0", margin: "2px 0 0" }}>
+                              {locationMsg || "Within our 5km live harvest radius • Dispatched in 90 mins."}
+                            </p>
                           </div>
-                          <span
-                            style={{
-                              fontFamily: '"Manrope", sans-serif',
-                              fontSize: "10px",
-                              color: zone.eligible ? "#86efac" : C.onSurfVar,
-                              marginTop: "2px",
-                            }}
-                          >
-                            ~{zone.distanceKm} km {zone.eligible ? "• Free Delivery" : "• Out of zone"}
-                          </span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
+                        </div>
 
-                {/* Instant Result Feedback Banner */}
-                {deliveryMode === "under5" && (
-                  <div
-                    className="p-3.5 rounded-xl flex items-center justify-between gap-3"
-                    style={{
-                      background: "linear-gradient(135deg, rgba(37,211,102,0.14) 0%, rgba(6,35,20,0.6) 100%)",
-                      border: "1.5px solid rgba(37,211,102,0.5)",
-                      boxShadow: "0 0 20px rgba(37,211,102,0.15)",
-                    }}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <div
-                        className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
-                        style={{ background: "#25D366", color: "#002730", fontWeight: 900, fontSize: "11px" }}
-                      >
-                        ✓
-                      </div>
-                      <div>
-                        <h4
+                        <button
+                          type="button"
+                          onClick={handleResetLocation}
+                          className="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex-shrink-0"
                           style={{
+                            background: "rgba(3,16,24,0.75)",
+                            border: "1px solid rgba(114,221,253,0.35)",
+                            color: C.primary,
                             fontFamily: '"Space Grotesk", sans-serif',
-                            fontWeight: 800,
-                            color: "#4ade80",
-                            fontSize: "0.92rem",
-                            margin: 0,
                           }}
                         >
-                          Delivery Available • Free Fresh Harvest Dispatch
-                        </h4>
-                        <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.8rem", color: "#bbf7d0", margin: "2px 0 0" }}>
-                          {locationMsg || "Verified within our 5km live harvest radius."}
-                        </p>
+                          Change Area
+                        </button>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleConfirmLocationProceed}
+                      className="w-full flex items-center justify-center gap-3 font-bold uppercase tracking-widest transition-all rounded-xl py-4 cursor-pointer"
+                      style={{
+                        fontFamily: '"Space Grotesk", sans-serif',
+                        fontSize: "0.98rem",
+                        background: C.primaryCont,
+                        color: C.onPrimCont,
+                        boxShadow: "0 0 30px rgba(58,173,204,0.45)",
+                        border: "none",
+                      }}
+                    >
+                      Confirm Location &amp; Fill Details
+                      <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                        <polyline points="12 5 19 12 12 19" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+
+                {/* ─── CASE B: OUT OF ZONE -> HIDE LOCALITY DETAILS & SHOW PICKUP NOTICE ─── */}
+                {deliveryMode === "unavailable" && (
+                  <div className="space-y-5">
+                    <div
+                      className="p-5 rounded-2xl space-y-3.5 text-center"
+                      style={{
+                        background: "linear-gradient(135deg, rgba(239,68,68,0.15) 0%, rgba(40,10,10,0.7) 100%)",
+                        border: "1.5px solid rgba(239,68,68,0.45)",
+                      }}
+                    >
+                      <div className="flex items-center justify-between gap-4 text-left">
+                        <div>
+                          <h4
+                            style={{
+                              fontFamily: '"Space Grotesk", sans-serif',
+                              fontWeight: 800,
+                              color: "#f87171",
+                              fontSize: "1.1rem",
+                              margin: "0 0 2px",
+                            }}
+                          >
+                            {selectedZoneName ? `${selectedZoneName} is outside 5km zone` : "Outside 5km Delivery Radius"}
+                          </h4>
+                          <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.85rem", color: "#fca5a5", margin: 0 }}>
+                            {locationMsg || "Urban Trout delivers within 5km of Naseem Bagh to guarantee live freshness."}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleResetLocation}
+                          className="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex-shrink-0"
+                          style={{
+                            background: "rgba(3,16,24,0.75)",
+                            border: "1px solid rgba(239,68,68,0.4)",
+                            color: "#fca5a5",
+                            fontFamily: '"Space Grotesk", sans-serif',
+                          }}
+                        >
+                          Pick Another
+                        </button>
+                      </div>
+
+                      <div
+                        className="p-3 rounded-xl text-left text-xs"
+                        style={{ background: "rgba(3,16,24,0.85)", border: "1px solid rgba(239,68,68,0.25)" }}
+                      >
+                        <strong style={{ color: "#fca5a5", display: "block", marginBottom: "2px" }}>
+                          🏪 Live Vending Center Pickup Available:
+                        </strong>
+                        <span style={{ color: C.onSurface }}>
+                          Malabagh, Naseem Bagh, Srinagar — 190006 (Near R P School, Girls Wing)
+                        </span>
+                      </div>
+
+                      <div className="flex gap-2.5 justify-center pt-1">
+                        <a
+                          href={`https://wa.me/918491006127?text=Hi%20Urban%20Trout!%20I%20am%20outside%20the%205km%20zone.%20Can%20I%20arrange%20pickup%20or%20special%20delivery?`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-4 py-2.5 rounded-xl font-bold uppercase text-xs flex items-center gap-1.5"
+                          style={{
+                            background: "#25D366",
+                            color: "#fff",
+                            fontFamily: '"Space Grotesk", sans-serif',
+                            textDecoration: "none",
+                          }}
+                        >
+                          💬 WhatsApp Inquiry
+                        </a>
+                        <a
+                          href="https://maps.google.com/?q=34.144709,74.824525"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-4 py-2.5 rounded-xl font-bold uppercase text-xs flex items-center gap-1.5"
+                          style={{
+                            background: "rgba(114,221,253,0.1)",
+                            border: "1px solid rgba(114,221,253,0.25)",
+                            color: C.primary,
+                            fontFamily: '"Space Grotesk", sans-serif',
+                            textDecoration: "none",
+                          }}
+                        >
+                          📍 Directions to Farm
+                        </a>
                       </div>
                     </div>
                   </div>
                 )}
 
-                {deliveryMode === "unavailable" && (
-                  <div
-                    className="p-4 rounded-xl space-y-2.5 text-center"
-                    style={{
-                      background: "linear-gradient(135deg, rgba(239,68,68,0.12) 0%, rgba(40,10,10,0.6) 100%)",
-                      border: "1.5px solid rgba(239,68,68,0.35)",
-                    }}
-                  >
-                    <div>
-                      <h4
-                        style={{
-                          fontFamily: '"Space Grotesk", sans-serif',
-                          fontWeight: 800,
-                          color: "#f87171",
-                          fontSize: "0.98rem",
-                          margin: "0 0 2px",
-                        }}
-                      >
-                        Outside 5km Delivery Radius
-                      </h4>
-                      <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.82rem", color: "#fca5a5", margin: 0 }}>
-                        {locationMsg || "We deliver within 5km of Naseem Bagh to preserve live freshness."}
-                      </p>
-                    </div>
+                {/* ─── CASE C: NO LOCATION DETECTED YET -> SHOW SEARCH & LOCALITIES LIST ─── */}
+                {!deliveryMode && (
+                  <div className="space-y-5">
+                    {/* Combined Search & Filter Bar */}
+                    <form onSubmit={handleSearchSubmit} className="relative">
+                      <div style={{ position: "relative" }}>
+                        <span
+                          style={{
+                            position: "absolute",
+                            left: "14px",
+                            top: "50%",
+                            transform: "translateY(-50%)",
+                            color: C.onSurfVar,
+                            pointerEvents: "none",
+                          }}
+                        >
+                          <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                            <circle cx="11" cy="11" r="8" />
+                            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                          </svg>
+                        </span>
+                        <input
+                          type="text"
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          placeholder="Search Srinagar locality or 6-digit pin code (e.g. 190006)…"
+                          style={{
+                            width: "100%",
+                            background: "rgba(3,16,24,0.85)",
+                            border: "1.5px solid rgba(61,74,83,0.7)",
+                            borderRadius: "12px",
+                            padding: "12px 16px 12px 42px",
+                            color: C.onSurface,
+                            fontFamily: '"Manrope", sans-serif',
+                            fontSize: "0.88rem",
+                            outline: "none",
+                            boxSizing: "border-box",
+                          }}
+                          onFocus={(e) => (e.target.style.borderColor = "rgba(114,221,253,0.7)")}
+                          onBlur={(e) => (e.target.style.borderColor = "rgba(61,74,83,0.7)")}
+                        />
+                      </div>
+                    </form>
 
-                    <div
-                      className="p-2.5 rounded-lg text-left text-xs"
-                      style={{ background: "rgba(3,16,24,0.8)", border: "1px solid rgba(239,68,68,0.25)" }}
-                    >
-                      <strong style={{ color: "#fca5a5" }}>Live Vending Center Pickup: </strong>
-                      <span style={{ color: C.onSurface }}>Malabagh, Naseem Bagh, Srinagar — 190006</span>
-                    </div>
+                    {/* Srinagar Localities Chips Grid */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between text-xs text-slate-400">
+                        <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "10px", letterSpacing: "0.1em", textTransform: "uppercase", color: C.onSurfVar, fontWeight: 600 }}>
+                          Popular Srinagar Localities (from Naseem Bagh farm):
+                        </span>
+                      </div>
 
-                    <div className="flex gap-2 justify-center pt-1">
-                      <a
-                        href={`https://wa.me/918491006127?text=Hi%20Urban%20Trout!%20I%20am%20outside%20the%205km%20zone.%20Can%20I%20arrange%20pickup%20or%20special%20delivery?`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-3.5 py-2 rounded-lg font-bold uppercase text-xs flex items-center gap-1"
-                        style={{
-                          background: "#25D366",
-                          color: "#fff",
-                          fontFamily: '"Space Grotesk", sans-serif',
-                          textDecoration: "none",
-                        }}
-                      >
-                        💬 WhatsApp Inquiry
-                      </a>
-                      <a
-                        href="https://maps.google.com/?q=34.144709,74.824525"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="px-3.5 py-2 rounded-lg font-bold uppercase text-xs flex items-center gap-1"
-                        style={{
-                          background: "rgba(114,221,253,0.1)",
-                          border: "1px solid rgba(114,221,253,0.25)",
-                          color: C.primary,
-                          fontFamily: '"Space Grotesk", sans-serif',
-                          textDecoration: "none",
-                        }}
-                      >
-                        📍 Directions
-                      </a>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-64 overflow-y-auto pr-1">
+                        {filteredZones.map((zone) => {
+                          return (
+                            <button
+                              key={zone.name}
+                              type="button"
+                              onClick={() => handleSelectZone(zone)}
+                              className="px-3 py-2.5 rounded-xl text-left transition-all flex flex-col justify-between cursor-pointer active:scale-95"
+                              style={{
+                                background: "rgba(3,16,24,0.7)",
+                                border: "1px solid rgba(61,74,83,0.5)",
+                              }}
+                            >
+                              <div className="flex items-center justify-between w-full">
+                                <span
+                                  style={{
+                                    fontFamily: '"Space Grotesk", sans-serif',
+                                    fontWeight: 700,
+                                    fontSize: "0.84rem",
+                                    color: C.onSurface,
+                                  }}
+                                >
+                                  {zone.name}
+                                </span>
+                                <span
+                                  style={{
+                                    fontSize: "10px",
+                                    fontWeight: 800,
+                                    color: zone.eligible ? "#4ade80" : "#f87171",
+                                  }}
+                                >
+                                  {zone.eligible ? "✓" : "×"}
+                                </span>
+                              </div>
+                              <span
+                                style={{
+                                  fontFamily: '"Manrope", sans-serif',
+                                  fontSize: "10px",
+                                  color: zone.eligible ? "#86efac" : C.onSurfVar,
+                                  marginTop: "2px",
+                                }}
+                              >
+                                ~{zone.distanceKm} km {zone.eligible ? "• Free Delivery" : "• Out of zone"}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
                 )}
-
-                {/* Action Button: Proceed to Step 2 */}
-                <div className="pt-2">
-                  <button
-                    type="button"
-                    onClick={handleConfirmLocationProceed}
-                    disabled={deliveryMode !== "under5"}
-                    className="w-full flex items-center justify-center gap-3 font-bold uppercase tracking-widest transition-all rounded-xl py-4"
-                    style={{
-                      fontFamily: '"Space Grotesk", sans-serif',
-                      fontSize: "0.95rem",
-                      background: deliveryMode === "under5" ? C.primaryCont : "rgba(61,74,83,0.4)",
-                      color: deliveryMode === "under5" ? C.onPrimCont : C.outline,
-                      boxShadow: deliveryMode === "under5" ? "0 0 30px rgba(58,173,204,0.35)" : "none",
-                      border: "none",
-                      cursor: deliveryMode === "under5" ? "pointer" : "not-allowed",
-                    }}
-                  >
-                    Confirm Location &amp; Fill Details
-                    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                      <line x1="5" y1="12" x2="19" y2="12" />
-                      <polyline points="12 5 19 12 12 19" />
-                    </svg>
-                  </button>
-                  {deliveryMode !== "under5" && (
-                    <p className="text-center text-xs text-slate-500 mt-2" style={{ fontFamily: '"Manrope", sans-serif' }}>
-                      Please select an eligible area above to proceed.
-                    </p>
-                  )}
-                </div>
               </div>
             )}
 
