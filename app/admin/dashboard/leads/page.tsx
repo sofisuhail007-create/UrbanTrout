@@ -124,18 +124,27 @@ export default function AdminLeadsPage() {
   const handleDeleteLead = async (leadId: string, phone?: string) => {
     if (!confirm("Are you sure you want to delete this lead?")) return;
     
-    // Immediate UI removal
-    setLeads(prev => prev.filter(l => l.id !== leadId && (phone ? l.customer_phone !== phone : true)));
+    const cleanPhone = phone ? phone.replace(/\D/g, "").slice(-10) : "";
 
+    // Immediate UI removal
+    setLeads(prev => prev.filter(l => l.id !== leadId && (cleanPhone ? l.customer_phone.replace(/\D/g, "").slice(-10) !== cleanPhone : true)));
+
+    // 1. Primary: Server-side permanent deletion
+    try {
+      const params = new URLSearchParams();
+      if (leadId) params.set("id", leadId);
+      if (cleanPhone) params.set("phone", cleanPhone);
+      await fetch(`/api/lead?${params.toString()}`, { method: "DELETE" });
+    } catch (_) {}
+
+    // 2. Direct Supabase fallback
     try {
       await supabase.from("leads").delete().eq("id", leadId);
-    } catch (e) {}
-
-    if (phone) {
-      try {
-        await supabase.from("customers").delete().eq("phone", phone);
-      } catch (e) {}
-    }
+      if (cleanPhone) {
+        await supabase.from("leads").delete().eq("customer_phone", cleanPhone);
+        await supabase.from("customers").delete().eq("phone", cleanPhone);
+      }
+    } catch (_) {}
   };
 
   const filteredLeads = leads.filter(lead => {
