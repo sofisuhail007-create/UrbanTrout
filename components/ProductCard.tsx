@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 import { Product } from "@/lib/data";
@@ -10,6 +10,13 @@ export default function ProductCard({ p }: { p: Product }) {
   const effectiveMin = Math.max(1, Number(p.minQuantity) || 1);
   const [qty, setQty] = useState(effectiveMin);
   const [added, setAdded] = useState(false);
+
+  useEffect(() => {
+    if (p.minQuantity) {
+      const min = Math.max(1, Number(p.minQuantity));
+      setQty((prev) => (prev < min ? min : prev));
+    }
+  }, [p.minQuantity]);
 
   const handleAdd = () => {
     addItem({ id: p.id, name: p.name, price: p.price, quantity: qty, unit: p.unit, image: p.img });
@@ -99,12 +106,27 @@ export default function ProductCard({ p }: { p: Product }) {
         </div>
 
         {/* Price */}
-        <div className="flex items-baseline gap-1">
-          <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "0.95rem", color: "#9fadb8", fontWeight: 600 }}>₹</span>
-          <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.75rem", fontWeight: 800, color: "#72ddfd", letterSpacing: "-0.03em" }}>
-            {p.price.toLocaleString("en-IN")}
-          </span>
-          <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.8rem", color: "#6a7782", marginLeft: "2px" }}>/ {p.unit}</span>
+        <div className="flex items-baseline justify-between gap-1">
+          <div className="flex items-baseline gap-1">
+            <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "0.95rem", color: "#9fadb8", fontWeight: 600 }}>₹</span>
+            <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.75rem", fontWeight: 800, color: "#72ddfd", letterSpacing: "-0.03em" }}>
+              {p.price.toLocaleString("en-IN")}
+            </span>
+            <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.8rem", color: "#6a7782", marginLeft: "2px" }}>/ {p.unit}</span>
+          </div>
+          {effectiveMin > 1 && (
+            <span
+              className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
+              style={{
+                background: "rgba(114,221,253,0.15)",
+                color: "#72ddfd",
+                border: "1px solid rgba(114,221,253,0.3)",
+                fontFamily: '"Space Grotesk", sans-serif',
+              }}
+            >
+              Min. {effectiveMin} {p.unit}
+            </span>
+          )}
         </div>
 
         {/* Divider */}

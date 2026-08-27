@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useCart } from "@/context/CartContext";
 
 type Props = {
@@ -28,6 +28,13 @@ export default function AddToCartButton({
   const effectiveMin = Math.max(1, Number(minQuantity) || 1);
   const [qty, setQty] = useState(effectiveMin);
   const [added, setAdded] = useState(false);
+
+  useEffect(() => {
+    if (minQuantity) {
+      const min = Math.max(1, Number(minQuantity));
+      setQty((prev) => (prev < min ? min : prev));
+    }
+  }, [minQuantity]);
 
   const handleAdd = () => {
     addItem({ id: productId, name: productName, price, quantity: qty, unit, image });
