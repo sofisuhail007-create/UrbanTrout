@@ -241,16 +241,16 @@ export default function POSBillingPage() {
     setInvoiceModalOpen(true);
   };
 
-  // ─── POLITE & WARM WHATSAPP GREETING & INVOICE MESSAGE ───
+  // ─── 100% UNIVERSAL CLEAN WHATSAPP MESSAGE (Zero Question Marks) ───
   const handleShareWhatsApp = () => {
     if (!generatedInvoice) return;
 
     let itemLines = "";
     generatedInvoice.items.forEach((item: BillItem) => {
-      itemLines += `• *${item.name}*: ${item.weightKg} Kg @ ₹${item.pricePerKg}/Kg = ₹${item.total.toLocaleString("en-IN")}\n`;
+      itemLines += `- *${item.name}*: ${item.weightKg} Kg @ Rs. ${item.pricePerKg}/Kg = Rs. ${item.total.toLocaleString("en-IN")}\n`;
     });
 
-    const msg = `Hello ${generatedInvoice.customerName},\n\nThank you for choosing Urban Trout, Srinagar! Here is the invoice for your freshly harvested Rainbow Trout:\n\n📄 *Invoice No:* ${generatedInvoice.invoiceNumber}\n🗓 *Date:* ${generatedInvoice.date}\n\n*Itemized Details:*\n${itemLines}\n⚖️ *Total Harvest Weight:* ${generatedInvoice.totalWeight.toFixed(2)} Kg\n💰 *Total Amount Payable:* ₹${generatedInvoice.grandTotal.toLocaleString("en-IN")}\n\n💳 *Pay via UPI ID:* ${generatedInvoice.upiId}\n\n📄 *View & Download Invoice PDF (Valid for 48 Hours):*\n${generatedInvoice.invoicePublicUrl}\n\n📍 *Farm Location:* Naseem Bagh / Malabagh, Srinagar\n📞 *Farm Helpline:* +91 84910 06127\n\n_Thank you for supporting sustainable Kashmiri aquaculture!_`;
+    const msg = `Hello ${generatedInvoice.customerName},\n\nThank you for choosing Urban Trout, Srinagar! Here is the invoice for your freshly harvested Rainbow Trout:\n\n*Invoice No:* ${generatedInvoice.invoiceNumber}\n*Date:* ${generatedInvoice.date}\n\n*Itemized Details:*\n${itemLines}\n*Total Harvest Weight:* ${generatedInvoice.totalWeight.toFixed(2)} Kg\n*Total Amount Payable:* Rs. ${generatedInvoice.grandTotal.toLocaleString("en-IN")}\n\n*Pay via UPI ID:* ${generatedInvoice.upiId}\n\n*View & Download Invoice PDF (Valid for 48 Hours):*\n${generatedInvoice.invoicePublicUrl}\n\n*Farm Location:* Naseem Bagh / Malabagh, Srinagar\n*Farm Helpline:* +91 84910 06127\n\n_Thank you for supporting sustainable Kashmiri aquaculture!_`;
 
     const encoded = encodeURIComponent(msg);
     const phoneParam = customerPhone.replace(/\D/g, "").slice(-10);
@@ -564,35 +564,59 @@ export default function POSBillingPage() {
         </div>
       </div>
 
-      {/* ─── PRINTABLE INVOICE / PDF MODAL ─── */}
+      {/* ─── PRINTABLE INVOICE / PDF MODAL (WITH FLOATING TOP ACTION BAR) ─── */}
       {invoiceModalOpen && generatedInvoice && (
         <div
           onClick={(e) => {
             if (e.target === e.currentTarget) setInvoiceModalOpen(false);
           }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto"
+          className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto"
         >
-          <div className="relative w-full max-w-md sm:max-w-lg bg-white text-slate-900 rounded-3xl p-5 sm:p-8 shadow-2xl space-y-5 my-6 max-h-[92vh] overflow-y-auto">
-            {/* Sticky Top Modal Header with Clear Close Button */}
-            <div className="sticky -top-5 sm:-top-8 -mx-5 sm:-mx-8 px-5 sm:px-8 py-3 bg-white/95 backdrop-blur border-b z-20 flex items-center justify-between print:hidden">
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full">
-                  ✓ {generatedInvoice.invoiceNumber}
+          <div className="relative w-full max-w-md sm:max-w-xl bg-white text-slate-900 rounded-3xl p-4 sm:p-7 shadow-2xl space-y-4 my-4 max-h-[95vh] overflow-y-auto">
+            {/* ─── FLOATING TOP STICKY BAR: 1-CLICK SHARE & PRINT (NO SCROLLING NEEDED) ─── */}
+            <div className="sticky -top-4 sm:-top-7 -mx-4 sm:-mx-7 px-4 sm:px-7 py-3 bg-slate-950 text-white border-b border-slate-800 z-30 shadow-lg flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 print:hidden">
+              <div className="flex items-center justify-between sm:justify-start gap-2">
+                <span className="text-[11px] font-mono font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2.5 py-1 rounded-lg">
+                  {generatedInvoice.invoiceNumber}
+                </span>
+                <span className="text-xs font-bold text-white font-mono sm:hidden">
+                  ₹{generatedInvoice.grandTotal.toLocaleString("en-IN")}
                 </span>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setInvoiceModalOpen(false)}
-                className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1 cursor-pointer transition-colors"
-              >
-                <span className="material-symbols-outlined text-base">close</span>
-                Close
-              </button>
+              {/* Floating Quick Action Buttons */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleShareWhatsApp}
+                  className="flex-1 sm:flex-initial py-2 px-3.5 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] active:scale-95 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-md transition-all cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-base">share</span>
+                  Send WhatsApp
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="flex-1 sm:flex-initial py-2 px-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 border border-slate-700 transition-all cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-base">print</span>
+                  Print / PDF
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setInvoiceModalOpen(false)}
+                  className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 transition-all cursor-pointer flex items-center justify-center"
+                  title="Close Window"
+                >
+                  <span className="material-symbols-outlined text-base">close</span>
+                </button>
+              </div>
             </div>
 
             {/* ─── PRINTABLE / DOWNLOADABLE INVOICE CONTENT ─── */}
-            <div id="printable-receipt" className="space-y-4 sm:space-y-5 pt-2">
+            <div id="printable-receipt" className="space-y-4 pt-1">
               {/* Receipt Header */}
               <div className="text-center pb-3 border-b border-dashed border-slate-300">
                 <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
@@ -677,28 +701,8 @@ export default function POSBillingPage() {
               </div>
             </div>
 
-            {/* Action Buttons (Hidden in Print) */}
-            <div className="space-y-2.5 pt-3 border-t print:hidden">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => window.print()}
-                  className="py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-95 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-md"
-                >
-                  <span className="material-symbols-outlined text-base">print</span>
-                  Print / Save PDF
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleShareWhatsApp}
-                  className="py-3 px-4 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] active:scale-95 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-md"
-                >
-                  <span className="material-symbols-outlined text-base">share</span>
-                  Send WhatsApp Bill
-                </button>
-              </div>
-
+            {/* Bottom Dismiss Button (Hidden in Print) */}
+            <div className="pt-2 border-t print:hidden">
               <button
                 type="button"
                 onClick={() => setInvoiceModalOpen(false)}
