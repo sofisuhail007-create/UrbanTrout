@@ -44,6 +44,8 @@ export default function POSBillingPage() {
   const [invoiceModalOpen, setInvoiceModalOpen] = useState(false);
   const [generatedInvoice, setGeneratedInvoice] = useState<any>(null);
   const [copiedUpi, setCopiedUpi] = useState(false);
+  const [copiedQrImage, setCopiedQrImage] = useState(false);
+  const [isSharingImage, setIsSharingImage] = useState(false);
 
   // Load Inventory prices and UPI settings from Supabase
   useEffect(() => {
@@ -165,9 +167,9 @@ export default function POSBillingPage() {
   const grandTotal = billItems.reduce((sum, item) => sum + item.total, 0);
   const totalWeight = billItems.reduce((sum, item) => sum + item.weightKg, 0);
 
-  // Dynamic UPI URI & QR Code
+  // Dynamic UPI URI & High-Res QR Code
   const upiPayUri = `upi://pay?pa=${upiId}&pn=Urban%20Trout%20Farm&am=${grandTotal}&cu=INR&tn=Invoice-Payment`;
-  const upiQrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(
+  const upiQrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(
     upiPayUri
   )}&bgcolor=255-255-255&color=2-13-18&margin=2`;
 
@@ -177,18 +179,18 @@ export default function POSBillingPage() {
     setTimeout(() => setCopiedUpi(false), 2500);
   };
 
-  // ─── PURE REALTIME CALCULATOR (0 DB writes, 48-Hour Stateless Token) ──
-  const handleGenerateInvoice = () => {
+  // ─── GENERATE SHORT CLEAN INVOICE (e.g. /invoice/UT-INV-3986) ───
+  const handleGenerateInvoice = async () => {
     if (billItems.length === 0 || grandTotal <= 0) {
       alert("Please enter a valid weight greater than 0 kg.");
       return;
     }
 
-    const invoiceNumber = "UT-INV-" + Math.floor(1000 + Math.random() * 9000);
+    const shortDigits = Math.floor(1000 + Math.random() * 9000).toString();
+    const invoiceNumber = `UT-INV-${shortDigits}`;
     const cleanPhone = customerPhone.replace(/\D/g, "").slice(-10);
 
-    // Encode stateless invoice token with 48h validity timestamp
-    const tokenPayload = {
+    const invoicePayload = {
       num: invoiceNumber,
       name: customerName.trim() || "Valued Customer",
       phone: cleanPhone || "N/A",
@@ -196,18 +198,24 @@ export default function POSBillingPage() {
       tw: totalWeight,
       tot: grandTotal,
       notes: customerNotes,
-      ts: Date.now(), // 48-Hour Validity Timestamp
+      ts: Date.now(), // 48-Hour validity timestamp
     };
 
-    let token = "";
+    // Store in app_settings under key inv_3986 (Takes ~150 bytes, zero order pollution)
     try {
-      token = btoa(encodeURIComponent(JSON.stringify(tokenPayload)));
-    } catch {
-      token = invoiceNumber;
+      await supabase.from("app_settings").upsert(
+        {
+          key: `inv_${shortDigits}`,
+          value: JSON.stringify(invoicePayload),
+        },
+        { onConflict: "key" }
+      );
+    } catch (err) {
+      console.warn("Could not write short invoice key to settings:", err);
     }
 
     const origin = typeof window !== "undefined" ? window.location.origin : "https://urbantrout.in";
-    const invoicePublicUrl = `${origin}/invoice/${token}`;
+    const invoicePublicUrl = `${origin}/invoice/${invoiceNumber}`;
 
     const invoiceData = {
       invoiceNumber,
@@ -235,7 +243,7 @@ export default function POSBillingPage() {
     setInvoiceModalOpen(true);
   };
 
-  // ─── SIMPLE & CLEAN WHATSAPP MESSAGE ───
+  // ─── SIMPLE & CLEAN WHATSAPP MESSAGE (No broken unicode) ────
   const handleShareWhatsApp = () => {
     if (!generatedInvoice) return;
 
@@ -243,12 +251,77 @@ export default function POSBillingPage() {
       .map((item: BillItem) => `${item.name} (${item.weightKg} Kg)`)
       .join(", ");
 
-    const msg = `Hello ${generatedInvoice.customerName},\n\nThank you for your order with Urban Trout Farm, Srinagar!\n\n📄 Invoice: ${generatedInvoice.invoiceNumber}\n🐟 Items: ${itemsSummary}\n💰 Total Amount: ₹${generatedInvoice.grandTotal.toLocaleString("en-IN")}\n\n💳 Pay via UPI: ${generatedInvoice.upiId}\n\n📄 View & Download Invoice PDF (Valid for 48 Hours):\n${generatedInvoice.invoicePublicUrl}\n\nUrban Trout Farm, Srinagar\nHelpline: +91 84910 06127`;
+    const msg = `Hello ${generatedInvoice.customerName},\n\nThank you for your order with Urban Trout Farm, Srinagar!\n\n*Invoice:* ${generatedInvoice.invoiceNumber}\n*Items:* ${itemsSummary}\n*Total Amount:* ₹${generatedInvoice.grandTotal.toLocaleString("en-IN")}\n\n*Pay via UPI:* ${generatedInvoice.upiId}\n\n*View & Download Invoice:*\n${generatedInvoice.invoicePublicUrl}\n\nUrban Trout Farm, Srinagar\nHelpline: +91 84910 06127`;
 
     const encoded = encodeURIComponent(msg);
     const phoneParam = customerPhone.replace(/\D/g, "").slice(-10);
     const url = phoneParam.length === 10 ? `https://wa.me/91${phoneParam}?text=${encoded}` : `https://wa.me/?text=${encoded}`;
     window.open(url, "_blank");
+  };
+
+  // ─── COPY QR CODE IMAGE TO CLIPBOARD (Paste directly in WhatsApp) ───
+  const handleCopyQrImage = async () => {
+    if (!generatedInvoice) return;
+    try {
+      const res = await fetch(generatedInvoice.upiQrCodeUrl);
+      const blob = await res.blob();
+      await navigator.clipboard.write([
+        new ClipboardItem({ [blob.type]: blob }),
+      ]);
+      setCopiedQrImage(true);
+      setTimeout(() => setCopiedQrImage(false), 2500);
+    } catch (err) {
+      console.warn("Clipboard image copy not supported, downloading image instead:", err);
+      handleDownloadQrImage();
+    }
+  };
+
+  // ─── DOWNLOAD QR IMAGE FILE ───
+  const handleDownloadQrImage = async () => {
+    if (!generatedInvoice) return;
+    try {
+      const res = await fetch(generatedInvoice.upiQrCodeUrl);
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = `${generatedInvoice.invoiceNumber}-UPI-QR.png`;
+      link.click();
+      URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      window.open(generatedInvoice.upiQrCodeUrl, "_blank");
+    }
+  };
+
+  // ─── NATIVE MOBILE SHARE (Direct WhatsApp Share with QR Image File) ───
+  const handleNativeShareWithImage = async () => {
+    if (!generatedInvoice) return;
+    setIsSharingImage(true);
+    try {
+      const itemsSummary = generatedInvoice.items
+        .map((item: BillItem) => `${item.name} (${item.weightKg} Kg)`)
+        .join(", ");
+
+      const shareText = `Hello ${generatedInvoice.customerName},\nHere is your invoice for Fresh Rainbow Trout from Urban Trout, Srinagar:\n\n*Invoice:* ${generatedInvoice.invoiceNumber}\n*Items:* ${itemsSummary}\n*Total Amount:* ₹${generatedInvoice.grandTotal.toLocaleString("en-IN")}\n\n*Pay via UPI ID:* ${generatedInvoice.upiId}\n*View Online Invoice:* ${generatedInvoice.invoicePublicUrl}`;
+
+      const res = await fetch(generatedInvoice.upiQrCodeUrl);
+      const blob = await res.blob();
+      const file = new File([blob], `${generatedInvoice.invoiceNumber}-QR.png`, { type: "image/png" });
+
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({
+          title: `Invoice ${generatedInvoice.invoiceNumber} - Urban Trout`,
+          text: shareText,
+          files: [file],
+        });
+      } else {
+        handleShareWhatsApp();
+      }
+    } catch (err) {
+      handleShareWhatsApp();
+    } finally {
+      setIsSharingImage(false);
+    }
   };
 
   const handleReset = () => {
@@ -285,7 +358,7 @@ export default function POSBillingPage() {
                 ⚡ Real-Time Auto Calculator
               </span>
               <span className="text-slate-500">•</span>
-              <span className="text-[10px] text-slate-400 font-mono">48-Hr Invoice Generator</span>
+              <span className="text-[10px] text-slate-400 font-mono">48-Hr QR Invoicing</span>
             </div>
             <h1 className="text-xl sm:text-2xl font-extrabold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
               Sales Billing &amp; Invoice Tool
@@ -557,7 +630,7 @@ export default function POSBillingPage() {
         </div>
       </div>
 
-      {/* ─── PRINTABLE INVOICE / PDF MODAL (WITH EASY CLOSE & 48-HR LINK) ─── */}
+      {/* ─── PRINTABLE INVOICE / PDF MODAL (WITH QR IMAGE SHARING) ─── */}
       {invoiceModalOpen && generatedInvoice && (
         <div
           onClick={(e) => {
@@ -568,9 +641,11 @@ export default function POSBillingPage() {
           <div className="relative w-full max-w-md sm:max-w-lg bg-white text-slate-900 rounded-3xl p-5 sm:p-8 shadow-2xl space-y-5 my-6 max-h-[92vh] overflow-y-auto">
             {/* Sticky Top Modal Header with Clear Close Button */}
             <div className="sticky -top-5 sm:-top-8 -mx-5 sm:-mx-8 px-5 sm:px-8 py-3 bg-white/95 backdrop-blur border-b z-20 flex items-center justify-between print:hidden">
-              <span className="text-[11px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full">
-                ✓ 48-Hr Invoice Generated
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full">
+                  ✓ {generatedInvoice.invoiceNumber}
+                </span>
+              </div>
 
               <button
                 type="button"
@@ -646,17 +721,38 @@ export default function POSBillingPage() {
               </div>
 
               {/* ─── EMBEDDED UPI QR CODE FOR CUSTOMER TO SCAN & PAY ─── */}
-              <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-2">
+              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-2.5">
                 <div className="flex justify-center">
-                  <div className="p-1.5 bg-white border border-slate-300 rounded-xl shadow-sm inline-block">
-                    <img src={generatedInvoice.upiQrCodeUrl} alt="Scan & Pay" className="w-28 h-28 sm:w-32 sm:h-32 object-contain" />
+                  <div className="p-2 bg-white border border-slate-300 rounded-2xl shadow-sm inline-block">
+                    <img src={generatedInvoice.upiQrCodeUrl} alt="Scan & Pay" className="w-32 h-32 sm:w-36 sm:h-36 object-contain" />
                   </div>
                 </div>
                 <div>
-                  <p className="text-[11px] font-bold text-slate-800 uppercase tracking-wide">
+                  <p className="text-xs font-bold text-slate-800 uppercase tracking-wide">
                     Scan with Any UPI App (GPay / PhonePe / Paytm)
                   </p>
-                  <p className="text-[10px] text-slate-500 font-mono">UPI ID: {generatedInvoice.upiId}</p>
+                  <p className="text-[11px] text-slate-500 font-mono mt-0.5">UPI ID: {generatedInvoice.upiId}</p>
+                </div>
+
+                {/* Instant QR Image Actions */}
+                <div className="flex items-center justify-center gap-2 pt-1 print:hidden">
+                  <button
+                    type="button"
+                    onClick={handleCopyQrImage}
+                    className="px-3 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 active:scale-95 text-slate-800 text-xs font-bold flex items-center gap-1 transition-all cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-sm">content_copy</span>
+                    {copiedQrImage ? "QR Image Copied! ✓" : "Copy QR Image"}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleDownloadQrImage}
+                    className="px-3 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 active:scale-95 text-slate-800 text-xs font-bold flex items-center gap-1 transition-all cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-sm">download</span>
+                    Save Image
+                  </button>
                 </div>
               </div>
 
@@ -669,12 +765,12 @@ export default function POSBillingPage() {
             </div>
 
             {/* Action Buttons (Hidden in Print) */}
-            <div className="space-y-2 pt-3 border-t print:hidden">
+            <div className="space-y-2.5 pt-3 border-t print:hidden">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 <button
                   type="button"
                   onClick={() => window.print()}
-                  className="py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-md active:scale-95"
+                  className="py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 active:scale-95 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-md"
                 >
                   <span className="material-symbols-outlined text-base">print</span>
                   Print / Save PDF
@@ -682,11 +778,12 @@ export default function POSBillingPage() {
 
                 <button
                   type="button"
-                  onClick={handleShareWhatsApp}
-                  className="py-3 px-4 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-md active:scale-95"
+                  onClick={handleNativeShareWithImage}
+                  disabled={isSharingImage}
+                  className="py-3 px-4 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] active:scale-95 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-md"
                 >
                   <span className="material-symbols-outlined text-base">share</span>
-                  Send WhatsApp Bill
+                  {isSharingImage ? "Preparing Share…" : "Send WhatsApp Bill"}
                 </button>
               </div>
 

@@ -36,7 +36,49 @@ export default function PublicInvoicePage() {
           .single();
         if (upiData?.value) setUpiId(upiData.value);
 
-        // 2. Check if rawParam is a Base64 encoded token (Stateless 48-Hour Invoice)
+        // 2. Normalize Clean ID (e.g. "UT-INV-3986" -> "3986", or "3986")
+        const cleanDigits = rawParam.replace(/\D/g, "");
+        const appSettingKey = `inv_${cleanDigits || rawParam}`;
+
+        // Check app_settings for lightweight 48-Hour POS Invoice
+        const { data: settingRow } = await supabase
+          .from("app_settings")
+          .select("value")
+          .eq("key", appSettingKey)
+          .single();
+
+        if (settingRow?.value) {
+          try {
+            const parsed = JSON.parse(settingRow.value);
+            const createdTimestamp = parsed.ts || Date.now();
+            const elapsedMs = Date.now() - createdTimestamp;
+            const maxAgeMs = 48 * 60 * 60 * 1000; // 48 Hours
+            const isExpired = elapsedMs > maxAgeMs;
+            const remainingHours = Math.max(0, Math.ceil((maxAgeMs - elapsedMs) / (1000 * 60 * 60)));
+
+            setInvoice({
+              invoiceNumber: parsed.num || `UT-INV-${cleanDigits}`,
+              customerName: parsed.name || "Valued Customer",
+              customerPhone: parsed.phone || "N/A",
+              items: (parsed.items || []).map((i: any) => ({
+                name: i.n || i.name,
+                weightKg: i.w ?? i.weightKg ?? 1,
+                pricePerKg: i.r ?? i.pricePerKg ?? 550,
+                total: i.t ?? i.total ?? 550,
+              })),
+              totalWeight: parsed.tw ?? parsed.totalWeight ?? 0,
+              grandTotal: parsed.tot ?? parsed.grandTotal ?? 0,
+              notes: parsed.notes || "",
+              createdAt: createdTimestamp,
+              isExpired,
+              expiresInHours: remainingHours,
+            });
+            setLoading(false);
+            return;
+          } catch (e) {}
+        }
+
+        // 3. Check if rawParam was a Base64 token (Legacy fallback)
         let decodedObj: any = null;
         try {
           const jsonStr = decodeURIComponent(atob(rawParam));
@@ -46,11 +88,11 @@ export default function PublicInvoicePage() {
         if (decodedObj && (decodedObj.ts || decodedObj.tot)) {
           const createdTimestamp = decodedObj.ts || Date.now();
           const elapsedMs = Date.now() - createdTimestamp;
-          const maxAgeMs = 48 * 60 * 60 * 1000; // 48 Hours
+          const maxAgeMs = 48 * 60 * 60 * 1000;
           const isExpired = elapsedMs > maxAgeMs;
           const remainingHours = Math.max(0, Math.ceil((maxAgeMs - elapsedMs) / (1000 * 60 * 60)));
 
-          const formatted: DecodedInvoice = {
+          setInvoice({
             invoiceNumber: decodedObj.num || "UT-INV-LIVE",
             customerName: decodedObj.name || "Valued Customer",
             customerPhone: decodedObj.phone || "N/A",
@@ -66,27 +108,16 @@ export default function PublicInvoicePage() {
             createdAt: createdTimestamp,
             isExpired,
             expiresInHours: remainingHours,
-          };
-
-          setInvoice(formatted);
+          });
           setLoading(false);
           return;
         }
 
-        // 3. Fallback: Database Lookup for Online Orders
-        const cleanId = rawParam.replace(/[^0-9a-fA-F-]/g, "");
-        const numId = parseInt(cleanId, 10);
-
+        // 4. Fallback: Database Lookup for Online Store Orders
+        const numId = parseInt(cleanDigits, 10);
         let query = supabase.from("orders").select("*");
-        if (!isNaN(numId) && !rawParam.includes("-") && rawParam.length < 8) {
+        if (!isNaN(numId)) {
           query = query.eq("order_number", numId);
-        } else if (rawParam.toUpperCase().startsWith("UT-INV-")) {
-          const extractedNum = parseInt(rawParam.replace("UT-INV-", ""), 10);
-          if (!isNaN(extractedNum)) {
-            query = query.eq("order_number", extractedNum);
-          } else {
-            query = query.eq("id", rawParam);
-          }
         } else {
           query = query.eq("id", rawParam);
         }
@@ -96,7 +127,6 @@ export default function PublicInvoicePage() {
           const orderItems = Array.isArray(dbOrder.items) ? dbOrder.items : [];
           const tw = orderItems.reduce((s: number, i: any) => s + (parseFloat(i.quantity) || 0), 0);
           const orderCreated = new Date(dbOrder.created_at).getTime();
-          const isExpired = Date.now() - orderCreated > 48 * 60 * 60 * 1000;
 
           setInvoice({
             invoiceNumber: `UT-INV-${dbOrder.order_number || dbOrder.id.slice(0, 6)}`,
@@ -111,7 +141,7 @@ export default function PublicInvoicePage() {
             totalWeight: tw,
             grandTotal: dbOrder.total || 0,
             createdAt: orderCreated,
-            isExpired: false, // Online DB orders don't hard expire
+            isExpired: false,
           });
         }
       } catch (err) {
@@ -141,7 +171,7 @@ export default function PublicInvoicePage() {
     );
   }
 
-  // EXPIRED INVOICE STATE (48-Hour Timer Ended)
+  // EXPIRED INVOICE STATE (48-Hour Validity Period Ended)
   if (invoice?.isExpired) {
     return (
       <div className="min-h-screen bg-[#020d12] flex items-center justify-center p-4 text-center">
@@ -199,7 +229,7 @@ export default function PublicInvoicePage() {
 
   const grandTotal = invoice.grandTotal;
   const upiPayUri = `upi://pay?pa=${upiId}&pn=Urban%20Trout%20Farm&am=${grandTotal}&cu=INR&tn=Invoice-${invoice.invoiceNumber}`;
-  const upiQrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(
+  const upiQrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(
     upiPayUri
   )}&bgcolor=255-255-255&color=2-13-18&margin=2`;
 
@@ -317,7 +347,7 @@ export default function PublicInvoicePage() {
           <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-3">
             <div className="flex justify-center">
               <div className="p-2 bg-white border border-slate-300 rounded-2xl shadow-sm inline-block">
-                <img src={upiQrCodeUrl} alt="Scan & Pay" className="w-32 h-32 sm:w-36 sm:h-36 object-contain" />
+                <img src={upiQrCodeUrl} alt="Scan & Pay" className="w-36 h-36 object-contain" />
               </div>
             </div>
             <div>
@@ -340,7 +370,7 @@ export default function PublicInvoicePage() {
           {/* Footer Note */}
           <div className="text-center pt-2 text-xs text-slate-500 leading-tight">
             <p className="font-semibold text-slate-700">Fresh Live RAS Tank Harvested Trout</p>
-            <p className="mt-0.5">Keep chilled at 0°C - 4°C. Consume fresh within 48 hours.</p>
+            <p className="mt-0.5">Keep chilled at 0°C - 4°C. Valid for 48 hours.</p>
             <p className="font-mono text-[10px] text-slate-400 mt-1">Thank you for supporting sustainable Kashmiri aquaculture!</p>
           </div>
         </div>
