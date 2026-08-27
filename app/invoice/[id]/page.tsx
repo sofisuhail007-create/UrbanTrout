@@ -374,7 +374,7 @@ export default function PublicInvoicePage() {
           </div>
 
           {/* ─── EMBEDDED UPI QR CODE ─── */}
-          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-3">
+          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-4">
             <div className="flex justify-center">
               <div className="p-2 bg-white border border-slate-300 rounded-2xl shadow-sm inline-block">
                 <img src={upiQrCodeUrl} alt="Scan & Pay" className="w-36 h-36 object-contain" />
@@ -382,7 +382,7 @@ export default function PublicInvoicePage() {
             </div>
             <div>
               <p className="text-xs font-bold text-slate-800 uppercase tracking-wide">
-                Scan with Any UPI App (GPay / PhonePe / Paytm)
+                Scan QR or Tap an App to Pay
               </p>
               <div className="flex items-center justify-center gap-2 mt-1">
                 <span className="text-xs text-slate-600 font-mono font-bold">UPI ID: {upiId}</span>
@@ -394,6 +394,91 @@ export default function PublicInvoicePage() {
                   {copiedUpi ? "Copied! ✓" : "Copy"}
                 </button>
               </div>
+            </div>
+
+            {/* ─── ONE-TAP UPI APP BUTTONS ─── */}
+            <div className="print:hidden space-y-2">
+              <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400">
+                Tap to Open & Pay Directly
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {/* PhonePe */}
+                <a
+                  href={`phonepe://pay?pa=${upiId}&pn=Urban%20Trout&am=${grandTotal}&cu=INR&tn=Invoice%20${invoice.invoiceNumber}`}
+                  className="flex items-center gap-2.5 p-3 rounded-xl border transition-all active:scale-95 cursor-pointer"
+                  style={{ background: "#5f259f", borderColor: "#4a1a7a" }}
+                >
+                  {/* PhonePe Icon */}
+                  <svg width="24" height="24" viewBox="0 0 64 64" fill="none">
+                    <rect width="64" height="64" rx="14" fill="#5f259f"/>
+                    <path d="M32 8C18.7 8 8 18.7 8 32s10.7 24 24 24 24-10.7 24-24S45.3 8 32 8zm8.8 28.5c-1.3 2.5-3.6 4.1-6.4 4.6v3.7c0 .6-.5 1.1-1.1 1.1h-2.2c-.6 0-1.1-.5-1.1-1.1v-3.7c-4.5-.8-7.7-4.9-7.7-9.8V22.2c0-.6.5-1.1 1.1-1.1h2.2c.6 0 1.1.5 1.1 1.1v9.1c0 3.1 2.3 5.7 5.4 5.9 3.3.2 6-2.4 6-5.7v-9.3c0-.6.5-1.1 1.1-1.1h2.2c.6 0 1.1.5 1.1 1.1v9.3c0 1.9-.5 3.6-1.7 5z" fill="white"/>
+                  </svg>
+                  <div className="text-left">
+                    <p className="text-white font-bold text-xs">PhonePe</p>
+                    <p className="text-purple-200 text-[10px]">₹{grandTotal.toLocaleString("en-IN")}</p>
+                  </div>
+                </a>
+
+                {/* Google Pay */}
+                <a
+                  href={`tez://upi/pay?pa=${upiId}&pn=Urban%20Trout&am=${grandTotal}&cu=INR&tn=Invoice%20${invoice.invoiceNumber}`}
+                  className="flex items-center gap-2.5 p-3 rounded-xl border transition-all active:scale-95 cursor-pointer"
+                  style={{ background: "#1a73e8", borderColor: "#1558b0" }}
+                >
+                  {/* GPay Icon */}
+                  <svg width="24" height="24" viewBox="0 0 64 64" fill="none">
+                    <rect width="64" height="64" rx="14" fill="white"/>
+                    <text x="50%" y="56%" dominantBaseline="middle" textAnchor="middle" fontSize="28" fontWeight="bold" fontFamily="Arial">
+                      <tspan fill="#4285F4">G</tspan>
+                    </text>
+                    <circle cx="43" cy="43" r="10" fill="#34A853"/>
+                    <text x="43" y="47" dominantBaseline="middle" textAnchor="middle" fontSize="11" fontWeight="bold" fill="white">P</text>
+                  </svg>
+                  <div className="text-left">
+                    <p className="text-white font-bold text-xs">Google Pay</p>
+                    <p className="text-blue-200 text-[10px]">₹{grandTotal.toLocaleString("en-IN")}</p>
+                  </div>
+                </a>
+
+                {/* Paytm */}
+                <a
+                  href={`paytmmp://pay?pa=${upiId}&pn=Urban%20Trout&am=${grandTotal}&cu=INR&tn=Invoice%20${invoice.invoiceNumber}`}
+                  className="flex items-center gap-2.5 p-3 rounded-xl border transition-all active:scale-95 cursor-pointer"
+                  style={{ background: "#00BAF2", borderColor: "#0096c4" }}
+                >
+                  {/* Paytm Icon */}
+                  <svg width="24" height="24" viewBox="0 0 64 64" fill="none">
+                    <rect width="64" height="64" rx="14" fill="#00BAF2"/>
+                    <rect x="12" y="24" width="40" height="8" rx="2" fill="white"/>
+                    <rect x="12" y="36" width="28" height="8" rx="2" fill="white"/>
+                  </svg>
+                  <div className="text-left">
+                    <p className="text-white font-bold text-xs">Paytm</p>
+                    <p className="text-blue-100 text-[10px]">₹{grandTotal.toLocaleString("en-IN")}</p>
+                  </div>
+                </a>
+
+                {/* BHIM UPI */}
+                <a
+                  href={`upi://pay?pa=${upiId}&pn=Urban%20Trout&am=${grandTotal}&cu=INR&tn=Invoice%20${invoice.invoiceNumber}`}
+                  className="flex items-center gap-2.5 p-3 rounded-xl border transition-all active:scale-95 cursor-pointer"
+                  style={{ background: "#FF6600", borderColor: "#cc5200" }}
+                >
+                  {/* BHIM Icon */}
+                  <svg width="24" height="24" viewBox="0 0 64 64" fill="none">
+                    <rect width="64" height="64" rx="14" fill="#FF6600"/>
+                    <text x="50%" y="54%" dominantBaseline="middle" textAnchor="middle" fontSize="18" fontWeight="900" fill="white" fontFamily="Arial">UPI</text>
+                  </svg>
+                  <div className="text-left">
+                    <p className="text-white font-bold text-xs">BHIM / Any App</p>
+                    <p className="text-orange-100 text-[10px]">₹{grandTotal.toLocaleString("en-IN")}</p>
+                  </div>
+                </a>
+              </div>
+
+              <p className="text-[10px] text-slate-400 text-center leading-tight mt-1">
+                Tap a button above → your UPI app opens with the amount pre-filled
+              </p>
             </div>
           </div>
 
