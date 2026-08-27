@@ -43,25 +43,40 @@ export function CartProvider({ children }: { children: ReactNode }) {
         console.error("Failed to load cart", e);
       }
 
-      // Fetch live MOQ and price from inventory table to ensure cart respects current rules
+      // Fetch live MOQ and price from inventory API/table to ensure cart respects current rules
+      let invList: any[] = [];
       try {
-        const { data: invData } = await supabase.from("inventory").select("product_id, min_order_kg, price_per_kg");
-        if (invData && invData.length > 0) {
-          loadedItems = loadedItems.map((item) => {
-            const inv = invData.find((i) => i.product_id === item.id);
-            if (inv) {
-              const liveMin = Math.max(1, Number(inv.min_order_kg) || 1);
-              return {
-                ...item,
-                price: inv.price_per_kg || item.price,
-                minQuantity: liveMin,
-                quantity: Math.max(liveMin, item.quantity),
-              };
-            }
-            return item;
-          });
+        const res = await fetch("/api/inventory");
+        if (res.ok) {
+          const json = await res.json();
+          if (json?.success && Array.isArray(json.inventory)) {
+            invList = json.inventory;
+          }
         }
       } catch (_) {}
+
+      if (invList.length === 0) {
+        try {
+          const { data } = await supabase.from("inventory").select("*");
+          if (data) invList = data;
+        } catch (_) {}
+      }
+
+      if (invList.length > 0 && loadedItems.length > 0) {
+        loadedItems = loadedItems.map((item) => {
+          const inv = invList.find((i) => i.product_id === item.id);
+          if (inv) {
+            const liveMin = Math.max(1, Number(inv.min_order_kg) || 1);
+            return {
+              ...item,
+              price: inv.price_per_kg || item.price,
+              minQuantity: liveMin,
+              quantity: Math.max(liveMin, item.quantity),
+            };
+          }
+          return item;
+        });
+      }
 
       setItems(loadedItems);
       setIsInitialized(true);

@@ -19,7 +19,7 @@ export default function ProductCard({ p }: { p: Product }) {
   }, [p.minQuantity]);
 
   const handleAdd = () => {
-    addItem({ id: p.id, name: p.name, price: p.price, quantity: qty, unit: p.unit, image: p.img });
+    addItem({ id: p.id, name: p.name, price: p.price, quantity: Math.max(effectiveMin, qty), unit: p.unit, image: p.img, minQuantity: effectiveMin });
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
   };

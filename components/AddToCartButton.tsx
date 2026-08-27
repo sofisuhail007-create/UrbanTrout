@@ -37,7 +37,7 @@ export default function AddToCartButton({
   }, [minQuantity]);
 
   const handleAdd = () => {
-    addItem({ id: productId, name: productName, price, quantity: qty, unit, image });
+    addItem({ id: productId, name: productName, price, quantity: Math.max(effectiveMin, qty), unit, image, minQuantity: effectiveMin });
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
   };
