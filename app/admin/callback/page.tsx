@@ -14,7 +14,6 @@ export default function AdminAuthCallback() {
 
     async function handleAuth() {
       try {
-        // Retrieve current session
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
         if (sessionError) {
@@ -23,7 +22,6 @@ export default function AdminAuthCallback() {
         }
 
         if (!session?.user?.email) {
-          // Listen for onAuthStateChange if session is still processing URL hash
           const { data: authListener } = supabase.auth.onAuthStateChange(async (event, currentSession) => {
             if (currentSession?.user?.email) {
               authListener.subscription.unsubscribe();
@@ -31,10 +29,9 @@ export default function AdminAuthCallback() {
             }
           });
 
-          // Timeout fallback
           setTimeout(() => {
             if (!session?.user?.email) {
-              setErrorMsg("Authentication timed out or no user found. Please try again.");
+              setErrorMsg("Authentication timed out. Please try signing in again.");
             }
           }, 6000);
           return;
@@ -48,50 +45,106 @@ export default function AdminAuthCallback() {
 
     async function validateAndRedirect(email: string) {
       const cleanEmail = email.trim().toLowerCase();
+      const isRootOwner = cleanEmail === "sofisuhail007@gmail.com";
 
-      // 1. Check Hardcoded Root & Env Whitelist
-      const rawEnv = process.env.NEXT_PUBLIC_ADMIN_EMAILS || "sofisuhail007@gmail.com";
-      const envAllowed = rawEnv
-        .split(",")
-        .map((e) => e.trim().toLowerCase())
-        .filter(Boolean);
+      let staffPermissions = isRootOwner
+        ? {
+            billing: true,
+            orders: true,
+            leads: true,
+            inventory: true,
+            customers: true,
+            analytics: true,
+            farm: true,
+            settings: true,
+            can_delete: true,
+          }
+        : null;
 
-      let isAuthorized = cleanEmail === "sofisuhail007@gmail.com" || envAllowed.includes(cleanEmail);
+      let isAuthorized = isRootOwner;
+      let staffRole = isRootOwner ? "super_admin" : "sales_staff";
 
-      // 2. Also check dynamic DB whitelist from app_settings
+      // Check DB staff_permissions list
+      try {
+        const { data: staffRow } = await supabase
+          .from("app_settings")
+          .select("value")
+          .eq("key", "staff_permissions")
+          .single();
+
+        if (staffRow?.value) {
+          const parsed = JSON.parse(staffRow.value);
+          if (Array.isArray(parsed)) {
+            const member = parsed.find((s: any) => s.email?.toLowerCase() === cleanEmail);
+            if (member) {
+              isAuthorized = true;
+              staffPermissions = member.permissions;
+              staffRole = member.role || "sales_staff";
+            }
+          }
+        }
+      } catch (dbErr) {
+        console.warn("Could not check staff permissions from DB:", dbErr);
+      }
+
+      // Check fallback admin_whitelist if not found in staff_permissions
       if (!isAuthorized) {
         try {
-          const { data: settingRow } = await supabase
+          const { data: whitelistRow } = await supabase
             .from("app_settings")
             .select("value")
             .eq("key", "admin_whitelist")
             .single();
 
-          if (settingRow?.value) {
-            const dbAllowed = settingRow.value
-              .split(",")
-              .map((e: string) => e.trim().toLowerCase())
-              .filter(Boolean);
-            if (dbAllowed.includes(cleanEmail)) {
+          if (whitelistRow?.value) {
+            const allowed = whitelistRow.value.split(",").map((e: string) => e.trim().toLowerCase());
+            if (allowed.includes(cleanEmail)) {
               isAuthorized = true;
+              staffPermissions = {
+                billing: true,
+                orders: true,
+                leads: true,
+                inventory: true,
+                customers: true,
+                analytics: false,
+                farm: false,
+                settings: false,
+                can_delete: false,
+              };
             }
           }
-        } catch (dbErr) {
-          console.warn("Could not fetch DB admin whitelist:", dbErr);
-        }
+        } catch (e) {}
       }
 
       if (isAuthorized) {
         sessionStorage.setItem("ut_admin_auth", "1");
         sessionStorage.setItem("ut_admin_email", cleanEmail);
+        sessionStorage.setItem("ut_admin_role", staffRole);
+        sessionStorage.setItem(
+          "ut_admin_permissions",
+          JSON.stringify(
+            staffPermissions || {
+              billing: true,
+              orders: true,
+              leads: false,
+              inventory: true,
+              customers: true,
+              analytics: false,
+              farm: false,
+              settings: false,
+              can_delete: false,
+            }
+          )
+        );
         router.replace("/admin/dashboard");
       } else {
-        // Sign out unauthorized user immediately
         await supabase.auth.signOut();
         sessionStorage.removeItem("ut_admin_auth");
         sessionStorage.removeItem("ut_admin_email");
+        sessionStorage.removeItem("ut_admin_role");
+        sessionStorage.removeItem("ut_admin_permissions");
         setErrorMsg(
-          `Access Denied: "${cleanEmail}" is not an authorized administrator. Please sign in with an approved Google account.`
+          `Access Denied: "${cleanEmail}" is not authorized. Please ask the administrator to grant access to your Google account in Settings.`
         );
       }
     }
@@ -101,7 +154,6 @@ export default function AdminAuthCallback() {
 
   return (
     <div className="min-h-screen bg-[#020d12] flex items-center justify-center px-4">
-      {/* Background glow */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-cyan-500/5 rounded-full blur-3xl" />
       </div>
@@ -133,10 +185,10 @@ export default function AdminAuthCallback() {
             <div className="w-12 h-12 rounded-full border-2 border-cyan-500 border-t-transparent animate-spin mx-auto" />
             <div>
               <h3 className="text-lg font-bold text-white mb-1" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
-                Verifying Admin Privileges…
+                Verifying Staff Privileges…
               </h3>
               <p className="text-slate-400 text-xs" style={{ fontFamily: '"Manrope", sans-serif' }}>
-                Authenticating with Google OAuth &amp; checking whitelist
+                Checking RBAC role &amp; feature access matrix
               </p>
             </div>
           </div>
