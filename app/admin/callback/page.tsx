@@ -6,7 +6,6 @@ import { supabase } from "@/lib/supabase";
 export default function AdminAuthCallback() {
   const router = useRouter();
   const [errorMsg, setErrorMsg] = useState("");
-  const [userEmail, setUserEmail] = useState("");
   const isVerifyingRef = useRef(false);
 
   useEffect(() => {
@@ -49,16 +48,38 @@ export default function AdminAuthCallback() {
 
     async function validateAndRedirect(email: string) {
       const cleanEmail = email.trim().toLowerCase();
-      setUserEmail(cleanEmail);
 
-      const rawWhitelist = process.env.NEXT_PUBLIC_ADMIN_EMAILS || "sofisuhail007@gmail.com,admin@urbantrout.in";
-      const allowedAdmins = rawWhitelist
+      // 1. Check Hardcoded Root & Env Whitelist
+      const rawEnv = process.env.NEXT_PUBLIC_ADMIN_EMAILS || "sofisuhail007@gmail.com";
+      const envAllowed = rawEnv
         .split(",")
         .map((e) => e.trim().toLowerCase())
         .filter(Boolean);
 
-      // Strict Whitelist Check
-      const isAuthorized = allowedAdmins.includes(cleanEmail) || cleanEmail === "sofisuhail007@gmail.com";
+      let isAuthorized = cleanEmail === "sofisuhail007@gmail.com" || envAllowed.includes(cleanEmail);
+
+      // 2. Also check dynamic DB whitelist from app_settings
+      if (!isAuthorized) {
+        try {
+          const { data: settingRow } = await supabase
+            .from("app_settings")
+            .select("value")
+            .eq("key", "admin_whitelist")
+            .single();
+
+          if (settingRow?.value) {
+            const dbAllowed = settingRow.value
+              .split(",")
+              .map((e: string) => e.trim().toLowerCase())
+              .filter(Boolean);
+            if (dbAllowed.includes(cleanEmail)) {
+              isAuthorized = true;
+            }
+          }
+        } catch (dbErr) {
+          console.warn("Could not fetch DB admin whitelist:", dbErr);
+        }
+      }
 
       if (isAuthorized) {
         sessionStorage.setItem("ut_admin_auth", "1");
@@ -70,7 +91,7 @@ export default function AdminAuthCallback() {
         sessionStorage.removeItem("ut_admin_auth");
         sessionStorage.removeItem("ut_admin_email");
         setErrorMsg(
-          `Access Denied: "${cleanEmail}" is not authorized to access the Urban Trout Admin Panel.`
+          `Access Denied: "${cleanEmail}" is not an authorized administrator. Please sign in with an approved Google account.`
         );
       }
     }
@@ -87,28 +108,28 @@ export default function AdminAuthCallback() {
 
       <div className="relative w-full max-w-md text-center">
         {errorMsg ? (
-          <div className="bg-slate-900/90 border border-red-500/30 rounded-2xl p-8 backdrop-blur-xl shadow-2xl space-y-5">
-            <div className="w-14 h-14 rounded-full bg-red-500/15 border border-red-500/40 text-red-400 flex items-center justify-center mx-auto">
+          <div className="bg-slate-900/90 border border-red-500/30 rounded-3xl p-8 backdrop-blur-xl shadow-2xl space-y-5">
+            <div className="w-14 h-14 rounded-2xl bg-red-500/15 border border-red-500/40 text-red-400 flex items-center justify-center mx-auto">
               <span className="material-symbols-outlined text-2xl">gpp_bad</span>
             </div>
             <div>
               <h2 className="text-xl font-bold text-white mb-2" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
-                Restricted Access
+                Access Denied
               </h2>
-              <p className="text-red-300/90 text-sm leading-relaxed" style={{ fontFamily: '"Manrope", sans-serif' }}>
+              <p className="text-red-300/90 text-xs leading-relaxed" style={{ fontFamily: '"Manrope", sans-serif' }}>
                 {errorMsg}
               </p>
             </div>
             <a
               href="/admin"
-              className="inline-block w-full py-3 px-4 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition-all text-sm uppercase tracking-wider"
+              className="inline-block w-full py-3 px-4 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition-all text-xs uppercase tracking-wider cursor-pointer"
               style={{ fontFamily: '"Space Grotesk", sans-serif' }}
             >
               ← Back to Sign In
             </a>
           </div>
         ) : (
-          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-8 backdrop-blur-xl shadow-2xl space-y-4">
+          <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-8 backdrop-blur-xl shadow-2xl space-y-4">
             <div className="w-12 h-12 rounded-full border-2 border-cyan-500 border-t-transparent animate-spin mx-auto" />
             <div>
               <h3 className="text-lg font-bold text-white mb-1" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
