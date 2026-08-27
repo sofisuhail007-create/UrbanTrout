@@ -283,7 +283,7 @@ export default function CheckoutPage() {
   });
 
   const leadIdRef = useRef<string | null>(null);
-  const telegramLeadPhoneRef = useRef<string>("");
+  const telegramSentPhonesRef = useRef<Set<string>>(new Set());
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const deliveryFee = 0;
@@ -319,8 +319,7 @@ export default function CheckoutPage() {
     async (
       currentData: typeof formData,
       currentTotal: number,
-      currentItems: typeof items,
-      forceTelegram = false
+      currentItems: typeof items
     ) => {
       const rawPhone = currentData.phone.replace(/\D/g, "");
       if (!rawPhone || rawPhone.length < 8) return;
@@ -391,8 +390,9 @@ export default function CheckoutPage() {
           { onConflict: "phone" }
         );
 
-        if (forceTelegram || telegramLeadPhoneRef.current !== cleanPhone) {
-          telegramLeadPhoneRef.current = cleanPhone;
+        // 3. Send Telegram alert EXACTLY ONCE per customer phone per session
+        if (cleanPhone && !telegramSentPhonesRef.current.has(cleanPhone)) {
+          telegramSentPhonesRef.current.add(cleanPhone);
           fetch("/api/telegram-notify", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -459,11 +459,11 @@ export default function CheckoutPage() {
   useEffect(() => {
     if (formData.phone.replace(/\D/g, "").length >= 10) {
       const timer = setTimeout(() => {
-        captureLead(formData, grandTotal, items, true);
-      }, 500);
+        captureLead(formData, grandTotal, items);
+      }, 1000);
       return () => clearTimeout(timer);
     }
-  }, [formData, grandTotal, items, captureLead]);
+  }, [formData.phone, currentStep, grandTotal, items, captureLead]);
 
   // ─── Location Detection (GPS) ────────────────────────────────
   const detectLocation = () => {
