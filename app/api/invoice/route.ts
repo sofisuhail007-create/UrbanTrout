@@ -1,5 +1,17 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@supabase/supabase-js";
+
+// Initialize Supabase client with SERVICE ROLE KEY to bypass RLS policies
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  }
+);
 
 export async function POST(request: Request) {
   try {
@@ -13,7 +25,7 @@ export async function POST(request: Request) {
     const cleanDigits = String(invoiceId).replace(/\D/g, "");
     const key = `inv_${cleanDigits || invoiceId}`;
 
-    const { error } = await supabase.from("app_settings").upsert(
+    const { error } = await supabaseAdmin.from("app_settings").upsert(
       {
         key,
         value: typeof data === "string" ? data : JSON.stringify(data),
@@ -22,7 +34,7 @@ export async function POST(request: Request) {
     );
 
     if (error) {
-      console.error("Error saving invoice in app_settings:", error);
+      console.error("Error saving invoice via supabaseAdmin:", error);
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
@@ -45,8 +57,8 @@ export async function GET(request: Request) {
     const cleanDigits = id.replace(/\D/g, "");
     const key = `inv_${cleanDigits || id}`;
 
-    // 1. Try fetching from app_settings
-    const { data: settingRow } = await supabase
+    // 1. Try fetching from app_settings using service role key
+    const { data: settingRow } = await supabaseAdmin
       .from("app_settings")
       .select("value")
       .eq("key", key)
@@ -59,9 +71,24 @@ export async function GET(request: Request) {
       } catch (e) {}
     }
 
-    // 2. Try fetching from orders table (for online orders)
+    // 2. Try fetching by raw id if key didn't match
+    if (key !== `inv_${id}`) {
+      const { data: rawRow } = await supabaseAdmin
+        .from("app_settings")
+        .select("value")
+        .eq("key", `inv_${id}`)
+        .single();
+      if (rawRow?.value) {
+        try {
+          const parsed = JSON.parse(rawRow.value);
+          return NextResponse.json({ success: true, invoice: parsed, source: "app_settings_raw" });
+        } catch (e) {}
+      }
+    }
+
+    // 3. Try fetching from orders table (for online orders)
     const numId = parseInt(cleanDigits, 10);
-    let query = supabase.from("orders").select("*");
+    let query = supabaseAdmin.from("orders").select("*");
     if (!isNaN(numId)) {
       query = query.eq("order_number", numId);
     } else {
