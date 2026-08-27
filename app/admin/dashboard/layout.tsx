@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
+import { supabase } from "@/lib/supabase";
 
 const NAV = [
   { href: "/admin/dashboard", icon: "dashboard", label: "Dashboard" },
@@ -19,16 +20,39 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [adminEmail, setAdminEmail] = useState<string>("");
 
   useEffect(() => {
     setMounted(true);
-    if (!sessionStorage.getItem("ut_admin_auth")) {
-      router.replace("/admin");
+    const authStatus = sessionStorage.getItem("ut_admin_auth");
+    const storedEmail = sessionStorage.getItem("ut_admin_email") || "sofisuhail007@gmail.com";
+    setAdminEmail(storedEmail);
+
+    if (!authStatus) {
+      // Check if Supabase has active session
+      supabase.auth.getSession().then(({ data: { session } }) => {
+        if (session?.user?.email) {
+          const userEmail = session.user.email.toLowerCase();
+          const rawWhitelist = process.env.NEXT_PUBLIC_ADMIN_EMAILS || "sofisuhail007@gmail.com,admin@urbantrout.in";
+          const allowed = rawWhitelist.split(",").map((e) => e.trim().toLowerCase());
+          if (allowed.includes(userEmail) || userEmail === "sofisuhail007@gmail.com") {
+            sessionStorage.setItem("ut_admin_auth", "1");
+            sessionStorage.setItem("ut_admin_email", userEmail);
+            setAdminEmail(userEmail);
+            return;
+          }
+        }
+        router.replace("/admin");
+      });
     }
   }, [router]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch {}
     sessionStorage.removeItem("ut_admin_auth");
+    sessionStorage.removeItem("ut_admin_email");
     router.push("/admin");
   };
 
@@ -56,8 +80,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             />
           )}
           <button
+            type="button"
             onClick={() => setCollapsed((c) => !c)}
-            className="ml-auto text-slate-600 hover:text-slate-300 transition-colors"
+            className="ml-auto text-slate-600 hover:text-slate-300 transition-colors cursor-pointer"
           >
             <span className="material-symbols-outlined text-base">
               {collapsed ? "chevron_right" : "chevron_left"}
@@ -66,7 +91,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
 
         {/* Nav items */}
-        <nav className="flex-1 py-4 space-y-1 px-2">
+        <nav className="flex-1 py-4 space-y-1 px-2 overflow-y-auto">
           {NAV.map((item) => {
             const active =
               item.href === "/admin/dashboard"
@@ -89,11 +114,20 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           })}
         </nav>
 
-        {/* Logout */}
-        <div className="px-2 pb-4 border-t border-slate-800 pt-3">
+        {/* Admin Profile & Logout */}
+        <div className="px-2 pb-4 border-t border-slate-800 pt-3 space-y-2">
+          {!collapsed && adminEmail && (
+            <div className="px-3 py-1.5 rounded-lg bg-slate-900/60 border border-slate-800 flex items-center gap-2 overflow-hidden">
+              <div className="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0" />
+              <span className="text-[11px] text-slate-400 truncate" style={{ fontFamily: '"Manrope", sans-serif' }}>
+                {adminEmail}
+              </span>
+            </div>
+          )}
           <button
+            type="button"
             onClick={handleLogout}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-lg w-full text-slate-500 hover:bg-red-500/10 hover:text-red-400 transition-all text-sm"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg w-full text-slate-500 hover:bg-red-500/10 hover:text-red-400 transition-all text-sm cursor-pointer"
           >
             <span className="material-symbols-outlined text-[18px] flex-shrink-0">logout</span>
             {!collapsed && <span style={{ fontFamily: '"Manrope", sans-serif' }}>Logout</span>}
