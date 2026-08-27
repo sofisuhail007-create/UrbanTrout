@@ -33,6 +33,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [adminEmail, setAdminEmail] = useState<string>("");
   const [adminRole, setAdminRole] = useState<string>("staff");
   const [permissions, setPermissions] = useState<StaffPermissions>({
@@ -78,6 +79,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [router]);
 
+  // Close mobile drawer upon route change
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
+
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
@@ -102,14 +108,40 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const isRouteBlocked = currentNav?.permKey && permissions[currentNav.permKey as keyof StaffPermissions] === false;
 
   return (
-    <div className="flex h-screen bg-[#020d12] text-slate-200 overflow-hidden">
-      {/* Sidebar */}
+    <div className="flex flex-col md:flex-row h-screen bg-[#020d12] text-slate-200 overflow-hidden">
+      {/* ─── MOBILE TOP BAR (Visible on screens < md) ─── */}
+      <header className="flex md:hidden items-center justify-between px-4 py-3 bg-slate-950 border-b border-slate-800 z-30 flex-shrink-0">
+        <div className="flex items-center gap-2.5">
+          <img src="/headerfooterlogo.png" alt="Urban Trout" className="h-6 w-auto object-contain" />
+          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-mono">
+            {adminRole.replace("_", " ")}
+          </span>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-700 flex items-center justify-center text-slate-300 active:scale-95 cursor-pointer"
+        >
+          <span className="material-symbols-outlined text-2xl">{mobileMenuOpen ? "close" : "menu"}</span>
+        </button>
+      </header>
+
+      {/* ─── MOBILE DRAWER BACKDROP OVERLAY ─── */}
+      {mobileMenuOpen && (
+        <div
+          onClick={() => setMobileMenuOpen(false)}
+          className="fixed inset-0 z-40 bg-black/80 backdrop-blur-sm md:hidden"
+        />
+      )}
+
+      {/* ─── SIDEBAR (Desktop Fixed + Mobile Slide-over Drawer) ─── */}
       <aside
-        className={`flex flex-col border-r border-slate-800 bg-slate-950/90 transition-all duration-300 ${
-          collapsed ? "w-16" : "w-60"
-        }`}
+        className={`fixed md:relative top-0 bottom-0 left-0 z-50 md:z-auto flex flex-col border-r border-slate-800 bg-slate-950 transition-all duration-300 ${
+          mobileMenuOpen ? "translate-x-0 w-72 shadow-2xl" : "-translate-x-full md:translate-x-0"
+        } ${collapsed ? "md:w-16" : "md:w-60"}`}
       >
-        {/* Logo */}
+        {/* Logo (Desktop Header) */}
         <div className="flex items-center gap-2 px-3.5 py-4 border-b border-slate-800 overflow-hidden">
           {!collapsed ? (
             <img
@@ -124,14 +156,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               className="w-8 h-8 rounded-lg object-contain"
             />
           )}
+
+          {/* Desktop Collapse Toggle */}
           <button
             type="button"
             onClick={() => setCollapsed((c) => !c)}
-            className="ml-auto text-slate-600 hover:text-slate-300 transition-colors cursor-pointer"
+            className="hidden md:flex ml-auto text-slate-600 hover:text-slate-300 transition-colors cursor-pointer"
           >
             <span className="material-symbols-outlined text-base">
               {collapsed ? "chevron_right" : "chevron_left"}
             </span>
+          </button>
+
+          {/* Mobile Close Button */}
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen(false)}
+            className="md:hidden ml-auto text-slate-400 hover:text-white p-1"
+          >
+            <span className="material-symbols-outlined">close</span>
           </button>
         </div>
 
@@ -152,7 +195,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 className={`flex items-center justify-between px-3 py-2.5 rounded-xl transition-all text-xs font-semibold ${
                   active
                     ? isBilling
-                      ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold"
+                      ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold shadow-md shadow-emerald-500/10"
                       : "bg-cyan-500/15 text-cyan-400 font-bold border border-cyan-500/25"
                     : isBilling
                     ? "text-emerald-400 hover:bg-emerald-500/10 hover:text-emerald-300 font-bold"
@@ -161,9 +204,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               >
                 <div className="flex items-center gap-3">
                   <span className="material-symbols-outlined text-[19px] flex-shrink-0">{item.icon}</span>
-                  {!collapsed && <span style={{ fontFamily: '"Manrope", sans-serif' }}>{item.label}</span>}
+                  {(!collapsed || mobileMenuOpen) && <span style={{ fontFamily: '"Manrope", sans-serif' }}>{item.label}</span>}
                 </div>
-                {!collapsed && item.badge && (
+                {(!collapsed || mobileMenuOpen) && item.badge && (
                   <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-400">
                     {item.badge}
                   </span>
@@ -175,7 +218,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* Admin Profile & Logout */}
         <div className="px-2.5 pb-4 border-t border-slate-800 pt-3 space-y-2">
-          {!collapsed && adminEmail && (
+          {(!collapsed || mobileMenuOpen) && adminEmail && (
             <div className="px-3 py-2 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1 overflow-hidden">
               <div className="flex items-center justify-between">
                 <span className="text-[9px] uppercase font-bold tracking-widest text-slate-500 font-mono">
@@ -195,16 +238,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             className="flex items-center gap-3 px-3 py-2.5 rounded-xl w-full text-slate-500 hover:bg-red-500/10 hover:text-red-400 transition-all text-xs font-semibold cursor-pointer"
           >
             <span className="material-symbols-outlined text-[18px] flex-shrink-0">logout</span>
-            {!collapsed && <span style={{ fontFamily: '"Manrope", sans-serif' }}>Logout</span>}
+            {(!collapsed || mobileMenuOpen) && <span style={{ fontFamily: '"Manrope", sans-serif' }}>Logout</span>}
           </button>
         </div>
       </aside>
 
-      {/* Main Content Area */}
+      {/* ─── MAIN CONTENT AREA (Full Mobile Responsive) ─── */}
       <main className="flex-1 overflow-y-auto">
         {isRouteBlocked ? (
           <div className="flex items-center justify-center min-h-[80vh] p-4 text-center">
-            <div className="max-w-md bg-slate-900/80 border border-red-500/30 rounded-3xl p-8 space-y-4">
+            <div className="max-w-md bg-slate-900/80 border border-red-500/30 rounded-3xl p-8 space-y-4 shadow-2xl">
               <div className="w-14 h-14 rounded-2xl bg-red-500/15 border border-red-500/40 text-red-400 flex items-center justify-center mx-auto">
                 <span className="material-symbols-outlined text-2xl">lock</span>
               </div>

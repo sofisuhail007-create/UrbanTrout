@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import type { InventoryItem } from "@/lib/supabase";
 
@@ -21,6 +21,7 @@ export default function POSBillingPage() {
   const [products, setProducts] = useState<typeof DEFAULT_PRODUCTS>(DEFAULT_PRODUCTS);
   const [selectedProductId, setSelectedProductId] = useState<string>("gutted-trout");
   const [currentWeight, setCurrentWeight] = useState<string>("1.0");
+
   const [billItems, setBillItems] = useState<BillItem[]>([
     {
       id: "gutted-trout",
@@ -49,7 +50,6 @@ export default function POSBillingPage() {
   useEffect(() => {
     async function loadData() {
       try {
-        // Fetch Store UPI ID
         const { data: upiData } = await supabase
           .from("app_settings")
           .select("value")
@@ -57,7 +57,6 @@ export default function POSBillingPage() {
           .single();
         if (upiData?.value) setUpiId(upiData.value);
 
-        // Fetch Inventory
         const { data: invData } = await supabase.from("inventory").select("*");
         if (invData && invData.length > 0) {
           const mapped = invData.map((item: InventoryItem) => ({
@@ -88,49 +87,56 @@ export default function POSBillingPage() {
     loadData();
   }, []);
 
-  // Selected product object
   const activeProduct = products.find((p) => p.id === selectedProductId) || products[0];
 
-  // Live Calculations
-  const grandTotal = billItems.reduce((sum, item) => sum + item.total, 0);
-  const totalWeight = billItems.reduce((sum, item) => sum + item.weightKg, 0);
+  // ─── REAL-TIME AUTO-UPDATE LOGIC (No button click needed) ─────
+  const updateActiveWeight = (newWeightStr: string, prodId = selectedProductId) => {
+    setCurrentWeight(newWeightStr);
+    const prod = products.find((p) => p.id === prodId) || activeProduct;
+    const w = parseFloat(newWeightStr);
 
-  // Add or Update Line Item
-  const handleAddOrUpdateItem = () => {
-    const weight = parseFloat(currentWeight);
-    if (isNaN(weight) || weight <= 0) {
-      alert("Please enter a valid weight greater than 0 kg.");
+    if (isNaN(w) || w <= 0) {
+      // Keep item in list with 0 total if typing
+      setBillItems((prev) =>
+        prev.map((item) => (item.id === prod.id ? { ...item, weightKg: 0, total: 0 } : item))
+      );
       return;
     }
 
-    const price = activeProduct.pricePerKg;
-    const lineTotal = Math.round(weight * price);
-
-    const existingIndex = billItems.findIndex((item) => item.id === activeProduct.id);
-    if (existingIndex > -1) {
-      const updated = [...billItems];
-      updated[existingIndex] = {
-        ...updated[existingIndex],
-        weightKg: weight,
-        total: lineTotal,
-      };
-      setBillItems(updated);
-    } else {
-      setBillItems([
-        ...billItems,
-        {
-          id: activeProduct.id,
-          name: activeProduct.name,
-          pricePerKg: price,
-          weightKg: weight,
-          total: lineTotal,
-          unit: "Kg",
-        },
-      ]);
-    }
+    const lineTotal = Math.round(w * prod.pricePerKg);
+    setBillItems((prev) => {
+      const exists = prev.some((item) => item.id === prod.id);
+      if (exists) {
+        return prev.map((item) =>
+          item.id === prod.id
+            ? { ...item, name: prod.name, pricePerKg: prod.pricePerKg, weightKg: w, total: lineTotal }
+            : item
+        );
+      } else {
+        return [
+          ...prev,
+          {
+            id: prod.id,
+            name: prod.name,
+            pricePerKg: prod.pricePerKg,
+            weightKg: w,
+            total: lineTotal,
+            unit: "Kg",
+          },
+        ];
+      }
+    });
   };
 
-  // Quick weight helper
+  // Switch Active Product & Sync Real-Time
+  const handleSelectProduct = (prodId: string) => {
+    setSelectedProductId(prodId);
+    const existing = billItems.find((i) => i.id === prodId);
+    const wStr = existing ? existing.weightKg.toString() : currentWeight || "1.0";
+    updateActiveWeight(wStr, prodId);
+  };
+
+  // Quick weight chips
   const handleQuickWeight = (val: number, isAdd = false) => {
     let w = parseFloat(currentWeight) || 0;
     if (isAdd) {
@@ -138,18 +144,27 @@ export default function POSBillingPage() {
     } else {
       w = val;
     }
-    setCurrentWeight(w.toString());
+    updateActiveWeight(w.toString());
   };
 
   const handleRemoveItem = (id: string) => {
-    setBillItems(billItems.filter((i) => i.id !== id));
+    const remaining = billItems.filter((i) => i.id !== id);
+    setBillItems(remaining);
+    if (id === selectedProductId && remaining.length > 0) {
+      setSelectedProductId(remaining[0].id);
+      setCurrentWeight(remaining[0].weightKg.toString());
+    }
   };
 
+  // Live Totals
+  const grandTotal = billItems.reduce((sum, item) => sum + item.total, 0);
+  const totalWeight = billItems.reduce((sum, item) => sum + item.weightKg, 0);
+
   // Dynamic UPI URI & QR Code
-  const upiPayUri = `upi://pay?pa=${upiId}&pn=Urban%20Trout%20Farm&am=${grandTotal}&cu=INR&tn=Invoice%20Billing`;
+  const upiPayUri = `upi://pay?pa=${upiId}&pn=Urban%20Trout%20Farm&am=${grandTotal}&cu=INR&tn=Invoice-Payment`;
   const upiQrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(
     upiPayUri
-  )}&bgcolor=16-33-44&color=114-221-253&margin=2`;
+  )}&bgcolor=255-255-255&color=2-13-18&margin=2`;
 
   const copyUpi = () => {
     navigator.clipboard.writeText(upiId);
@@ -157,20 +172,20 @@ export default function POSBillingPage() {
     setTimeout(() => setCopiedUpi(false), 2500);
   };
 
-  // Save Order to Supabase and Open Invoice Modal
+  // Generate & Save Invoice
   const handleGenerateInvoice = async () => {
     if (billItems.length === 0 || grandTotal <= 0) {
-      alert("Please add at least one item with valid weight.");
+      alert("Please enter a valid weight greater than 0 kg.");
       return;
     }
 
     setIsSaving(true);
     try {
-      const invoiceNumber = "INV-" + Math.floor(100000 + Math.random() * 900000);
+      const invoiceNumber = "UT-INV-" + Math.floor(10000 + Math.random() * 90000);
       const cleanPhone = customerPhone.replace(/\D/g, "").slice(-10);
 
       const orderPayload = {
-        customer_name: customerName.trim() || "Walk-in Customer",
+        customer_name: customerName.trim() || "Farm Counter Customer",
         customer_phone: cleanPhone || "9999999999",
         customer_address: "Live Vending Center / Farm POS, Naseem Bagh, Srinagar",
         customer_locality: "Naseem Bagh / Malabagh",
@@ -186,18 +201,17 @@ export default function POSBillingPage() {
         delivery_fee: 0,
         total: grandTotal,
         delivery_zone: "Farm POS / Live Vending",
-        status: "delivered",
+        status: "pending", // Payment due
       };
 
       const { data: insertedOrder } = await supabase.from("orders").insert(orderPayload).select("*").single();
 
-      // Upsert customer profile if phone exists
       if (cleanPhone && cleanPhone.length === 10) {
         try {
           await supabase.from("customers").upsert(
             {
               phone: cleanPhone,
-              name: customerName.trim() || "Walk-in Customer",
+              name: customerName.trim() || "Farm Counter Customer",
               locality: "Srinagar (Farm Counter)",
               notes: `POS Invoice #${invoiceNumber}`,
               last_order_at: new Date().toISOString(),
@@ -216,7 +230,7 @@ export default function POSBillingPage() {
           hour: "2-digit",
           minute: "2-digit",
         }),
-        customerName: customerName.trim() || "Walk-in Customer",
+        customerName: customerName.trim() || "Valued Customer",
         customerPhone: cleanPhone || "N/A",
         items: billItems,
         totalWeight,
@@ -224,6 +238,8 @@ export default function POSBillingPage() {
         paymentMethod,
         notes: customerNotes,
         upiId,
+        upiQrCodeUrl,
+        upiPayUri,
       };
 
       setGeneratedInvoice(invoiceData);
@@ -236,15 +252,15 @@ export default function POSBillingPage() {
     }
   };
 
-  // WhatsApp Share Invoice
+  // WhatsApp Message with Warm Hospitality Greeting, Breakdown & Pay Link
   const handleShareWhatsApp = () => {
     if (!generatedInvoice) return;
     let itemLines = "";
     generatedInvoice.items.forEach((item: BillItem) => {
-      itemLines += `• ${item.name}: ${item.weightKg} Kg @ ₹${item.pricePerKg}/Kg = ₹${item.total.toLocaleString("en-IN")}\n`;
+      itemLines += `• *${item.name}*: ${item.weightKg} Kg @ ₹${item.pricePerKg}/Kg = ₹${item.total.toLocaleString("en-IN")}\n`;
     });
 
-    const msg = `*URBAN TROUT AQUACULTURE — TAX INVOICE / RECEIPT* 🐟\n\n*Invoice No:* ${generatedInvoice.invoiceNumber}\n*Date:* ${generatedInvoice.date}\n*Customer:* ${generatedInvoice.customerName} (${generatedInvoice.customerPhone})\n\n*Purchased Items:*\n${itemLines}\n*Total Weight:* ${generatedInvoice.totalWeight.toFixed(2)} Kg\n*Total Paid:* ₹${generatedInvoice.grandTotal.toLocaleString("en-IN")}\n*Payment Mode:* ${generatedInvoice.paymentMethod}\n\n*Farm Location:* Naseem Bagh / Malabagh, Srinagar\n*Helpline:* +91 84910 06127\n_Thank you for choosing freshest live-harvested trout!_`;
+    const msg = `🐟 *URBAN TROUT AQUACULTURE, SRINAGAR*\n*Fresh Live Harvest Invoice & Payment Request*\n\nDear *${generatedInvoice.customerName}*,\nGreetings from Urban Trout Farm! Thank you for purchasing our fresh tank-harvested Rainbow Trout. Here is your invoice:\n\n📄 *Invoice No:* ${generatedInvoice.invoiceNumber}\n🗓 *Date:* ${generatedInvoice.date}\n\n*Itemized Breakdown:*\n${itemLines}\n⚖️ *Total Harvest Weight:* ${generatedInvoice.totalWeight.toFixed(2)} Kg\n💰 *Total Amount Payable:* ₹${generatedInvoice.grandTotal.toLocaleString("en-IN")}\n\n*⚡ Quick Scan & Pay via UPI (GPay / PhonePe / Paytm):*\nUPI ID: \`${generatedInvoice.upiId}\`\nDirect Payment Link:\n${generatedInvoice.upiPayUri}\n\n📍 *Farm Location:* Naseem Bagh / Malabagh, Srinagar (Near R P School Girls Wing)\n📞 *Farm Helpline:* +91 84910 06127\n\n_Please click the link above or scan the QR code to complete payment. We hope you enjoy your freshest trout meal!_`;
 
     const encoded = encodeURIComponent(msg);
     const phoneParam = customerPhone.replace(/\D/g, "").slice(-10);
@@ -252,7 +268,6 @@ export default function POSBillingPage() {
     window.open(url, "_blank");
   };
 
-  // Reset Bill
   const handleReset = () => {
     setCustomerName("");
     setCustomerPhone("");
@@ -274,22 +289,20 @@ export default function POSBillingPage() {
   };
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-6">
+    <div className="p-3 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-5 sm:space-y-6">
       {/* ─── HEADER ─── */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-2 border-b border-slate-800/80">
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
-            <span className="material-symbols-outlined text-2xl">point_of_sale</span>
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 flex-shrink-0">
+            <span className="material-symbols-outlined text-xl sm:text-2xl">point_of_sale</span>
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-[10px] uppercase font-bold tracking-widest text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded-full border border-cyan-500/20">
-                Live POS Counter
+              <span className="text-[9px] sm:text-[10px] uppercase font-bold tracking-widest text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                ⚡ Real-Time Auto Calculator
               </span>
-              <span className="text-slate-500">•</span>
-              <span className="text-xs text-emerald-400 font-semibold">Real-Time Weight Calculator</span>
             </div>
-            <h1 className="text-2xl font-extrabold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+            <h1 className="text-xl sm:text-2xl font-extrabold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
               Sales Billing &amp; Invoice Tool
             </h1>
           </div>
@@ -298,39 +311,37 @@ export default function POSBillingPage() {
         <button
           type="button"
           onClick={handleReset}
-          className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800 transition-all text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer"
+          className="w-full sm:w-auto px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800 transition-all text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer"
         >
           <span className="material-symbols-outlined text-base">refresh</span>
-          Reset Calculator
+          Reset Bill
         </button>
       </div>
 
-      {/* ─── MAIN 2-COLUMN POS LAYOUT ─── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* LEFT COLUMN: Weight Input & Item Customizer (7 Cols) */}
-        <div className="lg:col-span-7 space-y-6">
-          {/* Card 1: Product & Exact Weight Input */}
-          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 space-y-5 shadow-xl">
+      {/* ─── MAIN 2-COLUMN / MOBILE RESPONSIVE GRID ─── */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-start">
+        {/* LEFT COLUMN: Weight Input & Customer (7 Cols) */}
+        <div className="lg:col-span-7 space-y-5 sm:space-y-6">
+          {/* Card 1: Product & Live Real-Time Weight Input */}
+          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-6 space-y-4 sm:space-y-5 shadow-xl">
             <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-white flex items-center gap-2" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
-                <span className="material-symbols-outlined text-cyan-400 text-lg">scale</span>
-                1. Select Harvest Trout &amp; Exact Weight
+              <h2 className="text-sm sm:text-base font-bold text-white flex items-center gap-2" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                <span className="material-symbols-outlined text-cyan-400 text-base sm:text-lg">scale</span>
+                1. Select Harvest Trout &amp; Weight
               </h2>
-              <span className="text-xs text-slate-400 font-mono">Live Rate: ₹{activeProduct.pricePerKg}/Kg</span>
+              <span className="text-[11px] sm:text-xs text-slate-400 font-mono">₹{activeProduct.pricePerKg}/Kg</span>
             </div>
 
             {/* Product Selector Chips */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               {products.map((p) => {
                 const isSelected = selectedProductId === p.id;
                 return (
                   <button
                     key={p.id}
                     type="button"
-                    onClick={() => {
-                      setSelectedProductId(p.id);
-                    }}
-                    className="p-4 rounded-xl text-left transition-all cursor-pointer"
+                    onClick={() => handleSelectProduct(p.id)}
+                    className="p-3.5 rounded-xl text-left transition-all cursor-pointer active:scale-[0.99]"
                     style={{
                       background: isSelected ? "rgba(114,221,253,0.12)" : "rgba(3,16,24,0.6)",
                       border: isSelected ? "1.5px solid #72ddfd" : "1px solid rgba(61,74,83,0.6)",
@@ -338,60 +349,52 @@ export default function POSBillingPage() {
                     }}
                   >
                     <div className="flex items-start justify-between">
-                      <h4 className="font-bold text-white text-sm" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                      <h4 className="font-bold text-white text-xs sm:text-sm leading-tight" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
                         {p.name}
                       </h4>
-                      <span className={`text-xs font-bold ${isSelected ? "text-cyan-400" : "text-slate-500"}`}>
+                      <span className={`text-[10px] font-bold ${isSelected ? "text-cyan-400" : "text-slate-500"}`}>
                         {isSelected ? "● Active" : "○"}
                       </span>
                     </div>
-                    <p className="text-cyan-400 font-bold text-base mt-2 font-mono">₹{p.pricePerKg} / Kg</p>
+                    <p className="text-cyan-400 font-bold text-sm sm:text-base mt-1.5 font-mono">₹{p.pricePerKg} / Kg</p>
                   </button>
                 );
               })}
             </div>
 
-            {/* Decimal Weight Input */}
-            <div className="space-y-3 pt-2">
-              <label className="block text-xs uppercase tracking-wider font-bold text-slate-400">
-                Harvested Weight (in Kilograms)
-              </label>
+            {/* Instant Live Weight Input */}
+            <div className="space-y-2.5 pt-1">
+              <div className="flex items-center justify-between">
+                <label className="block text-[11px] uppercase tracking-wider font-bold text-slate-400">
+                  Harvested Weight (Auto-calculates on typing)
+                </label>
+                <span className="text-[11px] text-emerald-400 font-semibold animate-pulse">● Live updating</span>
+              </div>
 
-              <div className="flex items-center gap-3">
-                <div className="relative flex-1">
-                  <input
-                    type="number"
-                    step="0.01"
-                    min="0.1"
-                    value={currentWeight}
-                    onChange={(e) => setCurrentWeight(e.target.value)}
-                    placeholder="e.g. 4.5"
-                    className="w-full bg-slate-950/90 border border-slate-700 rounded-xl px-5 py-4 text-2xl font-mono text-cyan-300 font-bold focus:outline-none focus:border-cyan-400"
-                  />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-sm">
-                    KG
-                  </span>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleAddOrUpdateItem}
-                  className="px-6 py-4 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold uppercase tracking-wider text-xs transition-all shadow-lg shadow-cyan-500/20 flex items-center gap-2 cursor-pointer flex-shrink-0"
-                >
-                  <span className="material-symbols-outlined text-base">add_shopping_cart</span>
-                  Update Bill
-                </button>
+              <div className="relative">
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0.1"
+                  value={currentWeight}
+                  onChange={(e) => updateActiveWeight(e.target.value)}
+                  placeholder="e.g. 4.5"
+                  className="w-full bg-slate-950/90 border border-slate-700 rounded-xl sm:rounded-2xl px-4 sm:px-5 py-3.5 sm:py-4 text-xl sm:text-3xl font-mono text-cyan-300 font-bold focus:outline-none focus:border-cyan-400 shadow-inner"
+                />
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-sm sm:text-base">
+                  KG
+                </span>
               </div>
 
               {/* Quick Weight Adder Chips */}
-              <div className="flex flex-wrap items-center gap-2 pt-1">
-                <span className="text-xs text-slate-500 mr-1">Quick Select:</span>
-                {[1.0, 1.5, 2.0, 2.5, 3.0, 4.5, 5.0].map((w) => (
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 pt-1">
+                <span className="text-[11px] text-slate-500 mr-0.5">Presets:</span>
+                {[0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 4.5, 5.0].map((w) => (
                   <button
                     key={w}
                     type="button"
                     onClick={() => handleQuickWeight(w, false)}
-                    className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-xs font-semibold transition-all border border-slate-700 cursor-pointer"
+                    className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 font-mono text-[11px] sm:text-xs font-semibold transition-all border border-slate-700 cursor-pointer"
                   >
                     {w} Kg
                   </button>
@@ -399,7 +402,7 @@ export default function POSBillingPage() {
                 <button
                   type="button"
                   onClick={() => handleQuickWeight(0.5, true)}
-                  className="px-3 py-1.5 rounded-lg bg-cyan-950/60 hover:bg-cyan-900/60 text-cyan-400 font-mono text-xs font-bold transition-all border border-cyan-500/30 cursor-pointer"
+                  className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-cyan-950/60 hover:bg-cyan-900/60 active:scale-95 text-cyan-400 font-mono text-[11px] sm:text-xs font-bold transition-all border border-cyan-500/30 cursor-pointer"
                 >
                   +0.5 Kg
                 </button>
@@ -408,15 +411,15 @@ export default function POSBillingPage() {
           </div>
 
           {/* Card 2: Customer Information */}
-          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-xl">
-            <h2 className="text-base font-bold text-white flex items-center gap-2" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
-              <span className="material-symbols-outlined text-cyan-400 text-lg">person</span>
-              2. Customer Details (For WhatsApp Bill &amp; Records)
+          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-6 space-y-4 shadow-xl">
+            <h2 className="text-sm sm:text-base font-bold text-white flex items-center gap-2" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+              <span className="material-symbols-outlined text-cyan-400 text-base sm:text-lg">person</span>
+              2. Customer Details (For WhatsApp Bill &amp; QR Invoice)
             </h2>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
-                <label className="block text-xs uppercase tracking-wider font-bold text-slate-400 mb-1.5">
+                <label className="block text-[11px] uppercase tracking-wider font-bold text-slate-400 mb-1">
                   Customer Name
                 </label>
                 <input
@@ -424,65 +427,65 @@ export default function POSBillingPage() {
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
                   placeholder="e.g. Suhail Ahmed"
-                  className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-400"
+                  className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-3.5 py-2.5 sm:py-3 text-sm text-white focus:outline-none focus:border-cyan-400"
                 />
               </div>
 
               <div>
-                <label className="block text-xs uppercase tracking-wider font-bold text-slate-400 mb-1.5">
+                <label className="block text-[11px] uppercase tracking-wider font-bold text-slate-400 mb-1">
                   WhatsApp Phone Number
                 </label>
                 <input
                   type="tel"
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value)}
-                  placeholder="10-digit mobile"
+                  placeholder="10-digit mobile (e.g. 7006604148)"
                   maxLength={10}
-                  className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-400"
+                  className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-3.5 py-2.5 sm:py-3 text-sm text-white focus:outline-none focus:border-cyan-400"
                 />
               </div>
 
               <div className="sm:col-span-2">
-                <label className="block text-xs uppercase tracking-wider font-bold text-slate-400 mb-1.5">
+                <label className="block text-[11px] uppercase tracking-wider font-bold text-slate-400 mb-1">
                   Notes / Packaging Instructions (Optional)
                 </label>
                 <input
                   type="text"
                   value={customerNotes}
                   onChange={(e) => setCustomerNotes(e.target.value)}
-                  placeholder="e.g. Clean and cut into 6 steaks, pack with ice."
-                  className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-400"
+                  placeholder="e.g. Extra iced, clean & cut into steaks."
+                  className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-3.5 py-2.5 sm:py-3 text-sm text-white focus:outline-none focus:border-cyan-400"
                 />
               </div>
             </div>
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Live Bill Summary & Instant UPI QR (5 Cols) */}
-        <div className="lg:col-span-5 space-y-6">
-          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl space-y-6 p-6">
+        {/* RIGHT COLUMN: Live Bill Summary & Instant QR (5 Cols) */}
+        <div className="lg:col-span-5 space-y-5 sm:space-y-6">
+          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl space-y-5 p-4 sm:p-6">
             {/* Bill Title */}
-            <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+            <div className="flex items-center justify-between pb-3.5 border-b border-slate-800">
               <div>
-                <span className="text-[10px] uppercase font-bold tracking-widest text-slate-500">Live POS Bill</span>
-                <h3 className="text-xl font-extrabold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
-                  Current Total: <span className="text-cyan-400">₹{grandTotal.toLocaleString("en-IN")}</span>
+                <span className="text-[9px] uppercase font-bold tracking-widest text-slate-500 font-mono">Invoice Summary</span>
+                <h3 className="text-lg sm:text-2xl font-extrabold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                  Total Payable: <span className="text-cyan-400">₹{grandTotal.toLocaleString("en-IN")}</span>
                 </h3>
               </div>
-              <span className="px-3 py-1 rounded-full bg-slate-800 text-slate-300 text-xs font-mono font-bold">
-                {totalWeight.toFixed(2)} Kg Total
+              <span className="px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 text-[11px] font-mono font-bold">
+                {totalWeight.toFixed(2)} Kg
               </span>
             </div>
 
             {/* Line Items List */}
-            <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+            <div className="space-y-2.5 max-h-52 overflow-y-auto pr-1">
               {billItems.map((item) => (
                 <div
                   key={item.id}
-                  className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 flex items-center justify-between gap-3"
+                  className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 flex items-center justify-between gap-2"
                 >
-                  <div>
-                    <h5 className="font-bold text-white text-xs" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                  <div className="min-w-0 flex-1">
+                    <h5 className="font-bold text-white text-xs truncate" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
                       {item.name}
                     </h5>
                     <p className="text-[11px] text-slate-400 font-mono mt-0.5">
@@ -490,26 +493,28 @@ export default function POSBillingPage() {
                     </p>
                   </div>
 
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2.5 flex-shrink-0">
                     <span className="font-bold text-cyan-400 font-mono text-sm">
                       ₹{item.total.toLocaleString("en-IN")}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveItem(item.id)}
-                      className="text-slate-600 hover:text-red-400 transition-colors cursor-pointer"
-                    >
-                      <span className="material-symbols-outlined text-sm">close</span>
-                    </button>
+                    {billItems.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveItem(item.id)}
+                        className="text-slate-600 hover:text-red-400 transition-colors cursor-pointer p-1"
+                      >
+                        <span className="material-symbols-outlined text-sm">close</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
             </div>
 
             {/* Payment Method Selector */}
-            <div className="space-y-2 pt-2 border-t border-slate-800">
-              <label className="block text-xs uppercase tracking-wider font-bold text-slate-400">
-                Payment Method
+            <div className="space-y-2 pt-1 border-t border-slate-800">
+              <label className="block text-[11px] uppercase tracking-wider font-bold text-slate-400">
+                Payment Channel
               </label>
               <div className="grid grid-cols-3 gap-2">
                 {(["UPI", "Cash", "Card"] as const).map((method) => (
@@ -532,12 +537,12 @@ export default function POSBillingPage() {
 
             {/* Dynamic UPI QR Code Section */}
             {paymentMethod === "UPI" && grandTotal > 0 && (
-              <div className="p-4 rounded-xl bg-slate-950/80 border border-cyan-500/30 flex flex-col items-center text-center space-y-3">
-                <div className="p-2 bg-slate-900 border border-cyan-500/30 rounded-xl shadow-lg">
-                  <img src={upiQrCodeUrl} alt="UPI QR" className="w-40 h-40 rounded-lg" />
+              <div className="p-3.5 rounded-xl bg-slate-950/80 border border-cyan-500/30 flex flex-col items-center text-center space-y-2.5">
+                <div className="p-2 bg-white border border-slate-300 rounded-xl shadow-lg">
+                  <img src={upiQrCodeUrl} alt="UPI QR Code" className="w-36 h-36 sm:w-40 sm:h-40 rounded-lg object-contain" />
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-white font-mono">Scan to Pay: ₹{grandTotal.toLocaleString("en-IN")}</p>
+                  <p className="text-xs font-bold text-white font-mono">Scan with Any App: ₹{grandTotal.toLocaleString("en-IN")}</p>
                   <p className="text-[11px] text-slate-400 font-mono mt-0.5">{upiId}</p>
                 </div>
                 <button
@@ -545,26 +550,26 @@ export default function POSBillingPage() {
                   onClick={copyUpi}
                   className="px-3 py-1 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer"
                 >
-                  {copiedUpi ? "Copied UPI ID! ✓" : "Copy UPI ID"}
+                  {copiedUpi ? "Copied! ✓" : "Copy UPI ID"}
                 </button>
               </div>
             )}
 
-            {/* Primary Generate & Save Invoice Button */}
-            <div className="pt-2 space-y-2">
+            {/* Primary Action Button */}
+            <div className="pt-2">
               <button
                 type="button"
                 onClick={handleGenerateInvoice}
                 disabled={isSaving || grandTotal <= 0}
-                className="w-full py-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 font-bold uppercase tracking-wider text-sm transition-all shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-4 rounded-xl sm:rounded-2xl bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] disabled:opacity-50 text-slate-950 font-bold uppercase tracking-wider text-xs sm:text-sm transition-all shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-2 cursor-pointer"
                 style={{ fontFamily: '"Space Grotesk", sans-serif' }}
               >
                 {isSaving ? (
-                  "Processing Invoice…"
+                  "Generating Invoice…"
                 ) : (
                   <>
-                    <span className="material-symbols-outlined text-lg">receipt</span>
-                    Generate Invoice &amp; Save (₹{grandTotal.toLocaleString("en-IN")})
+                    <span className="material-symbols-outlined text-lg">receipt_long</span>
+                    Generate Invoice (₹{grandTotal.toLocaleString("en-IN")})
                   </>
                 )}
               </button>
@@ -573,17 +578,15 @@ export default function POSBillingPage() {
         </div>
       </div>
 
-      {/* ─── PRINTABLE INVOICE / RECEIPT MODAL ─── */}
+      {/* ─── PRINTABLE INVOICE / PDF MODAL (WITH EMBEDDED UPI QR) ─── */}
       {invoiceModalOpen && generatedInvoice && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
-          <div className="relative w-full max-w-lg bg-white text-slate-900 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-6 my-8">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
+          <div className="relative w-full max-w-md sm:max-w-lg bg-white text-slate-900 rounded-3xl p-5 sm:p-8 shadow-2xl space-y-5 my-6">
             {/* Modal Controls (Hidden in Print) */}
-            <div className="flex items-center justify-between border-b pb-4 print:hidden">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full">
-                  ✓ Invoice Generated
-                </span>
-              </div>
+            <div className="flex items-center justify-between border-b pb-3 print:hidden">
+              <span className="text-[11px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full">
+                ✓ Invoice Created
+              </span>
               <button
                 type="button"
                 onClick={() => setInvoiceModalOpen(false)}
@@ -593,20 +596,22 @@ export default function POSBillingPage() {
               </button>
             </div>
 
-            {/* ─── PRINTABLE RECEIPT CONTENT ─── */}
-            <div id="printable-receipt" className="space-y-6">
+            {/* ─── PRINTABLE / DOWNLOADABLE INVOICE CONTENT ─── */}
+            <div id="printable-receipt" className="space-y-4 sm:space-y-5">
               {/* Receipt Header */}
-              <div className="text-center pb-4 border-b border-dashed border-slate-300">
-                <h2 className="text-2xl font-black text-slate-900 tracking-tight" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+              <div className="text-center pb-3 border-b border-dashed border-slate-300">
+                <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
                   URBAN TROUT AQUACULTURE
                 </h2>
-                <p className="text-xs text-slate-500 font-medium">Naseem Bagh / Malabagh, Srinagar, J&amp;K — 190006</p>
-                <p className="text-xs text-slate-500 font-medium">Helpline: +91 84910 06127 | info.urbantrout@gmail.com</p>
-                <p className="text-xs font-bold text-slate-800 mt-2">TAX INVOICE / CASH MEMO</p>
+                <p className="text-[11px] text-slate-500 font-medium">Naseem Bagh / Malabagh, Srinagar, J&amp;K — 190006</p>
+                <p className="text-[11px] text-slate-500 font-medium">Helpline: +91 84910 06127 | info.urbantrout@gmail.com</p>
+                <div className="inline-block mt-2 px-3 py-0.5 rounded bg-slate-100 text-slate-800 text-[10px] font-extrabold uppercase tracking-widest">
+                  TAX INVOICE &amp; PAYMENT REQUEST
+                </div>
               </div>
 
               {/* Invoice Meta */}
-              <div className="flex justify-between text-xs text-slate-600 font-mono">
+              <div className="flex justify-between text-[11px] sm:text-xs text-slate-600 font-mono">
                 <div>
                   <p><strong>Invoice:</strong> {generatedInvoice.invoiceNumber}</p>
                   <p><strong>Customer:</strong> {generatedInvoice.customerName}</p>
@@ -614,14 +619,13 @@ export default function POSBillingPage() {
                 </div>
                 <div className="text-right">
                   <p><strong>Date:</strong> {generatedInvoice.date}</p>
-                  <p><strong>Mode:</strong> {generatedInvoice.paymentMethod}</p>
-                  <p><strong>Status:</strong> PAID ✓</p>
+                  <p><strong>Status:</strong> <span className="text-amber-700 font-bold">PAYMENT DUE</span></p>
                 </div>
               </div>
 
               {/* Itemized Table */}
-              <div className="border-t border-b border-dashed border-slate-300 py-3">
-                <table className="w-full text-xs text-left">
+              <div className="border-t border-b border-dashed border-slate-300 py-2.5">
+                <table className="w-full text-[11px] sm:text-xs text-left">
                   <thead>
                     <tr className="border-b font-bold text-slate-700">
                       <th className="py-1">Item Description</th>
@@ -649,35 +653,50 @@ export default function POSBillingPage() {
                   <span>Total Harvest Weight:</span>
                   <span className="font-bold">{generatedInvoice.totalWeight.toFixed(2)} Kg</span>
                 </div>
-                <div className="flex justify-between text-base font-black text-slate-900 font-mono pt-2 border-t">
-                  <span>GRAND TOTAL PAID:</span>
-                  <span className="text-lg">₹{generatedInvoice.grandTotal.toLocaleString("en-IN")}</span>
+                <div className="flex justify-between text-sm sm:text-base font-black text-slate-900 font-mono pt-1.5 border-t">
+                  <span>TOTAL PAYABLE:</span>
+                  <span className="text-base sm:text-xl text-slate-950">₹{generatedInvoice.grandTotal.toLocaleString("en-IN")}</span>
+                </div>
+              </div>
+
+              {/* ─── EMBEDDED UPI QR CODE FOR CUSTOMER TO SCAN & PAY ─── */}
+              <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-2">
+                <div className="flex justify-center">
+                  <div className="p-1.5 bg-white border border-slate-300 rounded-xl shadow-sm inline-block">
+                    <img src={generatedInvoice.upiQrCodeUrl} alt="Scan & Pay" className="w-28 h-28 sm:w-32 sm:h-32 object-contain" />
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[11px] font-bold text-slate-800 uppercase tracking-wide">
+                    Scan with Any UPI App (GPay / PhonePe / Paytm)
+                  </p>
+                  <p className="text-[10px] text-slate-500 font-mono">UPI ID: {generatedInvoice.upiId}</p>
                 </div>
               </div>
 
               {/* Footer Note */}
-              <div className="text-center pt-3 border-t border-dashed border-slate-300 text-[11px] text-slate-500 leading-relaxed">
-                <p className="font-semibold text-slate-700">Live RAS Tank Fresh Harvested</p>
-                <p>Keep refrigerated at 0°C - 4°C. Consume within 48 hours for optimal taste.</p>
-                <p className="font-mono text-[10px] mt-1">Thank you for visiting Urban Trout Farm!</p>
+              <div className="text-center pt-2 text-[10px] sm:text-[11px] text-slate-500 leading-tight">
+                <p className="font-semibold text-slate-700">Fresh Live RAS Tank Harvested Trout</p>
+                <p className="mt-0.5">Keep chilled at 0°C - 4°C. Consume fresh within 48 hours.</p>
+                <p className="font-mono text-[9px] text-slate-400 mt-1">Thank you for supporting sustainable Kashmiri aquaculture!</p>
               </div>
             </div>
 
             {/* Action Buttons (Hidden in Print) */}
-            <div className="grid grid-cols-2 gap-3 pt-4 border-t print:hidden">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-3 border-t print:hidden">
               <button
                 type="button"
                 onClick={() => window.print()}
-                className="py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-md"
+                className="py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-md active:scale-95"
               >
                 <span className="material-symbols-outlined text-base">print</span>
-                Print Invoice
+                Print / Save PDF
               </button>
 
               <button
                 type="button"
                 onClick={handleShareWhatsApp}
-                className="py-3 px-4 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-md"
+                className="py-3 px-4 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-md active:scale-95"
               >
                 <span className="material-symbols-outlined text-base">share</span>
                 Send WhatsApp Bill
