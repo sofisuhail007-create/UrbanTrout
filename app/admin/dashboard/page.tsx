@@ -86,7 +86,9 @@ export default function DashboardPage() {
   useEffect(() => {
     async function load() {
       const cutoff = new Date(Date.now() - 48 * 3600 * 1000).toISOString();
-      const [{ data: ord }, { count }, { data: wp }, { data: leadsData }] = await Promise.all([
+      
+      // Fetch orders, customer count, water params, and deduplicated leads
+      const [{ data: ord }, { count }, { data: wp }] = await Promise.all([
         supabase.from("orders").select("*").order("created_at", { ascending: false }).limit(6),
         supabase.from("customers").select("*", { count: "exact", head: true }),
         supabase
@@ -94,17 +96,44 @@ export default function DashboardPage() {
           .select("*")
           .gte("created_at", cutoff)
           .order("created_at", { ascending: false }),
-        supabase
-          .from("leads")
-          .select("*")
-          .eq("status", "abandoned")
-          .order("created_at", { ascending: false })
-          .limit(4),
       ]);
+
       setOrders(ord ?? []);
       setCustomers(count ?? 0);
       setRecentParams((wp as WaterParameter[]) ?? []);
-      setRecentLeads((leadsData as Lead[]) ?? []);
+
+      // Fetch deduplicated leads via API endpoint
+      try {
+        const res = await fetch("/api/lead");
+        if (res.ok) {
+          const json = await res.json();
+          if (json?.success && Array.isArray(json.leads)) {
+            const abandoned = json.leads.filter((l: Lead) => l.status === "abandoned").slice(0, 4);
+            setRecentLeads(abandoned);
+          }
+        }
+      } catch (_) {
+        // Fallback: direct Supabase query with in-memory deduplication
+        const { data: leadsData } = await supabase
+          .from("leads")
+          .select("*")
+          .eq("status", "abandoned")
+          .order("created_at", { ascending: false });
+
+        if (leadsData) {
+          const seen = new Set<string>();
+          const deduped: Lead[] = [];
+          for (const l of leadsData as Lead[]) {
+            const clean = (l.customer_phone || "").replace(/\D/g, "").slice(-10);
+            if (!seen.has(clean)) {
+              seen.add(clean);
+              deduped.push(l);
+            }
+          }
+          setRecentLeads(deduped.slice(0, 4));
+        }
+      }
+
       setLoading(false);
     }
     load();

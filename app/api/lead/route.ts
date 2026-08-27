@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// Use service role key if configured in Vercel to bypass RLS, or fallback to anon key
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+
+const supabase = createClient(supabaseUrl, supabaseKey);
 
 export async function POST(request: Request) {
   try {
@@ -45,7 +46,7 @@ export async function POST(request: Request) {
       // Update the primary lead
       await supabase.from("leads").update(payload).eq("id", primaryLeadId);
 
-      // Clean up any extra duplicates for this phone
+      // Clean up any extra duplicate rows for this same phone
       if (existingList.length > 1) {
         const duplicateIds = existingList.slice(1).map((e) => e.id);
         await supabase.from("leads").delete().in("id", duplicateIds);
@@ -88,10 +89,11 @@ export async function GET() {
       .order("created_at", { ascending: false });
 
     if (error) {
+      console.error("API Lead GET error:", error.message);
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
-    // Deduplicate in memory by customer_phone so only the latest record is displayed
+    // Deduplicate in memory by clean customer_phone so only the latest record per customer is returned
     const seenPhones = new Set<string>();
     const deduplicated: any[] = [];
 
@@ -100,7 +102,10 @@ export async function GET() {
       const key = cleanPhone || lead.id;
       if (!seenPhones.has(key)) {
         seenPhones.add(key);
-        deduplicated.push(lead);
+        deduplicated.push({
+          ...lead,
+          customer_phone: cleanPhone || lead.customer_phone,
+        });
       }
     }
 
@@ -120,20 +125,26 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ success: false, error: "Missing id or phone" }, { status: 400 });
     }
 
-    if (id) {
-      await supabase.from("leads").delete().eq("id", id);
-    }
-
     if (phone) {
       const clean = phone.replace(/\D/g, "").slice(-10);
-      await supabase.from("leads").delete().eq("customer_phone", clean);
+      // Delete all matching records in leads by phone
+      const { error: delLeadErr } = await supabase.from("leads").delete().eq("customer_phone", clean);
+      if (delLeadErr) console.error("Error deleting lead by phone:", delLeadErr.message);
+
+      // Also delete from customers
       try {
         await supabase.from("customers").delete().eq("phone", clean);
       } catch (_) {}
     }
 
+    if (id) {
+      const { error: delIdErr } = await supabase.from("leads").delete().eq("id", id);
+      if (delIdErr) console.error("Error deleting lead by ID:", delIdErr.message);
+    }
+
     return NextResponse.json({ success: true });
   } catch (err: any) {
+    console.error("API Lead DELETE error:", err);
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
 }
