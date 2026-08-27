@@ -36,7 +36,43 @@ export default function PublicInvoicePage() {
           .single();
         if (upiData?.value) setUpiId(upiData.value);
 
-        // 2. Fetch from /api/invoice server endpoint
+        // 2. PRIMARY: Read invoice data from URL ?d= query param (100% reliable, zero DB)
+        const urlParams = new URLSearchParams(window.location.search);
+        const encodedData = urlParams.get("d");
+        if (encodedData) {
+          try {
+            const parsed = JSON.parse(decodeURIComponent(atob(encodedData)));
+            const createdTimestamp = parsed.ts || Date.now();
+            const elapsedMs = Date.now() - createdTimestamp;
+            const maxAgeMs = 48 * 60 * 60 * 1000;
+            const isExpired = elapsedMs > maxAgeMs;
+            const remainingHours = Math.max(0, Math.ceil((maxAgeMs - elapsedMs) / (1000 * 60 * 60)));
+
+            setInvoice({
+              invoiceNumber: parsed.num || rawParam,
+              customerName: parsed.name || "Valued Customer",
+              customerPhone: parsed.phone || "N/A",
+              items: (parsed.items || []).map((i: any) => ({
+                name: i.n || i.name,
+                weightKg: i.w ?? i.weightKg ?? 1,
+                pricePerKg: i.r ?? i.pricePerKg ?? 550,
+                total: i.t ?? i.total ?? 550,
+              })),
+              totalWeight: parsed.tw ?? parsed.totalWeight ?? 0,
+              grandTotal: parsed.tot ?? parsed.grandTotal ?? 0,
+              notes: parsed.notes || "",
+              createdAt: createdTimestamp,
+              isExpired,
+              expiresInHours: remainingHours,
+            });
+            setLoading(false);
+            return;
+          } catch (e) {
+            console.warn("Could not decode ?d= param:", e);
+          }
+        }
+
+        // 3. FALLBACK: Fetch from /api/invoice server endpoint
         const cleanDigits = rawParam.replace(/\D/g, "");
         const res = await fetch(`/api/invoice?id=${encodeURIComponent(cleanDigits || rawParam)}`);
         

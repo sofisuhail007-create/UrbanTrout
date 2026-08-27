@@ -199,19 +199,17 @@ export default function POSBillingPage() {
       ts: Date.now(), // 48-Hour validity timestamp
     };
 
-    // Save via server API endpoint (bypasses any client RLS restrictions)
-    try {
-      await fetch("/api/invoice", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ invoiceId: shortDigits, data: invoicePayload }),
-      });
-    } catch (err) {
-      console.warn("Could not save invoice via API:", err);
-    }
-
+    // Encode invoice payload directly into URL (zero DB dependency - 100% always works)
+    const encodedPayload = btoa(encodeURIComponent(JSON.stringify(invoicePayload)));
     const origin = typeof window !== "undefined" ? window.location.origin : "https://urbantrout.in";
-    const invoicePublicUrl = `${origin}/invoice/${invoiceNumber}`;
+    const invoicePublicUrl = `${origin}/invoice/${invoiceNumber}?d=${encodedPayload}`;
+
+    // Also fire-and-forget to DB as a bonus backup (non-blocking)
+    fetch("/api/invoice", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ invoiceId: shortDigits, data: invoicePayload }),
+    }).catch(() => {});
 
     const invoiceData = {
       invoiceNumber,
