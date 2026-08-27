@@ -408,7 +408,7 @@ export default function PublicInvoicePage() {
                   className="flex items-center gap-2.5 p-3 rounded-xl border transition-all active:scale-95 cursor-pointer"
                   style={{ background: "#5f259f", borderColor: "#4a1a7a" }}
                 >
-                  <img src="/icons8-phone-pe-480.svg" alt="PhonePe" className="w-7 h-7 rounded-lg" />
+                  <img src="/icons8-phone-pe-480.svg" alt="PhonePe" style={{ width: 28, height: 28, borderRadius: 6, flexShrink: 0 }} />
                   <div className="text-left">
                     <p className="text-white font-bold text-xs">PhonePe</p>
                     <p className="text-purple-200 text-[10px]">₹{grandTotal.toLocaleString("en-IN")}</p>
@@ -421,7 +421,7 @@ export default function PublicInvoicePage() {
                   className="flex items-center gap-2.5 p-3 rounded-xl border transition-all active:scale-95 cursor-pointer"
                   style={{ background: "#1a73e8", borderColor: "#1558b0" }}
                 >
-                  <img src="/icons8-google-pay-480.svg" alt="Google Pay" className="w-7 h-7 rounded-lg bg-white p-0.5" />
+                  <img src="/icons8-google-pay-480.svg" alt="Google Pay" style={{ width: 28, height: 28, borderRadius: 6, flexShrink: 0, background: "white", padding: 2 }} />
                   <div className="text-left">
                     <p className="text-white font-bold text-xs">Google Pay</p>
                     <p className="text-blue-200 text-[10px]">₹{grandTotal.toLocaleString("en-IN")}</p>
@@ -434,7 +434,7 @@ export default function PublicInvoicePage() {
                   className="flex items-center gap-2.5 p-3 rounded-xl border transition-all active:scale-95 cursor-pointer"
                   style={{ background: "#00BAF2", borderColor: "#0096c4" }}
                 >
-                  <img src="/icons8-paytm-480.svg" alt="Paytm" className="w-7 h-7 rounded-lg bg-white p-0.5" />
+                  <img src="/icons8-paytm-480.svg" alt="Paytm" style={{ width: 28, height: 28, borderRadius: 6, flexShrink: 0, background: "white", padding: 2 }} />
                   <div className="text-left">
                     <p className="text-white font-bold text-xs">Paytm</p>
                     <p className="text-blue-100 text-[10px]">₹{grandTotal.toLocaleString("en-IN")}</p>
@@ -447,7 +447,7 @@ export default function PublicInvoicePage() {
                   className="flex items-center gap-2.5 p-3 rounded-xl border transition-all active:scale-95 cursor-pointer"
                   style={{ background: "#FF6600", borderColor: "#cc5200" }}
                 >
-                  <img src="/icons8-bhim-480.svg" alt="BHIM UPI" className="w-7 h-7 rounded-lg" />
+                  <img src="/icons8-bhim-480.svg" alt="BHIM UPI" style={{ width: 28, height: 28, borderRadius: 6, flexShrink: 0 }} />
                   <div className="text-left">
                     <p className="text-white font-bold text-xs">BHIM / Any App</p>
                     <p className="text-orange-100 text-[10px]">₹{grandTotal.toLocaleString("en-IN")}</p>
