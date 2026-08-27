@@ -199,17 +199,15 @@ export default function POSBillingPage() {
       ts: Date.now(), // 48-Hour validity timestamp
     };
 
-    // Store in app_settings under key inv_3986 (Takes ~150 bytes, zero order pollution)
+    // Save via server API endpoint (bypasses any client RLS restrictions)
     try {
-      await supabase.from("app_settings").upsert(
-        {
-          key: `inv_${shortDigits}`,
-          value: JSON.stringify(invoicePayload),
-        },
-        { onConflict: "key" }
-      );
+      await fetch("/api/invoice", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ invoiceId: shortDigits, data: invoicePayload }),
+      });
     } catch (err) {
-      console.warn("Could not write short invoice key to settings:", err);
+      console.warn("Could not save invoice via API:", err);
     }
 
     const origin = typeof window !== "undefined" ? window.location.origin : "https://urbantrout.in";

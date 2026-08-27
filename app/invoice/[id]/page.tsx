@@ -36,20 +36,14 @@ export default function PublicInvoicePage() {
           .single();
         if (upiData?.value) setUpiId(upiData.value);
 
-        // 2. Normalize Clean ID (e.g. "UT-INV-3986" -> "3986", or "3986")
+        // 2. Fetch from /api/invoice server endpoint
         const cleanDigits = rawParam.replace(/\D/g, "");
-        const appSettingKey = `inv_${cleanDigits || rawParam}`;
-
-        // Check app_settings for lightweight 48-Hour POS Invoice
-        const { data: settingRow } = await supabase
-          .from("app_settings")
-          .select("value")
-          .eq("key", appSettingKey)
-          .single();
-
-        if (settingRow?.value) {
-          try {
-            const parsed = JSON.parse(settingRow.value);
+        const res = await fetch(`/api/invoice?id=${encodeURIComponent(cleanDigits || rawParam)}`);
+        
+        if (res.ok) {
+          const json = await res.json();
+          if (json?.success && json.invoice) {
+            const parsed = json.invoice;
             const createdTimestamp = parsed.ts || Date.now();
             const elapsedMs = Date.now() - createdTimestamp;
             const maxAgeMs = 48 * 60 * 60 * 1000; // 48 Hours
@@ -57,7 +51,7 @@ export default function PublicInvoicePage() {
             const remainingHours = Math.max(0, Math.ceil((maxAgeMs - elapsedMs) / (1000 * 60 * 60)));
 
             setInvoice({
-              invoiceNumber: parsed.num || `UT-INV-${cleanDigits}`,
+              invoiceNumber: parsed.num || `UT-INV-${cleanDigits || rawParam}`,
               customerName: parsed.name || "Valued Customer",
               customerPhone: parsed.phone || "N/A",
               items: (parsed.items || []).map((i: any) => ({
@@ -75,10 +69,10 @@ export default function PublicInvoicePage() {
             });
             setLoading(false);
             return;
-          } catch (e) {}
+          }
         }
 
-        // 3. Check if rawParam was a Base64 token (Legacy fallback)
+        // 3. Fallback: Base64 decoding if legacy
         let decodedObj: any = null;
         try {
           const jsonStr = decodeURIComponent(atob(rawParam));
@@ -113,7 +107,7 @@ export default function PublicInvoicePage() {
           return;
         }
 
-        // 4. Fallback: Database Lookup for Online Store Orders
+        // 4. Fallback: Direct DB query for Online Store orders
         const numId = parseInt(cleanDigits, 10);
         let query = supabase.from("orders").select("*");
         if (!isNaN(numId)) {
@@ -210,11 +204,11 @@ export default function PublicInvoicePage() {
   if (!invoice) {
     return (
       <div className="min-h-screen bg-[#020d12] flex items-center justify-center p-4 text-center">
-        <div className="max-w-md bg-slate-900/90 border border-slate-800 rounded-3xl p-8 space-y-4">
+        <div className="max-w-md bg-slate-900/90 border border-slate-800 rounded-3xl p-8 space-y-4 shadow-2xl">
           <span className="material-symbols-outlined text-4xl text-slate-500">receipt_long</span>
           <h2 className="text-xl font-bold text-white">Invoice Not Found</h2>
           <p className="text-slate-400 text-xs">
-            We could not find an active invoice matching this reference.
+            We could not find an active invoice matching reference <code className="text-cyan-400">{rawParam}</code>.
           </p>
           <Link
             href="/"
