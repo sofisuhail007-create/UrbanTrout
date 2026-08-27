@@ -199,17 +199,27 @@ export default function POSBillingPage() {
       ts: Date.now(), // 48-Hour validity timestamp
     };
 
-    // Encode invoice payload directly into URL (zero DB dependency - 100% always works)
+    // Encode invoice payload directly into URL (fallback if DB save fails)
     const encodedPayload = btoa(encodeURIComponent(JSON.stringify(invoicePayload)));
     const origin = typeof window !== "undefined" ? window.location.origin : "https://urbantrout.in";
-    const invoicePublicUrl = `${origin}/invoice/${invoiceNumber}?d=${encodedPayload}`;
 
-    // Also fire-and-forget to DB as a bonus backup (non-blocking)
-    fetch("/api/invoice", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ invoiceId: shortDigits, data: invoicePayload }),
-    }).catch(() => {});
+    // Try to save to DB via server API — if it works, use short clean URL
+    let invoicePublicUrl = `${origin}/invoice/${invoiceNumber}?d=${encodedPayload}`; // fallback
+    try {
+      const res = await fetch("/api/invoice", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ invoiceId: shortDigits, data: invoicePayload }),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json?.success) {
+          // DB save worked — use the clean short URL (no ugly base64 in the link)
+          invoicePublicUrl = `${origin}/invoice/${invoiceNumber}`;
+        }
+      }
+    } catch (_) {}
+
 
     const invoiceData = {
       invoiceNumber,
