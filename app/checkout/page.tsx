@@ -1985,19 +1985,75 @@ export default function CheckoutPage() {
                         </button>
                       </div>
 
-                      {/* Mobile Deep Link */}
-                      <a
-                        href={upiPayUri}
-                        className="flex md:hidden items-center justify-center gap-2 w-full py-3.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all"
-                        style={{
-                          background: C.primaryCont,
-                          color: C.onPrimCont,
-                          textDecoration: "none",
-                          boxShadow: "0 0 20px rgba(58,173,204,0.3)",
-                        }}
-                      >
-                        ⚡ Open UPI App (GPay / PhonePe / Paytm)
-                      </a>
+                      {/* ─── ONE-TAP UPI APP BUTTONS ─── */}
+                      <div className="space-y-2">
+                        <span
+                          style={{
+                            fontFamily: '"Inter", sans-serif',
+                            fontSize: "9px",
+                            color: "rgba(180,195,205,0.7)",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.12em",
+                            fontWeight: 700,
+                            display: "block",
+                          }}
+                        >
+                          Tap to Open &amp; Pay Directly
+                        </span>
+                        <div className="grid grid-cols-2 gap-2">
+                          {/* PhonePe */}
+                          <a
+                            href={`phonepe://pay?pa=${upiId}&pn=Urban%20Trout&am=${grandTotal}&cu=INR&tn=UrbanTrout-Order`}
+                            className="flex items-center gap-2 p-2.5 rounded-xl border transition-all active:scale-95"
+                            style={{ background: "#5f259f", borderColor: "#4a1a7a", textDecoration: "none" }}
+                          >
+                            <img src="/icons8-phone-pe-480.svg" alt="PhonePe" style={{ width: 26, height: 26, borderRadius: 6, flexShrink: 0 }} />
+                            <div>
+                              <p style={{ color: "white", fontWeight: 700, fontSize: "11px", fontFamily: '"Space Grotesk", sans-serif' }}>PhonePe</p>
+                              <p style={{ color: "#c9a8f7", fontSize: "10px", fontFamily: '"Inter", sans-serif' }}>₹{grandTotal.toLocaleString("en-IN")}</p>
+                            </div>
+                          </a>
+
+                          {/* Google Pay */}
+                          <a
+                            href={`tez://upi/pay?pa=${upiId}&pn=Urban%20Trout&am=${grandTotal}&cu=INR&tn=UrbanTrout-Order`}
+                            className="flex items-center gap-2 p-2.5 rounded-xl border transition-all active:scale-95"
+                            style={{ background: "#1a73e8", borderColor: "#1558b0", textDecoration: "none" }}
+                          >
+                            <img src="/icons8-google-pay-480.svg" alt="Google Pay" style={{ width: 26, height: 26, borderRadius: 6, flexShrink: 0, background: "white", padding: 2 }} />
+                            <div>
+                              <p style={{ color: "white", fontWeight: 700, fontSize: "11px", fontFamily: '"Space Grotesk", sans-serif' }}>Google Pay</p>
+                              <p style={{ color: "#93c5fd", fontSize: "10px", fontFamily: '"Inter", sans-serif' }}>₹{grandTotal.toLocaleString("en-IN")}</p>
+                            </div>
+                          </a>
+
+                          {/* Paytm */}
+                          <a
+                            href={`paytmmp://pay?pa=${upiId}&pn=Urban%20Trout&am=${grandTotal}&cu=INR&tn=UrbanTrout-Order`}
+                            className="flex items-center gap-2 p-2.5 rounded-xl border transition-all active:scale-95"
+                            style={{ background: "#00BAF2", borderColor: "#0096c4", textDecoration: "none" }}
+                          >
+                            <img src="/icons8-paytm-480.svg" alt="Paytm" style={{ width: 26, height: 26, borderRadius: 6, flexShrink: 0, background: "white", padding: 2 }} />
+                            <div>
+                              <p style={{ color: "white", fontWeight: 700, fontSize: "11px", fontFamily: '"Space Grotesk", sans-serif' }}>Paytm</p>
+                              <p style={{ color: "#bae6fd", fontSize: "10px", fontFamily: '"Inter", sans-serif' }}>₹{grandTotal.toLocaleString("en-IN")}</p>
+                            </div>
+                          </a>
+
+                          {/* BHIM / Any UPI */}
+                          <a
+                            href={`upi://pay?pa=${upiId}&pn=Urban%20Trout&am=${grandTotal}&cu=INR&tn=UrbanTrout-Order`}
+                            className="flex items-center gap-2 p-2.5 rounded-xl border transition-all active:scale-95"
+                            style={{ background: "#FF6600", borderColor: "#cc5200", textDecoration: "none" }}
+                          >
+                            <img src="/icons8-bhim-480.svg" alt="BHIM UPI" style={{ width: 26, height: 26, borderRadius: 6, flexShrink: 0 }} />
+                            <div>
+                              <p style={{ color: "white", fontWeight: 700, fontSize: "11px", fontFamily: '"Space Grotesk", sans-serif' }}>BHIM / Any</p>
+                              <p style={{ color: "#fed7aa", fontSize: "10px", fontFamily: '"Inter", sans-serif' }}>₹{grandTotal.toLocaleString("en-IN")}</p>
+                            </div>
+                          </a>
+                        </div>
+                      </div>
                     </div>
                   </div>
 
