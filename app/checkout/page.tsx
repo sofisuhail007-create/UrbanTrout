@@ -343,9 +343,23 @@ export default function CheckoutPage() {
           })),
           estimated_total: currentTotal,
           status: "abandoned",
+          notes: `Abandoned checkout step ${currentStep} (₹${currentTotal})`,
           updated_at: new Date().toISOString(),
         };
 
+        // 1. Primary: Save via server API endpoint (bypasses RLS issues)
+        fetch("/api/lead", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ lead: payload }),
+        })
+          .then((res) => res.json())
+          .then((json) => {
+            if (json?.leadId) leadIdRef.current = json.leadId;
+          })
+          .catch(() => {});
+
+        // 2. Direct client Supabase fallback
         if (leadIdRef.current) {
           await supabase.from("leads").update(payload).eq("id", leadIdRef.current);
         } else {
@@ -371,9 +385,7 @@ export default function CheckoutPage() {
             name: currentData.fullName?.trim() || "Interested Customer",
             locality: currentData.locality?.trim() || selectedZoneName || "Srinagar",
             pincode: currentData.pincode?.trim() || "190006",
-            notes: `Abandoned checkout step ${currentStep} (₹${currentTotal} — ${currentItems
-              .map((i) => `${i.name} x${i.quantity}`)
-              .join(", ")})`,
+            notes: `Abandoned checkout step ${currentStep} (₹${currentTotal})`,
             last_order_at: new Date().toISOString(),
           },
           { onConflict: "phone" }
@@ -417,14 +429,14 @@ export default function CheckoutPage() {
       house: validateHouse,
       pincode: validatePincode,
     };
-    if (touched[field as keyof typeof touched]) {
-      setErrors((prev) => ({ ...prev, [field]: validators[field]?.(value) || "" }));
+
+    if (validators[field]) {
+      setErrors((prev) => ({ ...prev, [field]: validators[field](value) }));
     }
 
-    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
-    debounceTimerRef.current = setTimeout(() => {
+    if (field === "phone" && value.replace(/\D/g, "").length === 10) {
       captureLead(next, grandTotal, items);
-    }, 600);
+    }
   };
 
   const handleBlur = (field: string) => {
@@ -437,25 +449,20 @@ export default function CheckoutPage() {
       house: validateHouse,
       pincode: validatePincode,
     };
-    setErrors((prev) => ({
-      ...prev,
-      [field]: validators[field]?.(formData[field as keyof typeof formData]) || "",
-    }));
+    if (validators[field]) {
+      setErrors((prev) => ({ ...prev, [field]: validators[field](formData[field as keyof typeof formData]) }));
+    }
     captureLead(formData, grandTotal, items);
   };
 
+  // ─── Trigger abandoned lead on step change ───────────────────
   useEffect(() => {
-    const handleBeforeUnload = () => {
-      if (formData.phone.replace(/\D/g, "").length >= 8) {
+    if (formData.phone.replace(/\D/g, "").length >= 10) {
+      const timer = setTimeout(() => {
         captureLead(formData, grandTotal, items, true);
-      }
-    };
-    window.addEventListener("beforeunload", handleBeforeUnload);
-    window.addEventListener("pagehide", handleBeforeUnload);
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-      window.removeEventListener("pagehide", handleBeforeUnload);
-    };
+      }, 500);
+      return () => clearTimeout(timer);
+    }
   }, [formData, grandTotal, items, captureLead]);
 
   // ─── Location Detection (GPS) ────────────────────────────────
@@ -468,23 +475,56 @@ export default function CheckoutPage() {
       return;
     }
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const dist = calculateDistance(FARM_LAT, FARM_LNG, pos.coords.latitude, pos.coords.longitude);
+      async (pos) => {
+        const { latitude, longitude } = pos.coords;
+        const dist = calculateDistance(FARM_LAT, FARM_LNG, latitude, longitude);
         setCalculatedDistance(dist);
+
+        let detectedLocality = "Naseem Bagh / Srinagar";
+        let detectedAddress = "";
+        let detectedPincode = "190006";
+
+        // ─── Reverse Geocode: Pull full human-readable address ───
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json&addressdetails=1`,
+            { headers: { "Accept-Language": "en" } }
+          );
+          const geo = await res.json();
+          const addr = geo?.address || {};
+
+          // Extract detailed address components
+          const road = addr.road || addr.pedestrian || addr.footway || addr.path || addr.street || "";
+          const neighbourhood = addr.neighbourhood || addr.suburb || addr.village || addr.hamlet || addr.residential || addr.subdivision || "";
+          const city = addr.city || addr.town || addr.county || addr.state_district || "Srinagar";
+          detectedPincode = addr.postcode || "190006";
+
+          detectedAddress = [road, neighbourhood].filter(Boolean).join(", ");
+          if (!detectedAddress && geo?.display_name) {
+            detectedAddress = geo.display_name.split(",").slice(0, 2).join(",").trim();
+          }
+
+          detectedLocality = neighbourhood ? `${neighbourhood}, ${city}` : city;
+
+          // Auto-fill the address fields in checkout form
+          setFormData((prev) => ({
+            ...prev,
+            house: detectedAddress || prev.house,
+            locality: detectedLocality || prev.locality || "Srinagar",
+            pincode: detectedPincode || prev.pincode || "190006",
+          }));
+        } catch (geoErr) {
+          console.warn("Reverse geocode notice:", geoErr);
+        }
+
         if (dist <= DELIVERY_RADIUS_KM) {
           setDeliveryMode("under5");
-          setSelectedZoneName("GPS Detected Location");
-          setLocationMsg(`${dist.toFixed(1)} km from Farm — Free Delivery ✓`);
-          if (!formData.locality) {
-            setFormData((prev) => ({ ...prev, locality: "Naseem Bagh / Srinagar (GPS)" }));
-          }
-          if (!formData.pincode) {
-            setFormData((prev) => ({ ...prev, pincode: "190006" }));
-          }
+          setSelectedZoneName(detectedLocality || "GPS Detected Location");
+          setLocationMsg(`${dist.toFixed(1)} km from Farm (${detectedLocality}) — Free Delivery ✓`);
         } else {
           setDeliveryMode("unavailable");
-          setSelectedZoneName("GPS Detected Location");
-          setLocationMsg(`${dist.toFixed(1)} km from Farm — Outside 5km delivery zone.`);
+          setSelectedZoneName(detectedLocality || "GPS Detected Location");
+          setLocationMsg(`${dist.toFixed(1)} km from Farm (${detectedLocality}) — Outside 5km delivery zone.`);
         }
         setIsLocating(false);
       },

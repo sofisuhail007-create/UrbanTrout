@@ -34,27 +34,43 @@ export default function AdminLeadsPage() {
 
       let combinedLeads: Lead[] = [];
 
-      // 2. Fetch from dedicated leads table
-      const { data: leadsData } = await supabase
-        .from("leads")
-        .select("*")
-        .order("created_at", { ascending: false });
-
-      if (leadsData && leadsData.length > 0) {
-        combinedLeads = (leadsData as Lead[]).map((l: Lead) => {
-          const cleanPhone = (l.customer_phone || "").replace(/\D/g, "").slice(-10);
-          if (orderPhoneMap.has(cleanPhone)) {
-            return {
-              ...l,
-              status: "converted",
-              notes: l.notes && l.notes.includes("Converted") ? l.notes : `Converted to Order #${orderPhoneMap.get(cleanPhone)}`,
-            };
+      // 2. Fetch leads via server API first (reliable)
+      try {
+        const res = await fetch("/api/lead");
+        if (res.ok) {
+          const json = await res.json();
+          if (json?.success && Array.isArray(json.leads)) {
+            combinedLeads = json.leads;
           }
-          return l;
-        });
+        }
+      } catch (_) {}
+
+      // 3. Fallback: Fetch directly from Supabase leads table if API returned empty
+      if (combinedLeads.length === 0) {
+        const { data: leadsData } = await supabase
+          .from("leads")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (leadsData && leadsData.length > 0) {
+          combinedLeads = leadsData as Lead[];
+        }
       }
 
-      setLeads(combinedLeads);
+      // Map conversion status based on actual orders
+      const finalLeads = combinedLeads.map((l: Lead) => {
+        const cleanPhone = (l.customer_phone || "").replace(/\D/g, "").slice(-10);
+        if (orderPhoneMap.has(cleanPhone)) {
+          return {
+            ...l,
+            status: "converted" as const,
+            notes: l.notes && l.notes.includes("Converted") ? l.notes : `Converted to Order #${orderPhoneMap.get(cleanPhone)}`,
+          };
+        }
+        return l;
+      });
+
+      setLeads(finalLeads);
     } catch (err) {
       console.error("Error fetching leads:", err);
     } finally {
