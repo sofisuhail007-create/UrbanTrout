@@ -408,11 +408,7 @@ export default function PublicInvoicePage() {
                   className="flex items-center gap-2.5 p-3 rounded-xl border transition-all active:scale-95 cursor-pointer"
                   style={{ background: "#5f259f", borderColor: "#4a1a7a" }}
                 >
-                  {/* PhonePe Icon */}
-                  <svg width="24" height="24" viewBox="0 0 64 64" fill="none">
-                    <rect width="64" height="64" rx="14" fill="#5f259f"/>
-                    <path d="M32 8C18.7 8 8 18.7 8 32s10.7 24 24 24 24-10.7 24-24S45.3 8 32 8zm8.8 28.5c-1.3 2.5-3.6 4.1-6.4 4.6v3.7c0 .6-.5 1.1-1.1 1.1h-2.2c-.6 0-1.1-.5-1.1-1.1v-3.7c-4.5-.8-7.7-4.9-7.7-9.8V22.2c0-.6.5-1.1 1.1-1.1h2.2c.6 0 1.1.5 1.1 1.1v9.1c0 3.1 2.3 5.7 5.4 5.9 3.3.2 6-2.4 6-5.7v-9.3c0-.6.5-1.1 1.1-1.1h2.2c.6 0 1.1.5 1.1 1.1v9.3c0 1.9-.5 3.6-1.7 5z" fill="white"/>
-                  </svg>
+                  <img src="/icons8-phone-pe-480.svg" alt="PhonePe" className="w-7 h-7 rounded-lg" />
                   <div className="text-left">
                     <p className="text-white font-bold text-xs">PhonePe</p>
                     <p className="text-purple-200 text-[10px]">₹{grandTotal.toLocaleString("en-IN")}</p>
@@ -425,15 +421,7 @@ export default function PublicInvoicePage() {
                   className="flex items-center gap-2.5 p-3 rounded-xl border transition-all active:scale-95 cursor-pointer"
                   style={{ background: "#1a73e8", borderColor: "#1558b0" }}
                 >
-                  {/* GPay Icon */}
-                  <svg width="24" height="24" viewBox="0 0 64 64" fill="none">
-                    <rect width="64" height="64" rx="14" fill="white"/>
-                    <text x="50%" y="56%" dominantBaseline="middle" textAnchor="middle" fontSize="28" fontWeight="bold" fontFamily="Arial">
-                      <tspan fill="#4285F4">G</tspan>
-                    </text>
-                    <circle cx="43" cy="43" r="10" fill="#34A853"/>
-                    <text x="43" y="47" dominantBaseline="middle" textAnchor="middle" fontSize="11" fontWeight="bold" fill="white">P</text>
-                  </svg>
+                  <img src="/icons8-google-pay-480.svg" alt="Google Pay" className="w-7 h-7 rounded-lg bg-white p-0.5" />
                   <div className="text-left">
                     <p className="text-white font-bold text-xs">Google Pay</p>
                     <p className="text-blue-200 text-[10px]">₹{grandTotal.toLocaleString("en-IN")}</p>
@@ -446,12 +434,7 @@ export default function PublicInvoicePage() {
                   className="flex items-center gap-2.5 p-3 rounded-xl border transition-all active:scale-95 cursor-pointer"
                   style={{ background: "#00BAF2", borderColor: "#0096c4" }}
                 >
-                  {/* Paytm Icon */}
-                  <svg width="24" height="24" viewBox="0 0 64 64" fill="none">
-                    <rect width="64" height="64" rx="14" fill="#00BAF2"/>
-                    <rect x="12" y="24" width="40" height="8" rx="2" fill="white"/>
-                    <rect x="12" y="36" width="28" height="8" rx="2" fill="white"/>
-                  </svg>
+                  <img src="/icons8-paytm-480.svg" alt="Paytm" className="w-7 h-7 rounded-lg bg-white p-0.5" />
                   <div className="text-left">
                     <p className="text-white font-bold text-xs">Paytm</p>
                     <p className="text-blue-100 text-[10px]">₹{grandTotal.toLocaleString("en-IN")}</p>
@@ -464,11 +447,7 @@ export default function PublicInvoicePage() {
                   className="flex items-center gap-2.5 p-3 rounded-xl border transition-all active:scale-95 cursor-pointer"
                   style={{ background: "#FF6600", borderColor: "#cc5200" }}
                 >
-                  {/* BHIM Icon */}
-                  <svg width="24" height="24" viewBox="0 0 64 64" fill="none">
-                    <rect width="64" height="64" rx="14" fill="#FF6600"/>
-                    <text x="50%" y="54%" dominantBaseline="middle" textAnchor="middle" fontSize="18" fontWeight="900" fill="white" fontFamily="Arial">UPI</text>
-                  </svg>
+                  <img src="/icons8-bhim-480.svg" alt="BHIM UPI" className="w-7 h-7 rounded-lg" />
                   <div className="text-left">
                     <p className="text-white font-bold text-xs">BHIM / Any App</p>
                     <p className="text-orange-100 text-[10px]">₹{grandTotal.toLocaleString("en-IN")}</p>
