@@ -87,16 +87,24 @@ export default function POSBillingPage() {
     loadData();
   }, []);
 
+  // Listen for Escape key to close modal
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setInvoiceModalOpen(false);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
   const activeProduct = products.find((p) => p.id === selectedProductId) || products[0];
 
-  // ─── REAL-TIME AUTO-UPDATE LOGIC (No button click needed) ─────
+  // ─── REAL-TIME AUTO-UPDATE LOGIC (On Keystroke) ──────────────
   const updateActiveWeight = (newWeightStr: string, prodId = selectedProductId) => {
     setCurrentWeight(newWeightStr);
     const prod = products.find((p) => p.id === prodId) || activeProduct;
     const w = parseFloat(newWeightStr);
 
     if (isNaN(w) || w <= 0) {
-      // Keep item in list with 0 total if typing
       setBillItems((prev) =>
         prev.map((item) => (item.id === prod.id ? { ...item, weightKg: 0, total: 0 } : item))
       );
@@ -128,7 +136,6 @@ export default function POSBillingPage() {
     });
   };
 
-  // Switch Active Product & Sync Real-Time
   const handleSelectProduct = (prodId: string) => {
     setSelectedProductId(prodId);
     const existing = billItems.find((i) => i.id === prodId);
@@ -136,7 +143,6 @@ export default function POSBillingPage() {
     updateActiveWeight(wStr, prodId);
   };
 
-  // Quick weight chips
   const handleQuickWeight = (val: number, isAdd = false) => {
     let w = parseFloat(currentWeight) || 0;
     if (isAdd) {
@@ -181,11 +187,11 @@ export default function POSBillingPage() {
 
     setIsSaving(true);
     try {
-      const invoiceNumber = "UT-INV-" + Math.floor(10000 + Math.random() * 90000);
+      const invoiceNumber = "UT-INV-" + Math.floor(1000 + Math.random() * 9000);
       const cleanPhone = customerPhone.replace(/\D/g, "").slice(-10);
 
       const orderPayload = {
-        customer_name: customerName.trim() || "Farm Counter Customer",
+        customer_name: customerName.trim() || "Valued Customer",
         customer_phone: cleanPhone || "9999999999",
         customer_address: "Live Vending Center / Farm POS, Naseem Bagh, Srinagar",
         customer_locality: "Naseem Bagh / Malabagh",
@@ -201,7 +207,7 @@ export default function POSBillingPage() {
         delivery_fee: 0,
         total: grandTotal,
         delivery_zone: "Farm POS / Live Vending",
-        status: "pending", // Payment due
+        status: "pending",
       };
 
       const { data: insertedOrder } = await supabase.from("orders").insert(orderPayload).select("*").single();
@@ -211,7 +217,7 @@ export default function POSBillingPage() {
           await supabase.from("customers").upsert(
             {
               phone: cleanPhone,
-              name: customerName.trim() || "Farm Counter Customer",
+              name: customerName.trim() || "Valued Customer",
               locality: "Srinagar (Farm Counter)",
               notes: `POS Invoice #${invoiceNumber}`,
               last_order_at: new Date().toISOString(),
@@ -221,8 +227,16 @@ export default function POSBillingPage() {
         } catch (e) {}
       }
 
+      const finalInvoiceNum = insertedOrder?.order_number
+        ? `UT-INV-${insertedOrder.order_number}`
+        : invoiceNumber;
+
+      const origin = typeof window !== "undefined" ? window.location.origin : "https://urbantrout.in";
+      const invoicePublicUrl = `${origin}/invoice/${finalInvoiceNum}`;
+
       const invoiceData = {
-        invoiceNumber: insertedOrder?.order_number ? `UT-INV-${insertedOrder.order_number}` : invoiceNumber,
+        invoiceNumber: finalInvoiceNum,
+        orderId: insertedOrder?.id || "",
         date: new Date().toLocaleString("en-IN", {
           day: "2-digit",
           month: "short",
@@ -240,6 +254,7 @@ export default function POSBillingPage() {
         upiId,
         upiQrCodeUrl,
         upiPayUri,
+        invoicePublicUrl,
       };
 
       setGeneratedInvoice(invoiceData);
@@ -252,15 +267,15 @@ export default function POSBillingPage() {
     }
   };
 
-  // WhatsApp Message with Warm Hospitality Greeting, Breakdown & Pay Link
+  // ─── SIMPLE & CLEAN WHATSAPP MESSAGE (Short & Professional) ──
   const handleShareWhatsApp = () => {
     if (!generatedInvoice) return;
-    let itemLines = "";
-    generatedInvoice.items.forEach((item: BillItem) => {
-      itemLines += `• *${item.name}*: ${item.weightKg} Kg @ ₹${item.pricePerKg}/Kg = ₹${item.total.toLocaleString("en-IN")}\n`;
-    });
 
-    const msg = `🐟 *URBAN TROUT AQUACULTURE, SRINAGAR*\n*Fresh Live Harvest Invoice & Payment Request*\n\nDear *${generatedInvoice.customerName}*,\nGreetings from Urban Trout Farm! Thank you for purchasing our fresh tank-harvested Rainbow Trout. Here is your invoice:\n\n📄 *Invoice No:* ${generatedInvoice.invoiceNumber}\n🗓 *Date:* ${generatedInvoice.date}\n\n*Itemized Breakdown:*\n${itemLines}\n⚖️ *Total Harvest Weight:* ${generatedInvoice.totalWeight.toFixed(2)} Kg\n💰 *Total Amount Payable:* ₹${generatedInvoice.grandTotal.toLocaleString("en-IN")}\n\n*⚡ Quick Scan & Pay via UPI (GPay / PhonePe / Paytm):*\nUPI ID: \`${generatedInvoice.upiId}\`\nDirect Payment Link:\n${generatedInvoice.upiPayUri}\n\n📍 *Farm Location:* Naseem Bagh / Malabagh, Srinagar (Near R P School Girls Wing)\n📞 *Farm Helpline:* +91 84910 06127\n\n_Please click the link above or scan the QR code to complete payment. We hope you enjoy your freshest trout meal!_`;
+    const itemsSummary = generatedInvoice.items
+      .map((item: BillItem) => `${item.name} (${item.weightKg} Kg)`)
+      .join(", ");
+
+    const msg = `Hello ${generatedInvoice.customerName},\n\nThank you for your order with Urban Trout Farm, Srinagar!\n\n📄 Invoice: ${generatedInvoice.invoiceNumber}\n🐟 Items: ${itemsSummary}\n💰 Total Amount: ₹${generatedInvoice.grandTotal.toLocaleString("en-IN")}\n\n💳 Pay via UPI: ${generatedInvoice.upiId}\n\n📄 View & Download Invoice PDF:\n${generatedInvoice.invoicePublicUrl}\n\nUrban Trout Farm, Srinagar\nHelpline: +91 84910 06127`;
 
     const encoded = encodeURIComponent(msg);
     const phoneParam = customerPhone.replace(/\D/g, "").slice(-10);
@@ -578,26 +593,33 @@ export default function POSBillingPage() {
         </div>
       </div>
 
-      {/* ─── PRINTABLE INVOICE / PDF MODAL (WITH EMBEDDED UPI QR) ─── */}
+      {/* ─── PRINTABLE INVOICE / PDF MODAL (WITH EASY CLOSE & PDF LINK) ─── */}
       {invoiceModalOpen && generatedInvoice && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto">
-          <div className="relative w-full max-w-md sm:max-w-lg bg-white text-slate-900 rounded-3xl p-5 sm:p-8 shadow-2xl space-y-5 my-6">
-            {/* Modal Controls (Hidden in Print) */}
-            <div className="flex items-center justify-between border-b pb-3 print:hidden">
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setInvoiceModalOpen(false);
+          }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto"
+        >
+          <div className="relative w-full max-w-md sm:max-w-lg bg-white text-slate-900 rounded-3xl p-5 sm:p-8 shadow-2xl space-y-5 my-6 max-h-[92vh] overflow-y-auto">
+            {/* Sticky Top Modal Header with Clear Close Button */}
+            <div className="sticky -top-5 sm:-top-8 -mx-5 sm:-mx-8 px-5 sm:px-8 py-3 bg-white/95 backdrop-blur border-b z-20 flex items-center justify-between print:hidden">
               <span className="text-[11px] font-bold uppercase tracking-wider bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full">
                 ✓ Invoice Created
               </span>
+
               <button
                 type="button"
                 onClick={() => setInvoiceModalOpen(false)}
-                className="text-slate-400 hover:text-slate-700 cursor-pointer p-1"
+                className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs flex items-center gap-1 cursor-pointer transition-colors"
               >
-                <span className="material-symbols-outlined">close</span>
+                <span className="material-symbols-outlined text-base">close</span>
+                Close
               </button>
             </div>
 
             {/* ─── PRINTABLE / DOWNLOADABLE INVOICE CONTENT ─── */}
-            <div id="printable-receipt" className="space-y-4 sm:space-y-5">
+            <div id="printable-receipt" className="space-y-4 sm:space-y-5 pt-2">
               {/* Receipt Header */}
               <div className="text-center pb-3 border-b border-dashed border-slate-300">
                 <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
@@ -683,23 +705,33 @@ export default function POSBillingPage() {
             </div>
 
             {/* Action Buttons (Hidden in Print) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-3 border-t print:hidden">
-              <button
-                type="button"
-                onClick={() => window.print()}
-                className="py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-md active:scale-95"
-              >
-                <span className="material-symbols-outlined text-base">print</span>
-                Print / Save PDF
-              </button>
+            <div className="space-y-2 pt-3 border-t print:hidden">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="py-3 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-md active:scale-95"
+                >
+                  <span className="material-symbols-outlined text-base">print</span>
+                  Print / Save PDF
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleShareWhatsApp}
+                  className="py-3 px-4 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-md active:scale-95"
+                >
+                  <span className="material-symbols-outlined text-base">share</span>
+                  Send WhatsApp Bill
+                </button>
+              </div>
 
               <button
                 type="button"
-                onClick={handleShareWhatsApp}
-                className="py-3 px-4 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-md active:scale-95"
+                onClick={() => setInvoiceModalOpen(false)}
+                className="w-full py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer"
               >
-                <span className="material-symbols-outlined text-base">share</span>
-                Send WhatsApp Bill
+                Done &amp; Close Window
               </button>
             </div>
           </div>
