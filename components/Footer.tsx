@@ -61,6 +61,7 @@ export default function Footer() {
             {[
               { href: "/shop", label: "Shop Fresh Catch" },
               { href: "/our-farm", label: "About Our Farm" },
+              { href: "/farm-visits", label: "Pre-Notify Farm Visit" },
               { href: "/contact", label: "Contact Us" },
               { href: "/shop/gutted-trout", label: "Cleaned & Gutted Trout" },
               { href: "/shop/whole-trout", label: "Whole Rainbow Trout" },
@@ -213,6 +214,7 @@ export default function Footer() {
             { href: "/privacy", label: "Privacy Policy" },
             { href: "/terms", label: "Terms" },
             { href: "/our-farm", label: "Our Farm" },
+            { href: "/farm-visits", label: "Visit Farm" },
           ].map((link) => (
             <Link
               key={link.href}

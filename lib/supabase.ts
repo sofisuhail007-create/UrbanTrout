@@ -127,6 +127,24 @@ export type Lead = {
   updated_at: string
 }
 
+export type VisitStatus = 'pending' | 'confirmed' | 'completed' | 'cancelled' | 'rescheduled'
+
+export type FarmVisit = {
+  id: string
+  visitor_name: string
+  phone: string
+  email?: string | null
+  visit_date: string
+  time_slot: string
+  guest_count: number
+  visit_purpose: string
+  special_requests?: string | null
+  status: VisitStatus
+  admin_notes?: string | null
+  created_at: string
+  updated_at?: string
+}
+
 export type AppSetting = {
   key: string
   value: string

@@ -344,3 +344,46 @@ export async function notifyBioAlarm(alarm: {
 
   return sendTelegramMessage(msg, "HTML");
 }
+
+export async function notifyFarmVisit(visit: {
+  visitor_name: string;
+  phone: string;
+  email?: string | null;
+  visit_date: string;
+  time_slot: string;
+  guest_count: number;
+  visit_purpose: string;
+  special_requests?: string | null;
+  status?: string;
+}) {
+  const cleanPhone = String(visit.phone || "").replace(/\D/g, "").slice(-10);
+  const waReplyMsg = `Hi ${visit.visitor_name}! Urban Trout here regarding your farm visit pre-notification for ${visit.visit_date} (${visit.time_slot}). We look forward to welcoming you to our Naseem Bagh farm! 🐟`;
+  const waUrl = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(waReplyMsg)}`;
+
+  const msg = `🌿 <b>NEW FARM VISIT PRE-NOTIFICATION!</b> 🐟
+━━━━━━━━━━━━━━━━━━━━
+👤 <b>Visitor:</b> ${visit.visitor_name}
+📞 <b>Phone:</b> <a href="tel:+91${cleanPhone}">+91 ${cleanPhone}</a>
+${visit.email ? `✉️ <b>Email:</b> ${visit.email}\n` : ""}📅 <b>Date of Visit:</b> <b>${visit.visit_date}</b>
+⏰ <b>Time Slot:</b> <b>${visit.time_slot}</b>
+👥 <b>Guests / Group Size:</b> <b>${visit.guest_count} Person(s)</b>
+🎯 <b>Purpose:</b> ${visit.visit_purpose}
+${visit.special_requests ? `📝 <b>Notes:</b> <i>"${visit.special_requests}"</i>\n` : ""}
+━━━━━━━━━━━━━━━━━━━━
+👇 <b>Quick Actions:</b>`;
+
+  const keyboard: InlineKeyboardMarkup = {
+    inline_keyboard: [
+      [
+        { text: "💬 Confirm via WhatsApp", url: waUrl },
+        { text: "📞 Call Visitor", url: `tel:+91${cleanPhone}` },
+      ],
+      [
+        { text: "📍 Open Admin Dashboard", url: "https://urbantrout.in/admin/dashboard/visits" },
+      ],
+    ],
+  };
+
+  return sendTelegramMessage(msg, "HTML", keyboard);
+}
+

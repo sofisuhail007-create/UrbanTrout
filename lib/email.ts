@@ -311,3 +311,99 @@ export async function sendContactInquiryEmail(inquiry: {
     console.warn("Resend contact alert error:", err);
   }
 }
+
+// 4. Farm Visit Pre-Notification Alerts
+export async function sendFarmVisitEmail(visit: {
+  visitor_name: string;
+  phone: string;
+  email?: string | null;
+  visit_date: string;
+  time_slot: string;
+  guest_count: number;
+  visit_purpose: string;
+  special_requests?: string | null;
+}) {
+  const resend = getResend();
+  if (!resend) return;
+
+  const emailHtml = `
+  <!DOCTYPE html>
+  <html>
+  <head><meta charset="utf-8"></head>
+  <body style="background-color: #031018; color: #dfedf9; font-family: sans-serif; padding: 20px;">
+    <div style="max-width: 580px; margin: 0 auto; background: #0b1b25; border: 1px solid #1a3648; border-radius: 12px; padding: 28px;">
+      <h2 style="color: #72ddfd; margin-top: 0;">🌿 Farm Visit Pre-Notification</h2>
+      <p style="color: #9fadb8;">A visitor has pre-notified their planned visit to Urban Trout Farm in Naseem Bagh:</p>
+      
+      <div style="background: #06151e; border: 1px solid #152834; border-radius: 8px; padding: 16px; margin: 20px 0; font-size: 14px; line-height: 1.6;">
+        <p style="margin: 0 0 8px;"><strong>Visitor Name:</strong> ${visit.visitor_name}</p>
+        <p style="margin: 0 0 8px;"><strong>Phone / WhatsApp:</strong> +91 ${visit.phone}</p>
+        ${visit.email ? `<p style="margin: 0 0 8px;"><strong>Email:</strong> ${visit.email}</p>` : ""}
+        <p style="margin: 0 0 8px;"><strong>Date of Visit:</strong> <span style="color: #72ddfd; font-weight: bold;">${visit.visit_date}</span></p>
+        <p style="margin: 0 0 8px;"><strong>Preferred Time:</strong> <span style="color: #72ddfd; font-weight: bold;">${visit.time_slot}</span></p>
+        <p style="margin: 0 0 8px;"><strong>Group Size:</strong> ${visit.guest_count} Person(s)</p>
+        <p style="margin: 0 0 8px;"><strong>Purpose:</strong> ${visit.visit_purpose}</p>
+        ${visit.special_requests ? `<p style="margin: 0;"><strong>Special Notes:</strong> <em>"${visit.special_requests}"</em></p>` : ""}
+      </div>
+
+      <div style="text-align: center; margin-top: 24px;">
+        <a href="https://wa.me/91${visit.phone.replace(/\D/g, '').slice(-10)}?text=Hi%20${encodeURIComponent(visit.visitor_name)}!%20Urban%20Trout%20here%20regarding%20your%20farm%20visit%20scheduled%20for%20${encodeURIComponent(visit.visit_date)}." style="background: #25d366; color: #fff; text-decoration: none; padding: 10px 18px; border-radius: 6px; font-weight: bold; display: inline-block;">
+          WhatsApp Visitor
+        </a>
+      </div>
+    </div>
+  </body>
+  </html>
+  `;
+
+  try {
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to: ADMIN_EMAIL,
+      subject: `🌿 [FARM VISIT PRE-NOTIFICATION] ${visit.visitor_name} on ${visit.visit_date} (${visit.time_slot})`,
+      html: emailHtml,
+    });
+  } catch (err) {
+    console.warn("Resend farm visit alert error:", err);
+  }
+
+  if (visit.email && visit.email.includes("@")) {
+    const confirmationHtml = `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="utf-8"></head>
+    <body style="background-color: #031018; color: #dfedf9; font-family: sans-serif; padding: 20px;">
+      <div style="max-width: 580px; margin: 0 auto; background: #0b1b25; border: 1px solid #1a3648; border-radius: 12px; padding: 28px; text-align: center;">
+        <h2 style="color: #72ddfd; margin-top: 0;">We've Received Your Farm Visit Request! 🐟</h2>
+        <p style="color: #9fadb8; font-size: 14px; line-height: 1.6;">
+          Hi <strong>${visit.visitor_name}</strong>, thank you for pre-notifying your visit to Urban Trout. We are looking forward to hosting you at our cold-water trout facility in Naseem Bagh, Srinagar.
+        </p>
+
+        <div style="background: #06151e; border: 1px solid #152834; border-radius: 8px; padding: 16px; margin: 20px 0; text-align: left; font-size: 14px; line-height: 1.6;">
+          <p style="margin: 0 0 6px;">📅 <strong>Date:</strong> ${visit.visit_date}</p>
+          <p style="margin: 0 0 6px;">⏰ <strong>Time Slot:</strong> ${visit.time_slot}</p>
+          <p style="margin: 0 0 6px;">👥 <strong>Group Size:</strong> ${visit.guest_count} Person(s)</p>
+          <p style="margin: 0;">📍 <strong>Location:</strong> Malabagh, Naseem Bagh, Srinagar (Near R P School Girls Wing)</p>
+        </div>
+
+        <p style="font-size: 12px; color: #6a7782;">
+          Our farm team will confirm your slot and be prepared with fresh live raceway demonstrations.
+        </p>
+      </div>
+    </body>
+    </html>
+    `;
+
+    try {
+      await resend.emails.send({
+        from: FROM_EMAIL,
+        to: visit.email,
+        subject: `Your Farm Visit Pre-Notification: Urban Trout Srinagar (${visit.visit_date})`,
+        html: confirmationHtml,
+      });
+    } catch (err) {
+      console.warn("Resend visitor confirmation email error:", err);
+    }
+  }
+}
+

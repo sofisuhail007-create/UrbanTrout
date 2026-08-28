@@ -12,6 +12,7 @@ interface StaffPermissions {
   customers?: boolean;
   analytics?: boolean;
   farm?: boolean;
+  visits?: boolean;
   settings?: boolean;
   can_delete?: boolean;
 }
@@ -20,6 +21,7 @@ const ALL_NAV_ITEMS = [
   { href: "/admin/dashboard/billing", icon: "point_of_sale", label: "POS Billing / Invoices", permKey: "billing", badge: "Live" },
   { href: "/admin/dashboard", icon: "dashboard", label: "Dashboard", permKey: null },
   { href: "/admin/dashboard/orders", icon: "receipt_long", label: "Orders", permKey: "orders" },
+  { href: "/admin/dashboard/visits", icon: "calendar_month", label: "Farm Visits", permKey: "farm" },
   { href: "/admin/dashboard/leads", icon: "phone_callback", label: "Leads & Abandoned", permKey: "leads" },
   { href: "/admin/dashboard/inventory", icon: "inventory_2", label: "Inventory", permKey: "inventory" },
   { href: "/admin/dashboard/customers", icon: "people", label: "Customers", permKey: "customers" },
