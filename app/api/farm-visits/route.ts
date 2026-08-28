@@ -20,10 +20,10 @@ export async function POST(request: Request) {
       token,
     } = body;
 
-    // 1. Validate required fields
-    if (!visitor_name?.trim() || !phone?.trim() || !visit_date || !time_slot) {
+    // 1. Validate required fields (Email is mandatory for official pass delivery)
+    if (!visitor_name?.trim() || !phone?.trim() || !email?.trim() || !visit_date || !time_slot) {
       return NextResponse.json(
-        { success: false, error: "Please provide your Name, Phone number, Visit Date, and Preferred Time Slot." },
+        { success: false, error: "Please provide your Full Name, Phone number, Email address, Date, and requested Time Slot." },
         { status: 400 }
       );
     }
@@ -334,9 +334,59 @@ export async function PATCH(request: Request) {
       }
     }
 
+    // 3. If Farm Manager is confirming the visit, trigger official Approval Email Pass to visitor
+    if (status === "confirmed") {
+      try {
+        let visitObj: any = null;
+
+        // Try getting from farm_visits
+        try {
+          const { data } = await supabase.from("farm_visits").select("*").eq("id", id).maybeSingle();
+          if (data) visitObj = data;
+        } catch (_) {}
+
+        // Fallback: check leads
+        if (!visitObj) {
+          try {
+            const { data: lead } = await supabase.from("leads").select("*").eq("id", id).maybeSingle();
+            if (lead && lead.notes && lead.notes.includes("[FARM_VISIT]")) {
+              const jsonStr = lead.notes.replace("[FARM_VISIT]", "").trim();
+              const parsed = JSON.parse(jsonStr);
+              visitObj = {
+                visitor_name: parsed.visitor_name || lead.customer_name,
+                phone: lead.customer_phone,
+                email: lead.customer_email,
+                visit_date: parsed.date,
+                time_slot: parsed.slot,
+                guest_count: parsed.guests || 1,
+                visit_purpose: parsed.purpose || "Live Trout Purchase / Viewing",
+                admin_notes: admin_notes || parsed.admin_notes || null,
+              };
+            }
+          } catch (_) {}
+        }
+
+        if (visitObj && visitObj.email) {
+          const { sendFarmVisitApprovedEmail } = await import("@/lib/email");
+          await sendFarmVisitApprovedEmail({
+            visitor_name: visitObj.visitor_name,
+            phone: visitObj.phone,
+            email: visitObj.email,
+            visit_date: visitObj.visit_date,
+            time_slot: visitObj.time_slot,
+            guest_count: visitObj.guest_count || 1,
+            visit_purpose: visitObj.visit_purpose || "Live Trout Purchase / Viewing",
+            admin_notes: admin_notes || visitObj.admin_notes || null,
+          });
+        }
+      } catch (emailErr) {
+        console.warn("Error sending approval email pass:", emailErr);
+      }
+    }
+
     return NextResponse.json({
       success: true,
-      message: `Visit status updated to ${status}`,
+      message: `Visit status updated to ${status}. ${status === "confirmed" ? "Official Approval Email Pass sent to visitor." : ""}`,
     });
 
   } catch (error: any) {

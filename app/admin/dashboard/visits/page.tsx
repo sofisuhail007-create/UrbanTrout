@@ -453,7 +453,7 @@ export default function AdminFarmVisitsPage() {
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 py-4 text-xs">
                   <div>
                     <span className="text-slate-500 block text-[10px] uppercase font-bold tracking-wider font-mono">
-                      Visit Date
+                      Requested Date
                     </span>
                     <span className="text-white font-semibold text-sm mt-0.5 block font-mono">
                       {v.visit_date}
@@ -462,7 +462,7 @@ export default function AdminFarmVisitsPage() {
 
                   <div>
                     <span className="text-slate-500 block text-[10px] uppercase font-bold tracking-wider font-mono">
-                      Time Slot
+                      Batch Window
                     </span>
                     <span className="text-cyan-300 font-semibold text-xs mt-0.5 block">
                       {v.time_slot}
@@ -487,6 +487,38 @@ export default function AdminFarmVisitsPage() {
                     </span>
                   </div>
                 </div>
+
+                {/* Farm Manager Pending Approval Strip */}
+                {v.status === "pending" && (
+                  <div className="bg-amber-500/10 border border-amber-500/30 p-3.5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 my-2">
+                    <div className="flex items-center gap-2.5 text-amber-300 text-xs">
+                      <span className="material-symbols-outlined text-lg text-amber-400">verified_user</span>
+                      <div>
+                        <span className="font-bold block">Farm Manager Review Required</span>
+                        <span className="text-[11px] text-amber-200/80">Approve to automatically email the visitor their official Entry Pass.</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 self-stretch sm:self-auto">
+                      <button
+                        type="button"
+                        onClick={() => handleStatusChange(v.id, "confirmed")}
+                        disabled={isUpdating}
+                        className="flex-1 sm:flex-initial px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/20 cursor-pointer transition-all"
+                      >
+                        <span className="material-symbols-outlined text-base">mark_email_read</span>
+                        <span>Approve &amp; Email Pass</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleStatusChange(v.id, "cancelled")}
+                        disabled={isUpdating}
+                        className="px-3 py-2 rounded-xl bg-slate-900 hover:bg-red-500/20 text-slate-400 hover:text-red-300 border border-slate-700 text-xs font-semibold cursor-pointer transition-all"
+                      >
+                        Decline
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {/* Special Requests & Admin Notes */}
                 {(v.special_requests || v.admin_notes || editingNotesId === v.id) && (
@@ -556,7 +588,7 @@ export default function AdminFarmVisitsPage() {
                       className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 text-xs font-bold transition-all cursor-pointer"
                     >
                       <span className="material-symbols-outlined text-sm">chat</span>
-                      <span>Send WA Confirmation</span>
+                      <span>Send WA Pass</span>
                     </a>
 
                     <a
@@ -684,16 +716,15 @@ export default function AdminFarmVisitsPage() {
               </div>
 
               <div>
-                <label className="block font-semibold text-slate-300 mb-1">Time Slot</label>
+                <label className="block font-semibold text-slate-300 mb-1">Approved Batch Window</label>
                 <select
                   value={newTimeSlot}
                   onChange={(e) => setNewTimeSlot(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-cyan-400"
                 >
-                  <option value="Morning (10:00 AM - 12:00 PM)">Morning (10:00 AM - 12:00 PM)</option>
-                  <option value="Afternoon (12:00 PM - 03:00 PM)">Afternoon (12:00 PM - 03:00 PM)</option>
-                  <option value="Evening (03:00 PM - 06:00 PM)">Evening (03:00 PM - 06:00 PM)</option>
-                  <option value="Flexible (All Day 08:00 AM - 07:00 PM)">Flexible (All Day 08:00 AM - 07:00 PM)</option>
+                  <option value="10:30 AM – 11:30 AM">Morning Batch (10:30 AM – 11:30 AM)</option>
+                  <option value="02:00 PM – 03:00 PM">Afternoon Batch (02:00 PM – 03:00 PM)</option>
+                  <option value="04:30 PM – 05:30 PM">Evening Batch (04:30 PM – 05:30 PM)</option>
                 </select>
               </div>
 

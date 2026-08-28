@@ -332,23 +332,23 @@ export async function sendFarmVisitEmail(visit: {
   <head><meta charset="utf-8"></head>
   <body style="background-color: #031018; color: #dfedf9; font-family: sans-serif; padding: 20px;">
     <div style="max-width: 580px; margin: 0 auto; background: #0b1b25; border: 1px solid #1a3648; border-radius: 12px; padding: 28px;">
-      <h2 style="color: #72ddfd; margin-top: 0;">🌿 Farm Visit Pre-Notification</h2>
-      <p style="color: #9fadb8;">A visitor has pre-notified their planned visit to Urban Trout Farm in Naseem Bagh:</p>
+      <h2 style="color: #72ddfd; margin-top: 0;">🌿 Farm Visit Request Received (Pending Review)</h2>
+      <p style="color: #9fadb8;">A visitor has submitted a visit request for the Urban Trout RAS facility in Naseem Bagh:</p>
       
       <div style="background: #06151e; border: 1px solid #152834; border-radius: 8px; padding: 16px; margin: 20px 0; font-size: 14px; line-height: 1.6;">
         <p style="margin: 0 0 8px;"><strong>Visitor Name:</strong> ${visit.visitor_name}</p>
         <p style="margin: 0 0 8px;"><strong>Phone / WhatsApp:</strong> +91 ${visit.phone}</p>
         ${visit.email ? `<p style="margin: 0 0 8px;"><strong>Email:</strong> ${visit.email}</p>` : ""}
-        <p style="margin: 0 0 8px;"><strong>Date of Visit:</strong> <span style="color: #72ddfd; font-weight: bold;">${visit.visit_date}</span></p>
-        <p style="margin: 0 0 8px;"><strong>Preferred Time:</strong> <span style="color: #72ddfd; font-weight: bold;">${visit.time_slot}</span></p>
+        <p style="margin: 0 0 8px;"><strong>Requested Date:</strong> <span style="color: #72ddfd; font-weight: bold;">${visit.visit_date}</span></p>
+        <p style="margin: 0 0 8px;"><strong>Requested Time Slot:</strong> <span style="color: #72ddfd; font-weight: bold;">${visit.time_slot}</span></p>
         <p style="margin: 0 0 8px;"><strong>Group Size:</strong> ${visit.guest_count} Person(s)</p>
         <p style="margin: 0 0 8px;"><strong>Purpose:</strong> ${visit.visit_purpose}</p>
         ${visit.special_requests ? `<p style="margin: 0;"><strong>Special Notes:</strong> <em>"${visit.special_requests}"</em></p>` : ""}
       </div>
 
       <div style="text-align: center; margin-top: 24px;">
-        <a href="https://wa.me/91${visit.phone.replace(/\D/g, '').slice(-10)}?text=Hi%20${encodeURIComponent(visit.visitor_name)}!%20Urban%20Trout%20here%20regarding%20your%20farm%20visit%20scheduled%20for%20${encodeURIComponent(visit.visit_date)}." style="background: #25d366; color: #fff; text-decoration: none; padding: 10px 18px; border-radius: 6px; font-weight: bold; display: inline-block;">
-          WhatsApp Visitor
+        <a href="https://urbantrout.in/admin/dashboard/visits" style="background: #0284c7; color: #fff; text-decoration: none; padding: 10px 18px; border-radius: 6px; font-weight: bold; display: inline-block;">
+          Open Admin Panel to Review &amp; Approve
         </a>
       </div>
     </div>
@@ -360,7 +360,7 @@ export async function sendFarmVisitEmail(visit: {
     await resend.emails.send({
       from: FROM_EMAIL,
       to: ADMIN_EMAIL,
-      subject: `🌿 [FARM VISIT PRE-NOTIFICATION] ${visit.visitor_name} on ${visit.visit_date} (${visit.time_slot})`,
+      subject: `🌿 [VISIT REQUEST - PENDING APPROVAL] ${visit.visitor_name} on ${visit.visit_date} (${visit.time_slot})`,
       html: emailHtml,
     });
   } catch (err) {
@@ -374,20 +374,26 @@ export async function sendFarmVisitEmail(visit: {
     <head><meta charset="utf-8"></head>
     <body style="background-color: #031018; color: #dfedf9; font-family: sans-serif; padding: 20px;">
       <div style="max-width: 580px; margin: 0 auto; background: #0b1b25; border: 1px solid #1a3648; border-radius: 12px; padding: 28px; text-align: center;">
-        <h2 style="color: #72ddfd; margin-top: 0;">We've Received Your Farm Visit Request! 🐟</h2>
+        <div style="font-size: 32px; margin-bottom: 8px;">⏳</div>
+        <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #fbbf24; font-weight: 800;">Awaiting Farm Manager Approval</span>
+        <h2 style="color: #ffffff; margin: 8px 0 12px;">Visit Request Received</h2>
         <p style="color: #9fadb8; font-size: 14px; line-height: 1.6;">
-          Hi <strong>${visit.visitor_name}</strong>, thank you for pre-notifying your visit to Urban Trout. We are looking forward to hosting you at our cold-water trout facility in Naseem Bagh, Srinagar.
+          Hi <strong>${visit.visitor_name}</strong>, thank you for requesting a visit to Urban Trout Farm. Due to our strict <strong>RAS Bio-Security Protocols</strong> and feeding schedules, all visits must be reviewed and approved by our Farm Manager before entry.
         </p>
 
         <div style="background: #06151e; border: 1px solid #152834; border-radius: 8px; padding: 16px; margin: 20px 0; text-align: left; font-size: 14px; line-height: 1.6;">
-          <p style="margin: 0 0 6px;">📅 <strong>Date:</strong> ${visit.visit_date}</p>
-          <p style="margin: 0 0 6px;">⏰ <strong>Time Slot:</strong> ${visit.time_slot}</p>
+          <p style="margin: 0 0 6px;">📅 <strong>Requested Date:</strong> ${visit.visit_date}</p>
+          <p style="margin: 0 0 6px;">⏰ <strong>Requested Slot:</strong> ${visit.time_slot}</p>
           <p style="margin: 0 0 6px;">👥 <strong>Group Size:</strong> ${visit.guest_count} Person(s)</p>
-          <p style="margin: 0;">📍 <strong>Location:</strong> Malabagh, Naseem Bagh, Srinagar (Near R P School Girls Wing)</p>
+          <p style="margin: 0;">📍 <strong>Location:</strong> Malabagh, Naseem Bagh, Srinagar</p>
         </div>
 
-        <p style="font-size: 12px; color: #6a7782;">
-          Our farm team will confirm your slot and be prepared with fresh live RAS tank demonstrations.
+        <div style="background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.3); border-radius: 8px; padding: 12px; font-size: 12px; color: #fbbf24; text-align: left; margin-bottom: 20px;">
+          ⚠️ <strong>Please Note:</strong> Please do <strong>not</strong> travel to the farm yet. You will receive an official <strong>Approval Confirmation Email &amp; Entry Pass</strong> once the Farm Manager confirms your slot.
+        </div>
+
+        <p style="font-size: 11px; color: #6a7782; margin: 0;">
+          Urban Trout Aquaculture • Malabagh, Naseem Bagh, Srinagar — 190006
         </p>
       </div>
     </body>
@@ -398,7 +404,7 @@ export async function sendFarmVisitEmail(visit: {
       await resend.emails.send({
         from: FROM_EMAIL,
         to: visit.email,
-        subject: `Your Farm Visit Pre-Notification: Urban Trout Srinagar (${visit.visit_date})`,
+        subject: `[Received - Awaiting Approval] Farm Visit Request: Urban Trout Srinagar`,
         html: confirmationHtml,
       });
     } catch (err) {
@@ -406,4 +412,126 @@ export async function sendFarmVisitEmail(visit: {
     }
   }
 }
+
+// 5. Official Farm Visit Approval Pass Email (Triggered when Farm Manager approves)
+export async function sendFarmVisitApprovedEmail(visit: {
+  visitor_name: string;
+  phone: string;
+  email?: string | null;
+  visit_date: string;
+  time_slot: string;
+  guest_count: number;
+  visit_purpose: string;
+  admin_notes?: string | null;
+}) {
+  if (!visit.email || !visit.email.includes("@")) return;
+
+  const resend = getResend();
+  if (!resend) return;
+
+  const emailHtml = `
+  <!DOCTYPE html>
+  <html>
+  <head><meta charset="utf-8"></head>
+  <body style="background-color: #031018; color: #dfedf9; font-family: sans-serif; padding: 20px;">
+    <div style="max-width: 600px; margin: 0 auto; background: #0b1b25; border: 1px solid #10b981; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.6);">
+      
+      <!-- Header Badge -->
+      <div style="background: linear-gradient(135deg, #06281e 0%, #0b1b25 100%); padding: 28px 24px; text-align: center; border-bottom: 1px solid #1e3a4e;">
+        <div style="font-size: 36px; margin-bottom: 8px;">✅</div>
+        <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #34d399; font-weight: 800; background: rgba(52,211,153,0.15); padding: 4px 12px; border-radius: 20px; border: 1px solid rgba(52,211,153,0.3);">
+          Official Visit Pass Approved
+        </span>
+        <h2 style="color: #ffffff; margin: 12px 0 4px; font-size: 22px;">Farm Visit Confirmed!</h2>
+        <p style="color: #9fadb8; font-size: 13px; margin: 0;">Urban Trout Cold-Water RAS Facility • Naseem Bagh, Srinagar</p>
+      </div>
+
+      <div style="padding: 28px 24px;">
+        <p style="font-size: 14px; color: #dfedf9; line-height: 1.6; margin-top: 0;">
+          Dear <strong>${visit.visitor_name}</strong>,
+        </p>
+        <p style="font-size: 14px; color: #9fadb8; line-height: 1.6;">
+          Your request to visit the Urban Trout Recirculating Aquaculture System (RAS) facility has been <strong>reviewed and approved</strong> by our Farm Manager.
+        </p>
+
+        <!-- Approved Pass Card -->
+        <div style="background: #06151e; border: 1px solid #1a3648; border-radius: 12px; padding: 20px; margin: 20px 0;">
+          <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+            <tr style="border-bottom: 1px solid #152834;">
+              <td style="padding: 8px 0; color: #6a7782; font-size: 12px; text-transform: uppercase;">Visitor</td>
+              <td style="padding: 8px 0; text-align: right; color: #ffffff; font-weight: bold;">${visit.visitor_name}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #152834;">
+              <td style="padding: 8px 0; color: #6a7782; font-size: 12px; text-transform: uppercase;">Approved Date</td>
+              <td style="padding: 8px 0; text-align: right; color: #72ddfd; font-weight: bold;">${visit.visit_date}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #152834;">
+              <td style="padding: 8px 0; color: #6a7782; font-size: 12px; text-transform: uppercase;">Approved Time Slot</td>
+              <td style="padding: 8px 0; text-align: right; color: #34d399; font-weight: bold;">${visit.time_slot}</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #152834;">
+              <td style="padding: 8px 0; color: #6a7782; font-size: 12px; text-transform: uppercase;">Approved Guests</td>
+              <td style="padding: 8px 0; text-align: right; color: #ffffff;">${visit.guest_count} Person(s)</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #6a7782; font-size: 12px; text-transform: uppercase;">Purpose</td>
+              <td style="padding: 8px 0; text-align: right; color: #ffffff;">${visit.visit_purpose}</td>
+            </tr>
+          </table>
+          ${visit.admin_notes ? `<div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #152834; font-size: 12px; color: #72ddfd;"><strong>Farm Manager Note:</strong> ${visit.admin_notes}</div>` : ""}
+        </div>
+
+        <!-- Strict Bio-Security Guidelines -->
+        <div style="background: rgba(11,27,37,0.8); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 18px; margin-bottom: 24px;">
+          <h4 style="margin: 0 0 10px; color: #fbbf24; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">
+            🛡️ Mandatory RAS Bio-Security Rules:
+          </h4>
+          <ul style="margin: 0; padding-left: 18px; font-size: 12px; color: #9fadb8; line-height: 1.7;">
+            <li><strong>Strict Punctuality:</strong> Please arrive during your approved slot only so feeding cycles are not disrupted.</li>
+            <li><strong>Foot Sanitization:</strong> All visitors must step on the disinfectant foot mat upon entry.</li>
+            <li><strong>Zero Contact:</strong> Do not touch the tank water or introduce outside food or items.</li>
+            <li><strong>Child Safety:</strong> Children must be held by hand at all times near the culture tanks.</li>
+          </ul>
+        </div>
+
+        <!-- Location & Navigation -->
+        <div style="text-align: center; margin-bottom: 16px;">
+          <p style="font-size: 13px; color: #9fadb8; margin: 0 0 12px;">
+            📍 <strong>Address:</strong> Malabagh, Naseem Bagh, Srinagar (Near R P School Girls Wing)
+          </p>
+          <a href="https://maps.google.com/?q=34.144709,74.824525" style="display: inline-block; background: #0284c7; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-size: 13px; font-weight: bold;">
+            Open Google Maps Directions
+          </a>
+        </div>
+
+        <div style="text-align: center; margin-top: 16px;">
+          <p style="font-size: 12px; color: #6a7782;">
+            Need help on arrival? Call our farm hotline: <strong style="color: #72ddfd;">+91 84910 06127</strong>
+          </p>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <div style="background: #06151e; padding: 16px; text-align: center; border-top: 1px solid #152834; font-size: 11px; color: #6a7782;">
+        Urban Trout Aquaculture • Malabagh, Naseem Bagh, Srinagar — 190006
+      </div>
+
+    </div>
+  </body>
+  </html>
+  `;
+
+  try {
+    await resend.emails.send({
+      from: FROM_EMAIL,
+      to: visit.email,
+      replyTo: ADMIN_EMAIL,
+      subject: `✅ [VISIT APPROVED PASS] Urban Trout Farm Visit Confirmed for ${visit.visit_date} (${visit.time_slot})`,
+      html: emailHtml,
+    });
+  } catch (err) {
+    console.warn("Resend approval pass email error:", err);
+  }
+}
+
 
