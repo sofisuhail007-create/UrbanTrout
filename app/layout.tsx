@@ -6,6 +6,8 @@ import CartDrawer from "@/components/CartDrawer";
 import WhatsAppButton from "@/components/WhatsAppButton";
 import { CartProvider } from "@/context/CartContext";
 import { Toaster } from "react-hot-toast";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://urbantrout.in"),
@@ -173,6 +175,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
           <WhatsAppButton />
           <Footer />
+          <Analytics />
+          <SpeedInsights />
         </CartProvider>
       </body>
     </html>
