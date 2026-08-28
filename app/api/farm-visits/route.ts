@@ -277,7 +277,18 @@ export async function GET(request: Request) {
 export async function PATCH(request: Request) {
   try {
     const body = await request.json();
-    const { id, status, admin_notes } = body;
+    const {
+      id,
+      status,
+      admin_notes,
+      visitor_name,
+      email,
+      phone,
+      visit_date,
+      time_slot,
+      guest_count,
+      visit_purpose,
+    } = body;
 
     if (!id || !status) {
       return NextResponse.json(
@@ -336,52 +347,80 @@ export async function PATCH(request: Request) {
 
     // 3. If Farm Manager is confirming the visit, trigger official Approval Email Pass to visitor
     if (status === "confirmed") {
-      try {
-        let visitObj: any = null;
+      let visitObj: any = {
+        id,
+        visitor_name,
+        email,
+        phone,
+        visit_date,
+        time_slot,
+        guest_count,
+        visit_purpose,
+        admin_notes,
+      };
 
+      // If email or other vital fields are missing from body, retrieve from database
+      if (!visitObj.email || !visitObj.visitor_name) {
         // Try getting from farm_visits
         try {
           const { data } = await supabase.from("farm_visits").select("*").eq("id", id).maybeSingle();
-          if (data) visitObj = data;
+          if (data) {
+            visitObj = { ...data, ...visitObj };
+          }
         } catch (_) {}
 
-        // Fallback: check leads
-        if (!visitObj) {
+        // Fallback: search all leads
+        if (!visitObj.email) {
           try {
-            const { data: lead } = await supabase.from("leads").select("*").eq("id", id).maybeSingle();
-            if (lead && lead.notes && lead.notes.includes("[FARM_VISIT]")) {
-              const jsonStr = lead.notes.replace("[FARM_VISIT]", "").trim();
-              const parsed = JSON.parse(jsonStr);
-              visitObj = {
-                visitor_name: parsed.visitor_name || lead.customer_name,
-                phone: lead.customer_phone,
-                email: lead.customer_email,
-                visit_date: parsed.date,
-                time_slot: parsed.slot,
-                guest_count: parsed.guests || 1,
-                visit_purpose: parsed.purpose || "Live Trout Purchase / Viewing",
-                admin_notes: admin_notes || parsed.admin_notes || null,
-              };
+            const { data: leads } = await supabase.from("leads").select("*").order("created_at", { ascending: false });
+            if (leads) {
+              for (const lead of leads) {
+                if (lead.id === id || (lead.notes && lead.notes.includes(id))) {
+                  try {
+                    const jsonStr = lead.notes.replace("[FARM_VISIT]", "").trim();
+                    const parsed = JSON.parse(jsonStr);
+                    visitObj = {
+                      id: parsed.visit_id || lead.id,
+                      visitor_name: parsed.visitor_name || lead.customer_name,
+                      phone: lead.customer_phone,
+                      email: lead.customer_email,
+                      visit_date: parsed.date,
+                      time_slot: parsed.slot,
+                      guest_count: parsed.guests || 1,
+                      visit_purpose: parsed.purpose || "Live Trout Purchase / Viewing",
+                      admin_notes: admin_notes || parsed.admin_notes || null,
+                    };
+                    break;
+                  } catch (_) {}
+                }
+              }
             }
           } catch (_) {}
         }
+      }
 
-        if (visitObj && visitObj.email) {
+      console.log("Farm visit confirmed. Sending pass to:", visitObj?.email, "Visit ID:", visitObj?.id);
+
+      if (visitObj && visitObj.email && visitObj.email.includes("@")) {
+        try {
           const { sendFarmVisitApprovedEmail } = await import("@/lib/email");
           await sendFarmVisitApprovedEmail({
             id: visitObj.id || id,
-            visitor_name: visitObj.visitor_name,
-            phone: visitObj.phone,
+            visitor_name: visitObj.visitor_name || "Valued Visitor",
+            phone: visitObj.phone || "",
             email: visitObj.email,
-            visit_date: visitObj.visit_date,
-            time_slot: visitObj.time_slot,
+            visit_date: visitObj.visit_date || new Date().toISOString().split("T")[0],
+            time_slot: visitObj.time_slot || "Morning Batch (10:30 AM – 11:30 AM)",
             guest_count: visitObj.guest_count || 1,
             visit_purpose: visitObj.visit_purpose || "Live Trout Purchase / Viewing",
             admin_notes: admin_notes || visitObj.admin_notes || null,
           });
+          console.log("Approval email pass sent successfully for visit:", visitObj.id);
+        } catch (emailErr) {
+          console.error("Error sending approval email pass:", emailErr);
         }
-      } catch (emailErr) {
-        console.warn("Error sending approval email pass:", emailErr);
+      } else {
+        console.warn("Could not send approval email pass: No valid email found for visit", id);
       }
     }
 

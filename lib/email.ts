@@ -588,15 +588,18 @@ export async function sendFarmVisitApprovedEmail(visit: {
   `;
 
   try {
-    await resend.emails.send({
+    const cleanToEmail = visit.email.trim();
+    const result = await resend.emails.send({
       from: FROM_EMAIL,
-      to: visit.email,
-      replyTo: ADMIN_EMAIL,
+      to: cleanToEmail,
       subject: `🎟️ [OFFICIAL VISIT PASS] Urban Trout Farm Visit Confirmed for ${visit.visit_date} (${visit.time_slot})`,
       html: emailHtml,
     });
+    console.log("Resend approval pass sent successfully to", cleanToEmail, result);
+    return result;
   } catch (err) {
-    console.warn("Resend approval pass email error:", err);
+    console.error("Resend approval pass email error:", err);
+    throw err;
   }
 }
 

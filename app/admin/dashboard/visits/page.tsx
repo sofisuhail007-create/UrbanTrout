@@ -88,6 +88,7 @@ export default function AdminFarmVisitsPage() {
   }, []);
 
   const handleStatusChange = async (visitId: string, newStatus: VisitStatus) => {
+    const currentVisit = visits.find((v) => v.id === visitId);
     setUpdatingId(visitId);
     // Optimistic UI update
     setVisits((prev) =>
@@ -98,14 +99,31 @@ export default function AdminFarmVisitsPage() {
       const res = await fetch("/api/farm-visits", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: visitId, status: newStatus }),
+        body: JSON.stringify({
+          id: visitId,
+          status: newStatus,
+          visitor_name: currentVisit?.visitor_name,
+          email: currentVisit?.email,
+          phone: currentVisit?.phone,
+          visit_date: currentVisit?.visit_date,
+          time_slot: currentVisit?.time_slot,
+          guest_count: currentVisit?.guest_count,
+          visit_purpose: currentVisit?.visit_purpose,
+          admin_notes: currentVisit?.admin_notes,
+        }),
       });
 
-      if (!res.ok) throw new Error("Failed to update on server");
-      toast.success(`Visit status updated to ${newStatus.toUpperCase()}`);
-    } catch (err) {
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data?.error || "Failed to update on server");
+      
+      if (newStatus === "confirmed") {
+        toast.success(`Visit Confirmed! Official Pass emailed to ${currentVisit?.email || "visitor"}.`);
+      } else {
+        toast.success(`Visit status updated to ${newStatus.toUpperCase()}`);
+      }
+    } catch (err: any) {
       console.error(err);
-      toast.error("Failed to update status.");
+      toast.error(err?.message || "Failed to update status.");
       fetchVisits();
     } finally {
       setUpdatingId(null);
