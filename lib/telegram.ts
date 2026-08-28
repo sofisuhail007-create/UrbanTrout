@@ -340,7 +340,7 @@ export async function notifyBioAlarm(alarm: {
 <b>Status:</b> ${alarm.status.toUpperCase()}
 <b>Time:</b> ${alarm.readingDate || new Date().toLocaleString("en-IN")}
 
-⚠️ <i>Please inspect raceways & oxygenators immediately!</i>`;
+⚠️ <i>Please inspect RAS tanks & oxygenators immediately!</i>`;
 
   return sendTelegramMessage(msg, "HTML");
 }

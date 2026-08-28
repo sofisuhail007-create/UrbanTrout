@@ -182,7 +182,7 @@ export default function AdminFarmVisitsPage() {
     const cleanPhone = v.phone.replace(/\D/g, "").slice(-10);
     let text = "";
     if (type === "confirm") {
-      text = `Hi ${v.visitor_name}! 🐟 Your farm visit to Urban Trout on ${v.visit_date} (${v.time_slot}) has been CONFIRMED! Our team at Malabagh, Naseem Bagh is looking forward to hosting you for fresh raceway viewing. Address: Malabagh, Naseem Bagh, near R P School Girls Wing. Google Maps: https://maps.google.com/?q=34.144709,74.824525`;
+      text = `Hi ${v.visitor_name}! 🐟 Your farm visit to Urban Trout on ${v.visit_date} (${v.time_slot}) has been CONFIRMED! Our team at Malabagh, Naseem Bagh is looking forward to hosting you for fresh RAS tank viewing. Address: Malabagh, Naseem Bagh, near R P School Girls Wing. Google Maps: https://maps.google.com/?q=34.144709,74.824525`;
     } else if (type === "reminder") {
       text = `Hi ${v.visitor_name}! 🐟 Friendly reminder regarding your scheduled visit to Urban Trout Farm today (${v.visit_date} at ${v.time_slot}). Call us at +91 84910 06127 if you need directions!`;
     } else {
@@ -239,7 +239,7 @@ export default function AdminFarmVisitsPage() {
             </h1>
           </div>
           <p style={{ fontFamily: '"Manrope", sans-serif' }} className="text-xs text-slate-400 mt-1">
-            Manage scheduled customer raceway visits, live harvest walk-ins, and guest pre-notifications.
+            Manage scheduled customer farm visits, live harvest walk-ins, and guest pre-notifications.
           </p>
         </div>
 
@@ -705,7 +705,7 @@ export default function AdminFarmVisitsPage() {
                   className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white focus:outline-none focus:border-cyan-400"
                 >
                   <option value="Live Trout Purchase / Viewing">Live Trout Purchase / Viewing</option>
-                  <option value="Family Outing & Raceway Tour">Family Outing &amp; Raceway Tour</option>
+                  <option value="Family Outing & RAS Farm Tour">Family Outing &amp; RAS Farm Tour</option>
                   <option value="Restaurant / Bulk Sourcing">Restaurant / Bulk Sourcing</option>
                   <option value="Aquaculture & Tech Learning">Aquaculture &amp; Tech Learning</option>
                 </select>

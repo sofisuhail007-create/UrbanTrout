@@ -33,23 +33,23 @@ const GUEST_OPTIONS = [
 
 const PURPOSES = [
   { id: "purchase", label: "🐟 Live Trout Purchase", desc: "Pick & weigh fresh fish live from tanks" },
-  { id: "family_tour", label: "👨‍👩‍👧 Family Outing & Tour", desc: "See clean-water raceways & trout feeding" },
+  { id: "family_tour", label: "👨‍👩‍👧 Family Outing & Tour", desc: "See clean-water RAS tanks & trout feeding" },
   { id: "bulk_commercial", label: "📦 Restaurant / Bulk Sourcing", desc: "Commercial wholesale supply inquiry" },
-  { id: "educational", label: "🔬 Aquaculture & Tech Learning", desc: "Learn about recirculating cold-water systems" },
+  { id: "educational", label: "🔬 Aquaculture & Tech Learning", desc: "Learn about recirculating cold-water systems (RAS)" },
 ];
 
 const FAQS = [
   {
     q: "Is there any entry fee to visit the farm?",
-    a: "No, visiting Urban Trout Farm and viewing our raceways is 100% free of charge! We welcome families, seafood lovers, and aquaculture enthusiasts.",
+    a: "No, visiting Urban Trout Farm and viewing our RAS facility is 100% free of charge! We welcome families, seafood lovers, and aquaculture enthusiasts.",
   },
   {
     q: "Can I buy and take home freshly harvested trout on-site?",
-    a: "Absolutely! You can choose live Rainbow Trout straight from our cold-water raceways. Our staff will net them, weigh them live, and gut/clean them on the spot, packing them in crushed ice for your trip home.",
+    a: "Absolutely! You can choose live Rainbow Trout straight from our cold-water RAS tanks. Our staff will net them, weigh them live, and gut/clean them on the spot, packing them in crushed ice for your trip home.",
   },
   {
     q: "Why should I pre-notify my visit?",
-    a: "Pre-notifying helps our raceway team dedicate staff to guide your tour, ensure specific fish size availability, and prepare live harvest demonstrations without any wait time.",
+    a: "Pre-notifying helps our farm team dedicate staff to guide your tour, ensure specific fish size availability, and prepare live harvest demonstrations without any wait time.",
   },
   {
     q: "What if my schedule changes or I'm running late?",
@@ -57,7 +57,7 @@ const FAQS = [
   },
   {
     q: "Is the farm accessible for children and senior citizens?",
-    a: "Yes. Our facility in Malabagh, Naseem Bagh is located right beside the road with dedicated on-site parking and safe paved raceway walkways.",
+    a: "Yes. Our facility in Malabagh, Naseem Bagh is located right beside the road with dedicated on-site parking and safe paved facility walkways.",
   },
 ];
 
@@ -189,7 +189,7 @@ export default function FarmVisitsPage() {
             }}
             className="max-w-2xl mx-auto"
           >
-            Experience Kashmir’s cold-water trout aquaculture first-hand. Walk along our clean-water raceways, see thousands of active Rainbow Trout, and pick live fish harvested on the spot.
+            Experience Kashmir’s cold-water trout aquaculture first-hand. Walk along our clean-water RAS culture tanks, see thousands of active Rainbow Trout, and pick live fish harvested on the spot.
           </p>
 
           {/* Key Value Badges */}
@@ -243,7 +243,7 @@ export default function FarmVisitsPage() {
                 </h3>
 
                 <p style={{ fontFamily: '"Manrope", sans-serif' }} className="text-sm text-slate-300 max-w-md mx-auto mb-6 leading-relaxed">
-                  Your visit has been registered in our farm schedule. Our raceway team in Naseem Bagh will be ready to welcome you.
+                  Your visit has been registered in our farm schedule. Our farm team in Naseem Bagh will be ready to welcome you.
                 </p>
 
                 {/* Visit summary box */}
@@ -545,7 +545,7 @@ export default function FarmVisitsPage() {
                     </label>
                     <textarea
                       rows={2}
-                      placeholder="e.g. Planning to buy 4-5 kg gutted trout, bringing kids for raceway viewing..."
+                      placeholder="e.g. Planning to buy 4-5 kg gutted trout, bringing family for live tank tour..."
                       value={specialRequests}
                       onChange={(e) => setSpecialRequests(e.target.value)}
                       className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/80 border border-slate-700/80 text-white text-xs focus:outline-none focus:border-cyan-400 transition-colors"
@@ -607,8 +607,8 @@ export default function FarmVisitsPage() {
                 {[
                   {
                     icon: "water",
-                    title: "Crystal Cold-Water Raceways",
-                    desc: "See thousands of active Rainbow Trout swimming against high-velocity, deep borewell-fed fresh water currents.",
+                    title: "Crystal Cold-Water RAS Tanks",
+                    desc: "See thousands of active Rainbow Trout swimming against high-velocity, deep borewell-fed fresh water currents in modern recirculating aquaculture tanks.",
                   },
                   {
                     icon: "scale",
@@ -707,9 +707,9 @@ export default function FarmVisitsPage() {
                 Visiting Guidelines &amp; Bio-Security
               </h4>
               <ul className="text-[11px] text-slate-400 space-y-1.5 list-disc list-inside leading-relaxed" style={{ fontFamily: '"Manrope", sans-serif' }}>
-                <li>Step on the sanitizing mat when entering the raceway zone.</li>
+                <li>Step on the sanitizing mat when entering the RAS culture area.</li>
                 <li>Please do not throw external food or objects into the trout tanks.</li>
-                <li>Wear flat, non-slip footwear near the wet raceway walkways.</li>
+                <li>Wear flat, non-slip footwear near the wet tank walkways.</li>
                 <li>Children must be closely accompanied around the deeper tanks.</li>
               </ul>
             </div>
@@ -736,10 +736,10 @@ export default function FarmVisitsPage() {
             <div className="rounded-2xl p-6 bg-slate-900/60 border border-slate-800 space-y-3">
               <div className="text-3xl">🐟</div>
               <h4 style={{ fontFamily: '"Space Grotesk", sans-serif' }} className="text-base font-bold text-white">
-                Live Trout Raceways
+                Live Trout RAS Tanks
               </h4>
               <p style={{ fontFamily: '"Manrope", sans-serif' }} className="text-xs text-slate-400 leading-relaxed">
-                Our raceways are supplied with pure underground borewell water, filtered to perfection and continuously oxygenated.
+                Our recirculating tanks are supplied with pure underground borewell water, filtered to perfection and continuously oxygenated.
               </p>
             </div>
 

@@ -387,7 +387,7 @@ export async function sendFarmVisitEmail(visit: {
         </div>
 
         <p style="font-size: 12px; color: #6a7782;">
-          Our farm team will confirm your slot and be prepared with fresh live raceway demonstrations.
+          Our farm team will confirm your slot and be prepared with fresh live RAS tank demonstrations.
         </p>
       </div>
     </body>
