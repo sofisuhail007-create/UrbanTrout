@@ -415,6 +415,7 @@ export async function sendFarmVisitEmail(visit: {
 
 // 5. Official Farm Visit Approval Pass Email (Triggered when Farm Manager approves)
 export async function sendFarmVisitApprovedEmail(visit: {
+  id?: string;
   visitor_name: string;
   phone: string;
   email?: string | null;
@@ -429,91 +430,156 @@ export async function sendFarmVisitApprovedEmail(visit: {
   const resend = getResend();
   if (!resend) return;
 
+  const passId = visit.id || `UT-PASS-${Date.now().toString().slice(-6)}`;
+  const verifyUrl = `https://urbantrout.in/verify-pass/${passId}`;
+  const qrCodeImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=10&data=${encodeURIComponent(verifyUrl)}`;
+
   const emailHtml = `
   <!DOCTYPE html>
   <html>
-  <head><meta charset="utf-8"></head>
-  <body style="background-color: #031018; color: #dfedf9; font-family: sans-serif; padding: 20px;">
-    <div style="max-width: 600px; margin: 0 auto; background: #0b1b25; border: 1px solid #10b981; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.6);">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Official Farm Visit Pass - Urban Trout</title>
+  </head>
+  <body style="margin: 0; padding: 24px 12px; background-color: #020d14; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #dfedf9;">
+    <div style="max-width: 580px; margin: 0 auto;">
       
-      <!-- Header Badge -->
-      <div style="background: linear-gradient(135deg, #06281e 0%, #0b1b25 100%); padding: 28px 24px; text-align: center; border-bottom: 1px solid #1e3a4e;">
-        <div style="font-size: 36px; margin-bottom: 8px;">✅</div>
-        <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #34d399; font-weight: 800; background: rgba(52,211,153,0.15); padding: 4px 12px; border-radius: 20px; border: 1px solid rgba(52,211,153,0.3);">
-          Official Visit Pass Approved
+      <!-- Top Title -->
+      <div style="text-align: center; margin-bottom: 20px;">
+        <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #34d399; font-weight: 800; background: rgba(52,211,153,0.12); padding: 5px 14px; border-radius: 20px; border: 1px solid rgba(52,211,153,0.3); display: inline-block;">
+          ✓ Farm Manager Approved
         </span>
-        <h2 style="color: #ffffff; margin: 12px 0 4px; font-size: 22px;">Farm Visit Confirmed!</h2>
-        <p style="color: #9fadb8; font-size: 13px; margin: 0;">Urban Trout Cold-Water RAS Facility • Naseem Bagh, Srinagar</p>
+        <h1 style="color: #ffffff; margin: 12px 0 4px; font-size: 24px; font-weight: 800; letter-spacing: -0.5px;">Your Farm Visit Pass is Ready</h1>
+        <p style="color: #9fadb8; font-size: 13px; margin: 0;">Urban Trout Cold-Water RAS Aquaculture Facility • Naseem Bagh, Srinagar</p>
       </div>
 
-      <div style="padding: 28px 24px;">
-        <p style="font-size: 14px; color: #dfedf9; line-height: 1.6; margin-top: 0;">
-          Dear <strong>${visit.visitor_name}</strong>,
-        </p>
-        <p style="font-size: 14px; color: #9fadb8; line-height: 1.6;">
-          Your request to visit the Urban Trout Recirculating Aquaculture System (RAS) facility has been <strong>reviewed and approved</strong> by our Farm Manager.
-        </p>
+      <!-- ─── THE DIGITAL ID CARD PASS ─── -->
+      <div style="background: linear-gradient(160deg, #0b2230 0%, #04141e 100%); border: 2px solid #34d399; border-radius: 20px; overflow: hidden; box-shadow: 0 20px 50px rgba(0,0,0,0.7), 0 0 30px rgba(52,211,153,0.15); margin-bottom: 24px;">
+        
+        <!-- ID Header -->
+        <div style="background: linear-gradient(90deg, #020d14 0%, #061e2b 100%); padding: 18px 24px; border-bottom: 1px solid #1a3648; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <div style="font-size: 16px; font-weight: 800; color: #72ddfd; letter-spacing: 0.5px;">URBAN TROUT</div>
+            <div style="font-size: 10px; text-transform: uppercase; color: #9fadb8; letter-spacing: 1.5px;">Official Admission Pass</div>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-family: monospace; font-size: 12px; font-weight: bold; color: #34d399; background: #020d14; padding: 4px 10px; border-radius: 6px; border: 1px solid #1e3a4e;">
+              ${passId}
+            </div>
+          </div>
+        </div>
 
-        <!-- Approved Pass Card -->
-        <div style="background: #06151e; border: 1px solid #1a3648; border-radius: 12px; padding: 20px; margin: 20px 0;">
-          <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-            <tr style="border-bottom: 1px solid #152834;">
-              <td style="padding: 8px 0; color: #6a7782; font-size: 12px; text-transform: uppercase;">Visitor</td>
-              <td style="padding: 8px 0; text-align: right; color: #ffffff; font-weight: bold;">${visit.visitor_name}</td>
-            </tr>
-            <tr style="border-bottom: 1px solid #152834;">
-              <td style="padding: 8px 0; color: #6a7782; font-size: 12px; text-transform: uppercase;">Approved Date</td>
-              <td style="padding: 8px 0; text-align: right; color: #72ddfd; font-weight: bold;">${visit.visit_date}</td>
-            </tr>
-            <tr style="border-bottom: 1px solid #152834;">
-              <td style="padding: 8px 0; color: #6a7782; font-size: 12px; text-transform: uppercase;">Approved Time Slot</td>
-              <td style="padding: 8px 0; text-align: right; color: #34d399; font-weight: bold;">${visit.time_slot}</td>
-            </tr>
-            <tr style="border-bottom: 1px solid #152834;">
-              <td style="padding: 8px 0; color: #6a7782; font-size: 12px; text-transform: uppercase;">Approved Guests</td>
-              <td style="padding: 8px 0; text-align: right; color: #ffffff;">${visit.guest_count} Person(s)</td>
+        <!-- ID Card Body -->
+        <div style="padding: 24px;">
+          
+          <!-- Visitor Name Plate -->
+          <div style="border-bottom: 1px dashed #1a3648; padding-bottom: 16px; margin-bottom: 18px;">
+            <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: #6a7782; font-weight: bold;">Authorized Visitor</div>
+            <div style="font-size: 22px; font-weight: 800; color: #ffffff; margin: 2px 0 4px;">${visit.visitor_name}</div>
+            <div style="font-size: 13px; color: #72ddfd;">+91 ${visit.phone.replace(/\D/g, '').slice(-10)} • ${visit.email || ""}</div>
+          </div>
+
+          <!-- Schedule Grid Details -->
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+            <tr>
+              <td style="width: 50%; padding: 8px 10px; background: rgba(2,13,20,0.6); border: 1px solid #152834; border-radius: 8px 0 0 0;">
+                <div style="font-size: 10px; text-transform: uppercase; color: #6a7782; font-weight: bold;">Approved Date</div>
+                <div style="font-size: 15px; font-weight: 800; color: #ffffff; margin-top: 2px;">${visit.visit_date}</div>
+              </td>
+              <td style="width: 50%; padding: 8px 10px; background: rgba(2,13,20,0.6); border: 1px solid #152834; border-radius: 0 8px 0 0; border-left: none;">
+                <div style="font-size: 10px; text-transform: uppercase; color: #6a7782; font-weight: bold;">Approved Batch</div>
+                <div style="font-size: 14px; font-weight: 800; color: #34d399; margin-top: 2px;">${visit.time_slot}</div>
+              </td>
             </tr>
             <tr>
-              <td style="padding: 8px 0; color: #6a7782; font-size: 12px; text-transform: uppercase;">Purpose</td>
-              <td style="padding: 8px 0; text-align: right; color: #ffffff;">${visit.visit_purpose}</td>
+              <td style="padding: 8px 10px; background: rgba(2,13,20,0.6); border: 1px solid #152834; border-radius: 0 0 0 8px; border-top: none;">
+                <div style="font-size: 10px; text-transform: uppercase; color: #6a7782; font-weight: bold;">Admitted Guests</div>
+                <div style="font-size: 14px; font-weight: 800; color: #ffffff; margin-top: 2px;">👥 ${visit.guest_count} Person(s)</div>
+              </td>
+              <td style="padding: 8px 10px; background: rgba(2,13,20,0.6); border: 1px solid #152834; border-radius: 0 0 8px 0; border-top: none; border-left: none;">
+                <div style="font-size: 10px; text-transform: uppercase; color: #6a7782; font-weight: bold;">Purpose</div>
+                <div style="font-size: 13px; font-weight: 600; color: #dfedf9; margin-top: 2px;">${visit.visit_purpose}</div>
+              </td>
             </tr>
           </table>
-          ${visit.admin_notes ? `<div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #152834; font-size: 12px; color: #72ddfd;"><strong>Farm Manager Note:</strong> ${visit.admin_notes}</div>` : ""}
+
+          ${visit.admin_notes ? `
+          <div style="background: rgba(114,221,253,0.08); border: 1px solid rgba(114,221,253,0.25); border-radius: 8px; padding: 12px; margin-bottom: 20px; font-size: 13px; color: #72ddfd;">
+            <strong>Farm Manager Note:</strong> ${visit.admin_notes}
+          </div>` : ""}
+
+          <!-- ─── QR CODE FOR LIVE SCANNING ─── -->
+          <div style="background: #ffffff; border-radius: 16px; padding: 18px; text-align: center; margin-bottom: 16px; box-shadow: 0 8px 24px rgba(0,0,0,0.5);">
+            <div style="color: #020d14; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 10px;">
+              Gate Verification QR Code
+            </div>
+            <img 
+              src="${qrCodeImageUrl}" 
+              alt="Scan to Verify Visit Pass" 
+              width="200" 
+              height="200" 
+              style="display: block; margin: 0 auto; border: 1px solid #e2e8f0; border-radius: 8px;"
+            />
+            <div style="color: #64748b; font-size: 11px; margin-top: 10px; font-weight: 500;">
+              Scan at gate for live admission verification • Auto-expires when slot ends
+            </div>
+          </div>
+
+          <!-- Direct Verification Link Button -->
+          <div style="text-align: center;">
+            <a 
+              href="${verifyUrl}" 
+              target="_blank" 
+              style="display: block; background: #0284c7; color: #ffffff; text-decoration: none; padding: 14px 20px; border-radius: 10px; font-size: 14px; font-weight: bold; letter-spacing: 0.5px; text-align: center; box-shadow: 0 4px 15px rgba(2,132,199,0.3);"
+            >
+              Open Live Digital Pass on Mobile
+            </a>
+          </div>
+
         </div>
 
-        <!-- Strict Bio-Security Guidelines -->
-        <div style="background: rgba(11,27,37,0.8); border: 1px solid rgba(255,255,255,0.08); border-radius: 12px; padding: 18px; margin-bottom: 24px;">
-          <h4 style="margin: 0 0 10px; color: #fbbf24; font-size: 12px; text-transform: uppercase; letter-spacing: 1px;">
-            🛡️ Mandatory RAS Bio-Security Rules:
-          </h4>
-          <ul style="margin: 0; padding-left: 18px; font-size: 12px; color: #9fadb8; line-height: 1.7;">
-            <li><strong>Strict Punctuality:</strong> Please arrive during your approved slot only so feeding cycles are not disrupted.</li>
-            <li><strong>Foot Sanitization:</strong> All visitors must step on the disinfectant foot mat upon entry.</li>
-            <li><strong>Zero Contact:</strong> Do not touch the tank water or introduce outside food or items.</li>
-            <li><strong>Child Safety:</strong> Children must be held by hand at all times near the culture tanks.</li>
-          </ul>
+        <!-- ID Card Footer Security Seal -->
+        <div style="background: #020d14; padding: 14px 24px; border-top: 1px solid #1a3648; font-size: 11px; color: #6a7782; display: flex; justify-content: space-between; align-items: center;">
+          <span>🔒 Cryptographic Seal: ACTIVE</span>
+          <span>Urban Trout Aquaculture Srinagar</span>
         </div>
 
-        <!-- Location & Navigation -->
-        <div style="text-align: center; margin-bottom: 16px;">
-          <p style="font-size: 13px; color: #9fadb8; margin: 0 0 12px;">
-            📍 <strong>Address:</strong> Malabagh, Naseem Bagh, Srinagar (Near R P School Girls Wing)
-          </p>
-          <a href="https://maps.google.com/?q=34.144709,74.824525" style="display: inline-block; background: #0284c7; color: #ffffff; text-decoration: none; padding: 12px 24px; border-radius: 8px; font-size: 13px; font-weight: bold;">
-            Open Google Maps Directions
-          </a>
-        </div>
-
-        <div style="text-align: center; margin-top: 16px;">
-          <p style="font-size: 12px; color: #6a7782;">
-            Need help on arrival? Call our farm hotline: <strong style="color: #72ddfd;">+91 84910 06127</strong>
-          </p>
-        </div>
       </div>
 
-      <!-- Footer -->
-      <div style="background: #06151e; padding: 16px; text-align: center; border-top: 1px solid #152834; font-size: 11px; color: #6a7782;">
-        Urban Trout Aquaculture • Malabagh, Naseem Bagh, Srinagar — 190006
+      <!-- ─── Mandatory Bio-Security Rules Box ─── -->
+      <div style="background: #06151e; border: 1px solid rgba(251,191,36,0.3); border-radius: 14px; padding: 20px; margin-bottom: 24px;">
+        <h4 style="margin: 0 0 10px; color: #fbbf24; font-size: 13px; text-transform: uppercase; letter-spacing: 1px;">
+          🛡️ Mandatory RAS Bio-Security Protocols:
+        </h4>
+        <ul style="margin: 0; padding-left: 18px; font-size: 13px; color: #9fadb8; line-height: 1.7;">
+          <li><strong>Strict Punctuality:</strong> Arrive strictly within your approved batch window (<strong style="color: #dfedf9;">${visit.time_slot}</strong>) so feeding cycles are not disturbed.</li>
+          <li><strong>Disinfection Foot Dip:</strong> All visitors must step onto the sanitizing foot mat upon entering the culture building.</li>
+          <li><strong>Zero Contact:</strong> Do not touch the tank water or bring outside fish feeds/objects.</li>
+          <li><strong>Child Safety:</strong> Children must be held by hand at all times on paved walkways near deep tanks.</li>
+        </ul>
+      </div>
+
+      <!-- ─── Location & Driving Directions ─── -->
+      <div style="background: #06151e; border: 1px solid #152834; border-radius: 14px; padding: 20px; text-align: center; margin-bottom: 24px;">
+        <div style="font-size: 14px; font-weight: bold; color: #ffffff; margin-bottom: 4px;">Farm Location</div>
+        <p style="font-size: 13px; color: #9fadb8; margin: 0 0 14px; line-height: 1.5;">
+          Malabagh, Naseem Bagh, Srinagar — 190006<br>
+          <span style="color: #6a7782; font-size: 12px;">Landmark: Near R P School (Girls Wing)</span>
+        </p>
+        <a 
+          href="https://maps.google.com/?q=34.144709,74.824525" 
+          target="_blank" 
+          style="display: inline-block; background: rgba(114,221,253,0.15); border: 1px solid rgba(114,221,253,0.3); color: #72ddfd; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: bold;"
+        >
+          📍 Open Google Maps Directions
+        </a>
+      </div>
+
+      <!-- Footer Info -->
+      <div style="text-align: center; font-size: 11px; color: #6a7782; line-height: 1.6;">
+        <p style="margin: 0 0 4px;">Need assistance on arrival? Farm Hotline: <strong style="color: #72ddfd;">+91 84910 06127</strong></p>
+        <p style="margin: 0;">Urban Trout Aquaculture • Malabagh, Naseem Bagh, Srinagar — 190006</p>
       </div>
 
     </div>
@@ -526,12 +592,13 @@ export async function sendFarmVisitApprovedEmail(visit: {
       from: FROM_EMAIL,
       to: visit.email,
       replyTo: ADMIN_EMAIL,
-      subject: `✅ [VISIT APPROVED PASS] Urban Trout Farm Visit Confirmed for ${visit.visit_date} (${visit.time_slot})`,
+      subject: `🎟️ [OFFICIAL VISIT PASS] Urban Trout Farm Visit Confirmed for ${visit.visit_date} (${visit.time_slot})`,
       html: emailHtml,
     });
   } catch (err) {
     console.warn("Resend approval pass email error:", err);
   }
 }
+
 
 

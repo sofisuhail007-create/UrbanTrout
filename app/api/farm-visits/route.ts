@@ -369,6 +369,7 @@ export async function PATCH(request: Request) {
         if (visitObj && visitObj.email) {
           const { sendFarmVisitApprovedEmail } = await import("@/lib/email");
           await sendFarmVisitApprovedEmail({
+            id: visitObj.id || id,
             visitor_name: visitObj.visitor_name,
             phone: visitObj.phone,
             email: visitObj.email,
