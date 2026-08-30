@@ -77,6 +77,7 @@ export default function DeliveryRadiusMap({
 }: DeliveryRadiusMapProps) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<LType.Map | null>(null);
+  const leafletRef = useRef<any>(null);
   const circleLayerRef = useRef<LType.Circle | null>(null);
   const outerGlowCircleRef = useRef<LType.Circle | null>(null);
   const farmMarkerRef = useRef<LType.Marker | null>(null);
@@ -145,10 +146,12 @@ export default function DeliveryRadiusMap({
 
     async function initMap() {
       const L = await import("leaflet");
+      leafletRef.current = L;
+      (window as any).L = L;
 
       if (!isMounted || !mapContainerRef.current) return;
 
-      // Avoid double initialization
+      // Clean up previous map if exists
       if (mapInstanceRef.current) {
         mapInstanceRef.current.remove();
         mapInstanceRef.current = null;
@@ -259,6 +262,10 @@ export default function DeliveryRadiusMap({
 
       mapInstanceRef.current = map;
       setMapLoaded(true);
+
+      setTimeout(() => {
+        map.invalidateSize();
+      }, 200);
     }
 
     initMap();
@@ -272,10 +279,20 @@ export default function DeliveryRadiusMap({
     };
   }, [allowDragFarmPin, getTileConfig]);
 
+  // ─── INVALIDATE SIZE ON TAB SWITCH ───────────────────────────
+  useEffect(() => {
+    if (activeTab === "interactive" && mapInstanceRef.current) {
+      const timer = setTimeout(() => {
+        mapInstanceRef.current?.invalidateSize();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [activeTab]);
+
   // ─── SWITCH TILE LAYER ───────────────────────────────────────
   useEffect(() => {
     if (!mapInstanceRef.current || !tileLayerRef.current) return;
-    const L = (window as any).L;
+    const L = leafletRef.current || (window as any).L;
     if (!L) return;
 
     mapInstanceRef.current.removeLayer(tileLayerRef.current);
@@ -309,7 +326,7 @@ export default function DeliveryRadiusMap({
   // ─── RENDER / UPDATE LOCALITY MARKERS ON MAP ─────────────────
   useEffect(() => {
     if (!mapInstanceRef.current || !zoneMarkersGroupRef.current || !mapLoaded) return;
-    const L = (window as any).L;
+    const L = leafletRef.current || (window as any).L;
     if (!L) return;
 
     zoneMarkersGroupRef.current.clearLayers();
@@ -516,94 +533,92 @@ export default function DeliveryRadiusMap({
         {/* Leaflet CSS Link */}
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 
-        {activeTab === "interactive" ? (
-          <div className="relative">
-            {/* The Map */}
-            <div ref={mapContainerRef} style={{ width: "100%", height }} className="z-10" />
+        {/* The Interactive Map (Preserved in DOM to prevent blank canvas) */}
+        <div style={{ display: activeTab === "interactive" ? "block" : "none" }} className="relative">
+          <div ref={mapContainerRef} style={{ width: "100%", height }} className="z-10" />
 
-            {/* Overlaid Floating Info Box: Test Point Distance */}
-            {testPoint && (
-              <div className="absolute top-4 left-4 z-20 max-w-xs p-3.5 rounded-xl bg-slate-950/90 border border-cyan-500/40 backdrop-blur-md shadow-xl text-xs space-y-1.5 animate-fadeIn">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="font-bold text-cyan-300 flex items-center gap-1">
-                    <span className="material-symbols-outlined text-sm">straighten</span>
-                    Measured Test Point
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setTestPoint(null)}
-                    className="text-slate-400 hover:text-white"
-                  >
-                    ✕
-                  </button>
-                </div>
-                <div className="text-slate-300">
-                  Distance from Farm: <strong className="text-white font-mono">{testPoint.dist} km</strong>
-                </div>
-                <div className="text-[10px] text-slate-400 font-mono">
-                  Coordinates: {testPoint.lat}, {testPoint.lng}
-                </div>
-                <div
-                  className={`px-2 py-1 rounded text-[10px] font-bold text-center uppercase tracking-wider ${
-                    testPoint.dist <= radiusKm
-                      ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                      : "bg-red-500/20 text-red-300 border border-red-500/30"
-                  }`}
+          {/* Overlaid Floating Info Box: Test Point Distance */}
+          {testPoint && (
+            <div className="absolute top-4 left-4 z-20 max-w-xs p-3.5 rounded-xl bg-slate-950/90 border border-cyan-500/40 backdrop-blur-md shadow-xl text-xs space-y-1.5 animate-fadeIn">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-bold text-cyan-300 flex items-center gap-1">
+                  <span className="material-symbols-outlined text-sm">straighten</span>
+                  Measured Test Point
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setTestPoint(null)}
+                  className="text-slate-400 hover:text-white"
                 >
-                  {testPoint.dist <= radiusKm ? "✓ Deliverable" : "✕ Outside Delivery Radius"}
-                </div>
+                  ✕
+                </button>
               </div>
-            )}
-
-            {/* Map Legend (Bottom Left) */}
-            <div className="absolute bottom-4 left-4 z-20 p-3 rounded-xl bg-slate-950/90 border border-slate-800 backdrop-blur-md shadow-lg text-[11px] space-y-1.5 hidden sm:block">
-              <div className="font-bold text-white flex items-center gap-1.5 pb-1 border-b border-slate-800">
-                <span className="material-symbols-outlined text-cyan-400 text-sm">map</span>
-                Map Radar Legend
+              <div className="text-slate-300">
+                Distance from Farm: <strong className="text-white font-mono">{testPoint.dist} km</strong>
               </div>
-              <div className="flex items-center gap-2 text-slate-300">
-                <span className="text-base">🐟</span>
-                <span>Urban Trout Farm Center</span>
+              <div className="text-[10px] text-slate-400 font-mono">
+                Coordinates: {testPoint.lat}, {testPoint.lng}
               </div>
-              <div className="flex items-center gap-2 text-slate-300">
-                <span className="w-3 h-3 rounded-full border-2 border-cyan-400 bg-cyan-400/20"></span>
-                <span>Active Deliverable Radius ({radiusKm} km)</span>
-              </div>
-              <div className="flex items-center gap-2 text-slate-300">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
-                <span>Eligible Zone (Inside Radius)</span>
-              </div>
-              <div className="flex items-center gap-2 text-slate-400">
-                <span className="w-2.5 h-2.5 rounded-full bg-slate-600"></span>
-                <span>Outside Free Radius</span>
-              </div>
-            </div>
-          </div>
-        ) : (
-          /* Official Google Maps Embed Frame */
-          <div className="relative w-full" style={{ height }}>
-            <iframe
-              title="Google Maps Farm Location"
-              width="100%"
-              height="100%"
-              style={{ border: 0, filter: "invert(90%) hue-rotate(180deg) brightness(95%) contrast(90%)" }}
-              loading="lazy"
-              allowFullScreen
-              src={`https://www.google.com/maps?q=${farmLat},${farmLng}&hl=en&z=13&output=embed`}
-            />
-            <div className="absolute top-4 right-4 z-10">
-              <a
-                href={`https://maps.google.com/?q=${farmLat},${farmLng}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-xl transition-all cursor-pointer"
+              <div
+                className={`px-2 py-1 rounded text-[10px] font-bold text-center uppercase tracking-wider ${
+                  testPoint.dist <= radiusKm
+                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                    : "bg-red-500/20 text-red-300 border border-red-500/30"
+                }`}
               >
-                <span className="material-symbols-outlined text-sm">open_in_new</span>
-                Open Official Google Maps
-              </a>
+                {testPoint.dist <= radiusKm ? "✓ Deliverable" : "✕ Outside Delivery Radius"}
+              </div>
+            </div>
+          )}
+
+          {/* Map Legend (Bottom Left) */}
+          <div className="absolute bottom-4 left-4 z-20 p-3 rounded-xl bg-slate-950/90 border border-slate-800 backdrop-blur-md shadow-lg text-[11px] space-y-1.5 hidden sm:block">
+            <div className="font-bold text-white flex items-center gap-1.5 pb-1 border-b border-slate-800">
+              <span className="material-symbols-outlined text-cyan-400 text-sm">map</span>
+              Map Radar Legend
+            </div>
+            <div className="flex items-center gap-2 text-slate-300">
+              <span className="text-base">🐟</span>
+              <span>Urban Trout Farm Center</span>
+            </div>
+            <div className="flex items-center gap-2 text-slate-300">
+              <span className="w-3 h-3 rounded-full border-2 border-cyan-400 bg-cyan-400/20"></span>
+              <span>Active Deliverable Radius ({radiusKm} km)</span>
+            </div>
+            <div className="flex items-center gap-2 text-slate-300">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>
+              <span>Eligible Zone (Inside Radius)</span>
+            </div>
+            <div className="flex items-center gap-2 text-slate-400">
+              <span className="w-2.5 h-2.5 rounded-full bg-slate-600"></span>
+              <span>Outside Free Radius</span>
             </div>
           </div>
-        )}
+        </div>
+
+        {/* Official Google Maps Embed Frame */}
+        <div style={{ display: activeTab === "google_embed" ? "block" : "none", width: "100%", height }} className="relative">
+          <iframe
+            title="Google Maps Farm Location"
+            width="100%"
+            height="100%"
+            style={{ border: 0, filter: "invert(90%) hue-rotate(180deg) brightness(95%) contrast(90%)" }}
+            loading="lazy"
+            allowFullScreen
+            src={`https://www.google.com/maps?q=${farmLat},${farmLng}&hl=en&z=13&output=embed`}
+          />
+          <div className="absolute top-4 right-4 z-10">
+            <a
+              href={`https://maps.google.com/?q=${farmLat},${farmLng}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-xl transition-all cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-sm">open_in_new</span>
+              Open Official Google Maps
+            </a>
+          </div>
+        </div>
       </div>
 
       {/* ─── QUICK LOCALITY FILTER CHIPS ─── */}

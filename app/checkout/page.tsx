@@ -231,7 +231,7 @@ function Field({
 }
 
 export default function CheckoutPage() {
-  const { items, total, totalSavings, updateQuantity, clearCart } = useCart();
+  const { items, total, totalSavings, updateQuantity, removeItem, clearCart } = useCart();
   const router = useRouter();
 
   // ─── 3-Stage Process: 1 = Location Check, 2 = Customer Details, 3 = Payment ───
@@ -2255,7 +2255,7 @@ export default function CheckoutPage() {
                         <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
                       </div>
                       <div className="flex-grow flex flex-col justify-center">
-                        <div className="flex justify-between items-start mb-1">
+                        <div className="flex justify-between items-start mb-1 gap-2">
                           <h4
                             style={{
                               fontFamily: '"Space Grotesk", sans-serif',
@@ -2263,34 +2263,50 @@ export default function CheckoutPage() {
                               fontWeight: 700,
                               color: C.onSurface,
                               margin: 0,
+                              lineHeight: 1.2,
                             }}
                           >
                             {item.name}
                           </h4>
-                          <div className="flex flex-col items-end">
-                            <span
-                              style={{
-                                fontFamily: '"Space Grotesk", sans-serif',
-                                fontSize: "0.9rem",
-                                fontWeight: 800,
-                                color: C.primary,
-                                marginLeft: "8px",
-                              }}
-                            >
-                              ₹{(item.price * item.quantity).toLocaleString("en-IN")}
-                            </span>
-                            {item.originalPrice && item.originalPrice > item.price && (
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            <div className="flex flex-col items-end">
                               <span
-                                className="line-through text-[11px] font-semibold"
                                 style={{
-                                  color: "#64748b",
                                   fontFamily: '"Space Grotesk", sans-serif',
-                                  textDecorationColor: "#ef4444",
+                                  fontSize: "0.9rem",
+                                  fontWeight: 800,
+                                  color: C.primary,
                                 }}
                               >
-                                ₹{(item.originalPrice * item.quantity).toLocaleString("en-IN")}
+                                ₹{(item.price * item.quantity).toLocaleString("en-IN")}
                               </span>
-                            )}
+                              {item.originalPrice && item.originalPrice > item.price && (
+                                <span
+                                  className="line-through text-[11px] font-semibold"
+                                  style={{
+                                    color: "#64748b",
+                                    fontFamily: '"Space Grotesk", sans-serif',
+                                    textDecorationColor: "#ef4444",
+                                  }}
+                                >
+                                  ₹{(item.originalPrice * item.quantity).toLocaleString("en-IN")}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Remove Close Button */}
+                            <button
+                              type="button"
+                              onClick={() => removeItem(item.id)}
+                              className="w-6 h-6 rounded-lg flex items-center justify-center text-slate-400 hover:text-red-400 hover:bg-red-500/15 border border-transparent hover:border-red-500/30 transition-all cursor-pointer ml-1"
+                              title="Remove product"
+                              aria-label={`Remove ${item.name}`}
+                            >
+                              <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24">
+                                <line x1="18" y1="6" x2="6" y2="18" />
+                                <line x1="6" y1="6" x2="18" y2="18" />
+                              </svg>
+                            </button>
                           </div>
                         </div>
                         <div className="flex items-center gap-2 mt-1">
