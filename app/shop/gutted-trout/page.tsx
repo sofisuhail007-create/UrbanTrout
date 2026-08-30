@@ -37,12 +37,13 @@ const C = {
 export default async function GuttedTroutPage() {
   const { data } = await supabase
     .from("inventory")
-    .select("price_per_kg, min_order_kg")
+    .select("*")
     .eq("product_id", "gutted-trout")
     .single();
 
   const price = data ? data.price_per_kg : 550;
-  const minQuantity = data?.min_order_kg ? Number(data.min_order_kg) : 1;
+  const minQuantity = data?.min_order_kg ? Number(data.min_order_kg) : 2;
+  const originalPrice = data?.original_price_per_kg ? Number(data.original_price_per_kg) : 650;
 
   const productJsonLd = {
     "@context": "https://schema.org/",
@@ -327,6 +328,7 @@ export default async function GuttedTroutPage() {
                 productId="gutted-trout"
                 productName="Premium Gutted Rainbow Trout"
                 price={price}
+                originalPrice={originalPrice}
                 unit="Kg"
                 image="/images/gutted_trout_premium.png"
                 showDynamicPrice={true}

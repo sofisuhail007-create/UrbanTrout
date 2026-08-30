@@ -7,6 +7,7 @@ type Props = {
   productId: string;
   productName: string;
   price: number;
+  originalPrice?: number;
   unit: string;
   image: string;
   variant?: "primary" | "secondary";
@@ -18,6 +19,7 @@ export default function AddToCartButton({
   productId,
   productName,
   price,
+  originalPrice,
   unit,
   image,
   variant = "primary",
@@ -37,48 +39,98 @@ export default function AddToCartButton({
   }, [minQuantity]);
 
   const handleAdd = () => {
-    addItem({ id: productId, name: productName, price, quantity: Math.max(effectiveMin, qty), unit, image, minQuantity: effectiveMin });
+    addItem({
+      id: productId,
+      name: productName,
+      price,
+      originalPrice,
+      quantity: Math.max(effectiveMin, qty),
+      unit,
+      image,
+      minQuantity: effectiveMin,
+    });
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
   };
+
+  const hasDiscount = Boolean(originalPrice && originalPrice > price);
+  const discountAmount = hasDiscount ? (originalPrice! - price) * qty : 0;
+  const discountPercent = hasDiscount ? Math.round(((originalPrice! - price) / originalPrice!) * 100) : 0;
 
   return (
     <div className="flex flex-col gap-5">
       {/* Dynamic Price */}
       {showDynamicPrice && (
-        <div className="flex items-baseline gap-2">
-          <span
-            style={{
-              fontFamily: '"Space Grotesk", sans-serif',
-              fontSize: "0.95rem",
-              color: "#9fadb8",
-              fontWeight: 600,
-            }}
-          >
-            ₹
-          </span>
-          <span
-            style={{
-              fontFamily: '"Space Grotesk", sans-serif',
-              fontSize: "3rem",
-              fontWeight: 800,
-              letterSpacing: "-0.04em",
-              color: "#72ddfd",
-              lineHeight: 1,
-            }}
-          >
-            {(price * qty).toLocaleString("en-IN")}
-          </span>
-          <span
-            style={{
-              fontFamily: '"Manrope", sans-serif',
-              fontSize: "0.85rem",
-              color: "#6a7782",
-              marginLeft: "2px",
-            }}
-          >
-            {qty === 1 ? `/ ${unit}` : `(${qty} ${unit} total)`}
-          </span>
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-baseline gap-2.5 flex-wrap">
+            <span
+              style={{
+                fontFamily: '"Space Grotesk", sans-serif',
+                fontSize: "0.95rem",
+                color: "#9fadb8",
+                fontWeight: 600,
+              }}
+            >
+              ₹
+            </span>
+            <span
+              style={{
+                fontFamily: '"Space Grotesk", sans-serif',
+                fontSize: "3rem",
+                fontWeight: 800,
+                letterSpacing: "-0.04em",
+                color: "#72ddfd",
+                lineHeight: 1,
+              }}
+            >
+              {(price * qty).toLocaleString("en-IN")}
+            </span>
+
+            {/* Strikethrough Original Total */}
+            {hasDiscount && (
+              <span
+                className="line-through text-lg font-semibold"
+                style={{
+                  color: "#64748b",
+                  fontFamily: '"Space Grotesk", sans-serif',
+                  textDecorationColor: "#ef4444",
+                }}
+              >
+                ₹{(originalPrice! * qty).toLocaleString("en-IN")}
+              </span>
+            )}
+
+            <span
+              style={{
+                fontFamily: '"Manrope", sans-serif',
+                fontSize: "0.85rem",
+                color: "#6a7782",
+                marginLeft: "2px",
+              }}
+            >
+              {qty === 1 ? `/ ${unit}` : `(${qty} ${unit} total)`}
+            </span>
+          </div>
+
+          {/* Savings Pill */}
+          {hasDiscount && (
+            <div className="flex items-center gap-2">
+              <span
+                className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider inline-flex items-center gap-1"
+                style={{
+                  background: "rgba(34,197,94,0.15)",
+                  color: "#4ade80",
+                  border: "1px solid rgba(34,197,94,0.35)",
+                  fontFamily: '"Space Grotesk", sans-serif',
+                }}
+              >
+                ✓ Save ₹{discountAmount.toLocaleString("en-IN")} ({discountPercent}% OFF)
+              </span>
+              <span className="text-xs text-slate-500 font-mono">
+                (Original: ₹{originalPrice}/kg → Special: ₹{price}/kg)
+              </span>
+            </div>
+          )}
         </div>
       )}
 

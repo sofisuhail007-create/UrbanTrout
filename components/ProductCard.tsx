@@ -19,10 +19,23 @@ export default function ProductCard({ p }: { p: Product }) {
   }, [p.minQuantity]);
 
   const handleAdd = () => {
-    addItem({ id: p.id, name: p.name, price: p.price, quantity: Math.max(effectiveMin, qty), unit: p.unit, image: p.img, minQuantity: effectiveMin });
+    addItem({
+      id: p.id,
+      name: p.name,
+      price: p.price,
+      originalPrice: p.originalPrice,
+      quantity: Math.max(effectiveMin, qty),
+      unit: p.unit,
+      image: p.img,
+      minQuantity: effectiveMin,
+    });
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
   };
+
+  const hasDiscount = Boolean(p.originalPrice && p.originalPrice > p.price);
+  const discountAmount = hasDiscount ? (p.originalPrice! - p.price) : 0;
+  const discountPercent = hasDiscount ? Math.round(((p.originalPrice! - p.price) / p.originalPrice!) * 100) : 0;
 
   return (
     <div
@@ -59,17 +72,32 @@ export default function ProductCard({ p }: { p: Product }) {
         />
 
         {/* Label badge */}
-        <span
-          className="absolute top-4 left-4 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest backdrop-blur-sm pointer-events-none"
-          style={{
-            background: "rgba(114,221,253,0.12)",
-            border: "1px solid rgba(114,221,253,0.35)",
-            color: "#72ddfd",
-            fontFamily: '"Inter", sans-serif',
-          }}
-        >
-          {p.label}
-        </span>
+        <div className="absolute top-4 left-4 flex flex-wrap items-center gap-2 pointer-events-none">
+          <span
+            className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest backdrop-blur-sm"
+            style={{
+              background: "rgba(114,221,253,0.12)",
+              border: "1px solid rgba(114,221,253,0.35)",
+              color: "#72ddfd",
+              fontFamily: '"Inter", sans-serif',
+            }}
+          >
+            {p.label}
+          </span>
+          {hasDiscount && (
+            <span
+              className="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider backdrop-blur-md"
+              style={{
+                background: "rgba(34,197,94,0.2)",
+                border: "1px solid rgba(34,197,94,0.45)",
+                color: "#4ade80",
+                fontFamily: '"Space Grotesk", sans-serif',
+              }}
+            >
+              {discountPercent}% OFF
+            </span>
+          )}
+        </div>
 
         {/* Details badge */}
         <span
@@ -105,28 +133,58 @@ export default function ProductCard({ p }: { p: Product }) {
           </p>
         </div>
 
-        {/* Price */}
-        <div className="flex items-baseline justify-between gap-1">
-          <div className="flex items-baseline gap-1">
+        {/* Price & Strikethrough Section */}
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-baseline gap-1.5 flex-wrap">
             <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "0.95rem", color: "#9fadb8", fontWeight: 600 }}>₹</span>
             <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.75rem", fontWeight: 800, color: "#72ddfd", letterSpacing: "-0.03em" }}>
               {p.price.toLocaleString("en-IN")}
             </span>
-            <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.8rem", color: "#6a7782", marginLeft: "2px" }}>/ {p.unit}</span>
+            <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.8rem", color: "#6a7782" }}>/ {p.unit}</span>
+
+            {/* Strikethrough Original Price */}
+            {hasDiscount && (
+              <span
+                className="line-through ml-1 text-xs md:text-sm font-semibold"
+                style={{
+                  color: "#64748b",
+                  fontFamily: '"Space Grotesk", sans-serif',
+                  textDecorationColor: "#ef4444",
+                }}
+              >
+                ₹{p.originalPrice?.toLocaleString("en-IN")}
+              </span>
+            )}
+
+            {/* Savings Tag */}
+            {hasDiscount && (
+              <span
+                className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ml-1"
+                style={{
+                  background: "rgba(34,197,94,0.12)",
+                  color: "#4ade80",
+                  border: "1px solid rgba(34,197,94,0.3)",
+                  fontFamily: '"Space Grotesk", sans-serif',
+                }}
+              >
+                Save ₹{discountAmount}
+              </span>
+            )}
           </div>
-          {effectiveMin > 1 && (
-            <span
-              className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider"
-              style={{
-                background: "rgba(114,221,253,0.15)",
-                color: "#72ddfd",
-                border: "1px solid rgba(114,221,253,0.3)",
-                fontFamily: '"Space Grotesk", sans-serif',
-              }}
-            >
-              Min. {effectiveMin} {p.unit}
-            </span>
-          )}
+
+          {/* Minimum Order Badge */}
+          <span
+            className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider flex-shrink-0"
+            style={{
+              background: "rgba(114,221,253,0.15)",
+              color: "#72ddfd",
+              border: "1px solid rgba(114,221,253,0.35)",
+              fontFamily: '"Space Grotesk", sans-serif',
+              boxShadow: "0 0 10px rgba(114,221,253,0.1)",
+            }}
+          >
+            MIN. {effectiveMin} {p.unit}
+          </span>
         </div>
 
         {/* Divider */}

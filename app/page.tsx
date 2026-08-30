@@ -72,9 +72,19 @@ const faqJsonLd = {
 
 export default async function HomePage() {
   const { data: dbProducts } = await supabase.from("inventory").select("*");
-  const updatedProducts = products.map(p => {
-    const dbItem = dbProducts?.find(item => item.product_id === p.id);
-    return dbItem ? { ...p, price: dbItem.price_per_kg } : p;
+  const updatedProducts = products.map((p) => {
+    const dbItem = dbProducts?.find((item) => item.product_id === p.id);
+    const price = dbItem?.price_per_kg || p.price;
+    const minQuantity = dbItem?.min_order_kg ? Number(dbItem.min_order_kg) : (p.minQuantity || 2);
+    const originalPrice = dbItem?.original_price_per_kg
+      ? Number(dbItem.original_price_per_kg)
+      : (p.originalPrice || (p.id === "gutted-trout" ? 650 : 600));
+    return {
+      ...p,
+      price,
+      minQuantity,
+      originalPrice,
+    };
   });
 
   return (

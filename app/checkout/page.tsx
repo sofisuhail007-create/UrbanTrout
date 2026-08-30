@@ -231,7 +231,7 @@ function Field({
 }
 
 export default function CheckoutPage() {
-  const { items, total, updateQuantity, clearCart } = useCart();
+  const { items, total, totalSavings, updateQuantity, clearCart } = useCart();
   const router = useRouter();
 
   // ─── 3-Stage Process: 1 = Location Check, 2 = Customer Details, 3 = Payment ───
@@ -2242,17 +2242,31 @@ export default function CheckoutPage() {
                           >
                             {item.name}
                           </h4>
-                          <span
-                            style={{
-                              fontFamily: '"Space Grotesk", sans-serif',
-                              fontSize: "0.9rem",
-                              fontWeight: 800,
-                              color: C.primary,
-                              marginLeft: "8px",
-                            }}
-                          >
-                            ₹{(item.price * item.quantity).toLocaleString("en-IN")}
-                          </span>
+                          <div className="flex flex-col items-end">
+                            <span
+                              style={{
+                                fontFamily: '"Space Grotesk", sans-serif',
+                                fontSize: "0.9rem",
+                                fontWeight: 800,
+                                color: C.primary,
+                                marginLeft: "8px",
+                              }}
+                            >
+                              ₹{(item.price * item.quantity).toLocaleString("en-IN")}
+                            </span>
+                            {item.originalPrice && item.originalPrice > item.price && (
+                              <span
+                                className="line-through text-[11px] font-semibold"
+                                style={{
+                                  color: "#64748b",
+                                  fontFamily: '"Space Grotesk", sans-serif',
+                                  textDecorationColor: "#ef4444",
+                                }}
+                              >
+                                ₹{(item.originalPrice * item.quantity).toLocaleString("en-IN")}
+                              </span>
+                            )}
+                          </div>
                         </div>
                         <div className="flex items-center gap-2 mt-1">
                           <div
@@ -2319,6 +2333,12 @@ export default function CheckoutPage() {
                     <span style={{ color: C.onSurfVar }}>Subtotal</span>
                     <span style={{ color: C.onSurface, fontWeight: 600 }}>₹{total.toLocaleString("en-IN")}</span>
                   </div>
+                  {totalSavings > 0 && (
+                    <div className="flex justify-between items-center text-xs font-bold" style={{ color: "#4ade80" }}>
+                      <span className="flex items-center gap-1">🎉 Promotional Savings</span>
+                      <span>-₹{totalSavings.toLocaleString("en-IN")}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between items-center">
                     <span style={{ color: C.onSurfVar }}>{deliveryRadiusKm}km Fresh Delivery</span>
                     <span

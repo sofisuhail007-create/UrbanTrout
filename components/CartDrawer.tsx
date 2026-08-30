@@ -10,7 +10,7 @@ const C = {
 };
 
 export default function CartDrawer() {
-  const { isOpen, closeCart, items, removeItem, updateQuantity, total } = useCart();
+  const { isOpen, closeCart, items, removeItem, updateQuantity, total, totalSavings } = useCart();
   const pathname = usePathname();
   if (pathname.startsWith("/admin")) return null;
 
@@ -105,71 +105,112 @@ export default function CartDrawer() {
               </Link>
             </div>
           ) : (
-            items.map((item) => (
-              <div
-                key={item.id}
-                className="flex gap-3 p-4 rounded-2xl"
-                style={{ background: "rgba(16,33,44,0.8)", border: `1px solid rgba(61,74,83,0.4)` }}
-              >
-                {/* Image */}
-                <div style={{ width: "60px", height: "60px", borderRadius: "10px", overflow: "hidden", flexShrink: 0, border: `1px solid rgba(61,74,83,0.4)` }}>
-                  <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
-                </div>
+            items.map((item) => {
+              const hasItemDiscount = Boolean(item.originalPrice && item.originalPrice > item.price);
+              const itemSavings = hasItemDiscount ? (item.originalPrice! - item.price) * item.quantity : 0;
 
-                {/* Info */}
-                <div className="flex-grow">
-                  <div className="flex justify-between items-start mb-1">
-                    <h4 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "0.85rem", fontWeight: 700, color: C.onSurface, lineHeight: 1.2 }}>{item.name}</h4>
-                    <button
-                      onClick={() => removeItem(item.id)}
-                      className="flex items-center justify-center transition-colors ml-2 flex-shrink-0"
-                      style={{ color: C.outline, width: "22px", height: "22px" }}
-                      onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = "#f87171")}
-                      onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = C.outline)}
-                      aria-label="Remove item"
-                    >
-                      <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24">
-                        <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                      </svg>
-                    </button>
+              return (
+                <div
+                  key={item.id}
+                  className="flex gap-3 p-4 rounded-2xl"
+                  style={{ background: "rgba(16,33,44,0.8)", border: `1px solid rgba(61,74,83,0.4)` }}
+                >
+                  {/* Image */}
+                  <div style={{ width: "60px", height: "60px", borderRadius: "10px", overflow: "hidden", flexShrink: 0, border: `1px solid rgba(61,74,83,0.4)` }}>
+                    <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
                   </div>
-                  <p style={{ fontFamily: '"Inter", sans-serif', fontSize: "10px", letterSpacing: "0.1em", textTransform: "uppercase", color: C.outline, marginBottom: "8px" }}>
-                    ₹{item.price} / {item.unit}
-                  </p>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center rounded-lg overflow-hidden" style={{ border: `1px solid rgba(61,74,83,0.5)`, background: "rgba(3,16,24,0.6)" }}>
+
+                  {/* Info */}
+                  <div className="flex-grow">
+                    <div className="flex justify-between items-start mb-1">
+                      <h4 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "0.85rem", fontWeight: 700, color: C.onSurface, lineHeight: 1.2 }}>{item.name}</h4>
                       <button
-                        onClick={() => updateQuantity(item.id, item.quantity - 1)}
-                        disabled={item.quantity <= (item.minQuantity || 1)}
-                        className="flex items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                        style={{ width: "28px", height: "28px", color: C.primary }}
+                        onClick={() => removeItem(item.id)}
+                        className="flex items-center justify-center transition-colors ml-2 flex-shrink-0"
+                        style={{ color: C.outline, width: "22px", height: "22px" }}
+                        onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.color = "#f87171")}
+                        onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.color = C.outline)}
+                        aria-label="Remove item"
                       >
-                        <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12" /></svg>
-                      </button>
-                      <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "12px", fontWeight: 700, color: C.onSurface, minWidth: "32px", textAlign: "center" }}>
-                        {item.quantity}
-                      </span>
-                      <button
-                        onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                        className="flex items-center justify-center transition-colors"
-                        style={{ width: "28px", height: "28px", color: C.primary }}
-                      >
-                        <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                        <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" viewBox="0 0 24 24">
+                          <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                        </svg>
                       </button>
                     </div>
-                    <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "0.9rem", fontWeight: 800, color: C.primary }}>
-                      ₹{(item.price * item.quantity).toLocaleString("en-IN")}
-                    </span>
+
+                    {/* Price and Original Strikethrough */}
+                    <div className="flex items-center gap-1.5 mb-2 flex-wrap">
+                      <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "0.85rem", fontWeight: 700, color: C.primary }}>
+                        ₹{item.price} / {item.unit}
+                      </span>
+                      {hasItemDiscount && (
+                        <span
+                          className="line-through text-xs font-semibold"
+                          style={{ color: "#64748b", fontFamily: '"Space Grotesk", sans-serif', textDecorationColor: "#ef4444" }}
+                        >
+                          ₹{item.originalPrice}
+                        </span>
+                      )}
+                      {hasItemDiscount && (
+                        <span className="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                          Save ₹{itemSavings}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center rounded-lg overflow-hidden" style={{ border: `1px solid rgba(61,74,83,0.5)`, background: "rgba(3,16,24,0.6)" }}>
+                        <button
+                          onClick={() => updateQuantity(item.id, item.quantity - 1)}
+                          disabled={item.quantity <= (item.minQuantity || 1)}
+                          className="flex items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                          style={{ width: "28px", height: "28px", color: C.primary }}
+                        >
+                          <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                        </button>
+                        <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "12px", fontWeight: 700, color: C.onSurface, minWidth: "32px", textAlign: "center" }}>
+                          {item.quantity} {item.unit}
+                        </span>
+                        <button
+                          onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                          className="flex items-center justify-center transition-colors"
+                          style={{ width: "28px", height: "28px", color: C.primary }}
+                        >
+                          <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
+                        </button>
+                      </div>
+                      <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "0.9rem", fontWeight: 800, color: C.primary }}>
+                        ₹{(item.price * item.quantity).toLocaleString("en-IN")}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 
         {/* Footer */}
         {items.length > 0 && (
           <div className="px-6 py-5 space-y-4" style={{ borderTop: `1px solid rgba(61,74,83,0.4)` }}>
+            {/* Total Savings Banner */}
+            {totalSavings > 0 && (
+              <div
+                className="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold"
+                style={{
+                  background: "rgba(34,197,94,0.12)",
+                  border: "1px solid rgba(34,197,94,0.35)",
+                  color: "#4ade80",
+                  fontFamily: '"Space Grotesk", sans-serif',
+                }}
+              >
+                <span className="flex items-center gap-1.5">
+                  <span>🎉</span> You Save on This Order:
+                </span>
+                <span className="text-sm">₹{totalSavings.toLocaleString("en-IN")}</span>
+              </div>
+            )}
+
             {/* Subtotal */}
             <div className="flex justify-between items-center">
               <div>

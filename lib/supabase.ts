@@ -12,8 +12,10 @@ export type CartItem = {
   name: string
   quantity: number
   price: number
+  originalPrice?: number
   unit: string
   image?: string
+  minQuantity?: number
 }
 
 export type Order = {
@@ -51,6 +53,7 @@ export type InventoryItem = {
   product_id: string
   product_name: string
   price_per_kg: number
+  original_price_per_kg?: number | null
   stock_kg: number
   available: boolean
   min_order_kg?: number

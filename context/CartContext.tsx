@@ -6,6 +6,7 @@ export type CartItem = {
   id: string;
   name: string;
   price: number;
+  originalPrice?: number;
   quantity: number;
   unit: string;
   image: string;
@@ -22,6 +23,8 @@ type CartContextType = {
   closeCart: () => void;
   clearCart: () => void;
   total: number;
+  originalTotal: number;
+  totalSavings: number;
   itemCount: number;
 };
 
@@ -66,10 +69,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
         loadedItems = loadedItems.map((item) => {
           const inv = invList.find((i) => i.product_id === item.id);
           if (inv) {
-            const liveMin = Math.max(1, Number(inv.min_order_kg) || 1);
+            const liveMin = Math.max(1, Number(inv.min_order_kg) || 2);
+            const liveOrigPrice = inv.original_price_per_kg
+              ? Number(inv.original_price_per_kg)
+              : item.originalPrice || (item.id === "gutted-trout" ? 650 : 600);
             return {
               ...item,
               price: inv.price_per_kg || item.price,
+              originalPrice: liveOrigPrice,
               minQuantity: liveMin,
               quantity: Math.max(liveMin, item.quantity),
             };
@@ -134,6 +141,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+  const originalTotal = items.reduce(
+    (sum, i) => sum + (i.originalPrice && i.originalPrice > i.price ? i.originalPrice : i.price) * i.quantity,
+    0
+  );
+  const totalSavings = Math.max(0, originalTotal - total);
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
 
   return (
@@ -148,6 +160,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
         closeCart: () => setIsOpen(false),
         clearCart,
         total,
+        originalTotal,
+        totalSavings,
         itemCount,
       }}
     >
