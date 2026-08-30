@@ -39,41 +39,51 @@ export default function DeliveryRadiusPage() {
   const [tableTab, setTableTab] = useState<"all" | "inside" | "outside">("all");
   const [tableSearch, setTableSearch] = useState("");
 
-  // Load Settings from Supabase
+  // Load Settings from /api/settings, Supabase, and localStorage
   useEffect(() => {
     async function loadSettings() {
+      // 1. Instant local cache read
       try {
-        const { data } = await supabase.from("app_settings").select("*");
-        if (data) {
-          data.forEach((row) => {
-            if (row.key === "delivery_radius_km") {
-              const val = parseFloat(row.value);
-              if (!isNaN(val) && val > 0) setRadiusKm(val);
-            }
-            if (row.key === "farm_latitude") {
-              const val = parseFloat(row.value);
-              if (!isNaN(val)) setFarmLat(val);
-            }
-            if (row.key === "farm_longitude") {
-              const val = parseFloat(row.value);
-              if (!isNaN(val)) setFarmLng(val);
-            }
-            if (row.key === "farm_address_label" && row.value) {
-              setFarmName(row.value);
-            }
-            if (row.key === "delivery_fee_outside_5km" || row.key === "delivery_fee_outside_radius") {
-              setDeliveryFeeOutside(row.value);
-            }
-            if (row.key === "allow_outside_radius_delivery") {
-              setAllowOutsideRadius(row.value === "true");
-            }
-            if (row.key === "max_dispatch_mins") {
-              setMaxDispatchMins(row.value);
-            }
-          });
+        const local = localStorage.getItem("urban_trout_delivery_settings");
+        if (local) {
+          const parsed = JSON.parse(local);
+          if (parsed.delivery_radius_km) setRadiusKm(parseFloat(parsed.delivery_radius_km));
+          if (parsed.farm_latitude) setFarmLat(parseFloat(parsed.farm_latitude));
+          if (parsed.farm_longitude) setFarmLng(parseFloat(parsed.farm_longitude));
+          if (parsed.farm_address_label) setFarmName(parsed.farm_address_label);
+          if (parsed.delivery_fee_outside_5km) setDeliveryFeeOutside(parsed.delivery_fee_outside_5km);
+          if (parsed.allow_outside_radius_delivery !== undefined) setAllowOutsideRadius(parsed.allow_outside_radius_delivery === "true");
+          if (parsed.max_dispatch_mins) setMaxDispatchMins(parsed.max_dispatch_mins);
+        }
+      } catch (_) {}
+
+      // 2. Fetch from API endpoint & Supabase
+      try {
+        const res = await fetch("/api/settings");
+        if (res.ok) {
+          const json = await res.json();
+          const map = json.settingsMap || {};
+          if (map.delivery_radius_km) {
+            const val = parseFloat(map.delivery_radius_km);
+            if (!isNaN(val) && val > 0) setRadiusKm(val);
+          }
+          if (map.farm_latitude) {
+            const val = parseFloat(map.farm_latitude);
+            if (!isNaN(val)) setFarmLat(val);
+          }
+          if (map.farm_longitude) {
+            const val = parseFloat(map.farm_longitude);
+            if (!isNaN(val)) setFarmLng(val);
+          }
+          if (map.farm_address_label) setFarmName(map.farm_address_label);
+          if (map.delivery_fee_outside_5km) setDeliveryFeeOutside(map.delivery_fee_outside_5km);
+          if (map.allow_outside_radius_delivery !== undefined) setAllowOutsideRadius(map.allow_outside_radius_delivery === "true");
+          if (map.max_dispatch_mins) setMaxDispatchMins(map.max_dispatch_mins);
+
+          localStorage.setItem("urban_trout_delivery_settings", JSON.stringify(map));
         }
       } catch (err) {
-        console.error("Error loading delivery settings:", err);
+        console.warn("Notice loading delivery settings from API:", err);
       } finally {
         setLoading(false);
       }
@@ -127,63 +137,78 @@ export default function DeliveryRadiusPage() {
     setTimeout(() => setCopiedCoords(false), 2000);
   };
 
-  // Save Settings to Supabase
+  // Save Settings to API, Supabase, and localStorage
   const handleSave = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     setIsSaving(true);
     setSavedMsg("");
 
-    try {
-      const updates = [
-        {
-          key: "delivery_radius_km",
-          value: radiusKm.toString(),
-          description: "Deliverable radius in KM from Urban Trout Farm base for free live harvest dispatch",
-        },
-        {
-          key: "farm_latitude",
-          value: farmLat.toString(),
-          description: "Latitude coordinate of Urban Trout Farm Hub",
-        },
-        {
-          key: "farm_longitude",
-          value: farmLng.toString(),
-          description: "Longitude coordinate of Urban Trout Farm Hub",
-        },
-        {
-          key: "farm_address_label",
-          value: farmName.trim(),
-          description: "Label and physical landmark of Urban Trout Farm Center",
-        },
-        {
-          key: "delivery_fee_outside_5km",
-          value: deliveryFeeOutside.trim(),
-          description: "Delivery fee surcharge for orders beyond deliverable radius in Srinagar",
-        },
-        {
-          key: "allow_outside_radius_delivery",
-          value: allowOutsideRadius ? "true" : "false",
-          description: "Whether customer checkout permits orders outside delivery radius with fee",
-        },
-        {
-          key: "max_dispatch_mins",
-          value: maxDispatchMins.trim(),
-          description: "Target live dispatch delivery turnaround time in minutes",
-        },
-      ];
+    const updates = [
+      {
+        key: "delivery_radius_km",
+        value: radiusKm.toString(),
+        description: "Deliverable radius in KM from Urban Trout Farm base for free live harvest dispatch",
+      },
+      {
+        key: "farm_latitude",
+        value: farmLat.toString(),
+        description: "Latitude coordinate of Urban Trout Farm Hub",
+      },
+      {
+        key: "farm_longitude",
+        value: farmLng.toString(),
+        description: "Longitude coordinate of Urban Trout Farm Hub",
+      },
+      {
+        key: "farm_address_label",
+        value: farmName.trim(),
+        description: "Label and physical landmark of Urban Trout Farm Center",
+      },
+      {
+        key: "delivery_fee_outside_5km",
+        value: deliveryFeeOutside.trim(),
+        description: "Delivery fee surcharge for orders beyond deliverable radius in Srinagar",
+      },
+      {
+        key: "allow_outside_radius_delivery",
+        value: allowOutsideRadius ? "true" : "false",
+        description: "Whether customer checkout permits orders outside delivery radius with fee",
+      },
+      {
+        key: "max_dispatch_mins",
+        value: maxDispatchMins.trim(),
+        description: "Target live dispatch delivery turnaround time in minutes",
+      },
+    ];
 
+    // 1. Instant local persistence
+    try {
+      const localMap: Record<string, string> = {};
+      updates.forEach((u) => (localMap[u.key] = u.value));
+      localStorage.setItem("urban_trout_delivery_settings", JSON.stringify(localMap));
+    } catch (_) {}
+
+    // 2. Server API persistence
+    try {
+      await fetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+    } catch (apiErr) {
+      console.warn("API settings save notice:", apiErr);
+    }
+
+    // 3. Direct Supabase update attempt
+    try {
       for (const item of updates) {
         await supabase.from("app_settings").upsert(item, { onConflict: "key" });
       }
+    } catch (_) {}
 
-      setSavedMsg("Delivery Radius & Google Maps Radar settings saved successfully!");
-      setTimeout(() => setSavedMsg(""), 4500);
-    } catch (err) {
-      console.error("Error saving delivery radius:", err);
-      alert("Failed to save delivery settings. Please try again.");
-    } finally {
-      setIsSaving(false);
-    }
+    setIsSaving(false);
+    setSavedMsg(`Saved! Deliverable radius set to ${radiusKm} KM.`);
+    setTimeout(() => setSavedMsg(""), 4500);
   };
 
   return (

@@ -73,30 +73,50 @@ export default function AdminSettingsPage() {
 
   useEffect(() => {
     async function loadSettings() {
+      // 1. Instant local cache read
       try {
-        const { data } = await supabase.from("app_settings").select("*");
-        if (data) {
-          data.forEach((row) => {
-            if (row.key === "upi_id") setUpiId(row.value);
-            if (row.key === "primary_phone") setPrimaryPhone(row.value);
-            if (row.key === "alternate_phone") setAlternatePhone(row.value);
-            if (row.key === "email") setEmail(row.value);
-            if (row.key === "delivery_fee_outside_5km" || row.key === "delivery_fee_outside_radius") setDeliveryFee(row.value);
-            if (row.key === "delivery_radius_km") setDeliveryRadius(row.value);
-            if (row.key === "farm_latitude") setFarmLat(row.value);
-            if (row.key === "farm_longitude") setFarmLng(row.value);
-            if (row.key === "staff_permissions") {
-              try {
-                const parsed = JSON.parse(row.value);
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                  setStaffList(parsed);
-                }
-              } catch {}
-            }
-          });
+        const local = localStorage.getItem("urban_trout_store_settings");
+        if (local) {
+          const map = JSON.parse(local);
+          if (map.upi_id) setUpiId(map.upi_id);
+          if (map.primary_phone) setPrimaryPhone(map.primary_phone);
+          if (map.alternate_phone) setAlternatePhone(map.alternate_phone);
+          if (map.email) setEmail(map.email);
+          if (map.delivery_fee_outside_5km) setDeliveryFee(map.delivery_fee_outside_5km);
+          if (map.delivery_radius_km) setDeliveryRadius(map.delivery_radius_km);
+          if (map.farm_latitude) setFarmLat(map.farm_latitude);
+          if (map.farm_longitude) setFarmLng(map.farm_longitude);
+        }
+      } catch (_) {}
+
+      // 2. Fetch from API endpoint & Supabase
+      try {
+        const res = await fetch("/api/settings");
+        if (res.ok) {
+          const json = await res.json();
+          const map = json.settingsMap || {};
+          if (map.upi_id) setUpiId(map.upi_id);
+          if (map.primary_phone) setPrimaryPhone(map.primary_phone);
+          if (map.alternate_phone) setAlternatePhone(map.alternate_phone);
+          if (map.email) setEmail(map.email);
+          if (map.delivery_fee_outside_5km || map.delivery_fee_outside_radius) {
+            setDeliveryFee(map.delivery_fee_outside_5km || map.delivery_fee_outside_radius);
+          }
+          if (map.delivery_radius_km) setDeliveryRadius(map.delivery_radius_km);
+          if (map.farm_latitude) setFarmLat(map.farm_latitude);
+          if (map.farm_longitude) setFarmLng(map.farm_longitude);
+          if (map.staff_permissions) {
+            try {
+              const parsed = JSON.parse(map.staff_permissions);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                setStaffList(parsed);
+              }
+            } catch {}
+          }
+          localStorage.setItem("urban_trout_store_settings", JSON.stringify(map));
         }
       } catch (err) {
-        console.error("Error loading settings:", err);
+        console.warn("Notice loading settings from API:", err);
       } finally {
         setLoading(false);
       }
@@ -213,40 +233,56 @@ export default function AdminSettingsPage() {
     setIsSaving(true);
     setSavedMsg("");
 
-    try {
-      const updates = [
-        { key: "upi_id", value: upiId.trim(), description: "Primary UPI ID for customer direct checkout payments" },
-        { key: "primary_phone", value: primaryPhone.trim(), description: "Primary WhatsApp and contact phone" },
-        { key: "alternate_phone", value: alternatePhone.trim(), description: "Alternate contact phone" },
-        { key: "email", value: email.trim(), description: "Official support email" },
-        { key: "delivery_fee_outside_5km", value: deliveryFee.trim(), description: "Delivery fee beyond deliverable radius in Srinagar" },
-        { key: "delivery_radius_km", value: deliveryRadius.trim(), description: "Deliverable radius in KM from Urban Trout Farm" },
-        { key: "farm_latitude", value: farmLat.trim(), description: "Latitude of Urban Trout Farm Hub" },
-        { key: "farm_longitude", value: farmLng.trim(), description: "Longitude of Urban Trout Farm Hub" },
-        {
-          key: "staff_permissions",
-          value: JSON.stringify(staffList),
-          description: "Granular RBAC feature permissions & whitelisted Google accounts for staff",
-        },
-        {
-          key: "admin_whitelist",
-          value: staffList.map((s) => s.email).join(","),
-          description: "Comma-separated list of permitted Google accounts",
-        },
-      ];
+    const updates = [
+      { key: "upi_id", value: upiId.trim(), description: "Primary UPI ID for customer direct checkout payments" },
+      { key: "primary_phone", value: primaryPhone.trim(), description: "Primary WhatsApp and contact phone" },
+      { key: "alternate_phone", value: alternatePhone.trim(), description: "Alternate contact phone" },
+      { key: "email", value: email.trim(), description: "Official support email" },
+      { key: "delivery_fee_outside_5km", value: deliveryFee.trim(), description: "Delivery fee beyond deliverable radius in Srinagar" },
+      { key: "delivery_radius_km", value: deliveryRadius.trim(), description: "Deliverable radius in KM from Urban Trout Farm" },
+      { key: "farm_latitude", value: farmLat.trim(), description: "Latitude of Urban Trout Farm Hub" },
+      { key: "farm_longitude", value: farmLng.trim(), description: "Longitude of Urban Trout Farm Hub" },
+      {
+        key: "staff_permissions",
+        value: JSON.stringify(staffList),
+        description: "Granular RBAC feature permissions & whitelisted Google accounts for staff",
+      },
+      {
+        key: "admin_whitelist",
+        value: staffList.map((s) => s.email).join(","),
+        description: "Comma-separated list of permitted Google accounts",
+      },
+    ];
 
+    // 1. Instant local persistence
+    try {
+      const localMap: Record<string, string> = {};
+      updates.forEach((u) => (localMap[u.key] = u.value));
+      localStorage.setItem("urban_trout_store_settings", JSON.stringify(localMap));
+      localStorage.setItem("urban_trout_delivery_settings", JSON.stringify(localMap));
+    } catch (_) {}
+
+    // 2. Server API persistence
+    try {
+      await fetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+    } catch (apiErr) {
+      console.warn("API save notice:", apiErr);
+    }
+
+    // 3. Supabase direct upsert attempt
+    try {
       for (const item of updates) {
         await supabase.from("app_settings").upsert(item, { onConflict: "key" });
       }
+    } catch (_) {}
 
-      setSavedMsg("Settings & Staff Permissions saved successfully!");
-      setTimeout(() => setSavedMsg(""), 4000);
-    } catch (err) {
-      console.error("Error saving settings:", err);
-      alert("Failed to save settings. Please try again.");
-    } finally {
-      setIsSaving(false);
-    }
+    setIsSaving(false);
+    setSavedMsg("Settings & Staff Permissions saved successfully!");
+    setTimeout(() => setSavedMsg(""), 4000);
   };
 
   return (

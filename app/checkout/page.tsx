@@ -295,27 +295,52 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     async function fetchSettings() {
+      // 1. Instant local read
       try {
-        const { data } = await supabase.from("app_settings").select("*");
-        if (data) {
-          data.forEach((row) => {
-            if (row.key === "upi_id") setUpiId(row.value);
-            if (row.key === "delivery_radius_km") {
-              const r = parseFloat(row.value);
-              if (!isNaN(r) && r > 0) setDeliveryRadiusKm(r);
-            }
-            if (row.key === "farm_latitude") {
-              const lat = parseFloat(row.value);
-              if (!isNaN(lat)) setFarmLat(lat);
-            }
-            if (row.key === "farm_longitude") {
-              const lng = parseFloat(row.value);
-              if (!isNaN(lng)) setFarmLng(lng);
-            }
-            if (row.key === "allow_outside_radius_delivery") {
-              setAllowOutsideRadius(row.value === "true");
-            }
-          });
+        const local = localStorage.getItem("urban_trout_delivery_settings") || localStorage.getItem("urban_trout_store_settings");
+        if (local) {
+          const map = JSON.parse(local);
+          if (map.upi_id) setUpiId(map.upi_id);
+          if (map.delivery_radius_km) {
+            const r = parseFloat(map.delivery_radius_km);
+            if (!isNaN(r) && r > 0) setDeliveryRadiusKm(r);
+          }
+          if (map.farm_latitude) {
+            const lat = parseFloat(map.farm_latitude);
+            if (!isNaN(lat)) setFarmLat(lat);
+          }
+          if (map.farm_longitude) {
+            const lng = parseFloat(map.farm_longitude);
+            if (!isNaN(lng)) setFarmLng(lng);
+          }
+          if (map.allow_outside_radius_delivery !== undefined) {
+            setAllowOutsideRadius(map.allow_outside_radius_delivery === "true");
+          }
+        }
+      } catch (_) {}
+
+      // 2. Fetch from API endpoint
+      try {
+        const res = await fetch("/api/settings");
+        if (res.ok) {
+          const json = await res.json();
+          const map = json.settingsMap || {};
+          if (map.upi_id) setUpiId(map.upi_id);
+          if (map.delivery_radius_km) {
+            const r = parseFloat(map.delivery_radius_km);
+            if (!isNaN(r) && r > 0) setDeliveryRadiusKm(r);
+          }
+          if (map.farm_latitude) {
+            const lat = parseFloat(map.farm_latitude);
+            if (!isNaN(lat)) setFarmLat(lat);
+          }
+          if (map.farm_longitude) {
+            const lng = parseFloat(map.farm_longitude);
+            if (!isNaN(lng)) setFarmLng(lng);
+          }
+          if (map.allow_outside_radius_delivery !== undefined) {
+            setAllowOutsideRadius(map.allow_outside_radius_delivery === "true");
+          }
         }
       } catch {
         /* use default */
