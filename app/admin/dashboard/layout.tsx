@@ -27,6 +27,7 @@ const ALL_NAV_ITEMS = [
   { href: "/admin/dashboard/customers", icon: "people", label: "Customers", permKey: "customers" },
   { href: "/admin/dashboard/analytics", icon: "analytics", label: "Analytics", permKey: "analytics" },
   { href: "/admin/dashboard/farm", icon: "psychiatry", label: "Farm Mgmt", permKey: "farm" },
+  { href: "/admin/dashboard/delivery", icon: "radar", label: "Delivery Radius", permKey: "settings", badge: "Map" },
   { href: "/admin/dashboard/settings", icon: "settings", label: "Settings", permKey: "settings" },
 ];
 

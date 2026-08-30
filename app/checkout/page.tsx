@@ -244,6 +244,10 @@ export default function CheckoutPage() {
   const [calculatedDistance, setCalculatedDistance] = useState<number | null>(null);
   const [selectedZoneName, setSelectedZoneName] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState<string>("");
+  const [deliveryRadiusKm, setDeliveryRadiusKm] = useState<number>(5.0);
+  const [farmLat, setFarmLat] = useState<number>(34.144709);
+  const [farmLng, setFarmLng] = useState<number>(74.824525);
+  const [allowOutsideRadius, setAllowOutsideRadius] = useState<boolean>(false);
 
   // ─── Payment & Settings State ───
   const [copiedUpi, setCopiedUpi] = useState(false);
@@ -292,8 +296,27 @@ export default function CheckoutPage() {
   useEffect(() => {
     async function fetchSettings() {
       try {
-        const { data } = await supabase.from("app_settings").select("value").eq("key", "upi_id").single();
-        if (data?.value) setUpiId(data.value);
+        const { data } = await supabase.from("app_settings").select("*");
+        if (data) {
+          data.forEach((row) => {
+            if (row.key === "upi_id") setUpiId(row.value);
+            if (row.key === "delivery_radius_km") {
+              const r = parseFloat(row.value);
+              if (!isNaN(r) && r > 0) setDeliveryRadiusKm(r);
+            }
+            if (row.key === "farm_latitude") {
+              const lat = parseFloat(row.value);
+              if (!isNaN(lat)) setFarmLat(lat);
+            }
+            if (row.key === "farm_longitude") {
+              const lng = parseFloat(row.value);
+              if (!isNaN(lng)) setFarmLng(lng);
+            }
+            if (row.key === "allow_outside_radius_delivery") {
+              setAllowOutsideRadius(row.value === "true");
+            }
+          });
+        }
       } catch {
         /* use default */
       }
@@ -305,14 +328,18 @@ export default function CheckoutPage() {
     if (items.length === 0 && !orderSuccess) router.push("/shop");
   }, [items, orderSuccess, router]);
 
-  // Filtered zones based on search query
+  // Filtered zones based on dynamic radius and search query
   const filteredZones = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
-    if (!q) return SRINAGAR_ZONES;
-    return SRINAGAR_ZONES.filter(
+    const dynamicZones = SRINAGAR_ZONES.map((z) => ({
+      ...z,
+      eligible: z.distanceKm <= deliveryRadiusKm,
+    }));
+    if (!q) return dynamicZones;
+    return dynamicZones.filter(
       (z) => z.name.toLowerCase().includes(q) || z.pincode.includes(q)
     );
-  }, [searchQuery]);
+  }, [searchQuery, deliveryRadiusKm]);
 
   // ─── Lead Capture ────────────────────────────────────────────
   const captureLead = useCallback(
@@ -477,17 +504,17 @@ export default function CheckoutPage() {
     navigator.geolocation.getCurrentPosition(
       (pos) => {
         const { latitude, longitude } = pos.coords;
-        const dist = calculateDistance(FARM_LAT, FARM_LNG, latitude, longitude);
+        const dist = calculateDistance(farmLat, farmLng, latitude, longitude);
         setCalculatedDistance(dist);
 
-        if (dist <= DELIVERY_RADIUS_KM) {
+        if (dist <= deliveryRadiusKm) {
           setDeliveryMode("under5");
           setSelectedZoneName("GPS Detected Location");
           setLocationMsg(`${dist.toFixed(1)} km from Farm — Free Delivery Eligible ✓`);
         } else {
           setDeliveryMode("unavailable");
           setSelectedZoneName("GPS Detected Location");
-          setLocationMsg(`${dist.toFixed(1)} km from Farm — Outside 5km delivery zone.`);
+          setLocationMsg(`${dist.toFixed(1)} km from Farm — Outside ${deliveryRadiusKm}km delivery zone.`);
         }
         setIsLocating(false);
       },
@@ -503,7 +530,8 @@ export default function CheckoutPage() {
   const handleSelectZone = (zone: SrinagarZone) => {
     setSelectedZoneName(zone.name);
     setCalculatedDistance(zone.distanceKm);
-    if (zone.eligible) {
+    const isEligible = zone.distanceKm <= deliveryRadiusKm;
+    if (isEligible) {
       setDeliveryMode("under5");
       setLocationMsg(`${zone.name} (~${zone.distanceKm} km) — Free Delivery ✓`);
       setFormData((prev) => ({
@@ -513,7 +541,7 @@ export default function CheckoutPage() {
       }));
     } else {
       setDeliveryMode("unavailable");
-      setLocationMsg(`${zone.name} (~${zone.distanceKm} km) — Outside 5km zone.`);
+      setLocationMsg(`${zone.name} (~${zone.distanceKm} km) — Outside ${deliveryRadiusKm}km zone.`);
     }
   };
 
@@ -531,17 +559,19 @@ export default function CheckoutPage() {
     e.preventDefault();
     const pin = searchQuery.trim();
     if (/^[1-9][0-9]{5}$/.test(pin)) {
-      if (["190006", "190011", "190024", "190020"].includes(pin)) {
+      const match = SRINAGAR_ZONES.find((z) => z.pincode === pin);
+      const dist = match ? match.distanceKm : 6.0;
+      if (dist <= deliveryRadiusKm) {
         setDeliveryMode("under5");
-        setCalculatedDistance(2.5);
-        setSelectedZoneName(`Pin Code ${pin}`);
-        setLocationMsg(`Pin Code ${pin} is within our 5km live harvest zone ✓`);
+        setCalculatedDistance(dist);
+        setSelectedZoneName(match ? match.name : `Pin Code ${pin}`);
+        setLocationMsg(`Pin Code ${pin} is within our ${deliveryRadiusKm}km live harvest zone ✓`);
         setFormData((prev) => ({ ...prev, pincode: pin }));
       } else {
         setDeliveryMode("unavailable");
-        setCalculatedDistance(8.0);
-        setSelectedZoneName(`Pin Code ${pin}`);
-        setLocationMsg(`Pin Code ${pin} is outside our 5km radius.`);
+        setCalculatedDistance(dist);
+        setSelectedZoneName(match ? match.name : `Pin Code ${pin}`);
+        setLocationMsg(`Pin Code ${pin} is outside our ${deliveryRadiusKm}km radius.`);
       }
     } else if (filteredZones.length > 0) {
       handleSelectZone(filteredZones[0]);
@@ -554,8 +584,8 @@ export default function CheckoutPage() {
       alert("Please select or detect your Srinagar delivery area first.");
       return;
     }
-    if (deliveryMode === "unavailable") {
-      alert("We currently deliver only within 5km of Urban Trout Farm, Srinagar.");
+    if (deliveryMode === "unavailable" && !allowOutsideRadius) {
+      alert(`We currently deliver live harvest only within ${deliveryRadiusKm}km of Urban Trout Farm, Srinagar.`);
       return;
     }
     setCurrentStep(2);
@@ -709,7 +739,7 @@ export default function CheckoutPage() {
         formData.email ? `Email: ${formData.email}\n` : ""
       }Address: ${formData.house}, ${formData.locality}, ${formData.pincode}\n${
         formData.notes ? `Delivery Note: ${formData.notes}\n` : ""
-      }\n*Ordered Items:*\n${cartDetails}\n*Delivery Zone:* Within 5km (Free Delivery)\n*Total Paid via UPI:* ₹${grandTotal.toLocaleString(
+      }\n*Ordered Items:*\n${cartDetails}\n*Delivery Zone:* Within ${deliveryRadiusKm}km (Free Delivery)\n*Total Paid via UPI:* ₹${grandTotal.toLocaleString(
         "en-IN"
       )}\n*UPI ID Paid To:* ${upiId}\n${
         utrRef ? `*UTR / Ref No:* ${utrRef}\n` : ""
@@ -1163,7 +1193,7 @@ export default function CheckoutPage() {
                         </span>
                         <span style={{ color: C.outline }}>•</span>
                         <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "11px", color: "#22c55e", fontWeight: 600 }}>
-                          5km Free Delivery Radius
+                          {deliveryRadiusKm}km Free Delivery Radius
                         </span>
                       </div>
                       <h1
@@ -1260,7 +1290,7 @@ export default function CheckoutPage() {
                               {selectedZoneName || "GPS Location"} {calculatedDistance !== null && `(~${calculatedDistance.toFixed(1)} km from Farm)`}
                             </h3>
                             <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.85rem", color: "#bbf7d0", margin: "2px 0 0" }}>
-                              {locationMsg || "Within our 5km live harvest radius • Dispatched in 90 mins."}
+                              {locationMsg || `Within our ${deliveryRadiusKm}km live harvest radius • Dispatched in 90 mins.`}
                             </p>
                           </div>
                         </div>
@@ -1324,10 +1354,10 @@ export default function CheckoutPage() {
                               margin: "0 0 2px",
                             }}
                           >
-                            {selectedZoneName ? `${selectedZoneName} is outside 5km zone` : "Outside 5km Delivery Radius"}
+                            {selectedZoneName ? `${selectedZoneName} is outside ${deliveryRadiusKm}km zone` : `Outside ${deliveryRadiusKm}km Delivery Radius`}
                           </h4>
                           <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.85rem", color: "#fca5a5", margin: 0 }}>
-                            {locationMsg || "Urban Trout delivers within 5km of Naseem Bagh to guarantee live freshness."}
+                            {locationMsg || `Urban Trout delivers within ${deliveryRadiusKm}km of Naseem Bagh to guarantee live freshness.`}
                           </p>
                         </div>
                         <button
@@ -1359,7 +1389,7 @@ export default function CheckoutPage() {
 
                       <div className="flex gap-2.5 justify-center pt-1">
                         <a
-                          href={`https://wa.me/918491006127?text=Hi%20Urban%20Trout!%20I%20am%20outside%20the%205km%20zone.%20Can%20I%20arrange%20pickup%20or%20special%20delivery?`}
+                          href={`https://wa.me/918491006127?text=Hi%20Urban%20Trout!%20I%20am%20outside%20the%20${deliveryRadiusKm}km%20zone.%20Can%20I%20arrange%20pickup%20or%20special%20delivery?`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="px-4 py-2.5 rounded-xl font-bold uppercase text-xs flex items-center gap-1.5"
@@ -1373,7 +1403,7 @@ export default function CheckoutPage() {
                           💬 WhatsApp Inquiry
                         </a>
                         <a
-                          href="https://maps.google.com/?q=34.144709,74.824525"
+                          href={`https://maps.google.com/?q=${farmLat},${farmLng}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="px-4 py-2.5 rounded-xl font-bold uppercase text-xs flex items-center gap-1.5"
@@ -1566,7 +1596,7 @@ export default function CheckoutPage() {
                     <span style={{ fontSize: "16px" }}>📍</span>
                     <div>
                       <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "0.85rem", fontWeight: 700, color: "#4ade80" }}>
-                        Verified Delivery Zone ({selectedZoneName || "Srinagar 5km Zone"})
+                        Verified Delivery Zone ({selectedZoneName || `Srinagar ${deliveryRadiusKm}km Zone`})
                       </span>
                       <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "11px", color: "#86efac", margin: 0 }}>
                         Free Same-Day Cold-Chain Delivery Active
@@ -1874,7 +1904,7 @@ export default function CheckoutPage() {
                         fontSize: "0.9rem",
                       }}
                     >
-                      Within 5km — Free Delivery ✓
+                      Within {deliveryRadiusKm}km — Free Delivery ✓
                     </p>
                   </div>
                 </div>
@@ -2290,7 +2320,7 @@ export default function CheckoutPage() {
                     <span style={{ color: C.onSurface, fontWeight: 600 }}>₹{total.toLocaleString("en-IN")}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span style={{ color: C.onSurfVar }}>5km Fresh Delivery</span>
+                    <span style={{ color: C.onSurfVar }}>{deliveryRadiusKm}km Fresh Delivery</span>
                     <span
                       style={{
                         color: deliveryMode === "under5" ? "#4ade80" : C.primary,
@@ -2301,7 +2331,7 @@ export default function CheckoutPage() {
                       {!deliveryMode
                         ? "Check zone (Step 1)"
                         : deliveryMode === "unavailable"
-                        ? "Outside 5km"
+                        ? `Outside ${deliveryRadiusKm}km`
                         : "FREE ✓"}
                     </span>
                   </div>

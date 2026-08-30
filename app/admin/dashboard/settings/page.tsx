@@ -46,6 +46,9 @@ export default function AdminSettingsPage() {
   const [alternatePhone, setAlternatePhone] = useState("+917006604148");
   const [email, setEmail] = useState("info.urbantrout@gmail.com");
   const [deliveryFee, setDeliveryFee] = useState("40");
+  const [deliveryRadius, setDeliveryRadius] = useState("5.0");
+  const [farmLat, setFarmLat] = useState("34.144709");
+  const [farmLng, setFarmLng] = useState("74.824525");
   const [staffList, setStaffList] = useState<StaffMember[]>(DEFAULT_STAFF);
 
   // New staff form state
@@ -78,7 +81,10 @@ export default function AdminSettingsPage() {
             if (row.key === "primary_phone") setPrimaryPhone(row.value);
             if (row.key === "alternate_phone") setAlternatePhone(row.value);
             if (row.key === "email") setEmail(row.value);
-            if (row.key === "delivery_fee_outside_5km") setDeliveryFee(row.value);
+            if (row.key === "delivery_fee_outside_5km" || row.key === "delivery_fee_outside_radius") setDeliveryFee(row.value);
+            if (row.key === "delivery_radius_km") setDeliveryRadius(row.value);
+            if (row.key === "farm_latitude") setFarmLat(row.value);
+            if (row.key === "farm_longitude") setFarmLng(row.value);
             if (row.key === "staff_permissions") {
               try {
                 const parsed = JSON.parse(row.value);
@@ -213,7 +219,10 @@ export default function AdminSettingsPage() {
         { key: "primary_phone", value: primaryPhone.trim(), description: "Primary WhatsApp and contact phone" },
         { key: "alternate_phone", value: alternatePhone.trim(), description: "Alternate contact phone" },
         { key: "email", value: email.trim(), description: "Official support email" },
-        { key: "delivery_fee_outside_5km", value: deliveryFee.trim(), description: "Delivery fee beyond 5km in Srinagar" },
+        { key: "delivery_fee_outside_5km", value: deliveryFee.trim(), description: "Delivery fee beyond deliverable radius in Srinagar" },
+        { key: "delivery_radius_km", value: deliveryRadius.trim(), description: "Deliverable radius in KM from Urban Trout Farm" },
+        { key: "farm_latitude", value: farmLat.trim(), description: "Latitude of Urban Trout Farm Hub" },
+        { key: "farm_longitude", value: farmLng.trim(), description: "Longitude of Urban Trout Farm Hub" },
         {
           key: "staff_permissions",
           value: JSON.stringify(staffList),
@@ -537,14 +546,102 @@ export default function AdminSettingsPage() {
               </div>
             </div>
 
-            {/* Delivery & Contact Configuration */}
+            {/* ══════════════════════════════════════════════════════════
+                SECTION 3: DELIVERY RADIUS & GOOGLE MAPS RADAR
+                ══════════════════════════════════════════════════════════ */}
+            <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 md:p-8 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
+                <div>
+                  <h2 className="text-lg font-bold text-white flex items-center gap-2" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                    <span className="material-symbols-outlined text-base text-cyan-400">radar</span>
+                    Deliverable Radius &amp; Google Maps Radar
+                  </h2>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Control the live harvest delivery radius from Urban Trout Farm base in Naseem Bagh, Srinagar.
+                  </p>
+                </div>
+
+                <a
+                  href="/admin/dashboard/delivery"
+                  className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold flex items-center gap-1.5 transition-all shadow-md shadow-cyan-500/10 cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-sm">map</span>
+                  Open Full Interactive Radar Map
+                </a>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                <div className="space-y-2">
+                  <label className="block text-xs uppercase tracking-wider font-bold text-slate-400">
+                    Deliverable Radius (KM) <span className="text-red-400">*</span>
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="number"
+                      min="1"
+                      max="50"
+                      step="0.5"
+                      value={deliveryRadius}
+                      onChange={(e) => setDeliveryRadius(e.target.value)}
+                      className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white font-mono font-bold focus:outline-none focus:border-cyan-400"
+                    />
+                    <span className="text-xs font-bold text-cyan-400">KM</span>
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    Orders within this radius qualify for free live harvest dispatch.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-xs uppercase tracking-wider font-bold text-slate-400">
+                    Delivery Fee Beyond Radius (₹)
+                  </label>
+                  <input
+                    type="number"
+                    value={deliveryFee}
+                    onChange={(e) => setDeliveryFee(e.target.value)}
+                    className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white font-mono focus:outline-none focus:border-cyan-400"
+                  />
+                  <p className="text-[11px] text-slate-500">
+                    Surcharge applied if customer address is beyond the {deliveryRadius}km boundary.
+                  </p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="block text-xs uppercase tracking-wider font-bold text-slate-400">
+                    Farm Base GPS Coordinates
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="text"
+                      value={farmLat}
+                      onChange={(e) => setFarmLat(e.target.value)}
+                      placeholder="Lat"
+                      className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-3 py-3 text-xs text-white font-mono focus:outline-none focus:border-cyan-400"
+                    />
+                    <input
+                      type="text"
+                      value={farmLng}
+                      onChange={(e) => setFarmLng(e.target.value)}
+                      placeholder="Lng"
+                      className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-3 py-3 text-xs text-white font-mono focus:outline-none focus:border-cyan-400"
+                    />
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    Default: <code className="text-cyan-300">34.144709, 74.824525</code>
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Contact Information Card */}
             <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 md:p-8 space-y-5">
               <h2 className="text-lg font-bold text-white flex items-center gap-2" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
                 <span className="material-symbols-outlined text-base text-cyan-400">contact_mail</span>
-                Contact &amp; Delivery Settings
+                Store Contact Channels
               </h2>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 <div className="space-y-2">
                   <label className="block text-xs uppercase tracking-wider font-bold text-slate-400">
                     Primary WhatsApp Number
@@ -571,24 +668,12 @@ export default function AdminSettingsPage() {
 
                 <div className="space-y-2">
                   <label className="block text-xs uppercase tracking-wider font-bold text-slate-400">
-                    Official Email
+                    Official Support Email
                   </label>
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-400"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-xs uppercase tracking-wider font-bold text-slate-400">
-                    Delivery Fee Beyond 5km (₹)
-                  </label>
-                  <input
-                    type="number"
-                    value={deliveryFee}
-                    onChange={(e) => setDeliveryFee(e.target.value)}
                     className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-cyan-400"
                   />
                 </div>
