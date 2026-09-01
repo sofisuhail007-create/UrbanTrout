@@ -4,6 +4,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import CartDrawer from "@/components/CartDrawer";
 import WhatsAppButton from "@/components/WhatsAppButton";
+import LiveChatWidget from "@/components/LiveChatWidget";
 import { CartProvider } from "@/context/CartContext";
 import { Toaster } from "react-hot-toast";
 import { Analytics } from "@vercel/analytics/next";
@@ -174,6 +175,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <CartDrawer />
           {children}
           <WhatsAppButton />
+          <LiveChatWidget />
           <Footer />
           <Analytics />
           <SpeedInsights />

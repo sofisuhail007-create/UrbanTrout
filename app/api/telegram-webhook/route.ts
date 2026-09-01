@@ -254,6 +254,70 @@ export async function POST(request: Request) {
       const text: string = msg.text.trim();
       const chatId = msg.chat.id;
 
+      // ── Handle Live Chat Replies (Swipe reply to website chat in Telegram) ──
+      if (msg.reply_to_message) {
+        const replyTo = msg.reply_to_message;
+        const replyText = replyTo.text || "";
+        const replyMsgId = replyTo.message_id;
+
+        let targetThreadId: string | null = null;
+
+        // 1. Try extracting thread ID from hashtag #chat_<threadId>
+        const tagMatch = replyText.match(/#chat_([a-zA-Z0-9_\-]+)/);
+        if (tagMatch) {
+          targetThreadId = tagMatch[1];
+        }
+
+        // 2. Try looking up in live_chat_threads table by telegram_message_id
+        if (!targetThreadId) {
+          try {
+            const { data: threadRow } = await supabase
+              .from("live_chat_threads")
+              .select("id")
+              .eq("telegram_message_id", replyMsgId)
+              .maybeSingle();
+
+            if (threadRow?.id) {
+              targetThreadId = threadRow.id;
+            }
+          } catch (_) {}
+        }
+
+        if (targetThreadId) {
+          const staffName = [msg.from?.first_name, msg.from?.last_name].filter(Boolean).join(" ") || "Farm Team";
+          const nowIso = new Date().toISOString();
+          const newMsgId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+
+          try {
+            await supabase.from("live_chat_messages").insert({
+              id: newMsgId,
+              thread_id: targetThreadId,
+              sender: "staff",
+              sender_name: `${staffName} (Urban Trout)`,
+              text: text,
+              created_at: nowIso,
+            });
+
+            await supabase.from("live_chat_threads").update({
+              last_message: text,
+              last_message_at: nowIso,
+              updated_at: nowIso,
+            }).eq("id", targetThreadId);
+
+            await sendTelegramMessage(
+              `⚡ <b>REPLY DELIVERED LIVE TO VISITOR!</b>\n━━━━━━━━━━━━━━━━━━━━\n<b>Visitor:</b> <code>#chat_${targetThreadId}</code>\n<b>Your Message:</b> <i>"${text}"</i>`,
+              "HTML",
+              undefined,
+              chatId
+            );
+
+            return NextResponse.json({ success: true, repliedToThread: targetThreadId });
+          } catch (replyErr) {
+            console.error("Failed to route Telegram reply to live chat:", replyErr);
+          }
+        }
+      }
+
       // ── Command: /stock or /inventory (Interactive Inventory Dashboard) ──
       if (text === "/stock" || text === "/inventory") {
         const { data: invItems, error } = await supabase

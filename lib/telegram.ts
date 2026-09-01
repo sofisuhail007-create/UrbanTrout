@@ -387,3 +387,38 @@ ${visit.special_requests ? `📝 <b>Notes:</b> <i>"${visit.special_requests}"</i
   return sendTelegramMessage(msg, "HTML", keyboard);
 }
 
+export async function notifyLiveChatMessage(params: {
+  threadId: string;
+  senderName: string;
+  phone?: string;
+  locality?: string;
+  text: string;
+  isFirstMessage?: boolean;
+}) {
+  const cleanPhone = params.phone ? String(params.phone).replace(/\D/g, "").slice(-10) : undefined;
+  
+  let msg = `💬 <b>WEBSITE LIVE CHAT INQUIRY</b> ⚡\n━━━━━━━━━━━━━━━━━━━━\n`;
+  msg += `👤 <b>Customer:</b> ${params.senderName || "Website Visitor"}\n`;
+  if (cleanPhone) msg += `📞 <b>Phone:</b> <a href="tel:+91${cleanPhone}">+91 ${cleanPhone}</a>\n`;
+  if (params.locality) msg += `📍 <b>Locality:</b> ${params.locality}\n`;
+  msg += `━━━━━━━━━━━━━━━━━━━━\n`;
+  msg += `💬 <b>Message:</b>\n<i>"${params.text}"</i>\n\n`;
+  msg += `👉 <b>To reply to customer:</b> <i>Swipe right and Reply to THIS message in Telegram. Your reply appears live on their screen!</i>\n`;
+  msg += `<code>#chat_${params.threadId}</code>`;
+
+  let keyboard: InlineKeyboardMarkup | undefined;
+  if (cleanPhone) {
+    const waUrl = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(`Hi ${params.senderName || "there"}! Urban Trout here replying to your website inquiry: "${params.text}"`)}`;
+    keyboard = {
+      inline_keyboard: [
+        [
+          { text: "💬 Open WhatsApp", url: waUrl },
+          { text: "📞 Call Customer", url: `tel:+91${cleanPhone}` },
+        ],
+      ],
+    };
+  }
+
+  return sendTelegramMessage(msg, "HTML", keyboard);
+}
+
