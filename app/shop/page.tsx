@@ -69,19 +69,39 @@ export default function ShopPage() {
       {/* ── Trust strip ── */}
       <section style={{ borderTop: "1px solid rgba(114,221,253,0.07)", background: C.bgLow }}>
         <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "3.5rem 1.5rem", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "2rem 3rem" }}>
-          {[
-            { icon: "water_drop", title: "Pure Filtered Water", desc: "Raised in clean groundwater systems, isolated from pollutants." },
-            { icon: "set_meal", title: "Harvested to Order", desc: "We never store dead fish. Every catch is harvested fresh for you." },
-            { icon: "local_shipping", title: "Direct to Your Door", desc: "Delivered chilled within hours of harvest across Srinagar." },
-          ].map(t => (
-            <div key={t.title} style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-              <div style={{ width: "44px", height: "44px", borderRadius: "10px", background: "rgba(114,221,253,0.08)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <span className="material-symbols-outlined" style={{ fontSize: "22px", color: C.primary }}>{t.icon}</span>
-              </div>
-              <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: "0.95rem", color: C.onSurface }}>{t.title}</span>
-              <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.82rem", color: C.onSurfVar, lineHeight: 1.65 }}>{t.desc}</span>
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            <div style={{ width: "44px", height: "44px", borderRadius: "12px", background: "rgba(114,221,253,0.1)", border: "1px solid rgba(114,221,253,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <svg className="w-5 h-5 text-[#72ddfd]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z" />
+              </svg>
             </div>
-          ))}
+            <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: "0.95rem", color: C.onSurface }}>Pure Filtered Water</span>
+            <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.82rem", color: C.onSurfVar, lineHeight: 1.65 }}>Raised in clean groundwater systems, isolated from pollutants.</span>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            <div style={{ width: "44px", height: "44px", borderRadius: "12px", background: "rgba(114,221,253,0.1)", border: "1px solid rgba(114,221,253,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <svg className="w-5 h-5 text-[#72ddfd]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="12" r="9" />
+                <polyline points="12 6 12 12 16 14" />
+              </svg>
+            </div>
+            <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: "0.95rem", color: C.onSurface }}>Harvested to Order</span>
+            <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.82rem", color: C.onSurfVar, lineHeight: 1.65 }}>We never store dead fish. Every catch is harvested fresh for you.</span>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            <div style={{ width: "44px", height: "44px", borderRadius: "12px", background: "rgba(114,221,253,0.1)", border: "1px solid rgba(114,221,253,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <svg className="w-5 h-5 text-[#72ddfd]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <rect x="1" y="3" width="15" height="13" rx="2" />
+                <polygon points="16 8 20 8 23 11 23 16 16 16 8" />
+                <circle cx="5.5" cy="18.5" r="2.5" />
+                <circle cx="18.5" cy="18.5" r="2.5" />
+              </svg>
+            </div>
+            <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: "0.95rem", color: C.onSurface }}>Direct to Your Door</span>
+            <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.82rem", color: C.onSurfVar, lineHeight: 1.65 }}>Delivered chilled within hours of harvest across Srinagar.</span>
+          </div>
         </div>
       </section>
     </div>
