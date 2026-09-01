@@ -50,9 +50,37 @@ export async function POST(request: Request) {
     }
 
     const cleanText = text.trim();
-    const cleanPhone = phone ? String(phone).replace(/\D/g, "").slice(-10) : undefined;
-    const cleanEmail = email && typeof email === "string" && email.includes("@") ? email.trim() : undefined;
+    const rawDigits = phone ? String(phone).replace(/\D/g, "") : "";
+    const cleanPhone = rawDigits.length >= 10 ? rawDigits.slice(-10) : undefined;
+    const cleanEmail = email && typeof email === "string" ? email.trim().toLowerCase() : undefined;
     const name = (senderName || "Website Visitor").trim();
+
+    // Strict Phone Validation if phone is submitted
+    if (cleanPhone) {
+      const isFakeSequence = ["1234567890", "0123456789", "9876543210", "0987654321", "9898989898", "9191919191", "9090909090", "9999900000"].includes(cleanPhone);
+      const isRepeated = /^(\d)\1{9}$/.test(cleanPhone);
+      const uniqueDigits = new Set(cleanPhone.split("")).size;
+      const isValidMobile = /^[6-9]\d{9}$/.test(cleanPhone);
+
+      if (!isValidMobile || isRepeated || isFakeSequence || uniqueDigits < 4) {
+        return NextResponse.json(
+          { success: false, error: "Please provide a genuine 10-digit mobile number." },
+          { status: 400 }
+        );
+      }
+    }
+
+    // Strict Email Validation if email is submitted
+    if (cleanEmail) {
+      const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,10}$/;
+      if (!emailRegex.test(cleanEmail)) {
+        return NextResponse.json(
+          { success: false, error: "Please provide a valid email address." },
+          { status: 400 }
+        );
+      }
+    }
+
     const nowIso = new Date().toISOString();
     const messageId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 

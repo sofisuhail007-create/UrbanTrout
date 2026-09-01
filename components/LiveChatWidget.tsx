@@ -245,25 +245,70 @@ export default function LiveChatWidget() {
     }
   }, [messages, isOpen]);
 
-  // Handle Starting Chat after Details Form
+  // Handle Starting Chat after Details Form with Strict Validation
   const handleStartChat = async (e: React.FormEvent) => {
     e.preventDefault();
     setLeadError("");
 
     const name = customerName.trim();
     const email = customerEmail.trim().toLowerCase();
-    const phone = customerPhone.replace(/\D/g, "").slice(-10);
+    const rawDigits = customerPhone.replace(/\D/g, "");
+    const phone = rawDigits.slice(-10);
 
+    // 1. Strict Name Validation
     if (!name || name.length < 2) {
-      setLeadError("Please enter your full name.");
+      setLeadError("Please enter your full name (at least 2 letters).");
       return;
     }
-    if (!email || !email.includes("@") || !email.includes(".")) {
-      setLeadError("Please enter a valid email address.");
+    if (!/^[a-zA-Z\s.'-]+$/.test(name)) {
+      setLeadError("Name can only contain letters and spaces.");
       return;
     }
-    if (!phone || phone.length !== 10) {
-      setLeadError("Please enter a valid 10-digit phone number.");
+    const dummyNames = ["test", "testing", "asdf", "qwerty", "abc", "xyz", "none", "admin", "fake", "user", "guest"];
+    if (dummyNames.includes(name.toLowerCase()) || /^([a-zA-Z])\1{2,}$/.test(name)) {
+      setLeadError("Please enter a genuine full name.");
+      return;
+    }
+
+    // 2. Strict Email Validation
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,10}$/;
+    if (!email || !emailRegex.test(email) || email.includes("..") || email.startsWith(".") || email.endsWith(".")) {
+      setLeadError("Please enter a valid email address (e.g. name@gmail.com).");
+      return;
+    }
+    const dummyEmails = [
+      "test@test.com", "a@a.com", "abc@abc.com", "xyz@xyz.com", "asdf@asdf.com",
+      "admin@admin.com", "fake@fake.com", "none@none.com", "123@123.com", "sample@sample.com"
+    ];
+    if (dummyEmails.includes(email)) {
+      setLeadError("Please enter a genuine personal or business email address.");
+      return;
+    }
+
+    // 3. Strict Phone Number Validation (Indian 10-digit mobile)
+    if (rawDigits.length !== 10 && (rawDigits.length !== 12 || !rawDigits.startsWith("91"))) {
+      setLeadError("Phone number must be exactly 10 digits.");
+      return;
+    }
+    if (!/^[6-9]\d{9}$/.test(phone)) {
+      setLeadError("Please enter a valid Indian mobile number starting with 6, 7, 8, or 9.");
+      return;
+    }
+    // Reject repeated digits (e.g. 0000000000, 9999999999)
+    if (/^(\d)\1{9}$/.test(phone)) {
+      setLeadError("Please enter a valid mobile number, not repeated digits.");
+      return;
+    }
+    // Reject fake sequential patterns
+    const fakeSequences = ["1234567890", "0123456789", "9876543210", "0987654321", "9898989898", "9191919191", "9090909090", "9999900000", "7000000000", "8000000000", "9000000000"];
+    if (fakeSequences.includes(phone)) {
+      setLeadError("Please enter a genuine mobile number.");
+      return;
+    }
+    // Must have at least 4 unique digits
+    const uniqueDigits = new Set(phone.split("")).size;
+    if (uniqueDigits < 4) {
+      setLeadError("Please enter a genuine 10-digit mobile number.");
       return;
     }
 
@@ -466,17 +511,19 @@ export default function LiveChatWidget() {
             </div>
 
             <div className="flex items-center gap-1.5">
-              {/* Options Menu Button (SVG) */}
-              <button
-                type="button"
-                onClick={() => setShowMenu(!showMenu)}
-                aria-label="Chat Menu"
-                className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition-colors"
-              >
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v.01M12 12v.01M12 19v.01" />
-                </svg>
-              </button>
+              {/* Options Menu Button (SVG) - Only when in active chat */}
+              {isLeadCaptured && (
+                <button
+                  type="button"
+                  onClick={() => setShowMenu(!showMenu)}
+                  aria-label="Chat Menu"
+                  className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v.01M12 12v.01M12 19v.01" />
+                  </svg>
+                </button>
+              )}
 
               {/* Close Button (SVG) */}
               <button
