@@ -301,6 +301,51 @@ export default function ContactPage() {
                 </div>
               </div>
             </div>
+
+            {/* Statutory Grievance & Legal Entity Card (Razorpay & RBI Compliance) */}
+            <div
+              className="p-7 rounded-2xl"
+              style={{
+                background: "rgba(16,33,44,0.85)",
+                border: "1px solid rgba(114,221,253,0.15)",
+                boxShadow: "0 10px 30px rgba(0,0,0,0.3)",
+              }}
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ background: "rgba(114,221,253,0.15)", color: C.primary }}
+                >
+                  <span className="material-symbols-outlined text-xl">gavel</span>
+                </div>
+                <div>
+                  <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "10px", letterSpacing: "0.15em", textTransform: "uppercase", color: C.outline }}>
+                    Consumer Protection &amp; Legal
+                  </span>
+                  <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.15rem", fontWeight: 700, color: C.onSurface, margin: 0 }}>
+                    Grievance Redressal
+                  </h3>
+                </div>
+              </div>
+              <div className="space-y-3" style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.85rem", color: C.onSurfVar, lineHeight: 1.6 }}>
+                <p>
+                  <strong className="text-slate-300">Legal Business Name:</strong> Urban Trout<br />
+                  <strong className="text-slate-300">Proprietor / Operating Entity:</strong> Skindar Mohd Sideeq
+                </p>
+                <p>
+                  <strong className="text-slate-300">Grievance Officer:</strong> Skindar Mohd Sideeq<br />
+                  <strong className="text-slate-300">Direct Email:</strong>{" "}
+                  <a href="mailto:info.urbantrout@gmail.com" className="text-cyan-400 hover:underline">
+                    info.urbantrout@gmail.com
+                  </a>
+                  <br />
+                  <strong className="text-slate-300">Contact Number:</strong> +91 84910 06127
+                </p>
+                <p style={{ fontSize: "0.78rem", color: C.outline, margin: 0 }}>
+                  Designated in compliance with the Consumer Protection (E-Commerce) Rules and RBI Digital Payment guidelines.
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* ── Right Column: Interactive Contact Form Protected by reCAPTCHA (7 cols) ── */}

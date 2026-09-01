@@ -18,9 +18,9 @@ export default function Footer() {
       className="w-full mt-20"
       style={{ background: "#020d14", borderTop: "1px solid rgba(61,74,83,0.35)" }}
     >
-      <div className="max-w-7xl mx-auto px-8 py-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
+      <div className="max-w-7xl mx-auto px-8 py-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
 
-        {/* Brand */}
+        {/* 1. Brand & Entity Info */}
         <div>
           <div className="mb-4">
             <img
@@ -36,13 +36,25 @@ export default function Footer() {
               color: C.onSurfVar,
               lineHeight: 1.75,
               maxWidth: "280px",
+              marginBottom: "0.75rem",
             }}
           >
-            Fresh, locally farmed Rainbow Trout in Srinagar. Harvested fresh to order and delivered directly to your doorstep.
+            Fresh, locally farmed Rainbow Trout in Srinagar. Harvested live to order and delivered directly to your doorstep.
           </p>
+          <span
+            style={{
+              fontFamily: '"Inter", sans-serif',
+              fontSize: "11px",
+              color: C.outline,
+              lineHeight: 1.5,
+              display: "block",
+            }}
+          >
+            Operated by <strong style={{ color: "#c4ebff" }}>Skindar Mohd Sideeq</strong>
+          </span>
         </div>
 
-        {/* Explore */}
+        {/* 2. Explore */}
         <div>
           <h5
             style={{
@@ -61,10 +73,10 @@ export default function Footer() {
             {[
               { href: "/shop", label: "Shop Fresh Catch" },
               { href: "/our-farm", label: "About Our Farm" },
-              { href: "/farm-visits", label: "Pre-Notify Farm Visit" },
-              { href: "/contact", label: "Contact Us" },
               { href: "/shop/gutted-trout", label: "Cleaned & Gutted Trout" },
               { href: "/shop/whole-trout", label: "Whole Rainbow Trout" },
+              { href: "/farm-visits", label: "Pre-Notify Farm Visit" },
+              { href: "/contact", label: "Contact Us" },
             ].map((link) => (
               <li key={link.href}>
                 <Link
@@ -85,7 +97,7 @@ export default function Footer() {
           </ul>
         </div>
 
-        {/* Contact */}
+        {/* 3. Customer Policies & Compliance (Mandatory for Razorpay) */}
         <div>
           <h5
             style={{
@@ -98,16 +110,58 @@ export default function Footer() {
               marginBottom: "1.25rem",
             }}
           >
-            Contact & Farm Location
+            Policies &amp; Support
+          </h5>
+          <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "12px" }}>
+            {[
+              { href: "/refund-policy", label: "Refund & Cancellation" },
+              { href: "/shipping-policy", label: "Shipping & Delivery" },
+              { href: "/privacy", label: "Privacy Policy" },
+              { href: "/terms", label: "Terms of Service" },
+              { href: "/contact", label: "Grievance Redressal" },
+            ].map((link) => (
+              <li key={link.href}>
+                <Link
+                  href={link.href}
+                  style={{
+                    fontFamily: '"Manrope", sans-serif',
+                    fontSize: "0.85rem",
+                    color: C.onSurfVar,
+                    textDecoration: "none",
+                    transition: "color 0.2s",
+                  }}
+                  className="hover:text-primary transition-colors"
+                >
+                  {link.label}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        {/* 4. Contact & Farm Location */}
+        <div>
+          <h5
+            style={{
+              fontFamily: '"Inter", sans-serif',
+              fontSize: "10px",
+              letterSpacing: "0.2em",
+              textTransform: "uppercase",
+              color: C.onSurfVar,
+              fontWeight: 700,
+              marginBottom: "1.25rem",
+            }}
+          >
+            Contact &amp; Farm Location
           </h5>
           <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "1.25rem" }}>
             <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.84rem", color: C.onSurfVar }}>Malabagh, Naseem Bagh</p>
-            <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.84rem", color: C.onSurfVar }}>Srinagar — 190006</p>
+            <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.84rem", color: C.onSurfVar }}>Srinagar — 190006, J&amp;K</p>
             <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.76rem", color: C.outline }}>Near R P School (Girls Wing)</p>
             
             {/* Primary number */}
             <div style={{ marginTop: "6px", display: "flex", flexDirection: "column", gap: "2px" }}>
-              <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", letterSpacing: "0.15em", textTransform: "uppercase", color: C.outline }}>Primary & WhatsApp</span>
+              <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", letterSpacing: "0.15em", textTransform: "uppercase", color: C.outline }}>Primary &amp; WhatsApp</span>
               <a
                 href="tel:+918491006127"
                 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1rem", fontWeight: 700, color: C.primary, textDecoration: "none" }}
@@ -193,28 +247,29 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* Bottom bar */}
+      {/* Bottom bar with all compliance links */}
       <div
-        className="max-w-7xl mx-auto px-8 py-5 flex flex-col md:flex-row justify-between items-center gap-3"
+        className="max-w-7xl mx-auto px-8 py-5 flex flex-col md:flex-row justify-between items-center gap-4"
         style={{ borderTop: "1px solid rgba(61,74,83,0.25)" }}
       >
         <span
           style={{
             fontFamily: '"Inter", sans-serif',
             fontSize: "11px",
-            letterSpacing: "0.1em",
+            letterSpacing: "0.08em",
             textTransform: "uppercase",
             color: C.outline,
           }}
         >
-          © 2026 Urban Trout. Srinagar, J&K. All rights reserved.
+          © 2026 Urban Trout (Skindar Mohd Sideeq). Srinagar, J&amp;K. All rights reserved.
         </span>
-        <div style={{ display: "flex", gap: "1.5rem" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "1.25rem", justifyContent: "center" }}>
           {[
             { href: "/privacy", label: "Privacy Policy" },
-            { href: "/terms", label: "Terms" },
-            { href: "/our-farm", label: "Our Farm" },
-            { href: "/farm-visits", label: "Visit Farm" },
+            { href: "/terms", label: "Terms of Service" },
+            { href: "/refund-policy", label: "Refund Policy" },
+            { href: "/shipping-policy", label: "Shipping Policy" },
+            { href: "/contact", label: "Contact Us" },
           ].map((link) => (
             <Link
               key={link.href}
@@ -222,7 +277,7 @@ export default function Footer() {
               style={{
                 fontFamily: '"Inter", sans-serif',
                 fontSize: "11px",
-                letterSpacing: "0.1em",
+                letterSpacing: "0.08em",
                 textTransform: "uppercase",
                 color: C.outline,
                 textDecoration: "none",
