@@ -598,15 +598,15 @@ export default function LiveChatWidget() {
                       >
                         {msg.text}
                       </div>
-                      <div className="flex items-center gap-1 px-1">
-                        <span className="text-[10px] text-slate-400 font-mono">
+                      <div className="flex items-center gap-1.5 px-1">
+                        <span className="text-[11px] text-slate-300 font-mono font-medium">
                           {new Date(msg.created_at).toLocaleTimeString("en-IN", {
                             hour: "2-digit",
                             minute: "2-digit",
                           })}
                         </span>
                         {isMe && (
-                          <span className="text-[11px] text-cyan-400 font-bold">
+                          <span className="text-xs text-cyan-300 font-bold">
                             {msg.status === "sending" ? "✓" : "✓✓"}
                           </span>
                         )}
@@ -664,8 +664,8 @@ export default function LiveChatWidget() {
                       disabled={isSending || !inputText.trim()}
                       className="w-10 h-10 rounded-xl bg-cyan-500 hover:bg-cyan-400 active:scale-95 disabled:opacity-40 text-slate-950 flex items-center justify-center transition-all cursor-pointer shadow-lg shadow-cyan-500/20"
                     >
-                      <svg className="w-5 h-5 text-slate-950" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                      <svg className="w-4 h-4 text-slate-950 fill-current ml-0.5" viewBox="0 0 24 24">
+                        <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
                       </svg>
                     </button>
                   </form>
@@ -674,13 +674,6 @@ export default function LiveChatWidget() {
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                       Online Support
                     </span>
-                    <button
-                      type="button"
-                      onClick={handleEndChat}
-                      className="text-slate-400 hover:text-red-400 transition-colors cursor-pointer"
-                    >
-                      End Chat
-                    </button>
                   </div>
                 </div>
               ) : (

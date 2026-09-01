@@ -28,7 +28,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Optional reCAPTCHA v3 verification
+    // Optional reCAPTCHA v3 verification (bot filter)
     if (recaptchaToken && process.env.RECAPTCHA_SECRET_KEY) {
       try {
         const verifyRes = await fetch("https://www.google.com/recaptcha/api/siteverify", {
@@ -37,14 +37,15 @@ export async function POST(request: Request) {
           body: `secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaToken}`,
         });
         const verifyData = await verifyRes.json();
-        if (!verifyData.success || (verifyData.score !== undefined && verifyData.score < 0.3)) {
+        // Only block if Google explicitly reports low bot score < 0.1
+        if (verifyData.success && typeof verifyData.score === "number" && verifyData.score < 0.1) {
           return NextResponse.json(
-            { success: false, error: "reCAPTCHA verification failed." },
+            { success: false, error: "Security check failed. Please try again." },
             { status: 403 }
           );
         }
       } catch (rcErr) {
-        console.warn("reCAPTCHA validation notice:", rcErr);
+        console.warn("reCAPTCHA check notice:", rcErr);
       }
     }
 

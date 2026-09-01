@@ -11,6 +11,14 @@ export interface InlineKeyboardMarkup {
   inline_keyboard: InlineKeyboardButton[][];
 }
 
+export function escapeHtml(str: string): string {
+  if (!str) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
 export async function sendTelegramMessage(
   text: string,
   parseMode: "Markdown" | "HTML" = "HTML",
@@ -36,6 +44,22 @@ export async function sendTelegramMessage(
       body: JSON.stringify(payload),
     });
     const data = await res.json();
+    
+    // If Telegram returned error and we had a reply_to_message_id, retry without it
+    if (!data.ok && payload.reply_to_message_id) {
+      console.warn("Telegram reply_to_message failed, retrying unchained:", data.description);
+      delete payload.reply_to_message_id;
+      const retryRes = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      return await retryRes.json();
+    }
+
+    if (!data.ok) {
+      console.error("Telegram sendMessage API error:", data);
+    }
     return data;
   } catch (error) {
     console.error("Failed to send Telegram message:", error);
@@ -403,10 +427,14 @@ export async function notifyLiveChatMessage(params: {
 }) {
   const cleanPhone = params.phone ? String(params.phone).replace(/\D/g, "").slice(-10) : undefined;
   const isFollowUp = !!params.parentTelegramMsgId;
+  const safeName = escapeHtml(params.senderName || "Website Visitor");
+  const safeEmail = params.email ? escapeHtml(params.email) : undefined;
+  const safeLocality = params.locality ? escapeHtml(params.locality) : undefined;
+  const safeText = escapeHtml(params.text);
   
   let msg = isFollowUp
-    ? `💬 <b>Follow-up from ${params.senderName || "Visitor"}:</b>\n<i>"${params.text}"</i>\n\n👉 <i>Swipe reply here to answer live</i>\n<code>#chat_${params.threadId}</code>`
-    : `💬 <b>NEW LIVE CHAT INQUIRY</b> ⚡\n━━━━━━━━━━━━━━━━━━━━\n👤 <b>Customer:</b> ${params.senderName || "Website Visitor"}\n${cleanPhone ? `📞 <b>Phone:</b> <a href="tel:+91${cleanPhone}">+91 ${cleanPhone}</a>\n` : ""}${params.email ? `✉️ <b>Email:</b> ${params.email}\n` : ""}${params.locality ? `📍 <b>Locality:</b> ${params.locality}\n` : ""}━━━━━━━━━━━━━━━━━━━━\n💬 <b>Message:</b>\n<i>"${params.text}"</i>\n\n👉 <b>To reply:</b> <i>Swipe right and Reply to THIS message in Telegram. Your reply appears live on their screen!</i>\n<code>#chat_${params.threadId}</code>`;
+    ? `💬 <b>Follow-up from ${safeName}:</b>\n<i>"${safeText}"</i>\n\n👉 <i>Swipe reply here to answer live</i>\n<code>#chat_${params.threadId}</code>`
+    : `💬 <b>NEW LIVE CHAT INQUIRY</b> ⚡\n━━━━━━━━━━━━━━━━━━━━\n👤 <b>Customer:</b> ${safeName}\n${cleanPhone ? `📞 <b>Phone:</b> <a href="tel:+91${cleanPhone}">+91 ${cleanPhone}</a>\n` : ""}${safeEmail ? `✉️ <b>Email:</b> ${safeEmail}\n` : ""}${safeLocality ? `📍 <b>Locality:</b> ${safeLocality}\n` : ""}━━━━━━━━━━━━━━━━━━━━\n💬 <b>Message:</b>\n<i>"${safeText}"</i>\n\n👉 <b>To reply:</b> <i>Swipe right and Reply to THIS message in Telegram. Your reply appears live on their screen!</i>\n<code>#chat_${params.threadId}</code>`;
 
   const buttons: InlineKeyboardButton[][] = [];
   const actionRow: InlineKeyboardButton[] = [];
