@@ -82,12 +82,45 @@ export default function LiveChatWidget() {
     }
   }, []);
 
+  // Inactivity Timeout: 10 minutes (600,000 ms)
+  const INACTIVITY_TIMEOUT_MS = 10 * 60 * 1000;
+
   // Do not render on admin dashboard
   if (pathname?.startsWith("/admin")) return null;
 
-  // Initialize or restore session
+  const updateActivity = () => {
+    localStorage.setItem("ut_live_chat_last_active", String(Date.now()));
+  };
+
+  // Initialize or restore session with 10-minute timeout check
   const initSession = (forceNew = false) => {
-    let savedThread = forceNew ? null : localStorage.getItem("ut_live_chat_thread_id");
+    const lastActiveStr = typeof window !== "undefined" ? localStorage.getItem("ut_live_chat_last_active") : null;
+    const isTimedOut = lastActiveStr ? Date.now() - Number(lastActiveStr) > INACTIVITY_TIMEOUT_MS : false;
+
+    if (forceNew || isTimedOut) {
+      localStorage.removeItem("ut_live_chat_thread_id");
+      localStorage.removeItem("ut_live_chat_name");
+      localStorage.removeItem("ut_live_chat_email");
+      localStorage.removeItem("ut_live_chat_phone");
+      localStorage.removeItem("ut_live_chat_last_active");
+
+      const newThread = `ut_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+      localStorage.setItem("ut_live_chat_thread_id", newThread);
+      setThreadId(newThread);
+      setIsClosed(false);
+      setMessages([]);
+      setCustomerName("");
+      setCustomerEmail("");
+      setCustomerPhone("");
+      setIsLeadCaptured(false);
+
+      if (isTimedOut && !forceNew) {
+        setLeadError("⏳ Chat timed out after 10 minutes of inactivity. Please re-enter your details to start fresh.");
+      }
+      return;
+    }
+
+    let savedThread = localStorage.getItem("ut_live_chat_thread_id");
     if (!savedThread) {
       savedThread = `ut_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
       localStorage.setItem("ut_live_chat_thread_id", savedThread);
@@ -114,6 +147,20 @@ export default function LiveChatWidget() {
   useEffect(() => {
     initSession();
   }, []);
+
+  // Background 10-minute inactivity check interval
+  useEffect(() => {
+    if (!isLeadCaptured) return;
+    const timeoutInterval = setInterval(() => {
+      const lastActiveStr = localStorage.getItem("ut_live_chat_last_active");
+      if (lastActiveStr && Date.now() - Number(lastActiveStr) > INACTIVITY_TIMEOUT_MS) {
+        initSession(true);
+        setLeadError("⏳ Chat timed out after 10 minutes of inactivity. Please re-enter your details to start fresh.");
+      }
+    }, 10000);
+
+    return () => clearInterval(timeoutInterval);
+  }, [isLeadCaptured]);
 
   // Fetch message history
   const fetchHistory = async (id: string) => {
@@ -223,6 +270,7 @@ export default function LiveChatWidget() {
     localStorage.setItem("ut_live_chat_name", name);
     localStorage.setItem("ut_live_chat_email", email);
     localStorage.setItem("ut_live_chat_phone", phone);
+    updateActivity();
     setIsLeadCaptured(true);
   };
 
@@ -246,6 +294,7 @@ export default function LiveChatWidget() {
     const text = inputText.trim();
     if (!text || isSending || !threadId) return;
 
+    updateActivity();
     const optimisticId = `opt_${Date.now()}`;
     const optimisticMsg: ChatMessage = {
       id: optimisticId,
@@ -279,6 +328,7 @@ export default function LiveChatWidget() {
       });
 
       if (res.ok) {
+        updateActivity();
         setMessages((prev) =>
           prev.map((m) => (m.id === optimisticId ? { ...m, status: "sent" } : m))
         );

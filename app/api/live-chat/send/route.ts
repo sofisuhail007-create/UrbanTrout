@@ -73,7 +73,6 @@ export async function POST(request: Request) {
         id: threadId,
         customer_name: name,
         customer_phone: cleanPhone || null,
-        customer_email: cleanEmail || null,
         customer_locality: locality || "Srinagar",
         status: "active",
         last_message: cleanText,

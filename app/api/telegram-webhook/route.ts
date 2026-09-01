@@ -351,6 +351,15 @@ export async function POST(request: Request) {
           const newMsgId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
           try {
+            // Ensure thread exists in live_chat_threads before inserting staff message
+            await supabase.from("live_chat_threads").upsert({
+              id: targetThreadId,
+              status: "active",
+              last_message: text,
+              last_message_at: nowIso,
+              updated_at: nowIso,
+            }, { onConflict: "id" });
+
             await supabase.from("live_chat_messages").insert({
               id: newMsgId,
               thread_id: targetThreadId,
