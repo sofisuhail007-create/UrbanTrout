@@ -1,5 +1,34 @@
+import { createClient } from "@supabase/supabase-js";
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabase = createClient(supabaseUrl, supabaseKey);
+
 const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
+const FALLBACK_CHAT_ID = process.env.TELEGRAM_CHAT_ID || "-5562317661";
+
+let cachedChatId: string | number | null = null;
+let lastCacheTime = 0;
+
+export async function getDynamicChatId(): Promise<string | number> {
+  const now = Date.now();
+  if (cachedChatId && now - lastCacheTime < 10000) {
+    return cachedChatId;
+  }
+  try {
+    const { data } = await supabase
+      .from("app_settings")
+      .select("value")
+      .eq("key", "telegram_chat_id")
+      .maybeSingle();
+    if (data?.value) {
+      cachedChatId = data.value;
+      lastCacheTime = now;
+      return String(data.value);
+    }
+  } catch (_) {}
+  return FALLBACK_CHAT_ID;
+}
 
 export interface InlineKeyboardButton {
   text: string;
@@ -27,9 +56,10 @@ export async function sendTelegramMessage(
   replyToMessageId?: number
 ) {
   try {
+    const resolvedChatId = targetChatId || (await getDynamicChatId());
     const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
     const payload: any = {
-      chat_id: targetChatId || CHAT_ID,
+      chat_id: resolvedChatId,
       text,
       parse_mode: parseMode,
       disable_web_page_preview: true,

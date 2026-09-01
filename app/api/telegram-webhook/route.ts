@@ -294,6 +294,28 @@ export async function POST(request: Request) {
       const text: string = msg.text.trim();
       const chatId = msg.chat.id;
 
+      // Automatically store/update active group Chat ID whenever any message is sent in group
+      if (chatId) {
+        try {
+          await supabase.from("app_settings").upsert({
+            key: "telegram_chat_id",
+            value: String(chatId),
+            updated_at: new Date().toISOString(),
+          }, { onConflict: "key" });
+        } catch (_) {}
+      }
+
+      // ── Command: /connect or /start or /id (Bind Group & Verify) ──
+      if (text === "/connect" || text === "/start" || text === "/id" || text.startsWith("/start") || text.startsWith("/connect")) {
+        await sendTelegramMessage(
+          `✅ <b>URBAN TROUT BOT CONNECTED TO THIS GROUP!</b> 🐟⚡\n━━━━━━━━━━━━━━━━━━━━\n<b>Group:</b> ${msg.chat?.title || "Urban Trout Alerts"}\n<b>Chat ID:</b> <code>${chatId}</code>\n\nAll website live chat messages, customer orders, and farm alerts will now be sent directly to this group in real time!`,
+          "HTML",
+          undefined,
+          chatId
+        );
+        return NextResponse.json({ success: true, connectedChatId: chatId });
+      }
+
       // ── Handle Live Chat Replies (Swipe reply to website chat in Telegram) ──
       if (msg.reply_to_message) {
         const replyTo = msg.reply_to_message;
