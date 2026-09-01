@@ -344,15 +344,15 @@ export async function notifyContactInquiry(inquiry: {
 
   const msg = `📩 <b>NEW WEBSITE INQUIRY!</b>
 ━━━━━━━━━━━━━━━━━━━━
-<b>Name:</b> ${inquiry.name}
-<b>Phone:</b> <a href="tel:+91${cleanPhone}">+91 ${cleanPhone}</a>
-${inquiry.email ? `<b>Email:</b> ${inquiry.email}\n` : ""}<b>Topic:</b> ${inquiry.subject || "General Inquiry"}
+<b>Name:</b> ${escapeHtml(inquiry.name)}
+<b>Phone:</b> +91 ${cleanPhone}
+${inquiry.email ? `<b>Email:</b> ${escapeHtml(inquiry.email)}\n` : ""}<b>Topic:</b> ${escapeHtml(inquiry.subject || "General Inquiry")}
 
 💬 <b>Message:</b>
-<i>"${inquiry.message}"</i>
+<i>"${escapeHtml(inquiry.message)}"</i>
 
 ━━━━━━━━━━━━━━━━━━━━
-📞 <a href="tel:+91${cleanPhone}">Call Customer</a> | 💬 <a href="${waLink}">WhatsApp Reply</a>`;
+📞 Call: +91 ${cleanPhone} | 💬 <a href="${waLink}">WhatsApp Reply</a>`;
 
   return sendTelegramMessage(msg, "HTML");
 }
@@ -372,14 +372,14 @@ export async function notifyAbandonedLead(lead: {
 ━━━━━━━━━━━━━━━━━━━━
 A customer started checkout but hasn't finalized payment:
 
-• <b>Name:</b> ${lead.name || "Interested Customer"}
-• <b>Phone:</b> <a href="tel:+91${cleanPhone}">+91 ${cleanPhone}</a>
-• <b>Location:</b> ${lead.locality || "Srinagar"} ${lead.pincode ? `(${lead.pincode})` : ""}
+• <b>Name:</b> ${escapeHtml(lead.name || "Interested Customer")}
+• <b>Phone:</b> +91 ${cleanPhone}
+• <b>Location:</b> ${escapeHtml(lead.locality || "Srinagar")} ${lead.pincode ? `(${escapeHtml(lead.pincode)})` : ""}
 • <b>Cart Total:</b> <b>₹${lead.total || 550}</b>
-${lead.cartSummary ? `• <b>Items:</b> ${lead.cartSummary}\n` : ""}
+${lead.cartSummary ? `• <b>Items:</b> ${escapeHtml(lead.cartSummary)}\n` : ""}
 ━━━━━━━━━━━━━━━━━━━━
 ⚡ <i>Follow up now to close this sale:</i>
-📞 <a href="tel:+91${cleanPhone}">Call Now</a> | 💬 <a href="${waLink}">WhatsApp Now</a>`;
+📞 Call: +91 ${cleanPhone} | 💬 <a href="${waLink}">WhatsApp Now</a>`;
 
   return sendTelegramMessage(msg, "HTML");
 }
@@ -396,8 +396,8 @@ export async function notifyBioAlarm(alarm: {
 
   const msg = `${icon}
 ━━━━━━━━━━━━━━━━━━━━
-<b>Tank:</b> ${alarm.tank}
-<b>Parameter:</b> <b>${alarm.parameter}</b>
+<b>Tank:</b> ${escapeHtml(alarm.tank)}
+<b>Parameter:</b> <b>${escapeHtml(alarm.parameter)}</b>
 <b>Current Value:</b> <code>${alarm.value}</code>
 <b>Status:</b> ${alarm.status.toUpperCase()}
 <b>Time:</b> ${alarm.readingDate || new Date().toLocaleString("en-IN")}
@@ -424,13 +424,13 @@ export async function notifyFarmVisit(visit: {
 
   const msg = `🌿 <b>NEW FARM VISIT PRE-NOTIFICATION!</b> 🐟
 ━━━━━━━━━━━━━━━━━━━━
-👤 <b>Visitor:</b> ${visit.visitor_name}
-📞 <b>Phone:</b> <a href="tel:+91${cleanPhone}">+91 ${cleanPhone}</a>
-${visit.email ? `✉️ <b>Email:</b> ${visit.email}\n` : ""}📅 <b>Date of Visit:</b> <b>${visit.visit_date}</b>
+👤 <b>Visitor:</b> ${escapeHtml(visit.visitor_name)}
+📞 <b>Phone:</b> +91 ${cleanPhone}
+${visit.email ? `✉️ <b>Email:</b> ${escapeHtml(visit.email)}\n` : ""}📅 <b>Date of Visit:</b> <b>${visit.visit_date}</b>
 ⏰ <b>Time Slot:</b> <b>${visit.time_slot}</b>
 👥 <b>Guests / Group Size:</b> <b>${visit.guest_count} Person(s)</b>
-🎯 <b>Purpose:</b> ${visit.visit_purpose}
-${visit.special_requests ? `📝 <b>Notes:</b> <i>"${visit.special_requests}"</i>\n` : ""}
+🎯 <b>Purpose:</b> ${escapeHtml(visit.visit_purpose)}
+${visit.special_requests ? `📝 <b>Notes:</b> <i>"${escapeHtml(visit.special_requests)}"</i>\n` : ""}
 ━━━━━━━━━━━━━━━━━━━━
 👇 <b>Quick Actions:</b>`;
 
@@ -438,9 +438,6 @@ ${visit.special_requests ? `📝 <b>Notes:</b> <i>"${visit.special_requests}"</i
     inline_keyboard: [
       [
         { text: "💬 Confirm via WhatsApp", url: waUrl },
-        { text: "📞 Call Visitor", url: `tel:+91${cleanPhone}` },
-      ],
-      [
         { text: "📍 Open Admin Dashboard", url: "https://urbantrout.in/admin/dashboard/visits" },
       ],
     ],
@@ -467,7 +464,7 @@ export async function notifyLiveChatMessage(params: {
   
   let msg = isFollowUp
     ? `💬 <b>Follow-up from ${safeName}:</b>\n<i>"${safeText}"</i>\n\n👉 <i>Swipe reply here to answer live</i>\n<code>#chat_${params.threadId}</code>`
-    : `💬 <b>NEW LIVE CHAT INQUIRY</b> ⚡\n━━━━━━━━━━━━━━━━━━━━\n👤 <b>Customer:</b> ${safeName}\n${cleanPhone ? `📞 <b>Phone:</b> <a href="tel:+91${cleanPhone}">+91 ${cleanPhone}</a>\n` : ""}${safeEmail ? `✉️ <b>Email:</b> ${safeEmail}\n` : ""}${safeLocality ? `📍 <b>Locality:</b> ${safeLocality}\n` : ""}━━━━━━━━━━━━━━━━━━━━\n💬 <b>Message:</b>\n<i>"${safeText}"</i>\n\n👉 <b>To reply:</b> <i>Swipe right and Reply to THIS message in Telegram. Your reply appears live on their screen!</i>\n<code>#chat_${params.threadId}</code>`;
+    : `💬 <b>NEW LIVE CHAT INQUIRY</b> ⚡\n━━━━━━━━━━━━━━━━━━━━\n👤 <b>Customer:</b> ${safeName}\n${cleanPhone ? `📞 <b>Phone:</b> +91 ${cleanPhone}\n` : ""}${safeEmail ? `✉️ <b>Email:</b> ${safeEmail}\n` : ""}${safeLocality ? `📍 <b>Locality:</b> ${safeLocality}\n` : ""}━━━━━━━━━━━━━━━━━━━━\n💬 <b>Message:</b>\n<i>"${safeText}"</i>\n\n👉 <b>To reply:</b> <i>Swipe right and Reply to THIS message in Telegram. Your reply appears live on their screen!</i>\n<code>#chat_${params.threadId}</code>`;
 
   const buttons: InlineKeyboardButton[][] = [];
   const actionRow: InlineKeyboardButton[] = [];
@@ -475,7 +472,6 @@ export async function notifyLiveChatMessage(params: {
   if (cleanPhone) {
     const waUrl = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(`Hi ${params.senderName || "there"}! Urban Trout here replying to your website inquiry: "${params.text}"`)}`;
     actionRow.push({ text: "💬 WhatsApp", url: waUrl });
-    actionRow.push({ text: "📞 Call", url: `tel:+91${cleanPhone}` });
   }
 
   actionRow.push({ text: "🔴 End Chat", callback_data: `chat:close:${params.threadId}` });
