@@ -23,6 +23,7 @@ export const viewport: Viewport = {
 const CartDrawer = dynamic(() => import("@/components/CartDrawer"));
 const WhatsAppButton = dynamic(() => import("@/components/WhatsAppButton"));
 const LiveChatWidget = dynamic(() => import("@/components/LiveChatWidget"));
+const InstallPwaPrompt = dynamic(() => import("@/components/InstallPwaPrompt"));
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -205,6 +206,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
           <WhatsAppButton />
           <LiveChatWidget />
+          <InstallPwaPrompt />
           <Footer />
           <Analytics />
           <SpeedInsights />
