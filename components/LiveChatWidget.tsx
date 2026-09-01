@@ -16,36 +16,40 @@ interface ChatMessage {
   status?: "sending" | "sent";
 }
 
-// Web Audio API notification chime for incoming staff replies
+// Web Audio API notification chime for incoming staff replies (Melodic two-tone ding)
 function playChime() {
   try {
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioContextClass) return;
+    const ctx = new AudioContextClass();
+    if (ctx.state === "suspended") {
+      ctx.resume();
+    }
     const now = ctx.currentTime;
 
+    // Tone 1: 659.25 Hz (E5)
     const osc1 = ctx.createOscillator();
-    const osc2 = ctx.createOscillator();
-    const gain = ctx.createGain();
-
+    const gain1 = ctx.createGain();
     osc1.type = "sine";
-    osc2.type = "triangle";
-
-    osc1.frequency.setValueAtTime(587.33, now); // D5
-    osc1.frequency.exponentialRampToValueAtTime(880, now + 0.15); // A5
-
-    osc2.frequency.setValueAtTime(440, now); // A4
-    osc2.frequency.exponentialRampToValueAtTime(659.25, now + 0.15); // E5
-
-    gain.gain.setValueAtTime(0.15, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
-
-    osc1.connect(gain);
-    osc2.connect(gain);
-    gain.connect(ctx.destination);
-
+    osc1.frequency.setValueAtTime(659.25, now);
+    gain1.gain.setValueAtTime(0.28, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
     osc1.start(now);
-    osc2.start(now);
-    osc1.stop(now + 0.4);
-    osc2.stop(now + 0.4);
+    osc1.stop(now + 0.22);
+
+    // Tone 2: 987.77 Hz (B5) - Higher chime ding
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = "sine";
+    osc2.frequency.setValueAtTime(987.77, now + 0.1);
+    gain2.gain.setValueAtTime(0.32, now + 0.1);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(now + 0.1);
+    osc2.stop(now + 0.45);
   } catch (_) {}
 }
 
@@ -64,6 +68,16 @@ export default function LiveChatWidget() {
   const [customerPhone, setCustomerPhone] = useState("");
   const [isLeadCaptured, setIsLeadCaptured] = useState(false);
   const [leadError, setLeadError] = useState("");
+
+  // Floating Notification Toast State
+  const [toastNotification, setToastNotification] = useState<{
+    id: string;
+    senderName: string;
+    text: string;
+    time: string;
+  } | null>(null);
+  const toastTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const knownStaffMsgIds = useRef<Set<string>>(new Set());
 
   const [showMenu, setShowMenu] = useState(false);
   const [isClosed, setIsClosed] = useState(false);
@@ -162,6 +176,29 @@ export default function LiveChatWidget() {
     return () => clearInterval(timeoutInterval);
   }, [isLeadCaptured]);
 
+  const triggerStaffReplyAlert = (msg: ChatMessage) => {
+    if (knownStaffMsgIds.current.has(msg.id)) return;
+    knownStaffMsgIds.current.add(msg.id);
+
+    playChime();
+    updateActivity();
+
+    if (!isOpen) {
+      setHasUnread(true);
+      setToastNotification({
+        id: msg.id,
+        senderName: msg.sender_name || "Farm Team",
+        text: msg.text,
+        time: new Date(msg.created_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
+      });
+
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+      toastTimerRef.current = setTimeout(() => {
+        setToastNotification(null);
+      }, 9000);
+    }
+  };
+
   // Fetch message history
   const fetchHistory = async (id: string) => {
     if (!id) return;
@@ -170,6 +207,18 @@ export default function LiveChatWidget() {
       if (res.ok) {
         const data = await res.json();
         if (data?.success && Array.isArray(data.messages)) {
+          // Check for newly received staff replies
+          data.messages.forEach((m: ChatMessage) => {
+            if (m.sender === "staff" && !knownStaffMsgIds.current.has(m.id)) {
+              const msgAge = Date.now() - new Date(m.created_at).getTime();
+              if (msgAge < 30000) {
+                triggerStaffReplyAlert(m);
+              } else {
+                knownStaffMsgIds.current.add(m.id);
+              }
+            }
+          });
+
           setMessages((prev) => {
             const map = new Map<string, ChatMessage>();
             prev.forEach((m) => map.set(m.id, m));
@@ -219,10 +268,7 @@ export default function LiveChatWidget() {
           });
 
           if (newMsg.sender === "staff") {
-            playChime();
-            if (!isOpen) {
-              setHasUnread(true);
-            }
+            triggerStaffReplyAlert(newMsg);
           }
         }
       )
@@ -408,8 +454,68 @@ export default function LiveChatWidget() {
     <>
       {/* ─── FLOATING TOGGLE BUTTON (Bottom Right) ─── */}
       <div className="fixed bottom-6 right-6 z-40 flex items-center gap-3">
-        {/* Unread Message Tooltip */}
-        {!isOpen && hasUnread && (
+        {/* Floating Reply Notification Toast */}
+        {!isOpen && toastNotification && (
+          <div
+            onClick={() => {
+              setIsOpen(true);
+              setHasUnread(false);
+              setToastNotification(null);
+            }}
+            className="relative flex items-start gap-3 p-3.5 rounded-2xl bg-slate-900/95 backdrop-blur-xl border border-cyan-400/60 text-white shadow-2xl max-w-[300px] sm:max-w-[340px] cursor-pointer hover:border-cyan-300 hover:scale-[1.02] transition-all duration-300 animate-slide-in-right group"
+            style={{
+              fontFamily: '"Manrope", sans-serif',
+              boxShadow: "0 12px 32px -4px rgba(6, 182, 212, 0.4), 0 0 20px rgba(0,0,0,0.85)",
+            }}
+          >
+            {/* Glowing Avatar */}
+            <div className="relative shrink-0 mt-0.5">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-600 to-cyan-400 flex items-center justify-center text-slate-950 font-bold shadow-md shadow-cyan-500/30">
+                <svg className="w-5 h-5 text-slate-950" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+              </div>
+              <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-emerald-400 border-2 border-slate-900 rounded-full animate-pulse" />
+            </div>
+
+            {/* Toast Content */}
+            <div className="flex-1 min-w-0 pr-4">
+              <div className="flex items-center justify-between gap-1 mb-0.5">
+                <span className="text-xs font-bold text-cyan-300 truncate" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                  {toastNotification.senderName}
+                </span>
+                <span className="text-[10px] text-slate-400 font-mono shrink-0">
+                  {toastNotification.time}
+                </span>
+              </div>
+              <p className="text-[12px] text-slate-200 line-clamp-2 leading-snug font-medium break-words">
+                {toastNotification.text}
+              </p>
+              <div className="mt-1.5 flex items-center gap-1 text-[10px] font-bold text-cyan-400 group-hover:text-cyan-300 transition-colors">
+                <span>Tap to reply live</span>
+                <span>→</span>
+              </div>
+            </div>
+
+            {/* Dismiss Cross */}
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setToastNotification(null);
+              }}
+              aria-label="Dismiss notification"
+              className="absolute top-2 right-2 text-slate-400 hover:text-white p-1 rounded-md transition-colors cursor-pointer"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        )}
+
+        {/* Unread Message Tooltip (When no toast active) */}
+        {!isOpen && hasUnread && !toastNotification && (
           <div
             onClick={() => {
               setIsOpen(true);
