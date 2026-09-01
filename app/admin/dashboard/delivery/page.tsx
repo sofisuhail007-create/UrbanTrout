@@ -3,6 +3,7 @@
 import { useEffect, useState, useMemo } from "react";
 import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabase";
+import { adminFetch } from "@/lib/adminClient";
 import { SRINAGAR_LOCALITIES, calculateDistanceKm, type ZoneLocation } from "@/components/DeliveryRadiusMap";
 
 // Dynamically import map to avoid SSR window issues
@@ -59,7 +60,7 @@ export default function DeliveryRadiusPage() {
 
       // 2. Fetch from API endpoint & Supabase
       try {
-        const res = await fetch("/api/settings");
+        const res = await adminFetch("/api/settings");
         if (res.ok) {
           const json = await res.json();
           const map = json.settingsMap || {};
@@ -190,7 +191,7 @@ export default function DeliveryRadiusPage() {
 
     // 2. Server API persistence
     try {
-      await fetch("/api/settings", {
+      await adminFetch("/api/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updates),

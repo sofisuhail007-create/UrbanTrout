@@ -1,9 +1,19 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 const RECAPTCHA_SECRET = process.env.RECAPTCHA_SECRET_KEY;
 
 export async function POST(request: Request) {
+  // Rate limit: max 10 contact requests per minute per IP
+  const { limited } = checkRateLimit(request, 10, 60 * 1000);
+  if (limited) {
+    return NextResponse.json(
+      { success: false, error: "Too many requests. Please wait a minute before trying again." },
+      { status: 429 }
+    );
+  }
+
   try {
     const body = await request.json();
     const { name, phone, email, subject, message, token } = body;

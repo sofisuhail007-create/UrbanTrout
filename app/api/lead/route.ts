@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { requireAdminAuth } from "@/lib/adminAuth";
 
 // Use service role key if configured in Vercel to bypass RLS, or fallback to anon key
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -81,7 +82,10 @@ export async function POST(request: Request) {
   }
 }
 
-export async function GET() {
+export async function GET(request: Request) {
+  const authError = await requireAdminAuth(request);
+  if (authError) return authError;
+
   try {
     const { data: rawLeads, error } = await supabase
       .from("leads")
@@ -116,6 +120,9 @@ export async function GET() {
 }
 
 export async function DELETE(request: Request) {
+  const authError = await requireAdminAuth(request);
+  if (authError) return authError;
+
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");

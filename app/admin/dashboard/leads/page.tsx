@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import type { Lead } from "@/lib/supabase";
+import { adminFetch } from "@/lib/adminClient";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
   abandoned: { label: "Abandoned Lead", color: "text-amber-400", bg: "bg-amber-500/15 border-amber-500/30" },
@@ -36,7 +37,7 @@ export default function AdminLeadsPage() {
 
       // 2. Fetch leads via server API first (reliable)
       try {
-        const res = await fetch("/api/lead");
+        const res = await adminFetch("/api/lead");
         if (res.ok) {
           const json = await res.json();
           if (json?.success && Array.isArray(json.leads)) {
@@ -134,7 +135,7 @@ export default function AdminLeadsPage() {
       const params = new URLSearchParams();
       if (leadId) params.set("id", leadId);
       if (cleanPhone) params.set("phone", cleanPhone);
-      await fetch(`/api/lead?${params.toString()}`, { method: "DELETE" });
+      await adminFetch(`/api/lead?${params.toString()}`, { method: "DELETE" });
     } catch (_) {}
 
     // 2. Direct Supabase fallback

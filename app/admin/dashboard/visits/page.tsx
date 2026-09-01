@@ -2,6 +2,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import type { FarmVisit, VisitStatus } from "@/lib/supabase";
+import { adminFetch } from "@/lib/adminClient";
 import toast from "react-hot-toast";
 
 const STATUS_CONFIG: Record<VisitStatus, { label: string; color: string; bg: string; border: string; icon: string }> = {
@@ -68,7 +69,7 @@ export default function AdminFarmVisitsPage() {
   const fetchVisits = async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/farm-visits");
+      const res = await adminFetch("/api/farm-visits");
       if (res.ok) {
         const json = await res.json();
         if (json?.success && Array.isArray(json.visits)) {
@@ -96,7 +97,7 @@ export default function AdminFarmVisitsPage() {
     );
 
     try {
-      const res = await fetch("/api/farm-visits", {
+      const res = await adminFetch("/api/farm-visits", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -132,7 +133,7 @@ export default function AdminFarmVisitsPage() {
 
   const handleSaveNotes = async (visitId: string) => {
     try {
-      const res = await fetch("/api/farm-visits", {
+      const res = await adminFetch("/api/farm-visits", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -162,7 +163,7 @@ export default function AdminFarmVisitsPage() {
 
     setCreating(true);
     try {
-      const res = await fetch("/api/farm-visits", {
+      const res = await adminFetch("/api/farm-visits", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import type { Order, OrderStatus } from "@/lib/supabase";
+import { adminFetch } from "@/lib/adminClient";
 
 const STATUSES: { value: OrderStatus; label: string; color: string }[] = [
   { value: "pending", label: "Awaiting Verification", color: "bg-amber-500/15 text-amber-400 border-amber-500/30" },
@@ -40,7 +41,7 @@ export default function OrdersPage() {
     setUpdating(id);
     setOrders((prev) => prev.map((o) => (o.id === id ? { ...o, status } : o)));
     try {
-      await fetch("/api/order-status", {
+      await adminFetch("/api/order-status", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ orderId: id, status }),

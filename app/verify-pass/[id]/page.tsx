@@ -178,19 +178,14 @@ export default function VerifyPassPage({ params }: { params: Promise<{ id: strin
     setVerifyingTime(new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
 
     try {
-      // 1. Fetch from server API
-      const res = await fetch(`/api/farm-visits`);
+      // 1. Fetch from server API by specific pass ID
+      const res = await fetch(`/api/farm-visits?id=${encodeURIComponent(passId)}`);
       if (res.ok) {
         const data = await res.json();
-        if (data?.success && Array.isArray(data.visits)) {
-          const found = data.visits.find(
-            (v: FarmVisit) => v.id === passId || v.id.toLowerCase() === passId.toLowerCase()
-          );
-          if (found) {
-            setVisit(found);
-            setLoading(false);
-            return;
-          }
+        if (data?.success && data.visit) {
+          setVisit(data.visit as FarmVisit);
+          setLoading(false);
+          return;
         }
       }
 

@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
+import { adminFetch } from "@/lib/adminClient";
 import type { InventoryItem } from "@/lib/supabase";
 
 interface BillItem {
@@ -206,7 +207,7 @@ export default function POSBillingPage() {
     // Try to save to DB via server API — if it works, use short clean URL
     let invoicePublicUrl = `${origin}/invoice/${invoiceNumber}?d=${encodedPayload}`; // fallback
     try {
-      const res = await fetch("/api/invoice", {
+      const res = await adminFetch("/api/invoice", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ invoiceId: shortDigits, data: invoicePayload }),

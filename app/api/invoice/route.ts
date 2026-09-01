@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { requireAdminAuth } from "@/lib/adminAuth";
 
 // Use anon key — the invoices table has open RLS policies (public insert/select)
 // No service role key needed for this to work on Vercel
@@ -9,6 +10,9 @@ const supabase = createClient(
 );
 
 export async function POST(request: Request) {
+  const authError = await requireAdminAuth(request);
+  if (authError) return authError;
+
   try {
     const body = await request.json();
     const { invoiceId, data } = body;

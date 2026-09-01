@@ -1,11 +1,22 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import type { FarmVisit, VisitStatus } from "@/lib/supabase";
+import { requireAdminAuth } from "@/lib/adminAuth";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 const RECAPTCHA_SECRET = process.env.RECAPTCHA_SECRET_KEY;
 
 // ─── POST: Pre-Notify a Farm Visit ───
 export async function POST(request: Request) {
+  // Rate limit: max 15 visit booking requests per minute per IP
+  const { limited } = checkRateLimit(request, 15, 60 * 1000);
+  if (limited) {
+    return NextResponse.json(
+      { success: false, error: "Too many visit booking attempts. Please wait a minute before trying again." },
+      { status: 429 }
+    );
+  }
+
   try {
     const body = await request.json();
     const {
@@ -175,11 +186,71 @@ export async function POST(request: Request) {
   }
 }
 
-// ─── GET: Fetch Farm Visits (Admin) ───
+// ─── GET: Fetch Farm Visits (Admin) or Single Pass Verification ───
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
+    const passId = searchParams.get("id");
     const statusFilter = searchParams.get("status");
+
+    // If fetching a single pass by ID (e.g. for visitor QR verification), allow lookup without exposing all visits
+    if (passId) {
+      // Try direct farm_visits table first
+      try {
+        const { data: directVisit } = await supabase
+          .from("farm_visits")
+          .select("*")
+          .eq("id", passId)
+          .maybeSingle();
+
+        if (directVisit) {
+          return NextResponse.json({ success: true, visit: directVisit });
+        }
+      } catch (_) {}
+
+      // Fallback: search in leads table
+      try {
+        const { data: leadsData } = await supabase
+          .from("leads")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (leadsData) {
+          for (const item of leadsData) {
+            if (item.id === passId || (item.notes && item.notes.includes(passId))) {
+              try {
+                const jsonStr = item.notes.replace("[FARM_VISIT]", "").trim();
+                const parsed = JSON.parse(jsonStr);
+                return NextResponse.json({
+                  success: true,
+                  visit: {
+                    id: parsed.visit_id || item.id,
+                    visitor_name: parsed.visitor_name || item.customer_name || "Visitor",
+                    phone: item.customer_phone,
+                    email: item.customer_email || null,
+                    visit_date: parsed.date || item.created_at?.split("T")[0],
+                    time_slot: parsed.slot || "Morning",
+                    guest_count: parsed.guests || 1,
+                    visit_purpose: parsed.purpose || "Live Trout Purchase / Viewing",
+                    special_requests: parsed.requests || null,
+                    status: (parsed.status as VisitStatus) || "pending",
+                    admin_notes: parsed.admin_notes || null,
+                    created_at: item.created_at,
+                    updated_at: item.updated_at,
+                  },
+                });
+              } catch (_) {}
+            }
+          }
+        }
+      } catch (_) {}
+
+      return NextResponse.json({ success: false, error: "Visit pass not found" }, { status: 404 });
+    }
+
+    // Otherwise, fetching full list of all visits requires admin privileges
+    const authError = await requireAdminAuth(request);
+    if (authError) return authError;
 
     let visits: FarmVisit[] = [];
 
@@ -275,6 +346,9 @@ export async function GET(request: Request) {
 
 // ─── PATCH: Update Visit Status & Admin Notes (Admin) ───
 export async function PATCH(request: Request) {
+  const authError = await requireAdminAuth(request);
+  if (authError) return authError;
+
   try {
     const body = await request.json();
     const {

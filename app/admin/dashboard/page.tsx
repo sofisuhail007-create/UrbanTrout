@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import type { Order, WaterParameter, Lead } from "@/lib/supabase";
+import { adminFetch } from "@/lib/adminClient";
 import Link from "next/link";
 import {
   validateDO,
@@ -104,7 +105,7 @@ export default function DashboardPage() {
 
       // Fetch deduplicated leads via API endpoint
       try {
-        const res = await fetch("/api/lead");
+        const res = await adminFetch("/api/lead");
         if (res.ok) {
           const json = await res.json();
           if (json?.success && Array.isArray(json.leads)) {

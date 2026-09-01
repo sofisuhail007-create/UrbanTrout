@@ -1,11 +1,21 @@
 import { NextResponse } from "next/server";
 import { notifyNewOrder, notifyAbandonedLead, notifyBioAlarm } from "@/lib/telegram";
 import { sendOrderConfirmationEmail } from "@/lib/email";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 // In-memory cooldown cache: prevent sending duplicate Telegram alerts for same phone within 15 mins
 const lastAbandonedLeadSent = new Map<string, number>();
 
 export async function POST(request: Request) {
+  // Rate limit: max 20 notifications per minute per IP
+  const { limited } = checkRateLimit(request, 20, 60 * 1000);
+  if (limited) {
+    return NextResponse.json(
+      { success: false, error: "Too many notification requests. Please throttle." },
+      { status: 429 }
+    );
+  }
+
   try {
     const body = await request.json();
     const { type, data } = body;

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import { sendOrderStatusUpdateEmail } from "@/lib/email";
 import { getOrderKeyboard, sendTelegramMessage } from "@/lib/telegram";
+import { requireAdminAuth } from "@/lib/adminAuth";
 
 function extractEmail(order: any): string | undefined {
   if (order.customer_email && typeof order.customer_email === "string" && order.customer_email.includes("@")) {
@@ -15,6 +16,9 @@ function extractEmail(order: any): string | undefined {
 }
 
 export async function POST(request: Request) {
+  const authError = await requireAdminAuth(request);
+  if (authError) return authError;
+
   try {
     const body = await request.json();
     const { orderId, status } = body;

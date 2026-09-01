@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { adminFetch } from "@/lib/adminClient";
 
 export interface StaffMember {
   email: string;
@@ -91,7 +92,7 @@ export default function AdminSettingsPage() {
 
       // 2. Fetch from API endpoint & Supabase
       try {
-        const res = await fetch("/api/settings");
+        const res = await adminFetch("/api/settings");
         if (res.ok) {
           const json = await res.json();
           const map = json.settingsMap || {};
@@ -264,7 +265,7 @@ export default function AdminSettingsPage() {
 
     // 2. Server API persistence
     try {
-      await fetch("/api/settings", {
+      await adminFetch("/api/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(updates),
