@@ -87,6 +87,13 @@ const STATUS_NAMES: Record<string, string> = {
 };
 
 export async function POST(request: Request) {
+  // ─── Security: Verify request is genuinely from Telegram ───
+  const incomingSecret = request.headers.get("x-telegram-bot-api-secret-token");
+  const expectedSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
+  if (expectedSecret && incomingSecret !== expectedSecret) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   try {
     const update = await request.json();
 
@@ -494,7 +501,10 @@ export async function POST(request: Request) {
 }
 
 export async function GET() {
-  const token = process.env.TELEGRAM_BOT_TOKEN || "8830453300:AAFWnXz1eyTdPo5zX2lIAGYVjr7ZMA3QGIM";
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  if (!token) {
+    return NextResponse.json({ error: "TELEGRAM_BOT_TOKEN not configured" }, { status: 500 });
+  }
   const webhookUrl = `https://urbantrout.in/api/telegram-webhook`;
   const setWebhookApi = `https://api.telegram.org/bot${token}/setWebhook?url=${encodeURIComponent(webhookUrl)}`;
 

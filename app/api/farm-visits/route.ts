@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
 import type { FarmVisit, VisitStatus } from "@/lib/supabase";
 
-const RECAPTCHA_SECRET = process.env.RECAPTCHA_SECRET_KEY || "6Le7xJQtAAAAAKgkdHH240Wiov0Fn__lr6jryN8D";
+const RECAPTCHA_SECRET = process.env.RECAPTCHA_SECRET_KEY;
 
 // ─── POST: Pre-Notify a Farm Visit ───
 export async function POST(request: Request) {
