@@ -11,6 +11,7 @@ interface ChatMessage {
   sender_name: string;
   text: string;
   created_at: string;
+  status?: "sending" | "sent";
 }
 
 const QUICK_PROMPTS = [
@@ -20,7 +21,7 @@ const QUICK_PROMPTS = [
   "🔪 What is the difference between whole & gutted trout?",
 ];
 
-// Generates a clean, modern pleasant notification chime using Web Audio API
+// Synthesizes a clean, pleasant notification chime using Web Audio API
 function playChime() {
   try {
     const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -64,19 +65,23 @@ export default function LiveChatWidget() {
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [showInfoForm, setShowInfoForm] = useState(false);
+  const [showMenu, setShowMenu] = useState(false);
+  const [isClosed, setIsClosed] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Do not render on admin dashboard
   if (pathname?.startsWith("/admin")) return null;
 
   // Initialize or restore session from localStorage
-  useEffect(() => {
-    let savedThread = localStorage.getItem("ut_live_chat_thread_id");
+  const initSession = (forceNew = false) => {
+    let savedThread = forceNew ? null : localStorage.getItem("ut_live_chat_thread_id");
     if (!savedThread) {
       savedThread = `ut_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
       localStorage.setItem("ut_live_chat_thread_id", savedThread);
     }
     setThreadId(savedThread);
+    setIsClosed(false);
+    setMessages([]);
 
     const savedName = localStorage.getItem("ut_live_chat_name") || "";
     const savedPhone = localStorage.getItem("ut_live_chat_phone") || "";
@@ -86,16 +91,42 @@ export default function LiveChatWidget() {
     if (!savedName && !savedPhone) {
       setShowInfoForm(true);
     }
+  };
+
+  useEffect(() => {
+    initSession();
   }, []);
 
   // Fetch message history
   const fetchHistory = async (id: string) => {
+    if (!id) return;
     try {
       const res = await fetch(`/api/live-chat/history?threadId=${encodeURIComponent(id)}`);
       if (res.ok) {
         const data = await res.json();
         if (data?.success && Array.isArray(data.messages)) {
-          setMessages(data.messages);
+          setMessages((prev) => {
+            // Merge server messages with any sending messages
+            const map = new Map<string, ChatMessage>();
+            prev.forEach((m) => map.set(m.id, m));
+            data.messages.forEach((m: ChatMessage) => {
+              // If we had an optimistic message with same text & sender, replace it with server message
+              for (const [k, v] of Array.from(map.entries())) {
+                if (k.startsWith("opt_") && v.text === m.text && v.sender === m.sender) {
+                  map.delete(k);
+                }
+              }
+              map.set(m.id, { ...m, status: "sent" });
+            });
+            return Array.from(map.values()).sort(
+              (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+            );
+          });
+
+          // Check if thread was closed
+          if (data.messages.some((m: ChatMessage) => m.text.includes("conversation has been ended") || m.text.includes("conversation has ended"))) {
+            setIsClosed(true);
+          }
         }
       }
     } catch (_) {}
@@ -121,8 +152,10 @@ export default function LiveChatWidget() {
         (payload: { new: ChatMessage }) => {
           const newMsg = payload.new;
           setMessages((prev) => {
-            if (prev.some((m) => m.id === newMsg.id)) return prev;
-            return [...prev, newMsg];
+            // Remove optimistic version if present
+            const filtered = prev.filter((m) => !(m.id.startsWith("opt_") && m.text === newMsg.text));
+            if (filtered.some((m) => m.id === newMsg.id)) return filtered;
+            return [...filtered, { ...newMsg, status: "sent" }];
           });
 
           if (newMsg.sender === "staff") {
@@ -135,10 +168,10 @@ export default function LiveChatWidget() {
       )
       .subscribe();
 
-    // 4-second polling fallback for 100% reliability
+    // Fast 1.5s polling fallback for rock-solid zero-latency feel
     const pollInterval = setInterval(() => {
       fetchHistory(threadId);
-    }, 4000);
+    }, 1500);
 
     return () => {
       supabase.removeChannel(channel);
@@ -146,7 +179,7 @@ export default function LiveChatWidget() {
     };
   }, [threadId, isOpen]);
 
-  // Scroll to bottom when messages update
+  // Scroll to bottom whenever messages update
   useEffect(() => {
     if (isOpen) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -157,9 +190,7 @@ export default function LiveChatWidget() {
     const text = (textToSend || inputText).trim();
     if (!text || isSending || !threadId) return;
 
-    setIsSending(true);
-    if (!textToSend) setInputText("");
-
+    // Zero-latency instant UI update
     const optimisticId = `opt_${Date.now()}`;
     const optimisticMsg: ChatMessage = {
       id: optimisticId,
@@ -168,9 +199,12 @@ export default function LiveChatWidget() {
       sender_name: customerName || "You",
       text: text,
       created_at: new Date().toISOString(),
+      status: "sending",
     };
 
     setMessages((prev) => [...prev, optimisticMsg]);
+    if (!textToSend) setInputText("");
+    setIsSending(true);
 
     try {
       const res = await fetch("/api/live-chat/send", {
@@ -186,7 +220,10 @@ export default function LiveChatWidget() {
       });
 
       if (res.ok) {
-        // Save name/phone to localStorage if entered
+        // Mark optimistic message as sent
+        setMessages((prev) =>
+          prev.map((m) => (m.id === optimisticId ? { ...m, status: "sent" } : m))
+        );
         if (customerName) localStorage.setItem("ut_live_chat_name", customerName);
         if (customerPhone) localStorage.setItem("ut_live_chat_phone", customerPhone);
       }
@@ -195,6 +232,25 @@ export default function LiveChatWidget() {
     } finally {
       setIsSending(false);
     }
+  };
+
+  const handleEndChat = async () => {
+    setShowMenu(false);
+    if (!threadId) return;
+
+    try {
+      await fetch("/api/live-chat/close", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ threadId, closedBy: "customer" }),
+      });
+      setIsClosed(true);
+      fetchHistory(threadId);
+    } catch (_) {}
+  };
+
+  const handleStartNewChat = () => {
+    initSession(true);
   };
 
   return (
@@ -250,7 +306,7 @@ export default function LiveChatWidget() {
       {/* ─── LIVE CHAT POPUP WINDOW ─── */}
       {isOpen && (
         <div
-          className="fixed bottom-24 right-4 sm:right-6 z-50 w-[92vw] sm:w-[390px] h-[540px] max-h-[82vh] rounded-3xl flex flex-col overflow-hidden shadow-2xl transition-all border animate-fade-in"
+          className="fixed bottom-24 right-4 sm:right-6 z-50 w-[92vw] sm:w-[390px] h-[550px] max-h-[82vh] rounded-3xl flex flex-col overflow-hidden shadow-2xl transition-all border animate-fade-in"
           style={{
             background: "rgba(6, 23, 34, 0.95)",
             borderColor: "rgba(114, 221, 253, 0.25)",
@@ -259,7 +315,7 @@ export default function LiveChatWidget() {
           }}
         >
           {/* ── Chat Header ── */}
-          <div className="flex items-center justify-between px-4 py-3.5 bg-slate-950/80 border-b border-slate-800/80">
+          <div className="relative flex items-center justify-between px-4 py-3.5 bg-slate-950/90 border-b border-slate-800/80">
             <div className="flex items-center gap-3">
               <div className="relative">
                 <img
@@ -271,26 +327,60 @@ export default function LiveChatWidget() {
               </div>
               <div>
                 <h3 className="text-sm font-bold text-white leading-tight" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
-                  Urban Trout Farm Support
+                  Urban Trout Live Support
                 </h3>
                 <p className="text-[10px] text-emerald-400 flex items-center gap-1 font-mono">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  Farm Team Live · Replies in ~2 mins
+                  Farm Team Live · Replies in &lt; 2 mins
                 </p>
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setIsOpen(false)}
-              className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800/60 transition-colors"
-            >
-              <span className="material-symbols-outlined text-lg">close</span>
-            </button>
+            <div className="flex items-center gap-1">
+              {/* Header Options Menu */}
+              <button
+                type="button"
+                onClick={() => setShowMenu(!showMenu)}
+                aria-label="Chat Options"
+                className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800/60 transition-colors"
+              >
+                <span className="material-symbols-outlined text-base">more_vert</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setIsOpen(false)}
+                className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800/60 transition-colors"
+              >
+                <span className="material-symbols-outlined text-base">close</span>
+              </button>
+            </div>
+
+            {/* Dropdown Menu */}
+            {showMenu && (
+              <div className="absolute top-14 right-4 z-20 w-48 rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl py-1.5 text-xs text-slate-300 animate-fade-in">
+                <button
+                  type="button"
+                  onClick={handleEndChat}
+                  className="w-full px-3.5 py-2 text-left hover:bg-red-500/15 text-red-400 flex items-center gap-2 transition-colors cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-base">power_settings_new</span>
+                  <span>End Conversation</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={handleStartNewChat}
+                  className="w-full px-3.5 py-2 text-left hover:bg-cyan-500/15 text-cyan-300 flex items-center gap-2 transition-colors cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-base">refresh</span>
+                  <span>Start New Chat</span>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* ── Optional Visitor Info Bar ── */}
-          {showInfoForm && (
+          {showInfoForm && !isClosed && (
             <div className="px-4 py-2.5 bg-cyan-950/40 border-b border-cyan-500/20 text-xs flex flex-col gap-2">
               <div className="flex items-center justify-between text-[11px] text-cyan-300 font-semibold">
                 <span>Want reply on WhatsApp too? (Optional)</span>
@@ -335,7 +425,7 @@ export default function LiveChatWidget() {
             </div>
 
             {/* Quick Suggestion Chips (Shown if no messages yet) */}
-            {messages.length === 0 && (
+            {messages.length === 0 && !isClosed && (
               <div className="space-y-1.5 pt-1">
                 <p className="text-[10px] uppercase font-bold tracking-wider text-slate-500 font-mono">
                   Quick Questions:
@@ -384,49 +474,95 @@ export default function LiveChatWidget() {
                   >
                     {msg.text}
                   </div>
-                  <span className="text-[9px] text-slate-600 px-1 font-mono">
-                    {new Date(msg.created_at).toLocaleTimeString("en-IN", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </span>
+                  <div className="flex items-center gap-1 px-1">
+                    <span className="text-[9px] text-slate-600 font-mono">
+                      {new Date(msg.created_at).toLocaleTimeString("en-IN", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                    {isMe && (
+                      <span className="text-[10px] text-cyan-400">
+                        {msg.status === "sending" ? "✓" : "✓✓"}
+                      </span>
+                    )}
+                  </div>
                 </div>
               );
             })}
+
+            {/* Closed Conversation State Banner */}
+            {isClosed && (
+              <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 text-center space-y-2.5 animate-fade-in my-2">
+                <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center mx-auto text-slate-400">
+                  <span className="material-symbols-outlined text-lg">check</span>
+                </div>
+                <p className="text-xs text-slate-300 font-semibold">Conversation Ended</p>
+                <p className="text-[11px] text-slate-400">
+                  Thank you for reaching out to Urban Trout. We are always ready to help!
+                </p>
+                <button
+                  type="button"
+                  onClick={handleStartNewChat}
+                  className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs transition-all cursor-pointer shadow-lg shadow-cyan-500/20"
+                >
+                  Start New Conversation
+                </button>
+              </div>
+            )}
 
             <div ref={messagesEndRef} />
           </div>
 
           {/* ── Input Box ── */}
-          <div className="p-3 bg-slate-950 border-t border-slate-800/80">
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                handleSendMessage();
-              }}
-              className="flex items-center gap-2"
-            >
-              <input
-                type="text"
-                placeholder="Ask about fresh trout, delivery, etc…"
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                disabled={isSending}
-                className="flex-1 px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all"
-                style={{ fontFamily: '"Manrope", sans-serif' }}
-              />
-              <button
-                type="submit"
-                disabled={isSending || !inputText.trim()}
-                className="w-10 h-10 rounded-xl bg-cyan-500 hover:bg-cyan-400 active:scale-95 disabled:opacity-40 text-slate-950 flex items-center justify-center transition-all cursor-pointer shadow-lg shadow-cyan-500/20"
+          {!isClosed ? (
+            <div className="p-3 bg-slate-950 border-t border-slate-800/80">
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleSendMessage();
+                }}
+                className="flex items-center gap-2"
               >
-                <span className="material-symbols-outlined text-lg">send</span>
+                <input
+                  type="text"
+                  placeholder="Ask about fresh trout, delivery, etc…"
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  disabled={isSending}
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all"
+                  style={{ fontFamily: '"Manrope", sans-serif' }}
+                />
+                <button
+                  type="submit"
+                  disabled={isSending || !inputText.trim()}
+                  className="w-10 h-10 rounded-xl bg-cyan-500 hover:bg-cyan-400 active:scale-95 disabled:opacity-40 text-slate-950 flex items-center justify-center transition-all cursor-pointer shadow-lg shadow-cyan-500/20"
+                >
+                  <span className="material-symbols-outlined text-lg">send</span>
+                </button>
+              </form>
+              <div className="flex items-center justify-between text-[9px] text-slate-600 mt-2 font-mono px-1">
+                <span>⚡ Live connected to Telegram</span>
+                <button
+                  type="button"
+                  onClick={handleEndChat}
+                  className="text-slate-500 hover:text-red-400 transition-colors"
+                >
+                  End Chat
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="p-3 bg-slate-950 border-t border-slate-800/80 text-center">
+              <button
+                type="button"
+                onClick={handleStartNewChat}
+                className="text-xs text-cyan-400 hover:text-cyan-300 font-bold underline"
+              >
+                Click here to start a new chat
               </button>
-            </form>
-            <p className="text-[9px] text-center text-slate-600 mt-2 font-mono">
-              ⚡ Connected directly to Urban Trout Farm Team on Telegram
-            </p>
-          </div>
+            </div>
+          )}
         </div>
       )}
     </>

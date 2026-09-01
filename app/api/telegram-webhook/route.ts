@@ -8,6 +8,7 @@ import {
   getInventoryKeyboard,
   getOrderKeyboard,
   sendTelegramMessage,
+  type InlineKeyboardButton,
 } from "@/lib/telegram";
 import { sendOrderStatusUpdateEmail } from "@/lib/email";
 
@@ -246,6 +247,45 @@ export async function POST(request: Request) {
 
         return NextResponse.json({ success: true });
       }
+
+      // ── Handle Live Chat Close Callback: "chat:close:<threadId>" ──
+      if (dataStr.startsWith("chat:close:")) {
+        const targetThreadId = dataStr.replace("chat:close:", "");
+        const nowIso = new Date().toISOString();
+
+        try {
+          // Update thread in Supabase
+          await supabase.from("live_chat_threads").update({
+            status: "closed",
+            updated_at: nowIso,
+          }).eq("id", targetThreadId);
+
+          // Insert closing message into chat history
+          await supabase.from("live_chat_messages").insert({
+            id: `msg_${Date.now()}_close`,
+            thread_id: targetThreadId,
+            sender: "staff",
+            sender_name: "Urban Trout Support",
+            text: "This chat conversation has been ended by the farm team. Feel free to start a new chat anytime! 🐟",
+            created_at: nowIso,
+          });
+
+          await answerCallbackQuery(cq.id, "🔴 Chat session ended and visitor notified!");
+
+          if (chatId && messageId) {
+            const originalText = message?.text || "";
+            await editTelegramMessageText(
+              chatId,
+              messageId,
+              `${originalText}\n\n<i>[🔴 Conversation Closed by Staff]</i>`
+            );
+          }
+
+          return NextResponse.json({ success: true, closedThread: targetThreadId });
+        } catch (closeErr: any) {
+          await answerCallbackQuery(cq.id, "❌ Error closing chat", true);
+        }
+      }
     }
 
     // ─── 2. Handle Slash Commands & Text Messages ───
@@ -314,6 +354,113 @@ export async function POST(request: Request) {
             return NextResponse.json({ success: true, repliedToThread: targetThreadId });
           } catch (replyErr) {
             console.error("Failed to route Telegram reply to live chat:", replyErr);
+          }
+        }
+      }
+
+      // ── Command: /chats or /active (View Active Live Chats) ──
+      if (text === "/chats" || text === "/active") {
+        try {
+          const { data: activeThreads, error } = await supabase
+            .from("live_chat_threads")
+            .select("*")
+            .eq("status", "active")
+            .order("last_message_at", { ascending: false })
+            .limit(10);
+
+          if (error || !activeThreads || activeThreads.length === 0) {
+            await sendTelegramMessage(
+              "💬 <b>ACTIVE LIVE CHATS:</b>\n━━━━━━━━━━━━━━━━━━━━\n<i>No active customer conversations right now.</i>",
+              "HTML",
+              undefined,
+              chatId
+            );
+            return NextResponse.json({ success: true });
+          }
+
+          let report = `💬 <b>ACTIVE WEBSITE LIVE CHATS (${activeThreads.length})</b> ⚡\n━━━━━━━━━━━━━━━━━━━━\n`;
+          const buttons: InlineKeyboardButton[][] = [];
+
+          activeThreads.forEach((th: any, idx: number) => {
+            const timeAgo = th.last_message_at ? new Date(th.last_message_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "Recently";
+            report += `<b>${idx + 1}. ${th.customer_name || "Visitor"}</b> (${th.customer_locality || "Srinagar"})\n`;
+            if (th.customer_phone) report += `   📞 +91 ${th.customer_phone}\n`;
+            report += `   💬 <i>"${(th.last_message || "").substring(0, 60)}"</i> (${timeAgo})\n`;
+            report += `   ID: <code>#chat_${th.id}</code>\n\n`;
+
+            const row: InlineKeyboardButton[] = [];
+            if (th.customer_phone) {
+              row.push({ text: "💬 WhatsApp", url: `https://wa.me/91${th.customer_phone}` });
+            }
+            row.push({ text: `🔴 End #${idx + 1}`, callback_data: `chat:close:${th.id}` });
+            buttons.push(row);
+          });
+
+          report += `👉 <i>To reply to any visitor, swipe reply to their message, or type:</i>\n<code>/r &lt;name/id&gt; &lt;your reply&gt;</code>`;
+
+          await sendTelegramMessage(report, "HTML", { inline_keyboard: buttons }, chatId);
+          return NextResponse.json({ success: true });
+        } catch (err: any) {
+          console.error("Error listing chats:", err);
+        }
+      }
+
+      // ── Command: /r <threadId or customerName> <reply text> ──
+      if (text.startsWith("/r ") || text.startsWith("/reply ")) {
+        const parts = text.split(" ");
+        if (parts.length >= 3) {
+          const targetQuery = parts[1].toLowerCase().replace("#chat_", "").trim();
+          const replyBody = parts.slice(2).join(" ").trim();
+
+          const { data: matchingThreads } = await supabase
+            .from("live_chat_threads")
+            .select("*")
+            .eq("status", "active")
+            .order("last_message_at", { ascending: false });
+
+          const found = matchingThreads?.find((t: any) => 
+            t.id.toLowerCase().includes(targetQuery) || 
+            (t.customer_name && t.customer_name.toLowerCase().includes(targetQuery)) ||
+            (t.customer_phone && t.customer_phone.includes(targetQuery))
+          );
+
+          if (found) {
+            const staffName = [msg.from?.first_name, msg.from?.last_name].filter(Boolean).join(" ") || "Farm Team";
+            const nowIso = new Date().toISOString();
+            const newMsgId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+
+            await supabase.from("live_chat_messages").insert({
+              id: newMsgId,
+              thread_id: found.id,
+              sender: "staff",
+              sender_name: `${staffName} (Urban Trout)`,
+              text: replyBody,
+              created_at: nowIso,
+            });
+
+            await supabase.from("live_chat_threads").update({
+              last_message: replyBody,
+              last_message_at: nowIso,
+              updated_at: nowIso,
+            }).eq("id", found.id);
+
+            await sendTelegramMessage(
+              `⚡ <b>REPLY DELIVERED LIVE TO ${found.customer_name || "VISITOR"}!</b>\n━━━━━━━━━━━━━━━━━━━━\n<b>Sent:</b> <i>"${replyBody}"</i>`,
+              "HTML",
+              undefined,
+              chatId,
+              found.telegram_message_id ? Number(found.telegram_message_id) : undefined
+            );
+
+            return NextResponse.json({ success: true });
+          } else {
+            await sendTelegramMessage(
+              `❌ No active chat found matching "<b>${targetQuery}</b>".\nType <code>/chats</code> to see open conversations.`,
+              "HTML",
+              undefined,
+              chatId
+            );
+            return NextResponse.json({ success: true });
           }
         }
       }

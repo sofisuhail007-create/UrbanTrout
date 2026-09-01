@@ -34,8 +34,19 @@ export async function POST(request: Request) {
     const nowIso = new Date().toISOString();
     const messageId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
-    // 1. Ensure thread exists or update thread
+    // 1. Ensure thread exists and check for existing telegram_message_id
+    let existingTelegramMsgId: number | undefined;
     try {
+      const { data: existingThread } = await supabase
+        .from("live_chat_threads")
+        .select("telegram_message_id")
+        .eq("id", threadId)
+        .maybeSingle();
+
+      if (existingThread?.telegram_message_id) {
+        existingTelegramMsgId = Number(existingThread.telegram_message_id);
+      }
+
       await supabase.from("live_chat_threads").upsert({
         id: threadId,
         customer_name: name,
@@ -64,7 +75,7 @@ export async function POST(request: Request) {
       console.warn("Could not insert into live_chat_messages:", msgErr);
     }
 
-    // 3. Send Telegram Notification to Admin / Farm Team
+    // 3. Send Telegram Notification (Chained to existing thread if follow-up)
     let telegramMsgId: number | undefined;
     try {
       const tgRes = await notifyLiveChatMessage({
@@ -73,17 +84,20 @@ export async function POST(request: Request) {
         phone: cleanPhone,
         locality,
         text: cleanText,
+        parentTelegramMsgId: existingTelegramMsgId,
       });
 
       if (tgRes?.ok && tgRes.result?.message_id) {
         telegramMsgId = tgRes.result.message_id;
-        // Update thread with telegram_message_id for swipe-reply matching
-        try {
-          await supabase.from("live_chat_threads").update({
-            telegram_message_id: telegramMsgId,
-            telegram_chat_id: String(tgRes.result.chat?.id || ""),
-          }).eq("id", threadId);
-        } catch (_) {}
+        // If this was the first message in thread, store its message_id
+        if (!existingTelegramMsgId) {
+          try {
+            await supabase.from("live_chat_threads").update({
+              telegram_message_id: telegramMsgId,
+              telegram_chat_id: String(tgRes.result.chat?.id || ""),
+            }).eq("id", threadId);
+          } catch (_) {}
+        }
       }
     } catch (tgErr) {
       console.warn("Failed to notify Telegram:", tgErr);

@@ -15,20 +15,25 @@ export async function sendTelegramMessage(
   text: string,
   parseMode: "Markdown" | "HTML" = "HTML",
   replyMarkup?: InlineKeyboardMarkup,
-  targetChatId?: string | number
+  targetChatId?: string | number,
+  replyToMessageId?: number
 ) {
   try {
     const url = `https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`;
+    const payload: any = {
+      chat_id: targetChatId || CHAT_ID,
+      text,
+      parse_mode: parseMode,
+      disable_web_page_preview: true,
+      reply_markup: replyMarkup,
+    };
+    if (replyToMessageId) {
+      payload.reply_to_message_id = replyToMessageId;
+    }
     const res = await fetch(url, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        chat_id: targetChatId || CHAT_ID,
-        text,
-        parse_mode: parseMode,
-        disable_web_page_preview: true,
-        reply_markup: replyMarkup,
-      }),
+      body: JSON.stringify(payload),
     });
     const data = await res.json();
     return data;
@@ -393,32 +398,31 @@ export async function notifyLiveChatMessage(params: {
   phone?: string;
   locality?: string;
   text: string;
-  isFirstMessage?: boolean;
+  parentTelegramMsgId?: number;
 }) {
   const cleanPhone = params.phone ? String(params.phone).replace(/\D/g, "").slice(-10) : undefined;
+  const isFollowUp = !!params.parentTelegramMsgId;
   
-  let msg = `💬 <b>WEBSITE LIVE CHAT INQUIRY</b> ⚡\n━━━━━━━━━━━━━━━━━━━━\n`;
-  msg += `👤 <b>Customer:</b> ${params.senderName || "Website Visitor"}\n`;
-  if (cleanPhone) msg += `📞 <b>Phone:</b> <a href="tel:+91${cleanPhone}">+91 ${cleanPhone}</a>\n`;
-  if (params.locality) msg += `📍 <b>Locality:</b> ${params.locality}\n`;
-  msg += `━━━━━━━━━━━━━━━━━━━━\n`;
-  msg += `💬 <b>Message:</b>\n<i>"${params.text}"</i>\n\n`;
-  msg += `👉 <b>To reply to customer:</b> <i>Swipe right and Reply to THIS message in Telegram. Your reply appears live on their screen!</i>\n`;
-  msg += `<code>#chat_${params.threadId}</code>`;
+  let msg = isFollowUp
+    ? `💬 <b>Follow-up from ${params.senderName || "Visitor"}:</b>\n<i>"${params.text}"</i>\n\n👉 <i>Swipe reply here to answer live</i>\n<code>#chat_${params.threadId}</code>`
+    : `💬 <b>NEW LIVE CHAT INQUIRY</b> ⚡\n━━━━━━━━━━━━━━━━━━━━\n👤 <b>Customer:</b> ${params.senderName || "Website Visitor"}\n${cleanPhone ? `📞 <b>Phone:</b> <a href="tel:+91${cleanPhone}">+91 ${cleanPhone}</a>\n` : ""}${params.locality ? `📍 <b>Locality:</b> ${params.locality}\n` : ""}━━━━━━━━━━━━━━━━━━━━\n💬 <b>Message:</b>\n<i>"${params.text}"</i>\n\n👉 <b>To reply:</b> <i>Swipe right and Reply to THIS message in Telegram. Your reply appears live on their screen!</i>\n<code>#chat_${params.threadId}</code>`;
 
-  let keyboard: InlineKeyboardMarkup | undefined;
+  const buttons: InlineKeyboardButton[][] = [];
+  const actionRow: InlineKeyboardButton[] = [];
+
   if (cleanPhone) {
     const waUrl = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(`Hi ${params.senderName || "there"}! Urban Trout here replying to your website inquiry: "${params.text}"`)}`;
-    keyboard = {
-      inline_keyboard: [
-        [
-          { text: "💬 Open WhatsApp", url: waUrl },
-          { text: "📞 Call Customer", url: `tel:+91${cleanPhone}` },
-        ],
-      ],
-    };
+    actionRow.push({ text: "💬 WhatsApp", url: waUrl });
+    actionRow.push({ text: "📞 Call", url: `tel:+91${cleanPhone}` });
   }
 
-  return sendTelegramMessage(msg, "HTML", keyboard);
+  actionRow.push({ text: "🔴 End Chat", callback_data: `chat:close:${params.threadId}` });
+  buttons.push(actionRow);
+
+  const keyboard: InlineKeyboardMarkup = {
+    inline_keyboard: buttons,
+  };
+
+  return sendTelegramMessage(msg, "HTML", keyboard, undefined, params.parentTelegramMsgId);
 }
 
