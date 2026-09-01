@@ -225,7 +225,9 @@ export default async function HomePage() {
                 className="absolute inset-0 w-full h-full object-cover opacity-20 group-hover:scale-105 transition-transform duration-700 pointer-events-none"
               />
               <div className="relative z-10">
-                <span className="material-symbols-outlined" style={{ fontSize: "36px", color: C.primary, marginBottom: "0.75rem", display: "block", filter: "drop-shadow(0 0 8px #72ddfd)" }}>waves</span>
+                <svg className="w-9 h-9 text-[#72ddfd] mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M2 10c2-2 4-2 6 0s4 2 6 0 4-2 6 0m-18 5c2-2 4-2 6 0s4 2 6 0 4-2 6 0" />
+                </svg>
                 <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.75rem", fontWeight: 700, margin: "0 0 0.5rem", color: C.onSurface }}>100% Deep Borewell Water</h3>
                 <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfaceVariant, maxWidth: "600px", lineHeight: 1.7, margin: 0, fontSize: "0.95rem" }}>
                   Raised in clean, filtered groundwater isolated from surface runoff, open canal pollution, and river silt.
@@ -239,7 +241,9 @@ export default async function HomePage() {
               style={{ background: C.bgHigh, border: "1px solid rgba(255,255,255,0.06)" }}
             >
               <div>
-                <span className="material-symbols-outlined" style={{ fontSize: "36px", color: "#63cfee", marginBottom: "1rem", display: "block", filter: "drop-shadow(0 0 6px #63cfee)" }}>eco</span>
+                <svg className="w-9 h-9 text-[#63cfee] mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
                 <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.4rem", fontWeight: 700, color: C.onSurface, margin: "0 0 0.75rem" }}>Zero Antibiotics</h3>
                 <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfaceVariant, fontSize: "0.9rem", lineHeight: 1.7, margin: 0 }}>
                   Continuous clean water flow keeps fish naturally healthy, with zero chemical treatments or growth boosters.
@@ -253,7 +257,10 @@ export default async function HomePage() {
               style={{ background: C.bgHigh, border: "1px solid rgba(255,255,255,0.06)" }}
             >
               <div>
-                <span className="material-symbols-outlined" style={{ fontSize: "36px", color: C.primary, marginBottom: "1rem", display: "block" }}>timer</span>
+                <svg className="w-9 h-9 text-[#72ddfd] mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <circle cx="12" cy="12" r="9" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
                 <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.4rem", fontWeight: 700, color: C.onSurface, margin: "0 0 0.75rem" }}>Harvested to Order</h3>
                 <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfaceVariant, fontSize: "0.9rem", lineHeight: 1.7, margin: 0 }}>
                   We don&apos;t store dead fish in deep freezers. We harvest exclusively when you place an order for unmatched firmness.
@@ -331,18 +338,50 @@ export default async function HomePage() {
       {/* ── Trust Bar ── */}
       <section style={{ padding: "4rem 1.5rem", borderTop: "1px solid rgba(114,221,253,0.07)", background: C.bg }}>
         <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6">
-          {[
-            { icon: "water_drop", title: "Fresh from Our Farm", sub: "Malabagh, Srinagar" },
-            { icon: "verified", title: "Zero Antibiotics", sub: "100% clean & natural" },
-            { icon: "local_shipping", title: "Same-Day Delivery", sub: "Chilled to your doorstep" },
-            { icon: "storefront", title: "Farm Gate Pickup", sub: "Pick up fresh in person" },
-          ].map((t, i) => (
-            <div key={i} style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: "8px" }}>
-              <span className="material-symbols-outlined" style={{ fontSize: "28px", color: C.primary, filter: "drop-shadow(0 0 6px rgba(114,221,253,0.5))" }}>{t.icon}</span>
-              <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: "0.95rem", color: C.onSurface }}>{t.title}</span>
-              <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.8rem", color: C.onSurfaceVariant }}>{t.sub}</span>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: "10px" }}>
+            <div className="w-12 h-12 rounded-xl bg-cyan-950/70 border border-cyan-500/30 flex items-center justify-center text-cyan-300 shadow-lg shadow-cyan-500/10">
+              <svg className="w-6 h-6 text-[#72ddfd]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z" />
+              </svg>
             </div>
-          ))}
+            <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: "0.95rem", color: C.onSurface }}>Fresh from Our Farm</span>
+            <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.8rem", color: C.onSurfaceVariant }}>Malabagh, Srinagar</span>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: "10px" }}>
+            <div className="w-12 h-12 rounded-xl bg-cyan-950/70 border border-cyan-500/30 flex items-center justify-center text-cyan-300 shadow-lg shadow-cyan-500/10">
+              <svg className="w-6 h-6 text-[#72ddfd]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+              </svg>
+            </div>
+            <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: "0.95rem", color: C.onSurface }}>Zero Antibiotics</span>
+            <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.8rem", color: C.onSurfaceVariant }}>100% clean &amp; natural</span>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: "10px" }}>
+            <div className="w-12 h-12 rounded-xl bg-cyan-950/70 border border-cyan-500/30 flex items-center justify-center text-cyan-300 shadow-lg shadow-cyan-500/10">
+              <svg className="w-6 h-6 text-[#72ddfd]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <rect x="1" y="3" width="15" height="13" rx="2" />
+                <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
+                <circle cx="5.5" cy="18.5" r="2.5" />
+                <circle cx="18.5" cy="18.5" r="2.5" />
+              </svg>
+            </div>
+            <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: "0.95rem", color: C.onSurface }}>Same-Day Delivery</span>
+            <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.8rem", color: C.onSurfaceVariant }}>Chilled to your doorstep</span>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: "10px" }}>
+            <div className="w-12 h-12 rounded-xl bg-cyan-950/70 border border-cyan-500/30 flex items-center justify-center text-cyan-300 shadow-lg shadow-cyan-500/10">
+              <svg className="w-6 h-6 text-[#72ddfd]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h18v4l-2 3v9a2 2 0 01-2 2H7a2 2 0 01-2-2v-9L3 7V3z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 7h18" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 21v-8a2 2 0 012-2h2a2 2 0 012 2v8" />
+              </svg>
+            </div>
+            <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: "0.95rem", color: C.onSurface }}>Farm Gate Pickup</span>
+            <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.8rem", color: C.onSurfaceVariant }}>Pick up fresh in person</span>
+          </div>
         </div>
       </section>
     </div>
