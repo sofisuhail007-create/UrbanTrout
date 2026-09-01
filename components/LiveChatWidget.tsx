@@ -708,7 +708,7 @@ export default function LiveChatWidget() {
                     placeholder="e.g. Aamir Khan"
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all font-medium"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-base sm:text-xs placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all font-medium"
                   />
                 </div>
 
@@ -722,7 +722,7 @@ export default function LiveChatWidget() {
                     placeholder="e.g. aamir@gmail.com"
                     value={customerEmail}
                     onChange={(e) => setCustomerEmail(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all font-medium"
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-base sm:text-xs placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all font-medium"
                   />
                 </div>
 
@@ -731,7 +731,7 @@ export default function LiveChatWidget() {
                     Phone Number (10-Digit) *
                   </label>
                   <div className="relative flex items-center">
-                    <span className="absolute left-3 text-xs font-bold text-slate-400">+91</span>
+                    <span className="absolute left-3 text-sm sm:text-xs font-bold text-slate-400">+91</span>
                     <input
                       type="tel"
                       required
@@ -739,7 +739,7 @@ export default function LiveChatWidget() {
                       placeholder="94190 00000"
                       value={customerPhone}
                       onChange={(e) => setCustomerPhone(e.target.value.replace(/\D/g, ""))}
-                      className="w-full pl-12 pr-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all font-mono font-medium"
+                      className="w-full pl-12 pr-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-base sm:text-xs placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all font-mono font-medium"
                     />
                   </div>
                 </div>
@@ -859,7 +859,7 @@ export default function LiveChatWidget() {
                       value={inputText}
                       onChange={(e) => setInputText(e.target.value)}
                       disabled={isSending}
-                      className="flex-1 px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs placeholder-slate-400 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all font-medium"
+                      className="flex-1 px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-base sm:text-xs placeholder-slate-400 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all font-medium"
                       style={{ fontFamily: '"Manrope", sans-serif' }}
                     />
                     <button

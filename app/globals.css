@@ -78,6 +78,7 @@
 html {
   color-scheme: dark;
   scroll-behavior: smooth;
+  touch-action: manipulation;
 }
 
 body {
@@ -87,6 +88,15 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
+}
+
+/* Prevent iOS Safari and mobile browser auto-zoom on input focus */
+@media screen and (max-width: 768px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
 }
 
 ::selection {

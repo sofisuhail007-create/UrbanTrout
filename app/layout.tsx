@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import dynamic from "next/dynamic";
 import { Space_Grotesk, Manrope, Inter } from "next/font/google";
 import "./globals.css";
@@ -8,6 +8,16 @@ import { CartProvider } from "@/context/CartContext";
 import { Toaster } from "react-hot-toast";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+
+// Viewport configuration to eliminate mobile viewport zoom jitter
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
+  themeColor: "#031018",
+};
 
 // Optimized Dynamic Preload for non-critical interactive widgets
 const CartDrawer = dynamic(() => import("@/components/CartDrawer"));
