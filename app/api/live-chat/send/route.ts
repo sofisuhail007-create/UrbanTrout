@@ -19,7 +19,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { threadId, senderName, phone, locality, text } = body;
+    const { threadId, senderName, email, phone, locality, text, recaptchaToken } = body;
 
     if (!threadId || !text || !text.trim()) {
       return NextResponse.json(
@@ -28,8 +28,29 @@ export async function POST(request: Request) {
       );
     }
 
+    // Optional reCAPTCHA v3 verification
+    if (recaptchaToken && process.env.RECAPTCHA_SECRET_KEY) {
+      try {
+        const verifyRes = await fetch("https://www.google.com/recaptcha/api/siteverify", {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: `secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaToken}`,
+        });
+        const verifyData = await verifyRes.json();
+        if (!verifyData.success || (verifyData.score !== undefined && verifyData.score < 0.3)) {
+          return NextResponse.json(
+            { success: false, error: "reCAPTCHA verification failed." },
+            { status: 403 }
+          );
+        }
+      } catch (rcErr) {
+        console.warn("reCAPTCHA validation notice:", rcErr);
+      }
+    }
+
     const cleanText = text.trim();
     const cleanPhone = phone ? String(phone).replace(/\D/g, "").slice(-10) : undefined;
+    const cleanEmail = email && typeof email === "string" && email.includes("@") ? email.trim() : undefined;
     const name = (senderName || "Website Visitor").trim();
     const nowIso = new Date().toISOString();
     const messageId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
@@ -51,14 +72,26 @@ export async function POST(request: Request) {
         id: threadId,
         customer_name: name,
         customer_phone: cleanPhone || null,
+        customer_email: cleanEmail || null,
         customer_locality: locality || "Srinagar",
         status: "active",
         last_message: cleanText,
         last_message_at: nowIso,
         updated_at: nowIso,
       }, { onConflict: "id" });
+
+      // If phone is present, record/update lead in customers table
+      if (cleanPhone) {
+        await supabase.from("customers").upsert({
+          phone: cleanPhone,
+          name: name,
+          email: cleanEmail || null,
+          locality: locality || "Srinagar (Live Chat)",
+          updated_at: nowIso,
+        }, { onConflict: "phone" });
+      }
     } catch (threadErr) {
-      console.warn("Could not upsert live_chat_threads:", threadErr);
+      console.warn("Could not upsert live_chat_threads / customers:", threadErr);
     }
 
     // 2. Insert message into live_chat_messages
@@ -82,6 +115,7 @@ export async function POST(request: Request) {
         threadId,
         senderName: name,
         phone: cleanPhone,
+        email: cleanEmail,
         locality,
         text: cleanText,
         parentTelegramMsgId: existingTelegramMsgId,

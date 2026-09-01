@@ -4,6 +4,8 @@ import { useEffect, useState, useRef } from "react";
 import { usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
+const RECAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || "6Le7xJQtAAAAAGZUTG4KU1grtYTF_1nVRAiSrL2l";
+
 interface ChatMessage {
   id: string;
   thread_id: string;
@@ -14,14 +16,7 @@ interface ChatMessage {
   status?: "sending" | "sent";
 }
 
-const QUICK_PROMPTS = [
-  "🐟 Is fresh trout available for delivery today?",
-  "🚚 How fast is doorstep delivery in Srinagar?",
-  "🌿 Can I visit the farm in Naseem Bagh?",
-  "🔪 What is the difference between whole & gutted trout?",
-];
-
-// Synthesizes a clean, pleasant notification chime using Web Audio API
+// Web Audio API notification chime for incoming staff replies
 function playChime() {
   try {
     const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -62,17 +57,35 @@ export default function LiveChatWidget() {
   const [inputText, setInputText] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [threadId, setThreadId] = useState<string>("");
+
+  // Customer Lead Fields
   const [customerName, setCustomerName] = useState("");
+  const [customerEmail, setCustomerEmail] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
-  const [showInfoForm, setShowInfoForm] = useState(false);
+  const [isLeadCaptured, setIsLeadCaptured] = useState(false);
+  const [leadError, setLeadError] = useState("");
+
   const [showMenu, setShowMenu] = useState(false);
   const [isClosed, setIsClosed] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Load Google reCAPTCHA v3 script dynamically
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const scriptId = "google-recaptcha-v3-chat";
+    if (!document.getElementById(scriptId)) {
+      const script = document.createElement("script");
+      script.id = scriptId;
+      script.src = `https://www.google.com/recaptcha/api.js?render=${RECAPTCHA_SITE_KEY}`;
+      script.async = true;
+      document.body.appendChild(script);
+    }
+  }, []);
+
   // Do not render on admin dashboard
   if (pathname?.startsWith("/admin")) return null;
 
-  // Initialize or restore session from localStorage
+  // Initialize or restore session
   const initSession = (forceNew = false) => {
     let savedThread = forceNew ? null : localStorage.getItem("ut_live_chat_thread_id");
     if (!savedThread) {
@@ -84,12 +97,17 @@ export default function LiveChatWidget() {
     setMessages([]);
 
     const savedName = localStorage.getItem("ut_live_chat_name") || "";
+    const savedEmail = localStorage.getItem("ut_live_chat_email") || "";
     const savedPhone = localStorage.getItem("ut_live_chat_phone") || "";
+
     setCustomerName(savedName);
+    setCustomerEmail(savedEmail);
     setCustomerPhone(savedPhone);
 
-    if (!savedName && !savedPhone) {
-      setShowInfoForm(true);
+    if (savedName && savedEmail && savedPhone) {
+      setIsLeadCaptured(true);
+    } else {
+      setIsLeadCaptured(false);
     }
   };
 
@@ -106,11 +124,9 @@ export default function LiveChatWidget() {
         const data = await res.json();
         if (data?.success && Array.isArray(data.messages)) {
           setMessages((prev) => {
-            // Merge server messages with any sending messages
             const map = new Map<string, ChatMessage>();
             prev.forEach((m) => map.set(m.id, m));
             data.messages.forEach((m: ChatMessage) => {
-              // If we had an optimistic message with same text & sender, replace it with server message
               for (const [k, v] of Array.from(map.entries())) {
                 if (k.startsWith("opt_") && v.text === m.text && v.sender === m.sender) {
                   map.delete(k);
@@ -123,7 +139,6 @@ export default function LiveChatWidget() {
             );
           });
 
-          // Check if thread was closed
           if (data.messages.some((m: ChatMessage) => m.text.includes("conversation has been ended") || m.text.includes("conversation has ended"))) {
             setIsClosed(true);
           }
@@ -134,11 +149,10 @@ export default function LiveChatWidget() {
 
   // Initial fetch and Realtime subscription
   useEffect(() => {
-    if (!threadId) return;
+    if (!threadId || !isLeadCaptured) return;
 
     fetchHistory(threadId);
 
-    // Supabase Realtime WebSocket listener for instant live messages
     const channel = supabase
       .channel(`chat_${threadId}`)
       .on(
@@ -152,7 +166,6 @@ export default function LiveChatWidget() {
         (payload: { new: ChatMessage }) => {
           const newMsg = payload.new;
           setMessages((prev) => {
-            // Remove optimistic version if present
             const filtered = prev.filter((m) => !(m.id.startsWith("opt_") && m.text === newMsg.text));
             if (filtered.some((m) => m.id === newMsg.id)) return filtered;
             return [...filtered, { ...newMsg, status: "sent" }];
@@ -168,7 +181,6 @@ export default function LiveChatWidget() {
       )
       .subscribe();
 
-    // Fast 1.5s polling fallback for rock-solid zero-latency feel
     const pollInterval = setInterval(() => {
       fetchHistory(threadId);
     }, 1500);
@@ -177,20 +189,63 @@ export default function LiveChatWidget() {
       supabase.removeChannel(channel);
       clearInterval(pollInterval);
     };
-  }, [threadId, isOpen]);
+  }, [threadId, isOpen, isLeadCaptured]);
 
-  // Scroll to bottom whenever messages update
+  // Scroll to bottom
   useEffect(() => {
     if (isOpen) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages, isOpen]);
 
-  const handleSendMessage = async (textToSend?: string) => {
-    const text = (textToSend || inputText).trim();
+  // Handle Starting Chat after Details Form
+  const handleStartChat = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLeadError("");
+
+    const name = customerName.trim();
+    const email = customerEmail.trim().toLowerCase();
+    const phone = customerPhone.replace(/\D/g, "").slice(-10);
+
+    if (!name || name.length < 2) {
+      setLeadError("Please enter your full name.");
+      return;
+    }
+    if (!email || !email.includes("@") || !email.includes(".")) {
+      setLeadError("Please enter a valid email address.");
+      return;
+    }
+    if (!phone || phone.length !== 10) {
+      setLeadError("Please enter a valid 10-digit phone number.");
+      return;
+    }
+
+    localStorage.setItem("ut_live_chat_name", name);
+    localStorage.setItem("ut_live_chat_email", email);
+    localStorage.setItem("ut_live_chat_phone", phone);
+    setIsLeadCaptured(true);
+  };
+
+  const getRecaptchaToken = async (): Promise<string> => {
+    if (typeof window !== "undefined" && window.grecaptcha) {
+      return new Promise<string>((resolve) => {
+        window.grecaptcha.ready(async () => {
+          try {
+            const token = await window.grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: "live_chat_send" });
+            resolve(token);
+          } catch {
+            resolve("");
+          }
+        });
+      });
+    }
+    return "";
+  };
+
+  const handleSendMessage = async () => {
+    const text = inputText.trim();
     if (!text || isSending || !threadId) return;
 
-    // Zero-latency instant UI update
     const optimisticId = `opt_${Date.now()}`;
     const optimisticMsg: ChatMessage = {
       id: optimisticId,
@@ -203,32 +258,33 @@ export default function LiveChatWidget() {
     };
 
     setMessages((prev) => [...prev, optimisticMsg]);
-    if (!textToSend) setInputText("");
+    setInputText("");
     setIsSending(true);
 
     try {
+      const recaptchaToken = await getRecaptchaToken();
+
       const res = await fetch("/api/live-chat/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           threadId,
-          senderName: customerName || "Website Visitor",
-          phone: customerPhone || undefined,
+          senderName: customerName,
+          email: customerEmail,
+          phone: customerPhone,
           locality: "Srinagar",
           text: text,
+          recaptchaToken,
         }),
       });
 
       if (res.ok) {
-        // Mark optimistic message as sent
         setMessages((prev) =>
           prev.map((m) => (m.id === optimisticId ? { ...m, status: "sent" } : m))
         );
-        if (customerName) localStorage.setItem("ut_live_chat_name", customerName);
-        if (customerPhone) localStorage.setItem("ut_live_chat_phone", customerPhone);
       }
     } catch (err) {
-      console.warn("Live chat send notice:", err);
+      console.warn("Live chat send error:", err);
     } finally {
       setIsSending(false);
     }
@@ -264,41 +320,61 @@ export default function LiveChatWidget() {
               setIsOpen(true);
               setHasUnread(false);
             }}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold text-slate-900 bg-cyan-400 shadow-2xl transition-all cursor-pointer animate-bounce"
+            className="flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold text-slate-950 bg-cyan-400 shadow-2xl transition-all cursor-pointer animate-bounce border border-cyan-300"
             style={{ fontFamily: '"Space Grotesk", sans-serif' }}
           >
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
             <span>Farm Team replied! Click to view</span>
           </div>
         )}
 
-        {/* Toggle Button */}
+        {/* Toggle Button with Clean Inline SVG Icon (No Font Glitches) */}
         <button
           type="button"
           onClick={() => {
             setIsOpen(!isOpen);
             setHasUnread(false);
           }}
-          aria-label="Open Live Chat with Farm Team"
+          aria-label="Open Live Chat with Urban Trout Team"
           className="group relative flex items-center justify-center w-14 h-14 rounded-full transition-all duration-300 active:scale-95 cursor-pointer"
           style={{
-            background: "linear-gradient(135deg, #0f4c64, #082937)",
-            border: "1.5px solid rgba(114, 221, 253, 0.4)",
-            boxShadow: "0 0 25px rgba(114, 221, 253, 0.35), 0 8px 24px rgba(0,0,0,0.5)",
+            background: "linear-gradient(135deg, #0e5a77, #072f3f)",
+            border: "1.5px solid rgba(114, 221, 253, 0.6)",
+            boxShadow: "0 0 25px rgba(114, 221, 253, 0.45), 0 8px 24px rgba(0,0,0,0.6)",
           }}
         >
           {/* Online Pulse Indicator */}
           <span className="absolute top-1 right-1 flex h-3.5 w-3.5">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border-2 border-slate-950" />
+            <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-400 border-2 border-slate-950" />
           </span>
 
           {isOpen ? (
-            <span className="material-symbols-outlined text-cyan-300 text-2xl">close</span>
+            /* Clean SVG Close Icon */
+            <svg
+              className="w-6 h-6 text-cyan-200 transition-transform group-hover:rotate-90"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth="2.5"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
           ) : (
-            <span className="material-symbols-outlined text-cyan-300 text-2xl group-hover:scale-110 transition-transform">
-              chat_bubble
-            </span>
+            /* Clean SVG Speech Bubble Icon */
+            <svg
+              className="w-7 h-7 text-cyan-200 transition-transform group-hover:scale-110"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+              />
+            </svg>
           )}
         </button>
       </div>
@@ -306,262 +382,319 @@ export default function LiveChatWidget() {
       {/* ─── LIVE CHAT POPUP WINDOW ─── */}
       {isOpen && (
         <div
-          className="fixed bottom-24 right-4 sm:right-6 z-50 w-[92vw] sm:w-[390px] h-[550px] max-h-[82vh] rounded-3xl flex flex-col overflow-hidden shadow-2xl transition-all border animate-fade-in"
+          className="fixed bottom-24 right-4 sm:right-6 z-50 w-[92vw] sm:w-[400px] h-[560px] max-h-[82vh] rounded-3xl flex flex-col overflow-hidden shadow-2xl transition-all border animate-fade-in"
           style={{
-            background: "rgba(6, 23, 34, 0.95)",
-            borderColor: "rgba(114, 221, 253, 0.25)",
-            backdropFilter: "blur(20px)",
-            boxShadow: "0 20px 50px rgba(0,0,0,0.8), 0 0 30px rgba(114,221,253,0.15)",
+            background: "rgba(4, 15, 24, 0.98)",
+            borderColor: "rgba(114, 221, 253, 0.35)",
+            backdropFilter: "blur(24px)",
+            boxShadow: "0 20px 60px rgba(0,0,0,0.9), 0 0 35px rgba(114,221,253,0.2)",
           }}
         >
-          {/* ── Chat Header ── */}
-          <div className="relative flex items-center justify-between px-4 py-3.5 bg-slate-950/90 border-b border-slate-800/80">
+          {/* ── Header ── */}
+          <div className="relative flex items-center justify-between px-4 py-3.5 bg-slate-950/95 border-b border-cyan-900/40">
             <div className="flex items-center gap-3">
               <div className="relative">
                 <img
                   src="/sitelogo.png"
                   alt="Urban Trout"
-                  className="w-9 h-9 rounded-xl object-contain bg-slate-900 p-1 border border-cyan-500/30"
+                  className="w-10 h-10 rounded-xl object-contain bg-slate-900 p-1 border border-cyan-500/40 shadow-inner"
                 />
-                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 border border-slate-950" />
+                <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 border-2 border-slate-950" />
               </div>
               <div>
-                <h3 className="text-sm font-bold text-white leading-tight" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
-                  Urban Trout Live Support
+                <h3
+                  className="text-sm font-bold text-white tracking-wide leading-tight"
+                  style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                >
+                  Urban Trout Support
                 </h3>
-                <p className="text-[10px] text-emerald-400 flex items-center gap-1 font-mono">
+                <p className="text-[11px] text-emerald-400 flex items-center gap-1.5 font-medium">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   Farm Team Live · Replies in &lt; 2 mins
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-1">
-              {/* Header Options Menu */}
+            <div className="flex items-center gap-1.5">
+              {/* Options Menu Button (SVG) */}
               <button
                 type="button"
                 onClick={() => setShowMenu(!showMenu)}
-                aria-label="Chat Options"
-                className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800/60 transition-colors"
+                aria-label="Chat Menu"
+                className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition-colors"
               >
-                <span className="material-symbols-outlined text-base">more_vert</span>
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v.01M12 12v.01M12 19v.01" />
+                </svg>
               </button>
 
+              {/* Close Button (SVG) */}
               <button
                 type="button"
                 onClick={() => setIsOpen(false)}
-                className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800/60 transition-colors"
+                className="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition-colors"
               >
-                <span className="material-symbols-outlined text-base">close</span>
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
 
             {/* Dropdown Menu */}
             {showMenu && (
-              <div className="absolute top-14 right-4 z-20 w-48 rounded-2xl bg-slate-900 border border-slate-800 shadow-2xl py-1.5 text-xs text-slate-300 animate-fade-in">
+              <div className="absolute top-14 right-4 z-20 w-48 rounded-2xl bg-slate-900 border border-slate-700 shadow-2xl py-1.5 text-xs text-slate-200 animate-fade-in">
                 <button
                   type="button"
                   onClick={handleEndChat}
-                  className="w-full px-3.5 py-2 text-left hover:bg-red-500/15 text-red-400 flex items-center gap-2 transition-colors cursor-pointer"
+                  className="w-full px-3.5 py-2 text-left hover:bg-red-500/20 text-red-400 flex items-center gap-2 transition-colors cursor-pointer font-medium"
                 >
-                  <span className="material-symbols-outlined text-base">power_settings_new</span>
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M5.636 18.364a9 9 0 010-12.728m12.728 0a9 9 0 010 12.728m-9.9-2.828a5 5 0 010-7.072m7.072 0a5 5 0 010 7.072M12 3v9" />
+                  </svg>
                   <span>End Conversation</span>
                 </button>
                 <button
                   type="button"
                   onClick={handleStartNewChat}
-                  className="w-full px-3.5 py-2 text-left hover:bg-cyan-500/15 text-cyan-300 flex items-center gap-2 transition-colors cursor-pointer"
+                  className="w-full px-3.5 py-2 text-left hover:bg-cyan-500/20 text-cyan-300 flex items-center gap-2 transition-colors cursor-pointer font-medium"
                 >
-                  <span className="material-symbols-outlined text-base">refresh</span>
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
                   <span>Start New Chat</span>
                 </button>
               </div>
             )}
           </div>
 
-          {/* ── Optional Visitor Info Bar ── */}
-          {showInfoForm && !isClosed && (
-            <div className="px-4 py-2.5 bg-cyan-950/40 border-b border-cyan-500/20 text-xs flex flex-col gap-2">
-              <div className="flex items-center justify-between text-[11px] text-cyan-300 font-semibold">
-                <span>Want reply on WhatsApp too? (Optional)</span>
-                <button
-                  type="button"
-                  onClick={() => setShowInfoForm(false)}
-                  className="text-slate-400 hover:text-white"
+          {/* ── Body: Lead Capture Gate vs Live Chat Conversation ── */}
+          {!isLeadCaptured ? (
+            /* ── MANDATORY LEAD ONBOARDING FORM ── */
+            <div className="flex-1 p-5 flex flex-col justify-center overflow-y-auto bg-slate-950/60 font-sans">
+              <div className="text-center mb-4 space-y-1">
+                <div className="w-12 h-12 rounded-2xl bg-cyan-950/80 border border-cyan-500/40 flex items-center justify-center mx-auto text-cyan-300 mb-2 shadow-lg shadow-cyan-500/10">
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
+                  </svg>
+                </div>
+                <h4
+                  className="text-base font-bold text-white tracking-wide"
+                  style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                 >
-                  Skip
-                </button>
-              </div>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Your Name"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  className="w-1/2 px-2.5 py-1.5 rounded-lg bg-slate-900/80 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
-                />
-                <input
-                  type="tel"
-                  placeholder="WhatsApp Phone"
-                  value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
-                  className="w-1/2 px-2.5 py-1.5 rounded-lg bg-slate-900/80 border border-slate-700 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* ── Message Area ── */}
-          <div className="flex-1 p-4 overflow-y-auto space-y-3 font-sans">
-            {/* Greeting Card */}
-            <div className="p-3.5 rounded-2xl bg-cyan-950/30 border border-cyan-500/20 text-xs text-slate-300 space-y-2">
-              <div className="flex items-center gap-2 text-cyan-400 font-bold">
-                <span className="material-symbols-outlined text-base">waving_hand</span>
-                <span>Welcome to Urban Trout!</span>
-              </div>
-              <p className="text-[11px] text-slate-400 leading-relaxed">
-                Have a question about fresh harvest, same-day Srinagar delivery, custom trout cuts, or farm visits? Ask us below!
-              </p>
-            </div>
-
-            {/* Quick Suggestion Chips (Shown if no messages yet) */}
-            {messages.length === 0 && !isClosed && (
-              <div className="space-y-1.5 pt-1">
-                <p className="text-[10px] uppercase font-bold tracking-wider text-slate-500 font-mono">
-                  Quick Questions:
+                  Start Live Chat
+                </h4>
+                <p className="text-xs text-slate-400 max-w-[260px] mx-auto leading-relaxed">
+                  Please provide your contact details to connect with our Srinagar farm team.
                 </p>
-                <div className="flex flex-col gap-1.5">
-                  {QUICK_PROMPTS.map((prompt, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => handleSendMessage(prompt)}
-                      className="text-left px-3 py-2 rounded-xl bg-slate-900/80 hover:bg-cyan-950/50 border border-slate-800 hover:border-cyan-500/40 text-[11px] text-slate-300 hover:text-cyan-300 transition-all cursor-pointer shadow-sm"
-                      style={{ fontFamily: '"Manrope", sans-serif' }}
-                    >
-                      {prompt}
-                    </button>
-                  ))}
-                </div>
               </div>
-            )}
 
-            {/* Messages List */}
-            {messages.map((msg) => {
-              const isMe = msg.sender === "customer";
-              return (
-                <div
-                  key={msg.id}
-                  className={`flex flex-col ${isMe ? "items-end" : "items-start"} space-y-1`}
-                >
-                  <div className="flex items-center gap-1.5 px-1">
-                    <span className="text-[10px] text-slate-500 font-medium">
-                      {isMe ? "You" : msg.sender_name || "Farm Team"}
-                    </span>
-                    {!isMe && (
-                      <span className="px-1 py-0.5 rounded bg-cyan-500/20 text-cyan-300 text-[8px] font-bold uppercase font-mono">
-                        Staff
-                      </span>
-                    )}
-                  </div>
-                  <div
-                    className={`max-w-[82%] px-3.5 py-2.5 rounded-2xl text-xs leading-relaxed ${
-                      isMe
-                        ? "bg-gradient-to-r from-cyan-500 to-cyan-600 text-slate-950 font-medium rounded-br-none shadow-md shadow-cyan-500/10"
-                        : "bg-slate-900 border border-slate-800 text-slate-200 rounded-bl-none shadow-md"
-                    }`}
-                    style={{ fontFamily: '"Manrope", sans-serif' }}
-                  >
-                    {msg.text}
-                  </div>
-                  <div className="flex items-center gap-1 px-1">
-                    <span className="text-[9px] text-slate-600 font-mono">
-                      {new Date(msg.created_at).toLocaleTimeString("en-IN", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </span>
-                    {isMe && (
-                      <span className="text-[10px] text-cyan-400">
-                        {msg.status === "sending" ? "✓" : "✓✓"}
-                      </span>
-                    )}
+              {leadError && (
+                <div className="mb-3 px-3 py-2 rounded-xl bg-red-950/60 border border-red-500/40 text-red-300 text-xs text-center font-medium animate-fade-in">
+                  {leadError}
+                </div>
+              )}
+
+              <form onSubmit={handleStartChat} className="space-y-3">
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-300 uppercase tracking-wider mb-1">
+                    Your Name *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Aamir Khan"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-300 uppercase tracking-wider mb-1">
+                    Email Address *
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    placeholder="e.g. aamir@gmail.com"
+                    value={customerEmail}
+                    onChange={(e) => setCustomerEmail(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-300 uppercase tracking-wider mb-1">
+                    Phone Number (10-Digit) *
+                  </label>
+                  <div className="relative flex items-center">
+                    <span className="absolute left-3 text-xs font-bold text-slate-400">+91</span>
+                    <input
+                      type="tel"
+                      required
+                      maxLength={10}
+                      placeholder="94190 00000"
+                      value={customerPhone}
+                      onChange={(e) => setCustomerPhone(e.target.value.replace(/\D/g, ""))}
+                      className="w-full pl-12 pr-3.5 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all font-mono font-medium"
+                    />
                   </div>
                 </div>
-              );
-            })}
 
-            {/* Closed Conversation State Banner */}
-            {isClosed && (
-              <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 text-center space-y-2.5 animate-fade-in my-2">
-                <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center mx-auto text-slate-400">
-                  <span className="material-symbols-outlined text-lg">check</span>
-                </div>
-                <p className="text-xs text-slate-300 font-semibold">Conversation Ended</p>
-                <p className="text-[11px] text-slate-400">
-                  Thank you for reaching out to Urban Trout. We are always ready to help!
-                </p>
-                <button
-                  type="button"
-                  onClick={handleStartNewChat}
-                  className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs transition-all cursor-pointer shadow-lg shadow-cyan-500/20"
-                >
-                  Start New Conversation
-                </button>
-              </div>
-            )}
-
-            <div ref={messagesEndRef} />
-          </div>
-
-          {/* ── Input Box ── */}
-          {!isClosed ? (
-            <div className="p-3 bg-slate-950 border-t border-slate-800/80">
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  handleSendMessage();
-                }}
-                className="flex items-center gap-2"
-              >
-                <input
-                  type="text"
-                  placeholder="Ask about fresh trout, delivery, etc…"
-                  value={inputText}
-                  onChange={(e) => setInputText(e.target.value)}
-                  disabled={isSending}
-                  className="flex-1 px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all"
-                  style={{ fontFamily: '"Manrope", sans-serif' }}
-                />
                 <button
                   type="submit"
-                  disabled={isSending || !inputText.trim()}
-                  className="w-10 h-10 rounded-xl bg-cyan-500 hover:bg-cyan-400 active:scale-95 disabled:opacity-40 text-slate-950 flex items-center justify-center transition-all cursor-pointer shadow-lg shadow-cyan-500/20"
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-cyan-400 hover:from-cyan-400 hover:to-cyan-300 text-slate-950 font-bold text-xs tracking-wide uppercase transition-all duration-200 active:scale-98 shadow-lg shadow-cyan-500/25 cursor-pointer mt-2"
+                  style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                 >
-                  <span className="material-symbols-outlined text-lg">send</span>
+                  Start Conversation →
                 </button>
+
+                <p className="text-[10px] text-slate-500 text-center flex items-center justify-center gap-1 pt-1 font-sans">
+                  <span>🔒 Protected by reCAPTCHA</span>
+                </p>
               </form>
-              <div className="flex items-center justify-between text-[9px] text-slate-600 mt-2 font-mono px-1">
-                <span>⚡ Live connected to Telegram</span>
-                <button
-                  type="button"
-                  onClick={handleEndChat}
-                  className="text-slate-500 hover:text-red-400 transition-colors"
-                >
-                  End Chat
-                </button>
-              </div>
             </div>
           ) : (
-            <div className="p-3 bg-slate-950 border-t border-slate-800/80 text-center">
-              <button
-                type="button"
-                onClick={handleStartNewChat}
-                className="text-xs text-cyan-400 hover:text-cyan-300 font-bold underline"
-              >
-                Click here to start a new chat
-              </button>
-            </div>
+            /* ── ACTIVE CHAT CONVERSATION VIEW ── */
+            <>
+              {/* Message Scroll Area */}
+              <div className="flex-1 p-4 overflow-y-auto space-y-3.5 font-sans bg-slate-950/40">
+                {/* Greeting Card */}
+                <div className="p-3.5 rounded-2xl bg-cyan-950/40 border border-cyan-500/30 text-xs text-slate-200 space-y-1.5 shadow-sm">
+                  <div className="flex items-center gap-2 text-cyan-300 font-bold text-xs">
+                    <span>👋</span>
+                    <span>Hi {customerName || "there"}!</span>
+                  </div>
+                  <p className="text-[11px] text-slate-300 leading-relaxed font-normal">
+                    How can we assist you today? Type your message below and our farm team in Naseem Bagh will reply live.
+                  </p>
+                </div>
+
+                {/* Messages List */}
+                {messages.map((msg) => {
+                  const isMe = msg.sender === "customer";
+                  return (
+                    <div
+                      key={msg.id}
+                      className={`flex flex-col ${isMe ? "items-end" : "items-start"} space-y-1`}
+                    >
+                      <div className="flex items-center gap-1.5 px-1">
+                        <span className="text-[10px] text-slate-400 font-semibold">
+                          {isMe ? "You" : msg.sender_name || "Farm Team"}
+                        </span>
+                        {!isMe && (
+                          <span className="px-1.5 py-0.5 rounded bg-cyan-500/25 text-cyan-300 text-[9px] font-bold uppercase font-mono border border-cyan-500/40">
+                            Support
+                          </span>
+                        )}
+                      </div>
+                      <div
+                        className={`max-w-[84%] px-4 py-2.5 rounded-2xl text-[13px] leading-relaxed break-words font-medium ${
+                          isMe
+                            ? "bg-gradient-to-r from-cyan-500 to-cyan-400 text-slate-950 rounded-br-none shadow-md shadow-cyan-500/15"
+                            : "bg-slate-900 border border-slate-700 text-white rounded-bl-none shadow-md"
+                        }`}
+                        style={{ fontFamily: '"Manrope", sans-serif' }}
+                      >
+                        {msg.text}
+                      </div>
+                      <div className="flex items-center gap-1 px-1">
+                        <span className="text-[10px] text-slate-400 font-mono">
+                          {new Date(msg.created_at).toLocaleTimeString("en-IN", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                        {isMe && (
+                          <span className="text-[11px] text-cyan-400 font-bold">
+                            {msg.status === "sending" ? "✓" : "✓✓"}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+
+                {/* Closed Conversation State Banner */}
+                {isClosed && (
+                  <div className="p-4 rounded-2xl bg-slate-900/95 border border-slate-700 text-center space-y-2.5 animate-fade-in my-2 shadow-xl">
+                    <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center mx-auto text-emerald-400 border border-slate-600">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    </div>
+                    <p className="text-xs text-white font-bold">Conversation Ended</p>
+                    <p className="text-[11px] text-slate-300">
+                      Thank you for contacting Urban Trout. We are always happy to help!
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleStartNewChat}
+                      className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs transition-all cursor-pointer shadow-lg shadow-cyan-500/25"
+                    >
+                      Start New Conversation
+                    </button>
+                  </div>
+                )}
+
+                <div ref={messagesEndRef} />
+              </div>
+
+              {/* ── Input Box ── */}
+              {!isClosed ? (
+                <div className="p-3 bg-slate-950 border-t border-slate-800">
+                  <form
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      handleSendMessage();
+                    }}
+                    className="flex items-center gap-2"
+                  >
+                    <input
+                      type="text"
+                      placeholder="Type your message here…"
+                      value={inputText}
+                      onChange={(e) => setInputText(e.target.value)}
+                      disabled={isSending}
+                      className="flex-1 px-4 py-2.5 rounded-xl bg-slate-900 border border-slate-700 text-white text-xs placeholder-slate-400 focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400 transition-all font-medium"
+                      style={{ fontFamily: '"Manrope", sans-serif' }}
+                    />
+                    <button
+                      type="submit"
+                      disabled={isSending || !inputText.trim()}
+                      className="w-10 h-10 rounded-xl bg-cyan-500 hover:bg-cyan-400 active:scale-95 disabled:opacity-40 text-slate-950 flex items-center justify-center transition-all cursor-pointer shadow-lg shadow-cyan-500/20"
+                    >
+                      <svg className="w-5 h-5 text-slate-950" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                      </svg>
+                    </button>
+                  </form>
+                  <div className="flex items-center justify-between text-[10px] text-slate-400 mt-2 font-mono px-1">
+                    <span className="text-emerald-400 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                      Online Support
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleEndChat}
+                      className="text-slate-400 hover:text-red-400 transition-colors cursor-pointer"
+                    >
+                      End Chat
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3 bg-slate-950 border-t border-slate-800 text-center">
+                  <button
+                    type="button"
+                    onClick={handleStartNewChat}
+                    className="text-xs text-cyan-400 hover:text-cyan-300 font-bold underline cursor-pointer"
+                  >
+                    Click here to start a new chat
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}

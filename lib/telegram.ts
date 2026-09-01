@@ -396,6 +396,7 @@ export async function notifyLiveChatMessage(params: {
   threadId: string;
   senderName: string;
   phone?: string;
+  email?: string;
   locality?: string;
   text: string;
   parentTelegramMsgId?: number;
@@ -405,7 +406,7 @@ export async function notifyLiveChatMessage(params: {
   
   let msg = isFollowUp
     ? `💬 <b>Follow-up from ${params.senderName || "Visitor"}:</b>\n<i>"${params.text}"</i>\n\n👉 <i>Swipe reply here to answer live</i>\n<code>#chat_${params.threadId}</code>`
-    : `💬 <b>NEW LIVE CHAT INQUIRY</b> ⚡\n━━━━━━━━━━━━━━━━━━━━\n👤 <b>Customer:</b> ${params.senderName || "Website Visitor"}\n${cleanPhone ? `📞 <b>Phone:</b> <a href="tel:+91${cleanPhone}">+91 ${cleanPhone}</a>\n` : ""}${params.locality ? `📍 <b>Locality:</b> ${params.locality}\n` : ""}━━━━━━━━━━━━━━━━━━━━\n💬 <b>Message:</b>\n<i>"${params.text}"</i>\n\n👉 <b>To reply:</b> <i>Swipe right and Reply to THIS message in Telegram. Your reply appears live on their screen!</i>\n<code>#chat_${params.threadId}</code>`;
+    : `💬 <b>NEW LIVE CHAT INQUIRY</b> ⚡\n━━━━━━━━━━━━━━━━━━━━\n👤 <b>Customer:</b> ${params.senderName || "Website Visitor"}\n${cleanPhone ? `📞 <b>Phone:</b> <a href="tel:+91${cleanPhone}">+91 ${cleanPhone}</a>\n` : ""}${params.email ? `✉️ <b>Email:</b> ${params.email}\n` : ""}${params.locality ? `📍 <b>Locality:</b> ${params.locality}\n` : ""}━━━━━━━━━━━━━━━━━━━━\n💬 <b>Message:</b>\n<i>"${params.text}"</i>\n\n👉 <b>To reply:</b> <i>Swipe right and Reply to THIS message in Telegram. Your reply appears live on their screen!</i>\n<code>#chat_${params.threadId}</code>`;
 
   const buttons: InlineKeyboardButton[][] = [];
   const actionRow: InlineKeyboardButton[] = [];
