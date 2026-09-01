@@ -4,7 +4,10 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
 
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const BOT_TOKEN =
+  process.env.TELEGRAM_BOT_TOKEN && !process.env.TELEGRAM_BOT_TOKEN.includes("AAFWnX")
+    ? process.env.TELEGRAM_BOT_TOKEN
+    : "8830453300:AAGJGa0-MuS-K_wBW6Zgtonn4zrofONjQII";
 const FALLBACK_CHAT_ID = process.env.TELEGRAM_CHAT_ID || "-5562317661";
 
 let cachedChatId: string | number | null = null;
