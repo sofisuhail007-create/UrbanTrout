@@ -1,14 +1,39 @@
 import type { Metadata } from "next";
+import dynamic from "next/dynamic";
+import { Space_Grotesk, Manrope, Inter } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import CartDrawer from "@/components/CartDrawer";
-import WhatsAppButton from "@/components/WhatsAppButton";
-import LiveChatWidget from "@/components/LiveChatWidget";
 import { CartProvider } from "@/context/CartContext";
 import { Toaster } from "react-hot-toast";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+
+// Optimized Dynamic Preload for non-critical interactive widgets
+const CartDrawer = dynamic(() => import("@/components/CartDrawer"));
+const WhatsAppButton = dynamic(() => import("@/components/WhatsAppButton"));
+const LiveChatWidget = dynamic(() => import("@/components/LiveChatWidget"));
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-space-grotesk",
+  display: "swap",
+});
+
+const manrope = Manrope({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-manrope",
+  display: "swap",
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-inter",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://urbantrout.in"),
@@ -137,27 +162,14 @@ const jsonLd = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className={`dark ${spaceGrotesk.variable} ${manrope.variable} ${inter.variable}`}>
       <head>
-        <link
-          rel="preconnect"
-          href="https://fonts.googleapis.com"
-        />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Manrope:wght@200;300;400;500;600;700&family=Inter:wght@300;400;500;600;700;800;900&display=swap"
-        />
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block"
-        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-      <body className="bg-[#031018] text-[#dfedf9] antialiased">
+      <body className={`${manrope.className} bg-[#031018] text-[#dfedf9] antialiased selection:bg-cyan-500/20 selection:text-cyan-300`}>
         <CartProvider>
           <Toaster 
             position="bottom-center"
@@ -166,7 +178,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 background: '#10212c',
                 color: '#dfedf9',
                 border: '1px solid #3d4a53',
-                fontFamily: '"Manrope", sans-serif',
+                fontFamily: 'var(--font-manrope), sans-serif',
                 boxShadow: '0 4px 30px rgba(0, 0, 0, 0.5)'
               },
             }}

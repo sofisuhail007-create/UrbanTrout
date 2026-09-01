@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useCart } from "@/context/CartContext";
 import { Product } from "@/lib/data";
 
@@ -60,14 +61,16 @@ export default function ProductCard({ p }: { p: Product }) {
         className="relative block overflow-hidden cursor-pointer"
         style={{ aspectRatio: "16/9" }}
       >
-        <img
+        <Image
           src={p.img}
           alt={p.name}
-          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+          fill
+          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          className="object-cover transition-transform duration-700 group-hover:scale-105"
         />
         {/* Gradient overlay — subtle, only at bottom */}
         <div
-          className="absolute inset-0 pointer-events-none"
+          className="absolute inset-0 pointer-events-none z-10"
           style={{ background: "linear-gradient(to top, rgba(16,33,44,0.85) 0%, rgba(16,33,44,0.1) 50%, transparent 100%)" }}
         />
 

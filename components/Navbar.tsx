@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 import { useState } from "react";
@@ -33,9 +34,12 @@ export default function Navbar() {
         <div className="flex items-center justify-between px-6 py-3">
           {/* Logo */}
           <Link href="/" className="flex items-center group py-0.5">
-            <img
+            <Image
               src="/headerfooterlogo.png"
               alt="Urban Trout"
+              width={160}
+              height={36}
+              priority
               className="h-8 sm:h-9 w-auto object-contain transition-transform group-hover:scale-105"
             />
           </Link>

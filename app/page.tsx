@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 import { products } from "@/lib/data";
 import ProductCard from "@/components/ProductCard";
 import { supabase } from "@/lib/supabase";
@@ -123,12 +124,18 @@ export default async function HomePage() {
         `}} />
 
         {/* Background image */}
-        <img
-          src="https://lh3.googleusercontent.com/aida-public/AB6AXuBzsgreAxmSUuY16l46SuMrUrm-FYT8H80nikIPS7yYwGm9-I2pOkscmW2FVw1BmrRVkAJ8rbYHvkA0vfdbLwR9XHXTANxRa2kukMU82pX1_ShQ9pwdsRAwYpJHu8oYRZJ2av8Qz2BIlCedGAjS8VrTId2Xh-4qjp1CDQBxGXDlmGr2AqrMblwYX-dXBXtJvuTR86Q-jzZuSEWDcYdmc_hE9qSZhQMsSwQAhoJ_Pdw832jsUMNdWKIDNLJ0u43uSnVdGze5cTFtzFD2"
-          alt="Fresh Rainbow Trout in Srinagar Kashmir"
-          className="animate-hero-drift"
-          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", filter: "brightness(0.35) saturate(0.8)" }}
-        />
+        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+          <Image
+            src="https://lh3.googleusercontent.com/aida-public/AB6AXuBzsgreAxmSUuY16l46SuMrUrm-FYT8H80nikIPS7yYwGm9-I2pOkscmW2FVw1BmrRVkAJ8rbYHvkA0vfdbLwR9XHXTANxRa2kukMU82pX1_ShQ9pwdsRAwYpJHu8oYRZJ2av8Qz2BIlCedGAjS8VrTId2Xh-4qjp1CDQBxGXDlmGr2AqrMblwYX-dXBXtJvuTR86Q-jzZuSEWDcYdmc_hE9qSZhQMsSwQAhoJ_Pdw832jsUMNdWKIDNLJ0u43uSnVdGze5cTFtzFD2"
+            alt="Fresh Rainbow Trout in Srinagar Kashmir"
+            fill
+            priority
+            quality={75}
+            sizes="100vw"
+            className="animate-hero-drift object-cover"
+            style={{ filter: "brightness(0.35) saturate(0.8)" }}
+          />
+        </div>
         
         {/* Ambient Bubbles */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
