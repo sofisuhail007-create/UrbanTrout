@@ -881,7 +881,8 @@ export default function CheckoutPage() {
         // Already handled above
       } else {
         console.error("Razorpay payment error:", err);
-        setRazorpayError("Something went wrong. Please try again or contact us on WhatsApp.");
+        const msg = err instanceof Error ? err.message : "Something went wrong. Please try again or contact us on WhatsApp.";
+        setRazorpayError(msg);
       }
     } finally {
       setIsSubmitting(false);
