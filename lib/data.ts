@@ -8,6 +8,9 @@ export type Product = {
   label: string;
   desc: string;
   minQuantity?: number;
+  // Fields used by dynamically added products from DB
+  image_url?: string;
+  description?: string;
 };
 
 export const products: Product[] = [

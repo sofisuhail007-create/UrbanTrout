@@ -1,7 +1,9 @@
-"use client";
-import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useCart } from "@/context/CartContext";
+import { products } from "@/lib/data";
+import ProductCard from "@/components/ProductCard";
+import { supabase } from "@/lib/supabase";
+
+export const dynamic = "force-dynamic";
 
 const C = {
   bg: "#031018", bgLow: "#06151e", bgHigh: "#10212c", bgHighest: "#152834",
@@ -9,37 +11,81 @@ const C = {
   onSurface: "#dfedf9", onSurfVar: "#9fadb8", outline: "#6a7782", outlineVar: "#3d4a53",
 };
 
-import { products } from "@/lib/data";
-import ProductCard from "@/components/ProductCard";
-import { supabase } from "@/lib/supabase";
+// Metadata lookup for known products
+const PRODUCT_META: Record<string, { img: string; label: string; desc: string }> = {
+  "gutted-trout": {
+    img: "/images/gutted_trout_premium.png",
+    label: "CLEANED & GUTTED",
+    desc: "Expertly cleaned, gutted, and ready to cook. Harvested fresh to order and chilled for delivery.",
+  },
+  "whole-trout": {
+    img: "https://lh3.googleusercontent.com/aida-public/AB6AXuA6az_W5rdEt8WkOzLnn861EIuB2tv1E9ZBuYuxXAnLFmG7ZsCCb0WyuI___JpO7YjI9Vf_XYBLXYanCVvdJyrbf-CarB6-5xxisc34AV5zB1gV5AElNc-POwd_DAA12ADx0vUX87WKN2GVXZapRsMugASCSZsBjri-8d9uI957NqfLv1Hau8-DgJfLrNJoRtSKwJo6uFM1V-GDVCSznDSww8vBl8jD_s-iPkmhUcOhQ6ekndTbbBSJCBon4pCpkvihVwAcuF4JCTVc",
+    label: "WHOLE FRESH FISH",
+    desc: "Fresh whole trout straight from our farm. Ideal for pan-frying, roasting, grilling, or curries.",
+  },
+};
 
-export default function ShopPage() {
-  const [productList, setProductList] = useState(products);
+export default async function ShopPage() {
+  const { data: invData } = await supabase
+    .from("inventory")
+    .select("*")
+    .eq("available", true)
+    .order("product_name");
 
-  useEffect(() => {
-    async function loadPrices() {
-      const { data } = await supabase.from("inventory").select("*");
-      if (data) {
-        setProductList((prev) =>
-          prev.map((p) => {
-            const dbItem = data.find((item) => item.product_id === p.id);
-            const price = dbItem?.price_per_kg || p.price;
-            const minQuantity = dbItem?.min_order_kg ? Number(dbItem.min_order_kg) : (p.minQuantity || 2);
-            const originalPrice = dbItem?.original_price_per_kg
-              ? Number(dbItem.original_price_per_kg)
-              : (p.originalPrice || (p.id === "gutted-trout" ? 650 : 600));
-            return {
-              ...p,
-              price,
-              minQuantity,
-              originalPrice,
-            };
-          })
-        );
-      }
-    }
-    loadPrices();
-  }, []);
+  const { data: metaRows } = await supabase
+    .from("app_settings")
+    .select("*")
+    .like("key", "product_meta_%");
+
+  const metaMap: Record<string, any> = {};
+  (metaRows || []).forEach((r) => {
+    try {
+      metaMap[r.key.replace("product_meta_", "")] = JSON.parse(r.value);
+    } catch (e) {}
+  });
+
+  const productList =
+    invData && invData.length > 0
+      ? invData.map((item) => {
+          const hardcoded = PRODUCT_META[item.product_id];
+          const savedMeta = metaMap[item.product_id] || {};
+          const price = Number(item.price_per_kg);
+          const originalPrice = item.original_price_per_kg
+            ? Number(item.original_price_per_kg)
+            : savedMeta.original_price_per_kg
+            ? Number(savedMeta.original_price_per_kg)
+            : item.product_id === "gutted-trout"
+            ? 650
+            : item.product_id === "whole-trout"
+            ? 600
+            : Math.round(price * 1.2);
+          const minQuantity = item.min_order_kg
+            ? Number(item.min_order_kg)
+            : savedMeta.min_order_kg
+            ? Number(savedMeta.min_order_kg)
+            : 2;
+
+          return {
+            id: item.product_id,
+            name: item.product_name,
+            price,
+            originalPrice,
+            unit: "Kg",
+            label: (item as any).label || savedMeta.label || hardcoded?.label || "FRESH TROUT",
+            desc:
+              (item as any).description ||
+              savedMeta.description ||
+              hardcoded?.desc ||
+              "Fresh premium farm trout harvested to order.",
+            img:
+              (item as any).image_url ||
+              savedMeta.image_url ||
+              hardcoded?.img ||
+              "/images/gutted_trout_premium.png",
+            minQuantity,
+          };
+        })
+      : products;
 
   return (
     <div style={{ background: C.bg, minHeight: "100vh" }}>
@@ -62,7 +108,9 @@ export default function ShopPage() {
 
         {/* Products Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl">
-          {productList.map((p) => <ProductCard key={p.id} p={p} />)}
+          {productList.map((p) => (
+            <ProductCard key={p.id} p={p} />
+          ))}
         </div>
       </section>
 
