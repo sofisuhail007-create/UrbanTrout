@@ -268,6 +268,7 @@ export function formatOrderTelegramText(order: {
   status?: string;
   total: number;
   paymentMethod?: string;
+  razorpayPaymentId?: string;
   utrNumber?: string;
   customerName: string;
   phone: string;
@@ -280,7 +281,7 @@ export function formatOrderTelegramText(order: {
   const status = order.status || "pending";
 
   const statusLabel =
-    status === "processing"
+    status === "processing" || status === "confirmed"
       ? "✅ <b>PAYMENT VERIFIED (CONFIRMED & HARVESTING)</b>"
       : status === "out_for_delivery"
       ? "🚚 <b>OUT FOR DELIVERY (RIDER DISPATCHED)</b>"
@@ -294,11 +295,15 @@ export function formatOrderTelegramText(order: {
     ? order.items.map(i => `• <b>${i.name}</b> x ${i.quantity} ${i.unit || "Kg"} (₹${i.price * i.quantity})`).join("\n")
     : "• Rainbow Trout Order";
 
+  const paymentText = order.razorpayPaymentId
+    ? `RAZORPAY ✅ (ID: <code>${order.razorpayPaymentId}</code>)`
+    : (order.paymentMethod || "UPI").toUpperCase() + (order.utrNumber ? ` (UTR: <code>${order.utrNumber}</code>)` : "");
+
   return `🚨 <b>ORDER #${order.orderNumber}</b> 🐟✨
 ━━━━━━━━━━━━━━━━━━━━
 <b>Status:</b> ${statusLabel}
 <b>Total:</b> <b>₹${Number(order.total || 0).toLocaleString("en-IN")}</b>
-<b>Payment:</b> ${(order.paymentMethod || "UPI").toUpperCase()}${order.utrNumber ? ` (UTR: <code>${order.utrNumber}</code>)` : ""}
+<b>Payment:</b> ${paymentText}
 
 👤 <b>Customer Details:</b>
 • <b>Name:</b> ${order.customerName}
@@ -322,12 +327,13 @@ export async function notifyNewOrder(order: {
   items: Array<{ name: string; quantity: number; unit?: string; price: number }>;
   total: number;
   paymentMethod: string;
+  razorpayPaymentId?: string;
   utrNumber?: string;
   status?: string;
 }) {
   const cleanPhone = String(order.phone || "").replace(/\D/g, "").slice(-10);
   const msg = formatOrderTelegramText(order);
-  const keyboard = getOrderKeyboard(order.orderNumber, order.status || "pending", cleanPhone, order.customerName);
+  const keyboard = getOrderKeyboard(order.orderNumber, order.status || "confirmed", cleanPhone, order.customerName);
 
   return sendTelegramMessage(msg, "HTML", keyboard);
 }

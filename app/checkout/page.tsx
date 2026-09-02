@@ -265,6 +265,7 @@ export default function CheckoutPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState<any>(null);
   const [razorpayError, setRazorpayError] = useState("");
+  const [copiedOrderId, setCopiedOrderId] = useState(false);
 
   // ─── Form Data State ───
   const [formData, setFormData] = useState({
@@ -813,7 +814,7 @@ export default function CheckoutPage() {
                 );
               } catch (e) {}
 
-              // Telegram notification
+              // Telegram & Email notification
               fetch("/api/telegram-notify", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
@@ -831,34 +832,41 @@ export default function CheckoutPage() {
                     subtotal: total,
                     deliveryFee,
                     total: grandTotal,
+                    status: "confirmed",
                     paymentMethod: "Razorpay",
                     razorpayPaymentId: rzpRes.razorpay_payment_id,
+                    razorpayOrderId: rzpRes.razorpay_order_id,
                   },
                 }),
               }).catch(() => {});
 
-              const whatsappMessage = `*NEW FRESH TROUT ORDER (PAID VIA RAZORPAY)* 🐟\n\n*Order ID:* #${
-                insertedOrder?.order_number || "NEW"
-              }\n*Razorpay Payment ID:* ${rzpRes.razorpay_payment_id}\n*Customer:*\nName: ${formData.fullName}\nPhone: +91 ${formData.phone}\n${
-                formData.email ? `Email: ${formData.email}\n` : ""
-              }Address: ${formData.house}, ${formData.locality}, ${formData.pincode}\n${
-                formData.notes ? `Delivery Note: ${formData.notes}\n` : ""
-              }\n*Ordered Items:*\n${cartDetails}\n*Delivery Zone:* Within ${deliveryRadiusKm}km (Free Delivery)\n*Total Paid:* ₹${grandTotal.toLocaleString(
-                "en-IN"
-              )}\n_Payment verified ✓ Dispatch fresh harvest!_`;
-
               setOrderSuccess({
                 orderNumber: insertedOrder?.order_number || "UT-" + Math.floor(1000 + Math.random() * 9000),
                 total: grandTotal,
-                phone: formData.phone,
+                subtotal: total,
+                deliveryFee,
+                phone: cleanPhone,
                 name: formData.fullName,
-                email: formData.email,
+                email: formData.email?.trim() || null,
+                house: formData.house,
+                locality: formData.locality,
+                pincode: formData.pincode,
+                notes: formData.notes,
                 paymentId: rzpRes.razorpay_payment_id,
+                orderId: rzpRes.razorpay_order_id,
+                items: items.map((i) => ({
+                  id: i.id,
+                  name: i.name,
+                  quantity: i.quantity,
+                  price: i.price,
+                  unit: i.unit,
+                  image: i.image,
+                })),
+                date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
+                time: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
               });
 
               if (clearCart) clearCart();
-              const encodedMsg = encodeURIComponent(whatsappMessage);
-              window.open(`https://wa.me/918491006127?text=${encodedMsg}`, "_blank");
               resolve();
             } catch (handlerErr) {
               console.error("Post-payment error:", handlerErr);
@@ -890,207 +898,303 @@ export default function CheckoutPage() {
   };
 
 
-  // ─── Success Screen ──────────────────────────────────────────
+  // ─── Success Screen (Order Confirmed via Razorpay) ───────────
   if (orderSuccess) {
+    const handleCopyOrderId = () => {
+      navigator.clipboard.writeText(String(orderSuccess.orderNumber));
+      setCopiedOrderId(true);
+      setTimeout(() => setCopiedOrderId(false), 2500);
+    };
+
     return (
-      <div style={{ background: C.bg, minHeight: "100vh" }}>
-        <div style={{ height: "80px" }} />
-        <div className="flex items-center justify-center p-4 min-h-[calc(100vh-80px)]">
+      <div style={{ background: C.bg, minHeight: "100vh", padding: "6rem 1rem 5rem" }}>
+        <div className="max-w-3xl mx-auto space-y-6">
+
+          {/* ─── Hero Confirmation Card ─── */}
           <div
-            className="max-w-lg w-full text-center rounded-3xl overflow-hidden"
+            className="text-center rounded-3xl overflow-hidden p-6 sm:p-10 relative"
             style={{
-              background: "rgba(16,33,44,0.95)",
+              background: "linear-gradient(180deg, rgba(16,33,44,0.98) 0%, rgba(6,21,30,0.98) 100%)",
               border: "1px solid rgba(114,221,253,0.3)",
-              boxShadow: "0 0 60px rgba(114,221,253,0.15)",
+              boxShadow: "0 0 60px rgba(58,173,204,0.15)",
             }}
           >
-            <div style={{ height: "5px", background: "linear-gradient(to right, #3aadcc, #72ddfd, #25D366)" }} />
-            <div className="p-8 md:p-10">
-              <div
-                style={{
-                  width: "80px",
-                  height: "80px",
-                  borderRadius: "50%",
-                  background: "rgba(37,211,102,0.12)",
-                  border: "2px solid rgba(37,211,102,0.5)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  margin: "0 auto 1.5rem",
-                  boxShadow: "0 0 25px rgba(37,211,102,0.25)",
-                }}
-              >
-                <span style={{ fontSize: "36px" }}>🐟</span>
-              </div>
+            <div style={{ height: "4px", background: "linear-gradient(to right, #3aadcc, #72ddfd, #22c55e)", position: "absolute", top: 0, left: 0, right: 0 }} />
 
-              <div
-                style={{
-                  display: "inline-block",
-                  background: "rgba(251,191,36,0.12)",
-                  border: "1px solid rgba(251,191,36,0.4)",
-                  borderRadius: "100px",
-                  padding: "6px 16px",
-                  fontSize: "11px",
-                  fontFamily: '"Inter", sans-serif',
-                  letterSpacing: "0.15em",
-                  textTransform: "uppercase",
-                  color: "#fbbf24",
-                  fontWeight: 700,
-                  marginBottom: "1.25rem",
-                }}
-              >
-                Order Placed • Live Harvest Verification
-              </div>
+            {/* Glowing Emerald Badge */}
+            <div
+              className="w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center relative"
+              style={{
+                background: "rgba(34,197,94,0.12)",
+                border: "2px solid rgba(34,197,94,0.45)",
+                boxShadow: "0 0 35px rgba(34,197,94,0.3)",
+              }}
+            >
+              <svg className="w-10 h-10 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
 
-              <h2
-                style={{
-                  fontFamily: '"Space Grotesk", sans-serif',
-                  fontSize: "1.85rem",
-                  fontWeight: 800,
-                  color: C.onSurface,
-                  margin: "0 0 0.75rem",
-                  lineHeight: 1.2,
-                }}
-              >
-                Thank You, {orderSuccess.name}!
-              </h2>
-              <p
-                style={{
-                  fontFamily: '"Manrope", sans-serif',
-                  fontSize: "0.92rem",
-                  color: C.onSurfVar,
-                  lineHeight: 1.7,
-                  marginBottom: "1.75rem",
-                }}
-              >
-                Your order <strong style={{ color: C.primary }}>#{orderSuccess.orderNumber}</strong> has been received at{" "}
-                <strong>Urban Trout Farm, Srinagar</strong>. We are preparing fresh harvest from our RAS tanks.
-              </p>
+            <div
+              className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider mb-3"
+              style={{ background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.35)", color: "#4ade80" }}
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              Payment Verified • Order Confirmed
+            </div>
 
-              <div
-                style={{
-                  background: "rgba(3,16,24,0.75)",
-                  border: "1px solid rgba(61,74,83,0.5)",
-                  borderRadius: "16px",
-                  padding: "20px",
-                  marginBottom: "1.75rem",
-                  textAlign: "left",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    marginBottom: "10px",
-                    fontFamily: '"Manrope", sans-serif',
-                    fontSize: "0.9rem",
-                  }}
-                >
-                  <span style={{ color: C.onSurfVar }}>Order Number</span>
-                  <span style={{ color: C.primary, fontWeight: 700 }}>#{orderSuccess.orderNumber}</span>
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    marginBottom: "10px",
-                    fontFamily: '"Manrope", sans-serif',
-                    fontSize: "0.9rem",
-                  }}
-                >
-                  <span style={{ color: C.onSurfVar }}>Total Amount</span>
-                  <span style={{ color: C.primary, fontWeight: 700 }}>
-                    ₹{orderSuccess.total.toLocaleString("en-IN")}
-                  </span>
-                </div>
-                {orderSuccess.paymentId && (
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      marginBottom: "10px",
-                      fontFamily: '"Manrope", sans-serif',
-                      fontSize: "0.82rem",
-                    }}
+            <h1
+              className="text-2xl sm:text-4xl font-extrabold tracking-tight text-white mb-2"
+              style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+            >
+              Thank You, {orderSuccess.name}!
+            </h1>
+            <p
+              className="text-sm sm:text-base max-w-xl mx-auto text-slate-400 leading-relaxed mb-6"
+              style={{ fontFamily: '"Manrope", sans-serif' }}
+            >
+              Your order <strong className="text-cyan-300">#{orderSuccess.orderNumber}</strong> has been confirmed and paid.
+              Our aquaculture specialists in Naseem Bagh are preparing your live harvest for express same-day delivery.
+            </p>
+
+            {/* Quick Metrics Banner */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-left">
+              <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 flex flex-col justify-between">
+                <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Order Number</span>
+                <div className="flex items-center justify-between mt-1">
+                  <span className="text-base font-bold text-cyan-300 font-mono">#{orderSuccess.orderNumber}</span>
+                  <button
+                    onClick={handleCopyOrderId}
+                    className="text-[10px] px-2 py-0.5 rounded bg-cyan-950/60 border border-cyan-800 text-cyan-400 hover:text-white transition-colors"
                   >
-                    <span style={{ color: C.onSurfVar }}>Payment ID</span>
-                    <span style={{ color: "#4ade80", fontWeight: 600, fontSize: "0.78rem" }}>{orderSuccess.paymentId}</span>
-                  </div>
-                )}
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    marginBottom: "10px",
-                    fontFamily: '"Manrope", sans-serif',
-                    fontSize: "0.9rem",
-                  }}
-                >
-                  <span style={{ color: C.onSurfVar }}>Delivery Window</span>
-                  <span style={{ color: "#22c55e", fontWeight: 700 }}>Within 90 Mins (Same-Day)</span>
-                </div>
-                <div
-                  style={{
-                    borderTop: "1px solid rgba(61,74,83,0.4)",
-                    paddingTop: "10px",
-                    display: "flex",
-                    justifyContent: "space-between",
-                    fontFamily: '"Manrope", sans-serif',
-                    fontSize: "0.85rem",
-                  }}
-                >
-                  <span style={{ color: C.onSurfVar }}>Farm Helpline</span>
-                  <span style={{ color: C.onSurface, fontWeight: 600 }}>+91 84910 06127</span>
+                    {copiedOrderId ? "Copied!" : "Copy"}
+                  </button>
                 </div>
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-                <a
-                  href={`https://wa.me/918491006127?text=Hi%20Urban%20Trout!%20I%20placed%20order%20%23${orderSuccess.orderNumber}.%20Payment%20confirmed%20via%20Razorpay%20%E2%9C%93`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: "8px",
-                    padding: "15px",
-                    borderRadius: "14px",
-                    background: "#25D366",
-                    color: "#fff",
-                    fontFamily: '"Space Grotesk", sans-serif',
-                    fontWeight: 700,
-                    fontSize: "0.92rem",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.05em",
-                    textDecoration: "none",
-                    boxShadow: "0 0 25px rgba(37,211,102,0.35)",
-                  }}
-                >
-                  📱 Share Payment Screenshot on WhatsApp
-                </a>
-                <Link
-                  href="/"
-                  style={{
-                    display: "block",
-                    padding: "14px",
-                    borderRadius: "14px",
-                    background: "rgba(114,221,253,0.1)",
-                    border: "1px solid rgba(114,221,253,0.25)",
-                    color: C.primary,
-                    fontFamily: '"Space Grotesk", sans-serif',
-                    fontWeight: 700,
-                    fontSize: "0.9rem",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.05em",
-                    textDecoration: "none",
-                  }}
-                >
-                  Return to Home
-                </Link>
+              <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800">
+                <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Total Paid</span>
+                <div className="text-base font-bold text-white font-mono mt-1">₹{orderSuccess.total.toLocaleString("en-IN")}</div>
+                <span className="text-[10px] text-emerald-400 font-semibold block">Razorpay Verified ✓</span>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800">
+                <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Delivery Window</span>
+                <div className="text-base font-bold text-emerald-400 mt-1">Within 90 Mins</div>
+                <span className="text-[10px] text-slate-500 block">Same-Day Express</span>
+              </div>
+
+              <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800">
+                <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Payment ID</span>
+                <div className="text-xs font-mono text-slate-300 truncate mt-1" title={orderSuccess.paymentId}>
+                  {orderSuccess.paymentId || "Instant Verified"}
+                </div>
+                <span className="text-[10px] text-cyan-400 font-semibold block">Zero Pending Steps</span>
               </div>
             </div>
           </div>
+
+          {/* ─── Live Harvest & Delivery Tracker ─── */}
+          <div
+            className="p-6 sm:p-8 rounded-3xl"
+            style={{
+              background: "rgba(16,33,44,0.75)",
+              border: "1px solid rgba(61,74,83,0.5)",
+            }}
+          >
+            <div className="flex items-center gap-2 mb-6">
+              <span className="text-xl">🐟</span>
+              <h2 className="text-base font-bold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                Live Harvest &amp; Delivery Progress
+              </h2>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 relative">
+              {/* Step 1: Paid */}
+              <div className="p-4 rounded-2xl bg-slate-950/70 border border-emerald-500/40 relative">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="w-5 h-5 rounded-full bg-emerald-500 text-slate-950 text-xs font-black flex items-center justify-center">✓</span>
+                  <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">1. Confirmed</span>
+                </div>
+                <p className="text-xs text-slate-300 font-semibold">Payment Verified</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">Automated Razorpay verification complete.</p>
+              </div>
+
+              {/* Step 2: Harvesting */}
+              <div className="p-4 rounded-2xl bg-cyan-950/40 border border-cyan-500/50 relative">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="w-5 h-5 rounded-full bg-cyan-400 text-slate-950 text-xs font-black flex items-center justify-center animate-pulse">2</span>
+                  <span className="text-xs font-bold text-cyan-300 uppercase tracking-wider">2. Harvesting</span>
+                </div>
+                <p className="text-xs text-white font-semibold">Fresh RAS Catch</p>
+                <p className="text-[11px] text-slate-400 mt-0.5">Harvested to order from clean spring tanks.</p>
+              </div>
+
+              {/* Step 3: Packing */}
+              <div className="p-4 rounded-2xl bg-slate-950/40 border border-slate-800 relative">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="w-5 h-5 rounded-full bg-slate-800 text-slate-400 text-xs font-bold flex items-center justify-center">3</span>
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">3. Ice-Packing</span>
+                </div>
+                <p className="text-xs text-slate-400 font-semibold">Cold-Chain Prep</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">Gutted/cleaned &amp; sealed in food-grade ice.</p>
+              </div>
+
+              {/* Step 4: Out for delivery */}
+              <div className="p-4 rounded-2xl bg-slate-950/40 border border-slate-800 relative">
+                <div className="flex items-center gap-2 mb-1.5">
+                  <span className="w-5 h-5 rounded-full bg-slate-800 text-slate-400 text-xs font-bold flex items-center justify-center">4</span>
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">4. Dispatched</span>
+                </div>
+                <p className="text-xs text-slate-400 font-semibold">Express Rider</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">Delivered fresh within 90 minutes.</p>
+              </div>
+            </div>
+          </div>
+
+          {/* ─── Two-Column Details Grid ─── */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+            {/* Left: Ordered Items Summary */}
+            <div
+              className="md:col-span-7 p-6 rounded-3xl space-y-4"
+              style={{ background: "rgba(16,33,44,0.75)", border: "1px solid rgba(61,74,83,0.5)" }}
+            >
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                Order Summary &amp; Items
+              </h3>
+
+              <div className="divide-y divide-slate-800/80">
+                {(orderSuccess.items || []).map((item: any, idx: number) => (
+                  <div key={idx} className="py-3 flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      {item.image ? (
+                        <img src={item.image} alt={item.name} className="w-12 h-12 object-cover rounded-xl bg-slate-950 border border-slate-800 flex-shrink-0" />
+                      ) : (
+                        <div className="w-12 h-12 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-center text-xl flex-shrink-0">
+                          🐟
+                        </div>
+                      )}
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-white truncate">{item.name}</p>
+                        <p className="text-xs text-slate-400">
+                          {item.quantity} {item.unit || "Kg"} × ₹{item.price}/kg
+                        </p>
+                      </div>
+                    </div>
+                    <span className="text-sm font-bold text-cyan-300 font-mono flex-shrink-0">
+                      ₹{(item.price * item.quantity).toLocaleString("en-IN")}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="pt-3 border-t border-slate-800 space-y-2 text-xs">
+                <div className="flex justify-between text-slate-400">
+                  <span>Subtotal:</span>
+                  <span className="font-mono text-slate-200">₹{(orderSuccess.subtotal || orderSuccess.total).toLocaleString("en-IN")}</span>
+                </div>
+                <div className="flex justify-between text-slate-400">
+                  <span>Farm-Fresh Delivery:</span>
+                  <span className="font-semibold text-emerald-400">FREE (Under 5km Zone)</span>
+                </div>
+                <div className="flex justify-between text-sm font-extrabold text-white pt-2 border-t border-slate-800">
+                  <span style={{ fontFamily: '"Space Grotesk", sans-serif' }}>Total Paid:</span>
+                  <span className="text-cyan-300 font-mono text-base">₹{orderSuccess.total.toLocaleString("en-IN")}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Delivery Destination & Notifications */}
+            <div
+              className="md:col-span-5 p-6 rounded-3xl space-y-4"
+              style={{ background: "rgba(16,33,44,0.75)", border: "1px solid rgba(61,74,83,0.5)" }}
+            >
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                Delivery Destination
+              </h3>
+
+              <div className="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800/80 space-y-1 text-xs">
+                <p className="font-bold text-white text-sm">{orderSuccess.name}</p>
+                <p className="text-slate-300 font-mono">+91 {orderSuccess.phone}</p>
+                <p className="text-slate-400 leading-relaxed pt-1">
+                  {orderSuccess.house ? `${orderSuccess.house}, ` : ""}
+                  {orderSuccess.locality || "Srinagar"}
+                  {orderSuccess.pincode ? ` - ${orderSuccess.pincode}` : ""}
+                </p>
+                {orderSuccess.notes && (
+                  <p className="text-amber-400/90 text-[11px] pt-1">
+                    <strong>Note:</strong> {orderSuccess.notes}
+                  </p>
+                )}
+              </div>
+
+              {/* Email Receipt Notification Alert */}
+              {orderSuccess.email ? (
+                <div className="p-3 rounded-xl bg-cyan-950/40 border border-cyan-800/50 flex items-start gap-2.5">
+                  <span className="text-base">📧</span>
+                  <div className="text-xs">
+                    <span className="font-bold text-cyan-300 block">Confirmation Email Sent</span>
+                    <span className="text-slate-400 text-[11px] break-all">
+                      A detailed receipt has been dispatched to <strong>{orderSuccess.email}</strong>.
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 flex items-start gap-2.5">
+                  <span className="text-base">📱</span>
+                  <div className="text-xs">
+                    <span className="font-bold text-slate-300 block">SMS / WhatsApp Confirmation</span>
+                    <span className="text-slate-400 text-[11px]">
+                      Updates will be dispatched to +91 {orderSuccess.phone}.
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              <div className="p-3 rounded-xl bg-slate-950/40 border border-slate-800/60 text-[11px] text-slate-500 space-y-1">
+                <div className="flex items-center gap-1.5 text-slate-400 font-semibold">
+                  <span>📍</span> Farm Origin
+                </div>
+                <p>Urban Trout Farm &amp; Hatchery, Malabagh, Naseem Bagh, Srinagar — 190006</p>
+              </div>
+            </div>
+          </div>
+
+          {/* ─── Actions & Support ─── */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="flex-1 sm:flex-initial px-5 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs uppercase tracking-wider border border-slate-700 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+              >
+                <span>🖨️</span> Print / Save Receipt
+              </button>
+
+              <Link
+                href="/shop"
+                className="flex-1 sm:flex-initial px-5 py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 shadow-lg shadow-cyan-500/20"
+                style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+              >
+                <span>🐟</span> Continue Shopping
+              </Link>
+            </div>
+
+            <a
+              href={`https://wa.me/918491006127?text=Hi%20Urban%20Trout!%20Question%20regarding%20my%20confirmed%20order%20%23${orderSuccess.orderNumber}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full sm:w-auto px-4 py-3 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-semibold flex items-center justify-center gap-2 transition-all"
+            >
+              <span>💬</span> Questions? Chat on WhatsApp
+            </a>
+          </div>
+
+          <p className="text-center text-xs text-slate-600 pt-2">
+            Farm Direct Hotline: <strong className="text-slate-400">+91 84910 06127</strong> • Guaranteed Fresh Delivery within 90 Minutes
+          </p>
+
         </div>
       </div>
     );
@@ -1282,7 +1386,7 @@ export default function CheckoutPage() {
                   className="hidden sm:block"
                   style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", color: C.onSurfVar }}
                 >
-                  UPI & Verification
+                  Razorpay Instant Pay
                 </span>
               </div>
             </button>

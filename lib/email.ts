@@ -22,6 +22,8 @@ export async function sendOrderConfirmationEmail(order: {
   deliveryFee: number;
   total: number;
   paymentMethod: string;
+  razorpayPaymentId?: string;
+  razorpayOrderId?: string;
   utrNumber?: string;
 }) {
   const resend = getResend();
@@ -47,7 +49,7 @@ export async function sendOrderConfirmationEmail(order: {
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Order Received - Urban Trout</title>
+    <title>Order Confirmed - Urban Trout</title>
   </head>
   <body style="margin: 0; padding: 20px; background-color: #031018; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #dfedf9;">
     <div style="max-width: 600px; margin: 0 auto; background: #0b1b25; border: 1px solid #1a3648; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
@@ -61,13 +63,13 @@ export async function sendOrderConfirmationEmail(order: {
       <!-- Main Body -->
       <div style="padding: 32px 24px;">
         <div style="text-align: center; margin-bottom: 28px;">
-          <div style="display: inline-block; width: 56px; height: 56px; border-radius: 28px; background: rgba(251,191,36,0.15); line-height: 56px; font-size: 24px; color: #fbbf24; text-align: center; margin-bottom: 12px;">⏳</div>
-          <h2 style="margin: 0; font-size: 20px; font-weight: 700; color: #ffffff;">Order Details Received</h2>
-          <p style="margin: 8px 0 0; font-size: 14px; color: #fbbf24; font-weight: 600;">
-            Awaiting UPI Payment Verification
+          <div style="display: inline-block; width: 56px; height: 56px; border-radius: 28px; background: rgba(34,197,94,0.15); line-height: 56px; font-size: 26px; color: #22c55e; text-align: center; margin-bottom: 12px; border: 1px solid rgba(34,197,94,0.3);">✓</div>
+          <h2 style="margin: 0; font-size: 22px; font-weight: 800; color: #ffffff;">Order Confirmed &amp; Paid!</h2>
+          <p style="margin: 8px 0 0; font-size: 13px; color: #4ade80; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">
+            Payment Verified via Razorpay
           </p>
-          <p style="margin: 6px 0 0; font-size: 13px; color: #9fadb8; line-height: 1.6;">
-            Thank you, <strong>${order.customerName}</strong>. Our team at Urban Trout Farm is verifying your incoming UPI payment. Once verified, your order will be confirmed and fresh catch harvested for same-day delivery.
+          <p style="margin: 8px 0 0; font-size: 14px; color: #9fadb8; line-height: 1.6;">
+            Thank you, <strong>${order.customerName}</strong>! Your payment has been received and verified. Our aquaculture specialists at Urban Trout Farm (Naseem Bagh) are now preparing your fresh catch for same-day delivery.
           </p>
         </div>
 
@@ -77,6 +79,13 @@ export async function sendOrderConfirmationEmail(order: {
             <span style="font-size: 12px; color: #6a7782; text-transform: uppercase; font-weight: 700;">Order ID</span>
             <span style="font-size: 14px; color: #72ddfd; font-weight: 700;">#${order.orderNumber}</span>
           </div>
+
+          ${order.razorpayPaymentId ? `
+          <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #152834; padding-bottom: 10px; margin-bottom: 12px; font-size: 12px;">
+            <span style="color: #6a7782; text-transform: uppercase; font-weight: 700;">Razorpay Payment ID</span>
+            <span style="color: #4ade80; font-family: monospace; font-weight: 600;">${order.razorpayPaymentId}</span>
+          </div>
+          ` : ""}
 
           <table style="width: 100%; border-collapse: collapse;">
             <thead>
@@ -98,14 +107,23 @@ export async function sendOrderConfirmationEmail(order: {
             </div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; color: #9fadb8;">
               <span>Delivery Fee:</span>
-              <span>${order.deliveryFee === 0 ? "FREE (Within 5km)" : "₹" + order.deliveryFee}</span>
+              <span style="color: #4ade80; font-weight: 600;">${order.deliveryFee === 0 ? "FREE (Farm Fresh Express)" : "₹" + order.deliveryFee}</span>
             </div>
             <div style="display: flex; justify-content: space-between; font-size: 16px; font-weight: 800; color: #72ddfd; border-top: 1px solid #1a2e3b; padding-top: 8px;">
-              <span>Total Amount:</span>
+              <span>Total Paid:</span>
               <span>₹${order.total.toLocaleString("en-IN")}</span>
             </div>
-            ${order.utrNumber ? `<div style="font-size: 11px; color: #9fadb8; margin-top: 6px;">Submitted UTR: <code style="color: #72ddfd;">${order.utrNumber}</code> (Pending check)</div>` : ""}
           </div>
+        </div>
+
+        <!-- Harvest & Delivery Window Box -->
+        <div style="background: rgba(16,33,44,0.6); border: 1px solid rgba(114,221,253,0.25); border-radius: 12px; padding: 16px; margin-bottom: 24px;">
+          <div style="font-size: 12px; color: #72ddfd; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">
+            🚚 Delivery Window: Within 90 Mins (Same-Day)
+          </div>
+          <p style="margin: 0; font-size: 13px; color: #9fadb8; line-height: 1.5;">
+            Harvested to order from clean groundwater RAS tanks in Naseem Bagh and packed in food-grade crushed ice.
+          </p>
         </div>
 
         <!-- Delivery & Location Details -->
@@ -114,17 +132,17 @@ export async function sendOrderConfirmationEmail(order: {
           <p style="margin: 0; font-size: 14px; color: #dfedf9; line-height: 1.5;">
             <strong>${order.customerName}</strong> (+91 ${order.phone})<br>
             ${order.address ? `${order.address}, ` : ""}${order.locality || "Srinagar"}${order.pincode ? ` - ${order.pincode}` : ""}<br>
-            <span style="font-size: 12px; color: #9fadb8;">Farm Source: Urban Trout Farm &amp; Fresh Fish Counter</span>
+            <span style="font-size: 12px; color: #9fadb8;">Farm Source: Urban Trout Farm, Malabagh Naseem Bagh</span>
           </p>
         </div>
 
         <!-- Support Info -->
         <div style="text-align: center; padding-top: 8px;">
           <p style="font-size: 13px; color: #9fadb8; margin: 0 0 14px;">
-            Want to expedite your order confirmation?
+            Have questions about preparation or delivery timing?
           </p>
-          <a href="https://wa.me/918491006127?text=Hi%20Urban%20Trout!%20I%20placed%20order%20%23${order.orderNumber}%20and%20paid%20via%20UPI.%20Please%20verify%20my%20payment." style="display: inline-block; background: #25d366; color: #ffffff; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: 700;">
-            Send Payment Screenshot on WhatsApp
+          <a href="https://wa.me/918491006127?text=Hi%20Urban%20Trout!%20Question%20regarding%20my%20confirmed%20order%20%23${order.orderNumber}" style="display: inline-block; background: #25d366; color: #ffffff; text-decoration: none; padding: 11px 22px; border-radius: 10px; font-size: 13px; font-weight: 700;">
+            💬 Chat with Farm Support on WhatsApp
           </a>
         </div>
       </div>
@@ -132,7 +150,7 @@ export async function sendOrderConfirmationEmail(order: {
       <!-- Footer -->
       <div style="background: #06151e; padding: 20px; text-align: center; border-top: 1px solid #152834; font-size: 11px; color: #6a7782;">
         <p style="margin: 0 0 4px;">Urban Trout Aquaculture • Malabagh, Naseem Bagh, Srinagar — 190006</p>
-        <p style="margin: 0;">Hotline: +91 84910 06127 | Email: info.urbantrout@gmail.com</p>
+        <p style="margin: 0;">Farm Direct Helpline: +91 84910 06127 | Email: info.urbantrout@gmail.com</p>
       </div>
 
     </div>
@@ -146,7 +164,7 @@ export async function sendOrderConfirmationEmail(order: {
         from: FROM_EMAIL,
         to: order.email,
         replyTo: ADMIN_EMAIL,
-        subject: `Order Received #${order.orderNumber} (Awaiting Payment Verification) - Urban Trout`,
+        subject: `✅ Order Confirmed: #${order.orderNumber} - Urban Trout Srinagar`,
         html: emailHtml,
       });
     } catch (err) {
@@ -159,7 +177,7 @@ export async function sendOrderConfirmationEmail(order: {
       from: FROM_EMAIL,
       to: ADMIN_EMAIL,
       replyTo: order.email || ADMIN_EMAIL,
-      subject: `🚨 [NEW ORDER RECEIVED] #${order.orderNumber} - ₹${order.total} by ${order.customerName}`,
+      subject: `🎉 [ORDER PAID & CONFIRMED] #${order.orderNumber} - ₹${order.total} by ${order.customerName}`,
       html: emailHtml,
     });
   } catch (err) {
