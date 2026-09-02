@@ -38,7 +38,7 @@ const farmConditions = [
 const faqs = [
   {
     q: "Where can I buy fresh trout fish in Srinagar?",
-    a: "You can order fresh trout online directly through urbantrout.in for same-day delivery within a 5km radius from our farm, or pick it up fresh from our farm and live vending center at Malabagh, Naseem Bagh (near R P School Girls Wing).",
+    a: "You can order fresh trout online directly through urbantrout.in for same-day delivery within a 5km radius from our farm, or pick it up fresh from our farm counter at Malabagh, Naseem Bagh (near R P School Girls Wing).",
   },
   {
     q: "What is the price of Rainbow Trout per Kg in Srinagar?",
@@ -50,7 +50,7 @@ const faqs = [
   },
   {
     q: "Which areas do you deliver to?",
-    a: "We only deliver within a 5km radius from our farm in Malabagh, Srinagar. You can also pick up fresh catch directly at our farm and live vending center in Malabagh (near R P School Girls Wing).",
+    a: "We only deliver within a 5km radius from our farm in Malabagh, Srinagar. You can also pick up fresh catch directly at our farm counter in Malabagh (near R P School Girls Wing).",
   },
   {
     q: "How fresh is Urban Trout compared to market fish?",

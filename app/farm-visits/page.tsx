@@ -37,7 +37,7 @@ const TIME_SLOTS = [
     label: "Evening Batch",
     time: "04:30 PM – 05:30 PM",
     icon: "wb_twilight",
-    desc: "Evening fresh live catch selection & on-site gutting",
+    desc: "Evening fresh catch harvesting & on-site cleaning",
   },
 ];
 
@@ -48,7 +48,7 @@ const GUEST_OPTIONS = [
 ];
 
 const PURPOSES = [
-  { id: "purchase", label: "🐟 Live Trout Purchase & Selection", desc: "Select live Rainbow Trout straight from culture tanks" },
+  { id: "purchase", label: "🐟 Fresh Trout Sourcing & Packaging", desc: "Select fresh Rainbow Trout prepared straight from the farm" },
   { id: "family_tour", label: "👨‍👩‍👧 Family Educational Tour", desc: "Learn about cold-water RAS aquaculture & fish welfare" },
   { id: "bulk_commercial", label: "📦 Restaurant / Commercial Sourcing", desc: "Bulk wholesale inquiry & harvest schedule alignment" },
   { id: "educational", label: "🔬 Aquaculture & Tech Study", desc: "Inspect filtration, oxygen cones & water parameters" },
@@ -64,8 +64,8 @@ const FAQS = [
     a: "Once you submit your request, the Farm Manager will review the tank schedule. If approved, you will receive an official Visit Approval Pass via Email and WhatsApp with your confirmed time slot, directions, and rules.",
   },
   {
-    q: "Can I buy live trout on the spot during an approved visit?",
-    a: "Yes! During your approved slot, our team will net your chosen live trout directly from the culture tanks, weigh them live, and expertly gut/clean and pack them in crushed ice.",
+    q: "Can I buy fresh trout on the spot during an approved visit?",
+    a: "Yes! During your approved slot, our farm team will harvest your selected fresh trout directly, weigh it, and expertly gut/clean and pack it chilled in food-grade ice for you.",
   },
   {
     q: "What happens if I arrive without an approved email pass?",
@@ -728,7 +728,7 @@ export default function FarmVisitsPage() {
               </div>
 
               <div className="space-y-2 text-xs text-slate-300 mb-5" style={{ fontFamily: '"Manrope", sans-serif' }}>
-                <p className="font-semibold text-white">Urban Trout Farm &amp; Live Vending Center</p>
+                <p className="font-semibold text-white">Urban Trout Farm &amp; Fresh Fish Counter</p>
                 <p className="text-slate-400">Malabagh, Naseem Bagh, Srinagar — 190006</p>
                 <p className="text-slate-500 text-[11px]">Landmark: Near R P School (Girls Wing)</p>
                 <div className="pt-2 flex items-center gap-2 text-cyan-400 font-mono text-xs">

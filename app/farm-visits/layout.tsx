@@ -3,14 +3,14 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Plan Your Farm Visit | Urban Trout Srinagar",
   description:
-    "Pre-notify and schedule your farm visit to Urban Trout in Malabagh, Naseem Bagh, Srinagar. Experience cold-water trout aquaculture, live fish picking, and on-site harvest.",
+    "Pre-notify and schedule your farm visit to Urban Trout in Malabagh, Naseem Bagh, Srinagar. Experience modern cold-water trout aquaculture and farm-fresh harvest.",
   alternates: {
     canonical: "https://urbantrout.in/farm-visits",
   },
   openGraph: {
     title: "Plan Your Farm Visit | Urban Trout Srinagar",
     description:
-      "Pre-notify your visit to Urban Trout's cold-water RAS trout farm in Srinagar. Free entry, live RAS tank tours, and fresh harvest to order.",
+      "Pre-notify your visit to Urban Trout's cold-water RAS trout farm in Srinagar. Free entry, RAS tank tours, and fresh catch harvested to order.",
     url: "https://urbantrout.in/farm-visits",
     siteName: "Urban Trout Srinagar",
     images: [

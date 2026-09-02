@@ -18,11 +18,11 @@ const C = {
 const sections = [
   {
     title: "1. Policy Overview",
-    body: "At Urban Trout (operated by Skindar Mohd Sideeq), we are committed to delivering the freshest live-harvested Rainbow Trout directly from our farm in Srinagar to your doorstep. Due to the perishable nature of fresh fish, this policy outlines the terms and conditions governing order cancellations, returns, and refunds in compliance with Indian consumer protection regulations.",
+    body: "At Urban Trout (operated by Skindar Mohd Sideeq), we are committed to delivering the freshest farm-harvested Rainbow Trout directly from our farm in Srinagar to your doorstep. Due to the perishable nature of fresh fish, this policy outlines the terms and conditions governing order cancellations, returns, and refunds in compliance with Indian consumer protection regulations.",
   },
   {
     title: "2. Order Cancellation Policy",
-    body: "• Pre-Harvest Cancellation: You may cancel your order free of charge at any time before the live harvest and packing process begins for your order slot.\n• Post-Harvest Cancellation: Once the fish has been harvested live from the aquaculture tanks and prepared (cleaned/gutted/iced), cancellations cannot be accepted as perishable goods cannot be restocked or returned to the farm tanks.\n• To cancel an order before harvest, please contact our helpline immediately via call or WhatsApp at +91 84910 06127.",
+    body: "• Pre-Harvest Cancellation: You may cancel your order free of charge at any time before the farm harvest and packing process begins for your order slot.\n• Post-Harvest Cancellation: Once the fish has been freshly harvested and prepared (cleaned/gutted/iced), cancellations cannot be accepted as perishable food products cannot be restocked.\n• To cancel an order before harvest, please contact our helpline immediately via call or WhatsApp at +91 84910 06127.",
   },
   {
     title: "3. Perishable Goods & Quality Guarantee",

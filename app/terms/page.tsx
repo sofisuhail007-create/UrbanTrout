@@ -22,11 +22,11 @@ const sections = [
   },
   {
     title: "2. Service Area & Eligibility",
-    body: "Urban Trout operates a live aquaculture farm in Naseem Bagh and fulfills fresh doorstep deliveries within the Srinagar city limits (up to an approximate 25km radius). We reserve the right to decline or reschedule orders located outside our viable refrigerated delivery routes.",
+    body: "Urban Trout operates a modern cold-water aquaculture farm in Naseem Bagh and fulfills fresh doorstep deliveries within the Srinagar city limits (up to an approximate 25km radius). We reserve the right to decline or reschedule orders located outside our viable refrigerated delivery routes.",
   },
   {
-    title: "3. Live Harvest Order Process & Weight Verification",
-    body: "• All products offered are harvested live to order from our high-tech aquaculture tanks to ensure ultimate freshness.\n• As each Rainbow Trout is a naturally grown live fish, the final harvested weight may have minor natural variations from the requested quantity.\n• The customer will receive an exact harvest weight summary and digital invoice upon catch verification.",
+    title: "3. Fresh Harvest Order Process & Weight Verification",
+    body: "• All products offered are farm-fresh harvested to order from our high-tech aquaculture tanks to ensure ultimate freshness and tenderness.\n• As each Rainbow Trout is a naturally grown fish, the final harvested weight may have minor natural variations from the requested quantity.\n• The customer will receive an exact weight summary and digital invoice upon catch preparation.",
   },
   {
     title: "4. Pricing, Currency & Payment Terms",

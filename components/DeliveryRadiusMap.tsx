@@ -230,7 +230,7 @@ export default function DeliveryRadiusMap({
             Malabagh, Naseem Bagh, Srinagar<br/>(34.144709, 74.824525)
           </p>
           <div style="background: rgba(37,211,102,0.15); border: 1px solid rgba(37,211,102,0.4); padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: bold; color: #25D366; text-transform: uppercase;">
-            Live Harvest Vending Center
+            Farm Fresh Fish Counter
           </div>
         </div>
       `);

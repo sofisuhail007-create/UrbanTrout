@@ -146,7 +146,7 @@ export default function ContactPage() {
               lineHeight: 1.75,
             }}
           >
-            Have a question regarding same-day delivery in Srinagar, bulk supply for events, or visiting our Urban Trout Farm &amp; live vending center? Reach out directly to our team.
+            Have a question regarding same-day delivery in Srinagar, bulk supply for events, or visiting our Urban Trout Farm &amp; fresh counter? Reach out directly to our team.
           </p>
         </div>
 
@@ -174,10 +174,10 @@ export default function ContactPage() {
                 </div>
                 <div>
                   <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "10px", letterSpacing: "0.15em", textTransform: "uppercase", color: C.outline }}>
-                    Farm &amp; Live Vending Center
+                    Farm &amp; Fresh Fish Counter
                   </span>
                   <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.15rem", fontWeight: 700, color: C.onSurface, margin: 0 }}>
-                    Urban Trout Farm &amp; Vending Center
+                    Urban Trout Farm &amp; Fresh Fish Counter
                   </h3>
                 </div>
               </div>

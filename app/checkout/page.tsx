@@ -1,9 +1,20 @@
 "use client";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Link from "next/link";
+import Script from "next/script";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
 import { supabase } from "@/lib/supabase";
+
+// ─── Razorpay global type ───────────────────────────────────────
+declare global {
+  interface Window {
+    Razorpay: new (options: Record<string, unknown>) => {
+      open(): void;
+      on(event: string, handler: (response: unknown) => void): void;
+    };
+  }
+}
 
 const C = {
   bg: "#031018",
@@ -250,11 +261,10 @@ export default function CheckoutPage() {
   const [allowOutsideRadius, setAllowOutsideRadius] = useState<boolean>(false);
 
   // ─── Payment & Settings State ───
-  const [copiedUpi, setCopiedUpi] = useState(false);
   const [upiId, setUpiId] = useState("urbantrout@ybl");
-  const [utrRef, setUtrRef] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState<any>(null);
+  const [razorpayError, setRazorpayError] = useState("");
 
   // ─── Form Data State ───
   const [formData, setFormData] = useState({
@@ -590,7 +600,7 @@ export default function CheckoutPage() {
         setDeliveryMode("under5");
         setCalculatedDistance(dist);
         setSelectedZoneName(match ? match.name : `Pin Code ${pin}`);
-        setLocationMsg(`Pin Code ${pin} is within our ${deliveryRadiusKm}km live harvest zone ✓`);
+        setLocationMsg(`Pin Code ${pin} is within our ${deliveryRadiusKm}km fresh delivery zone ✓`);
         setFormData((prev) => ({ ...prev, pincode: pin }));
       } else {
         setDeliveryMode("unavailable");
@@ -610,7 +620,7 @@ export default function CheckoutPage() {
       return;
     }
     if (deliveryMode === "unavailable" && !allowOutsideRadius) {
-      alert(`We currently deliver live harvest only within ${deliveryRadiusKm}km of Urban Trout Farm, Srinagar.`);
+      alert(`We currently deliver fresh catch only within ${deliveryRadiusKm}km of Urban Trout Farm, Srinagar.`);
       return;
     }
     setCurrentStep(2);
@@ -648,146 +658,236 @@ export default function CheckoutPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // ─── STEP 3: Final Order Submission ──────────────────────────
-  const upiPayUri = `upi://pay?pa=${upiId}&pn=Urban%20Trout%20Srinagar&am=${grandTotal}&cu=INR&tn=Urban%20Trout%20Fresh%20Order`;
-  const upiQrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(
-    upiPayUri
-  )}&bgcolor=16-33-44&color=114-221-253&margin=2`;
 
-  const copyUpiId = () => {
-    navigator.clipboard.writeText(upiId);
-    setCopiedUpi(true);
-    setTimeout(() => setCopiedUpi(false), 2500);
-  };
+  // ─── STEP 3: Razorpay Standard Checkout ──────────────────────
+  const handleRazorpayPayment = async () => {
+    setRazorpayError("");
 
-  const handleFinalOrderSubmit = async () => {
+    if (!window.Razorpay) {
+      setRazorpayError("Payment gateway not loaded yet. Please wait a moment and try again.");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
-      let cartDetails = "";
-      items.forEach((item) => {
-        cartDetails += `- ${item.name} (${item.quantity} ${item.unit}): ₹${(
-          item.price * item.quantity
-        ).toLocaleString("en-IN")}\n`;
-      });
-
-      const cleanPhone = formData.phone.replace(/\D/g, "").slice(-10);
-      const emailNote = formData.email?.trim() ? ` (Email: ${formData.email.trim()})` : "";
-      const notesNote = formData.notes?.trim() ? ` | Notes: ${formData.notes.trim()}` : "";
-
-      const orderPayload = {
-        customer_name: formData.fullName.trim(),
-        customer_phone: cleanPhone,
-        customer_address: `${formData.house.trim()}, ${formData.locality.trim()}${emailNote}${notesNote}`,
-        customer_locality: formData.locality.trim(),
-        customer_pincode: formData.pincode.trim(),
-        items: items.map((i) => ({
-          id: i.id,
-          name: i.name,
-          quantity: i.quantity,
-          price: i.price,
-          unit: i.unit,
-          image: i.image,
-        })),
-        subtotal: total,
-        delivery_fee: deliveryFee,
-        total: grandTotal,
-        delivery_zone: deliveryMode,
-        status: "pending",
-      };
-
-      const { data: insertedOrder, error: insertErr } = await supabase
-        .from("orders")
-        .insert(orderPayload)
-        .select("*")
-        .single();
-      if (insertErr) {
-        console.error("Order Supabase insert error:", insertErr);
-      }
-
-      // Mark lead as converted
-      try {
-        await supabase
-          .from("leads")
-          .update({
-            status: "converted",
-            notes: `Converted to Order #${insertedOrder?.order_number || ""}. Payment via UPI (${upiId}). UTR: ${
-              utrRef || "Direct"
-            }`,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("customer_phone", cleanPhone);
-      } catch (e) {}
-
-      // Upsert customer profile
-      try {
-        await supabase.from("customers").upsert(
-          {
-            phone: cleanPhone,
-            name: formData.fullName,
-            locality: formData.locality,
-            pincode: formData.pincode,
-            notes: `Order #${insertedOrder?.order_number || ""}`,
-            total_orders: 1,
-            last_order_at: new Date().toISOString(),
-          },
-          { onConflict: "phone" }
-        );
-      } catch (e) {}
-
-      // Telegram notification
-      fetch("/api/telegram-notify", {
+      // 1. Create Razorpay order server-side
+      const amountPaise = grandTotal * 100; // ₹ → paise
+      const orderRes = await fetch("/api/razorpay/create-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          type: "new_order",
-          data: {
-            orderNumber: String(insertedOrder?.order_number || "UT-" + Math.floor(1000 + Math.random() * 9000)),
-            customerName: formData.fullName,
-            phone: cleanPhone,
-            email: formData.email?.trim() || undefined,
-            locality: formData.locality,
-            address: formData.house,
-            pincode: formData.pincode,
-            items: items.map((i) => ({ name: i.name, quantity: i.quantity, price: i.price, unit: i.unit })),
-            subtotal: total,
-            deliveryFee,
-            total: grandTotal,
-            paymentMethod: "UPI",
-            utrNumber: utrRef || undefined,
-          },
+          amount: amountPaise,
+          currency: "INR",
+          receipt: `ut_${Date.now()}`,
         }),
-      }).catch(() => {});
-
-      const whatsappMessage = `*NEW HARVEST ORDER (PAID VIA UPI)* 🐟\n\n*Order ID:* #${
-        insertedOrder?.order_number || "NEW"
-      }\n*Customer:*\nName: ${formData.fullName}\nPhone: +91 ${formData.phone}\n${
-        formData.email ? `Email: ${formData.email}\n` : ""
-      }Address: ${formData.house}, ${formData.locality}, ${formData.pincode}\n${
-        formData.notes ? `Delivery Note: ${formData.notes}\n` : ""
-      }\n*Ordered Items:*\n${cartDetails}\n*Delivery Zone:* Within ${deliveryRadiusKm}km (Free Delivery)\n*Total Paid via UPI:* ₹${grandTotal.toLocaleString(
-        "en-IN"
-      )}\n*UPI ID Paid To:* ${upiId}\n${
-        utrRef ? `*UTR / Ref No:* ${utrRef}\n` : ""
-      }\n_Please verify payment & confirm live harvest dispatch!_`;
-
-      setOrderSuccess({
-        orderNumber: insertedOrder?.order_number || "UT-" + Math.floor(1000 + Math.random() * 9000),
-        total: grandTotal,
-        phone: formData.phone,
-        name: formData.fullName,
-        email: formData.email,
       });
 
-      if (clearCart) clearCart();
-      const encodedMsg = encodeURIComponent(whatsappMessage);
-      window.open(`https://wa.me/918491006127?text=${encodedMsg}`, "_blank");
-    } catch (err) {
-      console.error("Order submission error:", err);
-      alert("Order placed! We will confirm your delivery shortly.");
+      if (!orderRes.ok) {
+        const err = await orderRes.json();
+        throw new Error(err.error || "Failed to create payment order.");
+      }
+
+      const { order_id, amount, currency } = await orderRes.json();
+
+      // 2. Open Razorpay modal
+      await new Promise<void>((resolve, reject) => {
+        const rzp = new window.Razorpay({
+          key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+          amount,
+          currency,
+          order_id,
+          name: "Urban Trout",
+          description: `Fresh Trout Order — ${items.length} item${items.length > 1 ? "s" : ""}`,
+          image: "/icon.png",
+          prefill: {
+            name: formData.fullName,
+            contact: `91${formData.phone.replace(/\D/g, "").slice(-10)}`,
+            email: formData.email || "",
+          },
+          notes: {
+            address: `${formData.house}, ${formData.locality}, ${formData.pincode}`,
+            delivery_zone: deliveryMode,
+          },
+          theme: { color: "#3aadcc" },
+          modal: {
+            ondismiss: () => {
+              setIsSubmitting(false);
+              setRazorpayError("Payment cancelled. You can try again.");
+              reject(new Error("dismissed"));
+            },
+          },
+          handler: async (response: unknown) => {
+            const rzpRes = response as {
+              razorpay_payment_id: string;
+              razorpay_order_id: string;
+              razorpay_signature: string;
+            };
+
+            try {
+              // 3. Verify signature server-side
+              const verifyRes = await fetch("/api/razorpay/verify-payment", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  razorpay_order_id: rzpRes.razorpay_order_id,
+                  razorpay_payment_id: rzpRes.razorpay_payment_id,
+                  razorpay_signature: rzpRes.razorpay_signature,
+                }),
+              });
+
+              const verifyJson = await verifyRes.json();
+              if (!verifyJson.success) {
+                throw new Error(verifyJson.error || "Payment verification failed.");
+              }
+
+              // 4. Save order to Supabase (payment confirmed)
+              let cartDetails = "";
+              items.forEach((item) => {
+                cartDetails += `- ${item.name} (${item.quantity} ${item.unit}): ₹${(
+                  item.price * item.quantity
+                ).toLocaleString("en-IN")}\n`;
+              });
+
+              const cleanPhone = formData.phone.replace(/\D/g, "").slice(-10);
+              const emailNote = formData.email?.trim() ? ` (Email: ${formData.email.trim()})` : "";
+              const notesNote = formData.notes?.trim() ? ` | Notes: ${formData.notes.trim()}` : "";
+
+              const orderPayload = {
+                customer_name: formData.fullName.trim(),
+                customer_phone: cleanPhone,
+                customer_address: `${formData.house.trim()}, ${formData.locality.trim()}${emailNote}${notesNote}`,
+                customer_locality: formData.locality.trim(),
+                customer_pincode: formData.pincode.trim(),
+                items: items.map((i) => ({
+                  id: i.id,
+                  name: i.name,
+                  quantity: i.quantity,
+                  price: i.price,
+                  unit: i.unit,
+                  image: i.image,
+                })),
+                subtotal: total,
+                delivery_fee: deliveryFee,
+                total: grandTotal,
+                delivery_zone: deliveryMode,
+                status: "confirmed",
+                payment_method: "razorpay",
+                razorpay_payment_id: rzpRes.razorpay_payment_id,
+                razorpay_order_id: rzpRes.razorpay_order_id,
+              };
+
+              const { data: insertedOrder, error: insertErr } = await supabase
+                .from("orders")
+                .insert(orderPayload)
+                .select("*")
+                .single();
+              if (insertErr) {
+                console.error("Order Supabase insert error:", insertErr);
+              }
+
+              // Mark lead as converted
+              try {
+                await supabase
+                  .from("leads")
+                  .update({
+                    status: "converted",
+                    notes: `Converted to Order #${insertedOrder?.order_number || ""}. Payment via Razorpay (${rzpRes.razorpay_payment_id})`,
+                    updated_at: new Date().toISOString(),
+                  })
+                  .eq("customer_phone", cleanPhone);
+              } catch (e) {}
+
+              // Upsert customer profile
+              try {
+                await supabase.from("customers").upsert(
+                  {
+                    phone: cleanPhone,
+                    name: formData.fullName,
+                    locality: formData.locality,
+                    pincode: formData.pincode,
+                    notes: `Order #${insertedOrder?.order_number || ""}`,
+                    total_orders: 1,
+                    last_order_at: new Date().toISOString(),
+                  },
+                  { onConflict: "phone" }
+                );
+              } catch (e) {}
+
+              // Telegram notification
+              fetch("/api/telegram-notify", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  type: "new_order",
+                  data: {
+                    orderNumber: String(insertedOrder?.order_number || "UT-" + Math.floor(1000 + Math.random() * 9000)),
+                    customerName: formData.fullName,
+                    phone: cleanPhone,
+                    email: formData.email?.trim() || undefined,
+                    locality: formData.locality,
+                    address: formData.house,
+                    pincode: formData.pincode,
+                    items: items.map((i) => ({ name: i.name, quantity: i.quantity, price: i.price, unit: i.unit })),
+                    subtotal: total,
+                    deliveryFee,
+                    total: grandTotal,
+                    paymentMethod: "Razorpay",
+                    razorpayPaymentId: rzpRes.razorpay_payment_id,
+                  },
+                }),
+              }).catch(() => {});
+
+              const whatsappMessage = `*NEW FRESH TROUT ORDER (PAID VIA RAZORPAY)* 🐟\n\n*Order ID:* #${
+                insertedOrder?.order_number || "NEW"
+              }\n*Razorpay Payment ID:* ${rzpRes.razorpay_payment_id}\n*Customer:*\nName: ${formData.fullName}\nPhone: +91 ${formData.phone}\n${
+                formData.email ? `Email: ${formData.email}\n` : ""
+              }Address: ${formData.house}, ${formData.locality}, ${formData.pincode}\n${
+                formData.notes ? `Delivery Note: ${formData.notes}\n` : ""
+              }\n*Ordered Items:*\n${cartDetails}\n*Delivery Zone:* Within ${deliveryRadiusKm}km (Free Delivery)\n*Total Paid:* ₹${grandTotal.toLocaleString(
+                "en-IN"
+              )}\n_Payment verified ✓ Dispatch fresh harvest!_`;
+
+              setOrderSuccess({
+                orderNumber: insertedOrder?.order_number || "UT-" + Math.floor(1000 + Math.random() * 9000),
+                total: grandTotal,
+                phone: formData.phone,
+                name: formData.fullName,
+                email: formData.email,
+                paymentId: rzpRes.razorpay_payment_id,
+              });
+
+              if (clearCart) clearCart();
+              const encodedMsg = encodeURIComponent(whatsappMessage);
+              window.open(`https://wa.me/918491006127?text=${encodedMsg}`, "_blank");
+              resolve();
+            } catch (handlerErr) {
+              console.error("Post-payment error:", handlerErr);
+              reject(handlerErr);
+            }
+          },
+        });
+
+        rzp.on("payment.failed", (response: unknown) => {
+          const r = response as { error?: { description?: string } };
+          setRazorpayError(r?.error?.description || "Payment failed. Please try again.");
+          setIsSubmitting(false);
+          reject(new Error("payment_failed"));
+        });
+
+        rzp.open();
+      });
+    } catch (err: unknown) {
+      if (err instanceof Error && (err.message === "dismissed" || err.message === "payment_failed")) {
+        // Already handled above
+      } else {
+        console.error("Razorpay payment error:", err);
+        setRazorpayError("Something went wrong. Please try again or contact us on WhatsApp.");
+      }
     } finally {
       setIsSubmitting(false);
     }
   };
+
 
   // ─── Success Screen ──────────────────────────────────────────
   if (orderSuccess) {
@@ -902,6 +1002,20 @@ export default function CheckoutPage() {
                     ₹{orderSuccess.total.toLocaleString("en-IN")}
                   </span>
                 </div>
+                {orderSuccess.paymentId && (
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      marginBottom: "10px",
+                      fontFamily: '"Manrope", sans-serif',
+                      fontSize: "0.82rem",
+                    }}
+                  >
+                    <span style={{ color: C.onSurfVar }}>Payment ID</span>
+                    <span style={{ color: "#4ade80", fontWeight: 600, fontSize: "0.78rem" }}>{orderSuccess.paymentId}</span>
+                  </div>
+                )}
                 <div
                   style={{
                     display: "flex",
@@ -931,7 +1045,7 @@ export default function CheckoutPage() {
 
               <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                 <a
-                  href={`https://wa.me/918491006127?text=Hi%20Urban%20Trout!%20I%20placed%20order%20%23${orderSuccess.orderNumber}.%20Please%20verify%20my%20UPI%20payment.`}
+                  href={`https://wa.me/918491006127?text=Hi%20Urban%20Trout!%20I%20placed%20order%20%23${orderSuccess.orderNumber}.%20Payment%20confirmed%20via%20Razorpay%20%E2%9C%93`}
                   target="_blank"
                   rel="noopener noreferrer"
                   style={{
@@ -999,6 +1113,11 @@ export default function CheckoutPage() {
 
   return (
     <div style={{ background: C.bg, minHeight: "100vh" }}>
+      {/* ─── Razorpay Checkout.js Script ─── */}
+      <Script
+        src="https://checkout.razorpay.com/v1/checkout.js"
+        strategy="lazyOnload"
+      />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-32 pb-24">
 
         {/* ─── 3-STAGE PROGRESS STEPPER ─── */}
@@ -1934,7 +2053,7 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
-                {/* ─── UPI Payment Glass Card ─── */}
+                {/* ─── Razorpay Payment Card ─── */}
                 <div
                   className="p-6 md:p-8 rounded-2xl space-y-6"
                   style={{
@@ -1943,238 +2062,127 @@ export default function CheckoutPage() {
                     boxShadow: "0 8px 30px rgba(0,0,0,0.5)",
                   }}
                 >
-                  <div className="flex flex-col md:flex-row items-center gap-6">
-                    {/* QR Code Container */}
-                    <div
-                      className="p-3 rounded-2xl flex-shrink-0 flex flex-col items-center"
-                      style={{
-                        background: "#10212c",
-                        border: "1px solid rgba(114,221,253,0.3)",
-                        boxShadow: "0 0 20px rgba(114,221,253,0.15)",
-                      }}
-                    >
-                      <img
-                        src={upiQrCodeUrl}
-                        alt="Scan to Pay via UPI"
-                        style={{ width: "180px", height: "180px", borderRadius: "10px" }}
-                      />
-                      <span
-                        style={{
-                          fontFamily: '"Inter", sans-serif',
-                          fontSize: "9px",
-                          color: C.primary,
-                          letterSpacing: "0.1em",
-                          marginTop: "8px",
-                          textTransform: "uppercase",
-                          fontWeight: 700,
-                        }}
-                      >
-                        Scan with Any UPI App
-                      </span>
-                    </div>
-
-                    {/* Payment Info */}
-                    <div className="flex-1 space-y-4 text-center md:text-left w-full">
-                      <div>
-                        <span
-                          style={{
-                            fontFamily: '"Inter", sans-serif',
-                            fontSize: "10px",
-                            letterSpacing: "0.15em",
-                            textTransform: "uppercase",
-                            color: C.onSurfVar,
-                          }}
-                        >
-                          Total Amount to Pay
-                        </span>
-                        <h3
-                          style={{
-                            fontFamily: '"Space Grotesk", sans-serif',
-                            fontSize: "2.4rem",
-                            fontWeight: 800,
-                            color: C.primary,
-                            letterSpacing: "-0.03em",
-                            margin: "2px 0 0",
-                          }}
-                        >
-                          ₹{grandTotal.toLocaleString("en-IN")}
-                        </h3>
-                      </div>
-
-                      {/* Copy UPI Box */}
-                      <div
-                        className="flex items-center justify-between p-3.5 rounded-xl gap-3"
-                        style={{ background: "rgba(3,16,24,0.85)", border: "1px solid rgba(61,74,83,0.6)" }}
-                      >
-                        <div className="flex flex-col text-left">
-                          <span
-                            style={{
-                              fontFamily: '"Inter", sans-serif',
-                              fontSize: "9px",
-                              color: C.outline,
-                              textTransform: "uppercase",
-                              letterSpacing: "0.1em",
-                            }}
-                          >
-                            Official Farm UPI ID
-                          </span>
-                          <span
-                            style={{
-                              fontFamily: '"Space Grotesk", sans-serif',
-                              fontSize: "0.95rem",
-                              fontWeight: 700,
-                              color: C.onSurface,
-                            }}
-                          >
-                            {upiId}
-                          </span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={copyUpiId}
-                          className="px-3.5 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider transition-all cursor-pointer"
-                          style={{
-                            background: copiedUpi ? "rgba(37,211,102,0.2)" : "rgba(114,221,253,0.15)",
-                            color: copiedUpi ? "#25D366" : C.primary,
-                            border: `1px solid ${copiedUpi ? "#25D366" : "rgba(114,221,253,0.3)"}`,
-                          }}
-                        >
-                          {copiedUpi ? "Copied! ✓" : "Copy ID"}
-                        </button>
-                      </div>
-
-                      {/* ─── ONE-TAP UPI APP BUTTONS ─── */}
-                      <div className="space-y-2">
-                        <span
-                          style={{
-                            fontFamily: '"Inter", sans-serif',
-                            fontSize: "9px",
-                            color: "rgba(180,195,205,0.7)",
-                            textTransform: "uppercase",
-                            letterSpacing: "0.12em",
-                            fontWeight: 700,
-                            display: "block",
-                          }}
-                        >
-                          Tap to Open &amp; Pay Directly
-                        </span>
-                        <div className="grid grid-cols-2 gap-2">
-                          {/* PhonePe */}
-                          <a
-                            href={`phonepe://pay?pa=${upiId}&pn=Urban%20Trout&am=${grandTotal}&cu=INR&tn=UrbanTrout-Order`}
-                            className="flex items-center gap-2 p-2.5 rounded-xl border transition-all active:scale-95"
-                            style={{ background: "#5f259f", borderColor: "#4a1a7a", textDecoration: "none" }}
-                          >
-                            <img src="/icons8-phone-pe-480.svg" alt="PhonePe" style={{ width: 26, height: 26, borderRadius: 6, flexShrink: 0 }} />
-                            <div>
-                              <p style={{ color: "white", fontWeight: 700, fontSize: "11px", fontFamily: '"Space Grotesk", sans-serif' }}>PhonePe</p>
-                              <p style={{ color: "#c9a8f7", fontSize: "10px", fontFamily: '"Inter", sans-serif' }}>₹{grandTotal.toLocaleString("en-IN")}</p>
-                            </div>
-                          </a>
-
-                          {/* Google Pay */}
-                          <a
-                            href={`tez://upi/pay?pa=${upiId}&pn=Urban%20Trout&am=${grandTotal}&cu=INR&tn=UrbanTrout-Order`}
-                            className="flex items-center gap-2 p-2.5 rounded-xl border transition-all active:scale-95"
-                            style={{ background: "#1a73e8", borderColor: "#1558b0", textDecoration: "none" }}
-                          >
-                            <img src="/icons8-google-pay-480.svg" alt="Google Pay" style={{ width: 26, height: 26, borderRadius: 6, flexShrink: 0, background: "white", padding: 2 }} />
-                            <div>
-                              <p style={{ color: "white", fontWeight: 700, fontSize: "11px", fontFamily: '"Space Grotesk", sans-serif' }}>Google Pay</p>
-                              <p style={{ color: "#93c5fd", fontSize: "10px", fontFamily: '"Inter", sans-serif' }}>₹{grandTotal.toLocaleString("en-IN")}</p>
-                            </div>
-                          </a>
-
-                          {/* Paytm */}
-                          <a
-                            href={`paytmmp://pay?pa=${upiId}&pn=Urban%20Trout&am=${grandTotal}&cu=INR&tn=UrbanTrout-Order`}
-                            className="flex items-center gap-2 p-2.5 rounded-xl border transition-all active:scale-95"
-                            style={{ background: "#00BAF2", borderColor: "#0096c4", textDecoration: "none" }}
-                          >
-                            <img src="/icons8-paytm-480.svg" alt="Paytm" style={{ width: 26, height: 26, borderRadius: 6, flexShrink: 0, background: "white", padding: 2 }} />
-                            <div>
-                              <p style={{ color: "white", fontWeight: 700, fontSize: "11px", fontFamily: '"Space Grotesk", sans-serif' }}>Paytm</p>
-                              <p style={{ color: "#bae6fd", fontSize: "10px", fontFamily: '"Inter", sans-serif' }}>₹{grandTotal.toLocaleString("en-IN")}</p>
-                            </div>
-                          </a>
-
-                          {/* BHIM / Any UPI */}
-                          <a
-                            href={`upi://pay?pa=${upiId}&pn=Urban%20Trout&am=${grandTotal}&cu=INR&tn=UrbanTrout-Order`}
-                            className="flex items-center gap-2 p-2.5 rounded-xl border transition-all active:scale-95"
-                            style={{ background: "#FF6600", borderColor: "#cc5200", textDecoration: "none" }}
-                          >
-                            <img src="/icons8-bhim-480.svg" alt="BHIM UPI" style={{ width: 26, height: 26, borderRadius: 6, flexShrink: 0 }} />
-                            <div>
-                              <p style={{ color: "white", fontWeight: 700, fontSize: "11px", fontFamily: '"Space Grotesk", sans-serif' }}>BHIM / Any</p>
-                              <p style={{ color: "#fed7aa", fontSize: "10px", fontFamily: '"Inter", sans-serif' }}>₹{grandTotal.toLocaleString("en-IN")}</p>
-                            </div>
-                          </a>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* UTR Input */}
-                  <div className="pt-4" style={{ borderTop: "1px solid rgba(61,74,83,0.4)" }}>
-                    <label
+                  {/* Amount display */}
+                  <div className="text-center space-y-1">
+                    <span
                       style={{
                         fontFamily: '"Inter", sans-serif',
-                        fontSize: "11px",
-                        letterSpacing: "0.12em",
+                        fontSize: "10px",
+                        letterSpacing: "0.15em",
                         textTransform: "uppercase",
                         color: C.onSurfVar,
                         display: "block",
-                        marginBottom: "8px",
-                        fontWeight: 600,
                       }}
                     >
-                      Transaction UTR / Reference No. (Optional)
-                    </label>
-                    <input
-                      type="text"
-                      value={utrRef}
-                      onChange={(e) => setUtrRef(e.target.value)}
-                      placeholder="e.g. 423871928371 (from your UPI receipt)"
+                      Total Amount to Pay
+                    </span>
+                    <h3
                       style={{
-                        width: "100%",
-                        background: "rgba(3,16,24,0.85)",
-                        border: "1px solid rgba(61,74,83,0.6)",
-                        borderRadius: "12px",
-                        padding: "12px 16px",
-                        color: C.onSurface,
-                        fontFamily: '"Manrope", sans-serif',
-                        fontSize: "0.9rem",
-                        outline: "none",
-                        boxSizing: "border-box",
+                        fontFamily: '"Space Grotesk", sans-serif',
+                        fontSize: "2.8rem",
+                        fontWeight: 800,
+                        color: C.primary,
+                        letterSpacing: "-0.03em",
+                        margin: 0,
                       }}
-                    />
+                    >
+                      ₹{grandTotal.toLocaleString("en-IN")}
+                    </h3>
+                    <p
+                      style={{
+                        fontFamily: '"Manrope", sans-serif',
+                        fontSize: "0.82rem",
+                        color: C.onSurfVar,
+                        margin: 0,
+                      }}
+                    >
+                      Free Delivery • Secure Payment via Razorpay
+                    </p>
                   </div>
+
+                  {/* Payment method badges */}
+                  <div
+                    className="flex flex-wrap items-center justify-center gap-2 py-3 px-4 rounded-xl"
+                    style={{ background: "rgba(3,16,24,0.7)", border: "1px solid rgba(61,74,83,0.5)" }}
+                  >
+                    <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", color: C.outline, textTransform: "uppercase", letterSpacing: "0.1em", whiteSpace: "nowrap" }}>
+                      Accepts:
+                    </span>
+                    {["UPI", "Cards", "Net Banking", "Wallets"].map((m) => (
+                      <span
+                        key={m}
+                        style={{
+                          fontFamily: '"Space Grotesk", sans-serif',
+                          fontSize: "11px",
+                          fontWeight: 700,
+                          color: C.primary,
+                          background: "rgba(114,221,253,0.1)",
+                          border: "1px solid rgba(114,221,253,0.25)",
+                          borderRadius: "6px",
+                          padding: "3px 10px",
+                        }}
+                      >
+                        {m}
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* Security note */}
+                  <div className="flex items-center justify-center gap-2">
+                    <svg width="14" height="14" fill="none" stroke="#4ade80" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                    </svg>
+                    <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "11px", color: "#4ade80" }}>
+                      256-bit SSL secured · PCI-DSS compliant · Powered by Razorpay
+                    </span>
+                  </div>
+
+                  {/* Error message */}
+                  {razorpayError && (
+                    <div
+                      className="flex items-start gap-3 p-4 rounded-xl"
+                      style={{ background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.35)" }}
+                    >
+                      <span style={{ fontSize: "16px", flexShrink: 0 }}>⚠️</span>
+                      <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.88rem", color: "#f87171", margin: 0 }}>
+                        {razorpayError}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
-                {/* Final Confirmation CTA Button */}
+                {/* Pay Now CTA */}
                 <button
                   type="button"
-                  onClick={handleFinalOrderSubmit}
+                  onClick={handleRazorpayPayment}
                   disabled={isSubmitting}
-                  className="w-full flex items-center justify-center gap-3 font-bold uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 rounded-xl py-4 cursor-pointer"
+                  className="w-full flex items-center justify-center gap-3 font-bold uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 rounded-xl py-5 cursor-pointer"
                   style={{
                     fontFamily: '"Space Grotesk", sans-serif',
-                    fontSize: "0.98rem",
-                    background: "#25D366",
-                    color: "#fff",
+                    fontSize: "1rem",
+                    background: isSubmitting
+                      ? "rgba(58,173,204,0.6)"
+                      : "linear-gradient(135deg, #3aadcc 0%, #72ddfd 100%)",
+                    color: "#002730",
                     border: "none",
-                    boxShadow: "0 0 30px rgba(37,211,102,0.45)",
+                    boxShadow: isSubmitting ? "none" : "0 0 35px rgba(114,221,253,0.45)",
                   }}
                 >
                   {isSubmitting ? (
-                    "Confirming Live Harvest Order…"
+                    <span className="flex items-center gap-2">
+                      <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                      </svg>
+                      Processing…
+                    </span>
                   ) : (
                     <>
-                      <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
-                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z" />
+                      <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                        <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
+                        <line x1="1" y1="10" x2="23" y2="10" />
                       </svg>
-                      I Have Paid ₹{grandTotal.toLocaleString("en-IN")} • Confirm Order
+                      Pay ₹{grandTotal.toLocaleString("en-IN")} Securely
                     </>
                   )}
                 </button>

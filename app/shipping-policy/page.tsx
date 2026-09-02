@@ -22,7 +22,7 @@ const sections = [
   },
   {
     title: "2. Harvest-to-Order & Delivery Timelines",
-    body: "• Unlike conventional seafood sellers, we do not store dead or frozen fish. Every order is harvested live from our state-of-the-art aquaculture tanks upon order confirmation.\n• Standard Delivery Timeframe: Orders are typically harvested, cleaned, packed, and delivered to your doorstep within 2 to 24 hours of order placement based on your chosen harvest delivery slot.\n• Operating Delivery Hours: Monday to Sunday between 8:00 AM and 8:00 PM IST.",
+    body: "• Farm-Fresh Quality: Every order is freshly harvested to order from our state-of-the-art aquaculture tanks upon order confirmation to ensure maximum freshness and taste.\n• Standard Delivery Timeframe: Orders are freshly harvested, cleaned, chilled in food-grade ice, and delivered to your doorstep within 2 to 24 hours of order placement based on your chosen delivery slot.\n• Operating Delivery Hours: Monday to Sunday between 8:00 AM and 8:00 PM IST.",
   },
   {
     title: "3. Shipping & Delivery Charges",

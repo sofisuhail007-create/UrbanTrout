@@ -114,7 +114,7 @@ export async function sendOrderConfirmationEmail(order: {
           <p style="margin: 0; font-size: 14px; color: #dfedf9; line-height: 1.5;">
             <strong>${order.customerName}</strong> (+91 ${order.phone})<br>
             ${order.address ? `${order.address}, ` : ""}${order.locality || "Srinagar"}${order.pincode ? ` - ${order.pincode}` : ""}<br>
-            <span style="font-size: 12px; color: #9fadb8;">Farm Source: Urban Trout Farm &amp; Live Vending Center</span>
+            <span style="font-size: 12px; color: #9fadb8;">Farm Source: Urban Trout Farm &amp; Fresh Fish Counter</span>
           </p>
         </div>
 

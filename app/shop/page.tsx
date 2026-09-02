@@ -87,7 +87,7 @@ export default function ShopPage() {
               </svg>
             </div>
             <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: "0.95rem", color: C.onSurface }}>Harvested to Order</span>
-            <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.82rem", color: C.onSurfVar, lineHeight: 1.65 }}>We never store dead fish. Every catch is harvested fresh for you.</span>
+            <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.82rem", color: C.onSurfVar, lineHeight: 1.65 }}>Freshly harvested to order and chilled in food-grade ice.</span>
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>

@@ -214,7 +214,7 @@ export default function PublicInvoicePage() {
               Invoice Link Expired
             </h2>
             <p className="text-slate-400 text-xs leading-relaxed" style={{ fontFamily: '"Manrope", sans-serif' }}>
-              This invoice link has exceeded its <strong>48-hour live validity period</strong>. To request a fresh invoice or order live-harvested trout, please contact our farm counter.
+              This invoice link has exceeded its <strong>48-hour validity period</strong>. To request a fresh invoice or order farm-fresh trout, please contact our farm counter.
             </p>
           </div>
 
