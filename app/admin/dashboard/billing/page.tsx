@@ -268,16 +268,19 @@ export default function POSBillingPage() {
     }
   }, [paymentMethod, grandTotal]);
 
-  // Real-time polling for incoming Razorpay payment
+  // Real-time polling for incoming Razorpay payment (Ultra-responsive 1.2s interval)
   useEffect(() => {
     if (paymentMethod !== "RazorpayQR" || !rzpQrId || rzpPaid) return;
 
-    const pollInterval = setInterval(async () => {
+    let isSubscribed = true;
+
+    const checkPayment = async () => {
+      if (!isSubscribed || rzpPaid) return;
       try {
         const res = await fetch(`/api/razorpay/pos-qr?qr_id=${encodeURIComponent(rzpQrId)}`);
         if (!res.ok) return;
         const data = await res.json();
-        if (data.success && data.paid && data.payment) {
+        if (data.success && data.paid && data.payment && isSubscribed) {
           setRzpPaid(true);
           setRzpPaymentDetails(data.payment);
           playSuccessChime();
@@ -285,9 +288,18 @@ export default function POSBillingPage() {
       } catch (err) {
         console.warn("Error polling payment status:", err);
       }
-    }, 2500);
+    };
 
-    return () => clearInterval(pollInterval);
+    // Quick initial check after 600ms
+    const initialTimer = setTimeout(checkPayment, 600);
+    // Rapid polling interval every 1200ms (1.2 seconds)
+    const pollInterval = setInterval(checkPayment, 1200);
+
+    return () => {
+      isSubscribed = false;
+      clearTimeout(initialTimer);
+      clearInterval(pollInterval);
+    };
   }, [paymentMethod, rzpQrId, rzpPaid]);
 
   // ─── GENERATE SHORT CLEAN INVOICE (e.g. /invoice/UT-INV-3986) ───
@@ -423,53 +435,49 @@ export default function POSBillingPage() {
   };
 
   return (
-    <div className="p-3 sm:p-6 md:p-8 max-w-7xl mx-auto space-y-5 sm:space-y-6">
-      {/* ─── HEADER ─── */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-2 border-b border-slate-800/80">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 flex-shrink-0">
-            <span className="material-symbols-outlined text-xl sm:text-2xl">point_of_sale</span>
+    <div className="px-3 py-2 sm:px-5 sm:py-3 max-w-7xl mx-auto space-y-3">
+      {/* ─── COMPACT HEADER BAR ─── */}
+      <div className="flex items-center justify-between py-1 px-0.5 border-b border-slate-800/80">
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 flex-shrink-0">
+            <span className="material-symbols-outlined text-lg">point_of_sale</span>
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[9px] sm:text-[10px] uppercase font-bold tracking-widest text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                ⚡ Real-Time Auto Calculator
-              </span>
-              <span className="text-slate-500">•</span>
-              <span className="text-[10px] text-slate-400 font-mono">48-Hr QR Invoicing</span>
-            </div>
-            <h1 className="text-xl sm:text-2xl font-extrabold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
-              Sales Billing &amp; Invoice Tool
+          <div className="flex items-center gap-2">
+            <h1 className="text-base sm:text-lg font-extrabold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+              Sales Billing &amp; Invoice POS
             </h1>
+            <span className="text-[9px] uppercase font-bold tracking-wider text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 hidden sm:inline">
+              ⚡ Auto-Calculator
+            </span>
           </div>
         </div>
 
         <button
           type="button"
           onClick={handleReset}
-          className="w-full sm:w-auto px-3.5 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:bg-slate-800 transition-all text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 cursor-pointer"
+          className="px-3 py-1 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition-all text-xs font-bold uppercase tracking-wider flex items-center gap-1 cursor-pointer"
         >
-          <span className="material-symbols-outlined text-base">refresh</span>
+          <span className="material-symbols-outlined text-sm">refresh</span>
           Reset Bill
         </button>
       </div>
 
-      {/* ─── MAIN 2-COLUMN / MOBILE RESPONSIVE GRID ─── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 items-start">
+      {/* ─── MAIN 2-COLUMN GRID (COMPACT ABOVE-THE-FOLD) ─── */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 items-start">
         {/* LEFT COLUMN: Weight Input & Customer (7 Cols) */}
-        <div className="lg:col-span-7 space-y-5 sm:space-y-6">
+        <div className="lg:col-span-7 space-y-3">
           {/* Card 1: Product & Live Real-Time Weight Input */}
-          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-6 space-y-4 sm:space-y-5 shadow-xl">
+          <div className="bg-slate-900/85 border border-slate-800 rounded-2xl p-3 sm:p-4 space-y-3 shadow-xl">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm sm:text-base font-bold text-white flex items-center gap-2" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
-                <span className="material-symbols-outlined text-cyan-400 text-base sm:text-lg">scale</span>
-                1. Select Harvest Trout &amp; Weight
+              <h2 className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                <span className="material-symbols-outlined text-cyan-400 text-base">scale</span>
+                1. Harvest Trout &amp; Weight
               </h2>
-              <span className="text-[11px] sm:text-xs text-slate-400 font-mono">₹{activeProduct.pricePerKg}/Kg</span>
+              <span className="text-[11px] text-cyan-400 font-mono font-bold">₹{activeProduct.pricePerKg}/Kg</span>
             </div>
 
             {/* Product Selector Chips */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-2 gap-2">
               {products.map((p) => {
                 const isSelected = selectedProductId === p.id;
                 return (
@@ -477,34 +485,33 @@ export default function POSBillingPage() {
                     key={p.id}
                     type="button"
                     onClick={() => handleSelectProduct(p.id)}
-                    className="p-3.5 rounded-xl text-left transition-all cursor-pointer active:scale-[0.99]"
+                    className="p-2.5 rounded-xl text-left transition-all cursor-pointer active:scale-[0.99]"
                     style={{
-                      background: isSelected ? "rgba(114,221,253,0.12)" : "rgba(3,16,24,0.6)",
-                      border: isSelected ? "1.5px solid #72ddfd" : "1px solid rgba(61,74,83,0.6)",
-                      boxShadow: isSelected ? "0 0 15px rgba(114,221,253,0.15)" : "none",
+                      background: isSelected ? "rgba(114,221,253,0.14)" : "rgba(3,16,24,0.6)",
+                      border: isSelected ? "1.5px solid #72ddfd" : "1px solid rgba(61,74,83,0.5)",
                     }}
                   >
                     <div className="flex items-start justify-between">
-                      <h4 className="font-bold text-white text-xs sm:text-sm leading-tight" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                      <h4 className="font-bold text-white text-xs leading-tight truncate" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
                         {p.name}
                       </h4>
-                      <span className={`text-[10px] font-bold ${isSelected ? "text-cyan-400" : "text-slate-500"}`}>
-                        {isSelected ? "● Active" : "○"}
+                      <span className={`text-[9px] font-bold ${isSelected ? "text-cyan-400" : "text-slate-600"}`}>
+                        {isSelected ? "●" : "○"}
                       </span>
                     </div>
-                    <p className="text-cyan-400 font-bold text-sm sm:text-base mt-1.5 font-mono">₹{p.pricePerKg} / Kg</p>
+                    <p className="text-cyan-400 font-bold text-xs sm:text-sm mt-0.5 font-mono">₹{p.pricePerKg}/Kg</p>
                   </button>
                 );
               })}
             </div>
 
             {/* Instant Live Weight Input */}
-            <div className="space-y-2.5 pt-1">
-              <div className="flex items-center justify-between">
-                <label className="block text-[11px] uppercase tracking-wider font-bold text-slate-400">
-                  Harvested Weight (Auto-calculates on typing)
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-[11px]">
+                <label className="uppercase tracking-wider font-bold text-slate-400">
+                  Harvested Weight
                 </label>
-                <span className="text-[11px] text-emerald-400 font-semibold animate-pulse">● Live updating</span>
+                <span className="text-emerald-400 font-semibold animate-pulse">● Live updating</span>
               </div>
 
               <div className="relative">
@@ -514,48 +521,48 @@ export default function POSBillingPage() {
                   min="0.1"
                   value={currentWeight}
                   onChange={(e) => updateActiveWeight(e.target.value)}
-                  placeholder="e.g. 4.5"
-                  className="w-full bg-slate-950/90 border border-slate-700 rounded-xl sm:rounded-2xl px-4 sm:px-5 py-3.5 sm:py-4 text-xl sm:text-3xl font-mono text-cyan-300 font-bold focus:outline-none focus:border-cyan-400 shadow-inner"
+                  placeholder="e.g. 1.0"
+                  className="w-full bg-slate-950/90 border border-slate-700 rounded-xl px-4 py-2 sm:py-2.5 text-xl sm:text-2xl font-mono text-cyan-300 font-bold focus:outline-none focus:border-cyan-400 shadow-inner"
                 />
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-sm sm:text-base">
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-xs sm:text-sm">
                   KG
                 </span>
               </div>
 
               {/* Quick Weight Adder Chips */}
-              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 pt-1">
-                <span className="text-[11px] text-slate-500 mr-0.5">Presets:</span>
+              <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                <span className="text-[10px] text-slate-500 mr-0.5">Presets:</span>
                 {[0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 4.5, 5.0].map((w) => (
                   <button
                     key={w}
                     type="button"
                     onClick={() => handleQuickWeight(w, false)}
-                    className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 font-mono text-[11px] sm:text-xs font-semibold transition-all border border-slate-700 cursor-pointer"
+                    className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[11px] font-semibold border border-slate-700 cursor-pointer"
                   >
-                    {w} Kg
+                    {w}k
                   </button>
                 ))}
                 <button
                   type="button"
                   onClick={() => handleQuickWeight(0.5, true)}
-                  className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-cyan-950/60 hover:bg-cyan-900/60 active:scale-95 text-cyan-400 font-mono text-[11px] sm:text-xs font-bold transition-all border border-cyan-500/30 cursor-pointer"
+                  className="px-2 py-1 rounded-lg bg-cyan-950/60 hover:bg-cyan-900/60 text-cyan-400 font-mono text-[11px] font-bold border border-cyan-500/30 cursor-pointer"
                 >
-                  +0.5 Kg
+                  +0.5
                 </button>
               </div>
             </div>
           </div>
 
           {/* Card 2: Customer Information */}
-          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl sm:rounded-3xl p-4 sm:p-6 space-y-4 shadow-xl">
-            <h2 className="text-sm sm:text-base font-bold text-white flex items-center gap-2" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
-              <span className="material-symbols-outlined text-cyan-400 text-base sm:text-lg">person</span>
-              2. Customer Details (For WhatsApp Bill &amp; QR Invoice)
+          <div className="bg-slate-900/85 border border-slate-800 rounded-2xl p-3 sm:p-4 space-y-2.5 shadow-xl">
+            <h2 className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+              <span className="material-symbols-outlined text-cyan-400 text-base">person</span>
+              2. Customer Details (WhatsApp Bill &amp; Invoice)
             </h2>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <div>
-                <label className="block text-[11px] uppercase tracking-wider font-bold text-slate-400 mb-1">
+                <label className="block text-[10px] uppercase tracking-wider font-bold text-slate-400 mb-0.5">
                   Customer Name
                 </label>
                 <input
@@ -563,34 +570,34 @@ export default function POSBillingPage() {
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
                   placeholder="e.g. Suhail Ahmed"
-                  className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-3.5 py-2.5 sm:py-3 text-sm text-white focus:outline-none focus:border-cyan-400"
+                  className="w-full bg-slate-950/80 border border-slate-700 rounded-lg px-3 py-1.5 text-xs sm:text-sm text-white focus:outline-none focus:border-cyan-400"
                 />
               </div>
 
               <div>
-                <label className="block text-[11px] uppercase tracking-wider font-bold text-slate-400 mb-1">
+                <label className="block text-[10px] uppercase tracking-wider font-bold text-slate-400 mb-0.5">
                   WhatsApp Phone Number
                 </label>
                 <input
                   type="tel"
                   value={customerPhone}
                   onChange={(e) => setCustomerPhone(e.target.value)}
-                  placeholder="10-digit mobile (e.g. 7006604148)"
+                  placeholder="10-digit mobile"
                   maxLength={10}
-                  className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-3.5 py-2.5 sm:py-3 text-sm text-white focus:outline-none focus:border-cyan-400"
+                  className="w-full bg-slate-950/80 border border-slate-700 rounded-lg px-3 py-1.5 text-xs sm:text-sm text-white focus:outline-none focus:border-cyan-400"
                 />
               </div>
 
               <div className="sm:col-span-2">
-                <label className="block text-[11px] uppercase tracking-wider font-bold text-slate-400 mb-1">
-                  Notes / Packaging Instructions (Optional)
+                <label className="block text-[10px] uppercase tracking-wider font-bold text-slate-400 mb-0.5">
+                  Packaging / Delivery Notes (Optional)
                 </label>
                 <input
                   type="text"
                   value={customerNotes}
                   onChange={(e) => setCustomerNotes(e.target.value)}
                   placeholder="e.g. Extra iced, clean & cut into steaks."
-                  className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-3.5 py-2.5 sm:py-3 text-sm text-white focus:outline-none focus:border-cyan-400"
+                  className="w-full bg-slate-950/80 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-400"
                 />
               </div>
             </div>
@@ -598,134 +605,69 @@ export default function POSBillingPage() {
         </div>
 
         {/* RIGHT COLUMN: Live Bill Summary & Instant QR (5 Cols) */}
-        <div className="lg:col-span-5 space-y-5 sm:space-y-6">
-          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl space-y-5 p-4 sm:p-6">
-            {/* Bill Title */}
-            <div className="flex items-center justify-between pb-3.5 border-b border-slate-800">
+        <div className="lg:col-span-5 space-y-3">
+          <div className="bg-slate-900/95 border border-slate-800 rounded-2xl p-3 sm:p-4 space-y-2.5 shadow-2xl">
+            {/* Header: Total Payable Bar */}
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800/80">
               <div>
-                <span className="text-[9px] uppercase font-bold tracking-widest text-slate-500 font-mono">Live Calculator Total</span>
-                <h3 className="text-lg sm:text-2xl font-extrabold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
-                  Total Payable: <span className="text-cyan-400">₹{grandTotal.toLocaleString("en-IN")}</span>
+                <span className="text-[9px] uppercase font-bold tracking-widest text-slate-500 font-mono">Live Total</span>
+                <h3 className="text-xl sm:text-2xl font-black text-white leading-tight" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                  Payable: <span className="text-cyan-400">₹{grandTotal.toLocaleString("en-IN")}</span>
                 </h3>
               </div>
-              <span className="px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 text-[11px] font-mono font-bold">
+              <span className="px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 text-xs font-mono font-bold">
                 {totalWeight.toFixed(2)} Kg
               </span>
             </div>
 
-            {/* Line Items List */}
-            <div className="space-y-2.5 max-h-52 overflow-y-auto pr-1">
-              {billItems.map((item) => (
-                <div
-                  key={item.id}
-                  className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 flex items-center justify-between gap-2"
-                >
-                  <div className="min-w-0 flex-1">
-                    <h5 className="font-bold text-white text-xs truncate" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
-                      {item.name}
-                    </h5>
-                    <p className="text-[11px] text-slate-400 font-mono mt-0.5">
-                      {item.weightKg} Kg × ₹{item.pricePerKg}/Kg
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-2.5 flex-shrink-0">
-                    <span className="font-bold text-cyan-400 font-mono text-sm">
-                      ₹{item.total.toLocaleString("en-IN")}
-                    </span>
-                    {billItems.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => handleRemoveItem(item.id)}
-                        className="text-slate-600 hover:text-red-400 transition-colors cursor-pointer p-1"
-                      >
-                        <span className="material-symbols-outlined text-sm">close</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))}
+            {/* Compact Line Item Summary */}
+            <div className="px-2.5 py-1 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center justify-between text-xs">
+              <span className="text-slate-300 font-medium truncate">
+                {billItems[0]?.name || "Trout"} ({totalWeight.toFixed(2)} Kg × ₹{billItems[0]?.pricePerKg || 550})
+              </span>
+              <span className="font-mono font-bold text-cyan-400">₹{grandTotal.toLocaleString("en-IN")}</span>
             </div>
 
-            {/* Payment Method Selector */}
-            <div className="space-y-2 pt-1 border-t border-slate-800">
-              <div className="flex items-center justify-between">
-                <label className="block text-[11px] uppercase tracking-wider font-bold text-slate-400">
-                  Payment Channel
-                </label>
-                {paymentMethod === "RazorpayQR" && (
-                  <span className="text-[10px] text-cyan-400 font-mono font-bold flex items-center gap-1">
-                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-                    Auto-Verification Active
-                  </span>
-                )}
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                {[
-                  { id: "RazorpayQR", label: "⚡ Razorpay QR", sub: "Auto-Detect" },
-                  { id: "UPI", label: "📱 Direct UPI", sub: "Manual YBL" },
-                  { id: "Cash", label: "💵 Cash", sub: "Counter" },
-                  { id: "Card", label: "💳 Card / POS", sub: "Terminal" },
-                ].map((channel) => {
-                  const isSel = paymentMethod === channel.id;
-                  return (
-                    <button
-                      key={channel.id}
-                      type="button"
-                      onClick={() => setPaymentMethod(channel.id as any)}
-                      className="p-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all cursor-pointer text-center"
-                      style={{
-                        background: isSel ? "rgba(114,221,253,0.18)" : "rgba(3,16,24,0.6)",
-                        border: isSel ? "1.5px solid #72ddfd" : "1px solid rgba(61,74,83,0.5)",
-                        color: isSel ? "#72ddfd" : "#9fadb8",
-                        boxShadow: isSel ? "0 0 14px rgba(114,221,253,0.18)" : "none",
-                      }}
-                    >
-                      <div className="leading-tight">{channel.label}</div>
-                      <span className="text-[9px] opacity-75 font-mono normal-case block mt-0.5">
-                        {channel.sub}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+            {/* Payment Channel Selector */}
+            <div className="grid grid-cols-4 gap-1.5 pt-0.5">
+              {[
+                { id: "RazorpayQR", label: "⚡ Razorpay", sub: "Auto-QR" },
+                { id: "UPI", label: "📱 Direct UPI", sub: "Manual" },
+                { id: "Cash", label: "💵 Cash", sub: "Counter" },
+                { id: "Card", label: "💳 Card / POS", sub: "Terminal" },
+              ].map((channel) => {
+                const isSel = paymentMethod === channel.id;
+                return (
+                  <button
+                    key={channel.id}
+                    type="button"
+                    onClick={() => setPaymentMethod(channel.id as any)}
+                    className="py-1.5 px-1 rounded-xl font-bold text-[10px] uppercase tracking-wider transition-all cursor-pointer text-center"
+                    style={{
+                      background: isSel ? "rgba(114,221,253,0.18)" : "rgba(3,16,24,0.6)",
+                      border: isSel ? "1.5px solid #72ddfd" : "1px solid rgba(61,74,83,0.5)",
+                      color: isSel ? "#72ddfd" : "#9fadb8",
+                      boxShadow: isSel ? "0 0 10px rgba(114,221,253,0.15)" : "none",
+                    }}
+                  >
+                    <div className="leading-tight truncate">{channel.label}</div>
+                    <span className="text-[8.5px] opacity-75 font-mono normal-case block">
+                      {channel.sub}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
 
             {/* ─── PAYMENT CHANNEL PANELS ─── */}
 
             {/* 1. Razorpay Dynamic BharatQR Panel */}
             {paymentMethod === "RazorpayQR" && grandTotal > 0 && (
-              <div className="p-4 rounded-2xl bg-slate-950/90 border border-cyan-500/30 space-y-3.5 shadow-xl">
-                {/* Header with Live Status */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-cyan-400 font-bold text-xs flex items-center gap-1">
-                      <span className="text-base">⚡</span> Razorpay Dynamic UPI QR
-                    </span>
-                  </div>
-
-                  {rzpPaid ? (
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1 shadow-sm shadow-emerald-500/30">
-                      <span>✓</span> Paid &amp; Verified
-                    </span>
-                  ) : rzpQrLoading ? (
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-cyan-950/60 text-cyan-400 border border-cyan-900/50 flex items-center gap-1 animate-pulse">
-                      <span>⏳</span> Creating QR...
-                    </span>
-                  ) : (
-                    <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-amber-500/10 text-amber-300 border border-amber-500/30 flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
-                      Listening for Scan...
-                    </span>
-                  )}
-                </div>
-
-                {/* Body Content */}
+              <div className="p-2.5 rounded-xl bg-slate-950/80 border border-cyan-500/30 flex flex-col items-center text-center space-y-2">
                 {rzpPaid ? (
                   /* ─── PAID CELEBRATION CARD ─── */
-                  <div className="p-4 rounded-xl bg-gradient-to-b from-emerald-950/40 to-slate-950 border border-emerald-500/40 text-center space-y-2.5 animate-fadeIn">
-                    <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/50 text-emerald-400 flex items-center justify-center mx-auto text-2xl font-black shadow-lg shadow-emerald-500/20">
+                  <div className="w-full py-4 px-3 rounded-xl bg-gradient-to-b from-emerald-950/40 to-slate-950 border border-emerald-500/40 text-center space-y-2 animate-fadeIn">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/50 text-emerald-400 flex items-center justify-center mx-auto text-xl font-black shadow-lg shadow-emerald-500/20">
                       ✓
                     </div>
                     <div>
@@ -733,42 +675,41 @@ export default function POSBillingPage() {
                         Payment Received: <span className="text-emerald-400">₹{rzpPaymentDetails?.amount || grandTotal}</span>
                       </h4>
                       <p className="text-xs text-slate-300 font-mono mt-0.5">
-                        Txn Ref: <strong className="text-cyan-300">{rzpPaymentDetails?.id || "pay_verified"}</strong>
+                        Ref: <strong className="text-cyan-300">{rzpPaymentDetails?.id || "pay_verified"}</strong>
                       </p>
                       {rzpPaymentDetails?.vpa && (
-                        <p className="text-[11px] text-slate-400 font-mono mt-0.5">
-                          Paid from: {rzpPaymentDetails.vpa}
+                        <p className="text-[10px] text-slate-400 font-mono">
+                          From: {rzpPaymentDetails.vpa}
                         </p>
                       )}
                     </div>
-
-                    <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-300 font-semibold flex items-center justify-center gap-1.5">
-                      <span>⚡</span> Auto-verified via Razorpay. Bill marked as PAID.
+                    <div className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[10px] text-emerald-300 font-semibold flex items-center justify-center gap-1">
+                      <span>⚡</span> Verified via Razorpay. Bill marked PAID.
                     </div>
                   </div>
                 ) : rzpQrLoading ? (
-                  <div className="py-12 flex flex-col items-center justify-center space-y-2 text-slate-400">
-                    <span className="animate-spin text-2xl">⏳</span>
-                    <p className="text-xs font-mono">Generating Razorpay Dynamic QR for ₹{grandTotal}...</p>
+                  <div className="py-10 flex flex-col items-center justify-center space-y-2 text-slate-400">
+                    <span className="animate-spin text-xl">⏳</span>
+                    <p className="text-xs font-mono">Generating Razorpay QR...</p>
                   </div>
                 ) : rzpQrError ? (
-                  <div className="p-3 rounded-xl bg-red-950/60 border border-red-500/30 text-center space-y-2">
+                  <div className="w-full p-3 rounded-xl bg-red-950/60 border border-red-500/30 text-center space-y-1.5">
                     <p className="text-xs text-red-300">⚠️ {rzpQrError}</p>
                     <button
                       type="button"
                       onClick={() => generateRazorpayQr(grandTotal, true)}
                       className="px-3 py-1 bg-red-600 hover:bg-red-500 text-white rounded-lg text-xs font-bold uppercase tracking-wider cursor-pointer"
                     >
-                      Retry Razorpay QR
+                      Retry QR
                     </button>
                   </div>
                 ) : rzpQrImageUrl ? (
-                  <div className="flex flex-col items-center text-center space-y-3">
-                    {/* The 100% Clean, Unobstructed QR Box */}
+                  <>
+                    {/* The 100% Clean, Unobstructed QR Box (~180px) */}
                     <div
                       onClick={() => setEnlargeQrModal(true)}
-                      className="w-64 h-64 sm:w-72 sm:h-72 bg-white border-2 border-cyan-400/60 rounded-2xl shadow-2xl overflow-hidden cursor-pointer group flex items-center justify-center p-2 transition-all hover:border-cyan-300 hover:shadow-cyan-500/25"
-                      title="Click to expand large view"
+                      className="w-44 h-44 sm:w-48 sm:h-48 bg-white border-2 border-cyan-400/60 rounded-2xl shadow-xl overflow-hidden cursor-pointer group flex items-center justify-center p-1.5 transition-all hover:border-cyan-300"
+                      title="Click to view fullscreen"
                     >
                       <div className="w-full h-full overflow-hidden rounded-xl flex items-center justify-center bg-white">
                         <img
@@ -783,45 +724,30 @@ export default function POSBillingPage() {
                       </div>
                     </div>
 
-                    <div className="space-y-1 pt-1">
-                      <div className="text-base sm:text-lg font-black text-white font-mono">
-                        Scan to Pay: <span className="text-cyan-400">₹{grandTotal.toLocaleString("en-IN")}</span>
+                    {/* QR Status Bar & Controls */}
+                    <div className="flex items-center justify-between w-full px-1 pt-0.5">
+                      <div className="flex items-center gap-1.5 text-amber-400 font-mono text-[11px] font-bold">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+                        Listening for scan...
                       </div>
-                      <p className="text-[11px] text-slate-400">
-                        Amount locked. Scan with GPay, PhonePe, Paytm, or CRED.
-                      </p>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setEnlargeQrModal(true)}
+                          className="px-2 py-0.5 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/30 text-[10px] font-bold uppercase cursor-pointer"
+                        >
+                          Enlarge
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => generateRazorpayQr(grandTotal, true)}
+                          className="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-[10px] font-bold uppercase cursor-pointer"
+                        >
+                          Refresh
+                        </button>
+                      </div>
                     </div>
-
-                    <div className="flex items-center gap-2 pt-0.5">
-                      <button
-                        type="button"
-                        onClick={() => setEnlargeQrModal(true)}
-                        className="px-3 py-1.5 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/30 text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1"
-                        title="Open Large QR Modal"
-                      >
-                        <span className="material-symbols-outlined text-xs">fullscreen</span>
-                        Large View
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => generateRazorpayQr(grandTotal, true)}
-                        className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1"
-                        title="Regenerate QR Code"
-                      >
-                        <span className="material-symbols-outlined text-xs">refresh</span>
-                        Refresh
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setPaymentMethod("UPI")}
-                        className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 border border-slate-800 text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer"
-                      >
-                        Direct UPI
-                      </button>
-                    </div>
-                  </div>
+                  </>
                 ) : null}
               </div>
             )}
@@ -879,15 +805,15 @@ export default function POSBillingPage() {
             )}
 
             {/* Primary Action Button */}
-            <div className="pt-2">
+            <div className="pt-1">
               <button
                 type="button"
                 onClick={handleGenerateInvoice}
                 disabled={grandTotal <= 0}
-                className="w-full py-4 rounded-xl sm:rounded-2xl bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] disabled:opacity-50 text-slate-950 font-bold uppercase tracking-wider text-xs sm:text-sm transition-all shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-2 cursor-pointer"
+                className="w-full py-2.5 sm:py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] disabled:opacity-50 text-slate-950 font-bold uppercase tracking-wider text-xs sm:text-sm transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 cursor-pointer"
                 style={{ fontFamily: '"Space Grotesk", sans-serif' }}
               >
-                <span className="material-symbols-outlined text-lg">receipt_long</span>
+                <span className="material-symbols-outlined text-base sm:text-lg">receipt_long</span>
                 Generate Invoice (₹{grandTotal.toLocaleString("en-IN")})
               </button>
             </div>
