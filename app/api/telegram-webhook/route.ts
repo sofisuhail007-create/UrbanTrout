@@ -57,6 +57,39 @@ async function findAndUpdateOrder(rawIdOrNum: string, newStatus: string) {
     if (data) return data;
   }
 
+  // 3. Try lookup in invoices table if generated via POS billing
+  try {
+    const invoiceLookup = cleanDigits || rawIdOrNum;
+    const { data: invRow } = await supabase
+      .from("invoices")
+      .select("*")
+      .eq("id", invoiceLookup)
+      .maybeSingle();
+
+    if (invRow && invRow.data) {
+      const updatedInvData = { ...invRow.data, deliveryStatus: newStatus };
+      if (newStatus === "cancelled") updatedInvData.paymentStatus = "CANCELLED";
+      await supabase
+        .from("invoices")
+        .update({ data: updatedInvData })
+        .eq("id", invoiceLookup);
+
+      return {
+        order_number: invRow.id,
+        customer_name: invRow.data.customerName || "Customer",
+        customer_phone: invRow.data.customerPhone || "",
+        total: invRow.data.grandTotal || 0,
+        status: newStatus,
+        items: (invRow.data.items || []).map((it: any) => ({
+          name: it.name,
+          quantity: it.weightKg || 1,
+          price: it.pricePerKg || it.total,
+          unit: "Kg",
+        })),
+      };
+    }
+  } catch (_) {}
+
   return null;
 }
 
@@ -82,6 +115,7 @@ async function findOrder(queryNum: string) {
 const STATUS_NAMES: Record<string, string> = {
   pending: "Awaiting Verification",
   processing: "Confirmed & Harvesting",
+  confirmed: "Confirmed & Harvesting",
   out_for_delivery: "Out for Delivery",
   delivered: "Delivered",
   cancelled: "Cancelled",
@@ -114,57 +148,59 @@ export async function POST(request: Request) {
 
         // 1. Fetch & Update order in Supabase
         const updatedOrder = await findAndUpdateOrder(orderNumberOrId, newStatus);
-
-        if (!updatedOrder) {
-          await answerCallbackQuery(cq.id, `❌ Failed to find Order #${orderNumberOrId}`, true);
-          return NextResponse.json({ success: false, error: "Order not found" });
-        }
+        const statusName = STATUS_NAMES[newStatus] || newStatus;
 
         // 2. Answer Telegram with a top toast notification
-        const statusName = STATUS_NAMES[newStatus] || newStatus;
-        await answerCallbackQuery(cq.id, `✅ Order #${updatedOrder.order_number} marked as ${statusName}!`);
+        await answerCallbackQuery(cq.id, `✅ Order #${orderNumberOrId} marked as ${statusName}!`);
 
-        // 3. Send email to customer if email is recorded
-        const customerEmail = extractEmail(updatedOrder);
-        if (customerEmail) {
-          await sendOrderStatusUpdateEmail(
-            {
-              orderNumber: String(updatedOrder.order_number),
-              customerName: updatedOrder.customer_name,
-              email: customerEmail,
-              phone: updatedOrder.customer_phone,
-              total: updatedOrder.total,
-            },
-            newStatus
-          );
+        // 3. Send email to customer if email is recorded and order found in DB
+        if (updatedOrder) {
+          const customerEmail = extractEmail(updatedOrder);
+          if (customerEmail) {
+            await sendOrderStatusUpdateEmail(
+              {
+                orderNumber: String(updatedOrder.order_number),
+                customerName: updatedOrder.customer_name,
+                email: customerEmail,
+                phone: updatedOrder.customer_phone,
+                total: updatedOrder.total,
+              },
+              newStatus
+            );
+          }
         }
 
         // 4. Update the Telegram message text and inline buttons in-place
         if (chatId && messageId) {
+          const existingText = message?.text || "";
+          const phoneMatch = existingText.match(/\+91\s*(\d{10})/);
+          const customerPhone = updatedOrder?.customer_phone || (phoneMatch ? phoneMatch[1] : "");
+          const customerName = updatedOrder?.customer_name || "Customer";
+
           const newText = formatOrderTelegramText({
-            orderNumber: updatedOrder.order_number,
+            orderNumber: updatedOrder?.order_number || orderNumberOrId,
             status: newStatus,
-            total: updatedOrder.total,
-            paymentMethod: "UPI",
-            customerName: updatedOrder.customer_name,
-            phone: updatedOrder.customer_phone,
-            locality: updatedOrder.customer_locality,
-            address: updatedOrder.customer_address,
-            pincode: updatedOrder.customer_pincode,
-            items: updatedOrder.items,
+            total: updatedOrder?.total || 0,
+            paymentMethod: "Razorpay / UPI",
+            customerName: customerName,
+            phone: customerPhone,
+            locality: updatedOrder?.customer_locality,
+            address: updatedOrder?.customer_address,
+            pincode: updatedOrder?.customer_pincode,
+            items: updatedOrder?.items,
           });
 
           const newKeyboard = getOrderKeyboard(
-            updatedOrder.order_number,
+            updatedOrder?.order_number || orderNumberOrId,
             newStatus,
-            updatedOrder.customer_phone,
-            updatedOrder.customer_name
+            customerPhone,
+            customerName
           );
 
           await editTelegramMessageText(chatId, messageId, newText, newKeyboard);
         }
 
-        return NextResponse.json({ success: true, updated: updatedOrder.order_number, status: newStatus });
+        return NextResponse.json({ success: true, updated: orderNumberOrId, status: newStatus });
       }
 
       // ── Handle Inventory Availability Toggle: "inv:toggle:<productId>" ──

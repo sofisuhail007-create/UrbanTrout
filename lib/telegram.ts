@@ -205,12 +205,10 @@ export function formatInventoryItemText(item: {
 
 export function getOrderKeyboard(
   orderNumber: string | number,
-  currentStatus: string = "pending",
+  currentStatus: string = "confirmed",
   cleanPhone?: string,
   customerName?: string
 ): InlineKeyboardMarkup {
-  const isPending = currentStatus === "pending";
-  const isProcessing = currentStatus === "processing";
   const isOut = currentStatus === "out_for_delivery";
   const isDelivered = currentStatus === "delivered";
   const isCancelled = currentStatus === "cancelled";
@@ -218,19 +216,15 @@ export function getOrderKeyboard(
   const rows: InlineKeyboardButton[][] = [
     [
       {
-        text: isProcessing ? "● ✅ Confirmed" : "✅ Confirm & Harvest",
-        callback_data: `ord:processing:${orderNumber}`,
-      },
-      {
         text: isOut ? "● 🚚 Dispatched" : "🚚 Out for Delivery",
         callback_data: `ord:out_for_delivery:${orderNumber}`,
       },
-    ],
-    [
       {
         text: isDelivered ? "● 🎉 Delivered" : "🎉 Mark Delivered",
         callback_data: `ord:delivered:${orderNumber}`,
       },
+    ],
+    [
       {
         text: isCancelled ? "● ❌ Cancelled" : "❌ Cancel Order",
         callback_data: `ord:cancelled:${orderNumber}`,
@@ -240,24 +234,22 @@ export function getOrderKeyboard(
 
   if (cleanPhone) {
     let updateMsg = `Hi ${customerName || "there"}! Urban Trout here regarding your fresh trout order #${orderNumber}.`;
-    if (isProcessing) {
-      updateMsg = `Hi ${customerName || "there"}! Your Urban Trout order #${orderNumber} is CONFIRMED! Our team in Naseem Bagh is harvesting fresh from tanks now and packing in crushed ice. 🐟`;
-    } else if (isOut) {
+    if (isOut) {
       updateMsg = `Hi ${customerName || "there"}! Your fresh Rainbow Trout order #${orderNumber} is packed chilled and OUT FOR DELIVERY with our rider! 🚚`;
     } else if (isDelivered) {
       updateMsg = `Hi ${customerName || "there"}! Your fresh Rainbow Trout order #${orderNumber} has been DELIVERED. Thank you for choosing Urban Trout! ✨`;
     } else if (isCancelled) {
       updateMsg = `Hi ${customerName || "there"}! Your order #${orderNumber} has been cancelled. Please reach out if you have any questions.`;
+    } else {
+      updateMsg = `Hi ${customerName || "there"}! Your Urban Trout order #${orderNumber} is CONFIRMED & PAID! Harvesting fresh from tanks now. 🐟`;
     }
 
     const waUrl = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(updateMsg)}`;
 
-    rows.push([
-      {
-        text: "💬 Send Customer WhatsApp Update",
-        url: waUrl,
-      },
-    ]);
+    rows[1].push({
+      text: "💬 WhatsApp",
+      url: waUrl,
+    });
   }
 
   return { inline_keyboard: rows };
@@ -489,4 +481,90 @@ export async function notifyLiveChatMessage(params: {
 
   return sendTelegramMessage(msg, "HTML", keyboard, undefined, params.parentTelegramMsgId);
 }
+
+export async function notifyRazorpayPayment(params: {
+  paymentId: string;
+  orderId?: string | null;
+  amount: number;
+  status: string;
+  method?: string;
+  vpa?: string | null;
+  customerName?: string | null;
+  customerPhone?: string | null;
+  customerEmail?: string | null;
+  description?: string | null;
+  channel?: string | null;
+}) {
+  const cleanPhone = params.customerPhone ? String(params.customerPhone).replace(/\D/g, "").slice(-10) : "";
+  const name = params.customerName || "Customer";
+  const channel = params.channel || (params.description?.includes("POS") ? "Counter POS QR" : "Website Checkout");
+  const method = (params.method || "UPI").toUpperCase() + (params.vpa ? ` (${params.vpa})` : "");
+
+  const msg = `💰 <b>RAZORPAY PAYMENT RECEIVED!</b> ⚡
+━━━━━━━━━━━━━━━━━━━━
+<b>Amount:</b> <b>₹${Number(params.amount || 0).toLocaleString("en-IN")}</b> (PAID ✓)
+<b>Customer:</b> ${escapeHtml(name)}
+${cleanPhone ? `<b>Phone:</b> <a href="tel:+91${cleanPhone}">+91 ${cleanPhone}</a>\n` : ""}${params.customerEmail ? `<b>Email:</b> ${escapeHtml(params.customerEmail)}\n` : ""}<b>Method:</b> ${escapeHtml(method)}
+<b>Txn Ref:</b> <code>${params.paymentId}</code>
+${params.orderId ? `<b>Order ID:</b> <code>${params.orderId}</code>\n` : ""}${params.description ? `<b>Desc:</b> ${escapeHtml(params.description)}\n` : ""}<b>Channel:</b> <b>${escapeHtml(channel)}</b>
+<b>Time:</b> ${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}
+━━━━━━━━━━━━━━━━━━━━
+⚡ <i>Payment auto-captured & verified</i>`;
+
+  const buttons: InlineKeyboardButton[][] = [];
+  if (cleanPhone) {
+    const waText = `Hi ${name}! Thank you for your payment of Rs. ${params.amount} to Urban Trout, Srinagar. Txn Ref: ${params.paymentId}. 🐟✨`;
+    buttons.push([
+      {
+        text: "💬 WhatsApp Receipt to Customer",
+        url: `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(waText)}`,
+      },
+    ]);
+  }
+
+  return sendTelegramMessage(msg, "HTML", buttons.length > 0 ? { inline_keyboard: buttons } : undefined);
+}
+
+export async function notifyPosInvoice(params: {
+  invoiceNumber: string;
+  customerName: string;
+  customerPhone?: string;
+  totalWeight: number;
+  grandTotal: number;
+  paymentMethod: string;
+  paymentId?: string | null;
+  paymentStatus: string;
+  itemsSummary: string;
+  publicUrl?: string;
+}) {
+  const cleanPhone = params.customerPhone ? String(params.customerPhone).replace(/\D/g, "").slice(-10) : "";
+  const isPaid = params.paymentStatus === "PAID";
+  const statusBadge = isPaid ? "✅ PAID & VERIFIED" : "⏳ PAYMENT DUE";
+
+  const msg = `🧾 <b>COUNTER POS INVOICE #${params.invoiceNumber}</b> 🐟
+━━━━━━━━━━━━━━━━━━━━
+<b>Status:</b> <b>${statusBadge}</b>
+<b>Total:</b> <b>₹${Number(params.grandTotal || 0).toLocaleString("en-IN")}</b> (${params.totalWeight.toFixed(2)} Kg)
+<b>Customer:</b> ${escapeHtml(params.customerName || "Walk-in Customer")}
+${cleanPhone ? `<b>Phone:</b> +91 ${cleanPhone}\n` : ""}<b>Channel:</b> ${params.paymentMethod.toUpperCase()}${params.paymentId ? ` (Ref: <code>${params.paymentId}</code>)` : ""}
+<b>Items:</b> ${escapeHtml(params.itemsSummary)}
+━━━━━━━━━━━━━━━━━━━━`;
+
+  const buttons: InlineKeyboardButton[][] = [];
+  const actionRow: InlineKeyboardButton[] = [];
+
+  if (params.publicUrl) {
+    actionRow.push({ text: "📄 View Invoice", url: params.publicUrl });
+  }
+  if (cleanPhone) {
+    const waMsg = `Hi ${params.customerName}! Urban Trout invoice #${params.invoiceNumber} (Rs. ${params.grandTotal}): ${params.publicUrl || "https://urbantrout.in"}`;
+    actionRow.push({ text: "💬 WhatsApp", url: `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(waMsg)}` });
+  }
+  if (actionRow.length > 0) {
+    buttons.push(actionRow);
+  }
+
+  return sendTelegramMessage(msg, "HTML", buttons.length > 0 ? { inline_keyboard: buttons } : undefined);
+}
+
 

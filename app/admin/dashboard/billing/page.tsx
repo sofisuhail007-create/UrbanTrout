@@ -284,6 +284,26 @@ export default function POSBillingPage() {
           setRzpPaid(true);
           setRzpPaymentDetails(data.payment);
           playSuccessChime();
+
+          // Send instant real-time Telegram alert
+          fetch("/api/telegram-notify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              type: "razorpay_payment",
+              data: {
+                paymentId: data.payment.id,
+                amount: data.payment.amount,
+                status: "captured",
+                method: data.payment.method,
+                vpa: data.payment.vpa,
+                customerName: customerName.trim() || "Walk-in Customer",
+                customerPhone: customerPhone.trim() || undefined,
+                description: `Counter POS Billing (${totalWeight.toFixed(2)} Kg)`,
+                channel: "Counter POS QR",
+              },
+            }),
+          }).catch(() => {});
         }
       } catch (err) {
         console.warn("Error polling payment status:", err);
@@ -382,6 +402,27 @@ export default function POSBillingPage() {
       upiPayUri,
       invoicePublicUrl,
     };
+
+    // Notify Telegram channel about new POS invoice
+    fetch("/api/telegram-notify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "pos_invoice",
+        data: {
+          invoiceNumber,
+          customerName: customerName.trim() || "Walk-in Customer",
+          customerPhone: cleanPhone || undefined,
+          totalWeight,
+          grandTotal,
+          paymentMethod: paymentMethodLabel,
+          paymentId: rzpPaymentDetails?.id || null,
+          paymentStatus,
+          itemsSummary: billItems.map((b) => `${b.name} (${b.weightKg} Kg)`).join(", "),
+          publicUrl: invoicePublicUrl,
+        },
+      }),
+    }).catch(() => {});
 
     setGeneratedInvoice(invoiceData);
     setInvoiceModalOpen(true);

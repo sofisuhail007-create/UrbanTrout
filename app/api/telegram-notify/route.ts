@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { notifyNewOrder, notifyAbandonedLead, notifyBioAlarm } from "@/lib/telegram";
+import { notifyNewOrder, notifyAbandonedLead, notifyBioAlarm, notifyRazorpayPayment, notifyPosInvoice } from "@/lib/telegram";
 import { sendOrderConfirmationEmail } from "@/lib/email";
 import { checkRateLimit } from "@/lib/rateLimit";
 
@@ -7,8 +7,8 @@ import { checkRateLimit } from "@/lib/rateLimit";
 const lastAbandonedLeadSent = new Map<string, number>();
 
 export async function POST(request: Request) {
-  // Rate limit: max 20 notifications per minute per IP
-  const { limited } = checkRateLimit(request, 20, 60 * 1000);
+  // Rate limit: max 30 notifications per minute per IP
+  const { limited } = checkRateLimit(request, 30, 60 * 1000);
   if (limited) {
     return NextResponse.json(
       { success: false, error: "Too many notification requests. Please throttle." },
@@ -25,6 +25,10 @@ export async function POST(request: Request) {
       await notifyNewOrder(data);
       // 2. Send Resend Email Confirmation (to customer & admin)
       await sendOrderConfirmationEmail(data);
+    } else if (type === "razorpay_payment") {
+      await notifyRazorpayPayment(data);
+    } else if (type === "pos_invoice") {
+      await notifyPosInvoice(data);
     } else if (type === "abandoned_lead") {
       const cleanPhone = String(data?.phone || "").replace(/\D/g, "").slice(-10);
       const now = Date.now();
