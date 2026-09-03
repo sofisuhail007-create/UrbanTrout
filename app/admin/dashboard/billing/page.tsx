@@ -258,15 +258,15 @@ export default function POSBillingPage() {
     }
   };
 
-  // Auto-generate or update Razorpay QR when paymentMethod is RazorpayQR
+  // Invalidate QR if grandTotal changes so old amounts are not scanned
   useEffect(() => {
-    if (paymentMethod === "RazorpayQR" && grandTotal > 0) {
-      const timer = setTimeout(() => {
-        generateRazorpayQr(grandTotal);
-      }, 400);
-      return () => clearTimeout(timer);
+    if (rzpQrId && grandTotal !== lastGeneratedAmount) {
+      setRzpQrId(null);
+      setRzpQrImageUrl(null);
+      setRzpPaid(false);
+      setRzpPaymentDetails(null);
     }
-  }, [paymentMethod, grandTotal]);
+  }, [grandTotal, lastGeneratedAmount, rzpQrId]);
 
   // Real-time polling for incoming Razorpay payment (Ultra-responsive 1.2s interval)
   useEffect(() => {
@@ -748,7 +748,32 @@ export default function POSBillingPage() {
                       </div>
                     </div>
                   </>
-                ) : null}
+                ) : (
+                  /* ─── READY STATE: ON-DEMAND BUTTON TO GENERATE QR ─── */
+                  <div className="w-full py-4 px-3 text-center space-y-2.5">
+                    <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 flex items-center justify-center mx-auto text-lg">
+                      <span className="material-symbols-outlined text-xl">qr_code_2</span>
+                    </div>
+                    <div>
+                      <h4 className="text-xs sm:text-sm font-bold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                        Customer QR Code
+                      </h4>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        Amount locked to <strong className="text-cyan-300 font-mono text-xs sm:text-sm">₹{grandTotal.toLocaleString("en-IN")}</strong>
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => generateRazorpayQr(grandTotal, true)}
+                      disabled={grandTotal <= 0}
+                      className="w-full py-2.5 px-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 active:scale-[0.98] disabled:opacity-50 text-slate-950 font-black uppercase tracking-wider text-xs transition-all shadow-md shadow-cyan-500/20 flex items-center justify-center gap-1.5 cursor-pointer"
+                      style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                    >
+                      <span className="material-symbols-outlined text-base">qr_code_scanner</span>
+                      Generate Customer QR (₹{grandTotal.toLocaleString("en-IN")})
+                    </button>
+                  </div>
+                )}
               </div>
             )}
 
