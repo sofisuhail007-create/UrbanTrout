@@ -15,6 +15,10 @@ interface DecodedInvoice {
   createdAt: number;
   isExpired: boolean;
   expiresInHours?: number;
+  paymentStatus?: string;
+  paymentMethod?: string;
+  paymentId?: string;
+  qrImageUrl?: string;
 }
 
 export default function PublicInvoicePage() {
@@ -64,6 +68,10 @@ export default function PublicInvoicePage() {
               createdAt: createdTimestamp,
               isExpired,
               expiresInHours: remainingHours,
+              paymentStatus: parsed.paymentStatus || "PAYMENT DUE",
+              paymentMethod: parsed.paymentMethod || "UPI",
+              paymentId: parsed.paymentId || undefined,
+              qrImageUrl: parsed.qrImageUrl || undefined,
             });
             setLoading(false);
             return;
@@ -102,6 +110,10 @@ export default function PublicInvoicePage() {
               createdAt: createdTimestamp,
               isExpired,
               expiresInHours: remainingHours,
+              paymentStatus: parsed.paymentStatus || "PAYMENT DUE",
+              paymentMethod: parsed.paymentMethod || "UPI",
+              paymentId: parsed.paymentId || undefined,
+              qrImageUrl: parsed.qrImageUrl || undefined,
             });
             setLoading(false);
             return;
@@ -330,8 +342,13 @@ export default function PublicInvoicePage() {
               </p>
               <p>
                 <strong>Status:</strong>{" "}
-                <span className="text-amber-700 font-bold uppercase">PAYMENT DUE</span>
+                <span className={invoice.paymentStatus === "PAID" ? "text-emerald-700 font-black uppercase" : "text-amber-700 font-bold uppercase"}>
+                  {invoice.paymentStatus || "PAYMENT DUE"}
+                </span>
               </p>
+              {invoice.paymentId && (
+                <p className="text-[10px] text-slate-500 font-mono">Ref: {invoice.paymentId}</p>
+              )}
             </div>
           </div>
 
@@ -373,93 +390,114 @@ export default function PublicInvoicePage() {
             </div>
           </div>
 
-          {/* ─── EMBEDDED UPI QR CODE ─── */}
-          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-4">
-            <div className="flex justify-center">
-              <div className="p-2 bg-white border border-slate-300 rounded-2xl shadow-sm inline-block">
-                <img src={upiQrCodeUrl} alt="Scan & Pay" className="w-36 h-36 object-contain" />
+          {/* ─── PAYMENT STATUS / EMBEDDED UPI QR CODE ─── */}
+          {invoice.paymentStatus === "PAID" ? (
+            <div className="p-6 rounded-2xl bg-emerald-50 border border-emerald-200 text-center space-y-2">
+              <div className="w-12 h-12 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto text-2xl font-bold shadow-sm">
+                ✓
               </div>
-            </div>
-            <div>
-              <p className="text-xs font-bold text-slate-800 uppercase tracking-wide">
-                Scan QR or Tap an App to Pay
+              <h3 className="text-base font-extrabold text-emerald-900 tracking-wide uppercase">
+                Payment Completed &amp; Verified
+              </h3>
+              <p className="text-xs text-emerald-800 font-mono font-medium">
+                Method: {invoice.paymentMethod || "Razorpay UPI"} {invoice.paymentId ? `• Ref: ${invoice.paymentId}` : ""}
               </p>
-              <div className="flex items-center justify-center gap-2 mt-1">
-                <span className="text-xs text-slate-600 font-mono font-bold">UPI ID: {upiId}</span>
-                <button
-                  type="button"
-                  onClick={copyUpi}
-                  className="px-2 py-0.5 rounded bg-slate-200 hover:bg-slate-300 text-slate-800 text-[10px] font-bold uppercase print:hidden cursor-pointer"
-                >
-                  {copiedUpi ? "Copied! ✓" : "Copy"}
-                </button>
-              </div>
-            </div>
-
-            {/* ─── ONE-TAP UPI APP BUTTONS ─── */}
-            <div className="print:hidden space-y-2">
-              <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400">
-                Tap to Open & Pay Directly
-              </p>
-              <div className="grid grid-cols-2 gap-2">
-                {/* PhonePe */}
-                <a
-                  href={`phonepe://pay?pa=${upiId}&pn=Urban%20Trout&am=${grandTotal}&cu=INR&tn=Invoice%20${invoice.invoiceNumber}`}
-                  className="flex items-center gap-2.5 p-3 rounded-xl border transition-all active:scale-95 cursor-pointer"
-                  style={{ background: "#5f259f", borderColor: "#4a1a7a" }}
-                >
-                  <img src="/icons8-phone-pe-480.svg" alt="PhonePe" style={{ width: 28, height: 28, borderRadius: 6, flexShrink: 0 }} />
-                  <div className="text-left">
-                    <p className="text-white font-bold text-xs">PhonePe</p>
-                    <p className="text-purple-200 text-[10px]">₹{grandTotal.toLocaleString("en-IN")}</p>
-                  </div>
-                </a>
-
-                {/* Google Pay */}
-                <a
-                  href={`tez://upi/pay?pa=${upiId}&pn=Urban%20Trout&am=${grandTotal}&cu=INR&tn=Invoice%20${invoice.invoiceNumber}`}
-                  className="flex items-center gap-2.5 p-3 rounded-xl border transition-all active:scale-95 cursor-pointer"
-                  style={{ background: "#1a73e8", borderColor: "#1558b0" }}
-                >
-                  <img src="/icons8-google-pay-480.svg" alt="Google Pay" style={{ width: 28, height: 28, borderRadius: 6, flexShrink: 0, background: "white", padding: 2 }} />
-                  <div className="text-left">
-                    <p className="text-white font-bold text-xs">Google Pay</p>
-                    <p className="text-blue-200 text-[10px]">₹{grandTotal.toLocaleString("en-IN")}</p>
-                  </div>
-                </a>
-
-                {/* Paytm */}
-                <a
-                  href={`paytmmp://pay?pa=${upiId}&pn=Urban%20Trout&am=${grandTotal}&cu=INR&tn=Invoice%20${invoice.invoiceNumber}`}
-                  className="flex items-center gap-2.5 p-3 rounded-xl border transition-all active:scale-95 cursor-pointer"
-                  style={{ background: "#00BAF2", borderColor: "#0096c4" }}
-                >
-                  <img src="/icons8-paytm-480.svg" alt="Paytm" style={{ width: 28, height: 28, borderRadius: 6, flexShrink: 0, background: "white", padding: 2 }} />
-                  <div className="text-left">
-                    <p className="text-white font-bold text-xs">Paytm</p>
-                    <p className="text-blue-100 text-[10px]">₹{grandTotal.toLocaleString("en-IN")}</p>
-                  </div>
-                </a>
-
-                {/* BHIM UPI */}
-                <a
-                  href={`upi://pay?pa=${upiId}&pn=Urban%20Trout&am=${grandTotal}&cu=INR&tn=Invoice%20${invoice.invoiceNumber}`}
-                  className="flex items-center gap-2.5 p-3 rounded-xl border transition-all active:scale-95 cursor-pointer"
-                  style={{ background: "#FF6600", borderColor: "#cc5200" }}
-                >
-                  <img src="/icons8-bhim-480.svg" alt="BHIM UPI" style={{ width: 28, height: 28, borderRadius: 6, flexShrink: 0 }} />
-                  <div className="text-left">
-                    <p className="text-white font-bold text-xs">BHIM / Any App</p>
-                    <p className="text-orange-100 text-[10px]">₹{grandTotal.toLocaleString("en-IN")}</p>
-                  </div>
-                </a>
-              </div>
-
-              <p className="text-[10px] text-slate-400 text-center leading-tight mt-1">
-                Tap a button above → your UPI app opens with the amount pre-filled
+              <p className="text-[11px] text-emerald-600">
+                Payment verified and recorded for invoice #{invoice.invoiceNumber}.
               </p>
             </div>
-          </div>
+          ) : (
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-4">
+              <div className="flex justify-center">
+                <div className="p-2 bg-white border border-slate-300 rounded-2xl shadow-sm inline-block">
+                  <img src={invoice.qrImageUrl || upiQrCodeUrl} alt="Scan & Pay" className="w-36 h-36 object-contain" />
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-800 uppercase tracking-wide">
+                  Scan QR or Tap an App to Pay
+                </p>
+                <div className="flex items-center justify-center gap-2 mt-1">
+                  <span className="text-xs text-slate-600 font-mono font-bold">
+                    {invoice.qrImageUrl ? "Razorpay Dynamic Merchant QR" : `UPI ID: ${upiId}`}
+                  </span>
+                  {!invoice.qrImageUrl && (
+                    <button
+                      type="button"
+                      onClick={copyUpi}
+                      className="px-2 py-0.5 rounded bg-slate-200 hover:bg-slate-300 text-slate-800 text-[10px] font-bold uppercase print:hidden cursor-pointer"
+                    >
+                      {copiedUpi ? "Copied! ✓" : "Copy"}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* ─── ONE-TAP UPI APP BUTTONS ─── */}
+              <div className="print:hidden space-y-2">
+                <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400">
+                  Tap to Open &amp; Pay Directly
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  {/* PhonePe */}
+                  <a
+                    href={`phonepe://pay?pa=${upiId}&pn=Urban%20Trout&am=${grandTotal}&cu=INR&tn=Invoice%20${invoice.invoiceNumber}`}
+                    className="flex items-center gap-2.5 p-3 rounded-xl border transition-all active:scale-95 cursor-pointer"
+                    style={{ background: "#5f259f", borderColor: "#4a1a7a" }}
+                  >
+                    <img src="/icons8-phone-pe-480.svg" alt="PhonePe" style={{ width: 28, height: 28, borderRadius: 6, flexShrink: 0 }} />
+                    <div className="text-left">
+                      <p className="text-white font-bold text-xs">PhonePe</p>
+                      <p className="text-purple-200 text-[10px]">₹{grandTotal.toLocaleString("en-IN")}</p>
+                    </div>
+                  </a>
+
+                  {/* Google Pay */}
+                  <a
+                    href={`tez://upi/pay?pa=${upiId}&pn=Urban%20Trout&am=${grandTotal}&cu=INR&tn=Invoice%20${invoice.invoiceNumber}`}
+                    className="flex items-center gap-2.5 p-3 rounded-xl border transition-all active:scale-95 cursor-pointer"
+                    style={{ background: "#1a73e8", borderColor: "#1558b0" }}
+                  >
+                    <img src="/icons8-google-pay-480.svg" alt="Google Pay" style={{ width: 28, height: 28, borderRadius: 6, flexShrink: 0, background: "white", padding: 2 }} />
+                    <div className="text-left">
+                      <p className="text-white font-bold text-xs">Google Pay</p>
+                      <p className="text-blue-200 text-[10px]">₹{grandTotal.toLocaleString("en-IN")}</p>
+                    </div>
+                  </a>
+
+                  {/* Paytm */}
+                  <a
+                    href={`paytmmp://pay?pa=${upiId}&pn=Urban%20Trout&am=${grandTotal}&cu=INR&tn=Invoice%20${invoice.invoiceNumber}`}
+                    className="flex items-center gap-2.5 p-3 rounded-xl border transition-all active:scale-95 cursor-pointer"
+                    style={{ background: "#00BAF2", borderColor: "#0096c4" }}
+                  >
+                    <img src="/icons8-paytm-480.svg" alt="Paytm" style={{ width: 28, height: 28, borderRadius: 6, flexShrink: 0, background: "white", padding: 2 }} />
+                    <div className="text-left">
+                      <p className="text-white font-bold text-xs">Paytm</p>
+                      <p className="text-blue-100 text-[10px]">₹{grandTotal.toLocaleString("en-IN")}</p>
+                    </div>
+                  </a>
+
+                  {/* BHIM UPI */}
+                  <a
+                    href={`upi://pay?pa=${upiId}&pn=Urban%20Trout&am=${grandTotal}&cu=INR&tn=Invoice%20${invoice.invoiceNumber}`}
+                    className="flex items-center gap-2.5 p-3 rounded-xl border transition-all active:scale-95 cursor-pointer"
+                    style={{ background: "#FF6600", borderColor: "#cc5200" }}
+                  >
+                    <img src="/icons8-bhim-480.svg" alt="BHIM UPI" style={{ width: 28, height: 28, borderRadius: 6, flexShrink: 0 }} />
+                    <div className="text-left">
+                      <p className="text-white font-bold text-xs">BHIM / Any App</p>
+                      <p className="text-orange-100 text-[10px]">₹{grandTotal.toLocaleString("en-IN")}</p>
+                    </div>
+                  </a>
+                </div>
+
+                <p className="text-[10px] text-slate-400 text-center leading-tight mt-1">
+                  Tap a button above → your UPI app opens with the amount pre-filled
+                </p>
+              </div>
+            </div>
+          )}
 
           {/* Footer Note */}
           <div className="text-center pt-2 text-xs text-slate-500 leading-tight">

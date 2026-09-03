@@ -38,8 +38,17 @@ export default function POSBillingPage() {
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerNotes, setCustomerNotes] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"UPI" | "Cash" | "Card">("UPI");
+  const [paymentMethod, setPaymentMethod] = useState<"RazorpayQR" | "UPI" | "Cash" | "Card">("RazorpayQR");
   const [upiId, setUpiId] = useState("urbantrout@ybl");
+
+  // Razorpay Dynamic QR State
+  const [rzpQrId, setRzpQrId] = useState<string | null>(null);
+  const [rzpQrImageUrl, setRzpQrImageUrl] = useState<string | null>(null);
+  const [rzpQrLoading, setRzpQrLoading] = useState(false);
+  const [rzpQrError, setRzpQrError] = useState<string | null>(null);
+  const [rzpPaid, setRzpPaid] = useState(false);
+  const [rzpPaymentDetails, setRzpPaymentDetails] = useState<any>(null);
+  const [lastGeneratedAmount, setLastGeneratedAmount] = useState<number>(0);
 
   // State flags
   const [invoiceModalOpen, setInvoiceModalOpen] = useState(false);
@@ -178,6 +187,108 @@ export default function POSBillingPage() {
     setTimeout(() => setCopiedUpi(false), 2500);
   };
 
+  // Play a pleasant two-tone synthesized payment success chime
+  const playSuccessChime = () => {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const now = ctx.currentTime;
+
+      // Tone 1: E5 (659.25 Hz)
+      const osc1 = ctx.createOscillator();
+      const gain1 = ctx.createGain();
+      osc1.frequency.setValueAtTime(659.25, now);
+      gain1.gain.setValueAtTime(0.18, now);
+      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+      osc1.connect(gain1);
+      gain1.connect(ctx.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.3);
+
+      // Tone 2: B5 (987.77 Hz)
+      const osc2 = ctx.createOscillator();
+      const gain2 = ctx.createGain();
+      osc2.frequency.setValueAtTime(987.77, now + 0.12);
+      gain2.gain.setValueAtTime(0.22, now + 0.12);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+      osc2.connect(gain2);
+      gain2.connect(ctx.destination);
+      osc2.start(now + 0.12);
+      osc2.stop(now + 0.55);
+    } catch (_) {}
+  };
+
+  // Generate dynamic Razorpay Single-Use BharatQR / UPI QR code
+  const generateRazorpayQr = async (targetAmount: number, force = false) => {
+    if (targetAmount <= 0) return;
+    if (!force && targetAmount === lastGeneratedAmount && rzpQrId && !rzpPaid) return;
+
+    setRzpQrLoading(true);
+    setRzpQrError(null);
+    setRzpPaid(false);
+    setRzpPaymentDetails(null);
+
+    try {
+      const res = await fetch("/api/razorpay/pos-qr", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: targetAmount,
+          customerName: customerName.trim() || "Walk-in Customer",
+          customerPhone: customerPhone.trim() || "N/A",
+          billNumber: Math.floor(1000 + Math.random() * 9000),
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data?.error || "Could not generate Razorpay QR");
+      }
+
+      setRzpQrId(data.qr_id);
+      setRzpQrImageUrl(data.image_url);
+      setLastGeneratedAmount(targetAmount);
+    } catch (err: any) {
+      console.error("Razorpay QR generation failed:", err);
+      setRzpQrError(err.message || "Failed to generate Razorpay QR code");
+    } finally {
+      setRzpQrLoading(false);
+    }
+  };
+
+  // Auto-generate or update Razorpay QR when paymentMethod is RazorpayQR
+  useEffect(() => {
+    if (paymentMethod === "RazorpayQR" && grandTotal > 0) {
+      const timer = setTimeout(() => {
+        generateRazorpayQr(grandTotal);
+      }, 400);
+      return () => clearTimeout(timer);
+    }
+  }, [paymentMethod, grandTotal]);
+
+  // Real-time polling for incoming Razorpay payment
+  useEffect(() => {
+    if (paymentMethod !== "RazorpayQR" || !rzpQrId || rzpPaid) return;
+
+    const pollInterval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/razorpay/pos-qr?qr_id=${encodeURIComponent(rzpQrId)}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.success && data.paid && data.payment) {
+          setRzpPaid(true);
+          setRzpPaymentDetails(data.payment);
+          playSuccessChime();
+        }
+      } catch (err) {
+        console.warn("Error polling payment status:", err);
+      }
+    }, 2500);
+
+    return () => clearInterval(pollInterval);
+  }, [paymentMethod, rzpQrId, rzpPaid]);
+
   // ─── GENERATE SHORT CLEAN INVOICE (e.g. /invoice/UT-INV-3986) ───
   const handleGenerateInvoice = async () => {
     if (billItems.length === 0 || grandTotal <= 0) {
@@ -189,6 +300,18 @@ export default function POSBillingPage() {
     const invoiceNumber = `UT-INV-${shortDigits}`;
     const cleanPhone = customerPhone.replace(/\D/g, "").slice(-10);
 
+    const isRzpPaid = paymentMethod === "RazorpayQR" && rzpPaid;
+    const paymentStatus = isRzpPaid ? "PAID" : paymentMethod === "Cash" ? "PAID" : "PAYMENT DUE";
+    const paymentMethodLabel = isRzpPaid
+      ? "Razorpay UPI (Verified)"
+      : paymentMethod === "RazorpayQR"
+      ? "Razorpay QR"
+      : paymentMethod === "UPI"
+      ? "Direct UPI"
+      : paymentMethod === "Cash"
+      ? "Cash"
+      : "Card / POS";
+
     const invoicePayload = {
       num: invoiceNumber,
       name: customerName.trim() || "Valued Customer",
@@ -197,6 +320,9 @@ export default function POSBillingPage() {
       tw: totalWeight,
       tot: grandTotal,
       notes: customerNotes,
+      paymentMethod: paymentMethodLabel,
+      paymentStatus,
+      paymentId: rzpPaymentDetails?.id || null,
       ts: Date.now(), // 48-Hour validity timestamp
     };
 
@@ -215,12 +341,10 @@ export default function POSBillingPage() {
       if (res.ok) {
         const json = await res.json();
         if (json?.success) {
-          // DB save worked — use the clean short URL (no ugly base64 in the link)
           invoicePublicUrl = `${origin}/invoice/${invoiceNumber}`;
         }
       }
     } catch (_) {}
-
 
     const invoiceData = {
       invoiceNumber,
@@ -236,10 +360,12 @@ export default function POSBillingPage() {
       items: billItems,
       totalWeight,
       grandTotal,
-      paymentMethod,
+      paymentMethod: paymentMethodLabel,
+      paymentStatus,
+      paymentId: rzpPaymentDetails?.id || null,
       notes: customerNotes,
       upiId,
-      upiQrCodeUrl,
+      upiQrCodeUrl: (paymentMethod === "RazorpayQR" && rzpQrImageUrl) ? rzpQrImageUrl : upiQrCodeUrl,
       upiPayUri,
       invoicePublicUrl,
     };
@@ -248,7 +374,7 @@ export default function POSBillingPage() {
     setInvoiceModalOpen(true);
   };
 
-  // ─── 100% UNIVERSAL CLEAN WHATSAPP MESSAGE (Zero Question Marks) ───
+  // ─── 100% UNIVERSAL CLEAN WHATSAPP MESSAGE ───
   const handleShareWhatsApp = () => {
     if (!generatedInvoice) return;
 
@@ -257,7 +383,11 @@ export default function POSBillingPage() {
       itemLines += `- *${item.name}*: ${item.weightKg} Kg @ Rs. ${item.pricePerKg}/Kg = Rs. ${item.total.toLocaleString("en-IN")}\n`;
     });
 
-    const msg = `Hello ${generatedInvoice.customerName},\n\nThank you for choosing Urban Trout, Srinagar! Here is the invoice for your freshly harvested Rainbow Trout:\n\n*Invoice No:* ${generatedInvoice.invoiceNumber}\n*Date:* ${generatedInvoice.date}\n\n*Itemized Details:*\n${itemLines}\n*Total Harvest Weight:* ${generatedInvoice.totalWeight.toFixed(2)} Kg\n*Total Amount Payable:* Rs. ${generatedInvoice.grandTotal.toLocaleString("en-IN")}\n\n*Pay via UPI ID:* ${generatedInvoice.upiId}\n\n*View & Download Invoice PDF (Valid for 48 Hours):*\n${generatedInvoice.invoicePublicUrl}\n\n*Farm Location:* Naseem Bagh / Malabagh, Srinagar\n*Farm Helpline:* +91 84910 06127\n\n_Thank you for supporting sustainable Kashmiri aquaculture!_`;
+    const statusLine = generatedInvoice.paymentStatus === "PAID"
+      ? `*Payment Status:* PAID ✓ (via ${generatedInvoice.paymentMethod}${generatedInvoice.paymentId ? `, Ref: ${generatedInvoice.paymentId}` : ""})\n\n`
+      : `*Payment Status:* Payment Due (Scan QR or Pay upon pickup)\n*Pay via UPI ID:* ${generatedInvoice.upiId}\n\n`;
+
+    const msg = `Hello ${generatedInvoice.customerName},\n\nThank you for choosing Urban Trout, Srinagar! Here is the invoice for your freshly harvested Rainbow Trout:\n\n*Invoice No:* ${generatedInvoice.invoiceNumber}\n*Date:* ${generatedInvoice.date}\n\n*Itemized Details:*\n${itemLines}\n*Total Harvest Weight:* ${generatedInvoice.totalWeight.toFixed(2)} Kg\n*Total Amount Payable:* Rs. ${generatedInvoice.grandTotal.toLocaleString("en-IN")}\n\n${statusLine}*View & Download Invoice PDF (Valid for 48 Hours):*\n${generatedInvoice.invoicePublicUrl}\n\n*Farm Location:* Naseem Bagh / Malabagh, Srinagar\n*Farm Helpline:* +91 84910 06127\n\n_Thank you for supporting sustainable Kashmiri aquaculture!_`;
 
     const encoded = encodeURIComponent(msg);
     const phoneParam = customerPhone.replace(/\D/g, "").slice(-10);
@@ -270,6 +400,12 @@ export default function POSBillingPage() {
     setCustomerPhone("");
     setCustomerNotes("");
     setCurrentWeight("1.0");
+    setRzpQrId(null);
+    setRzpQrImageUrl(null);
+    setRzpPaid(false);
+    setRzpPaymentDetails(null);
+    setLastGeneratedAmount(0);
+    setRzpQrError(null);
     if (products[0]) {
       setSelectedProductId(products[0].id);
       setBillItems([
@@ -512,31 +648,173 @@ export default function POSBillingPage() {
 
             {/* Payment Method Selector */}
             <div className="space-y-2 pt-1 border-t border-slate-800">
-              <label className="block text-[11px] uppercase tracking-wider font-bold text-slate-400">
-                Payment Channel
-              </label>
-              <div className="grid grid-cols-3 gap-2">
-                {(["UPI", "Cash", "Card"] as const).map((method) => (
-                  <button
-                    key={method}
-                    type="button"
-                    onClick={() => setPaymentMethod(method)}
-                    className="py-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all cursor-pointer"
-                    style={{
-                      background: paymentMethod === method ? "rgba(114,221,253,0.18)" : "rgba(3,16,24,0.6)",
-                      border: paymentMethod === method ? "1.5px solid #72ddfd" : "1px solid rgba(61,74,83,0.5)",
-                      color: paymentMethod === method ? "#72ddfd" : "#9fadb8",
-                    }}
-                  >
-                    {method === "UPI" ? "📱 UPI QR" : method === "Cash" ? "💵 Cash" : "💳 Card / POS"}
-                  </button>
-                ))}
+              <div className="flex items-center justify-between">
+                <label className="block text-[11px] uppercase tracking-wider font-bold text-slate-400">
+                  Payment Channel
+                </label>
+                {paymentMethod === "RazorpayQR" && (
+                  <span className="text-[10px] text-cyan-400 font-mono font-bold flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                    Auto-Verification Active
+                  </span>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {[
+                  { id: "RazorpayQR", label: "⚡ Razorpay QR", sub: "Auto-Detect" },
+                  { id: "UPI", label: "📱 Direct UPI", sub: "Manual YBL" },
+                  { id: "Cash", label: "💵 Cash", sub: "Counter" },
+                  { id: "Card", label: "💳 Card / POS", sub: "Terminal" },
+                ].map((channel) => {
+                  const isSel = paymentMethod === channel.id;
+                  return (
+                    <button
+                      key={channel.id}
+                      type="button"
+                      onClick={() => setPaymentMethod(channel.id as any)}
+                      className="p-2.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all cursor-pointer text-center"
+                      style={{
+                        background: isSel ? "rgba(114,221,253,0.18)" : "rgba(3,16,24,0.6)",
+                        border: isSel ? "1.5px solid #72ddfd" : "1px solid rgba(61,74,83,0.5)",
+                        color: isSel ? "#72ddfd" : "#9fadb8",
+                        boxShadow: isSel ? "0 0 14px rgba(114,221,253,0.18)" : "none",
+                      }}
+                    >
+                      <div className="leading-tight">{channel.label}</div>
+                      <span className="text-[9px] opacity-75 font-mono normal-case block mt-0.5">
+                        {channel.sub}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Dynamic UPI QR Code Section */}
+            {/* ─── PAYMENT CHANNEL PANELS ─── */}
+
+            {/* 1. Razorpay Dynamic BharatQR Panel */}
+            {paymentMethod === "RazorpayQR" && grandTotal > 0 && (
+              <div className="p-4 rounded-2xl bg-slate-950/90 border border-cyan-500/30 space-y-3.5 shadow-xl">
+                {/* Header with Live Status */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-cyan-400 font-bold text-xs flex items-center gap-1">
+                      <span className="text-base">⚡</span> Razorpay Dynamic UPI QR
+                    </span>
+                  </div>
+
+                  {rzpPaid ? (
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1 shadow-sm shadow-emerald-500/30">
+                      <span>✓</span> Paid &amp; Verified
+                    </span>
+                  ) : rzpQrLoading ? (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-cyan-950/60 text-cyan-400 border border-cyan-900/50 flex items-center gap-1 animate-pulse">
+                      <span>⏳</span> Creating QR...
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-amber-500/10 text-amber-300 border border-amber-500/30 flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+                      Listening for Scan...
+                    </span>
+                  )}
+                </div>
+
+                {/* Body Content */}
+                {rzpPaid ? (
+                  /* ─── PAID CELEBRATION CARD ─── */
+                  <div className="p-4 rounded-xl bg-gradient-to-b from-emerald-950/40 to-slate-950 border border-emerald-500/40 text-center space-y-2.5 animate-fadeIn">
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/50 text-emerald-400 flex items-center justify-center mx-auto text-2xl font-black shadow-lg shadow-emerald-500/20">
+                      ✓
+                    </div>
+                    <div>
+                      <h4 className="text-base font-extrabold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                        Payment Received: <span className="text-emerald-400">₹{rzpPaymentDetails?.amount || grandTotal}</span>
+                      </h4>
+                      <p className="text-xs text-slate-300 font-mono mt-0.5">
+                        Txn Ref: <strong className="text-cyan-300">{rzpPaymentDetails?.id || "pay_verified"}</strong>
+                      </p>
+                      {rzpPaymentDetails?.vpa && (
+                        <p className="text-[11px] text-slate-400 font-mono mt-0.5">
+                          Paid from: {rzpPaymentDetails.vpa}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[11px] text-emerald-300 font-semibold flex items-center justify-center gap-1.5">
+                      <span>⚡</span> Auto-verified via Razorpay. Bill marked as PAID.
+                    </div>
+                  </div>
+                ) : rzpQrLoading ? (
+                  <div className="py-12 flex flex-col items-center justify-center space-y-2 text-slate-400">
+                    <span className="animate-spin text-2xl">⏳</span>
+                    <p className="text-xs font-mono">Generating Razorpay Dynamic QR for ₹{grandTotal}...</p>
+                  </div>
+                ) : rzpQrError ? (
+                  <div className="p-3 rounded-xl bg-red-950/60 border border-red-500/30 text-center space-y-2">
+                    <p className="text-xs text-red-300">⚠️ {rzpQrError}</p>
+                    <button
+                      type="button"
+                      onClick={() => generateRazorpayQr(grandTotal, true)}
+                      className="px-3 py-1 bg-red-600 hover:bg-red-500 text-white rounded-lg text-xs font-bold uppercase tracking-wider cursor-pointer"
+                    >
+                      Retry Razorpay QR
+                    </button>
+                  </div>
+                ) : rzpQrImageUrl ? (
+                  <div className="flex flex-col items-center text-center space-y-3">
+                    {/* The QR Image */}
+                    <div className="p-2.5 bg-white border border-slate-300 rounded-2xl shadow-xl inline-block relative group">
+                      <img
+                        src={rzpQrImageUrl}
+                        alt="Razorpay Dynamic QR"
+                        className="w-40 h-40 sm:w-44 sm:h-44 object-contain rounded-lg"
+                      />
+                      <div className="absolute inset-x-2 -bottom-2 bg-slate-900 text-[9px] font-bold uppercase tracking-widest text-cyan-300 py-0.5 rounded-full border border-cyan-500/40 shadow">
+                        Razorpay Verified
+                      </div>
+                    </div>
+
+                    <div className="space-y-1 pt-1">
+                      <div className="text-sm font-black text-white font-mono">
+                        Scan to Pay: <span className="text-cyan-400">₹{grandTotal.toLocaleString("en-IN")}</span>
+                      </div>
+                      <p className="text-[11px] text-slate-400">
+                        Amount is locked. Scan with GPay, PhonePe, Paytm, or CRED.
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-0.5">
+                      <button
+                        type="button"
+                        onClick={() => generateRazorpayQr(grandTotal, true)}
+                        className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1"
+                        title="Regenerate QR Code"
+                      >
+                        <span className="material-symbols-outlined text-xs">refresh</span>
+                        Refresh QR
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethod("UPI")}
+                        className="px-3 py-1 rounded-lg bg-cyan-950/40 hover:bg-cyan-900/40 text-cyan-400 border border-cyan-800/50 text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer"
+                      >
+                        Direct UPI Fallback
+                      </button>
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            )}
+
+            {/* 2. Direct Personal UPI Panel */}
             {paymentMethod === "UPI" && grandTotal > 0 && (
-              <div className="p-3.5 rounded-xl bg-slate-950/80 border border-cyan-500/30 flex flex-col items-center text-center space-y-2.5">
+              <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 flex flex-col items-center text-center space-y-2.5">
+                <div className="flex items-center justify-between w-full pb-1 border-b border-slate-800">
+                  <span className="text-[10px] uppercase font-bold text-slate-400 font-mono">Direct Personal UPI</span>
+                  <span className="text-[10px] text-amber-400 font-mono">Manual Verification</span>
+                </div>
                 <div className="p-2 bg-white border border-slate-300 rounded-xl shadow-lg">
                   <img src={upiQrCodeUrl} alt="UPI QR Code" className="w-36 h-36 sm:w-40 sm:h-40 rounded-lg object-contain" />
                 </div>
@@ -551,6 +829,34 @@ export default function POSBillingPage() {
                 >
                   {copiedUpi ? "Copied! ✓" : "Copy UPI ID"}
                 </button>
+              </div>
+            )}
+
+            {/* 3. Cash Payment Panel */}
+            {paymentMethod === "Cash" && (
+              <div className="p-4 rounded-xl bg-slate-950/80 border border-emerald-500/20 text-center space-y-2">
+                <span className="text-2xl block">💵</span>
+                <h4 className="text-sm font-bold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                  Cash Payment Selected
+                </h4>
+                <p className="text-xs text-slate-400">
+                  Collect <strong className="text-emerald-400 font-mono">₹{grandTotal.toLocaleString("en-IN")}</strong> in cash from the customer at counter.
+                </p>
+                <p className="text-[10px] text-slate-500 font-mono">Invoice will be recorded with &quot;Cash&quot; status.</p>
+              </div>
+            )}
+
+            {/* 4. Card / EDC POS Panel */}
+            {paymentMethod === "Card" && (
+              <div className="p-4 rounded-xl bg-slate-950/80 border border-cyan-500/20 text-center space-y-2">
+                <span className="text-2xl block">💳</span>
+                <h4 className="text-sm font-bold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                  Card / Physical POS Terminal
+                </h4>
+                <p className="text-xs text-slate-400">
+                  Swipe or tap credit/debit card on EDC POS Machine for <strong className="text-cyan-300 font-mono">₹{grandTotal.toLocaleString("en-IN")}</strong>.
+                </p>
+                <p className="text-[10px] text-slate-500 font-mono">Invoice will be marked with &quot;Card / POS&quot; payment.</p>
               </div>
             )}
 
@@ -645,7 +951,15 @@ export default function POSBillingPage() {
                 </div>
                 <div className="text-right">
                   <p><strong>Date:</strong> {generatedInvoice.date}</p>
-                  <p><strong>Status:</strong> <span className="text-amber-700 font-bold">PAYMENT DUE</span></p>
+                  <p>
+                    <strong>Status:</strong>{" "}
+                    <span className={generatedInvoice.paymentStatus === "PAID" ? "text-emerald-700 font-bold uppercase" : "text-amber-700 font-bold uppercase"}>
+                      {generatedInvoice.paymentStatus}
+                    </span>
+                  </p>
+                  {generatedInvoice.paymentId && (
+                    <p className="text-[10px] text-slate-500 font-mono">Ref: {generatedInvoice.paymentId}</p>
+                  )}
                 </div>
               </div>
 
@@ -685,20 +999,39 @@ export default function POSBillingPage() {
                 </div>
               </div>
 
-              {/* ─── EMBEDDED UPI QR CODE FOR CUSTOMER TO SCAN & PAY ─── */}
-              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-2.5">
-                <div className="flex justify-center">
-                  <div className="p-2 bg-white border border-slate-300 rounded-2xl shadow-sm inline-block">
-                    <img src={generatedInvoice.upiQrCodeUrl} alt="Scan & Pay" className="w-32 h-32 sm:w-36 sm:h-36 object-contain" />
+              {/* ─── EMBEDDED UPI QR CODE / PAID VERIFICATION BADGE ─── */}
+              {generatedInvoice.paymentStatus === "PAID" ? (
+                <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-center space-y-1.5">
+                  <div className="w-10 h-10 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto text-xl font-bold shadow-sm">
+                    ✓
+                  </div>
+                  <h4 className="text-sm font-extrabold text-emerald-900 tracking-wide uppercase">
+                    Payment Received &amp; Verified
+                  </h4>
+                  <p className="text-xs text-emerald-800 font-mono font-medium">
+                    Method: {generatedInvoice.paymentMethod} {generatedInvoice.paymentId ? `• Ref: ${generatedInvoice.paymentId}` : ""}
+                  </p>
+                  <p className="text-[10px] text-emerald-600">
+                    Payment recorded on {generatedInvoice.date}
+                  </p>
+                </div>
+              ) : (
+                <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-2.5">
+                  <div className="flex justify-center">
+                    <div className="p-2 bg-white border border-slate-300 rounded-2xl shadow-sm inline-block">
+                      <img src={generatedInvoice.upiQrCodeUrl} alt="Scan & Pay" className="w-32 h-32 sm:w-36 sm:h-36 object-contain" />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-slate-800 uppercase tracking-wide">
+                      Scan with Any UPI App (GPay / PhonePe / Paytm)
+                    </p>
+                    <p className="text-[11px] text-slate-500 font-mono mt-0.5">
+                      {generatedInvoice.paymentMethod?.includes("Razorpay") ? "Razorpay Dynamic Merchant QR" : `UPI ID: ${generatedInvoice.upiId}`}
+                    </p>
                   </div>
                 </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-800 uppercase tracking-wide">
-                    Scan with Any UPI App (GPay / PhonePe / Paytm)
-                  </p>
-                  <p className="text-[11px] text-slate-500 font-mono mt-0.5">UPI ID: {generatedInvoice.upiId}</p>
-                </div>
-              </div>
+              )}
 
               {/* Footer Note */}
               <div className="text-center pt-2 text-[10px] sm:text-[11px] text-slate-500 leading-tight">
