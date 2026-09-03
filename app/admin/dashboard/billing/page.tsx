@@ -52,6 +52,7 @@ export default function POSBillingPage() {
 
   // State flags
   const [invoiceModalOpen, setInvoiceModalOpen] = useState(false);
+  const [enlargeQrModal, setEnlargeQrModal] = useState(false);
   const [generatedInvoice, setGeneratedInvoice] = useState<any>(null);
   const [copiedUpi, setCopiedUpi] = useState(false);
 
@@ -763,44 +764,68 @@ export default function POSBillingPage() {
                   </div>
                 ) : rzpQrImageUrl ? (
                   <div className="flex flex-col items-center text-center space-y-3">
-                    {/* The QR Image */}
-                    <div className="p-2.5 bg-white border border-slate-300 rounded-2xl shadow-xl inline-block relative group">
+                    {/* The Large Framed QR Box */}
+                    <div
+                      onClick={() => setEnlargeQrModal(true)}
+                      className="w-56 h-56 sm:w-64 sm:h-64 bg-white border-2 border-cyan-400/50 rounded-2xl shadow-2xl overflow-hidden relative cursor-pointer group flex items-center justify-center transition-all hover:border-cyan-300 hover:shadow-cyan-500/25"
+                      title="Click to expand full screen"
+                    >
                       <img
                         src={rzpQrImageUrl}
                         alt="Razorpay Dynamic QR"
-                        className="w-40 h-40 sm:w-44 sm:h-44 object-contain rounded-lg"
+                        className="w-full h-full object-cover select-none pointer-events-none transition-transform duration-200 group-hover:scale-[1.43]"
+                        style={{
+                          objectPosition: "center 51.5%",
+                          transform: "scale(1.38)",
+                        }}
                       />
-                      <div className="absolute inset-x-2 -bottom-2 bg-slate-900 text-[9px] font-bold uppercase tracking-widest text-cyan-300 py-0.5 rounded-full border border-cyan-500/40 shadow">
-                        Razorpay Verified
+                      <div className="absolute inset-x-2 bottom-2 bg-slate-950/90 backdrop-blur-sm text-[10px] font-bold uppercase tracking-wider text-cyan-300 py-1 px-2.5 rounded-xl border border-cyan-500/40 shadow-lg flex items-center justify-between">
+                        <span className="flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+                          Razorpay Dynamic
+                        </span>
+                        <span className="text-[9px] text-slate-400 flex items-center gap-0.5">
+                          <span className="material-symbols-outlined text-xs">zoom_in</span> Enlarge
+                        </span>
                       </div>
                     </div>
 
                     <div className="space-y-1 pt-1">
-                      <div className="text-sm font-black text-white font-mono">
+                      <div className="text-base sm:text-lg font-black text-white font-mono">
                         Scan to Pay: <span className="text-cyan-400">₹{grandTotal.toLocaleString("en-IN")}</span>
                       </div>
                       <p className="text-[11px] text-slate-400">
-                        Amount is locked. Scan with GPay, PhonePe, Paytm, or CRED.
+                        Amount locked. Scan with GPay, PhonePe, Paytm, or CRED.
                       </p>
                     </div>
 
                     <div className="flex items-center gap-2 pt-0.5">
                       <button
                         type="button"
+                        onClick={() => setEnlargeQrModal(true)}
+                        className="px-3 py-1.5 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/30 text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1"
+                        title="Open Large QR Modal"
+                      >
+                        <span className="material-symbols-outlined text-xs">fullscreen</span>
+                        Large View
+                      </button>
+
+                      <button
+                        type="button"
                         onClick={() => generateRazorpayQr(grandTotal, true)}
-                        className="px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1"
+                        className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center gap-1"
                         title="Regenerate QR Code"
                       >
                         <span className="material-symbols-outlined text-xs">refresh</span>
-                        Refresh QR
+                        Refresh
                       </button>
 
                       <button
                         type="button"
                         onClick={() => setPaymentMethod("UPI")}
-                        className="px-3 py-1 rounded-lg bg-cyan-950/40 hover:bg-cyan-900/40 text-cyan-400 border border-cyan-800/50 text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer"
+                        className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 border border-slate-800 text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer"
                       >
-                        Direct UPI Fallback
+                        Direct UPI
                       </button>
                     </div>
                   </div>
@@ -1018,8 +1043,17 @@ export default function POSBillingPage() {
               ) : (
                 <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-2.5">
                   <div className="flex justify-center">
-                    <div className="p-2 bg-white border border-slate-300 rounded-2xl shadow-sm inline-block">
-                      <img src={generatedInvoice.upiQrCodeUrl} alt="Scan & Pay" className="w-32 h-32 sm:w-36 sm:h-36 object-contain" />
+                    <div className="w-44 h-44 sm:w-52 sm:h-52 bg-white border border-slate-300 rounded-2xl shadow-sm overflow-hidden inline-flex items-center justify-center">
+                      <img
+                        src={generatedInvoice.upiQrCodeUrl}
+                        alt="Scan & Pay"
+                        className={`w-full h-full ${generatedInvoice.upiQrCodeUrl?.includes("rzp.io") ? "object-cover" : "object-contain p-2"}`}
+                        style={
+                          generatedInvoice.upiQrCodeUrl?.includes("rzp.io")
+                            ? { objectPosition: "center 51.5%", transform: "scale(1.38)" }
+                            : undefined
+                        }
+                      />
                     </div>
                   </div>
                   <div>
@@ -1051,6 +1085,69 @@ export default function POSBillingPage() {
                 Done &amp; Close Window
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── FULLSCREEN / GIANT QR MODAL ─── */}
+      {enlargeQrModal && rzpQrImageUrl && (
+        <div
+          onClick={() => setEnlargeQrModal(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md cursor-pointer"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="bg-slate-900 border border-cyan-500/40 rounded-3xl p-5 sm:p-7 max-w-sm sm:max-w-md w-full text-center space-y-4 shadow-2xl shadow-cyan-950/60 cursor-default"
+          >
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div className="text-left">
+                <span className="text-[10px] uppercase font-bold tracking-widest text-cyan-400 font-mono block">
+                  Customer Scan Screen
+                </span>
+                <h3 className="text-lg sm:text-xl font-black text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                  Pay ₹{grandTotal.toLocaleString("en-IN")} via UPI
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEnlargeQrModal(false)}
+                className="p-1.5 rounded-xl bg-slate-800 text-slate-400 hover:text-white transition-all cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-lg">close</span>
+              </button>
+            </div>
+
+            {/* Giant QR Box */}
+            <div className="flex justify-center py-2">
+              <div className="w-72 h-72 sm:w-80 sm:h-80 bg-white border-2 border-cyan-400 rounded-3xl shadow-2xl overflow-hidden relative flex items-center justify-center">
+                <img
+                  src={rzpQrImageUrl}
+                  alt="Razorpay Dynamic QR"
+                  className="w-full h-full object-cover select-none pointer-events-none"
+                  style={{
+                    objectPosition: "center 51.5%",
+                    transform: "scale(1.4)",
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <p className="text-sm font-bold text-white">
+                Scan with Google Pay, PhonePe, Paytm, CRED, or BHIM
+              </p>
+              <p className="text-xs text-slate-400 font-mono">
+                Amount locked to ₹{grandTotal.toLocaleString("en-IN")} • Instant Auto-Confirmation
+              </p>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setEnlargeQrModal(false)}
+              className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer"
+            >
+              Back to POS Bill
+            </button>
           </div>
         </div>
       )}

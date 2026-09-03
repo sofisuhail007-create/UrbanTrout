@@ -409,8 +409,17 @@ export default function PublicInvoicePage() {
           ) : (
             <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-4">
               <div className="flex justify-center">
-                <div className="p-2 bg-white border border-slate-300 rounded-2xl shadow-sm inline-block">
-                  <img src={invoice.qrImageUrl || upiQrCodeUrl} alt="Scan & Pay" className="w-36 h-36 object-contain" />
+                <div className="w-48 h-48 sm:w-56 sm:h-56 bg-white border border-slate-300 rounded-2xl shadow-sm overflow-hidden inline-flex items-center justify-center">
+                  <img
+                    src={invoice.qrImageUrl || upiQrCodeUrl}
+                    alt="Scan & Pay"
+                    className={`w-full h-full ${invoice.qrImageUrl ? "object-cover" : "object-contain p-2"}`}
+                    style={
+                      invoice.qrImageUrl
+                        ? { objectPosition: "center 51.5%", transform: "scale(1.38)" }
+                        : undefined
+                    }
+                  />
                 </div>
               </div>
               <div>
