@@ -16,6 +16,8 @@ export default function InventoryPage() {
   const [saving, setSaving] = useState<string | null>(null);
   const [edits, setEdits] = useState<Record<string, Partial<FullInventoryItem>>>({});
   const [showAddModal, setShowAddModal] = useState(false);
+  const [deleteItem, setDeleteItem] = useState<FullInventoryItem | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [toastMsg, setToastMsg] = useState<{ text: string; type: "success" | "error" } | null>(null);
 
   // New Product Form State
@@ -147,6 +149,51 @@ export default function InventoryPage() {
       showToast("Error updating inventory: " + (err.message || "Unknown error"), "error");
     } finally {
       setSaving(null);
+    }
+  }
+
+  async function handleDeleteProduct() {
+    if (!deleteItem) return;
+    setDeleting(true);
+    const itemToDelete = deleteItem;
+
+    try {
+      // 1. Try deleting via API first (service role bypasses RLS)
+      let deleted = false;
+      try {
+        const res = await fetch(
+          `/api/inventory?id=${encodeURIComponent(itemToDelete.id)}&productId=${encodeURIComponent(itemToDelete.product_id)}`,
+          { method: "DELETE" }
+        );
+        const data = await res.json();
+        if (res.ok && data.success) {
+          deleted = true;
+        }
+      } catch (apiErr) {
+        console.warn("API delete route error, trying client fallback:", apiErr);
+      }
+
+      // 2. Fallback to direct client if API route wasn't reached
+      if (!deleted) {
+        const { error: invErr } = await supabase.from("inventory").delete().eq("id", itemToDelete.id);
+        if (invErr) throw invErr;
+        await supabase.from("app_settings").delete().eq("key", `product_meta_${itemToDelete.product_id}`);
+      }
+
+      showToast(`Product "${itemToDelete.product_name}" removed from inventory.`, "success");
+      setDeleteItem(null);
+      setEdits((prev) => {
+        const n = { ...prev };
+        delete n[itemToDelete.id];
+        return n;
+      });
+      // Optimistic state update
+      setItems((prev) => prev.filter((i) => i.id !== itemToDelete.id));
+      await fetchInventory();
+    } catch (err: any) {
+      showToast("Could not delete product: " + (err.message || "Unknown error"), "error");
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -310,19 +357,33 @@ export default function InventoryPage() {
                           </div>
                         </div>
 
-                        {/* Availability Toggle */}
-                        <button
-                          type="button"
-                          onClick={() => edit(item.id, "available", !available)}
-                          className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border font-bold transition-all cursor-pointer flex-shrink-0 ${
-                            available
-                              ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
-                              : "bg-red-500/15 text-red-400 border-red-500/30"
-                          }`}
-                        >
-                          <span className="w-2 h-2 rounded-full bg-current animate-pulse" />
-                          {available ? "In Stock" : "Out of Stock"}
-                        </button>
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          {/* Availability Toggle */}
+                          <button
+                            type="button"
+                            onClick={() => edit(item.id, "available", !available)}
+                            className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full border font-bold transition-all cursor-pointer ${
+                              available
+                                ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                                : "bg-red-500/15 text-red-400 border-red-500/30"
+                            }`}
+                          >
+                            <span className="w-2 h-2 rounded-full bg-current animate-pulse" />
+                            {available ? "In Stock" : "Out of Stock"}
+                          </button>
+
+                          {/* Quick Delete Button */}
+                          <button
+                            type="button"
+                            onClick={() => setDeleteItem(item)}
+                            title={`Delete ${item.product_name}`}
+                            className="p-1.5 rounded-lg border border-slate-800 bg-slate-950/60 text-slate-400 hover:text-red-400 hover:bg-red-500/10 hover:border-red-500/30 transition-all cursor-pointer"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -461,24 +522,38 @@ export default function InventoryPage() {
                   </div>
                 </div>
 
-                {/* Save Button */}
+                {/* Action Buttons: Save Updates & Delete */}
                 <div className="pt-2">
-                  <button
-                    disabled={!isDirty || saving === item.id}
-                    onClick={() => save(item)}
-                    className="w-full py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/25"
-                    style={{ fontFamily: '"Space Grotesk", sans-serif' }}
-                  >
-                    {saving === item.id ? (
-                      <>
-                        <span className="animate-spin text-sm">⏳</span> Saving Changes...
-                      </>
-                    ) : (
-                      <>
-                        <span>💾</span> {isDirty ? "Save Updates" : "Saved"}
-                      </>
-                    )}
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      disabled={!isDirty || saving === item.id}
+                      onClick={() => save(item)}
+                      className="flex-1 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 hover:bg-cyan-500/25"
+                      style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                    >
+                      {saving === item.id ? (
+                        <>
+                          <span className="animate-spin text-sm">⏳</span> Saving Changes...
+                        </>
+                      ) : (
+                        <>
+                          <span>💾</span> {isDirty ? "Save Updates" : "Saved"}
+                        </>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setDeleteItem(item)}
+                      className="px-3.5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer bg-red-500/10 text-red-400 border border-red-500/25 hover:bg-red-500/20 hover:border-red-500/40"
+                      title="Delete this product"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      <span className="hidden sm:inline">Delete</span>
+                    </button>
+                  </div>
                   <p className="text-[10px] text-slate-600 text-right mt-1.5">
                     Last updated: {new Date(item.updated_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })},{" "}
                     {new Date(item.updated_at).toLocaleDateString("en-IN", { month: "short", day: "numeric" })}
@@ -660,6 +735,99 @@ export default function InventoryPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Product Confirmation Modal */}
+      {deleteItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-red-500/30 rounded-2xl max-w-md w-full p-6 space-y-5 shadow-2xl shadow-red-950/40">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2.5 text-red-400">
+                <span className="text-xl">⚠️</span>
+                <h3 className="text-lg font-bold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                  Delete Product
+                </h3>
+              </div>
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={() => setDeleteItem(null)}
+                className="text-slate-400 hover:text-white text-lg font-bold cursor-pointer disabled:opacity-50"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <p className="text-sm text-slate-300 leading-relaxed">
+                Are you sure you want to delete this product? This will remove it from the inventory database, clear its shop metadata, and unlist it from the store.
+              </p>
+
+              {/* Product preview card */}
+              <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center gap-3">
+                <div className="w-12 h-12 rounded-lg overflow-hidden bg-slate-900 border border-slate-800 flex-shrink-0">
+                  <img
+                    src={deleteItem.image_url || "/images/gutted_trout_premium.png"}
+                    alt={deleteItem.product_name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-sm font-bold text-white truncate" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                    {deleteItem.product_name}
+                  </h4>
+                  <div className="flex items-center gap-2 mt-0.5 text-[11px] text-slate-400 font-mono">
+                    <span className="text-cyan-400">{deleteItem.product_id}</span>
+                    <span>•</span>
+                    <span>₹{deleteItem.price_per_kg}/kg</span>
+                    <span>•</span>
+                    <span>{deleteItem.stock_kg} kg</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-xs text-red-300 space-y-1">
+                <p className="font-bold flex items-center gap-1.5">
+                  <span>🚨</span> Permanent Action
+                </p>
+                <p className="text-red-300/80">
+                  This action cannot be undone. Customers will no longer see or be able to purchase this product.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-1">
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={() => setDeleteItem(null)}
+                className="flex-1 py-2.5 rounded-xl border border-slate-700 text-slate-300 text-xs font-bold uppercase tracking-wider hover:bg-slate-800 transition-all cursor-pointer disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={handleDeleteProduct}
+                className="flex-1 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-bold uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-red-600/30 disabled:opacity-50"
+                style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+              >
+                {deleting ? (
+                  <>
+                    <span className="animate-spin text-sm">⏳</span> Deleting...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Delete Product
+                  </>
+                )}
+              </button>
+            </div>
           </div>
         </div>
       )}
