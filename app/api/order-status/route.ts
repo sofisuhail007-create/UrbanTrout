@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     // 1. Update status in Supabase
     let query = supabase
       .from("orders")
-      .update({ status, updated_at: new Date().toISOString() });
+      .update({ status });
 
     const isNumeric = /^\d+$/.test(String(orderId));
     if (isNumeric) {

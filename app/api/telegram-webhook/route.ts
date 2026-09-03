@@ -118,6 +118,7 @@ const STATUS_NAMES: Record<string, string> = {
   confirmed: "Confirmed & Harvesting",
   out_for_delivery: "Out for Delivery",
   delivered: "Delivered",
+  out_of_stock: "Out of Stock (Refund Due)",
   cancelled: "Cancelled",
 };
 
@@ -143,7 +144,7 @@ export async function POST(request: Request) {
       // ── Handle Order Status Callbacks: "ord:<status>:<orderNumber>" ──
       if (dataStr.startsWith("ord:")) {
         const parts = dataStr.split(":");
-        const newStatus = parts[1] as "pending" | "processing" | "out_for_delivery" | "delivered" | "cancelled";
+        const newStatus = parts[1] as "pending" | "processing" | "out_for_delivery" | "delivered" | "cancelled" | "out_of_stock";
         const orderNumberOrId = parts[2];
 
         // 1. Fetch & Update order in Supabase
@@ -153,34 +154,41 @@ export async function POST(request: Request) {
         // 2. Answer Telegram with a top toast notification
         await answerCallbackQuery(cq.id, `✅ Order #${orderNumberOrId} marked as ${statusName}!`);
 
-        // 3. Send email to customer if email is recorded and order found in DB
-        if (updatedOrder) {
-          const customerEmail = extractEmail(updatedOrder);
-          if (customerEmail) {
+        const existingText = message?.text || "";
+        const phoneMatch = existingText.match(/\+91\s*(\d{10})/);
+        const nameMatch = existingText.match(/Name:\s*([^\n\r]+)/);
+        const totalMatch = existingText.match(/Total:\s*[₹Rs.]*\s*([0-9,]+)/i);
+        const emailMatch = (updatedOrder?.customer_address || existingText).match(/Email:\s*([^\s)\n<]+@[^\s)\n<]+)/i);
+
+        const customerPhone = updatedOrder?.customer_phone || (phoneMatch ? phoneMatch[1] : "");
+        const customerName = updatedOrder?.customer_name || (nameMatch ? nameMatch[1].trim() : "Valued Customer");
+        const totalAmount = updatedOrder?.total || (totalMatch ? parseInt(totalMatch[1].replace(/\D/g, ""), 10) : 0);
+        const customerEmail = extractEmail(updatedOrder) || (emailMatch ? emailMatch[1].trim() : undefined);
+
+        // 3. Send email update to customer if email is recorded
+        if (customerEmail) {
+          try {
             await sendOrderStatusUpdateEmail(
               {
-                orderNumber: String(updatedOrder.order_number),
-                customerName: updatedOrder.customer_name,
+                orderNumber: String(updatedOrder?.order_number || orderNumberOrId),
+                customerName: customerName,
                 email: customerEmail,
-                phone: updatedOrder.customer_phone,
-                total: updatedOrder.total,
+                phone: customerPhone,
+                total: totalAmount,
               },
               newStatus
             );
+          } catch (mailErr) {
+            console.error("Failed to send order status update email:", mailErr);
           }
         }
 
         // 4. Update the Telegram message text and inline buttons in-place
         if (chatId && messageId) {
-          const existingText = message?.text || "";
-          const phoneMatch = existingText.match(/\+91\s*(\d{10})/);
-          const customerPhone = updatedOrder?.customer_phone || (phoneMatch ? phoneMatch[1] : "");
-          const customerName = updatedOrder?.customer_name || "Customer";
-
           const newText = formatOrderTelegramText({
             orderNumber: updatedOrder?.order_number || orderNumberOrId,
             status: newStatus,
-            total: updatedOrder?.total || 0,
+            total: totalAmount,
             paymentMethod: "Razorpay / UPI",
             customerName: customerName,
             phone: customerPhone,

@@ -9,6 +9,7 @@ const STATUSES: { value: OrderStatus; label: string; color: string }[] = [
   { value: "processing", label: "Payment Verified / Confirmed", color: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
   { value: "out_for_delivery", label: "Out for Delivery", color: "bg-cyan-500/15 text-cyan-400 border-cyan-500/30" },
   { value: "delivered", label: "Delivered", color: "bg-green-500/15 text-green-400 border-green-500/30" },
+  { value: "out_of_stock", label: "⚠️ Out of Stock (Refund Due)", color: "bg-orange-500/15 text-orange-400 border-orange-500/30" },
   { value: "cancelled", label: "Cancelled", color: "bg-red-500/15 text-red-400 border-red-500/30" },
 ];
 

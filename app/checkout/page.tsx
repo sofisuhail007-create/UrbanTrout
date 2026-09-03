@@ -758,12 +758,13 @@ export default function CheckoutPage() {
 
               const cleanPhone = formData.phone.replace(/\D/g, "").slice(-10);
               const emailNote = formData.email?.trim() ? ` (Email: ${formData.email.trim()})` : "";
+              const rzpNote = rzpRes.razorpay_payment_id ? ` (Razorpay: ${rzpRes.razorpay_payment_id})` : "";
               const notesNote = formData.notes?.trim() ? ` | Notes: ${formData.notes.trim()}` : "";
 
               const orderPayload = {
                 customer_name: formData.fullName.trim(),
                 customer_phone: cleanPhone,
-                customer_address: `${formData.house.trim()}, ${formData.locality.trim()}${emailNote}${notesNote}`,
+                customer_address: `${formData.house.trim()}, ${formData.locality.trim()}${emailNote}${rzpNote}${notesNote}`,
                 customer_locality: formData.locality.trim(),
                 customer_pincode: formData.pincode.trim(),
                 items: items.map((i) => ({
@@ -779,9 +780,6 @@ export default function CheckoutPage() {
                 total: grandTotal,
                 delivery_zone: deliveryMode,
                 status: "confirmed",
-                payment_method: "razorpay",
-                razorpay_payment_id: rzpRes.razorpay_payment_id,
-                razorpay_order_id: rzpRes.razorpay_order_id,
               };
 
               const { data: insertedOrder, error: insertErr } = await supabase

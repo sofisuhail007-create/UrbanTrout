@@ -192,7 +192,7 @@ export async function sendOrderStatusUpdateEmail(order: {
   email?: string;
   phone: string;
   total: number;
-}, status: "pending" | "processing" | "out_for_delivery" | "delivered" | "cancelled") {
+}, status: "pending" | "processing" | "out_for_delivery" | "delivered" | "cancelled" | "out_of_stock") {
 
   if (!order.email || !order.email.includes("@")) return;
 
@@ -205,7 +205,7 @@ export async function sendOrderStatusUpdateEmail(order: {
   const STATUS_DETAILS: Record<string, { title: string; subtitle: string; icon: string; color: string; subject: string }> = {
     processing: {
       title: "Payment Verified & Order Confirmed! 🎉",
-      subtitle: "We have confirmed your UPI payment. Our team at Urban Trout Farm is now harvesting and ice-packing your fresh Rainbow Trout.",
+      subtitle: "We have confirmed your payment. Our team at Urban Trout Farm is now harvesting and ice-packing your fresh Rainbow Trout.",
       icon: "🐟",
       color: "#25d366",
       subject: `✅ Payment Verified! Order #${order.orderNumber} Confirmed - Urban Trout`,
@@ -223,6 +223,13 @@ export async function sendOrderStatusUpdateEmail(order: {
       icon: "✅",
       color: "#22c55e",
       subject: `✨ Delivered: Order #${order.orderNumber} - Urban Trout Srinagar`,
+    },
+    out_of_stock: {
+      title: "Order Update: Out of Stock & Refund Processing ⚠️",
+      subtitle: "We sincerely apologize for the inconvenience! Due to high sudden demand, the fresh harvest for your order is currently out of stock. If you have already paid, our team has initiated a full refund back to your original payment account (UPI / Bank / Card). You will receive your refund shortly. We truly apologize for this disruption.",
+      icon: "⚠️",
+      color: "#f59e0b",
+      subject: `⚠️ Important Update: Order #${order.orderNumber} Out of Stock & Refund - Urban Trout`,
     },
     cancelled: {
       title: "Order Update: Cancelled",

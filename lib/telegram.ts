@@ -211,6 +211,7 @@ export function getOrderKeyboard(
 ): InlineKeyboardMarkup {
   const isOut = currentStatus === "out_for_delivery";
   const isDelivered = currentStatus === "delivered";
+  const isOutOfStock = currentStatus === "out_of_stock";
   const isCancelled = currentStatus === "cancelled";
 
   const rows: InlineKeyboardButton[][] = [
@@ -226,6 +227,10 @@ export function getOrderKeyboard(
     ],
     [
       {
+        text: isOutOfStock ? "● ⚠️ Out of Stock" : "⚠️ Out of Stock (Refund)",
+        callback_data: `ord:out_of_stock:${orderNumber}`,
+      },
+      {
         text: isCancelled ? "● ❌ Cancelled" : "❌ Cancel Order",
         callback_data: `ord:cancelled:${orderNumber}`,
       },
@@ -238,6 +243,8 @@ export function getOrderKeyboard(
       updateMsg = `Hi ${customerName || "there"}! Your fresh Rainbow Trout order #${orderNumber} is packed chilled and OUT FOR DELIVERY with our rider! 🚚`;
     } else if (isDelivered) {
       updateMsg = `Hi ${customerName || "there"}! Your fresh Rainbow Trout order #${orderNumber} has been DELIVERED. Thank you for choosing Urban Trout! ✨`;
+    } else if (isOutOfStock) {
+      updateMsg = `Hi ${customerName || "there"}! We sincerely apologize, but due to high sudden demand, your fresh trout order #${orderNumber} is currently OUT OF STOCK. If you have already paid, your full refund has been initiated to your original payment account. We are extremely sorry for the inconvenience!`;
     } else if (isCancelled) {
       updateMsg = `Hi ${customerName || "there"}! Your order #${orderNumber} has been cancelled. Please reach out if you have any questions.`;
     } else {
@@ -246,10 +253,12 @@ export function getOrderKeyboard(
 
     const waUrl = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(updateMsg)}`;
 
-    rows[1].push({
-      text: "💬 WhatsApp",
-      url: waUrl,
-    });
+    rows.push([
+      {
+        text: "💬 WhatsApp Customer",
+        url: waUrl,
+      },
+    ]);
   }
 
   return { inline_keyboard: rows };
@@ -273,7 +282,9 @@ export function formatOrderTelegramText(order: {
   const status = order.status || "pending";
 
   const statusLabel =
-    status === "processing" || status === "confirmed"
+    status === "out_of_stock"
+      ? "⚠️ <b>OUT OF STOCK (REFUND DUE)</b>"
+      : status === "processing" || status === "confirmed"
       ? "✅ <b>PAYMENT VERIFIED (CONFIRMED & HARVESTING)</b>"
       : status === "out_for_delivery"
       ? "🚚 <b>OUT FOR DELIVERY (RIDER DISPATCHED)</b>"
