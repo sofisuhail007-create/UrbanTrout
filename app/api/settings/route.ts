@@ -16,7 +16,7 @@ const DEFAULT_SETTINGS: Record<string, string> = {
   delivery_fee_outside_5km: "40",
   allow_outside_radius_delivery: "false",
   max_dispatch_mins: "60",
-  upi_id: "urbantrout@ybl",
+  upi_id: "JKBMERC00792230@jkb",
   primary_phone: "+918491006127",
   alternate_phone: "+917006604148",
   email: "info.urbantrout@gmail.com",

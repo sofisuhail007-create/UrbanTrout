@@ -38,8 +38,9 @@ export default function POSBillingPage() {
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerNotes, setCustomerNotes] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"RazorpayQR" | "UPI" | "Cash" | "Card">("RazorpayQR");
-  const [upiId, setUpiId] = useState("urbantrout@ybl");
+  const [paymentMethod, setPaymentMethod] = useState<"JkBankSoundbox" | "RazorpayQR" | "Cash" | "Card">("JkBankSoundbox");
+  const [upiId, setUpiId] = useState("JKBMERC00792230@jkb");
+  const [soundboxPaid, setSoundboxPaid] = useState(false);
 
   // Razorpay Dynamic QR State
   const [rzpQrId, setRzpQrId] = useState<string | null>(null);
@@ -176,9 +177,11 @@ export default function POSBillingPage() {
   const grandTotal = billItems.reduce((sum, item) => sum + item.total, 0);
   const totalWeight = billItems.reduce((sum, item) => sum + item.weightKg, 0);
 
-  // Dynamic UPI URI & High-Res QR Code
-  const upiPayUri = `upi://pay?pa=${upiId}&pn=Urban%20Trout%20Farm&am=${grandTotal}&cu=INR&tn=Invoice-Payment`;
-  const upiQrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(
+  // Dynamic J&K Bank Soundbox UPI URI & High-Res QR Code
+  const upiPayUri = grandTotal > 0
+    ? `upi://pay?pa=${upiId}&pn=Urban%20Trout%20Aquaculture&tr=TERM00792230&am=${grandTotal}&cu=INR&tn=Urban%20Trout%20POS`
+    : `upi://pay?pa=${upiId}&pn=Urban%20Trout%20Aquaculture&tr=TERM00792230&cu=INR`;
+  const upiQrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(
     upiPayUri
   )}&bgcolor=255-255-255&color=2-13-18&margin=2`;
 
@@ -334,13 +337,14 @@ export default function POSBillingPage() {
     const cleanPhone = customerPhone.replace(/\D/g, "").slice(-10);
 
     const isRzpPaid = paymentMethod === "RazorpayQR" && rzpPaid;
-    const paymentStatus = isRzpPaid ? "PAID" : paymentMethod === "Cash" ? "PAID" : "PAYMENT DUE";
-    const paymentMethodLabel = isRzpPaid
+    const isSoundbox = paymentMethod === "JkBankSoundbox";
+    const paymentStatus = (isRzpPaid || isSoundbox || paymentMethod === "Cash" || soundboxPaid) ? "PAID" : "PAYMENT DUE";
+    const paymentMethodLabel = isSoundbox
+      ? "J&K Bank Soundbox UPI"
+      : isRzpPaid
       ? "Razorpay UPI (Verified)"
       : paymentMethod === "RazorpayQR"
       ? "Razorpay QR"
-      : paymentMethod === "UPI"
-      ? "Direct UPI"
       : paymentMethod === "Cash"
       ? "Cash"
       : "Card / POS";
@@ -672,8 +676,8 @@ export default function POSBillingPage() {
             {/* Payment Channel Selector */}
             <div className="grid grid-cols-4 gap-1.5 pt-0.5">
               {[
-                { id: "RazorpayQR", label: "⚡ Razorpay", sub: "Auto-QR" },
-                { id: "UPI", label: "📱 Direct UPI", sub: "Manual" },
+                { id: "JkBankSoundbox", label: "🔊 J&K Soundbox", sub: "Instant Voice" },
+                { id: "RazorpayQR", label: "⚡ Razorpay", sub: "Auto-Verify" },
                 { id: "Cash", label: "💵 Cash", sub: "Counter" },
                 { id: "Card", label: "💳 Card / POS", sub: "Terminal" },
               ].map((channel) => {
@@ -685,10 +689,26 @@ export default function POSBillingPage() {
                     onClick={() => setPaymentMethod(channel.id as any)}
                     className="py-1.5 px-1 rounded-xl font-bold text-[10px] uppercase tracking-wider transition-all cursor-pointer text-center"
                     style={{
-                      background: isSel ? "rgba(114,221,253,0.18)" : "rgba(3,16,24,0.6)",
-                      border: isSel ? "1.5px solid #72ddfd" : "1px solid rgba(61,74,83,0.5)",
-                      color: isSel ? "#72ddfd" : "#9fadb8",
-                      boxShadow: isSel ? "0 0 10px rgba(114,221,253,0.15)" : "none",
+                      background: isSel
+                        ? channel.id === "JkBankSoundbox"
+                          ? "rgba(16,185,129,0.2)"
+                          : "rgba(114,221,253,0.18)"
+                        : "rgba(3,16,24,0.6)",
+                      border: isSel
+                        ? channel.id === "JkBankSoundbox"
+                          ? "1.5px solid #10b981"
+                          : "1.5px solid #72ddfd"
+                        : "1px solid rgba(61,74,83,0.5)",
+                      color: isSel
+                        ? channel.id === "JkBankSoundbox"
+                          ? "#34d399"
+                          : "#72ddfd"
+                        : "#9fadb8",
+                      boxShadow: isSel
+                        ? channel.id === "JkBankSoundbox"
+                          ? "0 0 10px rgba(16,185,129,0.2)"
+                          : "0 0 10px rgba(114,221,253,0.15)"
+                        : "none",
                     }}
                   >
                     <div className="leading-tight truncate">{channel.label}</div>
@@ -702,7 +722,89 @@ export default function POSBillingPage() {
 
             {/* ─── PAYMENT CHANNEL PANELS ─── */}
 
-            {/* 1. Razorpay Dynamic BharatQR Panel */}
+            {/* 1. J&K Bank Soundbox Panel (Default) */}
+            {paymentMethod === "JkBankSoundbox" && grandTotal > 0 && (
+              <div className="p-2.5 rounded-xl bg-slate-950/80 border border-emerald-500/30 flex flex-col items-center text-center space-y-2">
+                {soundboxPaid ? (
+                  <div className="w-full py-4 px-3 rounded-xl bg-gradient-to-b from-emerald-950/40 to-slate-950 border border-emerald-500/40 text-center space-y-2 animate-fadeIn">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/50 text-emerald-400 flex items-center justify-center mx-auto text-xl font-black shadow-lg shadow-emerald-500/20">
+                      ✓
+                    </div>
+                    <div>
+                      <h4 className="text-base font-extrabold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                        Soundbox Payment Confirmed: <span className="text-emerald-400">₹{grandTotal.toLocaleString("en-IN")}</span>
+                      </h4>
+                      <p className="text-xs text-emerald-300 font-mono mt-0.5">
+                        🔊 Voice announcement confirmed on counter soundbox
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setSoundboxPaid(false)}
+                      className="text-[10px] text-slate-400 hover:text-white underline cursor-pointer pt-1"
+                    >
+                      Show QR Again
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-between w-full pb-1 border-b border-slate-800/80 text-[10px] font-mono">
+                      <span className="flex items-center gap-1.5 text-emerald-400 font-bold uppercase">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse inline-block"></span>
+                        J&amp;K Bank Soundbox QR
+                      </span>
+                      <span className="text-slate-400">🎙️ Voice Box Active</span>
+                    </div>
+
+                    <div
+                      onClick={() => setEnlargeQrModal(true)}
+                      className="p-2 bg-white border-2 border-emerald-500/30 rounded-xl shadow-xl shadow-emerald-950/30 cursor-pointer hover:border-emerald-400 transition-all group relative"
+                      title="Click to enlarge for customer"
+                    >
+                      <img
+                        src={upiQrCodeUrl}
+                        alt="J&K Bank Soundbox QR"
+                        className="w-36 h-36 sm:w-40 sm:h-40 rounded-lg object-contain"
+                      />
+                      <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex flex-col items-center justify-center text-white text-[11px] font-bold gap-1">
+                        <span>🔍 Tap to Enlarge</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="text-xs font-bold text-white font-mono">
+                        Scan to Pay: <span className="text-emerald-400 font-black">₹{grandTotal.toLocaleString("en-IN")}</span>
+                      </p>
+                      <p className="text-[10px] text-slate-400 font-mono mt-0.5">
+                        Urban Trout Aquaculture • {upiId}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-0.5 w-full">
+                      <button
+                        type="button"
+                        onClick={() => setEnlargeQrModal(true)}
+                        className="flex-1 py-1.5 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1"
+                      >
+                        🔍 Enlarge QR
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSoundboxPaid(true);
+                          playSuccessChime();
+                        }}
+                        className="flex-1 py-1.5 px-2 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1 shadow-sm"
+                      >
+                        🔊 Soundbox Heard ✓
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* 2. Razorpay Dynamic BharatQR Panel */}
             {paymentMethod === "RazorpayQR" && grandTotal > 0 && (
               <div className="p-2.5 rounded-xl bg-slate-950/80 border border-cyan-500/30 flex flex-col items-center text-center space-y-2">
                 {rzpPaid ? (
@@ -815,30 +917,6 @@ export default function POSBillingPage() {
                     </button>
                   </div>
                 )}
-              </div>
-            )}
-
-            {/* 2. Direct Personal UPI Panel */}
-            {paymentMethod === "UPI" && grandTotal > 0 && (
-              <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 flex flex-col items-center text-center space-y-2.5">
-                <div className="flex items-center justify-between w-full pb-1 border-b border-slate-800">
-                  <span className="text-[10px] uppercase font-bold text-slate-400 font-mono">Direct Personal UPI</span>
-                  <span className="text-[10px] text-amber-400 font-mono">Manual Verification</span>
-                </div>
-                <div className="p-2 bg-white border border-slate-300 rounded-xl shadow-lg">
-                  <img src={upiQrCodeUrl} alt="UPI QR Code" className="w-36 h-36 sm:w-40 sm:h-40 rounded-lg object-contain" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-white font-mono">Scan with Any App: ₹{grandTotal.toLocaleString("en-IN")}</p>
-                  <p className="text-[11px] text-slate-400 font-mono mt-0.5">{upiId}</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={copyUpi}
-                  className="px-3 py-1 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer"
-                >
-                  {copiedUpi ? "Copied! ✓" : "Copy UPI ID"}
-                </button>
               </div>
             )}
 
@@ -1075,19 +1153,19 @@ export default function POSBillingPage() {
       )}
 
       {/* ─── FULLSCREEN / GIANT QR MODAL ─── */}
-      {enlargeQrModal && rzpQrImageUrl && (
+      {enlargeQrModal && (
         <div
           onClick={() => setEnlargeQrModal(false)}
           className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md cursor-pointer"
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="bg-slate-900 border border-cyan-500/40 rounded-3xl p-5 sm:p-7 max-w-sm sm:max-w-md w-full text-center space-y-4 shadow-2xl shadow-cyan-950/60 cursor-default"
+            className="bg-slate-900 border border-emerald-500/40 rounded-3xl p-5 sm:p-7 max-w-sm sm:max-w-md w-full text-center space-y-4 shadow-2xl shadow-emerald-950/60 cursor-default"
           >
             <div className="flex items-center justify-between border-b border-slate-800 pb-3">
               <div className="text-left">
-                <span className="text-[10px] uppercase font-bold tracking-widest text-cyan-400 font-mono block">
-                  Customer Scan Screen
+                <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-400 font-mono block">
+                  {paymentMethod === "JkBankSoundbox" ? "J&K Bank Soundbox Screen" : "Customer Scan Screen"}
                 </span>
                 <h3 className="text-lg sm:text-xl font-black text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
                   Pay ₹{grandTotal.toLocaleString("en-IN")} via UPI
@@ -1104,25 +1182,37 @@ export default function POSBillingPage() {
 
             {/* Giant QR Box */}
             <div className="flex justify-center py-2">
-              <div className="w-72 h-72 sm:w-80 sm:h-80 bg-white border-2 border-cyan-400 rounded-3xl shadow-2xl overflow-hidden relative flex items-center justify-center p-2">
-                <img
-                  src={rzpQrImageUrl}
-                  alt="Razorpay Dynamic QR"
-                  className="w-full h-full object-cover select-none pointer-events-none rounded-2xl"
-                  style={{
-                    objectPosition: "center 51.5%",
-                    transform: "scale(1.28)",
-                  }}
-                />
+              <div className="w-72 h-72 sm:w-80 sm:h-80 bg-white border-2 border-emerald-400 rounded-3xl shadow-2xl overflow-hidden relative flex items-center justify-center p-3">
+                {paymentMethod === "RazorpayQR" && rzpQrImageUrl ? (
+                  <img
+                    src={rzpQrImageUrl}
+                    alt="Razorpay Dynamic QR"
+                    className="w-full h-full object-cover select-none pointer-events-none rounded-2xl"
+                    style={{
+                      objectPosition: "center 51.5%",
+                      transform: "scale(1.28)",
+                    }}
+                  />
+                ) : (
+                  <img
+                    src={upiQrCodeUrl}
+                    alt="J&K Bank Soundbox QR"
+                    className="w-full h-full object-contain select-none pointer-events-none rounded-2xl"
+                  />
+                )}
               </div>
             </div>
 
             <div className="space-y-1">
               <p className="text-sm font-bold text-white">
-                Scan with Google Pay, PhonePe, Paytm, CRED, or BHIM
+                {paymentMethod === "JkBankSoundbox"
+                  ? "Scan with J&K mPay, Google Pay, PhonePe, or Paytm"
+                  : "Scan with Google Pay, PhonePe, Paytm, CRED, or BHIM"}
               </p>
               <p className="text-xs text-slate-400 font-mono">
-                Amount locked to ₹{grandTotal.toLocaleString("en-IN")} • Instant Auto-Confirmation
+                {paymentMethod === "JkBankSoundbox"
+                  ? `Amount locked to ₹${grandTotal.toLocaleString("en-IN")} • Soundbox Voice Alert Active`
+                  : `Amount locked to ₹${grandTotal.toLocaleString("en-IN")} • Instant Auto-Confirmation`}
               </p>
             </div>
 
