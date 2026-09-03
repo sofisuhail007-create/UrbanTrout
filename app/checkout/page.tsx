@@ -680,6 +680,9 @@ export default function CheckoutPage() {
           amount: amountPaise,
           currency: "INR",
           receipt: `ut_${Date.now()}`,
+          customerName: formData.fullName,
+          customerPhone: formData.phone,
+          customerEmail: formData.email,
         }),
       });
 
@@ -706,8 +709,12 @@ export default function CheckoutPage() {
             email: formData.email || "",
           },
           notes: {
+            customer_name: formData.fullName,
+            customer_phone: formData.phone,
+            customer_email: formData.email || "",
             address: `${formData.house}, ${formData.locality}, ${formData.pincode}`,
             delivery_zone: deliveryMode,
+            special_notes: formData.notes || "",
           },
           theme: { color: "#3aadcc" },
           modal: {

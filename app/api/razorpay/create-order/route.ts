@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     });
 
     const body = await req.json();
-    const { amount, currency = "INR", receipt } = body;
+    const { amount, currency = "INR", receipt, customerName, customerPhone, customerEmail, notes = {} } = body;
 
     // Validate amount (minimum 100 paise = ₹1)
     if (!amount || typeof amount !== "number" || amount < 100) {
@@ -28,10 +28,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const orderNotes: Record<string, string> = {
+      customer_name: String(customerName || notes.customer_name || "Valued Customer").slice(0, 40),
+      customer_phone: String(customerPhone || notes.customer_phone || "").slice(0, 15),
+      ...notes,
+    };
+    if (customerEmail) orderNotes.customer_email = String(customerEmail).slice(0, 40);
+
     const order = await razorpay.orders.create({
       amount, // in paise
       currency,
       receipt: receipt || `ut_${Date.now()}`,
+      notes: orderNotes,
     });
 
     return NextResponse.json({
