@@ -416,7 +416,7 @@ export default function PublicInvoicePage() {
                     className={`w-full h-full ${invoice.qrImageUrl ? "object-cover" : "object-contain p-2"}`}
                     style={
                       invoice.qrImageUrl
-                        ? { objectPosition: "center 51.5%", transform: "scale(1.38)" }
+                        ? { objectPosition: "center 51.5%", transform: "scale(1.28)" }
                         : undefined
                     }
                   />

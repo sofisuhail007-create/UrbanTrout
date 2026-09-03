@@ -764,29 +764,22 @@ export default function POSBillingPage() {
                   </div>
                 ) : rzpQrImageUrl ? (
                   <div className="flex flex-col items-center text-center space-y-3">
-                    {/* The Large Framed QR Box */}
+                    {/* The 100% Clean, Unobstructed QR Box */}
                     <div
                       onClick={() => setEnlargeQrModal(true)}
-                      className="w-56 h-56 sm:w-64 sm:h-64 bg-white border-2 border-cyan-400/50 rounded-2xl shadow-2xl overflow-hidden relative cursor-pointer group flex items-center justify-center transition-all hover:border-cyan-300 hover:shadow-cyan-500/25"
-                      title="Click to expand full screen"
+                      className="w-64 h-64 sm:w-72 sm:h-72 bg-white border-2 border-cyan-400/60 rounded-2xl shadow-2xl overflow-hidden cursor-pointer group flex items-center justify-center p-2 transition-all hover:border-cyan-300 hover:shadow-cyan-500/25"
+                      title="Click to expand large view"
                     >
-                      <img
-                        src={rzpQrImageUrl}
-                        alt="Razorpay Dynamic QR"
-                        className="w-full h-full object-cover select-none pointer-events-none transition-transform duration-200 group-hover:scale-[1.43]"
-                        style={{
-                          objectPosition: "center 51.5%",
-                          transform: "scale(1.38)",
-                        }}
-                      />
-                      <div className="absolute inset-x-2 bottom-2 bg-slate-950/90 backdrop-blur-sm text-[10px] font-bold uppercase tracking-wider text-cyan-300 py-1 px-2.5 rounded-xl border border-cyan-500/40 shadow-lg flex items-center justify-between">
-                        <span className="flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-                          Razorpay Dynamic
-                        </span>
-                        <span className="text-[9px] text-slate-400 flex items-center gap-0.5">
-                          <span className="material-symbols-outlined text-xs">zoom_in</span> Enlarge
-                        </span>
+                      <div className="w-full h-full overflow-hidden rounded-xl flex items-center justify-center bg-white">
+                        <img
+                          src={rzpQrImageUrl}
+                          alt="Razorpay Dynamic QR"
+                          className="w-full h-full object-cover select-none pointer-events-none transition-transform duration-200 group-hover:scale-[1.32]"
+                          style={{
+                            objectPosition: "center 51.5%",
+                            transform: "scale(1.28)",
+                          }}
+                        />
                       </div>
                     </div>
 
@@ -1050,7 +1043,7 @@ export default function POSBillingPage() {
                         className={`w-full h-full ${generatedInvoice.upiQrCodeUrl?.includes("rzp.io") ? "object-cover" : "object-contain p-2"}`}
                         style={
                           generatedInvoice.upiQrCodeUrl?.includes("rzp.io")
-                            ? { objectPosition: "center 51.5%", transform: "scale(1.38)" }
+                            ? { objectPosition: "center 51.5%", transform: "scale(1.28)" }
                             : undefined
                         }
                       />
@@ -1119,14 +1112,14 @@ export default function POSBillingPage() {
 
             {/* Giant QR Box */}
             <div className="flex justify-center py-2">
-              <div className="w-72 h-72 sm:w-80 sm:h-80 bg-white border-2 border-cyan-400 rounded-3xl shadow-2xl overflow-hidden relative flex items-center justify-center">
+              <div className="w-72 h-72 sm:w-80 sm:h-80 bg-white border-2 border-cyan-400 rounded-3xl shadow-2xl overflow-hidden relative flex items-center justify-center p-2">
                 <img
                   src={rzpQrImageUrl}
                   alt="Razorpay Dynamic QR"
-                  className="w-full h-full object-cover select-none pointer-events-none"
+                  className="w-full h-full object-cover select-none pointer-events-none rounded-2xl"
                   style={{
                     objectPosition: "center 51.5%",
-                    transform: "scale(1.4)",
+                    transform: "scale(1.28)",
                   }}
                 />
               </div>
