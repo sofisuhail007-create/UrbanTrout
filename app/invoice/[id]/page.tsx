@@ -26,7 +26,7 @@ export default function PublicInvoicePage() {
   const rawParam = (params?.id as string) || "";
   const [invoice, setInvoice] = useState<DecodedInvoice | null>(null);
   const [loading, setLoading] = useState(true);
-  const [upiId, setUpiId] = useState("urbantrout@ybl");
+  const [upiId, setUpiId] = useState("JKBMERC00792230@jkb");
   const [copiedUpi, setCopiedUpi] = useState(false);
 
   useEffect(() => {
