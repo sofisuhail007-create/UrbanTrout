@@ -112,28 +112,21 @@ export default function POSBillingPage() {
   // ─── REAL-TIME AUTO-UPDATE LOGIC (On Keystroke) ──────────────
   const updateActiveWeight = (newWeightStr: string, prodId = selectedProductId) => {
     setCurrentWeight(newWeightStr);
-    const prod = products.find((p) => p.id === prodId) || activeProduct;
+    const prod = products.find((p) => p.id === prodId || prodId.startsWith(p.id)) || activeProduct;
     const w = parseFloat(newWeightStr);
 
     if (isNaN(w) || w <= 0) {
       setBillItems((prev) =>
-        prev.map((item) => (item.id === prod.id ? { ...item, weightKg: 0, total: 0 } : item))
+        prev.map((item) => (item.id === prodId ? { ...item, weightKg: 0, total: 0 } : item))
       );
       return;
     }
 
     const lineTotal = Math.round(w * prod.pricePerKg);
     setBillItems((prev) => {
-      const exists = prev.some((item) => item.id === prod.id);
-      if (exists) {
-        return prev.map((item) =>
-          item.id === prod.id
-            ? { ...item, name: prod.name, pricePerKg: prod.pricePerKg, weightKg: w, total: lineTotal }
-            : item
-        );
-      } else {
+      // If bill is empty, add this as the single item
+      if (prev.length === 0) {
         return [
-          ...prev,
           {
             id: prod.id,
             name: prod.name,
@@ -144,14 +137,119 @@ export default function POSBillingPage() {
           },
         ];
       }
+
+      // If bill has 1 item and its ID is different from the currently selected prodId,
+      // update that single item to this product cleanly!
+      if (prev.length === 1 && prev[0].id !== prodId) {
+        return [
+          {
+            id: prod.id,
+            name: prod.name,
+            pricePerKg: prod.pricePerKg,
+            weightKg: w,
+            total: lineTotal,
+            unit: "Kg",
+          },
+        ];
+      }
+
+      // If the product already exists in billItems, update its weight & line total
+      const exists = prev.some((item) => item.id === prodId);
+      if (exists) {
+        return prev.map((item) =>
+          item.id === prodId
+            ? { ...item, name: prod.name, pricePerKg: item.pricePerKg || prod.pricePerKg, weightKg: w, total: Math.round(w * (item.pricePerKg || prod.pricePerKg)) }
+            : item
+        );
+      }
+
+      // Otherwise add as a new line item
+      return [
+        ...prev,
+        {
+          id: prod.id,
+          name: prod.name,
+          pricePerKg: prod.pricePerKg,
+          weightKg: w,
+          total: lineTotal,
+          unit: "Kg",
+        },
+      ];
     });
   };
 
   const handleSelectProduct = (prodId: string) => {
     setSelectedProductId(prodId);
-    const existing = billItems.find((i) => i.id === prodId);
-    const wStr = existing ? existing.weightKg.toString() : currentWeight || "1.0";
-    updateActiveWeight(wStr, prodId);
+    const prod = products.find((p) => p.id === prodId) || products[0];
+    const w = parseFloat(currentWeight) || 1.0;
+
+    setBillItems((prev) => {
+      // If 0 items, initialize with this product
+      if (prev.length === 0) {
+        return [
+          {
+            id: prod.id,
+            name: prod.name,
+            pricePerKg: prod.pricePerKg,
+            weightKg: w,
+            total: Math.round(w * prod.pricePerKg),
+            unit: "Kg",
+          },
+        ];
+      }
+
+      // If only 1 item in the bill, SWITCH that item cleanly to the selected product!
+      if (prev.length === 1) {
+        const currentW = prev[0].weightKg > 0 ? prev[0].weightKg : w;
+        return [
+          {
+            id: prod.id,
+            name: prod.name,
+            pricePerKg: prod.pricePerKg,
+            weightKg: currentW,
+            total: Math.round(currentW * prod.pricePerKg),
+            unit: "Kg",
+          },
+        ];
+      }
+
+      // If multiple items are in the bill:
+      // If the clicked product is already one of the items, switch focus to its weight
+      const existing = prev.find((item) => item.id === prodId);
+      if (existing) {
+        setCurrentWeight(existing.weightKg.toString());
+        return prev;
+      }
+
+      return prev;
+    });
+  };
+
+  const handleAddProductItem = (prodId?: string) => {
+    // Find unadded product or use specified product
+    const targetProd = prodId
+      ? products.find((p) => p.id === prodId) || products[0]
+      : products.find((p) => !billItems.some((i) => i.id === p.id)) || products[0];
+
+    const uniqueId = billItems.some((i) => i.id === targetProd.id)
+      ? `${targetProd.id}-${Date.now()}`
+      : targetProd.id;
+
+    const defaultWeight = 1.0;
+    const lineTotal = Math.round(defaultWeight * targetProd.pricePerKg);
+
+    const newItem: BillItem = {
+      id: uniqueId,
+      name: targetProd.name,
+      pricePerKg: targetProd.pricePerKg,
+      weightKg: defaultWeight,
+      total: lineTotal,
+      unit: "Kg",
+    };
+
+    setBillItems((prev) => [...prev, newItem]);
+    setSelectedProductId(uniqueId);
+    setCurrentWeight(defaultWeight.toString());
   };
 
   const handleQuickWeight = (val: number, isAdd = false) => {
@@ -167,9 +265,11 @@ export default function POSBillingPage() {
   const handleRemoveItem = (id: string) => {
     const remaining = billItems.filter((i) => i.id !== id);
     setBillItems(remaining);
-    if (id === selectedProductId && remaining.length > 0) {
+    if (remaining.length > 0) {
       setSelectedProductId(remaining[0].id);
       setCurrentWeight(remaining[0].weightKg.toString());
+    } else {
+      setCurrentWeight("0");
     }
   };
 
@@ -524,7 +624,9 @@ export default function POSBillingPage() {
             {/* Product Selector Chips */}
             <div className="grid grid-cols-2 gap-2">
               {products.map((p) => {
-                const isSelected = selectedProductId === p.id;
+                const isInBill = billItems.some((i) => i.id === p.id || i.id.startsWith(p.id));
+                const itemInBill = billItems.find((i) => i.id === p.id || i.id.startsWith(p.id));
+                const isSelected = selectedProductId === p.id || selectedProductId?.startsWith(p.id);
                 return (
                   <button
                     key={p.id}
@@ -532,19 +634,26 @@ export default function POSBillingPage() {
                     onClick={() => handleSelectProduct(p.id)}
                     className="p-2.5 rounded-xl text-left transition-all cursor-pointer active:scale-[0.99]"
                     style={{
-                      background: isSelected ? "rgba(114,221,253,0.14)" : "rgba(3,16,24,0.6)",
-                      border: isSelected ? "1.5px solid #72ddfd" : "1px solid rgba(61,74,83,0.5)",
+                      background: isSelected ? "rgba(114,221,253,0.18)" : "rgba(3,16,24,0.6)",
+                      border: isSelected ? "1.5px solid #72ddfd" : isInBill ? "1px solid rgba(16,185,129,0.4)" : "1px solid rgba(61,74,83,0.5)",
                     }}
                   >
                     <div className="flex items-start justify-between">
                       <h4 className="font-bold text-white text-xs leading-tight truncate" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
                         {p.name}
                       </h4>
-                      <span className={`text-[9px] font-bold ${isSelected ? "text-cyan-400" : "text-slate-600"}`}>
-                        {isSelected ? "●" : "○"}
+                      <span className={`text-[9px] font-bold ${isSelected ? "text-cyan-400" : isInBill ? "text-emerald-400" : "text-slate-600"}`}>
+                        {isSelected ? "● Active" : isInBill ? "✓ Added" : "○"}
                       </span>
                     </div>
-                    <p className="text-cyan-400 font-bold text-xs sm:text-sm mt-0.5 font-mono">₹{p.pricePerKg}/Kg</p>
+                    <div className="flex items-center justify-between mt-1">
+                      <p className="text-cyan-400 font-bold text-xs sm:text-sm font-mono">₹{p.pricePerKg}/Kg</p>
+                      {itemInBill && (
+                        <span className="text-[10px] text-emerald-400 font-mono font-bold">
+                          {itemInBill.weightKg} Kg
+                        </span>
+                      )}
+                    </div>
                   </button>
                 );
               })}
@@ -574,25 +683,36 @@ export default function POSBillingPage() {
                 </span>
               </div>
 
-              {/* Quick Weight Adder Chips */}
-              <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                <span className="text-[10px] text-slate-500 mr-0.5">Presets:</span>
-                {[0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 4.5, 5.0].map((w) => (
+              {/* Quick Weight Adder Chips & Add Product Button */}
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-800/80">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-[10px] text-slate-500 font-mono">Presets:</span>
+                  {[0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 4.5, 5.0].map((w) => (
+                    <button
+                      key={w}
+                      type="button"
+                      onClick={() => handleQuickWeight(w, false)}
+                      className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[11px] font-semibold border border-slate-700 cursor-pointer"
+                    >
+                      {w}k
+                    </button>
+                  ))}
                   <button
-                    key={w}
                     type="button"
-                    onClick={() => handleQuickWeight(w, false)}
-                    className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[11px] font-semibold border border-slate-700 cursor-pointer"
+                    onClick={() => handleQuickWeight(0.5, true)}
+                    className="px-2 py-1 rounded-lg bg-cyan-950/60 hover:bg-cyan-900/60 text-cyan-400 font-mono text-[11px] font-bold border border-cyan-500/30 cursor-pointer"
                   >
-                    {w}k
+                    +0.5
                   </button>
-                ))}
+                </div>
+
                 <button
                   type="button"
-                  onClick={() => handleQuickWeight(0.5, true)}
-                  className="px-2 py-1 rounded-lg bg-cyan-950/60 hover:bg-cyan-900/60 text-cyan-400 font-mono text-[11px] font-bold border border-cyan-500/30 cursor-pointer"
+                  onClick={() => handleAddProductItem()}
+                  className="px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-400 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
                 >
-                  +0.5
+                  <span className="material-symbols-outlined text-sm">add_circle</span>
+                  + Add Another Item
                 </button>
               </div>
             </div>
@@ -665,12 +785,81 @@ export default function POSBillingPage() {
               </span>
             </div>
 
-            {/* Compact Line Item Summary */}
-            <div className="px-2.5 py-1 rounded-xl bg-slate-950/60 border border-slate-800/80 flex items-center justify-between text-xs">
-              <span className="text-slate-300 font-medium truncate">
-                {billItems[0]?.name || "Trout"} ({totalWeight.toFixed(2)} Kg × ₹{billItems[0]?.pricePerKg || 550})
-              </span>
-              <span className="font-mono font-bold text-cyan-400">₹{grandTotal.toLocaleString("en-IN")}</span>
+            {/* ─── ITEMIZED PRODUCTS IN BILL (WITH REMOVE ✕ & SELECTION) ─── */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-[10px] uppercase font-bold tracking-wider text-slate-400 px-0.5">
+                <span>Items in Bill ({billItems.length})</span>
+                <span>Subtotal</span>
+              </div>
+
+              {billItems.length === 0 ? (
+                <div className="p-3 rounded-xl bg-slate-950/80 border border-dashed border-slate-800 text-center space-y-2">
+                  <p className="text-xs text-slate-400">No items added to bill yet.</p>
+                  <div className="flex items-center justify-center gap-2">
+                    {products.map((p) => (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => handleAddProductItem(p.id)}
+                        className="px-2.5 py-1 rounded-lg bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 text-xs font-bold hover:bg-cyan-500/25 cursor-pointer"
+                      >
+                        + Add {p.name.split(" ")[0]} (₹{p.pricePerKg}/kg)
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-1.5 max-h-44 overflow-y-auto pr-0.5">
+                  {billItems.map((item) => {
+                    const isFocused = selectedProductId === item.id;
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => {
+                          setSelectedProductId(item.id);
+                          setCurrentWeight(item.weightKg.toString());
+                        }}
+                        className={`p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-2 ${
+                          isFocused
+                            ? "bg-slate-950 border-cyan-500/50 shadow-sm shadow-cyan-950/40"
+                            : "bg-slate-950/60 border-slate-800/80 hover:border-slate-700"
+                        }`}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-bold text-white truncate">{item.name}</span>
+                            {isFocused && (
+                              <span className="px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-400 text-[9px] font-bold">
+                                Selected
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-slate-400 font-mono mt-0.5">
+                            <strong className="text-slate-200">{item.weightKg.toFixed(2)} Kg</strong> × ₹{item.pricePerKg}/Kg
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <span className="font-mono font-bold text-cyan-400 text-xs sm:text-sm">
+                            ₹{item.total.toLocaleString("en-IN")}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveItem(item.id);
+                            }}
+                            title={`Remove ${item.name}`}
+                            className="w-6 h-6 rounded-lg bg-red-500/10 hover:bg-red-500/25 text-red-400 border border-red-500/20 flex items-center justify-center font-black text-xs transition-all cursor-pointer"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Payment Channel Selector */}
