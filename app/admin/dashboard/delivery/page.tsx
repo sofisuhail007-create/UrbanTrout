@@ -326,11 +326,14 @@ export default function DeliveryRadiusPage() {
                     <div className="relative">
                       <input
                         type="number"
-                        min="1"
+                        min="0.1"
                         max="50"
-                        step="0.5"
+                        step="0.1"
                         value={radiusKm}
-                        onChange={(e) => setRadiusKm(Math.max(1, parseFloat(e.target.value) || 1))}
+                        onChange={(e) => {
+                          const val = parseFloat(e.target.value);
+                          if (!isNaN(val)) setRadiusKm(val);
+                        }}
                         className="w-24 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-right font-mono font-bold text-cyan-400 text-sm focus:outline-none focus:border-cyan-400"
                       />
                       <span className="absolute right-8 top-1/2 -translate-y-1/2 pointer-events-none text-xs text-slate-500 font-mono"></span>
@@ -345,14 +348,14 @@ export default function DeliveryRadiusPage() {
                     type="range"
                     min="1"
                     max="30"
-                    step="0.5"
+                    step="0.1"
                     value={radiusKm}
                     onChange={(e) => setRadiusKm(parseFloat(e.target.value))}
                     className="w-full h-2 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400"
                   />
                   <div className="flex justify-between text-[10px] font-mono text-slate-500">
                     <span>1 KM</span>
-                    <span>5 KM (Default)</span>
+                    <span>4.8 KM</span>
                     <span>10 KM</span>
                     <span>15 KM</span>
                     <span>20 KM</span>
@@ -363,7 +366,7 @@ export default function DeliveryRadiusPage() {
                 {/* Preset Pills */}
                 <div className="flex flex-wrap items-center gap-2 pt-1">
                   <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mr-1">Quick Presets:</span>
-                  {[3, 5, 7.5, 10, 12, 15, 20, 25].map((preset) => (
+                  {[3, 4.8, 5, 7.5, 10, 12, 15, 20, 25].map((preset) => (
                     <button
                       key={preset}
                       type="button"

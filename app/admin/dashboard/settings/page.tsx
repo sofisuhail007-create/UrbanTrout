@@ -615,9 +615,9 @@ export default function AdminSettingsPage() {
                   <div className="flex items-center gap-2">
                     <input
                       type="number"
-                      min="1"
+                      min="0.1"
                       max="50"
-                      step="0.5"
+                      step="0.1"
                       value={deliveryRadius}
                       onChange={(e) => setDeliveryRadius(e.target.value)}
                       className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white font-mono font-bold focus:outline-none focus:border-cyan-400"
