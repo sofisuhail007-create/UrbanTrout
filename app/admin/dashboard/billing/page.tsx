@@ -35,12 +35,8 @@ function getInitialProducts() {
 
 export default function POSBillingPage() {
   const [products, setProducts] = useState<typeof DEFAULT_PRODUCTS>(() => getInitialProducts());
-
-  // Individual weight inputs for each product
-  const [productWeights, setProductWeights] = useState<Record<string, string>>({
-    "gutted-trout": "1.0",
-    "whole-trout": "1.0",
-  });
+  const [selectedProductId, setSelectedProductId] = useState<string>("gutted-trout");
+  const [currentWeight, setCurrentWeight] = useState<string>("1.0");
 
   const [billItems, setBillItems] = useState<BillItem[]>(() => {
     const prods = getInitialProducts();
@@ -56,12 +52,6 @@ export default function POSBillingPage() {
       },
     ];
   });
-
-  // Custom Item Modal State
-  const [showCustomModal, setShowCustomModal] = useState(false);
-  const [customName, setCustomName] = useState("");
-  const [customPrice, setCustomPrice] = useState("50");
-  const [customQty, setCustomQty] = useState("1");
 
   // Customer Details
   const [customerName, setCustomerName] = useState("");
@@ -106,11 +96,7 @@ export default function POSBillingPage() {
             unit: "Kg",
           }));
           // Keep consistent ordering: gutted-trout first, then whole-trout, then others
-          mapped.sort((a, b) => {
-            if (a.id === "gutted-trout") return -1;
-            if (b.id === "gutted-trout") return 1;
-            return 0;
-          });
+          mapped.sort((a, b) => (a.id === "gutted-trout" ? -1 : 1));
           setProducts(mapped);
           try {
             localStorage.setItem(POS_CACHE_KEY, JSON.stringify(mapped));
@@ -148,61 +134,58 @@ export default function POSBillingPage() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  // ─── PRODUCT WEIGHT & BILL ITEM MANAGERS ───
-  const getProductWeightVal = (prodId: string) => {
-    const inBill = billItems.find((i) => i.id === prodId || i.id.startsWith(prodId));
-    if (inBill) {
-      return inBill.weightKg.toString();
+  const activeProduct = products.find((p) => p.id === selectedProductId || selectedProductId?.startsWith(p.id)) || products[0];
+
+  // ─── REAL-TIME AUTO-UPDATE LOGIC (On Keystroke) ──────────────
+  const updateActiveWeight = (newWeightStr: string, prodId = selectedProductId) => {
+    setCurrentWeight(newWeightStr);
+    const prod = products.find((p) => p.id === prodId || prodId.startsWith(p.id)) || activeProduct;
+    const w = parseFloat(newWeightStr);
+
+    if (isNaN(w) || w <= 0) {
+      setBillItems((prev) =>
+        prev.map((item) => (item.id === prodId ? { ...item, weightKg: 0, total: 0 } : item))
+      );
+      return;
     }
-    return productWeights[prodId] ?? "1.0";
-  };
 
-  const handleProductWeightChange = (prodId: string, valStr: string) => {
-    setProductWeights((prev) => ({ ...prev, [prodId]: valStr }));
-    const w = parseFloat(valStr);
-
-    setBillItems((prev) =>
-      prev.map((item) => {
-        if (item.id === prodId || item.id.startsWith(prodId)) {
-          if (isNaN(w) || w <= 0) {
-            return { ...item, weightKg: 0, total: 0 };
-          }
-          return {
-            ...item,
-            weightKg: w,
-            total: Math.round(w * item.pricePerKg),
-          };
-        }
-        return item;
-      })
-    );
-  };
-
-  const adjustProductWeight = (prodId: string, delta: number) => {
-    const currentStr = getProductWeightVal(prodId);
-    let cur = parseFloat(currentStr) || 1.0;
-    cur = Math.max(0.1, Math.round((cur + delta) * 100) / 100);
-    handleProductWeightChange(prodId, cur.toString());
-  };
-
-  const setProductWeightDirect = (prodId: string, val: number) => {
-    handleProductWeightChange(prodId, val.toString());
-  };
-
-  const addItemToBill = (prodId: string, customWeight?: number) => {
-    const prod = products.find((p) => p.id === prodId) || DEFAULT_PRODUCTS.find((p) => p.id === prodId) || products[0];
-    const w = customWeight ?? (parseFloat(productWeights[prodId] || "1.0") || 1.0);
     const lineTotal = Math.round(w * prod.pricePerKg);
-
     setBillItems((prev) => {
-      const existing = prev.find((i) => i.id === prod.id || i.id.startsWith(prod.id));
-      if (existing) {
+      if (prev.length === 0) {
+        return [
+          {
+            id: prod.id,
+            name: prod.name,
+            pricePerKg: prod.pricePerKg,
+            weightKg: w,
+            total: lineTotal,
+            unit: "Kg",
+          },
+        ];
+      }
+
+      if (prev.length === 1 && prev[0].id !== prodId) {
+        return [
+          {
+            id: prod.id,
+            name: prod.name,
+            pricePerKg: prod.pricePerKg,
+            weightKg: w,
+            total: lineTotal,
+            unit: "Kg",
+          },
+        ];
+      }
+
+      const exists = prev.some((item) => item.id === prodId);
+      if (exists) {
         return prev.map((item) =>
-          item.id === existing.id
-            ? { ...item, weightKg: w, total: lineTotal }
+          item.id === prodId
+            ? { ...item, name: prod.name, pricePerKg: item.pricePerKg || prod.pricePerKg, weightKg: w, total: Math.round(w * (item.pricePerKg || prod.pricePerKg)) }
             : item
         );
       }
+
       return [
         ...prev,
         {
@@ -215,105 +198,98 @@ export default function POSBillingPage() {
         },
       ];
     });
-
-    setProductWeights((prev) => ({ ...prev, [prodId]: w.toString() }));
   };
 
-  const removeItemFromBill = (idOrProdId: string) => {
-    setBillItems((prev) => prev.filter((i) => i.id !== idOrProdId && !i.id.startsWith(idOrProdId)));
+  const handleSelectProduct = (prodId: string) => {
+    setSelectedProductId(prodId);
+    const prod = products.find((p) => p.id === prodId) || products[0];
+    const w = parseFloat(currentWeight) || 1.0;
+
+    setBillItems((prev) => {
+      if (prev.length === 0) {
+        return [
+          {
+            id: prod.id,
+            name: prod.name,
+            pricePerKg: prod.pricePerKg,
+            weightKg: w,
+            total: Math.round(w * prod.pricePerKg),
+            unit: "Kg",
+          },
+        ];
+      }
+
+      // If only 1 item in the bill, SWITCH that item cleanly to the selected product!
+      if (prev.length === 1) {
+        const currentW = prev[0].weightKg > 0 ? prev[0].weightKg : w;
+        return [
+          {
+            id: prod.id,
+            name: prod.name,
+            pricePerKg: prod.pricePerKg,
+            weightKg: currentW,
+            total: Math.round(currentW * prod.pricePerKg),
+            unit: "Kg",
+          },
+        ];
+      }
+
+      // If multiple items are in the bill, switch focus to this product's weight
+      const existing = prev.find((item) => item.id === prodId || item.id.startsWith(prodId));
+      if (existing) {
+        setCurrentWeight(existing.weightKg.toString());
+        return prev;
+      }
+
+      return prev;
+    });
   };
 
-  const updateBillItemWeight = (itemId: string, newWeight: number) => {
-    const safeWeight = Math.max(0.1, Math.round(newWeight * 100) / 100);
-    setBillItems((prev) =>
-      prev.map((item) =>
-        item.id === itemId
-          ? {
-              ...item,
-              weightKg: safeWeight,
-              total: Math.round(safeWeight * item.pricePerKg),
-            }
-          : item
-      )
-    );
-    const baseProd = products.find((p) => itemId === p.id || itemId.startsWith(p.id));
-    if (baseProd) {
-      setProductWeights((prev) => ({ ...prev, [baseProd.id]: safeWeight.toString() }));
+  const handleAddProductItem = (prodId?: string) => {
+    const targetProd = prodId
+      ? products.find((p) => p.id === prodId) || products[0]
+      : products.find((p) => !billItems.some((i) => i.id === p.id || i.id.startsWith(p.id))) || products[0];
+
+    const uniqueId = billItems.some((i) => i.id === targetProd.id)
+      ? `${targetProd.id}-${Date.now()}`
+      : targetProd.id;
+
+    const defaultWeight = 1.0;
+    const lineTotal = Math.round(defaultWeight * targetProd.pricePerKg);
+
+    const newItem: BillItem = {
+      id: uniqueId,
+      name: targetProd.name,
+      pricePerKg: targetProd.pricePerKg,
+      weightKg: defaultWeight,
+      total: lineTotal,
+      unit: "Kg",
+    };
+
+    setBillItems((prev) => [...prev, newItem]);
+    setSelectedProductId(uniqueId);
+    setCurrentWeight(defaultWeight.toString());
+  };
+
+  const handleQuickWeight = (val: number, isAdd = false) => {
+    let w = parseFloat(currentWeight) || 0;
+    if (isAdd) {
+      w = Math.round((w + val) * 100) / 100;
+    } else {
+      w = val;
     }
+    updateActiveWeight(w.toString());
   };
 
-  const setQuickPreset = (mode: "gutted" | "whole" | "both") => {
-    const gutted = products.find((p) => p.id === "gutted-trout") || DEFAULT_PRODUCTS[0];
-    const whole = products.find((p) => p.id === "whole-trout") || DEFAULT_PRODUCTS[1];
-
-    if (mode === "gutted") {
-      const w = parseFloat(productWeights["gutted-trout"] || "1.0") || 1.0;
-      setBillItems([
-        {
-          id: gutted.id,
-          name: gutted.name,
-          pricePerKg: gutted.pricePerKg,
-          weightKg: w,
-          total: Math.round(w * gutted.pricePerKg),
-          unit: "Kg",
-        },
-      ]);
-    } else if (mode === "whole") {
-      const w = parseFloat(productWeights["whole-trout"] || "1.0") || 1.0;
-      setBillItems([
-        {
-          id: whole.id,
-          name: whole.name,
-          pricePerKg: whole.pricePerKg,
-          weightKg: w,
-          total: Math.round(w * whole.pricePerKg),
-          unit: "Kg",
-        },
-      ]);
-    } else if (mode === "both") {
-      const wGutted = parseFloat(productWeights["gutted-trout"] || "1.0") || 1.0;
-      const wWhole = parseFloat(productWeights["whole-trout"] || "1.0") || 1.0;
-      setBillItems([
-        {
-          id: gutted.id,
-          name: gutted.name,
-          pricePerKg: gutted.pricePerKg,
-          weightKg: wGutted,
-          total: Math.round(wGutted * gutted.pricePerKg),
-          unit: "Kg",
-        },
-        {
-          id: whole.id,
-          name: whole.name,
-          pricePerKg: whole.pricePerKg,
-          weightKg: wWhole,
-          total: Math.round(wWhole * whole.pricePerKg),
-          unit: "Kg",
-        },
-      ]);
+  const handleRemoveItem = (id: string) => {
+    const remaining = billItems.filter((i) => i.id !== id);
+    setBillItems(remaining);
+    if (remaining.length > 0) {
+      setSelectedProductId(remaining[0].id);
+      setCurrentWeight(remaining[0].weightKg.toString());
+    } else {
+      setCurrentWeight("0");
     }
-  };
-
-  const handleAddCustomItem = () => {
-    if (!customName.trim()) return;
-    const p = parseFloat(customPrice) || 0;
-    const q = parseFloat(customQty) || 1;
-    const customId = `custom-${Date.now()}`;
-    setBillItems((prev) => [
-      ...prev,
-      {
-        id: customId,
-        name: customName.trim(),
-        pricePerKg: p,
-        weightKg: q,
-        total: Math.round(p * q),
-        unit: "Qty",
-      },
-    ]);
-    setCustomName("");
-    setCustomPrice("50");
-    setCustomQty("1");
-    setShowCustomModal(false);
   };
 
   // Live Totals
@@ -600,10 +576,7 @@ export default function POSBillingPage() {
     setCustomerName("");
     setCustomerPhone("");
     setCustomerNotes("");
-    setProductWeights({
-      "gutted-trout": "1.0",
-      "whole-trout": "1.0",
-    });
+    setCurrentWeight("1.0");
     setRzpQrId(null);
     setRzpQrImageUrl(null);
     setRzpPaid(false);
@@ -613,6 +586,7 @@ export default function POSBillingPage() {
     setSoundboxPaid(false);
     const prods = getInitialProducts();
     const defaultProd = prods.find((p) => p.id === "gutted-trout") || prods[0] || DEFAULT_PRODUCTS[0];
+    setSelectedProductId(defaultProd.id);
     setBillItems([
       {
         id: defaultProd.id,
@@ -657,192 +631,125 @@ export default function POSBillingPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 items-start">
         {/* LEFT COLUMN: Weight Input & Customer (7 Cols) */}
         <div className="lg:col-span-7 space-y-3">
-          {/* Card 1: Harvest Trout & Multi-Product Controls */}
+          {/* Card 1: Product & Live Real-Time Weight Input */}
           <div className="bg-slate-900/85 border border-slate-800 rounded-2xl p-3 sm:p-4 space-y-3 shadow-xl">
-            <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center justify-between">
               <h2 className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
                 <span className="material-symbols-outlined text-cyan-400 text-base">scale</span>
-                1. Harvest Trout &amp; Products
+                1. Harvest Trout &amp; Weight
               </h2>
-
-              {/* Quick Mode Shortcuts */}
-              <div className="flex items-center gap-1 bg-slate-950/90 p-1 rounded-xl border border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setQuickPreset("gutted")}
-                  className="px-2 py-0.5 rounded-lg text-[10px] font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-all cursor-pointer"
-                  title="Bill Gutted Trout only"
-                >
-                  Gutted Only
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setQuickPreset("whole")}
-                  className="px-2 py-0.5 rounded-lg text-[10px] font-bold text-slate-300 hover:text-white hover:bg-slate-800 transition-all cursor-pointer"
-                  title="Bill Whole Trout only"
-                >
-                  Whole Only
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setQuickPreset("both")}
-                  className="px-2.5 py-0.5 rounded-lg text-[10px] font-bold text-cyan-400 bg-cyan-500/15 border border-cyan-500/30 hover:bg-cyan-500/25 transition-all cursor-pointer flex items-center gap-1"
-                  title="Add both Gutted Trout and Whole Trout to bill"
-                >
-                  <span className="material-symbols-outlined text-xs">add</span>
-                  Both (Whole + Gutted)
-                </button>
-              </div>
+              <span className="text-[11px] text-cyan-400 font-mono font-bold">₹{activeProduct.pricePerKg}/Kg</span>
             </div>
 
-            {/* Dedicated Product Cards Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {/* Product Selector Chips with direct + Icon */}
+            <div className="grid grid-cols-2 gap-2">
               {products.map((p) => {
+                const isInBill = billItems.some((i) => i.id === p.id || i.id.startsWith(p.id));
                 const itemInBill = billItems.find((i) => i.id === p.id || i.id.startsWith(p.id));
-                const isInBill = Boolean(itemInBill);
-                const currentWStr = getProductWeightVal(p.id);
-                const curW = parseFloat(currentWStr) || 1.0;
-                const previewTotal = Math.round(curW * p.pricePerKg);
-
+                const isSelected = selectedProductId === p.id || selectedProductId?.startsWith(p.id);
                 return (
                   <div
                     key={p.id}
-                    className={`p-3 rounded-xl border transition-all space-y-2.5 ${
-                      isInBill
-                        ? "bg-slate-950/90 border-emerald-500/40 shadow-sm shadow-emerald-950/30"
-                        : "bg-slate-950/50 border-slate-800 hover:border-slate-700"
-                    }`}
+                    onClick={() => handleSelectProduct(p.id)}
+                    className="p-2.5 rounded-xl text-left transition-all cursor-pointer active:scale-[0.99] flex items-center justify-between gap-2"
+                    style={{
+                      background: isSelected ? "rgba(114,221,253,0.18)" : "rgba(3,16,24,0.6)",
+                      border: isSelected ? "1.5px solid #72ddfd" : isInBill ? "1px solid rgba(16,185,129,0.4)" : "1px solid rgba(61,74,83,0.5)",
+                    }}
                   >
-                    {/* Card Top: Title, Price, Status */}
-                    <div className="flex items-start justify-between gap-1.5">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-base flex-shrink-0">{p.id.includes("gutted") ? "🔪" : "🐟"}</span>
-                          <h4 className="font-bold text-white text-xs sm:text-sm leading-tight truncate" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
-                            {p.name}
-                          </h4>
-                        </div>
-                        <p className="text-cyan-400 font-bold text-xs sm:text-sm font-mono mt-0.5">
-                          ₹{p.pricePerKg}/Kg
-                        </p>
-                      </div>
-                      {isInBill ? (
-                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 text-[9px] font-bold font-mono whitespace-nowrap flex-shrink-0">
-                          ✓ In Bill ({itemInBill?.weightKg} Kg)
-                        </span>
-                      ) : (
-                        <span className="px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 text-[9px] font-semibold whitespace-nowrap flex-shrink-0">
-                          Not Added
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Numeric Weight Input */}
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono">
-                        <span>Harvest Weight:</span>
-                        <span className="text-cyan-300 font-bold">₹{previewTotal.toLocaleString("en-IN")}</span>
-                      </div>
-                      <div className="relative">
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0.1"
-                          value={currentWStr}
-                          onChange={(e) => handleProductWeightChange(p.id, e.target.value)}
-                          placeholder="1.0"
-                          className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-lg sm:text-xl font-mono text-cyan-300 font-bold focus:outline-none focus:border-cyan-400 shadow-inner"
-                        />
-                        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-xs font-mono">
-                          KG
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between">
+                        <h4 className="font-bold text-white text-xs leading-tight truncate" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                          {p.name}
+                        </h4>
+                        <span className={`text-[9px] font-bold ${isSelected ? "text-cyan-400" : isInBill ? "text-emerald-400" : "text-slate-600"}`}>
+                          {isSelected ? "● Active" : isInBill ? "✓ Added" : "○"}
                         </span>
                       </div>
-                    </div>
-
-                    {/* Steppers & Quick Presets */}
-                    <div className="flex items-center justify-between gap-1 pt-0.5">
-                      <div className="flex items-center gap-1">
-                        <button
-                          type="button"
-                          onClick={() => adjustProductWeight(p.id, -0.5)}
-                          className="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[10px] font-bold border border-slate-700 cursor-pointer"
-                          title="Decrease 0.5 Kg"
-                        >
-                          -0.5
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => adjustProductWeight(p.id, 0.5)}
-                          className="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[10px] font-bold border border-slate-700 cursor-pointer"
-                          title="Increase 0.5 Kg"
-                        >
-                          +0.5
-                        </button>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        {[1.0, 1.5, 2.0, 2.5, 3.0].map((w) => (
-                          <button
-                            key={w}
-                            type="button"
-                            onClick={() => setProductWeightDirect(p.id, w)}
-                            className={`px-1.5 py-0.5 rounded-lg font-mono text-[10px] font-semibold border cursor-pointer ${
-                              curW === w
-                                ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/40 font-bold"
-                                : "bg-slate-800/80 hover:bg-slate-700 text-slate-400 border-slate-700"
-                            }`}
-                          >
-                            {w}k
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Add / Remove Action */}
-                    <div className="pt-1">
-                      {isInBill ? (
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-[11px] font-mono font-bold text-emerald-400">
-                            Line Total: ₹{itemInBill?.total.toLocaleString("en-IN")}
+                      <div className="flex items-center justify-between mt-1">
+                        <p className="text-cyan-400 font-bold text-xs sm:text-sm font-mono">₹{p.pricePerKg}/Kg</p>
+                        {itemInBill && (
+                          <span className="text-[10px] text-emerald-400 font-mono font-bold">
+                            {itemInBill.weightKg} Kg
                           </span>
-                          <button
-                            type="button"
-                            onClick={() => removeItemFromBill(p.id)}
-                            className="px-3 py-1 rounded-xl bg-red-500/15 hover:bg-red-500/25 border border-red-500/30 text-red-400 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
-                          >
-                            <span className="material-symbols-outlined text-sm">delete</span>
-                            Remove
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => addItemToBill(p.id)}
-                          className="w-full py-1.5 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] text-slate-950 font-bold text-xs uppercase tracking-wider transition-all shadow-md shadow-emerald-500/20 flex items-center justify-center gap-1.5 cursor-pointer"
-                          style={{ fontFamily: '"Space Grotesk", sans-serif' }}
-                        >
-                          <span className="material-symbols-outlined text-sm">add_shopping_cart</span>
-                          + Add {p.name.split(" ")[0]} to Bill (₹{previewTotal.toLocaleString("en-IN")})
-                        </button>
-                      )}
+                        )}
+                      </div>
                     </div>
+
+                    {/* Dedicated + Icon to add this product as an additional item */}
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAddProductItem(p.id);
+                      }}
+                      title={`Add ${p.name.split(" ")[0]} to Bill`}
+                      className="w-7 h-7 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/35 border border-emerald-500/40 text-emerald-300 flex items-center justify-center font-black text-sm transition-all cursor-pointer flex-shrink-0"
+                    >
+                      +
+                    </button>
                   </div>
                 );
               })}
             </div>
 
-            {/* Custom Line Item Bar */}
-            <div className="flex items-center justify-between pt-1 border-t border-slate-800/80 text-xs">
-              <span className="text-slate-500 text-[11px]">
-                Need custom cutting, packaging, or an extra line item?
-              </span>
-              <button
-                type="button"
-                onClick={() => setShowCustomModal(true)}
-                className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-400 border border-slate-700 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
-              >
-                <span className="material-symbols-outlined text-sm">add_circle</span>
-                + Add Custom Item
-              </button>
+            {/* Instant Live Weight Input */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between text-[11px]">
+                <label className="uppercase tracking-wider font-bold text-slate-400">
+                  Harvested Weight ({activeProduct.name.split(" ")[0]})
+                </label>
+                <span className="text-emerald-400 font-semibold animate-pulse">● Live updating</span>
+              </div>
+
+              <div className="relative">
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0.1"
+                  value={currentWeight}
+                  onChange={(e) => updateActiveWeight(e.target.value)}
+                  placeholder="e.g. 1.0"
+                  className="w-full bg-slate-950/90 border border-slate-700 rounded-xl px-4 py-2 sm:py-2.5 text-xl sm:text-2xl font-mono text-cyan-300 font-bold focus:outline-none focus:border-cyan-400 shadow-inner"
+                />
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-xs sm:text-sm">
+                  KG
+                </span>
+              </div>
+
+              {/* Quick Weight Adder Chips & Add Product Button */}
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-800/80">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-[10px] text-slate-500 font-mono">Presets:</span>
+                  {[0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 4.5, 5.0].map((w) => (
+                    <button
+                      key={w}
+                      type="button"
+                      onClick={() => handleQuickWeight(w, false)}
+                      className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[11px] font-semibold border border-slate-700 cursor-pointer"
+                    >
+                      {w}k
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => handleQuickWeight(0.5, true)}
+                    className="px-2 py-1 rounded-lg bg-cyan-950/60 hover:bg-cyan-900/60 text-cyan-400 font-mono text-[11px] font-bold border border-cyan-500/30 cursor-pointer"
+                  >
+                    +0.5
+                  </button>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleAddProductItem()}
+                  className="px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-400 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+                  title="Add another item or trout variety to bill"
+                >
+                  <span className="material-symbols-outlined text-sm">add_circle</span>
+                  + Add Item
+                </button>
+              </div>
             </div>
           </div>
 
@@ -913,7 +820,7 @@ export default function POSBillingPage() {
               </span>
             </div>
 
-            {/* ─── ITEMIZED PRODUCTS IN BILL (WITH INLINE STEPPERS & REMOVE ✕) ─── */}
+            {/* ─── ITEMIZED PRODUCTS IN BILL (WITH REMOVE ✕ & SELECTION) ─── */}
             <div className="space-y-1.5">
               <div className="flex items-center justify-between text-[10px] uppercase font-bold tracking-wider text-slate-400 px-0.5">
                 <span>Items in Bill ({billItems.length})</span>
@@ -922,13 +829,13 @@ export default function POSBillingPage() {
 
               {billItems.length === 0 ? (
                 <div className="p-3 rounded-xl bg-slate-950/80 border border-dashed border-slate-800 text-center space-y-2">
-                  <p className="text-xs text-slate-400">No items added to bill yet. Click below to add:</p>
-                  <div className="flex flex-wrap items-center justify-center gap-2">
+                  <p className="text-xs text-slate-400">No items added to bill yet.</p>
+                  <div className="flex items-center justify-center gap-2">
                     {products.map((p) => (
                       <button
                         key={p.id}
                         type="button"
-                        onClick={() => addItemToBill(p.id)}
+                        onClick={() => handleAddProductItem(p.id)}
                         className="px-2.5 py-1 rounded-lg bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 text-xs font-bold hover:bg-cyan-500/25 cursor-pointer"
                       >
                         + Add {p.name.split(" ")[0]} (₹{p.pricePerKg}/kg)
@@ -937,63 +844,55 @@ export default function POSBillingPage() {
                   </div>
                 </div>
               ) : (
-                <div className="space-y-1.5 max-h-56 overflow-y-auto pr-0.5">
-                  {billItems.map((item) => (
-                    <div
-                      key={item.id}
-                      className="p-2 rounded-xl bg-slate-950 border border-slate-800/80 hover:border-slate-700 transition-all flex items-center justify-between gap-2"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-xs font-bold text-white truncate">{item.name}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-[11px] text-slate-400 font-mono mt-1">
-                          <div className="flex items-center gap-1 bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">
-                            <button
-                              type="button"
-                              onClick={() => updateBillItemWeight(item.id, item.weightKg - 0.5)}
-                              className="text-slate-400 hover:text-white px-1 font-bold text-xs cursor-pointer"
-                              title="Decrease 0.5"
-                            >
-                              -
-                            </button>
-                            <input
-                              type="number"
-                              step="0.01"
-                              min="0.1"
-                              value={item.weightKg}
-                              onChange={(e) => updateBillItemWeight(item.id, parseFloat(e.target.value) || 0)}
-                              className="w-12 bg-transparent text-center font-bold text-cyan-300 focus:outline-none"
-                            />
-                            <span className="text-[10px] text-slate-500">{item.unit || "Kg"}</span>
-                            <button
-                              type="button"
-                              onClick={() => updateBillItemWeight(item.id, item.weightKg + 0.5)}
-                              className="text-slate-400 hover:text-white px-1 font-bold text-xs cursor-pointer"
-                              title="Increase 0.5"
-                            >
-                              +
-                            </button>
+                <div className="space-y-1.5 max-h-44 overflow-y-auto pr-0.5">
+                  {billItems.map((item) => {
+                    const isFocused = selectedProductId === item.id;
+                    return (
+                      <div
+                        key={item.id}
+                        onClick={() => {
+                          setSelectedProductId(item.id);
+                          setCurrentWeight(item.weightKg.toString());
+                        }}
+                        className={`p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-2 ${
+                          isFocused
+                            ? "bg-slate-950 border-cyan-500/50 shadow-sm shadow-cyan-950/40"
+                            : "bg-slate-950/60 border-slate-800/80 hover:border-slate-700"
+                        }`}
+                      >
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-bold text-white truncate">{item.name}</span>
+                            {isFocused && (
+                              <span className="px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-400 text-[9px] font-bold">
+                                Selected
+                              </span>
+                            )}
                           </div>
-                          <span>@ ₹{item.pricePerKg}/{item.unit || "Kg"}</span>
+                          <div className="text-[11px] text-slate-400 font-mono mt-0.5">
+                            <strong className="text-slate-200">{item.weightKg.toFixed(2)} Kg</strong> × ₹{item.pricePerKg}/Kg
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <span className="font-mono font-bold text-cyan-400 text-xs sm:text-sm">
+                            ₹{item.total.toLocaleString("en-IN")}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveItem(item.id);
+                            }}
+                            title={`Remove ${item.name}`}
+                            className="w-6 h-6 rounded-lg bg-red-500/10 hover:bg-red-500/25 text-red-400 border border-red-500/20 flex items-center justify-center font-black text-xs transition-all cursor-pointer"
+                          >
+                            ✕
+                          </button>
                         </div>
                       </div>
-
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        <span className="font-mono font-bold text-cyan-400 text-xs sm:text-sm">
-                          ₹{item.total.toLocaleString("en-IN")}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => removeItemFromBill(item.id)}
-                          title={`Remove ${item.name}`}
-                          className="w-6 h-6 rounded-lg bg-red-500/10 hover:bg-red-500/25 text-red-400 border border-red-500/20 flex items-center justify-center font-black text-xs transition-all cursor-pointer"
-                        >
-                          ✕
-                        </button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -1548,91 +1447,6 @@ export default function POSBillingPage() {
             >
               Back to POS Bill
             </button>
-          </div>
-        </div>
-      )}
-      {/* ─── CUSTOM ITEM MODAL ─── */}
-      {showCustomModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 backdrop-blur-sm">
-          <div className="w-full max-w-sm bg-slate-900 border border-slate-700 rounded-2xl p-4 space-y-3 shadow-2xl animate-fadeIn">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-              <h3 className="text-sm font-bold text-white flex items-center gap-1.5" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
-                <span className="material-symbols-outlined text-cyan-400 text-base">add_box</span>
-                Add Custom / Extra Item
-              </h3>
-              <button
-                type="button"
-                onClick={() => setShowCustomModal(false)}
-                className="text-slate-400 hover:text-white text-base cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="space-y-2.5 text-xs">
-              <div>
-                <label className="block text-[10px] uppercase font-bold text-slate-400 mb-0.5">Item Name / Description</label>
-                <input
-                  type="text"
-                  value={customName}
-                  onChange={(e) => setCustomName(e.target.value)}
-                  placeholder="e.g. Ice Box Packaging / Steaks Cut"
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 text-white focus:outline-none focus:border-cyan-400"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-slate-400 mb-0.5">Rate / Price (₹)</label>
-                  <input
-                    type="number"
-                    min="0"
-                    value={customPrice}
-                    onChange={(e) => setCustomPrice(e.target.value)}
-                    placeholder="50"
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 font-mono text-cyan-300 focus:outline-none focus:border-cyan-400"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-slate-400 mb-0.5">Quantity / Units</label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={customQty}
-                    onChange={(e) => setCustomQty(e.target.value)}
-                    placeholder="1"
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-1.5 font-mono text-cyan-300 focus:outline-none focus:border-cyan-400"
-                  />
-                </div>
-              </div>
-
-              <div className="pt-2 flex items-center justify-between text-xs font-mono font-bold text-slate-300">
-                <span>Subtotal:</span>
-                <span className="text-cyan-400 text-sm">
-                  ₹{((parseFloat(customPrice) || 0) * (parseFloat(customQty) || 1)).toLocaleString("en-IN")}
-                </span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => setShowCustomModal(false)}
-                className="flex-1 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs cursor-pointer"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={handleAddCustomItem}
-                disabled={!customName.trim()}
-                className="flex-1 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-slate-950 font-bold text-xs uppercase tracking-wider cursor-pointer"
-                style={{ fontFamily: '"Space Grotesk", sans-serif' }}
-              >
-                Add to Bill
-              </button>
-            </div>
           </div>
         </div>
       )}
