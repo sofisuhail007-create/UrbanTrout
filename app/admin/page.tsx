@@ -1,10 +1,36 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 
 export default function AdminLoginPage() {
+  const router = useRouter();
   const [error, setError] = useState("");
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [checkingSession, setCheckingSession] = useState(true);
+
+  // ─── Auto-Redirect if Already Authenticated (Persistent Session) ──
+  useEffect(() => {
+    // 1. Check persistent localStorage first
+    const storedAuth = typeof window !== "undefined" ? (localStorage.getItem("ut_admin_auth") || sessionStorage.getItem("ut_admin_auth")) : null;
+    if (storedAuth === "1") {
+      router.replace("/admin/dashboard");
+      return;
+    }
+
+    // 2. Check active Supabase Auth session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user?.email) {
+        localStorage.setItem("ut_admin_auth", "1");
+        localStorage.setItem("ut_admin_email", session.user.email.toLowerCase());
+        router.replace("/admin/dashboard");
+        return;
+      }
+      setCheckingSession(false);
+    }).catch(() => {
+      setCheckingSession(false);
+    });
+  }, [router]);
 
   // ─── Google OAuth Sign-In (Exclusive Auth Method) ─────────────
   const handleGoogleLogin = async () => {
@@ -12,25 +38,48 @@ export default function AdminLoginPage() {
     setError("");
     try {
       const origin = typeof window !== "undefined" ? window.location.origin : "https://urbantrout.in";
-      const { error: oauthError } = await supabase.auth.signInWithOAuth({
+      
+      // Safety timeout: If browser blocks or delays redirect, reset button after 8s
+      const timer = setTimeout(() => {
+        setGoogleLoading(false);
+        setError("Sign-in request timed out. Please ensure pop-ups/redirects are allowed in Chrome and try again.");
+      }, 8000);
+
+      const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
           redirectTo: `${origin}/admin/callback`,
           queryParams: {
             access_type: "offline",
-            prompt: "select_account",
           },
         },
       });
+
       if (oauthError) {
+        clearTimeout(timer);
         setError(oauthError.message);
         setGoogleLoading(false);
+      } else if (data?.url) {
+        clearTimeout(timer);
+        // Explicitly trigger window navigation so browser doesn't get stuck
+        window.location.assign(data.url);
       }
     } catch (err: any) {
       setError(err.message || "Failed to initialize Google Sign-In.");
       setGoogleLoading(false);
     }
   };
+
+  if (checkingSession) {
+    return (
+      <div className="min-h-screen bg-[#020d12] flex items-center justify-center px-4">
+        <div className="text-center space-y-4">
+          <div className="w-10 h-10 rounded-full border-2 border-cyan-500 border-t-transparent animate-spin mx-auto" />
+          <p className="text-xs text-slate-400 font-mono">Restoring admin session…</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#020d12] flex items-center justify-center px-4">
@@ -105,10 +154,14 @@ export default function AdminLoginPage() {
             </div>
           )}
 
-          {/* Security Notice */}
-          <div className="pt-2 border-t border-slate-800/80">
-            <p className="text-[11px] text-slate-500 flex items-center justify-center gap-1.5">
-              <span className="material-symbols-outlined text-[14px] text-cyan-500">lock</span>
+          {/* Security & Persistence Notice */}
+          <div className="pt-2 border-t border-slate-800/80 space-y-1">
+            <p className="text-[11px] text-emerald-400/90 flex items-center justify-center gap-1.5 font-medium">
+              <span className="material-symbols-outlined text-[14px]">verified_user</span>
+              Persistent device session (stays signed in across browser restarts)
+            </p>
+            <p className="text-[10px] text-slate-500 flex items-center justify-center gap-1">
+              <span className="material-symbols-outlined text-[12px] text-cyan-500">lock</span>
               Protected by Google OAuth 2.0 &amp; Supabase RBAC
             </p>
           </div>

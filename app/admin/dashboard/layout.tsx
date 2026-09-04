@@ -53,10 +53,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   useEffect(() => {
     setMounted(true);
-    const authStatus = sessionStorage.getItem("ut_admin_auth");
-    const storedEmail = sessionStorage.getItem("ut_admin_email") || "sofisuhail007@gmail.com";
-    const storedRole = sessionStorage.getItem("ut_admin_role") || "sales_staff";
-    const storedPerms = sessionStorage.getItem("ut_admin_permissions");
+    // 1. Read persistent session from localStorage (with sessionStorage fallback)
+    const authStatus = localStorage.getItem("ut_admin_auth") || sessionStorage.getItem("ut_admin_auth");
+    const storedEmail = localStorage.getItem("ut_admin_email") || sessionStorage.getItem("ut_admin_email") || "sofisuhail007@gmail.com";
+    const storedRole = localStorage.getItem("ut_admin_role") || sessionStorage.getItem("ut_admin_role") || "sales_staff";
+    const storedPerms = localStorage.getItem("ut_admin_permissions") || sessionStorage.getItem("ut_admin_permissions");
 
     setAdminEmail(storedEmail);
     setAdminRole(storedRole);
@@ -67,19 +68,45 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       } catch {}
     }
 
+    // 2. Proactive Supabase auth listener to keep session permanently active & refreshed
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user?.email) {
+        const userEmail = session.user.email.toLowerCase();
+        localStorage.setItem("ut_admin_auth", "1");
+        localStorage.setItem("ut_admin_email", userEmail);
+        setAdminEmail(userEmail);
+      } else if (event === "SIGNED_OUT") {
+        localStorage.removeItem("ut_admin_auth");
+        localStorage.removeItem("ut_admin_email");
+        localStorage.removeItem("ut_admin_role");
+        localStorage.removeItem("ut_admin_permissions");
+        sessionStorage.removeItem("ut_admin_auth");
+        sessionStorage.removeItem("ut_admin_email");
+        sessionStorage.removeItem("ut_admin_role");
+        sessionStorage.removeItem("ut_admin_permissions");
+        router.replace("/admin");
+      }
+    });
+
+    // 3. If neither localStorage nor Supabase has session, redirect to login
     if (!authStatus) {
-      // Check if Supabase has active session
       supabase.auth.getSession().then(({ data: { session } }) => {
         if (session?.user?.email) {
           const userEmail = session.user.email.toLowerCase();
-          sessionStorage.setItem("ut_admin_auth", "1");
-          sessionStorage.setItem("ut_admin_email", userEmail);
+          localStorage.setItem("ut_admin_auth", "1");
+          localStorage.setItem("ut_admin_email", userEmail);
           setAdminEmail(userEmail);
           return;
         }
         router.replace("/admin");
+      }).catch(() => {
+        router.replace("/admin");
       });
     }
+
+    return () => {
+      subscription?.unsubscribe();
+    };
   }, [router]);
 
   // Close mobile drawer upon route change
@@ -91,6 +118,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     try {
       await supabase.auth.signOut();
     } catch {}
+    localStorage.removeItem("ut_admin_auth");
+    localStorage.removeItem("ut_admin_email");
+    localStorage.removeItem("ut_admin_role");
+    localStorage.removeItem("ut_admin_permissions");
     sessionStorage.removeItem("ut_admin_auth");
     sessionStorage.removeItem("ut_admin_email");
     sessionStorage.removeItem("ut_admin_role");

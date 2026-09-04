@@ -45,7 +45,7 @@ export default function AdminAuthCallback() {
 
     async function validateAndRedirect(email: string) {
       const cleanEmail = email.trim().toLowerCase();
-      const isRootOwner = cleanEmail === "sofisuhail007@gmail.com";
+      const isRootOwner = cleanEmail === "sofisuhail007@gmail.com" || cleanEmail === "info.urbantrout@gmail.com";
 
       let staffPermissions = isRootOwner
         ? {
@@ -117,10 +117,11 @@ export default function AdminAuthCallback() {
       }
 
       if (isAuthorized) {
-        sessionStorage.setItem("ut_admin_auth", "1");
-        sessionStorage.setItem("ut_admin_email", cleanEmail);
-        sessionStorage.setItem("ut_admin_role", staffRole);
-        sessionStorage.setItem(
+        // Persistent device storage so staff is NEVER logged out on tab/browser close
+        localStorage.setItem("ut_admin_auth", "1");
+        localStorage.setItem("ut_admin_email", cleanEmail);
+        localStorage.setItem("ut_admin_role", staffRole);
+        localStorage.setItem(
           "ut_admin_permissions",
           JSON.stringify(
             staffPermissions || {
@@ -136,9 +137,20 @@ export default function AdminAuthCallback() {
             }
           )
         );
+
+        // Also keep sessionStorage in sync
+        sessionStorage.setItem("ut_admin_auth", "1");
+        sessionStorage.setItem("ut_admin_email", cleanEmail);
+        sessionStorage.setItem("ut_admin_role", staffRole);
+        sessionStorage.setItem("ut_admin_permissions", JSON.stringify(staffPermissions || {}));
+
         router.replace("/admin/dashboard");
       } else {
         await supabase.auth.signOut();
+        localStorage.removeItem("ut_admin_auth");
+        localStorage.removeItem("ut_admin_email");
+        localStorage.removeItem("ut_admin_role");
+        localStorage.removeItem("ut_admin_permissions");
         sessionStorage.removeItem("ut_admin_auth");
         sessionStorage.removeItem("ut_admin_email");
         sessionStorage.removeItem("ut_admin_role");
