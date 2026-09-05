@@ -239,21 +239,33 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* ─── SIDEBAR (Desktop Fixed + Mobile Slide-over Drawer) ─── */}
       <aside
-        className={`fixed md:relative top-0 bottom-0 left-0 z-50 md:z-auto flex flex-col border-r border-slate-800/80 bg-[#030d14] transition-all duration-300 ${
+        className={`fixed md:relative top-0 bottom-0 left-0 z-50 md:z-20 flex flex-col border-r border-slate-800/80 bg-[#030d14] flex-shrink-0 transition-all duration-200 ${
           mobileMenuOpen ? "translate-x-0 w-72 shadow-2xl" : "-translate-x-full md:translate-x-0"
         } ${collapsed ? "md:w-16" : "md:w-64"}`}
       >
-        {/* Logo (Desktop Header) */}
-        <div className="flex items-center justify-between px-3.5 py-3.5 border-b border-slate-800/80 overflow-hidden flex-shrink-0">
-          {!collapsed ? (
-            <div className="flex items-center gap-2.5">
+        {/* Floating Expand Arrow on the right border when collapsed (Desktop) */}
+        {collapsed && (
+          <button
+            type="button"
+            onClick={() => setCollapsed(false)}
+            className="hidden md:flex absolute -right-3.5 top-6 z-50 w-7 h-7 rounded-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 items-center justify-center shadow-lg shadow-cyan-500/40 hover:scale-110 transition-all cursor-pointer border-2 border-[#020d12]"
+            title="Expand sidebar (Show menu options)"
+          >
+            <span className="material-symbols-outlined text-sm font-black">chevron_right</span>
+          </button>
+        )}
+
+        {/* Logo / Header Area */}
+        {!collapsed ? (
+          <div className="flex items-center justify-between px-3.5 py-3.5 border-b border-slate-800/80 flex-shrink-0">
+            <div className="flex items-center gap-2.5 min-w-0">
               <img
                 src="/sitelogo.png"
                 alt="Urban Trout"
                 className="w-8 h-8 rounded-xl object-contain border border-cyan-500/30 bg-slate-900 shadow-sm shadow-cyan-500/20 flex-shrink-0"
               />
               <div className="flex flex-col min-w-0">
-                <span className="text-sm font-black tracking-tight text-white leading-tight font-['Space_Grotesk']">
+                <span className="text-sm font-black tracking-tight text-white leading-tight font-['Space_Grotesk'] truncate">
                   URBAN <span className="text-cyan-400">TROUT</span>
                 </span>
                 <span className="text-[9px] font-bold text-slate-400 tracking-wider uppercase font-mono mt-0.5">
@@ -261,37 +273,53 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </span>
               </div>
             </div>
-          ) : (
-            <div className="w-full flex justify-center">
+
+            {/* Desktop Collapse Toggle */}
+            <button
+              type="button"
+              onClick={() => setCollapsed(true)}
+              className="hidden md:flex ml-2 w-7 h-7 rounded-lg bg-slate-900/80 hover:bg-slate-800 border border-slate-700/80 items-center justify-center text-slate-400 hover:text-white transition-all cursor-pointer flex-shrink-0"
+              title="Collapse sidebar"
+            >
+              <span className="material-symbols-outlined text-sm">chevron_left</span>
+            </button>
+
+            {/* Mobile Close Button */}
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(false)}
+              className="md:hidden ml-auto text-slate-400 hover:text-white p-1"
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-3.5 border-b border-slate-800/80 gap-2 flex-shrink-0">
+            {/* Clickable Logo that also expands */}
+            <button
+              type="button"
+              onClick={() => setCollapsed(false)}
+              className="group flex items-center justify-center cursor-pointer"
+              title="Click to expand sidebar"
+            >
               <img
                 src="/sitelogo.png"
                 alt="Urban Trout"
-                className="w-8 h-8 rounded-xl object-contain border border-cyan-500/30 bg-slate-900 shadow-sm shadow-cyan-500/20"
+                className="w-8 h-8 rounded-xl object-contain border border-cyan-500/30 bg-slate-900 shadow-sm shadow-cyan-500/20 group-hover:border-cyan-400 transition-all"
               />
-            </div>
-          )}
+            </button>
 
-          {/* Desktop Collapse Toggle */}
-          <button
-            type="button"
-            onClick={() => setCollapsed((c) => !c)}
-            className="hidden md:flex ml-auto w-7 h-7 rounded-lg bg-slate-900/80 hover:bg-slate-800 border border-slate-800 items-center justify-center text-slate-400 hover:text-white transition-all cursor-pointer flex-shrink-0"
-            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            <span className="material-symbols-outlined text-sm">
-              {collapsed ? "chevron_right" : "chevron_left"}
-            </span>
-          </button>
-
-          {/* Mobile Close Button */}
-          <button
-            type="button"
-            onClick={() => setMobileMenuOpen(false)}
-            className="md:hidden ml-auto text-slate-400 hover:text-white p-1"
-          >
-            <span className="material-symbols-outlined">close</span>
-          </button>
-        </div>
+            {/* Centered Expand Button inside collapsed header */}
+            <button
+              type="button"
+              onClick={() => setCollapsed(false)}
+              className="w-7 h-7 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/30 border border-cyan-500/30 text-cyan-300 hover:text-white flex items-center justify-center transition-all cursor-pointer shadow-sm shadow-cyan-500/10"
+              title="Expand sidebar (Show menu options)"
+            >
+              <span className="material-symbols-outlined text-sm font-bold">chevron_right</span>
+            </button>
+          </div>
+        )}
 
         {/* Nav items */}
         <nav className="flex-1 py-3 px-2.5 overflow-y-auto space-y-4">
@@ -453,7 +481,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </aside>
 
       {/* ─── MAIN CONTENT AREA (Full Mobile Responsive) ─── */}
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 min-w-0 overflow-y-auto relative">
         {isRouteBlocked ? (
           <div className="flex items-center justify-center min-h-[80vh] p-4 text-center">
             <div className="max-w-md bg-slate-900/80 border border-red-500/30 rounded-3xl p-8 space-y-4 shadow-2xl">
