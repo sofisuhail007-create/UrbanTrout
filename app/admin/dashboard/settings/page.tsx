@@ -42,7 +42,7 @@ const DEFAULT_STAFF: StaffMember[] = [
 ];
 
 export default function AdminSettingsPage() {
-  const [upiId, setUpiId] = useState("urbantrout@ybl");
+  const [upiId, setUpiId] = useState("JKBMERC00828895@jkb");
   const [primaryPhone, setPrimaryPhone] = useState("+918491006127");
   const [alternatePhone, setAlternatePhone] = useState("+917006604148");
   const [email, setEmail] = useState("info.urbantrout@gmail.com");
@@ -574,11 +574,11 @@ export default function AdminSettingsPage() {
                   value={upiId}
                   onChange={(e) => setUpiId(e.target.value)}
                   required
-                  placeholder="e.g. urbantrout@ybl"
+                  placeholder="e.g. JKBMERC00828895@jkb"
                   className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white font-mono focus:outline-none focus:border-cyan-400"
                 />
                 <p className="text-xs text-slate-500">
-                  Used to generate dynamic QR codes in both customer checkout and staff POS billing. Default: <code className="text-cyan-300">urbantrout@ybl</code>
+                  Used to generate dynamic QR codes in both customer checkout and staff POS billing. Default: <code className="text-cyan-300">JKBMERC00828895@jkb</code>
                 </p>
               </div>
             </div>

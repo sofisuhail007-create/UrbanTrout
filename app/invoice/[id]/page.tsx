@@ -26,7 +26,7 @@ export default function PublicInvoicePage() {
   const rawParam = (params?.id as string) || "";
   const [invoice, setInvoice] = useState<DecodedInvoice | null>(null);
   const [loading, setLoading] = useState(true);
-  const [upiId, setUpiId] = useState("JKBMERC00792230@jkb");
+  const [upiId, setUpiId] = useState("JKBMERC00828895@jkb");
   const [copiedUpi, setCopiedUpi] = useState(false);
 
   useEffect(() => {
@@ -270,7 +270,10 @@ export default function PublicInvoicePage() {
   }
 
   const grandTotal = invoice.grandTotal;
-  const upiPayUri = `upi://pay?pa=${upiId}&pn=Urban%20Trout%20Farm&am=${grandTotal}&cu=INR&tn=Invoice-${invoice.invoiceNumber}`;
+  const terminalId = upiId.includes("@")
+    ? `TERM${upiId.split("@")[0].replace(/^JKBMERC/, "")}`
+    : "TERM00828895";
+  const upiPayUri = `upi://pay?pa=${upiId}&pn=Urban%20Trout%20Aquaculture&tr=${terminalId}&am=${grandTotal}&cu=INR&tn=Invoice-${invoice.invoiceNumber}`;
   const upiQrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(
     upiPayUri
   )}&bgcolor=255-255-255&color=2-13-18&margin=2`;
