@@ -8,6 +8,32 @@ import { CustomColumnDef, VendingSalesEntry } from "@/app/api/vending-log/route"
 const DEFAULT_GUTTED_PRICE = 650;
 const DEFAULT_NON_GUTTED_PRICE = 600;
 
+const VENDING_SQL_QUERY = `-- URBAN TROUT VENDING CENTER SALES DATA LOGGER TABLE
+CREATE TABLE IF NOT EXISTS public.vending_sales_log (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    entry_date DATE NOT NULL DEFAULT CURRENT_DATE,
+    entry_time TEXT NOT NULL DEFAULT TO_CHAR(NOW() AT TIME ZONE 'Asia/Kolkata', 'HH12:MI AM'),
+    weight_kg NUMERIC(10, 3) NOT NULL,
+    product_type TEXT NOT NULL DEFAULT 'Gutted',
+    rate_per_kg NUMERIC(10, 2) NOT NULL DEFAULT 650.00,
+    amount_paid NUMERIC(10, 2) NOT NULL,
+    payment_mode TEXT NOT NULL DEFAULT 'J&K Bank Soundbox UPI',
+    custom_fields JSONB DEFAULT '{}'::jsonb,
+    logged_by TEXT DEFAULT 'Counter Staff',
+    notes TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_vending_sales_date ON public.vending_sales_log(entry_date DESC);
+CREATE INDEX IF NOT EXISTS idx_vending_sales_created ON public.vending_sales_log(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_vending_sales_type ON public.vending_sales_log(product_type);
+CREATE INDEX IF NOT EXISTS idx_vending_sales_payment ON public.vending_sales_log(payment_mode);
+
+ALTER TABLE public.vending_sales_log ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow public read access to vending_sales_log" ON public.vending_sales_log FOR SELECT USING (true);
+CREATE POLICY "Allow full access to vending_sales_log" ON public.vending_sales_log FOR ALL USING (true) WITH CHECK (true);`;
+
 export default function VendingCenterLoggerPage() {
   // ─── State ───
   const [entries, setEntries] = useState<VendingSalesEntry[]>([]);
@@ -15,6 +41,8 @@ export default function VendingCenterLoggerPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [isTableAvailable, setIsTableAvailable] = useState(true);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+  const [copiedSql, setCopiedSql] = useState(false);
 
   // Period filter: today | week | month | all | custom
   const [period, setPeriod] = useState<"today" | "week" | "month" | "all" | "custom">("today");
@@ -477,6 +505,12 @@ export default function VendingCenterLoggerPage() {
     URL.revokeObjectURL(url);
   };
 
+  const handleCopySql = () => {
+    navigator.clipboard.writeText(VENDING_SQL_QUERY);
+    setCopiedSql(true);
+    setTimeout(() => setCopiedSql(false), 3000);
+  };
+
   // Open Edit modal
   const openEditModal = (entry: VendingSalesEntry) => {
     setEditingEntry(entry);
@@ -563,13 +597,31 @@ export default function VendingCenterLoggerPage() {
       </div>
 
       {/* Notice if table is ready or in fallback mode */}
-      {!isTableAvailable && (
-        <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-center justify-between gap-3 text-xs text-amber-300">
+      {!isTableAvailable && !bannerDismissed && (
+        <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-amber-300">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-base">info</span>
+            <span className="material-symbols-outlined text-base text-amber-400">info</span>
             <span>
-              <strong>Active in Safe-Cache Mode:</strong> To unlock dedicated SQL tables and high-volume indexing, execute <code className="text-amber-200 bg-amber-950/60 px-1 py-0.5 rounded">supabase_vending_logger.sql</code> in your Supabase SQL editor.
+              <strong>Active in Safe-Cache Mode:</strong> Your sales are being saved safely! To unlock dedicated PostgreSQL tables in Supabase, run <code className="text-amber-200 bg-amber-950/60 px-1 py-0.5 rounded">supabase_vending_logger.sql</code> in your Supabase SQL Editor.
             </span>
+          </div>
+          <div className="flex items-center gap-2 flex-shrink-0 self-end sm:self-auto">
+            <button
+              type="button"
+              onClick={handleCopySql}
+              className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/40 text-[11px] font-bold font-mono transition-all flex items-center gap-1 cursor-pointer"
+            >
+              <span className="material-symbols-outlined text-xs">content_copy</span>
+              {copiedSql ? "✓ Copied!" : "Copy SQL"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setBannerDismissed(true)}
+              className="p-1 rounded-lg hover:bg-amber-500/20 text-amber-400/80 hover:text-amber-200 transition-all cursor-pointer"
+              title="Dismiss Notice"
+            >
+              <span className="material-symbols-outlined text-sm">close</span>
+            </button>
           </div>
         </div>
       )}
