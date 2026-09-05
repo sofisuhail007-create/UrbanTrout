@@ -263,10 +263,10 @@ export async function GET(request: Request) {
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
 
-    let entries: VendingSalesEntry[] = [];
     let isTableAvailable = true;
+    let tableEntries: VendingSalesEntry[] = [];
 
-    // Try primary Supabase table
+    // Query primary Supabase table
     try {
       let query = supabase
         .from("vending_sales_log")
@@ -279,15 +279,83 @@ export async function GET(request: Request) {
 
       const { data, error } = await query;
       if (error) throw error;
-      entries = (data as VendingSalesEntry[]) || [];
+      tableEntries = (data as VendingSalesEntry[]) || [];
     } catch (err: any) {
-      // Table doesn't exist yet or permission fallback
       isTableAvailable = false;
-      const allFallback = await getFallbackEntries();
-      entries = allFallback;
-      if (startDate) entries = entries.filter((e) => e.entry_date >= startDate);
-      if (endDate) entries = entries.filter((e) => e.entry_date <= endDate);
     }
+
+    // Always fetch fallback entries from app_settings
+    const fallbackEntries = await getFallbackEntries();
+
+    // DUAL-LAYER MERGE: Combine both sources by ID so zero entries are ever lost or hidden!
+    const map = new Map<string, VendingSalesEntry>();
+
+    // 1. Seed with fallback entries
+    for (const e of fallbackEntries) {
+      if (!e?.id) continue;
+      const exp =
+        e.expected_amount !== undefined && e.expected_amount !== null
+          ? Number(e.expected_amount)
+          : e.custom_fields?.expected_amount !== undefined
+          ? Number(e.custom_fields.expected_amount)
+          : Math.round(Number(e.weight_kg) * Number(e.rate_per_kg));
+
+      const disc =
+        e.discount_amount !== undefined && e.discount_amount !== null
+          ? Number(e.discount_amount)
+          : e.custom_fields?.discount_amount !== undefined
+          ? Number(e.custom_fields.discount_amount)
+          : Math.max(0, exp - Number(e.amount_paid));
+
+      map.set(e.id, {
+        ...e,
+        expected_amount: exp,
+        discount_amount: disc,
+      });
+    }
+
+    // 2. Merge table entries (table data takes priority, resolving expected & discount amounts)
+    for (const e of tableEntries) {
+      if (!e?.id) continue;
+      const existing = map.get(e.id);
+
+      const exp =
+        e.expected_amount !== undefined && e.expected_amount !== null
+          ? Number(e.expected_amount)
+          : e.custom_fields?.expected_amount !== undefined
+          ? Number(e.custom_fields.expected_amount)
+          : existing?.expected_amount !== undefined
+          ? existing.expected_amount
+          : Math.round(Number(e.weight_kg) * Number(e.rate_per_kg));
+
+      const disc =
+        e.discount_amount !== undefined && e.discount_amount !== null
+          ? Number(e.discount_amount)
+          : e.custom_fields?.discount_amount !== undefined
+          ? Number(e.custom_fields.discount_amount)
+          : existing?.discount_amount !== undefined
+          ? existing.discount_amount
+          : Math.max(0, exp - Number(e.amount_paid));
+
+      map.set(e.id, {
+        ...existing,
+        ...e,
+        expected_amount: exp,
+        discount_amount: disc,
+      });
+    }
+
+    let entries = Array.from(map.values());
+
+    if (startDate) entries = entries.filter((e) => e.entry_date >= startDate);
+    if (endDate) entries = entries.filter((e) => e.entry_date <= endDate);
+
+    // Sort descending by date, then created_at / entry_time
+    entries.sort((a, b) => {
+      const d = (b.entry_date || "").localeCompare(a.entry_date || "");
+      if (d !== 0) return d;
+      return (b.created_at || "").localeCompare(a.created_at || "");
+    });
 
     const customColumns = await getCustomColumns();
     const kpis = computeKpis(entries);
@@ -359,7 +427,11 @@ export async function POST(request: Request) {
       amount_paid: parsedPaid,
       discount_amount: discount,
       payment_mode: payment_mode || "Cash",
-      custom_fields: custom_fields || {},
+      custom_fields: {
+        ...(custom_fields || {}),
+        expected_amount: expected,
+        discount_amount: discount,
+      },
       logged_by: logged_by || "Counter Staff",
       notes: notes || "",
       created_at: now.toISOString(),
@@ -376,15 +448,30 @@ export async function POST(request: Request) {
         .single();
       if (!error && data) {
         savedInTable = true;
+      } else if (error) {
+        // If columns expected_amount or discount_amount are not in the table schema cache,
+        // retry by removing them from top-level insert (they are already stored in custom_fields JSONB)
+        const sanitized = { ...entry };
+        delete (sanitized as any).expected_amount;
+        delete (sanitized as any).discount_amount;
+        const retryRes = await supabase.from("vending_sales_log").insert([sanitized]).select().single();
+        if (!retryRes.error && retryRes.data) {
+          savedInTable = true;
+        }
       }
     } catch (_) {}
 
-    // Always ensure fallback storage has copy if table isn't ready
-    if (!savedInTable) {
+    // ALWAYS write to fallback storage as well (dual-layer redundancy)
+    try {
       const fallbackList = await getFallbackEntries();
-      fallbackList.unshift(entry);
+      const existingIdx = fallbackList.findIndex((f) => f.id === entry.id);
+      if (existingIdx >= 0) {
+        fallbackList[existingIdx] = entry;
+      } else {
+        fallbackList.unshift(entry);
+      }
       await saveFallbackEntries(fallbackList);
-    }
+    } catch (_) {}
 
     return NextResponse.json({ success: true, entry });
   } catch (err: any) {
@@ -417,22 +504,36 @@ export async function PUT(request: Request) {
     updates.updated_at = new Date().toISOString();
 
     // Try Supabase table update
-    let updatedInTable = false;
     try {
       const { error } = await supabase
         .from("vending_sales_log")
         .update(updates)
         .eq("id", id);
-      if (!error) updatedInTable = true;
+      if (error) {
+        // If column error, sanitize by moving to custom_fields and retry
+        const sanitizedUpdates = { ...updates };
+        if (sanitizedUpdates.expected_amount !== undefined || sanitizedUpdates.discount_amount !== undefined) {
+          sanitizedUpdates.custom_fields = {
+            ...(sanitizedUpdates.custom_fields || {}),
+            ...(sanitizedUpdates.expected_amount !== undefined ? { expected_amount: sanitizedUpdates.expected_amount } : {}),
+            ...(sanitizedUpdates.discount_amount !== undefined ? { discount_amount: sanitizedUpdates.discount_amount } : {}),
+          };
+          delete sanitizedUpdates.expected_amount;
+          delete sanitizedUpdates.discount_amount;
+        }
+        await supabase.from("vending_sales_log").update(sanitizedUpdates).eq("id", id);
+      }
     } catch (_) {}
 
     // Fallback sync
-    const fallbackList = await getFallbackEntries();
-    const idx = fallbackList.findIndex((e) => e.id === id);
-    if (idx !== -1) {
-      fallbackList[idx] = { ...fallbackList[idx], ...updates };
-      await saveFallbackEntries(fallbackList);
-    }
+    try {
+      const fallbackList = await getFallbackEntries();
+      const idx = fallbackList.findIndex((e) => e.id === id);
+      if (idx !== -1) {
+        fallbackList[idx] = { ...fallbackList[idx], ...updates };
+        await saveFallbackEntries(fallbackList);
+      }
+    } catch (_) {}
 
     return NextResponse.json({ success: true, id });
   } catch (err: any) {
@@ -458,11 +559,13 @@ export async function DELETE(request: Request) {
       await supabase.from("vending_sales_log").delete().eq("id", id);
     } catch (_) {}
 
-    const fallbackList = await getFallbackEntries();
-    const filtered = fallbackList.filter((e) => e.id !== id);
-    if (filtered.length !== fallbackList.length) {
-      await saveFallbackEntries(filtered);
-    }
+    try {
+      const fallbackList = await getFallbackEntries();
+      const filtered = fallbackList.filter((e) => e.id !== id);
+      if (filtered.length !== fallbackList.length) {
+        await saveFallbackEntries(filtered);
+      }
+    } catch (_) {}
 
     return NextResponse.json({ success: true, id });
   } catch (err: any) {

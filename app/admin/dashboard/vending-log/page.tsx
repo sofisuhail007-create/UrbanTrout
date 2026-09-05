@@ -35,6 +35,10 @@ CREATE TABLE IF NOT EXISTS public.vending_sales_log (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Ensure columns exist if table was created with older schema
+ALTER TABLE public.vending_sales_log ADD COLUMN IF NOT EXISTS expected_amount NUMERIC(10, 2);
+ALTER TABLE public.vending_sales_log ADD COLUMN IF NOT EXISTS discount_amount NUMERIC(10, 2) DEFAULT 0.00;
+
 CREATE INDEX IF NOT EXISTS idx_vending_sales_date ON public.vending_sales_log(entry_date DESC);
 CREATE INDEX IF NOT EXISTS idx_vending_sales_created ON public.vending_sales_log(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_vending_sales_type ON public.vending_sales_log(product_type);
