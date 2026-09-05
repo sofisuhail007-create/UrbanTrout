@@ -9,11 +9,11 @@ CREATE TABLE IF NOT EXISTS public.vending_sales_log (
     entry_time TEXT NOT NULL DEFAULT TO_CHAR(NOW() AT TIME ZONE 'Asia/Kolkata', 'HH12:MI AM'),
     weight_kg NUMERIC(10, 3) NOT NULL,
     product_type TEXT NOT NULL DEFAULT 'Gutted', -- 'Gutted', 'Non Gutted', etc.
-    rate_per_kg NUMERIC(10, 2) NOT NULL DEFAULT 650.00,
+    rate_per_kg NUMERIC(10, 2) NOT NULL DEFAULT 580.00,
     expected_amount NUMERIC(10, 2),
     amount_paid NUMERIC(10, 2) NOT NULL,
     discount_amount NUMERIC(10, 2) DEFAULT 0.00,
-    payment_mode TEXT NOT NULL DEFAULT 'J&K Bank Soundbox UPI', -- 'J&K Bank Soundbox UPI', 'Cash', 'Razorpay QR', 'Card / POS'
+    payment_mode TEXT NOT NULL DEFAULT 'Cash', -- 'Cash', 'Online Payment'
     custom_fields JSONB DEFAULT '{}'::jsonb, -- Flexible key-value store for user-added columns
     logged_by TEXT DEFAULT 'Counter Staff',
     notes TEXT,

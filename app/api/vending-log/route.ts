@@ -24,7 +24,7 @@ export interface VendingSalesEntry {
   expected_amount?: number;
   amount_paid: number;
   discount_amount?: number;
-  payment_mode: string; // "J&K Bank Soundbox UPI" | "Cash" | "Razorpay QR" | "Card / POS"
+  payment_mode: string; // "Cash" | "Online Payment" | string
   custom_fields?: Record<string, any>;
   logged_by?: string;
   notes?: string;
@@ -358,7 +358,7 @@ export async function POST(request: Request) {
       expected_amount: expected,
       amount_paid: parsedPaid,
       discount_amount: discount,
-      payment_mode: payment_mode || "J&K Bank Soundbox UPI",
+      payment_mode: payment_mode || "Cash",
       custom_fields: custom_fields || {},
       logged_by: logged_by || "Counter Staff",
       notes: notes || "",

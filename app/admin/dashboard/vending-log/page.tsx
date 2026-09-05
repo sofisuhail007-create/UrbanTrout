@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS public.vending_sales_log (
     expected_amount NUMERIC(10, 2),
     amount_paid NUMERIC(10, 2) NOT NULL,
     discount_amount NUMERIC(10, 2) DEFAULT 0.00,
-    payment_mode TEXT NOT NULL DEFAULT 'J&K Bank Soundbox UPI',
+    payment_mode TEXT NOT NULL DEFAULT 'Cash',
     custom_fields JSONB DEFAULT '{}'::jsonb,
     logged_by TEXT DEFAULT 'Counter Staff',
     notes TEXT,
@@ -87,7 +87,7 @@ export default function VendingCenterLoggerPage() {
   const [formRate, setFormRate] = useState<number>(DEFAULT_GUTTED_PRICE);
   const [formAmount, setFormAmount] = useState<string>("");
   const [formAmountOverridden, setFormAmountOverridden] = useState(false);
-  const [formPayment, setFormPayment] = useState<string>("J&K Bank Soundbox UPI");
+  const [formPayment, setFormPayment] = useState<string>("Cash");
   const [formCustomFields, setFormCustomFields] = useState<Record<string, any>>({});
   const [formNotes, setFormNotes] = useState("");
   const [formLoggedBy, setFormLoggedBy] = useState("Counter Staff");
@@ -369,7 +369,11 @@ export default function VendingCenterLoggerPage() {
       }
 
       // Payment filter
-      if (filterPayment !== "all" && e.payment_mode !== filterPayment) return false;
+      if (filterPayment !== "all") {
+        const isCash = (e.payment_mode || "").toLowerCase().trim() === "cash";
+        if (filterPayment === "Cash" && !isCash) return false;
+        if (filterPayment === "Online Payment" && isCash) return false;
+      }
 
       // Search query
       if (searchQuery.trim()) {
@@ -399,7 +403,7 @@ export default function VendingCenterLoggerPage() {
     setFormRate(guttedPrice);
     setFormAmount("");
     setFormAmountOverridden(false);
-    setFormPayment("J&K Bank Soundbox UPI");
+    setFormPayment("Cash");
     setFormCustomFields({});
     setFormNotes("");
     setEditingEntry(null);
@@ -653,7 +657,8 @@ export default function VendingCenterLoggerPage() {
     setFormRate(entry.rate_per_kg);
     setFormAmount(entry.amount_paid.toString());
     setFormAmountOverridden(true);
-    setFormPayment(entry.payment_mode);
+    const isCash = (entry.payment_mode || "").toLowerCase().trim() === "cash";
+    setFormPayment(isCash ? "Cash" : "Online Payment");
     setFormCustomFields(entry.custom_fields || {});
     setFormNotes(entry.notes || "");
     setFormLoggedBy(entry.logged_by || "Counter Staff");
@@ -1024,11 +1029,9 @@ export default function VendingCenterLoggerPage() {
             onChange={(e) => setFilterPayment(e.target.value)}
             className="bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-2 text-xs text-white focus:outline-none focus:border-emerald-400 cursor-pointer"
           >
-            <option value="all">All Modes</option>
-            <option value="J&K Bank Soundbox UPI">J&K Soundbox</option>
-            <option value="Cash">Cash</option>
-            <option value="Razorpay QR">Razorpay QR</option>
-            <option value="Card / POS">Card / POS</option>
+            <option value="all">All Payments</option>
+            <option value="Cash">💵 Cash</option>
+            <option value="Online Payment">⚡ Online Payment</option>
           </select>
         </div>
 
@@ -1176,24 +1179,15 @@ export default function VendingCenterLoggerPage() {
                         )}
                       </td>
                       <td className="py-3 px-3 whitespace-nowrap">
-                        <div className="flex items-center gap-1.5">
-                          <span
-                            className={`px-1.5 py-0.5 rounded text-[9px] font-mono uppercase font-bold ${
-                              isCash
-                                ? "bg-teal-500/20 text-teal-300 border border-teal-500/30"
-                                : "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"
-                            }`}
-                          >
-                            {isCash ? "Cash" : "Online"}
+                        {isCash ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-teal-500/15 border border-teal-500/30 text-teal-300 font-mono text-[11px] font-bold">
+                            💵 Cash
                           </span>
-                          <span className="inline-flex items-center gap-1 text-[11px] text-slate-300 truncate max-w-[140px]">
-                            {e.payment_mode.includes("Soundbox") && "🔊"}
-                            {e.payment_mode.includes("Cash") && "💵"}
-                            {e.payment_mode.includes("Razorpay") && "⚡"}
-                            {e.payment_mode.includes("Card") && "💳"}
-                            <span>{e.payment_mode}</span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 font-mono text-[11px] font-bold">
+                            ⚡ Online Payment
                           </span>
-                        </div>
+                        )}
                       </td>
 
                       {/* Custom Dynamic Columns Values */}
@@ -1605,27 +1599,25 @@ export default function VendingCenterLoggerPage() {
                 <label className="block text-[10px] uppercase font-bold text-slate-400 font-mono mb-1.5">
                   Mode of Payment <span className="text-emerald-400">*</span>
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                <div className="grid grid-cols-2 gap-2.5">
                   {[
-                    { id: "J&K Bank Soundbox UPI", label: "🔊 J&K Soundbox", sub: "Instant Voice" },
-                    { id: "Cash", label: "💵 Cash", sub: "Counter" },
-                    { id: "Razorpay QR", label: "⚡ Razorpay", sub: "Online QR" },
-                    { id: "Card / POS", label: "💳 Card / POS", sub: "Terminal" },
+                    { id: "Cash", label: "💵 Cash", sub: "Counter Cash Drawer" },
+                    { id: "Online Payment", label: "⚡ Online Payment", sub: "Soundbox UPI / QR / Card" },
                   ].map((m) => {
-                    const isSel = formPayment === m.id;
+                    const isSel = formPayment === m.id || (m.id === "Online Payment" && formPayment !== "Cash");
                     return (
                       <button
                         key={m.id}
                         type="button"
                         onClick={() => setFormPayment(m.id)}
-                        className={`py-2 px-1.5 rounded-xl font-bold text-[10px] transition-all cursor-pointer text-center ${
+                        className={`py-3 px-3 rounded-2xl font-bold text-xs transition-all cursor-pointer text-center ${
                           isSel
-                            ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500 shadow-sm"
-                            : "bg-slate-950 text-slate-400 border border-slate-700/80 hover:text-white"
+                            ? "bg-emerald-500/20 text-emerald-300 border-2 border-emerald-500 shadow-md shadow-emerald-950/40"
+                            : "bg-slate-950/80 text-slate-400 border border-slate-700 hover:text-white"
                         }`}
                       >
-                        <span className="block leading-tight truncate">{m.label}</span>
-                        <span className="text-[8.5px] opacity-75 font-mono block">{m.sub}</span>
+                        <span className="block text-sm leading-tight font-black">{m.label}</span>
+                        <span className="text-[10px] opacity-80 font-mono block mt-0.5">{m.sub}</span>
                       </button>
                     );
                   })}
