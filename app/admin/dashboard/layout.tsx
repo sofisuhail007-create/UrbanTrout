@@ -19,6 +19,7 @@ interface StaffPermissions {
 
 const ALL_NAV_ITEMS = [
   { href: "/admin/dashboard/billing", icon: "point_of_sale", label: "POS Billing / Invoices", permKey: "billing", badge: "Live" },
+  { href: "/admin/dashboard/vending-log", icon: "table_chart", label: "Vending Center Log", permKey: "billing", badge: "New" },
   { href: "/admin/dashboard", icon: "dashboard", label: "Dashboard", permKey: null },
   { href: "/admin/dashboard/orders", icon: "receipt_long", label: "Orders", permKey: "orders" },
   { href: "/admin/dashboard/visits", icon: "calendar_month", label: "Farm Visits", permKey: "farm" },

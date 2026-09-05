@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { adminFetch } from "@/lib/adminClient";
 import type { InventoryItem } from "@/lib/supabase";
@@ -553,6 +554,27 @@ export default function POSBillingPage() {
       }),
     }).catch(() => {});
 
+    // Also auto-record into Vending Center Sales Data Logger
+    try {
+      billItems.forEach((b) => {
+        adminFetch("/api/vending-log", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            entry_date: new Date().toISOString().split("T")[0],
+            entry_time: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true }),
+            weight_kg: b.weightKg,
+            product_type: b.name.toLowerCase().includes("gutted") && !b.name.toLowerCase().includes("non") ? "Gutted" : "Non Gutted",
+            rate_per_kg: b.pricePerKg,
+            amount_paid: b.total,
+            payment_mode: paymentMethodLabel,
+            notes: `POS Bill #${invoiceNumber} - ${customerName.trim() || "Walk-in"}`,
+            logged_by: "POS Billing",
+          }),
+        }).catch(() => {});
+      });
+    } catch (_) {}
+
     setGeneratedInvoice(invoiceData);
     setInvoiceModalOpen(true);
   };
@@ -623,14 +645,24 @@ export default function POSBillingPage() {
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={handleReset}
-          className="px-3 py-1 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition-all text-xs font-bold uppercase tracking-wider flex items-center gap-1 cursor-pointer"
-        >
-          <span className="material-symbols-outlined text-sm">refresh</span>
-          Reset Bill
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/admin/dashboard/vending-log"
+            className="px-3 py-1 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 transition-all text-xs font-bold uppercase tracking-wider flex items-center gap-1.5"
+            title="Open Daily Sales Data Logger"
+          >
+            <span className="material-symbols-outlined text-sm">table_chart</span>
+            Vending Log
+          </Link>
+          <button
+            type="button"
+            onClick={handleReset}
+            className="px-3 py-1 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition-all text-xs font-bold uppercase tracking-wider flex items-center gap-1 cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-sm">refresh</span>
+            Reset Bill
+          </button>
+        </div>
       </div>
 
       {/* ─── MAIN 2-COLUMN GRID (COMPACT ABOVE-THE-FOLD) ─── */}
