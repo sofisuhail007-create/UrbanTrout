@@ -5,8 +5,16 @@ import Link from "next/link";
 import { adminFetch } from "@/lib/adminClient";
 import { CustomColumnDef, VendingSalesEntry } from "@/app/api/vending-log/route";
 
-const DEFAULT_GUTTED_PRICE = 650;
-const DEFAULT_NON_GUTTED_PRICE = 600;
+const DEFAULT_GUTTED_PRICE = 580;
+const DEFAULT_NON_GUTTED_PRICE = 540;
+
+// Exact weight formatter helper - preserves 3 decimal precision (e.g. 2.155 stays 2.155)
+export const formatKg = (val: number | string | undefined | null): string => {
+  if (val === undefined || val === null || val === "") return "0.000";
+  const num = Number(val);
+  if (isNaN(num)) return String(val);
+  return num.toFixed(3);
+};
 
 const VENDING_SQL_QUERY = `-- URBAN TROUT VENDING CENTER SALES DATA LOGGER TABLE
 CREATE TABLE IF NOT EXISTS public.vending_sales_log (
@@ -15,8 +23,10 @@ CREATE TABLE IF NOT EXISTS public.vending_sales_log (
     entry_time TEXT NOT NULL DEFAULT TO_CHAR(NOW() AT TIME ZONE 'Asia/Kolkata', 'HH12:MI AM'),
     weight_kg NUMERIC(10, 3) NOT NULL,
     product_type TEXT NOT NULL DEFAULT 'Gutted',
-    rate_per_kg NUMERIC(10, 2) NOT NULL DEFAULT 650.00,
+    rate_per_kg NUMERIC(10, 2) NOT NULL DEFAULT 580.00,
+    expected_amount NUMERIC(10, 2),
     amount_paid NUMERIC(10, 2) NOT NULL,
+    discount_amount NUMERIC(10, 2) DEFAULT 0.00,
     payment_mode TEXT NOT NULL DEFAULT 'J&K Bank Soundbox UPI',
     custom_fields JSONB DEFAULT '{}'::jsonb,
     logged_by TEXT DEFAULT 'Counter Staff',
@@ -82,6 +92,11 @@ export default function VendingCenterLoggerPage() {
   const [formNotes, setFormNotes] = useState("");
   const [formLoggedBy, setFormLoggedBy] = useState("Counter Staff");
 
+  // Dynamic Pricing from Supabase Inventory table
+  const [guttedPrice, setGuttedPrice] = useState<number>(DEFAULT_GUTTED_PRICE);
+  const [nonGuttedPrice, setNonGuttedPrice] = useState<number>(DEFAULT_NON_GUTTED_PRICE);
+  const [pricingLoaded, setPricingLoaded] = useState(false);
+
   // New Column Form State
   const [newColName, setNewColName] = useState("");
   const [newColType, setNewColType] = useState<"text" | "number" | "select">("text");
@@ -106,6 +121,50 @@ export default function VendingCenterLoggerPage() {
     } catch (_) {}
   };
 
+  // Fetch live trout prices from inventory
+  useEffect(() => {
+    async function loadInventoryPricing() {
+      try {
+        const res = await adminFetch("/api/inventory");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && Array.isArray(data.inventory)) {
+            const guttedItem = data.inventory.find(
+              (i: any) =>
+                i.product_id === "gutted-trout" ||
+                (i.name && i.name.toLowerCase().includes("gutted") && !i.name.toLowerCase().includes("non"))
+            );
+            const wholeItem = data.inventory.find(
+              (i: any) =>
+                i.product_id === "whole-trout" ||
+                (i.name &&
+                  (i.name.toLowerCase().includes("whole") ||
+                    i.name.toLowerCase().includes("non-gutted") ||
+                    i.name.toLowerCase().includes("non gutted")))
+            );
+
+            const gPrice = guttedItem?.price_per_kg ? Number(guttedItem.price_per_kg) : DEFAULT_GUTTED_PRICE;
+            const ngPrice = wholeItem?.price_per_kg ? Number(wholeItem.price_per_kg) : DEFAULT_NON_GUTTED_PRICE;
+
+            setGuttedPrice(gPrice);
+            setNonGuttedPrice(ngPrice);
+            setPricingLoaded(true);
+
+            setFormRate((currentRate) => {
+              if (currentRate === DEFAULT_GUTTED_PRICE || currentRate === 650 || currentRate === 580) {
+                return gPrice;
+              }
+              return currentRate;
+            });
+          }
+        }
+      } catch (err) {
+        console.warn("Could not fetch inventory pricing:", err);
+      }
+    }
+    loadInventoryPricing();
+  }, []);
+
   // ─── Auto calculate Amount when Weight or Rate changes ───
   useEffect(() => {
     const w = parseFloat(formWeight);
@@ -119,7 +178,7 @@ export default function VendingCenterLoggerPage() {
   // Handle Type Change
   const handleTypeSelect = (type: "Gutted" | "Non Gutted") => {
     setFormType(type);
-    const rate = type === "Gutted" ? DEFAULT_GUTTED_PRICE : DEFAULT_NON_GUTTED_PRICE;
+    const rate = type === "Gutted" ? guttedPrice : nonGuttedPrice;
     setFormRate(rate);
     const w = parseFloat(formWeight);
     if (!isNaN(w) && w > 0 && !formAmountOverridden) {
@@ -216,39 +275,86 @@ export default function VendingCenterLoggerPage() {
   const kpis = useMemo(() => {
     let totalKg = 0;
     let totalRevenue = 0;
+    let totalExpected = 0;
+    let totalLoss = 0;
     let guttedKg = 0;
     let nonGuttedKg = 0;
+    let onlineRevenue = 0;
+    let onlineCount = 0;
+    let onlineKg = 0;
+    let cashRevenue = 0;
+    let cashCount = 0;
+    let cashKg = 0;
     const byMode: Record<string, { count: number; revenue: number; kg: number }> = {};
 
     filteredEntriesByPeriod.forEach((e) => {
       const w = Number(e.weight_kg) || 0;
       const rev = Number(e.amount_paid) || 0;
-      totalKg += w;
-      totalRevenue += rev;
+      const rate = Number(e.rate_per_kg) || 0;
+      const exp =
+        e.expected_amount !== undefined && e.expected_amount !== null
+          ? Number(e.expected_amount)
+          : Math.round(w * rate);
+      const loss =
+        e.discount_amount !== undefined && e.discount_amount !== null
+          ? Number(e.discount_amount)
+          : Math.max(0, exp - rev);
 
-      const isGutted = (e.product_type || "").toLowerCase().includes("gutted") && !(e.product_type || "").toLowerCase().includes("non");
-      if (isGutted) guttedKg += w;
-      else nonGuttedKg += w;
+      totalKg = Math.round((totalKg + w) * 1000) / 1000;
+      totalRevenue += rev;
+      totalExpected += exp;
+      totalLoss += loss;
+
+      const isGutted =
+        (e.product_type || "").toLowerCase().includes("gutted") &&
+        !(e.product_type || "").toLowerCase().includes("non");
+      if (isGutted) {
+        guttedKg = Math.round((guttedKg + w) * 1000) / 1000;
+      } else {
+        nonGuttedKg = Math.round((nonGuttedKg + w) * 1000) / 1000;
+      }
+
+      const isCash = (e.payment_mode || "").toLowerCase().trim() === "cash";
+      if (isCash) {
+        cashRevenue += rev;
+        cashCount += 1;
+        cashKg = Math.round((cashKg + w) * 1000) / 1000;
+      } else {
+        onlineRevenue += rev;
+        onlineCount += 1;
+        onlineKg = Math.round((onlineKg + w) * 1000) / 1000;
+      }
 
       const mode = e.payment_mode || "Other";
       if (!byMode[mode]) byMode[mode] = { count: 0, revenue: 0, kg: 0 };
       byMode[mode].count += 1;
       byMode[mode].revenue += rev;
-      byMode[mode].kg += w;
+      byMode[mode].kg = Math.round((byMode[mode].kg + w) * 1000) / 1000;
     });
 
     const count = filteredEntriesByPeriod.length;
-    const avgKgPerBill = count > 0 ? (totalKg / count).toFixed(2) : "0.00";
+    const avgKgPerBill = count > 0 ? (totalKg / count).toFixed(3) : "0.000";
     const avgBillValue = count > 0 ? Math.round(totalRevenue / count) : 0;
+    const lossPercent =
+      totalExpected > 0 ? ((totalLoss / totalExpected) * 100).toFixed(1) : "0.0";
 
     return {
       totalKg,
       totalRevenue,
+      totalExpected,
+      totalLoss,
+      lossPercent,
       guttedKg,
       nonGuttedKg,
       count,
       avgKgPerBill,
       avgBillValue,
+      onlineRevenue,
+      onlineCount,
+      onlineKg,
+      cashRevenue,
+      cashCount,
+      cashKg,
       byMode,
     };
   }, [filteredEntriesByPeriod]);
@@ -290,7 +396,7 @@ export default function VendingCenterLoggerPage() {
     setFormTime(getCurrentTime());
     setFormType("Gutted");
     setFormWeight("");
-    setFormRate(DEFAULT_GUTTED_PRICE);
+    setFormRate(guttedPrice);
     setFormAmount("");
     setFormAmountOverridden(false);
     setFormPayment("J&K Bank Soundbox UPI");
@@ -314,6 +420,10 @@ export default function VendingCenterLoggerPage() {
       return;
     }
 
+    const calculatedExpected = Math.round(w * formRate);
+    const expected = calculatedExpected;
+    const discount = Math.max(0, expected - amt);
+
     setSaving(true);
     try {
       if (editingEntry) {
@@ -324,7 +434,9 @@ export default function VendingCenterLoggerPage() {
           product_type: formType,
           weight_kg: w,
           rate_per_kg: formRate,
+          expected_amount: expected,
           amount_paid: amt,
+          discount_amount: discount,
           payment_mode: formPayment,
           custom_fields: formCustomFields,
           notes: formNotes,
@@ -339,7 +451,9 @@ export default function VendingCenterLoggerPage() {
 
         if (res.ok) {
           setEntries((prev) =>
-            prev.map((item) => (item.id === editingEntry.id ? { ...item, ...updates } : item))
+            prev.map((item) =>
+              item.id === editingEntry.id ? { ...item, ...updates } : item
+            )
           );
           setNewEntryModalOpen(false);
           resetForm();
@@ -353,7 +467,9 @@ export default function VendingCenterLoggerPage() {
           product_type: formType,
           weight_kg: w,
           rate_per_kg: formRate,
+          expected_amount: expected,
           amount_paid: amt,
+          discount_amount: discount,
           payment_mode: formPayment,
           custom_fields: formCustomFields,
           notes: formNotes,
@@ -475,25 +591,41 @@ export default function VendingCenterLoggerPage() {
       "Product Type",
       "Weight (Kg)",
       "Rate (Rs/Kg)",
-      "Amount Paid (Rs)",
+      "Expected Amount (Rs)",
+      "Amount Taken (Rs)",
+      "Negotiation Loss (Rs)",
       "Payment Mode",
       ...activeCustomCols.map((c) => c.name),
       "Notes",
       "Logged By",
     ];
 
-    const rows = displayEntries.map((e) => [
-      `"${e.entry_date}"`,
-      `"${e.entry_time}"`,
-      `"${e.product_type}"`,
-      e.weight_kg,
-      e.rate_per_kg,
-      e.amount_paid,
-      `"${e.payment_mode}"`,
-      ...activeCustomCols.map((c) => `"${e.custom_fields?.[c.id] ?? ""}"`),
-      `"${(e.notes || "").replace(/"/g, '""')}"`,
-      `"${e.logged_by || ""}"`,
-    ]);
+    const rows = displayEntries.map((e) => {
+      const exp =
+        e.expected_amount !== undefined && e.expected_amount !== null
+          ? Number(e.expected_amount)
+          : Math.round(Number(e.weight_kg) * Number(e.rate_per_kg));
+      const taken = Number(e.amount_paid) || 0;
+      const loss =
+        e.discount_amount !== undefined && e.discount_amount !== null
+          ? Number(e.discount_amount)
+          : Math.max(0, exp - taken);
+
+      return [
+        `"${e.entry_date}"`,
+        `"${e.entry_time}"`,
+        `"${e.product_type}"`,
+        formatKg(e.weight_kg),
+        e.rate_per_kg,
+        exp,
+        taken,
+        loss,
+        `"${e.payment_mode}"`,
+        ...activeCustomCols.map((c) => `"${e.custom_fields?.[c.id] ?? ""}"`),
+        `"${(e.notes || "").replace(/"/g, '""')}"`,
+        `"${e.logged_by || ""}"`,
+      ];
+    });
 
     const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
@@ -677,90 +809,176 @@ export default function VendingCenterLoggerPage() {
           )}
         </div>
 
-        {/* 4-Stat Metric Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {/* 5-Stat Metric Cards Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           {/* Card 1: Total Weight Sold */}
-          <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-950/40 via-slate-900/80 to-slate-900 border border-emerald-500/30 shadow-xl shadow-emerald-950/20 relative overflow-hidden">
-            <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
-              <span>TOTAL KG SOLD</span>
-              <span className="material-symbols-outlined text-emerald-400 text-lg">scale</span>
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-950/40 via-slate-900/80 to-slate-900 border border-emerald-500/30 shadow-xl shadow-emerald-950/20 relative overflow-hidden flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
+                <span>TOTAL KG SOLD</span>
+                <span className="material-symbols-outlined text-emerald-400 text-lg">scale</span>
+              </div>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span
+                  className="text-3xl sm:text-4xl font-black text-white"
+                  style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                >
+                  {formatKg(kpis.totalKg)}
+                </span>
+                <span className="text-emerald-400 font-bold font-mono text-sm">Kg</span>
+              </div>
             </div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span
-                className="text-3xl sm:text-4xl font-black text-white"
-                style={{ fontFamily: '"Space Grotesk", sans-serif' }}
-              >
-                {kpis.totalKg.toFixed(2)}
-              </span>
-              <span className="text-emerald-400 font-bold font-mono text-sm">Kg</span>
-            </div>
-            <div className="mt-2 text-[11px] text-slate-400 font-mono flex items-center justify-between border-t border-slate-800/80 pt-2">
-              <span className="text-emerald-300 font-bold">Gutted: {kpis.guttedKg.toFixed(2)} Kg</span>
-              <span className="text-cyan-300">Non-Gutted: {kpis.nonGuttedKg.toFixed(2)} Kg</span>
+            <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2 space-y-0.5">
+              <div className="flex items-center justify-between">
+                <span className="text-emerald-300 font-bold">Gutted: {formatKg(kpis.guttedKg)} Kg</span>
+                <span className="text-cyan-300">Non: {formatKg(kpis.nonGuttedKg)} Kg</span>
+              </div>
+              <div className="text-[10px] text-slate-500 truncate">{kpis.count} total dispatches logged</div>
             </div>
           </div>
 
           {/* Card 2: Total Revenue Collected */}
-          <div className="p-4 rounded-2xl bg-gradient-to-br from-cyan-950/40 via-slate-900/80 to-slate-900 border border-cyan-500/30 shadow-xl shadow-cyan-950/20 relative overflow-hidden">
-            <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
-              <span>REVENUE COLLECTED</span>
-              <span className="material-symbols-outlined text-cyan-400 text-lg">payments</span>
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-cyan-950/40 via-slate-900/80 to-slate-900 border border-cyan-500/30 shadow-xl shadow-cyan-950/20 relative overflow-hidden flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
+                <span>REVENUE COLLECTED</span>
+                <span className="material-symbols-outlined text-cyan-400 text-lg">payments</span>
+              </div>
+              <div className="mt-2 flex items-baseline gap-1">
+                <span className="text-cyan-400 font-bold text-xl">₹</span>
+                <span
+                  className="text-3xl sm:text-4xl font-black text-white"
+                  style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                >
+                  {kpis.totalRevenue.toLocaleString("en-IN")}
+                </span>
+              </div>
             </div>
-            <div className="mt-2 flex items-baseline gap-1">
-              <span className="text-cyan-400 font-bold text-xl">₹</span>
-              <span
-                className="text-3xl sm:text-4xl font-black text-white"
-                style={{ fontFamily: '"Space Grotesk", sans-serif' }}
-              >
-                {kpis.totalRevenue.toLocaleString("en-IN")}
-              </span>
-            </div>
-            <div className="mt-2 text-[11px] text-slate-400 font-mono flex items-center justify-between border-t border-slate-800/80 pt-2">
-              <span>Soundbox UPI: ₹{(kpis.byMode["J&K Bank Soundbox UPI"]?.revenue || 0).toLocaleString("en-IN")}</span>
-              <span>Cash: ₹{(kpis.byMode["Cash"]?.revenue || 0).toLocaleString("en-IN")}</span>
-            </div>
-          </div>
-
-          {/* Card 3: Bills & Entries */}
-          <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 shadow-xl relative">
-            <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
-              <span>TOTAL SALES ENTRIES</span>
-              <span className="material-symbols-outlined text-indigo-400 text-lg">receipt_long</span>
-            </div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span
-                className="text-3xl sm:text-4xl font-black text-white"
-                style={{ fontFamily: '"Space Grotesk", sans-serif' }}
-              >
-                {kpis.count}
-              </span>
-              <span className="text-slate-400 text-xs font-mono">sales logged</span>
-            </div>
-            <div className="mt-2 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2">
-              <span>Avg Order: <strong className="text-white">{kpis.avgKgPerBill} Kg</strong> (₹{kpis.avgBillValue.toLocaleString("en-IN")})</span>
+            <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2 space-y-0.5">
+              <div className="flex items-center justify-between">
+                <span>Expected: ₹{kpis.totalExpected.toLocaleString("en-IN")}</span>
+              </div>
+              <div className="text-[10px] text-slate-500 truncate">
+                {kpis.count} bills • Avg ₹{kpis.avgBillValue}/bill
+              </div>
             </div>
           </div>
 
-          {/* Card 4: Soundbox UPI Share */}
-          <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800 shadow-xl relative">
-            <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
-              <span>J&amp;K SOUNDBOX SHARE</span>
-              <span className="material-symbols-outlined text-amber-400 text-lg">volume_up</span>
+          {/* Card 3: Online Payments */}
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-indigo-950/40 via-slate-900/80 to-slate-900 border border-indigo-500/30 shadow-xl shadow-indigo-950/20 relative overflow-hidden flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
+                <span>ONLINE PAYMENTS</span>
+                <span className="material-symbols-outlined text-indigo-400 text-lg">contactless</span>
+              </div>
+              <div className="mt-2 flex items-baseline gap-1">
+                <span className="text-indigo-400 font-bold text-xl">₹</span>
+                <span
+                  className="text-3xl sm:text-4xl font-black text-white"
+                  style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                >
+                  {kpis.onlineRevenue.toLocaleString("en-IN")}
+                </span>
+              </div>
             </div>
-            <div className="mt-2 flex items-baseline gap-2">
-              <span
-                className="text-3xl sm:text-4xl font-black text-white"
-                style={{ fontFamily: '"Space Grotesk", sans-serif' }}
-              >
-                {kpis.totalRevenue > 0
-                  ? Math.round(((kpis.byMode["J&K Bank Soundbox UPI"]?.revenue || 0) / kpis.totalRevenue) * 100)
-                  : 0}
-                %
-              </span>
-              <span className="text-emerald-400 text-xs font-mono font-bold">via UPI Voice Box</span>
+            <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2 space-y-0.5">
+              <div className="flex items-center justify-between text-indigo-300">
+                <span>{kpis.onlineCount} orders</span>
+                <span>{formatKg(kpis.onlineKg)} Kg</span>
+              </div>
+              <div className="text-[10px] text-slate-500 truncate">J&amp;K Soundbox, UPI &amp; Cards</div>
             </div>
-            <div className="mt-2 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2 truncate">
-              <span>ID: <code className="text-emerald-300">JKBMERC00828895@jkb</code></span>
+          </div>
+
+          {/* Card 4: Cash Payments */}
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-teal-950/40 via-slate-900/80 to-slate-900 border border-teal-500/30 shadow-xl shadow-teal-950/20 relative overflow-hidden flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
+                <span>CASH PAYMENTS</span>
+                <span className="material-symbols-outlined text-teal-400 text-lg">point_of_sale</span>
+              </div>
+              <div className="mt-2 flex items-baseline gap-1">
+                <span className="text-teal-400 font-bold text-xl">₹</span>
+                <span
+                  className="text-3xl sm:text-4xl font-black text-white"
+                  style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                >
+                  {kpis.cashRevenue.toLocaleString("en-IN")}
+                </span>
+              </div>
+            </div>
+            <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2 space-y-0.5">
+              <div className="flex items-center justify-between text-teal-300">
+                <span>{kpis.cashCount} sales</span>
+                <span>{formatKg(kpis.cashKg)} Kg</span>
+              </div>
+              <div className="text-[10px] text-slate-500 truncate">Counter Cash Drawer</div>
+            </div>
+          </div>
+
+          {/* Card 5: Negotiation Concession / Loss */}
+          <div
+            className={`p-4 rounded-2xl border shadow-xl relative overflow-hidden flex flex-col justify-between ${
+              kpis.totalLoss > 0
+                ? "bg-gradient-to-br from-amber-950/50 via-slate-900/90 to-slate-900 border-amber-500/40 shadow-amber-950/20"
+                : "bg-gradient-to-br from-emerald-950/30 via-slate-900/80 to-slate-900 border-emerald-500/30 shadow-emerald-950/10"
+            }`}
+          >
+            <div>
+              <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
+                <span className={kpis.totalLoss > 0 ? "text-amber-300 font-bold" : ""}>
+                  NEGOTIATION LOSS
+                </span>
+                <span
+                  className={`material-symbols-outlined text-lg ${
+                    kpis.totalLoss > 0 ? "text-amber-400 animate-pulse" : "text-emerald-400"
+                  }`}
+                >
+                  {kpis.totalLoss > 0 ? "price_change" : "verified"}
+                </span>
+              </div>
+              <div className="mt-2 flex items-baseline gap-1">
+                {kpis.totalLoss > 0 ? (
+                  <>
+                    <span className="text-amber-400 font-bold text-xl">-₹</span>
+                    <span
+                      className="text-3xl sm:text-4xl font-black text-amber-300"
+                      style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                    >
+                      {kpis.totalLoss.toLocaleString("en-IN")}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="text-emerald-400 font-bold text-xl">₹</span>
+                    <span
+                      className="text-3xl sm:text-4xl font-black text-emerald-400"
+                      style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                    >
+                      0
+                    </span>
+                    <span className="text-[11px] font-mono text-emerald-400 font-bold ml-1">
+                      Full Price ✓
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
+            <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2 space-y-0.5">
+              <div className="flex items-center justify-between">
+                {kpis.totalLoss > 0 ? (
+                  <span className="text-amber-300 font-bold">
+                    ⚠️ {kpis.lossPercent}% Conceded
+                  </span>
+                ) : (
+                  <span className="text-emerald-400 font-bold">Zero discount loss</span>
+                )}
+              </div>
+              <div className="text-[10px] text-slate-500 truncate">
+                {kpis.totalLoss > 0
+                  ? "Lost to customer negotiation"
+                  : "All orders at full inventory price"}
+              </div>
             </div>
           </div>
         </div>
@@ -836,9 +1054,11 @@ export default function VendingCenterLoggerPage() {
                 <th className="py-3.5 px-3">Date</th>
                 <th className="py-3.5 px-3">Time</th>
                 <th className="py-3.5 px-3">Type</th>
-                <th className="py-3.5 px-3 text-right">Weight</th>
+                <th className="py-3.5 px-3 text-right">Weight (Kg)</th>
                 <th className="py-3.5 px-3 text-right">Rate @/Kg</th>
-                <th className="py-3.5 px-3 text-right">Amount Paid</th>
+                <th className="py-3.5 px-3 text-right">Expected (₹)</th>
+                <th className="py-3.5 px-3 text-right text-cyan-300">Amount Taken (₹)</th>
+                <th className="py-3.5 px-3 text-right text-amber-300">Negotiation Loss</th>
                 <th className="py-3.5 px-3">Payment Mode</th>
                 {/* Dynamic Custom Columns */}
                 {customColumns
@@ -856,14 +1076,20 @@ export default function VendingCenterLoggerPage() {
             <tbody className="divide-y divide-slate-800/60 font-mono">
               {loading ? (
                 <tr>
-                  <td colSpan={10 + customColumns.filter((c) => c.visible).length} className="py-12 text-center text-slate-400">
+                  <td
+                    colSpan={13 + customColumns.filter((c) => c.visible).length}
+                    className="py-12 text-center text-slate-400"
+                  >
                     <div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent animate-spin rounded-full mx-auto mb-2" />
                     Loading entries…
                   </td>
                 </tr>
               ) : displayEntries.length === 0 ? (
                 <tr>
-                  <td colSpan={10 + customColumns.filter((c) => c.visible).length} className="py-12 text-center text-slate-400 space-y-2">
+                  <td
+                    colSpan={13 + customColumns.filter((c) => c.visible).length}
+                    className="py-12 text-center text-slate-400 space-y-2"
+                  >
                     <span className="material-symbols-outlined text-4xl text-slate-600">table_rows</span>
                     <p className="font-bold text-sm text-white">No sales entries found</p>
                     <p className="text-xs text-slate-500">
@@ -873,7 +1099,22 @@ export default function VendingCenterLoggerPage() {
                 </tr>
               ) : (
                 displayEntries.map((e, index) => {
-                  const isGutted = (e.product_type || "").toLowerCase().includes("gutted") && !(e.product_type || "").toLowerCase().includes("non");
+                  const isGutted =
+                    (e.product_type || "").toLowerCase().includes("gutted") &&
+                    !(e.product_type || "").toLowerCase().includes("non");
+                  const w = Number(e.weight_kg) || 0;
+                  const rate = Number(e.rate_per_kg) || 0;
+                  const exp =
+                    e.expected_amount !== undefined && e.expected_amount !== null
+                      ? Number(e.expected_amount)
+                      : Math.round(w * rate);
+                  const taken = Number(e.amount_paid) || 0;
+                  const loss =
+                    e.discount_amount !== undefined && e.discount_amount !== null
+                      ? Number(e.discount_amount)
+                      : Math.max(0, exp - taken);
+                  const isCash = (e.payment_mode || "").toLowerCase().trim() === "cash";
+
                   return (
                     <tr
                       key={e.id}
@@ -899,24 +1140,60 @@ export default function VendingCenterLoggerPage() {
                           {e.product_type}
                         </span>
                       </td>
-                      <td className="py-3 px-3 text-right font-black text-white whitespace-nowrap">
-                        <span className="text-emerald-400">{e.weight_kg.toFixed(3)}</span>{" "}
+                      <td className="py-3 px-3 text-right font-black text-white whitespace-nowrap font-mono">
+                        <span className="text-emerald-400">{formatKg(e.weight_kg)}</span>{" "}
                         <span className="text-[10px] text-slate-400 font-normal">Kg</span>
                       </td>
-                      <td className="py-3 px-3 text-right text-slate-300 whitespace-nowrap">
+                      <td className="py-3 px-3 text-right text-slate-300 whitespace-nowrap font-mono">
                         ₹{e.rate_per_kg}
                       </td>
-                      <td className="py-3 px-3 text-right font-black text-white whitespace-nowrap">
-                        <span className="text-cyan-300">₹{e.amount_paid.toLocaleString("en-IN")}</span>
+                      <td className="py-3 px-3 text-right text-slate-400 whitespace-nowrap font-mono">
+                        ₹{exp.toLocaleString("en-IN")}
+                      </td>
+                      <td className="py-3 px-3 text-right font-black text-white whitespace-nowrap font-mono">
+                        <span className="text-cyan-300">₹{taken.toLocaleString("en-IN")}</span>
+                      </td>
+                      <td className="py-3 px-3 text-right whitespace-nowrap font-mono">
+                        {loss > 0 ? (
+                          <span
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30"
+                            title={`Customer price negotiation concession: ₹${loss}`}
+                          >
+                            <span>-₹{loss.toLocaleString("en-IN")}</span>
+                            <span className="text-[9px] opacity-75">loss</span>
+                          </span>
+                        ) : loss < 0 ? (
+                          <span
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono text-cyan-300 bg-cyan-500/10 border border-cyan-500/20"
+                            title={`Extra collected: ₹${Math.abs(loss)}`}
+                          >
+                            +₹{Math.abs(loss)}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20">
+                            ₹0 ✓
+                          </span>
+                        )}
                       </td>
                       <td className="py-3 px-3 whitespace-nowrap">
-                        <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg bg-slate-950 border border-slate-700/80 text-[11px] text-slate-300">
-                          {e.payment_mode.includes("Soundbox") && "🔊"}
-                          {e.payment_mode.includes("Cash") && "💵"}
-                          {e.payment_mode.includes("Razorpay") && "⚡"}
-                          {e.payment_mode.includes("Card") && "💳"}
-                          {e.payment_mode}
-                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={`px-1.5 py-0.5 rounded text-[9px] font-mono uppercase font-bold ${
+                              isCash
+                                ? "bg-teal-500/20 text-teal-300 border border-teal-500/30"
+                                : "bg-indigo-500/20 text-indigo-300 border border-indigo-500/30"
+                            }`}
+                          >
+                            {isCash ? "Cash" : "Online"}
+                          </span>
+                          <span className="inline-flex items-center gap-1 text-[11px] text-slate-300 truncate max-w-[140px]">
+                            {e.payment_mode.includes("Soundbox") && "🔊"}
+                            {e.payment_mode.includes("Cash") && "💵"}
+                            {e.payment_mode.includes("Razorpay") && "⚡"}
+                            {e.payment_mode.includes("Card") && "💳"}
+                            <span>{e.payment_mode}</span>
+                          </span>
+                        </div>
                       </td>
 
                       {/* Custom Dynamic Columns Values */}
@@ -981,19 +1258,72 @@ export default function VendingCenterLoggerPage() {
             {/* Table Summary Footer */}
             {displayEntries.length > 0 && (
               <tfoot>
-                <tr className="border-t-2 border-slate-700 bg-slate-950 font-mono font-bold text-xs text-white">
-                  <td colSpan={4} className="py-3.5 px-3 text-right uppercase tracking-wider text-slate-400">
-                    Visible Rows Total ({displayEntries.length} entries):
-                  </td>
-                  <td className="py-3.5 px-3 text-right text-emerald-400 font-black whitespace-nowrap">
-                    {displayEntries.reduce((s, e) => s + (Number(e.weight_kg) || 0), 0).toFixed(3)} Kg
-                  </td>
-                  <td className="py-3.5 px-3"></td>
-                  <td className="py-3.5 px-3 text-right text-cyan-300 font-black whitespace-nowrap">
-                    ₹{displayEntries.reduce((s, e) => s + (Number(e.amount_paid) || 0), 0).toLocaleString("en-IN")}
-                  </td>
-                  <td colSpan={4 + customColumns.filter((c) => c.visible).length}></td>
-                </tr>
+                {(() => {
+                  const totalVisKg = displayEntries.reduce(
+                    (s, e) => s + (Number(e.weight_kg) || 0),
+                    0
+                  );
+                  const totalVisExp = displayEntries.reduce((s, e) => {
+                    const w = Number(e.weight_kg) || 0;
+                    const r = Number(e.rate_per_kg) || 0;
+                    return (
+                      s +
+                      (e.expected_amount !== undefined && e.expected_amount !== null
+                        ? Number(e.expected_amount)
+                        : Math.round(w * r))
+                    );
+                  }, 0);
+                  const totalVisTaken = displayEntries.reduce(
+                    (s, e) => s + (Number(e.amount_paid) || 0),
+                    0
+                  );
+                  const totalVisLoss = displayEntries.reduce((s, e) => {
+                    const w = Number(e.weight_kg) || 0;
+                    const r = Number(e.rate_per_kg) || 0;
+                    const exp =
+                      e.expected_amount !== undefined && e.expected_amount !== null
+                        ? Number(e.expected_amount)
+                        : Math.round(w * r);
+                    const paid = Number(e.amount_paid) || 0;
+                    return (
+                      s +
+                      (e.discount_amount !== undefined && e.discount_amount !== null
+                        ? Number(e.discount_amount)
+                        : Math.max(0, exp - paid))
+                    );
+                  }, 0);
+
+                  return (
+                    <tr className="border-t-2 border-slate-700 bg-slate-950 font-mono font-bold text-xs text-white">
+                      <td
+                        colSpan={4}
+                        className="py-3.5 px-3 text-right uppercase tracking-wider text-slate-400"
+                      >
+                        Visible Rows Total ({displayEntries.length} entries):
+                      </td>
+                      <td className="py-3.5 px-3 text-right text-emerald-400 font-black whitespace-nowrap">
+                        {formatKg(totalVisKg)} Kg
+                      </td>
+                      <td className="py-3.5 px-3"></td>
+                      <td className="py-3.5 px-3 text-right text-slate-400 whitespace-nowrap">
+                        ₹{totalVisExp.toLocaleString("en-IN")}
+                      </td>
+                      <td className="py-3.5 px-3 text-right text-cyan-300 font-black whitespace-nowrap">
+                        ₹{totalVisTaken.toLocaleString("en-IN")}
+                      </td>
+                      <td className="py-3.5 px-3 text-right whitespace-nowrap">
+                        {totalVisLoss > 0 ? (
+                          <span className="text-amber-300 font-black">
+                            -₹{totalVisLoss.toLocaleString("en-IN")}
+                          </span>
+                        ) : (
+                          <span className="text-emerald-400 font-bold">₹0 ✓</span>
+                        )}
+                      </td>
+                      <td colSpan={3 + customColumns.filter((c) => c.visible).length}></td>
+                    </tr>
+                  );
+                })()}
               </tfoot>
             )}
           </table>
@@ -1074,9 +1404,16 @@ export default function VendingCenterLoggerPage() {
 
               {/* Row 2: Product Type Quick Selector */}
               <div>
-                <label className="block text-[10px] uppercase font-bold text-slate-400 font-mono mb-1.5">
-                  Type of Trout <span className="text-emerald-400">*</span>
-                </label>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-[10px] uppercase font-bold text-slate-400 font-mono">
+                    Type of Trout <span className="text-emerald-400">*</span>
+                  </label>
+                  {pricingLoaded && (
+                    <span className="text-[9px] font-mono text-emerald-400 bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-500/30">
+                      ✓ Supabase Inventory Rate
+                    </span>
+                  )}
+                </div>
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
@@ -1088,7 +1425,9 @@ export default function VendingCenterLoggerPage() {
                     }`}
                   >
                     🐟 Gutted Trout
-                    <span className="block text-[10px] font-mono opacity-80 mt-0.5">₹650 / Kg</span>
+                    <span className="block text-[10px] font-mono opacity-90 mt-0.5 font-bold text-emerald-400">
+                      ₹{guttedPrice} / Kg
+                    </span>
                   </button>
                   <button
                     type="button"
@@ -1100,31 +1439,35 @@ export default function VendingCenterLoggerPage() {
                     }`}
                   >
                     ✨ Non Gutted (Whole)
-                    <span className="block text-[10px] font-mono opacity-80 mt-0.5">₹600 / Kg</span>
+                    <span className="block text-[10px] font-mono opacity-90 mt-0.5 font-bold text-cyan-300">
+                      ₹{nonGuttedPrice} / Kg
+                    </span>
                   </button>
                 </div>
               </div>
 
-              {/* Row 3: Weight (with Quick Increment Keypad Buttons) */}
+              {/* Row 3: Weight (Exact Precision Scale Input) */}
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="text-[10px] uppercase font-bold text-slate-400 font-mono">
-                    Weight (Kg) <span className="text-emerald-400">*</span>
+                    Exact Weight (Kg) <span className="text-emerald-400">*</span>
                   </label>
-                  <span className="text-[10px] text-slate-500 font-mono">Precision scale input</span>
+                  <span className="text-[10px] text-emerald-400 font-mono font-bold">
+                    Zero Rounding (e.g. 2.155 stays 2.155)
+                  </span>
                 </div>
                 <div className="relative">
                   <input
                     type="number"
-                    step="0.001"
-                    min="0.01"
+                    step="any"
+                    min="0.001"
                     value={formWeight}
                     onChange={(e) => {
                       setFormWeight(e.target.value);
                       setFormAmountOverridden(false);
                     }}
                     required
-                    placeholder="e.g. 1.850"
+                    placeholder="e.g. 2.155"
                     className="w-full bg-slate-950 border-2 border-emerald-500/50 rounded-xl px-4 py-3 text-lg font-black text-white font-mono focus:outline-none focus:border-emerald-400"
                   />
                   <span className="absolute right-4 top-3 text-sm text-emerald-400 font-bold font-mono">
@@ -1151,45 +1494,111 @@ export default function VendingCenterLoggerPage() {
                 </div>
               </div>
 
-              {/* Row 4: Rate & Auto-Calculated Amount */}
-              <div className="grid grid-cols-2 gap-2.5">
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-slate-400 font-mono mb-1">
-                    Rate @/Kg (₹)
-                  </label>
-                  <input
-                    type="number"
-                    value={formRate}
-                    onChange={(e) => {
-                      setFormRate(parseFloat(e.target.value) || 0);
-                      setFormAmountOverridden(false);
-                    }}
-                    required
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm font-mono text-white focus:outline-none focus:border-emerald-400"
-                  />
-                </div>
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-[10px] uppercase font-bold text-slate-400 font-mono">
-                      Amount Paid (₹) <span className="text-emerald-400">*</span>
-                    </label>
-                    {formAmountOverridden && (
-                      <span className="text-[9px] text-amber-400 font-mono">Manual</span>
+              {/* Expected vs Actual Price & Negotiation Loss Section */}
+              {(() => {
+                const wNum = parseFloat(formWeight) || 0;
+                const expectedTotal = Math.round(wNum * formRate);
+                const actualPaid = parseFloat(formAmount) || 0;
+                const loss = wNum > 0 ? expectedTotal - actualPaid : 0;
+
+                return (
+                  <div className="space-y-3">
+                    {/* Rate & Expected Price Info Box */}
+                    <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800 space-y-2 font-mono">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-slate-400">Standard Rate:</span>
+                        <span className="text-white font-bold">₹{formRate} / Kg</span>
+                      </div>
+                      <div className="flex items-center justify-between text-xs border-t border-slate-800/80 pt-2">
+                        <span className="text-slate-400">Expected Customer Total:</span>
+                        <span className="text-emerald-400 font-black text-sm">
+                          ₹{expectedTotal.toLocaleString("en-IN")}
+                        </span>
+                      </div>
+                      {wNum > 0 && (
+                        <div className="text-[10px] text-slate-500">
+                          Calculation: {wNum} Kg × ₹{formRate}/Kg = ₹{expectedTotal}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Row 4: Rate & Actual Amount Taken */}
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <div>
+                        <label className="block text-[10px] uppercase font-bold text-slate-400 font-mono mb-1">
+                          Rate @/Kg (₹)
+                        </label>
+                        <input
+                          type="number"
+                          value={formRate}
+                          onChange={(e) => {
+                            setFormRate(parseFloat(e.target.value) || 0);
+                            setFormAmountOverridden(false);
+                          }}
+                          required
+                          className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm font-mono text-white focus:outline-none focus:border-emerald-400"
+                        />
+                      </div>
+                      <div>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-[10px] uppercase font-bold text-slate-400 font-mono">
+                            Amount Taken (₹) <span className="text-emerald-400">*</span>
+                          </label>
+                          {formAmountOverridden && (
+                            <span className="text-[9px] text-amber-400 font-mono">Negotiated</span>
+                          )}
+                        </div>
+                        <input
+                          type="number"
+                          value={formAmount}
+                          onChange={(e) => {
+                            setFormAmount(e.target.value);
+                            setFormAmountOverridden(true);
+                          }}
+                          required
+                          placeholder={`Expected: ₹${expectedTotal}`}
+                          className="w-full bg-slate-950 border-2 border-cyan-500/50 rounded-xl px-3 py-2.5 text-base font-black text-cyan-300 font-mono focus:outline-none focus:border-cyan-400"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Live Negotiation Loss Banner */}
+                    {wNum > 0 && actualPaid > 0 && (
+                      <div
+                        className={`p-2.5 rounded-xl border text-xs font-mono flex items-center justify-between ${
+                          loss > 0
+                            ? "bg-amber-950/40 border-amber-500/40 text-amber-300"
+                            : loss < 0
+                            ? "bg-cyan-950/40 border-cyan-500/40 text-cyan-300"
+                            : "bg-emerald-950/40 border-emerald-500/40 text-emerald-300"
+                        }`}
+                      >
+                        <div className="flex items-center gap-1.5">
+                          <span className="material-symbols-outlined text-sm">
+                            {loss > 0 ? "trending_down" : loss < 0 ? "trending_up" : "check_circle"}
+                          </span>
+                          <span>
+                            {loss > 0
+                              ? "Negotiation Concession (Loss):"
+                              : loss < 0
+                              ? "Extra Paid (Premium):"
+                              : "Price Status:"}
+                          </span>
+                        </div>
+                        <span className="font-black text-sm">
+                          {loss > 0 ? (
+                            `-₹${loss.toLocaleString("en-IN")}`
+                          ) : loss < 0 ? (
+                            `+₹${Math.abs(loss).toLocaleString("en-IN")}`
+                          ) : (
+                            "Exact Full Price ✓"
+                          )}
+                        </span>
+                      </div>
                     )}
                   </div>
-                  <input
-                    type="number"
-                    value={formAmount}
-                    onChange={(e) => {
-                      setFormAmount(e.target.value);
-                      setFormAmountOverridden(true);
-                    }}
-                    required
-                    placeholder="Auto: Weight × Rate"
-                    className="w-full bg-slate-950 border-2 border-cyan-500/50 rounded-xl px-3 py-2.5 text-base font-black text-cyan-300 font-mono focus:outline-none focus:border-cyan-400"
-                  />
-                </div>
-              </div>
+                );
+              })()}
 
               {/* Row 5: Mode of Payment */}
               <div>

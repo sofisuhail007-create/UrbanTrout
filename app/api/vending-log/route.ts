@@ -21,7 +21,9 @@ export interface VendingSalesEntry {
   weight_kg: number;
   product_type: string; // "Gutted" | "Non Gutted" | string
   rate_per_kg: number;
+  expected_amount?: number;
   amount_paid: number;
+  discount_amount?: number;
   payment_mode: string; // "J&K Bank Soundbox UPI" | "Cash" | "Razorpay QR" | "Card / POS"
   custom_fields?: Record<string, any>;
   logged_by?: string;
@@ -107,49 +109,138 @@ function computeKpis(entries: VendingSalesEntry[]) {
   const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
   const kpis = {
-    today: { kg: 0, revenue: 0, count: 0, guttedKg: 0, nonGuttedKg: 0 },
-    week: { kg: 0, revenue: 0, count: 0, guttedKg: 0, nonGuttedKg: 0 },
-    month: { kg: 0, revenue: 0, count: 0, guttedKg: 0, nonGuttedKg: 0 },
-    allTime: { kg: 0, revenue: 0, count: 0 },
+    today: {
+      kg: 0,
+      revenue: 0,
+      expectedRevenue: 0,
+      totalLoss: 0,
+      count: 0,
+      guttedKg: 0,
+      nonGuttedKg: 0,
+      onlineRevenue: 0,
+      onlineCount: 0,
+      cashRevenue: 0,
+      cashCount: 0,
+    },
+    week: {
+      kg: 0,
+      revenue: 0,
+      expectedRevenue: 0,
+      totalLoss: 0,
+      count: 0,
+      guttedKg: 0,
+      nonGuttedKg: 0,
+      onlineRevenue: 0,
+      onlineCount: 0,
+      cashRevenue: 0,
+      cashCount: 0,
+    },
+    month: {
+      kg: 0,
+      revenue: 0,
+      expectedRevenue: 0,
+      totalLoss: 0,
+      count: 0,
+      guttedKg: 0,
+      nonGuttedKg: 0,
+      onlineRevenue: 0,
+      onlineCount: 0,
+      cashRevenue: 0,
+      cashCount: 0,
+    },
+    allTime: {
+      kg: 0,
+      revenue: 0,
+      expectedRevenue: 0,
+      totalLoss: 0,
+      count: 0,
+      onlineRevenue: 0,
+      onlineCount: 0,
+      cashRevenue: 0,
+      cashCount: 0,
+    },
     byPaymentMode: {} as Record<string, { kg: number; revenue: number; count: number }>,
   };
 
   entries.forEach((e) => {
     const weight = Number(e.weight_kg) || 0;
     const amount = Number(e.amount_paid) || 0;
+    const rate = Number(e.rate_per_kg) || 0;
+    const expected = e.expected_amount !== undefined ? Number(e.expected_amount) : Math.round(weight * rate);
+    const loss = Math.max(0, expected - amount);
+    const isCash = (e.payment_mode || "").toLowerCase().trim() === "cash";
     const eDate = new Date(e.entry_date);
     const isGutted = (e.product_type || "").toLowerCase().includes("gutted") && !(e.product_type || "").toLowerCase().includes("non");
 
     // All-time
-    kpis.allTime.kg += weight;
+    kpis.allTime.kg = Math.round((kpis.allTime.kg + weight) * 1000) / 1000;
     kpis.allTime.revenue += amount;
+    kpis.allTime.expectedRevenue += expected;
+    kpis.allTime.totalLoss += loss;
     kpis.allTime.count += 1;
+    if (isCash) {
+      kpis.allTime.cashRevenue += amount;
+      kpis.allTime.cashCount += 1;
+    } else {
+      kpis.allTime.onlineRevenue += amount;
+      kpis.allTime.onlineCount += 1;
+    }
 
     // Today
     if (e.entry_date === todayStr) {
-      kpis.today.kg += weight;
+      kpis.today.kg = Math.round((kpis.today.kg + weight) * 1000) / 1000;
       kpis.today.revenue += amount;
+      kpis.today.expectedRevenue += expected;
+      kpis.today.totalLoss += loss;
       kpis.today.count += 1;
-      if (isGutted) kpis.today.guttedKg += weight;
-      else kpis.today.nonGuttedKg += weight;
+      if (isGutted) kpis.today.guttedKg = Math.round((kpis.today.guttedKg + weight) * 1000) / 1000;
+      else kpis.today.nonGuttedKg = Math.round((kpis.today.nonGuttedKg + weight) * 1000) / 1000;
+
+      if (isCash) {
+        kpis.today.cashRevenue += amount;
+        kpis.today.cashCount += 1;
+      } else {
+        kpis.today.onlineRevenue += amount;
+        kpis.today.onlineCount += 1;
+      }
     }
 
     // Week
     if (eDate >= monday) {
-      kpis.week.kg += weight;
+      kpis.week.kg = Math.round((kpis.week.kg + weight) * 1000) / 1000;
       kpis.week.revenue += amount;
+      kpis.week.expectedRevenue += expected;
+      kpis.week.totalLoss += loss;
       kpis.week.count += 1;
-      if (isGutted) kpis.week.guttedKg += weight;
-      else kpis.week.nonGuttedKg += weight;
+      if (isGutted) kpis.week.guttedKg = Math.round((kpis.week.guttedKg + weight) * 1000) / 1000;
+      else kpis.week.nonGuttedKg = Math.round((kpis.week.nonGuttedKg + weight) * 1000) / 1000;
+
+      if (isCash) {
+        kpis.week.cashRevenue += amount;
+        kpis.week.cashCount += 1;
+      } else {
+        kpis.week.onlineRevenue += amount;
+        kpis.week.onlineCount += 1;
+      }
     }
 
     // Month
     if (eDate >= firstOfMonth) {
-      kpis.month.kg += weight;
+      kpis.month.kg = Math.round((kpis.month.kg + weight) * 1000) / 1000;
       kpis.month.revenue += amount;
+      kpis.month.expectedRevenue += expected;
+      kpis.month.totalLoss += loss;
       kpis.month.count += 1;
-      if (isGutted) kpis.month.guttedKg += weight;
-      else kpis.month.nonGuttedKg += weight;
+      if (isGutted) kpis.month.guttedKg = Math.round((kpis.month.guttedKg + weight) * 1000) / 1000;
+      else kpis.month.nonGuttedKg = Math.round((kpis.month.nonGuttedKg + weight) * 1000) / 1000;
+
+      if (isCash) {
+        kpis.month.cashRevenue += amount;
+        kpis.month.cashCount += 1;
+      } else {
+        kpis.month.onlineRevenue += amount;
+        kpis.month.onlineCount += 1;
+      }
     }
 
     // Payment Mode
@@ -157,7 +248,7 @@ function computeKpis(entries: VendingSalesEntry[]) {
     if (!kpis.byPaymentMode[mode]) {
       kpis.byPaymentMode[mode] = { kg: 0, revenue: 0, count: 0 };
     }
-    kpis.byPaymentMode[mode].kg += weight;
+    kpis.byPaymentMode[mode].kg = Math.round((kpis.byPaymentMode[mode].kg + weight) * 1000) / 1000;
     kpis.byPaymentMode[mode].revenue += amount;
     kpis.byPaymentMode[mode].count += 1;
   });
@@ -241,6 +332,15 @@ export async function POST(request: Request) {
       );
     }
 
+    const parsedWeight = parseFloat(weight_kg);
+    const parsedRate = parseFloat(rate_per_kg) || 650;
+    const parsedPaid = parseFloat(amount_paid);
+    const calculatedExpected = Math.round(parsedWeight * parsedRate);
+    const expected = body.expected_amount !== undefined && body.expected_amount !== null
+      ? parseFloat(body.expected_amount)
+      : calculatedExpected;
+    const discount = Math.max(0, expected - parsedPaid);
+
     const now = new Date();
     const entry: VendingSalesEntry = {
       id: crypto.randomUUID(),
@@ -252,10 +352,12 @@ export async function POST(request: Request) {
           minute: "2-digit",
           hour12: true,
         }),
-      weight_kg: parseFloat(weight_kg),
+      weight_kg: parsedWeight,
       product_type: product_type || "Gutted",
-      rate_per_kg: parseFloat(rate_per_kg) || 650,
-      amount_paid: parseFloat(amount_paid),
+      rate_per_kg: parsedRate,
+      expected_amount: expected,
+      amount_paid: parsedPaid,
+      discount_amount: discount,
       payment_mode: payment_mode || "J&K Bank Soundbox UPI",
       custom_fields: custom_fields || {},
       logged_by: logged_by || "Counter Staff",
@@ -302,6 +404,14 @@ export async function PUT(request: Request) {
 
     if (!id || !updates) {
       return NextResponse.json({ success: false, error: "Missing id or updates" }, { status: 400 });
+    }
+
+    if (updates.weight_kg !== undefined && updates.rate_per_kg !== undefined) {
+      const w = parseFloat(updates.weight_kg);
+      const r = parseFloat(updates.rate_per_kg);
+      const paid = updates.amount_paid !== undefined ? parseFloat(updates.amount_paid) : 0;
+      updates.expected_amount = updates.expected_amount !== undefined ? parseFloat(updates.expected_amount) : Math.round(w * r);
+      updates.discount_amount = Math.max(0, updates.expected_amount - paid);
     }
 
     updates.updated_at = new Date().toISOString();
