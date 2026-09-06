@@ -21,8 +21,13 @@ export default function AdminLoginPage() {
     // 2. Check active Supabase Auth session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user?.email) {
+        const email = session.user.email.toLowerCase();
+        const isOwner = email === "sofisuhail007@gmail.com" || email === "info.urbantrout@gmail.com";
         localStorage.setItem("ut_admin_auth", "1");
-        localStorage.setItem("ut_admin_email", session.user.email.toLowerCase());
+        localStorage.setItem("ut_admin_email", email);
+        if (isOwner && !localStorage.getItem("ut_admin_role")) {
+          localStorage.setItem("ut_admin_role", "super_admin");
+        }
         router.replace("/admin/dashboard");
         return;
       }

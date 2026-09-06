@@ -108,7 +108,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     // 1. Read persistent session from localStorage (with sessionStorage fallback)
     const authStatus = localStorage.getItem("ut_admin_auth") || sessionStorage.getItem("ut_admin_auth");
     const storedEmail = localStorage.getItem("ut_admin_email") || sessionStorage.getItem("ut_admin_email") || "sofisuhail007@gmail.com";
-    const storedRole = localStorage.getItem("ut_admin_role") || sessionStorage.getItem("ut_admin_role") || "sales_staff";
+    const isOwner = storedEmail.toLowerCase() === "sofisuhail007@gmail.com" || storedEmail.toLowerCase() === "info.urbantrout@gmail.com";
+    const storedRole = localStorage.getItem("ut_admin_role") || sessionStorage.getItem("ut_admin_role") || (isOwner ? "super_admin" : "sales_staff");
     const storedPerms = localStorage.getItem("ut_admin_permissions") || sessionStorage.getItem("ut_admin_permissions");
 
     setAdminEmail(storedEmail);
@@ -124,8 +125,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user?.email) {
         const userEmail = session.user.email.toLowerCase();
+        const isCurrentOwner = userEmail === "sofisuhail007@gmail.com" || userEmail === "info.urbantrout@gmail.com";
         localStorage.setItem("ut_admin_auth", "1");
         localStorage.setItem("ut_admin_email", userEmail);
+        if (isCurrentOwner && !localStorage.getItem("ut_admin_role")) {
+          localStorage.setItem("ut_admin_role", "super_admin");
+          setAdminRole("super_admin");
+        }
         setAdminEmail(userEmail);
       } else if (event === "SIGNED_OUT") {
         localStorage.removeItem("ut_admin_auth");

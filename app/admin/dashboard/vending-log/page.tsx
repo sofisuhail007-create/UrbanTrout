@@ -2,11 +2,21 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
+import { supabase } from "@/lib/supabase";
 import { adminFetch } from "@/lib/adminClient";
 import { CustomColumnDef, VendingSalesEntry } from "@/app/api/vending-log/route";
+import { StaffIncentivePayout } from "@/app/api/vending-log/incentive/route";
 
 const DEFAULT_GUTTED_PRICE = 580;
 const DEFAULT_NON_GUTTED_PRICE = 540;
+const INCENTIVE_RATE_PER_KG = 5; // RS 5 per kg for gutted trout only
+
+const ROOT_OWNER_EMAILS = ["sofisuhail007@gmail.com", "info.urbantrout@gmail.com"];
+
+const isEmailAdmin = (email?: string | null): boolean => {
+  if (!email) return false;
+  return ROOT_OWNER_EMAILS.includes(email.trim().toLowerCase());
+};
 
 // Exact weight formatter helper - preserves 3 decimal precision (e.g. 2.155 stays 2.155)
 export const formatKg = (val: number | string | undefined | null): string => {
@@ -58,6 +68,10 @@ export default function VendingCenterLoggerPage() {
   const [bannerDismissed, setBannerDismissed] = useState(false);
   const [copiedSql, setCopiedSql] = useState(false);
 
+  // Admin access control (metric cards strictly hidden for staff)
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [showAdminCards, setShowAdminCards] = useState(true);
+
   // Period filter: today | week | month | all | custom
   const [period, setPeriod] = useState<"today" | "week" | "month" | "all" | "custom">("today");
   const [customStartDate, setCustomStartDate] = useState("");
@@ -86,6 +100,18 @@ export default function VendingCenterLoggerPage() {
 
   const [formDate, setFormDate] = useState(getTodayDate());
   const [formTime, setFormTime] = useState(getCurrentTime());
+
+  // Staff Incentive Payouts State
+  const [payouts, setPayouts] = useState<StaffIncentivePayout[]>([]);
+  const [payoutModalOpen, setPayoutModalOpen] = useState(false);
+  const [savingPayout, setSavingPayout] = useState(false);
+  const [payoutFormAmount, setPayoutFormAmount] = useState("");
+  const [payoutFormDate, setPayoutFormDate] = useState(getTodayDate());
+  const [payoutFormTime, setPayoutFormTime] = useState(getCurrentTime());
+  const [payoutFormMode, setPayoutFormMode] = useState("Cash");
+  const [payoutFormRecipient, setPayoutFormRecipient] = useState("Counter Staff");
+  const [payoutFormNotes, setPayoutFormNotes] = useState("");
+  const [deletePayoutConfirmId, setDeletePayoutConfirmId] = useState<string | null>(null);
   const [formType, setFormType] = useState<"Gutted" | "Non Gutted" | string>("Gutted");
   const [formWeight, setFormWeight] = useState<string>("");
   const [formRate, setFormRate] = useState<number>(DEFAULT_GUTTED_PRICE);
@@ -238,12 +264,126 @@ export default function VendingCenterLoggerPage() {
     fetchData();
   }, [fetchData]);
 
+  // ─── Fetch Staff Incentive Payouts (Admin Only) ───
+  const fetchPayouts = useCallback(async () => {
+    try {
+      const res = await adminFetch("/api/vending-log/incentive");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.payouts)) {
+          setPayouts(data.payouts);
+        }
+      }
+    } catch (err) {
+      console.warn("Could not fetch incentive payouts:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isAdmin) {
+      fetchPayouts();
+    }
+  }, [isAdmin, fetchPayouts]);
+
   // Read stored staff email for formLoggedBy
   useEffect(() => {
     try {
       const email = localStorage.getItem("ut_admin_email");
       if (email) setFormLoggedBy(email.split("@")[0]);
     } catch (_) {}
+  }, []);
+
+  // ─── Determine if current user is Admin (Staff cannot see financial aggregate cards) ───
+  useEffect(() => {
+    let active = true;
+
+    const checkAdminStatus = async () => {
+      try {
+        // 1. Immediate local/session storage check for fast rendering without flashing
+        const storedEmail = (localStorage.getItem("ut_admin_email") || sessionStorage.getItem("ut_admin_email") || "").toLowerCase().trim();
+        const storedRole = (localStorage.getItem("ut_admin_role") || sessionStorage.getItem("ut_admin_role") || "").toLowerCase().trim();
+        const storedPerms = localStorage.getItem("ut_admin_permissions") || sessionStorage.getItem("ut_admin_permissions");
+
+        let locallyAdmin = isEmailAdmin(storedEmail) || storedRole === "super_admin" || storedRole === "admin";
+        if (!locallyAdmin && storedPerms) {
+          try {
+            const parsed = JSON.parse(storedPerms);
+            if (parsed.analytics && parsed.settings) locallyAdmin = true;
+          } catch (_) {}
+        }
+
+        if (locallyAdmin && active) {
+          setIsAdmin(true);
+        }
+
+        // 2. Validate against live Supabase Auth session & app_settings to prevent tampering
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!active) return;
+
+        if (user?.email) {
+          const userEmail = user.email.toLowerCase().trim();
+          if (isEmailAdmin(userEmail)) {
+            setIsAdmin(true);
+            return;
+          }
+
+          // Check database staff_permissions list
+          const { data: staffRow } = await supabase
+            .from("app_settings")
+            .select("value")
+            .eq("key", "staff_permissions")
+            .maybeSingle();
+
+          if (!active) return;
+
+          if (staffRow?.value) {
+            try {
+              const parsed = JSON.parse(staffRow.value);
+              if (Array.isArray(parsed)) {
+                const member = parsed.find((s: any) => s.email?.toLowerCase().trim() === userEmail);
+                if (member) {
+                  const role = (member.role || "").toLowerCase().trim();
+                  const isStaffAdmin = role === "super_admin" || role === "admin";
+                  setIsAdmin(isStaffAdmin);
+                  return;
+                }
+              }
+            } catch (_) {}
+          }
+
+          // Fallback whitelist check
+          const { data: whitelistRow } = await supabase
+            .from("app_settings")
+            .select("value")
+            .eq("key", "admin_whitelist")
+            .maybeSingle();
+
+          if (!active) return;
+
+          if (whitelistRow?.value) {
+            const allowed = whitelistRow.value.split(",").map((e: string) => e.trim().toLowerCase());
+            if (allowed.includes(userEmail)) {
+              // admin_whitelist users without super_admin role are treated as staff
+              setIsAdmin(false);
+              return;
+            }
+          }
+
+          // If user email doesn't match root admin or super_admin role, revoke admin cards
+          setIsAdmin(false);
+        } else if (!locallyAdmin) {
+          setIsAdmin(false);
+        }
+      } catch (err) {
+        console.warn("Could not verify admin status:", err);
+      }
+    };
+
+    checkAdminStatus();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   // ─── Period Calculations ───
@@ -362,6 +502,42 @@ export default function VendingCenterLoggerPage() {
       byMode,
     };
   }, [filteredEntriesByPeriod]);
+
+  // ─── Staff Gutted Trout Incentive Tracker (₹5/Kg Gutted Only) ───
+  const incentiveStats = useMemo(() => {
+    // 1. All-time Gutted Trout Weight across all entries
+    let allTimeGuttedKg = 0;
+    entries.forEach((e) => {
+      const isGutted =
+        (e.product_type || "").toLowerCase().includes("gutted") &&
+        !(e.product_type || "").toLowerCase().includes("non");
+      if (isGutted) {
+        allTimeGuttedKg = Math.round((allTimeGuttedKg + (Number(e.weight_kg) || 0)) * 1000) / 1000;
+      }
+    });
+
+    // 2. Current period gutted trout weight
+    const periodGuttedKg = kpis.guttedKg;
+
+    // 3. Incentive amounts (at ₹5/Kg)
+    const allTimeEarned = Math.round(allTimeGuttedKg * INCENTIVE_RATE_PER_KG);
+    const periodEarned = Math.round(periodGuttedKg * INCENTIVE_RATE_PER_KG);
+
+    // 4. Total paid disbursements from ledger
+    const totalPaid = payouts.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+
+    // 5. Remaining amount owed to staff worker
+    const balanceRemaining = Math.max(0, Math.round(allTimeEarned - totalPaid));
+
+    return {
+      allTimeGuttedKg,
+      periodGuttedKg,
+      allTimeEarned,
+      periodEarned,
+      totalPaid,
+      balanceRemaining,
+    };
+  }, [entries, kpis.guttedKg, payouts]);
 
   // ─── Search & Dropdown Filtered Table List ───
   const displayEntries = useMemo(() => {
@@ -520,6 +696,63 @@ export default function VendingCenterLoggerPage() {
       }
     } catch (err) {
       console.error("Failed to delete entry:", err);
+    }
+  };
+
+  // ─── Staff Incentive Payout Handlers ───
+  const handleRecordPayout = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const amount = parseFloat(payoutFormAmount);
+    if (!amount || isNaN(amount) || amount <= 0) {
+      alert("Please enter a valid payout amount greater than ₹0.");
+      return;
+    }
+
+    setSavingPayout(true);
+    try {
+      const res = await adminFetch("/api/vending-log/incentive", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          payout_date: payoutFormDate,
+          payout_time: payoutFormTime,
+          amount,
+          payment_mode: payoutFormMode,
+          recipient_name: payoutFormRecipient,
+          notes: payoutFormNotes,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.payout) {
+          setPayouts((prev) => [data.payout, ...prev]);
+          setPayoutFormAmount("");
+          setPayoutFormNotes("");
+        }
+      } else {
+        const errData = await res.json();
+        alert(errData.error || "Failed to record payout.");
+      }
+    } catch (err) {
+      console.error("Error saving payout:", err);
+      alert("Failed to record payout. Please try again.");
+    } finally {
+      setSavingPayout(false);
+    }
+  };
+
+  const handleDeletePayout = async (id: string) => {
+    try {
+      const res = await adminFetch(`/api/vending-log/incentive?id=${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setPayouts((prev) => prev.filter((p) => p.id !== id));
+        setDeletePayoutConfirmId(null);
+      }
+    } catch (err) {
+      console.error("Failed to delete payout:", err);
     }
   };
 
@@ -799,27 +1032,50 @@ export default function VendingCenterLoggerPage() {
             })}
           </div>
 
-          {period === "custom" && (
-            <div className="flex items-center gap-2 text-xs font-mono">
-              <input
-                type="date"
-                value={customStartDate}
-                onChange={(e) => setCustomStartDate(e.target.value)}
-                className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-white focus:outline-none focus:border-emerald-400"
-              />
-              <span className="text-slate-500">to</span>
-              <input
-                type="date"
-                value={customEndDate}
-                onChange={(e) => setCustomEndDate(e.target.value)}
-                className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-white focus:outline-none focus:border-emerald-400"
-              />
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+            {period === "custom" && (
+              <div className="flex items-center gap-2 text-xs font-mono">
+                <input
+                  type="date"
+                  value={customStartDate}
+                  onChange={(e) => setCustomStartDate(e.target.value)}
+                  className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-white focus:outline-none focus:border-emerald-400"
+                />
+                <span className="text-slate-500">to</span>
+                <input
+                  type="date"
+                  value={customEndDate}
+                  onChange={(e) => setCustomEndDate(e.target.value)}
+                  className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-white focus:outline-none focus:border-emerald-400"
+                />
+              </div>
+            )}
+
+            {/* Admin Financial Cards Visibility Toggle (Hidden for Staff) */}
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => setShowAdminCards((prev) => !prev)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-emerald-400 border border-emerald-500/30 text-xs font-mono font-bold transition-all cursor-pointer shadow-sm active:scale-95"
+                title={showAdminCards ? "Hide financial metric cards" : "Show financial metric cards"}
+              >
+                <span className="material-symbols-outlined text-sm">
+                  {showAdminCards ? "visibility" : "visibility_off"}
+                </span>
+                <span className="hidden sm:inline">
+                  {showAdminCards ? "Admin Cards: Visible" : "Admin Cards: Hidden"}
+                </span>
+                <span className="sm:hidden">
+                  {showAdminCards ? "Visible" : "Hidden"}
+                </span>
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* 5-Stat Metric Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+        {/* 6-Stat Metric Cards Grid (Only visible to Admin; strictly hidden for Staff) */}
+        {isAdmin && showAdminCards && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 animate-in fade-in duration-200">
           {/* Card 1: Total Weight Sold */}
           <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-950/40 via-slate-900/80 to-slate-900 border border-emerald-500/30 shadow-xl shadow-emerald-950/20 relative overflow-hidden flex flex-col justify-between">
             <div>
@@ -990,8 +1246,61 @@ export default function VendingCenterLoggerPage() {
               </div>
             </div>
           </div>
+
+          {/* Card 6: Staff Incentive (₹5/Kg Gutted Trout Only) */}
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-950/50 via-slate-900/90 to-slate-900 border border-purple-500/40 shadow-xl shadow-purple-950/20 relative overflow-hidden flex flex-col justify-between group">
+            <div>
+              <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
+                <span className="text-purple-300 font-bold flex items-center gap-1.5">
+                  <span>STAFF INCENTIVE</span>
+                  <span className="px-1.5 py-0.2 rounded bg-purple-500/20 text-[9px] text-purple-200 border border-purple-500/30">
+                    ₹5/Kg
+                  </span>
+                </span>
+                <span className="material-symbols-outlined text-purple-400 text-lg">
+                  volunteer_activism
+                </span>
+              </div>
+              <div className="mt-2 flex items-baseline gap-1.5">
+                <span className="text-purple-400 font-bold text-xl">₹</span>
+                <span
+                  className="text-3xl sm:text-4xl font-black text-white"
+                  style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                >
+                  {incentiveStats.balanceRemaining.toLocaleString("en-IN")}
+                </span>
+                <span
+                  className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                    incentiveStats.balanceRemaining > 0
+                      ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                      : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                  }`}
+                >
+                  {incentiveStats.balanceRemaining > 0 ? "Pending Due" : "Settled ✓"}
+                </span>
+              </div>
+            </div>
+            <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2 space-y-1">
+              <div className="flex items-center justify-between text-purple-200">
+                <span>Earned: ₹{incentiveStats.allTimeEarned.toLocaleString("en-IN")}</span>
+                <span>Paid: ₹{incentiveStats.totalPaid.toLocaleString("en-IN")}</span>
+              </div>
+              <div className="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
+                <span className="truncate">Gutted: {formatKg(incentiveStats.allTimeGuttedKg)} Kg</span>
+                <button
+                  type="button"
+                  onClick={() => setPayoutModalOpen(true)}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-500/20 hover:bg-purple-500/30 text-purple-200 border border-purple-500/40 text-[10px] font-bold font-mono transition-all cursor-pointer shadow-sm active:scale-95"
+                >
+                  <span className="material-symbols-outlined text-xs">payments</span>
+                  <span>Pay Staff</span>
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
+    </div>
 
       {/* ══════════════════════════════════════════════════════════
           TABLE FILTERS & CONTROLS
@@ -1875,6 +2184,314 @@ export default function VendingCenterLoggerPage() {
                 + Add Column to Table
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════
+          MODAL 3: STAFF INCENTIVE PAYOUTS & DISBURSEMENT LEDGER
+          ══════════════════════════════════════════════════════════ */}
+      {isAdmin && payoutModalOpen && (
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setPayoutModalOpen(false);
+          }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto"
+        >
+          <div className="bg-slate-900 border border-purple-500/40 rounded-3xl p-5 sm:p-7 max-w-2xl w-full text-slate-200 shadow-2xl space-y-5 my-4 max-h-[92vh] overflow-y-auto font-mono">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between border-b border-slate-800 pb-3.5">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-purple-400 text-xl">volunteer_activism</span>
+                  <h3 className="text-base sm:text-lg font-black text-white font-['Space_Grotesk']">
+                    Staff Gutted Trout Incentive Tracker
+                  </h3>
+                  <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 text-[10px] font-bold">
+                    ₹5.00 / Kg
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 mt-1">
+                  Automated incentive calculation for gutted trout sales &amp; payout disbursement ledger.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPayoutModalOpen(false)}
+                className="p-1.5 rounded-xl bg-slate-800 text-slate-400 hover:text-white transition-all cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-lg">close</span>
+              </button>
+            </div>
+
+            {/* Top Metric Summary Cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800">
+                <span className="text-[10px] text-slate-400 uppercase tracking-wider block">
+                  Gutted Sold (All-Time)
+                </span>
+                <div className="mt-1 text-base sm:text-lg font-black text-white">
+                  {formatKg(incentiveStats.allTimeGuttedKg)}{" "}
+                  <span className="text-xs text-purple-400 font-normal">Kg</span>
+                </div>
+                <span className="text-[10px] text-slate-500 block mt-0.5">
+                  Period: {formatKg(incentiveStats.periodGuttedKg)} Kg
+                </span>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-slate-950 border border-purple-500/20">
+                <span className="text-[10px] text-purple-300 uppercase tracking-wider block">
+                  Incentive Accrued
+                </span>
+                <div className="mt-1 text-base sm:text-lg font-black text-purple-300">
+                  ₹{incentiveStats.allTimeEarned.toLocaleString("en-IN")}
+                </div>
+                <span className="text-[10px] text-slate-500 block mt-0.5">
+                  Period: ₹{incentiveStats.periodEarned.toLocaleString("en-IN")}
+                </span>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800">
+                <span className="text-[10px] text-slate-400 uppercase tracking-wider block">
+                  Total Paid Out
+                </span>
+                <div className="mt-1 text-base sm:text-lg font-black text-cyan-300">
+                  ₹{incentiveStats.totalPaid.toLocaleString("en-IN")}
+                </div>
+                <span className="text-[10px] text-slate-500 block mt-0.5">
+                  {payouts.length} disbursements
+                </span>
+              </div>
+
+              <div
+                className={`p-3 rounded-2xl border ${
+                  incentiveStats.balanceRemaining > 0
+                    ? "bg-amber-950/20 border-amber-500/40"
+                    : "bg-emerald-950/20 border-emerald-500/40"
+                }`}
+              >
+                <span
+                  className={`text-[10px] uppercase tracking-wider block ${
+                    incentiveStats.balanceRemaining > 0 ? "text-amber-300 font-bold" : "text-emerald-300"
+                  }`}
+                >
+                  Balance to Pay
+                </span>
+                <div
+                  className={`mt-1 text-base sm:text-lg font-black ${
+                    incentiveStats.balanceRemaining > 0 ? "text-amber-300" : "text-emerald-400"
+                  }`}
+                >
+                  ₹{incentiveStats.balanceRemaining.toLocaleString("en-IN")}
+                </div>
+                <span className="text-[10px] text-slate-400 block mt-0.5">
+                  {incentiveStats.balanceRemaining > 0 ? "Pending staff due" : "All cleared ✓"}
+                </span>
+              </div>
+            </div>
+
+            {/* Form to Log New Payment */}
+            <div className="p-4 rounded-2xl bg-slate-950/90 border border-purple-500/30 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs uppercase tracking-wider font-bold text-purple-300 flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-sm">payments</span>
+                  Record Payout to Staff
+                </span>
+                {incentiveStats.balanceRemaining > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setPayoutFormAmount(String(incentiveStats.balanceRemaining))}
+                    className="text-[10px] text-purple-300 hover:text-white underline cursor-pointer"
+                  >
+                    Auto-fill balance: ₹{incentiveStats.balanceRemaining}
+                  </button>
+                )}
+              </div>
+
+              <form onSubmit={handleRecordPayout} className="space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <div>
+                    <label className="text-[10px] uppercase text-slate-400 block mb-1">
+                      Payout Amount (₹) *
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-2 text-purple-400 font-bold text-xs">₹</span>
+                      <input
+                        type="number"
+                        step="any"
+                        placeholder="e.g. 500"
+                        value={payoutFormAmount}
+                        onChange={(e) => setPayoutFormAmount(e.target.value)}
+                        required
+                        className="w-full pl-7 pr-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-purple-400 font-bold"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] uppercase text-slate-400 block mb-1">
+                      Payment Mode
+                    </label>
+                    <select
+                      value={payoutFormMode}
+                      onChange={(e) => setPayoutFormMode(e.target.value)}
+                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-purple-400"
+                    >
+                      <option value="Cash">Cash Drawer</option>
+                      <option value="UPI">UPI / GPay / PhonePe</option>
+                      <option value="Bank Transfer">Bank Transfer</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] uppercase text-slate-400 block mb-1">
+                      Recipient / Staff
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Counter Staff"
+                      value={payoutFormRecipient}
+                      onChange={(e) => setPayoutFormRecipient(e.target.value)}
+                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-purple-400"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <div>
+                    <label className="text-[10px] uppercase text-slate-400 block mb-1">
+                      Payout Date
+                    </label>
+                    <input
+                      type="date"
+                      value={payoutFormDate}
+                      onChange={(e) => setPayoutFormDate(e.target.value)}
+                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-purple-400"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="text-[10px] uppercase text-slate-400 block mb-1">
+                      Notes / Reference (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Cleared for last week gutted sales"
+                      value={payoutFormNotes}
+                      onChange={(e) => setPayoutFormNotes(e.target.value)}
+                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-purple-400"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-1">
+                  <button
+                    type="submit"
+                    disabled={savingPayout}
+                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md disabled:opacity-50 flex items-center gap-1.5"
+                  >
+                    {savingPayout ? (
+                      <>
+                        <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent animate-spin rounded-full" />
+                        <span>Recording...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined text-sm">check_circle</span>
+                        <span>Record Payment Disbursement</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* Payouts Ledger Table */}
+            <div className="space-y-2">
+              <span className="text-xs uppercase tracking-wider font-bold text-slate-400 block">
+                Disbursement History Ledger ({payouts.length})
+              </span>
+
+              {payouts.length === 0 ? (
+                <div className="text-center py-6 border border-dashed border-slate-800 rounded-2xl text-xs text-slate-500">
+                  <span className="material-symbols-outlined text-2xl text-slate-600 block mb-1">
+                    receipt_long
+                  </span>
+                  No payments logged yet. Record a payout above when you disburse incentive money to your staff.
+                </div>
+              ) : (
+                <div className="border border-slate-800 rounded-2xl overflow-hidden max-h-56 overflow-y-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="bg-slate-950 border-b border-slate-800 text-[10px] text-slate-400 uppercase">
+                        <th className="py-2.5 px-3">Date</th>
+                        <th className="py-2.5 px-3">Recipient</th>
+                        <th className="py-2.5 px-3">Mode</th>
+                        <th className="py-2.5 px-3 text-right">Amount (₹)</th>
+                        <th className="py-2.5 px-3">Notes</th>
+                        <th className="py-2.5 px-3 text-center">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/60 font-mono">
+                      {payouts.map((p) => (
+                        <tr key={p.id} className="hover:bg-slate-800/40 transition-colors">
+                          <td className="py-2 px-3 whitespace-nowrap text-slate-300">
+                            {p.payout_date}{" "}
+                            {p.payout_time && (
+                              <span className="text-[10px] text-slate-500">({p.payout_time})</span>
+                            )}
+                          </td>
+                          <td className="py-2 px-3 whitespace-nowrap text-slate-200">
+                            {p.recipient_name}
+                          </td>
+                          <td className="py-2 px-3 whitespace-nowrap">
+                            <span className="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-300 border border-slate-700">
+                              {p.payment_mode}
+                            </span>
+                          </td>
+                          <td className="py-2 px-3 text-right font-black text-emerald-400 whitespace-nowrap">
+                            ₹{Number(p.amount).toLocaleString("en-IN")}
+                          </td>
+                          <td className="py-2 px-3 text-slate-400 text-[11px] max-w-[150px] truncate" title={p.notes}>
+                            {p.notes || "—"}
+                          </td>
+                          <td className="py-2 px-3 text-center whitespace-nowrap">
+                            {deletePayoutConfirmId === p.id ? (
+                              <div className="flex items-center justify-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeletePayout(p.id)}
+                                  className="px-1.5 py-0.5 rounded bg-red-600 hover:bg-red-500 text-white text-[9px] font-bold cursor-pointer"
+                                >
+                                  Confirm
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setDeletePayoutConfirmId(null)}
+                                  className="px-1.5 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-300 text-[9px] cursor-pointer"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setDeletePayoutConfirmId(p.id)}
+                                className="p-1 rounded text-slate-500 hover:text-red-400 cursor-pointer"
+                                title="Delete payout record"
+                              >
+                                <span className="material-symbols-outlined text-sm">delete</span>
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
