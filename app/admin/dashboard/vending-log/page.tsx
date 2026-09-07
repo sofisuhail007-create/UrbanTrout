@@ -112,7 +112,13 @@ export default function VendingCenterLoggerPage() {
 
   // Entry Form State
   const now = new Date();
-  const getTodayDate = () => new Date().toISOString().split("T")[0];
+  const getTodayDate = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
   const getCurrentTime = () =>
     new Date().toLocaleTimeString("en-IN", {
       hour: "2-digit",
@@ -153,6 +159,7 @@ export default function VendingCenterLoggerPage() {
   const [salaryFormNotes, setSalaryFormNotes] = useState("");
   const [deleteSalaryConfirmId, setDeleteSalaryConfirmId] = useState<string | null>(null);
   const [editingBaseSalary, setEditingBaseSalary] = useState(false);
+  const [editingBaseSalaryCard, setEditingBaseSalaryCard] = useState(false);
   const [baseSalaryInput, setBaseSalaryInput] = useState("15000");
   const [formType, setFormType] = useState<"Gutted" | "Non Gutted" | string>("Gutted");
   const [formWeight, setFormWeight] = useState<string>("");
@@ -501,6 +508,19 @@ export default function VendingCenterLoggerPage() {
     });
   }, [entries, period, customStartDate, customEndDate]);
 
+  // ─── Weighted Average Procurement Cost per Kg across all stock batches ───
+  const procurementAvgCost = useMemo(() => {
+    let totalProcuredKg = 0;
+    let totalProcuredCost = 0;
+    stockEntries.forEach((s) => {
+      const w = Number(s.weight_kg) || 0;
+      const cost = Number(s.cost_per_kg) || 0;
+      totalProcuredKg = Math.round((totalProcuredKg + w) * 1000) / 1000;
+      totalProcuredCost += w * cost;
+    });
+    return totalProcuredKg > 0 ? Math.round(totalProcuredCost / totalProcuredKg) : 350;
+  }, [stockEntries]);
+
   // ─── KPI Metrics (Computed on period filtered entries) ───
   const kpis = useMemo(() => {
     let totalKg = 0;
@@ -509,6 +529,8 @@ export default function VendingCenterLoggerPage() {
     let totalLoss = 0;
     let guttedKg = 0;
     let nonGuttedKg = 0;
+    let guttedRevenue = 0;
+    let nonGuttedRevenue = 0;
     let onlineRevenue = 0;
     let onlineCount = 0;
     let onlineKg = 0;
@@ -540,8 +562,10 @@ export default function VendingCenterLoggerPage() {
         !(e.product_type || "").toLowerCase().includes("non");
       if (isGutted) {
         guttedKg = Math.round((guttedKg + w) * 1000) / 1000;
+        guttedRevenue += rev;
       } else {
         nonGuttedKg = Math.round((nonGuttedKg + w) * 1000) / 1000;
+        nonGuttedRevenue += rev;
       }
 
       const isCash = (e.payment_mode || "").toLowerCase().trim() === "cash";
@@ -568,6 +592,16 @@ export default function VendingCenterLoggerPage() {
     const lossPercent =
       totalExpected > 0 ? ((totalLoss / totalExpected) * 100).toFixed(1) : "0.0";
 
+    // Realized Profit on sold fishes (based on procurement cost)
+    const guttedCost = Math.round(guttedKg * procurementAvgCost);
+    const nonGuttedCost = Math.round(nonGuttedKg * procurementAvgCost);
+    const guttedProfit = Math.round(guttedRevenue - guttedCost);
+    const nonGuttedProfit = Math.round(nonGuttedRevenue - nonGuttedCost);
+    const totalSoldProfit = guttedProfit + nonGuttedProfit;
+    const profitMarginPercent =
+      totalRevenue > 0 ? ((totalSoldProfit / totalRevenue) * 100).toFixed(1) : "0.0";
+    const avgProfitPerKg = totalKg > 0 ? Math.round(totalSoldProfit / totalKg) : 0;
+
     return {
       totalKg,
       totalRevenue,
@@ -576,6 +610,16 @@ export default function VendingCenterLoggerPage() {
       lossPercent,
       guttedKg,
       nonGuttedKg,
+      guttedRevenue,
+      nonGuttedRevenue,
+      guttedCost,
+      nonGuttedCost,
+      guttedProfit,
+      nonGuttedProfit,
+      totalSoldProfit,
+      profitMarginPercent,
+      avgProfitPerKg,
+      procurementAvgCost,
       count,
       avgKgPerBill,
       avgBillValue,
@@ -587,7 +631,7 @@ export default function VendingCenterLoggerPage() {
       cashKg,
       byMode,
     };
-  }, [filteredEntriesByPeriod]);
+  }, [filteredEntriesByPeriod, procurementAvgCost]);
 
   // ─── Staff Gutted Trout Incentive Tracker (₹5/Kg Gutted Only) ───
   const incentiveStats = useMemo(() => {
@@ -1209,6 +1253,11 @@ export default function VendingCenterLoggerPage() {
         { "Vending Center Metric": "Report Generated Date", "Value / Amount": getTodayDate() },
         { "Vending Center Metric": "Active Filter Period", "Value / Amount": period.toUpperCase() },
         { "Vending Center Metric": "Total Vending Revenue (Rs)", "Value / Amount": kpis.totalRevenue },
+        { "Vending Center Metric": "Realized Net Profit on Sold Fish (Rs)", "Value / Amount": kpis.totalSoldProfit },
+        { "Vending Center Metric": "Gutted Trout Sold Profit (Rs)", "Value / Amount": kpis.guttedProfit },
+        { "Vending Center Metric": "Non-Gutted Trout Sold Profit (Rs)", "Value / Amount": kpis.nonGuttedProfit },
+        { "Vending Center Metric": "Net Profit Margin on Sold Fish (%)", "Value / Amount": `${kpis.profitMarginPercent}%` },
+        { "Vending Center Metric": "Avg Procurement Cost per Kg (Rs)", "Value / Amount": procurementAvgCost },
         { "Vending Center Metric": "Total Weight Sold (Kg)", "Value / Amount": Number(kpis.totalKg.toFixed(3)) },
         { "Vending Center Metric": "Gutted Trout Sold (Kg)", "Value / Amount": Number(kpis.guttedKg.toFixed(3)) },
         { "Vending Center Metric": "Non-Gutted Trout Sold (Kg)", "Value / Amount": Number(kpis.nonGuttedKg.toFixed(3)) },
@@ -1537,285 +1586,381 @@ export default function VendingCenterLoggerPage() {
           </div>
         </div>
 
-        {/* 7-Stat Metric Cards Grid (Only visible to Admin; strictly hidden for Staff) */}
+        {/* ══════════════════════════════════════════════════════════
+            SECTION 1: SALES & REVENUE PERFORMANCE (6 Spacious Cards)
+            ══════════════════════════════════════════════════════════ */}
         {isAdmin && showAdminCards && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-3 animate-in fade-in duration-200">
-          {/* Card 1: Total Weight Sold */}
-          <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-950/40 via-slate-900/80 to-slate-900 border border-emerald-500/30 shadow-xl shadow-emerald-950/20 relative overflow-hidden flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
-                <span>TOTAL KG SOLD</span>
-                <span className="material-symbols-outlined text-emerald-400 text-lg">scale</span>
-              </div>
-              <div className="mt-2 flex items-baseline gap-2">
-                <span
-                  className="text-3xl sm:text-4xl font-black text-white"
-                  style={{ fontFamily: '"Space Grotesk", sans-serif' }}
-                >
-                  {formatKg(kpis.totalKg)}
-                </span>
-                <span className="text-emerald-400 font-bold font-mono text-sm">Kg</span>
-              </div>
-            </div>
-            <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2 space-y-0.5">
-              <div className="flex items-center justify-between">
-                <span className="text-emerald-300 font-bold">Gutted: {formatKg(kpis.guttedKg)} Kg</span>
-                <span className="text-cyan-300">Non: {formatKg(kpis.nonGuttedKg)} Kg</span>
-              </div>
-              <div className="text-[10px] text-slate-500 truncate">{kpis.count} total dispatches logged</div>
-            </div>
-          </div>
-
-          {/* Card 2: Total Revenue Collected */}
-          <div className="p-4 rounded-2xl bg-gradient-to-br from-cyan-950/40 via-slate-900/80 to-slate-900 border border-cyan-500/30 shadow-xl shadow-cyan-950/20 relative overflow-hidden flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
-                <span>REVENUE COLLECTED</span>
-                <span className="material-symbols-outlined text-cyan-400 text-lg">payments</span>
-              </div>
-              <div className="mt-2 flex items-baseline gap-1">
-                <span className="text-cyan-400 font-bold text-xl">₹</span>
-                <span
-                  className="text-3xl sm:text-4xl font-black text-white"
-                  style={{ fontFamily: '"Space Grotesk", sans-serif' }}
-                >
-                  {kpis.totalRevenue.toLocaleString("en-IN")}
-                </span>
-              </div>
-            </div>
-            <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2 space-y-0.5">
-              <div className="flex items-center justify-between">
-                <span>Expected: ₹{kpis.totalExpected.toLocaleString("en-IN")}</span>
-              </div>
-              <div className="text-[10px] text-slate-500 truncate">
-                {kpis.count} bills • Avg ₹{kpis.avgBillValue}/bill
-              </div>
-            </div>
-          </div>
-
-          {/* Card 3: Online Payments */}
-          <div className="p-4 rounded-2xl bg-gradient-to-br from-indigo-950/40 via-slate-900/80 to-slate-900 border border-indigo-500/30 shadow-xl shadow-indigo-950/20 relative overflow-hidden flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
-                <span>ONLINE PAYMENTS</span>
-                <span className="material-symbols-outlined text-indigo-400 text-lg">contactless</span>
-              </div>
-              <div className="mt-2 flex items-baseline gap-1">
-                <span className="text-indigo-400 font-bold text-xl">₹</span>
-                <span
-                  className="text-3xl sm:text-4xl font-black text-white"
-                  style={{ fontFamily: '"Space Grotesk", sans-serif' }}
-                >
-                  {kpis.onlineRevenue.toLocaleString("en-IN")}
-                </span>
-              </div>
-            </div>
-            <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2 space-y-0.5">
-              <div className="flex items-center justify-between text-indigo-300">
-                <span>{kpis.onlineCount} orders</span>
-                <span>{formatKg(kpis.onlineKg)} Kg</span>
-              </div>
-              <div className="text-[10px] text-slate-500 truncate">J&amp;K Soundbox, UPI &amp; Cards</div>
-            </div>
-          </div>
-
-          {/* Card 4: Cash Payments */}
-          <div className="p-4 rounded-2xl bg-gradient-to-br from-teal-950/40 via-slate-900/80 to-slate-900 border border-teal-500/30 shadow-xl shadow-teal-950/20 relative overflow-hidden flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
-                <span>CASH PAYMENTS</span>
-                <span className="material-symbols-outlined text-teal-400 text-lg">point_of_sale</span>
-              </div>
-              <div className="mt-2 flex items-baseline gap-1">
-                <span className="text-teal-400 font-bold text-xl">₹</span>
-                <span
-                  className="text-3xl sm:text-4xl font-black text-white"
-                  style={{ fontFamily: '"Space Grotesk", sans-serif' }}
-                >
-                  {kpis.cashRevenue.toLocaleString("en-IN")}
-                </span>
-              </div>
-            </div>
-            <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2 space-y-0.5">
-              <div className="flex items-center justify-between text-teal-300">
-                <span>{kpis.cashCount} sales</span>
-                <span>{formatKg(kpis.cashKg)} Kg</span>
-              </div>
-              <div className="text-[10px] text-slate-500 truncate">Counter Cash Drawer</div>
-            </div>
-          </div>
-
-          {/* Card 5: Negotiation Concession / Loss */}
-          <div
-            className={`p-4 rounded-2xl border shadow-xl relative overflow-hidden flex flex-col justify-between ${
-              kpis.totalLoss > 0
-                ? "bg-gradient-to-br from-amber-950/50 via-slate-900/90 to-slate-900 border-amber-500/40 shadow-amber-950/20"
-                : "bg-gradient-to-br from-emerald-950/30 via-slate-900/80 to-slate-900 border-emerald-500/30 shadow-emerald-950/10"
-            }`}
-          >
-            <div>
-              <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
-                <span className={kpis.totalLoss > 0 ? "text-amber-300 font-bold" : ""}>
-                  NEGOTIATION LOSS
-                </span>
-                <span
-                  className={`material-symbols-outlined text-lg ${
-                    kpis.totalLoss > 0 ? "text-amber-400 animate-pulse" : "text-emerald-400"
-                  }`}
-                >
-                  {kpis.totalLoss > 0 ? "price_change" : "verified"}
-                </span>
-              </div>
-              <div className="mt-2 flex items-baseline gap-1">
-                {kpis.totalLoss > 0 ? (
-                  <>
-                    <span className="text-amber-400 font-bold text-xl">-₹</span>
+          <div className="space-y-3.5 animate-in fade-in duration-200">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3.5">
+              {/* Card 1: Total Weight Sold */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-emerald-950/40 via-slate-900/80 to-slate-900 border border-emerald-500/30 shadow-xl shadow-emerald-950/20 relative overflow-hidden flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
+                    <span className="font-bold tracking-wider">TOTAL KG SOLD</span>
+                    <span className="material-symbols-outlined text-emerald-400 text-lg">scale</span>
+                  </div>
+                  <div className="mt-2.5 flex items-baseline gap-2">
                     <span
-                      className="text-3xl sm:text-4xl font-black text-amber-300"
+                      className="text-3xl sm:text-4xl font-black text-white"
                       style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                     >
-                      {kpis.totalLoss.toLocaleString("en-IN")}
+                      {formatKg(kpis.totalKg)}
                     </span>
-                  </>
-                ) : (
-                  <>
-                    <span className="text-emerald-400 font-bold text-xl">₹</span>
+                    <span className="text-emerald-400 font-bold font-mono text-sm">Kg</span>
+                  </div>
+                </div>
+                <div className="mt-3.5 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2.5 space-y-0.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-emerald-300 font-bold">Gutted: {formatKg(kpis.guttedKg)} Kg</span>
+                    <span className="text-cyan-300">Non: {formatKg(kpis.nonGuttedKg)} Kg</span>
+                  </div>
+                  <div className="text-[10px] text-slate-500 truncate">{kpis.count} total dispatches</div>
+                </div>
+              </div>
+
+              {/* Card 2: Total Revenue Collected */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-cyan-950/40 via-slate-900/80 to-slate-900 border border-cyan-500/30 shadow-xl shadow-cyan-950/20 relative overflow-hidden flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
+                    <span className="font-bold tracking-wider">REVENUE</span>
+                    <span className="material-symbols-outlined text-cyan-400 text-lg">payments</span>
+                  </div>
+                  <div className="mt-2.5 flex items-baseline gap-1">
+                    <span className="text-cyan-400 font-bold text-xl">₹</span>
                     <span
-                      className="text-3xl sm:text-4xl font-black text-emerald-400"
+                      className="text-3xl sm:text-4xl font-black text-white"
                       style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                     >
-                      0
+                      {kpis.totalRevenue.toLocaleString("en-IN")}
                     </span>
-                    <span className="text-[11px] font-mono text-emerald-400 font-bold ml-1">
-                      Full Price ✓
+                  </div>
+                </div>
+                <div className="mt-3.5 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2.5 space-y-0.5">
+                  <div className="flex items-center justify-between">
+                    <span>Expected: ₹{kpis.totalExpected.toLocaleString("en-IN")}</span>
+                  </div>
+                  <div className="text-[10px] text-slate-500 truncate">
+                    {kpis.count} bills • Avg ₹{kpis.avgBillValue}/bill
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 3: Realized Profit on Sold Trout (NEW) */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-teal-950/50 via-slate-900/90 to-slate-900 border border-teal-500/40 shadow-xl shadow-teal-950/25 relative overflow-hidden flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
+                    <span className="text-teal-300 font-bold tracking-wider flex items-center gap-1.5">
+                      <span>PROFIT ON SOLD</span>
+                      <span className="px-1.5 py-0.2 rounded bg-teal-500/20 text-[9px] text-teal-200 border border-teal-500/30 font-bold">
+                        Net
+                      </span>
                     </span>
-                  </>
-                )}
+                    <span className="material-symbols-outlined text-teal-400 text-lg">trending_up</span>
+                  </div>
+                  <div className="mt-2.5 flex items-baseline gap-1">
+                    <span className="text-teal-400 font-bold text-xl">₹</span>
+                    <span
+                      className="text-3xl sm:text-4xl font-black text-white"
+                      style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                    >
+                      {kpis.totalSoldProfit.toLocaleString("en-IN")}
+                    </span>
+                    <span className="text-[11px] font-bold text-teal-400 font-mono ml-1">
+                      {kpis.profitMarginPercent}%
+                    </span>
+                  </div>
+                </div>
+                <div className="mt-3.5 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2.5 space-y-0.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-emerald-300 font-bold">G: ₹{kpis.guttedProfit.toLocaleString("en-IN")}</span>
+                    <span className="text-cyan-300 font-bold">NG: ₹{kpis.nonGuttedProfit.toLocaleString("en-IN")}</span>
+                  </div>
+                  <div className="text-[10px] text-slate-500 truncate">
+                    At ₹{kpis.procurementAvgCost}/Kg procurement cost
+                  </div>
+                </div>
               </div>
-            </div>
-            <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2 space-y-0.5">
-              <div className="flex items-center justify-between">
-                {kpis.totalLoss > 0 ? (
-                  <span className="text-amber-300 font-bold">
-                    ⚠️ {kpis.lossPercent}% Conceded
-                  </span>
-                ) : (
-                  <span className="text-emerald-400 font-bold">Zero discount loss</span>
-                )}
-              </div>
-              <div className="text-[10px] text-slate-500 truncate">
-                {kpis.totalLoss > 0
-                  ? "Lost to customer negotiation"
-                  : "All orders at full inventory price"}
-              </div>
-            </div>
-          </div>
 
-          {/* Card 6: Staff Incentive (Mohd Amin · ₹5/Kg Gutted Trout) */}
-          <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-950/50 via-slate-900/90 to-slate-900 border border-purple-500/40 shadow-xl shadow-purple-950/20 relative overflow-hidden flex flex-col justify-between group">
-            <div>
-              <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
-                <span className="text-purple-300 font-bold flex items-center gap-1.5">
-                  <span>MOHD AMIN · INCENTIVE</span>
-                  <span className="px-1.5 py-0.2 rounded bg-purple-500/20 text-[9px] text-purple-200 border border-purple-500/30">
-                    ₹5/Kg
-                  </span>
-                </span>
-                <span className="material-symbols-outlined text-purple-400 text-lg">
-                  volunteer_activism
-                </span>
+              {/* Card 4: Online Payments */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-indigo-950/40 via-slate-900/80 to-slate-900 border border-indigo-500/30 shadow-xl shadow-indigo-950/20 relative overflow-hidden flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
+                    <span className="font-bold tracking-wider">ONLINE</span>
+                    <span className="material-symbols-outlined text-indigo-400 text-lg">contactless</span>
+                  </div>
+                  <div className="mt-2.5 flex items-baseline gap-1">
+                    <span className="text-indigo-400 font-bold text-xl">₹</span>
+                    <span
+                      className="text-3xl sm:text-4xl font-black text-white"
+                      style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                    >
+                      {kpis.onlineRevenue.toLocaleString("en-IN")}
+                    </span>
+                  </div>
+                </div>
+                <div className="mt-3.5 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2.5 space-y-0.5">
+                  <div className="flex items-center justify-between text-indigo-300">
+                    <span>{kpis.onlineCount} orders</span>
+                    <span>{formatKg(kpis.onlineKg)} Kg</span>
+                  </div>
+                  <div className="text-[10px] text-slate-500 truncate">J&amp;K Soundbox, UPI &amp; Cards</div>
+                </div>
               </div>
-              <div className="mt-2 flex items-baseline gap-1.5">
-                <span className="text-purple-400 font-bold text-xl">₹</span>
-                <span
-                  className="text-3xl sm:text-4xl font-black text-white"
-                  style={{ fontFamily: '"Space Grotesk", sans-serif' }}
-                >
-                  {incentiveStats.balanceRemaining.toLocaleString("en-IN")}
-                </span>
-                <span
-                  className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
-                    incentiveStats.balanceRemaining > 0
-                      ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                      : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                  }`}
-                >
-                  {incentiveStats.balanceRemaining > 0 ? "Pending Due" : "Settled ✓"}
-                </span>
-              </div>
-            </div>
-            <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2 space-y-1">
-              <div className="flex items-center justify-between text-purple-200">
-                <span>Earned: ₹{incentiveStats.allTimeEarned.toLocaleString("en-IN")}</span>
-                <span>Paid: ₹{incentiveStats.totalPaid.toLocaleString("en-IN")}</span>
-              </div>
-              <div className="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
-                <span className="truncate">Gutted: {formatKg(incentiveStats.allTimeGuttedKg)} Kg</span>
-                <button
-                  type="button"
-                  onClick={() => setPayoutModalOpen(true)}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-500/20 hover:bg-purple-500/30 text-purple-200 border border-purple-500/40 text-[10px] font-bold font-mono transition-all cursor-pointer shadow-sm active:scale-95"
-                >
-                  <span className="material-symbols-outlined text-xs">payments</span>
-                  <span>Pay Incentive</span>
-                </button>
-              </div>
-            </div>
-          </div>
 
-          {/* Card 7: Worker Salary Management (Mohd Amin) */}
-          <div className="p-4 rounded-2xl bg-gradient-to-br from-sky-950/50 via-slate-900/90 to-slate-900 border border-sky-500/40 shadow-xl shadow-sky-950/20 relative overflow-hidden flex flex-col justify-between group">
-            <div>
-              <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
-                <span className="text-sky-300 font-bold flex items-center gap-1.5">
-                  <span>MOHD AMIN · SALARY</span>
-                  <span className="px-1.5 py-0.2 rounded bg-sky-500/20 text-[9px] text-sky-200 border border-sky-500/30">
-                    Wage
-                  </span>
-                </span>
-                <span className="material-symbols-outlined text-sky-400 text-lg">
-                  badge
-                </span>
+              {/* Card 5: Cash Payments */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-blue-950/40 via-slate-900/80 to-slate-900 border border-blue-500/30 shadow-xl shadow-blue-950/20 relative overflow-hidden flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
+                    <span className="font-bold tracking-wider">CASH DRAWER</span>
+                    <span className="material-symbols-outlined text-blue-400 text-lg">point_of_sale</span>
+                  </div>
+                  <div className="mt-2.5 flex items-baseline gap-1">
+                    <span className="text-blue-400 font-bold text-xl">₹</span>
+                    <span
+                      className="text-3xl sm:text-4xl font-black text-white"
+                      style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                    >
+                      {kpis.cashRevenue.toLocaleString("en-IN")}
+                    </span>
+                  </div>
+                </div>
+                <div className="mt-3.5 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2.5 space-y-0.5">
+                  <div className="flex items-center justify-between text-blue-300">
+                    <span>{kpis.cashCount} sales</span>
+                    <span>{formatKg(kpis.cashKg)} Kg</span>
+                  </div>
+                  <div className="text-[10px] text-slate-500 truncate">Counter Cash Drawer</div>
+                </div>
               </div>
-              <div className="mt-2 flex items-baseline gap-1.5">
-                <span className="text-sky-400 font-bold text-xl">₹</span>
-                <span
-                  className="text-3xl sm:text-4xl font-black text-white"
-                  style={{ fontFamily: '"Space Grotesk", sans-serif' }}
-                >
-                  {salaryStats.thisMonthPaid.toLocaleString("en-IN")}
-                </span>
-                <span
-                  className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
-                    salaryStats.monthBalanceDue > 0
-                      ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                      : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                  }`}
-                >
-                  {salaryStats.monthBalanceDue > 0 ? `₹${salaryStats.monthBalanceDue.toLocaleString("en-IN")} Due` : "Paid ✓"}
-                </span>
+
+              {/* Card 6: Negotiation Concession / Loss */}
+              <div
+                className={`p-4 sm:p-5 rounded-2xl border shadow-xl relative overflow-hidden flex flex-col justify-between ${
+                  kpis.totalLoss > 0
+                    ? "bg-gradient-to-br from-amber-950/50 via-slate-900/90 to-slate-900 border-amber-500/40 shadow-amber-950/20"
+                    : "bg-gradient-to-br from-emerald-950/30 via-slate-900/80 to-slate-900 border-emerald-500/30 shadow-emerald-950/10"
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
+                    <span className={kpis.totalLoss > 0 ? "text-amber-300 font-bold tracking-wider" : "tracking-wider"}>
+                      NEGOTIATION LOSS
+                    </span>
+                    <span
+                      className={`material-symbols-outlined text-lg ${
+                        kpis.totalLoss > 0 ? "text-amber-400 animate-pulse" : "text-emerald-400"
+                      }`}
+                    >
+                      {kpis.totalLoss > 0 ? "price_change" : "verified"}
+                    </span>
+                  </div>
+                  <div className="mt-2.5 flex items-baseline gap-1">
+                    {kpis.totalLoss > 0 ? (
+                      <>
+                        <span className="text-amber-400 font-bold text-xl">-₹</span>
+                        <span
+                          className="text-3xl sm:text-4xl font-black text-amber-300"
+                          style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                        >
+                          {kpis.totalLoss.toLocaleString("en-IN")}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-emerald-400 font-bold text-xl">₹</span>
+                        <span
+                          className="text-3xl sm:text-4xl font-black text-emerald-400"
+                          style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                        >
+                          0
+                        </span>
+                        <span className="text-[11px] font-mono text-emerald-400 font-bold ml-1">
+                          Full Price ✓
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-3.5 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2.5 space-y-0.5">
+                  <div className="flex items-center justify-between">
+                    {kpis.totalLoss > 0 ? (
+                      <span className="text-amber-300 font-bold">
+                        ⚠️ {kpis.lossPercent}% Conceded
+                      </span>
+                    ) : (
+                      <span className="text-emerald-400 font-bold">Zero discount loss</span>
+                    )}
+                  </div>
+                  <div className="text-[10px] text-slate-500 truncate">
+                    {kpis.totalLoss > 0
+                      ? "Lost to customer bargaining"
+                      : "All orders at full inventory price"}
+                  </div>
+                </div>
               </div>
             </div>
-            <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2 space-y-1">
-              <div className="flex items-center justify-between text-sky-200">
-                <span>Base: ₹{salaryStats.baseMonthly.toLocaleString("en-IN")}/mo</span>
-                <span>All-time: ₹{salaryStats.allTimePaid.toLocaleString("en-IN")}</span>
+
+            {/* ══════════════════════════════════════════════════════════
+                SECTION 2: WORKER COMPENSATION & SALARY MANAGEMENT (Mohd Amin)
+                ══════════════════════════════════════════════════════════ */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+              {/* Card A: Mohd Amin Gutted Incentive */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-purple-950/50 via-slate-900/90 to-slate-900 border border-purple-500/40 shadow-xl shadow-purple-950/20 relative overflow-hidden flex flex-col justify-between group">
+                <div>
+                  <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
+                    <span className="text-purple-300 font-bold flex items-center gap-2 tracking-wider">
+                      <span className="material-symbols-outlined text-purple-400 text-base">volunteer_activism</span>
+                      <span>MOHD AMIN · GUTTED INCENTIVE</span>
+                      <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-[10px] text-purple-200 border border-purple-500/30">
+                        ₹5.00 / Kg
+                      </span>
+                    </span>
+                    <span
+                      className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${
+                        incentiveStats.balanceRemaining > 0
+                          ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                          : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                      }`}
+                    >
+                      {incentiveStats.balanceRemaining > 0 ? "Pending Due" : "Settled ✓"}
+                    </span>
+                  </div>
+                  <div className="mt-3 flex items-baseline gap-1.5">
+                    <span className="text-purple-400 font-bold text-xl">₹</span>
+                    <span
+                      className="text-3xl sm:text-4xl font-black text-white"
+                      style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                    >
+                      {incentiveStats.balanceRemaining.toLocaleString("en-IN")}
+                    </span>
+                    <span className="text-xs text-slate-400 font-mono ml-1">pending disbursement</span>
+                  </div>
+                </div>
+                <div className="mt-4 text-xs text-slate-400 font-mono border-t border-slate-800/80 pt-3 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-3 text-purple-200 text-[11px]">
+                    <span>Earned: <strong>₹{incentiveStats.allTimeEarned.toLocaleString("en-IN")}</strong></span>
+                    <span>•</span>
+                    <span>Paid: <strong>₹{incentiveStats.totalPaid.toLocaleString("en-IN")}</strong></span>
+                    <span>•</span>
+                    <span>Gutted: <strong>{formatKg(incentiveStats.allTimeGuttedKg)} Kg</strong></span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPayoutModalOpen(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-200 border border-purple-500/40 text-xs font-bold font-mono transition-all cursor-pointer shadow-sm active:scale-95"
+                  >
+                    <span className="material-symbols-outlined text-sm">payments</span>
+                    <span>Pay Incentive</span>
+                  </button>
+                </div>
               </div>
-              <div className="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
-                <span className="truncate text-slate-400">{salaryStats.currentMonthLabel}</span>
-                <button
-                  type="button"
-                  onClick={() => setSalaryModalOpen(true)}
-                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sky-500/20 hover:bg-sky-500/30 text-sky-200 border border-sky-500/40 text-[10px] font-bold font-mono transition-all cursor-pointer shadow-sm active:scale-95"
-                >
-                  <span className="material-symbols-outlined text-xs">account_balance_wallet</span>
-                  <span>Pay Salary</span>
-                </button>
+
+              {/* Card B: Mohd Amin Monthly Salary Management */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-sky-950/50 via-slate-900/90 to-slate-900 border border-sky-500/40 shadow-xl shadow-sky-950/20 relative overflow-hidden flex flex-col justify-between group">
+                <div>
+                  <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
+                    <span className="text-sky-300 font-bold flex items-center gap-2 tracking-wider">
+                      <span className="material-symbols-outlined text-sky-400 text-base">badge</span>
+                      <span>MOHD AMIN · MONTHLY SALARY</span>
+                      <span className="px-2 py-0.5 rounded-full bg-sky-500/20 text-[10px] text-sky-200 border border-sky-500/30">
+                        Wage
+                      </span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setEditingBaseSalaryCard((p) => !p)}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sky-500/20 hover:bg-sky-500/30 text-sky-200 border border-sky-500/40 text-[10px] font-bold font-mono transition-all cursor-pointer"
+                      title="Edit Mohd Amin's base monthly wage"
+                    >
+                      <span className="material-symbols-outlined text-xs">edit</span>
+                      <span>{editingBaseSalaryCard ? "Close" : "Edit Salary"}</span>
+                    </button>
+                  </div>
+
+                  {editingBaseSalaryCard ? (
+                    <form
+                      onSubmit={(e) => {
+                        handleUpdateBaseSalary(e);
+                        setEditingBaseSalaryCard(false);
+                      }}
+                      className="mt-3 p-3 rounded-xl bg-slate-950 border border-sky-500/50 flex items-center gap-2.5 animate-in fade-in"
+                    >
+                      <div className="flex-1">
+                        <label className="text-[10px] uppercase font-mono text-slate-400 block mb-1">
+                          Base Monthly Wage for Mohd Amin (₹)
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-2.5 top-1 text-sky-400 font-bold text-xs font-mono">₹</span>
+                          <input
+                            type="number"
+                            value={baseSalaryInput}
+                            onChange={(e) => setBaseSalaryInput(e.target.value)}
+                            className="w-full pl-6 pr-2 py-1 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white font-bold font-mono focus:outline-none focus:border-sky-400"
+                            placeholder="15000"
+                            autoFocus
+                            required
+                          />
+                        </div>
+                      </div>
+                      <button
+                        type="submit"
+                        className="px-3 py-1.5 mt-3.5 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 text-xs font-bold font-mono transition-all cursor-pointer shadow"
+                      >
+                        Save
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditingBaseSalaryCard(false)}
+                        className="px-2.5 py-1.5 mt-3.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono transition-all cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                    </form>
+                  ) : (
+                    <div className="mt-3 flex items-baseline gap-1.5">
+                      <span className="text-sky-400 font-bold text-xl">₹</span>
+                      <span
+                        className="text-3xl sm:text-4xl font-black text-white"
+                        style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                      >
+                        {salaryStats.thisMonthPaid.toLocaleString("en-IN")}
+                      </span>
+                      <span
+                        className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ml-1 ${
+                          salaryStats.monthBalanceDue > 0
+                            ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                            : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                        }`}
+                      >
+                        {salaryStats.monthBalanceDue > 0
+                          ? `₹${salaryStats.monthBalanceDue.toLocaleString("en-IN")} Due`
+                          : "Paid ✓"}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-4 text-xs text-slate-400 font-mono border-t border-slate-800/80 pt-3 flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-3 text-sky-200 text-[11px]">
+                    <span>Base: <strong className="text-white">₹{salaryStats.baseMonthly.toLocaleString("en-IN")}</strong>/mo</span>
+                    <span>•</span>
+                    <span>{salaryStats.currentMonthLabel}</span>
+                    <span>•</span>
+                    <span>All-time: <strong>₹{salaryStats.allTimePaid.toLocaleString("en-IN")}</strong></span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSalaryModalOpen(true)}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 text-sky-200 border border-sky-500/40 text-xs font-bold font-mono transition-all cursor-pointer shadow-sm active:scale-95"
+                  >
+                    <span className="material-symbols-outlined text-sm">account_balance_wallet</span>
+                    <span>Pay Salary</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
     </div>
 
       {/* ══════════════════════════════════════════════════════════
