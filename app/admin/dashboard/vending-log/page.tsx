@@ -7,6 +7,7 @@ import { adminFetch } from "@/lib/adminClient";
 import { CustomColumnDef, VendingSalesEntry } from "@/app/api/vending-log/route";
 import { StaffIncentivePayout } from "@/app/api/vending-log/incentive/route";
 import { AquariumStockEntry } from "@/app/api/aquarium-stock/route";
+import { AquariumMortalityEntry } from "@/app/api/aquarium-mortality/route";
 import { WorkerSalaryPayment, WorkerSalarySettings } from "@/app/api/vending-log/salary/route";
 import * as XLSX from "xlsx";
 
@@ -170,6 +171,29 @@ export default function VendingCenterLoggerPage() {
   const [formCustomFields, setFormCustomFields] = useState<Record<string, any>>({});
   const [formNotes, setFormNotes] = useState("");
   const [formLoggedBy, setFormLoggedBy] = useState("Counter Staff");
+
+  // ─── Aquarium Mortality & Scrap Wastage State ───
+  const [mortalityEntries, setMortalityEntries] = useState<AquariumMortalityEntry[]>([]);
+  const [mortalityModalOpen, setMortalityModalOpen] = useState(false);
+  const [savingMortality, setSavingMortality] = useState(false);
+  const [showMortalityTable, setShowMortalityTable] = useState(false);
+  const [deleteMortalityConfirmId, setDeleteMortalityConfirmId] = useState<string | null>(null);
+
+  // Mortality Form State
+  const [mortalityFormDate, setMortalityFormDate] = useState(getTodayDate());
+  const [mortalityFormTime, setMortalityFormTime] = useState(getCurrentTime());
+  const [mortalityFormWeight, setMortalityFormWeight] = useState("");
+  const [mortalityFormCount, setMortalityFormCount] = useState("1");
+  const [mortalityFormReason, setMortalityFormReason] = useState("Natural Mortality");
+  const [mortalityFormNotes, setMortalityFormNotes] = useState("");
+  const [mortalityFormLoggedBy, setMortalityFormLoggedBy] = useState("Mohd Amin");
+
+  // ─── End-of-Day (EOD) Telegram Report State ───
+  const [eodModalOpen, setEodModalOpen] = useState(false);
+  const [sendingEodReport, setSendingEodReport] = useState(false);
+  const [eodCustomNote, setEodCustomNote] = useState("");
+  const [eodPreviewHtml, setEodPreviewHtml] = useState("");
+  const [eodSuccessNotice, setEodSuccessNotice] = useState<string | null>(null);
 
   // Dynamic Pricing from Supabase Inventory table
   const [guttedPrice, setGuttedPrice] = useState<number>(DEFAULT_GUTTED_PRICE);
@@ -480,6 +504,25 @@ export default function VendingCenterLoggerPage() {
     }
   }, [isAdmin, fetchSalaryPayments]);
 
+  // ─── Fetch Aquarium Mortality Logs ───
+  const fetchMortalityEntries = useCallback(async () => {
+    try {
+      const res = await adminFetch("/api/aquarium-mortality");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.entries)) {
+          setMortalityEntries(data.entries);
+        }
+      }
+    } catch (err) {
+      console.warn("Could not fetch aquarium mortality entries:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchMortalityEntries();
+  }, [fetchMortalityEntries]);
+
   // ─── Period Calculations ───
   const filteredEntriesByPeriod = useMemo(() => {
     const todayStr = getTodayDate();
@@ -709,8 +752,29 @@ export default function VendingCenterLoggerPage() {
       totalProcuredCost += w * cost;
     });
 
-    // Live fish remaining in aquarium
-    const remainingKg = Math.max(0, Math.round((totalProcuredKg - allTimeSoldKg) * 1000) / 1000);
+    // Total live fish mortality and scrap loss
+    let totalMortalityKg = 0;
+    let totalMortalityCount = 0;
+    let todayMortalityKg = 0;
+    let todayMortalityCount = 0;
+    const todayDateStr = getTodayDate();
+
+    mortalityEntries.forEach((m) => {
+      const mw = Number(m.weight_kg) || 0;
+      const mc = Number(m.fish_count) || 1;
+      totalMortalityKg = Math.round((totalMortalityKg + mw) * 1000) / 1000;
+      totalMortalityCount += mc;
+      if (m.mortality_date === todayDateStr) {
+        todayMortalityKg = Math.round((todayMortalityKg + mw) * 1000) / 1000;
+        todayMortalityCount += mc;
+      }
+    });
+
+    // Live fish remaining in aquarium (Procured − Sold − Mortality)
+    const remainingKg = Math.max(
+      0,
+      Math.round((totalProcuredKg - allTimeSoldKg - totalMortalityKg) * 1000) / 1000
+    );
 
     // Gone from aquarium = sold already
     const soldKg = Math.min(allTimeSoldKg, totalProcuredKg);
@@ -722,7 +786,13 @@ export default function VendingCenterLoggerPage() {
     const valueIfNonGutted = Math.round(remainingKg * nonGuttedPrice);
 
     // Avg procurement cost per kg
-    const avgCostPerKg = totalProcuredKg > 0 ? totalProcuredCost / totalProcuredKg : 0;
+    const avgCostPerKg = totalProcuredKg > 0 ? totalProcuredCost / totalProcuredKg : 350;
+
+    // Financial loss due to mortality
+    const totalMortalityCost = Math.round(totalMortalityKg * avgCostPerKg);
+    const todayMortalityCost = Math.round(todayMortalityKg * avgCostPerKg);
+    const mortalityRatePercent =
+      totalProcuredKg > 0 ? ((totalMortalityKg / totalProcuredKg) * 100).toFixed(1) : "0.0";
 
     // Procurement cost of remaining stock
     const procurementCostRemaining = Math.round(remainingKg * avgCostPerKg);
@@ -736,6 +806,14 @@ export default function VendingCenterLoggerPage() {
       totalProcuredCost: Math.round(totalProcuredCost),
       soldKg,
       remainingKg,
+      totalMortalityKg,
+      totalMortalityCount,
+      totalMortalityCost,
+      todayMortalityKg,
+      todayMortalityCount,
+      todayMortalityCost,
+      mortalityRatePercent,
+      mortalityCount: mortalityEntries.length,
       valueIfGutted,
       valueIfNonGutted,
       expectedProfitGutted,
@@ -744,7 +822,7 @@ export default function VendingCenterLoggerPage() {
       procurementCostRemaining,
       batchCount: stockEntries.length,
     };
-  }, [entries, stockEntries, guttedPrice, nonGuttedPrice]);
+  }, [entries, stockEntries, mortalityEntries, guttedPrice, nonGuttedPrice]);
 
   // ─── Search & Dropdown Filtered Table List ───
   const displayEntries = useMemo(() => {
@@ -1034,6 +1112,310 @@ export default function VendingCenterLoggerPage() {
     }
   };
 
+  // ─── Aquarium Mortality Handlers ───
+  const handleAddMortalityEntry = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const w = parseFloat(mortalityFormWeight);
+    if (!w || isNaN(w) || w <= 0) {
+      alert("Please enter a valid mortality weight in Kg.");
+      return;
+    }
+    const count = parseInt(mortalityFormCount, 10) || 1;
+
+    setSavingMortality(true);
+    try {
+      const loggedBy = localStorage.getItem("ut_admin_email")?.split("@")[0] || mortalityFormLoggedBy || "Mohd Amin";
+      const res = await adminFetch("/api/aquarium-mortality", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mortality_date: mortalityFormDate,
+          mortality_time: mortalityFormTime,
+          weight_kg: w,
+          fish_count: count,
+          reason: mortalityFormReason,
+          notes: mortalityFormNotes.trim() || null,
+          logged_by: loggedBy,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.entry) {
+          setMortalityEntries((prev) => [data.entry, ...prev]);
+          setMortalityModalOpen(false);
+          setMortalityFormWeight("");
+          setMortalityFormCount("1");
+          setMortalityFormNotes("");
+          setMortalityFormDate(getTodayDate());
+          setMortalityFormTime(getCurrentTime());
+          playLogChime();
+        }
+      } else {
+        const errData = await res.json();
+        alert(errData.error || "Failed to record mortality log.");
+      }
+    } catch (err) {
+      console.error("Error saving mortality entry:", err);
+      alert("Failed to save mortality log. Please check connection.");
+    } finally {
+      setSavingMortality(false);
+    }
+  };
+
+  const handleDeleteMortalityEntry = async (id: string) => {
+    try {
+      const res = await adminFetch(`/api/aquarium-mortality?id=${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setMortalityEntries((prev) => prev.filter((m) => m.id !== id));
+        setDeleteMortalityConfirmId(null);
+      }
+    } catch (err) {
+      console.error("Failed to delete mortality entry:", err);
+    }
+  };
+
+  // ─── EOD Telegram Report Handlers ───
+  const handleOpenEodModal = async () => {
+    setEodModalOpen(true);
+    setEodSuccessNotice(null);
+    setEodPreviewHtml("Loading today's report preview...");
+
+    const todayStr = getTodayDate();
+    const todayEntries = entries.filter((e) => e.entry_date === todayStr);
+
+    let totalSoldKg = 0;
+    let guttedSoldKg = 0;
+    let nonGuttedSoldKg = 0;
+    let grossRevenue = 0;
+    let expectedRevenue = 0;
+    let negotiationLoss = 0;
+    let cashRevenue = 0;
+    let cashCount = 0;
+    let onlineRevenue = 0;
+    let onlineCount = 0;
+
+    todayEntries.forEach((e) => {
+      const w = Number(e.weight_kg) || 0;
+      const rev = Number(e.amount_paid) || 0;
+      const rate = Number(e.rate_per_kg) || 0;
+      const exp =
+        e.expected_amount !== undefined && e.expected_amount !== null
+          ? Number(e.expected_amount)
+          : Math.round(w * rate);
+      const loss =
+        e.discount_amount !== undefined && e.discount_amount !== null
+          ? Number(e.discount_amount)
+          : Math.max(0, exp - rev);
+
+      totalSoldKg = Math.round((totalSoldKg + w) * 1000) / 1000;
+      grossRevenue += rev;
+      expectedRevenue += exp;
+      negotiationLoss += loss;
+
+      const isGutted =
+        (e.product_type || "").toLowerCase().includes("gutted") &&
+        !(e.product_type || "").toLowerCase().includes("non");
+      if (isGutted) {
+        guttedSoldKg = Math.round((guttedSoldKg + w) * 1000) / 1000;
+      } else {
+        nonGuttedSoldKg = Math.round((nonGuttedSoldKg + w) * 1000) / 1000;
+      }
+
+      const isCash = (e.payment_mode || "").toLowerCase().trim() === "cash";
+      if (isCash) {
+        cashRevenue += rev;
+        cashCount += 1;
+      } else {
+        onlineRevenue += rev;
+        onlineCount += 1;
+      }
+    });
+
+    const guttedCost = Math.round(guttedSoldKg * procurementAvgCost);
+    const nonGuttedCost = Math.round(nonGuttedSoldKg * procurementAvgCost);
+    const totalCost = guttedCost + nonGuttedCost;
+    const netRealizedProfit = grossRevenue - totalCost;
+    const profitMarginPercent =
+      grossRevenue > 0 ? ((netRealizedProfit / grossRevenue) * 100).toFixed(1) : "0.0";
+
+    const payload = {
+      reportDate: new Date().toLocaleDateString("en-IN", {
+        weekday: "long",
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      }),
+      totalSoldKg,
+      guttedSoldKg,
+      nonGuttedSoldKg,
+      grossRevenue,
+      expectedRevenue,
+      netRealizedProfit,
+      profitMarginPercent,
+      onlineRevenue,
+      onlineCount,
+      cashRevenue,
+      cashCount,
+      negotiationLoss,
+      totalBills: todayEntries.length,
+      liveStockRemainingKg: aquariumStock.remainingKg,
+      stockWorthGutted: aquariumStock.valueIfGutted,
+      stockWorthNonGutted: aquariumStock.valueIfNonGutted,
+      todayMortalityKg: aquariumStock.todayMortalityKg,
+      todayMortalityCost: aquariumStock.todayMortalityCost,
+      todayMortalityCount: aquariumStock.todayMortalityCount,
+      aminDailyIncentive: Math.round(guttedSoldKg * INCENTIVE_RATE_PER_KG),
+      aminIncentivePending: incentiveStats.balanceRemaining,
+      aminSalaryMonthPaid: salaryStats.thisMonthPaid,
+      aminSalaryBalanceDue: salaryStats.monthBalanceDue,
+      aminBaseSalary: salaryStats.baseMonthly,
+      customNote: eodCustomNote,
+      previewOnly: true,
+    };
+
+    try {
+      const res = await adminFetch("/api/vending-log/eod-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.previewHtml) {
+          setEodPreviewHtml(data.previewHtml);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to generate EOD preview:", err);
+    }
+  };
+
+  const handleSendEodReport = async () => {
+    setSendingEodReport(true);
+    setEodSuccessNotice(null);
+
+    const todayStr = getTodayDate();
+    const todayEntries = entries.filter((e) => e.entry_date === todayStr);
+
+    let totalSoldKg = 0;
+    let guttedSoldKg = 0;
+    let nonGuttedSoldKg = 0;
+    let grossRevenue = 0;
+    let expectedRevenue = 0;
+    let negotiationLoss = 0;
+    let cashRevenue = 0;
+    let cashCount = 0;
+    let onlineRevenue = 0;
+    let onlineCount = 0;
+
+    todayEntries.forEach((e) => {
+      const w = Number(e.weight_kg) || 0;
+      const rev = Number(e.amount_paid) || 0;
+      const rate = Number(e.rate_per_kg) || 0;
+      const exp =
+        e.expected_amount !== undefined && e.expected_amount !== null
+          ? Number(e.expected_amount)
+          : Math.round(w * rate);
+      const loss =
+        e.discount_amount !== undefined && e.discount_amount !== null
+          ? Number(e.discount_amount)
+          : Math.max(0, exp - rev);
+
+      totalSoldKg = Math.round((totalSoldKg + w) * 1000) / 1000;
+      grossRevenue += rev;
+      expectedRevenue += exp;
+      negotiationLoss += loss;
+
+      const isGutted =
+        (e.product_type || "").toLowerCase().includes("gutted") &&
+        !(e.product_type || "").toLowerCase().includes("non");
+      if (isGutted) {
+        guttedSoldKg = Math.round((guttedSoldKg + w) * 1000) / 1000;
+      } else {
+        nonGuttedSoldKg = Math.round((nonGuttedSoldKg + w) * 1000) / 1000;
+      }
+
+      const isCash = (e.payment_mode || "").toLowerCase().trim() === "cash";
+      if (isCash) {
+        cashRevenue += rev;
+        cashCount += 1;
+      } else {
+        onlineRevenue += rev;
+        onlineCount += 1;
+      }
+    });
+
+    const guttedCost = Math.round(guttedSoldKg * procurementAvgCost);
+    const nonGuttedCost = Math.round(nonGuttedSoldKg * procurementAvgCost);
+    const totalCost = guttedCost + nonGuttedCost;
+    const netRealizedProfit = grossRevenue - totalCost;
+    const profitMarginPercent =
+      grossRevenue > 0 ? ((netRealizedProfit / grossRevenue) * 100).toFixed(1) : "0.0";
+
+    const payload = {
+      reportDate: new Date().toLocaleDateString("en-IN", {
+        weekday: "long",
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      }),
+      totalSoldKg,
+      guttedSoldKg,
+      nonGuttedSoldKg,
+      grossRevenue,
+      expectedRevenue,
+      netRealizedProfit,
+      profitMarginPercent,
+      onlineRevenue,
+      onlineCount,
+      cashRevenue,
+      cashCount,
+      negotiationLoss,
+      totalBills: todayEntries.length,
+      liveStockRemainingKg: aquariumStock.remainingKg,
+      stockWorthGutted: aquariumStock.valueIfGutted,
+      stockWorthNonGutted: aquariumStock.valueIfNonGutted,
+      todayMortalityKg: aquariumStock.todayMortalityKg,
+      todayMortalityCost: aquariumStock.todayMortalityCost,
+      todayMortalityCount: aquariumStock.todayMortalityCount,
+      aminDailyIncentive: Math.round(guttedSoldKg * INCENTIVE_RATE_PER_KG),
+      aminIncentivePending: incentiveStats.balanceRemaining,
+      aminSalaryMonthPaid: salaryStats.thisMonthPaid,
+      aminSalaryBalanceDue: salaryStats.monthBalanceDue,
+      aminBaseSalary: salaryStats.baseMonthly,
+      customNote: eodCustomNote,
+      previewOnly: false,
+    };
+
+    try {
+      const res = await adminFetch("/api/vending-log/eod-report", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setEodSuccessNotice("✓ EOD Report successfully delivered to Telegram!");
+        playLogChime();
+        setTimeout(() => {
+          setEodModalOpen(false);
+          setEodSuccessNotice(null);
+          setEodCustomNote("");
+        }, 2200);
+      } else {
+        alert(data.error || "Failed to deliver Telegram message. Check bot settings.");
+      }
+    } catch (err) {
+      console.error("Error dispatching EOD report:", err);
+      alert("Network error sending EOD report.");
+    } finally {
+      setSendingEodReport(false);
+    }
+  };
+
   // ─── Worker Salary Handlers (Mohd Amin) ───
   const handleAddSalaryPayment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1267,6 +1649,10 @@ export default function VendingCenterLoggerPage() {
         { "Vending Center Metric": "Total Live Fish Stock Procured (Kg)", "Value / Amount": Number(aquariumStock.totalProcuredKg.toFixed(3)) },
         { "Vending Center Metric": "Live Fish Dispatched / Sold (Kg)", "Value / Amount": Number(aquariumStock.soldKg.toFixed(3)) },
         { "Vending Center Metric": "Current Live Stock in Aquarium (Kg)", "Value / Amount": Number(aquariumStock.remainingKg.toFixed(3)) },
+        { "Vending Center Metric": "Total Aquarium Mortality (Kg)", "Value / Amount": Number(aquariumStock.totalMortalityKg.toFixed(3)) },
+        { "Vending Center Metric": "Total Mortality Fish Count", "Value / Amount": aquariumStock.totalMortalityCount },
+        { "Vending Center Metric": "Total Mortality Financial Loss (Rs)", "Value / Amount": aquariumStock.totalMortalityCost },
+        { "Vending Center Metric": "Aquarium Mortality Rate (%)", "Value / Amount": `${aquariumStock.mortalityRatePercent}%` },
         { "Vending Center Metric": "Aquarium Stock Worth - If Gutted (Rs)", "Value / Amount": aquariumStock.valueIfGutted },
         { "Vending Center Metric": "Aquarium Stock Worth - If Non-Gutted (Rs)", "Value / Amount": aquariumStock.valueIfNonGutted },
         { "Vending Center Metric": "Expected Profit from Live Stock - Gutted (Rs)", "Value / Amount": aquariumStock.expectedProfitGutted },
@@ -1374,6 +1760,24 @@ export default function VendingCenterLoggerPage() {
       const wsSalary = XLSX.utils.json_to_sheet(salaryRows.length > 0 ? salaryRows : [{ "Status": "No salary payments logged yet" }]);
       XLSX.utils.book_append_sheet(wb, wsSalary, "Mohd Amin - Salary");
 
+      // 6. Aquarium Mortality & Scrap Sheet
+      const mortalityRows = mortalityEntries.map((m, idx) => ({
+        "#": idx + 1,
+        "Date": m.mortality_date,
+        "Time": m.mortality_time,
+        "Weight (Kg)": Number(Number(m.weight_kg).toFixed(3)),
+        "Fish Count": m.fish_count || 1,
+        "Reason / Cause": m.reason,
+        "Financial Loss (Rs)": Math.round(Number(m.weight_kg) * procurementAvgCost),
+        "Logged By": m.logged_by || "Admin",
+        "Notes": m.notes || "",
+        "Logged At": m.created_at,
+      }));
+      const wsMortality = XLSX.utils.json_to_sheet(
+        mortalityRows.length > 0 ? mortalityRows : [{ "Status": "Zero fish mortality logged" }]
+      );
+      XLSX.utils.book_append_sheet(wb, wsMortality, "Mortality & Scrap Log");
+
       XLSX.writeFile(wb, `UrbanTrout_Complete_Vending_Ledger_${getTodayDate()}.xlsx`);
     } catch (err) {
       console.error("Error generating Excel file:", err);
@@ -1448,6 +1852,18 @@ export default function VendingCenterLoggerPage() {
             <span className="material-symbols-outlined text-sm">view_column</span>
             Columns ({customColumns.filter((c) => c.visible).length})
           </button>
+
+          {isAdmin && (
+            <button
+              type="button"
+              onClick={handleOpenEodModal}
+              className="py-2.5 px-3.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-500/40 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
+              title="Preview and dispatch End-of-Day (EOD) sales & aquarium audit to Telegram"
+            >
+              <span className="material-symbols-outlined text-sm">send</span>
+              <span>EOD Report</span>
+            </button>
+          )}
 
           <button
             type="button"
@@ -1982,7 +2398,7 @@ export default function VendingCenterLoggerPage() {
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 onClick={() => setStockLogOpen((p) => !p)}
@@ -1992,7 +2408,18 @@ export default function VendingCenterLoggerPage() {
                 <span className="material-symbols-outlined text-xs">
                   {stockLogOpen ? "expand_less" : "expand_more"}
                 </span>
-                {stockLogOpen ? "Hide" : "Show"} Procurement Log ({stockEntries.length})
+                {stockLogOpen ? "Hide" : "Show"} Stock ({stockEntries.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowMortalityTable((p) => !p)}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900/80 hover:bg-slate-800 text-rose-300 border border-rose-500/30 text-[11px] font-mono font-bold transition-all cursor-pointer"
+                title="Toggle mortality & scrap loss table"
+              >
+                <span className="material-symbols-outlined text-xs">
+                  {showMortalityTable ? "expand_less" : "expand_more"}
+                </span>
+                {showMortalityTable ? "Hide" : "Show"} Mortality ({mortalityEntries.length})
               </button>
               <button
                 type="button"
@@ -2002,11 +2429,19 @@ export default function VendingCenterLoggerPage() {
                 <span className="material-symbols-outlined text-sm">add</span>
                 Log Stock
               </button>
+              <button
+                type="button"
+                onClick={() => setMortalityModalOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-red-500 hover:from-rose-500 hover:to-red-400 text-white text-[11px] font-black uppercase tracking-wider transition-all shadow-lg shadow-rose-500/20 cursor-pointer active:scale-95"
+              >
+                <span className="material-symbols-outlined text-sm">emergency</span>
+                Log Mortality
+              </button>
             </div>
           </div>
 
-          {/* Flash Cards Row — 5 cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
+          {/* Flash Cards Row — 6 cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3">
 
             {/* Card 1: Live Stock Remaining in Aquarium */}
             <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-950/50 via-slate-900/90 to-slate-900 border border-blue-500/40 shadow-xl shadow-blue-950/20 relative overflow-hidden flex flex-col justify-between">
@@ -2027,11 +2462,12 @@ export default function VendingCenterLoggerPage() {
               </div>
               <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2 space-y-0.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-400">Procured (Live):</span>
+                  <span className="text-slate-400">Procured:</span>
                   <span className="text-blue-200 font-bold">{formatKg(aquariumStock.totalProcuredKg)} Kg</span>
                 </div>
-                <div className="text-[10px] text-slate-500">
-                  {aquariumStock.batchCount} batch{aquariumStock.batchCount !== 1 ? "es" : ""} · ₹{aquariumStock.avgCostPerKg}/Kg avg
+                <div className="flex items-center justify-between text-[10px]">
+                  <span className="text-rose-400">Mortality: -{formatKg(aquariumStock.totalMortalityKg)} Kg</span>
+                  <span className="text-slate-500">₹{aquariumStock.avgCostPerKg}/Kg</span>
                 </div>
               </div>
             </div>
@@ -2149,6 +2585,45 @@ export default function VendingCenterLoggerPage() {
               </div>
             </div>
 
+            {/* Card 6: Mortality & Scrap Wastage (NEW) */}
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-rose-950/50 via-slate-900/90 to-slate-900 border border-rose-500/40 shadow-xl shadow-rose-950/20 relative overflow-hidden flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
+                  <span className="text-rose-300 font-bold flex items-center gap-1.5">
+                    <span>MORTALITY &amp; SCRAP</span>
+                    <span className="px-1.5 py-0.2 rounded bg-rose-500/20 text-[9px] text-rose-200 border border-rose-500/30">
+                      Loss
+                    </span>
+                  </span>
+                  <span className="material-symbols-outlined text-rose-400 text-lg">emergency</span>
+                </div>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span
+                    className="text-3xl sm:text-4xl font-black text-rose-300"
+                    style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                  >
+                    {formatKg(aquariumStock.totalMortalityKg)}
+                  </span>
+                  <span className="text-rose-400 font-bold font-mono text-sm">Kg</span>
+                  <span className="text-[10px] font-mono text-slate-400 ml-auto">
+                    {aquariumStock.totalMortalityCount} fish
+                  </span>
+                </div>
+              </div>
+              <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2 space-y-0.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Total Loss:</span>
+                  <span className="text-rose-300 font-bold">
+                    ₹{aquariumStock.totalMortalityCost.toLocaleString("en-IN")}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between text-[10px] text-slate-500">
+                  <span>Today: {formatKg(aquariumStock.todayMortalityKg)} Kg</span>
+                  <span>{aquariumStock.mortalityRatePercent}% loss rate</span>
+                </div>
+              </div>
+            </div>
+
           </div>
 
           {/* Procurement Log Table (collapsible) */}
@@ -2228,6 +2703,107 @@ export default function VendingCenterLoggerPage() {
                                   onClick={() => setDeleteStockConfirmId(s.id)}
                                   className="p-1 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-500/15 text-red-400 transition-all cursor-pointer"
                                   title="Delete this stock entry"
+                                >
+                                  <span className="material-symbols-outlined text-sm">delete</span>
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Mortality & Scrap Wastage Table (collapsible) */}
+          {showMortalityTable && (
+            <div className="bg-slate-900/60 border border-rose-500/30 rounded-2xl overflow-hidden animate-in fade-in duration-200">
+              <div className="px-4 py-3 bg-rose-950/20 border-b border-rose-500/20 flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-rose-400 text-sm">emergency</span>
+                  <span className="text-xs font-bold font-mono text-rose-300 uppercase tracking-wider">
+                    Aquarium Mortality &amp; Scrap Wastage Log ({mortalityEntries.length} entries)
+                  </span>
+                </div>
+                <span className="text-[11px] font-mono text-slate-400">
+                  Total Dead: <strong className="text-rose-300">{formatKg(aquariumStock.totalMortalityKg)} Kg</strong> ({aquariumStock.totalMortalityCount} fish) · Loss: <strong className="text-rose-300">₹{aquariumStock.totalMortalityCost.toLocaleString("en-IN")}</strong>
+                </span>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-800 bg-slate-950/80 text-[10px] font-mono uppercase tracking-wider text-slate-400">
+                      <th className="py-3 px-3 text-center w-8">#</th>
+                      <th className="py-3 px-3">Date</th>
+                      <th className="py-3 px-3">Time</th>
+                      <th className="py-3 px-3">Reason / Cause</th>
+                      <th className="py-3 px-3 text-right">Dead Fish</th>
+                      <th className="py-3 px-3 text-right text-rose-300">Weight (Kg)</th>
+                      <th className="py-3 px-3 text-right text-rose-300">Loss Value (₹)</th>
+                      <th className="py-3 px-3">Notes</th>
+                      <th className="py-3 px-3">Logged By</th>
+                      <th className="py-3 px-3 text-center">Del</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60 font-mono">
+                    {mortalityEntries.length === 0 ? (
+                      <tr>
+                        <td colSpan={10} className="py-10 text-center text-slate-500 text-xs">
+                          <span className="material-symbols-outlined text-2xl block mb-1 text-slate-600">verified</span>
+                          Zero aquarium mortality logged! Live fish stock is 100% healthy.
+                        </td>
+                      </tr>
+                    ) : (
+                      mortalityEntries.map((m, idx) => {
+                        const lossValue = Math.round(Number(m.weight_kg) * procurementAvgCost);
+                        return (
+                          <tr key={m.id} className="hover:bg-slate-800/40 transition-colors group">
+                            <td className="py-2.5 px-3 text-center text-slate-500 text-[11px]">{idx + 1}</td>
+                            <td className="py-2.5 px-3 whitespace-nowrap text-slate-300">{m.mortality_date}</td>
+                            <td className="py-2.5 px-3 whitespace-nowrap text-slate-500 text-[11px]">{m.mortality_time || "—"}</td>
+                            <td className="py-2.5 px-3 whitespace-nowrap">
+                              <span className="px-2 py-0.5 rounded text-[10px] bg-rose-500/15 text-rose-300 border border-rose-500/30">
+                                {m.reason}
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-3 text-right text-slate-300">
+                              {m.fish_count || 1}
+                            </td>
+                            <td className="py-2.5 px-3 text-right font-black text-rose-400">
+                              {formatKg(m.weight_kg)}
+                            </td>
+                            <td className="py-2.5 px-3 text-right font-black text-rose-300">
+                              ₹{lossValue.toLocaleString("en-IN")}
+                            </td>
+                            <td className="py-2.5 px-3 text-slate-400 max-w-[130px] truncate">{m.notes || "—"}</td>
+                            <td className="py-2.5 px-3 text-slate-500">{m.logged_by || "—"}</td>
+                            <td className="py-2.5 px-3 text-center">
+                              {deleteMortalityConfirmId === m.id ? (
+                                <div className="flex items-center gap-1 justify-center">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteMortalityEntry(m.id)}
+                                    className="px-2 py-0.5 rounded bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/40 text-[10px] font-bold cursor-pointer"
+                                  >
+                                    Confirm
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setDeleteMortalityConfirmId(null)}
+                                    className="px-2 py-0.5 rounded bg-slate-800 text-slate-400 text-[10px] cursor-pointer"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => setDeleteMortalityConfirmId(m.id)}
+                                  className="p-1 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-500/15 text-red-400 transition-all cursor-pointer"
+                                  title="Delete this mortality entry"
                                 >
                                   <span className="material-symbols-outlined text-sm">delete</span>
                                 </button>
@@ -3933,6 +4509,281 @@ export default function VendingCenterLoggerPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* ══════════════════════════════════════════════════════════
+          LOG MORTALITY & SCRAP MODAL
+          ══════════════════════════════════════════════════════════ */}
+      {mortalityModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-[#120b12] border border-rose-500/40 rounded-3xl shadow-2xl shadow-rose-950/40 overflow-hidden">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-rose-500/20">
+              <div>
+                <div className="flex items-center gap-2 mb-0.5">
+                  <span className="material-symbols-outlined text-rose-400 text-base">emergency</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-rose-400 font-mono">
+                    Aquarium Loss Log
+                  </span>
+                </div>
+                <h3
+                  className="text-base font-black text-white"
+                  style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                >
+                  Record Fish Mortality / Scrap
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setMortalityModalOpen(false)}
+                className="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-all cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-sm">close</span>
+              </button>
+            </div>
+
+            {/* Modal Form */}
+            <form onSubmit={handleAddMortalityEntry} className="p-5 space-y-4">
+              {/* Date & Time */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Date</label>
+                  <input
+                    type="date"
+                    value={mortalityFormDate}
+                    onChange={(e) => setMortalityFormDate(e.target.value)}
+                    className="w-full px-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-rose-400 font-mono"
+                    required
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Time</label>
+                  <input
+                    type="text"
+                    value={mortalityFormTime}
+                    onChange={(e) => setMortalityFormTime(e.target.value)}
+                    className="w-full px-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-rose-400 font-mono"
+                    placeholder="09:00 AM"
+                  />
+                </div>
+              </div>
+
+              {/* Weight & Fish Count */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">
+                    Weight (Kg) *
+                  </label>
+                  <input
+                    type="number"
+                    step="0.001"
+                    min="0.001"
+                    value={mortalityFormWeight}
+                    onChange={(e) => setMortalityFormWeight(e.target.value)}
+                    className="w-full px-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-rose-400 font-mono font-bold"
+                    placeholder="e.g. 1.250"
+                    required
+                    autoFocus
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">
+                    Fish Count *
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    step="1"
+                    value={mortalityFormCount}
+                    onChange={(e) => setMortalityFormCount(e.target.value)}
+                    className="w-full px-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-rose-400 font-mono"
+                    placeholder="e.g. 2"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Reason Dropdown */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">
+                  Suspected Reason / Cause
+                </label>
+                <select
+                  value={mortalityFormReason}
+                  onChange={(e) => setMortalityFormReason(e.target.value)}
+                  className="w-full px-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-rose-400 font-mono"
+                >
+                  <option value="Transport Stress">Transport Stress (Delivery shock)</option>
+                  <option value="Water Temp Shock">Water Temp Shock (Chiller issue)</option>
+                  <option value="Aeration / DO Drop">Aeration / Low Dissolved Oxygen</option>
+                  <option value="Handling / Net Injury">Handling / Net or Scale Damage</option>
+                  <option value="Natural Mortality">Natural Mortality / Weak fish</option>
+                  <option value="Other">Other Wastage</option>
+                </select>
+              </div>
+
+              {/* Financial Loss Preview */}
+              {mortalityFormWeight && parseFloat(mortalityFormWeight) > 0 && (
+                <div className="flex items-center justify-between p-3 rounded-xl bg-rose-500/10 border border-rose-500/30">
+                  <span className="text-xs font-mono text-slate-400">Scrap Cost Loss (@ ₹{procurementAvgCost}/Kg)</span>
+                  <span className="text-sm font-black text-rose-300 font-mono">
+                    ₹{Math.round(parseFloat(mortalityFormWeight) * procurementAvgCost).toLocaleString("en-IN")}
+                  </span>
+                </div>
+              )}
+
+              {/* Logged By & Notes */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">
+                    Reported By
+                  </label>
+                  <input
+                    type="text"
+                    value={mortalityFormLoggedBy}
+                    onChange={(e) => setMortalityFormLoggedBy(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-rose-400"
+                    placeholder="Mohd Amin"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">
+                    Notes (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={mortalityFormNotes}
+                    onChange={(e) => setMortalityFormNotes(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-rose-400"
+                    placeholder="e.g. Found in morning opening..."
+                  />
+                </div>
+              </div>
+
+              {/* Submit */}
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setMortalityModalOpen(false)}
+                  className="flex-1 py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingMortality}
+                  className="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-rose-600 to-red-500 hover:from-rose-500 hover:to-red-400 text-white text-xs font-black uppercase tracking-wider transition-all disabled:opacity-60 cursor-pointer flex items-center justify-center gap-1.5 shadow-lg shadow-rose-500/20"
+                >
+                  {savingMortality ? (
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent animate-spin rounded-full" />
+                  ) : (
+                    <span className="material-symbols-outlined text-sm">emergency</span>
+                  )}
+                  {savingMortality ? "Saving…" : "Record Mortality"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════
+          EOD TELEGRAM REPORT PREVIEW & DISPATCH MODAL
+          ══════════════════════════════════════════════════════════ */}
+      {eodModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="w-full max-w-lg bg-[#0b1420] border border-sky-500/40 rounded-3xl shadow-2xl shadow-sky-950/50 overflow-hidden flex flex-col max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-sky-500/20 bg-sky-950/20 flex-shrink-0">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-sky-500/20 border border-sky-500/30 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-sky-400 text-base">send</span>
+                </div>
+                <div>
+                  <h3
+                    className="text-base font-black text-white"
+                    style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                  >
+                    End-of-Day Telegram Report
+                  </h3>
+                  <p className="text-[11px] text-sky-300 font-mono">
+                    Live daily briefing for Urban Trout Management Group
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEodModalOpen(false)}
+                className="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-all cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-sm">close</span>
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-5 space-y-4 overflow-y-auto flex-1">
+              {eodSuccessNotice && (
+                <div className="p-3 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-200 text-xs font-bold font-mono flex items-center gap-2 animate-in fade-in">
+                  <span className="material-symbols-outlined text-sm text-emerald-400">check_circle</span>
+                  <span>{eodSuccessNotice}</span>
+                </div>
+              )}
+
+              {/* Telegram Preview Box */}
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider font-bold">
+                    Message Preview (Formatted HTML)
+                  </span>
+                  <span className="text-[10px] font-mono text-sky-400">Telegram Bot Channel</span>
+                </div>
+                <div
+                  className="p-4 rounded-2xl bg-slate-950/90 border border-slate-800 text-xs text-slate-200 font-mono whitespace-pre-wrap leading-relaxed max-h-64 overflow-y-auto shadow-inner"
+                  dangerouslySetInnerHTML={{
+                    __html: eodPreviewHtml || "Generating report...",
+                  }}
+                />
+              </div>
+
+              {/* Optional Custom Closing Note */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">
+                  Optional Counter Closing Note
+                </label>
+                <input
+                  type="text"
+                  value={eodCustomNote}
+                  onChange={(e) => setEodCustomNote(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-sky-400"
+                  placeholder="e.g. Counter closed 8:30 PM. Cash drawer tallied with safe."
+                />
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-5 py-4 border-t border-slate-800/80 bg-slate-950 flex items-center justify-between gap-3 flex-shrink-0">
+              <button
+                type="button"
+                onClick={() => setEodModalOpen(false)}
+                className="py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={sendingEodReport}
+                onClick={handleSendEodReport}
+                className="py-2.5 px-5 rounded-xl bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white text-xs font-black uppercase tracking-wider transition-all disabled:opacity-60 cursor-pointer flex items-center gap-2 shadow-lg shadow-sky-500/25 active:scale-95"
+              >
+                {sendingEodReport ? (
+                  <span className="w-4 h-4 border-2 border-white border-t-transparent animate-spin rounded-full" />
+                ) : (
+                  <span className="material-symbols-outlined text-sm">send</span>
+                )}
+                <span>{sendingEodReport ? "Sending to Telegram…" : "Send to Telegram Now"}</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
