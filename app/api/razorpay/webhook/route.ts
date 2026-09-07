@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
 import { notifyRazorpayPayment } from "@/lib/telegram";
+import { sendPaymentLinkConfirmationEmail } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
@@ -60,7 +61,134 @@ export async function POST(req: NextRequest) {
     const eventType = event.event;
     console.log("Razorpay Webhook received event: " + eventType);
 
-    // ── 1. Payment Captured / Order Paid (Checkout, POS QR, or Links) ──
+    // ── 1. Payment Link Paid (Home Delivery Orders & Locked WhatsApp Bills) ──
+    if (eventType === "payment_link.paid") {
+      const paymentLink = event.payload?.payment_link?.entity;
+      const payment = event.payload?.payment?.entity;
+      if (!paymentLink && !payment) {
+        return NextResponse.json({ status: "ignored_no_payment_link_entity" });
+      }
+
+      const paymentId = payment?.id || paymentLink?.id;
+      const paymentLinkId = paymentLink?.id;
+      const rawAmt = paymentLink?.amount_paid || payment?.amount || paymentLink?.amount || 0;
+      const amount = (Number(rawAmt) || 0) / 100;
+      const notes = paymentLink?.notes || payment?.notes || {};
+      const orderRef = notes.order_ref || paymentLink?.reference_id || `UT-DEL-${paymentLinkId?.slice(-6) || Date.now()}`;
+      const customerName = notes.customer_name || paymentLink?.customer?.name || payment?.notes?.customer_name || "Valued Customer";
+      const customerPhone = notes.customer_phone || paymentLink?.customer?.contact || payment?.contact || "";
+      const customerEmail = notes.customer_email || paymentLink?.customer?.email || payment?.email || null;
+      const itemsSummary = notes.items_summary || paymentLink?.description || "Fresh Himalayan Rainbow Trout";
+      const method = payment?.method ? payment.method.toUpperCase() : "UPI / Razorpay Link";
+      const vpa = payment?.vpa || null;
+
+      const isDuplicate = isDuplicatePayment(paymentId);
+
+      if (!isDuplicate) {
+        // 1. Instant Telegram Alert
+        try {
+          await notifyRazorpayPayment({
+            paymentId,
+            orderId: orderRef,
+            amount,
+            status: "captured",
+            method,
+            vpa,
+            customerName,
+            customerPhone,
+            customerEmail,
+            description: itemsSummary,
+            channel: "🛵 Home Delivery (Razorpay Link)",
+          });
+        } catch (tgErr) {
+          console.error("Telegram notification error for payment_link.paid:", tgErr);
+        }
+
+        // 2. Branded HTML Email to info.urbantrout@gmail.com and customer
+        try {
+          await sendPaymentLinkConfirmationEmail({
+            orderRef,
+            customerName,
+            customerPhone,
+            customerEmail: customerEmail || undefined,
+            amount,
+            itemsSummary,
+            paymentId,
+            paymentLinkId,
+            paymentMethod: method,
+          });
+        } catch (emErr) {
+          console.error("Email notification error for payment_link.paid:", emErr);
+        }
+      }
+
+      // 3. Mark vending sales log as PAID if an entry with this orderRef or paymentLinkId exists
+      try {
+        const { data: matchedLogs } = await supabase
+          .from("vending_sales_log")
+          .select("id, notes, custom_fields")
+          .or(`notes.ilike.%${orderRef}%,notes.ilike.%${paymentLinkId}%`)
+          .limit(5);
+
+        if (matchedLogs && matchedLogs.length > 0) {
+          for (const log of matchedLogs) {
+            const existingCustom = (typeof log.custom_fields === "object" && log.custom_fields) ? log.custom_fields : {};
+            await supabase
+              .from("vending_sales_log")
+              .update({
+                payment_mode: "Razorpay Link",
+                amount_paid: amount,
+                notes: `${log.notes || ""} [PAID ✓ ${paymentId} via Razorpay Link]`.trim(),
+                custom_fields: {
+                  ...existingCustom,
+                  payment_status: "PAID",
+                  payment_id: paymentId,
+                  payment_link_id: paymentLinkId,
+                  paid_at: new Date().toISOString(),
+                },
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", log.id);
+          }
+        }
+      } catch (dbErr) {
+        console.warn("Vending log update notice for payment_link.paid:", dbErr);
+      }
+
+      // 4. Mark invoices as PAID if matching
+      try {
+        const { data: matchedInvoices } = await supabase
+          .from("invoices")
+          .select("id, data")
+          .or(`id.ilike.%${orderRef}%`)
+          .limit(5);
+
+        if (matchedInvoices && matchedInvoices.length > 0) {
+          for (const inv of matchedInvoices) {
+            if (inv && inv.data) {
+              await supabase
+                .from("invoices")
+                .update({
+                  data: {
+                    ...inv.data,
+                    paymentStatus: "PAID",
+                    paymentMethod: "Razorpay Link",
+                    paymentId,
+                    paidAt: new Date().toISOString(),
+                  },
+                })
+                .eq("id", inv.id);
+            }
+          }
+        }
+      } catch (invErr) {
+        console.warn("Invoices sync notice for payment_link.paid:", invErr);
+      }
+
+      return NextResponse.json({ success: true, processed: paymentId, type: "payment_link.paid" });
+    }
+
+    // ── 2. Payment Captured / Order Paid (Checkout, POS QR, or Links) ──
     if (eventType === "payment.captured" || eventType === "order.paid") {
       const payment = event.payload?.payment?.entity;
       if (!payment) {
@@ -110,6 +238,13 @@ export async function POST(req: NextRequest) {
         "";
 
       const isPos = notes.channel === "POS_BILLING" || (description && description.includes("POS"));
+      const isHomeDelivery = notes.channel === "HOME_DELIVERY" || (description && description.toLowerCase().includes("home delivery"));
+
+      const channelLabel = isHomeDelivery
+        ? "🛵 Home Delivery (Razorpay Link)"
+        : isPos
+        ? "Counter POS QR"
+        : "Website Checkout";
 
       // 1. Send Instant Telegram Alert ONLY ONCE per payment ID
       if (!isDuplicate) {
@@ -124,8 +259,26 @@ export async function POST(req: NextRequest) {
           customerPhone,
           customerEmail: email,
           description,
-          channel: isPos ? "Counter POS QR" : "Website Checkout",
+          channel: channelLabel,
         });
+
+        // If this was a home delivery payment captured, trigger email receipt too!
+        if (isHomeDelivery) {
+          try {
+            await sendPaymentLinkConfirmationEmail({
+              orderRef: notes.order_ref || orderId || `UT-${Date.now()}`,
+              customerName,
+              customerPhone,
+              customerEmail: email || undefined,
+              amount,
+              itemsSummary: notes.items_summary || description || "Fresh Rainbow Trout",
+              paymentId,
+              paymentMethod: method ? method.toUpperCase() : "Razorpay",
+            });
+          } catch (emErr) {
+            console.error("Email notification fallback error:", emErr);
+          }
+        }
       }
 
       // 2. Update matching order in Supabase if linked
@@ -207,10 +360,11 @@ export async function GET() {
     activeEvents: [
       "payment.captured",
       "order.paid",
+      "payment_link.paid",
       "payment.failed",
       "qr_code.credited",
     ],
     instructions:
-      "In Razorpay Dashboard > Account & Settings > Webhooks, add this Webhook URL with events: payment.captured, order.paid, payment.failed.",
+      "In Razorpay Dashboard > Account & Settings > Webhooks, add this Webhook URL with events: payment.captured, order.paid, payment_link.paid, payment.failed.",
   });
 }

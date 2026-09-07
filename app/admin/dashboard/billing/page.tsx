@@ -579,8 +579,8 @@ export default function POSBillingPage() {
     setInvoiceModalOpen(true);
   };
 
-  // ─── 100% UNIVERSAL CLEAN WHATSAPP MESSAGE ───
-  const handleShareWhatsApp = () => {
+  // ─── 100% UNIVERSAL CLEAN WHATSAPP MESSAGE WITH OPTIONAL RAZORPAY LINK ───
+  const handleShareWhatsApp = async () => {
     if (!generatedInvoice) return;
 
     let itemLines = "";
@@ -588,9 +588,35 @@ export default function POSBillingPage() {
       itemLines += `- *${item.name}*: ${item.weightKg} Kg @ Rs. ${item.pricePerKg}/Kg = Rs. ${item.total.toLocaleString("en-IN")}\n`;
     });
 
+    let paymentLinkText = "";
+    // If unpaid and customer needs to pay remotely, generate locked single-use Razorpay link
+    if (generatedInvoice.paymentStatus !== "PAID" && generatedInvoice.grandTotal > 0) {
+      try {
+        const cleanPhone = customerPhone.replace(/\D/g, "").slice(-10);
+        const plRes = await fetch("/api/razorpay/payment-link", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            amount: generatedInvoice.grandTotal,
+            customerName: generatedInvoice.customerName || "Customer",
+            customerPhone: cleanPhone,
+            orderRef: generatedInvoice.invoiceNumber,
+            itemsSummary: `${generatedInvoice.totalWeight.toFixed(2)} Kg Trout (Inv #${generatedInvoice.invoiceNumber})`,
+            notes: `POS Invoice #${generatedInvoice.invoiceNumber}`,
+          }),
+        });
+        const plData = await plRes.json();
+        if (plData?.paymentLink?.short_url) {
+          paymentLinkText = `🔒 *Click to Pay Securely via UPI, GPay, PhonePe or Card:*\n👉 ${plData.paymentLink.short_url}\n\n`;
+        }
+      } catch (plErr) {
+        console.warn("Could not generate inline payment link for WhatsApp:", plErr);
+      }
+    }
+
     const statusLine = generatedInvoice.paymentStatus === "PAID"
       ? `*Payment Status:* PAID ✓ (via ${generatedInvoice.paymentMethod}${generatedInvoice.paymentId ? `, Ref: ${generatedInvoice.paymentId}` : ""})\n\n`
-      : `*Payment Status:* Payment Due (Scan QR or Pay upon pickup)\n*Pay via UPI ID:* ${generatedInvoice.upiId}\n\n`;
+      : `*Payment Status:* Payment Due\n${paymentLinkText ? paymentLinkText : `*Pay via UPI ID:* ${generatedInvoice.upiId}\n\n`}`;
 
     const msg = `Hello ${generatedInvoice.customerName},\n\nThank you for choosing Urban Trout, Srinagar! Here is the invoice for your freshly harvested Rainbow Trout:\n\n*Invoice No:* ${generatedInvoice.invoiceNumber}\n*Date:* ${generatedInvoice.date}\n\n*Itemized Details:*\n${itemLines}\n*Total Harvest Weight:* ${generatedInvoice.totalWeight.toFixed(2)} Kg\n*Total Amount Payable:* Rs. ${generatedInvoice.grandTotal.toLocaleString("en-IN")}\n\n${statusLine}*View & Download Invoice PDF (Valid for 48 Hours):*\n${generatedInvoice.invoicePublicUrl}\n\n*Farm Location:* Naseem Bagh / Malabagh, Srinagar\n*Farm Helpline:* +91 84910 06127\n\n_Thank you for supporting sustainable Kashmiri aquaculture!_`;
 

@@ -628,5 +628,132 @@ export async function sendFarmVisitApprovedEmail(visit: {
   }
 }
 
+/**
+ * Sends real-time payment confirmation email when a Razorpay Payment Link is paid.
+ * Sent to info.urbantrout@gmail.com and to the customer (if email provided).
+ */
+export async function sendPaymentLinkConfirmationEmail(params: {
+  orderRef: string;
+  customerName: string;
+  customerPhone: string;
+  customerEmail?: string | null;
+  amount: number;
+  paymentId: string;
+  paymentLinkId?: string;
+  paymentMethod?: string;
+  method?: string;
+  itemsSummary?: string;
+}) {
+  const resend = getResend();
+  if (!resend) {
+    console.warn("RESEND_API_KEY is not set. Skipping payment link confirmation email.");
+    return null;
+  }
 
+  const cleanPhone = String(params.customerPhone || "").replace(/\D/g, "").slice(-10);
+  const formattedAmt = Number(params.amount || 0).toLocaleString("en-IN");
+  const dateStr = new Date().toLocaleString("en-IN", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
 
+  const emailHtml = `
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <meta charset="utf-8">
+    <title>Payment Received - Urban Trout</title>
+  </head>
+  <body style="margin: 0; padding: 20px; background-color: #031018; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #dfedf9;">
+    <div style="max-width: 600px; margin: 0 auto; background: #0b1b25; border: 1px solid #1a3648; border-radius: 16px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.5);">
+      
+      <!-- Header -->
+      <div style="background: linear-gradient(135deg, #06151e 0%, #10212c 100%); padding: 28px 24px; text-align: center; border-bottom: 1px solid #1e3a4e;">
+        <h1 style="margin: 0; font-size: 24px; font-weight: 800; color: #72ddfd; letter-spacing: -0.5px;">URBAN TROUT</h1>
+        <p style="margin: 6px 0 0; font-size: 11px; color: #9fadb8; text-transform: uppercase; letter-spacing: 2px;">Fresh Cold-Water Rainbow Trout • Srinagar</p>
+      </div>
+
+      <!-- Main Body -->
+      <div style="padding: 28px 24px;">
+        <div style="text-align: center; margin-bottom: 24px;">
+          <div style="display: inline-block; width: 52px; height: 52px; border-radius: 26px; background: rgba(34,197,94,0.15); line-height: 52px; font-size: 24px; color: #22c55e; text-align: center; margin-bottom: 10px; border: 1px solid rgba(34,197,94,0.3);">✓</div>
+          <h2 style="margin: 0; font-size: 20px; font-weight: 800; color: #ffffff;">Payment Verified via Razorpay</h2>
+          <p style="margin: 6px 0 0; font-size: 13px; color: #4ade80; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">
+            ₹${formattedAmt} Received Successfully
+          </p>
+        </div>
+
+        <!-- Details Card -->
+        <div style="background: #06151e; border: 1px solid #152834; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+          <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #152834; padding-bottom: 10px; margin-bottom: 10px; font-size: 13px;">
+            <span style="color: #6a7782; text-transform: uppercase; font-weight: 700;">Order Reference:</span>
+            <span style="color: #72ddfd; font-weight: 700; font-family: monospace;">#${params.orderRef}</span>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #152834; padding-bottom: 10px; margin-bottom: 10px; font-size: 13px;">
+            <span style="color: #6a7782; text-transform: uppercase; font-weight: 700;">Customer Name:</span>
+            <span style="color: #ffffff; font-weight: 600;">${params.customerName}</span>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #152834; padding-bottom: 10px; margin-bottom: 10px; font-size: 13px;">
+            <span style="color: #6a7782; text-transform: uppercase; font-weight: 700;">Customer Phone:</span>
+            <span style="color: #ffffff; font-family: monospace;">+91 ${cleanPhone}</span>
+          </div>
+
+          ${params.itemsSummary ? `
+          <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #152834; padding-bottom: 10px; margin-bottom: 10px; font-size: 13px;">
+            <span style="color: #6a7782; text-transform: uppercase; font-weight: 700;">Order Description:</span>
+            <span style="color: #38bdf8; font-weight: 600;">${params.itemsSummary}</span>
+          </div>
+          ` : ""}
+
+          <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #152834; padding-bottom: 10px; margin-bottom: 10px; font-size: 13px;">
+            <span style="color: #6a7782; text-transform: uppercase; font-weight: 700;">Razorpay Txn ID:</span>
+            <span style="color: #4ade80; font-family: monospace; font-weight: 600;">${params.paymentId}</span>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; font-size: 13px;">
+            <span style="color: #6a7782; text-transform: uppercase; font-weight: 700;">Payment Date &amp; Time:</span>
+            <span style="color: #9fadb8;">${dateStr}</span>
+          </div>
+        </div>
+
+        <div style="background: rgba(34,197,94,0.08); border: 1px solid rgba(34,197,94,0.25); border-radius: 12px; padding: 16px; text-align: center; margin-bottom: 20px;">
+          <div style="font-size: 12px; color: #4ade80; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">
+            Total Amount Credited: ₹${formattedAmt}
+          </div>
+          <div style="font-size: 11px; color: #86efac; margin-top: 4px;">
+            Payment confirmed &amp; locked. Order is ready for handover / delivery.
+          </div>
+        </div>
+
+        <div style="text-align: center; font-size: 11px; color: #6a7782; line-height: 1.6;">
+          <p style="margin: 0 0 4px;">Urban Trout Farm • Naseem Bagh / Malabagh, Srinagar — 190006</p>
+          <p style="margin: 0;">Helpline: +91 84910 06127 | info.urbantrout@gmail.com</p>
+        </div>
+      </div>
+    </div>
+  </body>
+  </html>
+  `;
+
+  // Recipients: Always notify ADMIN_EMAIL, plus customer if provided
+  const recipients = [ADMIN_EMAIL];
+  if (params.customerEmail && params.customerEmail.includes("@") && !recipients.includes(params.customerEmail.trim())) {
+    recipients.push(params.customerEmail.trim());
+  }
+
+  try {
+    const result = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: recipients,
+      subject: `💰 [PAYMENT RECEIVED] ₹${formattedAmt} for Order #${params.orderRef} (${params.customerName})`,
+      html: emailHtml,
+    });
+    console.log("Payment link confirmation email dispatched to:", recipients, result);
+    return result;
+  } catch (err) {
+    console.error("Failed to send payment link confirmation email:", err);
+    return null;
+  }
+}
