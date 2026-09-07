@@ -106,3 +106,48 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }
+
+/**
+ * GET /api/razorpay/payment-link?link_id=plink_xxx
+ * Polls the real-time status of a payment link directly from Razorpay.
+ */
+export async function GET(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const linkId = searchParams.get("link_id");
+
+    if (!linkId) {
+      return NextResponse.json(
+        { success: false, error: "Missing required query parameter: 'link_id'" },
+        { status: 400 }
+      );
+    }
+
+    const razorpay = getRazorpayClient();
+    const pl = await razorpay.paymentLink.fetch(linkId);
+
+    const isPaid = pl.status === "paid";
+    const amountPaid = Number(pl.amount_paid || pl.amount || 0) / 100;
+
+    return NextResponse.json({
+      success: true,
+      paid: isPaid,
+      status: pl.status,
+      payment: isPaid
+        ? {
+            id: pl.id,
+            amount: amountPaid,
+            status: pl.status,
+            customer: pl.customer,
+            notes: pl.notes,
+          }
+        : null,
+    });
+  } catch (err: any) {
+    console.error("Error fetching payment link status:", err);
+    return NextResponse.json(
+      { success: false, error: err?.message || "Failed to fetch payment link" },
+      { status: 500 }
+    );
+  }
+}

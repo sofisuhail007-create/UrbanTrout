@@ -58,12 +58,12 @@ export default function POSBillingPage() {
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerNotes, setCustomerNotes] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"JkBankSoundbox" | "RazorpayQR" | "Cash" | "Card">("JkBankSoundbox");
+  const [paymentMethod, setPaymentMethod] = useState<"JkBankSoundbox" | "RazorpayQR" | "WhatsAppLink" | "Cash" | "Card">("JkBankSoundbox");
   const [upiId, setUpiId] = useState("JKBMERC00828895@jkb");
   const [soundboxPaid, setSoundboxPaid] = useState(false);
   const [soundboxQrView, setSoundboxQrView] = useState<"dynamic" | "standee">("dynamic");
 
-  // Razorpay Dynamic QR State
+  // Razorpay Dynamic QR State (Counter)
   const [rzpQrId, setRzpQrId] = useState<string | null>(null);
   const [rzpQrImageUrl, setRzpQrImageUrl] = useState<string | null>(null);
   const [rzpQrLoading, setRzpQrLoading] = useState(false);
@@ -71,6 +71,19 @@ export default function POSBillingPage() {
   const [rzpPaid, setRzpPaid] = useState(false);
   const [rzpPaymentDetails, setRzpPaymentDetails] = useState<any>(null);
   const [lastGeneratedAmount, setLastGeneratedAmount] = useState<number>(0);
+
+  // Razorpay WhatsApp Payment Link State (Home Delivery & Remote)
+  const [rzpLinkLoading, setRzpLinkLoading] = useState(false);
+  const [rzpLinkData, setRzpLinkData] = useState<{
+    short_url: string;
+    id: string;
+    orderRef: string;
+    amount: number;
+    waMessage: string;
+  } | null>(null);
+  const [rzpLinkCopied, setRzpLinkCopied] = useState(false);
+  const [rzpLinkMsgCopied, setRzpLinkMsgCopied] = useState(false);
+  const [rzpLinkError, setRzpLinkError] = useState<string | null>(null);
 
   // State flags
   const [invoiceModalOpen, setInvoiceModalOpen] = useState(false);
@@ -397,42 +410,60 @@ export default function POSBillingPage() {
     }
   }, [grandTotal, lastGeneratedAmount, rzpQrId]);
 
-  // Real-time polling for incoming Razorpay payment (Ultra-responsive 1.2s interval)
+  // Real-time polling for incoming Razorpay payment (both Counter QR and WhatsApp Payment Link)
   useEffect(() => {
-    if (paymentMethod !== "RazorpayQR" || !rzpQrId || rzpPaid) return;
+    const isRzpQr = paymentMethod === "RazorpayQR" && rzpQrId;
+    const isWpLink = paymentMethod === "WhatsAppLink" && rzpLinkData?.id;
+    if ((!isRzpQr && !isWpLink) || rzpPaid) return;
 
     let isSubscribed = true;
 
     const checkPayment = async () => {
       if (!isSubscribed || rzpPaid) return;
       try {
-        const res = await fetch(`/api/razorpay/pos-qr?qr_id=${encodeURIComponent(rzpQrId)}`);
-        if (!res.ok) return;
-        const data = await res.json();
-        if (data.success && data.paid && data.payment && isSubscribed) {
-          setRzpPaid(true);
-          setRzpPaymentDetails(data.payment);
-          playSuccessChime();
+        if (isRzpQr && rzpQrId) {
+          const res = await fetch(`/api/razorpay/pos-qr?qr_id=${encodeURIComponent(rzpQrId)}`);
+          if (!res.ok) return;
+          const data = await res.json();
+          if (data.success && data.paid && data.payment && isSubscribed) {
+            setRzpPaid(true);
+            setRzpPaymentDetails(data.payment);
+            playSuccessChime();
 
-          // Send instant real-time Telegram alert
-          fetch("/api/telegram-notify", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              type: "razorpay_payment",
-              data: {
-                paymentId: data.payment.id,
-                amount: data.payment.amount,
-                status: "captured",
-                method: data.payment.method,
-                vpa: data.payment.vpa,
-                customerName: customerName.trim() || "Walk-in Customer",
-                customerPhone: customerPhone.trim() || undefined,
-                description: `Counter POS Billing (${totalWeight.toFixed(2)} Kg)`,
-                channel: "Counter POS QR",
-              },
-            }),
-          }).catch(() => {});
+            // Send instant real-time Telegram alert
+            fetch("/api/telegram-notify", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                type: "razorpay_payment",
+                data: {
+                  paymentId: data.payment.id,
+                  amount: data.payment.amount,
+                  status: "captured",
+                  method: data.payment.method,
+                  vpa: data.payment.vpa,
+                  customerName: customerName.trim() || "Walk-in Customer",
+                  customerPhone: customerPhone.trim() || undefined,
+                  description: `Counter POS Billing (${totalWeight.toFixed(2)} Kg)`,
+                  channel: "Counter POS QR",
+                },
+              }),
+            }).catch(() => {});
+          }
+        } else if (isWpLink && rzpLinkData?.id) {
+          const res = await fetch(`/api/razorpay/payment-link?link_id=${encodeURIComponent(rzpLinkData.id)}`);
+          if (!res.ok) return;
+          const data = await res.json();
+          if (data.success && data.paid && isSubscribed) {
+            setRzpPaid(true);
+            setRzpPaymentDetails({
+              id: data.payment?.id || rzpLinkData.id,
+              amount: data.payment?.amount || rzpLinkData.amount,
+              method: "Razorpay Link",
+              vpa: null,
+            });
+            playSuccessChime();
+          }
         }
       } catch (err) {
         console.warn("Error polling payment status:", err);
@@ -449,7 +480,7 @@ export default function POSBillingPage() {
       clearTimeout(initialTimer);
       clearInterval(pollInterval);
     };
-  }, [paymentMethod, rzpQrId, rzpPaid]);
+  }, [paymentMethod, rzpQrId, rzpLinkData, rzpPaid, customerName, customerPhone, totalWeight]);
 
   // ─── GENERATE SHORT CLEAN INVOICE (e.g. /invoice/UT-INV-3986) ───
   const handleGenerateInvoice = async () => {
@@ -462,15 +493,17 @@ export default function POSBillingPage() {
     const invoiceNumber = `UT-INV-${shortDigits}`;
     const cleanPhone = customerPhone.replace(/\D/g, "").slice(-10);
 
-    const isRzpPaid = paymentMethod === "RazorpayQR" && rzpPaid;
+    const isRzpPaid = (paymentMethod === "RazorpayQR" || paymentMethod === "WhatsAppLink") && rzpPaid;
     const isSoundbox = paymentMethod === "JkBankSoundbox";
     const paymentStatus = (isRzpPaid || isSoundbox || paymentMethod === "Cash" || soundboxPaid) ? "PAID" : "PAYMENT DUE";
     const paymentMethodLabel = isSoundbox
       ? "J&K Bank Soundbox UPI"
       : isRzpPaid
-      ? "Razorpay UPI (Verified)"
+      ? (paymentMethod === "WhatsAppLink" ? "Razorpay Link (Verified)" : "Razorpay UPI (Verified)")
       : paymentMethod === "RazorpayQR"
       ? "Razorpay QR"
+      : paymentMethod === "WhatsAppLink"
+      ? "Razorpay Link (Home Delivery)"
       : paymentMethod === "Cash"
       ? "Cash"
       : "Card / POS";
@@ -626,6 +659,127 @@ export default function POSBillingPage() {
     window.open(url, "_blank");
   };
 
+  // ─── 1-CLICK SEND LOCKED RAZORPAY PAYMENT LINK ON WHATSAPP (HOME DELIVERY) ───
+  const handleSendWhatsAppPaymentLink = async () => {
+    if (billItems.length === 0 || grandTotal <= 0) {
+      alert("Please add items to the bill with a valid weight.");
+      return;
+    }
+    const cleanPhone = customerPhone.replace(/\D/g, "").slice(-10);
+    if (!cleanPhone || cleanPhone.length !== 10) {
+      alert("Please enter a valid 10-digit customer WhatsApp mobile number in Section 2.");
+      return;
+    }
+
+    setRzpLinkLoading(true);
+    setRzpLinkError(null);
+    try {
+      const shortDigits = Math.floor(1000 + Math.random() * 9000).toString();
+      const invoiceNumber = `UT-INV-${shortDigits}`;
+      const itemsSummary = billItems.map((b) => `${b.weightKg} Kg ${b.name}`).join(", ");
+
+      const res = await fetch("/api/razorpay/payment-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: grandTotal,
+          customerName: customerName.trim() || "Customer",
+          customerPhone: cleanPhone,
+          orderRef: invoiceNumber,
+          itemsSummary,
+          notes: customerNotes ? `Delivery: ${customerNotes}` : "POS Billing Home Delivery",
+        }),
+      });
+
+      const data = await res.json();
+      if (!data?.success || !data?.paymentLink) {
+        throw new Error(data?.error || "Failed to generate Razorpay payment link");
+      }
+
+      const { short_url, id } = data.paymentLink;
+
+      let itemLines = "";
+      billItems.forEach((item: BillItem) => {
+        itemLines += `- *${item.name}*: ${item.weightKg} Kg @ Rs. ${item.pricePerKg}/Kg = Rs. ${item.total.toLocaleString("en-IN")}\n`;
+      });
+
+      const waMsg = `🐟 *URBAN TROUT — FRESH HIMALAYAN RAINBOW TROUT*
+━━━━━━━━━━━━━━━━━━━━
+Hi ${customerName.trim() || "there"}! Your fresh trout home delivery order is ready for dispatch:
+
+📦 *Invoice No:* #${invoiceNumber}
+${itemLines}⚖️ *Total Harvest Weight:* ${totalWeight.toFixed(2)} Kg
+💰 *Total Payable:* ₹${grandTotal.toLocaleString("en-IN")} (Locked Amount)
+${customerNotes ? `📍 *Delivery Note:* ${customerNotes}\n` : ""}
+🔒 *Click here to pay securely via UPI, Google Pay, PhonePe, Paytm, or Card:*
+👉 ${short_url}
+
+_✅ No manual screenshots needed. Your payment is verified automatically, confirming your order instantly._
+📞 Srinagar Helpline: +91 84910 06127`;
+
+      setRzpLinkData({
+        short_url,
+        id,
+        orderRef: invoiceNumber,
+        amount: grandTotal,
+        waMessage: waMsg,
+      });
+
+      // Open WhatsApp chat in new window
+      const encoded = encodeURIComponent(waMsg);
+      window.open(`https://wa.me/91${cleanPhone}?text=${encoded}`, "_blank");
+
+      // Auto-save Invoice to DB with status PAYMENT DUE
+      const invoicePayload = {
+        num: invoiceNumber,
+        name: customerName.trim() || "Valued Customer",
+        phone: cleanPhone,
+        items: billItems.map((i) => ({ n: i.name, w: i.weightKg, r: i.pricePerKg, t: i.total })),
+        tw: totalWeight,
+        tot: grandTotal,
+        notes: customerNotes,
+        paymentMethod: "Razorpay Link (Home Delivery)",
+        paymentStatus: "PAYMENT DUE",
+        paymentId: null,
+        paymentLinkId: id,
+        paymentLinkUrl: short_url,
+        ts: Date.now(),
+      };
+
+      adminFetch("/api/invoice", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ invoiceId: shortDigits, data: invoicePayload }),
+      }).catch(() => {});
+
+      // Record in Vending Center Logger
+      billItems.forEach((b) => {
+        adminFetch("/api/vending-log", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            entry_date: new Date().toISOString().split("T")[0],
+            entry_time: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true }),
+            weight_kg: b.weightKg,
+            product_type: b.name.toLowerCase().includes("gutted") && !b.name.toLowerCase().includes("non") ? "Gutted" : "Non Gutted",
+            rate_per_kg: b.pricePerKg,
+            amount_paid: 0,
+            expected_amount: b.total,
+            payment_mode: "Razorpay Link",
+            notes: `[HOME DELIVERY #${invoiceNumber}] ${customerName.trim()} (${cleanPhone}) - Link: ${short_url} ${customerNotes ? `| Note: ${customerNotes}` : ""}`,
+            logged_by: "POS Delivery",
+          }),
+        }).catch(() => {});
+      });
+
+      playSuccessChime();
+    } catch (err: any) {
+      setRzpLinkError(err.message || "Failed to generate payment link.");
+    } finally {
+      setRzpLinkLoading(false);
+    }
+  };
+
   const handleReset = () => {
     setCustomerName("");
     setCustomerPhone("");
@@ -637,6 +791,10 @@ export default function POSBillingPage() {
     setRzpPaymentDetails(null);
     setLastGeneratedAmount(0);
     setRzpQrError(null);
+    setRzpLinkData(null);
+    setRzpLinkCopied(false);
+    setRzpLinkMsgCopied(false);
+    setRzpLinkError(null);
     setSoundboxPaid(false);
     const prods = getInitialProducts();
     const defaultProd = prods.find((p) => p.id === "gutted-trout") || prods[0] || DEFAULT_PRODUCTS[0];
@@ -962,12 +1120,13 @@ export default function POSBillingPage() {
             </div>
 
             {/* Payment Channel Selector */}
-            <div className="grid grid-cols-4 gap-1.5 pt-0.5">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 pt-0.5">
               {[
-                { id: "JkBankSoundbox", label: "🔊 J&K Soundbox", sub: "Instant Voice" },
-                { id: "RazorpayQR", label: "⚡ Razorpay", sub: "Auto-Verify" },
-                { id: "Cash", label: "💵 Cash", sub: "Counter" },
-                { id: "Card", label: "💳 Card / POS", sub: "Terminal" },
+                { id: "JkBankSoundbox", label: "🔊 J&K Soundbox", sub: "Instant Voice", color: "#34d399", bg: "rgba(16,185,129,0.2)", border: "#10b981" },
+                { id: "RazorpayQR", label: "⚡ Razorpay QR", sub: "Auto-Verify", color: "#72ddfd", bg: "rgba(114,221,253,0.18)", border: "#72ddfd" },
+                { id: "WhatsAppLink", label: "🛵 WhatsApp Link", sub: "Remote Pay", color: "#4ade80", bg: "rgba(34,197,94,0.2)", border: "#22c55e" },
+                { id: "Cash", label: "💵 Cash", sub: "Counter", color: "#fbbf24", bg: "rgba(251,191,36,0.18)", border: "#fbbf24" },
+                { id: "Card", label: "💳 Card / POS", sub: "Terminal", color: "#c084fc", bg: "rgba(192,132,252,0.18)", border: "#c084fc" },
               ].map((channel) => {
                 const isSel = paymentMethod === channel.id;
                 return (
@@ -977,26 +1136,10 @@ export default function POSBillingPage() {
                     onClick={() => setPaymentMethod(channel.id as any)}
                     className="py-1.5 px-1 rounded-xl font-bold text-[10px] uppercase tracking-wider transition-all cursor-pointer text-center"
                     style={{
-                      background: isSel
-                        ? channel.id === "JkBankSoundbox"
-                          ? "rgba(16,185,129,0.2)"
-                          : "rgba(114,221,253,0.18)"
-                        : "rgba(3,16,24,0.6)",
-                      border: isSel
-                        ? channel.id === "JkBankSoundbox"
-                          ? "1.5px solid #10b981"
-                          : "1.5px solid #72ddfd"
-                        : "1px solid rgba(61,74,83,0.5)",
-                      color: isSel
-                        ? channel.id === "JkBankSoundbox"
-                          ? "#34d399"
-                          : "#72ddfd"
-                        : "#9fadb8",
-                      boxShadow: isSel
-                        ? channel.id === "JkBankSoundbox"
-                          ? "0 0 10px rgba(16,185,129,0.2)"
-                          : "0 0 10px rgba(114,221,253,0.15)"
-                        : "none",
+                      background: isSel ? channel.bg : "rgba(3,16,24,0.6)",
+                      border: isSel ? `1.5px solid ${channel.border}` : "1px solid rgba(61,74,83,0.5)",
+                      color: isSel ? channel.color : "#9fadb8",
+                      boxShadow: isSel ? `0 0 10px ${channel.bg}` : "none",
                     }}
                   >
                     <div className="leading-tight truncate">{channel.label}</div>
@@ -1220,6 +1363,14 @@ export default function POSBillingPage() {
                         </button>
                       </div>
                     </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod("WhatsAppLink")}
+                      className="text-[10px] text-cyan-400 hover:text-cyan-300 underline font-mono cursor-pointer pt-0.5"
+                    >
+                      🛵 Delivering to customer home? Send WhatsApp Payment Link instead →
+                    </button>
                   </>
                 ) : (
                   /* ─── READY STATE: ON-DEMAND BUTTON TO GENERATE QR ─── */
@@ -1245,12 +1396,192 @@ export default function POSBillingPage() {
                       <span className="material-symbols-outlined text-base">qr_code_scanner</span>
                       Generate Customer QR (₹{grandTotal.toLocaleString("en-IN")})
                     </button>
+                    <button
+                      type="button"
+                      onClick={() => setPaymentMethod("WhatsAppLink")}
+                      className="text-[10px] text-cyan-400 hover:text-cyan-300 underline font-mono cursor-pointer block mx-auto pt-1"
+                    >
+                      🛵 Delivering home? Send WhatsApp Payment Link instead →
+                    </button>
                   </div>
                 )}
               </div>
             )}
 
-            {/* 3. Cash Payment Panel */}
+            {/* 3. WhatsApp Payment Link Panel (Home Delivery / Remote Pay) */}
+            {paymentMethod === "WhatsAppLink" && grandTotal > 0 && (
+              <div className="p-2.5 rounded-xl bg-slate-950/80 border border-green-500/30 flex flex-col items-center text-center space-y-2">
+                {rzpPaid ? (
+                  /* ─── PAID CELEBRATION CARD ─── */
+                  <div className="w-full py-4 px-3 rounded-xl bg-gradient-to-b from-emerald-950/40 to-slate-950 border border-emerald-500/40 text-center space-y-2 animate-fadeIn">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/50 text-emerald-400 flex items-center justify-center mx-auto text-xl font-black shadow-lg shadow-emerald-500/20">
+                      ✓
+                    </div>
+                    <div>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono font-bold uppercase tracking-wider">
+                        Remote Payment Verified
+                      </span>
+                      <h4 className="text-base font-extrabold text-white mt-1" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                        Payment Received: <span className="text-emerald-400">₹{rzpPaymentDetails?.amount || grandTotal}</span>
+                      </h4>
+                      <p className="text-xs text-slate-300 font-mono mt-0.5">
+                        Ref: <strong className="text-emerald-300">{rzpPaymentDetails?.id || "pay_verified"}</strong>
+                      </p>
+                    </div>
+                    <div className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[10px] text-emerald-300 font-semibold flex items-center justify-center gap-1">
+                      <span>⚡</span> Auto-captured via Razorpay. Bill marked PAID!
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleGenerateInvoice}
+                      className="w-full py-2 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold uppercase tracking-wider cursor-pointer shadow-md transition-all mt-1"
+                    >
+                      View / Print Final Invoice
+                    </button>
+                  </div>
+                ) : rzpLinkLoading ? (
+                  <div className="py-8 flex flex-col items-center justify-center space-y-2 text-slate-400">
+                    <span className="animate-spin text-2xl">⏳</span>
+                    <p className="text-xs font-mono text-emerald-400 font-bold">Creating Secure Razorpay Payment Link...</p>
+                    <p className="text-[10px] text-slate-500">Locking amount ₹{grandTotal.toLocaleString("en-IN")} &amp; opening WhatsApp</p>
+                  </div>
+                ) : rzpLinkError ? (
+                  <div className="w-full p-3 rounded-xl bg-red-950/60 border border-red-500/30 text-center space-y-1.5">
+                    <p className="text-xs text-red-300">⚠️ {rzpLinkError}</p>
+                    <button
+                      type="button"
+                      onClick={handleSendWhatsAppPaymentLink}
+                      className="px-3 py-1 bg-red-600 hover:bg-red-500 text-white rounded-lg text-xs font-bold uppercase tracking-wider cursor-pointer"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                ) : rzpLinkData ? (
+                  /* ─── ACTIVE LISTENING CARD ─── */
+                  <div className="w-full space-y-2.5">
+                    <div className="flex items-center justify-between pb-1 border-b border-slate-800 text-[10px] font-mono">
+                      <span className="flex items-center gap-1.5 text-emerald-400 font-bold">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                        Awaiting Customer Payment...
+                      </span>
+                      <span className="text-slate-400 font-mono">Inv #{rzpLinkData.orderRef}</span>
+                    </div>
+
+                    <div className="p-2.5 rounded-xl bg-slate-900 border border-emerald-500/30 text-left space-y-1.5">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-slate-400">Locked Amount:</span>
+                        <span className="text-emerald-400 font-mono font-bold text-sm">₹{rzpLinkData.amount.toLocaleString("en-IN")}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="text-slate-400">Customer Phone:</span>
+                        <span className="text-slate-200 font-mono">{customerPhone || "N/A"}</span>
+                      </div>
+
+                      <div className="p-2 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between gap-2">
+                        <a
+                          href={rzpLinkData.short_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] font-mono text-emerald-400 hover:underline truncate"
+                        >
+                          {rzpLinkData.short_url}
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(rzpLinkData.short_url);
+                            setRzpLinkCopied(true);
+                            setTimeout(() => setRzpLinkCopied(false), 2000);
+                          }}
+                          className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-bold shrink-0 border border-slate-700 cursor-pointer"
+                        >
+                          {rzpLinkCopied ? "✓ Copied" : "Copy Link"}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const clean = customerPhone.replace(/\D/g, "").slice(-10);
+                          const enc = encodeURIComponent(rzpLinkData.waMessage);
+                          window.open(clean.length === 10 ? `https://wa.me/91${clean}?text=${enc}` : `https://wa.me/?text=${enc}`, "_blank");
+                        }}
+                        className="py-1.5 px-2 rounded-lg bg-green-600/20 hover:bg-green-600/30 text-green-300 border border-green-500/40 text-[11px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1"
+                      >
+                        <span>💬</span> Re-open WhatsApp
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          navigator.clipboard.writeText(rzpLinkData.waMessage);
+                          setRzpLinkMsgCopied(true);
+                          setTimeout(() => setRzpLinkMsgCopied(false), 2000);
+                        }}
+                        className="py-1.5 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[11px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1"
+                      >
+                        <span>📝</span> {rzpLinkMsgCopied ? "✓ Text Copied" : "Copy Bill Text"}
+                      </button>
+                    </div>
+
+                    <div className="p-2 rounded-lg bg-emerald-950/20 border border-emerald-500/20 text-[10px] text-emerald-400 font-mono text-center">
+                      🛡️ Anti-Fraud active: Polling Razorpay every 1.2s. Screen turns green automatically upon payment.
+                    </div>
+                  </div>
+                ) : (
+                  /* ─── READY STATE: ON-DEMAND BUTTON ─── */
+                  <div className="w-full py-3 px-2 text-center space-y-2.5">
+                    <div className="w-10 h-10 rounded-xl bg-green-500/10 border border-green-500/30 text-green-400 flex items-center justify-center mx-auto text-lg">
+                      <span className="text-xl">🛵</span>
+                    </div>
+                    <div>
+                      <h4 className="text-xs sm:text-sm font-bold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                        Home Delivery / Remote Pay
+                      </h4>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        Send a locked single-use Razorpay payment link directly to customer WhatsApp.
+                      </p>
+                    </div>
+
+                    <div className="p-2 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-between text-[11px]">
+                      <span className="text-slate-400 font-mono">WhatsApp Number:</span>
+                      <span className="font-mono font-bold text-emerald-400">
+                        {customerPhone.replace(/\D/g, "").slice(-10) ? `+91 ${customerPhone.replace(/\D/g, "").slice(-10)}` : "⚠️ Enter phone in Section 2"}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-1.5 text-left text-[10px] font-mono text-slate-300">
+                      <div className="p-1.5 rounded-lg bg-slate-900/60 border border-slate-800/80 flex items-center gap-1.5">
+                        <span className="text-green-400">✓</span> Amount locked (₹{grandTotal})
+                      </div>
+                      <div className="p-1.5 rounded-lg bg-slate-900/60 border border-slate-800/80 flex items-center gap-1.5">
+                        <span className="text-green-400">✓</span> Anti-Fraud Protection
+                      </div>
+                      <div className="p-1.5 rounded-lg bg-slate-900/60 border border-slate-800/80 flex items-center gap-1.5">
+                        <span className="text-green-400">✓</span> Auto-Verifies on Phone
+                      </div>
+                      <div className="p-1.5 rounded-lg bg-slate-900/60 border border-slate-800/80 flex items-center gap-1.5">
+                        <span className="text-green-400">✓</span> Instant Telegram Alert
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleSendWhatsAppPaymentLink}
+                      disabled={grandTotal <= 0 || rzpLinkLoading}
+                      className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 active:scale-[0.98] disabled:opacity-50 text-slate-950 font-black uppercase tracking-wider text-xs transition-all shadow-md shadow-emerald-500/20 flex items-center justify-center gap-1.5 cursor-pointer"
+                      style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                    >
+                      <span className="text-base">📲</span>
+                      Send WhatsApp Payment Link (₹{grandTotal.toLocaleString("en-IN")})
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 4. Cash Payment Panel */}
             {paymentMethod === "Cash" && (
               <div className="p-4 rounded-xl bg-slate-950/80 border border-emerald-500/20 text-center space-y-2">
                 <span className="text-2xl block">💵</span>
@@ -1264,7 +1595,7 @@ export default function POSBillingPage() {
               </div>
             )}
 
-            {/* 4. Card / EDC POS Panel */}
+            {/* 5. Card / EDC POS Panel */}
             {paymentMethod === "Card" && (
               <div className="p-4 rounded-xl bg-slate-950/80 border border-cyan-500/20 text-center space-y-2">
                 <span className="text-2xl block">💳</span>
@@ -1280,16 +1611,38 @@ export default function POSBillingPage() {
 
             {/* Primary Action Button */}
             <div className="pt-1">
-              <button
-                type="button"
-                onClick={handleGenerateInvoice}
-                disabled={grandTotal <= 0}
-                className="w-full py-2.5 sm:py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] disabled:opacity-50 text-slate-950 font-bold uppercase tracking-wider text-xs sm:text-sm transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 cursor-pointer"
-                style={{ fontFamily: '"Space Grotesk", sans-serif' }}
-              >
-                <span className="material-symbols-outlined text-base sm:text-lg">receipt_long</span>
-                Generate Invoice (₹{grandTotal.toLocaleString("en-IN")})
-              </button>
+              {paymentMethod === "WhatsAppLink" && !rzpPaid ? (
+                <button
+                  type="button"
+                  onClick={handleSendWhatsAppPaymentLink}
+                  disabled={grandTotal <= 0 || rzpLinkLoading}
+                  className="w-full py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 active:scale-[0.98] disabled:opacity-50 text-slate-950 font-bold uppercase tracking-wider text-xs sm:text-sm transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 cursor-pointer"
+                  style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                >
+                  {rzpLinkLoading ? (
+                    <>
+                      <span className="animate-spin text-base">⏳</span>
+                      Generating Link...
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-base">📲</span>
+                      Send WhatsApp Payment Link (₹{grandTotal.toLocaleString("en-IN")})
+                    </>
+                  )}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleGenerateInvoice}
+                  disabled={grandTotal <= 0}
+                  className="w-full py-2.5 sm:py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] disabled:opacity-50 text-slate-950 font-bold uppercase tracking-wider text-xs sm:text-sm transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 cursor-pointer"
+                  style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                >
+                  <span className="material-symbols-outlined text-base sm:text-lg">receipt_long</span>
+                  Generate Invoice (₹{grandTotal.toLocaleString("en-IN")})
+                </button>
+              )}
             </div>
           </div>
         </div>
