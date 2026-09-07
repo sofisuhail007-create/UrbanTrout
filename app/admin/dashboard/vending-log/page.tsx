@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import { adminFetch } from "@/lib/adminClient";
 import { CustomColumnDef, VendingSalesEntry } from "@/app/api/vending-log/route";
 import { StaffIncentivePayout } from "@/app/api/vending-log/incentive/route";
+import { AquariumStockEntry } from "@/app/api/aquarium-stock/route";
 
 const DEFAULT_GUTTED_PRICE = 580;
 const DEFAULT_NON_GUTTED_PRICE = 540;
@@ -87,6 +88,25 @@ export default function VendingCenterLoggerPage() {
   const [columnManagerOpen, setColumnManagerOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<VendingSalesEntry | null>(null);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+
+  // ─── Aquarium Stock (Biomass Procurement) State ───
+  const [stockEntries, setStockEntries] = useState<AquariumStockEntry[]>([]);
+  const [stockTableAvailable, setStockTableAvailable] = useState(true);
+  const [stockLogOpen, setStockLogOpen] = useState(false); // collapsible section
+  const [stockModalOpen, setStockModalOpen] = useState(false);
+  const [savingStock, setSavingStock] = useState(false);
+  const [deleteStockConfirmId, setDeleteStockConfirmId] = useState<string | null>(null);
+
+  // Stock form state
+  const [stockFormDate, setStockFormDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [stockFormTime, setStockFormTime] = useState(() =>
+    new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true })
+  );
+  const [stockFormSupplier, setStockFormSupplier] = useState("Khyber Aquaculture");
+  const [stockFormType, setStockFormType] = useState<"Gutted" | "Non Gutted">("Non Gutted");
+  const [stockFormWeight, setStockFormWeight] = useState("");
+  const [stockFormCost, setStockFormCost] = useState("350");
+  const [stockFormNotes, setStockFormNotes] = useState("");
 
   // Entry Form State
   const now = new Date();
@@ -386,6 +406,26 @@ export default function VendingCenterLoggerPage() {
     };
   }, []);
 
+  // ─── Fetch Aquarium Stock Procurement Entries ───
+  const fetchStockEntries = useCallback(async () => {
+    try {
+      const res = await adminFetch("/api/aquarium-stock");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setStockEntries(data.entries || []);
+          setStockTableAvailable(data.isTableAvailable ?? true);
+        }
+      }
+    } catch (err) {
+      console.warn("Could not fetch aquarium stock entries:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchStockEntries();
+  }, [fetchStockEntries]);
+
   // ─── Period Calculations ───
   const filteredEntriesByPeriod = useMemo(() => {
     const todayStr = getTodayDate();
@@ -538,6 +578,81 @@ export default function VendingCenterLoggerPage() {
       balanceRemaining,
     };
   }, [entries, kpis.guttedKg, payouts]);
+
+  // ─── Aquarium Live Stock Calculations ───
+  // "Stock remaining" = Total procured kg − Total sold kg, split by Gutted / Non-Gutted
+  const aquariumStock = useMemo(() => {
+    // All-time totals sold (from vending log)
+    let allTimeSoldGuttedKg = 0;
+    let allTimeSoldNonGuttedKg = 0;
+    entries.forEach((e) => {
+      const w = Number(e.weight_kg) || 0;
+      const isGutted =
+        (e.product_type || "").toLowerCase().includes("gutted") &&
+        !(e.product_type || "").toLowerCase().includes("non");
+      if (isGutted) {
+        allTimeSoldGuttedKg = Math.round((allTimeSoldGuttedKg + w) * 1000) / 1000;
+      } else {
+        allTimeSoldNonGuttedKg = Math.round((allTimeSoldNonGuttedKg + w) * 1000) / 1000;
+      }
+    });
+
+    // All-time procured (from stock log)
+    let procuredGuttedKg = 0;
+    let procuredNonGuttedKg = 0;
+    let procuredGuttedCost = 0;
+    let procuredNonGuttedCost = 0;
+
+    stockEntries.forEach((s) => {
+      const w = Number(s.weight_kg) || 0;
+      const cost = Number(s.cost_per_kg) || 0;
+      const isGutted =
+        (s.product_type || "").toLowerCase().includes("gutted") &&
+        !(s.product_type || "").toLowerCase().includes("non");
+      if (isGutted) {
+        procuredGuttedKg = Math.round((procuredGuttedKg + w) * 1000) / 1000;
+        procuredGuttedCost += w * cost;
+      } else {
+        procuredNonGuttedKg = Math.round((procuredNonGuttedKg + w) * 1000) / 1000;
+        procuredNonGuttedCost += w * cost;
+      }
+    });
+
+    // Remaining stock in aquarium
+    const remainingGuttedKg = Math.max(0, Math.round((procuredGuttedKg - allTimeSoldGuttedKg) * 1000) / 1000);
+    const remainingNonGuttedKg = Math.max(0, Math.round((procuredNonGuttedKg - allTimeSoldNonGuttedKg) * 1000) / 1000);
+    const totalRemainingKg = Math.round((remainingGuttedKg + remainingNonGuttedKg) * 1000) / 1000;
+
+    // Weighted average cost per kg for remaining stock
+    const totalProcuredKg = procuredGuttedKg + procuredNonGuttedKg;
+    const totalProcuredCost = procuredGuttedCost + procuredNonGuttedCost;
+    const avgCostPerKg = totalProcuredKg > 0 ? totalProcuredCost / totalProcuredKg : 0;
+
+    // Approximate remaining worth based on avg procurement cost
+    const guttedAvgCost = procuredGuttedKg > 0 ? procuredGuttedCost / procuredGuttedKg : 0;
+    const nonGuttedAvgCost = procuredNonGuttedKg > 0 ? procuredNonGuttedCost / procuredNonGuttedKg : 0;
+    const remainingWorthGutted = Math.round(remainingGuttedKg * guttedAvgCost);
+    const remainingWorthNonGutted = Math.round(remainingNonGuttedKg * nonGuttedAvgCost);
+    const totalRemainingWorth = remainingWorthGutted + remainingWorthNonGutted;
+
+    // Total procured across all time
+    const totalProcuredCostRounded = Math.round(totalProcuredCost);
+
+    return {
+      procuredGuttedKg,
+      procuredNonGuttedKg,
+      totalProcuredKg,
+      remainingGuttedKg,
+      remainingNonGuttedKg,
+      totalRemainingKg,
+      remainingWorthGutted,
+      remainingWorthNonGutted,
+      totalRemainingWorth,
+      totalProcuredCost: totalProcuredCostRounded,
+      guttedAvgCost: Math.round(guttedAvgCost),
+      nonGuttedAvgCost: Math.round(nonGuttedAvgCost),
+    };
+  }, [entries, stockEntries]);
 
   // ─── Search & Dropdown Filtered Table List ───
   const displayEntries = useMemo(() => {
@@ -753,6 +868,77 @@ export default function VendingCenterLoggerPage() {
       }
     } catch (err) {
       console.error("Failed to delete payout:", err);
+    }
+  };
+
+  // ─── Aquarium Stock Log Handlers ───
+  const handleAddStockEntry = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const w = parseFloat(stockFormWeight);
+    const cost = parseFloat(stockFormCost);
+
+    if (isNaN(w) || w <= 0) {
+      alert("Please enter a valid weight in Kg.");
+      return;
+    }
+    if (isNaN(cost) || cost <= 0) {
+      alert("Please enter a valid cost per Kg.");
+      return;
+    }
+
+    setSavingStock(true);
+    try {
+      const loggedBy = localStorage.getItem("ut_admin_email")?.split("@")[0] || "Admin";
+      const res = await adminFetch("/api/aquarium-stock", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          stock_date: stockFormDate,
+          stock_time: stockFormTime,
+          supplier_name: stockFormSupplier.trim() || "Khyber Aquaculture",
+          product_type: stockFormType,
+          weight_kg: w,
+          cost_per_kg: cost,
+          batch_notes: stockFormNotes.trim() || null,
+          logged_by: loggedBy,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.entry) {
+          setStockEntries((prev) => [data.entry, ...prev]);
+          setStockModalOpen(false);
+          setStockFormWeight("");
+          setStockFormNotes("");
+          setStockFormDate(getTodayDate());
+          setStockFormTime(getCurrentTime());
+          setStockTableAvailable(true);
+          playLogChime();
+        }
+      } else {
+        const errData = await res.json();
+        alert(errData.error || "Failed to save stock entry.");
+      }
+    } catch (err) {
+      console.error("Error saving stock entry:", err);
+      alert("Failed to save stock entry. Please check connection.");
+    } finally {
+      setSavingStock(false);
+    }
+  };
+
+  const handleDeleteStockEntry = async (id: string) => {
+    try {
+      const res = await adminFetch(`/api/aquarium-stock?id=${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setStockEntries((prev) => prev.filter((s) => s.id !== id));
+        setDeleteStockConfirmId(null);
+      }
+    } catch (err) {
+      console.error("Failed to delete stock entry:", err);
     }
   };
 
@@ -1301,6 +1487,267 @@ export default function VendingCenterLoggerPage() {
         </div>
       )}
     </div>
+
+      {/* ══════════════════════════════════════════════════════════
+          AQUARIUM BIOMASS STOCK TRACKER — Flash Cards + Log
+          Visible to Admin only. Shows live stock remaining in aquarium.
+          ══════════════════════════════════════════════════════════ */}
+      {isAdmin && (
+        <div className="space-y-3">
+          {/* Section Header */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-blue-400 text-base">set_meal</span>
+              <span className="text-[11px] font-black uppercase tracking-widest text-blue-300 font-mono">
+                Aquarium Live Stock
+              </span>
+              {!stockTableAvailable && (
+                <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 font-mono font-bold">
+                  Run SQL to enable
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setStockLogOpen((p) => !p)}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900/80 hover:bg-slate-800 text-slate-300 border border-slate-700/60 text-[11px] font-mono font-bold transition-all cursor-pointer"
+                title="Toggle procurement log"
+              >
+                <span className="material-symbols-outlined text-xs">
+                  {stockLogOpen ? "expand_less" : "expand_more"}
+                </span>
+                {stockLogOpen ? "Hide" : "Show"} Procurement Log ({stockEntries.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setStockModalOpen(true)}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white text-[11px] font-black uppercase tracking-wider transition-all shadow-lg shadow-blue-500/20 cursor-pointer active:scale-95"
+              >
+                <span className="material-symbols-outlined text-sm">add</span>
+                Log Stock
+              </button>
+            </div>
+          </div>
+
+          {/* Flash Cards Row — 4 cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {/* Card 1: Total Stock Remaining */}
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-950/50 via-slate-900/90 to-slate-900 border border-blue-500/40 shadow-xl shadow-blue-950/20 relative overflow-hidden flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
+                  <span className="text-blue-300 font-bold">LIVE AQUARIUM STOCK</span>
+                  <span className="material-symbols-outlined text-blue-400 text-lg">water</span>
+                </div>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span
+                    className="text-3xl sm:text-4xl font-black text-white"
+                    style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                  >
+                    {formatKg(aquariumStock.totalRemainingKg)}
+                  </span>
+                  <span className="text-blue-400 font-bold font-mono text-sm">Kg</span>
+                </div>
+              </div>
+              <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2 space-y-0.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Procured Total:</span>
+                  <span className="text-blue-200 font-bold">{formatKg(aquariumStock.totalProcuredKg)} Kg</span>
+                </div>
+                <div className="text-[10px] text-slate-500">
+                  {stockEntries.length} procurement batch{stockEntries.length !== 1 ? "es" : ""} logged
+                </div>
+              </div>
+            </div>
+
+            {/* Card 2: Gutted Stock Left */}
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-950/40 via-slate-900/80 to-slate-900 border border-emerald-500/30 shadow-xl shadow-emerald-950/20 relative overflow-hidden flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
+                  <span className="text-emerald-300 font-bold">GUTTED LEFT</span>
+                  <span className="material-symbols-outlined text-emerald-400 text-lg">set_meal</span>
+                </div>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span
+                    className="text-3xl sm:text-4xl font-black text-white"
+                    style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                  >
+                    {formatKg(aquariumStock.remainingGuttedKg)}
+                  </span>
+                  <span className="text-emerald-400 font-bold font-mono text-sm">Kg</span>
+                </div>
+              </div>
+              <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2 space-y-0.5">
+                <div className="flex items-center justify-between">
+                  <span>Procured:</span>
+                  <span className="text-emerald-300">{formatKg(aquariumStock.procuredGuttedKg)} Kg</span>
+                </div>
+                {aquariumStock.guttedAvgCost > 0 && (
+                  <div className="text-[10px] text-slate-500">
+                    Avg cost: ₹{aquariumStock.guttedAvgCost}/Kg
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Card 3: Non-Gutted Stock Left */}
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-cyan-950/40 via-slate-900/80 to-slate-900 border border-cyan-500/30 shadow-xl shadow-cyan-950/20 relative overflow-hidden flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
+                  <span className="text-cyan-300 font-bold">NON-GUTTED LEFT</span>
+                  <span className="material-symbols-outlined text-cyan-400 text-lg">phishing</span>
+                </div>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span
+                    className="text-3xl sm:text-4xl font-black text-white"
+                    style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                  >
+                    {formatKg(aquariumStock.remainingNonGuttedKg)}
+                  </span>
+                  <span className="text-cyan-400 font-bold font-mono text-sm">Kg</span>
+                </div>
+              </div>
+              <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2 space-y-0.5">
+                <div className="flex items-center justify-between">
+                  <span>Procured:</span>
+                  <span className="text-cyan-300">{formatKg(aquariumStock.procuredNonGuttedKg)} Kg</span>
+                </div>
+                {aquariumStock.nonGuttedAvgCost > 0 && (
+                  <div className="text-[10px] text-slate-500">
+                    Avg cost: ₹{aquariumStock.nonGuttedAvgCost}/Kg
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Card 4: Stock Worth (at procurement cost) */}
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-violet-950/50 via-slate-900/90 to-slate-900 border border-violet-500/40 shadow-xl shadow-violet-950/20 relative overflow-hidden flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
+                  <span className="text-violet-300 font-bold">STOCK WORTH</span>
+                  <span className="material-symbols-outlined text-violet-400 text-lg">currency_rupee</span>
+                </div>
+                <div className="mt-2 flex items-baseline gap-1">
+                  <span className="text-violet-400 font-bold text-xl">₹</span>
+                  <span
+                    className="text-3xl sm:text-4xl font-black text-white"
+                    style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                  >
+                    {aquariumStock.totalRemainingWorth.toLocaleString("en-IN")}
+                  </span>
+                </div>
+              </div>
+              <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2 space-y-0.5">
+                <div className="flex items-center justify-between text-violet-200">
+                  <span>G: ₹{aquariumStock.remainingWorthGutted.toLocaleString("en-IN")}</span>
+                  <span>NG: ₹{aquariumStock.remainingWorthNonGutted.toLocaleString("en-IN")}</span>
+                </div>
+                <div className="text-[10px] text-slate-500">At procurement cost</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Procurement Log Table (collapsible) */}
+          {stockLogOpen && (
+            <div className="bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden animate-in fade-in duration-200">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-800 bg-slate-950/80 text-[10px] font-mono uppercase tracking-wider text-slate-400">
+                      <th className="py-3 px-3 text-center w-8">#</th>
+                      <th className="py-3 px-3">Date</th>
+                      <th className="py-3 px-3">Time</th>
+                      <th className="py-3 px-3">Supplier</th>
+                      <th className="py-3 px-3">Type</th>
+                      <th className="py-3 px-3 text-right">Weight (Kg)</th>
+                      <th className="py-3 px-3 text-right">Cost/Kg (₹)</th>
+                      <th className="py-3 px-3 text-right text-violet-300">Total Cost (₹)</th>
+                      <th className="py-3 px-3">Notes</th>
+                      <th className="py-3 px-3">Logged By</th>
+                      <th className="py-3 px-3 text-center">Del</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60 font-mono">
+                    {stockEntries.length === 0 ? (
+                      <tr>
+                        <td colSpan={11} className="py-10 text-center text-slate-500 text-xs">
+                          <span className="material-symbols-outlined text-2xl block mb-1 text-slate-600">inventory_2</span>
+                          No procurement entries yet. Click &ldquo;Log Stock&rdquo; to add your first batch.
+                        </td>
+                      </tr>
+                    ) : (
+                      stockEntries.map((s, idx) => {
+                        const isGutted =
+                          (s.product_type || "").toLowerCase().includes("gutted") &&
+                          !(s.product_type || "").toLowerCase().includes("non");
+                        const totalCost = Number(s.total_cost) || Number(s.weight_kg) * Number(s.cost_per_kg);
+                        return (
+                          <tr
+                            key={s.id}
+                            className="hover:bg-slate-800/30 transition-colors group"
+                          >
+                            <td className="py-2.5 px-3 text-center text-slate-500">{idx + 1}</td>
+                            <td className="py-2.5 px-3 text-slate-300">{s.stock_date}</td>
+                            <td className="py-2.5 px-3 text-slate-400">{s.stock_time}</td>
+                            <td className="py-2.5 px-3 text-blue-300 font-semibold">{s.supplier_name}</td>
+                            <td className="py-2.5 px-3">
+                              <span
+                                className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                  isGutted
+                                    ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"
+                                    : "bg-cyan-500/15 text-cyan-300 border border-cyan-500/30"
+                                }`}
+                              >
+                                {s.product_type}
+                              </span>
+                            </td>
+                            <td className="py-2.5 px-3 text-right text-white font-bold">{formatKg(s.weight_kg)}</td>
+                            <td className="py-2.5 px-3 text-right text-slate-300">₹{Number(s.cost_per_kg).toLocaleString("en-IN")}</td>
+                            <td className="py-2.5 px-3 text-right text-violet-300 font-bold">
+                              ₹{Math.round(totalCost).toLocaleString("en-IN")}
+                            </td>
+                            <td className="py-2.5 px-3 text-slate-400 max-w-[120px] truncate">{s.batch_notes || "—"}</td>
+                            <td className="py-2.5 px-3 text-slate-500">{s.logged_by || "—"}</td>
+                            <td className="py-2.5 px-3 text-center">
+                              {deleteStockConfirmId === s.id ? (
+                                <div className="flex items-center gap-1 justify-center">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteStockEntry(s.id)}
+                                    className="px-2 py-0.5 rounded bg-red-500/20 hover:bg-red-500/30 text-red-300 border border-red-500/40 text-[10px] font-bold cursor-pointer"
+                                  >
+                                    Confirm
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setDeleteStockConfirmId(null)}
+                                    className="px-2 py-0.5 rounded bg-slate-800 text-slate-400 text-[10px] cursor-pointer"
+                                  >
+                                    Cancel
+                                  </button>
+                                </div>
+                              ) : (
+                                <button
+                                  type="button"
+                                  onClick={() => setDeleteStockConfirmId(s.id)}
+                                  className="p-1 rounded-lg opacity-0 group-hover:opacity-100 hover:bg-red-500/15 text-red-400 transition-all cursor-pointer"
+                                  title="Delete this stock entry"
+                                >
+                                  <span className="material-symbols-outlined text-sm">delete</span>
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ══════════════════════════════════════════════════════════
           TABLE FILTERS & CONTROLS
@@ -2492,6 +2939,188 @@ export default function VendingCenterLoggerPage() {
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════
+          LOG STOCK MODAL — Add New Biomass Procurement Entry
+          ══════════════════════════════════════════════════════════ */}
+      {stockModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-[#0a1628] border border-blue-500/30 rounded-3xl shadow-2xl shadow-blue-950/40 overflow-hidden">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800/80">
+              <div>
+                <div className="flex items-center gap-2 mb-0.5">
+                  <span className="material-symbols-outlined text-blue-400 text-base">inventory_2</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-blue-400 font-mono">
+                    Biomass Procurement
+                  </span>
+                </div>
+                <h3
+                  className="text-base font-black text-white"
+                  style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                >
+                  Log Stock Intake
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setStockModalOpen(false)}
+                className="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-all cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-sm">close</span>
+              </button>
+            </div>
+
+            {/* Modal Form */}
+            <form onSubmit={handleAddStockEntry} className="p-5 space-y-4">
+              {/* Date & Time */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Date</label>
+                  <input
+                    type="date"
+                    value={stockFormDate}
+                    onChange={(e) => setStockFormDate(e.target.value)}
+                    className="w-full px-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-blue-400 font-mono"
+                    required
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Time</label>
+                  <input
+                    type="text"
+                    value={stockFormTime}
+                    onChange={(e) => setStockFormTime(e.target.value)}
+                    className="w-full px-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-blue-400 font-mono"
+                    placeholder="08:00 AM"
+                  />
+                </div>
+              </div>
+
+              {/* Supplier */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">
+                  Supplier Name
+                </label>
+                <input
+                  type="text"
+                  value={stockFormSupplier}
+                  onChange={(e) => setStockFormSupplier(e.target.value)}
+                  className="w-full px-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-blue-400"
+                  placeholder="Khyber Aquaculture"
+                  required
+                />
+              </div>
+
+              {/* Product Type */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">
+                  Product Type
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  {(["Non Gutted", "Gutted"] as const).map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => setStockFormType(t)}
+                      className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
+                        stockFormType === t
+                          ? t === "Gutted"
+                            ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/50 shadow-sm shadow-emerald-500/20"
+                            : "bg-cyan-500/20 text-cyan-300 border-cyan-500/50 shadow-sm shadow-cyan-500/20"
+                          : "bg-slate-900 text-slate-400 border-slate-700 hover:border-slate-600"
+                      }`}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Weight & Cost */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">
+                    Weight (Kg)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.001"
+                    min="0.001"
+                    value={stockFormWeight}
+                    onChange={(e) => setStockFormWeight(e.target.value)}
+                    className="w-full px-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-blue-400 font-mono"
+                    placeholder="e.g. 50.000"
+                    required
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">
+                    Cost / Kg (₹)
+                  </label>
+                  <input
+                    type="number"
+                    step="1"
+                    min="1"
+                    value={stockFormCost}
+                    onChange={(e) => setStockFormCost(e.target.value)}
+                    className="w-full px-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-blue-400 font-mono"
+                    placeholder="350"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Live Total Cost Preview */}
+              {stockFormWeight && stockFormCost && parseFloat(stockFormWeight) > 0 && parseFloat(stockFormCost) > 0 && (
+                <div className="flex items-center justify-between p-3 rounded-xl bg-violet-500/10 border border-violet-500/25">
+                  <span className="text-xs font-mono text-slate-400">Total Procurement Cost</span>
+                  <span className="text-sm font-black text-violet-300 font-mono">
+                    ₹{Math.round(parseFloat(stockFormWeight) * parseFloat(stockFormCost)).toLocaleString("en-IN")}
+                  </span>
+                </div>
+              )}
+
+              {/* Notes */}
+              <div className="space-y-1">
+                <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">
+                  Batch Notes (optional)
+                </label>
+                <textarea
+                  value={stockFormNotes}
+                  onChange={(e) => setStockFormNotes(e.target.value)}
+                  rows={2}
+                  className="w-full px-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-blue-400 resize-none"
+                  placeholder="e.g. Fresh batch, morning delivery..."
+                />
+              </div>
+
+              {/* Submit */}
+              <div className="flex gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setStockModalOpen(false)}
+                  className="flex-1 py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingStock}
+                  className="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white text-xs font-black uppercase tracking-wider transition-all disabled:opacity-60 cursor-pointer flex items-center justify-center gap-1.5 shadow-lg shadow-blue-500/20"
+                >
+                  {savingStock ? (
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent animate-spin rounded-full" />
+                  ) : (
+                    <span className="material-symbols-outlined text-sm">add</span>
+                  )}
+                  {savingStock ? "Saving…" : "Log Stock"}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
