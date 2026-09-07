@@ -442,7 +442,9 @@ export default function VendingCenterLoggerPage() {
     const firstOfMonth = new Date(currDate.getFullYear(), currDate.getMonth(), 1);
 
     return entries.filter((e) => {
-      const eDate = new Date(e.entry_date);
+      // Parse as LOCAL time to avoid UTC→IST offset shifting the date by -5:30h
+      const [ey, em, ed] = e.entry_date.split("-").map(Number);
+      const eDate = new Date(ey, em - 1, ed);
       if (period === "today") return e.entry_date === todayStr;
       if (period === "week") return eDate >= monday;
       if (period === "month") return eDate >= firstOfMonth;
@@ -580,79 +582,55 @@ export default function VendingCenterLoggerPage() {
   }, [entries, kpis.guttedKg, payouts]);
 
   // ─── Aquarium Live Stock Calculations ───
-  // "Stock remaining" = Total procured kg − Total sold kg, split by Gutted / Non-Gutted
+  // All stock procured is LIVE FISH. We track what's left in the aquarium.
+  // Remaining = total procured (live kg) − total vending sales (all types combined)
   const aquariumStock = useMemo(() => {
-    // All-time totals sold (from vending log)
-    let allTimeSoldGuttedKg = 0;
-    let allTimeSoldNonGuttedKg = 0;
+    // All-time total sold from vending log (gutted + non-gutted combined — all came from the aquarium)
+    let allTimeSoldKg = 0;
     entries.forEach((e) => {
-      const w = Number(e.weight_kg) || 0;
-      const isGutted =
-        (e.product_type || "").toLowerCase().includes("gutted") &&
-        !(e.product_type || "").toLowerCase().includes("non");
-      if (isGutted) {
-        allTimeSoldGuttedKg = Math.round((allTimeSoldGuttedKg + w) * 1000) / 1000;
-      } else {
-        allTimeSoldNonGuttedKg = Math.round((allTimeSoldNonGuttedKg + w) * 1000) / 1000;
-      }
+      allTimeSoldKg = Math.round((allTimeSoldKg + (Number(e.weight_kg) || 0)) * 1000) / 1000;
     });
 
-    // All-time procured (from stock log)
-    let procuredGuttedKg = 0;
-    let procuredNonGuttedKg = 0;
-    let procuredGuttedCost = 0;
-    let procuredNonGuttedCost = 0;
-
+    // Total live fish procured and total procurement cost
+    let totalProcuredKg = 0;
+    let totalProcuredCost = 0;
     stockEntries.forEach((s) => {
       const w = Number(s.weight_kg) || 0;
       const cost = Number(s.cost_per_kg) || 0;
-      const isGutted =
-        (s.product_type || "").toLowerCase().includes("gutted") &&
-        !(s.product_type || "").toLowerCase().includes("non");
-      if (isGutted) {
-        procuredGuttedKg = Math.round((procuredGuttedKg + w) * 1000) / 1000;
-        procuredGuttedCost += w * cost;
-      } else {
-        procuredNonGuttedKg = Math.round((procuredNonGuttedKg + w) * 1000) / 1000;
-        procuredNonGuttedCost += w * cost;
-      }
+      totalProcuredKg = Math.round((totalProcuredKg + w) * 1000) / 1000;
+      totalProcuredCost += w * cost;
     });
 
-    // Remaining stock in aquarium
-    const remainingGuttedKg = Math.max(0, Math.round((procuredGuttedKg - allTimeSoldGuttedKg) * 1000) / 1000);
-    const remainingNonGuttedKg = Math.max(0, Math.round((procuredNonGuttedKg - allTimeSoldNonGuttedKg) * 1000) / 1000);
-    const totalRemainingKg = Math.round((remainingGuttedKg + remainingNonGuttedKg) * 1000) / 1000;
+    // Live fish remaining in aquarium
+    const remainingKg = Math.max(0, Math.round((totalProcuredKg - allTimeSoldKg) * 1000) / 1000);
 
-    // Weighted average cost per kg for remaining stock
-    const totalProcuredKg = procuredGuttedKg + procuredNonGuttedKg;
-    const totalProcuredCost = procuredGuttedCost + procuredNonGuttedCost;
+    // Gone from aquarium = sold already
+    const soldKg = Math.min(allTimeSoldKg, totalProcuredKg);
+
+    // Value of remaining stock if ALL sold as Gutted
+    const valueIfGutted = Math.round(remainingKg * guttedPrice);
+
+    // Value of remaining stock if ALL sold as Non-Gutted
+    const valueIfNonGutted = Math.round(remainingKg * nonGuttedPrice);
+
+    // Avg procurement cost per kg
     const avgCostPerKg = totalProcuredKg > 0 ? totalProcuredCost / totalProcuredKg : 0;
 
-    // Approximate remaining worth based on avg procurement cost
-    const guttedAvgCost = procuredGuttedKg > 0 ? procuredGuttedCost / procuredGuttedKg : 0;
-    const nonGuttedAvgCost = procuredNonGuttedKg > 0 ? procuredNonGuttedCost / procuredNonGuttedKg : 0;
-    const remainingWorthGutted = Math.round(remainingGuttedKg * guttedAvgCost);
-    const remainingWorthNonGutted = Math.round(remainingNonGuttedKg * nonGuttedAvgCost);
-    const totalRemainingWorth = remainingWorthGutted + remainingWorthNonGutted;
-
-    // Total procured across all time
-    const totalProcuredCostRounded = Math.round(totalProcuredCost);
+    // Procurement cost of remaining stock
+    const procurementCostRemaining = Math.round(remainingKg * avgCostPerKg);
 
     return {
-      procuredGuttedKg,
-      procuredNonGuttedKg,
       totalProcuredKg,
-      remainingGuttedKg,
-      remainingNonGuttedKg,
-      totalRemainingKg,
-      remainingWorthGutted,
-      remainingWorthNonGutted,
-      totalRemainingWorth,
-      totalProcuredCost: totalProcuredCostRounded,
-      guttedAvgCost: Math.round(guttedAvgCost),
-      nonGuttedAvgCost: Math.round(nonGuttedAvgCost),
+      totalProcuredCost: Math.round(totalProcuredCost),
+      soldKg,
+      remainingKg,
+      valueIfGutted,
+      valueIfNonGutted,
+      avgCostPerKg: Math.round(avgCostPerKg),
+      procurementCostRemaining,
+      batchCount: stockEntries.length,
     };
-  }, [entries, stockEntries]);
+  }, [entries, stockEntries, guttedPrice, nonGuttedPrice]);
 
   // ─── Search & Dropdown Filtered Table List ───
   const displayEntries = useMemo(() => {
@@ -896,7 +874,7 @@ export default function VendingCenterLoggerPage() {
           stock_date: stockFormDate,
           stock_time: stockFormTime,
           supplier_name: stockFormSupplier.trim() || "Khyber Aquaculture",
-          product_type: stockFormType,
+          product_type: "Live Fish",
           weight_kg: w,
           cost_per_kg: cost,
           batch_notes: stockFormNotes.trim() || null,
@@ -1532,11 +1510,12 @@ export default function VendingCenterLoggerPage() {
 
           {/* Flash Cards Row — 4 cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-            {/* Card 1: Total Stock Remaining */}
+
+            {/* Card 1: Live Stock Remaining in Aquarium */}
             <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-950/50 via-slate-900/90 to-slate-900 border border-blue-500/40 shadow-xl shadow-blue-950/20 relative overflow-hidden flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
-                  <span className="text-blue-300 font-bold">LIVE AQUARIUM STOCK</span>
+                  <span className="text-blue-300 font-bold">LIVE IN AQUARIUM</span>
                   <span className="material-symbols-outlined text-blue-400 text-lg">water</span>
                 </div>
                 <div className="mt-2 flex items-baseline gap-2">
@@ -1544,107 +1523,104 @@ export default function VendingCenterLoggerPage() {
                     className="text-3xl sm:text-4xl font-black text-white"
                     style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                   >
-                    {formatKg(aquariumStock.totalRemainingKg)}
+                    {formatKg(aquariumStock.remainingKg)}
                   </span>
                   <span className="text-blue-400 font-bold font-mono text-sm">Kg</span>
                 </div>
               </div>
               <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2 space-y-0.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-400">Procured Total:</span>
+                  <span className="text-slate-400">Procured (Live):</span>
                   <span className="text-blue-200 font-bold">{formatKg(aquariumStock.totalProcuredKg)} Kg</span>
                 </div>
                 <div className="text-[10px] text-slate-500">
-                  {stockEntries.length} procurement batch{stockEntries.length !== 1 ? "es" : ""} logged
+                  {aquariumStock.batchCount} batch{aquariumStock.batchCount !== 1 ? "es" : ""} · ₹{aquariumStock.avgCostPerKg}/Kg avg
                 </div>
               </div>
             </div>
 
-            {/* Card 2: Gutted Stock Left */}
+            {/* Card 2: Gone from Aquarium (Sold) */}
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-rose-950/40 via-slate-900/80 to-slate-900 border border-rose-500/30 shadow-xl shadow-rose-950/20 relative overflow-hidden flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
+                  <span className="text-rose-300 font-bold">GONE · SOLD OUT</span>
+                  <span className="material-symbols-outlined text-rose-400 text-lg">output</span>
+                </div>
+                <div className="mt-2 flex items-baseline gap-2">
+                  <span
+                    className="text-3xl sm:text-4xl font-black text-white"
+                    style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                  >
+                    {formatKg(aquariumStock.soldKg)}
+                  </span>
+                  <span className="text-rose-400 font-bold font-mono text-sm">Kg</span>
+                </div>
+              </div>
+              <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2 space-y-0.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-rose-300/80">Dispatched all-time</span>
+                  <span className="text-rose-200 font-bold">
+                    {aquariumStock.totalProcuredKg > 0
+                      ? `${((aquariumStock.soldKg / aquariumStock.totalProcuredKg) * 100).toFixed(1)}%`
+                      : "—"}
+                  </span>
+                </div>
+                <div className="text-[10px] text-slate-500">of total procured stock</div>
+              </div>
+            </div>
+
+            {/* Card 3: Value if Sold as Gutted */}
             <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-950/40 via-slate-900/80 to-slate-900 border border-emerald-500/30 shadow-xl shadow-emerald-950/20 relative overflow-hidden flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
-                  <span className="text-emerald-300 font-bold">GUTTED LEFT</span>
+                  <span className="text-emerald-300 font-bold">VALUE · IF GUTTED</span>
                   <span className="material-symbols-outlined text-emerald-400 text-lg">set_meal</span>
                 </div>
-                <div className="mt-2 flex items-baseline gap-2">
+                <div className="mt-2 flex items-baseline gap-1">
+                  <span className="text-emerald-400 font-bold text-xl">₹</span>
                   <span
                     className="text-3xl sm:text-4xl font-black text-white"
                     style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                   >
-                    {formatKg(aquariumStock.remainingGuttedKg)}
+                    {aquariumStock.valueIfGutted.toLocaleString("en-IN")}
                   </span>
-                  <span className="text-emerald-400 font-bold font-mono text-sm">Kg</span>
                 </div>
               </div>
               <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2 space-y-0.5">
                 <div className="flex items-center justify-between">
-                  <span>Procured:</span>
-                  <span className="text-emerald-300">{formatKg(aquariumStock.procuredGuttedKg)} Kg</span>
+                  <span>{formatKg(aquariumStock.remainingKg)} Kg remaining</span>
+                  <span className="text-emerald-300">@ ₹{guttedPrice}/Kg</span>
                 </div>
-                {aquariumStock.guttedAvgCost > 0 && (
-                  <div className="text-[10px] text-slate-500">
-                    Avg cost: ₹{aquariumStock.guttedAvgCost}/Kg
-                  </div>
-                )}
+                <div className="text-[10px] text-slate-500">At current Gutted sell rate</div>
               </div>
             </div>
 
-            {/* Card 3: Non-Gutted Stock Left */}
+            {/* Card 4: Value if Sold as Non-Gutted */}
             <div className="p-4 rounded-2xl bg-gradient-to-br from-cyan-950/40 via-slate-900/80 to-slate-900 border border-cyan-500/30 shadow-xl shadow-cyan-950/20 relative overflow-hidden flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
-                  <span className="text-cyan-300 font-bold">NON-GUTTED LEFT</span>
+                  <span className="text-cyan-300 font-bold">VALUE · IF NON-GUTTED</span>
                   <span className="material-symbols-outlined text-cyan-400 text-lg">phishing</span>
                 </div>
-                <div className="mt-2 flex items-baseline gap-2">
+                <div className="mt-2 flex items-baseline gap-1">
+                  <span className="text-cyan-400 font-bold text-xl">₹</span>
                   <span
                     className="text-3xl sm:text-4xl font-black text-white"
                     style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                   >
-                    {formatKg(aquariumStock.remainingNonGuttedKg)}
+                    {aquariumStock.valueIfNonGutted.toLocaleString("en-IN")}
                   </span>
-                  <span className="text-cyan-400 font-bold font-mono text-sm">Kg</span>
                 </div>
               </div>
               <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2 space-y-0.5">
                 <div className="flex items-center justify-between">
-                  <span>Procured:</span>
-                  <span className="text-cyan-300">{formatKg(aquariumStock.procuredNonGuttedKg)} Kg</span>
+                  <span>{formatKg(aquariumStock.remainingKg)} Kg remaining</span>
+                  <span className="text-cyan-300">@ ₹{nonGuttedPrice}/Kg</span>
                 </div>
-                {aquariumStock.nonGuttedAvgCost > 0 && (
-                  <div className="text-[10px] text-slate-500">
-                    Avg cost: ₹{aquariumStock.nonGuttedAvgCost}/Kg
-                  </div>
-                )}
+                <div className="text-[10px] text-slate-500">At current Non-Gutted sell rate</div>
               </div>
             </div>
 
-            {/* Card 4: Stock Worth (at procurement cost) */}
-            <div className="p-4 rounded-2xl bg-gradient-to-br from-violet-950/50 via-slate-900/90 to-slate-900 border border-violet-500/40 shadow-xl shadow-violet-950/20 relative overflow-hidden flex flex-col justify-between">
-              <div>
-                <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
-                  <span className="text-violet-300 font-bold">STOCK WORTH</span>
-                  <span className="material-symbols-outlined text-violet-400 text-lg">currency_rupee</span>
-                </div>
-                <div className="mt-2 flex items-baseline gap-1">
-                  <span className="text-violet-400 font-bold text-xl">₹</span>
-                  <span
-                    className="text-3xl sm:text-4xl font-black text-white"
-                    style={{ fontFamily: '"Space Grotesk", sans-serif' }}
-                  >
-                    {aquariumStock.totalRemainingWorth.toLocaleString("en-IN")}
-                  </span>
-                </div>
-              </div>
-              <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2 space-y-0.5">
-                <div className="flex items-center justify-between text-violet-200">
-                  <span>G: ₹{aquariumStock.remainingWorthGutted.toLocaleString("en-IN")}</span>
-                  <span>NG: ₹{aquariumStock.remainingWorthNonGutted.toLocaleString("en-IN")}</span>
-                </div>
-                <div className="text-[10px] text-slate-500">At procurement cost</div>
-              </div>
-            </div>
           </div>
 
           {/* Procurement Log Table (collapsible) */}
@@ -1658,7 +1634,7 @@ export default function VendingCenterLoggerPage() {
                       <th className="py-3 px-3">Date</th>
                       <th className="py-3 px-3">Time</th>
                       <th className="py-3 px-3">Supplier</th>
-                      <th className="py-3 px-3">Type</th>
+                      <th className="py-3 px-3">Stock</th>
                       <th className="py-3 px-3 text-right">Weight (Kg)</th>
                       <th className="py-3 px-3 text-right">Cost/Kg (₹)</th>
                       <th className="py-3 px-3 text-right text-violet-300">Total Cost (₹)</th>
@@ -1677,9 +1653,6 @@ export default function VendingCenterLoggerPage() {
                       </tr>
                     ) : (
                       stockEntries.map((s, idx) => {
-                        const isGutted =
-                          (s.product_type || "").toLowerCase().includes("gutted") &&
-                          !(s.product_type || "").toLowerCase().includes("non");
                         const totalCost = Number(s.total_cost) || Number(s.weight_kg) * Number(s.cost_per_kg);
                         return (
                           <tr
@@ -1691,14 +1664,9 @@ export default function VendingCenterLoggerPage() {
                             <td className="py-2.5 px-3 text-slate-400">{s.stock_time}</td>
                             <td className="py-2.5 px-3 text-blue-300 font-semibold">{s.supplier_name}</td>
                             <td className="py-2.5 px-3">
-                              <span
-                                className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                                  isGutted
-                                    ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"
-                                    : "bg-cyan-500/15 text-cyan-300 border border-cyan-500/30"
-                                }`}
-                              >
-                                {s.product_type}
+                              <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-500/15 text-blue-300 border border-blue-500/30 flex items-center gap-1 w-fit">
+                                <span className="material-symbols-outlined text-[11px]">water</span>
+                                Live Fish
                               </span>
                             </td>
                             <td className="py-2.5 px-3 text-right text-white font-bold">{formatKg(s.weight_kg)}</td>
@@ -3015,28 +2983,15 @@ export default function VendingCenterLoggerPage() {
                 />
               </div>
 
-              {/* Product Type */}
+              {/* Product Type — always Live Fish */}
               <div className="space-y-1">
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">
-                  Product Type
+                  Stock Type
                 </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {(["Non Gutted", "Gutted"] as const).map((t) => (
-                    <button
-                      key={t}
-                      type="button"
-                      onClick={() => setStockFormType(t)}
-                      className={`py-2.5 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer border ${
-                        stockFormType === t
-                          ? t === "Gutted"
-                            ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/50 shadow-sm shadow-emerald-500/20"
-                            : "bg-cyan-500/20 text-cyan-300 border-cyan-500/50 shadow-sm shadow-cyan-500/20"
-                          : "bg-slate-900 text-slate-400 border-slate-700 hover:border-slate-600"
-                      }`}
-                    >
-                      {t}
-                    </button>
-                  ))}
+                <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/30">
+                  <span className="material-symbols-outlined text-blue-400 text-base">water</span>
+                  <span className="text-sm font-bold text-blue-200">Live Fish</span>
+                  <span className="ml-auto text-[10px] font-mono text-slate-400">Procured from supplier</span>
                 </div>
               </div>
 
