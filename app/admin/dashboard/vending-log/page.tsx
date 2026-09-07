@@ -7,6 +7,8 @@ import { adminFetch } from "@/lib/adminClient";
 import { CustomColumnDef, VendingSalesEntry } from "@/app/api/vending-log/route";
 import { StaffIncentivePayout } from "@/app/api/vending-log/incentive/route";
 import { AquariumStockEntry } from "@/app/api/aquarium-stock/route";
+import { WorkerSalaryPayment, WorkerSalarySettings } from "@/app/api/vending-log/salary/route";
+import * as XLSX from "xlsx";
 
 const DEFAULT_GUTTED_PRICE = 580;
 const DEFAULT_NON_GUTTED_PRICE = 540;
@@ -132,6 +134,26 @@ export default function VendingCenterLoggerPage() {
   const [payoutFormRecipient, setPayoutFormRecipient] = useState("Counter Staff");
   const [payoutFormNotes, setPayoutFormNotes] = useState("");
   const [deletePayoutConfirmId, setDeletePayoutConfirmId] = useState<string | null>(null);
+
+  // ─── Worker Salary Management State (Mohd Amin) ───
+  const [salaryPayments, setSalaryPayments] = useState<WorkerSalaryPayment[]>([]);
+  const [salaryConfig, setSalaryConfig] = useState<WorkerSalarySettings>({
+    worker_name: "Mohd Amin",
+    base_monthly_salary: 15000,
+  });
+  const [salaryModalOpen, setSalaryModalOpen] = useState(false);
+  const [savingSalary, setSavingSalary] = useState(false);
+  const [salaryFormAmount, setSalaryFormAmount] = useState("");
+  const [salaryFormMonth, setSalaryFormMonth] = useState(() =>
+    new Date().toLocaleDateString("en-IN", { month: "long", year: "numeric" })
+  );
+  const [salaryFormDate, setSalaryFormDate] = useState(getTodayDate());
+  const [salaryFormTime, setSalaryFormTime] = useState(getCurrentTime());
+  const [salaryFormMode, setSalaryFormMode] = useState("Cash");
+  const [salaryFormNotes, setSalaryFormNotes] = useState("");
+  const [deleteSalaryConfirmId, setDeleteSalaryConfirmId] = useState<string | null>(null);
+  const [editingBaseSalary, setEditingBaseSalary] = useState(false);
+  const [baseSalaryInput, setBaseSalaryInput] = useState("15000");
   const [formType, setFormType] = useState<"Gutted" | "Non Gutted" | string>("Gutted");
   const [formWeight, setFormWeight] = useState<string>("");
   const [formRate, setFormRate] = useState<number>(DEFAULT_GUTTED_PRICE);
@@ -426,17 +448,39 @@ export default function VendingCenterLoggerPage() {
     fetchStockEntries();
   }, [fetchStockEntries]);
 
+  // ─── Fetch Worker Salary Payments (Mohd Amin) ───
+  const fetchSalaryPayments = useCallback(async () => {
+    try {
+      const res = await adminFetch("/api/vending-log/salary");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success) {
+          setSalaryPayments(data.payments || []);
+          if (data.config) {
+            setSalaryConfig(data.config);
+            setBaseSalaryInput(String(data.config.base_monthly_salary || 15000));
+          }
+        }
+      }
+    } catch (err) {
+      console.warn("Could not fetch worker salary payments:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isAdmin) {
+      fetchSalaryPayments();
+    }
+  }, [isAdmin, fetchSalaryPayments]);
+
   // ─── Period Calculations ───
   const filteredEntriesByPeriod = useMemo(() => {
     const todayStr = getTodayDate();
     const currDate = new Date();
 
-    // Monday of current week
-    const day = currDate.getDay();
-    const diffToMonday = (day === 0 ? -6 : 1) - day;
-    const monday = new Date(currDate);
-    monday.setDate(currDate.getDate() + diffToMonday);
-    monday.setHours(0, 0, 0, 0);
+    // Rolling 7 Days (includes today, yesterday, and 5 previous days)
+    const sevenDaysAgo = new Date(currDate.getFullYear(), currDate.getMonth(), currDate.getDate() - 6);
+    sevenDaysAgo.setHours(0, 0, 0, 0);
 
     // 1st of current month
     const firstOfMonth = new Date(currDate.getFullYear(), currDate.getMonth(), 1);
@@ -446,7 +490,7 @@ export default function VendingCenterLoggerPage() {
       const [ey, em, ed] = e.entry_date.split("-").map(Number);
       const eDate = new Date(ey, em - 1, ed);
       if (period === "today") return e.entry_date === todayStr;
-      if (period === "week") return eDate >= monday;
+      if (period === "week") return eDate >= sevenDaysAgo;
       if (period === "month") return eDate >= firstOfMonth;
       if (period === "custom") {
         if (customStartDate && e.entry_date < customStartDate) return false;
@@ -581,6 +625,26 @@ export default function VendingCenterLoggerPage() {
     };
   }, [entries, kpis.guttedKg, payouts]);
 
+  // ─── Worker Salary Stats (Mohd Amin) ───
+  const salaryStats = useMemo(() => {
+    const currentMonthLabel = new Date().toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+    const thisMonthPaid = salaryPayments
+      .filter((p) => (p.salary_month || "").toLowerCase() === currentMonthLabel.toLowerCase())
+      .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+    const allTimePaid = salaryPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+    const baseMonthly = salaryConfig.base_monthly_salary || 15000;
+    const monthBalanceDue = Math.max(0, baseMonthly - thisMonthPaid);
+
+    return {
+      workerName: salaryConfig.worker_name || "Mohd Amin",
+      baseMonthly,
+      thisMonthPaid,
+      allTimePaid,
+      monthBalanceDue,
+      currentMonthLabel,
+    };
+  }, [salaryPayments, salaryConfig]);
+
   // ─── Aquarium Live Stock Calculations ───
   // All stock procured is LIVE FISH. We track what's left in the aquarium.
   // Remaining = total procured (live kg) − total vending sales (all types combined)
@@ -619,6 +683,10 @@ export default function VendingCenterLoggerPage() {
     // Procurement cost of remaining stock
     const procurementCostRemaining = Math.round(remainingKg * avgCostPerKg);
 
+    // Expected Profit = Revenue if sold − Procurement cost
+    const expectedProfitGutted = Math.max(0, Math.round(remainingKg * (guttedPrice - avgCostPerKg)));
+    const expectedProfitNonGutted = Math.max(0, Math.round(remainingKg * (nonGuttedPrice - avgCostPerKg)));
+
     return {
       totalProcuredKg,
       totalProcuredCost: Math.round(totalProcuredCost),
@@ -626,6 +694,8 @@ export default function VendingCenterLoggerPage() {
       remainingKg,
       valueIfGutted,
       valueIfNonGutted,
+      expectedProfitGutted,
+      expectedProfitNonGutted,
       avgCostPerKg: Math.round(avgCostPerKg),
       procurementCostRemaining,
       batchCount: stockEntries.length,
@@ -920,6 +990,94 @@ export default function VendingCenterLoggerPage() {
     }
   };
 
+  // ─── Worker Salary Handlers (Mohd Amin) ───
+  const handleAddSalaryPayment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const amount = parseFloat(salaryFormAmount);
+    if (!amount || isNaN(amount) || amount <= 0) {
+      alert("Please enter a valid salary amount greater than ₹0.");
+      return;
+    }
+
+    setSavingSalary(true);
+    try {
+      const res = await adminFetch("/api/vending-log/salary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          worker_name: salaryConfig.worker_name || "Mohd Amin",
+          salary_month: salaryFormMonth,
+          payment_date: salaryFormDate,
+          payment_time: salaryFormTime,
+          amount,
+          payment_mode: salaryFormMode,
+          notes: salaryFormNotes,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.payment) {
+          setSalaryPayments((prev) => [data.payment, ...prev]);
+          setSalaryFormAmount("");
+          setSalaryFormNotes("");
+          playLogChime();
+        }
+      } else {
+        const errData = await res.json();
+        alert(errData.error || "Failed to record salary payment.");
+      }
+    } catch (err) {
+      console.error("Error saving salary payment:", err);
+      alert("Failed to record salary payment. Please try again.");
+    } finally {
+      setSavingSalary(false);
+    }
+  };
+
+  const handleDeleteSalaryPayment = async (id: string) => {
+    try {
+      const res = await adminFetch(`/api/vending-log/salary?id=${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      });
+      if (res.ok) {
+        setSalaryPayments((prev) => prev.filter((p) => p.id !== id));
+        setDeleteSalaryConfirmId(null);
+      }
+    } catch (err) {
+      console.error("Failed to delete salary payment:", err);
+    }
+  };
+
+  const handleUpdateBaseSalary = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const newBase = parseFloat(baseSalaryInput);
+    if (isNaN(newBase) || newBase < 0) {
+      alert("Please enter a valid base monthly salary.");
+      return;
+    }
+
+    try {
+      const res = await adminFetch("/api/vending-log/salary", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          base_monthly_salary: newBase,
+          worker_name: salaryConfig.worker_name || "Mohd Amin",
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.config) {
+          setSalaryConfig(data.config);
+          setEditingBaseSalary(false);
+        }
+      }
+    } catch (err) {
+      console.error("Error updating base salary:", err);
+    }
+  };
+
   // ─── Custom Column Handlers ───
   const handleAddColumn = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1042,6 +1200,138 @@ export default function VendingCenterLoggerPage() {
     URL.revokeObjectURL(url);
   };
 
+  // ─── Export Multi-Sheet Excel (.xlsx) ───
+  // Contains: Sales Dispatches, Aquarium Stock Log, Mohd Amin Incentives, Mohd Amin Salary, Summary KPIs
+  const handleExportExcel = () => {
+    try {
+      // 1. Executive Summary Sheet
+      const summaryRows = [
+        { "Vending Center Metric": "Report Generated Date", "Value / Amount": getTodayDate() },
+        { "Vending Center Metric": "Active Filter Period", "Value / Amount": period.toUpperCase() },
+        { "Vending Center Metric": "Total Vending Revenue (Rs)", "Value / Amount": kpis.totalRevenue },
+        { "Vending Center Metric": "Total Weight Sold (Kg)", "Value / Amount": Number(kpis.totalKg.toFixed(3)) },
+        { "Vending Center Metric": "Gutted Trout Sold (Kg)", "Value / Amount": Number(kpis.guttedKg.toFixed(3)) },
+        { "Vending Center Metric": "Non-Gutted Trout Sold (Kg)", "Value / Amount": Number(kpis.nonGuttedKg.toFixed(3)) },
+        { "Vending Center Metric": "Online Payments (Rs)", "Value / Amount": kpis.onlineRevenue },
+        { "Vending Center Metric": "Cash Drawer Payments (Rs)", "Value / Amount": kpis.cashRevenue },
+        { "Vending Center Metric": "Negotiation Discount Loss (Rs)", "Value / Amount": kpis.totalLoss },
+        { "Vending Center Metric": "Total Live Fish Stock Procured (Kg)", "Value / Amount": Number(aquariumStock.totalProcuredKg.toFixed(3)) },
+        { "Vending Center Metric": "Live Fish Dispatched / Sold (Kg)", "Value / Amount": Number(aquariumStock.soldKg.toFixed(3)) },
+        { "Vending Center Metric": "Current Live Stock in Aquarium (Kg)", "Value / Amount": Number(aquariumStock.remainingKg.toFixed(3)) },
+        { "Vending Center Metric": "Aquarium Stock Worth - If Gutted (Rs)", "Value / Amount": aquariumStock.valueIfGutted },
+        { "Vending Center Metric": "Aquarium Stock Worth - If Non-Gutted (Rs)", "Value / Amount": aquariumStock.valueIfNonGutted },
+        { "Vending Center Metric": "Expected Profit from Live Stock - Gutted (Rs)", "Value / Amount": aquariumStock.expectedProfitGutted },
+        { "Vending Center Metric": "Expected Profit from Live Stock - Non-Gutted (Rs)", "Value / Amount": aquariumStock.expectedProfitNonGutted },
+        { "Vending Center Metric": "Mohd Amin - All-Time Incentives Earned (Rs)", "Value / Amount": incentiveStats.allTimeEarned },
+        { "Vending Center Metric": "Mohd Amin - Incentives Paid Out (Rs)", "Value / Amount": incentiveStats.totalPaid },
+        { "Vending Center Metric": "Mohd Amin - Incentives Balance Due (Rs)", "Value / Amount": incentiveStats.balanceRemaining },
+        { "Vending Center Metric": "Mohd Amin - Base Monthly Salary (Rs)", "Value / Amount": salaryStats.baseMonthly },
+        { "Vending Center Metric": "Mohd Amin - Salary Paid This Month (Rs)", "Value / Amount": salaryStats.thisMonthPaid },
+        { "Vending Center Metric": "Mohd Amin - All-Time Salary Paid (Rs)", "Value / Amount": salaryStats.allTimePaid },
+      ];
+
+      // 2. Sales Dispatches Sheet
+      const activeCustomCols = customColumns.filter((c) => c.visible);
+      const salesRows = entries.map((e, idx) => {
+        const exp =
+          e.expected_amount !== undefined && e.expected_amount !== null
+            ? Number(e.expected_amount)
+            : Math.round(Number(e.weight_kg) * Number(e.rate_per_kg));
+        const taken = Number(e.amount_paid) || 0;
+        const loss =
+          e.discount_amount !== undefined && e.discount_amount !== null
+            ? Number(e.discount_amount)
+            : Math.max(0, exp - taken);
+
+        const row: Record<string, any> = {
+          "#": idx + 1,
+          "Date": e.entry_date,
+          "Time": e.entry_time,
+          "Product Type": e.product_type,
+          "Weight (Kg)": Number(Number(e.weight_kg).toFixed(3)),
+          "Rate (Rs/Kg)": Number(e.rate_per_kg),
+          "Expected Amount (Rs)": exp,
+          "Amount Received (Rs)": taken,
+          "Negotiation Loss (Rs)": loss,
+          "Payment Mode": e.payment_mode,
+          "Notes": e.notes || "",
+          "Logged By": e.logged_by || "Counter Staff",
+        };
+
+        activeCustomCols.forEach((col) => {
+          row[col.name] = e.custom_fields?.[col.id] ?? "";
+        });
+
+        return row;
+      });
+
+      // 3. Aquarium Stock Log Sheet
+      const stockRows = stockEntries.map((s, idx) => {
+        const totalCost = Number(s.total_cost) || Number(s.weight_kg) * Number(s.cost_per_kg);
+        return {
+          "#": idx + 1,
+          "Procurement Date": s.stock_date,
+          "Time": s.stock_time,
+          "Supplier Name": s.supplier_name,
+          "Stock Type": s.product_type,
+          "Weight (Kg)": Number(Number(s.weight_kg).toFixed(3)),
+          "Cost / Kg (Rs)": Number(s.cost_per_kg),
+          "Total Cost (Rs)": Math.round(totalCost),
+          "Batch Notes": s.batch_notes || "",
+          "Logged By": s.logged_by || "Admin",
+        };
+      });
+
+      // 4. Mohd Amin - Incentives Sheet
+      const incentiveRows = payouts.map((p, idx) => ({
+        "#": idx + 1,
+        "Payout Date": p.payout_date,
+        "Time": p.payout_time || "",
+        "Worker Name": p.recipient_name || "Mohd Amin",
+        "Incentive Amount (Rs)": Number(p.amount),
+        "Payment Mode": p.payment_mode,
+        "Notes": p.notes || "",
+        "Created At": p.created_at,
+      }));
+
+      // 5. Mohd Amin - Salary Sheet
+      const salaryRows = salaryPayments.map((p, idx) => ({
+        "#": idx + 1,
+        "Payment Date": p.payment_date,
+        "Time": p.payment_time || "",
+        "Worker Name": p.worker_name || "Mohd Amin",
+        "Salary Month": p.salary_month,
+        "Salary Amount (Rs)": Number(p.amount),
+        "Payment Mode": p.payment_mode,
+        "Notes": p.notes || "",
+        "Created At": p.created_at,
+      }));
+
+      // Build Multi-Sheet Workbook
+      const wb = XLSX.utils.book_new();
+
+      const wsSummary = XLSX.utils.json_to_sheet(summaryRows);
+      XLSX.utils.book_append_sheet(wb, wsSummary, "Overview Summary");
+
+      const wsSales = XLSX.utils.json_to_sheet(salesRows.length > 0 ? salesRows : [{ "Status": "No sales records logged yet" }]);
+      XLSX.utils.book_append_sheet(wb, wsSales, "Sales Dispatches");
+
+      const wsStock = XLSX.utils.json_to_sheet(stockRows.length > 0 ? stockRows : [{ "Status": "No stock procurement logged yet" }]);
+      XLSX.utils.book_append_sheet(wb, wsStock, "Aquarium Stock Log");
+
+      const wsIncentives = XLSX.utils.json_to_sheet(incentiveRows.length > 0 ? incentiveRows : [{ "Status": "No worker incentives logged yet" }]);
+      XLSX.utils.book_append_sheet(wb, wsIncentives, "Mohd Amin - Incentives");
+
+      const wsSalary = XLSX.utils.json_to_sheet(salaryRows.length > 0 ? salaryRows : [{ "Status": "No salary payments logged yet" }]);
+      XLSX.utils.book_append_sheet(wb, wsSalary, "Mohd Amin - Salary");
+
+      XLSX.writeFile(wb, `UrbanTrout_Complete_Vending_Ledger_${getTodayDate()}.xlsx`);
+    } catch (err) {
+      console.error("Error generating Excel file:", err);
+      alert("Failed to export Excel file. Please try again.");
+    }
+  };
+
   const handleCopySql = () => {
     navigator.clipboard.writeText(VENDING_SQL_QUERY);
     setCopiedSql(true);
@@ -1108,6 +1398,16 @@ export default function VendingCenterLoggerPage() {
           >
             <span className="material-symbols-outlined text-sm">view_column</span>
             Columns ({customColumns.filter((c) => c.visible).length})
+          </button>
+
+          <button
+            type="button"
+            onClick={handleExportExcel}
+            className="py-2.5 px-3.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
+            title="Export complete multi-sheet Excel file (Sales, Stock, Mohd Amin Incentives & Salary, Summary)"
+          >
+            <span className="material-symbols-outlined text-sm">table_chart</span>
+            Export Excel
           </button>
 
           <button
@@ -1237,9 +1537,9 @@ export default function VendingCenterLoggerPage() {
           </div>
         </div>
 
-        {/* 6-Stat Metric Cards Grid (Only visible to Admin; strictly hidden for Staff) */}
+        {/* 7-Stat Metric Cards Grid (Only visible to Admin; strictly hidden for Staff) */}
         {isAdmin && showAdminCards && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 animate-in fade-in duration-200">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-3 animate-in fade-in duration-200">
           {/* Card 1: Total Weight Sold */}
           <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-950/40 via-slate-900/80 to-slate-900 border border-emerald-500/30 shadow-xl shadow-emerald-950/20 relative overflow-hidden flex flex-col justify-between">
             <div>
@@ -1411,12 +1711,12 @@ export default function VendingCenterLoggerPage() {
             </div>
           </div>
 
-          {/* Card 6: Staff Incentive (₹5/Kg Gutted Trout Only) */}
+          {/* Card 6: Staff Incentive (Mohd Amin · ₹5/Kg Gutted Trout) */}
           <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-950/50 via-slate-900/90 to-slate-900 border border-purple-500/40 shadow-xl shadow-purple-950/20 relative overflow-hidden flex flex-col justify-between group">
             <div>
               <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
                 <span className="text-purple-300 font-bold flex items-center gap-1.5">
-                  <span>STAFF INCENTIVE</span>
+                  <span>MOHD AMIN · INCENTIVE</span>
                   <span className="px-1.5 py-0.2 rounded bg-purple-500/20 text-[9px] text-purple-200 border border-purple-500/30">
                     ₹5/Kg
                   </span>
@@ -1457,7 +1757,59 @@ export default function VendingCenterLoggerPage() {
                   className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-500/20 hover:bg-purple-500/30 text-purple-200 border border-purple-500/40 text-[10px] font-bold font-mono transition-all cursor-pointer shadow-sm active:scale-95"
                 >
                   <span className="material-symbols-outlined text-xs">payments</span>
-                  <span>Pay Staff</span>
+                  <span>Pay Incentive</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 7: Worker Salary Management (Mohd Amin) */}
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-sky-950/50 via-slate-900/90 to-slate-900 border border-sky-500/40 shadow-xl shadow-sky-950/20 relative overflow-hidden flex flex-col justify-between group">
+            <div>
+              <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
+                <span className="text-sky-300 font-bold flex items-center gap-1.5">
+                  <span>MOHD AMIN · SALARY</span>
+                  <span className="px-1.5 py-0.2 rounded bg-sky-500/20 text-[9px] text-sky-200 border border-sky-500/30">
+                    Wage
+                  </span>
+                </span>
+                <span className="material-symbols-outlined text-sky-400 text-lg">
+                  badge
+                </span>
+              </div>
+              <div className="mt-2 flex items-baseline gap-1.5">
+                <span className="text-sky-400 font-bold text-xl">₹</span>
+                <span
+                  className="text-3xl sm:text-4xl font-black text-white"
+                  style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                >
+                  {salaryStats.thisMonthPaid.toLocaleString("en-IN")}
+                </span>
+                <span
+                  className={`text-[10px] font-mono font-bold px-1.5 py-0.5 rounded ${
+                    salaryStats.monthBalanceDue > 0
+                      ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                      : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                  }`}
+                >
+                  {salaryStats.monthBalanceDue > 0 ? `₹${salaryStats.monthBalanceDue.toLocaleString("en-IN")} Due` : "Paid ✓"}
+                </span>
+              </div>
+            </div>
+            <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2 space-y-1">
+              <div className="flex items-center justify-between text-sky-200">
+                <span>Base: ₹{salaryStats.baseMonthly.toLocaleString("en-IN")}/mo</span>
+                <span>All-time: ₹{salaryStats.allTimePaid.toLocaleString("en-IN")}</span>
+              </div>
+              <div className="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
+                <span className="truncate text-slate-400">{salaryStats.currentMonthLabel}</span>
+                <button
+                  type="button"
+                  onClick={() => setSalaryModalOpen(true)}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sky-500/20 hover:bg-sky-500/30 text-sky-200 border border-sky-500/40 text-[10px] font-bold font-mono transition-all cursor-pointer shadow-sm active:scale-95"
+                >
+                  <span className="material-symbols-outlined text-xs">account_balance_wallet</span>
+                  <span>Pay Salary</span>
                 </button>
               </div>
             </div>
@@ -1508,8 +1860,8 @@ export default function VendingCenterLoggerPage() {
             </div>
           </div>
 
-          {/* Flash Cards Row — 4 cards */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {/* Flash Cards Row — 5 cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3">
 
             {/* Card 1: Live Stock Remaining in Aquarium */}
             <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-950/50 via-slate-900/90 to-slate-900 border border-blue-500/40 shadow-xl shadow-blue-950/20 relative overflow-hidden flex flex-col justify-between">
@@ -1618,6 +1970,37 @@ export default function VendingCenterLoggerPage() {
                   <span className="text-cyan-300">@ ₹{nonGuttedPrice}/Kg</span>
                 </div>
                 <div className="text-[10px] text-slate-500">At current Non-Gutted sell rate</div>
+              </div>
+            </div>
+
+            {/* Card 5: Expected Profit (Gutted & Non-Gutted) */}
+            <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-950/50 via-slate-900/90 to-slate-900 border border-amber-500/40 shadow-xl shadow-amber-950/20 relative overflow-hidden flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
+                  <span className="text-amber-300 font-bold">EXPECTED PROFIT</span>
+                  <span className="material-symbols-outlined text-amber-400 text-lg">trending_up</span>
+                </div>
+                <div className="mt-2 flex items-baseline gap-1">
+                  <span className="text-amber-400 font-bold text-xl">₹</span>
+                  <span
+                    className="text-3xl sm:text-4xl font-black text-white"
+                    style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                  >
+                    {aquariumStock.expectedProfitGutted.toLocaleString("en-IN")}
+                  </span>
+                  <span className="text-[10px] font-bold text-emerald-300 font-mono ml-1">Gutted</span>
+                </div>
+              </div>
+              <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2 space-y-0.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">If Non-Gutted:</span>
+                  <span className="text-cyan-300 font-bold font-mono">
+                    ₹{aquariumStock.expectedProfitNonGutted.toLocaleString("en-IN")}
+                  </span>
+                </div>
+                <div className="text-[10px] text-slate-500 truncate">
+                  Margin: ₹{guttedPrice - aquariumStock.avgCostPerKg}/Kg G · ₹{nonGuttedPrice - aquariumStock.avgCostPerKg}/Kg NG
+                </div>
               </div>
             </div>
 
@@ -2911,6 +3294,335 @@ export default function VendingCenterLoggerPage() {
         </div>
       )}
 
+      {/* ══════════════════════════════════════════════════════════
+          MODAL 3B: WORKER SALARY MANAGEMENT (MOHD AMIN)
+          ══════════════════════════════════════════════════════════ */}
+      {isAdmin && salaryModalOpen && (
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setSalaryModalOpen(false);
+          }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto"
+        >
+          <div className="bg-slate-900 border border-sky-500/40 rounded-3xl p-5 sm:p-7 max-w-2xl w-full text-slate-200 shadow-2xl space-y-5 my-4 max-h-[92vh] overflow-y-auto font-mono">
+            {/* Modal Header */}
+            <div className="flex items-start justify-between border-b border-slate-800 pb-3.5">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-sky-400 text-xl">badge</span>
+                  <h3 className="text-base sm:text-lg font-black text-white font-['Space_Grotesk']">
+                    Vending Center Worker Salary Manager
+                  </h3>
+                  <span className="px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/30 text-[10px] font-bold">
+                    {salaryConfig.worker_name || "Mohd Amin"}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 mt-1">
+                  Manage monthly wage disbursements, salary records, and base wage configuration for worker Mohd Amin.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSalaryModalOpen(false)}
+                className="p-1.5 rounded-xl bg-slate-800 text-slate-400 hover:text-white transition-all cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-lg">close</span>
+              </button>
+            </div>
+
+            {/* Top Summary Metrics */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+              <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-slate-400 uppercase tracking-wider block">
+                    Base Monthly Salary
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setEditingBaseSalary((p) => !p)}
+                    className="text-[10px] text-sky-400 hover:underline cursor-pointer"
+                  >
+                    {editingBaseSalary ? "Close" : "Edit"}
+                  </button>
+                </div>
+                <div className="mt-1 text-base sm:text-lg font-black text-white">
+                  ₹{salaryStats.baseMonthly.toLocaleString("en-IN")}
+                  <span className="text-xs text-sky-400 font-normal"> / mo</span>
+                </div>
+                <span className="text-[10px] text-slate-500 block mt-0.5">
+                  Worker: {salaryConfig.worker_name}
+                </span>
+              </div>
+
+              <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800">
+                <span className="text-[10px] text-slate-400 uppercase tracking-wider block">
+                  Paid for {salaryStats.currentMonthLabel}
+                </span>
+                <div className="mt-1 text-base sm:text-lg font-black text-emerald-400">
+                  ₹{salaryStats.thisMonthPaid.toLocaleString("en-IN")}
+                </div>
+                <span className="text-[10px] text-slate-500 block mt-0.5">
+                  All-time: ₹{salaryStats.allTimePaid.toLocaleString("en-IN")}
+                </span>
+              </div>
+
+              <div
+                className={`p-3 rounded-2xl border ${
+                  salaryStats.monthBalanceDue > 0
+                    ? "bg-amber-950/20 border-amber-500/40"
+                    : "bg-emerald-950/20 border-emerald-500/40"
+                }`}
+              >
+                <span
+                  className={`text-[10px] uppercase tracking-wider block ${
+                    salaryStats.monthBalanceDue > 0 ? "text-amber-300 font-bold" : "text-emerald-300"
+                  }`}
+                >
+                  Balance Due This Month
+                </span>
+                <div
+                  className={`mt-1 text-base sm:text-lg font-black ${
+                    salaryStats.monthBalanceDue > 0 ? "text-amber-300" : "text-emerald-400"
+                  }`}
+                >
+                  ₹{salaryStats.monthBalanceDue.toLocaleString("en-IN")}
+                </div>
+                <span className="text-[10px] text-slate-400 block mt-0.5">
+                  {salaryStats.monthBalanceDue > 0 ? "Pending disbursement" : "Current month settled ✓"}
+                </span>
+              </div>
+            </div>
+
+            {/* Edit Base Salary Form (if active) */}
+            {editingBaseSalary && (
+              <form onSubmit={handleUpdateBaseSalary} className="p-3 rounded-2xl bg-slate-950 border border-sky-500/40 flex items-center gap-3">
+                <div className="flex-1">
+                  <label className="text-[10px] text-slate-400 uppercase block mb-1">
+                    Set Monthly Base Wage for {salaryConfig.worker_name} (₹)
+                  </label>
+                  <input
+                    type="number"
+                    value={baseSalaryInput}
+                    onChange={(e) => setBaseSalaryInput(e.target.value)}
+                    className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-sky-400 font-bold"
+                    placeholder="15000"
+                    required
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="px-3 py-2 mt-4 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold transition-all cursor-pointer shadow-md"
+                >
+                  Update Wage
+                </button>
+              </form>
+            )}
+
+            {/* Form to Log New Salary Payment */}
+            <div className="p-4 rounded-2xl bg-slate-950/90 border border-sky-500/30 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs uppercase tracking-wider font-bold text-sky-300 flex items-center gap-1.5">
+                  <span className="material-symbols-outlined text-sm">payments</span>
+                  Record Salary Payment to {salaryConfig.worker_name}
+                </span>
+                {salaryStats.monthBalanceDue > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setSalaryFormAmount(String(salaryStats.monthBalanceDue))}
+                    className="text-[10px] text-sky-300 hover:text-white underline cursor-pointer"
+                  >
+                    Auto-fill due: ₹{salaryStats.monthBalanceDue}
+                  </button>
+                )}
+              </div>
+
+              <form onSubmit={handleAddSalaryPayment} className="space-y-3">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <div>
+                    <label className="text-[10px] uppercase text-slate-400 block mb-1">
+                      Salary Amount (₹) *
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-2 text-sky-400 font-bold text-xs">₹</span>
+                      <input
+                        type="number"
+                        step="any"
+                        placeholder="e.g. 15000"
+                        value={salaryFormAmount}
+                        onChange={(e) => setSalaryFormAmount(e.target.value)}
+                        required
+                        className="w-full pl-7 pr-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-sky-400 font-bold"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] uppercase text-slate-400 block mb-1">
+                      Salary Month / Period
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. September 2026"
+                      value={salaryFormMonth}
+                      onChange={(e) => setSalaryFormMonth(e.target.value)}
+                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-sky-400 font-bold"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] uppercase text-slate-400 block mb-1">
+                      Payment Mode
+                    </label>
+                    <select
+                      value={salaryFormMode}
+                      onChange={(e) => setSalaryFormMode(e.target.value)}
+                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-sky-400"
+                    >
+                      <option value="Cash">Cash Drawer</option>
+                      <option value="UPI">UPI / GPay / PhonePe</option>
+                      <option value="Bank Transfer">Bank Transfer</option>
+                      <option value="Other">Other</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  <div>
+                    <label className="text-[10px] uppercase text-slate-400 block mb-1">
+                      Payment Date
+                    </label>
+                    <input
+                      type="date"
+                      value={salaryFormDate}
+                      onChange={(e) => setSalaryFormDate(e.target.value)}
+                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-sky-400"
+                    />
+                  </div>
+
+                  <div className="sm:col-span-2">
+                    <label className="text-[10px] uppercase text-slate-400 block mb-1">
+                      Notes / Reference (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Full month salary via counter cash"
+                      value={salaryFormNotes}
+                      onChange={(e) => setSalaryFormNotes(e.target.value)}
+                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-sky-400"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-1">
+                  <button
+                    type="submit"
+                    disabled={savingSalary}
+                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md disabled:opacity-50 flex items-center gap-1.5"
+                  >
+                    {savingSalary ? (
+                      <>
+                        <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent animate-spin rounded-full" />
+                        <span>Recording...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="material-symbols-outlined text-sm">check_circle</span>
+                        <span>Record Salary Payment</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* Salary History Ledger */}
+            <div className="space-y-2">
+              <span className="text-xs uppercase tracking-wider font-bold text-slate-400 block">
+                Salary Payment History ({salaryPayments.length})
+              </span>
+
+              {salaryPayments.length === 0 ? (
+                <div className="text-center py-6 border border-dashed border-slate-800 rounded-2xl text-xs text-slate-500">
+                  <span className="material-symbols-outlined text-2xl text-slate-600 block mb-1">
+                    receipt_long
+                  </span>
+                  No salary payments logged yet. Record a payment above when you disburse salary to Mohd Amin.
+                </div>
+              ) : (
+                <div className="border border-slate-800 rounded-2xl overflow-hidden max-h-56 overflow-y-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="bg-slate-950 border-b border-slate-800 text-[10px] text-slate-400 uppercase">
+                        <th className="py-2.5 px-3">Date</th>
+                        <th className="py-2.5 px-3">Month</th>
+                        <th className="py-2.5 px-3">Mode</th>
+                        <th className="py-2.5 px-3 text-right">Amount (₹)</th>
+                        <th className="py-2.5 px-3">Notes</th>
+                        <th className="py-2.5 px-3 text-center">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/60 font-mono">
+                      {salaryPayments.map((p) => (
+                        <tr key={p.id} className="hover:bg-slate-800/40 transition-colors">
+                          <td className="py-2 px-3 whitespace-nowrap text-slate-300">
+                            {p.payment_date}{" "}
+                            {p.payment_time && (
+                              <span className="text-[10px] text-slate-500">({p.payment_time})</span>
+                            )}
+                          </td>
+                          <td className="py-2 px-3 whitespace-nowrap text-sky-300 font-bold">
+                            {p.salary_month}
+                          </td>
+                          <td className="py-2 px-3 whitespace-nowrap">
+                            <span className="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-300 border border-slate-700">
+                              {p.payment_mode}
+                            </span>
+                          </td>
+                          <td className="py-2 px-3 text-right font-black text-emerald-400 whitespace-nowrap">
+                            ₹{Number(p.amount).toLocaleString("en-IN")}
+                          </td>
+                          <td className="py-2 px-3 text-slate-400 text-[11px] max-w-[150px] truncate" title={p.notes}>
+                            {p.notes || "—"}
+                          </td>
+                          <td className="py-2 px-3 text-center whitespace-nowrap">
+                            {deleteSalaryConfirmId === p.id ? (
+                              <div className="flex items-center justify-center gap-1">
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteSalaryPayment(p.id)}
+                                  className="px-1.5 py-0.5 rounded bg-red-600 hover:bg-red-500 text-white text-[9px] font-bold cursor-pointer"
+                                >
+                                  Confirm
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setDeleteSalaryConfirmId(null)}
+                                  className="px-1.5 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-300 text-[9px] cursor-pointer"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => setDeleteSalaryConfirmId(p.id)}
+                                className="p-1 rounded text-slate-500 hover:text-red-400 cursor-pointer"
+                                title="Delete salary payment record"
+                              >
+                                <span className="material-symbols-outlined text-sm">delete</span>
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       {/* ══════════════════════════════════════════════════════════
           LOG STOCK MODAL — Add New Biomass Procurement Entry
           ══════════════════════════════════════════════════════════ */}
