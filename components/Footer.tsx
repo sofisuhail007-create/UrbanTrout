@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 
 const C = {
@@ -23,9 +24,11 @@ export default function Footer() {
         {/* 1. Brand & Entity Info */}
         <div>
           <div className="mb-4">
-            <img
+            <Image
               src="/headerfooterlogo.png"
               alt="Urban Trout"
+              width={160}
+              height={40}
               className="h-9 md:h-10 w-auto object-contain"
             />
           </div>
