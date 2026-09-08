@@ -149,3 +149,39 @@ export async function GET(req: NextRequest) {
     );
   }
 }
+
+/**
+ * DELETE /api/razorpay/payment-link?link_id=plink_xxx
+ * Cancels and immediately expires an active payment link on Razorpay so the customer cannot pay again.
+ */
+export async function DELETE(req: NextRequest) {
+  try {
+    const { searchParams } = new URL(req.url);
+    const linkId = searchParams.get("link_id");
+
+    if (!linkId) {
+      return NextResponse.json(
+        { success: false, error: "Missing required parameter: 'link_id'" },
+        { status: 400 }
+      );
+    }
+
+    const razorpay = getRazorpayClient();
+    try {
+      await razorpay.paymentLink.cancel(linkId);
+    } catch (cancelErr: any) {
+      console.warn("Payment link cancel notice:", cancelErr?.message || cancelErr);
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Payment link cancelled and expired on Razorpay.",
+    });
+  } catch (err: any) {
+    console.error("Error cancelling Razorpay payment link:", err);
+    return NextResponse.json(
+      { success: false, error: err?.message || "Failed to cancel payment link" },
+      { status: 500 }
+    );
+  }
+}

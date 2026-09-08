@@ -1,13 +1,20 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { requireAdminAuth } from "@/lib/adminAuth";
+import Razorpay from "razorpay";
 
-// Use anon key — the invoices table has open RLS policies (public insert/select)
-// No service role key needed for this to work on Vercel
+// Use service role key to ensure admin operations (update/delete) succeed with RLS
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
 );
+
+function getRazorpayClient() {
+  const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+  if (!keyId || !keySecret) return null;
+  return new Razorpay({ key_id: keyId, key_secret: keySecret });
+}
 
 export async function POST(request: Request) {
   const authError = await requireAdminAuth(request);
@@ -75,12 +82,16 @@ export async function GET(request: Request) {
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
       }
 
-      const list = (rows || []).map((r) => ({
-        id: r.id,
-        created_at: r.created_at,
-        expires_at: r.expires_at,
-        ...(typeof r.data === "object" ? r.data : JSON.parse(r.data || "{}")),
-      }));
+      const list = (rows || []).map((r) => {
+        const d = typeof r.data === "object" && r.data ? r.data : JSON.parse(r.data || "{}");
+        return {
+          id: r.id,
+          created_at: r.created_at,
+          expires_at: r.expires_at,
+          data: d,
+          ...d,
+        };
+      });
 
       // Cache recent list in app_settings for safety
       try {
@@ -177,9 +188,105 @@ export async function DELETE(request: Request) {
     if (!id) return NextResponse.json({ success: false, error: "Missing id" }, { status: 400 });
 
     const cleanDigits = String(id).replace(/\D/g, "") || String(id);
-    await supabase.from("invoices").delete().eq("id", cleanDigits);
-    return NextResponse.json({ success: true });
+
+    // 1. Fetch invoice row before deleting to extract payment link ID or QR ID
+    let paymentLinkId: string | null = null;
+    let qrId: string | null = null;
+    let orderNum: string | null = null;
+
+    try {
+      const { data: row } = await supabase
+        .from("invoices")
+        .select("id, data")
+        .or(`id.eq.${cleanDigits},id.eq.${id}`)
+        .limit(1)
+        .maybeSingle();
+
+      if (row?.data) {
+        const invData = typeof row.data === "object" ? row.data : JSON.parse(row.data || "{}");
+        paymentLinkId = invData.paymentLinkId || null;
+        qrId = invData.qrId || null;
+        orderNum = invData.num || null;
+      }
+    } catch (_) {}
+
+    // 2. If it has a Razorpay Payment Link, CANCEL & EXPIRE IT on Razorpay!
+    if (paymentLinkId) {
+      try {
+        const rzp = getRazorpayClient();
+        if (rzp) {
+          await rzp.paymentLink.cancel(paymentLinkId);
+          console.log("Successfully cancelled Razorpay payment link on invoice deletion:", paymentLinkId);
+        }
+      } catch (rzpErr: any) {
+        console.warn("Notice: could not cancel Razorpay payment link:", rzpErr?.message || rzpErr);
+      }
+    }
+
+    // 3. If it has an active Razorpay QR, CLOSE IT on Razorpay!
+    if (qrId) {
+      try {
+        const rzp = getRazorpayClient();
+        if (rzp) {
+          await rzp.qrCode.close(qrId);
+          console.log("Successfully closed Razorpay QR code on invoice deletion:", qrId);
+        }
+      } catch (qrErr: any) {
+        console.warn("Notice: could not close Razorpay QR:", qrErr?.message || qrErr);
+      }
+    }
+
+    // 4. Delete invoice from invoices table using service role client
+    const { error: delErr } = await supabase
+      .from("invoices")
+      .delete()
+      .or(`id.eq.${cleanDigits},id.eq.${id}`);
+
+    if (delErr) {
+      console.error("Error deleting invoice row:", delErr.message);
+      return NextResponse.json({ success: false, error: delErr.message }, { status: 500 });
+    }
+
+    // 5. Update app_settings remote_invoices_cache
+    try {
+      const { data: cacheRow } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "remote_invoices_cache")
+        .single();
+      if (cacheRow?.value) {
+        const cachedList = JSON.parse(cacheRow.value);
+        const updatedCache = cachedList.filter((item: any) => {
+          const itemClean = String(item.id || "").replace(/\D/g, "");
+          return item.id !== id && itemClean !== cleanDigits && item.num !== orderNum;
+        });
+        await supabase.from("app_settings").upsert({
+          key: "remote_invoices_cache",
+          value: JSON.stringify(updatedCache),
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "key" });
+      }
+    } catch (_) {}
+
+    // 6. If there's an unpaid draft in vending_sales_log with this order ref, clean it up
+    try {
+      if (orderNum || cleanDigits) {
+        const searchRef = orderNum || cleanDigits;
+        await supabase
+          .from("vending_sales_log")
+          .delete()
+          .ilike("notes", `%${searchRef}%`)
+          .eq("amount_paid", 0);
+      }
+    } catch (_) {}
+
+    return NextResponse.json({
+      success: true,
+      message: "Order cancelled and deleted successfully. Payment link/QR expired.",
+      cancelledPaymentLink: paymentLinkId || undefined,
+    });
   } catch (err: any) {
+    console.error("DELETE /api/invoice exception:", err);
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
 }

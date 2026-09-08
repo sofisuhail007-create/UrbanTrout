@@ -104,6 +104,7 @@ export default function POSBillingPage() {
   const [manualPayModal, setManualPayModal] = useState<any | null>(null);
   const [manualPayMode, setManualPayMode] = useState<string>("Cash on Delivery (Driver)");
   const [manualPayNote, setManualPayNote] = useState<string>("");
+  const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null);
 
   // Load voice preferences from localStorage
   useEffect(() => {
@@ -1027,6 +1028,15 @@ Naseem Bagh / Malabagh, Srinagar`;
   };
 
   const handleReset = () => {
+    // If an active dynamic QR was on screen, expire/close it so nobody can pay for an abandoned bill
+    if (rzpQrId) {
+      fetch(`/api/razorpay/pos-qr?qr_id=${encodeURIComponent(rzpQrId)}`, { method: "DELETE" }).catch(() => {});
+    }
+    // If an active WhatsApp link was on screen, cancel/expire it
+    if (rzpLinkData?.id) {
+      fetch(`/api/razorpay/payment-link?link_id=${encodeURIComponent(rzpLinkData.id)}`, { method: "DELETE" }).catch(() => {});
+    }
+
     setCustomerName("");
     setCustomerPhone("");
     setCustomerNotes("");
@@ -1055,6 +1065,36 @@ Naseem Bagh / Malabagh, Srinagar`;
         unit: "Kg",
       },
     ]);
+  };
+
+  // 1-Click Explicit Cancellation & Expiry of Counter Razorpay QR
+  const handleCancelActiveQr = async () => {
+    if (!rzpQrId) return;
+    try {
+      await fetch(`/api/razorpay/pos-qr?qr_id=${encodeURIComponent(rzpQrId)}`, { method: "DELETE" });
+    } catch (_) {}
+    setRzpQrId(null);
+    setRzpQrImageUrl(null);
+    setLastGeneratedAmount(0);
+    setRzpQrError(null);
+    alert("Razorpay Dynamic QR code closed & expired. Customer cannot scan or pay this QR.");
+  };
+
+  // 1-Click Explicit Cancellation & Expiry of Counter WhatsApp Link
+  const handleCancelActiveWhatsAppLink = async () => {
+    if (!rzpLinkData) return;
+    try {
+      if (rzpLinkData.id) {
+        await fetch(`/api/razorpay/payment-link?link_id=${encodeURIComponent(rzpLinkData.id)}`, { method: "DELETE" });
+      }
+      if (rzpLinkData.orderRef) {
+        await adminFetch(`/api/invoice?id=${encodeURIComponent(rzpLinkData.orderRef)}`, { method: "DELETE" });
+      }
+    } catch (_) {}
+    setRzpLinkData(null);
+    setRzpLinkError(null);
+    fetchRemoteOrders();
+    alert("WhatsApp Payment Link cancelled & expired on Razorpay. Customer cannot pay on this link anymore.");
   };
 
   // ─── FETCH & SYNC ALL REMOTE / WHATSAPP ORDERS ───
@@ -1275,40 +1315,65 @@ Naseem Bagh / Malabagh, Srinagar`;
     }
   };
 
-  // ─── CANCEL / REMOVE REMOTE ORDER ───
+  // ─── ROBUST GETTERS FOR REMOTE ORDER INVOICES ───
+  const getOrderName = (o: any) => o?.data?.name ?? o?.name ?? "Valued Customer";
+  const getOrderPhone = (o: any) => o?.data?.phone ?? o?.phone ?? "";
+  const getOrderTotal = (o: any) => Number(o?.data?.tot ?? o?.tot ?? 0);
+  const getOrderWeight = (o: any) => Number(o?.data?.tw ?? o?.tw ?? 0);
+  const getOrderStatus = (o: any) => String(o?.data?.paymentStatus ?? o?.paymentStatus ?? "PAYMENT DUE").toUpperCase();
+  const getOrderNum = (o: any) => o?.data?.num ?? o?.num ?? `UT-INV-${o?.id}`;
+  const getOrderPaymentLinkId = (o: any) => o?.data?.paymentLinkId ?? o?.paymentLinkId ?? null;
+  const getOrderItems = (o: any) => (Array.isArray(o?.data?.items) ? o.data.items : Array.isArray(o?.items) ? o.items : []);
+  const getOrderNotes = (o: any) => o?.data?.notes ?? o?.notes ?? "";
+  const getOrderPaymentMethod = (o: any) => o?.data?.paymentMethod ?? o?.paymentMethod ?? "";
+  const getOrderPaymentId = (o: any) => o?.data?.paymentId ?? o?.paymentId ?? "";
+
+  // ─── CANCEL / REMOVE REMOTE ORDER & EXPIRE LINK ───
   const handleDeleteRemoteOrder = async (order: any) => {
-    const invNum = order.data?.num || order.id;
-    if (!confirm(`Are you sure you want to cancel and remove Order #${invNum} (${order.data?.name || "Customer"})?`)) {
+    const invNum = getOrderNum(order);
+    const cName = getOrderName(order);
+    if (!confirm(`Are you sure you want to cancel and remove Order #${invNum} (${cName})?\n\nThis will permanently expire the Razorpay payment link so the customer cannot pay again.`)) {
       return;
     }
+
+    setDeletingOrderId(order.id);
+    // Optimistically remove from state immediately
+    setRemoteOrders((prev) => prev.filter((o) => o.id !== order.id && getOrderNum(o) !== invNum));
+
     try {
       const res = await adminFetch(`/api/invoice?id=${encodeURIComponent(order.id)}`, {
         method: "DELETE",
       });
       const data = await res.json();
-      if (data?.success) {
-        await fetchRemoteOrders();
-      } else {
+      if (!data?.success) {
         alert(`Could not delete order: ${data?.error || "Unknown error"}`);
       }
+      await fetchRemoteOrders();
     } catch (err: any) {
       alert(`Could not delete order: ${err.message}`);
+      await fetchRemoteOrders();
+    } finally {
+      setDeletingOrderId(null);
     }
   };
 
   // ─── SEND WHATSAPP PAYMENT REMINDER ───
   const handleSendReminder = (order: any) => {
-    const cleanPhone = String(order.data?.phone || "").replace(/\D/g, "").slice(-10);
-    const link = order.data?.paymentLinkUrl || `https://urbantrout.in/invoice/${order.data?.num || order.id}`;
-    const invNum = order.data?.num || order.id;
+    const cleanPhone = String(getOrderPhone(order)).replace(/\D/g, "").slice(-10);
+    const link = order.data?.paymentLinkUrl || order.paymentLinkUrl || `https://urbantrout.in/invoice/${order.id}`;
+    const invNum = getOrderNum(order);
+    const tot = getOrderTotal(order);
+    const tw = getOrderWeight(order);
+    const cName = getOrderName(order);
+
     const msg = `*URBAN TROUT AQUACULTURE*
 _Fresh Himalayan Rainbow Trout · Srinagar_
 
-Dear *${order.data?.name || "Customer"}*,
+Dear *${cName}*,
 This is a gentle reminder regarding your fresh trout order *#${invNum}*.
 
-- *Total Amount Payable:* *Rs. ${(Number(order.data?.tot) || 0).toLocaleString("en-IN")}*
-- *Harvest Weight:* ${order.data?.tw ? Number(order.data.tw).toFixed(2) : ""} Kg
+- *Total Amount Payable:* *Rs. ${tot.toLocaleString("en-IN")}*
+- *Harvest Weight:* ${tw ? tw.toFixed(2) : ""} Kg
 
 *Tap below to complete your payment securely via UPI, GPay, PhonePe, or Card:*
 ${link}
@@ -1322,23 +1387,33 @@ ${link}
 
   // ─── 1-CLICK DISPATCH TICKET FOR DELIVERY BOY ───
   const handleDispatchToDeliveryBoy = (order: any) => {
-    const isPaid = order.data?.paymentStatus === "PAID";
+    const isPaid = getOrderStatus(order) === "PAID";
+    const items = getOrderItems(order);
     const itemsText =
-      (order.data?.items || []).map((i: any) => `${i.w} Kg ${i.n}`).join(", ") ||
-      `${order.data?.tw || 1.0} Kg Trout`;
+      items.length > 0
+        ? items.map((i: any) => `${i.w} Kg ${i.n}`).join(", ")
+        : `${getOrderWeight(order) || 1.0} Kg Trout`;
+
+    const invNum = getOrderNum(order);
+    const cName = getOrderName(order);
+    const phone = getOrderPhone(order);
+    const notes = getOrderNotes(order);
+    const tw = getOrderWeight(order);
+    const tot = getOrderTotal(order);
+    const mode = getOrderPaymentMethod(order);
 
     const ticket = `🛵 *URBAN TROUT - DELIVERY DISPATCH TICKET*
 ━━━━━━━━━━━━━━━━━━━━━━━
-• *Order Ref:* #${order.data?.num || order.id}
-• *Customer:* ${order.data?.name || "Valued Customer"}
-• *Contact:* +91 ${order.data?.phone || "N/A"}
-• *Delivery Note / Address:* ${order.data?.notes || "Standard Delivery"}
+• *Order Ref:* #${invNum}
+• *Customer:* ${cName}
+• *Contact:* +91 ${phone || "N/A"}
+• *Delivery Note / Address:* ${notes || "Standard Delivery"}
 ━━━━━━━━━━━━━━━━━━━━━━━
 • *Items:* ${itemsText}
-• *Total Weight:* ${order.data?.tw ? Number(order.data.tw).toFixed(2) : "1.00"} Kg
-• *Billing Amount:* Rs. ${(Number(order.data?.tot) || 0).toLocaleString("en-IN")}
+• *Total Weight:* ${tw ? tw.toFixed(2) : "1.00"} Kg
+• *Billing Amount:* Rs. ${tot.toLocaleString("en-IN")}
 • *Payment Status:* ${isPaid ? "✅ ALREADY PAID (DO NOT COLLECT CASH)" : "⚠️ COLLECT CASH / UPI ON DELIVERY"}
-${order.data?.paymentMethod ? `• *Channel:* ${order.data.paymentMethod}\n` : ""}━━━━━━━━━━━━━━━━━━━━━━━
+${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━━━━━━━━━━━
 *Farm Location:* Naseem Bagh / Malabagh, Srinagar
 *Dispatch Time:* ${new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true })}`;
 
@@ -1351,20 +1426,21 @@ ${order.data?.paymentMethod ? `• *Channel:* ${order.data.paymentMethod}\n` : "
   };
 
   // KPI calculations for Remote Orders
-  const pendingRemoteOrders = remoteOrders.filter((o) => o.data?.paymentStatus !== "PAID");
-  const paidRemoteOrders = remoteOrders.filter((o) => o.data?.paymentStatus === "PAID");
+  const pendingRemoteOrders = remoteOrders.filter((o) => getOrderStatus(o) !== "PAID");
+  const paidRemoteOrders = remoteOrders.filter((o) => getOrderStatus(o) === "PAID");
   const pendingRemoteCount = pendingRemoteOrders.length;
-  const pendingRemoteAmount = pendingRemoteOrders.reduce((sum, o) => sum + (Number(o.data?.tot) || 0), 0);
-  const paidRemoteAmount = paidRemoteOrders.reduce((sum, o) => sum + (Number(o.data?.tot) || 0), 0);
+  const pendingRemoteAmount = pendingRemoteOrders.reduce((sum, o) => sum + getOrderTotal(o), 0);
+  const paidRemoteAmount = paidRemoteOrders.reduce((sum, o) => sum + getOrderTotal(o), 0);
 
   const filteredRemoteOrders = remoteOrders.filter((o) => {
-    if (remoteFilter === "pending" && o.data?.paymentStatus === "PAID") return false;
-    if (remoteFilter === "paid" && o.data?.paymentStatus !== "PAID") return false;
+    const status = getOrderStatus(o);
+    if (remoteFilter === "pending" && status === "PAID") return false;
+    if (remoteFilter === "paid" && status !== "PAID") return false;
     if (remoteSearch.trim()) {
       const q = remoteSearch.toLowerCase();
-      const name = (o.data?.name || "").toLowerCase();
-      const phone = (o.data?.phone || "").toLowerCase();
-      const invNum = (o.data?.num || o.id || "").toLowerCase();
+      const name = getOrderName(o).toLowerCase();
+      const phone = getOrderPhone(o).toLowerCase();
+      const invNum = getOrderNum(o).toLowerCase();
       if (!name.includes(q) && !phone.includes(q) && !invNum.includes(q)) return false;
     }
     return true;
@@ -1983,6 +2059,14 @@ ${order.data?.paymentMethod ? `• *Channel:* ${order.data.paymentMethod}\n` : "
                         >
                           Refresh
                         </button>
+                        <button
+                          type="button"
+                          onClick={handleCancelActiveQr}
+                          className="px-2 py-0.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 text-[10px] font-bold uppercase cursor-pointer"
+                          title="Cancel and close this dynamic QR code"
+                        >
+                          ✕ Expire QR
+                        </button>
                       </div>
                     </div>
 
@@ -2243,7 +2327,15 @@ ${order.data?.paymentMethod ? `• *Channel:* ${order.data.paymentMethod}\n` : "
                           <div className="text-[10px] text-slate-400 font-mono">
                             Need to bill next walk-in customer?
                           </div>
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <button
+                              type="button"
+                              onClick={handleCancelActiveWhatsAppLink}
+                              className="flex-1 sm:flex-initial px-2.5 py-1.5 rounded-lg bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/40 text-[10px] font-bold font-mono transition-all cursor-pointer flex items-center justify-center gap-1"
+                              title="Cancel this order and permanently expire payment link on Razorpay"
+                            >
+                              <span>✕</span> Cancel &amp; Expire
+                            </button>
                             <button
                               type="button"
                               onClick={() => {
@@ -2553,12 +2645,19 @@ ${order.data?.paymentMethod ? `• *Channel:* ${order.data.paymentMethod}\n` : "
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
               {filteredRemoteOrders.map((order) => {
-                const isPaid = order.data?.paymentStatus === "PAID";
-                const invNum = order.data?.num || `UT-INV-${order.id}`;
-                const cleanPhone = String(order.data?.phone || "").replace(/\D/g, "").slice(-10);
-                const totalAmt = Number(order.data?.tot || 0);
-                const totalWt = Number(order.data?.tw || 0);
+                const isPaid = getOrderStatus(order) === "PAID";
+                const invNum = getOrderNum(order);
+                const cleanPhone = String(getOrderPhone(order)).replace(/\D/g, "").slice(-10);
+                const totalAmt = getOrderTotal(order);
+                const totalWt = getOrderWeight(order);
+                const cName = getOrderName(order);
+                const paymentLinkId = getOrderPaymentLinkId(order);
+                const orderItems = getOrderItems(order);
+                const orderNotes = getOrderNotes(order);
+                const pMethod = getOrderPaymentMethod(order);
+                const pId = getOrderPaymentId(order);
                 const isChecking = checkingOrderId === order.id;
+                const isDeleting = deletingOrderId === order.id;
                 const isTicketCopied = copiedTicketId === order.id;
 
                 return (
@@ -2578,12 +2677,12 @@ ${order.data?.paymentMethod ? `• *Channel:* ${order.data.paymentMethod}\n` : "
                             <span className="font-mono font-black text-sm text-white tracking-tight">
                               #{invNum}
                             </span>
-                            {order.data?.paymentLinkId && (
+                            {paymentLinkId && (
                               <span
                                 className="text-[9px] font-mono text-slate-500 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800 truncate max-w-[90px]"
-                                title={order.data.paymentLinkId}
+                                title={paymentLinkId}
                               >
-                                {order.data.paymentLinkId}
+                                {paymentLinkId}
                               </span>
                             )}
                           </div>
@@ -2629,8 +2728,8 @@ ${order.data?.paymentMethod ? `• *Channel:* ${order.data.paymentMethod}\n` : "
                       {/* Customer Information Row */}
                       <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800/80 space-y-1.5">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-slate-200 truncate" title={order.data?.name}>
-                            👤 {order.data?.name || "Valued Customer"}
+                          <span className="text-xs font-bold text-slate-200 truncate" title={cName}>
+                            👤 {cName || "Valued Customer"}
                           </span>
                           <div className="flex items-center gap-1 shrink-0">
                             {cleanPhone && (
@@ -2662,9 +2761,9 @@ ${order.data?.paymentMethod ? `• *Channel:* ${order.data.paymentMethod}\n` : "
                           <span className="text-slate-200">{cleanPhone ? `+91 ${cleanPhone}` : "N/A"}</span>
                         </div>
 
-                        {order.data?.notes && (
+                        {orderNotes && (
                           <div className="text-[10.5px] text-amber-300/90 bg-amber-950/20 border border-amber-500/20 p-1.5 rounded-lg font-mono">
-                            📍 Note: {order.data.notes}
+                            📍 Note: {orderNotes}
                           </div>
                         )}
                       </div>
@@ -2677,15 +2776,15 @@ ${order.data?.paymentMethod ? `• *Channel:* ${order.data.paymentMethod}\n` : "
                             {totalWt < 0.01 ? `${totalWt} Kg` : `${totalWt.toFixed(2)} Kg`}
                           </span>
                         </div>
-                        {order.data?.items && order.data.items.length > 0 && (
+                        {orderItems && orderItems.length > 0 && (
                           <div className="text-[10px] text-slate-400 truncate">
-                            {order.data.items.map((i: any) => `${i.w}Kg ${i.n}`).join(", ")}
+                            {orderItems.map((i: any) => `${i.w ?? i.weightKg ?? ""}Kg ${i.n ?? i.name ?? ""}`).join(", ")}
                           </div>
                         )}
-                        {isPaid && order.data?.paymentMethod && (
+                        {isPaid && pMethod && (
                           <div className="text-[10px] text-emerald-400 font-bold">
-                            Mode: {order.data.paymentMethod}{" "}
-                            {order.data.paymentId ? `(${order.data.paymentId})` : ""}
+                            Mode: {pMethod}{" "}
+                            {pId ? `(${pId})` : ""}
                           </div>
                         )}
                       </div>
@@ -2720,9 +2819,21 @@ ${order.data?.paymentMethod ? `• *Channel:* ${order.data.paymentMethod}\n` : "
                             </button>
                           </div>
 
-                          <div className="p-1 rounded-lg bg-emerald-950/30 border border-emerald-500/30 text-[9.5px] text-emerald-300 font-mono text-center flex items-center justify-center gap-1">
-                            <span className="material-symbols-outlined text-xs">sync_saved_locally</span>
-                            Auto-Logged to Vending Center Log ✓
+                          <div className="flex items-center justify-between gap-1.5">
+                            <div className="flex-1 p-1 rounded-lg bg-emerald-950/30 border border-emerald-500/30 text-[9.5px] text-emerald-300 font-mono text-center flex items-center justify-center gap-1">
+                              <span className="material-symbols-outlined text-xs">sync_saved_locally</span>
+                              Auto-Logged to Vending Log ✓
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteRemoteOrder(order)}
+                              disabled={isDeleting}
+                              className="px-2 py-1 rounded-lg bg-slate-800/80 hover:bg-red-950/40 text-slate-400 hover:text-red-300 border border-slate-700 hover:border-red-500/30 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
+                              title="Delete this order record"
+                            >
+                              <span className="material-symbols-outlined text-xs">delete</span>
+                              {isDeleting ? "..." : "Delete"}
+                            </button>
                           </div>
                         </div>
                       ) : (
@@ -2770,15 +2881,18 @@ ${order.data?.paymentMethod ? `• *Channel:* ${order.data.paymentMethod}\n` : "
                               <span>💵</span> Mark Paid
                             </button>
 
-                            {/* Delete / Cancel */}
+                            {/* Delete / Cancel & Expire */}
                             <button
                               type="button"
                               onClick={() => handleDeleteRemoteOrder(order)}
-                              className="py-1.5 px-2 rounded-xl bg-slate-800/80 hover:bg-red-950/40 text-slate-400 hover:text-red-300 border border-slate-700 hover:border-red-500/30 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer"
-                              title="Cancel this order"
+                              disabled={isDeleting}
+                              className="py-1.5 px-2 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 hover:text-rose-200 border border-rose-500/40 hover:border-rose-400 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
+                              title="Cancel this order and expire the Razorpay payment link so customer cannot pay"
                             >
-                              <span className="material-symbols-outlined text-xs">delete</span>
-                              Cancel
+                              <span className={`material-symbols-outlined text-xs ${isDeleting ? "animate-spin" : ""}`}>
+                                {isDeleting ? "sync" : "delete_forever"}
+                              </span>
+                              {isDeleting ? "Expiring..." : "Cancel & Expire"}
                             </button>
                           </div>
                         </div>
