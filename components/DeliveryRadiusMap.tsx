@@ -429,7 +429,10 @@ export default function DeliveryRadiusMap({
                   : "text-slate-400 hover:text-white"
               }`}
             >
-              <span className="material-symbols-outlined text-sm">radar</span>
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19.07 4.93a10 10 0 0 0-14.14 0M16.24 7.76a6 6 0 0 0-8.48 0M13.41 10.59a2 2 0 0 0-2.82 0" />
+                <circle cx="12" cy="12" r="1" />
+              </svg>
               Interactive Radar Map
             </button>
             <button
@@ -441,7 +444,11 @@ export default function DeliveryRadiusMap({
                   : "text-slate-400 hover:text-white"
               }`}
             >
-              <span className="material-symbols-outlined text-sm">map</span>
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+                <line x1="8" y1="2" x2="8" y2="18" />
+                <line x1="16" y1="6" x2="16" y2="22" />
+              </svg>
               Official Google Maps Embed
             </button>
           </div>
@@ -479,7 +486,13 @@ export default function DeliveryRadiusMap({
               className="p-2 rounded-xl bg-slate-950 border border-slate-800 text-slate-300 hover:text-cyan-300 hover:border-cyan-500/40 transition-colors cursor-pointer"
               title="Recenter Map to Farm Base"
             >
-              <span className="material-symbols-outlined text-base">center_focus_strong</span>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M3 7V5a2 2 0 0 1 2-2h2" />
+                <path d="M17 3h2a2 2 0 0 1 2 2v2" />
+                <path d="M21 17v2a2 2 0 0 1-2 2h-2" />
+                <path d="M7 21H5a2 2 0 0 1-2-2v-2" />
+              </svg>
             </button>
           </div>
         )}
@@ -542,7 +555,10 @@ export default function DeliveryRadiusMap({
             <div className="absolute top-4 left-4 z-20 max-w-xs p-3.5 rounded-xl bg-slate-950/90 border border-cyan-500/40 backdrop-blur-md shadow-xl text-xs space-y-1.5 animate-fadeIn">
               <div className="flex items-center justify-between gap-2">
                 <span className="font-bold text-cyan-300 flex items-center gap-1">
-                  <span className="material-symbols-outlined text-sm">straighten</span>
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M2 12h20M6 12v3M10 12v2M14 12v3M18 12v2" />
+                    <rect x="2" y="7" width="20" height="10" rx="2" />
+                  </svg>
                   Measured Test Point
                 </span>
                 <button
@@ -574,7 +590,11 @@ export default function DeliveryRadiusMap({
           {/* Map Legend (Bottom Left) */}
           <div className="absolute bottom-4 left-4 z-20 p-3 rounded-xl bg-slate-950/90 border border-slate-800 backdrop-blur-md shadow-lg text-[11px] space-y-1.5 hidden sm:block">
             <div className="font-bold text-white flex items-center gap-1.5 pb-1 border-b border-slate-800">
-              <span className="material-symbols-outlined text-cyan-400 text-sm">map</span>
+              <svg className="w-3.5 h-3.5 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6" />
+                <line x1="8" y1="2" x2="8" y2="18" />
+                <line x1="16" y1="6" x2="16" y2="22" />
+              </svg>
               Map Radar Legend
             </div>
             <div className="flex items-center gap-2 text-slate-300">
@@ -614,7 +634,11 @@ export default function DeliveryRadiusMap({
               rel="noopener noreferrer"
               className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 shadow-xl transition-all cursor-pointer"
             >
-              <span className="material-symbols-outlined text-sm">open_in_new</span>
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                <polyline points="15 3 21 3 21 9" />
+                <line x1="10" y1="14" x2="21" y2="3" />
+              </svg>
               Open Official Google Maps
             </a>
           </div>
@@ -625,7 +649,9 @@ export default function DeliveryRadiusMap({
       <div className="p-4 bg-slate-900/60 border border-slate-800 rounded-2xl space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <span className="material-symbols-outlined text-cyan-400 text-sm">near_me</span>
+            <svg className="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="3 11 22 2 13 21 11 13 3 11" />
+            </svg>
             <h4 className="text-xs font-bold uppercase tracking-wider text-white">
               Srinagar Locality Radar Coverage ({coveredCount} of {totalCount} Inside Radius)
             </h4>

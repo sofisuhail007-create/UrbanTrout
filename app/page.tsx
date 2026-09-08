@@ -14,6 +14,9 @@ export const metadata: Metadata = {
   },
 };
 
+// Enable ISR (Incremental Static Regeneration) - cached at Edge CDN and refreshed every 60s
+export const revalidate = 60;
+
 const C = {
   bg: "#031018",
   bgLow: "#06151e",
@@ -219,10 +222,12 @@ export default async function HomePage() {
               className="md:col-span-2 group relative overflow-hidden rounded-2xl p-8 md:p-10 flex flex-col justify-end min-h-[280px] transition-all hover:border-[#72ddfd]/30"
               style={{ background: C.bgLow, border: "1px solid rgba(255,255,255,0.06)" }}
             >
-              <img
+              <Image
                 src="https://lh3.googleusercontent.com/aida-public/AB6AXuAw2idJIrz9hjno5I1VpNsfjqfQnhqLPidbIRKttyWvaFYDCXn39gfFxbhzDkp01U8HcCCb9gTEBrCeOymPH_AzeyZBx_Yx8hr7s1Y71Cw3EAJseHs-q4N5ZCwSLxM0_DIj89VHy2rnRL-9hfVugHv39MDQ_0m368etR-norK3BNf3JBvjTaos9qVnQIaHfv3D_48h2G4W8T2Y3SlQjou3TtMSflhEb6T3b6RY5bbBsllLqCkQ2TvW96_cxg9sPUysMkjb6hK1naVV3"
                 alt="Clean borewell water trout farm Srinagar"
-                className="absolute inset-0 w-full h-full object-cover opacity-20 group-hover:scale-105 transition-transform duration-700 pointer-events-none"
+                fill
+                sizes="(max-width: 768px) 100vw, 1200px"
+                className="object-cover opacity-20 group-hover:scale-105 transition-transform duration-700 pointer-events-none"
               />
               <div className="relative z-10">
                 <svg className="w-9 h-9 text-[#72ddfd] mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">

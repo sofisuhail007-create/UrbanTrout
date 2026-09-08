@@ -3,7 +3,8 @@ import { products } from "@/lib/data";
 import ProductCard from "@/components/ProductCard";
 import { supabase } from "@/lib/supabase";
 
-export const dynamic = "force-dynamic";
+// Enable ISR (Incremental Static Regeneration) - cached at Edge CDN and refreshed every 60s
+export const revalidate = 60;
 
 const C = {
   bg: "#031018", bgLow: "#06151e", bgHigh: "#10212c", bgHighest: "#152834",

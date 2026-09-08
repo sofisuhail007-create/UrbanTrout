@@ -83,9 +83,9 @@ export default function LiveChatWidget() {
   const [isClosed, setIsClosed] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Load Google reCAPTCHA v3 script dynamically
+  // Load Google reCAPTCHA v3 script dynamically only when user opens the chat
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || !isOpen) return;
     const scriptId = "google-recaptcha-v3-chat";
     if (!document.getElementById(scriptId)) {
       const script = document.createElement("script");
@@ -94,7 +94,7 @@ export default function LiveChatWidget() {
       script.async = true;
       document.body.appendChild(script);
     }
-  }, []);
+  }, [isOpen]);
 
   // Inactivity Timeout: 10 minutes (600,000 ms)
   const INACTIVITY_TIMEOUT_MS = 10 * 60 * 1000;
@@ -274,13 +274,17 @@ export default function LiveChatWidget() {
       )
       .subscribe();
 
-    const pollInterval = setInterval(() => {
-      fetchHistory(threadId);
-    }, 1500);
+    // Gentle fallback polling only when the chat drawer is open
+    let pollInterval: NodeJS.Timeout | null = null;
+    if (isOpen) {
+      pollInterval = setInterval(() => {
+        fetchHistory(threadId);
+      }, 6000);
+    }
 
     return () => {
       supabase.removeChannel(channel);
-      clearInterval(pollInterval);
+      if (pollInterval) clearInterval(pollInterval);
     };
   }, [threadId, isOpen, isLeadCaptured]);
 

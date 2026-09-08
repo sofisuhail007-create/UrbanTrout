@@ -170,7 +170,10 @@ export default function ContactPage() {
                   className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                   style={{ background: "rgba(114,221,253,0.15)", color: C.primary }}
                 >
-                  <span className="material-symbols-outlined text-xl">location_on</span>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 2a8 8 0 0 0-8 8c0 5.25 8 12 8 12s8-6.75 8-12a8 8 0 0 0-8-8z" />
+                    <circle cx="12" cy="10" r="3" />
+                  </svg>
                 </div>
                 <div>
                   <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "10px", letterSpacing: "0.15em", textTransform: "uppercase", color: C.outline }}>
@@ -193,7 +196,11 @@ export default function ContactPage() {
                 style={{ fontFamily: '"Space Grotesk", sans-serif' }}
               >
                 <span>Open in Google Maps</span>
-                <span className="material-symbols-outlined text-sm">open_in_new</span>
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                  <polyline points="15 3 21 3 21 9" />
+                  <line x1="10" y1="14" x2="21" y2="3" />
+                </svg>
               </a>
             </div>
 
@@ -316,7 +323,13 @@ export default function ContactPage() {
                   className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                   style={{ background: "rgba(114,221,253,0.15)", color: C.primary }}
                 >
-                  <span className="material-symbols-outlined text-xl">gavel</span>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="m14 13-7.5 7.5c-.8.8-2 .8-2.8 0l-1.4-1.4c-.8-.8-.8-2 0-2.8L9.8 8.8" />
+                    <path d="m16 16 6-6" />
+                    <path d="m8 8 6-6" />
+                    <path d="m9 7 8 8" />
+                    <path d="m21 11-8-8" />
+                  </svg>
                 </div>
                 <div>
                   <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "10px", letterSpacing: "0.15em", textTransform: "uppercase", color: C.outline }}>

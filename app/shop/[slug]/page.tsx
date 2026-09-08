@@ -6,7 +6,8 @@ import AddToCartButton from "@/components/AddToCartButton";
 import { supabase } from "@/lib/supabase";
 import { products } from "@/lib/data";
 
-export const dynamic = "force-dynamic";
+// Enable ISR (Incremental Static Regeneration) - cached at Edge CDN and refreshed every 60s
+export const revalidate = 60;
 
 const C = {
   bg: "#031018",

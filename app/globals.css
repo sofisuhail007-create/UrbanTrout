@@ -107,12 +107,12 @@ body {
   color: #26aadb;
 }
 
-/* ─── Material Symbols (Self-Hosted & Zero-FOUT) ─── */
+/* ─── Material Symbols (Non-blocking & Swappable) ─── */
 @font-face {
   font-family: 'Material Symbols Outlined';
   font-style: normal;
   font-weight: 100 700;
-  font-display: block;
+  font-display: swap;
   src: url('/fonts/material-symbols-outlined.woff2') format('woff2'),
        url('https://fonts.gstatic.com/s/materialsymbolsoutlined/v369/kJEhBvYX7BgnkSrUwT8OhrdQw4oELdPIeeII9v6oFsI.woff2') format('woff2');
 }
