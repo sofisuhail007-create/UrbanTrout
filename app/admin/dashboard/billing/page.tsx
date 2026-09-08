@@ -58,7 +58,7 @@ export default function POSBillingPage() {
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerNotes, setCustomerNotes] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"JkBankSoundbox" | "RazorpayQR" | "WhatsAppLink" | "Cash" | "Card">("JkBankSoundbox");
+  const [paymentMethod, setPaymentMethod] = useState<"JkBankSoundbox" | "RazorpayQR" | "WhatsAppLink" | "Cash">("JkBankSoundbox");
   const [upiId, setUpiId] = useState("JKBMERC00828895@jkb");
   const [soundboxPaid, setSoundboxPaid] = useState(false);
   const [soundboxQrView, setSoundboxQrView] = useState<"dynamic" | "standee">("dynamic");
@@ -92,6 +92,18 @@ export default function POSBillingPage() {
   const [voiceLang, setVoiceLang] = useState<"en" | "en-short" | "hi">("en");
   const [voiceModalOpen, setVoiceModalOpen] = useState<boolean>(false);
   const [voiceTesting, setVoiceTesting] = useState<boolean>(false);
+
+  // ─── DEDICATED REMOTE ORDERS & WHATSAPP PAYMENT TRACKER STATE ───
+  const [activeTab, setActiveTab] = useState<"pos" | "remote_orders">("pos");
+  const [remoteOrders, setRemoteOrders] = useState<any[]>([]);
+  const [remoteLoading, setRemoteLoading] = useState(false);
+  const [remoteFilter, setRemoteFilter] = useState<"all" | "pending" | "paid">("all");
+  const [remoteSearch, setRemoteSearch] = useState("");
+  const [checkingOrderId, setCheckingOrderId] = useState<string | null>(null);
+  const [copiedTicketId, setCopiedTicketId] = useState<string | null>(null);
+  const [manualPayModal, setManualPayModal] = useState<any | null>(null);
+  const [manualPayMode, setManualPayMode] = useState<string>("Cash on Delivery (Driver)");
+  const [manualPayNote, setManualPayNote] = useState<string>("");
 
   // Load voice preferences from localStorage
   useEffect(() => {
@@ -602,9 +614,7 @@ export default function POSBillingPage() {
       ? "Razorpay QR"
       : paymentMethod === "WhatsAppLink"
       ? "Razorpay Link (Home Delivery)"
-      : paymentMethod === "Cash"
-      ? "Cash"
-      : "Card / POS";
+      : "Cash";
 
     const invoicePayload = {
       num: invoiceNumber,
@@ -1047,6 +1057,319 @@ Naseem Bagh / Malabagh, Srinagar`;
     ]);
   };
 
+  // ─── FETCH & SYNC ALL REMOTE / WHATSAPP ORDERS ───
+  const fetchRemoteOrders = async () => {
+    setRemoteLoading(true);
+    try {
+      const res = await adminFetch("/api/invoice");
+      const data = await res.json();
+      if (data?.success && Array.isArray(data.invoices)) {
+        setRemoteOrders(data.invoices);
+      }
+    } catch (e) {
+      console.warn("Error fetching remote orders:", e);
+    } finally {
+      setRemoteLoading(false);
+    }
+  };
+
+  // Load remote orders on mount
+  useEffect(() => {
+    fetchRemoteOrders();
+  }, []);
+
+  // Background auto-poller when viewing Remote Orders tab (every 12s)
+  useEffect(() => {
+    if (activeTab !== "remote_orders") return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await adminFetch("/api/invoice");
+        const data = await res.json();
+        if (data?.success && Array.isArray(data.invoices)) {
+          setRemoteOrders((prevOrders) => {
+            const newOrders: any[] = data.invoices;
+            newOrders.forEach((newOrd) => {
+              const oldOrd = prevOrders.find((p) => p.id === newOrd.id);
+              if (
+                oldOrd &&
+                oldOrd.data?.paymentStatus !== "PAID" &&
+                newOrd.data?.paymentStatus === "PAID"
+              ) {
+                // Customer paid remotely! Sound announcement
+                playSuccessChime();
+                speakPaymentAnnouncement(newOrd.data.tot, "WhatsApp Link", newOrd.data.name);
+              }
+            });
+            return newOrders;
+          });
+        }
+      } catch (_) {}
+    }, 12000);
+
+    return () => clearInterval(interval);
+  }, [activeTab]);
+
+  // ─── CHECK STATUS FOR SPECIFIC REMOTE ORDER VIA RAZORPAY ───
+  const handleCheckRemoteOrderStatus = async (order: any) => {
+    const linkId = order.data?.paymentLinkId;
+    if (!linkId) {
+      alert("This order does not have a linked Razorpay payment link ID.");
+      return;
+    }
+
+    setCheckingOrderId(order.id);
+    try {
+      const res = await fetch(`/api/razorpay/payment-link?link_id=${encodeURIComponent(linkId)}`);
+      const data = await res.json();
+      if (!data?.success) {
+        alert(`Status check failed: ${data?.error || "Unknown error"}`);
+        return;
+      }
+
+      if (data.paid || data.status === "paid") {
+        const paymentId = data.payment?.id || `rzp_${Date.now()}`;
+
+        // 1. Mark as PAID in Supabase invoices
+        await adminFetch("/api/invoice", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            invoiceId: order.id,
+            paymentStatus: "PAID",
+            paymentId,
+            paymentMethod: "Razorpay Link (Verified)",
+          }),
+        });
+
+        // 2. Auto-record into Vending Center Sales Data Logger!
+        try {
+          const tw = Number(order.data.tw) || 1.0;
+          const firstItem = order.data.items?.[0];
+          const prodType =
+            (firstItem?.n || "").toLowerCase().includes("gutted") &&
+            !(firstItem?.n || "").toLowerCase().includes("non")
+              ? "Gutted"
+              : "Non Gutted";
+          const rate = firstItem?.r
+            ? Number(firstItem.r)
+            : Math.round((order.data.tot || 0) / (tw || 1));
+
+          await adminFetch("/api/vending-log", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              entry_date: new Date().toISOString().split("T")[0],
+              entry_time: new Date().toLocaleTimeString("en-IN", {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true,
+              }),
+              weight_kg: tw,
+              product_type: prodType,
+              rate_per_kg: rate,
+              amount_paid: order.data.tot,
+              expected_amount: order.data.tot,
+              discount_amount: 0,
+              payment_mode: "Razorpay Link",
+              logged_by: "WhatsApp Remote Sync",
+              notes: `Remote Order #${order.data.num || order.id} - ${order.data.name} (Phone: ${order.data.phone}) [Verified Paid ✓]`,
+              custom_fields: {
+                payment_status: "PAID",
+                payment_id: paymentId,
+                payment_link_id: linkId,
+                customer_name: order.data.name,
+                customer_phone: order.data.phone,
+                paid_at: new Date().toISOString(),
+              },
+            }),
+          });
+        } catch (logErr) {
+          console.warn("Could not log to vending sales:", logErr);
+        }
+
+        playSuccessChime();
+        speakPaymentAnnouncement(order.data.tot, "WhatsApp Link", order.data.name);
+
+        await fetchRemoteOrders();
+        alert(`🎉 Payment Confirmed! ₹${Number(order.data.tot).toLocaleString("en-IN")} received from ${order.data.name}. Auto-logged to Vending Log.`);
+      } else {
+        alert(`⏳ Customer has NOT paid yet (Razorpay link status: "${data.status}").`);
+      }
+    } catch (err: any) {
+      alert(`Could not verify status: ${err.message}`);
+    } finally {
+      setCheckingOrderId(null);
+    }
+  };
+
+  // ─── MARK ORDER PAID MANUALLY (CASH ON DELIVERY / BANK TRANSFER) ───
+  const handleMarkManualPaid = async (order: any, mode: string, manualNotes?: string) => {
+    try {
+      const paymentId = `MANUAL-${Date.now().toString().slice(-6)}`;
+      await adminFetch("/api/invoice", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          invoiceId: order.id,
+          paymentStatus: "PAID",
+          paymentId,
+          paymentMethod: mode,
+          notes: manualNotes
+            ? `${order.data?.notes || ""} | ${manualNotes}`.trim()
+            : order.data?.notes,
+        }),
+      });
+
+      // Auto-insert entry to Vending Center Sales Data Logger
+      try {
+        const tw = Number(order.data?.tw) || 1.0;
+        const firstItem = order.data?.items?.[0];
+        const prodType =
+          (firstItem?.n || "").toLowerCase().includes("gutted") &&
+          !(firstItem?.n || "").toLowerCase().includes("non")
+            ? "Gutted"
+            : "Non Gutted";
+        const rate = firstItem?.r
+          ? Number(firstItem.r)
+          : Math.round((order.data?.tot || 0) / (tw || 1));
+
+        await adminFetch("/api/vending-log", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            entry_date: new Date().toISOString().split("T")[0],
+            entry_time: new Date().toLocaleTimeString("en-IN", {
+              hour: "2-digit",
+              minute: "2-digit",
+              hour12: true,
+            }),
+            weight_kg: tw,
+            product_type: prodType,
+            rate_per_kg: rate,
+            amount_paid: order.data?.tot,
+            expected_amount: order.data?.tot,
+            discount_amount: 0,
+            payment_mode: mode.includes("Cash") ? "Cash" : "Online Payment",
+            logged_by: "Manual POS Settlement",
+            notes: `Remote Order #${order.data?.num || order.id} - ${order.data?.name} (Phone: ${order.data?.phone}) [Marked Paid: ${mode}]`,
+            custom_fields: {
+              payment_status: "PAID",
+              payment_id: paymentId,
+              settlement_mode: mode,
+              settled_at: new Date().toISOString(),
+            },
+          }),
+        });
+      } catch (logErr) {
+        console.warn("Could not log to vending sales:", logErr);
+      }
+
+      playSuccessChime();
+      speakPaymentAnnouncement(order.data?.tot, mode.includes("Cash") ? "Cash" : "Soundbox", order.data?.name);
+
+      await fetchRemoteOrders();
+      setManualPayModal(null);
+    } catch (err: any) {
+      alert(`Failed to update status: ${err.message}`);
+    }
+  };
+
+  // ─── CANCEL / REMOVE REMOTE ORDER ───
+  const handleDeleteRemoteOrder = async (order: any) => {
+    const invNum = order.data?.num || order.id;
+    if (!confirm(`Are you sure you want to cancel and remove Order #${invNum} (${order.data?.name || "Customer"})?`)) {
+      return;
+    }
+    try {
+      const res = await adminFetch(`/api/invoice?id=${encodeURIComponent(order.id)}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (data?.success) {
+        await fetchRemoteOrders();
+      } else {
+        alert(`Could not delete order: ${data?.error || "Unknown error"}`);
+      }
+    } catch (err: any) {
+      alert(`Could not delete order: ${err.message}`);
+    }
+  };
+
+  // ─── SEND WHATSAPP PAYMENT REMINDER ───
+  const handleSendReminder = (order: any) => {
+    const cleanPhone = String(order.data?.phone || "").replace(/\D/g, "").slice(-10);
+    const link = order.data?.paymentLinkUrl || `https://urbantrout.in/invoice/${order.data?.num || order.id}`;
+    const invNum = order.data?.num || order.id;
+    const msg = `*URBAN TROUT AQUACULTURE*
+_Fresh Himalayan Rainbow Trout · Srinagar_
+
+Dear *${order.data?.name || "Customer"}*,
+This is a gentle reminder regarding your fresh trout order *#${invNum}*.
+
+- *Total Amount Payable:* *Rs. ${(Number(order.data?.tot) || 0).toLocaleString("en-IN")}*
+- *Harvest Weight:* ${order.data?.tw ? Number(order.data.tw).toFixed(2) : ""} Kg
+
+*Tap below to complete your payment securely via UPI, GPay, PhonePe, or Card:*
+${link}
+
+*Urban Trout Farm Helpline:* +91 84910 06127`;
+
+    const enc = encodeURIComponent(msg);
+    const url = cleanPhone.length === 10 ? `https://wa.me/91${cleanPhone}?text=${enc}` : `https://wa.me/?text=${enc}`;
+    window.open(url, "_blank");
+  };
+
+  // ─── 1-CLICK DISPATCH TICKET FOR DELIVERY BOY ───
+  const handleDispatchToDeliveryBoy = (order: any) => {
+    const isPaid = order.data?.paymentStatus === "PAID";
+    const itemsText =
+      (order.data?.items || []).map((i: any) => `${i.w} Kg ${i.n}`).join(", ") ||
+      `${order.data?.tw || 1.0} Kg Trout`;
+
+    const ticket = `🛵 *URBAN TROUT - DELIVERY DISPATCH TICKET*
+━━━━━━━━━━━━━━━━━━━━━━━
+• *Order Ref:* #${order.data?.num || order.id}
+• *Customer:* ${order.data?.name || "Valued Customer"}
+• *Contact:* +91 ${order.data?.phone || "N/A"}
+• *Delivery Note / Address:* ${order.data?.notes || "Standard Delivery"}
+━━━━━━━━━━━━━━━━━━━━━━━
+• *Items:* ${itemsText}
+• *Total Weight:* ${order.data?.tw ? Number(order.data.tw).toFixed(2) : "1.00"} Kg
+• *Billing Amount:* Rs. ${(Number(order.data?.tot) || 0).toLocaleString("en-IN")}
+• *Payment Status:* ${isPaid ? "✅ ALREADY PAID (DO NOT COLLECT CASH)" : "⚠️ COLLECT CASH / UPI ON DELIVERY"}
+${order.data?.paymentMethod ? `• *Channel:* ${order.data.paymentMethod}\n` : ""}━━━━━━━━━━━━━━━━━━━━━━━
+*Farm Location:* Naseem Bagh / Malabagh, Srinagar
+*Dispatch Time:* ${new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true })}`;
+
+    navigator.clipboard.writeText(ticket);
+    setCopiedTicketId(order.id);
+    setTimeout(() => setCopiedTicketId(null), 2500);
+
+    const enc = encodeURIComponent(ticket);
+    window.open(`https://wa.me/?text=${enc}`, "_blank");
+  };
+
+  // KPI calculations for Remote Orders
+  const pendingRemoteOrders = remoteOrders.filter((o) => o.data?.paymentStatus !== "PAID");
+  const paidRemoteOrders = remoteOrders.filter((o) => o.data?.paymentStatus === "PAID");
+  const pendingRemoteCount = pendingRemoteOrders.length;
+  const pendingRemoteAmount = pendingRemoteOrders.reduce((sum, o) => sum + (Number(o.data?.tot) || 0), 0);
+  const paidRemoteAmount = paidRemoteOrders.reduce((sum, o) => sum + (Number(o.data?.tot) || 0), 0);
+
+  const filteredRemoteOrders = remoteOrders.filter((o) => {
+    if (remoteFilter === "pending" && o.data?.paymentStatus === "PAID") return false;
+    if (remoteFilter === "paid" && o.data?.paymentStatus !== "PAID") return false;
+    if (remoteSearch.trim()) {
+      const q = remoteSearch.toLowerCase();
+      const name = (o.data?.name || "").toLowerCase();
+      const phone = (o.data?.phone || "").toLowerCase();
+      const invNum = (o.data?.num || o.id || "").toLowerCase();
+      if (!name.includes(q) && !phone.includes(q) && !invNum.includes(q)) return false;
+    }
+    return true;
+  });
+
   return (
     <div className="px-3 py-2 sm:px-5 sm:py-3 max-w-7xl mx-auto space-y-3">
       {/* ─── COMPACT HEADER BAR ─── */}
@@ -1103,8 +1426,53 @@ Naseem Bagh / Malabagh, Srinagar`;
         </div>
       </div>
 
+      {/* ─── DEDICATED VIEW SWITCHER (POS COUNTER vs REMOTE & WHATSAPP ORDERS) ─── */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 p-1.5 bg-slate-950/80 border border-slate-800/80 rounded-2xl">
+        <div className="flex items-center gap-1.5 flex-1">
+          <button
+            type="button"
+            onClick={() => setActiveTab("pos")}
+            className={`flex-1 sm:flex-initial px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer ${
+              activeTab === "pos"
+                ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 shadow-md shadow-cyan-500/10"
+                : "text-slate-400 hover:text-slate-200 hover:bg-slate-900/60"
+            }`}
+          >
+            <span className="material-symbols-outlined text-base">point_of_sale</span>
+            <span>⚡ Counter Billing (POS)</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setActiveTab("remote_orders");
+              fetchRemoteOrders();
+            }}
+            className={`flex-1 sm:flex-initial px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer relative ${
+              activeTab === "remote_orders"
+                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 shadow-md shadow-emerald-500/10"
+                : "text-slate-400 hover:text-slate-200 hover:bg-slate-900/60"
+            }`}
+          >
+            <span className="material-symbols-outlined text-base">local_shipping</span>
+            <span>🛵 Remote Orders &amp; WhatsApp Links</span>
+            {pendingRemoteCount > 0 && (
+              <span className="px-2 py-0.5 rounded-full bg-amber-500/25 border border-amber-500/50 text-amber-300 text-[10px] font-mono font-bold animate-pulse">
+                {pendingRemoteCount} DUE
+              </span>
+            )}
+          </button>
+        </div>
+
+        <div className="hidden md:flex items-center gap-2 text-[11px] text-slate-400 font-mono pr-2">
+          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+          <span>Vending Log: <strong className="text-emerald-400">Auto-Synced on Pay ✓</strong></span>
+        </div>
+      </div>
+
       {/* ─── MAIN 2-COLUMN GRID (COMPACT ABOVE-THE-FOLD) ─── */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 items-start">
+      {activeTab === "pos" && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 items-start">
         {/* LEFT COLUMN: Weight Input & Customer (7 Cols) */}
         <div className="lg:col-span-7 space-y-3">
           {/* Card 1: Product & Live Real-Time Weight Input */}
@@ -1374,13 +1742,12 @@ Naseem Bagh / Malabagh, Srinagar`;
             </div>
 
             {/* Payment Channel Selector */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 pt-0.5">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 pt-0.5">
               {[
                 { id: "JkBankSoundbox", label: "🔊 J&K Soundbox", sub: "Instant Voice", color: "#34d399", bg: "rgba(16,185,129,0.2)", border: "#10b981" },
                 { id: "RazorpayQR", label: "⚡ Razorpay QR", sub: "Auto-Verify", color: "#72ddfd", bg: "rgba(114,221,253,0.18)", border: "#72ddfd" },
                 { id: "WhatsAppLink", label: "🛵 WhatsApp Link", sub: "Remote Pay", color: "#4ade80", bg: "rgba(34,197,94,0.2)", border: "#22c55e" },
                 { id: "Cash", label: "💵 Cash", sub: "Counter", color: "#fbbf24", bg: "rgba(251,191,36,0.18)", border: "#fbbf24" },
-                { id: "Card", label: "💳 Card / POS", sub: "Terminal", color: "#c084fc", bg: "rgba(192,132,252,0.18)", border: "#c084fc" },
               ].map((channel) => {
                 const isSel = paymentMethod === channel.id;
                 return (
@@ -1870,6 +2237,36 @@ Naseem Bagh / Malabagh, Srinagar`;
                         <div className="p-2 rounded-lg bg-emerald-950/20 border border-emerald-500/20 text-[10px] text-emerald-400 font-mono text-center">
                           🛡️ Anti-Fraud active: Polling Razorpay every 1.2s. Screen turns green automatically upon payment.
                         </div>
+
+                        {/* Fast Actions for Counter Operator */}
+                        <div className="pt-2 border-t border-slate-800/80 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-1.5 bg-slate-950/60 p-2 rounded-xl border border-slate-800/60">
+                          <div className="text-[10px] text-slate-400 font-mono">
+                            Need to bill next walk-in customer?
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                handleReset();
+                              }}
+                              className="flex-1 sm:flex-initial px-2.5 py-1.5 rounded-lg bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-500/40 text-[10px] font-bold font-mono transition-all cursor-pointer flex items-center justify-center gap-1"
+                              title="Reset counter register to weigh and bill next customer (remote order stays saved in database)"
+                            >
+                              <span>⚡</span> Clear &amp; Bill Next
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveTab("remote_orders");
+                                fetchRemoteOrders();
+                              }}
+                              className="flex-1 sm:flex-initial px-2.5 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold font-mono transition-all cursor-pointer flex items-center justify-center gap-1"
+                              title="Open Remote Orders tab to monitor customer payments"
+                            >
+                              <span>🛵</span> View Remote Orders &rarr;
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     ) : (
                       /* ─── READY STATE BEFORE GENERATING LINK ─── */
@@ -1927,20 +2324,6 @@ Naseem Bagh / Malabagh, Srinagar`;
               </div>
             )}
 
-            {/* 5. Card / EDC POS Panel */}
-            {paymentMethod === "Card" && (
-              <div className="p-4 rounded-xl bg-slate-950/80 border border-cyan-500/20 text-center space-y-2">
-                <span className="text-2xl block">💳</span>
-                <h4 className="text-sm font-bold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
-                  Card / Physical POS Terminal
-                </h4>
-                <p className="text-xs text-slate-400">
-                  Swipe or tap credit/debit card on EDC POS Machine for <strong className="text-cyan-300 font-mono">₹{grandTotal.toLocaleString("en-IN")}</strong>.
-                </p>
-                <p className="text-[10px] text-slate-500 font-mono">Invoice will be marked with &quot;Card / POS&quot; payment.</p>
-              </div>
-            )}
-
             {/* Primary Action Button */}
             <div className="pt-1">
               {paymentMethod === "WhatsAppLink" && !rzpPaid ? (
@@ -1979,6 +2362,544 @@ Naseem Bagh / Malabagh, Srinagar`;
           </div>
         </div>
       </div>
+      )}
+
+      {/* ─── DEDICATED REMOTE ORDERS & WHATSAPP PAYMENTS DASHBOARD ─── */}
+      {activeTab === "remote_orders" && (
+        <div className="space-y-4 animate-fadeIn">
+          {/* KPI Summary Bar */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
+            {/* 1. Total Remote Orders */}
+            <div className="bg-slate-900/85 border border-slate-800 rounded-2xl p-3 sm:p-4 space-y-1 shadow-lg">
+              <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
+                <span>Total Remote Orders</span>
+                <span className="material-symbols-outlined text-sm text-cyan-400">local_shipping</span>
+              </div>
+              <div className="text-xl sm:text-2xl font-black text-white font-mono">
+                {remoteOrders.length}
+              </div>
+              <div className="text-[10px] text-slate-500 font-mono">
+                WhatsApp &amp; Delivery Invoices
+              </div>
+            </div>
+
+            {/* 2. Awaiting Customer Payment (Due) */}
+            <div className="bg-slate-900/85 border border-amber-500/30 rounded-2xl p-3 sm:p-4 space-y-1 shadow-lg relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-amber-500/10 rounded-full blur-xl pointer-events-none" />
+              <div className="flex items-center justify-between text-amber-300 text-xs font-mono font-bold">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                  ⏳ Payment Due
+                </span>
+                <span className="material-symbols-outlined text-sm text-amber-400">pending</span>
+              </div>
+              <div className="text-xl sm:text-2xl font-black text-amber-300 font-mono">
+                ₹{pendingRemoteAmount.toLocaleString("en-IN")}
+              </div>
+              <div className="text-[10px] text-amber-400/80 font-mono">
+                {pendingRemoteCount} {pendingRemoteCount === 1 ? "customer awaiting pay" : "customers awaiting pay"}
+              </div>
+            </div>
+
+            {/* 3. Paid & Completed */}
+            <div className="bg-slate-900/85 border border-emerald-500/30 rounded-2xl p-3 sm:p-4 space-y-1 shadow-lg relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/10 rounded-full blur-xl pointer-events-none" />
+              <div className="flex items-center justify-between text-emerald-300 text-xs font-mono font-bold">
+                <span>✅ Collected / Paid</span>
+                <span className="material-symbols-outlined text-sm text-emerald-400">check_circle</span>
+              </div>
+              <div className="text-xl sm:text-2xl font-black text-emerald-400 font-mono">
+                ₹{paidRemoteAmount.toLocaleString("en-IN")}
+              </div>
+              <div className="text-[10px] text-emerald-400/80 font-mono">
+                {paidRemoteOrders.length} orders settled
+              </div>
+            </div>
+
+            {/* 4. Vending Log Sync Engine */}
+            <div className="bg-slate-900/85 border border-cyan-500/30 rounded-2xl p-3 sm:p-4 space-y-1 shadow-lg">
+              <div className="flex items-center justify-between text-cyan-300 text-xs font-mono font-bold">
+                <span>⚡ Vending Log Sync</span>
+                <span className="material-symbols-outlined text-sm text-cyan-400">sync_saved_locally</span>
+              </div>
+              <div className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5 pt-1">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                Auto-Logged On Payment
+              </div>
+              <div className="text-[10px] text-cyan-400/80 font-mono">
+                Webhook + Live Counter Poller
+              </div>
+            </div>
+          </div>
+
+          {/* Filter, Search & Actions Bar */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 p-2 bg-slate-900/70 border border-slate-800 rounded-2xl">
+            {/* Filter Tabs */}
+            <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800/80 text-xs font-mono">
+              <button
+                type="button"
+                onClick={() => setRemoteFilter("all")}
+                className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                  remoteFilter === "all"
+                    ? "bg-slate-800 text-white shadow-sm"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                All ({remoteOrders.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setRemoteFilter("pending")}
+                className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  remoteFilter === "pending"
+                    ? "bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm"
+                    : "text-slate-400 hover:text-amber-300"
+                }`}
+              >
+                <span>⏳ Payment Due ({pendingRemoteCount})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setRemoteFilter("paid")}
+                className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  remoteFilter === "paid"
+                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm"
+                    : "text-slate-400 hover:text-emerald-300"
+                }`}
+              >
+                <span>✅ Paid ({paidRemoteOrders.length})</span>
+              </button>
+            </div>
+
+            {/* Search & Actions */}
+            <div className="flex items-center gap-2 flex-1 sm:flex-initial">
+              <div className="relative flex-1 sm:w-64">
+                <span className="material-symbols-outlined text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2 text-sm">
+                  search
+                </span>
+                <input
+                  type="text"
+                  value={remoteSearch}
+                  onChange={(e) => setRemoteSearch(e.target.value)}
+                  placeholder="Search name, phone, inv #..."
+                  className="w-full pl-8 pr-7 py-1.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-mono"
+                />
+                {remoteSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setRemoteSearch("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 text-xs"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={fetchRemoteOrders}
+                disabled={remoteLoading}
+                className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold font-mono transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0"
+                title="Refresh Remote Orders"
+              >
+                <span className={`material-symbols-outlined text-sm ${remoteLoading ? "animate-spin" : ""}`}>
+                  refresh
+                </span>
+                <span className="hidden sm:inline">Refresh</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab("pos");
+                  setPaymentMethod("WhatsAppLink");
+                }}
+                className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer shadow-sm shrink-0"
+              >
+                <span className="material-symbols-outlined text-sm">add</span>
+                <span>New Bill</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Orders Cards Grid */}
+          {filteredRemoteOrders.length === 0 ? (
+            <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-8 sm:p-12 text-center space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-slate-800/80 border border-slate-700 flex items-center justify-center mx-auto text-slate-500">
+                <span className="material-symbols-outlined text-2xl">receipt_long</span>
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-white">No Remote Orders Found</h3>
+                <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto font-mono">
+                  {remoteSearch
+                    ? `No orders matching "${remoteSearch}". Try a different search term.`
+                    : remoteFilter === "pending"
+                    ? "All customer WhatsApp payment links are paid up! Zero pending orders."
+                    : "Generate a WhatsApp payment link from the Counter Billing screen to track remote orders here."}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setActiveTab("pos");
+                  setPaymentMethod("WhatsAppLink");
+                }}
+                className="px-4 py-2 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 rounded-xl text-xs font-bold uppercase tracking-wider inline-flex items-center gap-1.5 cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-sm">add_shopping_cart</span>
+                Create WhatsApp Order
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
+              {filteredRemoteOrders.map((order) => {
+                const isPaid = order.data?.paymentStatus === "PAID";
+                const invNum = order.data?.num || `UT-INV-${order.id}`;
+                const cleanPhone = String(order.data?.phone || "").replace(/\D/g, "").slice(-10);
+                const totalAmt = Number(order.data?.tot || 0);
+                const totalWt = Number(order.data?.tw || 0);
+                const isChecking = checkingOrderId === order.id;
+                const isTicketCopied = copiedTicketId === order.id;
+
+                return (
+                  <div
+                    key={order.id}
+                    className={`rounded-2xl p-4 space-y-3 transition-all relative overflow-hidden flex flex-col justify-between ${
+                      isPaid
+                        ? "bg-slate-900/85 border border-emerald-500/40 shadow-lg shadow-emerald-950/20"
+                        : "bg-slate-900/85 border border-amber-500/40 shadow-lg shadow-amber-950/20"
+                    }`}
+                  >
+                    <div className="space-y-3">
+                      {/* Header Row: Invoice #, Date & Status */}
+                      <div className="flex items-start justify-between gap-2 border-b border-slate-800/80 pb-2.5">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-black text-sm text-white tracking-tight">
+                              #{invNum}
+                            </span>
+                            {order.data?.paymentLinkId && (
+                              <span
+                                className="text-[9px] font-mono text-slate-500 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800 truncate max-w-[90px]"
+                                title={order.data.paymentLinkId}
+                              >
+                                {order.data.paymentLinkId}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                            {order.data?.ts
+                              ? new Date(order.data.ts).toLocaleDateString("en-IN", {
+                                  day: "2-digit",
+                                  month: "short",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                  hour12: true,
+                                })
+                              : order.created_at
+                              ? new Date(order.created_at).toLocaleDateString("en-IN", {
+                                  day: "2-digit",
+                                  month: "short",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                  hour12: true,
+                                })
+                              : "Recent"}
+                          </div>
+                        </div>
+
+                        <div className="text-right flex flex-col items-end gap-1">
+                          {isPaid ? (
+                            <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 font-bold text-[10px] uppercase tracking-wider flex items-center gap-1 shadow-sm">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                              PAID ✓
+                            </span>
+                          ) : (
+                            <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/50 text-amber-300 font-bold text-[10px] uppercase tracking-wider flex items-center gap-1 shadow-sm animate-pulse">
+                              <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                              PAYMENT DUE
+                            </span>
+                          )}
+                          <span className="font-mono text-base font-black text-white">
+                            ₹{totalAmt.toLocaleString("en-IN")}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Customer Information Row */}
+                      <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800/80 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-slate-200 truncate" title={order.data?.name}>
+                            👤 {order.data?.name || "Valued Customer"}
+                          </span>
+                          <div className="flex items-center gap-1 shrink-0">
+                            {cleanPhone && (
+                              <>
+                                <a
+                                  href={`tel:+91${cleanPhone}`}
+                                  className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all text-[10px] flex items-center gap-1"
+                                  title="Call Customer"
+                                >
+                                  <span className="material-symbols-outlined text-xs">call</span>
+                                </a>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    window.open(`https://wa.me/91${cleanPhone}`, "_blank");
+                                  }}
+                                  className="p-1 rounded-lg bg-green-600/20 hover:bg-green-600/30 text-green-300 border border-green-500/30 transition-all text-[10px] flex items-center gap-1 cursor-pointer"
+                                  title="Open WhatsApp Chat"
+                                >
+                                  <span className="material-symbols-outlined text-xs">chat</span>
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="text-[11px] font-mono text-slate-400 flex items-center justify-between">
+                          <span>Phone:</span>
+                          <span className="text-slate-200">{cleanPhone ? `+91 ${cleanPhone}` : "N/A"}</span>
+                        </div>
+
+                        {order.data?.notes && (
+                          <div className="text-[10.5px] text-amber-300/90 bg-amber-950/20 border border-amber-500/20 p-1.5 rounded-lg font-mono">
+                            📍 Note: {order.data.notes}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Trout Items & Weight Summary */}
+                      <div className="text-[11px] font-mono text-slate-300 space-y-1">
+                        <div className="flex items-center justify-between text-slate-400">
+                          <span>Harvest Weight:</span>
+                          <span className="text-cyan-300 font-bold">
+                            {totalWt < 0.01 ? `${totalWt} Kg` : `${totalWt.toFixed(2)} Kg`}
+                          </span>
+                        </div>
+                        {order.data?.items && order.data.items.length > 0 && (
+                          <div className="text-[10px] text-slate-400 truncate">
+                            {order.data.items.map((i: any) => `${i.w}Kg ${i.n}`).join(", ")}
+                          </div>
+                        )}
+                        {isPaid && order.data?.paymentMethod && (
+                          <div className="text-[10px] text-emerald-400 font-bold">
+                            Mode: {order.data.paymentMethod}{" "}
+                            {order.data.paymentId ? `(${order.data.paymentId})` : ""}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Action Buttons Footer */}
+                    <div className="pt-2 border-t border-slate-800/80 space-y-2 mt-2">
+                      {isPaid ? (
+                        /* PAID ACTIONS */
+                        <div className="space-y-1.5">
+                          <div className="grid grid-cols-2 gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const pubUrl = `${window.location.origin}/invoice/${order.id}`;
+                                window.open(pubUrl, "_blank");
+                              }}
+                              className="py-1.5 px-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[10.5px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer"
+                            >
+                              <span className="material-symbols-outlined text-xs">visibility</span>
+                              Invoice PDF
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => handleDispatchToDeliveryBoy(order)}
+                              className="py-1.5 px-2 rounded-xl bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-500/40 text-[10.5px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer"
+                              title="Copy delivery boy ticket and open WhatsApp"
+                            >
+                              <span className="material-symbols-outlined text-xs">local_shipping</span>
+                              {isTicketCopied ? "✓ Copied!" : "Dispatch Ticket"}
+                            </button>
+                          </div>
+
+                          <div className="p-1 rounded-lg bg-emerald-950/30 border border-emerald-500/30 text-[9.5px] text-emerald-300 font-mono text-center flex items-center justify-center gap-1">
+                            <span className="material-symbols-outlined text-xs">sync_saved_locally</span>
+                            Auto-Logged to Vending Center Log ✓
+                          </div>
+                        </div>
+                      ) : (
+                        /* PENDING ACTIONS */
+                        <div className="space-y-1.5">
+                          <div className="grid grid-cols-2 gap-1.5">
+                            {/* Check Status Now */}
+                            <button
+                              type="button"
+                              onClick={() => handleCheckRemoteOrderStatus(order)}
+                              disabled={isChecking}
+                              className="py-1.5 px-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[10.5px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
+                              title="Poll Razorpay status directly"
+                            >
+                              <span className={`material-symbols-outlined text-xs ${isChecking ? "animate-spin" : ""}`}>
+                                sync
+                              </span>
+                              {isChecking ? "Checking..." : "Check Status"}
+                            </button>
+
+                            {/* WhatsApp Reminder */}
+                            <button
+                              type="button"
+                              onClick={() => handleSendReminder(order)}
+                              className="py-1.5 px-2 rounded-xl bg-green-600/20 hover:bg-green-600/30 text-green-300 border border-green-500/40 text-[10.5px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer"
+                              title="Send WhatsApp payment link reminder"
+                            >
+                              <span className="material-symbols-outlined text-xs">send</span>
+                              WhatsApp
+                            </button>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-1.5">
+                            {/* Mark Paid Manually */}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setManualPayModal(order);
+                                setManualPayMode("Cash on Delivery (Driver)");
+                                setManualPayNote("");
+                              }}
+                              className="py-1.5 px-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer"
+                              title="Mark paid via Cash on Delivery or offline transfer"
+                            >
+                              <span>💵</span> Mark Paid
+                            </button>
+
+                            {/* Delete / Cancel */}
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteRemoteOrder(order)}
+                              className="py-1.5 px-2 rounded-xl bg-slate-800/80 hover:bg-red-950/40 text-slate-400 hover:text-red-300 border border-slate-700 hover:border-red-500/30 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer"
+                              title="Cancel this order"
+                            >
+                              <span className="material-symbols-outlined text-xs">delete</span>
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ─── MANUAL PAYMENT SETTLEMENT MODAL ─── */}
+      {manualPayModal && (
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setManualPayModal(null);
+          }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/80 backdrop-blur-sm"
+        >
+          <div className="relative w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <span>💵</span> Mark Order as Paid
+                </h3>
+                <p className="text-xs text-slate-400 font-mono mt-0.5">
+                  Order #{manualPayModal.data?.num || manualPayModal.id}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setManualPayModal(null)}
+                className="p-1.5 rounded-xl bg-slate-800 text-slate-400 hover:text-white cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-sm">close</span>
+              </button>
+            </div>
+
+            <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1 text-xs font-mono">
+              <div className="flex justify-between text-slate-400">
+                <span>Customer:</span>
+                <span className="text-white font-bold">{manualPayModal.data?.name}</span>
+              </div>
+              <div className="flex justify-between text-slate-400">
+                <span>Phone:</span>
+                <span className="text-slate-200">+{manualPayModal.data?.phone}</span>
+              </div>
+              <div className="flex justify-between text-slate-400">
+                <span>Amount Payable:</span>
+                <span className="text-emerald-400 font-bold text-sm">
+                  ₹{Number(manualPayModal.data?.tot || 0).toLocaleString("en-IN")}
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-300 block">
+                Settlement / Collection Method:
+              </label>
+              <div className="space-y-1.5">
+                {[
+                  { id: "Cash on Delivery (Driver)", label: "💵 Cash on Delivery (Collected by Driver)" },
+                  { id: "Direct UPI / Bank Transfer", label: "⚡ Direct UPI / NEFT Transfer" },
+                  { id: "Cash Paid at Counter", label: "🤝 Cash Paid at Counter" },
+                ].map((m) => (
+                  <label
+                    key={m.id}
+                    className={`flex items-center gap-2.5 p-2.5 rounded-xl border cursor-pointer transition-all text-xs font-mono ${
+                      manualPayMode === m.id
+                        ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-300"
+                        : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700"
+                    }`}
+                  >
+                    <input
+                      type="radio"
+                      name="settlementMode"
+                      value={m.id}
+                      checked={manualPayMode === m.id}
+                      onChange={() => setManualPayMode(m.id)}
+                      className="accent-emerald-500"
+                    />
+                    <span>{m.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-300 block">
+                Settlement Note (Optional):
+              </label>
+              <input
+                type="text"
+                value={manualPayNote}
+                onChange={(e) => setManualPayNote(e.target.value)}
+                placeholder="e.g. Collected by Bilal, delivery completed"
+                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-mono"
+              />
+            </div>
+
+            <div className="pt-2 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setManualPayModal(null)}
+                className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white text-xs font-bold font-mono cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => handleMarkManualPaid(manualPayModal, manualPayMode, manualPayNote)}
+                className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold font-mono uppercase tracking-wider cursor-pointer shadow-lg shadow-emerald-500/20 flex items-center gap-1.5"
+              >
+                <span>✓</span> Confirm &amp; Log to Vending Log
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ─── PRINTABLE INVOICE / PDF MODAL (WITH FLOATING TOP ACTION BAR) ─── */}
       {invoiceModalOpen && generatedInvoice && (

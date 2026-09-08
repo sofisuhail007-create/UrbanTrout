@@ -122,8 +122,21 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // 3. Mark vending sales log as PAID if an entry with this orderRef or paymentLinkId exists
+      // 3. Mark or auto-insert into vending sales log
       try {
+        const cleanRef = String(orderRef).replace(/\D/g, "") || String(orderRef);
+        let invData: any = null;
+        try {
+          const { data: matchedInvs } = await supabase
+            .from("invoices")
+            .select("id, data")
+            .or(`id.eq.${cleanRef},id.ilike.%${orderRef}%`)
+            .limit(1);
+          if (matchedInvs && matchedInvs[0]?.data) {
+            invData = typeof matchedInvs[0].data === "object" ? matchedInvs[0].data : JSON.parse(matchedInvs[0].data);
+          }
+        } catch (_) {}
+
         const { data: matchedLogs } = await supabase
           .from("vending_sales_log")
           .select("id, notes, custom_fields")
@@ -150,6 +163,57 @@ export async function POST(req: NextRequest) {
               })
               .eq("id", log.id);
           }
+        } else {
+          // AUTO-INSERT NEW VENDING LOG ENTRY for this remote payment!
+          const tw = invData?.tw ? Number(invData.tw) : 1.0;
+          const firstItem = invData?.items?.[0];
+          const prodType = firstItem?.n?.toLowerCase().includes("gutted") && !firstItem?.n?.toLowerCase().includes("non") ? "Gutted" : "Non Gutted";
+          const rate = firstItem?.r ? Number(firstItem.r) : Math.round(amount / (tw || 1));
+
+          const newLog = {
+            id: `VSL-WP-${Date.now()}`,
+            entry_date: new Date().toISOString().split("T")[0],
+            entry_time: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true }),
+            weight_kg: tw,
+            product_type: prodType,
+            rate_per_kg: rate,
+            expected_amount: amount,
+            amount_paid: amount,
+            discount_amount: 0,
+            payment_mode: "Razorpay Link",
+            logged_by: "WhatsApp Remote Pay",
+            notes: `Remote Order #${orderRef} - ${customerName} (Phone: ${customerPhone}) [Paid ✓ ${paymentId}]`,
+            custom_fields: {
+              payment_status: "PAID",
+              payment_id: paymentId,
+              payment_link_id: paymentLinkId,
+              customer_name: customerName,
+              customer_phone: customerPhone,
+              paid_at: new Date().toISOString(),
+            },
+          };
+
+          try {
+            await supabase.from("vending_sales_log").insert(newLog);
+          } catch (insertErr) {
+            console.warn("Could not insert to vending_sales_log table:", insertErr);
+          }
+
+          // Also append to fallback app_settings vending_log_data
+          try {
+            const { data: setRow } = await supabase
+              .from("app_settings")
+              .select("value")
+              .eq("key", "vending_log_data")
+              .single();
+            const currentList = setRow?.value ? JSON.parse(setRow.value) : [];
+            currentList.unshift(newLog);
+            await supabase.from("app_settings").upsert({
+              key: "vending_log_data",
+              value: JSON.stringify(currentList.slice(0, 1000)),
+              updated_at: new Date().toISOString(),
+            }, { onConflict: "key" });
+          } catch (_) {}
         }
       } catch (dbErr) {
         console.warn("Vending log update notice for payment_link.paid:", dbErr);
@@ -157,22 +221,24 @@ export async function POST(req: NextRequest) {
 
       // 4. Mark invoices as PAID if matching
       try {
+        const cleanRef = String(orderRef).replace(/\D/g, "") || String(orderRef);
         const { data: matchedInvoices } = await supabase
           .from("invoices")
           .select("id, data")
-          .or(`id.ilike.%${orderRef}%`)
+          .or(`id.eq.${cleanRef},id.ilike.%${orderRef}%`)
           .limit(5);
 
         if (matchedInvoices && matchedInvoices.length > 0) {
           for (const inv of matchedInvoices) {
             if (inv && inv.data) {
+              const prev = typeof inv.data === "object" ? inv.data : JSON.parse(inv.data || "{}");
               await supabase
                 .from("invoices")
                 .update({
                   data: {
-                    ...inv.data,
+                    ...prev,
                     paymentStatus: "PAID",
-                    paymentMethod: "Razorpay Link",
+                    paymentMethod: "Razorpay Link (Verified)",
                     paymentId,
                     paidAt: new Date().toISOString(),
                   },
