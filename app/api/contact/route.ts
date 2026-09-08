@@ -102,3 +102,37 @@ export async function POST(request: Request) {
     );
   }
 }
+
+// ─── DELETE: Delete Customer Record (Admin) ───
+export async function DELETE(request: Request) {
+  const { requireAdminAuth } = await import("@/lib/adminAuth");
+  const authError = await requireAdminAuth(request);
+  if (authError) return authError;
+
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+    const phone = searchParams.get("phone");
+
+    if (!id && !phone) {
+      return NextResponse.json({ success: false, error: "Missing customer id or phone" }, { status: 400 });
+    }
+
+    const { createClient } = await import("@supabase/supabase-js");
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    const client = createClient(url, key);
+
+    if (id) {
+      await client.from("customers").delete().eq("id", id);
+    }
+    if (phone) {
+      const cleanPhone = phone.replace(/\D/g, "").slice(-10);
+      await client.from("customers").delete().eq("phone", cleanPhone);
+    }
+
+    return NextResponse.json({ success: true, message: "Customer deleted successfully" });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: error?.message || "Failed to delete customer" }, { status: 500 });
+  }
+}

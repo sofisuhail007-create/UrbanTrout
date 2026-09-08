@@ -60,10 +60,16 @@ export default function OrdersPage() {
     }
     setOrders((prev) => prev.filter((o) => o.id !== id));
     try {
-      await supabase.from("orders").delete().eq("id", id);
-    } catch (err) {
+      const res = await adminFetch(`/api/order-status?orderId=${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      });
+      const json = await res.json();
+      if (!json?.success) {
+        throw new Error(json?.error || "Failed to delete order from server");
+      }
+    } catch (err: any) {
       console.error("Error deleting order:", err);
-      alert("Failed to delete order from database.");
+      alert(`Failed to delete order: ${err?.message || err}`);
       fetchOrders();
     }
   }
@@ -170,15 +176,22 @@ export default function OrdersPage() {
 
                   {/* Actions (WhatsApp + Delete) */}
                   <div className="flex items-center justify-between pt-2 border-t border-slate-800/80">
-                    <a
-                      href={`https://wa.me/91${order.customer_phone}?text=${encodeURIComponent(`Hi ${order.customer_name}! Your Urban Trout order #${order.order_number} update:`)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/15 text-green-400 border border-green-500/30 rounded-lg text-xs font-medium hover:bg-green-500/25 transition-colors"
-                    >
-                      <span className="material-symbols-outlined text-base">chat</span>
-                      WhatsApp Customer
-                    </a>
+                    {(() => {
+                      const cleanPhone = String(order.customer_phone || "").replace(/\D/g, "").slice(-10);
+                      const text = encodeURIComponent(`Hi ${order.customer_name}! Your Urban Trout order #${order.order_number} update:`);
+                      const waUrl = cleanPhone.length === 10 ? `https://wa.me/91${cleanPhone}?text=${text}` : `https://wa.me/?text=${text}`;
+                      return (
+                        <a
+                          href={waUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/15 text-green-400 border border-green-500/30 rounded-lg text-xs font-medium hover:bg-green-500/25 transition-colors"
+                        >
+                          <span className="material-symbols-outlined text-base">chat</span>
+                          WhatsApp Customer
+                        </a>
+                      );
+                    })()}
 
                     <button
                       type="button"

@@ -1,8 +1,14 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { createClient } from "@supabase/supabase-js";
 import { sendOrderStatusUpdateEmail } from "@/lib/email";
 import { getOrderKeyboard, sendTelegramMessage } from "@/lib/telegram";
 import { requireAdminAuth } from "@/lib/adminAuth";
+
+const getServiceClient = () => {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  return createClient(url, key);
+};
 
 function extractEmail(order: any): string | undefined {
   if (order.customer_email && typeof order.customer_email === "string" && order.customer_email.includes("@")) {
@@ -13,6 +19,40 @@ function extractEmail(order: any): string | undefined {
     if (match) return match[1].trim();
   }
   return undefined;
+}
+
+export async function DELETE(request: Request) {
+  const authError = await requireAdminAuth(request);
+  if (authError) return authError;
+
+  try {
+    const { searchParams } = new URL(request.url);
+    const orderId = searchParams.get("orderId");
+
+    if (!orderId) {
+      return NextResponse.json({ success: false, error: "Missing orderId" }, { status: 400 });
+    }
+
+    const client = getServiceClient();
+    const isNumeric = /^\d+$/.test(String(orderId));
+    let deleteQuery = client.from("orders").delete();
+
+    if (isNumeric) {
+      deleteQuery = deleteQuery.eq("order_number", parseInt(orderId, 10));
+    } else {
+      deleteQuery = deleteQuery.eq("id", orderId);
+    }
+
+    const { error } = await deleteQuery;
+    if (error) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ success: true, message: `Order ${orderId} deleted successfully` });
+  } catch (err: any) {
+    console.error("Order delete API error:", err);
+    return NextResponse.json({ success: false, error: err?.message || "Failed to delete order" }, { status: 500 });
+  }
 }
 
 export async function POST(request: Request) {
@@ -27,8 +67,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "Missing orderId or status" }, { status: 400 });
     }
 
-    // 1. Update status in Supabase
-    let query = supabase
+    const client = getServiceClient();
+
+    // 1. Update status in Supabase using service role client
+    let query = client
       .from("orders")
       .update({ status });
 

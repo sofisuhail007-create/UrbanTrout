@@ -31,10 +31,10 @@ export async function POST(request: Request) {
       token,
     } = body;
 
-    // 1. Validate required fields (Email is mandatory for official pass delivery)
-    if (!visitor_name?.trim() || !phone?.trim() || !email?.trim() || !visit_date || !time_slot) {
+    // 1. Validate required fields (Email is optional for walk-ins / phone bookings)
+    if (!visitor_name?.trim() || !phone?.trim() || !visit_date || !time_slot) {
       return NextResponse.json(
-        { success: false, error: "Please provide your Full Name, Phone number, Email address, Date, and requested Time Slot." },
+        { success: false, error: "Please provide your Full Name, Phone number, Date, and requested Time Slot." },
         { status: 400 }
       );
     }
@@ -163,12 +163,14 @@ export async function POST(request: Request) {
       console.warn("Telegram visit notification notice:", tgErr);
     }
 
-    // 7. Resend Email Alert
-    try {
-      const { sendFarmVisitEmail } = await import("@/lib/email");
-      await sendFarmVisitEmail(newVisit);
-    } catch (emailErr) {
-      console.warn("Email visit notification notice:", emailErr);
+    // 7. Resend Email Alert (only if email provided)
+    if (newVisit.email && newVisit.email.includes("@")) {
+      try {
+        const { sendFarmVisitEmail } = await import("@/lib/email");
+        await sendFarmVisitEmail(newVisit);
+      } catch (emailErr) {
+        console.warn("Email visit notification notice:", emailErr);
+      }
     }
 
     return NextResponse.json({
@@ -509,5 +511,39 @@ export async function PATCH(request: Request) {
       { success: false, error: error?.message || "Failed to update visit." },
       { status: 500 }
     );
+  }
+}
+
+// ─── DELETE: Delete Farm Visit (Admin) ───
+export async function DELETE(request: Request) {
+  const authError = await requireAdminAuth(request);
+  if (authError) return authError;
+
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+
+    if (!id) {
+      return NextResponse.json({ success: false, error: "Missing visit ID" }, { status: 400 });
+    }
+
+    // Try deleting from farm_visits table
+    await supabase.from("farm_visits").delete().eq("id", id);
+
+    // Also remove from leads table fallback if matched
+    try {
+      const { data: leads } = await supabase.from("leads").select("id, notes");
+      if (leads) {
+        for (const l of leads) {
+          if (l.id === id || (l.notes && l.notes.includes(id))) {
+            await supabase.from("leads").delete().eq("id", l.id);
+          }
+        }
+      }
+    } catch (_) {}
+
+    return NextResponse.json({ success: true, message: "Visit deleted successfully" });
+  } catch (error: any) {
+    return NextResponse.json({ success: false, error: error?.message || "Failed to delete visit" }, { status: 500 });
   }
 }

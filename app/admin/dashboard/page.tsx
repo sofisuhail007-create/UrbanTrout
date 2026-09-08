@@ -229,6 +229,7 @@ export default function DashboardPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {recentLeads.map((lead) => {
+              const cleanPhone = (lead.customer_phone || "").replace(/\D/g, "").slice(-10);
               const itemsList = Array.isArray(lead.cart_items) ? lead.cart_items : [];
               const itemsSummary = itemsList.map((i: any) => `${i.name} (${i.quantity} ${i.unit || 'Kg'})`).join(", ") || "Fresh Catch";
               const waText = encodeURIComponent(
@@ -239,27 +240,31 @@ export default function DashboardPage() {
                 <div key={lead.id} className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <p className="font-bold text-white text-sm truncate">{lead.customer_name || "Guest Customer"}</p>
-                    <p className="text-slate-400 text-xs font-mono">+91 {lead.customer_phone}</p>
+                    <p className="text-slate-400 text-xs font-mono">{cleanPhone ? `+91 ${cleanPhone}` : "N/A"}</p>
                     <p className="text-cyan-400 text-xs font-semibold mt-0.5">₹{Number(lead.estimated_total || 0).toLocaleString("en-IN")}</p>
                   </div>
                   <div className="flex items-center gap-1.5 flex-shrink-0">
-                    <a
-                      href={`tel:+91${lead.customer_phone}`}
-                      className="px-2.5 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 text-xs font-bold flex items-center gap-1"
-                      title="Call Customer"
-                    >
-                      <span className="material-symbols-outlined text-[13px]">call</span>
-                      Call
-                    </a>
-                    <a
-                      href={`https://wa.me/91${lead.customer_phone}?text=${waText}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="px-2.5 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 text-xs font-bold flex items-center gap-1"
-                      title="WhatsApp Customer"
-                    >
-                      WhatsApp
-                    </a>
+                    {cleanPhone && (
+                      <>
+                        <a
+                          href={`tel:+91${cleanPhone}`}
+                          className="px-2.5 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 text-xs font-bold flex items-center gap-1"
+                          title="Call Customer"
+                        >
+                          <span className="material-symbols-outlined text-[13px]">call</span>
+                          Call
+                        </a>
+                        <a
+                          href={`https://wa.me/91${cleanPhone}?text=${waText}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-2.5 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 text-xs font-bold flex items-center gap-1"
+                          title="WhatsApp Customer"
+                        >
+                          WhatsApp
+                        </a>
+                      </>
+                    )}
                   </div>
                 </div>
               );

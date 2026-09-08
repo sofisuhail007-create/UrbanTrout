@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import type { Customer, Order } from "@/lib/supabase";
+import { adminFetch } from "@/lib/adminClient";
 
 type CustomerWithNotes = Customer & { notes?: string | null };
 
@@ -71,10 +72,17 @@ export default function CustomersPage() {
     if (selected?.id === customer.id) setSelected(null);
 
     try {
-      await supabase.from("customers").delete().eq("id", customer.id);
-    } catch (err) {
+      const cleanPhone = (customer.phone || "").replace(/\D/g, "").slice(-10);
+      const res = await adminFetch(`/api/contact?id=${encodeURIComponent(customer.id)}&phone=${encodeURIComponent(cleanPhone)}`, {
+        method: "DELETE",
+      });
+      const json = await res.json();
+      if (!json?.success) {
+        throw new Error(json?.error || "Failed to delete customer");
+      }
+    } catch (err: any) {
       console.error("Error deleting customer:", err);
-      alert("Failed to delete customer.");
+      alert(`Failed to delete customer: ${err?.message || err}`);
     }
   };
 
@@ -258,15 +266,20 @@ export default function CustomersPage() {
                   })()}
                 </div>
                 <div className="flex items-center gap-2">
-                  <a
-                    href={`https://wa.me/91${selected.phone}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 px-3 py-2 bg-green-500/15 text-green-400 border border-green-500/30 rounded-lg text-xs font-medium hover:bg-green-500/25 transition-colors"
-                  >
-                    <span className="material-symbols-outlined text-sm">chat</span>
-                    WhatsApp
-                  </a>
+                  {(() => {
+                    const cleanPhone = (selected.phone || "").replace(/\D/g, "").slice(-10);
+                    return cleanPhone ? (
+                      <a
+                        href={`https://wa.me/91${cleanPhone}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 px-3 py-2 bg-green-500/15 text-green-400 border border-green-500/30 rounded-lg text-xs font-medium hover:bg-green-500/25 transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-sm">chat</span>
+                        WhatsApp
+                      </a>
+                    ) : null;
+                  })()}
                   <button
                     type="button"
                     onClick={() => handleDeleteCustomer(selected)}
