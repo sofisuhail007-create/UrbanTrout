@@ -87,6 +87,24 @@ export default function POSBillingPage() {
   const [waMessageStyle, setWaMessageStyle] = useState<"executive" | "receipt" | "compact">("executive");
   const [showWaPreview, setShowWaPreview] = useState(false);
 
+  // Counter Voice Announcements (Paytm/Soundbox style)
+  const [voiceEnabled, setVoiceEnabled] = useState<boolean>(true);
+  const [voiceLang, setVoiceLang] = useState<"en" | "en-short" | "hi">("en");
+  const [voiceModalOpen, setVoiceModalOpen] = useState<boolean>(false);
+  const [voiceTesting, setVoiceTesting] = useState<boolean>(false);
+
+  // Load voice preferences from localStorage
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const savedVoice = localStorage.getItem("ut_pos_voice_enabled");
+        if (savedVoice !== null) setVoiceEnabled(savedVoice === "true");
+        const savedLang = localStorage.getItem("ut_pos_voice_lang") as any;
+        if (savedLang) setVoiceLang(savedLang);
+      } catch (_) {}
+    }
+  }, []);
+
   // State flags
   const [invoiceModalOpen, setInvoiceModalOpen] = useState(false);
   const [enlargeQrModal, setEnlargeQrModal] = useState(false);
@@ -364,6 +382,82 @@ export default function POSBillingPage() {
     } catch (_) {}
   };
 
+  // ─── COUNTER VOICE ANNOUNCEMENT ENGINE (PAYTM/SOUNDBOX STYLE) ───
+  const speakPaymentAnnouncement = (amt: number, method = "Razorpay", customer = "") => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    if (!voiceEnabled) return;
+
+    const rounded = Math.round(amt);
+    if (rounded <= 0) return;
+
+    let text = "";
+    const cleanCustomer = customer.trim();
+    const hasCust = cleanCustomer && cleanCustomer !== "Walk-in Customer" && cleanCustomer !== "Valued Customer" && cleanCustomer !== "Customer";
+
+    if (voiceLang === "hi") {
+      text = `Urban Trout par ${rounded} rupaye prapt hue.`;
+    } else if (voiceLang === "en-short") {
+      text = `Payment of Rupees ${rounded} received.`;
+    } else {
+      // Default: English (Full Branded)
+      if (hasCust) {
+        text = `Payment of Rupees ${rounded} received from ${cleanCustomer} on Urban Trout.`;
+      } else {
+        text = `Payment of Rupees ${rounded} received successfully on Urban Trout.`;
+      }
+    }
+
+    try {
+      window.speechSynthesis.cancel();
+    } catch (_) {}
+
+    // Short delay so the two-tone chime finishes playing clearly first
+    setTimeout(() => {
+      try {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = 0.92; // Measured, clear soundbox-style cadence
+        utterance.pitch = 1.0;
+        utterance.volume = 1.0;
+
+        const voices = window.speechSynthesis.getVoices();
+        if (voiceLang === "hi") {
+          const hiVoice = voices.find((v) => v.lang.startsWith("hi") || v.lang.startsWith("ur"));
+          if (hiVoice) utterance.voice = hiVoice;
+        } else {
+          const inVoice = voices.find((v) => v.lang === "en-IN" || v.lang === "en_IN")
+            || voices.find((v) => v.lang.startsWith("en"));
+          if (inVoice) utterance.voice = inVoice;
+        }
+
+        window.speechSynthesis.speak(utterance);
+      } catch (err) {
+        console.warn("Counter voice announcement error:", err);
+      }
+    }, 450);
+  };
+
+  const toggleVoice = () => {
+    const next = !voiceEnabled;
+    setVoiceEnabled(next);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("ut_pos_voice_enabled", String(next));
+    }
+  };
+
+  const changeVoiceLang = (lang: "en" | "en-short" | "hi") => {
+    setVoiceLang(lang);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("ut_pos_voice_lang", lang);
+    }
+  };
+
+  const testVoiceAnnouncement = () => {
+    setVoiceTesting(true);
+    playSuccessChime();
+    speakPaymentAnnouncement(grandTotal > 0 ? grandTotal : 725, "Razorpay", customerName || "Suhail");
+    setTimeout(() => setVoiceTesting(false), 3500);
+  };
+
   // Generate dynamic Razorpay Single-Use BharatQR / UPI QR code
   const generateRazorpayQr = async (targetAmount: number, force = false) => {
     if (targetAmount <= 0) return;
@@ -431,6 +525,7 @@ export default function POSBillingPage() {
             setRzpPaid(true);
             setRzpPaymentDetails(data.payment);
             playSuccessChime();
+            speakPaymentAnnouncement(data.payment.amount, "Razorpay QR", customerName);
 
             // Send instant real-time Telegram alert
             fetch("/api/telegram-notify", {
@@ -465,6 +560,7 @@ export default function POSBillingPage() {
               vpa: null,
             });
             playSuccessChime();
+            speakPaymentAnnouncement(data.payment?.amount || rzpLinkData.amount, "WhatsApp Link", customerName);
           }
         }
       } catch (err) {
@@ -970,6 +1066,24 @@ Naseem Bagh / Malabagh, Srinagar`;
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Voice Announcements Soundbox Button */}
+          <button
+            type="button"
+            onClick={() => setVoiceModalOpen(true)}
+            className={`px-2.5 sm:px-3 py-1 rounded-xl border text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer ${
+              voiceEnabled
+                ? "bg-emerald-500/15 hover:bg-emerald-500/25 border-emerald-500/40 text-emerald-300 shadow-sm shadow-emerald-500/10"
+                : "bg-slate-900 hover:bg-slate-800 border-slate-800 text-slate-500"
+            }`}
+            title="Counter Voice Announcements (Click to Test & Configure)"
+          >
+            <span className="material-symbols-outlined text-sm">
+              {voiceEnabled ? "volume_up" : "volume_off"}
+            </span>
+            <span className="hidden sm:inline">Voice:</span>
+            <span>{voiceEnabled ? "ON" : "OFF"}</span>
+          </button>
+
           <Link
             href="/admin/dashboard/vending-log"
             className="px-3 py-1 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 transition-all text-xs font-bold uppercase tracking-wider flex items-center gap-1.5"
@@ -1406,6 +1520,7 @@ Naseem Bagh / Malabagh, Srinagar`;
                         onClick={() => {
                           setSoundboxPaid(true);
                           playSuccessChime();
+                          speakPaymentAnnouncement(grandTotal, "Soundbox", customerName);
                         }}
                         className="flex-1 py-1.5 px-2 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1 shadow-sm"
                       >
@@ -2158,6 +2273,146 @@ Naseem Bagh / Malabagh, Srinagar`;
               className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer"
             >
               Back to POS Bill
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ─── COUNTER VOICE ANNOUNCEMENT SETTINGS MODAL ─── */}
+      {voiceModalOpen && (
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setVoiceModalOpen(false);
+          }}
+          className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-fadeIn"
+        >
+          <div className="bg-slate-950 border border-emerald-500/40 rounded-2xl w-full max-w-md p-5 space-y-4 shadow-2xl relative text-left">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center text-lg shadow-md shadow-emerald-500/10">
+                  <span className="material-symbols-outlined text-xl">record_voice_over</span>
+                </div>
+                <div>
+                  <h3 className="text-sm sm:text-base font-bold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                    Counter Voice Announcements
+                  </h3>
+                  <p className="text-[10.5px] text-slate-400 font-mono">
+                    Soundbox-style voice broadcast on counter speakers
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setVoiceModalOpen(false)}
+                className="w-7 h-7 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-xs font-black cursor-pointer border border-slate-800"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Master Toggle */}
+            <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between">
+              <div>
+                <span className="text-xs font-bold text-white block">Voice Broadcast</span>
+                <span className="text-[10px] text-slate-400 font-mono">
+                  Speak payment amount aloud on counter speakers
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={toggleVoice}
+                className={`px-3 py-1.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all cursor-pointer ${
+                  voiceEnabled
+                    ? "bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20"
+                    : "bg-slate-800 text-slate-400 border border-slate-700"
+                }`}
+              >
+                {voiceEnabled ? "🔊 Enabled" : "🔇 Disabled"}
+              </button>
+            </div>
+
+            {/* Spoken Dialect & Phrase Options */}
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-slate-300 block font-mono">
+                Spoken Phrase Style:
+              </label>
+              <div className="space-y-1.5">
+                {[
+                  {
+                    id: "en",
+                    title: "English (Official Branded)",
+                    sample: `Payment of Rupees ${grandTotal > 0 ? grandTotal.toLocaleString("en-IN") : 725} received successfully on Urban Trout.`,
+                  },
+                  {
+                    id: "en-short",
+                    title: "English (Quick)",
+                    sample: `Payment of Rupees ${grandTotal > 0 ? grandTotal.toLocaleString("en-IN") : 725} received.`,
+                  },
+                  {
+                    id: "hi",
+                    title: "Hindi / Hinglish",
+                    sample: `Urban Trout par ${grandTotal > 0 ? grandTotal.toLocaleString("en-IN") : 725} rupaye prapt hue.`,
+                  },
+                ].map((opt) => (
+                  <div
+                    key={opt.id}
+                    onClick={() => changeVoiceLang(opt.id as any)}
+                    className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
+                      voiceLang === opt.id
+                        ? "bg-emerald-500/15 border-emerald-500/50 shadow-sm"
+                        : "bg-slate-900/50 border-slate-800/80 hover:border-slate-700"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className={`text-xs font-bold ${voiceLang === opt.id ? "text-emerald-300" : "text-slate-200"}`}>
+                        {opt.title}
+                      </span>
+                      {voiceLang === opt.id && (
+                        <span className="text-emerald-400 text-xs font-bold font-mono">✓ Active</span>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-slate-400 font-mono mt-0.5 italic">
+                      &quot;{opt.sample}&quot;
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Test Voice Button */}
+            <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-center space-y-2">
+              <div className="flex items-center justify-between text-[11px] font-mono">
+                <span className="text-slate-400">Speaker Test:</span>
+                <span className="text-emerald-400 font-bold">
+                  {voiceTesting ? "🔊 Speaking..." : "Ready"}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={testVoiceAnnouncement}
+                disabled={voiceTesting}
+                className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 active:scale-[0.98] text-slate-950 font-bold uppercase tracking-wider text-xs transition-all shadow-md shadow-emerald-500/20 flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+              >
+                <span className="material-symbols-outlined text-base">
+                  {voiceTesting ? "graphic_eq" : "volume_up"}
+                </span>
+                {voiceTesting ? "Playing Chime + Voice..." : `Test Voice Announcement (₹${grandTotal > 0 ? grandTotal.toLocaleString("en-IN") : 725})`}
+              </button>
+            </div>
+
+            {/* Tip for Counter Staff */}
+            <div className="p-2.5 rounded-xl bg-emerald-950/20 border border-emerald-500/20 text-[10.5px] text-emerald-400 font-mono">
+              💡 <strong>Soundbox Mode:</strong> Connect your counter PC or tablet audio to any counter Bluetooth / aux speaker. As soon as a customer pays via Razorpay or Soundbox, it announces the amount out loud so you don&apos;t have to look at the screen!
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setVoiceModalOpen(false)}
+              className="w-full py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer"
+            >
+              Done / Close
             </button>
           </div>
         </div>
