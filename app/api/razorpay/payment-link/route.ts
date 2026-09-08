@@ -48,9 +48,7 @@ export async function POST(req: NextRequest) {
     const cleanName = (customerName || "Valued Customer").trim();
     const ref = orderRef || `UT-DEL-${Date.now().toString().slice(-6)}`;
 
-    const desc = itemsSummary
-      ? `Urban Trout - ${itemsSummary}`.slice(0, 30)
-      : `Urban Trout Order #${ref}`.slice(0, 30);
+    const desc = `Fresh Trout (Inv #${ref})`.slice(0, 30);
 
     const origin = req.nextUrl?.origin || "https://urbantrout.in";
 

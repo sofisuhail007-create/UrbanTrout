@@ -84,6 +84,8 @@ export default function POSBillingPage() {
   const [rzpLinkCopied, setRzpLinkCopied] = useState(false);
   const [rzpLinkMsgCopied, setRzpLinkMsgCopied] = useState(false);
   const [rzpLinkError, setRzpLinkError] = useState<string | null>(null);
+  const [waMessageStyle, setWaMessageStyle] = useState<"executive" | "receipt" | "compact">("executive");
+  const [showWaPreview, setShowWaPreview] = useState(false);
 
   // State flags
   const [invoiceModalOpen, setInvoiceModalOpen] = useState(false);
@@ -612,13 +614,139 @@ export default function POSBillingPage() {
     setInvoiceModalOpen(true);
   };
 
+  // ─── ELEGANT, 100% UNICODE-SAFE WHATSAPP MESSAGE BUILDER (NO BROKEN GLYPHS) ───
+  const createWhatsAppMessage = (
+    items: BillItem[],
+    invNum: string,
+    totalWt: number,
+    totAmt: number,
+    name: string,
+    linkUrl: string,
+    notes?: string,
+    style: "executive" | "receipt" | "compact" = "executive"
+  ) => {
+    const cName = name.trim() || "Customer";
+    const wtText = totalWt < 0.01 ? `${totalWt} Kg` : `${totalWt.toFixed(2)} Kg`;
+    const amtFormatted = totAmt.toLocaleString("en-IN");
+
+    if (style === "receipt") {
+      let itemLines = "";
+      items.forEach((item) => {
+        const itemWt = item.weightKg < 0.01 ? `${item.weightKg} Kg` : `${item.weightKg.toFixed(2)} Kg`;
+        itemLines += `• ${item.name}\n  ${itemWt} @ Rs. ${item.pricePerKg}/Kg = Rs. ${item.total.toLocaleString("en-IN")}\n`;
+      });
+
+      return `*URBAN TROUT AQUACULTURE*
+_Fresh Himalayan Rainbow Trout · Srinagar_
+
+Dear *${cName}*, here is your harvest invoice:
+
+\`\`\`
+================================
+     URBAN TROUT RECEIPT        
+================================
+Invoice : #${invNum}
+Date    : ${new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+
+Items:
+${itemLines.trimEnd()}
+--------------------------------
+Total Weight : ${wtText}
+Total Amount : Rs. ${amtFormatted}
+================================
+STATUS: Awaiting Remote Payment
+\`\`\`
+
+*Tap below to pay securely:*
+${linkUrl}
+
+_(Supports Google Pay, PhonePe, Paytm, UPI & Cards)_
+${notes ? `\n> *Note:* ${notes}\n` : ""}
+- Amount is locked to ensure exact billing.
+- Order is confirmed automatically once paid.
+
+*Farm Helpline:* +91 84910 06127
+Naseem Bagh / Malabagh, Srinagar`;
+    }
+
+    if (style === "compact") {
+      const mainItem = items.length === 1
+        ? `${items[0].name} (${wtText})`
+        : `${items.map((i) => i.name).join(", ")} (${wtText})`;
+
+      return `*URBAN TROUT — FRESH TROUT DELIVERY*
+_Srinagar, Kashmir_
+
+Hi *${cName}*, your fresh harvest order is ready:
+
+- *Invoice:* #${invNum}
+- *Items:* ${mainItem}
+- *Total Amount:* *Rs. ${amtFormatted}*
+${notes ? `- *Delivery Note:* ${notes}\n` : ""}
+*Click here to pay securely:*
+${linkUrl}
+
+_(Pay via UPI / GPay / PhonePe / Paytm / Card)_
+Your payment confirms automatically without screenshots.
+
+*Farm Helpline:* +91 84910 06127`;
+    }
+
+    // Default: Executive Minimalist (Most elegant, highest contrast, 100% clean to the eye)
+    let itemLines = "";
+    items.forEach((item) => {
+      const itemWt = item.weightKg < 0.01 ? `${item.weightKg} Kg` : `${item.weightKg.toFixed(2)} Kg`;
+      itemLines += `  • ${item.name}: ${itemWt} @ Rs. ${item.pricePerKg}/Kg = Rs. ${item.total.toLocaleString("en-IN")}\n`;
+    });
+
+    return `*URBAN TROUT AQUACULTURE*
+_Fresh Himalayan Rainbow Trout · Srinagar_
+
+Dear *${cName}*,
+Thank you for your order! Your freshly harvested trout is packed and ready for dispatch.
+
+*ORDER & INVOICE SUMMARY*
+- *Invoice Ref:* #${invNum}
+- *Items Ordered:*
+${itemLines.trimEnd()}
+- *Total Harvest Weight:* ${wtText}
+- *Total Amount Payable:* *Rs. ${amtFormatted}*
+${notes ? `- *Delivery Note:* ${notes}\n` : ""}
+*TAP TO PAY SECURELY*
+${linkUrl}
+
+> *Amount Locked:* Rs. ${amtFormatted} (Exact billing)
+> *Instant Confirmation:* Payment verifies automatically via UPI, Google Pay, PhonePe, Paytm, or Card. No screenshot required.
+
+*Urban Trout Farm Helpline:* +91 84910 06127
+Naseem Bagh / Malabagh, Srinagar`;
+  };
+
+  // Re-generate WhatsApp message whenever the user switches message style
+  useEffect(() => {
+    if (rzpLinkData?.short_url && rzpLinkData?.orderRef) {
+      const updated = createWhatsAppMessage(
+        billItems,
+        rzpLinkData.orderRef,
+        totalWeight,
+        grandTotal,
+        customerName,
+        rzpLinkData.short_url,
+        customerNotes,
+        waMessageStyle
+      );
+      setRzpLinkData((prev) => (prev ? { ...prev, waMessage: updated } : null));
+    }
+  }, [waMessageStyle]);
+
   // ─── 100% UNIVERSAL CLEAN WHATSAPP MESSAGE WITH OPTIONAL RAZORPAY LINK ───
   const handleShareWhatsApp = async () => {
     if (!generatedInvoice) return;
 
     let itemLines = "";
     generatedInvoice.items.forEach((item: BillItem) => {
-      itemLines += `- *${item.name}*: ${item.weightKg} Kg @ Rs. ${item.pricePerKg}/Kg = Rs. ${item.total.toLocaleString("en-IN")}\n`;
+      const itemWt = item.weightKg < 0.01 ? `${item.weightKg} Kg` : `${item.weightKg.toFixed(2)} Kg`;
+      itemLines += `  • ${item.name}: ${itemWt} @ Rs. ${item.pricePerKg}/Kg = Rs. ${item.total.toLocaleString("en-IN")}\n`;
     });
 
     let paymentLinkText = "";
@@ -634,13 +762,13 @@ export default function POSBillingPage() {
             customerName: generatedInvoice.customerName || "Customer",
             customerPhone: cleanPhone,
             orderRef: generatedInvoice.invoiceNumber,
-            itemsSummary: `${generatedInvoice.totalWeight.toFixed(2)} Kg Trout (Inv #${generatedInvoice.invoiceNumber})`,
+            itemsSummary: `${generatedInvoice.totalWeight.toFixed(2)} Kg Trout`,
             notes: `POS Invoice #${generatedInvoice.invoiceNumber}`,
           }),
         });
         const plData = await plRes.json();
         if (plData?.paymentLink?.short_url) {
-          paymentLinkText = `🔒 *Click to Pay Securely via UPI, GPay, PhonePe or Card:*\n👉 ${plData.paymentLink.short_url}\n\n`;
+          paymentLinkText = `*Click below to pay securely:*\n${plData.paymentLink.short_url}\n\n`;
         }
       } catch (plErr) {
         console.warn("Could not generate inline payment link for WhatsApp:", plErr);
@@ -648,10 +776,30 @@ export default function POSBillingPage() {
     }
 
     const statusLine = generatedInvoice.paymentStatus === "PAID"
-      ? `*Payment Status:* PAID ✓ (via ${generatedInvoice.paymentMethod}${generatedInvoice.paymentId ? `, Ref: ${generatedInvoice.paymentId}` : ""})\n\n`
+      ? `*Payment Status:* PAID (via ${generatedInvoice.paymentMethod}${generatedInvoice.paymentId ? `, Ref: ${generatedInvoice.paymentId}` : ""})\n\n`
       : `*Payment Status:* Payment Due\n${paymentLinkText ? paymentLinkText : `*Pay via UPI ID:* ${generatedInvoice.upiId}\n\n`}`;
 
-    const msg = `Hello ${generatedInvoice.customerName},\n\nThank you for choosing Urban Trout, Srinagar! Here is the invoice for your freshly harvested Rainbow Trout:\n\n*Invoice No:* ${generatedInvoice.invoiceNumber}\n*Date:* ${generatedInvoice.date}\n\n*Itemized Details:*\n${itemLines}\n*Total Harvest Weight:* ${generatedInvoice.totalWeight.toFixed(2)} Kg\n*Total Amount Payable:* Rs. ${generatedInvoice.grandTotal.toLocaleString("en-IN")}\n\n${statusLine}*View & Download Invoice PDF (Valid for 48 Hours):*\n${generatedInvoice.invoicePublicUrl}\n\n*Farm Location:* Naseem Bagh / Malabagh, Srinagar\n*Farm Helpline:* +91 84910 06127\n\n_Thank you for supporting sustainable Kashmiri aquaculture!_`;
+    const wtText = generatedInvoice.totalWeight < 0.01 ? `${generatedInvoice.totalWeight} Kg` : `${generatedInvoice.totalWeight.toFixed(2)} Kg`;
+
+    const msg = `*URBAN TROUT AQUACULTURE*
+_Fresh Himalayan Rainbow Trout · Srinagar_
+
+Dear *${generatedInvoice.customerName}*,
+Thank you for choosing Urban Trout! Here is your harvest invoice:
+
+*INVOICE DETAILS*
+- *Invoice No:* ${generatedInvoice.invoiceNumber}
+- *Date:* ${generatedInvoice.date}
+- *Items Ordered:*
+${itemLines.trimEnd()}
+- *Total Harvest Weight:* ${wtText}
+- *Total Amount Payable:* *Rs. ${generatedInvoice.grandTotal.toLocaleString("en-IN")}*
+
+${statusLine}*View & Download Official Invoice PDF:*
+${generatedInvoice.invoicePublicUrl}
+
+*Urban Trout Farm Helpline:* +91 84910 06127
+Naseem Bagh / Malabagh, Srinagar`;
 
     const encoded = encodeURIComponent(msg);
     const phoneParam = customerPhone.replace(/\D/g, "").slice(-10);
@@ -698,24 +846,16 @@ export default function POSBillingPage() {
 
       const { short_url, id } = data.paymentLink;
 
-      let itemLines = "";
-      billItems.forEach((item: BillItem) => {
-        itemLines += `- *${item.name}*: ${item.weightKg} Kg @ Rs. ${item.pricePerKg}/Kg = Rs. ${item.total.toLocaleString("en-IN")}\n`;
-      });
-
-      const waMsg = `🐟 *URBAN TROUT — FRESH HIMALAYAN RAINBOW TROUT*
-━━━━━━━━━━━━━━━━━━━━
-Hi ${customerName.trim() || "there"}! Your fresh trout home delivery order is ready for dispatch:
-
-📦 *Invoice No:* #${invoiceNumber}
-${itemLines}⚖️ *Total Harvest Weight:* ${totalWeight.toFixed(2)} Kg
-💰 *Total Payable:* ₹${grandTotal.toLocaleString("en-IN")} (Locked Amount)
-${customerNotes ? `📍 *Delivery Note:* ${customerNotes}\n` : ""}
-🔒 *Click here to pay securely via UPI, Google Pay, PhonePe, Paytm, or Card:*
-👉 ${short_url}
-
-_✅ No manual screenshots needed. Your payment is verified automatically, confirming your order instantly._
-📞 Srinagar Helpline: +91 84910 06127`;
+      const waMsg = createWhatsAppMessage(
+        billItems,
+        invoiceNumber,
+        totalWeight,
+        grandTotal,
+        customerName,
+        short_url,
+        customerNotes,
+        waMessageStyle
+      );
 
       setRzpLinkData({
         short_url,
@@ -1410,7 +1550,7 @@ _✅ No manual screenshots needed. Your payment is verified automatically, confi
 
             {/* 3. WhatsApp Payment Link Panel (Home Delivery / Remote Pay) */}
             {paymentMethod === "WhatsAppLink" && grandTotal > 0 && (
-              <div className="p-2.5 rounded-xl bg-slate-950/80 border border-green-500/30 flex flex-col items-center text-center space-y-2">
+              <div className="p-2.5 rounded-xl bg-slate-950/80 border border-green-500/30 flex flex-col items-center text-center space-y-2.5">
                 {rzpPaid ? (
                   /* ─── PAID CELEBRATION CARD ─── */
                   <div className="w-full py-4 px-3 rounded-xl bg-gradient-to-b from-emerald-950/40 to-slate-950 border border-emerald-500/40 text-center space-y-2 animate-fadeIn">
@@ -1456,126 +1596,203 @@ _✅ No manual screenshots needed. Your payment is verified automatically, confi
                       Retry
                     </button>
                   </div>
-                ) : rzpLinkData ? (
-                  /* ─── ACTIVE LISTENING CARD ─── */
+                ) : (
+                  /* ─── READY OR LISTENING STATE ─── */
                   <div className="w-full space-y-2.5">
-                    <div className="flex items-center justify-between pb-1 border-b border-slate-800 text-[10px] font-mono">
-                      <span className="flex items-center gap-1.5 text-emerald-400 font-bold">
-                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                        Awaiting Customer Payment...
-                      </span>
-                      <span className="text-slate-400 font-mono">Inv #{rzpLinkData.orderRef}</span>
-                    </div>
-
-                    <div className="p-2.5 rounded-xl bg-slate-900 border border-emerald-500/30 text-left space-y-1.5">
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="text-slate-400">Locked Amount:</span>
-                        <span className="text-emerald-400 font-mono font-bold text-sm">₹{rzpLinkData.amount.toLocaleString("en-IN")}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-[11px]">
-                        <span className="text-slate-400">Customer Phone:</span>
-                        <span className="text-slate-200 font-mono">{customerPhone || "N/A"}</span>
-                      </div>
-
-                      <div className="p-2 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between gap-2">
-                        <a
-                          href={rzpLinkData.short_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-[11px] font-mono text-emerald-400 hover:underline truncate"
-                        >
-                          {rzpLinkData.short_url}
-                        </a>
+                    {/* Header with Style Switcher & Preview Toggle */}
+                    <div className="space-y-1.5 text-left">
+                      <div className="flex items-center justify-between text-[10.5px] font-mono">
+                        <span className="text-slate-300 font-bold">Message Format:</span>
                         <button
                           type="button"
-                          onClick={() => {
-                            navigator.clipboard.writeText(rzpLinkData.short_url);
-                            setRzpLinkCopied(true);
-                            setTimeout(() => setRzpLinkCopied(false), 2000);
-                          }}
-                          className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-bold shrink-0 border border-slate-700 cursor-pointer"
+                          onClick={() => setShowWaPreview(!showWaPreview)}
+                          className="text-emerald-400 hover:text-emerald-300 underline cursor-pointer font-bold flex items-center gap-1"
                         >
-                          {rzpLinkCopied ? "✓ Copied" : "Copy Link"}
+                          <span>{showWaPreview ? "👁️ Hide Preview" : "👁️ Preview Message"}</span>
                         </button>
                       </div>
-                    </div>
 
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const clean = customerPhone.replace(/\D/g, "").slice(-10);
-                          const enc = encodeURIComponent(rzpLinkData.waMessage);
-                          window.open(clean.length === 10 ? `https://wa.me/91${clean}?text=${enc}` : `https://wa.me/?text=${enc}`, "_blank");
-                        }}
-                        className="py-1.5 px-2 rounded-lg bg-green-600/20 hover:bg-green-600/30 text-green-300 border border-green-500/40 text-[11px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1"
-                      >
-                        <span>💬</span> Re-open WhatsApp
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          navigator.clipboard.writeText(rzpLinkData.waMessage);
-                          setRzpLinkMsgCopied(true);
-                          setTimeout(() => setRzpLinkMsgCopied(false), 2000);
-                        }}
-                        className="py-1.5 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[11px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1"
-                      >
-                        <span>📝</span> {rzpLinkMsgCopied ? "✓ Text Copied" : "Copy Bill Text"}
-                      </button>
-                    </div>
-
-                    <div className="p-2 rounded-lg bg-emerald-950/20 border border-emerald-500/20 text-[10px] text-emerald-400 font-mono text-center">
-                      🛡️ Anti-Fraud active: Polling Razorpay every 1.2s. Screen turns green automatically upon payment.
-                    </div>
-                  </div>
-                ) : (
-                  /* ─── READY STATE: ON-DEMAND BUTTON ─── */
-                  <div className="w-full py-3 px-2 text-center space-y-2.5">
-                    <div className="w-10 h-10 rounded-xl bg-green-500/10 border border-green-500/30 text-green-400 flex items-center justify-center mx-auto text-lg">
-                      <span className="text-xl">🛵</span>
-                    </div>
-                    <div>
-                      <h4 className="text-xs sm:text-sm font-bold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
-                        Home Delivery / Remote Pay
-                      </h4>
-                      <p className="text-[11px] text-slate-400 mt-0.5">
-                        Send a locked single-use Razorpay payment link directly to customer WhatsApp.
-                      </p>
-                    </div>
-
-                    <div className="p-2 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-between text-[11px]">
-                      <span className="text-slate-400 font-mono">WhatsApp Number:</span>
-                      <span className="font-mono font-bold text-emerald-400">
-                        {customerPhone.replace(/\D/g, "").slice(-10) ? `+91 ${customerPhone.replace(/\D/g, "").slice(-10)}` : "⚠️ Enter phone in Section 2"}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-1.5 text-left text-[10px] font-mono text-slate-300">
-                      <div className="p-1.5 rounded-lg bg-slate-900/60 border border-slate-800/80 flex items-center gap-1.5">
-                        <span className="text-green-400">✓</span> Amount locked (₹{grandTotal})
-                      </div>
-                      <div className="p-1.5 rounded-lg bg-slate-900/60 border border-slate-800/80 flex items-center gap-1.5">
-                        <span className="text-green-400">✓</span> Anti-Fraud Protection
-                      </div>
-                      <div className="p-1.5 rounded-lg bg-slate-900/60 border border-slate-800/80 flex items-center gap-1.5">
-                        <span className="text-green-400">✓</span> Auto-Verifies on Phone
-                      </div>
-                      <div className="p-1.5 rounded-lg bg-slate-900/60 border border-slate-800/80 flex items-center gap-1.5">
-                        <span className="text-green-400">✓</span> Instant Telegram Alert
+                      {/* 3 Clean Style Options */}
+                      <div className="grid grid-cols-3 gap-1 bg-slate-900 p-0.5 rounded-lg border border-slate-800 text-[10px] font-mono">
+                        {[
+                          { id: "executive", label: "✨ Executive" },
+                          { id: "receipt", label: "📄 Digital Ticket" },
+                          { id: "compact", label: "⚡ Compact" },
+                        ].map((st) => (
+                          <button
+                            key={st.id}
+                            type="button"
+                            onClick={() => setWaMessageStyle(st.id as any)}
+                            className={`py-1 rounded text-center font-bold transition-all cursor-pointer ${
+                              waMessageStyle === st.id
+                                ? "bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 shadow-sm"
+                                : "text-slate-400 hover:text-slate-200"
+                            }`}
+                          >
+                            {st.label}
+                          </button>
+                        ))}
                       </div>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={handleSendWhatsAppPaymentLink}
-                      disabled={grandTotal <= 0 || rzpLinkLoading}
-                      className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 active:scale-[0.98] disabled:opacity-50 text-slate-950 font-black uppercase tracking-wider text-xs transition-all shadow-md shadow-emerald-500/20 flex items-center justify-center gap-1.5 cursor-pointer"
-                      style={{ fontFamily: '"Space Grotesk", sans-serif' }}
-                    >
-                      <span className="text-base">📲</span>
-                      Send WhatsApp Payment Link (₹{grandTotal.toLocaleString("en-IN")})
-                    </button>
+                    {/* Simulated Live WhatsApp Dark-Mode Chat Bubble Preview */}
+                    {showWaPreview && (
+                      <div className="w-full text-left p-2.5 rounded-xl bg-[#0b141a] border border-emerald-500/30 space-y-2 animate-fadeIn shadow-2xl">
+                        <div className="flex items-center justify-between pb-1 border-b border-slate-800 text-[10px] text-slate-400 font-mono">
+                          <span className="flex items-center gap-1.5 text-emerald-400 font-bold">
+                            <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                            WhatsApp Preview ({waMessageStyle})
+                          </span>
+                          <span className="text-[9px] bg-slate-800 px-1.5 py-0.5 rounded text-emerald-300">
+                            ✓ 100% Safe (No broken glyphs)
+                          </span>
+                        </div>
+                        <div className="p-3 rounded-2xl rounded-tl-none bg-[#005c4b] text-white text-[11px] font-sans leading-relaxed shadow-lg relative">
+                          <pre className="whitespace-pre-wrap font-sans text-[11px] text-emerald-50 select-text leading-relaxed">
+                            {rzpLinkData
+                              ? rzpLinkData.waMessage
+                              : createWhatsAppMessage(
+                                  billItems,
+                                  "UT-INV-XXXX",
+                                  totalWeight,
+                                  grandTotal,
+                                  customerName,
+                                  "https://rzp.io/rzp/xxxxxx",
+                                  customerNotes,
+                                  waMessageStyle
+                                )}
+                          </pre>
+                          <div className="text-[9px] text-emerald-200/60 text-right mt-1 font-mono">
+                            {new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true })} ✓✓
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {rzpLinkData ? (
+                      /* ─── ACTIVE LISTENING CARD ─── */
+                      <div className="w-full space-y-2">
+                        <div className="flex items-center justify-between pb-1 border-b border-slate-800 text-[10px] font-mono">
+                          <span className="flex items-center gap-1.5 text-emerald-400 font-bold">
+                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                            Listening for Customer Payment...
+                          </span>
+                          <span className="text-slate-400 font-mono">Inv #{rzpLinkData.orderRef}</span>
+                        </div>
+
+                        <div className="p-2.5 rounded-xl bg-slate-900 border border-emerald-500/30 text-left space-y-1.5">
+                          <div className="flex items-center justify-between text-[11px]">
+                            <span className="text-slate-400">Locked Amount:</span>
+                            <span className="text-emerald-400 font-mono font-bold text-sm">₹{rzpLinkData.amount.toLocaleString("en-IN")}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-[11px]">
+                            <span className="text-slate-400">Customer Phone:</span>
+                            <span className="text-slate-200 font-mono">{customerPhone || "N/A"}</span>
+                          </div>
+
+                          <div className="p-2 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between gap-2">
+                            <a
+                              href={rzpLinkData.short_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-[11px] font-mono text-emerald-400 hover:underline truncate"
+                            >
+                              {rzpLinkData.short_url}
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(rzpLinkData.short_url);
+                                setRzpLinkCopied(true);
+                                setTimeout(() => setRzpLinkCopied(false), 2000);
+                              }}
+                              className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-bold shrink-0 border border-slate-700 cursor-pointer"
+                            >
+                              {rzpLinkCopied ? "✓ Copied" : "Copy Link"}
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Dispatch Options */}
+                        <div className="grid grid-cols-3 gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const clean = customerPhone.replace(/\D/g, "").slice(-10);
+                              const enc = encodeURIComponent(rzpLinkData.waMessage);
+                              window.open(clean.length === 10 ? `https://wa.me/91${clean}?text=${enc}` : `https://wa.me/?text=${enc}`, "_blank");
+                            }}
+                            className="py-1.5 px-1.5 rounded-lg bg-green-600/20 hover:bg-green-600/30 text-green-300 border border-green-500/40 text-[10px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1"
+                            title="Open in WhatsApp app or default link"
+                          >
+                            <span>📲</span> WhatsApp App
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const clean = customerPhone.replace(/\D/g, "").slice(-10);
+                              const enc = encodeURIComponent(rzpLinkData.waMessage);
+                              window.open(`https://web.whatsapp.com/send?phone=91${clean}&text=${enc}`, "_blank");
+                            }}
+                            className="py-1.5 px-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1"
+                            title="Open directly in WhatsApp Web in browser"
+                          >
+                            <span>💻</span> WhatsApp Web
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              navigator.clipboard.writeText(rzpLinkData.waMessage);
+                              setRzpLinkMsgCopied(true);
+                              setTimeout(() => setRzpLinkMsgCopied(false), 2000);
+                            }}
+                            className="py-1.5 px-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[10px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1"
+                          >
+                            <span>📝</span> {rzpLinkMsgCopied ? "✓ Copied" : "Copy Text"}
+                          </button>
+                        </div>
+
+                        <div className="p-2 rounded-lg bg-emerald-950/20 border border-emerald-500/20 text-[10px] text-emerald-400 font-mono text-center">
+                          🛡️ Anti-Fraud active: Polling Razorpay every 1.2s. Screen turns green automatically upon payment.
+                        </div>
+                      </div>
+                    ) : (
+                      /* ─── READY STATE BEFORE GENERATING LINK ─── */
+                      <div className="space-y-2.5">
+                        <div className="p-2 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-between text-[11px]">
+                          <span className="text-slate-400 font-mono">WhatsApp Number:</span>
+                          <span className="font-mono font-bold text-emerald-400">
+                            {customerPhone.replace(/\D/g, "").slice(-10) ? `+91 ${customerPhone.replace(/\D/g, "").slice(-10)}` : "⚠️ Enter phone in Section 2"}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-1.5 text-left text-[10px] font-mono text-slate-300">
+                          <div className="p-1.5 rounded-lg bg-slate-900/60 border border-slate-800/80 flex items-center gap-1.5">
+                            <span className="text-green-400">✓</span> Amount locked (₹{grandTotal.toLocaleString("en-IN")})
+                          </div>
+                          <div className="p-1.5 rounded-lg bg-slate-900/60 border border-slate-800/80 flex items-center gap-1.5">
+                            <span className="text-green-400">✓</span> Zero Broken Glyphs
+                          </div>
+                          <div className="p-1.5 rounded-lg bg-slate-900/60 border border-slate-800/80 flex items-center gap-1.5">
+                            <span className="text-green-400">✓</span> Auto-Verifies on Phone
+                          </div>
+                          <div className="p-1.5 rounded-lg bg-slate-900/60 border border-slate-800/80 flex items-center gap-1.5">
+                            <span className="text-green-400">✓</span> Instant Telegram Alert
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={handleSendWhatsAppPaymentLink}
+                          disabled={grandTotal <= 0 || rzpLinkLoading}
+                          className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 active:scale-[0.98] disabled:opacity-50 text-slate-950 font-black uppercase tracking-wider text-xs transition-all shadow-md shadow-emerald-500/20 flex items-center justify-center gap-1.5 cursor-pointer"
+                          style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                        >
+                          <span className="text-base">📲</span>
+                          Send WhatsApp Payment Link (₹{grandTotal.toLocaleString("en-IN")})
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
