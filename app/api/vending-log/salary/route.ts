@@ -151,20 +151,30 @@ export async function POST(request: Request) {
     }
 
     const now = new Date();
-    const currentMonthLabel = now.toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+    const currentMonthLabel = now.toLocaleDateString("en-IN", {
+      month: "long",
+      year: "numeric",
+      timeZone: "Asia/Kolkata",
+    });
+    const defaultDate = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Kolkata",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(now);
+    const defaultTime = now.toLocaleTimeString("en-IN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+      timeZone: "Asia/Kolkata",
+    });
 
     const newPayment: WorkerSalaryPayment = {
       id: crypto.randomUUID(),
       worker_name: (worker_name || "Mohd Amin").trim(),
       salary_month: (salary_month || currentMonthLabel).trim(),
-      payment_date: payment_date || now.toISOString().split("T")[0],
-      payment_time:
-        payment_time ||
-        now.toLocaleTimeString("en-IN", {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: true,
-        }),
+      payment_date: payment_date || defaultDate,
+      payment_time: payment_time || defaultTime,
       amount: Math.round(numAmount * 100) / 100,
       payment_mode: payment_mode || "Cash",
       notes: (notes || "").trim(),

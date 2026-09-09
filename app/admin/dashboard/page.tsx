@@ -140,7 +140,12 @@ export default function DashboardPage() {
     load();
   }, []);
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
   const todayOrders = orders.filter((o) => o.created_at?.slice(0, 10) === today);
   const todayRevenue = todayOrders.reduce((s, o) => s + (o.total ?? 0), 0);
   const pending = orders.filter((o) => o.status === "pending").length;
@@ -154,7 +159,13 @@ export default function DashboardPage() {
       <div>
         <h1 className="text-2xl font-bold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>Dashboard</h1>
         <p className="text-slate-500 text-sm mt-1" style={{ fontFamily: '"Manrope", sans-serif' }}>
-          {new Date().toLocaleDateString("en-IN", { weekday: "long", year: "numeric", month: "long", day: "numeric" })}
+          {new Date().toLocaleDateString("en-IN", {
+            weekday: "long",
+            year: "numeric",
+            month: "long",
+            day: "numeric",
+            timeZone: "Asia/Kolkata",
+          })}
         </p>
       </div>
 

@@ -92,13 +92,21 @@ export async function POST(req: NextRequest) {
       .from("aquarium_stock_log")
       .insert([
         {
-          stock_date: stock_date || new Date().toISOString().split("T")[0],
+          stock_date:
+            stock_date ||
+            new Intl.DateTimeFormat("en-CA", {
+              timeZone: "Asia/Kolkata",
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+            }).format(new Date()),
           stock_time:
             stock_time ||
             new Date().toLocaleTimeString("en-IN", {
               hour: "2-digit",
               minute: "2-digit",
               hour12: true,
+              timeZone: "Asia/Kolkata",
             }),
           supplier_name: supplier_name || "Khyber Aquaculture",
           product_type: product_type || "Non Gutted",

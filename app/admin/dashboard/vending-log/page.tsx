@@ -30,6 +30,57 @@ export const formatKg = (val: number | string | undefined | null): string => {
   return num.toFixed(3);
 };
 
+// Canonical Indian Standard Time (Asia/Kolkata) date helpers
+export const getIstTodayDate = (): string => {
+  try {
+    return new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Kolkata",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date());
+  } catch (_) {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  }
+};
+
+export const getIstCurrentTime = (): string => {
+  try {
+    return new Intl.DateTimeFormat("en-IN", {
+      timeZone: "Asia/Kolkata",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    }).format(new Date());
+  } catch (_) {
+    return new Date().toLocaleTimeString("en-IN", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    });
+  }
+};
+
+export const formatIstDateDisplay = (dateStr?: string | null): string => {
+  if (!dateStr) return "";
+  try {
+    const parts = dateStr.split("-").map(Number);
+    if (parts.length < 3 || !parts[0] || !parts[1] || !parts[2]) return dateStr;
+    const dt = new Date(parts[0], parts[1] - 1, parts[2]);
+    return dt.toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+  } catch (_) {
+    return dateStr;
+  }
+};
+
 const VENDING_SQL_QUERY = `-- URBAN TROUT VENDING CENTER SALES DATA LOGGER TABLE
 CREATE TABLE IF NOT EXISTS public.vending_sales_log (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -100,11 +151,33 @@ export default function VendingCenterLoggerPage() {
   const [savingStock, setSavingStock] = useState(false);
   const [deleteStockConfirmId, setDeleteStockConfirmId] = useState<string | null>(null);
 
-  // Stock form state
-  const [stockFormDate, setStockFormDate] = useState(() => new Date().toISOString().split("T")[0]);
-  const [stockFormTime, setStockFormTime] = useState(() =>
-    new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true })
+  // Authoritative server date synchronized from API (Asia/Kolkata)
+  const [serverTodayDate, setServerTodayDate] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const cachedDate = localStorage.getItem("ut_vending_server_date");
+        if (cachedDate && /^\d{4}-\d{2}-\d{2}$/.test(cachedDate)) {
+          return cachedDate;
+        }
+      } catch (_) {}
+    }
+    return getIstTodayDate();
+  });
+  const [serverDateFormatted, setServerDateFormatted] = useState<string>(() =>
+    formatIstDateDisplay(getIstTodayDate())
   );
+
+  const getTodayDate = useCallback(() => {
+    return serverTodayDate || getIstTodayDate();
+  }, [serverTodayDate]);
+
+  const getCurrentTime = useCallback(() => {
+    return getIstCurrentTime();
+  }, []);
+
+  // Stock form state
+  const [stockFormDate, setStockFormDate] = useState(() => getIstTodayDate());
+  const [stockFormTime, setStockFormTime] = useState(() => getIstCurrentTime());
   const [stockFormSupplier, setStockFormSupplier] = useState("Khyber Aquaculture");
   const [stockFormType, setStockFormType] = useState<"Gutted" | "Non Gutted">("Non Gutted");
   const [stockFormWeight, setStockFormWeight] = useState("");
@@ -112,23 +185,8 @@ export default function VendingCenterLoggerPage() {
   const [stockFormNotes, setStockFormNotes] = useState("");
 
   // Entry Form State
-  const now = new Date();
-  const getTodayDate = () => {
-    const d = new Date();
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, "0");
-    const day = String(d.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  };
-  const getCurrentTime = () =>
-    new Date().toLocaleTimeString("en-IN", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: true,
-    });
-
-  const [formDate, setFormDate] = useState(getTodayDate());
-  const [formTime, setFormTime] = useState(getCurrentTime());
+  const [formDate, setFormDate] = useState(() => getIstTodayDate());
+  const [formTime, setFormTime] = useState(() => getIstCurrentTime());
 
   // Staff Incentive Payouts State
   const [payouts, setPayouts] = useState<StaffIncentivePayout[]>([]);
@@ -152,7 +210,7 @@ export default function VendingCenterLoggerPage() {
   const [savingSalary, setSavingSalary] = useState(false);
   const [salaryFormAmount, setSalaryFormAmount] = useState("");
   const [salaryFormMonth, setSalaryFormMonth] = useState(() =>
-    new Date().toLocaleDateString("en-IN", { month: "long", year: "numeric" })
+    new Date().toLocaleDateString("en-IN", { month: "long", year: "numeric", timeZone: "Asia/Kolkata" })
   );
   const [salaryFormDate, setSalaryFormDate] = useState(getTodayDate());
   const [salaryFormTime, setSalaryFormTime] = useState(getCurrentTime());
@@ -317,6 +375,17 @@ export default function VendingCenterLoggerPage() {
       if (res.ok) {
         const data = await res.json();
         if (data.success) {
+          if (data.serverDate && /^\d{4}-\d{2}-\d{2}$/.test(data.serverDate)) {
+            setServerTodayDate(data.serverDate);
+            if (data.serverDateFormatted) {
+              setServerDateFormatted(data.serverDateFormatted);
+            } else {
+              setServerDateFormatted(formatIstDateDisplay(data.serverDate));
+            }
+            try {
+              localStorage.setItem("ut_vending_server_date", data.serverDate);
+            } catch (_) {}
+          }
           setEntries(data.entries || []);
           setCustomColumns(data.customColumns || []);
           setIsTableAvailable(data.isTableAvailable ?? true);
@@ -526,17 +595,21 @@ export default function VendingCenterLoggerPage() {
   // ─── Period Calculations ───
   const filteredEntriesByPeriod = useMemo(() => {
     const todayStr = getTodayDate();
-    const currDate = new Date();
+    const parts = todayStr.split("-").map(Number);
+    const currDate =
+      parts.length === 3 && parts[0] && parts[1] && parts[2]
+        ? new Date(parts[0], parts[1] - 1, parts[2])
+        : new Date();
 
-    // Rolling 7 Days (includes today, yesterday, and 5 previous days)
+    // Rolling 7 Days in IST (includes today, yesterday, and 5 previous days)
     const sevenDaysAgo = new Date(currDate.getFullYear(), currDate.getMonth(), currDate.getDate() - 6);
     sevenDaysAgo.setHours(0, 0, 0, 0);
 
-    // 1st of current month
+    // 1st of current month in IST
     const firstOfMonth = new Date(currDate.getFullYear(), currDate.getMonth(), 1);
 
     return entries.filter((e) => {
-      // Parse as LOCAL time to avoid UTC→IST offset shifting the date by -5:30h
+      // Parse as LOCAL date components to avoid UTC→IST offset shifting the date by -5:30h
       const [ey, em, ed] = e.entry_date.split("-").map(Number);
       const eDate = new Date(ey, em - 1, ed);
       if (period === "today") return e.entry_date === todayStr;
@@ -549,7 +622,7 @@ export default function VendingCenterLoggerPage() {
       }
       return true; // "all"
     });
-  }, [entries, period, customStartDate, customEndDate]);
+  }, [entries, period, customStartDate, customEndDate, getTodayDate]);
 
   // ─── Weighted Average Procurement Cost per Kg across all stock batches ───
   const procurementAvgCost = useMemo(() => {
@@ -714,7 +787,7 @@ export default function VendingCenterLoggerPage() {
 
   // ─── Worker Salary Stats (Mohd Amin) ───
   const salaryStats = useMemo(() => {
-    const currentMonthLabel = new Date().toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+    const currentMonthLabel = new Date().toLocaleDateString("en-IN", { month: "long", year: "numeric", timeZone: "Asia/Kolkata" });
     const thisMonthPaid = salaryPayments
       .filter((p) => (p.salary_month || "").toLowerCase() === currentMonthLabel.toLowerCase())
       .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
@@ -1247,6 +1320,7 @@ export default function VendingCenterLoggerPage() {
         year: "numeric",
         month: "short",
         day: "numeric",
+        timeZone: "Asia/Kolkata",
       }),
       totalSoldKg,
       guttedSoldKg,
@@ -1361,6 +1435,7 @@ export default function VendingCenterLoggerPage() {
         year: "numeric",
         month: "short",
         day: "numeric",
+        timeZone: "Asia/Kolkata",
       }),
       totalSoldKg,
       guttedSoldKg,
@@ -1935,30 +2010,44 @@ export default function VendingCenterLoggerPage() {
       <div className="space-y-3">
         {/* Period Selector Pills */}
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800 text-xs font-mono">
-            {[
-              { id: "today", label: "Today" },
-              { id: "week", label: "This Week" },
-              { id: "month", label: "This Month" },
-              { id: "all", label: "All Time" },
-              { id: "custom", label: "Custom Range" },
-            ].map((tab) => {
-              const isSel = period === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  type="button"
-                  onClick={() => setPeriod(tab.id as any)}
-                  className={`py-1.5 px-3 rounded-lg font-bold transition-all cursor-pointer ${
-                    isSel
-                      ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm"
-                      : "text-slate-400 hover:text-white"
-                  }`}
-                >
-                  {tab.label}
-                </button>
-              );
-            })}
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800 text-xs font-mono">
+              {[
+                { id: "today", label: "Today" },
+                { id: "week", label: "This Week" },
+                { id: "month", label: "This Month" },
+                { id: "all", label: "All Time" },
+                { id: "custom", label: "Custom Range" },
+              ].map((tab) => {
+                const isSel = period === tab.id;
+                const tabLabel =
+                  tab.id === "today"
+                    ? `Today · ${formatIstDateDisplay(getTodayDate())}`
+                    : tab.label;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setPeriod(tab.id as any)}
+                    className={`py-1.5 px-3 rounded-lg font-bold transition-all cursor-pointer ${
+                      isSel
+                        ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm"
+                        : "text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    {tabLabel}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Live IST Status indicator */}
+            <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/80 border border-slate-800/80 text-[11px] font-mono text-slate-400">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-emerald-400 font-semibold">IST</span>
+              <span>·</span>
+              <span className="text-slate-300">{serverDateFormatted || formatIstDateDisplay(getTodayDate())}</span>
+            </div>
           </div>
 
           <div className="flex items-center gap-2">

@@ -93,20 +93,40 @@ async function saveCustomColumns(cols: CustomColumnDef[]) {
   }
 }
 
+// Helper to get current Indian Standard Time (Asia/Kolkata) date string "YYYY-MM-DD"
+export function getIstTodayDate(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
+export function getIstTimeString(): string {
+  return new Intl.DateTimeFormat("en-IN", {
+    timeZone: "Asia/Kolkata",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  }).format(new Date());
+}
+
 // Compute Day, Week, Month KPI summaries
 function computeKpis(entries: VendingSalesEntry[]) {
-  const now = new Date();
-  const todayStr = now.toISOString().split("T")[0];
+  const todayStr = getIstTodayDate();
+  const [ty, tm, td] = todayStr.split("-").map(Number);
+  const istNow = new Date(ty, tm - 1, td);
 
   // Current Week (Monday to Sunday)
-  const currentDay = now.getDay(); // 0 is Sun
+  const currentDay = istNow.getDay(); // 0 is Sun
   const diffToMonday = (currentDay === 0 ? -6 : 1) - currentDay;
-  const monday = new Date(now);
-  monday.setDate(now.getDate() + diffToMonday);
+  const monday = new Date(istNow);
+  monday.setDate(istNow.getDate() + diffToMonday);
   monday.setHours(0, 0, 0, 0);
 
   // Current Month (1st to now)
-  const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const firstOfMonth = new Date(ty, tm - 1, 1);
 
   const kpis = {
     today: {
@@ -359,9 +379,21 @@ export async function GET(request: Request) {
 
     const customColumns = await getCustomColumns();
     const kpis = computeKpis(entries);
+    const serverDate = getIstTodayDate();
+    const serverTime = getIstTimeString();
+    const serverDateFormatted = new Intl.DateTimeFormat("en-IN", {
+      timeZone: "Asia/Kolkata",
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }).format(new Date());
 
     return NextResponse.json({
       success: true,
+      serverDate,
+      serverTime,
+      serverDateFormatted,
+      timeZone: "Asia/Kolkata",
       entries,
       kpis,
       customColumns,
@@ -412,14 +444,8 @@ export async function POST(request: Request) {
     const now = new Date();
     const entry: VendingSalesEntry = {
       id: crypto.randomUUID(),
-      entry_date: entry_date || now.toISOString().split("T")[0],
-      entry_time:
-        entry_time ||
-        now.toLocaleTimeString("en-IN", {
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: true,
-        }),
+      entry_date: entry_date || getIstTodayDate(),
+      entry_time: entry_time || getIstTimeString(),
       weight_kg: parsedWeight,
       product_type: product_type || "Gutted",
       rate_per_kg: parsedRate,

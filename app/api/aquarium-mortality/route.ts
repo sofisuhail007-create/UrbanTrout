@@ -124,11 +124,17 @@ export async function POST(req: NextRequest) {
 
     const count = Math.max(1, parseInt(fish_count, 10) || 1);
     const now = new Date();
-    const defaultDate = now.toLocaleDateString("en-CA"); // YYYY-MM-DD
+    const defaultDate = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Kolkata",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(now);
     const defaultTime = now.toLocaleTimeString("en-IN", {
       hour: "2-digit",
       minute: "2-digit",
       hour12: true,
+      timeZone: "Asia/Kolkata",
     });
 
     const newEntry: AquariumMortalityEntry = {

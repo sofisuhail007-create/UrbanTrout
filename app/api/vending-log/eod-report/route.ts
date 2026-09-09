@@ -38,11 +38,13 @@ export function formatEodTelegramMessage(p: EodReportPayload): string {
     year: "numeric",
     month: "short",
     day: "numeric",
+    timeZone: "Asia/Kolkata",
   });
   const nowTime = new Date().toLocaleTimeString("en-IN", {
     hour: "2-digit",
     minute: "2-digit",
     hour12: true,
+    timeZone: "Asia/Kolkata",
   });
 
   const totalKg = Number(p.totalSoldKg || 0).toFixed(2);

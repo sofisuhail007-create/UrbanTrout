@@ -4,6 +4,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { adminFetch } from "@/lib/adminClient";
 import type { InventoryItem } from "@/lib/supabase";
+import DealCalculatorTab from "./DealCalculatorTab";
 
 interface BillItem {
   id: string;
@@ -94,7 +95,7 @@ export default function POSBillingPage() {
   const [voiceTesting, setVoiceTesting] = useState<boolean>(false);
 
   // ─── DEDICATED REMOTE ORDERS & WHATSAPP PAYMENT TRACKER STATE ───
-  const [activeTab, setActiveTab] = useState<"pos" | "remote_orders">("pos");
+  const [activeTab, setActiveTab] = useState<"pos" | "remote_orders" | "deal_calculator">("pos");
   const [remoteOrders, setRemoteOrders] = useState<any[]>([]);
   const [remoteLoading, setRemoteLoading] = useState(false);
   const [remoteFilter, setRemoteFilter] = useState<"all" | "pending" | "paid">("all");
@@ -1097,6 +1098,37 @@ Naseem Bagh / Malabagh, Srinagar`;
     alert("WhatsApp Payment Link cancelled & expired on Razorpay. Customer cannot pay on this link anymore.");
   };
 
+  // ─── PUSH BARGAINED DEAL FROM DEAL DESK INTO ACTIVE POS BILL ───
+  const handlePushDealToBill = (deal: {
+    productId: string;
+    productName: string;
+    weightKg: number;
+    dealRatePerKg: number;
+    dealTotal: number;
+    standardRatePerKg: number;
+    discountAmount: number;
+    customerName: string;
+    customerPhone: string;
+  }) => {
+    if (deal.customerName) setCustomerName(deal.customerName);
+    if (deal.customerPhone) setCustomerPhone(deal.customerPhone);
+    setSelectedProductId(deal.productId);
+    setCurrentWeight(String(deal.weightKg));
+
+    setBillItems([
+      {
+        id: `${deal.productId}-deal-${Date.now().toString().slice(-4)}`,
+        name: deal.productName,
+        pricePerKg: deal.dealRatePerKg,
+        weightKg: deal.weightKg,
+        total: deal.dealTotal,
+        unit: "Kg",
+      },
+    ]);
+
+    setActiveTab("pos");
+  };
+
   // ─── FETCH & SYNC ALL REMOTE / WHATSAPP ORDERS ───
   const fetchRemoteOrders = async () => {
     setRemoteLoading(true);
@@ -1538,6 +1570,22 @@ ${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━
               </span>
             )}
           </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("deal_calculator")}
+            className={`flex-1 sm:flex-initial px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer relative ${
+              activeTab === "deal_calculator"
+                ? "bg-amber-500/20 text-amber-300 border border-amber-500/50 shadow-md shadow-amber-500/10"
+                : "text-slate-400 hover:text-slate-200 hover:bg-slate-900/60"
+            }`}
+          >
+            <span className="material-symbols-outlined text-base">handshake</span>
+            <span>🎯 Deal Desk &amp; Locked QR</span>
+            <span className="px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-300 text-[9px] font-mono font-bold">
+              BARGAIN
+            </span>
+          </button>
         </div>
 
         <div className="hidden md:flex items-center gap-2 text-[11px] text-slate-400 font-mono pr-2">
@@ -1735,9 +1783,20 @@ ${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━
                   Payable: <span className="text-cyan-400">₹{grandTotal.toLocaleString("en-IN")}</span>
                 </h3>
               </div>
-              <span className="px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 text-xs font-mono font-bold">
-                {totalWeight.toFixed(2)} Kg
-              </span>
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("deal_calculator")}
+                  className="px-2 py-1 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-[11px] font-bold uppercase tracking-wider flex items-center gap-1 cursor-pointer transition-all shadow-sm"
+                  title="Customer bargaining for discount? Open Deal Desk & Locked QR Calculator"
+                >
+                  <span className="material-symbols-outlined text-sm">handshake</span>
+                  <span>Deal Desk</span>
+                </button>
+                <span className="px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 text-xs font-mono font-bold">
+                  {totalWeight.toFixed(2)} Kg
+                </span>
+              </div>
             </div>
 
             {/* ─── ITEMIZED PRODUCTS IN BILL (WITH REMOVE ✕ & SELECTION) ─── */}
@@ -2611,6 +2670,16 @@ ${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━
                 <span className="material-symbols-outlined text-sm">add</span>
                 <span>New Bill</span>
               </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveTab("deal_calculator")}
+                className="px-3 py-1.5 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 font-bold rounded-xl text-xs uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer shadow-sm shrink-0"
+                title="Customer asking for bargain/discount? Open Deal Desk"
+              >
+                <span className="material-symbols-outlined text-sm">handshake</span>
+                <span>Deal Desk</span>
+              </button>
             </div>
           </div>
 
@@ -2904,6 +2973,19 @@ ${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━
             </div>
           )}
         </div>
+      )}
+
+      {/* ─── DEDICATED DEAL DESK & LOCKED-IN QR WORKSPACE ─── */}
+      {activeTab === "deal_calculator" && (
+        <DealCalculatorTab
+          products={products}
+          activeScaleWeight={currentWeight}
+          upiId={upiId}
+          speakPaymentAnnouncement={speakPaymentAnnouncement}
+          playSuccessChime={playSuccessChime}
+          onPushDealToBill={handlePushDealToBill}
+          onSwitchTab={setActiveTab}
+        />
       )}
 
       {/* ─── MANUAL PAYMENT SETTLEMENT MODAL ─── */}
