@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey =
   process.env.SUPABASE_SERVICE_ROLE_KEY ||
@@ -46,11 +49,18 @@ export async function GET(req: NextRequest) {
       throw error;
     }
 
-    return NextResponse.json({
-      success: true,
-      entries: data || [],
-      isTableAvailable: true,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        entries: data || [],
+        isTableAvailable: true,
+      },
+      {
+        headers: {
+          "Cache-Control": "private, no-cache, no-store, max-age=0, must-revalidate",
+        },
+      }
+    );
   } catch (err: any) {
     console.error("[aquarium-stock GET]", err);
     return NextResponse.json(

@@ -152,17 +152,7 @@ export default function VendingCenterLoggerPage() {
   const [deleteStockConfirmId, setDeleteStockConfirmId] = useState<string | null>(null);
 
   // Authoritative server date synchronized from API (Asia/Kolkata)
-  const [serverTodayDate, setServerTodayDate] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      try {
-        const cachedDate = localStorage.getItem("ut_vending_server_date");
-        if (cachedDate && /^\d{4}-\d{2}-\d{2}$/.test(cachedDate)) {
-          return cachedDate;
-        }
-      } catch (_) {}
-    }
-    return getIstTodayDate();
-  });
+  const [serverTodayDate, setServerTodayDate] = useState<string>(() => getIstTodayDate());
   const [serverDateFormatted, setServerDateFormatted] = useState<string>(() =>
     formatIstDateDisplay(getIstTodayDate())
   );
@@ -351,18 +341,15 @@ export default function VendingCenterLoggerPage() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      // 1. Try local cache first
-      try {
-        const cached = localStorage.getItem("ut_vending_sales_log_cache");
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setEntries(parsed);
-          }
-        }
-      } catch (_) {}
+      // Purge any stale legacy localStorage caches
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.removeItem("ut_vending_sales_log_cache");
+          localStorage.removeItem("ut_vending_server_date");
+        } catch (_) {}
+      }
 
-      // 2. Fetch from API
+      // Fetch fresh real-time data from API
       let url = "/api/vending-log";
       const params = new URLSearchParams();
       if (period === "custom" && customStartDate && customEndDate) {
@@ -382,17 +369,10 @@ export default function VendingCenterLoggerPage() {
             } else {
               setServerDateFormatted(formatIstDateDisplay(data.serverDate));
             }
-            try {
-              localStorage.setItem("ut_vending_server_date", data.serverDate);
-            } catch (_) {}
           }
           setEntries(data.entries || []);
           setCustomColumns(data.customColumns || []);
           setIsTableAvailable(data.isTableAvailable ?? true);
-          try {
-            localStorage.setItem("ut_vending_sales_log_cache", JSON.stringify(data.entries || []));
-            localStorage.setItem("ut_vending_custom_cols_cache", JSON.stringify(data.customColumns || []));
-          } catch (_) {}
         }
       }
     } catch (err) {
@@ -2104,14 +2084,20 @@ export default function VendingCenterLoggerPage() {
                     <span className="font-bold tracking-wider">TOTAL KG SOLD</span>
                     <span className="material-symbols-outlined text-emerald-400 text-lg">scale</span>
                   </div>
-                  <div className="mt-2.5 flex items-baseline gap-2">
-                    <span
-                      className="text-3xl sm:text-4xl font-black text-white"
-                      style={{ fontFamily: '"Space Grotesk", sans-serif' }}
-                    >
-                      {formatKg(kpis.totalKg)}
-                    </span>
-                    <span className="text-emerald-400 font-bold font-mono text-sm">Kg</span>
+                  <div className="mt-2.5 flex items-baseline gap-2 min-h-[36px]">
+                    {loading && entries.length === 0 ? (
+                      <div className="h-8 w-28 bg-emerald-500/10 rounded animate-pulse" />
+                    ) : (
+                      <>
+                        <span
+                          className="text-3xl sm:text-4xl font-black text-white"
+                          style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                        >
+                          {formatKg(kpis.totalKg)}
+                        </span>
+                        <span className="text-emerald-400 font-bold font-mono text-sm">Kg</span>
+                      </>
+                    )}
                   </div>
                 </div>
                 <div className="mt-3.5 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2.5 space-y-0.5">
@@ -2130,14 +2116,20 @@ export default function VendingCenterLoggerPage() {
                     <span className="font-bold tracking-wider">REVENUE</span>
                     <span className="material-symbols-outlined text-cyan-400 text-lg">payments</span>
                   </div>
-                  <div className="mt-2.5 flex items-baseline gap-1">
-                    <span className="text-cyan-400 font-bold text-xl">₹</span>
-                    <span
-                      className="text-3xl sm:text-4xl font-black text-white"
-                      style={{ fontFamily: '"Space Grotesk", sans-serif' }}
-                    >
-                      {kpis.totalRevenue.toLocaleString("en-IN")}
-                    </span>
+                  <div className="mt-2.5 flex items-baseline gap-1 min-h-[36px]">
+                    {loading && entries.length === 0 ? (
+                      <div className="h-8 w-28 bg-cyan-500/10 rounded animate-pulse" />
+                    ) : (
+                      <>
+                        <span className="text-cyan-400 font-bold text-xl">₹</span>
+                        <span
+                          className="text-3xl sm:text-4xl font-black text-white"
+                          style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                        >
+                          {kpis.totalRevenue.toLocaleString("en-IN")}
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
                 <div className="mt-3.5 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2.5 space-y-0.5">
@@ -2162,17 +2154,23 @@ export default function VendingCenterLoggerPage() {
                     </span>
                     <span className="material-symbols-outlined text-teal-400 text-lg">trending_up</span>
                   </div>
-                  <div className="mt-2.5 flex items-baseline gap-1">
-                    <span className="text-teal-400 font-bold text-xl">₹</span>
-                    <span
-                      className="text-3xl sm:text-4xl font-black text-white"
-                      style={{ fontFamily: '"Space Grotesk", sans-serif' }}
-                    >
-                      {kpis.totalSoldProfit.toLocaleString("en-IN")}
-                    </span>
-                    <span className="text-[11px] font-bold text-teal-400 font-mono ml-1">
-                      {kpis.profitMarginPercent}%
-                    </span>
+                  <div className="mt-2.5 flex items-baseline gap-1 min-h-[36px]">
+                    {loading && entries.length === 0 ? (
+                      <div className="h-8 w-28 bg-teal-500/10 rounded animate-pulse" />
+                    ) : (
+                      <>
+                        <span className="text-teal-400 font-bold text-xl">₹</span>
+                        <span
+                          className="text-3xl sm:text-4xl font-black text-white"
+                          style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                        >
+                          {kpis.totalSoldProfit.toLocaleString("en-IN")}
+                        </span>
+                        <span className="text-[11px] font-bold text-teal-400 font-mono ml-1">
+                          {kpis.profitMarginPercent}%
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
                 <div className="mt-3.5 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2.5 space-y-0.5">
@@ -2193,14 +2191,20 @@ export default function VendingCenterLoggerPage() {
                     <span className="font-bold tracking-wider">ONLINE</span>
                     <span className="material-symbols-outlined text-indigo-400 text-lg">contactless</span>
                   </div>
-                  <div className="mt-2.5 flex items-baseline gap-1">
-                    <span className="text-indigo-400 font-bold text-xl">₹</span>
-                    <span
-                      className="text-3xl sm:text-4xl font-black text-white"
-                      style={{ fontFamily: '"Space Grotesk", sans-serif' }}
-                    >
-                      {kpis.onlineRevenue.toLocaleString("en-IN")}
-                    </span>
+                  <div className="mt-2.5 flex items-baseline gap-1 min-h-[36px]">
+                    {loading && entries.length === 0 ? (
+                      <div className="h-8 w-28 bg-indigo-500/10 rounded animate-pulse" />
+                    ) : (
+                      <>
+                        <span className="text-indigo-400 font-bold text-xl">₹</span>
+                        <span
+                          className="text-3xl sm:text-4xl font-black text-white"
+                          style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                        >
+                          {kpis.onlineRevenue.toLocaleString("en-IN")}
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
                 <div className="mt-3.5 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2.5 space-y-0.5">
@@ -2219,14 +2223,20 @@ export default function VendingCenterLoggerPage() {
                     <span className="font-bold tracking-wider">CASH DRAWER</span>
                     <span className="material-symbols-outlined text-blue-400 text-lg">point_of_sale</span>
                   </div>
-                  <div className="mt-2.5 flex items-baseline gap-1">
-                    <span className="text-blue-400 font-bold text-xl">₹</span>
-                    <span
-                      className="text-3xl sm:text-4xl font-black text-white"
-                      style={{ fontFamily: '"Space Grotesk", sans-serif' }}
-                    >
-                      {kpis.cashRevenue.toLocaleString("en-IN")}
-                    </span>
+                  <div className="mt-2.5 flex items-baseline gap-1 min-h-[36px]">
+                    {loading && entries.length === 0 ? (
+                      <div className="h-8 w-28 bg-blue-500/10 rounded animate-pulse" />
+                    ) : (
+                      <>
+                        <span className="text-blue-400 font-bold text-xl">₹</span>
+                        <span
+                          className="text-3xl sm:text-4xl font-black text-white"
+                          style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                        >
+                          {kpis.cashRevenue.toLocaleString("en-IN")}
+                        </span>
+                      </>
+                    )}
                   </div>
                 </div>
                 <div className="mt-3.5 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2.5 space-y-0.5">
@@ -2259,8 +2269,10 @@ export default function VendingCenterLoggerPage() {
                       {kpis.totalLoss > 0 ? "price_change" : "verified"}
                     </span>
                   </div>
-                  <div className="mt-2.5 flex items-baseline gap-1">
-                    {kpis.totalLoss > 0 ? (
+                  <div className="mt-2.5 flex items-baseline gap-1 min-h-[36px]">
+                    {loading && entries.length === 0 ? (
+                      <div className="h-8 w-24 bg-amber-500/10 rounded animate-pulse" />
+                    ) : kpis.totalLoss > 0 ? (
                       <>
                         <span className="text-amber-400 font-bold text-xl">-₹</span>
                         <span
@@ -2330,15 +2342,21 @@ export default function VendingCenterLoggerPage() {
                       {incentiveStats.balanceRemaining > 0 ? "Pending Due" : "Settled ✓"}
                     </span>
                   </div>
-                  <div className="mt-3 flex items-baseline gap-1.5">
-                    <span className="text-purple-400 font-bold text-xl">₹</span>
-                    <span
-                      className="text-3xl sm:text-4xl font-black text-white"
-                      style={{ fontFamily: '"Space Grotesk", sans-serif' }}
-                    >
-                      {incentiveStats.balanceRemaining.toLocaleString("en-IN")}
-                    </span>
-                    <span className="text-xs text-slate-400 font-mono ml-1">pending disbursement</span>
+                  <div className="mt-3 flex items-baseline gap-1.5 min-h-[36px]">
+                    {loading && entries.length === 0 ? (
+                      <div className="h-8 w-28 bg-purple-500/10 rounded animate-pulse" />
+                    ) : (
+                      <>
+                        <span className="text-purple-400 font-bold text-xl">₹</span>
+                        <span
+                          className="text-3xl sm:text-4xl font-black text-white"
+                          style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                        >
+                          {incentiveStats.balanceRemaining.toLocaleString("en-IN")}
+                        </span>
+                        <span className="text-xs text-slate-400 font-mono ml-1">pending disbursement</span>
+                      </>
+                    )}
                   </div>
                 </div>
                 <div className="mt-4 text-xs text-slate-400 font-mono border-t border-slate-800/80 pt-3 flex flex-wrap items-center justify-between gap-2">
@@ -2422,25 +2440,31 @@ export default function VendingCenterLoggerPage() {
                       </button>
                     </form>
                   ) : (
-                    <div className="mt-3 flex items-baseline gap-1.5">
-                      <span className="text-sky-400 font-bold text-xl">₹</span>
-                      <span
-                        className="text-3xl sm:text-4xl font-black text-white"
-                        style={{ fontFamily: '"Space Grotesk", sans-serif' }}
-                      >
-                        {salaryStats.thisMonthPaid.toLocaleString("en-IN")}
-                      </span>
-                      <span
-                        className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ml-1 ${
-                          salaryStats.monthBalanceDue > 0
-                            ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                            : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                        }`}
-                      >
-                        {salaryStats.monthBalanceDue > 0
-                          ? `₹${salaryStats.monthBalanceDue.toLocaleString("en-IN")} Due`
-                          : "Paid ✓"}
-                      </span>
+                    <div className="mt-3 flex items-baseline gap-1.5 min-h-[36px]">
+                      {loading && entries.length === 0 ? (
+                        <div className="h-8 w-28 bg-sky-500/10 rounded animate-pulse" />
+                      ) : (
+                        <>
+                          <span className="text-sky-400 font-bold text-xl">₹</span>
+                          <span
+                            className="text-3xl sm:text-4xl font-black text-white"
+                            style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                          >
+                            {salaryStats.thisMonthPaid.toLocaleString("en-IN")}
+                          </span>
+                          <span
+                            className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ml-1 ${
+                              salaryStats.monthBalanceDue > 0
+                                ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                                : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                            }`}
+                          >
+                            {salaryStats.monthBalanceDue > 0
+                              ? `₹${salaryStats.monthBalanceDue.toLocaleString("en-IN")} Due`
+                              : "Paid ✓"}
+                          </span>
+                        </>
+                      )}
                     </div>
                   )}
                 </div>

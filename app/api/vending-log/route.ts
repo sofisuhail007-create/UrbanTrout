@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { requireAdminAuth } from "@/lib/adminAuth";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
@@ -283,29 +286,39 @@ export async function GET(request: Request) {
     const startDate = searchParams.get("startDate");
     const endDate = searchParams.get("endDate");
 
+    let query = supabase
+      .from("vending_sales_log")
+      .select("*")
+      .order("entry_date", { ascending: false })
+      .order("created_at", { ascending: false });
+
+    if (startDate) query = query.gte("entry_date", startDate);
+    if (endDate) query = query.lte("entry_date", endDate);
+
+    // Parallelize primary table query, fallback entries, and custom columns for ultra-fast response
+    const [tableRes, fallbackEntries, customColumns] = await Promise.all([
+      (async () => {
+        try {
+          const { data, error } = await query;
+          if (error) throw error;
+          return { data: (data as VendingSalesEntry[]) || [], error: null };
+        } catch (err: any) {
+          return { data: null, error: err };
+        }
+      })(),
+      getFallbackEntries(),
+      getCustomColumns(),
+    ]);
+
     let isTableAvailable = true;
     let tableEntries: VendingSalesEntry[] = [];
 
-    // Query primary Supabase table
-    try {
-      let query = supabase
-        .from("vending_sales_log")
-        .select("*")
-        .order("entry_date", { ascending: false })
-        .order("created_at", { ascending: false });
-
-      if (startDate) query = query.gte("entry_date", startDate);
-      if (endDate) query = query.lte("entry_date", endDate);
-
-      const { data, error } = await query;
-      if (error) throw error;
-      tableEntries = (data as VendingSalesEntry[]) || [];
-    } catch (err: any) {
+    if (tableRes.error || !tableRes.data) {
       isTableAvailable = false;
+      tableEntries = [];
+    } else {
+      tableEntries = tableRes.data;
     }
-
-    // Always fetch fallback entries from app_settings
-    const fallbackEntries = await getFallbackEntries();
 
     // DUAL-LAYER MERGE: Combine both sources by ID so zero entries are ever lost or hidden!
     const map = new Map<string, VendingSalesEntry>();
@@ -377,7 +390,6 @@ export async function GET(request: Request) {
       return (b.created_at || "").localeCompare(a.created_at || "");
     });
 
-    const customColumns = await getCustomColumns();
     const kpis = computeKpis(entries);
     const serverDate = getIstTodayDate();
     const serverTime = getIstTimeString();
@@ -388,17 +400,24 @@ export async function GET(request: Request) {
       year: "numeric",
     }).format(new Date());
 
-    return NextResponse.json({
-      success: true,
-      serverDate,
-      serverTime,
-      serverDateFormatted,
-      timeZone: "Asia/Kolkata",
-      entries,
-      kpis,
-      customColumns,
-      isTableAvailable,
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        serverDate,
+        serverTime,
+        serverDateFormatted,
+        timeZone: "Asia/Kolkata",
+        entries,
+        kpis,
+        customColumns,
+        isTableAvailable,
+      },
+      {
+        headers: {
+          "Cache-Control": "private, no-cache, no-store, max-age=0, must-revalidate",
+        },
+      }
+    );
   } catch (err: any) {
     console.error("Vending Log GET Error:", err);
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });

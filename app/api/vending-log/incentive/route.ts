@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { requireAdminAuth } from "@/lib/adminAuth";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseKey);
@@ -74,11 +77,18 @@ export async function GET(request: Request) {
       return (b.created_at || "").localeCompare(a.created_at || "");
     });
 
-    return NextResponse.json({
-      success: true,
-      payouts,
-      totalPaid: payouts.reduce((sum, p) => sum + (Number(p.amount) || 0), 0),
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        payouts,
+        totalPaid: payouts.reduce((sum, p) => sum + (Number(p.amount) || 0), 0),
+      },
+      {
+        headers: {
+          "Cache-Control": "private, no-cache, no-store, max-age=0, must-revalidate",
+        },
+      }
+    );
   } catch (err: any) {
     console.error("Staff Incentive GET Error:", err);
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
