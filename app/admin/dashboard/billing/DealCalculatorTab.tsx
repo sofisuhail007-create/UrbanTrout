@@ -1,8 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
-import { supabase } from "@/lib/supabase";
-import { adminFetch } from "@/lib/adminClient";
+import React, { useState, useEffect } from "react";
 
 export interface DealProduct {
   id: string;
@@ -27,7 +25,7 @@ export interface BargainDealItem {
   discountAmount: number;
   discountPercent: number;
   lossPerKg: number;
-  qrEngine: "razorpay" | "soundbox";
+  qrEngine: "soundbox" | "razorpay";
   qrId?: string | null;
   status: "PENDING" | "PAID";
   paymentId?: string | null;
@@ -72,8 +70,6 @@ export default function DealCalculatorTab({
   const [isCustomRateActive, setIsCustomRateActive] = useState<boolean>(false);
 
   const [weightStr, setWeightStr] = useState<string>(activeScaleWeight || "2.0");
-  const [baseCostPerKg, setBaseCostPerKg] = useState<number>(450); // Farm harvest cost threshold
-  const [editCostModal, setEditCostModal] = useState<boolean>(false);
 
   // Negotiation input states & mode
   const [activeInputMode, setActiveInputMode] = useState<"total" | "rate" | "percent" | "flat">("total");
@@ -85,10 +81,9 @@ export default function DealCalculatorTab({
   // Customer details
   const [customerName, setCustomerName] = useState<string>("");
   const [customerPhone, setCustomerPhone] = useState<string>("");
-  const [customerNotes, setCustomerNotes] = useState<string>("");
 
-  // ─── 2. LOCKED QR ENGINE STATE ───
-  const [qrEngine, setQrEngine] = useState<"razorpay" | "soundbox">("razorpay");
+  // ─── 2. LOCKED QR ENGINE STATE (DEFAULT: J&K BANK SOUNDBOX) ───
+  const [qrEngine, setQrEngine] = useState<"soundbox" | "razorpay">("soundbox");
   const [rzpQrId, setRzpQrId] = useState<string | null>(null);
   const [rzpQrImageUrl, setRzpQrImageUrl] = useState<string | null>(null);
   const [rzpQrLoading, setRzpQrLoading] = useState<boolean>(false);
@@ -166,14 +161,7 @@ export default function DealCalculatorTab({
     lossPerKg = Math.max(0, standardRate - dealRate);
   }
 
-  // Margin vs Farm Harvest Cost
-  const costTotal = Math.round(weight * baseCostPerKg);
-  const standardProfit = standardTotal - costTotal;
-  const dealProfit = dealTotal - costTotal;
-  const isBelowCost = dealTotal > 0 && dealTotal < costTotal;
-  const isTightMargin = dealTotal >= costTotal && dealProfit < standardProfit * 0.45;
-
-  // Derive Soundbox UPI URI
+  // Derive Soundbox UPI URI (J&K Bank Merchant Soundbox)
   const terminalId = upiId.includes("@")
     ? `TERM${upiId.split("@")[0].replace(/^JKBMERC/, "")}`
     : "TERM00828895";
@@ -301,7 +289,7 @@ export default function DealCalculatorTab({
     setDealsLedger((prev) => [newDealItem, ...prev.filter((d) => d.id !== dealNum)]);
   };
 
-  // ─── 7. REAL-TIME AUTO-POLLER FOR RAZORPAY LOCKED QR ───
+  // ─── 7. REAL-TIME AUTO-POLLER FOR RAZORPAY LOCKED QR (IF SELECTED) ───
   useEffect(() => {
     if (qrEngine !== "razorpay" || !rzpQrId || isDealPaid) return;
 
@@ -326,9 +314,6 @@ export default function DealCalculatorTab({
             )
           );
 
-          // Auto-record in Vending Log
-          autoLogDealToVending(payId, "Razorpay Locked QR");
-
           clearInterval(interval);
         }
       } catch (err) {
@@ -338,67 +323,6 @@ export default function DealCalculatorTab({
 
     return () => clearInterval(interval);
   }, [qrEngine, rzpQrId, isDealPaid, dealTotal, customerName, activeDealNumber]);
-
-  // ─── 8. AUTO-LOG TO VENDING CENTER & DATABASE ───
-  const autoLogDealToVending = async (paymentRef: string, payMode: string) => {
-    try {
-      await adminFetch("/api/vending-log", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          entry_date: new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date()),
-          entry_time: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true }),
-          weight_kg: weight,
-          product_type: activeProduct.name.toLowerCase().includes("gutted") ? "Gutted" : "Non Gutted",
-          rate_per_kg: Math.round(dealRate),
-          expected_amount: standardTotal,
-          amount_paid: dealTotal,
-          discount_amount: discountAmount,
-          payment_mode: payMode,
-          notes: `Bargain Deal #${activeDealNumber} - ${customerName.trim() || "Walk-in"} (Saved ₹${discountAmount}, Rate ₹${Math.round(dealRate)}/kg vs standard ₹${standardRate}/kg) [Ref: ${paymentRef}]`,
-          logged_by: "POS Deal Desk",
-        }),
-      });
-
-      // Also upsert an invoice for record keeping
-      await adminFetch("/api/invoice", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          invoiceId: activeDealNumber || `UT-DEAL-${Date.now().toString().slice(-5)}`,
-          data: {
-            num: activeDealNumber,
-            name: customerName.trim() || "Bargained Deal Customer",
-            phone: customerPhone.trim() || "N/A",
-            date: new Date().toISOString(),
-            tot: dealTotal,
-            expected: standardTotal,
-            discount: discountAmount,
-            discountPct: discountPercent.toFixed(1),
-            weight: weight,
-            rate: Math.round(dealRate),
-            stdRate: standardRate,
-            status: "PAID",
-            payMode,
-            payRef: paymentRef,
-            items: [
-              {
-                id: activeProduct.id,
-                name: `${activeProduct.name} [Special Deal]`,
-                weightKg: weight,
-                pricePerKg: Math.round(dealRate),
-                standardPricePerKg: standardRate,
-                total: dealTotal,
-                discount: discountAmount,
-              },
-            ],
-          },
-        }),
-      });
-    } catch (e) {
-      console.warn("Could not log deal to vending/invoice:", e);
-    }
-  };
 
   // Manual Soundbox Confirmation
   const handleConfirmSoundboxPaid = () => {
@@ -415,11 +339,9 @@ export default function DealCalculatorTab({
           : d
       )
     );
-
-    autoLogDealToVending(payRef, "J&K Soundbox Locked QR");
   };
 
-  // ─── 9. SEND WHATSAPP DEAL WITH LOCKED LINK ───
+  // ─── 8. SEND WHATSAPP DEAL WITH LOCKED LINK ───
   const handleSendWhatsAppDeal = async () => {
     if (dealTotal <= 0) return;
     setWaLinkLoading(true);
@@ -466,7 +388,7 @@ Here is your agreed locked deal:
 
 ────────────────────────
 🔒 *Pay Exact Locked Amount Here:*
-${payUrl || "Scan our Counter QR upon collection"}
+${payUrl || "Scan our J&K Bank Soundbox Counter QR upon collection"}
 
 _Thank you for choosing fresh Himalayan Rainbow Trout!_`;
 
@@ -498,82 +420,8 @@ _Thank you for choosing fresh Himalayan Rainbow Trout!_`;
     });
   };
 
-  // Ledger KPIs
-  const totalDealsCount = dealsLedger.length;
-  const totalDiscountsGiven = dealsLedger.reduce((sum, d) => sum + (d.discountAmount || 0), 0);
-  const totalBargainRevenue = dealsLedger
-    .filter((d) => d.status === "PAID")
-    .reduce((sum, d) => sum + (d.dealTotal || 0), 0);
-  const avgDiscountPct = totalDealsCount > 0
-    ? (dealsLedger.reduce((sum, d) => sum + (d.discountPercent || 0), 0) / totalDealsCount).toFixed(1)
-    : "0";
-
   return (
     <div className="space-y-4 animate-fadeIn">
-      {/* ─── TOP KPI SUMMARY CARDS ─── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
-        <div className="bg-slate-900/85 border border-slate-800 rounded-2xl p-3 sm:p-4 space-y-1 shadow-lg">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
-            <span>Deals Negotiated</span>
-            <span className="material-symbols-outlined text-sm text-cyan-400">handshake</span>
-          </div>
-          <div className="text-xl sm:text-2xl font-black text-white font-mono">
-            {totalDealsCount}
-          </div>
-          <div className="text-[10px] text-slate-500 font-mono">
-            Today's Bargained Sales
-          </div>
-        </div>
-
-        <div className="bg-slate-900/85 border border-rose-500/30 rounded-2xl p-3 sm:p-4 space-y-1 shadow-lg relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-16 h-16 bg-rose-500/10 rounded-full blur-xl pointer-events-none" />
-          <div className="flex items-center justify-between text-rose-300 text-xs font-mono font-bold">
-            <span>Total Discounts Conceded</span>
-            <span className="material-symbols-outlined text-sm text-rose-400">trending_down</span>
-          </div>
-          <div className="text-xl sm:text-2xl font-black text-rose-300 font-mono">
-            ₹{totalDiscountsGiven.toLocaleString("en-IN")}
-          </div>
-          <div className="text-[10px] text-rose-400/80 font-mono">
-            Total money given up from standard
-          </div>
-        </div>
-
-        <div className="bg-slate-900/85 border border-emerald-500/30 rounded-2xl p-3 sm:p-4 space-y-1 shadow-lg relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/10 rounded-full blur-xl pointer-events-none" />
-          <div className="flex items-center justify-between text-emerald-300 text-xs font-mono font-bold">
-            <span>Collected Deal Revenue</span>
-            <span className="material-symbols-outlined text-sm text-emerald-400">paid</span>
-          </div>
-          <div className="text-xl sm:text-2xl font-black text-emerald-400 font-mono">
-            ₹{totalBargainRevenue.toLocaleString("en-IN")}
-          </div>
-          <div className="text-[10px] text-emerald-400/80 font-mono">
-            Revenue secured from bargaining
-          </div>
-        </div>
-
-        <div className="bg-slate-900/85 border border-amber-500/30 rounded-2xl p-3 sm:p-4 space-y-1 shadow-lg">
-          <div className="flex items-center justify-between text-amber-300 text-xs font-mono font-bold">
-            <span>Average Concession %</span>
-            <span className="material-symbols-outlined text-sm text-amber-400">percent</span>
-          </div>
-          <div className="text-xl sm:text-2xl font-black text-amber-300 font-mono">
-            {avgDiscountPct}%
-          </div>
-          <div className="text-[10px] text-slate-400 font-mono flex items-center justify-between">
-            <span>Base Cost Protection:</span>
-            <button
-              type="button"
-              onClick={() => setEditCostModal(true)}
-              className="text-cyan-400 underline hover:text-cyan-300 cursor-pointer font-bold"
-            >
-              ₹{baseCostPerKg}/Kg
-            </button>
-          </div>
-        </div>
-      </div>
-
       {/* ─── MAIN 2-COLUMN DEAL WORKSPACE ─── */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 items-start">
         {/* ─── LEFT: MULTI-WAY BARGAIN CALCULATOR (7 Cols) ─── */}
@@ -973,86 +821,38 @@ _Thank you for choosing fresh Himalayan Rainbow Trout!_`;
               )}
             </div>
 
-            {/* 4 Crucial Metrics Cards */}
-            <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+            {/* 3 Clean Crucial Metrics Cards */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs font-mono">
               {/* Metric 1: Less Amount (Direct Cash Loss) */}
               <div className="p-2.5 rounded-xl bg-slate-950/90 border border-rose-500/30 space-y-0.5">
-                <span className="text-[10px] text-slate-400 block">Less Amount / Discount:</span>
+                <span className="text-[10px] text-slate-400 block">Less Amount:</span>
                 <div className="text-base font-black text-rose-400">
                   {discountAmount > 0 ? `-₹${discountAmount.toLocaleString("en-IN")}` : "₹0"}
                 </div>
                 <div className="text-[9px] text-rose-400/80">
-                  {discountAmount > 0 ? `You lose ₹${discountAmount} total` : "Full price"}
+                  {discountAmount > 0 ? `Losing ₹${discountAmount}` : "Full price"}
                 </div>
               </div>
 
               {/* Metric 2: Loss Per Kilogram */}
               <div className="p-2.5 rounded-xl bg-slate-950/90 border border-rose-500/30 space-y-0.5">
-                <span className="text-[10px] text-slate-400 block">Concession Per Kg:</span>
+                <span className="text-[10px] text-slate-400 block">Concession / Kg:</span>
                 <div className="text-base font-black text-rose-400">
                   {lossPerKg > 0 ? `-₹${lossPerKg.toFixed(1)}/Kg` : "₹0/Kg"}
                 </div>
                 <div className="text-[9px] text-rose-400/80">
-                  {lossPerKg > 0 ? `Losing ₹${lossPerKg.toFixed(1)} on each kg` : "Zero loss"}
+                  {lossPerKg > 0 ? `-₹${lossPerKg.toFixed(1)} per kg` : "Zero loss"}
                 </div>
               </div>
 
               {/* Metric 3: Standard Price vs Realized */}
               <div className="p-2.5 rounded-xl bg-slate-950/90 border border-slate-800 space-y-0.5">
-                <span className="text-[10px] text-slate-400 block">Effective Realized Rate:</span>
+                <span className="text-[10px] text-slate-400 block">Effective Rate:</span>
                 <div className="text-base font-black text-cyan-300">
                   ₹{dealRate.toFixed(1)}/Kg
                 </div>
                 <div className="text-[9px] text-slate-500">
-                  Standard: ₹{standardRate}/Kg
-                </div>
-              </div>
-
-              {/* Metric 4: Profit Retention Above Cost */}
-              <div className="p-2.5 rounded-xl bg-slate-950/90 border border-slate-800 space-y-0.5">
-                <span className="text-[10px] text-slate-400 block">Deal Profit (Above Cost):</span>
-                <div
-                  className={`text-base font-black ${
-                    isBelowCost ? "text-rose-500" : isTightMargin ? "text-amber-400" : "text-emerald-400"
-                  }`}
-                >
-                  {dealProfit >= 0 ? `+₹${dealProfit.toLocaleString("en-IN")}` : `-₹${Math.abs(dealProfit)} (LOSS)`}
-                </div>
-                <div className="text-[9px] text-slate-500">
-                  Farm base cost: ₹{baseCostPerKg}/Kg
-                </div>
-              </div>
-            </div>
-
-            {/* Farm Margin & Safety Health Gauge */}
-            <div
-              className={`p-2.5 rounded-xl border text-xs font-mono flex items-center justify-between ${
-                isBelowCost
-                  ? "bg-rose-950/60 border-rose-500 text-rose-200"
-                  : isTightMargin
-                  ? "bg-amber-950/40 border-amber-500/50 text-amber-200"
-                  : "bg-emerald-950/40 border-emerald-500/40 text-emerald-200"
-              }`}
-            >
-              <div className="flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-base">
-                  {isBelowCost ? "dangerous" : isTightMargin ? "warning" : "verified"}
-                </span>
-                <div>
-                  <div className="font-bold">
-                    {isBelowCost
-                      ? "⚠️ WARNING: Selling Below Harvest Cost!"
-                      : isTightMargin
-                      ? "⚡ Lean Margin Concession"
-                      : "✅ Healthy Profitable Deal"}
-                  </div>
-                  <div className="text-[10px] opacity-80">
-                    {isBelowCost
-                      ? `Deal rate ₹${dealRate.toFixed(1)} is lower than base cost ₹${baseCostPerKg}/Kg.`
-                      : isTightMargin
-                      ? `You retain ~${Math.round((dealProfit / (standardProfit || 1)) * 100)}% of standard margin.`
-                      : `Solid deal. ₹${dealProfit} profit retained on this catch.`}
-                  </div>
+                  Std: ₹{standardRate}/Kg
                 </div>
               </div>
             </div>
@@ -1071,31 +871,31 @@ _Thank you for choosing fresh Himalayan Rainbow Trout!_`;
                 </h3>
               </div>
 
-              {/* QR Engine Switcher */}
+              {/* QR Engine Switcher (Default: J&K Soundbox) */}
               <div className="flex items-center gap-1 bg-slate-950 p-0.5 rounded-lg border border-slate-800 text-[10px] font-mono">
-                <button
-                  type="button"
-                  onClick={() => setQrEngine("razorpay")}
-                  className={`px-2 py-0.5 rounded font-bold cursor-pointer transition-all ${
-                    qrEngine === "razorpay"
-                      ? "bg-cyan-500/25 text-cyan-300 border border-cyan-500/40"
-                      : "text-slate-400 hover:text-slate-200"
-                  }`}
-                  title="Single-use amount locked BharatQR with real-time auto capture"
-                >
-                  ⚡ Razorpay (Auto)
-                </button>
                 <button
                   type="button"
                   onClick={() => setQrEngine("soundbox")}
                   className={`px-2 py-0.5 rounded font-bold cursor-pointer transition-all ${
                     qrEngine === "soundbox"
-                      ? "bg-emerald-500/25 text-emerald-300 border border-emerald-500/40"
+                      ? "bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 shadow-sm"
                       : "text-slate-400 hover:text-slate-200"
                   }`}
-                  title="Direct J&K Soundbox locked UPI QR"
+                  title="Direct J&K Soundbox locked UPI QR (Default)"
                 >
                   🔊 J&amp;K Soundbox
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setQrEngine("razorpay")}
+                  className={`px-2 py-0.5 rounded font-bold cursor-pointer transition-all ${
+                    qrEngine === "razorpay"
+                      ? "bg-cyan-500/25 text-cyan-300 border border-cyan-500/40 shadow-sm"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                  title="Single-use amount locked BharatQR with real-time auto capture"
+                >
+                  ⚡ Razorpay (Auto)
                 </button>
               </div>
             </div>
@@ -1124,7 +924,7 @@ _Thank you for choosing fresh Himalayan Rainbow Trout!_`;
                   </p>
                 </div>
                 <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[10px] text-emerald-300 font-mono">
-                  ⚡ Auto-logged to Vending Sales &amp; Invoice records. Loss of ₹{discountAmount} logged.
+                  ⚡ Payment received successfully. Customer saved ₹{discountAmount.toLocaleString("en-IN")}.
                 </div>
                 <div className="flex items-center justify-center gap-2 pt-1">
                   <button
@@ -1182,7 +982,7 @@ _Thank you for choosing fresh Himalayan Rainbow Trout!_`;
                   <>
                     <div
                       onClick={() => setCustomerDisplayOpen(true)}
-                      className="relative w-44 h-44 sm:w-48 sm:h-48 bg-white border-2 border-cyan-400/60 rounded-2xl shadow-2xl overflow-hidden cursor-pointer group flex items-center justify-center p-1.5 transition-all hover:border-cyan-300"
+                      className="relative w-44 h-44 sm:w-48 sm:h-48 bg-white border-2 border-emerald-400/60 rounded-2xl shadow-2xl overflow-hidden cursor-pointer group flex items-center justify-center p-1.5 transition-all hover:border-emerald-300"
                       title="Click to open Fullscreen Customer Facing Display"
                     >
                       <img
@@ -1200,12 +1000,12 @@ _Thank you for choosing fresh Himalayan Rainbow Trout!_`;
 
                     {/* QR Status Bar */}
                     <div className="flex items-center justify-between w-full px-1 text-[11px] font-mono">
-                      <div className="flex items-center gap-1.5 text-amber-400 font-bold">
-                        <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                      <div className="flex items-center gap-1.5 text-emerald-400 font-bold">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
                         <span>
-                          {qrEngine === "razorpay"
-                            ? "Auto-detecting scan..."
-                            : "Awaiting Soundbox chime..."}
+                          {qrEngine === "soundbox"
+                            ? "J&K Soundbox QR Active"
+                            : "Auto-detecting scan..."}
                         </span>
                       </div>
                       <div className="flex items-center gap-1">
@@ -1220,10 +1020,10 @@ _Thank you for choosing fresh Himalayan Rainbow Trout!_`;
                           <button
                             type="button"
                             onClick={handleConfirmSoundboxPaid}
-                            className="px-2 py-0.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-[10px] font-bold uppercase cursor-pointer"
+                            className="px-2 py-0.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-[10px] font-bold uppercase cursor-pointer shadow-sm"
                             title="Confirm Soundbox announcement"
                           >
-                            ✓ Paid
+                            ✓ Soundbox Paid
                           </button>
                         )}
                       </div>
@@ -1232,7 +1032,7 @@ _Thank you for choosing fresh Himalayan Rainbow Trout!_`;
                     {/* Badge: Locked Notice */}
                     <div className="p-1.5 rounded-lg bg-slate-950 border border-slate-800 text-[10px] text-slate-400 font-mono w-full flex items-center justify-center gap-1">
                       <span>🔒</span>
-                      <span>Amount strictly locked to <strong>₹{dealTotal}</strong>. Cannot be modified.</span>
+                      <span>Amount strictly locked to <strong>₹{dealTotal}</strong>. Cannot be modified by customer.</span>
                     </div>
                   </>
                 )}
@@ -1393,7 +1193,7 @@ _Thank you for choosing fresh Himalayan Rainbow Trout!_`;
           }}
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/90 backdrop-blur-md animate-fadeIn"
         >
-          <div className="relative w-full max-w-lg bg-gradient-to-b from-slate-900 to-slate-950 border-2 border-cyan-500/50 rounded-3xl p-6 shadow-2xl space-y-4 text-center">
+          <div className="relative w-full max-w-lg bg-gradient-to-b from-slate-900 to-slate-950 border-2 border-emerald-500/50 rounded-3xl p-6 shadow-2xl space-y-4 text-center">
             {/* Close Button */}
             <button
               type="button"
@@ -1405,7 +1205,7 @@ _Thank you for choosing fresh Himalayan Rainbow Trout!_`;
 
             {/* Header */}
             <div>
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-mono font-bold uppercase tracking-wider mb-2">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-mono font-bold uppercase tracking-wider mb-2">
                 <span>🐟 Urban Trout Aquaculture</span>
               </div>
               <h2
@@ -1435,7 +1235,7 @@ _Thank you for choosing fresh Himalayan Rainbow Trout!_`;
             </div>
 
             {/* High-Resolution QR Display */}
-            <div className="w-56 h-56 mx-auto bg-white p-2 rounded-2xl shadow-xl flex items-center justify-center border-4 border-cyan-400">
+            <div className="w-56 h-56 mx-auto bg-white p-2 rounded-2xl shadow-xl flex items-center justify-center border-4 border-emerald-400">
               <img
                 src={qrEngine === "razorpay" && rzpQrImageUrl ? rzpQrImageUrl : soundboxQrUrl}
                 alt="Locked Payment QR"
@@ -1445,7 +1245,7 @@ _Thank you for choosing fresh Himalayan Rainbow Trout!_`;
 
             {/* Scannable Notice */}
             <div className="space-y-1">
-              <div className="flex items-center justify-center gap-2 text-xs font-mono text-cyan-300 font-bold">
+              <div className="flex items-center justify-center gap-2 text-xs font-mono text-emerald-300 font-bold">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
                 <span>Amount locked to ₹{dealTotal} • Scan to Pay</span>
               </div>
@@ -1462,48 +1262,6 @@ _Thank you for choosing fresh Himalayan Rainbow Trout!_`;
                 className="px-6 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-mono text-xs font-bold cursor-pointer"
               >
                 Close Customer View
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ─── BASE HARVEST COST EDIT MODAL ─── */}
-      {editCostModal && (
-        <div
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setEditCostModal(false);
-          }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
-        >
-          <div className="w-full max-w-sm bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3 shadow-2xl">
-            <h3 className="text-sm font-bold text-white flex items-center gap-1.5">
-              <span>⚙️</span> Farm Harvest Base Cost / Kg
-            </h3>
-            <p className="text-xs text-slate-400 font-mono">
-              Set your production/feed cost per kilogram. This helps ensure deal discounts never drop below farm breakeven cost.
-            </p>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-cyan-400 font-bold font-mono">
-                ₹
-              </span>
-              <input
-                type="number"
-                value={baseCostPerKg}
-                onChange={(e) => setBaseCostPerKg(parseFloat(e.target.value) || 0)}
-                className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-8 pr-16 py-2 text-lg font-mono text-white font-bold focus:outline-none focus:border-cyan-400"
-              />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-xs">
-                / KG
-              </span>
-            </div>
-            <div className="pt-2 flex items-center justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setEditCostModal(false)}
-                className="px-4 py-1.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold font-mono text-xs uppercase cursor-pointer"
-              >
-                Save Base Cost
               </button>
             </div>
           </div>
