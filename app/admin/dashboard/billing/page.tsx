@@ -115,6 +115,19 @@ export default function POSBillingPage() {
   const [refreshBalancesTrigger, setRefreshBalancesTrigger] = useState<number>(0);
   const [activeBalanceModalRecord, setActiveBalanceModalRecord] = useState<any>(null);
   const [isBalanceModalOpen, setIsBalanceModalOpen] = useState(false);
+  const [pendingKhataCount, setPendingKhataCount] = useState<number>(0);
+
+  // Fetch pending Khata balance count for tab badge
+  useEffect(() => {
+    fetch("/api/customer-balance?status=pending")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.success && d?.summary) {
+          setPendingKhataCount(d.summary.pendingRecordsCount || 0);
+        }
+      })
+      .catch(() => {});
+  }, [refreshBalancesTrigger, activeTab]);
 
   // Listen to URL query params (e.g. ?tab=customer_balances)
   useEffect(() => {
@@ -1686,6 +1699,11 @@ ${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━
           >
             <span className="material-symbols-outlined text-base">account_balance_wallet</span>
             <span>📒 Customer Khata &amp; Balances</span>
+            {pendingKhataCount > 0 && (
+              <span className="px-2 py-0.5 rounded-full bg-amber-500/25 border border-amber-500/50 text-amber-300 text-[10px] font-mono font-bold animate-pulse">
+                {pendingKhataCount} PENDING
+              </span>
+            )}
           </button>
         </div>
 
@@ -2713,6 +2731,35 @@ ${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━
       {/* ─── DEDICATED REMOTE ORDERS & WHATSAPP PAYMENTS DASHBOARD ─── */}
       {activeTab === "remote_orders" && (
         <div className="space-y-4 animate-fadeIn">
+          {/* Bridge Banner to Customer Khata & Balances */}
+          <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-950/40 via-slate-900 to-slate-900 border border-amber-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center shrink-0">
+                <span className="material-symbols-outlined text-amber-400 text-base">account_balance_wallet</span>
+              </div>
+              <div>
+                <div className="text-xs font-bold text-amber-200 font-mono flex items-center gap-2">
+                  <span>Looking for Customer Balance (Khata) QRs?</span>
+                  {pendingKhataCount > 0 && (
+                    <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px] font-mono border border-amber-500/40">
+                      {pendingKhataCount} Pending
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-slate-400 font-mono mt-0.5">
+                  Partial payments &amp; pending balance QRs (e.g. Farzana Javeed ₹179, Shakeel Sir ₹95) are tracked in <strong>Customer Khata &amp; Balances</strong>.
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setActiveTab("customer_balances")}
+              className="px-3.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/50 text-xs font-bold font-mono transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
+            >
+              <span>📒 Open Khata &amp; Balances (Tab 4) &rarr;</span>
+            </button>
+          </div>
+
           {/* KPI Summary Bar */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
             {/* 1. Total Remote Orders */}
