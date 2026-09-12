@@ -10,6 +10,8 @@ import { AquariumStockEntry } from "@/app/api/aquarium-stock/route";
 import { AquariumMortalityEntry } from "@/app/api/aquarium-mortality/route";
 import { WorkerSalaryPayment, WorkerSalarySettings } from "@/app/api/vending-log/salary/route";
 import * as XLSX from "xlsx";
+import BalanceReminderModal from "../billing/BalanceReminderModal";
+import type { CustomerBalanceRecord } from "@/app/api/customer-balance/route";
 
 const DEFAULT_GUTTED_PRICE = 580;
 const DEFAULT_NON_GUTTED_PRICE = 540;
@@ -219,6 +221,13 @@ export default function VendingCenterLoggerPage() {
   const [formCustomFields, setFormCustomFields] = useState<Record<string, any>>({});
   const [formNotes, setFormNotes] = useState("");
   const [formLoggedBy, setFormLoggedBy] = useState("Counter Staff");
+
+  // ─── Customer Balance & Khata State (Vending Center) ───
+  const [formCustomerName, setFormCustomerName] = useState("");
+  const [formCustomerPhone, setFormCustomerPhone] = useState("");
+  const [formBalanceAction, setFormBalanceAction] = useState<"balance" | "final_settlement" | "none">("final_settlement");
+  const [selectedBalanceRecord, setSelectedBalanceRecord] = useState<CustomerBalanceRecord | null>(null);
+  const [balanceModalOpen, setBalanceModalOpen] = useState(false);
 
   // ─── Aquarium Mortality & Scrap Wastage State ───
   const [mortalityEntries, setMortalityEntries] = useState<AquariumMortalityEntry[]>([]);
@@ -623,6 +632,8 @@ export default function VendingCenterLoggerPage() {
     let totalRevenue = 0;
     let totalExpected = 0;
     let totalLoss = 0;
+    let pendingBalanceTotal = 0;
+    let pendingBalanceCount = 0;
     let guttedKg = 0;
     let nonGuttedKg = 0;
     let guttedRevenue = 0;
@@ -647,6 +658,12 @@ export default function VendingCenterLoggerPage() {
         e.discount_amount !== undefined && e.discount_amount !== null
           ? Number(e.discount_amount)
           : Math.max(0, exp - rev);
+
+      const bal = Number(e.custom_fields?.balance_amount || 0);
+      if (bal > 0 && e.custom_fields?.balance_status === "pending") {
+        pendingBalanceTotal += bal;
+        pendingBalanceCount += 1;
+      }
 
       totalKg = Math.round((totalKg + w) * 1000) / 1000;
       totalRevenue += rev;
@@ -704,6 +721,8 @@ export default function VendingCenterLoggerPage() {
       totalExpected,
       totalLoss,
       lossPercent,
+      pendingBalanceTotal,
+      pendingBalanceCount,
       guttedKg,
       nonGuttedKg,
       guttedRevenue,
@@ -924,6 +943,9 @@ export default function VendingCenterLoggerPage() {
     setFormPayment("Cash");
     setFormCustomFields({});
     setFormNotes("");
+    setFormCustomerName("");
+    setFormCustomerPhone("");
+    setFormBalanceAction("final_settlement");
     setEditingEntry(null);
   };
 
@@ -937,17 +959,99 @@ export default function VendingCenterLoggerPage() {
       alert("Please enter a valid weight in Kg.");
       return;
     }
-    if (isNaN(amt) || amt <= 0) {
-      alert("Please enter a valid Amount Paid.");
+    if (isNaN(amt) || amt < 0) {
+      alert("Please enter a valid Amount Paid (₹0 or more).");
       return;
     }
 
     const calculatedExpected = Math.round(w * formRate);
     const expected = calculatedExpected;
-    const discount = Math.max(0, expected - amt);
+    const difference = Math.max(0, expected - amt);
+
+    if (formBalanceAction === "balance" && difference > 0) {
+      if (!formCustomerPhone.trim()) {
+        alert("Please enter Customer Phone Number (WhatsApp) so balance reminders & Razorpay QR can be sent.");
+        return;
+      }
+    }
+
+    let finalDiscount = 0;
+    let balanceAmount = 0;
+    let balanceStatus: "pending" | "waived_final" | "none" = "none";
+    let balanceRefId = editingEntry?.custom_fields?.balance_ref_id;
+
+    if (formBalanceAction === "balance" && difference > 0) {
+      balanceAmount = difference;
+      balanceStatus = "pending";
+      finalDiscount = 0; // Customer owes this balance, not a concession!
+      if (!balanceRefId) {
+        balanceRefId = `VL-${formDate.replace(/\D/g, "")}-${Date.now().toString().slice(-4)}`;
+      }
+    } else if (formBalanceAction === "final_settlement" && difference > 0) {
+      balanceAmount = 0;
+      balanceStatus = "waived_final";
+      finalDiscount = difference; // Full difference conceded as courtesy discount
+    } else {
+      balanceAmount = 0;
+      balanceStatus = "none";
+      finalDiscount = Math.max(0, expected - amt);
+    }
+
+    const updatedCustomFields = {
+      ...(formCustomFields || {}),
+      balance_amount: balanceAmount,
+      balance_status: balanceStatus,
+      balance_ref_id: balanceRefId || null,
+      customer_name: formCustomerName.trim() || undefined,
+      customer_phone: formCustomerPhone.trim() || undefined,
+    };
 
     setSaving(true);
     try {
+      // Sync customer balance record to backend
+      if (balanceStatus === "pending" && balanceAmount > 0 && balanceRefId) {
+        try {
+          await fetch("/api/customer-balance", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              invoiceId: balanceRefId,
+              customerName: formCustomerName.trim() || "Counter Customer",
+              customerPhone: formCustomerPhone.trim(),
+              totalAmount: expected,
+              paidAmount: amt,
+              balanceAmount: balanceAmount,
+              status: "pending",
+              paymentMethod: formPayment,
+              settlementNote: `Vending Center Sale: ${w} Kg ${formType} Trout`,
+              itemsSummary: `${w} Kg ${formType} Trout (Vending Center)`,
+            }),
+          });
+        } catch (e) {
+          console.warn("Failed to sync customer balance record:", e);
+        }
+      } else if (balanceRefId && (balanceStatus === "waived_final" || balanceStatus === "none" || formBalanceAction === "none")) {
+        try {
+          if (formBalanceAction === "none") {
+            await fetch(`/api/customer-balance?id=${encodeURIComponent(balanceRefId)}`, {
+              method: "DELETE",
+            });
+          } else {
+            await fetch("/api/customer-balance", {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                id: balanceRefId,
+                action: "SETTLE_FINAL_WAIVER",
+                settlementNote: "Agreed Final Settlement / Concession Discount in Vending Log",
+              }),
+            });
+          }
+        } catch (e) {
+          console.warn("Failed to update/remove customer balance record:", e);
+        }
+      }
+
       if (editingEntry) {
         // Edit entry
         const updates = {
@@ -958,9 +1062,9 @@ export default function VendingCenterLoggerPage() {
           rate_per_kg: formRate,
           expected_amount: expected,
           amount_paid: amt,
-          discount_amount: discount,
+          discount_amount: finalDiscount,
           payment_mode: formPayment,
-          custom_fields: formCustomFields,
+          custom_fields: updatedCustomFields,
           notes: formNotes,
           logged_by: formLoggedBy,
         };
@@ -991,9 +1095,9 @@ export default function VendingCenterLoggerPage() {
           rate_per_kg: formRate,
           expected_amount: expected,
           amount_paid: amt,
-          discount_amount: discount,
+          discount_amount: finalDiscount,
           payment_mode: formPayment,
-          custom_fields: formCustomFields,
+          custom_fields: updatedCustomFields,
           notes: formNotes,
           logged_by: formLoggedBy,
         };
@@ -1861,7 +1965,82 @@ export default function VendingCenterLoggerPage() {
     setFormCustomFields(entry.custom_fields || {});
     setFormNotes(entry.notes || "");
     setFormLoggedBy(entry.logged_by || "Counter Staff");
+
+    const cf = entry.custom_fields || {};
+    setFormCustomerName(cf.customer_name || "");
+    setFormCustomerPhone(cf.customer_phone || "");
+    const balAmt = Number(cf.balance_amount || 0);
+    if (balAmt > 0 && cf.balance_status === "pending") {
+      setFormBalanceAction("balance");
+    } else if (cf.balance_status === "waived_final") {
+      setFormBalanceAction("final_settlement");
+    } else if (cf.balance_status === "none") {
+      setFormBalanceAction("none");
+    } else {
+      const w = Number(entry.weight_kg) || 0;
+      const rate = Number(entry.rate_per_kg) || 0;
+      const exp = Number(entry.expected_amount) || Math.round(w * rate);
+      const paid = Number(entry.amount_paid) || 0;
+      setFormBalanceAction(exp > paid ? "final_settlement" : "none");
+    }
+
     setNewEntryModalOpen(true);
+  };
+
+  // Open Balance Reminder Modal from sales table row
+  const handleOpenBalanceModalForEntry = (entry: VendingSalesEntry) => {
+    const cf = entry.custom_fields || {};
+    const refId = cf.balance_ref_id || `VL-${entry.entry_date.replace(/\D/g, "")}-${entry.id.slice(-4)}`;
+    const balAmt = Number(cf.balance_amount) || Math.max(0, Number(entry.expected_amount) - Number(entry.amount_paid));
+    const rec: CustomerBalanceRecord = {
+      id: refId,
+      invoice_id: refId,
+      customer_name: cf.customer_name || "Counter Customer",
+      customer_phone: cf.customer_phone || "",
+      total_amount: Number(entry.expected_amount || Math.round(Number(entry.weight_kg) * Number(entry.rate_per_kg))),
+      paid_amount: Number(entry.amount_paid),
+      balance_amount: balAmt,
+      status: "pending",
+      payment_method: entry.payment_mode || "Cash",
+      settlement_note: `Vending Center Sale: ${entry.weight_kg} Kg ${entry.product_type}`,
+      items_summary: `${entry.weight_kg} Kg ${entry.product_type} Trout`,
+      created_at: `${entry.entry_date}T${entry.entry_time || "12:00:00"}`,
+      updated_at: new Date().toISOString(),
+    };
+    setSelectedBalanceRecord(rec);
+    setBalanceModalOpen(true);
+  };
+
+  // Called when balance is settled or repaid via BalanceReminderModal
+  const handleBalanceUpdated = async () => {
+    if (selectedBalanceRecord) {
+      const refId = selectedBalanceRecord.invoice_id || selectedBalanceRecord.id;
+      setEntries((prev) =>
+        prev.map((item) => {
+          if (item.custom_fields?.balance_ref_id === refId) {
+            const updatedCf = {
+              ...item.custom_fields,
+              balance_status: "settled",
+              balance_amount: 0,
+            };
+            adminFetch("/api/vending-log", {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                id: item.id,
+                updates: { custom_fields: updatedCf },
+              }),
+            }).catch((err) => console.warn("Could not sync settled vending entry:", err));
+
+            return {
+              ...item,
+              custom_fields: updatedCf,
+            };
+          }
+          return item;
+        })
+      );
+    }
   };
 
   return (
@@ -2313,6 +2492,12 @@ export default function VendingCenterLoggerPage() {
                       ? "Lost to customer bargaining"
                       : "All orders at full inventory price"}
                   </div>
+                  {kpis.pendingBalanceTotal > 0 && (
+                    <div className="mt-1 flex items-center justify-between text-[10px] text-amber-300 font-mono bg-amber-500/15 px-2 py-0.5 rounded border border-amber-500/30">
+                      <span>⏳ Khata Due:</span>
+                      <span className="font-bold">₹{kpis.pendingBalanceTotal.toLocaleString("en-IN")} ({kpis.pendingBalanceCount})</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -3102,7 +3287,30 @@ export default function VendingCenterLoggerPage() {
                         <span className="text-cyan-300">₹{taken.toLocaleString("en-IN")}</span>
                       </td>
                       <td className="py-3 px-3 text-right whitespace-nowrap font-mono">
-                        {loss > 0 ? (
+                        {Number(e.custom_fields?.balance_amount) > 0 && e.custom_fields?.balance_status === "pending" ? (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenBalanceModalForEntry(e)}
+                            className="inline-flex flex-col items-end gap-0.5 text-right group/bal cursor-pointer"
+                            title="Click to open Razorpay QR & WhatsApp Reminder"
+                          >
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/50 group-hover/bal:bg-amber-500/30 transition-all">
+                              <span>⏳ Bal: ₹{Number(e.custom_fields.balance_amount).toLocaleString("en-IN")}</span>
+                            </span>
+                            {e.custom_fields.customer_phone && (
+                              <span className="text-[9px] text-amber-400/80 font-mono">
+                                {e.custom_fields.customer_name || e.custom_fields.customer_phone}
+                              </span>
+                            )}
+                          </button>
+                        ) : e.custom_fields?.balance_status === "waived_final" ? (
+                          <span
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono text-slate-300 bg-slate-800 border border-slate-700"
+                            title={`Settled as final courtesy concession: ₹${loss}`}
+                          >
+                            <span>🤝 Waived (-₹{loss})</span>
+                          </span>
+                        ) : loss > 0 ? (
                           <span
                             className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30"
                             title={`Customer price negotiation concession: ₹${loss}`}
@@ -3160,6 +3368,17 @@ export default function VendingCenterLoggerPage() {
                       </td>
                       <td className="py-3 px-3 text-center whitespace-nowrap">
                         <div className="flex items-center justify-center gap-1 opacity-80 group-hover:opacity-100">
+                          {Number(e.custom_fields?.balance_amount) > 0 && e.custom_fields?.balance_status === "pending" && (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenBalanceModalForEntry(e)}
+                              className="px-2 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[10px] font-bold font-mono transition-all cursor-pointer flex items-center gap-1 shadow-sm"
+                              title="Send WhatsApp Payment Reminder / Generate Razorpay QR"
+                            >
+                              <span className="material-symbols-outlined text-xs">qr_code_2</span>
+                              <span>Remind</span>
+                            </button>
+                          )}
                           <button
                             type="button"
                             onClick={() => openEditModal(e)}
@@ -3510,7 +3729,7 @@ export default function VendingCenterLoggerPage() {
                     </div>
 
                     {/* Live Negotiation Loss Banner */}
-                    {wNum > 0 && actualPaid > 0 && (
+                    {wNum > 0 && (actualPaid > 0 || formAmount === "0") && (
                       <div
                         className={`p-2.5 rounded-xl border text-xs font-mono flex items-center justify-between ${
                           loss > 0
@@ -3526,7 +3745,7 @@ export default function VendingCenterLoggerPage() {
                           </span>
                           <span>
                             {loss > 0
-                              ? "Negotiation Concession (Loss):"
+                              ? "Negotiation / Balance Difference:"
                               : loss < 0
                               ? "Extra Paid (Premium):"
                               : "Price Status:"}
@@ -3541,6 +3760,124 @@ export default function VendingCenterLoggerPage() {
                             "Exact Full Price ✓"
                           )}
                         </span>
+                      </div>
+                    )}
+
+                    {/* Balance vs Final Settlement Options (When customer paid less than expected) */}
+                    {wNum > 0 && (actualPaid > 0 || formAmount === "0") && loss > 0 && (
+                      <div className="p-3.5 rounded-2xl bg-slate-950/90 border border-amber-500/40 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="material-symbols-outlined text-amber-400 text-base">account_balance_wallet</span>
+                            <span className="text-xs font-bold text-slate-200 font-mono">
+                              Remaining Difference: ₹{loss.toLocaleString("en-IN")}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-slate-400 font-mono">Treatment</span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2">
+                          {/* Option 1: Final Settlement (Waived concession) */}
+                          <button
+                            type="button"
+                            onClick={() => setFormBalanceAction("final_settlement")}
+                            className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                              formBalanceAction === "final_settlement"
+                                ? "bg-slate-800/90 border-amber-400 text-amber-200 ring-1 ring-amber-400/50 shadow-md"
+                                : "bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-300"
+                            }`}
+                          >
+                            <div className="flex items-center gap-1.5 font-bold text-xs">
+                              <span>🤝 Final Settlement</span>
+                            </div>
+                            <p className="text-[10px] opacity-75 mt-0.5 leading-snug">
+                              Concede ₹{loss} as courtesy discount. No balance pending.
+                            </p>
+                          </button>
+
+                          {/* Option 2: Keep Balance (Khata) */}
+                          <button
+                            type="button"
+                            onClick={() => setFormBalanceAction("balance")}
+                            className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                              formBalanceAction === "balance"
+                                ? "bg-amber-950/40 border-amber-400 text-amber-200 ring-1 ring-amber-400/50 shadow-md shadow-amber-950/30"
+                                : "bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-300"
+                            }`}
+                          >
+                            <div className="flex items-center gap-1.5 font-bold text-xs">
+                              <span>📒 Keep Balance (Khata)</span>
+                            </div>
+                            <p className="text-[10px] opacity-75 mt-0.5 leading-snug">
+                              Record ₹{loss} balance. Send QR & WhatsApp reminder later.
+                            </p>
+                          </button>
+                        </div>
+
+                        {/* Customer details when Balance is chosen */}
+                        {formBalanceAction === "balance" && (
+                          <div className="p-3 rounded-xl bg-slate-900/90 border border-amber-500/30 space-y-2.5">
+                            <div className="flex items-center justify-between text-[11px] text-amber-300 font-mono">
+                              <span className="font-bold">Customer Contact for Balance Reminder</span>
+                              <span className="text-[10px] text-amber-400/80">Phone required for WhatsApp/QR</span>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              <div>
+                                <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">
+                                  Customer Phone (WhatsApp) <span className="text-amber-400">*</span>
+                                </label>
+                                <input
+                                  type="tel"
+                                  value={formCustomerPhone}
+                                  onChange={(e) => setFormCustomerPhone(e.target.value)}
+                                  placeholder="e.g. 9876543210"
+                                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-amber-400"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">
+                                  Customer Name (Optional)
+                                </label>
+                                <input
+                                  type="text"
+                                  value={formCustomerName}
+                                  onChange={(e) => setFormCustomerName(e.target.value)}
+                                  placeholder="e.g. Dr. Farooq / Tariq Sb"
+                                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-amber-400"
+                                />
+                              </div>
+                            </div>
+                            <p className="text-[10px] text-amber-300/80 font-mono">
+                              💡 This balance will appear on your Executive Dashboard Flashcard and Khata tab with one-click Razorpay QR & polite WhatsApp reminders.
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Option 3: Remove / Clear Balance (Shown in edit mode or when balance was previously recorded) */}
+                        {(editingEntry?.custom_fields?.balance_amount || formBalanceAction === "none") && (
+                          <div className="flex items-center justify-between pt-1 border-t border-slate-800/80">
+                            <span className="text-[10px] text-slate-400 font-mono">Need to remove tracking?</span>
+                            <button
+                              type="button"
+                              onClick={() => setFormBalanceAction("none")}
+                              className={`text-[10px] font-mono px-2.5 py-1 rounded-lg transition-colors cursor-pointer ${
+                                formBalanceAction === "none"
+                                  ? "bg-rose-500/20 text-rose-300 border border-rose-500/40 font-bold"
+                                  : "text-slate-400 hover:text-rose-400 hover:bg-slate-800"
+                              }`}
+                            >
+                              ✕ Remove / Clear Balance Record
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Notice if editing an entry that had a balance but is now fully paid */}
+                    {editingEntry?.custom_fields?.balance_amount && loss <= 0 && (
+                      <div className="p-2.5 rounded-xl bg-emerald-950/30 border border-emerald-500/30 text-emerald-300 text-xs font-mono flex items-center gap-2">
+                        <span className="material-symbols-outlined text-sm">check_circle</span>
+                        <span>Full amount paid! Previous balance record will be marked settled.</span>
                       </div>
                     )}
                   </div>
@@ -4908,6 +5245,19 @@ export default function VendingCenterLoggerPage() {
           </div>
         </div>
       )}
+
+      {/* ══════════════════════════════════════════════════════════
+          BALANCE REMINDER & RAZORPAY QR MODAL
+          ══════════════════════════════════════════════════════════ */}
+      <BalanceReminderModal
+        isOpen={balanceModalOpen}
+        onClose={() => {
+          setBalanceModalOpen(false);
+          setSelectedBalanceRecord(null);
+        }}
+        record={selectedBalanceRecord}
+        onBalanceUpdated={handleBalanceUpdated}
+      />
     </div>
   );
 }
