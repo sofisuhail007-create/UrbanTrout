@@ -5,7 +5,7 @@
 
 CREATE TABLE IF NOT EXISTS public.customer_balances (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    invoice_id TEXT NOT NULL,
+    invoice_id TEXT NOT NULL UNIQUE,
     customer_name TEXT NOT NULL,
     customer_phone TEXT NOT NULL,
     total_amount NUMERIC(10, 2) NOT NULL,
@@ -22,6 +22,17 @@ CREATE TABLE IF NOT EXISTS public.customer_balances (
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
+
+-- Ensure UNIQUE constraint on invoice_id if table was already created
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'customer_balances_invoice_id_key'
+    ) THEN
+        ALTER TABLE public.customer_balances ADD CONSTRAINT customer_balances_invoice_id_key UNIQUE (invoice_id);
+    END IF;
+EXCEPTION WHEN OTHERS THEN NULL;
+END $$;
 
 -- Performance Indexes
 CREATE INDEX IF NOT EXISTS idx_customer_balances_status ON public.customer_balances(status);
