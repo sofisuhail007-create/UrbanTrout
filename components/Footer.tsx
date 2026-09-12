@@ -250,56 +250,13 @@ export default function Footer() {
         </div>
       </div>
 
-      {/* Bottom bar with all compliance links */}
+      {/* ─── BOTTOM COMPLIANCE & ATTRIBUTION BAR ─── */}
       <div
-        className="max-w-7xl mx-auto px-8 py-5 flex flex-col md:flex-row justify-between items-center gap-4"
+        className="max-w-7xl mx-auto px-6 sm:px-8 py-6 flex flex-col items-center gap-3.5 text-center"
         style={{ borderTop: "1px solid rgba(61,74,83,0.25)" }}
       >
-        <div className="flex flex-col sm:flex-row items-center gap-2 text-center sm:text-left">
-          <span
-            style={{
-              fontFamily: '"Inter", sans-serif',
-              fontSize: "11px",
-              letterSpacing: "0.06em",
-              textTransform: "uppercase",
-              color: C.outline,
-            }}
-          >
-            © 2026 Urban Trout (Skindar Mohd Sideeq). All rights reserved.
-          </span>
-          <span className="hidden sm:inline text-slate-700">|</span>
-          <span
-            style={{
-              fontFamily: '"Inter", sans-serif',
-              fontSize: "11px",
-              letterSpacing: "0.04em",
-              color: C.onSurfVar,
-            }}
-            className="inline-flex items-center gap-1.5"
-          >
-            <span>Handcrafted with</span>
-            <span
-              className="animate-heartbeat inline-flex items-center justify-center text-rose-500"
-              title="love"
-              aria-label="love"
-            >
-              <svg className="w-3.5 h-3.5 fill-current text-rose-500 shrink-0" viewBox="0 0 24 24">
-                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
-              </svg>
-            </span>
-            <span>by</span>
-            <a
-              href="https://wa.me/917006604148?text=Hello%20Frixl%2C%20I%20saw%20your%20work%20on%20Urban%20Trout"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-bold text-amber-400 hover:text-amber-300 transition-all hover:underline"
-              title="Contact Frixl on WhatsApp (+91 70066 04148)"
-            >
-              Frixl
-            </a>
-          </span>
-        </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "1.25rem", justifyContent: "center" }}>
+        {/* Row 1: Policy Compliance Links */}
+        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2">
           {[
             { href: "/privacy", label: "Privacy Policy" },
             { href: "/terms", label: "Terms of Service" },
@@ -310,20 +267,47 @@ export default function Footer() {
             <Link
               key={link.href}
               href={link.href}
-              style={{
-                fontFamily: '"Inter", sans-serif',
-                fontSize: "11px",
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-                color: C.outline,
-                textDecoration: "none",
-                transition: "color 0.2s",
-              }}
-              className="hover:text-primary transition-colors"
+              className="text-[11px] uppercase tracking-wider text-slate-400 hover:text-cyan-300 transition-colors"
+              style={{ fontFamily: '"Inter", sans-serif' }}
             >
               {link.label}
             </Link>
           ))}
+        </div>
+
+        {/* Row 2: Copyright & Frixl Attribution (Clean single-line matching Stag Kashmir reference) */}
+        <div
+          className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-xs text-slate-400"
+          style={{ fontFamily: '"Inter", sans-serif' }}
+        >
+          <span>© 2026 Urban Trout. All rights reserved.</span>
+          <span className="text-slate-600 hidden sm:inline">|</span>
+          <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+            <span>Handcrafted with</span>
+            <span
+              className="animate-heartbeat inline-flex items-center justify-center text-rose-500"
+              title="love"
+              aria-label="love"
+            >
+              <svg className="w-3.5 h-3.5 stroke-rose-500 fill-none stroke-[2]" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-4.5C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
+                />
+              </svg>
+            </span>
+            <span>by</span>
+            <a
+              href="https://wa.me/917006604148?text=Hello%20Frixl%2C%20I%20saw%20your%20work%20on%20Urban%20Trout"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-bold text-amber-400 hover:text-amber-300 transition-colors"
+              title="Contact Frixl on WhatsApp (+91 70066 04148)"
+            >
+              Frixl
+            </a>
+          </span>
         </div>
       </div>
     </footer>
