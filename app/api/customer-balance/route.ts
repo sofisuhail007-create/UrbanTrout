@@ -185,6 +185,9 @@ export async function GET(request: Request) {
               payment_method: r.payment_mode || "Cash",
               settlement_note: r.notes ? `Vending: ${r.notes}` : `Vending Center Sale: ${w} Kg ${r.product_type}`,
               items_summary: `${w} Kg ${r.product_type} Trout (Vending Center)`,
+              razorpay_payment_link_id: cf.razorpay_payment_link_id || cf.payment_link_id || undefined,
+              razorpay_payment_link_url: cf.razorpay_payment_link_url || cf.payment_link_url || undefined,
+              last_reminder_sent_at: cf.last_reminder_sent_at || undefined,
               created_at: formatEntryDateTime(r.entry_date, r.entry_time, r.created_at),
               updated_at: r.updated_at || r.created_at || new Date().toISOString(),
             });
@@ -222,6 +225,9 @@ export async function GET(request: Request) {
               status: (d.balanceStatus as any) || "pending",
               payment_method: d.paymentMethod || "Cash",
               items_summary: Array.isArray(d.items) ? d.items.map((i: any) => i.n || i.name).join(", ") : undefined,
+              razorpay_payment_link_id: d.payment_link_id || d.razorpay_payment_link_id || undefined,
+              razorpay_payment_link_url: d.payment_link_url || d.razorpay_payment_link_url || undefined,
+              last_reminder_sent_at: d.last_reminder_sent_at || undefined,
               created_at: r.created_at,
               updated_at: r.created_at,
             });
@@ -419,7 +425,17 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   try {
     const body = await request.json();
-    const { id, invoiceId, action, amountReceived, paymentMethod, settlementNote, razorpayPaymentLinkUrl, razorpayQrId } = body;
+    const {
+      id,
+      invoiceId,
+      action,
+      amountReceived,
+      paymentMethod,
+      settlementNote,
+      razorpayPaymentLinkId,
+      razorpayPaymentLinkUrl,
+      razorpayQrId,
+    } = body;
 
     const lookupId = id || invoiceId;
     if (!lookupId) return NextResponse.json({ success: false, error: "Missing record id" }, { status: 400 });
@@ -474,6 +490,9 @@ export async function PATCH(request: Request) {
             balance_amount: bal,
             status: cf.balance_status || "pending",
             payment_method: vslMatch.payment_mode || "Cash",
+            razorpay_payment_link_id: cf.razorpay_payment_link_id || cf.payment_link_id,
+            razorpay_payment_link_url: cf.razorpay_payment_link_url || cf.payment_link_url,
+            last_reminder_sent_at: cf.last_reminder_sent_at,
             created_at: vslMatch.created_at || new Date().toISOString(),
             updated_at: new Date().toISOString(),
           };
@@ -492,7 +511,7 @@ export async function PATCH(request: Request) {
         current.paid_amount = Number((current.paid_amount + payment).toFixed(2));
         current.balance_amount = Number(Math.max(0, current.balance_amount - payment).toFixed(2));
         current.status = current.balance_amount <= 0 ? "settled" : "pending";
-        current.payment_method = paymentMethod || current.payment_method || "Cash";
+        current.payment_method = paymentMethod || current.payment_method || "Razorpay Link (Verified)";
         if (settlementNote) {
           current.settlement_note = current.settlement_note
             ? `${current.settlement_note} | Repayment ₹${payment}: ${settlementNote}`
@@ -503,10 +522,18 @@ export async function PATCH(request: Request) {
       current.status = "waived_final";
       current.balance_amount = 0;
       current.settlement_note = settlementNote || "Agreed final payment discount waiver";
-    } else if (action === "UPDATE_REMINDER") {
+    } else if (action === "UPDATE_REMINDER" || action === "REMINDER_SENT") {
       current.last_reminder_sent_at = new Date().toISOString();
       if (razorpayPaymentLinkUrl) current.razorpay_payment_link_url = razorpayPaymentLinkUrl;
+      if (razorpayPaymentLinkId) current.razorpay_payment_link_id = razorpayPaymentLinkId;
       if (razorpayQrId) current.razorpay_qr_id = razorpayQrId;
+    } else if (action === "UPDATE_LINKS") {
+      if (razorpayPaymentLinkUrl) current.razorpay_payment_link_url = razorpayPaymentLinkUrl;
+      if (razorpayPaymentLinkId) current.razorpay_payment_link_id = razorpayPaymentLinkId;
+      if (razorpayQrId) current.razorpay_qr_id = razorpayQrId;
+    } else if (action === "CANCEL_LINK") {
+      current.razorpay_payment_link_url = undefined;
+      current.razorpay_payment_link_id = undefined;
     }
 
     current.updated_at = new Date().toISOString();
@@ -528,8 +555,9 @@ export async function PATCH(request: Request) {
             status: current.status,
             payment_method: current.payment_method,
             settlement_note: current.settlement_note,
-            razorpay_payment_link_url: current.razorpay_payment_link_url,
-            razorpay_qr_id: current.razorpay_qr_id,
+            razorpay_payment_link_id: current.razorpay_payment_link_id || null,
+            razorpay_payment_link_url: current.razorpay_payment_link_url || null,
+            razorpay_qr_id: current.razorpay_qr_id || null,
             last_reminder_sent_at: current.last_reminder_sent_at,
             updated_at: current.updated_at,
           })
@@ -545,8 +573,9 @@ export async function PATCH(request: Request) {
           status: current.status,
           payment_method: current.payment_method,
           settlement_note: current.settlement_note,
-          razorpay_payment_link_url: current.razorpay_payment_link_url,
-          razorpay_qr_id: current.razorpay_qr_id,
+          razorpay_payment_link_id: current.razorpay_payment_link_id || null,
+          razorpay_payment_link_url: current.razorpay_payment_link_url || null,
+          razorpay_qr_id: current.razorpay_qr_id || null,
           last_reminder_sent_at: current.last_reminder_sent_at,
           updated_at: current.updated_at,
         });
@@ -587,6 +616,13 @@ export async function PATCH(request: Request) {
 
         cf.balance_amount = current.balance_amount;
         cf.balance_status = current.status;
+        if (current.razorpay_payment_link_id) cf.razorpay_payment_link_id = current.razorpay_payment_link_id;
+        if (current.razorpay_payment_link_url) cf.razorpay_payment_link_url = current.razorpay_payment_link_url;
+        if (current.last_reminder_sent_at) cf.last_reminder_sent_at = current.last_reminder_sent_at;
+        if (action === "CANCEL_LINK") {
+          delete cf.razorpay_payment_link_id;
+          delete cf.razorpay_payment_link_url;
+        }
 
         // Structured payment history array in custom_fields
         if (!Array.isArray(cf.payment_history)) {

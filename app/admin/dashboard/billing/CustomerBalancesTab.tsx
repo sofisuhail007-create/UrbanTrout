@@ -26,6 +26,34 @@ function formatShortDate(dateStr?: string | null): string {
   return dateStr;
 }
 
+function playSuccessChime() {
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const now = ctx.currentTime;
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.frequency.setValueAtTime(659.25, now);
+    gain1.gain.setValueAtTime(0.18, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    osc1.start(now);
+    osc1.stop(now + 0.3);
+
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.frequency.setValueAtTime(987.77, now + 0.15);
+    gain2.gain.setValueAtTime(0.2, now + 0.15);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(now + 0.15);
+    osc2.stop(now + 0.6);
+  } catch (_) {}
+}
+
 export default function CustomerBalancesTab({
   upiId = "JKBMERC00828895@jkb",
   onRefreshTrigger,
@@ -50,6 +78,7 @@ export default function CustomerBalancesTab({
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRecord, setSelectedRecord] = useState<CustomerBalanceRecord | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [checkingLinkId, setCheckingLinkId] = useState<string | null>(null);
 
   // Fetch balances from API
   const fetchBalances = async () => {
@@ -79,6 +108,47 @@ export default function CustomerBalancesTab({
   const handleOpenAction = (record: CustomerBalanceRecord) => {
     setSelectedRecord(record);
     setIsModalOpen(true);
+  };
+
+  const handleCheckLinkStatus = async (record: CustomerBalanceRecord) => {
+    if (!record.razorpay_payment_link_id) {
+      handleOpenAction(record);
+      return;
+    }
+
+    setCheckingLinkId(record.id);
+    try {
+      const res = await fetch(`/api/razorpay/payment-link?link_id=${encodeURIComponent(record.razorpay_payment_link_id)}`);
+      const data = await res.json();
+      if (!data?.success) {
+        alert(`Status check failed: ${data?.error || "Unknown error"}`);
+        return;
+      }
+
+      if (data.paid || data.status === "paid") {
+        playSuccessChime();
+        await fetch("/api/customer-balance", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id: record.id,
+            action: "RECORD_PAYMENT",
+            amountReceived: record.balance_amount,
+            paymentMethod: "Razorpay Link (Verified)",
+            settlementNote: `Paid in full via Razorpay Payment Link (${data.payment?.id || record.razorpay_payment_link_id})`,
+          }),
+        });
+
+        await fetchBalances();
+        alert(`🎉 Payment Confirmed! ₹${(Number(record.balance_amount) || 0).toLocaleString("en-IN")} received from ${record.customer_name}. Auto-logged to Vending Log.`);
+      } else {
+        alert(`⏳ Customer has NOT paid yet (Razorpay link status: "${data.status || "pending"}").`);
+      }
+    } catch (err: any) {
+      alert(`Could not verify status: ${err.message}`);
+    } finally {
+      setCheckingLinkId(null);
+    }
   };
 
   const handleDeleteRecord = async (record: CustomerBalanceRecord) => {
@@ -131,21 +201,26 @@ export default function CustomerBalancesTab({
           </p>
         </div>
 
-        <div className="p-4 rounded-2xl bg-slate-900/80 border border-slate-800 shadow-lg flex flex-col justify-between">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-cyan-400">Quick Reminder System</span>
-            <span className="material-symbols-outlined text-cyan-400 text-lg">notifications_active</span>
+        <div className="p-4 rounded-2xl bg-gradient-to-br from-cyan-950/30 via-slate-900 to-slate-950 border border-cyan-500/30 shadow-lg flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[10px] uppercase font-bold tracking-wider text-cyan-400">Razorpay Links Sent</span>
+              <span className="material-symbols-outlined text-cyan-400 text-lg">link</span>
+            </div>
+            <div className="text-2xl font-extrabold text-cyan-300 font-mono">
+              {records.filter((r) => !!r.razorpay_payment_link_id && r.status === "pending").length} Active
+            </div>
+            <p className="text-xs text-slate-400 mt-1">
+              Live status tracking, auto-expiring links &amp; auto-sync to Vending Log
+            </p>
           </div>
-          <p className="text-xs text-slate-300">
-            System generated WhatsApp reminders with instant Razorpay dynamic QR code generation.
-          </p>
           <button
             type="button"
             onClick={fetchBalances}
-            className="text-[11px] font-bold text-cyan-400 hover:text-cyan-300 text-left cursor-pointer flex items-center gap-1 mt-2"
+            className="text-[11px] font-bold text-cyan-400 hover:text-cyan-300 text-left cursor-pointer flex items-center gap-1 mt-2 pt-2 border-t border-slate-800"
           >
             <span className="material-symbols-outlined text-xs">sync</span>
-            Refresh Khata Records
+            Refresh Khata Ledger
           </button>
         </div>
       </div>
@@ -252,6 +327,16 @@ export default function CustomerBalancesTab({
                       <div className="text-slate-500 text-[10px]">
                         {formatShortDate(r.created_at)}
                       </div>
+                      {r.razorpay_payment_link_id && (
+                        <div className="flex items-center gap-1 mt-0.5">
+                          <span
+                            className="text-[9.5px] font-mono text-cyan-300 bg-cyan-950/70 border border-cyan-500/30 px-1.5 py-0.5 rounded truncate max-w-[110px]"
+                            title={`Razorpay Link ID: ${r.razorpay_payment_link_id}`}
+                          >
+                            🔗 {r.razorpay_payment_link_id}
+                          </span>
+                        </div>
+                      )}
                       {r.items_summary && (
                         <div className="text-[10px] text-slate-400 truncate max-w-[140px]" title={r.items_summary}>
                           {r.items_summary}
@@ -294,24 +379,40 @@ export default function CustomerBalancesTab({
 
                     <td className="py-3 px-4">
                       <div className="flex items-center justify-center gap-1.5">
-                        {/* 1. Quick Remind / Manage */}
+                        {/* 1. Quick Remind / Razorpay Link */}
                         <button
                           type="button"
                           onClick={() => handleOpenAction(r)}
-                          className="px-2.5 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer"
-                          title="Send WhatsApp Reminder or Generate QR"
+                          className="px-2.5 py-1.5 rounded-lg bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-500/30 text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer"
+                          title="Send WhatsApp Razorpay Payment Link"
                         >
-                          <span className="material-symbols-outlined text-xs">chat</span>
-                          Remind / QR
+                          <span className="material-symbols-outlined text-xs">link</span>
+                          Remind / Link
                         </button>
 
-                        {/* 2. Quick Settle */}
+                        {/* 2. Check Razorpay Status Directly */}
+                        {r.razorpay_payment_link_id && isPending && (
+                          <button
+                            type="button"
+                            onClick={() => handleCheckLinkStatus(r)}
+                            disabled={checkingLinkId === r.id}
+                            className="px-2 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer disabled:opacity-50"
+                            title="Poll Razorpay status for this payment link"
+                          >
+                            <span className={`material-symbols-outlined text-xs ${checkingLinkId === r.id ? "animate-spin" : ""}`}>
+                              sync
+                            </span>
+                            {checkingLinkId === r.id ? "..." : "Check"}
+                          </button>
+                        )}
+
+                        {/* 3. Quick Settle */}
                         {isPending && (
                           <button
                             type="button"
                             onClick={() => handleOpenAction(r)}
-                            className="px-2 py-1.5 rounded-lg bg-amber-600/20 hover:bg-amber-600/30 text-amber-300 border border-amber-500/30 text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer"
-                            title="Record Cash Payment or Final Waiver"
+                            className="px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer"
+                            title="Record Counter Cash Payment or Final Waiver"
                           >
                             <span className="material-symbols-outlined text-xs">payments</span>
                             Settle
