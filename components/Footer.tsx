@@ -255,17 +255,50 @@ export default function Footer() {
         className="max-w-7xl mx-auto px-8 py-5 flex flex-col md:flex-row justify-between items-center gap-4"
         style={{ borderTop: "1px solid rgba(61,74,83,0.25)" }}
       >
-        <span
-          style={{
-            fontFamily: '"Inter", sans-serif',
-            fontSize: "11px",
-            letterSpacing: "0.08em",
-            textTransform: "uppercase",
-            color: C.outline,
-          }}
-        >
-          © 2026 Urban Trout (Skindar Mohd Sideeq). Srinagar, J&amp;K. All rights reserved.
-        </span>
+        <div className="flex flex-col sm:flex-row items-center gap-2 text-center sm:text-left">
+          <span
+            style={{
+              fontFamily: '"Inter", sans-serif',
+              fontSize: "11px",
+              letterSpacing: "0.06em",
+              textTransform: "uppercase",
+              color: C.outline,
+            }}
+          >
+            © 2026 Urban Trout (Skindar Mohd Sideeq). All rights reserved.
+          </span>
+          <span className="hidden sm:inline text-slate-700">|</span>
+          <span
+            style={{
+              fontFamily: '"Inter", sans-serif',
+              fontSize: "11px",
+              letterSpacing: "0.04em",
+              color: C.onSurfVar,
+            }}
+            className="inline-flex items-center gap-1.5"
+          >
+            <span>Handcrafted with</span>
+            <span
+              className="animate-heartbeat inline-flex items-center justify-center text-rose-500"
+              title="love"
+              aria-label="love"
+            >
+              <svg className="w-3.5 h-3.5 fill-current text-rose-500 shrink-0" viewBox="0 0 24 24">
+                <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" />
+              </svg>
+            </span>
+            <span>by</span>
+            <a
+              href="https://wa.me/917006604148?text=Hello%20Frixl%2C%20I%20saw%20your%20work%20on%20Urban%20Trout"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-bold text-amber-400 hover:text-amber-300 transition-all hover:underline"
+              title="Contact Frixl on WhatsApp (+91 70066 04148)"
+            >
+              Frixl
+            </a>
+          </span>
+        </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "1.25rem", justifyContent: "center" }}>
           {[
             { href: "/privacy", label: "Privacy Policy" },
