@@ -1582,17 +1582,22 @@ ${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━
   return (
     <div className="px-3 py-2 sm:px-5 sm:py-3 max-w-7xl mx-auto space-y-3">
       {/* ─── COMPACT HEADER BAR ─── */}
-      <div className="flex items-center justify-between py-1 px-0.5 border-b border-slate-800/80">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 py-1.5 px-0.5 border-b border-slate-800/80">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 flex-shrink-0">
             <span className="material-symbols-outlined text-lg">point_of_sale</span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <h1 className="text-base sm:text-lg font-extrabold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
               Sales Billing &amp; Invoice POS
             </h1>
-            <span className="text-[9px] uppercase font-bold tracking-wider text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 hidden sm:inline">
-              ⚡ Auto-Calculator
+            <span className="text-[9px] uppercase font-bold tracking-wider text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 hidden sm:inline-flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              Auto-Calculator
+            </span>
+            <span className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-mono">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+              Vending Log: Auto-Synced on Pay ✓
             </span>
           </div>
         </div>
@@ -1635,82 +1640,150 @@ ${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━
         </div>
       </div>
 
-      {/* ─── DEDICATED VIEW SWITCHER (POS COUNTER vs REMOTE & WHATSAPP ORDERS) ─── */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 p-1.5 bg-slate-950/80 border border-slate-800/80 rounded-2xl">
-        <div className="flex items-center gap-1.5 flex-1">
-          <button
-            type="button"
-            onClick={() => setActiveTab("pos")}
-            className={`flex-1 sm:flex-initial px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer ${
+      {/* ─── DEDICATED FEATURE OPTIONS SWITCHER (SPACIOUS 4-PILLAR HUB) ─── */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-2.5 p-1.5 sm:p-2 bg-slate-950/85 border border-slate-800/80 rounded-2xl shadow-xl">
+        {/* Feature 1: Counter POS */}
+        <button
+          type="button"
+          onClick={() => setActiveTab("pos")}
+          className={`group relative flex items-center gap-3 p-2.5 sm:p-3 rounded-xl border text-left transition-all cursor-pointer ${
+            activeTab === "pos"
+              ? "bg-gradient-to-br from-cyan-950/40 via-slate-900 to-slate-900/90 border-cyan-500/60 shadow-lg shadow-cyan-500/10 ring-1 ring-cyan-500/30"
+              : "bg-slate-900/40 hover:bg-slate-900/80 border-slate-800/80 hover:border-slate-700 text-slate-400 hover:text-slate-200"
+          }`}
+        >
+          <div
+            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 transition-all ${
               activeTab === "pos"
-                ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 shadow-md shadow-cyan-500/10"
-                : "text-slate-400 hover:text-slate-200 hover:bg-slate-900/60"
+                ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm shadow-cyan-500/20"
+                : "bg-slate-800/70 text-slate-400 group-hover:text-cyan-400 group-hover:bg-cyan-500/10"
             }`}
           >
-            <span className="material-symbols-outlined text-base">point_of_sale</span>
-            <span>⚡ Counter Billing (POS)</span>
-          </button>
+            <span className="material-symbols-outlined text-lg sm:text-xl">point_of_sale</span>
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center justify-between gap-1">
+              <span className={`text-xs sm:text-sm font-bold truncate ${activeTab === "pos" ? "text-cyan-200" : "text-white"}`}>
+                Counter POS
+              </span>
+              {activeTab === "pos" && (
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse shrink-0 hidden sm:block" />
+              )}
+            </div>
+            <p className="text-[10px] sm:text-[11px] text-slate-400 truncate mt-0.5">
+              Live Scale &amp; Fast Checkout
+            </p>
+          </div>
+        </button>
 
-          <button
-            type="button"
-            onClick={() => {
-              setActiveTab("remote_orders");
-              fetchRemoteOrders();
-            }}
-            className={`flex-1 sm:flex-initial px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer relative ${
+        {/* Feature 2: Remote Orders & WhatsApp Links */}
+        <button
+          type="button"
+          onClick={() => {
+            setActiveTab("remote_orders");
+            fetchRemoteOrders();
+          }}
+          className={`group relative flex items-center gap-3 p-2.5 sm:p-3 rounded-xl border text-left transition-all cursor-pointer ${
+            activeTab === "remote_orders"
+              ? "bg-gradient-to-br from-emerald-950/40 via-slate-900 to-slate-900/90 border-emerald-500/60 shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-500/30"
+              : "bg-slate-900/40 hover:bg-slate-900/80 border-slate-800/80 hover:border-slate-700 text-slate-400 hover:text-slate-200"
+          }`}
+        >
+          <div
+            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 transition-all ${
               activeTab === "remote_orders"
-                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 shadow-md shadow-emerald-500/10"
-                : "text-slate-400 hover:text-slate-200 hover:bg-slate-900/60"
+                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm shadow-emerald-500/20"
+                : "bg-slate-800/70 text-slate-400 group-hover:text-emerald-400 group-hover:bg-emerald-500/10"
             }`}
           >
-            <span className="material-symbols-outlined text-base">local_shipping</span>
-            <span>🛵 Remote Orders &amp; WhatsApp Links</span>
-            {pendingRemoteCount > 0 && (
-              <span className="px-2 py-0.5 rounded-full bg-amber-500/25 border border-amber-500/50 text-amber-300 text-[10px] font-mono font-bold animate-pulse">
-                {pendingRemoteCount} DUE
+            <span className="material-symbols-outlined text-lg sm:text-xl">local_shipping</span>
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center justify-between gap-1">
+              <span className={`text-xs sm:text-sm font-bold truncate ${activeTab === "remote_orders" ? "text-emerald-200" : "text-white"}`}>
+                Remote Orders
               </span>
-            )}
-          </button>
+              {pendingRemoteCount > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full bg-amber-500/25 border border-amber-500/50 text-amber-300 text-[10px] font-mono font-bold animate-pulse shrink-0">
+                  {pendingRemoteCount} DUE
+                </span>
+              )}
+            </div>
+            <p className="text-[10px] sm:text-[11px] text-slate-400 truncate mt-0.5">
+              WhatsApp Links &amp; Dispatch
+            </p>
+          </div>
+        </button>
 
-          <button
-            type="button"
-            onClick={() => setActiveTab("deal_calculator")}
-            className={`flex-1 sm:flex-initial px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer relative ${
+        {/* Feature 3: Deal Desk & Locked QR */}
+        <button
+          type="button"
+          onClick={() => setActiveTab("deal_calculator")}
+          className={`group relative flex items-center gap-3 p-2.5 sm:p-3 rounded-xl border text-left transition-all cursor-pointer ${
+            activeTab === "deal_calculator"
+              ? "bg-gradient-to-br from-indigo-950/40 via-slate-900 to-slate-900/90 border-indigo-500/60 shadow-lg shadow-indigo-500/10 ring-1 ring-indigo-500/30"
+              : "bg-slate-900/40 hover:bg-slate-900/80 border-slate-800/80 hover:border-slate-700 text-slate-400 hover:text-slate-200"
+          }`}
+        >
+          <div
+            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 transition-all ${
               activeTab === "deal_calculator"
-                ? "bg-amber-500/20 text-amber-300 border border-amber-500/50 shadow-md shadow-amber-500/10"
-                : "text-slate-400 hover:text-slate-200 hover:bg-slate-900/60"
+                ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shadow-sm shadow-indigo-500/20"
+                : "bg-slate-800/70 text-slate-400 group-hover:text-indigo-400 group-hover:bg-indigo-500/10"
             }`}
           >
-            <span className="material-symbols-outlined text-base">handshake</span>
-            <span>🎯 Deal Desk &amp; Locked QR</span>
-            <span className="px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-300 text-[9px] font-mono font-bold">
-              BARGAIN
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab("customer_balances")}
-            className={`flex-1 sm:flex-initial px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer relative ${
-              activeTab === "customer_balances"
-                ? "bg-amber-500/20 text-amber-300 border border-amber-500/50 shadow-md shadow-amber-500/10"
-                : "text-slate-400 hover:text-slate-200 hover:bg-slate-900/60"
-            }`}
-          >
-            <span className="material-symbols-outlined text-base">account_balance_wallet</span>
-            <span>📒 Customer Khata &amp; Balances</span>
-            {pendingKhataCount > 0 && (
-              <span className="px-2 py-0.5 rounded-full bg-amber-500/25 border border-amber-500/50 text-amber-300 text-[10px] font-mono font-bold animate-pulse">
-                {pendingKhataCount} PENDING
+            <span className="material-symbols-outlined text-lg sm:text-xl">handshake</span>
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center justify-between gap-1">
+              <span className={`text-xs sm:text-sm font-bold truncate ${activeTab === "deal_calculator" ? "text-indigo-200" : "text-white"}`}>
+                Deal Desk
               </span>
-            )}
-          </button>
-        </div>
+              <span className="px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 text-[9px] font-mono font-bold border border-indigo-500/30 shrink-0">
+                BARGAIN
+              </span>
+            </div>
+            <p className="text-[10px] sm:text-[11px] text-slate-400 truncate mt-0.5">
+              Dynamic Locked QR &amp; Rate
+            </p>
+          </div>
+        </button>
 
-        <div className="hidden md:flex items-center gap-2 text-[11px] text-slate-400 font-mono pr-2">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          <span>Vending Log: <strong className="text-emerald-400">Auto-Synced on Pay ✓</strong></span>
-        </div>
+        {/* Feature 4: Customer Khata & Balances */}
+        <button
+          type="button"
+          onClick={() => setActiveTab("customer_balances")}
+          className={`group relative flex items-center gap-3 p-2.5 sm:p-3 rounded-xl border text-left transition-all cursor-pointer ${
+            activeTab === "customer_balances"
+              ? "bg-gradient-to-br from-amber-950/40 via-slate-900 to-slate-900/90 border-amber-500/60 shadow-lg shadow-amber-500/10 ring-1 ring-amber-500/30"
+              : "bg-slate-900/40 hover:bg-slate-900/80 border-slate-800/80 hover:border-slate-700 text-slate-400 hover:text-slate-200"
+          }`}
+        >
+          <div
+            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 transition-all ${
+              activeTab === "customer_balances"
+                ? "bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm shadow-amber-500/20"
+                : "bg-slate-800/70 text-slate-400 group-hover:text-amber-400 group-hover:bg-amber-500/10"
+            }`}
+          >
+            <span className="material-symbols-outlined text-lg sm:text-xl">account_balance_wallet</span>
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center justify-between gap-1">
+              <span className={`text-xs sm:text-sm font-bold truncate ${activeTab === "customer_balances" ? "text-amber-200" : "text-white"}`}>
+                Customer Khata
+              </span>
+              {pendingKhataCount > 0 && (
+                <span className="px-1.5 py-0.5 rounded-full bg-amber-500/25 border border-amber-500/50 text-amber-300 text-[10px] font-mono font-bold animate-pulse shrink-0">
+                  {pendingKhataCount} PENDING
+                </span>
+              )}
+            </div>
+            <p className="text-[10px] sm:text-[11px] text-slate-400 truncate mt-0.5">
+              Credit Ledger &amp; Razorpay
+            </p>
+          </div>
+        </button>
       </div>
 
       {/* ─── MAIN 2-COLUMN GRID (COMPACT ABOVE-THE-FOLD) ─── */}
