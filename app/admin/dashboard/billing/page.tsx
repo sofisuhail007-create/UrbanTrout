@@ -119,7 +119,7 @@ export default function POSBillingPage() {
 
   // Fetch pending Khata balance count for tab badge
   useEffect(() => {
-    fetch("/api/customer-balance?status=pending")
+    adminFetch("/api/customer-balance?status=pending")
       .then((r) => r.json())
       .then((d) => {
         if (d?.success && d?.summary) {

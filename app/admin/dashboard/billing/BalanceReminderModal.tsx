@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import type { CustomerBalanceRecord } from "@/app/api/customer-balance/route";
+import { adminFetch } from "@/lib/adminClient";
 
 interface BalanceReminderModalProps {
   isOpen: boolean;
@@ -122,7 +123,7 @@ export default function BalanceReminderModal({
             clearInterval(interval);
 
             // Record settled in API
-            await fetch("/api/customer-balance", {
+            await adminFetch("/api/customer-balance", {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
@@ -158,14 +159,14 @@ export default function BalanceReminderModal({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          amount: rec.balance_amount,
-          customerName: rec.customer_name,
+          amount: Math.round(rec.balance_amount),
+          customerName: rec.customer_name || "Customer",
           customerPhone: cleanPhone,
-          orderRef: `BAL-${rec.invoice_id}`,
-          itemsSummary: `Remaining Balance for Inv #${rec.invoice_id}`,
-          notes: `Remaining balance for ${rec.customer_name} (#${rec.invoice_id})`,
+          orderRef: `BAL-${rec.id || rec.invoice_id}`,
+          description: `Urban Trout Balance Payment for Invoice #${rec.invoice_id}`,
         }),
       });
+
       const data = await res.json();
       if (data?.success && data.paymentLink?.short_url) {
         const linkUrl = data.paymentLink.short_url;
@@ -175,7 +176,7 @@ export default function BalanceReminderModal({
         setRzpStatus("created");
 
         // Sync to API
-        await fetch("/api/customer-balance", {
+        await adminFetch("/api/customer-balance", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -254,7 +255,7 @@ Helpline: +91 84910 06127`;
 
     // Mark reminder timestamp in API
     try {
-      await fetch("/api/customer-balance", {
+      await adminFetch("/api/customer-balance", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -286,7 +287,7 @@ Helpline: +91 84910 06127`;
         setRzpStatus("paid");
         playSuccessChime();
 
-        await fetch("/api/customer-balance", {
+        await adminFetch("/api/customer-balance", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -325,7 +326,7 @@ Helpline: +91 84910 06127`;
       });
 
       // Clear from record in DB
-      await fetch("/api/customer-balance", {
+      await adminFetch("/api/customer-balance", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -356,7 +357,7 @@ Helpline: +91 84910 06127`;
 
     setSettling(true);
     try {
-      const res = await fetch("/api/customer-balance", {
+      const res = await adminFetch("/api/customer-balance", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -402,7 +403,7 @@ Helpline: +91 84910 06127`;
 
     setSettling(true);
     try {
-      const res = await fetch("/api/customer-balance", {
+      const res = await adminFetch("/api/customer-balance", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

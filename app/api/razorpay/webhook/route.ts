@@ -256,9 +256,13 @@ export async function POST(req: NextRequest) {
         try {
           const balanceRef = String(orderRef).replace(/^(BAL-|Bal-)/, "");
           const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://urbantrout.in";
+          const adminAuthToken = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.ADMIN_API_SECRET || "";
           await fetch(`${siteUrl}/api/customer-balance`, {
             method: "PATCH",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+              "Content-Type": "application/json",
+              "x-admin-token": adminAuthToken,
+            },
             body: JSON.stringify({
               id: balanceRef,
               action: "RECORD_PAYMENT",
@@ -422,9 +426,13 @@ export async function POST(req: NextRequest) {
           const balanceRef = match ? match[1] : null;
           if (balanceRef) {
             const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://urbantrout.in";
+            const adminAuthToken = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.ADMIN_API_SECRET || "";
             await fetch(`${siteUrl}/api/customer-balance`, {
               method: "PATCH",
-              headers: { "Content-Type": "application/json" },
+              headers: {
+                "Content-Type": "application/json",
+                "x-admin-token": adminAuthToken,
+              },
               body: JSON.stringify({
                 id: balanceRef,
                 action: "RECORD_PAYMENT",

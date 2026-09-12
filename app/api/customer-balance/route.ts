@@ -124,6 +124,9 @@ function formatEntryDateTime(dateStr?: string, timeStr?: string, createdAt?: str
  * Returns all balance records with KPI summaries (total pending amount, pending count, etc.)
  */
 export async function GET(request: Request) {
+  const authError = await requireAdminAuth(request);
+  if (authError) return authError;
+
   try {
     const { searchParams } = new URL(request.url);
     const filterStatus = searchParams.get("status") || "all";
@@ -283,6 +286,9 @@ export async function GET(request: Request) {
  * Creates or upserts a customer balance record (called from POS counter when billing).
  */
 export async function POST(request: Request) {
+  const authError = await requireAdminAuth(request);
+  if (authError) return authError;
+
   try {
     const body = await request.json();
     const {
@@ -423,6 +429,9 @@ export async function POST(request: Request) {
  * Handles repayments, marking settled as final waiver, or updating reminder timestamps.
  */
 export async function PATCH(request: Request) {
+  const authError = await requireAdminAuth(request);
+  if (authError) return authError;
+
   try {
     const body = await request.json();
     const {
@@ -738,6 +747,9 @@ export async function PATCH(request: Request) {
  * Removes a balance record
  */
 export async function DELETE(request: Request) {
+  const authError = await requireAdminAuth(request);
+  if (authError) return authError;
+
   try {
     const { searchParams } = new URL(request.url);
     const id = searchParams.get("id");

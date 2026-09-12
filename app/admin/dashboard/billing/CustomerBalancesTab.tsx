@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import type { CustomerBalanceRecord } from "@/app/api/customer-balance/route";
+import { adminFetch } from "@/lib/adminClient";
 import BalanceReminderModal from "./BalanceReminderModal";
 
 interface CustomerBalancesTabProps {
@@ -88,7 +89,7 @@ export default function CustomerBalancesTab({
       if (statusFilter !== "all") query.set("status", statusFilter);
       if (searchTerm) query.set("search", searchTerm);
 
-      const res = await fetch(`/api/customer-balance?${query.toString()}`);
+      const res = await adminFetch(`/api/customer-balance?${query.toString()}`);
       const data = await res.json();
       if (data?.success) {
         setRecords(data.records || []);
@@ -127,7 +128,7 @@ export default function CustomerBalancesTab({
 
       if (data.paid || data.status === "paid") {
         playSuccessChime();
-        await fetch("/api/customer-balance", {
+        await adminFetch("/api/customer-balance", {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -157,7 +158,7 @@ export default function CustomerBalancesTab({
     }
 
     try {
-      const res = await fetch(`/api/customer-balance?id=${encodeURIComponent(record.id)}`, {
+      const res = await adminFetch(`/api/customer-balance?id=${encodeURIComponent(record.id)}`, {
         method: "DELETE",
       });
       const data = await res.json();

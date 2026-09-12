@@ -1014,7 +1014,7 @@ export default function VendingCenterLoggerPage() {
       // Sync customer balance record to backend
       if (balanceStatus === "pending" && balanceAmount > 0 && balanceRefId) {
         try {
-          await fetch("/api/customer-balance", {
+          await adminFetch("/api/customer-balance", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
@@ -1036,11 +1036,11 @@ export default function VendingCenterLoggerPage() {
       } else if (balanceRefId && (balanceStatus === "waived_final" || balanceStatus === "none" || formBalanceAction === "none")) {
         try {
           if (formBalanceAction === "none") {
-            await fetch(`/api/customer-balance?id=${encodeURIComponent(balanceRefId)}`, {
+            await adminFetch(`/api/customer-balance?id=${encodeURIComponent(balanceRefId)}`, {
               method: "DELETE",
             });
           } else {
-            await fetch("/api/customer-balance", {
+            await adminFetch("/api/customer-balance", {
               method: "PATCH",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({

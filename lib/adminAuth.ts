@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -19,10 +19,14 @@ const DEFAULT_ALLOWED_EMAILS = [
  * 2. A Supabase Auth Bearer token from an authorized user email
  */
 export async function requireAdminAuth(request: Request): Promise<NextResponse | null> {
-  // 1. Secret token header check (for cron / external webhooks / scripts)
+  // 1. Secret token header check (for cron / external webhooks / internal services)
   const adminSecret = process.env.ADMIN_API_SECRET;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const tokenHeader = request.headers.get("x-admin-token");
-  if (adminSecret && tokenHeader === adminSecret) {
+  if (
+    (adminSecret && tokenHeader === adminSecret) ||
+    (serviceKey && tokenHeader === serviceKey)
+  ) {
     return null; // Authorized
   }
 
