@@ -54,6 +54,13 @@ const NAV_GROUPS: NavGroup[] = [
         badgeType: "new",
         activeTheme: "cyan",
       },
+      {
+        href: "/admin/dashboard/billing?tab=customer_balances",
+        icon: "account_balance_wallet",
+        label: "Customer Khata & Balances",
+        permKey: "billing",
+        activeTheme: "emerald",
+      },
     ],
   },
   {

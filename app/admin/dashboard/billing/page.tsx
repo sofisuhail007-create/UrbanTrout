@@ -5,6 +5,8 @@ import { supabase } from "@/lib/supabase";
 import { adminFetch } from "@/lib/adminClient";
 import type { InventoryItem } from "@/lib/supabase";
 import DealCalculatorTab from "./DealCalculatorTab";
+import CustomerBalancesTab from "./CustomerBalancesTab";
+import BalanceReminderModal from "./BalanceReminderModal";
 
 interface BillItem {
   id: string;
@@ -95,7 +97,7 @@ export default function POSBillingPage() {
   const [voiceTesting, setVoiceTesting] = useState<boolean>(false);
 
   // ─── DEDICATED REMOTE ORDERS & WHATSAPP PAYMENT TRACKER STATE ───
-  const [activeTab, setActiveTab] = useState<"pos" | "remote_orders" | "deal_calculator">("pos");
+  const [activeTab, setActiveTab] = useState<"pos" | "remote_orders" | "deal_calculator" | "customer_balances">("pos");
   const [remoteOrders, setRemoteOrders] = useState<any[]>([]);
   const [remoteLoading, setRemoteLoading] = useState(false);
   const [remoteFilter, setRemoteFilter] = useState<"all" | "pending" | "paid">("all");
@@ -106,6 +108,28 @@ export default function POSBillingPage() {
   const [manualPayMode, setManualPayMode] = useState<string>("Cash on Delivery (Driver)");
   const [manualPayNote, setManualPayNote] = useState<string>("");
   const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null);
+
+  // Customer Khata & Balance Tracking State
+  const [amountPaidInput, setAmountPaidInput] = useState<string>("");
+  const [balanceAction, setBalanceAction] = useState<"none" | "record_balance" | "settle_final">("none");
+  const [refreshBalancesTrigger, setRefreshBalancesTrigger] = useState<number>(0);
+  const [activeBalanceModalRecord, setActiveBalanceModalRecord] = useState<any>(null);
+  const [isBalanceModalOpen, setIsBalanceModalOpen] = useState(false);
+
+  // Listen to URL query params (e.g. ?tab=customer_balances)
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get("tab");
+      if (tab === "customer_balances" || tab === "balances" || tab === "khata") {
+        setActiveTab("customer_balances");
+      } else if (tab === "remote_orders") {
+        setActiveTab("remote_orders");
+      } else if (tab === "deal_calculator") {
+        setActiveTab("deal_calculator");
+      }
+    }
+  }, []);
 
   // Load voice preferences from localStorage
   useEffect(() => {
@@ -605,9 +629,36 @@ export default function POSBillingPage() {
     const invoiceNumber = `UT-INV-${shortDigits}`;
     const cleanPhone = customerPhone.replace(/\D/g, "").slice(-10);
 
+    // Partial Payment & Balance Calculations
+    const enteredPaid = amountPaidInput !== "" ? parseFloat(amountPaidInput) : grandTotal;
+    const paidAmount = isNaN(enteredPaid) || enteredPaid < 0 ? grandTotal : Math.min(grandTotal, enteredPaid);
+    const hasRemainingBalance = paidAmount < grandTotal;
+
+    let balanceAmount = 0;
+    let balanceStatus: "settled" | "pending" | "waived_final" = "settled";
+
+    if (hasRemainingBalance) {
+      if (balanceAction === "settle_final") {
+        balanceAmount = 0;
+        balanceStatus = "waived_final";
+      } else {
+        balanceAmount = grandTotal - paidAmount;
+        balanceStatus = "pending";
+        if (!cleanPhone && !customerName.trim()) {
+          alert("Please enter customer name or phone number so remaining balance can be tracked in Khata and reminders sent.");
+          return;
+        }
+      }
+    }
+
     const isRzpPaid = (paymentMethod === "RazorpayQR" || paymentMethod === "WhatsAppLink") && rzpPaid;
     const isSoundbox = paymentMethod === "JkBankSoundbox";
-    const paymentStatus = (isRzpPaid || isSoundbox || paymentMethod === "Cash" || soundboxPaid) ? "PAID" : "PAYMENT DUE";
+    const paymentStatus = balanceStatus === "waived_final"
+      ? "PAID (FINAL SETTLEMENT)"
+      : balanceStatus === "pending"
+      ? (paidAmount > 0 ? "PARTIALLY PAID" : "PAYMENT DUE")
+      : (isRzpPaid || isSoundbox || paymentMethod === "Cash" || soundboxPaid) ? "PAID" : "PAYMENT DUE";
+
     const paymentMethodLabel = isSoundbox
       ? "J&K Bank Soundbox UPI"
       : isRzpPaid
@@ -618,6 +669,10 @@ export default function POSBillingPage() {
       ? "Razorpay Link (Home Delivery)"
       : "Cash";
 
+    const finalNotes = balanceStatus === "waived_final"
+      ? (customerNotes ? `${customerNotes} | Agreed cash settlement as final payment (₹${grandTotal - paidAmount} waived)` : `Agreed cash settlement as final payment (₹${grandTotal - paidAmount} waived)`)
+      : customerNotes;
+
     const invoicePayload = {
       num: invoiceNumber,
       name: customerName.trim() || "Valued Customer",
@@ -625,7 +680,10 @@ export default function POSBillingPage() {
       items: billItems.map((i) => ({ n: i.name, w: i.weightKg, r: i.pricePerKg, t: i.total })),
       tw: totalWeight,
       tot: grandTotal,
-      notes: customerNotes,
+      paidAmount,
+      balanceAmount,
+      balanceStatus,
+      notes: finalNotes,
       paymentMethod: paymentMethodLabel,
       paymentStatus,
       paymentId: rzpPaymentDetails?.id || null,
@@ -652,6 +710,33 @@ export default function POSBillingPage() {
       }
     } catch (_) {}
 
+    // Auto-record into Customer Khata & Balances Ledger if partial or waived
+    if (hasRemainingBalance || balanceStatus === "waived_final") {
+      try {
+        await adminFetch("/api/customer-balance", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            invoiceId: invoiceNumber,
+            customerName: customerName.trim() || "Valued Customer",
+            customerPhone: cleanPhone || "N/A",
+            totalAmount: grandTotal,
+            paidAmount,
+            balanceAmount,
+            status: balanceStatus,
+            paymentMethod: paymentMethodLabel,
+            settlementNote: balanceStatus === "waived_final"
+              ? `Agreed cash settlement as final payment (₹${grandTotal - paidAmount} discount waived)`
+              : `Balance due: ₹${balanceAmount}`,
+            itemsSummary: billItems.map((b) => `${b.name} (${b.weightKg} Kg)`).join(", "),
+          }),
+        });
+        setRefreshBalancesTrigger((prev) => prev + 1);
+      } catch (e) {
+        console.warn("Could not save to customer-balance API:", e);
+      }
+    }
+
     const invoiceData = {
       invoiceNumber,
       date: new Date().toLocaleString("en-IN", {
@@ -666,10 +751,13 @@ export default function POSBillingPage() {
       items: billItems,
       totalWeight,
       grandTotal,
+      paidAmount,
+      balanceAmount,
+      balanceStatus,
       paymentMethod: paymentMethodLabel,
       paymentStatus,
       paymentId: rzpPaymentDetails?.id || null,
-      notes: customerNotes,
+      notes: finalNotes,
       upiId,
       upiQrCodeUrl: (paymentMethod === "RazorpayQR" && rzpQrImageUrl) ? rzpQrImageUrl : upiQrCodeUrl,
       upiPayUri,
@@ -1586,6 +1674,19 @@ ${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━
               BARGAIN
             </span>
           </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab("customer_balances")}
+            className={`flex-1 sm:flex-initial px-4 py-2 rounded-xl text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 transition-all cursor-pointer relative ${
+              activeTab === "customer_balances"
+                ? "bg-amber-500/20 text-amber-300 border border-amber-500/50 shadow-md shadow-amber-500/10"
+                : "text-slate-400 hover:text-slate-200 hover:bg-slate-900/60"
+            }`}
+          >
+            <span className="material-symbols-outlined text-base">account_balance_wallet</span>
+            <span>📒 Customer Khata &amp; Balances</span>
+          </button>
         </div>
 
         <div className="hidden md:flex items-center gap-2 text-[11px] text-slate-400 font-mono pr-2">
@@ -2475,6 +2576,100 @@ ${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━
               </div>
             )}
 
+            {/* ─── AMOUNT RECEIVED & BALANCE TRACKING (KHATA / SETTLEMENT) ─── */}
+            {grandTotal > 0 && (
+              <div className="p-3 rounded-2xl bg-slate-950/90 border border-slate-800 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-sm text-amber-400">price_change</span>
+                    Amount Received &amp; Balance
+                  </span>
+                  {amountPaidInput && parseFloat(amountPaidInput) < grandTotal && (
+                    <span className="text-[10px] font-mono font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30">
+                      Balance Due: ₹{(grandTotal - parseFloat(amountPaidInput)).toLocaleString("en-IN")}
+                    </span>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <span className="absolute left-3 top-2 text-slate-500 text-xs font-mono">₹</span>
+                    <input
+                      type="number"
+                      value={amountPaidInput}
+                      onChange={(e) => {
+                        setAmountPaidInput(e.target.value);
+                        const val = parseFloat(e.target.value);
+                        if (!isNaN(val) && val < grandTotal && balanceAction === "none") {
+                          setBalanceAction("record_balance");
+                        } else if (isNaN(val) || val >= grandTotal) {
+                          setBalanceAction("none");
+                        }
+                      }}
+                      placeholder={`Full Amount: ₹${grandTotal.toLocaleString("en-IN")}`}
+                      className="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-7 pr-3 py-1.5 text-xs text-white font-mono placeholder:text-slate-500 focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAmountPaidInput(grandTotal.toString());
+                      setBalanceAction("none");
+                    }}
+                    className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-bold uppercase transition-colors"
+                  >
+                    Full Pay
+                  </button>
+                </div>
+
+                {/* If partial amount entered, offer 2 clear choices */}
+                {amountPaidInput && parseFloat(amountPaidInput) < grandTotal && (
+                  <div className="pt-1 space-y-2 animate-fadeIn">
+                    <p className="text-[10px] text-slate-400">
+                      Customer is paying <strong className="text-emerald-400">₹{parseFloat(amountPaidInput).toLocaleString("en-IN")}</strong>. What should happen to the remaining <strong className="text-amber-400">₹{(grandTotal - parseFloat(amountPaidInput)).toLocaleString("en-IN")}</strong>?
+                    </p>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setBalanceAction("record_balance")}
+                        className={`p-2 rounded-xl text-left border transition-all cursor-pointer ${
+                          balanceAction === "record_balance"
+                            ? "bg-amber-500/20 border-amber-500 text-amber-300 shadow-md shadow-amber-950/30"
+                            : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200"
+                        }`}
+                      >
+                        <div className="text-[11px] font-bold flex items-center gap-1">
+                          <span>📒</span> Record in Khata
+                        </div>
+                        <div className="text-[9.5px] opacity-80 mt-0.5">
+                          Keep as balance &amp; send WhatsApp reminder with QR
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setBalanceAction("settle_final")}
+                        className={`p-2 rounded-xl text-left border transition-all cursor-pointer ${
+                          balanceAction === "settle_final"
+                            ? "bg-blue-500/20 border-blue-500 text-blue-300 shadow-md shadow-blue-950/30"
+                            : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200"
+                        }`}
+                      >
+                        <div className="text-[11px] font-bold flex items-center gap-1">
+                          <span>🤝</span> Settle as Final
+                        </div>
+                        <div className="text-[9.5px] opacity-80 mt-0.5">
+                          Agreed discount / cash settlement. Balance = ₹0
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Primary Action Button */}
             <div className="pt-1">
               {paymentMethod === "WhatsAppLink" && !rzpPaid ? (
@@ -2988,6 +3183,14 @@ ${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━
         />
       )}
 
+      {/* ─── DEDICATED CUSTOMER KHATA & BALANCES LEDGER ─── */}
+      {activeTab === "customer_balances" && (
+        <CustomerBalancesTab
+          upiId={upiId}
+          onRefreshTrigger={refreshBalancesTrigger}
+        />
+      )}
+
       {/* ─── MANUAL PAYMENT SETTLEMENT MODAL ─── */}
       {manualPayModal && (
         <div
@@ -3214,9 +3417,57 @@ ${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━
                   <span className="font-bold">{generatedInvoice.totalWeight.toFixed(2)} Kg</span>
                 </div>
                 <div className="flex justify-between text-sm sm:text-base font-black text-slate-900 font-mono pt-1.5 border-t">
-                  <span>TOTAL PAYABLE:</span>
+                  <span>TOTAL BILL:</span>
                   <span className="text-base sm:text-xl text-slate-950">₹{generatedInvoice.grandTotal.toLocaleString("en-IN")}</span>
                 </div>
+
+                {generatedInvoice.paidAmount !== undefined && generatedInvoice.paidAmount < generatedInvoice.grandTotal && (
+                  <div className="space-y-1.5 pt-1 text-left">
+                    <div className="flex justify-between text-xs text-emerald-800 font-mono font-semibold">
+                      <span>Amount Received / Advance:</span>
+                      <span>₹{generatedInvoice.paidAmount.toLocaleString("en-IN")}</span>
+                    </div>
+
+                    {generatedInvoice.balanceAmount > 0 ? (
+                      <div className="flex justify-between text-xs sm:text-sm text-amber-900 font-black font-mono bg-amber-50 p-2 rounded-xl border border-amber-200">
+                        <span>REMAINING BALANCE DUE:</span>
+                        <span>₹{generatedInvoice.balanceAmount.toLocaleString("en-IN")}</span>
+                      </div>
+                    ) : (
+                      <div className="text-[11px] text-emerald-800 font-bold bg-emerald-50 p-2 rounded-xl border border-emerald-200 text-center">
+                        ✓ Settled as Agreed Final Payment (Discount/Waiver Applied - Nil Balance)
+                      </div>
+                    )}
+
+                    {/* Fast Trigger for Balance WhatsApp Reminder & QR */}
+                    {generatedInvoice.balanceAmount > 0 && (
+                      <div className="pt-1 print:hidden">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveBalanceModalRecord({
+                              id: generatedInvoice.invoiceNumber,
+                              invoice_id: generatedInvoice.invoiceNumber,
+                              customer_name: generatedInvoice.customerName,
+                              customer_phone: generatedInvoice.customerPhone,
+                              total_amount: generatedInvoice.grandTotal,
+                              paid_amount: generatedInvoice.paidAmount || 0,
+                              balance_amount: generatedInvoice.balanceAmount,
+                              status: "pending",
+                              created_at: new Date().toISOString(),
+                              items_summary: generatedInvoice.items?.map((i: any) => i.name).join(", "),
+                            });
+                            setIsBalanceModalOpen(true);
+                          }}
+                          className="w-full py-2 px-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                        >
+                          <span className="material-symbols-outlined text-sm">notifications_active</span>
+                          Send Balance WhatsApp Reminder / Generate QR
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* ─── EMBEDDED UPI QR CODE / PAID VERIFICATION BADGE ─── */}
@@ -3534,6 +3785,20 @@ ${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━
           </div>
         </div>
       )}
+
+      {/* ─── CUSTOMER KHATA BALANCE REMINDER & RAZORPAY QR MODAL ─── */}
+      <BalanceReminderModal
+        isOpen={isBalanceModalOpen}
+        onClose={() => {
+          setIsBalanceModalOpen(false);
+          setActiveBalanceModalRecord(null);
+        }}
+        record={activeBalanceModalRecord}
+        upiId={upiId}
+        onBalanceUpdated={() => {
+          setRefreshBalancesTrigger((prev) => prev + 1);
+        }}
+      />
     </div>
   );
 }

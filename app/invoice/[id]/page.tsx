@@ -11,6 +11,9 @@ interface DecodedInvoice {
   items: Array<{ name: string; weightKg: number; pricePerKg: number; total: number }>;
   totalWeight: number;
   grandTotal: number;
+  paidAmount?: number;
+  balanceAmount?: number;
+  balanceStatus?: string;
   notes?: string;
   createdAt: number;
   isExpired: boolean;
@@ -64,6 +67,9 @@ export default function PublicInvoicePage() {
               })),
               totalWeight: parsed.tw ?? parsed.totalWeight ?? 0,
               grandTotal: parsed.tot ?? parsed.grandTotal ?? 0,
+              paidAmount: parsed.paidAmount !== undefined ? parsed.paidAmount : (parsed.balanceAmount !== undefined ? Math.max(0, (parsed.tot ?? parsed.grandTotal ?? 0) - parsed.balanceAmount) : undefined),
+              balanceAmount: parsed.balanceAmount ?? 0,
+              balanceStatus: parsed.balanceStatus || (parsed.balanceAmount > 0 ? "pending" : undefined),
               notes: parsed.notes || "",
               createdAt: createdTimestamp,
               isExpired,
@@ -106,6 +112,9 @@ export default function PublicInvoicePage() {
               })),
               totalWeight: parsed.tw ?? parsed.totalWeight ?? 0,
               grandTotal: parsed.tot ?? parsed.grandTotal ?? 0,
+              paidAmount: parsed.paidAmount !== undefined ? parsed.paidAmount : (parsed.balanceAmount !== undefined ? Math.max(0, (parsed.tot ?? parsed.grandTotal ?? 0) - parsed.balanceAmount) : undefined),
+              balanceAmount: parsed.balanceAmount ?? 0,
+              balanceStatus: parsed.balanceStatus || (parsed.balanceAmount > 0 ? "pending" : undefined),
               notes: parsed.notes || "",
               createdAt: createdTimestamp,
               isExpired,
@@ -270,10 +279,14 @@ export default function PublicInvoicePage() {
   }
 
   const grandTotal = invoice.grandTotal;
+  const remainingAmount = (invoice.balanceAmount !== undefined && invoice.balanceAmount > 0)
+    ? invoice.balanceAmount
+    : (invoice.paidAmount !== undefined ? Math.max(0, grandTotal - invoice.paidAmount) : grandTotal);
+
   const terminalId = upiId.includes("@")
     ? `TERM${upiId.split("@")[0].replace(/^JKBMERC/, "")}`
     : "TERM00828895";
-  const upiPayUri = `upi://pay?pa=${upiId}&pn=Urban%20Trout%20Aquaculture&tr=${terminalId}&am=${grandTotal}&cu=INR&tn=Invoice-${invoice.invoiceNumber}`;
+  const upiPayUri = `upi://pay?pa=${upiId}&pn=Urban%20Trout%20Aquaculture&tr=${terminalId}&am=${remainingAmount}&cu=INR&tn=Invoice-${invoice.invoiceNumber}`;
   const upiQrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(
     upiPayUri
   )}&bgcolor=255-255-255&color=2-13-18&margin=2`;
@@ -388,9 +401,29 @@ export default function PublicInvoicePage() {
               </div>
             )}
             <div className="flex justify-between text-base font-black text-slate-900 font-mono pt-2 border-t">
-              <span>TOTAL AMOUNT DUE:</span>
+              <span>TOTAL BILL AMOUNT:</span>
               <span className="text-xl text-slate-950">₹{grandTotal.toLocaleString("en-IN")}</span>
             </div>
+
+            {invoice.paidAmount !== undefined && invoice.paidAmount < grandTotal && (
+              <div className="space-y-1.5 pt-1.5 text-left">
+                <div className="flex justify-between text-xs text-emerald-800 font-mono font-semibold">
+                  <span>Amount Paid / Advance:</span>
+                  <span>₹{invoice.paidAmount.toLocaleString("en-IN")}</span>
+                </div>
+
+                {invoice.balanceAmount && invoice.balanceAmount > 0 ? (
+                  <div className="flex justify-between text-sm sm:text-base text-amber-900 font-black font-mono bg-amber-50 p-2.5 rounded-2xl border border-amber-200">
+                    <span>REMAINING BALANCE DUE:</span>
+                    <span>₹{invoice.balanceAmount.toLocaleString("en-IN")}</span>
+                  </div>
+                ) : (
+                  <div className="text-xs text-emerald-800 font-bold bg-emerald-50 p-2 rounded-xl border border-emerald-200 text-center">
+                    ✓ Settled as Agreed Final Payment (Discount/Waiver Applied - Nil Balance)
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* ─── PAYMENT STATUS / EMBEDDED UPI QR CODE ─── */}
@@ -427,7 +460,9 @@ export default function PublicInvoicePage() {
               </div>
               <div>
                 <p className="text-xs font-bold text-slate-800 uppercase tracking-wide">
-                  Scan QR or Tap an App to Pay
+                  {invoice.balanceAmount && invoice.balanceAmount > 0
+                    ? `Scan to Pay Remaining Balance: ₹${remainingAmount.toLocaleString("en-IN")}`
+                    : "Scan QR or Tap an App to Pay"}
                 </p>
                 <div className="flex items-center justify-center gap-2 mt-1">
                   <span className="text-xs text-slate-600 font-mono font-bold">

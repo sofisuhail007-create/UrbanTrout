@@ -4,6 +4,8 @@ import { supabase } from "@/lib/supabase";
 import type { Order, WaterParameter, Lead } from "@/lib/supabase";
 import { adminFetch } from "@/lib/adminClient";
 import Link from "next/link";
+import BalanceReminderModal from "./billing/BalanceReminderModal";
+import type { CustomerBalanceRecord } from "@/app/api/customer-balance/route";
 import {
   validateDO,
   getAmmoniaStatus,
@@ -84,6 +86,39 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [recentParams, setRecentParams] = useState<WaterParameter[]>([]);
 
+  // Customer Balances / Khata State
+  const [balanceSummary, setBalanceSummary] = useState<{
+    totalPendingAmount: number;
+    pendingRecordsCount: number;
+    pendingCustomersCount: number;
+  }>({
+    totalPendingAmount: 0,
+    pendingRecordsCount: 0,
+    pendingCustomersCount: 0,
+  });
+  const [pendingBalances, setPendingBalances] = useState<CustomerBalanceRecord[]>([]);
+  const [selectedBalanceRecord, setSelectedBalanceRecord] = useState<CustomerBalanceRecord | null>(null);
+  const [isBalanceModalOpen, setIsBalanceModalOpen] = useState(false);
+
+  const fetchBalancesData = async () => {
+    try {
+      const res = await adminFetch("/api/customer-balance?status=pending");
+      if (res.ok) {
+        const json = await res.json();
+        if (json?.success) {
+          setPendingBalances(json.records || []);
+          if (json.summary) {
+            setBalanceSummary({
+              totalPendingAmount: json.summary.totalPendingAmount || 0,
+              pendingRecordsCount: json.summary.pendingRecordsCount || 0,
+              pendingCustomersCount: json.summary.pendingCustomersCount || 0,
+            });
+          }
+        }
+      }
+    } catch (_) {}
+  };
+
   useEffect(() => {
     async function load() {
       const cutoff = new Date(Date.now() - 48 * 3600 * 1000).toISOString();
@@ -135,6 +170,7 @@ export default function DashboardPage() {
         }
       }
 
+      await fetchBalancesData();
       setLoading(false);
     }
     load();
@@ -216,12 +252,141 @@ export default function DashboardPage() {
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5">
         <StatCard icon="today" label="Today's Orders" value={todayOrders.length} color="bg-cyan-500/15 text-cyan-400" />
         <StatCard icon="currency_rupee" label="Today's Revenue" value={`₹${todayRevenue.toLocaleString("en-IN")}`} color="bg-green-500/15 text-green-400" />
         <StatCard icon="pending" label="Pending Orders" value={pending} color="bg-amber-500/15 text-amber-400" sub="Needs action" />
+        <StatCard
+          icon="account_balance_wallet"
+          label="Pending Khata"
+          value={`₹${balanceSummary.totalPendingAmount.toLocaleString("en-IN")}`}
+          color="bg-amber-500/15 text-amber-400"
+          sub={balanceSummary.pendingRecordsCount > 0 ? `${balanceSummary.pendingRecordsCount} unpaid bills` : "All clear ✓"}
+        />
         <StatCard icon="group" label="Total Customers" value={customers} color="bg-purple-500/15 text-purple-400" />
       </div>
+
+      {/* ─── OUTSTANDING BALANCES FLASHCARD (KHATA WIDGET) ─── */}
+      {balanceSummary.pendingRecordsCount > 0 && (
+        <div className="bg-gradient-to-r from-amber-950/40 via-slate-900 to-slate-950 border border-amber-500/40 rounded-2xl p-5 shadow-2xl relative overflow-hidden animate-fadeIn">
+          <div className="absolute top-0 right-0 w-36 h-36 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
+
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 pb-3.5 border-b border-slate-800/80">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center flex-shrink-0">
+                <span className="material-symbols-outlined text-xl">account_balance_wallet</span>
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="font-bold text-white text-base" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                    Outstanding Customer Balances ({balanceSummary.pendingRecordsCount} Unpaid)
+                  </h2>
+                  <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10.5px] font-mono font-extrabold animate-pulse">
+                    ₹{balanceSummary.totalPendingAmount.toLocaleString("en-IN")} DUE
+                  </span>
+                </div>
+                <p className="text-slate-400 text-xs mt-0.5">
+                  Automated polite system-generated WhatsApp reminders with dynamic Razorpay balance QR
+                </p>
+              </div>
+            </div>
+
+            <Link
+              href="/admin/dashboard/billing?tab=customer_balances"
+              className="text-amber-400 hover:text-amber-300 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 bg-amber-500/10 hover:bg-amber-500/20 px-3.5 py-2 rounded-xl border border-amber-500/30 transition-all shadow-sm"
+            >
+              <span>Manage Khata Ledger</span>
+              <span>→</span>
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {pendingBalances.slice(0, 6).map((rec) => {
+              const cleanPhone = (rec.customer_phone || "").replace(/\D/g, "").slice(-10);
+              return (
+                <div
+                  key={rec.id}
+                  className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800/90 flex flex-col justify-between gap-3 hover:border-amber-500/30 transition-all shadow-sm"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="font-bold text-white text-sm truncate">{rec.customer_name}</p>
+                      <p className="text-slate-400 text-xs font-mono flex items-center gap-1 mt-0.5">
+                        <span className="material-symbols-outlined text-xs text-cyan-400">phone</span>
+                        {cleanPhone ? `+91 ${cleanPhone}` : "N/A"}
+                      </p>
+                      <p className="text-slate-500 text-[10px] font-mono mt-0.5">
+                        Invoice #{rec.invoice_id}
+                      </p>
+                    </div>
+
+                    <div className="text-right flex-shrink-0">
+                      <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Balance Due</p>
+                      <p className="text-base font-extrabold text-amber-400 font-mono">
+                        ₹{rec.balance_amount.toLocaleString("en-IN")}
+                      </p>
+                      <p className="text-[10px] text-slate-500 font-mono">
+                        Paid ₹{rec.paid_amount.toLocaleString("en-IN")} of ₹{rec.total_amount.toLocaleString("en-IN")}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-2 border-t border-slate-900">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedBalanceRecord(rec);
+                        setIsBalanceModalOpen(true);
+                      }}
+                      className="flex-1 py-1.5 px-2 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 text-xs font-bold flex items-center justify-center gap-1 transition-all cursor-pointer"
+                      title="Send Polite System Reminder on WhatsApp"
+                    >
+                      <span className="material-symbols-outlined text-xs">chat</span>
+                      WhatsApp
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedBalanceRecord(rec);
+                        setIsBalanceModalOpen(true);
+                      }}
+                      className="flex-1 py-1.5 px-2 rounded-lg bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-500/40 text-xs font-bold flex items-center justify-center gap-1 transition-all cursor-pointer"
+                      title="Generate Razorpay Balance QR"
+                    >
+                      <span className="material-symbols-outlined text-xs">qr_code_2</span>
+                      Scan QR
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedBalanceRecord(rec);
+                        setIsBalanceModalOpen(true);
+                      }}
+                      className="py-1.5 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold flex items-center justify-center transition-all cursor-pointer"
+                      title="Settle or Record Payment"
+                    >
+                      Settle
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {pendingBalances.length > 6 && (
+            <div className="text-center pt-3">
+              <Link
+                href="/admin/dashboard/billing?tab=customer_balances"
+                className="text-xs text-slate-400 hover:text-amber-300 underline font-mono"
+              >
+                + View all {pendingBalances.length} pending customer balances →
+              </Link>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Abandoned Leads Alert Widget */}
       {recentLeads.length > 0 && (
@@ -313,6 +478,17 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Customer Balance Reminder & Razorpay QR Modal */}
+      <BalanceReminderModal
+        isOpen={isBalanceModalOpen}
+        onClose={() => {
+          setIsBalanceModalOpen(false);
+          setSelectedBalanceRecord(null);
+        }}
+        record={selectedBalanceRecord}
+        onBalanceUpdated={fetchBalancesData}
+      />
     </div>
   );
 }
