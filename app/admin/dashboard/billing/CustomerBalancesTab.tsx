@@ -9,6 +9,23 @@ interface CustomerBalancesTabProps {
   onRefreshTrigger?: number;
 }
 
+function formatShortDate(dateStr?: string | null): string {
+  if (!dateStr) return "";
+  const d = new Date(dateStr);
+  if (!isNaN(d.getTime())) {
+    return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
+  }
+  const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) {
+    const [, y, m, day] = match;
+    const fallback = new Date(parseInt(y), parseInt(m) - 1, parseInt(day));
+    if (!isNaN(fallback.getTime())) {
+      return fallback.toLocaleDateString("en-IN", { day: "2-digit", month: "short" });
+    }
+  }
+  return dateStr;
+}
+
 export default function CustomerBalancesTab({
   upiId = "JKBMERC00828895@jkb",
   onRefreshTrigger,
@@ -233,10 +250,7 @@ export default function CustomerBalancesTab({
                     <td className="py-3 px-3 font-mono">
                       <div className="text-slate-300 font-semibold">#{r.invoice_id}</div>
                       <div className="text-slate-500 text-[10px]">
-                        {new Date(r.created_at || Date.now()).toLocaleDateString("en-IN", {
-                          day: "2-digit",
-                          month: "short",
-                        })}
+                        {formatShortDate(r.created_at)}
                       </div>
                       {r.items_summary && (
                         <div className="text-[10px] text-slate-400 truncate max-w-[140px]" title={r.items_summary}>
@@ -246,16 +260,16 @@ export default function CustomerBalancesTab({
                     </td>
 
                     <td className="py-3 px-3 text-right font-mono text-slate-300">
-                      ₹{r.total_amount.toLocaleString("en-IN")}
+                      ₹{(Number(r.total_amount) || 0).toLocaleString("en-IN")}
                     </td>
 
                     <td className="py-3 px-3 text-right font-mono text-emerald-400 font-semibold">
-                      ₹{r.paid_amount.toLocaleString("en-IN")}
+                      ₹{(Number(r.paid_amount) || 0).toLocaleString("en-IN")}
                     </td>
 
                     <td className="py-3 px-3 text-right font-mono">
                       <span className={`text-sm font-extrabold ${isPending ? "text-amber-400" : "text-slate-500"}`}>
-                        ₹{r.balance_amount.toLocaleString("en-IN")}
+                        ₹{(Number(r.balance_amount) || 0).toLocaleString("en-IN")}
                       </span>
                     </td>
 

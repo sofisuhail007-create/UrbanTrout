@@ -92,6 +92,33 @@ async function syncInvoiceRecord(invoiceId: string, balanceAmount: number, statu
   }
 }
 
+function formatEntryDateTime(dateStr?: string, timeStr?: string, createdAt?: string): string {
+  if (createdAt && !isNaN(new Date(createdAt).getTime())) {
+    return createdAt;
+  }
+  if (!dateStr) return new Date().toISOString();
+
+  if (timeStr) {
+    const timeMatch = timeStr.trim().match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm)?$/i);
+    if (timeMatch) {
+      let hours = parseInt(timeMatch[1], 10);
+      const minutes = parseInt(timeMatch[2], 10);
+      const seconds = timeMatch[3] ? parseInt(timeMatch[3], 10) : 0;
+      const meridiem = timeMatch[4]?.toLowerCase();
+      if (meridiem === "pm" && hours < 12) hours += 12;
+      if (meridiem === "am" && hours === 12) hours = 0;
+      const hh = String(hours).padStart(2, "0");
+      const mm = String(minutes).padStart(2, "0");
+      const ss = String(seconds).padStart(2, "0");
+      const iso = `${dateStr}T${hh}:${mm}:${ss}`;
+      if (!isNaN(new Date(iso).getTime())) {
+        return iso;
+      }
+    }
+  }
+  return `${dateStr}T12:00:00.000Z`;
+}
+
 /**
  * GET /api/customer-balance
  * Returns all balance records with KPI summaries (total pending amount, pending count, etc.)
@@ -158,7 +185,7 @@ export async function GET(request: Request) {
               payment_method: r.payment_mode || "Cash",
               settlement_note: r.notes ? `Vending: ${r.notes}` : `Vending Center Sale: ${w} Kg ${r.product_type}`,
               items_summary: `${w} Kg ${r.product_type} Trout (Vending Center)`,
-              created_at: `${r.entry_date}T${r.entry_time || "12:00:00"}`,
+              created_at: formatEntryDateTime(r.entry_date, r.entry_time, r.created_at),
               updated_at: r.updated_at || r.created_at || new Date().toISOString(),
             });
           }

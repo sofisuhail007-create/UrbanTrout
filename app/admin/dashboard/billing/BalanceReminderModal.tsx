@@ -11,6 +11,23 @@ interface BalanceReminderModalProps {
   onBalanceUpdated?: () => void;
 }
 
+function formatSafeDate(dateStr?: string | null): string {
+  if (!dateStr) return new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+  const d = new Date(dateStr);
+  if (!isNaN(d.getTime())) {
+    return d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+  }
+  const match = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (match) {
+    const [, y, m, day] = match;
+    const fallback = new Date(parseInt(y), parseInt(m) - 1, parseInt(day));
+    if (!isNaN(fallback.getTime())) {
+      return fallback.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+    }
+  }
+  return dateStr;
+}
+
 export default function BalanceReminderModal({
   isOpen,
   onClose,
@@ -43,7 +60,7 @@ export default function BalanceReminderModal({
   // Reset when record changes
   useEffect(() => {
     if (record) {
-      setPaymentAmount(record.balance_amount.toString());
+      setPaymentAmount((record.balance_amount ?? 0).toString());
       setPaymentLink(record.razorpay_payment_link_url || "");
       setRzpQrId(record.razorpay_qr_id || null);
       setRzpQrImageUrl(null);
@@ -53,6 +70,40 @@ export default function BalanceReminderModal({
     }
   }, [record]);
 
+  // Poll for QR payment verification (HOOK MUST REMAIN UNCONDITIONAL AT COMPONENT ROOT)
+  useEffect(() => {
+    if (!isOpen || !record || !rzpQrId || rzpPaid || activeTab !== "qr") return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/razorpay/pos-qr?qr_id=${encodeURIComponent(rzpQrId)}`);
+        const data = await res.json();
+        if (data?.success && data.paid) {
+          setRzpPaid(true);
+          clearInterval(interval);
+
+          // Mark settled in API
+          await fetch("/api/customer-balance", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id: record.id,
+              action: "RECORD_PAYMENT",
+              amountReceived: record.balance_amount,
+              paymentMethod: "Razorpay QR (Verified)",
+              settlementNote: `Paid in full via Razorpay Dynamic QR (Payment Ref: ${data.payment?.id || "N/A"})`,
+            }),
+          });
+
+          if (onBalanceUpdated) onBalanceUpdated();
+        }
+      } catch (_) {}
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, [isOpen, record?.id, record?.balance_amount, rzpQrId, rzpPaid, activeTab, onBalanceUpdated]);
+
+  // Early return strictly AFTER all hooks have executed
   if (!isOpen || !record) return null;
 
   const cleanPhone = (record.customer_phone || "").replace(/\D/g, "").slice(-10);
@@ -73,13 +124,13 @@ This is an automated system-generated billing update regarding your recent order
 
 📄 *Statement Details:*
 • *Order / Invoice Ref:* #${record.invoice_id}
-• *Date:* ${new Date(record.created_at || Date.now()).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+• *Date:* ${formatSafeDate(record.created_at)}
 • *Order Items:* ${record.items_summary || "Fresh Rainbow Trout"}
 
 💰 *Payment Breakdown:*
-• *Total Bill Amount:* Rs. ${record.total_amount.toLocaleString("en-IN")}
-• *Amount Received:* Rs. ${record.paid_amount.toLocaleString("en-IN")}
-• *Outstanding Balance Due:* *Rs. ${record.balance_amount.toLocaleString("en-IN")}*
+• *Total Bill Amount:* Rs. ${(Number(record.total_amount) || 0).toLocaleString("en-IN")}
+• *Amount Received:* Rs. ${(Number(record.paid_amount) || 0).toLocaleString("en-IN")}
+• *Outstanding Balance Due:* *Rs. ${(Number(record.balance_amount) || 0).toLocaleString("en-IN")}*
 ${paySection}
 
 ━━━━━━━━━━━━━━━━━━━━
@@ -200,38 +251,7 @@ Helpline: +91 84910 06127`;
     }
   };
 
-  // Poll for QR payment verification
-  useEffect(() => {
-    if (!rzpQrId || rzpPaid || activeTab !== "qr") return;
 
-    const interval = setInterval(async () => {
-      try {
-        const res = await fetch(`/api/razorpay/pos-qr?qr_id=${encodeURIComponent(rzpQrId)}`);
-        const data = await res.json();
-        if (data?.success && data.paid) {
-          setRzpPaid(true);
-          clearInterval(interval);
-
-          // Mark settled in API
-          await fetch("/api/customer-balance", {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              id: record.id,
-              action: "RECORD_PAYMENT",
-              amountReceived: record.balance_amount,
-              paymentMethod: "Razorpay QR (Verified)",
-              settlementNote: `Paid in full via Razorpay Dynamic QR (Payment Ref: ${data.payment?.id || "N/A"})`,
-            }),
-          });
-
-          if (onBalanceUpdated) onBalanceUpdated();
-        }
-      } catch (_) {}
-    }, 4000);
-
-    return () => clearInterval(interval);
-  }, [rzpQrId, rzpPaid, activeTab, record.id, record.balance_amount, onBalanceUpdated]);
 
   // 4. Record Payment or Settle as Final Waiver
   const handleRecordRepayment = async () => {
@@ -336,15 +356,15 @@ Helpline: +91 84910 06127`;
           <div className="grid grid-cols-3 gap-2 text-center">
             <div className="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
               <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Total Bill</p>
-              <p className="text-sm font-bold text-white font-mono mt-0.5">₹{record.total_amount.toLocaleString("en-IN")}</p>
+              <p className="text-sm font-bold text-white font-mono mt-0.5">₹{(Number(record.total_amount) || 0).toLocaleString("en-IN")}</p>
             </div>
             <div className="bg-slate-950/60 p-2.5 rounded-xl border border-emerald-500/20">
               <p className="text-[10px] uppercase tracking-wider text-emerald-400 font-bold">Paid So Far</p>
-              <p className="text-sm font-bold text-emerald-300 font-mono mt-0.5">₹{record.paid_amount.toLocaleString("en-IN")}</p>
+              <p className="text-sm font-bold text-emerald-300 font-mono mt-0.5">₹{(Number(record.paid_amount) || 0).toLocaleString("en-IN")}</p>
             </div>
             <div className="bg-slate-950/80 p-2.5 rounded-xl border border-amber-500/40 shadow-inner">
               <p className="text-[10px] uppercase tracking-wider text-amber-400 font-bold">Remaining Balance</p>
-              <p className="text-base font-extrabold text-amber-300 font-mono mt-0.5">₹{record.balance_amount.toLocaleString("en-IN")}</p>
+              <p className="text-base font-extrabold text-amber-300 font-mono mt-0.5">₹{(Number(record.balance_amount) || 0).toLocaleString("en-IN")}</p>
             </div>
           </div>
 
@@ -461,7 +481,7 @@ Helpline: +91 84910 06127`;
 
               {record.last_reminder_sent_at && (
                 <p className="text-center text-[11px] text-slate-400 font-mono">
-                  Last reminder sent: {new Date(record.last_reminder_sent_at).toLocaleString("en-IN")}
+                  Last reminder sent: {formatSafeDate(record.last_reminder_sent_at)}
                 </p>
               )}
             </div>
@@ -477,7 +497,7 @@ Helpline: +91 84910 06127`;
                   </div>
                   <h4 className="text-base font-bold text-white">Payment Received!</h4>
                   <p className="text-xs text-emerald-300">
-                    Remaining balance of ₹{record.balance_amount} cleared via Razorpay UPI.
+                    Remaining balance of ₹{(Number(record.balance_amount) || 0).toLocaleString("en-IN")} cleared via Razorpay UPI.
                   </p>
                 </div>
               ) : (
@@ -509,7 +529,7 @@ Helpline: +91 84910 06127`;
 
                   <div className="space-y-1">
                     <p className="text-base font-extrabold text-white font-mono">
-                      Amount Locked: <span className="text-cyan-400">₹{record.balance_amount.toLocaleString("en-IN")}</span>
+                      Amount Locked: <span className="text-cyan-400">₹{(Number(record.balance_amount) || 0).toLocaleString("en-IN")}</span>
                     </p>
                     <p className="text-[11px] text-slate-400 font-mono">
                       {rzpQrId ? "🟢 Live auto-checking payment status..." : "Click button to generate dynamic QR"}
@@ -532,7 +552,7 @@ Helpline: +91 84910 06127`;
                     Record Customer Repayment
                   </h4>
                   <span className="text-[11px] text-amber-400 font-mono font-bold">
-                    Balance: ₹{record.balance_amount}
+                    Balance: ₹{(Number(record.balance_amount) || 0).toLocaleString("en-IN")}
                   </span>
                 </div>
 
