@@ -541,21 +541,123 @@ export async function PATCH(request: Request) {
     try {
       const { data: vslMatch } = await supabase
         .from("vending_sales_log")
-        .select("id, custom_fields")
+        .select("id, custom_fields, notes, payment_mode, amount_paid, expected_amount, weight_kg, rate_per_kg")
         .or(`id.eq.${lookupId},custom_fields->>balance_ref_id.eq.${lookupId},custom_fields->>balance_ref_id.eq.${current.invoice_id}`)
         .maybeSingle();
 
       if (vslMatch) {
         const cf = vslMatch.custom_fields || {};
+        const nowIso = new Date().toISOString();
+        const nowFormatted = new Date().toLocaleString("en-IN", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+          timeZone: "Asia/Kolkata",
+        });
+
         cf.balance_amount = current.balance_amount;
         cf.balance_status = current.status;
-        if (current.status === "settled" || current.status === "waived_final") {
-          cf.settled_at = new Date().toISOString();
+
+        // Structured payment history array in custom_fields
+        if (!Array.isArray(cf.payment_history)) {
+          cf.payment_history = [];
         }
+        if (action === "RECORD_PAYMENT") {
+          cf.payment_history.push({
+            amount: Number(amountReceived || current.paid_amount),
+            method: current.payment_method || "Razorpay QR (Verified)",
+            timestamp: nowIso,
+            note: settlementNote || "Balance payment cleared",
+          });
+        }
+
+        // Check if fully settled
+        const isSettled = current.status === "settled" || current.balance_amount <= 0;
+        if (isSettled) {
+          cf.settled_at = nowIso;
+          cf.is_full_payment = true;
+          cf.settled_payment_method = current.payment_method || "Razorpay QR (Verified)";
+        } else if (current.status === "waived_final") {
+          cf.settled_at = nowIso;
+          cf.is_waived = true;
+        }
+
+        // Amount paid should be the full updated paid_amount (e.g. 500 + 179 = 679)
+        const updatedAmountPaid = Number(current.paid_amount || vslMatch.amount_paid);
+        const expAmt = Number(cf.expected_amount) || Number(vslMatch.expected_amount) || (Number(vslMatch.weight_kg) * Number(vslMatch.rate_per_kg));
+        const updatedDiscount = Math.max(0, expAmt - updatedAmountPaid);
+
+        // Payment mode update (e.g. Cash + Online QR)
+        let updatedMode = vslMatch.payment_mode || "Cash";
+        if (current.payment_method?.includes("QR") || current.payment_method?.includes("Online") || current.payment_method?.includes("Razorpay")) {
+          if (updatedMode.toLowerCase().includes("cash") && isSettled) {
+            updatedMode = "Cash + Online QR";
+          } else {
+            updatedMode = current.payment_method;
+          }
+        }
+
+        // Timestamped audit note
+        let updatedNotes = vslMatch.notes || "";
+        if (action === "RECORD_PAYMENT" && Number(amountReceived || 0) > 0) {
+          const noteText = isSettled
+            ? `[FULL PAYMENT ✓: ₹${amountReceived} paid via ${current.payment_method || "QR"} on ${nowFormatted}]`
+            : `[PARTIAL PAYMENT: ₹${amountReceived} paid via ${current.payment_method || "QR"} on ${nowFormatted} - Remaining: ₹${current.balance_amount}]`;
+          updatedNotes = updatedNotes ? `${updatedNotes} | ${noteText}` : noteText;
+        } else if (action === "SETTLE_FINAL_WAIVER") {
+          const noteText = `[WAIVED AS FINAL SETTLEMENT on ${nowFormatted}: ${settlementNote || "Concession agreed"}]`;
+          updatedNotes = updatedNotes ? `${updatedNotes} | ${noteText}` : noteText;
+        }
+
         await supabase
           .from("vending_sales_log")
-          .update({ custom_fields: cf })
+          .update({
+            amount_paid: updatedAmountPaid,
+            discount_amount: updatedDiscount,
+            payment_mode: updatedMode,
+            notes: updatedNotes,
+            custom_fields: cf,
+            updated_at: nowIso,
+          })
           .eq("id", vslMatch.id);
+
+        // Also update fallback cache vending_log_data in app_settings
+        try {
+          const { data: setRow } = await supabase
+            .from("app_settings")
+            .select("value")
+            .eq("key", "vending_log_data")
+            .single();
+
+          if (setRow?.value) {
+            const list = JSON.parse(setRow.value);
+            const idx = list.findIndex(
+              (x: any) =>
+                x.id === vslMatch.id ||
+                x.custom_fields?.balance_ref_id === lookupId ||
+                x.custom_fields?.balance_ref_id === current.invoice_id
+            );
+            if (idx >= 0) {
+              list[idx].amount_paid = updatedAmountPaid;
+              list[idx].discount_amount = updatedDiscount;
+              list[idx].payment_mode = updatedMode;
+              list[idx].notes = updatedNotes;
+              list[idx].custom_fields = cf;
+              list[idx].updated_at = nowIso;
+              await supabase.from("app_settings").upsert(
+                {
+                  key: "vending_log_data",
+                  value: JSON.stringify(list.slice(0, 1000)),
+                  updated_at: nowIso,
+                },
+                { onConflict: "key" }
+              );
+            }
+          }
+        } catch (_) {}
       }
     } catch (e) {
       console.warn("Could not sync vending_sales_log balance update:", e);

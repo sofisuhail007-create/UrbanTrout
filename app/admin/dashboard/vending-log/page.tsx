@@ -229,6 +229,9 @@ export default function VendingCenterLoggerPage() {
   const [selectedBalanceRecord, setSelectedBalanceRecord] = useState<CustomerBalanceRecord | null>(null);
   const [balanceModalOpen, setBalanceModalOpen] = useState(false);
 
+  // ─── Organized Executive KPI Cards Category State ───
+  const [kpiCategory, setKpiCategory] = useState<"sales" | "aquarium" | "staff" | "all">("sales");
+
   // ─── Aquarium Mortality & Scrap Wastage State ───
   const [mortalityEntries, setMortalityEntries] = useState<AquariumMortalityEntry[]>([]);
   const [mortalityModalOpen, setMortalityModalOpen] = useState(false);
@@ -2250,11 +2253,94 @@ export default function VendingCenterLoggerPage() {
           </div>
         </div>
 
+        {/* ─── ORGANIZED CATEGORY NAVIGATION BAR ─── */}
+        {isAdmin && showAdminCards && (
+          <div className="flex flex-wrap items-center justify-between gap-2 p-1.5 bg-slate-900/90 border border-slate-800 rounded-2xl shadow-md animate-in fade-in duration-200">
+            <div className="flex flex-wrap items-center gap-1 sm:gap-1.5">
+              <button
+                type="button"
+                onClick={() => setKpiCategory("sales")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
+                  kpiCategory === "sales"
+                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm"
+                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
+                }`}
+              >
+                <span className="material-symbols-outlined text-sm text-emerald-400">query_stats</span>
+                <span>Sales &amp; Cash</span>
+                <span className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-[10px] text-emerald-300 font-mono">
+                  ₹{kpis.totalRevenue.toLocaleString("en-IN")}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setKpiCategory("aquarium")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
+                  kpiCategory === "aquarium"
+                    ? "bg-blue-500/20 text-blue-300 border border-blue-500/40 shadow-sm"
+                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
+                }`}
+              >
+                <span className="material-symbols-outlined text-sm text-blue-400">set_meal</span>
+                <span>Aquarium Stock</span>
+                <span className="px-1.5 py-0.2 rounded bg-blue-500/20 text-[10px] text-blue-300 font-mono">
+                  {formatKg(aquariumStock.remainingKg)} Kg
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setKpiCategory("staff")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
+                  kpiCategory === "staff"
+                    ? "bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-sm"
+                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
+                }`}
+              >
+                <span className="material-symbols-outlined text-sm text-purple-400">badge</span>
+                <span>Staff Wages</span>
+                {incentiveStats.balanceRemaining > 0 && (
+                  <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-[10px] text-amber-300 font-mono border border-amber-500/30">
+                    ₹{incentiveStats.balanceRemaining} Due
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setKpiCategory("all")}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
+                  kpiCategory === "all"
+                    ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm"
+                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
+                }`}
+              >
+                <span className="material-symbols-outlined text-sm text-cyan-400">dashboard_customize</span>
+                <span>View All</span>
+              </button>
+            </div>
+
+            <div className="text-[11px] font-mono text-slate-500 pr-2 hidden lg:block">
+              {kpiCategory === "sales" && "Showing counter sales, revenue & cash flow"}
+              {kpiCategory === "aquarium" && "Showing live aquarium biomass, stock & mortality"}
+              {kpiCategory === "staff" && "Showing Mohd Amin wages & incentive payouts"}
+              {kpiCategory === "all" && "Showing all sections"}
+            </div>
+          </div>
+        )}
+
         {/* ══════════════════════════════════════════════════════════
             SECTION 1: SALES & REVENUE PERFORMANCE (6 Spacious Cards)
             ══════════════════════════════════════════════════════════ */}
-        {isAdmin && showAdminCards && (
-          <div className="space-y-3.5 animate-in fade-in duration-200">
+        {isAdmin && showAdminCards && (kpiCategory === "sales" || kpiCategory === "all") && (
+          <div className="space-y-3 animate-in fade-in duration-200">
+            {kpiCategory === "all" && (
+              <div className="flex items-center gap-2 text-xs font-mono font-bold text-emerald-400 uppercase tracking-wider pt-1">
+                <span className="material-symbols-outlined text-sm">query_stats</span>
+                <span>Section 1: Sales &amp; Revenue Performance</span>
+              </div>
+            )}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3.5">
               {/* Card 1: Total Weight Sold */}
               <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-emerald-950/40 via-slate-900/80 to-slate-900 border border-emerald-500/30 shadow-xl shadow-emerald-950/20 relative overflow-hidden flex flex-col justify-between">
@@ -2501,10 +2587,20 @@ export default function VendingCenterLoggerPage() {
                 </div>
               </div>
             </div>
+          </div>
+        )}
 
-            {/* ══════════════════════════════════════════════════════════
-                SECTION 2: WORKER COMPENSATION & SALARY MANAGEMENT (Mohd Amin)
-                ══════════════════════════════════════════════════════════ */}
+        {/* ══════════════════════════════════════════════════════════
+            SECTION 2: WORKER COMPENSATION & SALARY MANAGEMENT (Mohd Amin)
+            ══════════════════════════════════════════════════════════ */}
+        {isAdmin && showAdminCards && (kpiCategory === "staff" || kpiCategory === "all") && (
+          <div className="space-y-3 animate-in fade-in duration-200">
+            {kpiCategory === "all" && (
+              <div className="flex items-center gap-2 text-xs font-mono font-bold text-purple-400 uppercase tracking-wider pt-1">
+                <span className="material-symbols-outlined text-sm">badge</span>
+                <span>Section 2: Worker Compensation &amp; Salary (Mohd Amin)</span>
+              </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
               {/* Card A: Mohd Amin Gutted Incentive */}
               <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-purple-950/50 via-slate-900/90 to-slate-900 border border-purple-500/40 shadow-xl shadow-purple-950/20 relative overflow-hidden flex flex-col justify-between group">
@@ -2681,8 +2777,14 @@ export default function VendingCenterLoggerPage() {
           AQUARIUM BIOMASS STOCK TRACKER — Flash Cards + Log
           Visible to Admin only. Shows live stock remaining in aquarium.
           ══════════════════════════════════════════════════════════ */}
-      {isAdmin && (
-        <div className="space-y-3">
+      {isAdmin && showAdminCards && (kpiCategory === "aquarium" || kpiCategory === "all") && (
+        <div className="space-y-3 animate-in fade-in duration-200">
+          {kpiCategory === "all" && (
+            <div className="flex items-center gap-2 text-xs font-mono font-bold text-blue-400 uppercase tracking-wider pt-1">
+              <span className="material-symbols-outlined text-sm">water</span>
+              <span>Section 3: Aquarium Live Biomass &amp; Mortality</span>
+            </div>
+          )}
           {/* Section Header */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -3310,6 +3412,20 @@ export default function VendingCenterLoggerPage() {
                           >
                             <span>🤝 Waived (-₹{loss})</span>
                           </span>
+                        ) : e.custom_fields?.balance_status === "settled" || e.custom_fields?.settled_at || e.custom_fields?.is_full_payment ? (
+                          <div className="inline-flex flex-col items-end gap-0.5 text-right">
+                            <span
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/50"
+                              title={`Balance cleared in full! Settled: ${e.custom_fields?.settled_at ? new Date(e.custom_fields.settled_at).toLocaleString('en-IN') : 'Completed'} via ${e.custom_fields?.settled_payment_method || 'QR/Online'}`}
+                            >
+                              <span>✓ FULL PAID</span>
+                            </span>
+                            {e.custom_fields?.settled_at && (
+                              <span className="text-[9px] text-emerald-400/80 font-mono">
+                                QR Cleared
+                              </span>
+                            )}
+                          </div>
                         ) : loss > 0 ? (
                           <span
                             className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30"
@@ -3332,7 +3448,11 @@ export default function VendingCenterLoggerPage() {
                         )}
                       </td>
                       <td className="py-3 px-3 whitespace-nowrap">
-                        {isCash ? (
+                        {e.payment_mode === "Cash + Online QR" || (e.custom_fields?.settled_at && (e.payment_mode || "").toLowerCase().includes("qr")) ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-mono text-[11px] font-bold">
+                            💵 Cash + ⚡ QR ✓
+                          </span>
+                        ) : isCash ? (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-teal-500/15 border border-teal-500/30 text-teal-300 font-mono text-[11px] font-bold">
                             💵 Cash
                           </span>

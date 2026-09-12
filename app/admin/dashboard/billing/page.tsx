@@ -3106,30 +3106,6 @@ ${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━
                       {isPaid ? (
                         /* PAID ACTIONS */
                         <div className="space-y-1.5">
-                          <div className="grid grid-cols-2 gap-1.5">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                const pubUrl = `${window.location.origin}/invoice/${order.id}`;
-                                window.open(pubUrl, "_blank");
-                              }}
-                              className="py-1.5 px-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[10.5px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer"
-                            >
-                              <span className="material-symbols-outlined text-xs">visibility</span>
-                              Invoice PDF
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => handleDispatchToDeliveryBoy(order)}
-                              className="py-1.5 px-2 rounded-xl bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-500/40 text-[10.5px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer"
-                              title="Copy delivery boy ticket and open WhatsApp"
-                            >
-                              <span className="material-symbols-outlined text-xs">local_shipping</span>
-                              {isTicketCopied ? "✓ Copied!" : "Dispatch Ticket"}
-                            </button>
-                          </div>
-
                           <div className="flex items-center justify-between gap-1.5">
                             <div className="flex-1 p-1 rounded-lg bg-emerald-950/30 border border-emerald-500/30 text-[9.5px] text-emerald-300 font-mono text-center flex items-center justify-center gap-1">
                               <span className="material-symbols-outlined text-xs">sync_saved_locally</span>
