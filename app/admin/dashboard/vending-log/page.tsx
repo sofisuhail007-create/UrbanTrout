@@ -654,12 +654,23 @@ export default function VendingCenterLoggerPage() {
       const rev = Number(e.amount_paid) || 0;
       const rate = Number(e.rate_per_kg) || 0;
       const exp =
-        e.expected_amount !== undefined && e.expected_amount !== null
+        e.expected_amount !== undefined && e.expected_amount !== null && Number(e.expected_amount) > 0
           ? Number(e.expected_amount)
+          : e.custom_fields?.expected_amount !== undefined && Number(e.custom_fields.expected_amount) > 0
+          ? Number(e.custom_fields.expected_amount)
           : Math.round(w * rate);
+
+      const isPendingBal =
+        e.custom_fields?.balance_status === "pending" &&
+        Number(e.custom_fields?.balance_amount) > 0;
+
       const loss =
-        e.discount_amount !== undefined && e.discount_amount !== null
+        e.discount_amount !== undefined && e.discount_amount !== null && Number(e.discount_amount) > 0
           ? Number(e.discount_amount)
+          : e.custom_fields?.discount_amount !== undefined && Number(e.custom_fields.discount_amount) > 0
+          ? Number(e.custom_fields.discount_amount)
+          : isPendingBal
+          ? 0
           : Math.max(0, exp - rev);
 
       const bal = Number(e.custom_fields?.balance_amount || 0);
@@ -3386,13 +3397,22 @@ export default function VendingCenterLoggerPage() {
                   const w = Number(e.weight_kg) || 0;
                   const rate = Number(e.rate_per_kg) || 0;
                   const exp =
-                    e.expected_amount !== undefined && e.expected_amount !== null
+                    e.expected_amount !== undefined && e.expected_amount !== null && Number(e.expected_amount) > 0
                       ? Number(e.expected_amount)
+                      : e.custom_fields?.expected_amount !== undefined && Number(e.custom_fields.expected_amount) > 0
+                      ? Number(e.custom_fields.expected_amount)
                       : Math.round(w * rate);
                   const taken = Number(e.amount_paid) || 0;
+                  const isPendingBal =
+                    e.custom_fields?.balance_status === "pending" &&
+                    Number(e.custom_fields?.balance_amount) > 0;
                   const loss =
-                    e.discount_amount !== undefined && e.discount_amount !== null
+                    e.discount_amount !== undefined && e.discount_amount !== null && Number(e.discount_amount) > 0
                       ? Number(e.discount_amount)
+                      : e.custom_fields?.discount_amount !== undefined && Number(e.custom_fields.discount_amount) > 0
+                      ? Number(e.custom_fields.discount_amount)
+                      : isPendingBal
+                      ? 0
                       : Math.max(0, exp - taken);
                   const isCash = (e.payment_mode || "").toLowerCase().trim() === "cash";
 
@@ -3613,16 +3633,24 @@ export default function VendingCenterLoggerPage() {
                     const w = Number(e.weight_kg) || 0;
                     const r = Number(e.rate_per_kg) || 0;
                     const exp =
-                      e.expected_amount !== undefined && e.expected_amount !== null
+                      e.expected_amount !== undefined && e.expected_amount !== null && Number(e.expected_amount) > 0
                         ? Number(e.expected_amount)
+                        : e.custom_fields?.expected_amount !== undefined && Number(e.custom_fields.expected_amount) > 0
+                        ? Number(e.custom_fields.expected_amount)
                         : Math.round(w * r);
                     const paid = Number(e.amount_paid) || 0;
-                    return (
-                      s +
-                      (e.discount_amount !== undefined && e.discount_amount !== null
+                    const isPendingBal =
+                      e.custom_fields?.balance_status === "pending" &&
+                      Number(e.custom_fields?.balance_amount) > 0;
+                    const l =
+                      e.discount_amount !== undefined && e.discount_amount !== null && Number(e.discount_amount) > 0
                         ? Number(e.discount_amount)
-                        : Math.max(0, exp - paid))
-                    );
+                        : e.custom_fields?.discount_amount !== undefined && Number(e.custom_fields.discount_amount) > 0
+                        ? Number(e.custom_fields.discount_amount)
+                        : isPendingBal
+                        ? 0
+                        : Math.max(0, exp - paid);
+                    return s + l;
                   }, 0);
 
                   return (

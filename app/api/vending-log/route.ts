@@ -327,17 +327,23 @@ export async function GET(request: Request) {
     for (const e of fallbackEntries) {
       if (!e?.id) continue;
       const exp =
-        e.expected_amount !== undefined && e.expected_amount !== null
+        e.expected_amount !== undefined && e.expected_amount !== null && Number(e.expected_amount) > 0
           ? Number(e.expected_amount)
-          : e.custom_fields?.expected_amount !== undefined
+          : e.custom_fields?.expected_amount !== undefined && Number(e.custom_fields.expected_amount) > 0
           ? Number(e.custom_fields.expected_amount)
           : Math.round(Number(e.weight_kg) * Number(e.rate_per_kg));
 
+      const isPending =
+        e.custom_fields?.balance_status === "pending" &&
+        Number(e.custom_fields?.balance_amount) > 0;
+
       const disc =
-        e.discount_amount !== undefined && e.discount_amount !== null
+        e.discount_amount !== undefined && e.discount_amount !== null && Number(e.discount_amount) > 0
           ? Number(e.discount_amount)
-          : e.custom_fields?.discount_amount !== undefined
+          : e.custom_fields?.discount_amount !== undefined && Number(e.custom_fields.discount_amount) > 0
           ? Number(e.custom_fields.discount_amount)
+          : isPending
+          ? 0
           : Math.max(0, exp - Number(e.amount_paid));
 
       map.set(e.id, {
@@ -353,21 +359,27 @@ export async function GET(request: Request) {
       const existing = map.get(e.id);
 
       const exp =
-        e.expected_amount !== undefined && e.expected_amount !== null
+        e.expected_amount !== undefined && e.expected_amount !== null && Number(e.expected_amount) > 0
           ? Number(e.expected_amount)
-          : e.custom_fields?.expected_amount !== undefined
+          : e.custom_fields?.expected_amount !== undefined && Number(e.custom_fields.expected_amount) > 0
           ? Number(e.custom_fields.expected_amount)
-          : existing?.expected_amount !== undefined
-          ? existing.expected_amount
+          : existing?.expected_amount !== undefined && Number(existing.expected_amount) > 0
+          ? Number(existing.expected_amount)
           : Math.round(Number(e.weight_kg) * Number(e.rate_per_kg));
 
+      const isPending =
+        e.custom_fields?.balance_status === "pending" &&
+        Number(e.custom_fields?.balance_amount) > 0;
+
       const disc =
-        e.discount_amount !== undefined && e.discount_amount !== null
+        e.discount_amount !== undefined && e.discount_amount !== null && Number(e.discount_amount) > 0
           ? Number(e.discount_amount)
-          : e.custom_fields?.discount_amount !== undefined
+          : e.custom_fields?.discount_amount !== undefined && Number(e.custom_fields.discount_amount) > 0
           ? Number(e.custom_fields.discount_amount)
-          : existing?.discount_amount !== undefined
-          ? existing.discount_amount
+          : existing?.discount_amount !== undefined && Number(existing.discount_amount) > 0
+          ? Number(existing.discount_amount)
+          : isPending
+          ? 0
           : Math.max(0, exp - Number(e.amount_paid));
 
       map.set(e.id, {
