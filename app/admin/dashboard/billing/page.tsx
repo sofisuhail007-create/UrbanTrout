@@ -2416,75 +2416,6 @@ ${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━
                 ) : (
                   /* ─── READY OR LISTENING STATE ─── */
                   <div className="w-full space-y-2.5">
-                    {/* Header with Style Switcher & Preview Toggle */}
-                    <div className="space-y-1.5 text-left">
-                      <div className="flex items-center justify-between text-[10.5px] font-mono">
-                        <span className="text-slate-300 font-bold">Message Format:</span>
-                        <button
-                          type="button"
-                          onClick={() => setShowWaPreview(!showWaPreview)}
-                          className="text-emerald-400 hover:text-emerald-300 underline cursor-pointer font-bold flex items-center gap-1"
-                        >
-                          <span>{showWaPreview ? "👁️ Hide Preview" : "👁️ Preview Message"}</span>
-                        </button>
-                      </div>
-
-                      {/* 3 Clean Style Options */}
-                      <div className="grid grid-cols-3 gap-1 bg-slate-900 p-0.5 rounded-lg border border-slate-800 text-[10px] font-mono">
-                        {[
-                          { id: "executive", label: "✨ Executive" },
-                          { id: "receipt", label: "📄 Digital Ticket" },
-                          { id: "compact", label: "⚡ Compact" },
-                        ].map((st) => (
-                          <button
-                            key={st.id}
-                            type="button"
-                            onClick={() => setWaMessageStyle(st.id as any)}
-                            className={`py-1 rounded text-center font-bold transition-all cursor-pointer ${
-                              waMessageStyle === st.id
-                                ? "bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 shadow-sm"
-                                : "text-slate-400 hover:text-slate-200"
-                            }`}
-                          >
-                            {st.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* Simulated Live WhatsApp Dark-Mode Chat Bubble Preview */}
-                    {showWaPreview && (
-                      <div className="w-full text-left p-2.5 rounded-xl bg-[#0b141a] border border-emerald-500/30 space-y-2 animate-fadeIn shadow-2xl">
-                        <div className="flex items-center justify-between pb-1 border-b border-slate-800 text-[10px] text-slate-400 font-mono">
-                          <span className="flex items-center gap-1.5 text-emerald-400 font-bold">
-                            <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-                            WhatsApp Preview ({waMessageStyle})
-                          </span>
-                          <span className="text-[9px] bg-slate-800 px-1.5 py-0.5 rounded text-emerald-300">
-                            ✓ 100% Safe (No broken glyphs)
-                          </span>
-                        </div>
-                        <div className="p-3 rounded-2xl rounded-tl-none bg-[#005c4b] text-white text-[11px] font-sans leading-relaxed shadow-lg relative">
-                          <pre className="whitespace-pre-wrap font-sans text-[11px] text-emerald-50 select-text leading-relaxed">
-                            {rzpLinkData
-                              ? rzpLinkData.waMessage
-                              : createWhatsAppMessage(
-                                  billItems,
-                                  "UT-INV-XXXX",
-                                  totalWeight,
-                                  grandTotal,
-                                  customerName,
-                                  "https://rzp.io/rzp/xxxxxx",
-                                  customerNotes,
-                                  waMessageStyle
-                                )}
-                          </pre>
-                          <div className="text-[9px] text-emerald-200/60 text-right mt-1 font-mono">
-                            {new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true })} ✓✓
-                          </div>
-                        </div>
-                      </div>
-                    )}
 
                     {rzpLinkData ? (
                       /* ─── ACTIVE LISTENING CARD ─── */
@@ -2619,21 +2550,6 @@ ${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━
                           <span className="font-mono font-bold text-emerald-400">
                             {customerPhone.replace(/\D/g, "").slice(-10) ? `+91 ${customerPhone.replace(/\D/g, "").slice(-10)}` : "⚠️ Enter phone in Section 2"}
                           </span>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-1.5 text-left text-[10px] font-mono text-slate-300">
-                          <div className="p-1.5 rounded-lg bg-slate-900/60 border border-slate-800/80 flex items-center gap-1.5">
-                            <span className="text-green-400">✓</span> Amount locked (₹{grandTotal.toLocaleString("en-IN")})
-                          </div>
-                          <div className="p-1.5 rounded-lg bg-slate-900/60 border border-slate-800/80 flex items-center gap-1.5">
-                            <span className="text-green-400">✓</span> Zero Broken Glyphs
-                          </div>
-                          <div className="p-1.5 rounded-lg bg-slate-900/60 border border-slate-800/80 flex items-center gap-1.5">
-                            <span className="text-green-400">✓</span> Auto-Verifies on Phone
-                          </div>
-                          <div className="p-1.5 rounded-lg bg-slate-900/60 border border-slate-800/80 flex items-center gap-1.5">
-                            <span className="text-green-400">✓</span> Instant Telegram Alert
-                          </div>
                         </div>
 
                         <button
