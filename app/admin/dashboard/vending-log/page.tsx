@@ -128,11 +128,21 @@ export default function VendingCenterLoggerPage() {
   // Admin access control (metric cards strictly hidden for staff)
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAdminCards, setShowAdminCards] = useState(true);
+  // can_delete: controls visibility of the delete button for non-admin staff
+  const [canDelete, setCanDelete] = useState(false);
 
-  // Period filter: today | week | month | all | custom
-  const [period, setPeriod] = useState<"today" | "week" | "month" | "all" | "custom">("today");
+  // Period filter: today | week | month | date | all | custom
+  const [period, setPeriod] = useState<"today" | "week" | "month" | "date" | "all" | "custom">("today");
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
+  // Single-day date picker (for "date" period)
+  const [selectedDate, setSelectedDate] = useState<string>(() => {
+    // Default to yesterday
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(d);
+  });
+
 
   // Search & Type/Payment filters
   const [searchQuery, setSearchQuery] = useState("");
@@ -458,8 +468,10 @@ export default function VendingCenterLoggerPage() {
           const userEmail = user.email.toLowerCase().trim();
           if (isEmailAdmin(userEmail)) {
             setIsAdmin(true);
+            setCanDelete(true);
             return;
           }
+
 
           // Check database staff_permissions list
           const { data: staffRow } = await supabase
@@ -479,11 +491,14 @@ export default function VendingCenterLoggerPage() {
                   const role = (member.role || "").toLowerCase().trim();
                   const isStaffAdmin = role === "super_admin" || role === "admin";
                   setIsAdmin(isStaffAdmin);
+                  // Set can_delete from the staff member's permissions
+                  setCanDelete(isStaffAdmin || member.permissions?.can_delete === true);
                   return;
                 }
               }
             } catch (_) {}
           }
+
 
           // Fallback whitelist check
           const { data: whitelistRow } = await supabase
@@ -605,6 +620,7 @@ export default function VendingCenterLoggerPage() {
       const [ey, em, ed] = e.entry_date.split("-").map(Number);
       const eDate = new Date(ey, em - 1, ed);
       if (period === "today") return e.entry_date === todayStr;
+      if (period === "date") return e.entry_date === selectedDate;
       if (period === "week") return eDate >= sevenDaysAgo;
       if (period === "month") return eDate >= firstOfMonth;
       if (period === "custom") {
@@ -614,7 +630,8 @@ export default function VendingCenterLoggerPage() {
       }
       return true; // "all"
     });
-  }, [entries, period, customStartDate, customEndDate, getTodayDate]);
+  }, [entries, period, customStartDate, customEndDate, selectedDate, getTodayDate]);
+
 
   // ─── Weighted Average Procurement Cost per Kg across all stock batches ───
   const procurementAvgCost = useMemo(() => {
@@ -2187,6 +2204,7 @@ export default function VendingCenterLoggerPage() {
             <div className="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800 text-xs font-mono">
               {[
                 { id: "today", label: "Today" },
+                { id: "date", label: "📅 By Date" },
                 { id: "week", label: "This Week" },
                 { id: "month", label: "This Month" },
                 { id: "all", label: "All Time" },
@@ -2224,6 +2242,37 @@ export default function VendingCenterLoggerPage() {
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Single Date Picker (Date tab) */}
+            {period === "date" && (
+              <div className="flex items-center gap-2 text-xs font-mono">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const d = new Date();
+                    d.setDate(d.getDate() - 1);
+                    setSelectedDate(new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(d));
+                  }}
+                  className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white transition-all cursor-pointer font-bold"
+                  title="Jump to yesterday"
+                >
+                  Yesterday
+                </button>
+                <input
+                  type="date"
+                  value={selectedDate}
+                  max={getTodayDate()}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-white focus:outline-none focus:border-emerald-400"
+                />
+                {selectedDate && (
+                  <span className="text-slate-400 text-[11px]">
+                    {formatIstDateDisplay(selectedDate)}
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* Custom Range Picker */}
             {period === "custom" && (
               <div className="flex items-center gap-2 text-xs font-mono">
                 <input
@@ -2241,6 +2290,8 @@ export default function VendingCenterLoggerPage() {
                 />
               </div>
             )}
+
+
 
             {/* Admin Financial Cards Visibility Toggle (Hidden for Staff) */}
             {isAdmin && (
@@ -3591,15 +3642,18 @@ export default function VendingCenterLoggerPage() {
                               </button>
                             </div>
                           ) : (
-                            <button
-                              type="button"
-                              onClick={() => setDeleteConfirmId(e.id)}
-                              className="p-1 rounded-lg bg-slate-800 hover:bg-red-950/60 text-slate-400 hover:text-red-400 transition-all cursor-pointer"
-                              title="Delete entry"
-                            >
-                              <span className="material-symbols-outlined text-sm">delete</span>
-                            </button>
+                            canDelete && (
+                              <button
+                                type="button"
+                                onClick={() => setDeleteConfirmId(e.id)}
+                                className="p-1 rounded-lg bg-slate-800 hover:bg-red-950/60 text-slate-400 hover:text-red-400 transition-all cursor-pointer"
+                                title="Delete entry"
+                              >
+                                <span className="material-symbols-outlined text-sm">delete</span>
+                              </button>
+                            )
                           )}
+
                         </div>
                       </td>
                     </tr>

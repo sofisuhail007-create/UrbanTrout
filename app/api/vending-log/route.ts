@@ -600,9 +600,54 @@ export async function PUT(request: Request) {
 }
 
 // ─── DELETE: Delete a Sales Log Entry ───────────────────────────────────────
+const ROOT_OWNER_EMAILS = ["sofisuhail007@gmail.com", "info.urbantrout@gmail.com"];
+
 export async function DELETE(request: Request) {
   const authError = await requireAdminAuth(request);
   if (authError) return authError;
+
+  // ── can_delete Permission Check ──────────────────────────────────────────
+  // After confirming the user is on the whitelist, verify they have can_delete=true.
+  // Root owners always bypass. All other staff must have can_delete explicitly set.
+  try {
+    const authHeader = request.headers.get("authorization") || request.headers.get("Authorization");
+    if (authHeader && authHeader.toLowerCase().startsWith("bearer ")) {
+      const bearerToken = authHeader.substring(7).trim();
+      const { data: { user } } = await supabase.auth.getUser(bearerToken);
+      if (user?.email) {
+        const userEmail = user.email.toLowerCase().trim();
+        // Root owners can always delete
+        if (!ROOT_OWNER_EMAILS.includes(userEmail)) {
+          // Fetch staff_permissions and check can_delete
+          const { data: staffRow } = await supabase
+            .from("app_settings")
+            .select("value")
+            .eq("key", "staff_permissions")
+            .maybeSingle();
+
+          if (staffRow?.value) {
+            const staffList = JSON.parse(staffRow.value);
+            const member = Array.isArray(staffList)
+              ? staffList.find((s: any) => s.email?.toLowerCase().trim() === userEmail)
+              : null;
+            if (member && member.permissions?.can_delete !== true) {
+              return NextResponse.json(
+                { success: false, error: "Access denied: You do not have delete permission. Please ask the admin to enable it." },
+                { status: 403 }
+              );
+            }
+          }
+        }
+      }
+    }
+  } catch (permErr) {
+    console.warn("[vending-log DELETE] Permission check error:", permErr);
+    // Fail-safe: deny if permission check itself fails for non-root
+    return NextResponse.json(
+      { success: false, error: "Permission verification failed. Delete not allowed." },
+      { status: 403 }
+    );
+  }
 
   try {
     const { searchParams } = new URL(request.url);

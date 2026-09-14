@@ -806,53 +806,10 @@ export default function POSBillingPage() {
       invoicePublicUrl,
     };
 
-    // Notify Telegram channel about new POS invoice
-    fetch("/api/telegram-notify", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        type: "pos_invoice",
-        data: {
-          invoiceNumber,
-          customerName: customerName.trim() || "Walk-in Customer",
-          customerPhone: cleanPhone || undefined,
-          totalWeight,
-          grandTotal,
-          paymentMethod: paymentMethodLabel,
-          paymentId: rzpPaymentDetails?.id || null,
-          paymentStatus,
-          itemsSummary: effectiveBillItems
-            .map((b) => (isCustomAmountMode ? b.name : `${b.name} (${b.weightKg} Kg)`))
-            .join(", "),
-          publicUrl: invoicePublicUrl,
-        },
-      }),
-    }).catch(() => {});
-
-    // Also auto-record into Vending Center Sales Data Logger
-    try {
-      effectiveBillItems.forEach((b) => {
-        adminFetch("/api/vending-log", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            entry_date: new Date().toISOString().split("T")[0],
-            entry_time: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true }),
-            weight_kg: isCustomAmountMode ? 0 : b.weightKg,
-            product_type: isCustomAmountMode ? "Gutted" : (b.name.toLowerCase().includes("gutted") && !b.name.toLowerCase().includes("non") ? "Gutted" : "Non Gutted"),
-            rate_per_kg: b.pricePerKg,
-            amount_paid: b.total,
-            payment_mode: paymentMethodLabel,
-            notes: `POS Bill #${invoiceNumber} - ${customerName.trim() || "Walk-in"}${isCustomAmountMode ? " (Direct QR)" : ""}`,
-            logged_by: "POS Billing",
-          }),
-        }).catch(() => {});
-      });
-    } catch (_) {}
-
     setGeneratedInvoice(invoiceData);
     setInvoiceModalOpen(true);
   };
+
 
   // ─── ELEGANT, 100% UNICODE-SAFE WHATSAPP MESSAGE BUILDER (NO BROKEN GLYPHS) ───
   const createWhatsAppMessage = (

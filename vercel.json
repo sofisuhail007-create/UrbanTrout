@@ -1,0 +1,8 @@
+﻿{
+  "crons": [
+    {
+      "path": "/api/vending-log/backup",
+      "schedule": "30 18 * * *"
+    }
+  ]
+}

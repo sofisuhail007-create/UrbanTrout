@@ -11,22 +11,73 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-// In-memory deduplication cache to prevent duplicate alerts when Razorpay fires both payment.captured & order.paid
-const processedPayments = new Map<string, number>();
+// ─── Persistent Deduplication (Supabase-backed) ───────────────────────────────
+// The in-memory Map is lost on every Vercel cold start, causing duplicate Telegram
+// messages and double DB inserts when Razorpay retries webhooks.
+// We use Supabase app_settings as a persistent store with a 2-hour TTL per paymentId.
 
-function isDuplicatePayment(paymentId: string): boolean {
+const DEDUP_SETTINGS_KEY = "processed_webhook_payments";
+// In-process L1 cache (still useful within the same function instance)
+const inMemoryDedup = new Map<string, number>();
+
+async function isDuplicatePayment(paymentId: string): Promise<boolean> {
   const now = Date.now();
-  for (const [key, ts] of processedPayments.entries()) {
-    if (now - ts > 30 * 60 * 1000) {
-      processedPayments.delete(key);
-    }
-  }
-  if (processedPayments.has(paymentId)) {
+  const TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
+
+  // L1: In-memory check (fast path within same instance)
+  if (inMemoryDedup.has(paymentId)) {
     return true;
   }
-  processedPayments.set(paymentId, now);
-  return false;
+
+  // L2: Persistent Supabase check (survives cold starts and multi-instance deploys)
+  try {
+    const { data: row } = await supabase
+      .from("app_settings")
+      .select("value")
+      .eq("key", DEDUP_SETTINGS_KEY)
+      .maybeSingle();
+
+    let processed: { id: string; ts: number }[] = [];
+    if (row?.value) {
+      try { processed = JSON.parse(row.value); } catch (_) {}
+    }
+
+    // Prune stale entries (older than TTL)
+    const pruned = processed.filter((p) => now - p.ts < TTL_MS);
+
+    // Check if paymentId is in the list
+    const isDup = pruned.some((p) => p.id === paymentId);
+    if (isDup) {
+      inMemoryDedup.set(paymentId, now);
+      return true;
+    }
+
+    // Not a duplicate — register it
+    pruned.push({ id: paymentId, ts: now });
+    inMemoryDedup.set(paymentId, now);
+
+    // Fire-and-forget persist (don't await so we don't delay response)
+    void (async () => {
+      try {
+        await supabase.from("app_settings").upsert({
+          key: DEDUP_SETTINGS_KEY,
+          value: JSON.stringify(pruned.slice(-200)), // cap at 200 entries
+          description: "Persistent payment dedup store for Razorpay webhook (2hr TTL)",
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "key" });
+      } catch (_) {}
+    })();
+
+    return false;
+  } catch (err) {
+    console.warn("[webhook dedup] Supabase check failed, using in-memory only:", err);
+    // Fallback to in-memory only if Supabase is unreachable
+    inMemoryDedup.set(paymentId, now);
+    return false;
+  }
 }
+
+
 
 /**
  * POST /api/razorpay/webhook
@@ -82,7 +133,7 @@ export async function POST(req: NextRequest) {
       const method = payment?.method ? payment.method.toUpperCase() : "UPI / Razorpay Link";
       const vpa = payment?.vpa || null;
 
-      const isDuplicate = isDuplicatePayment(paymentId);
+      const isDuplicate = await isDuplicatePayment(paymentId);
 
       if (!isDuplicate) {
         // 1. Instant Telegram Alert
@@ -123,100 +174,117 @@ export async function POST(req: NextRequest) {
       }
 
       // 3. Mark or auto-insert into vending sales log
-      try {
-        const cleanRef = String(orderRef).replace(/\D/g, "") || String(orderRef);
-        let invData: any = null;
+      // ⚠️ SKIP auto-insert for POS_BILLING channel — counter staff add entries manually.
+      const isPosChannel = notes.channel === "POS_BILLING";
+      if (!isPosChannel) {
         try {
-          const { data: matchedInvs } = await supabase
-            .from("invoices")
-            .select("id, data")
-            .or(`id.eq.${cleanRef},id.ilike.%${orderRef}%`)
+          const cleanRef = String(orderRef).replace(/\D/g, "") || String(orderRef);
+          let invData: any = null;
+          try {
+            const { data: matchedInvs } = await supabase
+              .from("invoices")
+              .select("id, data")
+              .or(`id.eq.${cleanRef},id.ilike.%${orderRef}%`)
+              .limit(1);
+            if (matchedInvs && matchedInvs[0]?.data) {
+              invData = typeof matchedInvs[0].data === "object" ? matchedInvs[0].data : JSON.parse(matchedInvs[0].data);
+            }
+          } catch (_) {}
+
+          // First check if an entry already exists with this payment_id (prevents double-insert)
+          const { data: existingByPaymentId } = await supabase
+            .from("vending_sales_log")
+            .select("id")
+            .or(`custom_fields->>payment_id.eq.${paymentId},custom_fields->>payment_link_id.eq.${paymentLinkId || paymentId}`)
             .limit(1);
-          if (matchedInvs && matchedInvs[0]?.data) {
-            invData = typeof matchedInvs[0].data === "object" ? matchedInvs[0].data : JSON.parse(matchedInvs[0].data);
-          }
-        } catch (_) {}
 
-        const { data: matchedLogs } = await supabase
-          .from("vending_sales_log")
-          .select("id, notes, custom_fields")
-          .or(`notes.ilike.%${orderRef}%,notes.ilike.%${paymentLinkId}%`)
-          .limit(5);
-
-        if (matchedLogs && matchedLogs.length > 0) {
-          for (const log of matchedLogs) {
-            const existingCustom = (typeof log.custom_fields === "object" && log.custom_fields) ? log.custom_fields : {};
-            await supabase
+          if (existingByPaymentId && existingByPaymentId.length > 0) {
+            console.log(`[webhook] Vending log entry already exists for paymentId ${paymentId}, skipping insert.`);
+          } else {
+            const { data: matchedLogs } = await supabase
               .from("vending_sales_log")
-              .update({
-                payment_mode: "Razorpay Link",
+              .select("id, notes, custom_fields")
+              .or(`notes.ilike.%${orderRef}%,notes.ilike.%${paymentLinkId}%`)
+              .limit(5);
+
+            if (matchedLogs && matchedLogs.length > 0) {
+              for (const log of matchedLogs) {
+                const existingCustom = (typeof log.custom_fields === "object" && log.custom_fields) ? log.custom_fields : {};
+                await supabase
+                  .from("vending_sales_log")
+                  .update({
+                    payment_mode: "Razorpay Link",
+                    amount_paid: amount,
+                    notes: `${log.notes || ""} [PAID ✓ ${paymentId} via Razorpay Link]`.trim(),
+                    custom_fields: {
+                      ...existingCustom,
+                      payment_status: "PAID",
+                      payment_id: paymentId,
+                      payment_link_id: paymentLinkId,
+                      paid_at: new Date().toISOString(),
+                    },
+                    updated_at: new Date().toISOString(),
+                  })
+                  .eq("id", log.id);
+              }
+            } else {
+              // AUTO-INSERT NEW VENDING LOG ENTRY for this remote payment!
+              const tw = invData?.tw ? Number(invData.tw) : 1.0;
+              const firstItem = invData?.items?.[0];
+              const prodType = firstItem?.n?.toLowerCase().includes("gutted") && !firstItem?.n?.toLowerCase().includes("non") ? "Gutted" : "Non Gutted";
+              const rate = firstItem?.r ? Number(firstItem.r) : Math.round(amount / (tw || 1));
+
+              const newLog = {
+                id: `VSL-WP-${Date.now()}`,
+                entry_date: new Date().toISOString().split("T")[0],
+                entry_time: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true }),
+                weight_kg: tw,
+                product_type: prodType,
+                rate_per_kg: rate,
+                expected_amount: amount,
                 amount_paid: amount,
-                notes: `${log.notes || ""} [PAID ✓ ${paymentId} via Razorpay Link]`.trim(),
+                discount_amount: 0,
+                payment_mode: "Razorpay Link",
+                logged_by: "WhatsApp Remote Pay",
+                notes: `Remote Order #${orderRef} - ${customerName} (Phone: ${customerPhone}) [Paid ✓ ${paymentId}]`,
                 custom_fields: {
-                  ...existingCustom,
                   payment_status: "PAID",
                   payment_id: paymentId,
                   payment_link_id: paymentLinkId,
+                  customer_name: customerName,
+                  customer_phone: customerPhone,
                   paid_at: new Date().toISOString(),
                 },
-                updated_at: new Date().toISOString(),
-              })
-              .eq("id", log.id);
+              };
+
+              try {
+                await supabase.from("vending_sales_log").insert(newLog);
+              } catch (insertErr) {
+                console.warn("Could not insert to vending_sales_log table:", insertErr);
+              }
+
+              // Also append to fallback app_settings vending_log_data
+              try {
+                const { data: setRow } = await supabase
+                  .from("app_settings")
+                  .select("value")
+                  .eq("key", "vending_log_data")
+                  .single();
+                const currentList = setRow?.value ? JSON.parse(setRow.value) : [];
+                currentList.unshift(newLog);
+                await supabase.from("app_settings").upsert({
+                  key: "vending_log_data",
+                  value: JSON.stringify(currentList.slice(0, 1000)),
+                  updated_at: new Date().toISOString(),
+                }, { onConflict: "key" });
+              } catch (_) {}
+            }
           }
-        } else {
-          // AUTO-INSERT NEW VENDING LOG ENTRY for this remote payment!
-          const tw = invData?.tw ? Number(invData.tw) : 1.0;
-          const firstItem = invData?.items?.[0];
-          const prodType = firstItem?.n?.toLowerCase().includes("gutted") && !firstItem?.n?.toLowerCase().includes("non") ? "Gutted" : "Non Gutted";
-          const rate = firstItem?.r ? Number(firstItem.r) : Math.round(amount / (tw || 1));
-
-          const newLog = {
-            id: `VSL-WP-${Date.now()}`,
-            entry_date: new Date().toISOString().split("T")[0],
-            entry_time: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true }),
-            weight_kg: tw,
-            product_type: prodType,
-            rate_per_kg: rate,
-            expected_amount: amount,
-            amount_paid: amount,
-            discount_amount: 0,
-            payment_mode: "Razorpay Link",
-            logged_by: "WhatsApp Remote Pay",
-            notes: `Remote Order #${orderRef} - ${customerName} (Phone: ${customerPhone}) [Paid ✓ ${paymentId}]`,
-            custom_fields: {
-              payment_status: "PAID",
-              payment_id: paymentId,
-              payment_link_id: paymentLinkId,
-              customer_name: customerName,
-              customer_phone: customerPhone,
-              paid_at: new Date().toISOString(),
-            },
-          };
-
-          try {
-            await supabase.from("vending_sales_log").insert(newLog);
-          } catch (insertErr) {
-            console.warn("Could not insert to vending_sales_log table:", insertErr);
-          }
-
-          // Also append to fallback app_settings vending_log_data
-          try {
-            const { data: setRow } = await supabase
-              .from("app_settings")
-              .select("value")
-              .eq("key", "vending_log_data")
-              .single();
-            const currentList = setRow?.value ? JSON.parse(setRow.value) : [];
-            currentList.unshift(newLog);
-            await supabase.from("app_settings").upsert({
-              key: "vending_log_data",
-              value: JSON.stringify(currentList.slice(0, 1000)),
-              updated_at: new Date().toISOString(),
-            }, { onConflict: "key" });
-          } catch (_) {}
+        } catch (dbErr) {
+          console.warn("Vending log update notice for payment_link.paid:", dbErr);
         }
-      } catch (dbErr) {
-        console.warn("Vending log update notice for payment_link.paid:", dbErr);
+      } else {
+        console.log(`[webhook] POS_BILLING channel — skipping vending log auto-insert for paymentId ${paymentId}. Staff will log manually.`);
       }
 
       // 4. Mark invoices as PAID if matching
@@ -297,7 +365,8 @@ export async function POST(req: NextRequest) {
       const description = payment.description || null;
 
       // Prevent duplicate notification: Razorpay fires both payment.captured AND order.paid
-      const isDuplicate = isDuplicatePayment(paymentId);
+      const isDuplicate = await isDuplicatePayment(paymentId);
+
 
       // Check if order exists in Supabase
       let matchedOrder: any = null;
