@@ -2,7 +2,20 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Link from "next/link";
 import Script from "next/script";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
+
+const CustomerLiveMap = dynamic(() => import("@/components/CustomerLiveMap"), {
+  ssr: false,
+  loading: () => (
+    <div className="w-full h-[260px] sm:h-[300px] rounded-2xl bg-slate-900/80 border border-slate-800 flex items-center justify-center text-slate-400 font-mono text-xs">
+      <div className="flex items-center gap-2">
+        <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+        Loading Live Map…
+      </div>
+    </div>
+  ),
+});
 import { useCart } from "@/context/CartContext";
 import { supabase } from "@/lib/supabase";
 
@@ -303,8 +316,6 @@ export default function CheckoutPage() {
   const [detectedCoords, setDetectedCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [calculatedDistance, setCalculatedDistance] = useState<number | null>(null);
   const [selectedZoneName, setSelectedZoneName] = useState<string>("");
-  const [showManualFallback, setShowManualFallback] = useState<boolean>(false);
-  const [searchQuery, setSearchQuery] = useState<string>("");
   const [deliveryRadiusKm, setDeliveryRadiusKm] = useState<number>(5.0);
   const [farmLat, setFarmLat] = useState<number>(34.144709);
   const [farmLng, setFarmLng] = useState<number>(74.824525);
@@ -414,22 +425,6 @@ export default function CheckoutPage() {
     if (items.length === 0 && !orderSuccess) router.push("/shop");
   }, [items, orderSuccess, router]);
 
-  // Filtered landmarks for fallback coordinate search (strict Haversine distance calculated)
-  const filteredZones = useMemo(() => {
-    const q = searchQuery.toLowerCase().trim();
-    const dynamicZones = SRINAGAR_LANDMARKS.map((z) => {
-      const dist = calculateDistance(farmLat, farmLng, z.lat, z.lng);
-      return {
-        ...z,
-        distanceKm: dist,
-        eligible: dist <= deliveryRadiusKm,
-      };
-    });
-    if (!q) return dynamicZones;
-    return dynamicZones.filter(
-      (z) => z.name.toLowerCase().includes(q) || z.pincode.includes(q)
-    );
-  }, [searchQuery, deliveryRadiusKm, farmLat, farmLng]);
 
   // ─── Lead Capture ────────────────────────────────────────────
   const captureLead = useCallback(
@@ -653,29 +648,6 @@ export default function CheckoutPage() {
     );
   };
 
-  // ─── Landmark Coordinate Fallback (Strict Distance Enforced) ───
-  const handleSelectLandmarkFallback = (landmark: SrinagarLandmark) => {
-    const dist = calculateDistance(farmLat, farmLng, landmark.lat, landmark.lng);
-    setDetectedCoords({ lat: landmark.lat, lng: landmark.lng });
-    setCalculatedDistance(dist);
-    setSelectedZoneName(landmark.name);
-    setLocatingStep("locked");
-
-    const isEligible = dist <= deliveryRadiusKm;
-    if (isEligible) {
-      setDeliveryMode("under5");
-      setLocationMsg(`${landmark.name} (~${dist.toFixed(1)} km from Farm) — Free Delivery ✓`);
-      setFormData((prev) => ({
-        ...prev,
-        locality: landmark.name,
-        pincode: landmark.pincode,
-      }));
-    } else {
-      setDeliveryMode("unavailable");
-      setLocationMsg(`${landmark.name} (~${dist.toFixed(1)} km from Farm) — Outside ${deliveryRadiusKm}km zone.`);
-    }
-  };
-
   // ─── Reset Location Selection ────────────────────────────────
   const handleResetLocation = () => {
     setDeliveryMode(null);
@@ -685,14 +657,12 @@ export default function CheckoutPage() {
     setLocatingStep("idle");
     setPermissionErrorHelp("");
     setCalculatedDistance(null);
-    setSearchQuery("");
-    setShowManualFallback(false);
   };
 
   // ─── STEP 1 -> STEP 2 Transition ────────────────────────────
   const handleConfirmLocationProceed = () => {
-    if (!deliveryMode) {
-      alert("Please select or detect your Srinagar delivery area first.");
+    if (!deliveryMode || !detectedCoords) {
+      alert("Please auto-detect your delivery location using device GPS first.");
       return;
     }
     if (deliveryMode === "unavailable" && !allowOutsideRadius) {
@@ -1642,244 +1612,258 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
-                {/* ─── RADAR SCANNER & DETECTION STAGE ─── */}
-                <div className="flex flex-col items-center justify-center text-center py-4 sm:py-6">
-                  {/* Radar Graphics Container */}
-                  <div className="relative w-48 h-48 sm:w-56 sm:h-56 flex items-center justify-center mb-6">
-                    {/* Outer ambient glow */}
-                    <div
-                      className="absolute inset-0 rounded-full filter blur-xl transition-all duration-700"
-                      style={{
-                        background:
-                          deliveryMode === "under5"
-                            ? "radial-gradient(circle, rgba(37,211,102,0.25) 0%, transparent 70%)"
-                            : deliveryMode === "unavailable"
-                            ? "radial-gradient(circle, rgba(239,68,68,0.25) 0%, transparent 70%)"
-                            : isLocating
-                            ? "radial-gradient(circle, rgba(114,221,253,0.3) 0%, transparent 70%)"
-                            : "radial-gradient(circle, rgba(114,221,253,0.15) 0%, transparent 70%)",
-                      }}
-                    />
-
-                    {/* Concentric Radar Rings */}
-                    <div
-                      className="absolute inset-0 rounded-full border transition-all duration-500"
-                      style={{
-                        borderColor:
-                          deliveryMode === "under5"
-                            ? "rgba(37,211,102,0.4)"
-                            : deliveryMode === "unavailable"
-                            ? "rgba(239,68,68,0.4)"
-                            : "rgba(114,221,253,0.2)",
-                        background: "rgba(3,16,24,0.6)",
-                      }}
-                    />
-                    <div
-                      className="absolute w-36 h-36 sm:w-40 sm:h-40 rounded-full border transition-all duration-500"
-                      style={{
-                        borderColor:
-                          deliveryMode === "under5"
-                            ? "rgba(37,211,102,0.3)"
-                            : deliveryMode === "unavailable"
-                            ? "rgba(239,68,68,0.3)"
-                            : "rgba(114,221,253,0.25)",
-                      }}
-                    />
-                    <div
-                      className="absolute w-24 h-24 sm:w-28 sm:h-28 rounded-full border transition-all duration-500"
-                      style={{
-                        borderColor:
-                          deliveryMode === "under5"
-                            ? "rgba(37,211,102,0.5)"
-                            : deliveryMode === "unavailable"
-                            ? "rgba(239,68,68,0.5)"
-                            : "rgba(114,221,253,0.35)",
-                      }}
-                    />
-
-                    {/* Crosshairs */}
-                    <div className="absolute inset-x-0 top-1/2 h-[1px] bg-slate-700/40 pointer-events-none" />
-                    <div className="absolute inset-y-0 left-1/2 w-[1px] bg-slate-700/40 pointer-events-none" />
-
-                    {/* Animated Radar Sweep Beam (active when locating) */}
-                    {isLocating && (
+                {/* ─── RADAR SCANNER & DETECTION STAGE (WHEN NO GPS DETECTED YET) ─── */}
+                {!detectedCoords && (
+                  <div className="flex flex-col items-center justify-center text-center py-4 sm:py-6">
+                    {/* Radar Graphics Container */}
+                    <div className="relative w-48 h-48 sm:w-56 sm:h-56 flex items-center justify-center mb-6">
+                      {/* Outer ambient glow */}
                       <div
-                        className="absolute inset-0 rounded-full pointer-events-none"
+                        className="absolute inset-0 rounded-full filter blur-xl transition-all duration-700"
                         style={{
-                          background: "conic-gradient(from 0deg, rgba(114,221,253,0.45) 0deg, transparent 65deg, transparent 360deg)",
-                          animation: "radarSweep 2s linear infinite",
+                          background: isLocating
+                            ? "radial-gradient(circle, rgba(114,221,253,0.35) 0%, transparent 70%)"
+                            : locatingStep === "denied"
+                            ? "radial-gradient(circle, rgba(245,158,11,0.25) 0%, transparent 70%)"
+                            : "radial-gradient(circle, rgba(114,221,253,0.15) 0%, transparent 70%)",
                         }}
                       />
-                    )}
 
-                    {/* Center Beacon / Pin */}
-                    <div className="relative z-10 flex flex-col items-center justify-center">
-                      {isLocating ? (
-                        <div className="relative flex items-center justify-center">
-                          <div className="w-14 h-14 rounded-full bg-cyan-500/20 border border-cyan-400/60 flex items-center justify-center text-cyan-300">
-                            <svg className="animate-spin w-7 h-7" fill="none" viewBox="0 0 24 24">
-                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                            </svg>
-                          </div>
-                          <div className="absolute inset-0 rounded-full bg-cyan-400/30" style={{ animation: "beaconRing 2s cubic-bezier(0,0,0.2,1) infinite" }} />
-                        </div>
-                      ) : deliveryMode === "under5" ? (
-                        <div className="flex flex-col items-center">
-                          <div className="w-16 h-16 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center text-2xl font-black shadow-[0_0_35px_rgba(37,211,102,0.6)]">
-                            ✓
-                          </div>
-                        </div>
-                      ) : deliveryMode === "unavailable" ? (
-                        <div className="w-16 h-16 rounded-full bg-red-500/20 border-2 border-red-500 text-red-400 flex items-center justify-center text-2xl font-bold shadow-[0_0_30px_rgba(239,68,68,0.4)]">
-                          !
-                        </div>
-                      ) : locatingStep === "denied" ? (
-                        <div className="w-16 h-16 rounded-full bg-amber-500/20 border border-amber-500/50 text-amber-400 flex items-center justify-center text-2xl">
-                          🔒
-                        </div>
-                      ) : (
-                        <div className="relative group cursor-pointer" onClick={detectLocation}>
-                          <div
-                            className="w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 shadow-[0_0_30px_rgba(114,221,253,0.35)] hover:scale-105"
-                            style={{ background: "linear-gradient(135deg, #10212c 0%, #152834 100%)", border: "1.5px solid #72ddfd" }}
-                          >
-                            <svg className="w-7 h-7 text-cyan-300" style={{ animation: "pinBounce 2s ease-in-out infinite" }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                              <circle cx="12" cy="12" r="3" />
-                              <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
-                              <circle cx="12" cy="12" r="8" strokeDasharray="2 2" />
-                            </svg>
-                          </div>
-                          <div className="absolute -inset-2 rounded-full border border-cyan-400/30" style={{ animation: "beaconRing 3s ease-out infinite" }} />
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                      {/* Concentric Radar Rings */}
+                      <div
+                        className="absolute inset-0 rounded-full border transition-all duration-500"
+                        style={{
+                          borderColor: locatingStep === "denied" ? "rgba(245,158,11,0.4)" : "rgba(114,221,253,0.2)",
+                          background: "rgba(3,16,24,0.6)",
+                        }}
+                      />
+                      <div
+                        className="absolute w-36 h-36 sm:w-40 sm:h-40 rounded-full border transition-all duration-500"
+                        style={{
+                          borderColor: locatingStep === "denied" ? "rgba(245,158,11,0.3)" : "rgba(114,221,253,0.25)",
+                        }}
+                      />
+                      <div
+                        className="absolute w-24 h-24 sm:w-28 sm:h-28 rounded-full border transition-all duration-500"
+                        style={{
+                          borderColor: locatingStep === "denied" ? "rgba(245,158,11,0.5)" : "rgba(114,221,253,0.35)",
+                        }}
+                      />
 
-                  {/* Status Indicator Title & Descriptions */}
-                  <div className="max-w-md mx-auto space-y-2 mb-4">
-                    {isLocating ? (
-                      <div>
-                        <h3 className="text-base font-bold text-cyan-300 font-mono uppercase tracking-wider">
-                          {locatingStep === "scanning" ? "Scanning GPS Satellites…" : "Calculating Distance…"}
-                        </h3>
-                        <p className="text-xs text-slate-400 mt-1">
-                          {locationMsg || "Locking high-accuracy device coordinates for delivery radius validation…"}
-                        </p>
-                      </div>
-                    ) : deliveryMode === "under5" ? (
-                      <div className="space-y-1">
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-xs font-bold text-emerald-400 uppercase tracking-wider">
-                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                          Delivery Zone Verified
-                        </span>
-                        <h3 className="text-lg sm:text-xl font-extrabold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
-                          {selectedZoneName || "GPS Location Confirmed"}
-                        </h3>
-                        <p className="text-xs text-emerald-300/90 font-medium">
-                          {locationMsg || `${calculatedDistance?.toFixed(1)} km from Naseem Bagh Farm • Free Same-Day Catch Eligible`}
-                        </p>
-                      </div>
-                    ) : deliveryMode === "unavailable" ? (
-                      <div className="space-y-1">
-                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/15 border border-red-500/40 text-xs font-bold text-red-400 uppercase tracking-wider">
-                          Outside Delivery Zone
-                        </span>
-                        <h3 className="text-lg font-bold text-red-300" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
-                          {calculatedDistance !== null ? `${calculatedDistance.toFixed(1)} km from Farm` : "Outside 5.0km Radius"}
-                        </h3>
-                        <p className="text-xs text-red-300/80 leading-relaxed">
-                          Urban Trout delivers within {deliveryRadiusKm}km of Naseem Bagh to guarantee live 90-minute tank freshness.
-                        </p>
-                      </div>
-                    ) : locatingStep === "denied" ? (
-                      <div className="space-y-1">
-                        <h3 className="text-base font-bold text-amber-300 font-mono">Location Permission Blocked</h3>
-                        <p className="text-xs text-slate-400 leading-relaxed">{permissionErrorHelp}</p>
-                      </div>
-                    ) : (
-                      <div className="space-y-1">
-                        <h3 className="text-base font-bold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
-                          Auto-Detect Your Delivery Location
-                        </h3>
-                        <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
-                          Tap below to verify delivery eligibility via your device GPS and lock your doorstep for navigation.
-                        </p>
-                      </div>
-                    )}
-                  </div>
+                      {/* Crosshairs */}
+                      <div className="absolute inset-x-0 top-1/2 h-[1px] bg-slate-700/40 pointer-events-none" />
+                      <div className="absolute inset-y-0 left-1/2 w-[1px] bg-slate-700/40 pointer-events-none" />
 
-                  {/* ─── PRIMARY ACTIONS (DETECT / CONFIRM / RETRY) ─── */}
-                  <div className="w-full max-w-sm space-y-3">
-                    {/* CASE 1: IDLE / NOT DETECTED YET */}
-                    {!deliveryMode && (
-                      <div className="space-y-3">
-                        <button
-                          type="button"
-                          onClick={detectLocation}
-                          disabled={isLocating}
-                          className="w-full flex items-center justify-center gap-2.5 font-bold uppercase tracking-wider rounded-xl py-3.5 px-6 transition-all cursor-pointer shadow-lg active:scale-98"
+                      {/* Animated Radar Sweep Beam (active when locating) */}
+                      {isLocating && (
+                        <div
+                          className="absolute inset-0 rounded-full pointer-events-none"
                           style={{
-                            fontFamily: '"Space Grotesk", sans-serif',
-                            fontSize: "0.92rem",
-                            background: "linear-gradient(135deg, #72ddfd 0%, #3aadcc 100%)",
-                            color: "#002730",
-                            boxShadow: "0 0 25px rgba(114,221,253,0.35)",
+                            background: "conic-gradient(from 0deg, rgba(114,221,253,0.45) 0deg, transparent 65deg, transparent 360deg)",
+                            animation: "radarSweep 2s linear infinite",
                           }}
-                        >
-                          {isLocating ? (
-                            <>
-                              <svg className="animate-spin" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                                <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                        />
+                      )}
+
+                      {/* Center Beacon / Pin */}
+                      <div className="relative z-10 flex flex-col items-center justify-center">
+                        {isLocating ? (
+                          <div className="relative flex items-center justify-center">
+                            <div className="w-14 h-14 rounded-full bg-cyan-500/20 border border-cyan-400/60 flex items-center justify-center text-cyan-300">
+                              <svg className="animate-spin w-7 h-7" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                               </svg>
-                              Acquiring GPS Signal…
-                            </>
-                          ) : (
-                            <>
-                              <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                            </div>
+                            <div className="absolute inset-0 rounded-full bg-cyan-400/30" style={{ animation: "beaconRing 2s cubic-bezier(0,0,0.2,1) infinite" }} />
+                          </div>
+                        ) : locatingStep === "denied" ? (
+                          <div className="w-16 h-16 rounded-full bg-amber-500/20 border border-amber-500/50 text-amber-400 flex items-center justify-center text-2xl">
+                            🔒
+                          </div>
+                        ) : (
+                          <div className="relative group cursor-pointer" onClick={detectLocation}>
+                            <div
+                              className="w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 shadow-[0_0_30px_rgba(114,221,253,0.35)] hover:scale-105"
+                              style={{ background: "linear-gradient(135deg, #10212c 0%, #152834 100%)", border: "1.5px solid #72ddfd" }}
+                            >
+                              <svg className="w-7 h-7 text-cyan-300" style={{ animation: "pinBounce 2s ease-in-out infinite" }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
                                 <circle cx="12" cy="12" r="3" />
                                 <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
                                 <circle cx="12" cy="12" r="8" strokeDasharray="2 2" />
                               </svg>
-                              Auto-Detect My Location
-                            </>
-                          )}
-                        </button>
-
-                        {/* Fallback Option (if device has trouble or permission denied) */}
-                        <div className="pt-2">
-                          <button
-                            type="button"
-                            onClick={() => setShowManualFallback(!showManualFallback)}
-                            className="text-xs text-slate-400 hover:text-cyan-300 underline transition-colors cursor-pointer"
-                          >
-                            {showManualFallback ? "Hide Srinagar Landmark Selector" : "GPS not working? Verify by Srinagar Landmark"}
-                          </button>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* CASE 2: VERIFIED IN-ZONE (SUCCESS) */}
-                    {deliveryMode === "under5" && (
-                      <div className="space-y-3">
-                        {/* Coords & Google Maps link preview */}
-                        {detectedCoords && (
-                          <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 text-xs flex items-center justify-between gap-3">
-                            <div className="text-left font-mono">
-                              <span className="text-slate-500 block text-[10px] uppercase">Doorstep GPS Coordinates</span>
-                              <span className="text-cyan-300">{detectedCoords.lat.toFixed(5)}°, {detectedCoords.lng.toFixed(5)}°</span>
                             </div>
-                            <a
-                              href={`https://maps.google.com/?q=${detectedCoords.lat},${detectedCoords.lng}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="px-2.5 py-1 rounded bg-cyan-950/80 border border-cyan-800 text-cyan-300 text-[11px] font-semibold hover:text-white transition-colors"
-                            >
-                              🗺️ Preview Pin
-                            </a>
+                            <div className="absolute -inset-2 rounded-full border border-cyan-400/30" style={{ animation: "beaconRing 3s ease-out infinite" }} />
                           </div>
                         )}
+                      </div>
+                    </div>
 
+                    {/* Status Indicator Title & Descriptions */}
+                    <div className="max-w-md mx-auto space-y-2 mb-6">
+                      {isLocating ? (
+                        <div>
+                          <h3 className="text-base font-bold text-cyan-300 font-mono uppercase tracking-wider">
+                            {locatingStep === "scanning" ? "Scanning GPS Satellites…" : "Calculating Distance…"}
+                          </h3>
+                          <p className="text-xs text-slate-400 mt-1">
+                            {locationMsg || "Locking high-accuracy device coordinates for delivery radius validation…"}
+                          </p>
+                        </div>
+                      ) : locatingStep === "denied" ? (
+                        <div className="space-y-3">
+                          <h3 className="text-base font-bold text-amber-300 font-mono">Location Permission Blocked</h3>
+                          <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-left text-xs text-slate-300 space-y-2">
+                            <p className="font-semibold text-amber-300">How to allow location access:</p>
+                            <ul className="list-disc list-inside space-y-1 text-slate-400 text-[11px]">
+                              <li><strong>iOS / Safari:</strong> Tap the <em>aA</em> or page settings icon in the address bar → <em>Website Settings</em> → set <em>Location</em> to <strong>Allow</strong>.</li>
+                              <li><strong>Android / Chrome:</strong> Tap the <em>🔒 (Lock)</em> icon in the URL bar → <em>Permissions</em> → set <em>Location</em> to <strong>Allow</strong>.</li>
+                            </ul>
+                          </div>
+                        </div>
+                      ) : locatingStep === "error" ? (
+                        <div className="space-y-1">
+                          <h3 className="text-base font-bold text-red-300 font-mono">GPS Signal Issue</h3>
+                          <p className="text-xs text-slate-400 leading-relaxed">
+                            {locationMsg || "Unable to acquire accurate GPS coordinates. Please ensure device location / GPS is turned ON and retry."}
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-1">
+                          <h3 className="text-base font-bold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                            Auto-Detect Your Delivery Location
+                          </h3>
+                          <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
+                            Tap below to verify delivery eligibility via your device GPS and lock your exact doorstep pin for courier navigation.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Detection / Retry Button */}
+                    <div className="w-full max-w-sm">
+                      <button
+                        type="button"
+                        onClick={detectLocation}
+                        disabled={isLocating}
+                        className="w-full flex items-center justify-center gap-2.5 font-bold uppercase tracking-wider rounded-xl py-3.5 px-6 transition-all cursor-pointer shadow-lg active:scale-98"
+                        style={{
+                          fontFamily: '"Space Grotesk", sans-serif',
+                          fontSize: "0.92rem",
+                          background: "linear-gradient(135deg, #72ddfd 0%, #3aadcc 100%)",
+                          color: "#002730",
+                          boxShadow: "0 0 25px rgba(114,221,253,0.35)",
+                        }}
+                      >
+                        {isLocating ? (
+                          <>
+                            <svg className="animate-spin" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                              <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                            </svg>
+                            Acquiring GPS Signal…
+                          </>
+                        ) : locatingStep === "denied" || locatingStep === "error" ? (
+                          <>
+                            <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+                            </svg>
+                            Retry GPS Detection
+                          </>
+                        ) : (
+                          <>
+                            <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                              <circle cx="12" cy="12" r="3" />
+                              <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+                              <circle cx="12" cy="12" r="8" strokeDasharray="2 2" />
+                            </svg>
+                            Auto-Detect My Location
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* ─── UBER / OLA STYLE INTERACTIVE LIVE MAP & VERIFIED LOCATION (ONCE DETECTED) ─── */}
+                {detectedCoords && deliveryMode && (
+                  <div className="space-y-6 pt-2">
+                    {/* Status Header */}
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-2xl bg-slate-950/70 border border-slate-800">
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span
+                            className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider ${
+                              deliveryMode === "under5"
+                                ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                                : "bg-red-500/15 text-red-400 border border-red-500/30"
+                            }`}
+                          >
+                            <span
+                              className={`w-2 h-2 rounded-full ${
+                                deliveryMode === "under5" ? "bg-emerald-400 animate-pulse" : "bg-red-400"
+                              }`}
+                            />
+                            {deliveryMode === "under5" ? "Delivery Zone Verified" : "Outside Delivery Zone"}
+                          </span>
+                        </div>
+                        <h3 className="text-lg sm:text-xl font-extrabold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                          {selectedZoneName || "GPS Location Confirmed"}
+                        </h3>
+                        <p
+                          className={`text-xs mt-0.5 ${
+                            deliveryMode === "under5" ? "text-emerald-300/90" : "text-red-300/90"
+                          }`}
+                        >
+                          {locationMsg ||
+                            (deliveryMode === "under5"
+                              ? `${calculatedDistance?.toFixed(1)} km from Naseem Bagh Farm • Free 90-Min Live Catch Delivery ✓`
+                              : `${calculatedDistance?.toFixed(1)} km from Farm • Outside our ${deliveryRadiusKm}km live harvest delivery radius.`)}
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={handleResetLocation}
+                        className="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs text-slate-400 hover:text-cyan-300 bg-slate-900 border border-slate-800 transition-colors cursor-pointer"
+                      >
+                        🔄 Re-detect GPS
+                      </button>
+                    </div>
+
+                    {/* Interactive Uber / Ola Live Map */}
+                    <CustomerLiveMap
+                      customerLat={detectedCoords.lat}
+                      customerLng={detectedCoords.lng}
+                      farmLat={farmLat}
+                      farmLng={farmLng}
+                      deliveryRadiusKm={deliveryRadiusKm}
+                      distanceKm={calculatedDistance || undefined}
+                      isInZone={deliveryMode === "under5"}
+                      localityName={selectedZoneName}
+                    />
+
+                    {/* Doorstep Coordinates Bar & Google Maps Direct Link */}
+                    <div className="p-3.5 rounded-xl bg-slate-950/70 border border-slate-800 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
+                      <div className="text-left font-mono">
+                        <span className="text-slate-500 block text-[10px] uppercase tracking-wider">Exact Doorstep Pinpoint</span>
+                        <span className="text-cyan-300 font-semibold">
+                          {detectedCoords.lat.toFixed(5)}° N, {detectedCoords.lng.toFixed(5)}° E
+                          {calculatedDistance !== null && ` • ~${calculatedDistance.toFixed(1)} km from Naseem Bagh Farm`}
+                        </span>
+                      </div>
+                      <a
+                        href={`https://maps.google.com/?q=${detectedCoords.lat},${detectedCoords.lng}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-3 py-1.5 rounded-lg bg-cyan-950/80 border border-cyan-800 text-cyan-300 text-xs font-semibold hover:text-white transition-colors flex items-center gap-1.5 flex-shrink-0"
+                      >
+                        🗺️ Open on Google Maps ↗
+                      </a>
+                    </div>
+
+                    {/* CASE 1: IN-ZONE -> PROCEED TO STEP 2 */}
+                    {deliveryMode === "under5" && (
+                      <div className="space-y-3 pt-2">
                         <button
                           type="button"
                           onClick={handleConfirmLocationProceed}
@@ -1898,96 +1882,44 @@ export default function CheckoutPage() {
                             <polyline points="12 5 19 12 12 19" />
                           </svg>
                         </button>
-
-                        <button
-                          type="button"
-                          onClick={handleResetLocation}
-                          className="text-xs text-slate-400 hover:text-cyan-300 transition-colors cursor-pointer py-1"
-                        >
-                          🔄 Re-detect Different Location
-                        </button>
                       </div>
                     )}
 
-                    {/* CASE 3: OUT OF ZONE (BLOCKED) */}
+                    {/* CASE 2: OUT-OF-ZONE -> EXPLANATION & SELF PICKUP */}
                     {deliveryMode === "unavailable" && (
-                      <div className="space-y-3">
-                        <div className="p-3.5 rounded-xl text-left text-xs bg-slate-950/80 border border-red-500/30 space-y-1.5">
-                          <strong className="text-red-400 block font-semibold">
-                            🏪 Live Vending Center Pickup Available:
+                      <div className="space-y-4 pt-2">
+                        <div className="p-4 rounded-xl text-left text-xs bg-slate-950/80 border border-red-500/30 space-y-2">
+                          <strong className="text-red-400 block font-semibold text-sm">
+                            🏪 Live Vending Center Self-Pickup Available:
                           </strong>
-                          <span className="text-slate-300 block">
-                            Malabagh, Naseem Bagh, Srinagar — 190006 (Near R P School, Girls Wing)
+                          <p className="text-slate-300">
+                            Because live harvested trout requires express aeration within 90 minutes, doorstep delivery is restricted to a {deliveryRadiusKm}km perimeter. You are always welcome to pick up freshly harvested catch directly from our live raceways:
+                          </p>
+                          <span className="text-slate-200 block font-semibold pt-1">
+                            📍 Malabagh, Naseem Bagh, Srinagar — 190006 (Near R P School, Girls Wing)
                           </span>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                           <a
                             href={`https://wa.me/918491006127?text=Hi%20Urban%20Trout!%20My%20location%20is%20${calculatedDistance?.toFixed(1)}km%20away.%20Can%20I%20arrange%20special%20delivery%20or%20pickup?`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="px-3 py-2.5 rounded-xl font-bold uppercase text-[11px] flex items-center justify-center gap-1.5 bg-emerald-500 text-slate-950 transition-all hover:bg-emerald-400"
+                            className="px-4 py-3 rounded-xl font-bold uppercase text-xs flex items-center justify-center gap-2 bg-emerald-500 text-slate-950 transition-all hover:bg-emerald-400 shadow-md"
                           >
-                            💬 WhatsApp
+                            💬 WhatsApp Support
                           </a>
                           <a
                             href={`https://maps.google.com/?q=${farmLat},${farmLng}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="px-3 py-2.5 rounded-xl font-bold uppercase text-[11px] flex items-center justify-center gap-1.5 bg-slate-900 border border-slate-700 text-slate-200 hover:text-white"
+                            className="px-4 py-3 rounded-xl font-bold uppercase text-xs flex items-center justify-center gap-2 bg-slate-900 border border-slate-700 text-slate-200 hover:text-white shadow-md"
                           >
-                            📍 Farm Route
+                            📍 Farm Route on Google Maps
                           </a>
                         </div>
-
-                        <button
-                          type="button"
-                          onClick={handleResetLocation}
-                          className="text-xs text-slate-400 hover:text-cyan-300 transition-colors cursor-pointer py-1 block mx-auto"
-                        >
-                          🔄 Re-check GPS Location
-                        </button>
                       </div>
                     )}
-                  </div>
-                </div>
-
-                {/* ─── STRICT LANDMARK COORDINATE FALLBACK (ONLY WHEN TOGGLED) ─── */}
-                {showManualFallback && !deliveryMode && (
-                  <div className="pt-4 border-t border-slate-800/80 space-y-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 font-mono">
-                        Select Nearest Srinagar Landmark (Strict Distance Calculated):
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setShowManualFallback(false)}
-                        className="text-slate-500 hover:text-slate-300 text-xs"
-                      >
-                        ✕ Close
-                      </button>
-                    </div>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-56 overflow-y-auto pr-1">
-                      {filteredZones.map((zone) => (
-                        <button
-                          key={zone.name}
-                          type="button"
-                          onClick={() => handleSelectLandmarkFallback(zone)}
-                          className="p-2.5 rounded-xl text-left transition-all flex flex-col justify-between cursor-pointer active:scale-95 bg-slate-950/60 border border-slate-800 hover:border-cyan-500/40"
-                        >
-                          <div className="flex items-center justify-between w-full">
-                            <span className="text-xs font-bold text-white truncate">{zone.name}</span>
-                            <span className={`text-[10px] font-bold ${zone.eligible ? "text-emerald-400" : "text-red-400"}`}>
-                              {zone.eligible ? "✓" : "×"}
-                            </span>
-                          </div>
-                          <span className="text-[10px] text-slate-400 mt-1">
-                            ~{zone.distanceKm.toFixed(1)} km {zone.eligible ? "• Eligible" : "• Out of zone"}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
                   </div>
                 )}
               </div>
