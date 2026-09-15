@@ -292,7 +292,7 @@ export default async function DynamicProductPage({ params }: Props) {
                 { label: "Origin", value: "Srinagar" },
                 { label: "Harvest", value: "To Order" },
                 { label: "Antibiotics", value: "Zero" },
-                { label: "Dispatch", value: "Within 24h" },
+                { label: "Delivery", value: "Within 2 Hours" },
               ].map((stat) => (
                 <div
                   key={stat.label}

@@ -68,7 +68,7 @@ export default function DeliveryRadiusMap({
   radiusKm,
   farmLat,
   farmLng,
-  farmName = "Urban Trout Farm (Malabagh, Naseem Bagh)",
+  farmName = "Urban Trout Aquaculture Farm (Malabagh, Srinagar)",
   onRadiusChange,
   onCoordinatesChange,
   allowDragFarmPin = true,
@@ -227,7 +227,7 @@ export default function DeliveryRadiusMap({
             <strong style="color: #72ddfd; font-size: 13px;">Urban Trout Farm Hub</strong>
           </div>
           <p style="font-family: 'Manrope', sans-serif; font-size: 11px; color: #9fadb8; margin: 0 0 8px;">
-            Malabagh, Naseem Bagh, Srinagar<br/>(34.144709, 74.824525)
+            Malabagh, Srinagar<br/>(34.144709, 74.824525)
           </p>
           <div style="background: rgba(37,211,102,0.15); border: 1px solid rgba(37,211,102,0.4); padding: 4px 8px; border-radius: 6px; font-size: 10px; font-weight: bold; color: #25D366; text-transform: uppercase;">
             Farm Fresh Fish Counter

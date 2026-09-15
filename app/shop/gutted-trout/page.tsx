@@ -6,10 +6,10 @@ import { supabase } from "@/lib/supabase";
 export const metadata: Metadata = {
   title: "Premium Cleaned & Gutted Rainbow Trout | Urban Trout Srinagar",
   description:
-    "Expertly cleaned, scaled, gutted, and prepared for immediate cooking. Farmed in Naseem Bagh, Srinagar. Same-day delivery.",
+    "Expertly cleaned, scaled, gutted, and prepared for immediate cooking. Farmed in Malabagh, Srinagar. Delivered within 2 hours.",
   openGraph: {
     title: "Cleaned & Gutted Fresh Rainbow Trout | Urban Trout Srinagar",
-    description: "Pan-ready, 100% fresh cleaned Rainbow Trout farmed in Srinagar. Delivered same-day in ice.",
+    description: "Pan-ready, 100% fresh cleaned Rainbow Trout farmed in Srinagar. Delivered within 2 hours in ice.",
     url: "https://urbantrout.in/shop/gutted-trout",
     siteName: "Urban Trout",
     images: [

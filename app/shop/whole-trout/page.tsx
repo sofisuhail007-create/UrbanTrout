@@ -6,10 +6,10 @@ import { supabase } from "@/lib/supabase";
 export const metadata: Metadata = {
   title: "Whole Fresh Rainbow Trout | Urban Trout Srinagar",
   description:
-    "Fresh whole Rainbow Trout from our Srinagar farm in Naseem Bagh. Ideal for roasting, whole grilling, or traditional Kashmiri recipes.",
+    "Fresh whole Rainbow Trout from our Srinagar farm in Malabagh. Ideal for roasting, whole grilling, or traditional Kashmiri recipes.",
   openGraph: {
     title: "Whole Fresh Rainbow Trout | Urban Trout Srinagar",
-    description: "Farm-fresh whole Rainbow Trout harvested to order in Naseem Bagh, Srinagar. Same-day delivery.",
+    description: "Farm-fresh whole Rainbow Trout harvested to order in Malabagh, Srinagar. Delivered within 2 hours.",
     url: "https://urbantrout.in/shop/whole-trout",
     siteName: "Urban Trout",
     images: [
@@ -50,7 +50,7 @@ export default async function WholeTroutPage() {
     "@type": "Product",
     "name": "Whole Rainbow Trout",
     "image": ["https://urbantrout.in/images/trout_pure_black.png"],
-    "description": "Fresh whole rainbow trout from our Srinagar farm in Naseem Bagh. Ideal for roasting, whole baking, grilling, or traditional recipes.",
+    "description": "Fresh whole rainbow trout from our Srinagar farm in Malabagh. Ideal for roasting, whole baking, grilling, or traditional recipes.",
     "sku": "UT-WHOLE-TROUT",
     "brand": {
       "@type": "Brand",

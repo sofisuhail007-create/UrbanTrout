@@ -437,13 +437,21 @@ export default function CheckoutPage() {
       if (!rawPhone || rawPhone.length < 8) return;
       const cleanPhone = rawPhone.slice(-10);
 
+      const navUrl = detectedCoords
+        ? `https://www.google.com/maps/dir/?api=1&destination=${detectedCoords.lat},${detectedCoords.lng}`
+        : null;
+
+      const gpsNote = detectedCoords
+        ? ` | 📍 GPS: ${navUrl} (~${(calculatedDistance || 0).toFixed(1)} km from Urban Trout Aquaculture Farm, Malabagh)`
+        : "";
+
       try {
         const payload = {
           customer_name: currentData.fullName?.trim() || "Interested Customer",
           customer_phone: cleanPhone,
           customer_email: currentData.email?.trim() || null,
           customer_locality: currentData.locality?.trim() || selectedZoneName || null,
-          customer_address: currentData.house?.trim() || null,
+          customer_address: `${currentData.house?.trim() || ""}${gpsNote}`.trim() || null,
           customer_pincode: currentData.pincode?.trim() || null,
           cart_items: currentItems.map((i) => ({
             id: i.id,
@@ -454,7 +462,11 @@ export default function CheckoutPage() {
           })),
           estimated_total: currentTotal,
           status: "abandoned",
-          notes: `Abandoned checkout step ${currentStep} (₹${currentTotal})`,
+          notes: `Abandoned checkout step ${currentStep} (₹${currentTotal})${gpsNote}`,
+          latitude: detectedCoords ? String(detectedCoords.lat) : null,
+          longitude: detectedCoords ? String(detectedCoords.lng) : null,
+          distance_km: calculatedDistance ? calculatedDistance.toFixed(1) : null,
+          google_maps_url: navUrl,
           updated_at: new Date().toISOString(),
         };
 
@@ -496,7 +508,7 @@ export default function CheckoutPage() {
             name: currentData.fullName?.trim() || "Interested Customer",
             locality: currentData.locality?.trim() || selectedZoneName || "Srinagar",
             pincode: currentData.pincode?.trim() || "190006",
-            notes: `Abandoned checkout step ${currentStep} (₹${currentTotal})`,
+            notes: `Abandoned checkout step ${currentStep} (₹${currentTotal})${gpsNote}`,
             last_order_at: new Date().toISOString(),
           },
           { onConflict: "phone" }
@@ -518,6 +530,10 @@ export default function CheckoutPage() {
                 pincode: currentData.pincode?.trim() || "190006",
                 total: currentTotal,
                 cartSummary: currentItems.map((i) => `${i.name} x${i.quantity}`).join(", "),
+                googleMapsUrl: navUrl,
+                latitude: detectedCoords?.lat,
+                longitude: detectedCoords?.lng,
+                distanceKm: calculatedDistance || undefined,
               },
             }),
           }).catch(() => {});
@@ -526,7 +542,7 @@ export default function CheckoutPage() {
         console.warn("Lead capture notice:", err);
       }
     },
-    [currentStep, selectedZoneName]
+    [currentStep, selectedZoneName, detectedCoords, calculatedDistance]
   );
 
   const handleInputChange = (field: string, value: string) => {
@@ -600,7 +616,7 @@ export default function CheckoutPage() {
       async (pos) => {
         clearTimeout(timer);
         setLocatingStep("verifying");
-        setLocationMsg("Calculating direct distance to Urban Trout Farm (Naseem Bagh)…");
+        setLocationMsg("Calculating direct distance to Urban Trout Aquaculture Farm (Malabagh, Srinagar)…");
 
         const { latitude, longitude } = pos.coords;
         const dist = calculateDistance(farmLat, farmLng, latitude, longitude);
@@ -610,20 +626,26 @@ export default function CheckoutPage() {
         // Reverse-geocode to get actual human-readable Srinagar neighborhood
         const geo = await reverseGeocodeCoords(latitude, longitude);
         setSelectedZoneName(geo.locality);
-        setFormData((prev) => ({
-          ...prev,
-          locality: prev.locality || geo.locality,
-          pincode: prev.pincode || geo.pincode,
-        }));
+        const updatedForm = {
+          ...formData,
+          locality: formData.locality || geo.locality,
+          pincode: formData.pincode || geo.pincode,
+        };
+        setFormData(updatedForm);
 
         if (dist <= deliveryRadiusKm) {
           setDeliveryMode("under5");
           setLocatingStep("locked");
-          setLocationMsg(`${dist.toFixed(1)} km from Farm • Free 90-Min Fresh Catch Delivery ✓`);
+          setLocationMsg(`${dist.toFixed(1)} km from Urban Trout Aquaculture Farm • Free Express Delivery within 2 Hours ✓`);
         } else {
           setDeliveryMode("unavailable");
           setLocatingStep("locked");
-          setLocationMsg(`${dist.toFixed(1)} km from Farm • Outside our ${deliveryRadiusKm}km live harvest delivery radius.`);
+          setLocationMsg(`${dist.toFixed(1)} km from Farm • Outside our ${deliveryRadiusKm}km live harvest delivery perimeter.`);
+        }
+
+        // Immediately sync lead with exact coordinates if phone is already known
+        if (updatedForm.phone && updatedForm.phone.replace(/\D/g, "").length >= 8) {
+          captureLead(updatedForm, grandTotal, items);
         }
         setIsLocating(false);
       },
@@ -809,9 +831,11 @@ export default function CheckoutPage() {
               const emailNote = formData.email?.trim() ? ` (Email: ${formData.email.trim()})` : "";
               const rzpNote = rzpRes.razorpay_payment_id ? ` (Razorpay: ${rzpRes.razorpay_payment_id})` : "";
               const notesNote = formData.notes?.trim() ? ` | Notes: ${formData.notes.trim()}` : "";
-              const mapsUrl = detectedCoords ? `https://maps.google.com/?q=${detectedCoords.lat},${detectedCoords.lng}` : "";
+              const mapsUrl = detectedCoords
+                ? `https://www.google.com/maps/dir/?api=1&destination=${detectedCoords.lat},${detectedCoords.lng}`
+                : "";
               const gpsNote = detectedCoords
-                ? ` | 📍 Exact GPS: ${mapsUrl} (~${(calculatedDistance || 0).toFixed(1)} km from Naseem Bagh Farm)`
+                ? ` | 📍 Exact GPS: ${mapsUrl} (~${(calculatedDistance || 0).toFixed(1)} km from Urban Trout Aquaculture Farm, Malabagh)`
                 : "";
 
               const orderPayload = {
@@ -884,7 +908,7 @@ export default function CheckoutPage() {
                     phone: cleanPhone,
                     email: formData.email?.trim() || undefined,
                     locality: formData.locality,
-                    address: `${formData.house.trim()}${gpsNote}`,
+                    address: `${formData.house.trim()}, ${formData.locality.trim()}${notesNote}${gpsNote}`,
                     pincode: formData.pincode,
                     items: items.map((i) => ({ name: i.name, quantity: i.quantity, price: i.price, unit: i.unit })),
                     subtotal: total,
@@ -1019,7 +1043,7 @@ export default function CheckoutPage() {
               style={{ fontFamily: '"Manrope", sans-serif' }}
             >
               Your order <strong className="text-cyan-300">#{orderSuccess.orderNumber}</strong> has been confirmed and paid.
-              Our aquaculture specialists in Naseem Bagh are preparing your live harvest for express same-day delivery.
+              Our aquaculture specialists at Urban Trout Aquaculture Farm in Malabagh are preparing your live harvest for express delivery within 2 hours.
             </p>
 
             {/* Quick Metrics Banner */}
@@ -1212,7 +1236,7 @@ export default function CheckoutPage() {
                   </div>
                   <p className="text-[11px] text-slate-400 leading-relaxed">
                     Doorstep GPS coordinates ({orderSuccess.detectedCoords?.lat?.toFixed(5)}°, {orderSuccess.detectedCoords?.lng?.toFixed(5)}°)
-                    {orderSuccess.calculatedDistance ? ` • ~${orderSuccess.calculatedDistance.toFixed(1)} km from Naseem Bagh Farm` : ""}
+                    {orderSuccess.calculatedDistance ? ` • ~${orderSuccess.calculatedDistance.toFixed(1)} km from Urban Trout Aquaculture Farm, Malabagh` : ""}
                     {" "}have been securely sent to our delivery dispatch team.
                   </p>
                 </div>
@@ -1245,7 +1269,7 @@ export default function CheckoutPage() {
                 <div className="flex items-center gap-1.5 text-slate-400 font-semibold">
                   <span>📍</span> Farm Origin
                 </div>
-                <p>Urban Trout Farm &amp; Hatchery, Malabagh, Naseem Bagh, Srinagar — 190006</p>
+                <p>Urban Trout Aquaculture Farm, Malabagh, Srinagar — 190006</p>
               </div>
             </div>
           </div>
@@ -1607,7 +1631,7 @@ export default function CheckoutPage() {
                       </span>
                     </div>
                     <p className="text-xs text-slate-300 leading-relaxed" style={{ fontFamily: '"Manrope", sans-serif' }}>
-                      We use your device location <strong>solely to calculate delivery distance</strong> from our Naseem Bagh farm and guide our express courier directly to your doorstep. We never sell, share, or store your GPS coordinates for any other purpose.
+                      We use your device location <strong>solely to calculate delivery distance</strong> from Urban Trout Aquaculture Farm in Malabagh and guide our express courier directly to your doorstep. We never sell, share, or store your GPS coordinates for any other purpose.
                     </p>
                   </div>
                 </div>
@@ -1816,8 +1840,8 @@ export default function CheckoutPage() {
                         >
                           {locationMsg ||
                             (deliveryMode === "under5"
-                              ? `${calculatedDistance?.toFixed(1)} km from Naseem Bagh Farm • Free 90-Min Live Catch Delivery ✓`
-                              : `${calculatedDistance?.toFixed(1)} km from Farm • Outside our ${deliveryRadiusKm}km live harvest delivery radius.`)}
+                              ? `${calculatedDistance?.toFixed(1)} km from Urban Trout Aquaculture Farm, Malabagh • Free Express Delivery within 2 Hours ✓`
+                              : `${calculatedDistance?.toFixed(1)} km from Farm • Outside our ${deliveryRadiusKm}km live harvest delivery perimeter.`)}
                         </p>
                       </div>
 
@@ -1848,16 +1872,16 @@ export default function CheckoutPage() {
                         <span className="text-slate-500 block text-[10px] uppercase tracking-wider">Exact Doorstep Pinpoint</span>
                         <span className="text-cyan-300 font-semibold">
                           {detectedCoords.lat.toFixed(5)}° N, {detectedCoords.lng.toFixed(5)}° E
-                          {calculatedDistance !== null && ` • ~${calculatedDistance.toFixed(1)} km from Naseem Bagh Farm`}
+                          {calculatedDistance !== null && ` • ~${calculatedDistance.toFixed(1)} km from Urban Trout Aquaculture Farm, Malabagh`}
                         </span>
                       </div>
                       <a
-                        href={`https://maps.google.com/?q=${detectedCoords.lat},${detectedCoords.lng}`}
+                        href={`https://www.google.com/maps/dir/?api=1&destination=${detectedCoords.lat},${detectedCoords.lng}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="px-3 py-1.5 rounded-lg bg-cyan-950/80 border border-cyan-800 text-cyan-300 text-xs font-semibold hover:text-white transition-colors flex items-center gap-1.5 flex-shrink-0"
                       >
-                        🗺️ Open on Google Maps ↗
+                        🗺️ 1-Tap Google Maps (Navigate) ↗
                       </a>
                     </div>
 
@@ -1896,7 +1920,7 @@ export default function CheckoutPage() {
                             Because live harvested trout requires express aeration within 90 minutes, doorstep delivery is restricted to a {deliveryRadiusKm}km perimeter. You are always welcome to pick up freshly harvested catch directly from our live raceways:
                           </p>
                           <span className="text-slate-200 block font-semibold pt-1">
-                            📍 Malabagh, Naseem Bagh, Srinagar — 190006 (Near R P School, Girls Wing)
+                            📍 Malabagh, Srinagar — 190006 (Near R P School, Girls Wing)
                           </span>
                         </div>
 
@@ -1996,17 +2020,17 @@ export default function CheckoutPage() {
                         Verified Delivery Location ({selectedZoneName || `Srinagar ${deliveryRadiusKm}km Zone`})
                       </span>
                       <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "11px", color: "#86efac", margin: 0 }}>
-                        {calculatedDistance ? `~${calculatedDistance.toFixed(1)} km from Naseem Bagh Farm • ` : ""}
-                        Free Same-Day Live Catch Delivery Active
+                        {calculatedDistance ? `~${calculatedDistance.toFixed(1)} km from Urban Trout Aquaculture Farm, Malabagh • ` : ""}
+                        Free Express Delivery within 2 Hours Active
                       </p>
                       {detectedCoords && (
                         <a
-                          href={`https://maps.google.com/?q=${detectedCoords.lat},${detectedCoords.lng}`}
+                          href={`https://www.google.com/maps/dir/?api=1&destination=${detectedCoords.lat},${detectedCoords.lng}`}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-[10px] text-cyan-300 underline font-mono inline-block mt-0.5"
                         >
-                          View Doorstep Pin on Google Maps ↗
+                          🗺️ 1-Tap Google Maps Driving Navigation ↗
                         </a>
                       )}
                     </div>

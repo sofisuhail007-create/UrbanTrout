@@ -103,7 +103,7 @@ export default async function ShopPage() {
             </h1>
           </div>
           <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfVar, maxWidth: "380px", lineHeight: 1.75, fontSize: "1rem", margin: 0 }}>
-            Sustainably farmed in the icy currents of the Himalayas. Delivered within 24 hours of harvest.
+            Sustainably farmed in the icy currents of the Himalayas. Delivered within 2 hours of harvest.
           </p>
         </div>
 

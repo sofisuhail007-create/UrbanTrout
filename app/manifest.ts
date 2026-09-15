@@ -1,11 +1,11 @@
-﻿import type { MetadataRoute } from "next";
+import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: "Urban Trout - Buy Fresh Rainbow Trout in Srinagar",
     short_name: "Urban Trout",
     description:
-      "Order fresh Rainbow Trout in Srinagar. Farmed in clean water in Naseem Bagh & delivered same-day.",
+      "Order fresh Rainbow Trout in Srinagar. Farmed in clean water at Urban Trout Aquaculture Farm in Malabagh & delivered within 2 hours.",
     start_url: "/",
     display: "standalone",
     background_color: "#031018",

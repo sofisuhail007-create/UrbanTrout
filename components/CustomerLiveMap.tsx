@@ -46,12 +46,14 @@ export default function CustomerLiveMap({
         mapInstanceRef.current = null;
       }
 
-      // Initialize Leaflet Map
+      // Initialize Leaflet Map (disable scrollWheelZoom to prevent accidental page scroll hijacking)
       const map = L.map(mapContainerRef.current, {
         center: [customerLat, customerLng],
         zoom: 13,
         zoomControl: false,
         attributionControl: false,
+        scrollWheelZoom: false, // Prevents mouse/trackpad scroll trapping
+        doubleClickZoom: false,
       });
 
       mapInstanceRef.current = map;
@@ -103,8 +105,8 @@ export default function CustomerLiveMap({
         .addTo(map)
         .bindPopup(`
           <div style="font-family: sans-serif; font-size: 12px; color: #000; padding: 2px;">
-            <strong>Urban Trout Farm</strong><br/>
-            Naseem Bagh, Srinagar<br/>
+            <strong>Urban Trout Aquaculture Farm</strong><br/>
+            Malabagh, Srinagar<br/>
             <span style="color: #22c55e; font-size: 11px;">Live Cold-Water Tank Origin</span>
           </div>
         `);
@@ -144,7 +146,7 @@ export default function CustomerLiveMap({
             <strong>Your Doorstep</strong><br/>
             ${localityName || "Verified GPS Pin"}<br/>
             <span style="color: ${isInZone ? "#16a34a" : "#dc2626"}; font-weight: bold;">
-              ${distanceKm ? `${distanceKm.toFixed(1)} km from Farm` : ""}
+              ${distanceKm ? `${distanceKm.toFixed(1)} km from Urban Trout Aquaculture Farm` : ""}
             </span>
           </div>
         `);
@@ -248,7 +250,7 @@ export default function CustomerLiveMap({
       {/* Floating Bottom Legend */}
       <div className="absolute bottom-3 left-3 z-[400] pointer-events-none hidden sm:flex items-center gap-2 text-[10px] font-mono">
         <div className="px-2 py-1 rounded bg-slate-950/85 border border-slate-800 text-slate-300 backdrop-blur-sm">
-          🐟 Naseem Bagh Farm
+          🐟 Urban Trout Aquaculture Farm (Malabagh)
         </div>
         <div className="px-2 py-1 rounded bg-slate-950/85 border border-slate-800 text-slate-300 backdrop-blur-sm">
           🟢 5km Live Catch Zone

@@ -20,6 +20,28 @@ function statusLabel(s: string) {
   return STATUSES.find((x) => x.value === s)?.label ?? s;
 }
 
+function getOrderMapsUrl(order: any): string | null {
+  if (order.google_maps_url) {
+    const qMatch = order.google_maps_url.match(/\?q=([0-9.-]+),([0-9.-]+)/);
+    if (qMatch) {
+      return `https://www.google.com/maps/dir/?api=1&destination=${qMatch[1]},${qMatch[2]}`;
+    }
+    return order.google_maps_url;
+  }
+  if (order.latitude && order.longitude) {
+    return `https://www.google.com/maps/dir/?api=1&destination=${order.latitude},${order.longitude}`;
+  }
+  if (order.customer_address) {
+    const qMatch = order.customer_address.match(/https:\/\/(?:maps\.google\.com\/\?q=|www\.google\.com\/maps\/dir\/\?api=1&destination=)([0-9.-]+),([0-9.-]+)/);
+    if (qMatch) {
+      return `https://www.google.com/maps/dir/?api=1&destination=${qMatch[1]},${qMatch[2]}`;
+    }
+    const match = order.customer_address.match(/https:\/\/(?:www\.)?google\.com\/maps[^\s]+|https:\/\/maps\.google\.com\/[^\s]+/);
+    if (match) return match[0];
+  }
+  return null;
+}
+
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -118,7 +140,26 @@ export default function OrdersPage() {
               >
                 <span className="text-slate-600 text-xs font-mono w-10 flex-shrink-0">#{order.order_number}</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-white truncate">{order.customer_name}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-semibold text-white truncate">{order.customer_name}</p>
+                    {(() => {
+                      const mapsUrl = getOrderMapsUrl(order);
+                      if (!mapsUrl) return null;
+                      return (
+                        <a
+                          href={mapsUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          onClick={(e) => e.stopPropagation()}
+                          title="1-Tap Google Maps Navigation"
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 text-[11px] font-semibold transition-colors flex-shrink-0"
+                        >
+                          <span className="material-symbols-outlined text-xs">near_me</span>
+                          <span>Map</span>
+                        </a>
+                      );
+                    })()}
+                  </div>
                   <p className="text-xs text-slate-500">+91 {order.customer_phone}</p>
                 </div>
                 <span className={`hidden sm:inline-flex text-xs px-2.5 py-1 rounded-full border font-medium ${statusStyle(order.status)}`}>
@@ -142,17 +183,17 @@ export default function OrdersPage() {
                       <p className="text-slate-300">{order.customer_address}</p>
                       <p className="text-slate-500 text-xs">{order.customer_locality} — {order.customer_pincode}</p>
                       {(() => {
-                        const match = order.customer_address?.match(/https:\/\/maps\.google\.com\/\?q=[^\s]+/);
-                        if (!match) return null;
+                        const mapsUrl = getOrderMapsUrl(order);
+                        if (!mapsUrl) return null;
                         return (
                           <a
-                            href={match[0]}
+                            href={mapsUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 rounded-lg text-xs font-semibold hover:bg-cyan-500/25 transition-colors"
+                            className="inline-flex items-center gap-1.5 mt-2 px-3 py-1.5 bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 rounded-lg text-xs font-bold hover:bg-emerald-500/25 transition-colors"
                           >
-                            <span className="material-symbols-outlined text-sm">location_on</span>
-                            Open Pinpoint in Google Maps
+                            <span className="material-symbols-outlined text-sm">near_me</span>
+                            🗺️ 1-Tap Google Maps (Navigate)
                           </a>
                         );
                       })()}
@@ -193,17 +234,17 @@ export default function OrdersPage() {
                   <div className="flex items-center justify-between pt-2 border-t border-slate-800/80 flex-wrap gap-2">
                     <div className="flex items-center gap-2 flex-wrap">
                       {(() => {
-                        const match = order.customer_address?.match(/https:\/\/maps\.google\.com\/\?q=[^\s]+/);
-                        if (!match) return null;
+                        const mapsUrl = getOrderMapsUrl(order);
+                        if (!mapsUrl) return null;
                         return (
                           <a
-                            href={match[0]}
+                            href={mapsUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 px-3.5 py-2 bg-cyan-500/15 text-cyan-300 border border-cyan-500/35 rounded-lg text-xs font-semibold hover:bg-cyan-500/25 transition-colors"
+                            className="inline-flex items-center gap-2 px-3.5 py-2 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded-lg text-xs font-bold hover:bg-emerald-500/30 transition-colors shadow-sm"
                           >
                             <span className="material-symbols-outlined text-base">near_me</span>
-                            Navigate (Google Maps)
+                            🗺️ 1-Tap Google Maps (Navigate)
                           </a>
                         );
                       })()}

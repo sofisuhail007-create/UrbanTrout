@@ -8,7 +8,7 @@ import { supabase } from "@/lib/supabase";
 export const metadata: Metadata = {
   title: "Fresh Rainbow Trout in Srinagar | Buy Online | Urban Trout",
   description:
-    "Buy fresh Rainbow Trout online in Srinagar. Farmed in Naseem Bagh in clean mountain water. Harvested to order with same-day home delivery across Srinagar.",
+    "Buy fresh Rainbow Trout online in Srinagar. Farmed in Malabagh in clean mountain water. Harvested to order with rapid delivery within 2 hours across Srinagar.",
   alternates: {
     canonical: "https://urbantrout.in",
   },
@@ -41,7 +41,7 @@ const farmConditions = [
 const faqs = [
   {
     q: "Where can I buy fresh trout fish in Srinagar?",
-    a: "You can order fresh trout online directly through urbantrout.in for same-day delivery within a 5km radius from our farm, or pick it up fresh from our farm counter at Malabagh, Naseem Bagh (near R P School Girls Wing).",
+    a: "You can order fresh trout online directly through urbantrout.in for rapid delivery within 2 hours across Srinagar from our farm, or pick it up fresh from our farm counter at Urban Trout Aquaculture Farm in Malabagh (near R P School Girls Wing).",
   },
   {
     q: "What is the price of Rainbow Trout per Kg in Srinagar?",

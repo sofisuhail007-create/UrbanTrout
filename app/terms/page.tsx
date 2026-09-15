@@ -22,7 +22,7 @@ const sections = [
   },
   {
     title: "2. Service Area & Eligibility",
-    body: "Urban Trout operates a modern cold-water aquaculture farm in Naseem Bagh and fulfills fresh doorstep deliveries within the Srinagar city limits (up to an approximate 25km radius). We reserve the right to decline or reschedule orders located outside our viable refrigerated delivery routes.",
+    body: "Urban Trout operates a modern cold-water aquaculture farm in Malabagh, Srinagar and fulfills fresh doorstep deliveries within the Srinagar city limits (up to an approximate 25km radius). We reserve the right to decline or reschedule orders located outside our viable refrigerated delivery routes.",
   },
   {
     title: "3. Fresh Harvest Order Process & Weight Verification",

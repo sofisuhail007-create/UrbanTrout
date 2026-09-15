@@ -18,11 +18,11 @@ const C = {
 const sections = [
   {
     title: "1. Service Area & Delivery Coverage",
-    body: "• Urban Trout provides fresh doorstep delivery across the Srinagar municipal area and surrounding localities in Jammu & Kashmir (within an approximate 25km radius from our farm in Naseem Bagh).\n• Core Free Delivery Localities (within 5km): Naseem Bagh, Malabagh, Hazratbal, Habak, Zakura, Lal Bazar, Soura / SKIMS, Bachpora, and Illahibagh.\n• Extended Localities: Rainawari, Dalgate, Rajbagh, Lal Chowk, and other Srinagar areas are serviced with standard delivery schedules.",
+    body: "• Urban Trout provides fresh doorstep delivery across the Srinagar municipal area and surrounding localities in Jammu & Kashmir (within an approximate 25km radius from Urban Trout Aquaculture Farm in Malabagh).\n• Core Free Delivery Localities (within 5km): Malabagh, Hazratbal, Habak, Naseem Bagh, Zakura, Lal Bazar, Soura / SKIMS, Bachpora, and Illahibagh.\n• Extended Localities: Rainawari, Dalgate, Rajbagh, Lal Chowk, and other Srinagar areas are serviced with standard delivery schedules.",
   },
   {
     title: "2. Harvest-to-Order & Delivery Timelines",
-    body: "• Farm-Fresh Quality: Every order is freshly harvested to order from our state-of-the-art aquaculture tanks upon order confirmation to ensure maximum freshness and taste.\n• Standard Delivery Timeframe: Orders are freshly harvested, cleaned, chilled in food-grade ice, and delivered to your doorstep within 2 to 24 hours of order placement based on your chosen delivery slot.\n• Operating Delivery Hours: Monday to Sunday between 8:00 AM and 8:00 PM IST.",
+    body: "• Farm-Fresh Quality: Every order is freshly harvested to order from our state-of-the-art aquaculture tanks upon order confirmation to ensure maximum freshness and taste.\n• Rapid Delivery Timeframe: Orders are freshly harvested to order, cleaned, chilled in food-grade ice, and delivered to your doorstep within 2 hours across Srinagar.\n• Operating Delivery Hours: Monday to Sunday between 8:00 AM and 8:00 PM IST.",
   },
   {
     title: "3. Shipping & Delivery Charges",

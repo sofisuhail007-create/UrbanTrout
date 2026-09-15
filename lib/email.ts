@@ -38,11 +38,16 @@ export async function sendOrderConfirmationEmail(order: {
 
   let resolvedMapsUrl = order.googleMapsUrl || null;
   if (!resolvedMapsUrl && order.latitude && order.longitude) {
-    resolvedMapsUrl = `https://maps.google.com/?q=${order.latitude},${order.longitude}`;
+    resolvedMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${order.latitude},${order.longitude}`;
   }
   if (!resolvedMapsUrl && order.address) {
-    const match = order.address.match(/https:\/\/maps\.google\.com\/\?q=[^\s]+/);
-    if (match) resolvedMapsUrl = match[0];
+    const qMatch = order.address.match(/https:\/\/(?:maps\.google\.com\/\?q=|www\.google\.com\/maps\/dir\/\?api=1&destination=)([0-9.-]+),([0-9.-]+)/);
+    if (qMatch) {
+      resolvedMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${qMatch[1]},${qMatch[2]}`;
+    } else {
+      const match = order.address.match(/https:\/\/(?:www\.)?google\.com\/maps[^\s]+|https:\/\/maps\.google\.com\/[^\s]+/);
+      if (match) resolvedMapsUrl = match[0];
+    }
   }
 
   const itemsHtml = order.items
@@ -83,7 +88,7 @@ export async function sendOrderConfirmationEmail(order: {
             Payment Verified via Razorpay
           </p>
           <p style="margin: 8px 0 0; font-size: 14px; color: #9fadb8; line-height: 1.6;">
-            Thank you, <strong>${order.customerName}</strong>! Your payment has been received and verified. Our aquaculture specialists at Urban Trout Farm (Naseem Bagh) are now preparing your fresh catch for same-day delivery.
+            Thank you, <strong>${order.customerName}</strong>! Your payment has been received and verified. Our aquaculture specialists at Urban Trout Aquaculture Farm, Malabagh are now preparing your fresh catch for same-day delivery.
           </p>
         </div>
 
@@ -133,10 +138,10 @@ export async function sendOrderConfirmationEmail(order: {
         <!-- Harvest & Delivery Window Box -->
         <div style="background: rgba(16,33,44,0.6); border: 1px solid rgba(114,221,253,0.25); border-radius: 12px; padding: 16px; margin-bottom: 24px;">
           <div style="font-size: 12px; color: #72ddfd; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px;">
-            🚚 Delivery Window: Within 90 Mins (Same-Day)
+            🚚 Delivery Window: Within 2 Hours (Rapid Fresh Delivery)
           </div>
           <p style="margin: 0; font-size: 13px; color: #9fadb8; line-height: 1.5;">
-            Harvested to order from clean groundwater RAS tanks in Naseem Bagh and packed in food-grade crushed ice.
+            Harvested to order from clean groundwater RAS tanks at Urban Trout Aquaculture Farm in Malabagh, Srinagar and packed in food-grade crushed ice.
           </p>
         </div>
 
@@ -146,12 +151,12 @@ export async function sendOrderConfirmationEmail(order: {
           <p style="margin: 0; font-size: 14px; color: #dfedf9; line-height: 1.5;">
             <strong>${order.customerName}</strong> (+91 ${order.phone})<br>
             ${order.address ? `${order.address}, ` : ""}${order.locality || "Srinagar"}${order.pincode ? ` - ${order.pincode}` : ""}<br>
-            <span style="font-size: 12px; color: #9fadb8;">Farm Source: Urban Trout Farm, Malabagh Naseem Bagh</span>
+            <span style="font-size: 12px; color: #9fadb8;">Farm Source: Urban Trout Aquaculture Farm, Malabagh</span>
           </p>
           ${resolvedMapsUrl ? `
           <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #152834;">
             <a href="${resolvedMapsUrl}" target="_blank" style="display: inline-block; background: rgba(114,221,253,0.15); border: 1px solid rgba(114,221,253,0.35); color: #72ddfd; text-decoration: none; padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 700;">
-              📍 Open Exact Delivery Pinpoint on Google Maps
+              🗺️ 1-Tap Google Maps (Navigate)
             </a>
           </div>
           ` : ""}
@@ -170,7 +175,7 @@ export async function sendOrderConfirmationEmail(order: {
 
       <!-- Footer -->
       <div style="background: #06151e; padding: 20px; text-align: center; border-top: 1px solid #152834; font-size: 11px; color: #6a7782;">
-        <p style="margin: 0 0 4px;">Urban Trout Aquaculture • Malabagh, Naseem Bagh, Srinagar — 190006</p>
+        <p style="margin: 0 0 4px;">Urban Trout Aquaculture • Malabagh, Srinagar — 190006</p>
         <p style="margin: 0;">Farm Direct Helpline: +91 84910 06127 | Email: info.urbantrout@gmail.com</p>
       </div>
 
@@ -379,7 +384,7 @@ export async function sendFarmVisitEmail(visit: {
   <body style="background-color: #031018; color: #dfedf9; font-family: sans-serif; padding: 20px;">
     <div style="max-width: 580px; margin: 0 auto; background: #0b1b25; border: 1px solid #1a3648; border-radius: 12px; padding: 28px;">
       <h2 style="color: #72ddfd; margin-top: 0;">🌿 Farm Visit Request Received (Pending Review)</h2>
-      <p style="color: #9fadb8;">A visitor has submitted a visit request for the Urban Trout RAS facility in Naseem Bagh:</p>
+      <p style="color: #9fadb8;">A visitor has submitted a visit request for the Urban Trout RAS facility in Malabagh, Srinagar:</p>
       
       <div style="background: #06151e; border: 1px solid #152834; border-radius: 8px; padding: 16px; margin: 20px 0; font-size: 14px; line-height: 1.6;">
         <p style="margin: 0 0 8px;"><strong>Visitor Name:</strong> ${visit.visitor_name}</p>
@@ -424,14 +429,14 @@ export async function sendFarmVisitEmail(visit: {
         <span style="font-size: 11px; text-transform: uppercase; letter-spacing: 2px; color: #fbbf24; font-weight: 800;">Awaiting Farm Manager Approval</span>
         <h2 style="color: #ffffff; margin: 8px 0 12px;">Visit Request Received</h2>
         <p style="color: #9fadb8; font-size: 14px; line-height: 1.6;">
-          Hi <strong>${visit.visitor_name}</strong>, thank you for requesting a visit to Urban Trout Farm. Due to our strict <strong>RAS Bio-Security Protocols</strong> and feeding schedules, all visits must be reviewed and approved by our Farm Manager before entry.
+          Hi <strong>${visit.visitor_name}</strong>, thank you for requesting a visit to Urban Trout Aquaculture Farm. Due to our strict <strong>RAS Bio-Security Protocols</strong> and feeding schedules, all visits must be reviewed and approved by our Farm Manager before entry.
         </p>
 
         <div style="background: #06151e; border: 1px solid #152834; border-radius: 8px; padding: 16px; margin: 20px 0; text-align: left; font-size: 14px; line-height: 1.6;">
           <p style="margin: 0 0 6px;">📅 <strong>Requested Date:</strong> ${visit.visit_date}</p>
           <p style="margin: 0 0 6px;">⏰ <strong>Requested Slot:</strong> ${visit.time_slot}</p>
           <p style="margin: 0 0 6px;">👥 <strong>Group Size:</strong> ${visit.guest_count} Person(s)</p>
-          <p style="margin: 0;">📍 <strong>Location:</strong> Malabagh, Naseem Bagh, Srinagar</p>
+          <p style="margin: 0;">📍 <strong>Location:</strong> Malabagh, Srinagar</p>
         </div>
 
         <div style="background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.3); border-radius: 8px; padding: 12px; font-size: 12px; color: #fbbf24; text-align: left; margin-bottom: 20px;">
@@ -439,7 +444,7 @@ export async function sendFarmVisitEmail(visit: {
         </div>
 
         <p style="font-size: 11px; color: #6a7782; margin: 0;">
-          Urban Trout Aquaculture • Malabagh, Naseem Bagh, Srinagar — 190006
+          Urban Trout Aquaculture Farm • Malabagh, Srinagar — 190006
         </p>
       </div>
     </body>
@@ -497,7 +502,7 @@ export async function sendFarmVisitApprovedEmail(visit: {
           ✓ Farm Manager Approved
         </span>
         <h1 style="color: #ffffff; margin: 12px 0 4px; font-size: 24px; font-weight: 800; letter-spacing: -0.5px;">Your Farm Visit Pass is Ready</h1>
-        <p style="color: #9fadb8; font-size: 13px; margin: 0;">Urban Trout Cold-Water RAS Aquaculture Facility • Naseem Bagh, Srinagar</p>
+        <p style="color: #9fadb8; font-size: 13px; margin: 0;">Urban Trout Cold-Water RAS Aquaculture Facility • Malabagh, Srinagar</p>
       </div>
 
       <!-- ─── THE DIGITAL ID CARD PASS ─── -->
@@ -610,22 +615,22 @@ export async function sendFarmVisitApprovedEmail(visit: {
       <div style="background: #06151e; border: 1px solid #152834; border-radius: 14px; padding: 20px; text-align: center; margin-bottom: 24px;">
         <div style="font-size: 14px; font-weight: bold; color: #ffffff; margin-bottom: 4px;">Farm Location</div>
         <p style="font-size: 13px; color: #9fadb8; margin: 0 0 14px; line-height: 1.5;">
-          Malabagh, Naseem Bagh, Srinagar — 190006<br>
+          Malabagh, Srinagar — 190006<br>
           <span style="color: #6a7782; font-size: 12px;">Landmark: Near R P School (Girls Wing)</span>
         </p>
         <a 
-          href="https://maps.google.com/?q=34.144709,74.824525" 
+          href="https://www.google.com/maps/dir/?api=1&destination=34.144709,74.824525" 
           target="_blank" 
           style="display: inline-block; background: rgba(114,221,253,0.15); border: 1px solid rgba(114,221,253,0.3); color: #72ddfd; text-decoration: none; padding: 10px 20px; border-radius: 8px; font-size: 13px; font-weight: bold;"
         >
-          📍 Open Google Maps Directions
+          🗺️ Open 1-Tap Google Maps Directions
         </a>
       </div>
 
       <!-- Footer Info -->
       <div style="text-align: center; font-size: 11px; color: #6a7782; line-height: 1.6;">
         <p style="margin: 0 0 4px;">Need assistance on arrival? Farm Hotline: <strong style="color: #72ddfd;">+91 84910 06127</strong></p>
-        <p style="margin: 0;">Urban Trout Aquaculture • Malabagh, Naseem Bagh, Srinagar — 190006</p>
+        <p style="margin: 0;">Urban Trout Aquaculture Farm • Malabagh, Srinagar — 190006</p>
       </div>
 
     </div>
@@ -749,7 +754,7 @@ export async function sendPaymentLinkConfirmationEmail(params: {
         </div>
 
         <div style="text-align: center; font-size: 11px; color: #6a7782; line-height: 1.6;">
-          <p style="margin: 0 0 4px;">Urban Trout Farm • Naseem Bagh / Malabagh, Srinagar — 190006</p>
+          <p style="margin: 0 0 4px;">Urban Trout Aquaculture Farm • Malabagh, Srinagar — 190006</p>
           <p style="margin: 0;">Helpline: +91 84910 06127 | info.urbantrout@gmail.com</p>
         </div>
       </div>

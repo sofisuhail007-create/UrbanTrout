@@ -333,7 +333,7 @@ export default function PublicInvoicePage() {
             <h1 className="text-2xl font-black text-slate-900 tracking-tight" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
               URBAN TROUT AQUACULTURE
             </h1>
-            <p className="text-xs text-slate-500 font-medium mt-0.5">Naseem Bagh / Malabagh, Srinagar, J&amp;K — 190006</p>
+            <p className="text-xs text-slate-500 font-medium mt-0.5">Malabagh, Srinagar, J&amp;K — 190006</p>
             <p className="text-xs text-slate-500 font-medium">Helpline: +91 84910 06127 | info.urbantrout@gmail.com</p>
             <div className="inline-block mt-2 px-3 py-1 rounded bg-slate-100 text-slate-800 text-[10px] font-black uppercase tracking-widest">
               TAX INVOICE &amp; PAYMENT REQUEST

@@ -221,7 +221,7 @@ export function getOrderKeyboard(
   const contactRow: InlineKeyboardButton[] = [];
   if (googleMapsUrl) {
     contactRow.push({
-      text: "🗺️ Navigate on Google Maps",
+      text: "🗺️ 1-Tap Google Maps (Navigate)",
       url: googleMapsUrl,
     });
   }
@@ -320,22 +320,22 @@ export function formatOrderTelegramText(order: {
     ? `RAZORPAY ✅ (ID: <code>${order.razorpayPaymentId}</code>)`
     : (order.paymentMethod || "UPI").toUpperCase() + (order.utrNumber ? ` (UTR: <code>${order.utrNumber}</code>)` : "");
 
-  // Resolve Google Maps link from parameters or parse from address if embedded
+  // Resolve Google Maps 1-tap navigation link from parameters or parse from address if embedded
   let resolvedMapsUrl = order.googleMapsUrl || null;
   if (!resolvedMapsUrl && order.latitude && order.longitude) {
-    resolvedMapsUrl = `https://maps.google.com/?q=${order.latitude},${order.longitude}`;
+    resolvedMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${order.latitude},${order.longitude}`;
   }
   if (!resolvedMapsUrl && order.address) {
-    const match = order.address.match(/https:\/\/maps\.google\.com\/\?q=[^\s]+/);
+    const match = order.address.match(/https:\/\/(?:www\.)?google\.com\/maps[^\s]+|https:\/\/maps\.google\.com\/[^\s]+/);
     if (match) resolvedMapsUrl = match[0];
   }
 
   const distanceInfo = order.distanceKm !== undefined && order.distanceKm !== null
-    ? ` (~${Number(order.distanceKm).toFixed(1)} km from Naseem Bagh Farm)`
+    ? ` (~${Number(order.distanceKm).toFixed(1)} km from Urban Trout Aquaculture Farm, Malabagh)`
     : "";
 
   const gpsLine = resolvedMapsUrl
-    ? `\n📍 <b>GPS Pinpoint:</b> <a href="${resolvedMapsUrl}">Open in Google Maps</a>${distanceInfo}`
+    ? `\n📍 <b>1-Tap Navigation:</b> <a href="${resolvedMapsUrl}">Start Google Maps Navigation ↗</a>${distanceInfo}`
     : "";
 
   return `🚨 <b>ORDER #${order.orderNumber}</b> 🐟✨
@@ -376,13 +376,13 @@ export async function notifyNewOrder(order: {
 }) {
   const cleanPhone = String(order.phone || "").replace(/\D/g, "").slice(-10);
   
-  // Resolve Google Maps URL
+  // Resolve Google Maps URL (1-tap driving navigation mode)
   let resolvedMapsUrl = order.googleMapsUrl || null;
   if (!resolvedMapsUrl && order.latitude && order.longitude) {
-    resolvedMapsUrl = `https://maps.google.com/?q=${order.latitude},${order.longitude}`;
+    resolvedMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${order.latitude},${order.longitude}`;
   }
   if (!resolvedMapsUrl && order.address) {
-    const match = order.address.match(/https:\/\/maps\.google\.com\/\?q=[^\s]+/);
+    const match = order.address.match(/https:\/\/(?:www\.)?google\.com\/maps[^\s]+|https:\/\/maps\.google\.com\/[^\s]+/);
     if (match) resolvedMapsUrl = match[0];
   }
 
@@ -424,9 +424,26 @@ export async function notifyAbandonedLead(lead: {
   pincode?: string;
   cartSummary?: string;
   total?: number;
+  latitude?: number | null;
+  longitude?: number | null;
+  googleMapsUrl?: string | null;
+  distanceKm?: number | null;
 }) {
   const cleanPhone = lead.phone.replace(/\D/g, "").slice(-10);
   const waLink = `https://wa.me/91${cleanPhone}?text=Hi%20${encodeURIComponent(lead.name || 'there')}!%20We%20saw%20you%20were%20ordering%20fresh%20Rainbow%20Trout%20from%20Urban%20Trout.%20Would%20you%20like%20any%20help%20completing%20your%20order?`;
+
+  let navUrl = lead.googleMapsUrl || null;
+  if (!navUrl && lead.latitude && lead.longitude) {
+    navUrl = `https://www.google.com/maps/dir/?api=1&destination=${lead.latitude},${lead.longitude}`;
+  }
+
+  const distanceInfo = lead.distanceKm !== undefined && lead.distanceKm !== null
+    ? ` (~${Number(lead.distanceKm).toFixed(1)} km from Urban Trout Aquaculture Farm, Malabagh)`
+    : "";
+
+  const gpsLine = navUrl
+    ? `\n📍 <b>1-Tap Navigation:</b> <a href="${navUrl}">Open Google Maps</a>${distanceInfo}`
+    : "";
 
   const msg = `⚠️ <b>ABANDONED CHECKOUT LEAD!</b>
 ━━━━━━━━━━━━━━━━━━━━
@@ -434,14 +451,29 @@ A customer started checkout but hasn't finalized payment:
 
 • <b>Name:</b> ${escapeHtml(lead.name || "Interested Customer")}
 • <b>Phone:</b> +91 ${cleanPhone}
-• <b>Location:</b> ${escapeHtml(lead.locality || "Srinagar")} ${lead.pincode ? `(${escapeHtml(lead.pincode)})` : ""}
+• <b>Location:</b> ${escapeHtml(lead.locality || "Srinagar")} ${lead.pincode ? `(${escapeHtml(lead.pincode)})` : ""}${gpsLine}
 • <b>Cart Total:</b> <b>₹${lead.total || 550}</b>
 ${lead.cartSummary ? `• <b>Items:</b> ${escapeHtml(lead.cartSummary)}\n` : ""}
 ━━━━━━━━━━━━━━━━━━━━
 ⚡ <i>Follow up now to close this sale:</i>
 📞 Call: +91 ${cleanPhone} | 💬 <a href="${waLink}">WhatsApp Now</a>`;
 
-  return sendTelegramMessage(msg, "HTML");
+  const keyboardRows: InlineKeyboardButton[][] = [];
+  const actionButtons: InlineKeyboardButton[] = [];
+
+  if (navUrl) {
+    actionButtons.push({
+      text: "🗺️ 1-Tap Google Maps (Navigate)",
+      url: navUrl,
+    });
+  }
+  actionButtons.push({
+    text: "💬 WhatsApp Lead",
+    url: waLink,
+  });
+  keyboardRows.push(actionButtons);
+
+  return sendTelegramMessage(msg, "HTML", { inline_keyboard: keyboardRows });
 }
 
 export async function notifyBioAlarm(alarm: {
@@ -479,7 +511,7 @@ export async function notifyFarmVisit(visit: {
   status?: string;
 }) {
   const cleanPhone = String(visit.phone || "").replace(/\D/g, "").slice(-10);
-  const waReplyMsg = `Hi ${visit.visitor_name}! Urban Trout here regarding your farm visit pre-notification for ${visit.visit_date} (${visit.time_slot}). We look forward to welcoming you to our Naseem Bagh farm! 🐟`;
+  const waReplyMsg = `Hi ${visit.visitor_name}! Urban Trout here regarding your farm visit pre-notification for ${visit.visit_date} (${visit.time_slot}). We look forward to welcoming you to Urban Trout Aquaculture Farm in Malabagh, Srinagar! 🐟`;
   const waUrl = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(waReplyMsg)}`;
 
   const msg = `🌿 <b>NEW FARM VISIT PRE-NOTIFICATION!</b> 🐟

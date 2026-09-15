@@ -50,7 +50,7 @@ export const metadata: Metadata = {
     template: "%s | Urban Trout Srinagar",
   },
   description:
-    "Order fresh Rainbow Trout in Srinagar. Harvested to order from our cold-water farm in Naseem Bagh & delivered same-day to your doorstep. Zero antibiotics, pure filtered water.",
+    "Order fresh Rainbow Trout in Srinagar. Harvested to order from our cold-water farm in Malabagh & delivered within 2 hours to your doorstep. Zero antibiotics, pure filtered water.",
   keywords: [
     "trout fish in srinagar",
     "buy trout online srinagar",
@@ -59,7 +59,7 @@ export const metadata: Metadata = {
     "trout home delivery srinagar",
     "best fish in srinagar",
     "trout farm srinagar",
-    "trout farm naseem bagh",
+    "trout farm malabagh",
     "cleaned gutted trout srinagar",
     "fresh fish delivery kashmir",
     "rainbow trout rate per kg srinagar",
@@ -73,7 +73,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Urban Trout | Fresh Rainbow Trout in Srinagar",
     description:
-      "Order fresh Rainbow Trout in Srinagar. Farmed in clean borewell water in Naseem Bagh. Harvested fresh to order with same-day delivery.",
+      "Order fresh Rainbow Trout in Srinagar. Farmed in clean borewell water in Malabagh. Harvested fresh to order with rapid delivery within 2 hours.",
     url: "https://urbantrout.in",
     siteName: "Urban Trout Srinagar",
     images: [
@@ -127,7 +127,7 @@ const jsonLd = {
   "name": "Urban Trout",
   "alternateName": "Urban Trout Srinagar",
   "image": "https://urbantrout.in/images/og-image.png",
-  "description": "Srinagar's premier cold-water trout farm located in Malabagh, Naseem Bagh. Providing fresh whole and cleaned Rainbow Trout harvested to order with delivery across a 5km radius in Srinagar, Kashmir.",
+  "description": "Srinagar's premier cold-water trout farm located in Malabagh. Providing fresh whole and cleaned Rainbow Trout harvested to order with rapid delivery within 2 hours across Srinagar, Kashmir.",
   "@id": "https://urbantrout.in",
   "url": "https://urbantrout.in",
   "telephone": "+918491006127",
@@ -137,7 +137,7 @@ const jsonLd = {
   "paymentAccepted": "Cash, UPI, Online Payment Link",
   "address": {
     "@type": "PostalAddress",
-    "streetAddress": "Malabagh, Naseem Bagh, Near R P School (Girls Wing)",
+    "streetAddress": "Malabagh, Near R P School (Girls Wing)",
     "addressLocality": "Srinagar",
     "addressRegion": "Jammu and Kashmir",
     "postalCode": "190006",
@@ -164,7 +164,7 @@ const jsonLd = {
   },
   "servesCuisine": "Seafood, Freshwater Fish",
   "areaServed": [
-    { "@type": "AdministrativeArea", "name": "5km Radius from Farm (Malabagh, Naseem Bagh, Srinagar)" }
+    { "@type": "AdministrativeArea", "name": "Srinagar Delivery Zone (from Malabagh Farm)" }
   ]
 };
 

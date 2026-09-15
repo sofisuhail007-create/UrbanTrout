@@ -28,7 +28,7 @@ export default function OurFarmPage() {
               <span style={{ color: "#63cfee", textShadow: "0 0 30px rgba(99,207,238,0.4)" }}>Fresh Harvest.</span>
             </h1>
             <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "1.05rem", color: C.onSurfVar, lineHeight: 1.75, margin: "0 0 2.5rem", maxWidth: "480px" }}>
-              Located in Srinagar at Malabagh, Naseem Bagh, our farm raises Rainbow Trout in clean, continuously filtered cold water. We farm with care, harvest only when you order, and deliver fresh to your door.
+              Located in Srinagar at Malabagh, our farm raises Rainbow Trout in clean, continuously filtered cold water. We farm with care, harvest only when you order, and deliver fresh to your door within 2 hours.
             </p>
             <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
               <Link href="/shop" style={{ padding: "13px 28px", borderRadius: "10px", background: C.primaryCont, color: C.onPrimCont, fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: "0.875rem", textDecoration: "none", boxShadow: "0 0 20px rgba(58,173,204,0.3)" }}>
@@ -157,8 +157,8 @@ export default function OurFarmPage() {
             />
             <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, #031018 0%, transparent 60%)" }} />
             <div style={{ position: "absolute", bottom: "2rem", left: "2rem", right: "2rem" }}>
-              <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: "1.25rem", color: C.onSurface }}>Urban Trout Farm</span>
-              <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.85rem", color: C.onSurfVar, margin: "4px 0 0" }}>Malabagh, Naseem Bagh, Srinagar</p>
+              <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: "1.25rem", color: C.onSurface }}>Urban Trout Aquaculture Farm</span>
+              <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.85rem", color: C.onSurfVar, margin: "4px 0 0" }}>Malabagh, Srinagar</p>
             </div>
           </div>
         </div>

@@ -773,7 +773,7 @@ export default function LiveChatWidget() {
                     <span>Hi {customerName || "there"}!</span>
                   </div>
                   <p className="text-[11px] text-slate-300 leading-relaxed font-normal">
-                    How can we assist you today? Type your message below and our farm team in Naseem Bagh will reply live.
+                    How can we assist you today? Type your message below and our farm team in Malabagh will reply live.
                   </p>
                 </div>
 
