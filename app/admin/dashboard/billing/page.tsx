@@ -1593,32 +1593,27 @@ ${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━
   return (
     <div className="px-3 py-2 sm:px-5 sm:py-3 max-w-7xl mx-auto space-y-3">
       {/* ─── COMPACT HEADER BAR ─── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 py-1.5 px-0.5 border-b border-slate-800/80">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 flex-shrink-0">
-            <span className="material-symbols-outlined text-lg">point_of_sale</span>
+      <div className="flex flex-wrap items-center justify-between gap-2 py-1.5 px-0.5 border-b border-slate-800/80">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 flex-shrink-0">
+            <span className="material-symbols-outlined text-base sm:text-lg">point_of_sale</span>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-base sm:text-lg font-extrabold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
-              Sales Billing &amp; Invoice POS
+          <div className="min-w-0">
+            <h1 className="text-sm sm:text-lg font-extrabold text-white truncate" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+              Sales Billing POS
             </h1>
-            <span className="text-[9px] uppercase font-bold tracking-wider text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 hidden sm:inline-flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Auto-Calculator
-            </span>
-            <span className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-mono">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              Vending Log: Auto-Synced on Pay ✓
+            <span className="text-[9px] uppercase font-bold tracking-wider text-emerald-400 bg-emerald-500/10 px-1.5 py-0.2 rounded border border-emerald-500/20 sm:hidden">
+              Auto-Calc
             </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 ml-auto flex-shrink-0">
           {/* Voice Announcements Soundbox Button */}
           <button
             type="button"
             onClick={() => setVoiceModalOpen(true)}
-            className={`px-2.5 sm:px-3 py-1 rounded-xl border text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer ${
+            className={`px-2 sm:px-3 py-1 rounded-xl border text-[11px] sm:text-xs font-bold uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer ${
               voiceEnabled
                 ? "bg-emerald-500/15 hover:bg-emerald-500/25 border-emerald-500/40 text-emerald-300 shadow-sm shadow-emerald-500/10"
                 : "bg-slate-900 hover:bg-slate-800 border-slate-800 text-slate-500"
@@ -1634,25 +1629,88 @@ ${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━
 
           <Link
             href="/admin/dashboard/vending-log"
-            className="px-3 py-1 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 transition-all text-xs font-bold uppercase tracking-wider flex items-center gap-1.5"
+            className="px-2 sm:px-3 py-1 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 transition-all text-[11px] sm:text-xs font-bold uppercase tracking-wider flex items-center gap-1"
             title="Open Daily Sales Data Logger"
           >
             <span className="material-symbols-outlined text-sm">table_chart</span>
-            Vending Log
+            <span className="hidden sm:inline">Vending Log</span>
+            <span className="sm:hidden">Log</span>
           </Link>
           <button
             type="button"
             onClick={handleReset}
-            className="px-3 py-1 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition-all text-xs font-bold uppercase tracking-wider flex items-center gap-1 cursor-pointer"
+            className="px-2 sm:px-3 py-1 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition-all text-[11px] sm:text-xs font-bold uppercase tracking-wider flex items-center gap-1 cursor-pointer"
+            title="Reset active bill"
           >
             <span className="material-symbols-outlined text-sm">refresh</span>
-            Reset Bill
+            <span className="hidden sm:inline">Reset</span>
           </button>
         </div>
       </div>
 
-      {/* ─── DEDICATED FEATURE OPTIONS SWITCHER (SPACIOUS 4-PILLAR HUB) ─── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-2.5 p-1.5 sm:p-2 bg-slate-950/85 border border-slate-800/80 rounded-2xl shadow-xl">
+      {/* ─── MOBILE COMPACT TAB BAR (< sm) ─── */}
+      <div className="grid grid-cols-4 gap-1 p-1 bg-slate-950/95 border border-slate-800/90 rounded-2xl sm:hidden text-center shadow-lg">
+        <button
+          type="button"
+          onClick={() => setActiveTab("pos")}
+          className={`py-2 px-1 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer ${
+            activeTab === "pos"
+              ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 shadow-sm shadow-cyan-500/20 font-black"
+              : "text-slate-400 hover:text-slate-200"
+          }`}
+        >
+          <span className="material-symbols-outlined text-lg">point_of_sale</span>
+          <span className="text-[10px] font-mono leading-none tracking-tight">Counter POS</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setActiveTab("remote_orders");
+            fetchRemoteOrders();
+          }}
+          className={`py-2 px-1 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-0.5 relative cursor-pointer ${
+            activeTab === "remote_orders"
+              ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 shadow-sm shadow-emerald-500/20 font-black"
+              : "text-slate-400 hover:text-slate-200"
+          }`}
+        >
+          <span className="material-symbols-outlined text-lg">local_shipping</span>
+          <span className="text-[10px] font-mono leading-none tracking-tight">Remote</span>
+          {pendingRemoteCount > 0 && (
+            <span className="absolute top-1.5 right-2 w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("deal_calculator")}
+          className={`py-2 px-1 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer ${
+            activeTab === "deal_calculator"
+              ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/50 shadow-sm shadow-indigo-500/20 font-black"
+              : "text-slate-400 hover:text-slate-200"
+          }`}
+        >
+          <span className="material-symbols-outlined text-lg">handshake</span>
+          <span className="text-[10px] font-mono leading-none tracking-tight">Deal Desk</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("customer_balances")}
+          className={`py-2 px-1 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-0.5 relative cursor-pointer ${
+            activeTab === "customer_balances"
+              ? "bg-amber-500/20 text-amber-300 border border-amber-500/50 shadow-sm shadow-amber-500/20 font-black"
+              : "text-slate-400 hover:text-slate-200"
+          }`}
+        >
+          <span className="material-symbols-outlined text-lg">account_balance_wallet</span>
+          <span className="text-[10px] font-mono leading-none tracking-tight">Khata</span>
+          {pendingKhataCount > 0 && (
+            <span className="absolute top-1.5 right-2 w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+          )}
+        </button>
+      </div>
+
+      {/* ─── DESKTOP / TABLET SPACIOUS 4-PILLAR HUB (Visible on sm and up) ─── */}
+      <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-2.5 p-1.5 sm:p-2 bg-slate-950/85 border border-slate-800/80 rounded-2xl shadow-xl">
         {/* Feature 1: Counter POS */}
         <button
           type="button"
@@ -1797,6 +1855,7 @@ ${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━
         </button>
       </div>
 
+
       {/* ─── MAIN 2-COLUMN GRID (COMPACT ABOVE-THE-FOLD) ─── */}
       {activeTab === "pos" && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 items-start">
@@ -1930,7 +1989,7 @@ ${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━
                           key={w}
                           type="button"
                           onClick={() => handleQuickWeight(w, false)}
-                          className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-[11px] font-semibold border border-slate-700 cursor-pointer"
+                          className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-300 font-mono text-xs font-semibold border border-slate-700 cursor-pointer min-w-[36px] text-center"
                         >
                           {w}k
                         </button>
@@ -1938,7 +1997,7 @@ ${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━
                       <button
                         type="button"
                         onClick={() => handleQuickWeight(0.5, true)}
-                        className="px-2 py-1 rounded-lg bg-cyan-950/60 hover:bg-cyan-900/60 text-cyan-400 font-mono text-[11px] font-bold border border-cyan-500/30 cursor-pointer"
+                        className="px-2.5 py-1.5 rounded-lg bg-cyan-950/60 hover:bg-cyan-900/60 active:bg-cyan-800/60 text-cyan-400 font-mono text-xs font-bold border border-cyan-500/30 cursor-pointer"
                       >
                         +0.5
                       </button>
@@ -1947,12 +2006,26 @@ ${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━
                     <button
                       type="button"
                       onClick={() => handleAddProductItem()}
-                      className="px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-400 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
+                      className="px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 active:scale-95 border border-emerald-500/30 text-emerald-400 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm ml-auto"
                       title="Add another item or trout variety to bill"
                     >
                       <span className="material-symbols-outlined text-sm">add_circle</span>
                       + Add Item
                     </button>
+                  </div>
+
+                  {/* Mobile-only Live Summary Strip: Cashier sees calculated total immediately without scrolling */}
+                  <div className="flex lg:hidden items-center justify-between p-2.5 rounded-xl bg-slate-950/90 border border-cyan-500/30 font-mono shadow-inner mt-2">
+                    <div>
+                      <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Live Payable</span>
+                      <span className="text-lg font-black text-cyan-400">₹{grandTotal.toLocaleString("en-IN")}</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] text-slate-400 block">{isCustomAmountMode ? "⚡ Direct QR" : `${totalWeight.toFixed(2)} Kg Trout`}</span>
+                      <span className="text-[11px] text-emerald-400 font-bold">
+                        {paymentMethod === "JkBankSoundbox" ? "🔊 J&K Soundbox" : paymentMethod === "RazorpayQR" ? "⚡ Razorpay QR" : paymentMethod === "WhatsAppLink" ? "🛵 WhatsApp Link" : "💵 Cash"}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </>
@@ -2056,7 +2129,7 @@ ${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━
                     value={customNote}
                     onChange={(e) => setCustomNote(e.target.value)}
                     placeholder="e.g. Counter Fish Sale / Advance Payment"
-                    className="w-full bg-slate-950/80 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-amber-400 placeholder:text-slate-600"
+                    className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-3 py-2 text-base sm:text-xs text-white focus:outline-none focus:border-amber-400 placeholder:text-slate-600"
                   />
                 </div>
 
@@ -2086,7 +2159,7 @@ ${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━
                   value={customerName}
                   onChange={(e) => setCustomerName(e.target.value)}
                   placeholder="e.g. Suhail Ahmed"
-                  className="w-full bg-slate-950/80 border border-slate-700 rounded-lg px-3 py-1.5 text-xs sm:text-sm text-white focus:outline-none focus:border-cyan-400"
+                  className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-3 py-2 text-base sm:text-sm text-white focus:outline-none focus:border-cyan-400"
                 />
               </div>
 
@@ -2100,7 +2173,7 @@ ${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━
                   onChange={(e) => setCustomerPhone(e.target.value)}
                   placeholder="10-digit mobile"
                   maxLength={10}
-                  className="w-full bg-slate-950/80 border border-slate-700 rounded-lg px-3 py-1.5 text-xs sm:text-sm text-white focus:outline-none focus:border-cyan-400"
+                  className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-3 py-2 text-base sm:text-sm text-white focus:outline-none focus:border-cyan-400"
                 />
               </div>
 
@@ -2113,12 +2186,13 @@ ${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━
                   value={customerNotes}
                   onChange={(e) => setCustomerNotes(e.target.value)}
                   placeholder="e.g. Extra iced, clean & cut into steaks."
-                  className="w-full bg-slate-950/80 border border-slate-700 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-400"
+                  className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-3 py-2 text-base sm:text-sm text-white focus:outline-none focus:border-cyan-400"
                 />
               </div>
             </div>
           </div>
         </div>
+
 
         {/* RIGHT COLUMN: Live Bill Summary & Instant QR (5 Cols) */}
         <div className="lg:col-span-5 space-y-3">
@@ -2790,8 +2864,9 @@ ${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━
                         }
                       }}
                       placeholder={`Full Amount: ₹${grandTotal.toLocaleString("en-IN")}`}
-                      className="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-7 pr-3 py-1.5 text-xs text-white font-mono placeholder:text-slate-500 focus:outline-none focus:border-amber-400"
+                      className="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-7 pr-3 py-2 text-base sm:text-xs text-white font-mono placeholder:text-slate-500 focus:outline-none focus:border-amber-400"
                     />
+
                   </div>
 
                   <button
@@ -2890,8 +2965,51 @@ ${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━
             </div>
           </div>
         </div>
+
+        {/* ─── STICKY MOBILE CHECKOUT BAR (Pinned above iOS home indicator on < lg screens) ─── */}
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-slate-950/95 backdrop-blur-lg border-t border-slate-800/90 px-3.5 py-2.5 lg:hidden shadow-[0_-4px_25px_rgba(0,0,0,0.7)]">
+          <div className="max-w-md mx-auto flex items-center justify-between gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="text-[10px] text-slate-400 font-mono flex items-center gap-1.5 leading-none mb-0.5">
+                <span>{isCustomAmountMode ? "⚡ Direct QR" : `${totalWeight.toFixed(2)} Kg`}</span>
+                <span>•</span>
+                <span className="text-emerald-400 font-bold truncate">
+                  {paymentMethod === "JkBankSoundbox" ? "Soundbox" : paymentMethod === "RazorpayQR" ? "Razorpay QR" : paymentMethod === "WhatsAppLink" ? "WhatsApp" : "Cash"}
+                </span>
+              </div>
+              <div className="text-lg font-black text-white font-mono leading-tight">
+                Payable: <span className="text-cyan-400">₹{grandTotal.toLocaleString("en-IN")}</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 flex-shrink-0">
+              {paymentMethod === "WhatsAppLink" && !rzpPaid ? (
+                <button
+                  type="button"
+                  onClick={handleSendWhatsAppPaymentLink}
+                  disabled={grandTotal <= 0 || rzpLinkLoading}
+                  className="py-2.5 px-3.5 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 active:scale-95 disabled:opacity-50 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
+                >
+                  <span className="text-sm">📲</span>
+                  <span>{rzpLinkLoading ? "Wait..." : "Send Link"}</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleGenerateInvoice}
+                  disabled={grandTotal <= 0}
+                  className="py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 disabled:opacity-50 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-emerald-500/25 transition-all cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-base">receipt_long</span>
+                  <span>Invoice</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
       )}
+
 
       {/* ─── DEDICATED REMOTE ORDERS & WHATSAPP PAYMENTS DASHBOARD ─── */}
       {activeTab === "remote_orders" && (
@@ -3496,9 +3614,9 @@ ${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━
           }}
           className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto"
         >
-          <div className="relative w-full max-w-md sm:max-w-xl bg-white text-slate-900 rounded-3xl p-4 sm:p-7 shadow-2xl space-y-4 my-4 max-h-[95vh] overflow-y-auto">
+          <div className="relative w-full max-w-md sm:max-w-xl bg-white text-slate-900 rounded-2xl sm:rounded-3xl p-3 sm:p-7 shadow-2xl space-y-4 my-2 sm:my-4 max-h-[92vh] sm:max-h-[95vh] overflow-y-auto">
             {/* ─── FLOATING TOP STICKY BAR: 1-CLICK SHARE & PRINT (NO SCROLLING NEEDED) ─── */}
-            <div className="sticky -top-4 sm:-top-7 -mx-4 sm:-mx-7 px-4 sm:px-7 py-3 bg-slate-950 text-white border-b border-slate-800 z-30 shadow-lg flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 print:hidden">
+            <div className="sticky -top-3 sm:-top-7 -mx-3 sm:-mx-7 px-3 sm:px-7 py-2.5 sm:py-3 bg-slate-950 text-white border-b border-slate-800 z-30 shadow-lg flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 print:hidden">
               <div className="flex items-center justify-between sm:justify-start gap-2">
                 <span className="text-[11px] font-mono font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2.5 py-1 rounded-lg">
                   {generatedInvoice.invoiceNumber}
@@ -3509,35 +3627,36 @@ ${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━
               </div>
 
               {/* Floating Quick Action Buttons */}
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2">
                 <button
                   type="button"
                   onClick={handleShareWhatsApp}
-                  className="flex-1 sm:flex-initial py-2 px-3.5 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] active:scale-95 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-md transition-all cursor-pointer"
+                  className="flex-1 sm:flex-initial py-2 px-2.5 sm:px-3.5 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] active:scale-95 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1 shadow-md transition-all cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-base">share</span>
-                  Send WhatsApp
+                  <span className="truncate">WhatsApp</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => window.print()}
-                  className="flex-1 sm:flex-initial py-2 px-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 border border-slate-700 transition-all cursor-pointer"
+                  className="flex-1 sm:flex-initial py-2 px-2.5 sm:px-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1 border border-slate-700 transition-all cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-base">print</span>
-                  Print / PDF
+                  <span className="truncate">Print</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setInvoiceModalOpen(false)}
-                  className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 transition-all cursor-pointer flex items-center justify-center"
+                  className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 transition-all cursor-pointer flex items-center justify-center shrink-0"
                   title="Close Window"
                 >
                   <span className="material-symbols-outlined text-base">close</span>
                 </button>
               </div>
             </div>
+
 
             {/* ─── PRINTABLE / DOWNLOADABLE INVOICE CONTENT ─── */}
             <div id="printable-receipt" className="space-y-4 pt-1">

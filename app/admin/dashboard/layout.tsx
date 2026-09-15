@@ -220,9 +220,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   };
 
   return (
-    <div className="flex flex-col md:flex-row h-screen bg-[#020d12] text-slate-200 overflow-hidden font-['Manrope']">
+    <div className="flex flex-col md:flex-row min-h-screen h-[100dvh] bg-[#020d12] text-slate-200 overflow-hidden font-['Manrope']">
       {/* ─── MOBILE TOP BAR (Visible on screens < md) ─── */}
-      <header className="flex md:hidden items-center justify-between px-4 py-3 bg-slate-950 border-b border-slate-800/80 z-30 flex-shrink-0">
+      <header className="flex md:hidden items-center justify-between px-3.5 py-2.5 bg-slate-950/95 backdrop-blur-md border-b border-slate-800/80 z-30 flex-shrink-0 sticky top-0">
+
         <div className="flex items-center gap-2.5">
           <img src="/sitelogo.png" alt="Urban Trout" className="w-7 h-7 rounded-lg object-contain border border-cyan-500/30" />
           <span className="text-sm font-black tracking-tight text-white font-['Space_Grotesk']">
@@ -494,7 +495,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </aside>
 
       {/* ─── MAIN CONTENT AREA (Full Mobile Responsive) ─── */}
-      <main className="flex-1 min-w-0 overflow-y-auto relative">
+      <main className="flex-1 min-w-0 overflow-y-auto relative pb-24 md:pb-6 overscroll-contain">
+
         {isRouteBlocked ? (
           <div className="flex items-center justify-center min-h-[80vh] p-4 text-center">
             <div className="max-w-md bg-slate-900/80 border border-red-500/30 rounded-3xl p-8 space-y-4 shadow-2xl">
