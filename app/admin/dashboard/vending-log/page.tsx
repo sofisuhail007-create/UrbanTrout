@@ -265,6 +265,11 @@ export default function VendingCenterLoggerPage() {
   const [eodPreviewHtml, setEodPreviewHtml] = useState("");
   const [eodSuccessNotice, setEodSuccessNotice] = useState<string | null>(null);
 
+  // ─── Automated Telegram Backup State ───
+  const [triggeringBackup, setTriggeringBackup] = useState(false);
+  const [backupSuccessNotice, setBackupSuccessNotice] = useState<string | null>(null);
+
+
   // Dynamic Pricing from Supabase Inventory table
   const [guttedPrice, setGuttedPrice] = useState<number>(DEFAULT_GUTTED_PRICE);
   const [nonGuttedPrice, setNonGuttedPrice] = useState<number>(DEFAULT_NON_GUTTED_PRICE);
@@ -1606,7 +1611,35 @@ export default function VendingCenterLoggerPage() {
     }
   };
 
+  // ─── Instant Telegram Backup Handler ───
+  const handleTriggerBackupNow = async () => {
+    if (triggeringBackup) return;
+    setTriggeringBackup(true);
+    setBackupSuccessNotice(null);
+    try {
+      const res = await adminFetch("/api/vending-log/backup?run=1", {
+        method: "POST",
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setBackupSuccessNotice(`✓ Backup file sent to Telegram (${data.counts?.vending_log || 0} vending records, ${data.counts?.customer_balances || 0} balances)!`);
+        playLogChime();
+        setTimeout(() => {
+          setBackupSuccessNotice(null);
+        }, 6000);
+      } else {
+        alert(data.error || "Failed to deliver Telegram backup document.");
+      }
+    } catch (err: any) {
+      console.error("Error triggering backup:", err);
+      alert("Network error sending backup to Telegram.");
+    } finally {
+      setTriggeringBackup(false);
+    }
+  };
+
   // ─── Worker Salary Handlers (Mohd Amin) ───
+
   const handleAddSalaryPayment = async (e: React.FormEvent) => {
     e.preventDefault();
     const amount = parseFloat(salaryFormAmount);
@@ -2119,16 +2152,32 @@ export default function VendingCenterLoggerPage() {
           </button>
 
           {isAdmin && (
-            <button
-              type="button"
-              onClick={handleOpenEodModal}
-              className="py-2.5 px-3.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-500/40 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
-              title="Preview and dispatch End-of-Day (EOD) sales & aquarium audit to Telegram"
-            >
-              <span className="material-symbols-outlined text-sm">send</span>
-              <span>EOD Report</span>
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={handleOpenEodModal}
+                className="py-2.5 px-3.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-500/40 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
+                title="Preview and dispatch End-of-Day (EOD) sales & aquarium audit to Telegram"
+              >
+                <span className="material-symbols-outlined text-sm">send</span>
+                <span>EOD Report</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={handleTriggerBackupNow}
+                disabled={triggeringBackup}
+                className="py-2.5 px-3.5 rounded-xl bg-indigo-500/15 hover:bg-indigo-500/25 text-indigo-300 border border-indigo-500/40 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95 disabled:opacity-50"
+                title="Export complete database backup and send JSON document to Telegram bot right now"
+              >
+                <span className="material-symbols-outlined text-sm">
+                  {triggeringBackup ? "hourglass_empty" : "backup"}
+                </span>
+                <span>{triggeringBackup ? "Backing up..." : "Backup Telegram"}</span>
+              </button>
+            </>
           )}
+
 
           <button
             type="button"
@@ -2163,6 +2212,24 @@ export default function VendingCenterLoggerPage() {
           </button>
         </div>
       </div>
+
+      {/* Instant Telegram Backup Success Banner */}
+      {backupSuccessNotice && (
+        <div className="p-3 bg-indigo-500/15 border border-indigo-500/40 rounded-2xl flex items-center justify-between gap-3 text-xs text-indigo-300 font-mono font-bold animate-fadeIn">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-base text-indigo-400">cloud_done</span>
+            <span>{backupSuccessNotice}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setBackupSuccessNotice(null)}
+            className="p-1 rounded-lg hover:bg-indigo-500/20 text-indigo-400 hover:text-white transition-all cursor-pointer"
+          >
+            <span className="material-symbols-outlined text-sm">close</span>
+          </button>
+        </div>
+      )}
+
 
       {/* Notice if table is ready or in fallback mode */}
       {!isTableAvailable && !bannerDismissed && (

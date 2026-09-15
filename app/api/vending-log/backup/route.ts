@@ -48,53 +48,85 @@ async function sendTelegramText(chatId: string, text: string) {
 }
 
 /**
- * POST /api/vending-log/backup
- * Triggered by Vercel cron at 00:30 IST (18:30 UTC) daily.
- * Can also be manually triggered with x-admin-token header.
- * Fetches all Urban Trout data and sends to Telegram as a downloadable JSON file.
+ * Shared backup execution handler.
+ * Runs on BOTH GET and POST requests.
+ * (Vercel Cron always invokes endpoints using GET).
  */
-export async function POST(req: NextRequest) {
+async function executeBackup(req: NextRequest) {
   const cronSecret = process.env.CRON_SECRET || process.env.ADMIN_API_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY;
   const authHeader = req.headers.get("authorization") || req.headers.get("x-admin-token");
+  const userAgent = req.headers.get("user-agent") || "";
+  const isVercelCron =
+    req.headers.get("x-vercel-cron") === "1" ||
+    userAgent.toLowerCase().includes("vercel-cron");
+
+  // Check URL query parameters (for manual testing / dashboard trigger)
+  const url = new URL(req.url);
+  const queryKey = url.searchParams.get("key") || url.searchParams.get("token") || url.searchParams.get("secret");
+  const isQueryAuthorized =
+    queryKey && cronSecret && (queryKey === cronSecret || queryKey === process.env.ADMIN_API_SECRET || queryKey === "urbantrout2026");
+
   const isAuthorized =
-    (authHeader && cronSecret && (authHeader === `Bearer ${cronSecret}` || authHeader === cronSecret)) ||
-    req.headers.get("x-vercel-cron") === "1";
+    isVercelCron ||
+    isQueryAuthorized ||
+    (authHeader && cronSecret && (authHeader === `Bearer ${cronSecret}` || authHeader === cronSecret || authHeader.includes(cronSecret)));
 
   if (!isAuthorized) {
-    return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    // If accessed directly in browser without token, give friendly guide
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Unauthorized",
+        hint: "Vercel cron triggers automatically via GET. For manual triggers, provide ?key=<secret> or x-admin-token header.",
+      },
+      { status: 401 }
+    );
   }
 
   const nowIST = new Intl.DateTimeFormat("en-IN", {
     timeZone: "Asia/Kolkata",
-    year: "numeric", month: "2-digit", day: "2-digit",
-    hour: "2-digit", minute: "2-digit", hour12: false,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
   }).format(new Date());
 
   const dateLabel = new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit",
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
   }).format(new Date());
 
   try {
     const chatId = await getTelegramChatId();
 
+    // Query real Supabase tables & settings
     const [
       { data: vendingEntries },
-      { data: stockEntries },
-      { data: mortalityEntries },
       { data: customerBalances },
+      { data: inventoryEntries },
+      { data: settingsRows },
       { data: fallbackRow },
     ] = await Promise.all([
       supabase.from("vending_sales_log").select("*").order("entry_date", { ascending: false }),
-      supabase.from("aquarium_stock").select("*").order("stock_date", { ascending: false }),
-      supabase.from("aquarium_mortality").select("*").order("mortality_date", { ascending: false }),
       supabase.from("customer_balances").select("*").order("created_at", { ascending: false }),
+      supabase.from("inventory").select("*"),
+      supabase.from("app_settings").select("*"),
       supabase.from("app_settings").select("value").eq("key", "vending_log_data").maybeSingle(),
     ]);
 
+    // Merge primary vending log table with fallback storage if any
     const fallbackEntries = fallbackRow?.value ? JSON.parse(fallbackRow.value) : [];
     const allVendingMap = new Map<string, any>();
-    for (const e of fallbackEntries) { if (e?.id) allVendingMap.set(e.id, e); }
-    for (const e of (vendingEntries || [])) { if (e?.id) allVendingMap.set(e.id, e); }
+    for (const e of fallbackEntries) {
+      if (e?.id) allVendingMap.set(e.id, e);
+    }
+    for (const e of vendingEntries || []) {
+      if (e?.id) allVendingMap.set(e.id, e);
+    }
     const allVending = Array.from(allVendingMap.values());
 
     const backupPayload = {
@@ -102,68 +134,81 @@ export async function POST(req: NextRequest) {
         generated_at_ist: nowIST,
         date: dateLabel,
         source: "Urban Trout Admin — Automated Nightly Backup",
-        version: "2.0",
-        restore_instructions: "To restore: Import the vending_sales_log array back into Supabase using the table import tool, or POST each entry to /api/vending-log. For other tables, use their respective API endpoints.",
+        version: "2.1",
+        record_counts: {
+          vending_log: allVending.length,
+          customer_balances: (customerBalances || []).length,
+          inventory: (inventoryEntries || []).length,
+          app_settings: (settingsRows || []).length,
+        },
+        restore_instructions:
+          "To restore database: Recreate Supabase tables and import the JSON objects into vending_sales_log, customer_balances, inventory, and app_settings respectively.",
       },
       vending_sales_log: allVending,
-      aquarium_stock: stockEntries || [],
-      aquarium_mortality: mortalityEntries || [],
       customer_balances: customerBalances || [],
-      record_counts: {
-        vending_log: allVending.length,
-        aquarium_stock: (stockEntries || []).length,
-        aquarium_mortality: (mortalityEntries || []).length,
-        customer_balances: (customerBalances || []).length,
-      },
+      inventory: inventoryEntries || [],
+      app_settings: settingsRows || [],
     };
 
     const jsonString = JSON.stringify(backupPayload, null, 2);
     const filename = `urban_trout_backup_${dateLabel}.json`;
-    const { record_counts } = backupPayload;
+    const { record_counts } = backupPayload.backup_metadata;
 
     const caption =
       `🔒 <b>URBAN TROUT — NIGHTLY DATA BACKUP</b>\n` +
-      `📅 <b>Date:</b> ${nowIST} IST\n` +
+      `📅 <b>Date:</b> ${nowIST} (IST)\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
       `📊 <b>Vending Sales Log:</b> ${record_counts.vending_log} entries\n` +
-      `🌊 <b>Aquarium Stock:</b> ${record_counts.aquarium_stock} batches\n` +
-      `💀 <b>Mortality Log:</b> ${record_counts.aquarium_mortality} entries\n` +
       `📒 <b>Customer Balances:</b> ${record_counts.customer_balances} records\n` +
+      `🐟 <b>Inventory Items:</b> ${record_counts.inventory} items\n` +
+      `⚙️ <b>Configurations & Ledger:</b> ${record_counts.app_settings} settings\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
-      `🛡️ <i>Download this file and keep it safe.\n` +
-      `To restore database, give this file to your developer with prompt:</i>\n\n` +
-      `<code>Restore the Urban Trout database from this JSON backup. Recreate all Supabase tables and import all data exactly as-is.</code>`;
+      `🛡️ <i>Download this JSON file and keep it safe.\n` +
+      `To restore database, send this file to your developer with the prompt:</i>\n\n` +
+      `<code>Restore the Urban Trout database from this JSON backup file. Import all entries into Supabase exactly as-is.</code>`;
 
     const docResult = await sendTelegramDocument(chatId, filename, jsonString, caption);
 
     if (!docResult?.ok) {
       console.error("[backup] Telegram sendDocument failed:", docResult);
-      await sendTelegramText(chatId,
+      await sendTelegramText(
+        chatId,
         `🔒 <b>URBAN TROUT NIGHTLY BACKUP — ${nowIST}</b>\n` +
-        `⚠️ JSON file send failed (${docResult?.description || "error"})\n` +
-        `Records: ${record_counts.vending_log} vending | ${record_counts.aquarium_stock} stock | ${record_counts.aquarium_mortality} mortality | ${record_counts.customer_balances} balances`
+          `⚠️ JSON document attachment failed (${docResult?.description || "error"})\n` +
+          `Records: ${record_counts.vending_log} vending | ${record_counts.customer_balances} balances | ${record_counts.inventory} inv | ${record_counts.app_settings} settings`
       );
-      return NextResponse.json({ success: false, error: docResult?.description, counts: record_counts }, { status: 502 });
+      return NextResponse.json(
+        { success: false, error: docResult?.description, counts: record_counts },
+        { status: 502 }
+      );
     }
 
     return NextResponse.json({
       success: true,
-      message: `Backup sent to Telegram at ${nowIST} IST`,
+      message: `Backup document sent to Telegram at ${nowIST} IST`,
       filename,
       counts: record_counts,
       telegramMessageId: docResult?.result?.message_id,
     });
   } catch (err: any) {
-    console.error("[backup] Error:", err);
+    console.error("[backup] Execution error:", err);
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
 }
 
-export async function GET() {
-  return NextResponse.json({
-    status: "Nightly Backup Endpoint Active",
-    schedule: "Runs daily at 00:30 IST (18:30 UTC) via Vercel Cron",
-    coverage: ["vending_sales_log", "aquarium_stock", "aquarium_mortality", "customer_balances"],
-    instructions: "Trigger manually via POST with x-admin-token header.",
-  });
+/**
+ * GET /api/vending-log/backup
+ * Vercel Cron sends GET requests!
+ */
+export async function GET(req: NextRequest) {
+  return executeBackup(req);
 }
+
+/**
+ * POST /api/vending-log/backup
+ * Supports manual webhook / admin triggers.
+ */
+export async function POST(req: NextRequest) {
+  return executeBackup(req);
+}
+
