@@ -207,14 +207,52 @@ export function getOrderKeyboard(
   orderNumber: string | number,
   currentStatus: string = "confirmed",
   cleanPhone?: string,
-  customerName?: string
+  customerName?: string,
+  googleMapsUrl?: string | null
 ): InlineKeyboardMarkup {
   const isOut = currentStatus === "out_for_delivery";
   const isDelivered = currentStatus === "delivered";
   const isOutOfStock = currentStatus === "out_of_stock";
   const isCancelled = currentStatus === "cancelled";
 
-  const rows: InlineKeyboardButton[][] = [
+  const rows: InlineKeyboardButton[][] = [];
+
+  // Top action row: Google Maps Navigation (if GPS coordinates provided) & WhatsApp Customer
+  const contactRow: InlineKeyboardButton[] = [];
+  if (googleMapsUrl) {
+    contactRow.push({
+      text: "🗺️ Navigate on Google Maps",
+      url: googleMapsUrl,
+    });
+  }
+
+  if (cleanPhone) {
+    let updateMsg = `Hi ${customerName || "there"}! Urban Trout here regarding your fresh trout order #${orderNumber}.`;
+    if (isOut) {
+      updateMsg = `Hi ${customerName || "there"}! Your fresh Rainbow Trout order #${orderNumber} is packed chilled and OUT FOR DELIVERY with our rider! 🚚`;
+    } else if (isDelivered) {
+      updateMsg = `Hi ${customerName || "there"}! Your fresh Rainbow Trout order #${orderNumber} has been DELIVERED. Thank you for choosing Urban Trout! ✨`;
+    } else if (isOutOfStock) {
+      updateMsg = `Hi ${customerName || "there"}! We sincerely apologize, but due to high sudden demand, your fresh trout order #${orderNumber} is currently OUT OF STOCK. If you have already paid, your full refund has been initiated to your original payment account. We are extremely sorry for the inconvenience!`;
+    } else if (isCancelled) {
+      updateMsg = `Hi ${customerName || "there"}! Your order #${orderNumber} has been cancelled. Please reach out if you have any questions.`;
+    } else {
+      updateMsg = `Hi ${customerName || "there"}! Your Urban Trout order #${orderNumber} is CONFIRMED & PAID! Harvesting fresh from tanks now. 🐟`;
+    }
+
+    const waUrl = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(updateMsg)}`;
+    contactRow.push({
+      text: "💬 WhatsApp Customer",
+      url: waUrl,
+    });
+  }
+
+  if (contactRow.length > 0) {
+    rows.push(contactRow);
+  }
+
+  // Status Action Buttons
+  rows.push(
     [
       {
         text: isOut ? "● 🚚 Dispatched" : "🚚 Out for Delivery",
@@ -234,32 +272,8 @@ export function getOrderKeyboard(
         text: isCancelled ? "● ❌ Cancelled" : "❌ Cancel Order",
         callback_data: `ord:cancelled:${orderNumber}`,
       },
-    ],
-  ];
-
-  if (cleanPhone) {
-    let updateMsg = `Hi ${customerName || "there"}! Urban Trout here regarding your fresh trout order #${orderNumber}.`;
-    if (isOut) {
-      updateMsg = `Hi ${customerName || "there"}! Your fresh Rainbow Trout order #${orderNumber} is packed chilled and OUT FOR DELIVERY with our rider! 🚚`;
-    } else if (isDelivered) {
-      updateMsg = `Hi ${customerName || "there"}! Your fresh Rainbow Trout order #${orderNumber} has been DELIVERED. Thank you for choosing Urban Trout! ✨`;
-    } else if (isOutOfStock) {
-      updateMsg = `Hi ${customerName || "there"}! We sincerely apologize, but due to high sudden demand, your fresh trout order #${orderNumber} is currently OUT OF STOCK. If you have already paid, your full refund has been initiated to your original payment account. We are extremely sorry for the inconvenience!`;
-    } else if (isCancelled) {
-      updateMsg = `Hi ${customerName || "there"}! Your order #${orderNumber} has been cancelled. Please reach out if you have any questions.`;
-    } else {
-      updateMsg = `Hi ${customerName || "there"}! Your Urban Trout order #${orderNumber} is CONFIRMED & PAID! Harvesting fresh from tanks now. 🐟`;
-    }
-
-    const waUrl = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(updateMsg)}`;
-
-    rows.push([
-      {
-        text: "💬 WhatsApp Customer",
-        url: waUrl,
-      },
-    ]);
-  }
+    ]
+  );
 
   return { inline_keyboard: rows };
 }
@@ -277,6 +291,10 @@ export function formatOrderTelegramText(order: {
   address?: string;
   pincode?: string;
   items?: Array<{ name: string; quantity: number; unit?: string; price: number }>;
+  googleMapsUrl?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  distanceKm?: number | null;
 }): string {
   const cleanPhone = String(order.phone || "").replace(/\D/g, "").slice(-10);
   const status = order.status || "pending";
@@ -302,6 +320,24 @@ export function formatOrderTelegramText(order: {
     ? `RAZORPAY ✅ (ID: <code>${order.razorpayPaymentId}</code>)`
     : (order.paymentMethod || "UPI").toUpperCase() + (order.utrNumber ? ` (UTR: <code>${order.utrNumber}</code>)` : "");
 
+  // Resolve Google Maps link from parameters or parse from address if embedded
+  let resolvedMapsUrl = order.googleMapsUrl || null;
+  if (!resolvedMapsUrl && order.latitude && order.longitude) {
+    resolvedMapsUrl = `https://maps.google.com/?q=${order.latitude},${order.longitude}`;
+  }
+  if (!resolvedMapsUrl && order.address) {
+    const match = order.address.match(/https:\/\/maps\.google\.com\/\?q=[^\s]+/);
+    if (match) resolvedMapsUrl = match[0];
+  }
+
+  const distanceInfo = order.distanceKm !== undefined && order.distanceKm !== null
+    ? ` (~${Number(order.distanceKm).toFixed(1)} km from Naseem Bagh Farm)`
+    : "";
+
+  const gpsLine = resolvedMapsUrl
+    ? `\n📍 <b>GPS Pinpoint:</b> <a href="${resolvedMapsUrl}">Open in Google Maps</a>${distanceInfo}`
+    : "";
+
   return `🚨 <b>ORDER #${order.orderNumber}</b> 🐟✨
 ━━━━━━━━━━━━━━━━━━━━
 <b>Status:</b> ${statusLabel}
@@ -312,7 +348,7 @@ export function formatOrderTelegramText(order: {
 • <b>Name:</b> ${order.customerName}
 • <b>Phone:</b> <a href="tel:+91${cleanPhone}">+91 ${cleanPhone}</a>
 • <b>Location:</b> ${order.locality || "Srinagar"} ${order.pincode ? `(${order.pincode})` : ""}
-${order.address ? `• <b>House/Lane:</b> ${order.address}\n` : ""}
+${order.address ? `• <b>House/Lane:</b> ${order.address}\n` : ""}${gpsLine}
 🛒 <b>Items:</b>
 ${itemsText}
 
@@ -333,10 +369,25 @@ export async function notifyNewOrder(order: {
   razorpayPaymentId?: string;
   utrNumber?: string;
   status?: string;
+  googleMapsUrl?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  distanceKm?: number | null;
 }) {
   const cleanPhone = String(order.phone || "").replace(/\D/g, "").slice(-10);
+  
+  // Resolve Google Maps URL
+  let resolvedMapsUrl = order.googleMapsUrl || null;
+  if (!resolvedMapsUrl && order.latitude && order.longitude) {
+    resolvedMapsUrl = `https://maps.google.com/?q=${order.latitude},${order.longitude}`;
+  }
+  if (!resolvedMapsUrl && order.address) {
+    const match = order.address.match(/https:\/\/maps\.google\.com\/\?q=[^\s]+/);
+    if (match) resolvedMapsUrl = match[0];
+  }
+
   const msg = formatOrderTelegramText(order);
-  const keyboard = getOrderKeyboard(order.orderNumber, order.status || "confirmed", cleanPhone, order.customerName);
+  const keyboard = getOrderKeyboard(order.orderNumber, order.status || "confirmed", cleanPhone, order.customerName, resolvedMapsUrl);
 
   return sendTelegramMessage(msg, "HTML", keyboard);
 }
@@ -505,11 +556,28 @@ export async function notifyRazorpayPayment(params: {
   customerEmail?: string | null;
   description?: string | null;
   channel?: string | null;
+  googleMapsUrl?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  distanceKm?: number | null;
 }) {
   const cleanPhone = params.customerPhone ? String(params.customerPhone).replace(/\D/g, "").slice(-10) : "";
   const name = params.customerName || "Customer";
   const channel = params.channel || (params.description?.includes("POS") ? "Counter POS QR" : "Website Checkout");
   const method = (params.method || "UPI").toUpperCase() + (params.vpa ? ` (${params.vpa})` : "");
+
+  let resolvedMapsUrl = params.googleMapsUrl || null;
+  if (!resolvedMapsUrl && params.latitude && params.longitude) {
+    resolvedMapsUrl = `https://maps.google.com/?q=${params.latitude},${params.longitude}`;
+  }
+
+  const distanceInfo = params.distanceKm !== undefined && params.distanceKm !== null
+    ? ` (~${Number(params.distanceKm).toFixed(1)} km from Farm)`
+    : "";
+
+  const gpsLine = resolvedMapsUrl
+    ? `\n📍 <b>GPS Pinpoint:</b> <a href="${resolvedMapsUrl}">Open in Google Maps</a>${distanceInfo}`
+    : "";
 
   const msg = `💰 <b>RAZORPAY PAYMENT RECEIVED!</b> ⚡
 ━━━━━━━━━━━━━━━━━━━━
@@ -517,20 +585,31 @@ export async function notifyRazorpayPayment(params: {
 <b>Customer:</b> ${escapeHtml(name)}
 ${cleanPhone ? `<b>Phone:</b> <a href="tel:+91${cleanPhone}">+91 ${cleanPhone}</a>\n` : ""}${params.customerEmail ? `<b>Email:</b> ${escapeHtml(params.customerEmail)}\n` : ""}<b>Method:</b> ${escapeHtml(method)}
 <b>Txn Ref:</b> <code>${params.paymentId}</code>
-${params.orderId ? `<b>Order ID:</b> <code>${params.orderId}</code>\n` : ""}${params.description ? `<b>Desc:</b> ${escapeHtml(params.description)}\n` : ""}<b>Channel:</b> <b>${escapeHtml(channel)}</b>
+${params.orderId ? `<b>Order ID:</b> <code>${params.orderId}</code>\n` : ""}${params.description ? `<b>Desc:</b> ${escapeHtml(params.description)}\n` : ""}<b>Channel:</b> <b>${escapeHtml(channel)}</b>${gpsLine}
 <b>Time:</b> ${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}
 ━━━━━━━━━━━━━━━━━━━━
 ⚡ <i>Payment auto-captured & verified</i>`;
 
   const buttons: InlineKeyboardButton[][] = [];
+  const actionRow: InlineKeyboardButton[] = [];
+
+  if (resolvedMapsUrl) {
+    actionRow.push({
+      text: "🗺️ Navigate on Google Maps",
+      url: resolvedMapsUrl,
+    });
+  }
+
   if (cleanPhone) {
     const waText = `Hi ${name}! Thank you for your payment of Rs. ${params.amount} to Urban Trout, Srinagar. Txn Ref: ${params.paymentId}. 🐟✨`;
-    buttons.push([
-      {
-        text: "💬 WhatsApp Receipt to Customer",
-        url: `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(waText)}`,
-      },
-    ]);
+    actionRow.push({
+      text: "💬 WhatsApp Receipt",
+      url: `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(waText)}`,
+    });
+  }
+
+  if (actionRow.length > 0) {
+    buttons.push(actionRow);
   }
 
   return sendTelegramMessage(msg, "HTML", buttons.length > 0 ? { inline_keyboard: buttons } : undefined);

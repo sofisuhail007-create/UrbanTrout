@@ -25,12 +25,26 @@ export async function sendOrderConfirmationEmail(order: {
   razorpayPaymentId?: string;
   razorpayOrderId?: string;
   utrNumber?: string;
+  googleMapsUrl?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  distanceKm?: number | null;
 }) {
   const resend = getResend();
   if (!resend) {
     console.warn("RESEND_API_KEY is not set. Skipping order confirmation email.");
     return;
   }
+
+  let resolvedMapsUrl = order.googleMapsUrl || null;
+  if (!resolvedMapsUrl && order.latitude && order.longitude) {
+    resolvedMapsUrl = `https://maps.google.com/?q=${order.latitude},${order.longitude}`;
+  }
+  if (!resolvedMapsUrl && order.address) {
+    const match = order.address.match(/https:\/\/maps\.google\.com\/\?q=[^\s]+/);
+    if (match) resolvedMapsUrl = match[0];
+  }
+
   const itemsHtml = order.items
     .map(
       (item) => `
@@ -134,6 +148,13 @@ export async function sendOrderConfirmationEmail(order: {
             ${order.address ? `${order.address}, ` : ""}${order.locality || "Srinagar"}${order.pincode ? ` - ${order.pincode}` : ""}<br>
             <span style="font-size: 12px; color: #9fadb8;">Farm Source: Urban Trout Farm, Malabagh Naseem Bagh</span>
           </p>
+          ${resolvedMapsUrl ? `
+          <div style="margin-top: 12px; padding-top: 12px; border-top: 1px solid #152834;">
+            <a href="${resolvedMapsUrl}" target="_blank" style="display: inline-block; background: rgba(114,221,253,0.15); border: 1px solid rgba(114,221,253,0.35); color: #72ddfd; text-decoration: none; padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 700;">
+              📍 Open Exact Delivery Pinpoint on Google Maps
+            </a>
+          </div>
+          ` : ""}
         </div>
 
         <!-- Support Info -->

@@ -41,38 +41,84 @@ const FARM_LAT = 34.144709;
 const FARM_LNG = 74.824525;
 const DELIVERY_RADIUS_KM = 5.0;
 
-// ─── Srinagar Preset Locations with Distances from Farm ─────────
-interface SrinagarZone {
+// ─── Srinagar Landmark Coordinates for Distance Lookup & GPS Fallback ───
+interface SrinagarLandmark {
   name: string;
-  distanceKm: number;
+  lat: number;
+  lng: number;
   pincode: string;
-  eligible: boolean;
 }
 
-const SRINAGAR_ZONES: SrinagarZone[] = [
-  { name: "Naseem Bagh", distanceKm: 0.5, pincode: "190006", eligible: true },
-  { name: "Malabagh", distanceKm: 0.8, pincode: "190006", eligible: true },
-  { name: "Hazratbal", distanceKm: 1.2, pincode: "190006", eligible: true },
-  { name: "Habak", distanceKm: 2.1, pincode: "190006", eligible: true },
-  { name: "Zakura", distanceKm: 2.8, pincode: "190024", eligible: true },
-  { name: "Lal Bazar", distanceKm: 3.5, pincode: "190011", eligible: true },
-  { name: "Soura / SKIMS", distanceKm: 4.2, pincode: "190011", eligible: true },
-  { name: "Bachpora", distanceKm: 4.6, pincode: "190020", eligible: true },
-  { name: "Illahibagh", distanceKm: 4.8, pincode: "190011", eligible: true },
-  { name: "Rainawari", distanceKm: 5.8, pincode: "190003", eligible: false },
-  { name: "Dalgate", distanceKm: 7.2, pincode: "190001", eligible: false },
-  { name: "Rajbagh", distanceKm: 9.5, pincode: "190008", eligible: false },
-  { name: "Lal Chowk", distanceKm: 8.5, pincode: "190001", eligible: false },
+const SRINAGAR_LANDMARKS: SrinagarLandmark[] = [
+  { name: "Naseem Bagh", lat: 34.1378, lng: 74.8385, pincode: "190006" },
+  { name: "Malabagh", lat: 34.1450, lng: 74.8250, pincode: "190006" },
+  { name: "Hazratbal", lat: 34.1250, lng: 74.8430, pincode: "190006" },
+  { name: "Habak", lat: 34.1480, lng: 74.8410, pincode: "190006" },
+  { name: "Zakura", lat: 34.1590, lng: 74.8190, pincode: "190024" },
+  { name: "Lal Bazar", lat: 34.1160, lng: 74.8180, pincode: "190011" },
+  { name: "Soura / SKIMS", lat: 34.1330, lng: 74.8080, pincode: "190011" },
+  { name: "Bachpora", lat: 34.1520, lng: 74.8050, pincode: "190020" },
+  { name: "Illahibagh", lat: 34.1400, lng: 74.8120, pincode: "190011" },
+  { name: "Rainawari", lat: 34.0950, lng: 74.8310, pincode: "190003" },
+  { name: "Dalgate", lat: 34.0780, lng: 74.8340, pincode: "190001" },
+  { name: "Rajbagh", lat: 34.0620, lng: 74.8250, pincode: "190008" },
+  { name: "Lal Chowk", lat: 34.0710, lng: 74.8110, pincode: "190001" },
 ];
 
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371;
+  const R = 6371; // Earth's radius in km
   const dLat = (lat2 - lat1) * (Math.PI / 180);
   const dLon = (lon2 - lon1) * (Math.PI / 180);
   const a =
     Math.sin(dLat / 2) ** 2 +
     Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * Math.sin(dLon / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function findNearestLandmark(lat: number, lng: number): { name: string; pincode: string } {
+  let closest = SRINAGAR_LANDMARKS[0];
+  let minD = Infinity;
+  for (const l of SRINAGAR_LANDMARKS) {
+    const d = calculateDistance(lat, lng, l.lat, l.lng);
+    if (d < minD) {
+      minD = d;
+      closest = l;
+    }
+  }
+  return { name: closest.name, pincode: closest.pincode };
+}
+
+async function reverseGeocodeCoords(lat: number, lng: number): Promise<{ locality: string; pincode: string }> {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3000);
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=16&addressdetails=1`, {
+      signal: controller.signal,
+      headers: { "Accept-Language": "en" },
+    });
+    clearTimeout(timeoutId);
+    if (res.ok) {
+      const data = await res.json();
+      const addr = data.address || {};
+      const locality = addr.suburb || addr.neighbourhood || addr.residential || addr.city_district || addr.quarter || addr.village || addr.road;
+      const pincode = (addr.postcode || "").replace(/\D/g, "").slice(0, 6);
+      if (locality) {
+        return {
+          locality: `${locality}, Srinagar`,
+          pincode: pincode || "190006",
+        };
+      }
+    }
+  } catch (_) {
+    // Network or abort fallback
+  }
+
+  // Fallback to closest known landmark
+  const nearest = findNearestLandmark(lat, lng);
+  return {
+    locality: `${nearest.name}, Srinagar`,
+    pincode: nearest.pincode,
+  };
 }
 
 // ─── Validation Helpers ─────────────────────────────────────
@@ -251,9 +297,13 @@ export default function CheckoutPage() {
   // ─── Location Check State ───
   const [deliveryMode, setDeliveryMode] = useState<"under5" | "unavailable" | null>(null);
   const [isLocating, setIsLocating] = useState(false);
+  const [locatingStep, setLocatingStep] = useState<"idle" | "requesting" | "scanning" | "verifying" | "locked" | "denied" | "error">("idle");
   const [locationMsg, setLocationMsg] = useState("");
+  const [permissionErrorHelp, setPermissionErrorHelp] = useState("");
+  const [detectedCoords, setDetectedCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [calculatedDistance, setCalculatedDistance] = useState<number | null>(null);
   const [selectedZoneName, setSelectedZoneName] = useState<string>("");
+  const [showManualFallback, setShowManualFallback] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [deliveryRadiusKm, setDeliveryRadiusKm] = useState<number>(5.0);
   const [farmLat, setFarmLat] = useState<number>(34.144709);
@@ -364,18 +414,22 @@ export default function CheckoutPage() {
     if (items.length === 0 && !orderSuccess) router.push("/shop");
   }, [items, orderSuccess, router]);
 
-  // Filtered zones based on dynamic radius and search query
+  // Filtered landmarks for fallback coordinate search (strict Haversine distance calculated)
   const filteredZones = useMemo(() => {
     const q = searchQuery.toLowerCase().trim();
-    const dynamicZones = SRINAGAR_ZONES.map((z) => ({
-      ...z,
-      eligible: z.distanceKm <= deliveryRadiusKm,
-    }));
+    const dynamicZones = SRINAGAR_LANDMARKS.map((z) => {
+      const dist = calculateDistance(farmLat, farmLng, z.lat, z.lng);
+      return {
+        ...z,
+        distanceKm: dist,
+        eligible: dist <= deliveryRadiusKm,
+      };
+    });
     if (!q) return dynamicZones;
     return dynamicZones.filter(
       (z) => z.name.toLowerCase().includes(q) || z.pincode.includes(q)
     );
-  }, [searchQuery, deliveryRadiusKm]);
+  }, [searchQuery, deliveryRadiusKm, farmLat, farmLng]);
 
   // ─── Lead Capture ────────────────────────────────────────────
   const captureLead = useCallback(
@@ -528,90 +582,111 @@ export default function CheckoutPage() {
     }
   }, [formData.phone, currentStep, grandTotal, items, captureLead]);
 
-  // ─── Location Detection (GPS) ────────────────────────────────
+  // ─── Location Detection (Auto-Detect GPS Only) ──────────────
   const detectLocation = () => {
     setIsLocating(true);
-    setLocationMsg("Detecting your location…");
+    setLocatingStep("requesting");
+    setLocationMsg("Requesting satellite GPS signal…");
+    setPermissionErrorHelp("");
+
     if (!("geolocation" in navigator)) {
-      setLocationMsg("Geolocation not supported on this browser.");
+      setLocationMsg("Geolocation is not supported by this browser.");
+      setLocatingStep("error");
       setIsLocating(false);
       return;
     }
+
+    const timer = setTimeout(() => {
+      setLocatingStep("scanning");
+      setLocationMsg("Pinging GPS satellites for high-accuracy coordinates…");
+    }, 450);
+
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
+      async (pos) => {
+        clearTimeout(timer);
+        setLocatingStep("verifying");
+        setLocationMsg("Calculating direct distance to Urban Trout Farm (Naseem Bagh)…");
+
         const { latitude, longitude } = pos.coords;
         const dist = calculateDistance(farmLat, farmLng, latitude, longitude);
+        setDetectedCoords({ lat: latitude, lng: longitude });
         setCalculatedDistance(dist);
+
+        // Reverse-geocode to get actual human-readable Srinagar neighborhood
+        const geo = await reverseGeocodeCoords(latitude, longitude);
+        setSelectedZoneName(geo.locality);
+        setFormData((prev) => ({
+          ...prev,
+          locality: prev.locality || geo.locality,
+          pincode: prev.pincode || geo.pincode,
+        }));
 
         if (dist <= deliveryRadiusKm) {
           setDeliveryMode("under5");
-          setSelectedZoneName("GPS Detected Location");
-          setLocationMsg(`${dist.toFixed(1)} km from Farm — Free Delivery Eligible ✓`);
+          setLocatingStep("locked");
+          setLocationMsg(`${dist.toFixed(1)} km from Farm • Free 90-Min Fresh Catch Delivery ✓`);
         } else {
           setDeliveryMode("unavailable");
-          setSelectedZoneName("GPS Detected Location");
-          setLocationMsg(`${dist.toFixed(1)} km from Farm — Outside ${deliveryRadiusKm}km delivery zone.`);
+          setLocatingStep("locked");
+          setLocationMsg(`${dist.toFixed(1)} km from Farm • Outside our ${deliveryRadiusKm}km live harvest delivery radius.`);
         }
         setIsLocating(false);
       },
-      () => {
-        setLocationMsg("Location permission needed. Please select your locality below.");
+      (err) => {
+        clearTimeout(timer);
         setIsLocating(false);
+        if (err.code === 1) {
+          // Permission denied
+          setLocatingStep("denied");
+          setLocationMsg("Location permission was denied.");
+          setPermissionErrorHelp("Please tap the lock (🔒) icon next to the URL in your browser and toggle 'Location' to Allow, then tap Retry.");
+        } else if (err.code === 3) {
+          // Timeout
+          setLocatingStep("error");
+          setLocationMsg("GPS signal timed out. Please retry with high accuracy or Wi-Fi enabled.");
+        } else {
+          setLocatingStep("error");
+          setLocationMsg("Unable to retrieve GPS coordinates from your device.");
+        }
       },
-      { timeout: 10000, enableHighAccuracy: true }
+      { timeout: 15000, enableHighAccuracy: true, maximumAge: 0 }
     );
   };
 
-  // ─── Select Preset Srinagar Zone ─────────────────────────────
-  const handleSelectZone = (zone: SrinagarZone) => {
-    setSelectedZoneName(zone.name);
-    setCalculatedDistance(zone.distanceKm);
-    const isEligible = zone.distanceKm <= deliveryRadiusKm;
+  // ─── Landmark Coordinate Fallback (Strict Distance Enforced) ───
+  const handleSelectLandmarkFallback = (landmark: SrinagarLandmark) => {
+    const dist = calculateDistance(farmLat, farmLng, landmark.lat, landmark.lng);
+    setDetectedCoords({ lat: landmark.lat, lng: landmark.lng });
+    setCalculatedDistance(dist);
+    setSelectedZoneName(landmark.name);
+    setLocatingStep("locked");
+
+    const isEligible = dist <= deliveryRadiusKm;
     if (isEligible) {
       setDeliveryMode("under5");
-      setLocationMsg(`${zone.name} (~${zone.distanceKm} km) — Free Delivery ✓`);
+      setLocationMsg(`${landmark.name} (~${dist.toFixed(1)} km from Farm) — Free Delivery ✓`);
       setFormData((prev) => ({
         ...prev,
-        locality: zone.name,
-        pincode: zone.pincode,
+        locality: landmark.name,
+        pincode: landmark.pincode,
       }));
     } else {
       setDeliveryMode("unavailable");
-      setLocationMsg(`${zone.name} (~${zone.distanceKm} km) — Outside ${deliveryRadiusKm}km zone.`);
+      setLocationMsg(`${landmark.name} (~${dist.toFixed(1)} km from Farm) — Outside ${deliveryRadiusKm}km zone.`);
     }
   };
 
-  // ─── Reset Location Selection (to pick another) ──────────────
+  // ─── Reset Location Selection ────────────────────────────────
   const handleResetLocation = () => {
     setDeliveryMode(null);
+    setDetectedCoords(null);
     setSelectedZoneName("");
     setLocationMsg("");
+    setLocatingStep("idle");
+    setPermissionErrorHelp("");
     setCalculatedDistance(null);
     setSearchQuery("");
-  };
-
-  // ─── Manual Pincode Quick-Check (when user types 6 digits) ───
-  const handleSearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const pin = searchQuery.trim();
-    if (/^[1-9][0-9]{5}$/.test(pin)) {
-      const match = SRINAGAR_ZONES.find((z) => z.pincode === pin);
-      const dist = match ? match.distanceKm : 6.0;
-      if (dist <= deliveryRadiusKm) {
-        setDeliveryMode("under5");
-        setCalculatedDistance(dist);
-        setSelectedZoneName(match ? match.name : `Pin Code ${pin}`);
-        setLocationMsg(`Pin Code ${pin} is within our ${deliveryRadiusKm}km fresh delivery zone ✓`);
-        setFormData((prev) => ({ ...prev, pincode: pin }));
-      } else {
-        setDeliveryMode("unavailable");
-        setCalculatedDistance(dist);
-        setSelectedZoneName(match ? match.name : `Pin Code ${pin}`);
-        setLocationMsg(`Pin Code ${pin} is outside our ${deliveryRadiusKm}km radius.`);
-      }
-    } else if (filteredZones.length > 0) {
-      handleSelectZone(filteredZones[0]);
-    }
+    setShowManualFallback(false);
   };
 
   // ─── STEP 1 -> STEP 2 Transition ────────────────────────────
@@ -715,6 +790,10 @@ export default function CheckoutPage() {
             address: `${formData.house}, ${formData.locality}, ${formData.pincode}`,
             delivery_zone: deliveryMode,
             special_notes: formData.notes || "",
+            latitude: detectedCoords ? String(detectedCoords.lat) : "",
+            longitude: detectedCoords ? String(detectedCoords.lng) : "",
+            distance_km: calculatedDistance ? calculatedDistance.toFixed(1) : "",
+            google_maps_url: detectedCoords ? `https://maps.google.com/?q=${detectedCoords.lat},${detectedCoords.lng}` : "",
           },
           theme: { color: "#3aadcc" },
           modal: {
@@ -760,11 +839,15 @@ export default function CheckoutPage() {
               const emailNote = formData.email?.trim() ? ` (Email: ${formData.email.trim()})` : "";
               const rzpNote = rzpRes.razorpay_payment_id ? ` (Razorpay: ${rzpRes.razorpay_payment_id})` : "";
               const notesNote = formData.notes?.trim() ? ` | Notes: ${formData.notes.trim()}` : "";
+              const mapsUrl = detectedCoords ? `https://maps.google.com/?q=${detectedCoords.lat},${detectedCoords.lng}` : "";
+              const gpsNote = detectedCoords
+                ? ` | 📍 Exact GPS: ${mapsUrl} (~${(calculatedDistance || 0).toFixed(1)} km from Naseem Bagh Farm)`
+                : "";
 
               const orderPayload = {
                 customer_name: formData.fullName.trim(),
                 customer_phone: cleanPhone,
-                customer_address: `${formData.house.trim()}, ${formData.locality.trim()}${emailNote}${rzpNote}${notesNote}`,
+                customer_address: `${formData.house.trim()}, ${formData.locality.trim()}${emailNote}${rzpNote}${notesNote}${gpsNote}`,
                 customer_locality: formData.locality.trim(),
                 customer_pincode: formData.pincode.trim(),
                 items: items.map((i) => ({
@@ -831,7 +914,7 @@ export default function CheckoutPage() {
                     phone: cleanPhone,
                     email: formData.email?.trim() || undefined,
                     locality: formData.locality,
-                    address: formData.house,
+                    address: `${formData.house.trim()}${gpsNote}`,
                     pincode: formData.pincode,
                     items: items.map((i) => ({ name: i.name, quantity: i.quantity, price: i.price, unit: i.unit })),
                     subtotal: total,
@@ -841,6 +924,10 @@ export default function CheckoutPage() {
                     paymentMethod: "Razorpay",
                     razorpayPaymentId: rzpRes.razorpay_payment_id,
                     razorpayOrderId: rzpRes.razorpay_order_id,
+                    googleMapsUrl: mapsUrl || undefined,
+                    latitude: detectedCoords?.lat,
+                    longitude: detectedCoords?.lng,
+                    distanceKm: calculatedDistance || undefined,
                   },
                 }),
               }).catch(() => {});
@@ -859,6 +946,9 @@ export default function CheckoutPage() {
                 notes: formData.notes,
                 paymentId: rzpRes.razorpay_payment_id,
                 orderId: rzpRes.razorpay_order_id,
+                detectedCoords,
+                calculatedDistance,
+                googleMapsUrl: mapsUrl || null,
                 items: items.map((i) => ({
                   id: i.id,
                   name: i.name,
@@ -1133,6 +1223,31 @@ export default function CheckoutPage() {
                 )}
               </div>
 
+              {/* Exact GPS Pinpoint Card */}
+              {orderSuccess.googleMapsUrl && (
+                <div className="p-3.5 rounded-2xl bg-emerald-950/30 border border-emerald-500/40 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                      📍 Exact GPS Pinpoint Locked
+                    </span>
+                    <a
+                      href={orderSuccess.googleMapsUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[11px] font-bold hover:bg-emerald-500/30 transition-all flex-shrink-0"
+                    >
+                      Open in Maps
+                    </a>
+                  </div>
+                  <p className="text-[11px] text-slate-400 leading-relaxed">
+                    Doorstep GPS coordinates ({orderSuccess.detectedCoords?.lat?.toFixed(5)}°, {orderSuccess.detectedCoords?.lng?.toFixed(5)}°)
+                    {orderSuccess.calculatedDistance ? ` • ~${orderSuccess.calculatedDistance.toFixed(1)} km from Naseem Bagh Farm` : ""}
+                    {" "}have been securely sent to our delivery dispatch team.
+                  </p>
+                </div>
+              )}
+
               {/* Email Receipt Notification Alert */}
               {orderSuccess.email ? (
                 <div className="p-3 rounded-xl bg-cyan-950/40 border border-cyan-800/50 flex items-start gap-2.5">
@@ -1406,17 +1521,40 @@ export default function CheckoutPage() {
             {/* ══════════════════════════════════════════════════════
                 STAGE 1: CHECK DELIVERY LOCATION (AUTO-HIDES UPON SELECTION)
                 ══════════════════════════════════════════════════════ */}
+            {/* ══════════════════════════════════════════════════════
+                STAGE 1: AUTO-DETECT DELIVERY LOCATION ONLY
+                ══════════════════════════════════════════════════════ */}
             {currentStep === 1 && (
               <div
-                className="p-6 md:p-8 rounded-2xl space-y-6"
+                className="p-6 md:p-8 rounded-3xl space-y-6 relative overflow-hidden"
                 style={{
                   background: C.cardBg,
                   border: `1px solid ${C.cardBorder}`,
                   boxShadow: "0 10px 40px rgba(0,0,0,0.5)",
                 }}
               >
+                {/* CSS Keyframe Animations for Radar */}
+                <style dangerouslySetInnerHTML={{ __html: `
+                  @keyframes radarSweep {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                  }
+                  @keyframes radarPulse {
+                    0%, 100% { transform: scale(1); opacity: 0.5; }
+                    50% { transform: scale(1.08); opacity: 0.9; }
+                  }
+                  @keyframes beaconRing {
+                    0% { transform: scale(0.6); opacity: 0.9; }
+                    100% { transform: scale(2.2); opacity: 0; }
+                  }
+                  @keyframes pinBounce {
+                    0%, 100% { transform: translateY(0); }
+                    50% { transform: translateY(-6px); }
+                  }
+                `}} />
+
                 {/* Header Row */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4" style={{ borderBottom: "1px solid rgba(61,74,83,0.4)" }}>
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-800/80">
                   <div className="flex items-center gap-3">
                     <Link
                       href="/shop"
@@ -1447,7 +1585,7 @@ export default function CheckoutPage() {
                         </span>
                         <span style={{ color: C.outline }}>•</span>
                         <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "11px", color: "#22c55e", fontWeight: 600 }}>
-                          {deliveryRadiusKm}km Free Delivery Radius
+                          Strict {deliveryRadiusKm}km Fresh Catch Zone
                         </span>
                       </div>
                       <h1
@@ -1460,322 +1598,395 @@ export default function CheckoutPage() {
                           margin: "2px 0 0",
                         }}
                       >
-                        Select Delivery Area
+                        Delivery Location Verification
                       </h1>
                     </div>
                   </div>
 
-                  {/* Sleek Compact GPS Auto-Detect Button in Header */}
-                  <button
-                    type="button"
-                    onClick={detectLocation}
-                    disabled={isLocating}
-                    className="flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all font-bold uppercase text-xs tracking-wider cursor-pointer active:scale-95 flex-shrink-0"
-                    style={{
-                      background: "rgba(114,221,253,0.15)",
-                      border: "1px solid rgba(114,221,253,0.4)",
-                      color: C.primary,
-                      fontFamily: '"Space Grotesk", sans-serif',
-                      boxShadow: "0 0 15px rgba(114,221,253,0.15)",
-                    }}
-                  >
-                    {isLocating ? (
-                      <>
-                        <svg className="animate-spin" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                          <path d="M21 12a9 9 0 1 1-6.219-8.56" />
-                        </svg>
-                        Locating…
-                      </>
-                    ) : (
-                      <>
-                        <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                          <circle cx="12" cy="12" r="3" />
-                          <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
-                          <circle cx="12" cy="12" r="8" />
-                        </svg>
-                        📍 Auto-Detect GPS
-                      </>
-                    )}
-                  </button>
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-cyan-950/50 border border-cyan-800/50 text-[11px] text-cyan-300 font-mono">
+                    <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                    GPS Auto-Detect Only
+                  </div>
                 </div>
 
-                {/* ─── CASE A: LOCATION IS SELECTED/DETECTED -> HIDE LOCALITY DETAILS ─── */}
-                {deliveryMode === "under5" && (
-                  <div className="space-y-5">
+                {/* ─── TRANSPARENT PRIVACY & PURPOSE GUARANTEE NOTICE ─── */}
+                <div
+                  className="p-4 rounded-2xl flex items-start gap-3.5"
+                  style={{
+                    background: "linear-gradient(135deg, rgba(6,33,48,0.7) 0%, rgba(3,16,24,0.85) 100%)",
+                    border: "1px solid rgba(114,221,253,0.22)",
+                    boxShadow: "0 4px 20px rgba(0,0,0,0.3)",
+                  }}
+                >
+                  <div
+                    className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 text-cyan-300"
+                    style={{ background: "rgba(114,221,253,0.12)", border: "1px solid rgba(114,221,253,0.3)" }}
+                  >
+                    <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold uppercase tracking-wider text-cyan-300 font-mono">
+                        Privacy &amp; Location Purpose Notice
+                      </span>
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 font-semibold border border-emerald-500/30">
+                        Zero Marketing Use
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-300 leading-relaxed" style={{ fontFamily: '"Manrope", sans-serif' }}>
+                      We use your device location <strong>solely to calculate delivery distance</strong> from our Naseem Bagh farm and guide our express courier directly to your doorstep. We never sell, share, or store your GPS coordinates for any other purpose.
+                    </p>
+                  </div>
+                </div>
+
+                {/* ─── RADAR SCANNER & DETECTION STAGE ─── */}
+                <div className="flex flex-col items-center justify-center text-center py-4 sm:py-6">
+                  {/* Radar Graphics Container */}
+                  <div className="relative w-48 h-48 sm:w-56 sm:h-56 flex items-center justify-center mb-6">
+                    {/* Outer ambient glow */}
                     <div
-                      className="p-5 rounded-2xl space-y-3"
+                      className="absolute inset-0 rounded-full filter blur-xl transition-all duration-700"
                       style={{
-                        background: "linear-gradient(135deg, rgba(37,211,102,0.15) 0%, rgba(6,35,20,0.7) 100%)",
-                        border: "1.5px solid rgba(37,211,102,0.6)",
-                        boxShadow: "0 0 30px rgba(37,211,102,0.18)",
+                        background:
+                          deliveryMode === "under5"
+                            ? "radial-gradient(circle, rgba(37,211,102,0.25) 0%, transparent 70%)"
+                            : deliveryMode === "unavailable"
+                            ? "radial-gradient(circle, rgba(239,68,68,0.25) 0%, transparent 70%)"
+                            : isLocating
+                            ? "radial-gradient(circle, rgba(114,221,253,0.3) 0%, transparent 70%)"
+                            : "radial-gradient(circle, rgba(114,221,253,0.15) 0%, transparent 70%)",
                       }}
-                    >
-                      <div className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-3.5">
-                          <div
-                            className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                            style={{ background: "#25D366", color: "#002730", fontWeight: 900, fontSize: "16px" }}
-                          >
+                    />
+
+                    {/* Concentric Radar Rings */}
+                    <div
+                      className="absolute inset-0 rounded-full border transition-all duration-500"
+                      style={{
+                        borderColor:
+                          deliveryMode === "under5"
+                            ? "rgba(37,211,102,0.4)"
+                            : deliveryMode === "unavailable"
+                            ? "rgba(239,68,68,0.4)"
+                            : "rgba(114,221,253,0.2)",
+                        background: "rgba(3,16,24,0.6)",
+                      }}
+                    />
+                    <div
+                      className="absolute w-36 h-36 sm:w-40 sm:h-40 rounded-full border transition-all duration-500"
+                      style={{
+                        borderColor:
+                          deliveryMode === "under5"
+                            ? "rgba(37,211,102,0.3)"
+                            : deliveryMode === "unavailable"
+                            ? "rgba(239,68,68,0.3)"
+                            : "rgba(114,221,253,0.25)",
+                      }}
+                    />
+                    <div
+                      className="absolute w-24 h-24 sm:w-28 sm:h-28 rounded-full border transition-all duration-500"
+                      style={{
+                        borderColor:
+                          deliveryMode === "under5"
+                            ? "rgba(37,211,102,0.5)"
+                            : deliveryMode === "unavailable"
+                            ? "rgba(239,68,68,0.5)"
+                            : "rgba(114,221,253,0.35)",
+                      }}
+                    />
+
+                    {/* Crosshairs */}
+                    <div className="absolute inset-x-0 top-1/2 h-[1px] bg-slate-700/40 pointer-events-none" />
+                    <div className="absolute inset-y-0 left-1/2 w-[1px] bg-slate-700/40 pointer-events-none" />
+
+                    {/* Animated Radar Sweep Beam (active when locating) */}
+                    {isLocating && (
+                      <div
+                        className="absolute inset-0 rounded-full pointer-events-none"
+                        style={{
+                          background: "conic-gradient(from 0deg, rgba(114,221,253,0.45) 0deg, transparent 65deg, transparent 360deg)",
+                          animation: "radarSweep 2s linear infinite",
+                        }}
+                      />
+                    )}
+
+                    {/* Center Beacon / Pin */}
+                    <div className="relative z-10 flex flex-col items-center justify-center">
+                      {isLocating ? (
+                        <div className="relative flex items-center justify-center">
+                          <div className="w-14 h-14 rounded-full bg-cyan-500/20 border border-cyan-400/60 flex items-center justify-center text-cyan-300">
+                            <svg className="animate-spin w-7 h-7" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                            </svg>
+                          </div>
+                          <div className="absolute inset-0 rounded-full bg-cyan-400/30" style={{ animation: "beaconRing 2s cubic-bezier(0,0,0.2,1) infinite" }} />
+                        </div>
+                      ) : deliveryMode === "under5" ? (
+                        <div className="flex flex-col items-center">
+                          <div className="w-16 h-16 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center text-2xl font-black shadow-[0_0_35px_rgba(37,211,102,0.6)]">
                             ✓
                           </div>
-                          <div>
-                            <span
-                              style={{
-                                fontFamily: '"Inter", sans-serif',
-                                fontSize: "10px",
-                                letterSpacing: "0.15em",
-                                textTransform: "uppercase",
-                                color: "#86efac",
-                                fontWeight: 700,
-                                display: "block",
-                              }}
-                            >
-                              Location Verified • Free Delivery Eligible
-                            </span>
-                            <h3
-                              style={{
-                                fontFamily: '"Space Grotesk", sans-serif',
-                                fontWeight: 800,
-                                color: "#ffffff",
-                                fontSize: "1.2rem",
-                                margin: "2px 0 0",
-                              }}
-                            >
-                              {selectedZoneName || "GPS Location"} {calculatedDistance !== null && `(~${calculatedDistance.toFixed(1)} km from Farm)`}
-                            </h3>
-                            <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.85rem", color: "#bbf7d0", margin: "2px 0 0" }}>
-                              {locationMsg || `Within our ${deliveryRadiusKm}km live harvest radius • Dispatched in 90 mins.`}
-                            </p>
-                          </div>
                         </div>
-
-                        <button
-                          type="button"
-                          onClick={handleResetLocation}
-                          className="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex-shrink-0"
-                          style={{
-                            background: "rgba(3,16,24,0.75)",
-                            border: "1px solid rgba(114,221,253,0.35)",
-                            color: C.primary,
-                            fontFamily: '"Space Grotesk", sans-serif',
-                          }}
-                        >
-                          Change Area
-                        </button>
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={handleConfirmLocationProceed}
-                      className="w-full flex items-center justify-center gap-3 font-bold uppercase tracking-widest transition-all rounded-xl py-4 cursor-pointer"
-                      style={{
-                        fontFamily: '"Space Grotesk", sans-serif',
-                        fontSize: "0.98rem",
-                        background: C.primaryCont,
-                        color: C.onPrimCont,
-                        boxShadow: "0 0 30px rgba(58,173,204,0.45)",
-                        border: "none",
-                      }}
-                    >
-                      Confirm Location &amp; Fill Details
-                      <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                        <line x1="5" y1="12" x2="19" y2="12" />
-                        <polyline points="12 5 19 12 12 19" />
-                      </svg>
-                    </button>
-                  </div>
-                )}
-
-                {/* ─── CASE B: OUT OF ZONE -> HIDE LOCALITY DETAILS & SHOW PICKUP NOTICE ─── */}
-                {deliveryMode === "unavailable" && (
-                  <div className="space-y-5">
-                    <div
-                      className="p-5 rounded-2xl space-y-3.5 text-center"
-                      style={{
-                        background: "linear-gradient(135deg, rgba(239,68,68,0.15) 0%, rgba(40,10,10,0.7) 100%)",
-                        border: "1.5px solid rgba(239,68,68,0.45)",
-                      }}
-                    >
-                      <div className="flex items-center justify-between gap-4 text-left">
-                        <div>
-                          <h4
-                            style={{
-                              fontFamily: '"Space Grotesk", sans-serif',
-                              fontWeight: 800,
-                              color: "#f87171",
-                              fontSize: "1.1rem",
-                              margin: "0 0 2px",
-                            }}
+                      ) : deliveryMode === "unavailable" ? (
+                        <div className="w-16 h-16 rounded-full bg-red-500/20 border-2 border-red-500 text-red-400 flex items-center justify-center text-2xl font-bold shadow-[0_0_30px_rgba(239,68,68,0.4)]">
+                          !
+                        </div>
+                      ) : locatingStep === "denied" ? (
+                        <div className="w-16 h-16 rounded-full bg-amber-500/20 border border-amber-500/50 text-amber-400 flex items-center justify-center text-2xl">
+                          🔒
+                        </div>
+                      ) : (
+                        <div className="relative group cursor-pointer" onClick={detectLocation}>
+                          <div
+                            className="w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 shadow-[0_0_30px_rgba(114,221,253,0.35)] hover:scale-105"
+                            style={{ background: "linear-gradient(135deg, #10212c 0%, #152834 100%)", border: "1.5px solid #72ddfd" }}
                           >
-                            {selectedZoneName ? `${selectedZoneName} is outside ${deliveryRadiusKm}km zone` : `Outside ${deliveryRadiusKm}km Delivery Radius`}
-                          </h4>
-                          <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.85rem", color: "#fca5a5", margin: 0 }}>
-                            {locationMsg || `Urban Trout delivers within ${deliveryRadiusKm}km of Naseem Bagh to guarantee live freshness.`}
-                          </p>
+                            <svg className="w-7 h-7 text-cyan-300" style={{ animation: "pinBounce 2s ease-in-out infinite" }} fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                              <circle cx="12" cy="12" r="3" />
+                              <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+                              <circle cx="12" cy="12" r="8" strokeDasharray="2 2" />
+                            </svg>
+                          </div>
+                          <div className="absolute -inset-2 rounded-full border border-cyan-400/30" style={{ animation: "beaconRing 3s ease-out infinite" }} />
                         </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Status Indicator Title & Descriptions */}
+                  <div className="max-w-md mx-auto space-y-2 mb-4">
+                    {isLocating ? (
+                      <div>
+                        <h3 className="text-base font-bold text-cyan-300 font-mono uppercase tracking-wider">
+                          {locatingStep === "scanning" ? "Scanning GPS Satellites…" : "Calculating Distance…"}
+                        </h3>
+                        <p className="text-xs text-slate-400 mt-1">
+                          {locationMsg || "Locking high-accuracy device coordinates for delivery radius validation…"}
+                        </p>
+                      </div>
+                    ) : deliveryMode === "under5" ? (
+                      <div className="space-y-1">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-xs font-bold text-emerald-400 uppercase tracking-wider">
+                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                          Delivery Zone Verified
+                        </span>
+                        <h3 className="text-lg sm:text-xl font-extrabold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                          {selectedZoneName || "GPS Location Confirmed"}
+                        </h3>
+                        <p className="text-xs text-emerald-300/90 font-medium">
+                          {locationMsg || `${calculatedDistance?.toFixed(1)} km from Naseem Bagh Farm • Free Same-Day Catch Eligible`}
+                        </p>
+                      </div>
+                    ) : deliveryMode === "unavailable" ? (
+                      <div className="space-y-1">
+                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/15 border border-red-500/40 text-xs font-bold text-red-400 uppercase tracking-wider">
+                          Outside Delivery Zone
+                        </span>
+                        <h3 className="text-lg font-bold text-red-300" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                          {calculatedDistance !== null ? `${calculatedDistance.toFixed(1)} km from Farm` : "Outside 5.0km Radius"}
+                        </h3>
+                        <p className="text-xs text-red-300/80 leading-relaxed">
+                          Urban Trout delivers within {deliveryRadiusKm}km of Naseem Bagh to guarantee live 90-minute tank freshness.
+                        </p>
+                      </div>
+                    ) : locatingStep === "denied" ? (
+                      <div className="space-y-1">
+                        <h3 className="text-base font-bold text-amber-300 font-mono">Location Permission Blocked</h3>
+                        <p className="text-xs text-slate-400 leading-relaxed">{permissionErrorHelp}</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        <h3 className="text-base font-bold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                          Auto-Detect Your Delivery Location
+                        </h3>
+                        <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
+                          Tap below to verify delivery eligibility via your device GPS and lock your doorstep for navigation.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* ─── PRIMARY ACTIONS (DETECT / CONFIRM / RETRY) ─── */}
+                  <div className="w-full max-w-sm space-y-3">
+                    {/* CASE 1: IDLE / NOT DETECTED YET */}
+                    {!deliveryMode && (
+                      <div className="space-y-3">
+                        <button
+                          type="button"
+                          onClick={detectLocation}
+                          disabled={isLocating}
+                          className="w-full flex items-center justify-center gap-2.5 font-bold uppercase tracking-wider rounded-xl py-3.5 px-6 transition-all cursor-pointer shadow-lg active:scale-98"
+                          style={{
+                            fontFamily: '"Space Grotesk", sans-serif',
+                            fontSize: "0.92rem",
+                            background: "linear-gradient(135deg, #72ddfd 0%, #3aadcc 100%)",
+                            color: "#002730",
+                            boxShadow: "0 0 25px rgba(114,221,253,0.35)",
+                          }}
+                        >
+                          {isLocating ? (
+                            <>
+                              <svg className="animate-spin" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+                              </svg>
+                              Acquiring GPS Signal…
+                            </>
+                          ) : (
+                            <>
+                              <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                                <circle cx="12" cy="12" r="3" />
+                                <path d="M12 2v3M12 19v3M2 12h3M19 12h3" />
+                                <circle cx="12" cy="12" r="8" strokeDasharray="2 2" />
+                              </svg>
+                              Auto-Detect My Location
+                            </>
+                          )}
+                        </button>
+
+                        {/* Fallback Option (if device has trouble or permission denied) */}
+                        <div className="pt-2">
+                          <button
+                            type="button"
+                            onClick={() => setShowManualFallback(!showManualFallback)}
+                            className="text-xs text-slate-400 hover:text-cyan-300 underline transition-colors cursor-pointer"
+                          >
+                            {showManualFallback ? "Hide Srinagar Landmark Selector" : "GPS not working? Verify by Srinagar Landmark"}
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* CASE 2: VERIFIED IN-ZONE (SUCCESS) */}
+                    {deliveryMode === "under5" && (
+                      <div className="space-y-3">
+                        {/* Coords & Google Maps link preview */}
+                        {detectedCoords && (
+                          <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 text-xs flex items-center justify-between gap-3">
+                            <div className="text-left font-mono">
+                              <span className="text-slate-500 block text-[10px] uppercase">Doorstep GPS Coordinates</span>
+                              <span className="text-cyan-300">{detectedCoords.lat.toFixed(5)}°, {detectedCoords.lng.toFixed(5)}°</span>
+                            </div>
+                            <a
+                              href={`https://maps.google.com/?q=${detectedCoords.lat},${detectedCoords.lng}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-2.5 py-1 rounded bg-cyan-950/80 border border-cyan-800 text-cyan-300 text-[11px] font-semibold hover:text-white transition-colors"
+                            >
+                              🗺️ Preview Pin
+                            </a>
+                          </div>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={handleConfirmLocationProceed}
+                          className="w-full flex items-center justify-center gap-2.5 font-bold uppercase tracking-widest rounded-xl py-4 px-6 transition-all cursor-pointer shadow-lg active:scale-98"
+                          style={{
+                            fontFamily: '"Space Grotesk", sans-serif',
+                            fontSize: "0.95rem",
+                            background: "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)",
+                            color: "#ffffff",
+                            boxShadow: "0 0 30px rgba(34,197,94,0.4)",
+                          }}
+                        >
+                          Confirm Location &amp; Fill Details
+                          <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                            <line x1="5" y1="12" x2="19" y2="12" />
+                            <polyline points="12 5 19 12 12 19" />
+                          </svg>
+                        </button>
+
                         <button
                           type="button"
                           onClick={handleResetLocation}
-                          className="px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer flex-shrink-0"
-                          style={{
-                            background: "rgba(3,16,24,0.75)",
-                            border: "1px solid rgba(239,68,68,0.4)",
-                            color: "#fca5a5",
-                            fontFamily: '"Space Grotesk", sans-serif',
-                          }}
+                          className="text-xs text-slate-400 hover:text-cyan-300 transition-colors cursor-pointer py-1"
                         >
-                          Pick Another
+                          🔄 Re-detect Different Location
                         </button>
                       </div>
+                    )}
 
-                      <div
-                        className="p-3 rounded-xl text-left text-xs"
-                        style={{ background: "rgba(3,16,24,0.85)", border: "1px solid rgba(239,68,68,0.25)" }}
-                      >
-                        <strong style={{ color: "#fca5a5", display: "block", marginBottom: "2px" }}>
-                          🏪 Live Vending Center Pickup Available:
-                        </strong>
-                        <span style={{ color: C.onSurface }}>
-                          Malabagh, Naseem Bagh, Srinagar — 190006 (Near R P School, Girls Wing)
-                        </span>
-                      </div>
+                    {/* CASE 3: OUT OF ZONE (BLOCKED) */}
+                    {deliveryMode === "unavailable" && (
+                      <div className="space-y-3">
+                        <div className="p-3.5 rounded-xl text-left text-xs bg-slate-950/80 border border-red-500/30 space-y-1.5">
+                          <strong className="text-red-400 block font-semibold">
+                            🏪 Live Vending Center Pickup Available:
+                          </strong>
+                          <span className="text-slate-300 block">
+                            Malabagh, Naseem Bagh, Srinagar — 190006 (Near R P School, Girls Wing)
+                          </span>
+                        </div>
 
-                      <div className="flex gap-2.5 justify-center pt-1">
-                        <a
-                          href={`https://wa.me/918491006127?text=Hi%20Urban%20Trout!%20I%20am%20outside%20the%20${deliveryRadiusKm}km%20zone.%20Can%20I%20arrange%20pickup%20or%20special%20delivery?`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-4 py-2.5 rounded-xl font-bold uppercase text-xs flex items-center gap-1.5"
-                          style={{
-                            background: "#25D366",
-                            color: "#fff",
-                            fontFamily: '"Space Grotesk", sans-serif',
-                            textDecoration: "none",
-                          }}
+                        <div className="grid grid-cols-2 gap-2">
+                          <a
+                            href={`https://wa.me/918491006127?text=Hi%20Urban%20Trout!%20My%20location%20is%20${calculatedDistance?.toFixed(1)}km%20away.%20Can%20I%20arrange%20special%20delivery%20or%20pickup?`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3 py-2.5 rounded-xl font-bold uppercase text-[11px] flex items-center justify-center gap-1.5 bg-emerald-500 text-slate-950 transition-all hover:bg-emerald-400"
+                          >
+                            💬 WhatsApp
+                          </a>
+                          <a
+                            href={`https://maps.google.com/?q=${farmLat},${farmLng}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-3 py-2.5 rounded-xl font-bold uppercase text-[11px] flex items-center justify-center gap-1.5 bg-slate-900 border border-slate-700 text-slate-200 hover:text-white"
+                          >
+                            📍 Farm Route
+                          </a>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={handleResetLocation}
+                          className="text-xs text-slate-400 hover:text-cyan-300 transition-colors cursor-pointer py-1 block mx-auto"
                         >
-                          💬 WhatsApp Inquiry
-                        </a>
-                        <a
-                          href={`https://maps.google.com/?q=${farmLat},${farmLng}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="px-4 py-2.5 rounded-xl font-bold uppercase text-xs flex items-center gap-1.5"
-                          style={{
-                            background: "rgba(114,221,253,0.1)",
-                            border: "1px solid rgba(114,221,253,0.25)",
-                            color: C.primary,
-                            fontFamily: '"Space Grotesk", sans-serif',
-                            textDecoration: "none",
-                          }}
-                        >
-                          📍 Directions to Farm
-                        </a>
+                          🔄 Re-check GPS Location
+                        </button>
                       </div>
-                    </div>
+                    )}
                   </div>
-                )}
+                </div>
 
-                {/* ─── CASE C: NO LOCATION DETECTED YET -> SHOW SEARCH & LOCALITIES LIST ─── */}
-                {!deliveryMode && (
-                  <div className="space-y-5">
-                    {/* Combined Search & Filter Bar */}
-                    <form onSubmit={handleSearchSubmit} className="relative">
-                      <div style={{ position: "relative" }}>
-                        <span
-                          style={{
-                            position: "absolute",
-                            left: "14px",
-                            top: "50%",
-                            transform: "translateY(-50%)",
-                            color: C.onSurfVar,
-                            pointerEvents: "none",
-                          }}
+                {/* ─── STRICT LANDMARK COORDINATE FALLBACK (ONLY WHEN TOGGLED) ─── */}
+                {showManualFallback && !deliveryMode && (
+                  <div className="pt-4 border-t border-slate-800/80 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 font-mono">
+                        Select Nearest Srinagar Landmark (Strict Distance Calculated):
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setShowManualFallback(false)}
+                        className="text-slate-500 hover:text-slate-300 text-xs"
+                      >
+                        ✕ Close
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-56 overflow-y-auto pr-1">
+                      {filteredZones.map((zone) => (
+                        <button
+                          key={zone.name}
+                          type="button"
+                          onClick={() => handleSelectLandmarkFallback(zone)}
+                          className="p-2.5 rounded-xl text-left transition-all flex flex-col justify-between cursor-pointer active:scale-95 bg-slate-950/60 border border-slate-800 hover:border-cyan-500/40"
                         >
-                          <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                            <circle cx="11" cy="11" r="8" />
-                            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-                          </svg>
-                        </span>
-                        <input
-                          type="text"
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                          placeholder="Search Srinagar locality or 6-digit pin code (e.g. 190006)…"
-                          style={{
-                            width: "100%",
-                            background: "rgba(3,16,24,0.85)",
-                            border: "1.5px solid rgba(61,74,83,0.7)",
-                            borderRadius: "12px",
-                            padding: "12px 16px 12px 42px",
-                            color: C.onSurface,
-                            fontFamily: '"Manrope", sans-serif',
-                            fontSize: "0.88rem",
-                            outline: "none",
-                            boxSizing: "border-box",
-                          }}
-                          onFocus={(e) => (e.target.style.borderColor = "rgba(114,221,253,0.7)")}
-                          onBlur={(e) => (e.target.style.borderColor = "rgba(61,74,83,0.7)")}
-                        />
-                      </div>
-                    </form>
-
-                    {/* Srinagar Localities Chips Grid */}
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-xs text-slate-400">
-                        <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "10px", letterSpacing: "0.1em", textTransform: "uppercase", color: C.onSurfVar, fontWeight: 600 }}>
-                          Popular Srinagar Localities (from Naseem Bagh farm):
-                        </span>
-                      </div>
-
-                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-64 overflow-y-auto pr-1">
-                        {filteredZones.map((zone) => {
-                          return (
-                            <button
-                              key={zone.name}
-                              type="button"
-                              onClick={() => handleSelectZone(zone)}
-                              className="px-3 py-2.5 rounded-xl text-left transition-all flex flex-col justify-between cursor-pointer active:scale-95"
-                              style={{
-                                background: "rgba(3,16,24,0.7)",
-                                border: "1px solid rgba(61,74,83,0.5)",
-                              }}
-                            >
-                              <div className="flex items-center justify-between w-full">
-                                <span
-                                  style={{
-                                    fontFamily: '"Space Grotesk", sans-serif',
-                                    fontWeight: 700,
-                                    fontSize: "0.84rem",
-                                    color: C.onSurface,
-                                  }}
-                                >
-                                  {zone.name}
-                                </span>
-                                <span
-                                  style={{
-                                    fontSize: "10px",
-                                    fontWeight: 800,
-                                    color: zone.eligible ? "#4ade80" : "#f87171",
-                                  }}
-                                >
-                                  {zone.eligible ? "✓" : "×"}
-                                </span>
-                              </div>
-                              <span
-                                style={{
-                                  fontFamily: '"Manrope", sans-serif',
-                                  fontSize: "10px",
-                                  color: zone.eligible ? "#86efac" : C.onSurfVar,
-                                  marginTop: "2px",
-                                }}
-                              >
-                                ~{zone.distanceKm} km {zone.eligible ? "• Free Delivery" : "• Out of zone"}
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
+                          <div className="flex items-center justify-between w-full">
+                            <span className="text-xs font-bold text-white truncate">{zone.name}</span>
+                            <span className={`text-[10px] font-bold ${zone.eligible ? "text-emerald-400" : "text-red-400"}`}>
+                              {zone.eligible ? "✓" : "×"}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-slate-400 mt-1">
+                            ~{zone.distanceKm.toFixed(1)} km {zone.eligible ? "• Eligible" : "• Out of zone"}
+                          </span>
+                        </button>
+                      ))}
                     </div>
                   </div>
                 )}
@@ -1850,11 +2061,22 @@ export default function CheckoutPage() {
                     <span style={{ fontSize: "16px" }}>📍</span>
                     <div>
                       <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "0.85rem", fontWeight: 700, color: "#4ade80" }}>
-                        Verified Delivery Zone ({selectedZoneName || `Srinagar ${deliveryRadiusKm}km Zone`})
+                        Verified Delivery Location ({selectedZoneName || `Srinagar ${deliveryRadiusKm}km Zone`})
                       </span>
                       <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "11px", color: "#86efac", margin: 0 }}>
-                        Free Same-Day Cold-Chain Delivery Active
+                        {calculatedDistance ? `~${calculatedDistance.toFixed(1)} km from Naseem Bagh Farm • ` : ""}
+                        Free Same-Day Live Catch Delivery Active
                       </p>
+                      {detectedCoords && (
+                        <a
+                          href={`https://maps.google.com/?q=${detectedCoords.lat},${detectedCoords.lng}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[10px] text-cyan-300 underline font-mono inline-block mt-0.5"
+                        >
+                          View Doorstep Pin on Google Maps ↗
+                        </a>
+                      )}
                     </div>
                   </div>
                   <button
@@ -1870,7 +2092,7 @@ export default function CheckoutPage() {
                       cursor: "pointer",
                     }}
                   >
-                    Edit Zone
+                    Change GPS Pin
                   </button>
                 </div>
 

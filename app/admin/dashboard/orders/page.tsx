@@ -141,6 +141,21 @@ export default function OrdersPage() {
                       <p className="text-xs text-slate-600 uppercase tracking-widest mb-1">Delivery Address</p>
                       <p className="text-slate-300">{order.customer_address}</p>
                       <p className="text-slate-500 text-xs">{order.customer_locality} — {order.customer_pincode}</p>
+                      {(() => {
+                        const match = order.customer_address?.match(/https:\/\/maps\.google\.com\/\?q=[^\s]+/);
+                        if (!match) return null;
+                        return (
+                          <a
+                            href={match[0]}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 mt-2 px-2.5 py-1 bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 rounded-lg text-xs font-semibold hover:bg-cyan-500/25 transition-colors"
+                          >
+                            <span className="material-symbols-outlined text-sm">location_on</span>
+                            Open Pinpoint in Google Maps
+                          </a>
+                        );
+                      })()}
                     </div>
                     <div>
                       <p className="text-xs text-slate-600 uppercase tracking-widest mb-1">Items Ordered</p>
@@ -174,24 +189,42 @@ export default function OrdersPage() {
                     </div>
                   </div>
 
-                  {/* Actions (WhatsApp + Delete) */}
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-800/80">
-                    {(() => {
-                      const cleanPhone = String(order.customer_phone || "").replace(/\D/g, "").slice(-10);
-                      const text = encodeURIComponent(`Hi ${order.customer_name}! Your Urban Trout order #${order.order_number} update:`);
-                      const waUrl = cleanPhone.length === 10 ? `https://wa.me/91${cleanPhone}?text=${text}` : `https://wa.me/?text=${text}`;
-                      return (
-                        <a
-                          href={waUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/15 text-green-400 border border-green-500/30 rounded-lg text-xs font-medium hover:bg-green-500/25 transition-colors"
-                        >
-                          <span className="material-symbols-outlined text-base">chat</span>
-                          WhatsApp Customer
-                        </a>
-                      );
-                    })()}
+                  {/* Actions (Navigate + WhatsApp + Delete) */}
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-800/80 flex-wrap gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {(() => {
+                        const match = order.customer_address?.match(/https:\/\/maps\.google\.com\/\?q=[^\s]+/);
+                        if (!match) return null;
+                        return (
+                          <a
+                            href={match[0]}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 px-3.5 py-2 bg-cyan-500/15 text-cyan-300 border border-cyan-500/35 rounded-lg text-xs font-semibold hover:bg-cyan-500/25 transition-colors"
+                          >
+                            <span className="material-symbols-outlined text-base">near_me</span>
+                            Navigate (Google Maps)
+                          </a>
+                        );
+                      })()}
+
+                      {(() => {
+                        const cleanPhone = String(order.customer_phone || "").replace(/\D/g, "").slice(-10);
+                        const text = encodeURIComponent(`Hi ${order.customer_name}! Your Urban Trout order #${order.order_number} update:`);
+                        const waUrl = cleanPhone.length === 10 ? `https://wa.me/91${cleanPhone}?text=${text}` : `https://wa.me/?text=${text}`;
+                        return (
+                          <a
+                            href={waUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/15 text-green-400 border border-green-500/30 rounded-lg text-xs font-medium hover:bg-green-500/25 transition-colors"
+                          >
+                            <span className="material-symbols-outlined text-base">chat</span>
+                            WhatsApp Customer
+                          </a>
+                        );
+                      })()}
+                    </div>
 
                     <button
                       type="button"
