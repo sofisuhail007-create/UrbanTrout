@@ -737,21 +737,8 @@ export default function POSBillingPage() {
     const encodedPayload = btoa(encodeURIComponent(JSON.stringify(invoicePayload)));
     const origin = typeof window !== "undefined" ? window.location.origin : "https://urbantrout.in";
 
-    // Try to save to DB via server API — if it works, use short clean URL
-    let invoicePublicUrl = `${origin}/invoice/${invoiceNumber}?d=${encodedPayload}`; // fallback
-    try {
-      const res = await adminFetch("/api/invoice", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ invoiceId: shortDigits, data: invoicePayload }),
-      });
-      if (res.ok) {
-        const json = await res.json();
-        if (json?.success) {
-          invoicePublicUrl = `${origin}/invoice/${invoiceNumber}`;
-        }
-      }
-    } catch (_) {}
+    // Encode invoice payload directly into URL for instant public viewing & printing
+    const invoicePublicUrl = `${origin}/invoice/${invoiceNumber}?d=${encodedPayload}`;
 
     // Auto-record into Customer Khata & Balances Ledger if partial or waived
     if (hasRemainingBalance || balanceStatus === "waived_final") {
@@ -1110,26 +1097,6 @@ Naseem Bagh / Malabagh, Srinagar`;
         body: JSON.stringify({ invoiceId: shortDigits, data: invoicePayload }),
       }).catch(() => {});
 
-      // Record in Vending Center Logger
-      effectiveBillItems.forEach((b) => {
-        adminFetch("/api/vending-log", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            entry_date: new Date().toISOString().split("T")[0],
-            entry_time: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true }),
-            weight_kg: isCustomAmountMode ? 0 : b.weightKg,
-            product_type: isCustomAmountMode ? "Gutted" : (b.name.toLowerCase().includes("gutted") && !b.name.toLowerCase().includes("non") ? "Gutted" : "Non Gutted"),
-            rate_per_kg: b.pricePerKg,
-            amount_paid: 0,
-            expected_amount: b.total,
-            payment_mode: "Razorpay Link",
-            notes: `[HOME DELIVERY #${invoiceNumber}] ${customerName.trim()} (${cleanPhone}) - Link: ${short_url} ${customerNotes ? `| Note: ${customerNotes}` : ""}`,
-            logged_by: "POS Delivery",
-          }),
-        }).catch(() => {});
-      });
-
       playSuccessChime();
     } catch (err: any) {
       setRzpLinkError(err.message || "Failed to generate payment link.");
@@ -1242,6 +1209,21 @@ Naseem Bagh / Malabagh, Srinagar`;
     setActiveTab("pos");
   };
 
+  // Helper: Strictly identify WhatsApp / Razorpay link remote orders
+  const isWhatsAppOrder = (o: any) => {
+    const linkId = getOrderPaymentLinkId(o);
+    const pMethod = String(getOrderPaymentMethod(o) || "").toLowerCase();
+    const linkUrl = Boolean(o?.data?.paymentLinkUrl || o?.paymentLinkUrl);
+    return Boolean(
+      linkId ||
+      linkUrl ||
+      pMethod.includes("razorpay") ||
+      pMethod.includes("whatsapp") ||
+      pMethod.includes("delivery") ||
+      pMethod.includes("link")
+    );
+  };
+
   // ─── FETCH & SYNC ALL REMOTE / WHATSAPP ORDERS ───
   const fetchRemoteOrders = async () => {
     setRemoteLoading(true);
@@ -1249,7 +1231,7 @@ Naseem Bagh / Malabagh, Srinagar`;
       const res = await adminFetch("/api/invoice");
       const data = await res.json();
       if (data?.success && Array.isArray(data.invoices)) {
-        setRemoteOrders(data.invoices);
+        setRemoteOrders(data.invoices.filter(isWhatsAppOrder));
       }
     } catch (e) {
       console.warn("Error fetching remote orders:", e);
@@ -1272,8 +1254,9 @@ Naseem Bagh / Malabagh, Srinagar`;
         const res = await adminFetch("/api/invoice");
         const data = await res.json();
         if (data?.success && Array.isArray(data.invoices)) {
+          const whatsappOnly = data.invoices.filter(isWhatsAppOrder);
           setRemoteOrders((prevOrders) => {
-            const newOrders: any[] = data.invoices;
+            const newOrders: any[] = whatsappOnly;
             newOrders.forEach((newOrd) => {
               const oldOrd = prevOrders.find((p) => p.id === newOrd.id);
               if (
@@ -1578,6 +1561,7 @@ ${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━
   const paidRemoteAmount = paidRemoteOrders.reduce((sum, o) => sum + getOrderTotal(o), 0);
 
   const filteredRemoteOrders = remoteOrders.filter((o) => {
+    if (!isWhatsAppOrder(o)) return false;
     const status = getOrderStatus(o);
     if (remoteFilter === "pending" && status === "PAID") return false;
     if (remoteFilter === "paid" && status !== "PAID") return false;
