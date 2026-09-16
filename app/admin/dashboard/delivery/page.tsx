@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { supabase } from "@/lib/supabase";
 import { adminFetch } from "@/lib/adminClient";
 import { SRINAGAR_LOCALITIES, calculateDistanceKm, type ZoneLocation } from "@/components/DeliveryRadiusMap";
+import PaginationBar from "@/components/PaginationBar";
 
 // Dynamically import map to avoid SSR window issues
 const DeliveryRadiusMap = dynamic(() => import("@/components/DeliveryRadiusMap"), {
@@ -123,6 +124,19 @@ export default function DeliveryRadiusPage() {
       return matchesTab && matchesSearch;
     });
   }, [calculatedLocalities, tableTab, tableSearch]);
+
+  // ─── PAGINATION (50 entries/page) ───
+  const [tablePage, setTablePage] = useState(1);
+  const TABLE_PAGE_SIZE = 50;
+
+  useEffect(() => {
+    setTablePage(1);
+  }, [tableTab, tableSearch]);
+
+  const paginatedLocalities = useMemo(() => {
+    const start = (tablePage - 1) * TABLE_PAGE_SIZE;
+    return filteredLocalities.slice(start, start + TABLE_PAGE_SIZE);
+  }, [filteredLocalities, tablePage]);
 
   // Reset to default Naseem Bagh coordinates
   const handleResetToDefault = () => {
@@ -456,7 +470,7 @@ export default function DeliveryRadiusPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/60 bg-slate-900/40 font-medium text-slate-300">
-                    {filteredLocalities.map((loc) => (
+                    {paginatedLocalities.map((loc) => (
                       <tr key={loc.id} className="hover:bg-slate-800/40 transition-colors">
                         <td className="py-3 px-4">
                           <div className="font-bold text-white">{loc.name}</div>
@@ -493,6 +507,14 @@ export default function DeliveryRadiusPage() {
                   </tbody>
                 </table>
               </div>
+              <PaginationBar
+                currentPage={tablePage}
+                totalItems={filteredLocalities.length}
+                pageSize={TABLE_PAGE_SIZE}
+                onPageChange={setTablePage}
+                itemLabel="localities"
+                themeColor="cyan"
+              />
             </div>
           </div>
 

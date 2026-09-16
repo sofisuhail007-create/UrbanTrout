@@ -13,6 +13,7 @@ import * as XLSX from "xlsx";
 import BalanceReminderModal from "../billing/BalanceReminderModal";
 import type { CustomerBalanceRecord } from "@/app/api/customer-balance/route";
 import TimePickerInput, { parseTimeToMinutes } from "@/components/TimePickerInput";
+import PaginationBar from "@/components/PaginationBar";
 
 const DEFAULT_GUTTED_PRICE = 580;
 const DEFAULT_NON_GUTTED_PRICE = 540;
@@ -1004,6 +1005,31 @@ export default function VendingCenterLoggerPage() {
       }
     });
   }, [filteredEntriesByPeriod, filterType, filterPayment, searchQuery, sortField, sortDirection]);
+
+  // ─── 50-Item Pagination States ───
+  const [salesPage, setSalesPage] = useState(1);
+  const [stockPage, setStockPage] = useState(1);
+  const [mortalityPage, setMortalityPage] = useState(1);
+
+  // Auto-reset sales page to 1 when filters, search or sort change
+  useEffect(() => {
+    setSalesPage(1);
+  }, [displayEntries]);
+
+  const paginatedSalesEntries = useMemo(() => {
+    const start = (salesPage - 1) * 50;
+    return displayEntries.slice(start, start + 50);
+  }, [displayEntries, salesPage]);
+
+  const paginatedStockEntries = useMemo(() => {
+    const start = (stockPage - 1) * 50;
+    return stockEntries.slice(start, start + 50);
+  }, [stockEntries, stockPage]);
+
+  const paginatedMortalityEntries = useMemo(() => {
+    const start = (mortalityPage - 1) * 50;
+    return mortalityEntries.slice(start, start + 50);
+  }, [mortalityEntries, mortalityPage]);
 
   // ─── Reset Form ───
   const resetForm = () => {
@@ -3268,14 +3294,14 @@ export default function VendingCenterLoggerPage() {
                         </td>
                       </tr>
                     ) : (
-                      stockEntries.map((s, idx) => {
+                      paginatedStockEntries.map((s, idx) => {
                         const totalCost = Number(s.total_cost) || Number(s.weight_kg) * Number(s.cost_per_kg);
                         return (
                           <tr
                             key={s.id}
                             className="hover:bg-slate-800/30 transition-colors group"
                           >
-                            <td className="py-2.5 px-3 text-center text-slate-500">{idx + 1}</td>
+                            <td className="py-2.5 px-3 text-center text-slate-500">{(stockPage - 1) * 50 + idx + 1}</td>
                             <td className="py-2.5 px-3 text-slate-300">{s.stock_date}</td>
                             <td className="py-2.5 px-3 text-slate-400">{s.stock_time}</td>
                             <td className="py-2.5 px-3 text-blue-300 font-semibold">{s.supplier_name}</td>
@@ -3328,6 +3354,14 @@ export default function VendingCenterLoggerPage() {
                   </tbody>
                 </table>
               </div>
+              <PaginationBar
+                currentPage={stockPage}
+                totalItems={stockEntries.length}
+                pageSize={50}
+                onPageChange={setStockPage}
+                itemLabel="stock batches"
+                themeColor="sky"
+              />
             </div>
           )}
 
@@ -3370,11 +3404,11 @@ export default function VendingCenterLoggerPage() {
                         </td>
                       </tr>
                     ) : (
-                      mortalityEntries.map((m, idx) => {
+                      paginatedMortalityEntries.map((m, idx) => {
                         const lossValue = Math.round(Number(m.weight_kg) * procurementAvgCost);
                         return (
                           <tr key={m.id} className="hover:bg-slate-800/40 transition-colors group">
-                            <td className="py-2.5 px-3 text-center text-slate-500 text-[11px]">{idx + 1}</td>
+                            <td className="py-2.5 px-3 text-center text-slate-500 text-[11px]">{(mortalityPage - 1) * 50 + idx + 1}</td>
                             <td className="py-2.5 px-3 whitespace-nowrap text-slate-300">{m.mortality_date}</td>
                             <td className="py-2.5 px-3 whitespace-nowrap text-slate-500 text-[11px]">{m.mortality_time || "—"}</td>
                             <td className="py-2.5 px-3 whitespace-nowrap">
@@ -3429,6 +3463,14 @@ export default function VendingCenterLoggerPage() {
                   </tbody>
                 </table>
               </div>
+              <PaginationBar
+                currentPage={mortalityPage}
+                totalItems={mortalityEntries.length}
+                pageSize={50}
+                onPageChange={setMortalityPage}
+                itemLabel="mortality records"
+                themeColor="sky"
+              />
             </div>
           )}
         </div>
@@ -3580,7 +3622,7 @@ export default function VendingCenterLoggerPage() {
                   </td>
                 </tr>
               ) : (
-                displayEntries.map((e, index) => {
+                paginatedSalesEntries.map((e, index) => {
                   const isGutted =
                     (e.product_type || "").toLowerCase().includes("gutted") &&
                     !(e.product_type || "").toLowerCase().includes("non");
@@ -3612,7 +3654,7 @@ export default function VendingCenterLoggerPage() {
                       className="hover:bg-slate-800/40 transition-colors group"
                     >
                       <td className="py-3 px-3 text-center text-slate-500 text-[10px]">
-                        {index + 1}
+                        {(salesPage - 1) * 50 + index + 1}
                       </td>
                       <td className="py-3 px-3 text-slate-200 font-bold whitespace-nowrap">
                         {e.entry_date}
@@ -3881,6 +3923,14 @@ export default function VendingCenterLoggerPage() {
             )}
           </table>
         </div>
+        <PaginationBar
+          currentPage={salesPage}
+          totalItems={displayEntries.length}
+          pageSize={50}
+          onPageChange={setSalesPage}
+          itemLabel="sales records"
+          themeColor="cyan"
+        />
       </div>
 
       {/* ══════════════════════════════════════════════════════════

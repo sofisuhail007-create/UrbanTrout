@@ -1,8 +1,9 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { supabase, type WaterParameter } from "@/lib/supabase";
+import PaginationBar from "@/components/PaginationBar";
 import {
   validateDO,
   getMaxDO,
@@ -61,10 +62,19 @@ export default function WaterParametersPage() {
       .select("*")
       .order("date", { ascending: false })
       .order("created_at", { ascending: false })
-      .limit(100);
+      .limit(1000);
     setEntries((data as WaterParameter[]) || []);
     setLoading(false);
   }, []);
+
+  // ─── PAGINATION (50 entries/page) ───
+  const [entriesPage, setEntriesPage] = useState(1);
+  const ENTRIES_PAGE_SIZE = 50;
+
+  const paginatedEntries = useMemo(() => {
+    const start = (entriesPage - 1) * ENTRIES_PAGE_SIZE;
+    return entries.slice(start, start + ENTRIES_PAGE_SIZE);
+  }, [entries, entriesPage]);
 
   useEffect(() => {
     fetchEntries();
@@ -427,7 +437,7 @@ export default function WaterParametersPage() {
               ) : entries.length === 0 ? (
                 <tr><td colSpan={11} className="px-4 py-8 text-center text-slate-600">No entries yet. Start logging above.</td></tr>
               ) : (
-                entries.map((e) => {
+                paginatedEntries.map((e) => {
                   const doV = validateDO(e.temperature, e.dissolved_oxygen);
                   const amm = getAmmoniaStatus(e.ammonia);
                   const phS = getPHStatus(e.ph);
@@ -473,6 +483,14 @@ export default function WaterParametersPage() {
             </tbody>
           </table>
         </div>
+        <PaginationBar
+          currentPage={entriesPage}
+          totalItems={entries.length}
+          pageSize={ENTRIES_PAGE_SIZE}
+          onPageChange={setEntriesPage}
+          itemLabel="water readings"
+          themeColor="cyan"
+        />
       </div>
     </div>
   );

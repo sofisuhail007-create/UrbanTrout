@@ -1,8 +1,9 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { supabase, type TankStocking } from "@/lib/supabase";
+import PaginationBar from "@/components/PaginationBar";
 
 const TANKS = ["tank"];
 const TANK_LABELS: Record<string, string> = {
@@ -56,6 +57,15 @@ export default function TanksPage() {
     setStockings((data as TankStocking[]) || []);
     setLoading(false);
   }, []);
+
+  // ─── PAGINATION (50 entries/page) ───
+  const [stockingsPage, setStockingsPage] = useState(1);
+  const STOCKINGS_PAGE_SIZE = 50;
+
+  const paginatedStockings = useMemo(() => {
+    const start = (stockingsPage - 1) * STOCKINGS_PAGE_SIZE;
+    return stockings.slice(start, start + STOCKINGS_PAGE_SIZE);
+  }, [stockings, stockingsPage]);
 
   useEffect(() => {
     fetchStockings();
@@ -457,7 +467,7 @@ export default function TanksPage() {
               ) : stockings.length === 0 ? (
                 <tr><td colSpan={11} className="px-4 py-8 text-center text-slate-600">No stocking records yet.</td></tr>
               ) : (
-                stockings.map((s) => (
+                paginatedStockings.map((s) => (
                   <tr key={s.id} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
                     <td className="px-4 py-3 font-semibold" style={{ color: TANK_COLORS[s.tank_id] }}>{TANK_LABELS[s.tank_id]}</td>
                     <td className="px-4 py-3 text-slate-300">{s.batch_name}</td>
@@ -495,6 +505,14 @@ export default function TanksPage() {
             </tbody>
           </table>
         </div>
+        <PaginationBar
+          currentPage={stockingsPage}
+          totalItems={stockings.length}
+          pageSize={STOCKINGS_PAGE_SIZE}
+          onPageChange={setStockingsPage}
+          itemLabel="stocking records"
+          themeColor="cyan"
+        />
       </div>
     </div>
   );

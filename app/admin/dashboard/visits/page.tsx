@@ -4,6 +4,7 @@ import { supabase } from "@/lib/supabase";
 import type { FarmVisit, VisitStatus } from "@/lib/supabase";
 import { adminFetch } from "@/lib/adminClient";
 import toast from "react-hot-toast";
+import PaginationBar from "@/components/PaginationBar";
 
 const STATUS_CONFIG: Record<VisitStatus, { label: string; color: string; bg: string; border: string; icon: string }> = {
   pending: {
@@ -242,6 +243,17 @@ export default function AdminFarmVisitsPage() {
     });
   }, [visits, filter, dateFilter, search]);
 
+  const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filter, dateFilter, search]);
+
+  const paginatedVisits = useMemo(() => {
+    const start = (currentPage - 1) * 50;
+    return filteredVisits.slice(start, start + 50);
+  }, [filteredVisits, currentPage]);
+
   return (
     <div className="p-4 md:p-8 space-y-6 max-w-7xl mx-auto">
       
@@ -404,8 +416,9 @@ export default function AdminFarmVisitsPage() {
           </p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {filteredVisits.map((v) => {
+        <>
+          <div className="space-y-4">
+            {paginatedVisits.map((v) => {
             const statusStyle = STATUS_CONFIG[v.status] || STATUS_CONFIG.pending;
             const isUpdating = updatingId === v.id;
             const cleanPhone = v.phone.replace(/\D/g, "").slice(-10);
@@ -654,7 +667,17 @@ export default function AdminFarmVisitsPage() {
             );
           })}
         </div>
-      )}
+        <PaginationBar
+          currentPage={currentPage}
+          totalItems={filteredVisits.length}
+          pageSize={50}
+          onPageChange={setCurrentPage}
+          itemLabel="scheduled visits"
+          themeColor="cyan"
+          className="rounded-2xl border border-slate-800/80"
+        />
+      </>
+    )}
 
       {/* ─── Manual Add Visit Modal ─── */}
       {showAddModal && (

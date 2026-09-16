@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import type { CustomerBalanceRecord } from "@/app/api/customer-balance/route";
 import { adminFetch } from "@/lib/adminClient";
 import BalanceReminderModal from "./BalanceReminderModal";
+import PaginationBar from "@/components/PaginationBar";
 
 interface CustomerBalancesTabProps {
   upiId?: string;
@@ -80,6 +81,17 @@ export default function CustomerBalancesTab({
   const [selectedRecord, setSelectedRecord] = useState<CustomerBalanceRecord | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [checkingLinkId, setCheckingLinkId] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  // Auto-reset page to 1 when filters or search change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, searchTerm]);
+
+  const paginatedRecords = useMemo(() => {
+    const start = (currentPage - 1) * 50;
+    return records.slice(start, start + 50);
+  }, [records, currentPage]);
 
   // Fetch balances from API
   const fetchBalances = async () => {
@@ -309,7 +321,7 @@ export default function CustomerBalancesTab({
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60 font-sans">
-              {records.map((r) => {
+              {paginatedRecords.map((r) => {
                 const cleanPhone = (r.customer_phone || "").replace(/\D/g, "").slice(-10);
                 const isPending = r.status === "pending" && r.balance_amount > 0;
 
@@ -436,6 +448,14 @@ export default function CustomerBalancesTab({
               })}
             </tbody>
           </table>
+          <PaginationBar
+            currentPage={currentPage}
+            totalItems={records.length}
+            pageSize={50}
+            onPageChange={setCurrentPage}
+            itemLabel="customer balances"
+            themeColor="emerald"
+          />
         </div>
       )}
 

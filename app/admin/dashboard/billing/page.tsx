@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { adminFetch } from "@/lib/adminClient";
@@ -7,6 +7,7 @@ import type { InventoryItem } from "@/lib/supabase";
 import DealCalculatorTab from "./DealCalculatorTab";
 import CustomerBalancesTab from "./CustomerBalancesTab";
 import BalanceReminderModal from "./BalanceReminderModal";
+import PaginationBar from "@/components/PaginationBar";
 
 interface BillItem {
   id: string;
@@ -1589,6 +1590,17 @@ ${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━
     }
     return true;
   });
+
+  const [remoteOrdersPage, setRemoteOrdersPage] = useState(1);
+
+  useEffect(() => {
+    setRemoteOrdersPage(1);
+  }, [remoteFilter, remoteSearch]);
+
+  const paginatedRemoteOrders = useMemo(() => {
+    const start = (remoteOrdersPage - 1) * 50;
+    return filteredRemoteOrders.slice(start, start + 50);
+  }, [filteredRemoteOrders, remoteOrdersPage]);
 
   return (
     <div className="px-3 py-2 sm:px-5 sm:py-3 max-w-7xl mx-auto space-y-3">
@@ -3237,8 +3249,9 @@ ${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
-              {filteredRemoteOrders.map((order) => {
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
+                {paginatedRemoteOrders.map((order) => {
                 const isPaid = getOrderStatus(order) === "PAID";
                 const invNum = getOrderNum(order);
                 const cleanPhone = String(getOrderPhone(order)).replace(/\D/g, "").slice(-10);
@@ -3472,6 +3485,15 @@ ${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━
                 );
               })}
             </div>
+              <PaginationBar
+                currentPage={remoteOrdersPage}
+                totalItems={filteredRemoteOrders.length}
+                pageSize={50}
+                onPageChange={setRemoteOrdersPage}
+                itemLabel="remote orders"
+                themeColor="emerald"
+              />
+            </>
           )}
         </div>
       )}

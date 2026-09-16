@@ -1,8 +1,9 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { supabase, type EnergyLogEntry } from "@/lib/supabase";
+import PaginationBar from "@/components/PaginationBar";
 
 const SUB_NAV = [
   { href: "/admin/dashboard/farm", label: "Water Parameters", icon: "water_drop" },
@@ -42,6 +43,15 @@ export default function EnergyLogPage() {
     setEntries((data as EnergyLogEntry[]) || []);
     setLoading(false);
   }, []);
+
+  // ─── PAGINATION (50 entries/page) ───
+  const [entriesPage, setEntriesPage] = useState(1);
+  const ENTRIES_PAGE_SIZE = 50;
+
+  const paginatedEntries = useMemo(() => {
+    const start = (entriesPage - 1) * ENTRIES_PAGE_SIZE;
+    return entries.slice(start, start + ENTRIES_PAGE_SIZE);
+  }, [entries, entriesPage]);
 
   useEffect(() => {
     fetchEntries();
@@ -266,7 +276,7 @@ export default function EnergyLogPage() {
               ) : entries.length === 0 ? (
                 <tr><td colSpan={6} className="px-4 py-8 text-center text-slate-600">No logs found.</td></tr>
               ) : (
-                entries.map((e) => (
+                paginatedEntries.map((e) => (
                   <tr key={e.id} className="border-b border-slate-800/50 hover:bg-slate-800/30 transition-colors">
                     <td className="px-4 py-3 text-slate-300">{e.date}</td>
                     <td className="px-4 py-3 font-semibold flex items-center gap-2">
@@ -291,6 +301,14 @@ export default function EnergyLogPage() {
             </tbody>
           </table>
         </div>
+        <PaginationBar
+          currentPage={entriesPage}
+          totalItems={entries.length}
+          pageSize={ENTRIES_PAGE_SIZE}
+          onPageChange={setEntriesPage}
+          itemLabel="energy logs"
+          themeColor="cyan"
+        />
       </div>
     </div>
   );

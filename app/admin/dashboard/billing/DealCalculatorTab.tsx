@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
+import PaginationBar from "@/components/PaginationBar";
 
 export interface DealProduct {
   id: string;
@@ -118,6 +119,15 @@ export default function DealCalculatorTab({
       } catch (_) {}
     }
   }, [dealsLedger]);
+
+  // ─── PAGINATION (50 entries/page) ───
+  const [ledgerPage, setLedgerPage] = useState(1);
+  const LEDGER_PAGE_SIZE = 50;
+
+  const paginatedDealsLedger = useMemo(() => {
+    const start = (ledgerPage - 1) * LEDGER_PAGE_SIZE;
+    return dealsLedger.slice(start, start + LEDGER_PAGE_SIZE);
+  }, [dealsLedger, ledgerPage]);
 
   // Derive active standard product & rate
   const activeProduct = products.find((p) => p.id === selectedProductId) || products[0];
@@ -1117,7 +1127,7 @@ _Thank you for choosing fresh Himalayan Rainbow Trout!_`;
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60">
-                {dealsLedger.map((item) => (
+                {paginatedDealsLedger.map((item) => (
                   <tr key={item.id} className="hover:bg-slate-950/40 transition-colors">
                     <td className="py-2.5 text-slate-300">
                       <div>{item.time}</div>
@@ -1181,6 +1191,14 @@ _Thank you for choosing fresh Himalayan Rainbow Trout!_`;
                 ))}
               </tbody>
             </table>
+            <PaginationBar
+              currentPage={ledgerPage}
+              totalItems={dealsLedger.length}
+              pageSize={LEDGER_PAGE_SIZE}
+              onPageChange={setLedgerPage}
+              itemLabel="bargain deals"
+              themeColor="emerald"
+            />
           </div>
         )}
       </div>

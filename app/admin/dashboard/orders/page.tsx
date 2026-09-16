@@ -1,8 +1,9 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import type { Order, OrderStatus } from "@/lib/supabase";
 import { adminFetch } from "@/lib/adminClient";
+import PaginationBar from "@/components/PaginationBar";
 
 const STATUSES: { value: OrderStatus; label: string; color: string }[] = [
   { value: "pending", label: "Awaiting Verification", color: "bg-amber-500/15 text-amber-400 border-amber-500/30" },
@@ -98,6 +99,17 @@ export default function OrdersPage() {
 
   const filtered = filter === "all" ? orders : orders.filter((o) => o.status === filter);
 
+  const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filter]);
+
+  const paginatedOrders = useMemo(() => {
+    const start = (currentPage - 1) * 50;
+    return filtered.slice(start, start + 50);
+  }, [filtered, currentPage]);
+
   return (
     <div className="p-6 max-w-6xl mx-auto">
       <div className="mb-6">
@@ -130,8 +142,9 @@ export default function OrdersPage() {
           No orders found.
         </div>
       ) : (
-        <div className="space-y-2">
-          {filtered.map((order) => (
+        <>
+          <div className="space-y-2">
+            {paginatedOrders.map((order) => (
             <div key={order.id} className="bg-slate-900/60 border border-slate-800 rounded-xl overflow-hidden">
               {/* Row */}
               <div
@@ -281,7 +294,17 @@ export default function OrdersPage() {
             </div>
           ))}
         </div>
-      )}
+        <PaginationBar
+          currentPage={currentPage}
+          totalItems={filtered.length}
+          pageSize={50}
+          onPageChange={setCurrentPage}
+          itemLabel="orders"
+          themeColor="cyan"
+          className="mt-4 rounded-xl border border-slate-800/80"
+        />
+      </>
+    )}
     </div>
   );
 }

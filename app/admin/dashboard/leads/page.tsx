@@ -1,8 +1,9 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import type { Lead } from "@/lib/supabase";
 import { adminFetch } from "@/lib/adminClient";
+import PaginationBar from "@/components/PaginationBar";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
   abandoned: { label: "Abandoned Lead", color: "text-amber-400", bg: "bg-amber-500/15 border-amber-500/30" },
@@ -158,6 +159,17 @@ export default function AdminLeadsPage() {
     return matchesFilter && matchesSearch;
   });
 
+  const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filter, search]);
+
+  const paginatedLeads = useMemo(() => {
+    const start = (currentPage - 1) * 50;
+    return filteredLeads.slice(start, start + 50);
+  }, [filteredLeads, currentPage]);
+
   const totalAbandoned = leads.filter(l => l.status === "abandoned").length;
   const totalConverted = leads.filter(l => l.status === "converted").length;
   const pipelineValue = leads
@@ -256,7 +268,8 @@ export default function AdminLeadsPage() {
             No leads found matching your criteria.
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+            <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className="bg-slate-950/60 text-slate-400 font-semibold border-b border-slate-800 uppercase tracking-wider">
                 <tr>
@@ -271,7 +284,7 @@ export default function AdminLeadsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60">
-                {filteredLeads.map((lead) => {
+                {paginatedLeads.map((lead) => {
                   const cleanPhone = (lead.customer_phone || "").replace(/\D/g, "").slice(-10);
                   const itemsList = Array.isArray(lead.cart_items) ? lead.cart_items : [];
                   const itemsSummary = itemsList.map((i: any) => `${i.name} (${i.quantity} ${i.unit || 'Kg'})`).join(", ") || "Cart in progress";
@@ -394,7 +407,16 @@ export default function AdminLeadsPage() {
               </tbody>
             </table>
           </div>
-        )}
+          <PaginationBar
+            currentPage={currentPage}
+            totalItems={filteredLeads.length}
+            pageSize={50}
+            onPageChange={setCurrentPage}
+            itemLabel="leads"
+            themeColor="cyan"
+          />
+        </>
+      )}
       </div>
     </div>
   );

@@ -1,8 +1,9 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { supabase } from "@/lib/supabase";
 import type { Customer, Order } from "@/lib/supabase";
 import { adminFetch } from "@/lib/adminClient";
+import PaginationBar from "@/components/PaginationBar";
 
 type CustomerWithNotes = Customer & { notes?: string | null };
 
@@ -98,6 +99,17 @@ export default function CustomersPage() {
     return matchSearch;
   });
 
+  const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, filterInactive]);
+
+  const paginatedCustomers = useMemo(() => {
+    const start = (currentPage - 1) * 50;
+    return filtered.slice(start, start + 50);
+  }, [filtered, currentPage]);
+
   const customerOrders = selected ? orders.filter((o) => o.customer_phone === selected.phone) : [];
 
   const inactiveCount = customers.filter((c) => {
@@ -164,54 +176,65 @@ export default function CustomersPage() {
               No customers found.
             </div>
           ) : (
-            <div className="space-y-2">
-              {filtered.map((c) => {
-                const tier = loyaltyTier(c);
-                const days = daysSince(c.last_order_at);
-                const isInactive = days !== null && days > 30;
-                return (
-                  <div
-                    key={c.id}
-                    onClick={() => setSelected(c)}
-                    className={`p-4 rounded-xl border cursor-pointer transition-all ${
-                      selected?.id === c.id
-                        ? "bg-cyan-500/10 border-cyan-500/40"
-                        : "bg-slate-900/60 border-slate-800 hover:border-slate-700"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <p className="font-semibold text-sm text-white">{c.name}</p>
-                      <div className="flex items-center gap-1.5">
-                        {/* Inactive pulse */}
-                        {isInactive && (
-                          <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" title={`No order in ${days} days`} />
+            <>
+              <div className="space-y-2">
+                {paginatedCustomers.map((c) => {
+                  const tier = loyaltyTier(c);
+                  const days = daysSince(c.last_order_at);
+                  const isInactive = days !== null && days > 30;
+                  return (
+                    <div
+                      key={c.id}
+                      onClick={() => setSelected(c)}
+                      className={`p-4 rounded-xl border cursor-pointer transition-all ${
+                        selected?.id === c.id
+                          ? "bg-cyan-500/10 border-cyan-500/40"
+                          : "bg-slate-900/60 border-slate-800 hover:border-slate-700"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="font-semibold text-sm text-white">{c.name}</p>
+                        <div className="flex items-center gap-1.5">
+                          {/* Inactive pulse */}
+                          {isInactive && (
+                            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" title={`No order in ${days} days`} />
+                          )}
+                          {/* Loyalty tier badge */}
+                          <span
+                            className="flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full"
+                            style={{ background: tier.bg, color: tier.color }}
+                          >
+                            <span className="material-symbols-outlined text-[11px]">{tier.icon}</span>
+                            {tier.label}
+                          </span>
+                          <span className="text-xs font-mono text-cyan-400">₹{c.total_spent?.toLocaleString("en-IN")}</span>
+                        </div>
+                      </div>
+                      <p className="text-xs text-slate-500">+91 {c.phone}</p>
+                      {c.locality && <p className="text-xs text-slate-600 mt-0.5">{c.locality}</p>}
+                      <div className="flex items-center gap-3 mt-2">
+                        <span className="text-xs text-slate-600">{c.total_orders} order{c.total_orders !== 1 ? "s" : ""}</span>
+                        {c.last_order_at && (
+                          <span className={`text-xs ${isInactive ? "text-amber-600" : "text-slate-700"}`}>
+                            Last: {new Date(c.last_order_at).toLocaleDateString("en-IN")}
+                            {isInactive && ` (${days}d ago)`}
+                          </span>
                         )}
-                        {/* Loyalty tier badge */}
-                        <span
-                          className="flex items-center gap-0.5 text-[10px] font-bold px-1.5 py-0.5 rounded-full"
-                          style={{ background: tier.bg, color: tier.color }}
-                        >
-                          <span className="material-symbols-outlined text-[11px]">{tier.icon}</span>
-                          {tier.label}
-                        </span>
-                        <span className="text-xs font-mono text-cyan-400">₹{c.total_spent?.toLocaleString("en-IN")}</span>
                       </div>
                     </div>
-                    <p className="text-xs text-slate-500">+91 {c.phone}</p>
-                    {c.locality && <p className="text-xs text-slate-600 mt-0.5">{c.locality}</p>}
-                    <div className="flex items-center gap-3 mt-2">
-                      <span className="text-xs text-slate-600">{c.total_orders} order{c.total_orders !== 1 ? "s" : ""}</span>
-                      {c.last_order_at && (
-                        <span className={`text-xs ${isInactive ? "text-amber-600" : "text-slate-700"}`}>
-                          Last: {new Date(c.last_order_at).toLocaleDateString("en-IN")}
-                          {isInactive && ` (${days}d ago)`}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+              <PaginationBar
+                currentPage={currentPage}
+                totalItems={filtered.length}
+                pageSize={50}
+                onPageChange={setCurrentPage}
+                itemLabel="customers"
+                themeColor="cyan"
+                className="mt-3 rounded-xl border border-slate-800/80"
+              />
+            </>
           )}
         </div>
 
