@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
@@ -3591,433 +3591,349 @@ export default function VendingCenterLoggerPage() {
       </div>
 
       {/* ══════════════════════════════════════════════════════════
-          DATA TABLE (MODERN EXPANDED UI)
+          SALES ENTRIES — CARD LIST (NO HORIZONTAL SCROLL)
           ══════════════════════════════════════════════════════════ */}
-      <div className="bg-slate-900/70 border border-slate-800/90 rounded-3xl overflow-hidden shadow-2xl shadow-slate-950/60 backdrop-blur-md">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs min-w-[1420px]">
-            <thead>
-              <tr className="border-b border-slate-800 bg-slate-950/90 text-[10.5px] font-mono uppercase tracking-wider text-slate-400">
-                <th className="py-4 px-3.5 text-center w-12 font-bold">#</th>
-                <th
-                  onClick={() => toggleSort("date")}
-                  className="py-4 px-4 cursor-pointer select-none hover:text-white transition-colors group min-w-[120px]"
-                  title="Click to sort by Date"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <span className={sortField === "date" ? "text-emerald-400 font-bold" : ""}>Date</span>
-                    {sortField === "date" ? (
-                      <span className="material-symbols-outlined text-xs text-emerald-400 font-bold">
-                        {sortDirection === "desc" ? "arrow_downward" : "arrow_upward"}
-                      </span>
-                    ) : (
-                      <span className="material-symbols-outlined text-xs text-slate-600 group-hover:text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                        swap_vert
-                      </span>
-                    )}
-                  </div>
-                </th>
-                <th
-                  onClick={() => toggleSort("time")}
-                  className="py-4 px-4 cursor-pointer select-none hover:text-white transition-colors group min-w-[105px]"
-                  title="Click to sort by Time"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <span className={sortField === "time" ? "text-emerald-400 font-bold" : ""}>Time</span>
-                    {sortField === "time" ? (
-                      <span className="material-symbols-outlined text-xs text-emerald-400 font-bold">
-                        {sortDirection === "desc" ? "arrow_downward" : "arrow_upward"}
-                      </span>
-                    ) : (
-                      <span className="material-symbols-outlined text-xs text-slate-600 group-hover:text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                        swap_vert
-                      </span>
-                    )}
-                  </div>
-                </th>
-                <th className="py-4 px-4 min-w-[210px]">Type</th>
-                <th className="py-4 px-4 text-right min-w-[125px]">Weight (Kg)</th>
-                <th className="py-4 px-3.5 text-right min-w-[105px]">Rate @/Kg</th>
-                <th className="py-4 px-3.5 text-right min-w-[115px]">Expected (₹)</th>
-                <th className="py-4 px-4 text-right text-cyan-300 font-bold min-w-[135px]">Amount Taken (₹)</th>
-                <th className="py-4 px-4 text-right text-amber-300 font-bold min-w-[145px]">Negotiation Loss</th>
-                <th className="py-4 px-4 min-w-[160px]">Payment Mode</th>
-                {/* Dynamic Custom Columns */}
-                {customColumns
-                  .filter((c) => c.visible)
-                  .map((c) => (
-                    <th key={c.id} className="py-4 px-3.5 text-cyan-300 min-w-[120px]">
-                      {c.name}
-                    </th>
-                  ))}
-                <th className="py-4 px-4 min-w-[190px]">Notes</th>
-                <th className="py-4 px-4 min-w-[115px]">Staff</th>
-                <th className="py-4 px-4 text-center min-w-[130px]">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/60 font-mono">
-              {loading ? (
-                <tr>
-                  <td
-                    colSpan={13 + customColumns.filter((c) => c.visible).length}
-                    className="py-14 text-center text-slate-400"
-                  >
-                    <div className="w-9 h-9 border-2 border-emerald-400 border-t-transparent animate-spin rounded-full mx-auto mb-2.5" />
-                    Loading entries…
-                  </td>
-                </tr>
-              ) : displayEntries.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={13 + customColumns.filter((c) => c.visible).length}
-                    className="py-14 text-center text-slate-400 space-y-2.5"
-                  >
-                    <span className="material-symbols-outlined text-4xl text-slate-600">table_rows</span>
-                    <p className="font-bold text-sm text-white">No sales entries found</p>
-                    <p className="text-xs text-slate-500">
-                      Click &quot;Log Sale&quot; to record today&apos;s first counter dispatch.
-                    </p>
-                  </td>
-                </tr>
-              ) : (
-                paginatedSalesEntries.map((e, index) => {
-                  const isGutted =
-                    (e.product_type || "").toLowerCase().includes("gutted") &&
-                    !(e.product_type || "").toLowerCase().includes("non");
-                  const w = Number(e.weight_kg) || 0;
-                  const rate = Number(e.rate_per_kg) || 0;
-                  const exp =
-                    e.expected_amount !== undefined && e.expected_amount !== null && Number(e.expected_amount) > 0
-                      ? Number(e.expected_amount)
-                      : e.custom_fields?.expected_amount !== undefined && Number(e.custom_fields.expected_amount) > 0
-                      ? Number(e.custom_fields.expected_amount)
-                      : Math.round(w * rate);
-                  const taken = Number(e.amount_paid) || 0;
-                  const isPendingBal =
-                    e.custom_fields?.balance_status === "pending" &&
-                    Number(e.custom_fields?.balance_amount) > 0;
-                  const loss =
-                    e.discount_amount !== undefined && e.discount_amount !== null && Number(e.discount_amount) > 0
-                      ? Number(e.discount_amount)
-                      : e.custom_fields?.discount_amount !== undefined && Number(e.custom_fields.discount_amount) > 0
-                      ? Number(e.custom_fields.discount_amount)
-                      : isPendingBal
-                      ? 0
-                      : Math.max(0, exp - taken);
-                  const isSelfCleaned = Boolean(e.custom_fields?.self_cleaned || (e as any).self_cleaned);
-                  const isCash = (e.payment_mode || "").toLowerCase().trim() === "cash";
-
-                  return (
-                    <tr
-                      key={e.id}
-                      className={`transition-all group ${
-                        isSelfCleaned
-                          ? "bg-amber-950/20 hover:bg-amber-950/35 border-l-4 border-l-amber-400"
-                          : "hover:bg-slate-800/50"
-                      }`}
-                    >
-                      <td className="py-4 px-3.5 text-center text-slate-500 text-xs font-bold">
-                        {(salesPage - 1) * 50 + index + 1}
-                      </td>
-                      <td className="py-4 px-4 text-slate-200 font-bold whitespace-nowrap text-xs">
-                        {e.entry_date}
-                      </td>
-                      <td className="py-4 px-4 text-slate-400 text-xs whitespace-nowrap font-mono">
-                        {e.entry_time}
-                      </td>
-                      <td className="py-4 px-4 whitespace-nowrap">
-                        {isGutted && isSelfCleaned ? (
-                          <div className="flex flex-col gap-1 py-0.5">
-                            <span
-                              className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-amber-500/20 text-amber-200 border border-amber-500/40 inline-flex items-center gap-1.5 w-fit shadow-sm"
-                              title="Self Cleaned by Owner — Excluded from Mohd Amin gutted incentive"
-                            >
-                              <span>🐟 Gutted</span>
-                              <span className="text-[9.5px] px-1.5 py-0.5 rounded-lg bg-amber-500/30 text-amber-100 font-mono font-black">
-                                Self Cleaned
-                              </span>
-                            </span>
-                            <span className="text-[10px] font-mono text-amber-400/90 font-bold flex items-center gap-1 pl-0.5">
-                              <span className="material-symbols-outlined text-xs text-amber-400">handyman</span>
-                              <span>₹0 Worker Inc. (Owner Gutted)</span>
-                            </span>
-                          </div>
-                        ) : isGutted ? (
-                          <div className="flex flex-col gap-1 py-0.5">
-                            <span className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 inline-flex items-center gap-1.5 w-fit shadow-sm">
-                              <span>🐟 {e.product_type}</span>
-                            </span>
-                            <span className="text-[10px] font-mono text-emerald-400/90 pl-0.5 font-bold flex items-center gap-1">
-                              <span className="material-symbols-outlined text-xs text-emerald-400">payments</span>
-                              <span>+₹{(w * INCENTIVE_RATE_PER_KG).toFixed(0)} worker inc.</span>
-                            </span>
-                          </div>
-                        ) : (
-                          <span className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 inline-flex items-center gap-1.5 w-fit shadow-sm">
-                            <span>✨ {e.product_type}</span>
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-4 px-4 text-right font-black text-white whitespace-nowrap font-mono">
-                        <span className="text-emerald-400 text-sm font-black">{formatKg(e.weight_kg)}</span>{" "}
-                        <span className="text-[11px] text-slate-400 font-normal">Kg</span>
-                      </td>
-                      <td className="py-4 px-3.5 text-right text-slate-300 whitespace-nowrap font-mono text-xs">
-                        ₹{e.rate_per_kg}
-                      </td>
-                      <td className="py-4 px-3.5 text-right text-slate-400 whitespace-nowrap font-mono text-xs">
-                        ₹{exp.toLocaleString("en-IN")}
-                      </td>
-                      <td className="py-4 px-4 text-right font-black text-white whitespace-nowrap font-mono">
-                        <span className="text-cyan-300 text-sm font-black">₹{taken.toLocaleString("en-IN")}</span>
-                      </td>
-                      <td className="py-4 px-4 text-right whitespace-nowrap font-mono">
-                        {Number(e.custom_fields?.balance_amount) > 0 && e.custom_fields?.balance_status === "pending" ? (
-                          <button
-                            type="button"
-                            onClick={() => handleOpenBalanceModalForEntry(e)}
-                            className="inline-flex flex-col items-end gap-0.5 text-right group/bal cursor-pointer"
-                            title="Click to open Razorpay QR & WhatsApp Reminder"
-                          >
-                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10.5px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/50 group-hover/bal:bg-amber-500/30 transition-all">
-                              <span>⏳ Bal: ₹{Number(e.custom_fields.balance_amount).toLocaleString("en-IN")}</span>
-                            </span>
-                            {e.custom_fields.customer_phone && (
-                              <span className="text-[9.5px] text-amber-400/80 font-mono">
-                                {e.custom_fields.customer_name || e.custom_fields.customer_phone}
-                              </span>
-                            )}
-                          </button>
-                        ) : e.custom_fields?.balance_status === "waived_final" ? (
-                          <span
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10.5px] font-mono text-slate-300 bg-slate-800 border border-slate-700"
-                            title={`Settled as final courtesy concession: ₹${loss}`}
-                          >
-                            <span>🤝 Waived (-₹{loss})</span>
-                          </span>
-                        ) : e.custom_fields?.balance_status === "settled" || e.custom_fields?.settled_at || e.custom_fields?.is_full_payment ? (
-                          <div className="inline-flex flex-col items-end gap-0.5 text-right">
-                            <span
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10.5px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/50"
-                              title={`Balance cleared in full! Settled: ${e.custom_fields?.settled_at ? new Date(e.custom_fields.settled_at).toLocaleString('en-IN') : 'Completed'} via ${e.custom_fields?.settled_payment_method || 'QR/Online'}`}
-                            >
-                              <span>✓ FULL PAID</span>
-                            </span>
-                            {e.custom_fields?.settled_at && (
-                              <span className="text-[9.5px] text-emerald-400/80 font-mono">
-                                QR Cleared
-                              </span>
-                            )}
-                          </div>
-                        ) : loss > 0 ? (
-                          <span
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10.5px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30"
-                            title={`Customer price negotiation concession: ₹${loss}`}
-                          >
-                            <span>-₹{loss.toLocaleString("en-IN")}</span>
-                            <span className="text-[9.5px] opacity-75">loss</span>
-                          </span>
-                        ) : loss < 0 ? (
-                          <span
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10.5px] font-mono text-cyan-300 bg-cyan-500/10 border border-cyan-500/20"
-                            title={`Extra collected: ₹${Math.abs(loss)}`}
-                          >
-                            +₹{Math.abs(loss)}
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10.5px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20">
-                            ₹0 ✓
-                          </span>
-                        )}
-                      </td>
-                      <td className="py-4 px-4 whitespace-nowrap">
-                        {e.payment_mode === "Cash + Online QR" || (e.custom_fields?.settled_at && (e.payment_mode || "").toLowerCase().includes("qr")) ? (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-mono text-[11px] font-bold">
-                            💵 Cash + ⚡ QR ✓
-                          </span>
-                        ) : isCash ? (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-500/15 border border-teal-500/30 text-teal-300 font-mono text-[11px] font-bold">
-                            💵 Cash
-                          </span>
-                        ) : e.payment_mode === "Razorpay Link" && (e.custom_fields?.payment_status === "PENDING_LINK" || Number(e.amount_paid) === 0) ? (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 font-mono text-[11px] font-bold">
-                            ⏳ Link Sent
-                          </span>
-                        ) : e.payment_mode === "Razorpay Link" ? (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-mono text-[11px] font-bold">
-                            🔒 Razorpay Paid
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 font-mono text-[11px] font-bold">
-                            ⚡ Online Payment
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Custom Dynamic Columns Values */}
-                      {customColumns
-                        .filter((c) => c.visible)
-                        .map((c) => (
-                          <td key={c.id} className="py-4 px-3.5 text-slate-300 whitespace-nowrap">
-                            {e.custom_fields?.[c.id] || "—"}
-                          </td>
-                        ))}
-
-                      <td className="py-4 px-4 text-slate-300 text-xs max-w-[220px] truncate" title={e.notes}>
-                        {e.notes || <span className="text-slate-600">—</span>}
-                      </td>
-                      <td className="py-4 px-4 text-slate-300 text-xs whitespace-nowrap">
-                        <span className="px-2.5 py-1 rounded-lg bg-slate-800/80 border border-slate-700/80 text-slate-300 text-[11px] font-mono">
-                          {e.logged_by || "Staff"}
-                        </span>
-                      </td>
-                      <td className="py-4 px-4 text-center whitespace-nowrap min-w-[130px]">
-                        <div className="flex items-center justify-center gap-2">
-                          {Number(e.custom_fields?.balance_amount) > 0 && e.custom_fields?.balance_status === "pending" && (
-                            <button
-                              type="button"
-                              onClick={() => handleOpenBalanceModalForEntry(e)}
-                              className="px-2.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[11px] font-bold font-mono transition-all cursor-pointer flex items-center gap-1 shadow-sm active:scale-95"
-                              title="Send WhatsApp Payment Reminder / Generate Razorpay QR"
-                            >
-                              <span className="material-symbols-outlined text-sm">qr_code_2</span>
-                              <span>Khata</span>
-                            </button>
-                          )}
-                          <button
-                            type="button"
-                            onClick={() => openEditModal(e)}
-                            className="w-8 h-8 rounded-xl bg-slate-800/90 hover:bg-emerald-500/25 text-slate-300 hover:text-emerald-300 border border-slate-700/80 hover:border-emerald-500/40 transition-all flex items-center justify-center cursor-pointer shadow-sm active:scale-95"
-                            title="Edit entry"
-                          >
-                            <span className="material-symbols-outlined text-base">edit</span>
-                          </button>
-                          {deleteConfirmId === e.id ? (
-                            <div className="flex items-center gap-1.5 animate-in fade-in">
-                              <button
-                                type="button"
-                                onClick={() => handleDeleteEntry(e.id)}
-                                className="px-2.5 py-1.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-[11px] font-bold font-mono shadow-md cursor-pointer active:scale-95"
-                              >
-                                Delete
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setDeleteConfirmId(null)}
-                                className="px-2 py-1.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-300 text-[11px] cursor-pointer active:scale-95"
-                              >
-                                ✕
-                              </button>
-                            </div>
-                          ) : (
-                            canDelete && (
-                              <button
-                                type="button"
-                                onClick={() => setDeleteConfirmId(e.id)}
-                                className="w-8 h-8 rounded-xl bg-slate-800/90 hover:bg-rose-500/25 text-slate-400 hover:text-rose-300 border border-slate-700/80 hover:border-rose-500/40 transition-all flex items-center justify-center cursor-pointer shadow-sm active:scale-95"
-                                title="Delete entry"
-                              >
-                                <span className="material-symbols-outlined text-base">delete</span>
-                              </button>
-                            )
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-            {/* Table Summary Footer */}
-            {displayEntries.length > 0 && (
-              <tfoot>
-                {(() => {
-                  const totalVisKg = displayEntries.reduce(
-                    (s, e) => s + (Number(e.weight_kg) || 0),
-                    0
-                  );
-                  const totalVisExp = displayEntries.reduce((s, e) => {
-                    const w = Number(e.weight_kg) || 0;
-                    const r = Number(e.rate_per_kg) || 0;
-                    return (
-                      s +
-                      (e.expected_amount !== undefined && e.expected_amount !== null
-                        ? Number(e.expected_amount)
-                        : Math.round(w * r))
-                    );
-                  }, 0);
-                  const totalVisTaken = displayEntries.reduce(
-                    (s, e) => s + (Number(e.amount_paid) || 0),
-                    0
-                  );
-                  const totalVisLoss = displayEntries.reduce((s, e) => {
-                    const w = Number(e.weight_kg) || 0;
-                    const r = Number(e.rate_per_kg) || 0;
-                    const exp =
-                      e.expected_amount !== undefined && e.expected_amount !== null && Number(e.expected_amount) > 0
-                        ? Number(e.expected_amount)
-                        : e.custom_fields?.expected_amount !== undefined && Number(e.custom_fields.expected_amount) > 0
-                        ? Number(e.custom_fields.expected_amount)
-                        : Math.round(w * r);
-                    const paid = Number(e.amount_paid) || 0;
-                    const isPendingBal =
-                      e.custom_fields?.balance_status === "pending" &&
-                      Number(e.custom_fields?.balance_amount) > 0;
-                    const l =
-                      e.discount_amount !== undefined && e.discount_amount !== null && Number(e.discount_amount) > 0
-                        ? Number(e.discount_amount)
-                        : e.custom_fields?.discount_amount !== undefined && Number(e.custom_fields.discount_amount) > 0
-                        ? Number(e.custom_fields.discount_amount)
-                        : isPendingBal
-                        ? 0
-                        : Math.max(0, exp - paid);
-                    return s + l;
-                  }, 0);
-
-                  return (
-                    <tr className="border-t-2 border-slate-700/80 bg-slate-950/90 font-mono font-bold text-xs text-white">
-                      <td
-                        colSpan={4}
-                        className="py-4 px-4 text-right uppercase tracking-wider text-slate-400"
-                      >
-                        Visible Rows Total ({displayEntries.length} entries):
-                      </td>
-                      <td className="py-4 px-4 text-right text-emerald-400 font-black whitespace-nowrap text-sm">
-                        {formatKg(totalVisKg)} Kg
-                      </td>
-                      <td className="py-4 px-3.5"></td>
-                      <td className="py-4 px-3.5 text-right text-slate-400 whitespace-nowrap">
-                        ₹{totalVisExp.toLocaleString("en-IN")}
-                      </td>
-                      <td className="py-4 px-4 text-right text-cyan-300 font-black whitespace-nowrap text-sm">
-                        ₹{totalVisTaken.toLocaleString("en-IN")}
-                      </td>
-                      <td className="py-4 px-4 text-right whitespace-nowrap">
-                        {totalVisLoss > 0 ? (
-                          <span className="text-amber-300 font-black">
-                            -₹{totalVisLoss.toLocaleString("en-IN")}
-                          </span>
-                        ) : (
-                          <span className="text-emerald-400 font-bold">₹0 ✓</span>
-                        )}
-                      </td>
-                      <td colSpan={3 + customColumns.filter((c) => c.visible).length}></td>
-                    </tr>
-                  );
-                })()}
-              </tfoot>
-            )}
-          </table>
+      <div className="space-y-1.5">
+        {/* Column Header Strip */}
+        <div className="grid items-center gap-x-2 px-4 py-2.5 rounded-2xl bg-slate-950/80 border border-slate-800/80 text-[9.5px] font-mono uppercase tracking-wider text-slate-500 select-none"
+          style={{gridTemplateColumns:"1.8rem 7rem 4.5rem 1fr 5.5rem 4rem 5rem 5.5rem 6rem 6.5rem auto"}}>
+          <span className="text-center">#</span>
+          <span>Date</span>
+          <span>Time</span>
+          <span>Type</span>
+          <span className="text-right">Weight</span>
+          <span className="text-right">Rate</span>
+          <span className="text-right">Expected</span>
+          <span className="text-right text-cyan-400/80">Taken</span>
+          <span className="text-right text-amber-400/80">Loss</span>
+          <span>Payment</span>
+          <span className="text-right pr-1">Actions</span>
         </div>
-        <PaginationBar
-          currentPage={salesPage}
-          totalItems={displayEntries.length}
-          pageSize={50}
-          onPageChange={setSalesPage}
-          itemLabel="sales records"
-          themeColor="cyan"
-        />
+
+        {loading ? (
+          <div className="py-16 flex flex-col items-center gap-3 text-slate-400">
+            <div className="w-9 h-9 border-2 border-emerald-400 border-t-transparent animate-spin rounded-full" />
+            <span className="text-sm font-mono">Loading entries…</span>
+          </div>
+        ) : displayEntries.length === 0 ? (
+          <div className="py-16 flex flex-col items-center gap-3 text-slate-400 bg-slate-900/60 rounded-3xl border border-slate-800/70">
+            <span className="material-symbols-outlined text-5xl text-slate-700">set_meal</span>
+            <p className="font-bold text-sm text-white">No sales entries found</p>
+            <p className="text-xs text-slate-500">Click &quot;Log Sale&quot; to record today&apos;s first counter dispatch.</p>
+          </div>
+        ) : (
+          <>
+            {paginatedSalesEntries.map((e, index) => {
+              const isGutted =
+                (e.product_type || "").toLowerCase().includes("gutted") &&
+                !(e.product_type || "").toLowerCase().includes("non");
+              const w = Number(e.weight_kg) || 0;
+              const rate = Number(e.rate_per_kg) || 0;
+              const exp =
+                e.expected_amount !== undefined && e.expected_amount !== null && Number(e.expected_amount) > 0
+                  ? Number(e.expected_amount)
+                  : e.custom_fields?.expected_amount !== undefined && Number(e.custom_fields.expected_amount) > 0
+                  ? Number(e.custom_fields.expected_amount)
+                  : Math.round(w * rate);
+              const taken = Number(e.amount_paid) || 0;
+              const isPendingBal =
+                e.custom_fields?.balance_status === "pending" &&
+                Number(e.custom_fields?.balance_amount) > 0;
+              const loss =
+                e.discount_amount !== undefined && e.discount_amount !== null && Number(e.discount_amount) > 0
+                  ? Number(e.discount_amount)
+                  : e.custom_fields?.discount_amount !== undefined && Number(e.custom_fields.discount_amount) > 0
+                  ? Number(e.custom_fields.discount_amount)
+                  : isPendingBal
+                  ? 0
+                  : Math.max(0, exp - taken);
+              const isSelfCleaned = Boolean(e.custom_fields?.self_cleaned || (e as any).self_cleaned);
+              const isCash = (e.payment_mode || "").toLowerCase().trim() === "cash";
+
+              return (
+                <div
+                  key={e.id}
+                  className={`group rounded-2xl border transition-all ${
+                    isSelfCleaned
+                      ? "bg-amber-950/25 border-amber-500/30 hover:bg-amber-950/35 border-l-4 border-l-amber-400"
+                      : "bg-slate-900/60 border-slate-800/70 hover:bg-slate-800/50 hover:border-slate-700"
+                  }`}
+                >
+                  {/* ── Main Data Row ── */}
+                  <div
+                    className="grid items-center gap-x-2 px-4 py-3.5 font-mono text-xs"
+                    style={{gridTemplateColumns:"1.8rem 7rem 4.5rem 1fr 5.5rem 4rem 5rem 5.5rem 6rem 6.5rem auto"}}
+                  >
+                    {/* # */}
+                    <span className="text-center text-slate-600 font-bold text-[11px]">
+                      {(salesPage - 1) * 50 + index + 1}
+                    </span>
+
+                    {/* Date */}
+                    <span className="text-slate-200 font-bold whitespace-nowrap text-[11px]">{e.entry_date}</span>
+
+                    {/* Time */}
+                    <span className="text-slate-500 whitespace-nowrap text-[10.5px]">{e.entry_time}</span>
+
+                    {/* Type */}
+                    <div className="flex flex-col gap-0.5 min-w-0">
+                      {isGutted && isSelfCleaned ? (
+                        <>
+                          <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-amber-500/20 text-amber-200 border border-amber-500/40 inline-flex items-center gap-1 w-fit">
+                            🐟 Gutted
+                            <span className="text-[8.5px] px-1 rounded bg-amber-500/30 text-amber-100 font-black">Self Cleaned</span>
+                          </span>
+                          <span className="text-[9px] text-amber-400/80 flex items-center gap-0.5">
+                            <span className="material-symbols-outlined text-[10px]">handyman</span>
+                            ₹0 Worker Inc.
+                          </span>
+                        </>
+                      ) : isGutted ? (
+                        <>
+                          <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 inline-flex items-center gap-1 w-fit">
+                            🐟 {e.product_type}
+                          </span>
+                          <span className="text-[9px] text-emerald-400/80 flex items-center gap-0.5">
+                            <span className="material-symbols-outlined text-[10px]">payments</span>
+                            +₹{(w * INCENTIVE_RATE_PER_KG).toFixed(0)} worker inc.
+                          </span>
+                        </>
+                      ) : (
+                        <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 inline-flex items-center gap-1 w-fit">
+                          ✨ {e.product_type}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Weight */}
+                    <div className="text-right whitespace-nowrap">
+                      <span className="text-emerald-400 font-black text-sm">{formatKg(e.weight_kg)}</span>
+                      <span className="text-slate-500 text-[9.5px] ml-0.5">Kg</span>
+                    </div>
+
+                    {/* Rate */}
+                    <span className="text-right text-slate-300 whitespace-nowrap">₹{e.rate_per_kg}</span>
+
+                    {/* Expected */}
+                    <span className="text-right text-slate-500 whitespace-nowrap">₹{exp.toLocaleString("en-IN")}</span>
+
+                    {/* Amount Taken */}
+                    <span className="text-right text-cyan-300 font-black text-[13px] whitespace-nowrap">₹{taken.toLocaleString("en-IN")}</span>
+
+                    {/* Negotiation Loss */}
+                    <div className="text-right whitespace-nowrap">
+                      {Number(e.custom_fields?.balance_amount) > 0 && e.custom_fields?.balance_status === "pending" ? (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenBalanceModalForEntry(e)}
+                          className="inline-flex flex-col items-end gap-0.5 cursor-pointer"
+                          title="Click to open Razorpay QR & WhatsApp Reminder"
+                        >
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9.5px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/50 hover:bg-amber-500/30 transition-all">
+                            ⏳ Bal: ₹{Number(e.custom_fields.balance_amount).toLocaleString("en-IN")}
+                          </span>
+                        </button>
+                      ) : e.custom_fields?.balance_status === "waived_final" ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[9.5px] font-mono text-slate-400 bg-slate-800 border border-slate-700">
+                          🤝 Waived (-₹{loss})
+                        </span>
+                      ) : e.custom_fields?.balance_status === "settled" || e.custom_fields?.settled_at || e.custom_fields?.is_full_payment ? (
+                        <span
+                          className="inline-flex items-center px-2 py-0.5 rounded-lg text-[9.5px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/50"
+                          title={`Settled via ${e.custom_fields?.settled_payment_method || "QR/Online"}`}
+                        >
+                          ✓ FULL PAID
+                        </span>
+                      ) : loss > 0 ? (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9.5px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                          -₹{loss.toLocaleString("en-IN")}
+                          <span className="text-[8.5px] opacity-70">loss</span>
+                        </span>
+                      ) : loss < 0 ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[9.5px] font-mono text-cyan-300 bg-cyan-500/10 border border-cyan-500/20">
+                          +₹{Math.abs(loss)}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[9.5px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20">
+                          ₹0 ✓
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Payment Mode */}
+                    <div className="whitespace-nowrap">
+                      {e.payment_mode === "Cash + Online QR" || (e.custom_fields?.settled_at && (e.payment_mode || "").toLowerCase().includes("qr")) ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[9.5px] font-bold">
+                          💵 Cash + ⚡ QR ✓
+                        </span>
+                      ) : isCash ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-teal-500/15 border border-teal-500/30 text-teal-300 text-[9.5px] font-bold">
+                          💵 Cash
+                        </span>
+                      ) : e.payment_mode === "Razorpay Link" && (e.custom_fields?.payment_status === "PENDING_LINK" || Number(e.amount_paid) === 0) ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[9.5px] font-bold">
+                          ⏳ Link Sent
+                        </span>
+                      ) : e.payment_mode === "Razorpay Link" ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[9.5px] font-bold">
+                          🔒 Razorpay
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-[9.5px] font-bold">
+                          ⚡ Online
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center justify-end gap-1.5">
+                      {Number(e.custom_fields?.balance_amount) > 0 && e.custom_fields?.balance_status === "pending" && (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenBalanceModalForEntry(e)}
+                          className="px-2 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[9.5px] font-bold font-mono transition-all cursor-pointer flex items-center gap-1 shadow-sm active:scale-95"
+                          title="Send WhatsApp Payment Reminder / Generate Razorpay QR"
+                        >
+                          <span className="material-symbols-outlined text-sm">qr_code_2</span>
+                          Khata
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => openEditModal(e)}
+                        className="w-8 h-8 rounded-xl bg-slate-800/90 hover:bg-emerald-500/25 text-slate-300 hover:text-emerald-300 border border-slate-700/80 hover:border-emerald-500/40 transition-all flex items-center justify-center cursor-pointer shadow-sm active:scale-95"
+                        title="Edit entry"
+                      >
+                        <span className="material-symbols-outlined text-base">edit</span>
+                      </button>
+                      {deleteConfirmId === e.id ? (
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteEntry(e.id)}
+                            className="px-2 py-1.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-[9.5px] font-bold font-mono shadow-md cursor-pointer active:scale-95"
+                          >
+                            Delete
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setDeleteConfirmId(null)}
+                            className="px-2 py-1.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-300 text-[9.5px] cursor-pointer active:scale-95"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ) : (
+                        canDelete && (
+                          <button
+                            type="button"
+                            onClick={() => setDeleteConfirmId(e.id)}
+                            className="w-8 h-8 rounded-xl bg-slate-800/90 hover:bg-rose-500/25 text-slate-400 hover:text-rose-300 border border-slate-700/80 hover:border-rose-500/40 transition-all flex items-center justify-center cursor-pointer shadow-sm active:scale-95"
+                            title="Delete entry"
+                          >
+                            <span className="material-symbols-outlined text-base">delete</span>
+                          </button>
+                        )
+                      )}
+                    </div>
+                  </div>
+
+                  {/* ── Secondary Row: Notes · Staff · Custom Columns ── */}
+                  {(e.notes || e.logged_by || customColumns.filter((c) => c.visible).some((c) => e.custom_fields?.[c.id])) && (
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-5 pb-3 border-t border-slate-800/40 pt-2 text-[10px] font-mono">
+                      {e.notes && (
+                        <span className="flex items-center gap-1 text-slate-400 max-w-xs truncate" title={e.notes}>
+                          <span className="material-symbols-outlined text-[11px] text-slate-600">sticky_note_2</span>
+                          {e.notes}
+                        </span>
+                      )}
+                      {e.logged_by && (
+                        <span className="flex items-center gap-1 text-slate-500">
+                          <span className="material-symbols-outlined text-[11px]">person</span>
+                          <span className="px-2 py-0.5 rounded-md bg-slate-800/80 border border-slate-700/60 text-slate-300">{e.logged_by}</span>
+                        </span>
+                      )}
+                      {customColumns.filter((c) => c.visible).map((c) =>
+                        e.custom_fields?.[c.id] ? (
+                          <span key={c.id} className="flex items-center gap-1 text-cyan-400/80">
+                            <span className="text-slate-600">{c.name}:</span>
+                            {e.custom_fields[c.id]}
+                          </span>
+                        ) : null
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            {/* Summary Footer */}
+            {displayEntries.length > 0 && (() => {
+              const totalVisKg = displayEntries.reduce((s, e) => s + (Number(e.weight_kg) || 0), 0);
+              const totalVisExp = displayEntries.reduce((s, e) => {
+                const w = Number(e.weight_kg) || 0;
+                const r = Number(e.rate_per_kg) || 0;
+                return s + (e.expected_amount !== undefined && e.expected_amount !== null ? Number(e.expected_amount) : Math.round(w * r));
+              }, 0);
+              const totalVisTaken = displayEntries.reduce((s, e) => s + (Number(e.amount_paid) || 0), 0);
+              const totalVisLoss = displayEntries.reduce((s, e) => {
+                const w = Number(e.weight_kg) || 0;
+                const r = Number(e.rate_per_kg) || 0;
+                const ex =
+                  e.expected_amount !== undefined && e.expected_amount !== null && Number(e.expected_amount) > 0
+                    ? Number(e.expected_amount)
+                    : e.custom_fields?.expected_amount !== undefined && Number(e.custom_fields.expected_amount) > 0
+                    ? Number(e.custom_fields.expected_amount)
+                    : Math.round(w * r);
+                const paid = Number(e.amount_paid) || 0;
+                const isPendBal = e.custom_fields?.balance_status === "pending" && Number(e.custom_fields?.balance_amount) > 0;
+                const l =
+                  e.discount_amount !== undefined && e.discount_amount !== null && Number(e.discount_amount) > 0
+                    ? Number(e.discount_amount)
+                    : e.custom_fields?.discount_amount !== undefined && Number(e.custom_fields.discount_amount) > 0
+                    ? Number(e.custom_fields.discount_amount)
+                    : isPendBal ? 0 : Math.max(0, ex - paid);
+                return s + l;
+              }, 0);
+
+              return (
+                <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 rounded-2xl bg-slate-950/90 border border-slate-800/80 font-mono text-xs font-bold mt-1">
+                  <span className="text-slate-500 uppercase tracking-wider text-[9.5px]">
+                    Visible Total — {displayEntries.length} entries
+                  </span>
+                  <div className="flex flex-wrap items-center gap-5">
+                    <span className="text-slate-400">
+                      Weight: <span className="text-emerald-400 font-black">{formatKg(totalVisKg)} Kg</span>
+                    </span>
+                    <span className="text-slate-400">
+                      Expected: <span className="text-white">₹{totalVisExp.toLocaleString("en-IN")}</span>
+                    </span>
+                    <span className="text-slate-400">
+                      Collected: <span className="text-cyan-300 font-black">₹{totalVisTaken.toLocaleString("en-IN")}</span>
+                    </span>
+                    <span className="text-slate-400">
+                      Loss:{" "}
+                      {totalVisLoss > 0 ? (
+                        <span className="text-amber-300 font-black">-₹{totalVisLoss.toLocaleString("en-IN")}</span>
+                      ) : (
+                        <span className="text-emerald-400">₹0 ✓</span>
+                      )}
+                    </span>
+                  </div>
+                </div>
+              );
+            })()}
+          </>
+        )}
       </div>
+      <PaginationBar
+        currentPage={salesPage}
+        totalItems={displayEntries.length}
+        pageSize={50}
+        onPageChange={setSalesPage}
+        itemLabel="sales records"
+        themeColor="cyan"
+      />
 
       {/* ══════════════════════════════════════════════════════════
           MODAL 1: NEW / EDIT SALES LOG ENTRY
