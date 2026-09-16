@@ -1,4 +1,4 @@
-﻿const CACHE_NAME = "urban-trout-v1";
+const CACHE_NAME = "urban-trout-v1";
 const STATIC_ASSETS = [
   "/",
   "/shop",
@@ -41,8 +41,8 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(event.request.url);
 
-  // Do not cache API routes, admin dashboard, or external third-party calls
-  if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/admin")) {
+  // Do not cache API routes, admin dashboard, fonts, or external third-party calls
+  if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/admin") || url.pathname.startsWith("/fonts/")) {
     return;
   }
 
