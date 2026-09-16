@@ -338,11 +338,12 @@ export async function POST(request: Request) {
     // 1. Try to save or update in customer_balances table
     let savedInTable = false;
     try {
-      const { data: existingRow } = await supabase
+      const { data: rows } = await supabase
         .from("customer_balances")
         .select("id")
         .eq("invoice_id", newRecord.invoice_id)
-        .maybeSingle();
+        .limit(1);
+      const existingRow = rows?.[0];
 
       if (existingRow?.id) {
         const { error: updateErr } = await supabase
@@ -549,11 +550,12 @@ export async function PATCH(request: Request) {
 
     // 1. Update in customer_balances table
     try {
-      const { data: existingRow } = await supabase
+      const { data: rows } = await supabase
         .from("customer_balances")
         .select("id")
         .or(`id.eq.${lookupId},invoice_id.eq.${lookupId}`)
-        .maybeSingle();
+        .limit(1);
+      const existingRow = rows?.[0];
 
       if (existingRow?.id) {
         await supabase

@@ -115,6 +115,24 @@ export function getIstTimeString(): string {
   }).format(new Date());
 }
 
+export function parseTimeToMinutes(timeStr?: string | null): number {
+  if (!timeStr) return 0;
+  const str = timeStr.trim().toLowerCase();
+  const match = str.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm)?$/i);
+  if (!match) return 0;
+
+  let hours = parseInt(match[1], 10);
+  const minutes = Math.min(59, Math.max(0, parseInt(match[2], 10)));
+  const meridiem = match[4]?.toLowerCase();
+
+  if (meridiem === "pm" && hours < 12) {
+    hours += 12;
+  } else if (meridiem === "am" && hours === 12) {
+    hours = 0;
+  }
+  return hours * 60 + minutes;
+}
+
 // Compute Day, Week, Month KPI summaries
 function computeKpis(entries: VendingSalesEntry[]) {
   const todayStr = getIstTodayDate();
@@ -395,10 +413,12 @@ export async function GET(request: Request) {
     if (startDate) entries = entries.filter((e) => e.entry_date >= startDate);
     if (endDate) entries = entries.filter((e) => e.entry_date <= endDate);
 
-    // Sort descending by date, then created_at / entry_time
+    // Sort descending by date, then entry_time (minutes) descending, then created_at descending
     entries.sort((a, b) => {
       const d = (b.entry_date || "").localeCompare(a.entry_date || "");
       if (d !== 0) return d;
+      const timeDiff = parseTimeToMinutes(b.entry_time) - parseTimeToMinutes(a.entry_time);
+      if (timeDiff !== 0) return timeDiff;
       return (b.created_at || "").localeCompare(a.created_at || "");
     });
 

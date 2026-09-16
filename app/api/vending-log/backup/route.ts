@@ -129,15 +129,66 @@ async function executeBackup(req: NextRequest) {
     }
     const allVending = Array.from(allVendingMap.values());
 
+    // Assemble unified Customer Balances (merging customer_balances table, fallback, and vending sales custom_fields)
+    const balancesMap = new Map<string, any>();
+    for (const b of customerBalances || []) {
+      const key = b?.invoice_id || b?.id;
+      if (key) balancesMap.set(key, b);
+    }
+
+    // Also harvest any balances directly recorded in vending_sales_log
+    for (const v of allVending) {
+      const cf = v?.custom_fields;
+      if (cf && (cf.balance_amount !== undefined || cf.balance_status)) {
+        const bal = Number(cf.balance_amount || 0);
+        const status = cf.balance_status || (bal > 0 ? "pending" : "settled");
+        const refId = cf.balance_ref_id || `VL-${(v.entry_date || "").replace(/\D/g, "")}-${(v.id || "").slice(-4)}`;
+        if (!balancesMap.has(refId) && (bal > 0 || status === "waived_final" || status === "settled")) {
+          const w = Number(v.weight_kg || 0);
+          const rate = Number(v.rate_per_kg || 0);
+          const exp = Number(cf.expected_amount) || Math.round(w * rate);
+          balancesMap.set(refId, {
+            id: v.id,
+            invoice_id: refId,
+            customer_name: cf.customer_name || "Counter Customer",
+            customer_phone: cf.customer_phone || "N/A",
+            total_amount: exp,
+            paid_amount: Number(v.amount_paid || 0),
+            balance_amount: bal,
+            status,
+            payment_method: v.payment_mode || "Cash",
+            settlement_note: v.notes ? `Vending: ${v.notes}` : undefined,
+            created_at: v.created_at || new Date().toISOString(),
+          });
+        }
+      }
+    }
+    const allBalances = Array.from(balancesMap.values());
+
+    const pendingBalances = allBalances.filter(
+      (b) => b.status === "pending" && Number(b.balance_amount || 0) > 0
+    );
+    const pendingCount = pendingBalances.length;
+    const totalPendingAmt = pendingBalances.reduce(
+      (sum, b) => sum + Number(b.balance_amount || 0),
+      0
+    );
+    const settledCount = allBalances.filter(
+      (b) => b.status === "settled" || b.status === "waived_final" || Number(b.balance_amount || 0) <= 0
+    ).length;
+
     const backupPayload = {
       backup_metadata: {
         generated_at_ist: nowIST,
         date: dateLabel,
         source: "Urban Trout Admin — Automated Nightly Backup",
-        version: "2.1",
+        version: "2.2",
         record_counts: {
           vending_log: allVending.length,
-          customer_balances: (customerBalances || []).length,
+          customer_balances_total: allBalances.length,
+          customer_balances_pending: pendingCount,
+          customer_balances_outstanding_rs: totalPendingAmt,
+          customer_balances_settled: settledCount,
           inventory: (inventoryEntries || []).length,
           app_settings: (settingsRows || []).length,
         },
@@ -145,7 +196,7 @@ async function executeBackup(req: NextRequest) {
           "To restore database: Recreate Supabase tables and import the JSON objects into vending_sales_log, customer_balances, inventory, and app_settings respectively.",
       },
       vending_sales_log: allVending,
-      customer_balances: customerBalances || [],
+      customer_balances: allBalances,
       inventory: inventoryEntries || [],
       app_settings: settingsRows || [],
     };
@@ -154,12 +205,19 @@ async function executeBackup(req: NextRequest) {
     const filename = `urban_trout_backup_${dateLabel}.json`;
     const { record_counts } = backupPayload.backup_metadata;
 
+    const khataSummary =
+      pendingCount > 0
+        ? `<b>${pendingCount} pending</b> (₹${totalPendingAmt.toLocaleString("en-IN")} due)${
+            settledCount > 0 ? ` • ${settledCount} settled` : ""
+          }`
+        : `<b>0 pending</b> (All clear ✓)${settledCount > 0 ? ` • ${settledCount} settled` : ""}`;
+
     const caption =
       `🔒 <b>URBAN TROUT — NIGHTLY DATA BACKUP</b>\n` +
       `📅 <b>Date:</b> ${nowIST} (IST)\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
       `📊 <b>Vending Sales Log:</b> ${record_counts.vending_log} entries\n` +
-      `📒 <b>Customer Balances:</b> ${record_counts.customer_balances} records\n` +
+      `📒 <b>Customer Khata:</b> ${khataSummary}\n` +
       `🐟 <b>Inventory Items:</b> ${record_counts.inventory} items\n` +
       `⚙️ <b>Configurations & Ledger:</b> ${record_counts.app_settings} settings\n` +
       `━━━━━━━━━━━━━━━━━━━━\n` +
@@ -175,7 +233,7 @@ async function executeBackup(req: NextRequest) {
         chatId,
         `🔒 <b>URBAN TROUT NIGHTLY BACKUP — ${nowIST}</b>\n` +
           `⚠️ JSON document attachment failed (${docResult?.description || "error"})\n` +
-          `Records: ${record_counts.vending_log} vending | ${record_counts.customer_balances} balances | ${record_counts.inventory} inv | ${record_counts.app_settings} settings`
+          `Records: ${record_counts.vending_log} vending | ${pendingCount} pending khata (₹${totalPendingAmt}) | ${record_counts.inventory} inv | ${record_counts.app_settings} settings`
       );
       return NextResponse.json(
         { success: false, error: docResult?.description, counts: record_counts },

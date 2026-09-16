@@ -12,6 +12,7 @@ import { WorkerSalaryPayment, WorkerSalarySettings } from "@/app/api/vending-log
 import * as XLSX from "xlsx";
 import BalanceReminderModal from "../billing/BalanceReminderModal";
 import type { CustomerBalanceRecord } from "@/app/api/customer-balance/route";
+import TimePickerInput, { parseTimeToMinutes } from "@/components/TimePickerInput";
 
 const DEFAULT_GUTTED_PRICE = 580;
 const DEFAULT_NON_GUTTED_PRICE = 540;
@@ -148,6 +149,19 @@ export default function VendingCenterLoggerPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
   const [filterPayment, setFilterPayment] = useState<string>("all");
+
+  // Table Sorting state (Time descending by default)
+  const [sortField, setSortField] = useState<"time" | "date">("time");
+  const [sortDirection, setSortDirection] = useState<"desc" | "asc">("desc");
+
+  const toggleSort = (field: "time" | "date") => {
+    if (sortField === field) {
+      setSortDirection((prev) => (prev === "desc" ? "asc" : "desc"));
+    } else {
+      setSortField(field);
+      setSortDirection("desc"); // Default to newest first
+    }
+  };
 
   // Modals
   const [newEntryModalOpen, setNewEntryModalOpen] = useState(false);
@@ -934,7 +948,7 @@ export default function VendingCenterLoggerPage() {
 
   // ─── Search & Dropdown Filtered Table List ───
   const displayEntries = useMemo(() => {
-    return filteredEntriesByPeriod.filter((e) => {
+    const list = filteredEntriesByPeriod.filter((e) => {
       // Type filter
       if (filterType !== "all") {
         if (filterType === "gutted" && !e.product_type?.toLowerCase().includes("gutted")) return false;
@@ -965,7 +979,31 @@ export default function VendingCenterLoggerPage() {
 
       return true;
     });
-  }, [filteredEntriesByPeriod, filterType, filterPayment, searchQuery]);
+
+    return list.sort((a, b) => {
+      if (sortField === "time") {
+        // Primary: entry_date comparison
+        const dateDiff = (b.entry_date || "").localeCompare(a.entry_date || "");
+        if (dateDiff !== 0) return sortDirection === "desc" ? dateDiff : -dateDiff;
+
+        // Same date: compare time in minutes
+        const timeDiff = parseTimeToMinutes(b.entry_time) - parseTimeToMinutes(a.entry_time);
+        if (timeDiff !== 0) return sortDirection === "desc" ? timeDiff : -timeDiff;
+
+        // Tiebreaker: created_at
+        const createdDiff = (b.created_at || "").localeCompare(a.created_at || "");
+        return sortDirection === "desc" ? createdDiff : -createdDiff;
+      } else {
+        // Date sort
+        const dateDiff = (b.entry_date || "").localeCompare(a.entry_date || "");
+        if (dateDiff !== 0) return sortDirection === "desc" ? dateDiff : -dateDiff;
+
+        // Secondary: time comparison
+        const timeDiff = parseTimeToMinutes(b.entry_time) - parseTimeToMinutes(a.entry_time);
+        return sortDirection === "desc" ? timeDiff : -timeDiff;
+      }
+    });
+  }, [filteredEntriesByPeriod, filterType, filterPayment, searchQuery, sortField, sortDirection]);
 
   // ─── Reset Form ───
   const resetForm = () => {
@@ -3461,8 +3499,42 @@ export default function VendingCenterLoggerPage() {
             <thead>
               <tr className="border-b border-slate-800 bg-slate-950/80 text-[10px] font-mono uppercase tracking-wider text-slate-400">
                 <th className="py-3.5 px-3 text-center w-10">#</th>
-                <th className="py-3.5 px-3">Date</th>
-                <th className="py-3.5 px-3">Time</th>
+                <th
+                  onClick={() => toggleSort("date")}
+                  className="py-3.5 px-3 cursor-pointer select-none hover:text-white transition-colors group"
+                  title="Click to sort by Date"
+                >
+                  <div className="flex items-center gap-1">
+                    <span className={sortField === "date" ? "text-emerald-400 font-bold" : ""}>Date</span>
+                    {sortField === "date" ? (
+                      <span className="material-symbols-outlined text-xs text-emerald-400 font-bold">
+                        {sortDirection === "desc" ? "arrow_downward" : "arrow_upward"}
+                      </span>
+                    ) : (
+                      <span className="material-symbols-outlined text-xs text-slate-600 group-hover:text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                        swap_vert
+                      </span>
+                    )}
+                  </div>
+                </th>
+                <th
+                  onClick={() => toggleSort("time")}
+                  className="py-3.5 px-3 cursor-pointer select-none hover:text-white transition-colors group"
+                  title="Click to sort by Time"
+                >
+                  <div className="flex items-center gap-1">
+                    <span className={sortField === "time" ? "text-emerald-400 font-bold" : ""}>Time</span>
+                    {sortField === "time" ? (
+                      <span className="material-symbols-outlined text-xs text-emerald-400 font-bold">
+                        {sortDirection === "desc" ? "arrow_downward" : "arrow_upward"}
+                      </span>
+                    ) : (
+                      <span className="material-symbols-outlined text-xs text-slate-600 group-hover:text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                        swap_vert
+                      </span>
+                    )}
+                  </div>
+                </th>
                 <th className="py-3.5 px-3">Type</th>
                 <th className="py-3.5 px-3 text-right">Weight (Kg)</th>
                 <th className="py-3.5 px-3 text-right">Rate @/Kg</th>
@@ -3859,28 +3931,13 @@ export default function VendingCenterLoggerPage() {
                     className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-emerald-400"
                   />
                 </div>
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-[10px] uppercase font-bold text-slate-400 font-mono">
-                      Time
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => setFormTime(getCurrentTime())}
-                      className="text-[9px] text-emerald-400 hover:underline cursor-pointer"
-                    >
-                      Now
-                    </button>
-                  </div>
-                  <input
-                    type="text"
-                    value={formTime}
-                    onChange={(e) => setFormTime(e.target.value)}
-                    placeholder="e.g. 11:30 AM"
-                    required
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-emerald-400"
-                  />
-                </div>
+                <TimePickerInput
+                  label="Time"
+                  value={formTime}
+                  onChange={setFormTime}
+                  accentColor="emerald"
+                  required
+                />
               </div>
 
               {/* Row 2: Product Type Quick Selector */}
@@ -5162,16 +5219,12 @@ export default function VendingCenterLoggerPage() {
                     required
                   />
                 </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Time</label>
-                  <input
-                    type="text"
-                    value={stockFormTime}
-                    onChange={(e) => setStockFormTime(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-blue-400 font-mono"
-                    placeholder="08:00 AM"
-                  />
-                </div>
+                <TimePickerInput
+                  label="Time"
+                  value={stockFormTime}
+                  onChange={setStockFormTime}
+                  accentColor="blue"
+                />
               </div>
 
               {/* Supplier */}
@@ -5330,16 +5383,12 @@ export default function VendingCenterLoggerPage() {
                     required
                   />
                 </div>
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Time</label>
-                  <input
-                    type="text"
-                    value={mortalityFormTime}
-                    onChange={(e) => setMortalityFormTime(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-rose-400 font-mono"
-                    placeholder="09:00 AM"
-                  />
-                </div>
+                <TimePickerInput
+                  label="Time"
+                  value={mortalityFormTime}
+                  onChange={setMortalityFormTime}
+                  accentColor="rose"
+                />
               </div>
 
               {/* Weight & Fish Count */}
