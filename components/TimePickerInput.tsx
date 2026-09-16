@@ -8,7 +8,6 @@ export interface TimePickerInputProps {
   label?: string;
   required?: boolean;
   accentColor?: "emerald" | "cyan" | "blue" | "rose";
-  showQuickChips?: boolean;
   className?: string;
 }
 
@@ -138,7 +137,6 @@ export default function TimePickerInput({
   label = "Time",
   required = false,
   accentColor = "emerald",
-  showQuickChips = true,
   className = "",
 }: TimePickerInputProps) {
   const [isOpen, setIsOpen] = useState(false);
@@ -171,32 +169,36 @@ export default function TimePickerInput({
   // Color schemes
   const colorMap = {
     emerald: {
-      borderFocus: "focus:border-emerald-400",
       activeBg: "bg-emerald-500 text-slate-950 font-bold shadow-md shadow-emerald-500/30",
       pillBorder: "border-emerald-500/40 text-emerald-300",
       accentText: "text-emerald-400",
-      hoverBg: "hover:bg-emerald-500/20 hover:text-emerald-300",
+      glowBorder: "border-emerald-400/90 ring-1 ring-emerald-500/40",
+      hoverCard: "hover:border-emerald-500/50",
+      badgeBg: "bg-emerald-950/80 text-emerald-400 border-emerald-500/30 hover:bg-emerald-900/60",
     },
     cyan: {
-      borderFocus: "focus:border-cyan-400",
       activeBg: "bg-cyan-500 text-slate-950 font-bold shadow-md shadow-cyan-500/30",
       pillBorder: "border-cyan-500/40 text-cyan-300",
       accentText: "text-cyan-400",
-      hoverBg: "hover:bg-cyan-500/20 hover:text-cyan-300",
+      glowBorder: "border-cyan-400/90 ring-1 ring-cyan-500/40",
+      hoverCard: "hover:border-cyan-500/50",
+      badgeBg: "bg-cyan-950/80 text-cyan-400 border-cyan-500/30 hover:bg-cyan-900/60",
     },
     blue: {
-      borderFocus: "focus:border-blue-400",
       activeBg: "bg-blue-500 text-white font-bold shadow-md shadow-blue-500/30",
       pillBorder: "border-blue-500/40 text-blue-300",
       accentText: "text-blue-400",
-      hoverBg: "hover:bg-blue-500/20 hover:text-blue-300",
+      glowBorder: "border-blue-400/90 ring-1 ring-blue-500/40",
+      hoverCard: "hover:border-blue-500/50",
+      badgeBg: "bg-blue-950/80 text-blue-400 border-blue-500/30 hover:bg-blue-900/60",
     },
     rose: {
-      borderFocus: "focus:border-rose-400",
       activeBg: "bg-rose-500 text-white font-bold shadow-md shadow-rose-500/30",
       pillBorder: "border-rose-500/40 text-rose-300",
       accentText: "text-rose-400",
-      hoverBg: "hover:bg-rose-500/20 hover:text-rose-300",
+      glowBorder: "border-rose-400/90 ring-1 ring-rose-500/40",
+      hoverCard: "hover:border-rose-500/50",
+      badgeBg: "bg-rose-950/80 text-rose-400 border-rose-500/30 hover:bg-rose-900/60",
     },
   };
 
@@ -252,7 +254,6 @@ export default function TimePickerInput({
     onChange(formatTime12(newH, minutes, newMer));
   };
 
-  // Native input change
   const handleNativeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value; // "HH:mm"
     if (!val) return;
@@ -282,71 +283,50 @@ export default function TimePickerInput({
   const hoursList = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
   const minuteIntervals = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
 
-  const formattedDisplay = value ? (
-    <div className="flex items-center gap-1.5 font-mono text-xs">
-      <span className="font-bold text-white tracking-wider">
-        {String(hours12).padStart(2, "0")} : {String(minutes).padStart(2, "0")}
-      </span>
-      <span
-        className={`px-1.5 py-0.5 rounded text-[10px] font-extrabold uppercase border ${scheme.pillBorder} bg-slate-900`}
-      >
-        {meridiem}
-      </span>
-    </div>
-  ) : (
-    <span className="text-slate-500 text-xs">Select Time</span>
-  );
-
   return (
     <div ref={containerRef} className={`relative ${className}`}>
-      {/* Label and "Now" Quick Trigger */}
-      {label && (
-        <div className="flex items-center justify-between mb-1">
-          <label className="text-[10px] uppercase font-bold text-slate-400 font-mono">
-            {label} {required && <span className={scheme.accentText}>*</span>}
-          </label>
-          <button
-            type="button"
-            onClick={() => onChange(getIstCurrentTime())}
-            className={`text-[9px] ${scheme.accentText} hover:underline cursor-pointer flex items-center gap-0.5 font-mono`}
-            title="Set to current time in IST"
-          >
-            <span className="material-symbols-outlined text-[11px]">bolt</span>
-            Now
-          </button>
-        </div>
-      )}
-
-      {/* Main Interactive Trigger Box */}
+      {/* Premium POS Time Card Trigger */}
       <div
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full bg-slate-950 border ${
-          isOpen ? "border-emerald-400 ring-1 ring-emerald-500/30" : "border-slate-700"
-        } rounded-xl px-3 py-2 text-xs text-white font-mono flex items-center justify-between cursor-pointer hover:border-slate-500 transition-all select-none group shadow-inner`}
+        className={`w-full bg-slate-950/80 border ${
+          isOpen ? scheme.glowBorder : `border-slate-800 ${scheme.hoverCard}`
+        } rounded-2xl p-2.5 sm:p-3 transition-all cursor-pointer select-none group shadow-inner flex flex-col justify-between`}
       >
-        <div className="flex items-center gap-2">
-          <span
-            className={`material-symbols-outlined text-sm ${scheme.accentText} transition-transform group-hover:scale-110`}
-          >
-            schedule
+        {/* Card Header Row */}
+        <div className="flex items-center justify-between mb-1.5">
+          <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+            <span className={`material-symbols-outlined text-[13px] ${scheme.accentText}`}>schedule</span>
+            {label} {required && <span className={scheme.accentText}>*</span>}
           </span>
-          {formattedDisplay}
-        </div>
-
-        <div className="flex items-center gap-1.5">
           <button
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              openNativePicker();
+              onChange(getIstCurrentTime());
             }}
-            className="text-slate-500 hover:text-slate-300 p-0.5 rounded hover:bg-slate-800/60 transition-colors"
-            title="Open native clock picker"
+            className={`text-[9px] font-mono font-bold px-2 py-0.5 rounded-full border transition-all cursor-pointer flex items-center gap-1 ${scheme.badgeBg}`}
+            title="Set to current IST time"
           >
-            <span className="material-symbols-outlined text-xs">edit_calendar</span>
+            <span className="material-symbols-outlined text-[10px]">bolt</span>
+            Now
           </button>
+        </div>
+
+        {/* Card Value Row */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-baseline gap-1.5 font-mono">
+            <span className="text-sm sm:text-base font-extrabold text-white tracking-wider">
+              {String(hours12).padStart(2, "0")} : {String(minutes).padStart(2, "0")}
+            </span>
+            <span
+              className={`px-1.5 py-0.5 rounded text-[9px] font-black uppercase border ${scheme.pillBorder} bg-slate-900/90 shadow-sm`}
+            >
+              {meridiem}
+            </span>
+          </div>
+
           <span
-            className={`material-symbols-outlined text-xs text-slate-500 transition-transform ${
+            className={`material-symbols-outlined text-base text-slate-500 transition-transform group-hover:text-emerald-400 ${
               isOpen ? "rotate-180 text-emerald-400" : ""
             }`}
           >
@@ -366,70 +346,25 @@ export default function TimePickerInput({
         aria-hidden="true"
       />
 
-      {/* Quick Time Offset Chips (Single-click adjustment right under field) */}
-      {showQuickChips && (
-        <div className="flex items-center gap-1 mt-1.5 overflow-x-auto no-scrollbar py-0.5">
-          <button
-            type="button"
-            onClick={() => onChange(getIstCurrentTime())}
-            className={`px-2 py-0.5 rounded-md text-[9px] font-mono font-medium border border-slate-800 bg-slate-900/90 text-slate-400 hover:text-white hover:border-emerald-500/40 transition-all whitespace-nowrap cursor-pointer`}
-          >
-            ⚡ Now
-          </button>
-          <button
-            type="button"
-            onClick={() => onChange(getRelativeIstTime(-5))}
-            className="px-1.5 py-0.5 rounded-md text-[9px] font-mono border border-slate-800 bg-slate-900/90 text-slate-400 hover:text-white hover:border-emerald-500/40 transition-all whitespace-nowrap cursor-pointer"
-            title="5 minutes ago"
-          >
-            -5m
-          </button>
-          <button
-            type="button"
-            onClick={() => onChange(getRelativeIstTime(-15))}
-            className="px-1.5 py-0.5 rounded-md text-[9px] font-mono border border-slate-800 bg-slate-900/90 text-slate-400 hover:text-white hover:border-emerald-500/40 transition-all whitespace-nowrap cursor-pointer"
-            title="15 minutes ago"
-          >
-            -15m
-          </button>
-          <button
-            type="button"
-            onClick={() => onChange(getRelativeIstTime(-30))}
-            className="px-1.5 py-0.5 rounded-md text-[9px] font-mono border border-slate-800 bg-slate-900/90 text-slate-400 hover:text-white hover:border-emerald-500/40 transition-all whitespace-nowrap cursor-pointer"
-            title="30 minutes ago"
-          >
-            -30m
-          </button>
-          <button
-            type="button"
-            onClick={() => onChange(getRelativeIstTime(-60))}
-            className="px-1.5 py-0.5 rounded-md text-[9px] font-mono border border-slate-800 bg-slate-900/90 text-slate-400 hover:text-white hover:border-emerald-500/40 transition-all whitespace-nowrap cursor-pointer"
-            title="1 hour ago"
-          >
-            -1h
-          </button>
-        </div>
-      )}
-
-      {/* Interactive Dropdown / Popover Modal Drawer */}
+      {/* Interactive Time Selector Popover Modal */}
       {isOpen && (
         <div
-          className="absolute z-50 mt-2 left-0 right-0 sm:w-80 bg-slate-950/95 backdrop-blur-xl border border-slate-700/90 rounded-2xl p-3.5 shadow-2xl shadow-black/80 space-y-3 font-mono animate-in fade-in zoom-in-95 duration-150"
-          style={{ minWidth: "280px" }}
+          className="absolute z-50 mt-2 left-0 sm:left-auto right-0 sm:w-80 bg-slate-950/98 backdrop-blur-2xl border border-slate-700/90 rounded-3xl p-4 shadow-2xl shadow-black/90 space-y-3.5 font-mono animate-in fade-in zoom-in-95 duration-150"
+          style={{ minWidth: "285px" }}
         >
-          {/* Readout with Steppers */}
-          <div className="flex items-center justify-between bg-slate-900/90 border border-slate-800 p-2 rounded-xl">
-            {/* Hour Block */}
+          {/* Readout with Steppers and AM/PM */}
+          <div className="flex items-center justify-between bg-slate-900/90 border border-slate-800 p-2.5 rounded-2xl">
+            {/* Hour Stepper */}
             <div className="flex items-center gap-1">
               <button
                 type="button"
                 onClick={() => handleStepHour(-1)}
-                className="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center text-xs cursor-pointer transition-colors"
+                className="w-6 h-6 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center text-xs cursor-pointer transition-colors"
               >
                 ▼
               </button>
               <div className="text-center px-1.5">
-                <span className="block text-base font-bold text-white leading-none">
+                <span className="block text-base font-extrabold text-white leading-none">
                   {String(hours12).padStart(2, "0")}
                 </span>
                 <span className="text-[8px] text-slate-500 uppercase tracking-tighter">Hour</span>
@@ -437,7 +372,7 @@ export default function TimePickerInput({
               <button
                 type="button"
                 onClick={() => handleStepHour(1)}
-                className="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center text-xs cursor-pointer transition-colors"
+                className="w-6 h-6 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center text-xs cursor-pointer transition-colors"
               >
                 ▲
               </button>
@@ -445,17 +380,17 @@ export default function TimePickerInput({
 
             <span className="text-base font-bold text-slate-600">:</span>
 
-            {/* Minute Block */}
+            {/* Minute Stepper */}
             <div className="flex items-center gap-1">
               <button
                 type="button"
                 onClick={() => handleStepMinute(-1)}
-                className="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center text-xs cursor-pointer transition-colors"
+                className="w-6 h-6 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center text-xs cursor-pointer transition-colors"
               >
                 ▼
               </button>
               <div className="text-center px-1.5">
-                <span className="block text-base font-bold text-white leading-none">
+                <span className="block text-base font-extrabold text-white leading-none">
                   {String(minutes).padStart(2, "0")}
                 </span>
                 <span className="text-[8px] text-slate-500 uppercase tracking-tighter">Min</span>
@@ -463,18 +398,18 @@ export default function TimePickerInput({
               <button
                 type="button"
                 onClick={() => handleStepMinute(1)}
-                className="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center text-xs cursor-pointer transition-colors"
+                className="w-6 h-6 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center text-xs cursor-pointer transition-colors"
               >
                 ▲
               </button>
             </div>
 
             {/* AM / PM Segmented Switch */}
-            <div className="flex bg-slate-950 p-0.5 rounded-lg border border-slate-800">
+            <div className="flex bg-slate-950 p-0.5 rounded-xl border border-slate-800">
               <button
                 type="button"
                 onClick={() => handleToggleMeridiem("am")}
-                className={`px-2 py-1 rounded text-[10px] font-bold transition-all cursor-pointer ${
+                className={`px-2.5 py-1 rounded-lg text-[10px] font-extrabold transition-all cursor-pointer ${
                   meridiem === "am"
                     ? scheme.activeBg
                     : "text-slate-400 hover:text-white"
@@ -485,7 +420,7 @@ export default function TimePickerInput({
               <button
                 type="button"
                 onClick={() => handleToggleMeridiem("pm")}
-                className={`px-2 py-1 rounded text-[10px] font-bold transition-all cursor-pointer ${
+                className={`px-2.5 py-1 rounded-lg text-[10px] font-extrabold transition-all cursor-pointer ${
                   meridiem === "pm"
                     ? scheme.activeBg
                     : "text-slate-400 hover:text-white"
@@ -510,10 +445,10 @@ export default function TimePickerInput({
                     key={h}
                     type="button"
                     onClick={() => handleSelectHour(h)}
-                    className={`py-1 rounded-lg text-xs font-bold transition-all cursor-pointer text-center ${
+                    className={`py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer text-center ${
                       isSel
                         ? scheme.activeBg
-                        : "bg-slate-900 border border-slate-800 text-slate-300 hover:bg-slate-800 hover:text-white"
+                        : "bg-slate-900/90 border border-slate-800 text-slate-300 hover:bg-slate-800 hover:text-white"
                     }`}
                   >
                     {h}
@@ -531,14 +466,14 @@ export default function TimePickerInput({
                 <button
                   type="button"
                   onClick={() => handleStepMinute(-5)}
-                  className="px-1 rounded bg-slate-900 border border-slate-800 text-slate-400 hover:text-white"
+                  className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-400 hover:text-white"
                 >
                   -5m
                 </button>
                 <button
                   type="button"
                   onClick={() => handleStepMinute(5)}
-                  className="px-1 rounded bg-slate-900 border border-slate-800 text-slate-400 hover:text-white"
+                  className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-400 hover:text-white"
                 >
                   +5m
                 </button>
@@ -552,10 +487,10 @@ export default function TimePickerInput({
                     key={m}
                     type="button"
                     onClick={() => handleSelectMinute(m)}
-                    className={`py-1 rounded-lg text-[11px] font-mono transition-all cursor-pointer text-center ${
+                    className={`py-1.5 rounded-xl text-[11px] font-mono transition-all cursor-pointer text-center ${
                       isSel
                         ? scheme.activeBg
-                        : "bg-slate-900 border border-slate-800 text-slate-400 hover:bg-slate-800 hover:text-white"
+                        : "bg-slate-900/90 border border-slate-800 text-slate-400 hover:bg-slate-800 hover:text-white"
                     }`}
                   >
                     :{String(m).padStart(2, "0")}
@@ -565,21 +500,58 @@ export default function TimePickerInput({
             </div>
           </div>
 
+          {/* Quick Presets Row (Spacious & Clean inside popover) */}
+          <div className="space-y-1 pt-1 border-t border-slate-800/80">
+            <span className="text-[9px] font-bold text-slate-400 uppercase tracking-wider block">
+              Quick Shortcuts
+            </span>
+            <div className="grid grid-cols-4 gap-1.5">
+              <button
+                type="button"
+                onClick={() => onChange(getIstCurrentTime())}
+                className="py-1 rounded-lg text-[10px] font-mono font-bold bg-slate-900 border border-slate-800 text-emerald-400 hover:bg-slate-800 transition-colors text-center cursor-pointer"
+              >
+                ⚡ Now
+              </button>
+              <button
+                type="button"
+                onClick={() => onChange(getRelativeIstTime(-15))}
+                className="py-1 rounded-lg text-[10px] font-mono bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 transition-colors text-center cursor-pointer"
+              >
+                -15m
+              </button>
+              <button
+                type="button"
+                onClick={() => onChange(getRelativeIstTime(-30))}
+                className="py-1 rounded-lg text-[10px] font-mono bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 transition-colors text-center cursor-pointer"
+              >
+                -30m
+              </button>
+              <button
+                type="button"
+                onClick={() => onChange(getRelativeIstTime(-60))}
+                className="py-1 rounded-lg text-[10px] font-mono bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 transition-colors text-center cursor-pointer"
+              >
+                -1h
+              </button>
+            </div>
+          </div>
+
           {/* Footer Actions */}
           <div className="pt-2 border-t border-slate-800 flex items-center justify-between gap-2">
             <button
               type="button"
               onClick={openNativePicker}
-              className="text-[10px] text-slate-400 hover:text-slate-200 flex items-center gap-1 cursor-pointer py-1 px-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 transition-colors"
+              className="text-[10px] text-slate-400 hover:text-slate-200 flex items-center gap-1 cursor-pointer py-1.5 px-2.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 transition-colors"
             >
-              <span className="material-symbols-outlined text-xs">schedule</span>
-              Wheel Picker
+              <span className="material-symbols-outlined text-xs">tune</span>
+              Clock Wheel
             </button>
 
             <button
               type="button"
               onClick={() => setIsOpen(false)}
-              className="py-1 px-4 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-xs font-bold transition-all cursor-pointer"
+              className="py-1.5 px-4 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-xs font-bold transition-all cursor-pointer shadow-sm"
             >
               Done ✓
             </button>

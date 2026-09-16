@@ -3917,20 +3917,51 @@ export default function VendingCenterLoggerPage() {
             </div>
 
             <form onSubmit={handleSubmitEntry} className="space-y-4">
-              {/* Row 1: Date & Time */}
-              <div className="grid grid-cols-2 gap-2.5">
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-slate-400 font-mono mb-1">
-                    Date
-                  </label>
+              {/* Row 1: Symmetrical Twin Cards (Date & Time) */}
+              <div className="grid grid-cols-2 gap-3">
+                {/* Date Card */}
+                <div className="relative group bg-slate-950/80 border border-slate-800 hover:border-emerald-500/50 rounded-2xl p-2.5 sm:p-3 transition-all cursor-pointer shadow-inner flex flex-col justify-between">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-[13px] text-emerald-400">calendar_today</span>
+                      Date
+                    </span>
+                    {formDate === getTodayDate() ? (
+                      <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-500/30">
+                        Today ✓
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setFormDate(getTodayDate());
+                        }}
+                        className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-all cursor-pointer"
+                        title="Reset to today"
+                      >
+                        Today
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-sm sm:text-base font-bold text-white tracking-wide">
+                      {formatIstDateDisplay(formDate) || formDate}
+                    </span>
+                    <span className="material-symbols-outlined text-base text-slate-500 group-hover:text-emerald-400 transition-colors">
+                      event
+                    </span>
+                  </div>
                   <input
                     type="date"
                     value={formDate}
                     onChange={(e) => setFormDate(e.target.value)}
                     required
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-emerald-400"
+                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                   />
                 </div>
+
+                {/* Time Card */}
                 <TimePickerInput
                   label="Time"
                   value={formTime}
@@ -5209,14 +5240,45 @@ export default function VendingCenterLoggerPage() {
             <form onSubmit={handleAddStockEntry} className="p-5 space-y-4">
               {/* Date & Time */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Date</label>
+                {/* Date Card */}
+                <div className="relative group bg-slate-900 border border-slate-700/80 hover:border-blue-500/50 rounded-2xl p-2.5 sm:p-3 transition-all cursor-pointer shadow-inner flex flex-col justify-between">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-[13px] text-blue-400">calendar_today</span>
+                      Date
+                    </span>
+                    {stockFormDate === getTodayDate() ? (
+                      <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-blue-950/80 text-blue-400 border border-blue-500/30">
+                        Today ✓
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setStockFormDate(getTodayDate());
+                        }}
+                        className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-all cursor-pointer"
+                        title="Reset to today"
+                      >
+                        Today
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-sm sm:text-base font-bold text-white tracking-wide">
+                      {formatIstDateDisplay(stockFormDate) || stockFormDate}
+                    </span>
+                    <span className="material-symbols-outlined text-base text-slate-500 group-hover:text-blue-400 transition-colors">
+                      event
+                    </span>
+                  </div>
                   <input
                     type="date"
                     value={stockFormDate}
                     onChange={(e) => setStockFormDate(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-blue-400 font-mono"
                     required
+                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                   />
                 </div>
                 <TimePickerInput
@@ -5373,14 +5435,45 @@ export default function VendingCenterLoggerPage() {
             <form onSubmit={handleAddMortalityEntry} className="p-5 space-y-4">
               {/* Date & Time */}
               <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Date</label>
+                {/* Date Card */}
+                <div className="relative group bg-slate-900 border border-slate-700/80 hover:border-rose-500/50 rounded-2xl p-2.5 sm:p-3 transition-all cursor-pointer shadow-inner flex flex-col justify-between">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-[13px] text-rose-400">calendar_today</span>
+                      Date
+                    </span>
+                    {mortalityFormDate === getTodayDate() ? (
+                      <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-rose-950/80 text-rose-400 border border-rose-500/30">
+                        Today ✓
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setMortalityFormDate(getTodayDate());
+                        }}
+                        className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-all cursor-pointer"
+                        title="Reset to today"
+                      >
+                        Today
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-sm sm:text-base font-bold text-white tracking-wide">
+                      {formatIstDateDisplay(mortalityFormDate) || mortalityFormDate}
+                    </span>
+                    <span className="material-symbols-outlined text-base text-slate-500 group-hover:text-rose-400 transition-colors">
+                      event
+                    </span>
+                  </div>
                   <input
                     type="date"
                     value={mortalityFormDate}
                     onChange={(e) => setMortalityFormDate(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-rose-400 font-mono"
                     required
+                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                   />
                 </div>
                 <TimePickerInput
