@@ -3591,20 +3591,20 @@ export default function VendingCenterLoggerPage() {
       </div>
 
       {/* ══════════════════════════════════════════════════════════
-          DATA TABLE
+          DATA TABLE (MODERN EXPANDED UI)
           ══════════════════════════════════════════════════════════ */}
-      <div className="bg-slate-900/60 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl">
+      <div className="bg-slate-900/70 border border-slate-800/90 rounded-3xl overflow-hidden shadow-2xl shadow-slate-950/60 backdrop-blur-md">
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
+          <table className="w-full text-left border-collapse text-xs min-w-[1420px]">
             <thead>
-              <tr className="border-b border-slate-800 bg-slate-950/80 text-[10px] font-mono uppercase tracking-wider text-slate-400">
-                <th className="py-3.5 px-3 text-center w-10">#</th>
+              <tr className="border-b border-slate-800 bg-slate-950/90 text-[10.5px] font-mono uppercase tracking-wider text-slate-400">
+                <th className="py-4 px-3.5 text-center w-12 font-bold">#</th>
                 <th
                   onClick={() => toggleSort("date")}
-                  className="py-3.5 px-3 cursor-pointer select-none hover:text-white transition-colors group"
+                  className="py-4 px-4 cursor-pointer select-none hover:text-white transition-colors group min-w-[120px]"
                   title="Click to sort by Date"
                 >
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1.5">
                     <span className={sortField === "date" ? "text-emerald-400 font-bold" : ""}>Date</span>
                     {sortField === "date" ? (
                       <span className="material-symbols-outlined text-xs text-emerald-400 font-bold">
@@ -3619,10 +3619,10 @@ export default function VendingCenterLoggerPage() {
                 </th>
                 <th
                   onClick={() => toggleSort("time")}
-                  className="py-3.5 px-3 cursor-pointer select-none hover:text-white transition-colors group"
+                  className="py-4 px-4 cursor-pointer select-none hover:text-white transition-colors group min-w-[105px]"
                   title="Click to sort by Time"
                 >
-                  <div className="flex items-center gap-1">
+                  <div className="flex items-center gap-1.5">
                     <span className={sortField === "time" ? "text-emerald-400 font-bold" : ""}>Time</span>
                     {sortField === "time" ? (
                       <span className="material-symbols-outlined text-xs text-emerald-400 font-bold">
@@ -3635,24 +3635,24 @@ export default function VendingCenterLoggerPage() {
                     )}
                   </div>
                 </th>
-                <th className="py-3.5 px-3">Type</th>
-                <th className="py-3.5 px-3 text-right">Weight (Kg)</th>
-                <th className="py-3.5 px-3 text-right">Rate @/Kg</th>
-                <th className="py-3.5 px-3 text-right">Expected (₹)</th>
-                <th className="py-3.5 px-3 text-right text-cyan-300">Amount Taken (₹)</th>
-                <th className="py-3.5 px-3 text-right text-amber-300">Negotiation Loss</th>
-                <th className="py-3.5 px-3">Payment Mode</th>
+                <th className="py-4 px-4 min-w-[210px]">Type</th>
+                <th className="py-4 px-4 text-right min-w-[125px]">Weight (Kg)</th>
+                <th className="py-4 px-3.5 text-right min-w-[105px]">Rate @/Kg</th>
+                <th className="py-4 px-3.5 text-right min-w-[115px]">Expected (₹)</th>
+                <th className="py-4 px-4 text-right text-cyan-300 font-bold min-w-[135px]">Amount Taken (₹)</th>
+                <th className="py-4 px-4 text-right text-amber-300 font-bold min-w-[145px]">Negotiation Loss</th>
+                <th className="py-4 px-4 min-w-[160px]">Payment Mode</th>
                 {/* Dynamic Custom Columns */}
                 {customColumns
                   .filter((c) => c.visible)
                   .map((c) => (
-                    <th key={c.id} className="py-3.5 px-3 text-cyan-300">
+                    <th key={c.id} className="py-4 px-3.5 text-cyan-300 min-w-[120px]">
                       {c.name}
                     </th>
                   ))}
-                <th className="py-3.5 px-3">Notes</th>
-                <th className="py-3.5 px-3">Staff</th>
-                <th className="py-3.5 px-3 text-center">Actions</th>
+                <th className="py-4 px-4 min-w-[190px]">Notes</th>
+                <th className="py-4 px-4 min-w-[115px]">Staff</th>
+                <th className="py-4 px-4 text-center min-w-[130px]">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60 font-mono">
@@ -3660,9 +3660,9 @@ export default function VendingCenterLoggerPage() {
                 <tr>
                   <td
                     colSpan={13 + customColumns.filter((c) => c.visible).length}
-                    className="py-12 text-center text-slate-400"
+                    className="py-14 text-center text-slate-400"
                   >
-                    <div className="w-8 h-8 border-2 border-emerald-400 border-t-transparent animate-spin rounded-full mx-auto mb-2" />
+                    <div className="w-9 h-9 border-2 border-emerald-400 border-t-transparent animate-spin rounded-full mx-auto mb-2.5" />
                     Loading entries…
                   </td>
                 </tr>
@@ -3670,7 +3670,7 @@ export default function VendingCenterLoggerPage() {
                 <tr>
                   <td
                     colSpan={13 + customColumns.filter((c) => c.visible).length}
-                    className="py-12 text-center text-slate-400 space-y-2"
+                    className="py-14 text-center text-slate-400 space-y-2.5"
                   >
                     <span className="material-symbols-outlined text-4xl text-slate-600">table_rows</span>
                     <p className="font-bold text-sm text-white">No sales entries found</p>
@@ -3710,67 +3710,68 @@ export default function VendingCenterLoggerPage() {
                   return (
                     <tr
                       key={e.id}
-                      className={`transition-colors group ${
+                      className={`transition-all group ${
                         isSelfCleaned
-                          ? "bg-amber-950/20 hover:bg-amber-950/35 border-l-2 border-l-amber-400"
-                          : "hover:bg-slate-800/40"
+                          ? "bg-amber-950/20 hover:bg-amber-950/35 border-l-4 border-l-amber-400"
+                          : "hover:bg-slate-800/50"
                       }`}
                     >
-                      <td className="py-3 px-3 text-center text-slate-500 text-[10px]">
+                      <td className="py-4 px-3.5 text-center text-slate-500 text-xs font-bold">
                         {(salesPage - 1) * 50 + index + 1}
                       </td>
-                      <td className="py-3 px-3 text-slate-200 font-bold whitespace-nowrap">
+                      <td className="py-4 px-4 text-slate-200 font-bold whitespace-nowrap text-xs">
                         {e.entry_date}
                       </td>
-                      <td className="py-3 px-3 text-slate-400 text-[11px] whitespace-nowrap">
+                      <td className="py-4 px-4 text-slate-400 text-xs whitespace-nowrap font-mono">
                         {e.entry_time}
                       </td>
-                      <td className="py-3 px-3 whitespace-nowrap">
+                      <td className="py-4 px-4 whitespace-nowrap">
                         {isGutted && isSelfCleaned ? (
-                          <div className="flex flex-col gap-0.5">
+                          <div className="flex flex-col gap-1 py-0.5">
                             <span
-                              className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 inline-flex items-center gap-1 w-fit"
+                              className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-amber-500/20 text-amber-200 border border-amber-500/40 inline-flex items-center gap-1.5 w-fit shadow-sm"
                               title="Self Cleaned by Owner — Excluded from Mohd Amin gutted incentive"
                             >
                               <span>🐟 Gutted</span>
-                              <span className="text-[9px] px-1 py-0.2 rounded bg-amber-500/30 text-amber-200 font-mono font-bold">
+                              <span className="text-[9.5px] px-1.5 py-0.5 rounded-lg bg-amber-500/30 text-amber-100 font-mono font-black">
                                 Self Cleaned
                               </span>
                             </span>
-                            <span className="text-[9px] font-mono text-amber-400 font-bold flex items-center gap-1 pl-0.5">
-                              <span className="material-symbols-outlined text-[11px] text-amber-400">handyman</span>
+                            <span className="text-[10px] font-mono text-amber-400/90 font-bold flex items-center gap-1 pl-0.5">
+                              <span className="material-symbols-outlined text-xs text-amber-400">handyman</span>
                               <span>₹0 Worker Inc. (Owner Gutted)</span>
                             </span>
                           </div>
                         ) : isGutted ? (
-                          <div className="flex flex-col gap-0.5">
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 w-fit">
-                              {e.product_type}
+                          <div className="flex flex-col gap-1 py-0.5">
+                            <span className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 inline-flex items-center gap-1.5 w-fit shadow-sm">
+                              <span>🐟 {e.product_type}</span>
                             </span>
-                            <span className="text-[9px] font-mono text-emerald-400/90 pl-0.5 font-bold">
-                              +₹{(w * INCENTIVE_RATE_PER_KG).toFixed(0)} worker inc.
+                            <span className="text-[10px] font-mono text-emerald-400/90 pl-0.5 font-bold flex items-center gap-1">
+                              <span className="material-symbols-outlined text-xs text-emerald-400">payments</span>
+                              <span>+₹{(w * INCENTIVE_RATE_PER_KG).toFixed(0)} worker inc.</span>
                             </span>
                           </div>
                         ) : (
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-                            {e.product_type}
+                          <span className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 inline-flex items-center gap-1.5 w-fit shadow-sm">
+                            <span>✨ {e.product_type}</span>
                           </span>
                         )}
                       </td>
-                      <td className="py-3 px-3 text-right font-black text-white whitespace-nowrap font-mono">
-                        <span className="text-emerald-400">{formatKg(e.weight_kg)}</span>{" "}
-                        <span className="text-[10px] text-slate-400 font-normal">Kg</span>
+                      <td className="py-4 px-4 text-right font-black text-white whitespace-nowrap font-mono">
+                        <span className="text-emerald-400 text-sm font-black">{formatKg(e.weight_kg)}</span>{" "}
+                        <span className="text-[11px] text-slate-400 font-normal">Kg</span>
                       </td>
-                      <td className="py-3 px-3 text-right text-slate-300 whitespace-nowrap font-mono">
+                      <td className="py-4 px-3.5 text-right text-slate-300 whitespace-nowrap font-mono text-xs">
                         ₹{e.rate_per_kg}
                       </td>
-                      <td className="py-3 px-3 text-right text-slate-400 whitespace-nowrap font-mono">
+                      <td className="py-4 px-3.5 text-right text-slate-400 whitespace-nowrap font-mono text-xs">
                         ₹{exp.toLocaleString("en-IN")}
                       </td>
-                      <td className="py-3 px-3 text-right font-black text-white whitespace-nowrap font-mono">
-                        <span className="text-cyan-300">₹{taken.toLocaleString("en-IN")}</span>
+                      <td className="py-4 px-4 text-right font-black text-white whitespace-nowrap font-mono">
+                        <span className="text-cyan-300 text-sm font-black">₹{taken.toLocaleString("en-IN")}</span>
                       </td>
-                      <td className="py-3 px-3 text-right whitespace-nowrap font-mono">
+                      <td className="py-4 px-4 text-right whitespace-nowrap font-mono">
                         {Number(e.custom_fields?.balance_amount) > 0 && e.custom_fields?.balance_status === "pending" ? (
                           <button
                             type="button"
@@ -3778,18 +3779,18 @@ export default function VendingCenterLoggerPage() {
                             className="inline-flex flex-col items-end gap-0.5 text-right group/bal cursor-pointer"
                             title="Click to open Razorpay QR & WhatsApp Reminder"
                           >
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/50 group-hover/bal:bg-amber-500/30 transition-all">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10.5px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/50 group-hover/bal:bg-amber-500/30 transition-all">
                               <span>⏳ Bal: ₹{Number(e.custom_fields.balance_amount).toLocaleString("en-IN")}</span>
                             </span>
                             {e.custom_fields.customer_phone && (
-                              <span className="text-[9px] text-amber-400/80 font-mono">
+                              <span className="text-[9.5px] text-amber-400/80 font-mono">
                                 {e.custom_fields.customer_name || e.custom_fields.customer_phone}
                               </span>
                             )}
                           </button>
                         ) : e.custom_fields?.balance_status === "waived_final" ? (
                           <span
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono text-slate-300 bg-slate-800 border border-slate-700"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10.5px] font-mono text-slate-300 bg-slate-800 border border-slate-700"
                             title={`Settled as final courtesy concession: ₹${loss}`}
                           >
                             <span>🤝 Waived (-₹{loss})</span>
@@ -3797,57 +3798,57 @@ export default function VendingCenterLoggerPage() {
                         ) : e.custom_fields?.balance_status === "settled" || e.custom_fields?.settled_at || e.custom_fields?.is_full_payment ? (
                           <div className="inline-flex flex-col items-end gap-0.5 text-right">
                             <span
-                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/50"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10.5px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/50"
                               title={`Balance cleared in full! Settled: ${e.custom_fields?.settled_at ? new Date(e.custom_fields.settled_at).toLocaleString('en-IN') : 'Completed'} via ${e.custom_fields?.settled_payment_method || 'QR/Online'}`}
                             >
                               <span>✓ FULL PAID</span>
                             </span>
                             {e.custom_fields?.settled_at && (
-                              <span className="text-[9px] text-emerald-400/80 font-mono">
+                              <span className="text-[9.5px] text-emerald-400/80 font-mono">
                                 QR Cleared
                               </span>
                             )}
                           </div>
                         ) : loss > 0 ? (
                           <span
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10.5px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30"
                             title={`Customer price negotiation concession: ₹${loss}`}
                           >
                             <span>-₹{loss.toLocaleString("en-IN")}</span>
-                            <span className="text-[9px] opacity-75">loss</span>
+                            <span className="text-[9.5px] opacity-75">loss</span>
                           </span>
                         ) : loss < 0 ? (
                           <span
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono text-cyan-300 bg-cyan-500/10 border border-cyan-500/20"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10.5px] font-mono text-cyan-300 bg-cyan-500/10 border border-cyan-500/20"
                             title={`Extra collected: ₹${Math.abs(loss)}`}
                           >
                             +₹{Math.abs(loss)}
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20">
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10.5px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20">
                             ₹0 ✓
                           </span>
                         )}
                       </td>
-                      <td className="py-3 px-3 whitespace-nowrap">
+                      <td className="py-4 px-4 whitespace-nowrap">
                         {e.payment_mode === "Cash + Online QR" || (e.custom_fields?.settled_at && (e.payment_mode || "").toLowerCase().includes("qr")) ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-mono text-[11px] font-bold">
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-mono text-[11px] font-bold">
                             💵 Cash + ⚡ QR ✓
                           </span>
                         ) : isCash ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-teal-500/15 border border-teal-500/30 text-teal-300 font-mono text-[11px] font-bold">
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-teal-500/15 border border-teal-500/30 text-teal-300 font-mono text-[11px] font-bold">
                             💵 Cash
                           </span>
                         ) : e.payment_mode === "Razorpay Link" && (e.custom_fields?.payment_status === "PENDING_LINK" || Number(e.amount_paid) === 0) ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300 font-mono text-[11px] font-bold">
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 font-mono text-[11px] font-bold">
                             ⏳ Link Sent
                           </span>
                         ) : e.payment_mode === "Razorpay Link" ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-mono text-[11px] font-bold">
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-mono text-[11px] font-bold">
                             🔒 Razorpay Paid
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 font-mono text-[11px] font-bold">
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 font-mono text-[11px] font-bold">
                             ⚡ Online Payment
                           </span>
                         )}
@@ -3857,51 +3858,53 @@ export default function VendingCenterLoggerPage() {
                       {customColumns
                         .filter((c) => c.visible)
                         .map((c) => (
-                          <td key={c.id} className="py-3 px-3 text-slate-300 whitespace-nowrap">
+                          <td key={c.id} className="py-4 px-3.5 text-slate-300 whitespace-nowrap">
                             {e.custom_fields?.[c.id] || "—"}
                           </td>
                         ))}
 
-                      <td className="py-3 px-3 text-slate-400 text-[11px] max-w-[150px] truncate" title={e.notes}>
-                        {e.notes || "—"}
+                      <td className="py-4 px-4 text-slate-300 text-xs max-w-[220px] truncate" title={e.notes}>
+                        {e.notes || <span className="text-slate-600">—</span>}
                       </td>
-                      <td className="py-3 px-3 text-slate-400 text-[11px] whitespace-nowrap">
-                        {e.logged_by || "Staff"}
+                      <td className="py-4 px-4 text-slate-300 text-xs whitespace-nowrap">
+                        <span className="px-2.5 py-1 rounded-lg bg-slate-800/80 border border-slate-700/80 text-slate-300 text-[11px] font-mono">
+                          {e.logged_by || "Staff"}
+                        </span>
                       </td>
-                      <td className="py-3 px-3 text-center whitespace-nowrap">
-                        <div className="flex items-center justify-center gap-1 opacity-80 group-hover:opacity-100">
+                      <td className="py-4 px-4 text-center whitespace-nowrap min-w-[130px]">
+                        <div className="flex items-center justify-center gap-2">
                           {Number(e.custom_fields?.balance_amount) > 0 && e.custom_fields?.balance_status === "pending" && (
                             <button
                               type="button"
                               onClick={() => handleOpenBalanceModalForEntry(e)}
-                              className="px-2 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[10px] font-bold font-mono transition-all cursor-pointer flex items-center gap-1 shadow-sm"
+                              className="px-2.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[11px] font-bold font-mono transition-all cursor-pointer flex items-center gap-1 shadow-sm active:scale-95"
                               title="Send WhatsApp Payment Reminder / Generate Razorpay QR"
                             >
-                              <span className="material-symbols-outlined text-xs">qr_code_2</span>
-                              <span>Remind</span>
+                              <span className="material-symbols-outlined text-sm">qr_code_2</span>
+                              <span>Khata</span>
                             </button>
                           )}
                           <button
                             type="button"
                             onClick={() => openEditModal(e)}
-                            className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all cursor-pointer"
+                            className="w-8 h-8 rounded-xl bg-slate-800/90 hover:bg-emerald-500/25 text-slate-300 hover:text-emerald-300 border border-slate-700/80 hover:border-emerald-500/40 transition-all flex items-center justify-center cursor-pointer shadow-sm active:scale-95"
                             title="Edit entry"
                           >
-                            <span className="material-symbols-outlined text-sm">edit</span>
+                            <span className="material-symbols-outlined text-base">edit</span>
                           </button>
                           {deleteConfirmId === e.id ? (
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1.5 animate-in fade-in">
                               <button
                                 type="button"
                                 onClick={() => handleDeleteEntry(e.id)}
-                                className="px-1.5 py-0.5 rounded bg-red-600 hover:bg-red-500 text-white text-[9px] font-bold cursor-pointer"
+                                className="px-2.5 py-1.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-[11px] font-bold font-mono shadow-md cursor-pointer active:scale-95"
                               >
-                                Confirm
+                                Delete
                               </button>
                               <button
                                 type="button"
                                 onClick={() => setDeleteConfirmId(null)}
-                                className="px-1.5 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-300 text-[9px] cursor-pointer"
+                                className="px-2 py-1.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-300 text-[11px] cursor-pointer active:scale-95"
                               >
                                 ✕
                               </button>
@@ -3911,14 +3914,13 @@ export default function VendingCenterLoggerPage() {
                               <button
                                 type="button"
                                 onClick={() => setDeleteConfirmId(e.id)}
-                                className="p-1 rounded-lg bg-slate-800 hover:bg-red-950/60 text-slate-400 hover:text-red-400 transition-all cursor-pointer"
+                                className="w-8 h-8 rounded-xl bg-slate-800/90 hover:bg-rose-500/25 text-slate-400 hover:text-rose-300 border border-slate-700/80 hover:border-rose-500/40 transition-all flex items-center justify-center cursor-pointer shadow-sm active:scale-95"
                                 title="Delete entry"
                               >
-                                <span className="material-symbols-outlined text-sm">delete</span>
+                                <span className="material-symbols-outlined text-base">delete</span>
                               </button>
                             )
                           )}
-
                         </div>
                       </td>
                     </tr>
@@ -3973,24 +3975,24 @@ export default function VendingCenterLoggerPage() {
                   }, 0);
 
                   return (
-                    <tr className="border-t-2 border-slate-700 bg-slate-950 font-mono font-bold text-xs text-white">
+                    <tr className="border-t-2 border-slate-700/80 bg-slate-950/90 font-mono font-bold text-xs text-white">
                       <td
                         colSpan={4}
-                        className="py-3.5 px-3 text-right uppercase tracking-wider text-slate-400"
+                        className="py-4 px-4 text-right uppercase tracking-wider text-slate-400"
                       >
                         Visible Rows Total ({displayEntries.length} entries):
                       </td>
-                      <td className="py-3.5 px-3 text-right text-emerald-400 font-black whitespace-nowrap">
+                      <td className="py-4 px-4 text-right text-emerald-400 font-black whitespace-nowrap text-sm">
                         {formatKg(totalVisKg)} Kg
                       </td>
-                      <td className="py-3.5 px-3"></td>
-                      <td className="py-3.5 px-3 text-right text-slate-400 whitespace-nowrap">
+                      <td className="py-4 px-3.5"></td>
+                      <td className="py-4 px-3.5 text-right text-slate-400 whitespace-nowrap">
                         ₹{totalVisExp.toLocaleString("en-IN")}
                       </td>
-                      <td className="py-3.5 px-3 text-right text-cyan-300 font-black whitespace-nowrap">
+                      <td className="py-4 px-4 text-right text-cyan-300 font-black whitespace-nowrap text-sm">
                         ₹{totalVisTaken.toLocaleString("en-IN")}
                       </td>
-                      <td className="py-3.5 px-3 text-right whitespace-nowrap">
+                      <td className="py-4 px-4 text-right whitespace-nowrap">
                         {totalVisLoss > 0 ? (
                           <span className="text-amber-300 font-black">
                             -₹{totalVisLoss.toLocaleString("en-IN")}
