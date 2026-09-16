@@ -33,6 +33,7 @@ export interface VendingSalesEntry {
   notes?: string;
   created_at?: string;
   updated_at?: string;
+  self_cleaned?: boolean;
 }
 
 // Fallback helper to store/retrieve from app_settings if table not created yet
@@ -508,6 +509,7 @@ export async function POST(request: Request) {
         ...(custom_fields || {}),
         expected_amount: expected,
         discount_amount: discount,
+        self_cleaned: Boolean(body.self_cleaned ?? custom_fields?.self_cleaned),
       },
       logged_by: logged_by || "Counter Staff",
       notes: notes || "",
@@ -526,11 +528,12 @@ export async function POST(request: Request) {
       if (!error && data) {
         savedInTable = true;
       } else if (error) {
-        // If columns expected_amount or discount_amount are not in the table schema cache,
+        // If columns expected_amount, discount_amount, or self_cleaned are not in the table schema cache,
         // retry by removing them from top-level insert (they are already stored in custom_fields JSONB)
         const sanitized = { ...entry };
         delete (sanitized as any).expected_amount;
         delete (sanitized as any).discount_amount;
+        delete (sanitized as any).self_cleaned;
         const retryRes = await supabase.from("vending_sales_log").insert([sanitized]).select().single();
         if (!retryRes.error && retryRes.data) {
           savedInTable = true;
@@ -589,14 +592,16 @@ export async function PUT(request: Request) {
       if (error) {
         // If column error, sanitize by moving to custom_fields and retry
         const sanitizedUpdates = { ...updates };
-        if (sanitizedUpdates.expected_amount !== undefined || sanitizedUpdates.discount_amount !== undefined) {
+        if (sanitizedUpdates.expected_amount !== undefined || sanitizedUpdates.discount_amount !== undefined || sanitizedUpdates.self_cleaned !== undefined) {
           sanitizedUpdates.custom_fields = {
             ...(sanitizedUpdates.custom_fields || {}),
             ...(sanitizedUpdates.expected_amount !== undefined ? { expected_amount: sanitizedUpdates.expected_amount } : {}),
             ...(sanitizedUpdates.discount_amount !== undefined ? { discount_amount: sanitizedUpdates.discount_amount } : {}),
+            ...(sanitizedUpdates.self_cleaned !== undefined ? { self_cleaned: sanitizedUpdates.self_cleaned } : {}),
           };
           delete sanitizedUpdates.expected_amount;
           delete sanitizedUpdates.discount_amount;
+          delete sanitizedUpdates.self_cleaned;
         }
         await supabase.from("vending_sales_log").update(sanitizedUpdates).eq("id", id);
       }

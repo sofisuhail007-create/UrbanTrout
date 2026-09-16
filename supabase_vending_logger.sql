@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS public.vending_sales_log (
     amount_paid NUMERIC(10, 2) NOT NULL,
     discount_amount NUMERIC(10, 2) DEFAULT 0.00,
     payment_mode TEXT NOT NULL DEFAULT 'Cash', -- 'Cash', 'Online Payment'
-    custom_fields JSONB DEFAULT '{}'::jsonb, -- Flexible key-value store for user-added columns
+    custom_fields JSONB DEFAULT '{}'::jsonb, -- Flexible key-value store (e.g. self_cleaned: true when owner guts trout, balance_amount, customer info)
     logged_by TEXT DEFAULT 'Counter Staff',
     notes TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),

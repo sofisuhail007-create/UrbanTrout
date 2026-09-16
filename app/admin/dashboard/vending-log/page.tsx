@@ -238,6 +238,7 @@ export default function VendingCenterLoggerPage() {
   const [editingBaseSalaryCard, setEditingBaseSalaryCard] = useState(false);
   const [baseSalaryInput, setBaseSalaryInput] = useState("15000");
   const [formType, setFormType] = useState<"Gutted" | "Non Gutted" | string>("Gutted");
+  const [formSelfCleaned, setFormSelfCleaned] = useState<boolean>(false);
   const [formWeight, setFormWeight] = useState<string>("");
   const [formRate, setFormRate] = useState<number>(DEFAULT_GUTTED_PRICE);
   const [formAmount, setFormAmount] = useState<string>("");
@@ -371,6 +372,9 @@ export default function VendingCenterLoggerPage() {
   // Handle Type Change
   const handleTypeSelect = (type: "Gutted" | "Non Gutted") => {
     setFormType(type);
+    if (type === "Non Gutted") {
+      setFormSelfCleaned(false);
+    }
     const rate = type === "Gutted" ? guttedPrice : nonGuttedPrice;
     setFormRate(rate);
     const w = parseFloat(formWeight);
@@ -799,23 +803,43 @@ export default function VendingCenterLoggerPage() {
     };
   }, [filteredEntriesByPeriod, procurementAvgCost]);
 
-  // ─── Staff Gutted Trout Incentive Tracker (₹5/Kg Gutted Only) ───
+  // ─── Staff Gutted Trout Incentive Tracker (₹5/Kg Gutted Only - Excludes Self-Cleaned) ───
   const incentiveStats = useMemo(() => {
     // 1. All-time Gutted Trout Weight across all entries
     let allTimeGuttedKg = 0;
+    let allTimeSelfCleanedKg = 0;
     entries.forEach((e) => {
       const isGutted =
         (e.product_type || "").toLowerCase().includes("gutted") &&
         !(e.product_type || "").toLowerCase().includes("non");
+      const isSelf = Boolean(e.custom_fields?.self_cleaned || (e as any).self_cleaned);
       if (isGutted) {
-        allTimeGuttedKg = Math.round((allTimeGuttedKg + (Number(e.weight_kg) || 0)) * 1000) / 1000;
+        if (isSelf) {
+          allTimeSelfCleanedKg = Math.round((allTimeSelfCleanedKg + (Number(e.weight_kg) || 0)) * 1000) / 1000;
+        } else {
+          allTimeGuttedKg = Math.round((allTimeGuttedKg + (Number(e.weight_kg) || 0)) * 1000) / 1000;
+        }
       }
     });
 
-    // 2. Current period gutted trout weight
-    const periodGuttedKg = kpis.guttedKg;
+    // 2. Current period gutted trout weight (Worker Gutted only vs Self-Cleaned)
+    let periodGuttedKg = 0;
+    let periodSelfCleanedKg = 0;
+    filteredEntriesByPeriod.forEach((e) => {
+      const isGutted =
+        (e.product_type || "").toLowerCase().includes("gutted") &&
+        !(e.product_type || "").toLowerCase().includes("non");
+      const isSelf = Boolean(e.custom_fields?.self_cleaned || (e as any).self_cleaned);
+      if (isGutted) {
+        if (isSelf) {
+          periodSelfCleanedKg = Math.round((periodSelfCleanedKg + (Number(e.weight_kg) || 0)) * 1000) / 1000;
+        } else {
+          periodGuttedKg = Math.round((periodGuttedKg + (Number(e.weight_kg) || 0)) * 1000) / 1000;
+        }
+      }
+    });
 
-    // 3. Incentive amounts (at ₹5/Kg)
+    // 3. Incentive amounts (at ₹5/Kg for worker gutted only)
     const allTimeEarned = Math.round(allTimeGuttedKg * INCENTIVE_RATE_PER_KG);
     const periodEarned = Math.round(periodGuttedKg * INCENTIVE_RATE_PER_KG);
 
@@ -827,13 +851,15 @@ export default function VendingCenterLoggerPage() {
 
     return {
       allTimeGuttedKg,
+      allTimeSelfCleanedKg,
       periodGuttedKg,
+      periodSelfCleanedKg,
       allTimeEarned,
       periodEarned,
       totalPaid,
       balanceRemaining,
     };
-  }, [entries, kpis.guttedKg, payouts]);
+  }, [entries, filteredEntriesByPeriod, payouts]);
 
   // ─── Worker Salary Stats (Mohd Amin) ───
   const salaryStats = useMemo(() => {
@@ -952,8 +978,11 @@ export default function VendingCenterLoggerPage() {
     const list = filteredEntriesByPeriod.filter((e) => {
       // Type filter
       if (filterType !== "all") {
-        if (filterType === "gutted" && !e.product_type?.toLowerCase().includes("gutted")) return false;
-        if (filterType === "non-gutted" && !e.product_type?.toLowerCase().includes("non")) return false;
+        const isGut = (e.product_type || "").toLowerCase().includes("gutted") && !(e.product_type || "").toLowerCase().includes("non");
+        const isSelf = Boolean(e.custom_fields?.self_cleaned || (e as any).self_cleaned);
+        if (filterType === "gutted" && (!isGut || isSelf)) return false;
+        if (filterType === "self-cleaned" && (!isGut || !isSelf)) return false;
+        if (filterType === "non-gutted" && !(e.product_type || "").toLowerCase().includes("non")) return false;
       }
 
       // Payment filter
@@ -1036,6 +1065,7 @@ export default function VendingCenterLoggerPage() {
     setFormDate(getTodayDate());
     setFormTime(getCurrentTime());
     setFormType("Gutted");
+    setFormSelfCleaned(false);
     setFormWeight("");
     setFormRate(guttedPrice);
     setFormAmount("");
@@ -1099,6 +1129,7 @@ export default function VendingCenterLoggerPage() {
 
     const updatedCustomFields = {
       ...(formCustomFields || {}),
+      self_cleaned: formType === "Gutted" ? formSelfCleaned : false,
       balance_amount: balanceAmount,
       balance_status: balanceStatus,
       balance_ref_id: balanceRefId || null,
@@ -1445,6 +1476,7 @@ export default function VendingCenterLoggerPage() {
 
     let totalSoldKg = 0;
     let guttedSoldKg = 0;
+    let aminGuttedSoldKg = 0;
     let nonGuttedSoldKg = 0;
     let grossRevenue = 0;
     let expectedRevenue = 0;
@@ -1475,8 +1507,12 @@ export default function VendingCenterLoggerPage() {
       const isGutted =
         (e.product_type || "").toLowerCase().includes("gutted") &&
         !(e.product_type || "").toLowerCase().includes("non");
+      const isSelf = Boolean(e.custom_fields?.self_cleaned || (e as any).self_cleaned);
       if (isGutted) {
         guttedSoldKg = Math.round((guttedSoldKg + w) * 1000) / 1000;
+        if (!isSelf) {
+          aminGuttedSoldKg = Math.round((aminGuttedSoldKg + w) * 1000) / 1000;
+        }
       } else {
         nonGuttedSoldKg = Math.round((nonGuttedSoldKg + w) * 1000) / 1000;
       }
@@ -1525,7 +1561,7 @@ export default function VendingCenterLoggerPage() {
       todayMortalityKg: aquariumStock.todayMortalityKg,
       todayMortalityCost: aquariumStock.todayMortalityCost,
       todayMortalityCount: aquariumStock.todayMortalityCount,
-      aminDailyIncentive: Math.round(guttedSoldKg * INCENTIVE_RATE_PER_KG),
+      aminDailyIncentive: Math.round(aminGuttedSoldKg * INCENTIVE_RATE_PER_KG),
       aminIncentivePending: incentiveStats.balanceRemaining,
       aminSalaryMonthPaid: salaryStats.thisMonthPaid,
       aminSalaryBalanceDue: salaryStats.monthBalanceDue,
@@ -1560,6 +1596,7 @@ export default function VendingCenterLoggerPage() {
 
     let totalSoldKg = 0;
     let guttedSoldKg = 0;
+    let aminGuttedSoldKg = 0;
     let nonGuttedSoldKg = 0;
     let grossRevenue = 0;
     let expectedRevenue = 0;
@@ -1590,8 +1627,12 @@ export default function VendingCenterLoggerPage() {
       const isGutted =
         (e.product_type || "").toLowerCase().includes("gutted") &&
         !(e.product_type || "").toLowerCase().includes("non");
+      const isSelf = Boolean(e.custom_fields?.self_cleaned || (e as any).self_cleaned);
       if (isGutted) {
         guttedSoldKg = Math.round((guttedSoldKg + w) * 1000) / 1000;
+        if (!isSelf) {
+          aminGuttedSoldKg = Math.round((aminGuttedSoldKg + w) * 1000) / 1000;
+        }
       } else {
         nonGuttedSoldKg = Math.round((nonGuttedSoldKg + w) * 1000) / 1000;
       }
@@ -1640,7 +1681,7 @@ export default function VendingCenterLoggerPage() {
       todayMortalityKg: aquariumStock.todayMortalityKg,
       todayMortalityCost: aquariumStock.todayMortalityCost,
       todayMortalityCount: aquariumStock.todayMortalityCount,
-      aminDailyIncentive: Math.round(guttedSoldKg * INCENTIVE_RATE_PER_KG),
+      aminDailyIncentive: Math.round(aminGuttedSoldKg * INCENTIVE_RATE_PER_KG),
       aminIncentivePending: incentiveStats.balanceRemaining,
       aminSalaryMonthPaid: salaryStats.thisMonthPaid,
       aminSalaryBalanceDue: salaryStats.monthBalanceDue,
@@ -1944,6 +1985,8 @@ export default function VendingCenterLoggerPage() {
         { "Vending Center Metric": "Aquarium Stock Worth - If Non-Gutted (Rs)", "Value / Amount": aquariumStock.valueIfNonGutted },
         { "Vending Center Metric": "Expected Profit from Live Stock - Gutted (Rs)", "Value / Amount": aquariumStock.expectedProfitGutted },
         { "Vending Center Metric": "Expected Profit from Live Stock - Non-Gutted (Rs)", "Value / Amount": aquariumStock.expectedProfitNonGutted },
+        { "Vending Center Metric": "Mohd Amin - All-Time Worker Gutted (Kg)", "Value / Amount": incentiveStats.allTimeGuttedKg },
+        { "Vending Center Metric": "Owner - All-Time Self-Cleaned Gutted (Kg)", "Value / Amount": incentiveStats.allTimeSelfCleanedKg },
         { "Vending Center Metric": "Mohd Amin - All-Time Incentives Earned (Rs)", "Value / Amount": incentiveStats.allTimeEarned },
         { "Vending Center Metric": "Mohd Amin - Incentives Paid Out (Rs)", "Value / Amount": incentiveStats.totalPaid },
         { "Vending Center Metric": "Mohd Amin - Incentives Balance Due (Rs)", "Value / Amount": incentiveStats.balanceRemaining },
@@ -1965,11 +2008,18 @@ export default function VendingCenterLoggerPage() {
             ? Number(e.discount_amount)
             : Math.max(0, exp - taken);
 
+        const isGut = (e.product_type || "").toLowerCase().includes("gutted") && !(e.product_type || "").toLowerCase().includes("non");
+        const isSelf = Boolean(e.custom_fields?.self_cleaned || (e as any).self_cleaned);
+        const workerIncentiveRs = isGut && !isSelf ? Math.round(Number(e.weight_kg) * INCENTIVE_RATE_PER_KG) : 0;
+        const cleaningType = isGut ? (isSelf ? "Self Cleaned (Owner)" : "Worker Cleaned (Mohd Amin)") : "Whole Fish (Non Gutted)";
+
         const row: Record<string, any> = {
           "#": idx + 1,
           "Date": e.entry_date,
           "Time": e.entry_time,
           "Product Type": e.product_type,
+          "Cleaning / Gutting": cleaningType,
+          "Worker Incentive (Rs)": workerIncentiveRs,
           "Weight (Kg)": Number(Number(e.weight_kg).toFixed(3)),
           "Rate (Rs/Kg)": Number(e.rate_per_kg),
           "Expected Amount (Rs)": exp,
@@ -2084,6 +2134,7 @@ export default function VendingCenterLoggerPage() {
     setFormDate(entry.entry_date);
     setFormTime(entry.entry_time);
     setFormType(entry.product_type);
+    setFormSelfCleaned(Boolean(entry.custom_fields?.self_cleaned || (entry as any).self_cleaned));
     setFormWeight(entry.weight_kg.toString());
     setFormRate(entry.rate_per_kg);
     setFormAmount(entry.amount_paid.toString());
@@ -2880,12 +2931,18 @@ export default function VendingCenterLoggerPage() {
                   </div>
                 </div>
                 <div className="mt-4 text-xs text-slate-400 font-mono border-t border-slate-800/80 pt-3 flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-3 text-purple-200 text-[11px]">
+                  <div className="flex items-center gap-2.5 text-purple-200 text-[11px] flex-wrap">
                     <span>Earned: <strong>₹{incentiveStats.allTimeEarned.toLocaleString("en-IN")}</strong></span>
                     <span>•</span>
                     <span>Paid: <strong>₹{incentiveStats.totalPaid.toLocaleString("en-IN")}</strong></span>
                     <span>•</span>
-                    <span>Gutted: <strong>{formatKg(incentiveStats.allTimeGuttedKg)} Kg</strong></span>
+                    <span>Worker Gutted: <strong>{formatKg(incentiveStats.allTimeGuttedKg)} Kg</strong></span>
+                    {incentiveStats.allTimeSelfCleanedKg > 0 && (
+                      <>
+                        <span>•</span>
+                        <span className="text-amber-300">Self Cleaned: <strong>{formatKg(incentiveStats.allTimeSelfCleanedKg)} Kg</strong> (₹0)</span>
+                      </>
+                    )}
                   </div>
                   <button
                     type="button"
@@ -3503,7 +3560,8 @@ export default function VendingCenterLoggerPage() {
             className="bg-slate-950 border border-slate-700 rounded-xl px-2.5 py-2 text-xs text-white focus:outline-none focus:border-emerald-400 cursor-pointer"
           >
             <option value="all">All Types</option>
-            <option value="gutted">Gutted</option>
+            <option value="gutted">Gutted (Worker Incentive)</option>
+            <option value="self-cleaned">⚡ Gutted (Self Cleaned / No Inc.)</option>
             <option value="non-gutted">Non Gutted</option>
           </select>
         </div>
@@ -3646,12 +3704,17 @@ export default function VendingCenterLoggerPage() {
                       : isPendingBal
                       ? 0
                       : Math.max(0, exp - taken);
+                  const isSelfCleaned = Boolean(e.custom_fields?.self_cleaned || (e as any).self_cleaned);
                   const isCash = (e.payment_mode || "").toLowerCase().trim() === "cash";
 
                   return (
                     <tr
                       key={e.id}
-                      className="hover:bg-slate-800/40 transition-colors group"
+                      className={`transition-colors group ${
+                        isSelfCleaned
+                          ? "bg-amber-950/20 hover:bg-amber-950/35 border-l-2 border-l-amber-400"
+                          : "hover:bg-slate-800/40"
+                      }`}
                     >
                       <td className="py-3 px-3 text-center text-slate-500 text-[10px]">
                         {(salesPage - 1) * 50 + index + 1}
@@ -3663,15 +3726,36 @@ export default function VendingCenterLoggerPage() {
                         {e.entry_time}
                       </td>
                       <td className="py-3 px-3 whitespace-nowrap">
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                            isGutted
-                              ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                              : "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30"
-                          }`}
-                        >
-                          {e.product_type}
-                        </span>
+                        {isGutted && isSelfCleaned ? (
+                          <div className="flex flex-col gap-0.5">
+                            <span
+                              className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 inline-flex items-center gap-1 w-fit"
+                              title="Self Cleaned by Owner — Excluded from Mohd Amin gutted incentive"
+                            >
+                              <span>🐟 Gutted</span>
+                              <span className="text-[9px] px-1 py-0.2 rounded bg-amber-500/30 text-amber-200 font-mono font-bold">
+                                Self Cleaned
+                              </span>
+                            </span>
+                            <span className="text-[9px] font-mono text-amber-400 font-bold flex items-center gap-1 pl-0.5">
+                              <span className="material-symbols-outlined text-[11px] text-amber-400">handyman</span>
+                              <span>₹0 Worker Inc. (Owner Gutted)</span>
+                            </span>
+                          </div>
+                        ) : isGutted ? (
+                          <div className="flex flex-col gap-0.5">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 w-fit">
+                              {e.product_type}
+                            </span>
+                            <span className="text-[9px] font-mono text-emerald-400/90 pl-0.5 font-bold">
+                              +₹{(w * INCENTIVE_RATE_PER_KG).toFixed(0)} worker inc.
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                            {e.product_type}
+                          </span>
+                        )}
                       </td>
                       <td className="py-3 px-3 text-right font-black text-white whitespace-nowrap font-mono">
                         <span className="text-emerald-400">{formatKg(e.weight_kg)}</span>{" "}
@@ -4064,6 +4148,61 @@ export default function VendingCenterLoggerPage() {
                   </button>
                 </div>
               </div>
+
+              {/* Row 2.5: Worker Gutting vs Self Cleaning Toggle */}
+              {formType === "Gutted" && (
+                <div
+                  onClick={() => setFormSelfCleaned(!formSelfCleaned)}
+                  className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 select-none ${
+                    formSelfCleaned
+                      ? "bg-amber-950/40 border-amber-500/60 shadow-lg shadow-amber-950/30"
+                      : "bg-slate-950/80 border-slate-800 hover:border-slate-700"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`w-6 h-6 rounded-lg flex items-center justify-center border transition-all flex-shrink-0 ${
+                        formSelfCleaned
+                          ? "bg-amber-500 border-amber-400 text-slate-950 font-black shadow-sm"
+                          : "bg-slate-900 border-slate-700 text-transparent"
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-sm font-black">check</span>
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span
+                          className={`text-xs font-bold font-mono ${
+                            formSelfCleaned ? "text-amber-200" : "text-slate-300"
+                          }`}
+                        >
+                          Self Cleaned (Worker didn&apos;t gut)
+                        </span>
+                        {formSelfCleaned ? (
+                          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold">
+                            ⚡ Exclude ₹5/Kg Incentive
+                          </span>
+                        ) : (
+                          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                            ✓ ₹5/Kg for Mohd Amin
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-slate-400 font-mono mt-0.5 leading-snug">
+                        {formSelfCleaned
+                          ? "We cleaned this fish ourselves. ₹5/Kg gutted incentive will NOT be added to Mohd Amin's balance."
+                          : "Tick if you/owner did self-cleaning instead of worker so ₹5/Kg incentive is skipped."}
+                      </p>
+                    </div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={formSelfCleaned}
+                    onChange={(e) => setFormSelfCleaned(e.target.checked)}
+                    className="sr-only"
+                  />
+                </div>
+              )}
 
               {/* Row 3: Weight (Exact Precision Scale Input) */}
               <div>
@@ -4658,15 +4797,20 @@ export default function VendingCenterLoggerPage() {
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800">
                 <span className="text-[10px] text-slate-400 uppercase tracking-wider block">
-                  Gutted Sold (All-Time)
+                  Worker Gutted (All-Time)
                 </span>
                 <div className="mt-1 text-base sm:text-lg font-black text-white">
                   {formatKg(incentiveStats.allTimeGuttedKg)}{" "}
                   <span className="text-xs text-purple-400 font-normal">Kg</span>
                 </div>
-                <span className="text-[10px] text-slate-500 block mt-0.5">
-                  Period: {formatKg(incentiveStats.periodGuttedKg)} Kg
-                </span>
+                <div className="text-[10px] text-slate-500 mt-0.5 space-y-0.5">
+                  <div>Period: {formatKg(incentiveStats.periodGuttedKg)} Kg</div>
+                  {incentiveStats.allTimeSelfCleanedKg > 0 && (
+                    <div className="text-amber-400 font-mono">
+                      Self: {formatKg(incentiveStats.allTimeSelfCleanedKg)} Kg (₹0)
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div className="p-3 rounded-2xl bg-slate-950 border border-purple-500/20">
