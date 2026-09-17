@@ -24,7 +24,7 @@ export interface StaffMember {
 const DEFAULT_STAFF: StaffMember[] = [
   {
     email: "sofisuhail007@gmail.com",
-    name: "Suhail (Primary Owner)",
+    name: "Suhail",
     role: "super_admin",
     permissions: {
       billing: true,
@@ -36,6 +36,23 @@ const DEFAULT_STAFF: StaffMember[] = [
       farm: true,
       settings: true,
       can_delete: true,
+    },
+    addedAt: new Date().toISOString(),
+  },
+  {
+    email: "work.suhail007@gmail.com",
+    name: "Mohd Amin",
+    role: "sales_staff",
+    permissions: {
+      billing: true,
+      orders: false,
+      leads: false,
+      inventory: false,
+      customers: false,
+      analytics: false,
+      farm: false,
+      settings: false,
+      can_delete: false,
     },
     addedAt: new Date().toISOString(),
   },
@@ -51,6 +68,10 @@ export default function AdminSettingsPage() {
   const [farmLat, setFarmLat] = useState("34.144709");
   const [farmLng, setFarmLng] = useState("74.824525");
   const [staffList, setStaffList] = useState<StaffMember[]>(DEFAULT_STAFF);
+
+  // Rename staff state
+  const [editingStaffEmail, setEditingStaffEmail] = useState<string | null>(null);
+  const [editingStaffName, setEditingStaffName] = useState<string>("");
 
   // New staff form state
   const [newEmail, setNewEmail] = useState("");
@@ -207,6 +228,47 @@ export default function AdminSettingsPage() {
     }
   };
 
+  // Rename staff member (e.g. Mohd Amin, Suhail, etc.)
+  const handleRenameStaff = async (emailToRename: string, newName: string) => {
+    const trimmed = newName.trim();
+    if (!trimmed) {
+      alert("Please enter a valid staff name.");
+      return;
+    }
+    const updated = staffList.map((s) =>
+      s.email.toLowerCase() === emailToRename.toLowerCase() ? { ...s, name: trimmed } : s
+    );
+    setStaffList(updated);
+    setEditingStaffEmail(null);
+
+    // If current logged-in user is this staff, update their local name
+    const currentEmail = (localStorage.getItem("ut_admin_email") || "").toLowerCase().trim();
+    if (currentEmail === emailToRename.toLowerCase()) {
+      localStorage.setItem("ut_admin_name", trimmed);
+    }
+
+    // Auto-save to server so it immediately affects vending log and billing
+    try {
+      const updates = [
+        {
+          key: "staff_permissions",
+          value: JSON.stringify(updated),
+          description: "Granular RBAC feature permissions & whitelisted Google accounts for staff",
+        },
+      ];
+      await adminFetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+      localStorage.setItem("urban_trout_staff_list", JSON.stringify(updated));
+      setSavedMsg(`Updated worker name to "${trimmed}" successfully!`);
+      setTimeout(() => setSavedMsg(""), 3500);
+    } catch (err) {
+      console.warn("Auto-save staff rename notice:", err);
+    }
+  };
+
   // Toggle specific permission for existing staff
   const handleToggleStaffPermission = (
     staffEmail: string,
@@ -353,16 +415,56 @@ export default function AdminSettingsPage() {
                             {staff.name.charAt(0).toUpperCase()}
                           </div>
                           <div>
-                            <div className="flex items-center gap-2">
-                              <h4 className="font-bold text-white text-sm" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
-                                {staff.name}
-                              </h4>
-                              {isOwner && (
-                                <span className="px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 text-[10px] font-bold">
-                                  👑 Super Admin
-                                </span>
-                              )}
-                            </div>
+                            {editingStaffEmail === staff.email ? (
+                              <div className="flex items-center gap-1.5 my-0.5">
+                                <input
+                                  type="text"
+                                  value={editingStaffName}
+                                  onChange={(e) => setEditingStaffName(e.target.value)}
+                                  className="bg-slate-900 border border-cyan-500 rounded-lg px-2.5 py-1 text-xs text-white font-mono focus:outline-none"
+                                  placeholder="Staff Name (e.g. Mohd Amin)"
+                                  autoFocus
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => handleRenameStaff(staff.email, editingStaffName)}
+                                  className="p-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 cursor-pointer"
+                                  title="Save Name"
+                                >
+                                  <span className="material-symbols-outlined text-sm font-black">check</span>
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setEditingStaffEmail(null)}
+                                  className="p-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 cursor-pointer"
+                                  title="Cancel"
+                                >
+                                  <span className="material-symbols-outlined text-sm">close</span>
+                                </button>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-bold text-white text-sm" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                                  {staff.name}
+                                </h4>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setEditingStaffEmail(staff.email);
+                                    setEditingStaffName(staff.name);
+                                  }}
+                                  className="p-1 rounded-md text-slate-500 hover:text-cyan-300 hover:bg-slate-850 transition-colors cursor-pointer"
+                                  title="Rename Staff Worker"
+                                >
+                                  <span className="material-symbols-outlined text-xs">edit</span>
+                                </button>
+                                {isOwner && (
+                                  <span className="px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 text-[10px] font-bold">
+                                    👑 Super Admin
+                                  </span>
+                                )}
+                              </div>
+                            )}
                             <p className="text-xs text-slate-400 font-mono mt-0.5">{staff.email}</p>
                           </div>
                         </div>

@@ -26,6 +26,31 @@ const isEmailAdmin = (email?: string | null): boolean => {
   return ROOT_OWNER_EMAILS.includes(email.trim().toLowerCase());
 };
 
+export const formatStaffDisplayName = (raw?: string | null): string => {
+  if (!raw) return "Mohd Amin";
+  const trimmed = raw.trim();
+  const lower = trimmed.toLowerCase();
+  if (
+    lower === "sofisuhail007" ||
+    lower === "sofisuhail007@gmail.com" ||
+    lower === "suhail (primary owner)" ||
+    lower === "suhail"
+  ) {
+    return "Suhail";
+  }
+  if (
+    lower === "worksuhail007" ||
+    lower === "work.suhail007" ||
+    lower === "work.suhail007@gmail.com" ||
+    lower === "worksuhail007@gmail.com" ||
+    lower === "mohd amin" ||
+    lower === "amin"
+  ) {
+    return "Mohd Amin";
+  }
+  return trimmed;
+};
+
 // Exact weight formatter helper - preserves 3 decimal precision (e.g. 2.155 stays 2.155)
 export const formatKg = (val: number | string | undefined | null): string => {
   if (val === undefined || val === null || val === "") return "0.000";
@@ -246,7 +271,8 @@ export default function VendingCenterLoggerPage() {
   const [formPayment, setFormPayment] = useState<string>("Cash");
   const [formCustomFields, setFormCustomFields] = useState<Record<string, any>>({});
   const [formNotes, setFormNotes] = useState("");
-  const [formLoggedBy, setFormLoggedBy] = useState("Counter Staff");
+  const [formLoggedBy, setFormLoggedBy] = useState("Mohd Amin");
+  const [staffListNames, setStaffListNames] = useState<string[]>(["Mohd Amin", "Suhail"]);
 
   // ─── Customer Balance & Khata State (Vending Center) ───
   const [formCustomerName, setFormCustomerName] = useState("");
@@ -453,11 +479,51 @@ export default function VendingCenterLoggerPage() {
     }
   }, [isAdmin, fetchPayouts]);
 
-  // Read stored staff email for formLoggedBy
+  // Read stored staff identity for formLoggedBy & load configured workers from settings
   useEffect(() => {
     try {
       const email = localStorage.getItem("ut_admin_email");
-      if (email) setFormLoggedBy(email.split("@")[0]);
+      const resolved = formatStaffDisplayName(email);
+      setFormLoggedBy(resolved);
+
+      // 1. Read locally cached staff list
+      const localStaff = localStorage.getItem("urban_trout_staff_list") || localStorage.getItem("urban_trout_store_settings");
+      if (localStaff) {
+        try {
+          const parsed = JSON.parse(localStaff);
+          const staffArr = Array.isArray(parsed) ? parsed : (parsed.staff_permissions ? JSON.parse(parsed.staff_permissions) : []);
+          const names: string[] = staffArr.map((s: any) => s.name).filter(Boolean);
+          if (names.length > 0) {
+            setStaffListNames(Array.from(new Set(["Mohd Amin", "Suhail", ...names])));
+            const currentStaff = staffArr.find((s: any) => s.email?.toLowerCase().trim() === email?.toLowerCase().trim());
+            if (currentStaff?.name) {
+              setFormLoggedBy(currentStaff.name);
+            }
+          }
+        } catch (_) {}
+      }
+
+      // 2. Refresh from server API in background
+      adminFetch("/api/settings").then(async (res) => {
+        if (res.ok) {
+          const json = await res.json();
+          const rawPerms = json.settingsMap?.staff_permissions;
+          if (rawPerms) {
+            try {
+              const list = JSON.parse(rawPerms);
+              if (Array.isArray(list)) {
+                const names = list.map((s: any) => s.name).filter(Boolean);
+                const unique = Array.from(new Set(["Mohd Amin", "Suhail", ...names]));
+                setStaffListNames(unique);
+                const currentStaff = list.find((s: any) => s.email?.toLowerCase().trim() === email?.toLowerCase().trim());
+                if (currentStaff?.name) {
+                  setFormLoggedBy(currentStaff.name);
+                }
+              }
+            } catch (_) {}
+          }
+        }
+      }).catch(() => {});
     } catch (_) {}
   }, []);
 
@@ -1361,7 +1427,7 @@ export default function VendingCenterLoggerPage() {
 
     setSavingStock(true);
     try {
-      const loggedBy = localStorage.getItem("ut_admin_email")?.split("@")[0] || "Admin";
+      const loggedBy = formatStaffDisplayName(localStorage.getItem("ut_admin_email")) || "Mohd Amin";
       const res = await adminFetch("/api/aquarium-stock", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1427,7 +1493,7 @@ export default function VendingCenterLoggerPage() {
 
     setSavingMortality(true);
     try {
-      const loggedBy = localStorage.getItem("ut_admin_email")?.split("@")[0] || mortalityFormLoggedBy || "Mohd Amin";
+      const loggedBy = formatStaffDisplayName(localStorage.getItem("ut_admin_email")) || mortalityFormLoggedBy || "Mohd Amin";
       const res = await adminFetch("/api/aquarium-mortality", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1955,7 +2021,7 @@ export default function VendingCenterLoggerPage() {
         `"${e.payment_mode}"`,
         ...activeCustomCols.map((c) => `"${e.custom_fields?.[c.id] ?? ""}"`),
         `"${(e.notes || "").replace(/"/g, '""')}"`,
-        `"${e.logged_by || ""}"`,
+        `"${formatStaffDisplayName(e.logged_by)}"`,
       ];
     });
 
@@ -2042,7 +2108,7 @@ export default function VendingCenterLoggerPage() {
           "Negotiation Loss (Rs)": loss,
           "Payment Mode": e.payment_mode,
           "Notes": e.notes || "",
-          "Logged By": e.logged_by || "Counter Staff",
+          "Logged By": formatStaffDisplayName(e.logged_by),
         };
 
         activeCustomCols.forEach((col) => {
@@ -2158,7 +2224,7 @@ export default function VendingCenterLoggerPage() {
     setFormPayment(isCash ? "Cash" : "Online Payment");
     setFormCustomFields(entry.custom_fields || {});
     setFormNotes(entry.notes || "");
-    setFormLoggedBy(entry.logged_by || "Counter Staff");
+    setFormLoggedBy(formatStaffDisplayName(entry.logged_by));
 
     const cf = entry.custom_fields || {};
     setFormCustomerName(cf.customer_name || "");
@@ -3865,7 +3931,7 @@ export default function VendingCenterLoggerPage() {
                       {e.logged_by && (
                         <span className="flex items-center gap-1 text-slate-500">
                           <span className="material-symbols-outlined text-[11px]">person</span>
-                          <span className="px-2 py-0.5 rounded-md bg-slate-800/80 border border-slate-700/60 text-slate-300">{e.logged_by}</span>
+                          <span className="px-2 py-0.5 rounded-md bg-slate-800/80 border border-slate-700/60 text-slate-300">{formatStaffDisplayName(e.logged_by)}</span>
                         </span>
                       )}
                       {customColumns.filter((c) => c.visible).map((c) =>
@@ -4551,15 +4617,36 @@ export default function VendingCenterLoggerPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] uppercase font-bold text-slate-400 font-mono mb-1">
-                    Logged By
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-[10px] uppercase font-bold text-slate-400 font-mono">
+                      Logged By
+                    </label>
+                    <span className="text-[9px] font-mono text-cyan-400">Staff Worker</span>
+                  </div>
                   <input
                     type="text"
                     value={formLoggedBy}
                     onChange={(e) => setFormLoggedBy(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-emerald-400"
+                    placeholder="e.g. Mohd Amin"
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-emerald-400 mb-1.5"
                   />
+                  {/* Quick Staff Selection Chips */}
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {staffListNames.map((sName) => (
+                      <button
+                        key={sName}
+                        type="button"
+                        onClick={() => setFormLoggedBy(sName)}
+                        className={`px-2 py-0.5 rounded-lg text-[10px] font-mono transition-all cursor-pointer ${
+                          formLoggedBy === sName
+                            ? "bg-emerald-500 text-slate-950 font-bold shadow-sm"
+                            : "bg-slate-800/80 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700"
+                        }`}
+                      >
+                        {sName === "Suhail" ? "👑 Suhail" : sName === "Mohd Amin" ? "👤 Mohd Amin" : `👤 ${sName}`}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 

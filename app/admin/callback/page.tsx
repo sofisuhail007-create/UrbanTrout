@@ -117,9 +117,21 @@ export default function AdminAuthCallback() {
       }
 
       if (isAuthorized) {
+        // Resolve friendly display name for staff
+        let staffName = cleanEmail === "sofisuhail007@gmail.com" ? "Suhail" : "Mohd Amin";
+        try {
+          const { data: staffRow } = await supabase.from("app_settings").select("value").eq("key", "staff_permissions").single();
+          if (staffRow?.value) {
+            const list = JSON.parse(staffRow.value);
+            const m = list.find((s: any) => s.email?.toLowerCase().trim() === cleanEmail);
+            if (m?.name) staffName = m.name;
+          }
+        } catch (_) {}
+
         // Persistent device storage so staff is NEVER logged out on tab/browser close
         localStorage.setItem("ut_admin_auth", "1");
         localStorage.setItem("ut_admin_email", cleanEmail);
+        localStorage.setItem("ut_admin_name", staffName);
         localStorage.setItem("ut_admin_role", staffRole);
         localStorage.setItem(
           "ut_admin_permissions",
@@ -141,6 +153,7 @@ export default function AdminAuthCallback() {
         // Also keep sessionStorage in sync
         sessionStorage.setItem("ut_admin_auth", "1");
         sessionStorage.setItem("ut_admin_email", cleanEmail);
+        sessionStorage.setItem("ut_admin_name", staffName);
         sessionStorage.setItem("ut_admin_role", staffRole);
         sessionStorage.setItem("ut_admin_permissions", JSON.stringify(staffPermissions || {}));
 

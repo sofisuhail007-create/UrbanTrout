@@ -36,6 +36,30 @@ export interface VendingSalesEntry {
   self_cleaned?: boolean;
 }
 
+export function normalizeStaffName(name?: string | null): string {
+  if (!name) return "Mohd Amin";
+  const trimmed = name.trim();
+  const lower = trimmed.toLowerCase();
+  if (
+    lower === "worksuhail007" ||
+    lower === "work.suhail007" ||
+    lower === "work.suhail007@gmail.com" ||
+    lower === "worksuhail007@gmail.com" ||
+    lower === "amin"
+  ) {
+    return "Mohd Amin";
+  }
+  if (
+    lower === "sofisuhail007" ||
+    lower === "sofisuhail007@gmail.com" ||
+    lower === "suhail (primary owner)" ||
+    lower === "suhail"
+  ) {
+    return "Suhail";
+  }
+  return trimmed;
+}
+
 // Fallback helper to store/retrieve from app_settings if table not created yet
 async function getFallbackEntries(): Promise<VendingSalesEntry[]> {
   try {
@@ -409,7 +433,10 @@ export async function GET(request: Request) {
       });
     }
 
-    let entries = Array.from(map.values());
+    let entries = Array.from(map.values()).map((e) => ({
+      ...e,
+      logged_by: normalizeStaffName(e.logged_by),
+    }));
 
     if (startDate) entries = entries.filter((e) => e.entry_date >= startDate);
     if (endDate) entries = entries.filter((e) => e.entry_date <= endDate);
@@ -511,7 +538,7 @@ export async function POST(request: Request) {
         discount_amount: discount,
         self_cleaned: Boolean(body.self_cleaned ?? custom_fields?.self_cleaned),
       },
-      logged_by: logged_by || "Counter Staff",
+      logged_by: normalizeStaffName(logged_by),
       notes: notes || "",
       created_at: now.toISOString(),
       updated_at: now.toISOString(),
@@ -582,6 +609,7 @@ export async function PUT(request: Request) {
     }
 
     updates.updated_at = new Date().toISOString();
+    if (updates.logged_by) updates.logged_by = normalizeStaffName(updates.logged_by);
 
     // Try Supabase table update
     try {

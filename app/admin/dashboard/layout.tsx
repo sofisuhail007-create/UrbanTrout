@@ -98,6 +98,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [adminEmail, setAdminEmail] = useState<string>("");
   const [adminRole, setAdminRole] = useState<string>("staff");
+  const [adminName, setAdminName] = useState<string>("Suhail");
   const [permissions, setPermissions] = useState<StaffPermissions>({
     billing: true,
     orders: true,
@@ -110,6 +111,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     can_delete: true,
   });
 
+  const resolveStaffName = (em: string): string => {
+    const clean = em.toLowerCase().trim();
+    if (clean === "sofisuhail007@gmail.com" || clean === "info.urbantrout@gmail.com") return "Suhail";
+    if (clean === "work.suhail007@gmail.com" || clean === "worksuhail007@gmail.com") return "Mohd Amin";
+    const stored = localStorage.getItem("ut_admin_name");
+    if (stored && stored.trim()) return stored.trim();
+    return "Mohd Amin";
+  };
+
   useEffect(() => {
     setMounted(true);
     // 1. Read persistent session from localStorage (with sessionStorage fallback)
@@ -121,6 +131,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     setAdminEmail(storedEmail);
     setAdminRole(storedRole);
+    setAdminName(resolveStaffName(storedEmail));
 
     if (storedPerms) {
       try {
@@ -472,7 +483,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </div>
                 <span className="text-[9px] font-mono text-slate-400">v2.4</span>
               </div>
-              <p className="text-xs text-slate-200 font-medium truncate" title={adminEmail}>
+              <p className="text-xs font-bold text-white truncate font-mono" title={adminName}>
+                {adminName}
+              </p>
+              <p className="text-[11px] text-slate-400 font-mono truncate mt-0.5" title={adminEmail}>
                 {adminEmail}
               </p>
             </div>
