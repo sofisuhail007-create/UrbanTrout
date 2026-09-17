@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
@@ -1246,6 +1246,21 @@ export default function VendingCenterLoggerPage() {
             setNewEntryModalOpen(false);
             resetForm();
             playLogChime();
+
+            // ── Sync customer to CRM database (non-blocking) ──────────────
+            if (formCustomerName.trim() && formCustomerPhone.trim()) {
+              adminFetch("/api/vending-log/customer-sync", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  name: formCustomerName.trim(),
+                  phone: formCustomerPhone.trim(),
+                  amount: amt,
+                  date: formDate,
+                  product_type: formType,
+                }),
+              }).catch((e) => console.warn("Customer sync notice:", e));
+            }
           }
         }
       }
@@ -4469,6 +4484,57 @@ export default function VendingCenterLoggerPage() {
                   </div>
                 </div>
               )}
+
+              {/* ── Customer Info for Marketing Database ──────────────── */}
+              <div className="pt-3 border-t border-slate-800/80 space-y-2.5">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="material-symbols-outlined text-sm text-cyan-400">person_add</span>
+                  <span className="text-[10px] uppercase font-bold text-cyan-400 font-mono tracking-wider">
+                    Customer Info
+                  </span>
+                  <span className="text-[9px] font-mono text-slate-500 bg-slate-800/60 px-1.5 py-0.5 rounded-full border border-slate-700">
+                    Optional · for marketing database
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <div>
+                    <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">
+                      Customer Name
+                    </label>
+                    <input
+                      type="text"
+                      value={formCustomerName}
+                      onChange={(e) => setFormCustomerName(e.target.value)}
+                      placeholder="e.g. Dr. Farooq / Tariq Sb"
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-cyan-400 transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">
+                      Phone (WhatsApp) <span className="text-slate-600">+91</span>
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-500 font-mono select-none">
+                        +91
+                      </span>
+                      <input
+                        type="tel"
+                        value={formCustomerPhone}
+                        onChange={(e) => setFormCustomerPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                        placeholder="9876543210"
+                        maxLength={10}
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-9 pr-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-cyan-400 transition-colors"
+                      />
+                    </div>
+                  </div>
+                </div>
+                {formCustomerName.trim() && formCustomerPhone.trim() && (
+                  <p className="text-[10px] text-cyan-400/80 font-mono flex items-center gap-1">
+                    <span className="material-symbols-outlined text-xs">check_circle</span>
+                    Will be saved to Customer Database automatically
+                  </p>
+                )}
+              </div>
 
               {/* Row 6: Notes & Staff */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
