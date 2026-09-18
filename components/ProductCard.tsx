@@ -77,10 +77,11 @@ export default function ProductCard({ p }: { p: Product }) {
         <div
           className="absolute inset-0 pointer-events-none z-10"
           style={{ background: "linear-gradient(to top, rgba(16,33,44,0.85) 0%, rgba(16,33,44,0.1) 50%, transparent 100%)" }}
+          aria-hidden="true"
         />
 
         {/* Label badge */}
-        <div className="absolute top-4 left-4 flex flex-wrap items-center gap-2 pointer-events-none">
+        <div className="absolute top-4 left-4 flex flex-wrap items-center gap-2 pointer-events-none" aria-hidden="true">
           <span
             className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest backdrop-blur-sm"
             style={{
@@ -116,6 +117,7 @@ export default function ProductCard({ p }: { p: Product }) {
             color: "#9fadb8",
             fontFamily: '"Inter", sans-serif',
           }}
+          aria-hidden="true"
         >
           Details →
         </span>
@@ -126,12 +128,12 @@ export default function ProductCard({ p }: { p: Product }) {
         {/* Name + Description */}
         <div>
           <Link href={`/shop/${p.id}`} className="block group/title">
-            <h2
+            <h3
               className="font-bold tracking-tight mb-1 transition-colors duration-200 group-hover/title:text-cyan-300"
               style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.35rem", color: "#dfedf9" }}
             >
               {p.name}
-            </h2>
+            </h3>
           </Link>
           <p
             className="leading-relaxed line-clamp-2"

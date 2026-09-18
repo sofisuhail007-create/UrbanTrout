@@ -99,40 +99,16 @@ export default async function HomePage() {
       />
 
       {/* ── Hero ── */}
-      <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-28 pb-16">
-        <style dangerouslySetInnerHTML={{ __html: `
-          @keyframes heroDrift {
-            0% { transform: scale(1.05) translate(0px, 0px) rotate(0deg); }
-            33% { transform: scale(1.08) translate(-15px, 10px) rotate(0.5deg); }
-            66% { transform: scale(1.06) translate(10px, -15px) rotate(-0.5deg); }
-            100% { transform: scale(1.05) translate(0px, 0px) rotate(0deg); }
-          }
-          .animate-hero-drift {
-            animation: heroDrift 30s ease-in-out infinite;
-          }
-          @keyframes ambientBubbles {
-            0% { transform: translateY(100vh) scale(0.5) translateX(0px); opacity: 0; }
-            50% { opacity: 0.4; }
-            100% { transform: translateY(-20vh) scale(1.5) translateX(20px); opacity: 0; }
-          }
-          .ambient-bubble {
-            position: absolute;
-            background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.6), rgba(114, 221, 253, 0.1) 60%, transparent 80%);
-            border-radius: 50%;
-            border: 1px solid rgba(114, 221, 253, 0.2);
-            animation: ambientBubbles 12s linear infinite;
-            z-index: 5;
-            pointer-events: none;
-          }
-        `}} />
+      <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-28 pb-16" aria-label="Hero — Fresh Rainbow Trout Srinagar, Kashmir">
 
         {/* Background image */}
-        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+        <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none" aria-hidden="true">
           <Image
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuBzsgreAxmSUuY16l46SuMrUrm-FYT8H80nikIPS7yYwGm9-I2pOkscmW2FVw1BmrRVkAJ8rbYHvkA0vfdbLwR9XHXTANxRa2kukMU82pX1_ShQ9pwdsRAwYpJHu8oYRZJ2av8Qz2BIlCedGAjS8VrTId2Xh-4qjp1CDQBxGXDlmGr2AqrMblwYX-dXBXtJvuTR86Q-jzZuSEWDcYdmc_hE9qSZhQMsSwQAhoJ_Pdw832jsUMNdWKIDNLJ0u43uSnVdGze5cTFtzFD2"
+            src="/images/hero-trout-bg.jpg"
             alt="Fresh Rainbow Trout in Srinagar Kashmir"
             fill
             priority
+            fetchPriority="high"
             quality={75}
             sizes="100vw"
             className="animate-hero-drift object-cover"
@@ -141,7 +117,7 @@ export default async function HomePage() {
         </div>
         
         {/* Ambient Bubbles */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute inset-0 overflow-hidden pointer-events-none z-0" aria-hidden="true">
           <div className="ambient-bubble" style={{ left: '10%', width: '30px', height: '30px', animationDelay: '0s', animationDuration: '15s' }} />
           <div className="ambient-bubble" style={{ left: '85%', width: '45px', height: '45px', animationDelay: '2s', animationDuration: '18s' }} />
           <div className="ambient-bubble" style={{ left: '45%', width: '25px', height: '25px', animationDelay: '5s', animationDuration: '12s' }} />
@@ -153,10 +129,10 @@ export default async function HomePage() {
         </div>
         
         {/* Gradient overlays */}
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 30%, #031018 100%)" }} />
-        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, rgba(3,16,24,0.7) 0%, transparent 40%, rgba(3,16,24,0.7) 100%)" }} />
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to bottom, transparent 30%, #031018 100%)" }} aria-hidden="true" />
+        <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to right, rgba(3,16,24,0.7) 0%, transparent 40%, rgba(3,16,24,0.7) 100%)" }} aria-hidden="true" />
         {/* Neon radial glow */}
-        <div style={{ position: "absolute", top: "30%", left: "50%", transform: "translate(-50%,-50%)", width: "600px", height: "600px", background: "radial-gradient(circle, rgba(114,221,253,0.06) 0%, transparent 70%)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", top: "30%", left: "50%", transform: "translate(-50%,-50%)", width: "600px", height: "600px", background: "radial-gradient(circle, rgba(114,221,253,0.06) 0%, transparent 70%)", pointerEvents: "none" }} aria-hidden="true" />
 
         {/* Content */}
         <div style={{ position: "relative", zIndex: 10, textAlign: "center", padding: "0 1.5rem", maxWidth: "900px", margin: "0 auto" }}>
@@ -177,7 +153,7 @@ export default async function HomePage() {
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: "1rem" }}>
             <Link href="/shop" style={{ display: "inline-flex", alignItems: "center", gap: "10px", padding: "14px 32px", borderRadius: "10px", background: "#3aadcc", color: "#002730", fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: "0.95rem", textDecoration: "none", boxShadow: "0 0 30px rgba(58,173,204,0.4), 0 4px 20px rgba(0,0,0,0.3)", transition: "all 0.3s" }}>
               Order Fresh Trout
-              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: "18px", height: "18px" }}>
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: "18px", height: "18px" }} aria-hidden="true">
                 <line x1="5" y1="12" x2="19" y2="12"></line>
                 <polyline points="12 5 19 12 12 19"></polyline>
               </svg>
@@ -189,16 +165,16 @@ export default async function HomePage() {
         </div>
 
         {/* Scroll hint */}
-        <div style={{ position: "absolute", bottom: "2rem", left: "50%", transform: "translateX(-50%)", display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", opacity: 0.4 }}>
+        <div style={{ position: "absolute", bottom: "2rem", left: "50%", transform: "translateX(-50%)", display: "flex", flexDirection: "column", alignItems: "center", gap: "8px", opacity: 0.4 }} aria-hidden="true">
           <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", letterSpacing: "0.25em", textTransform: "uppercase" }}>Scroll</span>
           <div style={{ width: "1px", height: "36px", background: "linear-gradient(to bottom, #72ddfd, transparent)" }} />
         </div>
       </section>
 
       {/* ── Why Choose Urban Trout ── */}
-      <section style={{ padding: "6rem 1.5rem", background: C.bg, position: "relative", overflow: "hidden" }}>
+      <section style={{ padding: "6rem 1.5rem", background: C.bg, position: "relative", overflow: "hidden" }} aria-label="Why Choose Urban Trout">
         {/* Decorative glow */}
-        <div style={{ position: "absolute", top: "50%", right: 0, transform: "translate(50%, -50%)", width: "500px", height: "500px", background: "radial-gradient(circle, rgba(114,221,253,0.05) 0%, transparent 70%)", pointerEvents: "none" }} />
+        <div style={{ position: "absolute", top: "50%", right: 0, transform: "translate(50%, -50%)", width: "500px", height: "500px", background: "radial-gradient(circle, rgba(114,221,253,0.05) 0%, transparent 70%)", pointerEvents: "none" }} aria-hidden="true" />
 
         <div className="max-w-7xl mx-auto">
           {/* Section header */}
@@ -223,7 +199,7 @@ export default async function HomePage() {
               style={{ background: C.bgLow, border: "1px solid rgba(255,255,255,0.06)" }}
             >
               <Image
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuAw2idJIrz9hjno5I1VpNsfjqfQnhqLPidbIRKttyWvaFYDCXn39gfFxbhzDkp01U8HcCCb9gTEBrCeOymPH_AzeyZBx_Yx8hr7s1Y71Cw3EAJseHs-q4N5ZCwSLxM0_DIj89VHy2rnRL-9hfVugHv39MDQ_0m368etR-norK3BNf3JBvjTaos9qVnQIaHfv3D_48h2G4W8T2Y3SlQjou3TtMSflhEb6T3b6RY5bbBsllLqCkQ2TvW96_cxg9sPUysMkjb6hK1naVV3"
+                src="/images/borewell-farm-bg.jpg"
                 alt="Clean borewell water trout farm Srinagar"
                 fill
                 sizes="(max-width: 768px) 100vw, 1200px"
@@ -246,7 +222,7 @@ export default async function HomePage() {
               style={{ background: C.bgHigh, border: "1px solid rgba(255,255,255,0.06)" }}
             >
               <div>
-                <svg className="w-9 h-9 text-[#63cfee] mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <svg className="w-9 h-9 text-[#63cfee] mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
                 <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.4rem", fontWeight: 700, color: C.onSurface, margin: "0 0 0.75rem" }}>Zero Antibiotics</h3>
@@ -262,7 +238,7 @@ export default async function HomePage() {
               style={{ background: C.bgHigh, border: "1px solid rgba(255,255,255,0.06)" }}
             >
               <div>
-                <svg className="w-9 h-9 text-[#72ddfd] mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <svg className="w-9 h-9 text-[#72ddfd] mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                   <circle cx="12" cy="12" r="9" />
                   <polyline points="12 6 12 12 16 14" />
                 </svg>
@@ -277,7 +253,7 @@ export default async function HomePage() {
       </section>
 
       {/* ── Farm Conditions Strip ── */}
-      <section style={{ padding: "4rem 1.5rem", borderTop: "1px solid rgba(114,221,253,0.07)", borderBottom: "1px solid rgba(114,221,253,0.07)", background: C.bgLow }}>
+      <section style={{ padding: "4rem 1.5rem", borderTop: "1px solid rgba(114,221,253,0.07)", borderBottom: "1px solid rgba(114,221,253,0.07)", background: C.bgLow }} aria-label="Farm Conditions">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {farmConditions.map((item, i) => (
@@ -292,7 +268,7 @@ export default async function HomePage() {
       </section>
 
       {/* ── Product Preview ── */}
-      <section style={{ padding: "6rem 1.5rem", background: C.bg }}>
+      <section style={{ padding: "6rem 1.5rem", background: C.bg }} aria-label="Fresh Rainbow Trout Products">
         <div className="max-w-7xl mx-auto">
           <div style={{ textAlign: "center", marginBottom: "3.5rem" }}>
             <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "11px", letterSpacing: "0.2em", textTransform: "uppercase", color: C.primary, display: "block", marginBottom: "1rem" }}>Fresh Catch Srinagar</span>
@@ -308,7 +284,7 @@ export default async function HomePage() {
       </section>
 
       {/* ── Local Srinagar FAQs (Rank Booster) ── */}
-      <section style={{ padding: "6rem 1.5rem", background: C.bgLow, borderTop: "1px solid rgba(114,221,253,0.07)" }}>
+      <section style={{ padding: "6rem 1.5rem", background: C.bgLow, borderTop: "1px solid rgba(114,221,253,0.07)" }} aria-label="Frequently Asked Questions">
         <div style={{ maxWidth: "860px", margin: "0 auto" }}>
           <div style={{ textAlign: "center", marginBottom: "3.5rem" }}>
             <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "10px", letterSpacing: "0.25em", textTransform: "uppercase", color: C.primary, display: "block", marginBottom: "0.75rem" }}>Frequently Asked Questions</span>
@@ -341,11 +317,11 @@ export default async function HomePage() {
       </section>
 
       {/* ── Trust Bar ── */}
-      <section style={{ padding: "4rem 1.5rem", borderTop: "1px solid rgba(114,221,253,0.07)", background: C.bg }}>
+      <section style={{ padding: "4rem 1.5rem", borderTop: "1px solid rgba(114,221,253,0.07)", background: C.bg }} aria-label="Our Commitments">
         <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6">
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: "10px" }}>
-            <div className="w-12 h-12 rounded-xl bg-cyan-950/70 border border-cyan-500/30 flex items-center justify-center text-cyan-300 shadow-lg shadow-cyan-500/10">
-              <svg className="w-6 h-6 text-[#72ddfd]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <div className="w-12 h-12 rounded-xl bg-cyan-950/70 border border-cyan-500/30 flex items-center justify-center text-cyan-300 shadow-lg shadow-cyan-500/10" aria-hidden="true">
+              <svg className="w-6 h-6 text-[#72ddfd]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 2.69l5.66 5.66a8 8 0 11-11.31 0z" />
               </svg>
             </div>
@@ -354,8 +330,8 @@ export default async function HomePage() {
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: "10px" }}>
-            <div className="w-12 h-12 rounded-xl bg-cyan-950/70 border border-cyan-500/30 flex items-center justify-center text-cyan-300 shadow-lg shadow-cyan-500/10">
-              <svg className="w-6 h-6 text-[#72ddfd]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <div className="w-12 h-12 rounded-xl bg-cyan-950/70 border border-cyan-500/30 flex items-center justify-center text-cyan-300 shadow-lg shadow-cyan-500/10" aria-hidden="true">
+              <svg className="w-6 h-6 text-[#72ddfd]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
             </div>
@@ -364,8 +340,8 @@ export default async function HomePage() {
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: "10px" }}>
-            <div className="w-12 h-12 rounded-xl bg-cyan-950/70 border border-cyan-500/30 flex items-center justify-center text-cyan-300 shadow-lg shadow-cyan-500/10">
-              <svg className="w-6 h-6 text-[#72ddfd]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <div className="w-12 h-12 rounded-xl bg-cyan-950/70 border border-cyan-500/30 flex items-center justify-center text-cyan-300 shadow-lg shadow-cyan-500/10" aria-hidden="true">
+              <svg className="w-6 h-6 text-[#72ddfd]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                 <rect x="1" y="3" width="15" height="13" rx="2" />
                 <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
                 <circle cx="5.5" cy="18.5" r="2.5" />
@@ -377,8 +353,8 @@ export default async function HomePage() {
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: "10px" }}>
-            <div className="w-12 h-12 rounded-xl bg-cyan-950/70 border border-cyan-500/30 flex items-center justify-center text-cyan-300 shadow-lg shadow-cyan-500/10">
-              <svg className="w-6 h-6 text-[#72ddfd]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <div className="w-12 h-12 rounded-xl bg-cyan-950/70 border border-cyan-500/30 flex items-center justify-center text-cyan-300 shadow-lg shadow-cyan-500/10" aria-hidden="true">
+              <svg className="w-6 h-6 text-[#72ddfd]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 3h18v4l-2 3v9a2 2 0 01-2 2H7a2 2 0 01-2-2v-9L3 7V3z" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="M3 7h18" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 21v-8a2 2 0 012-2h2a2 2 0 012 2v8" />

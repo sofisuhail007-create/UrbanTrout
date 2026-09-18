@@ -46,7 +46,7 @@ export default function Navbar() {
           </Link>
 
           {/* Desktop Nav */}
-          <nav className="hidden md:flex items-center gap-1">
+          <nav className="hidden md:flex items-center gap-1" aria-label="Primary navigation">
             {navLinks.map((link) => {
               const isActive = pathname === link.href;
               return (

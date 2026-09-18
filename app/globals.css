@@ -112,9 +112,8 @@ body {
   font-family: 'Material Symbols Outlined';
   font-style: normal;
   font-weight: 100 700;
-  font-display: block;
-  src: url('https://fonts.gstatic.com/s/materialsymbolsoutlined/v373/kJEhBvYX7BgnkSrUwT8OhrdQw4oELdPIeeII9v6oFsI.woff2') format('woff2'),
-       url('/fonts/material-symbols-outlined.woff2') format('woff2');
+  font-display: swap;
+  src: url('/fonts/material-symbols-outlined.woff2') format('woff2');
 }
 
 .material-symbols-outlined {
@@ -212,6 +211,33 @@ body {
   0%, 100% { transform: translateY(0px); }
   50%       { transform: translateY(-8px); }
 }
+
+/* ─── Hero Animations ─── */
+@keyframes heroDrift {
+  0%   { transform: scale(1.05) translate(0px, 0px) rotate(0deg); }
+  33%  { transform: scale(1.08) translate(-15px, 10px) rotate(0.5deg); }
+  66%  { transform: scale(1.06) translate(10px, -15px) rotate(-0.5deg); }
+  100% { transform: scale(1.05) translate(0px, 0px) rotate(0deg); }
+}
+.animate-hero-drift {
+  animation: heroDrift 30s ease-in-out infinite;
+}
+
+@keyframes ambientBubbles {
+  0%   { transform: translateY(100vh) scale(0.5) translateX(0px); opacity: 0; }
+  50%  { opacity: 0.4; }
+  100% { transform: translateY(-20vh) scale(1.5) translateX(20px); opacity: 0; }
+}
+.ambient-bubble {
+  position: absolute;
+  background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.6), rgba(114,221,253,0.1) 60%, transparent 80%);
+  border-radius: 50%;
+  border: 1px solid rgba(114,221,253,0.2);
+  animation: ambientBubbles 12s linear infinite;
+  z-index: 5;
+  pointer-events: none;
+}
+
 
 @keyframes pulse-ring {
   0%   { box-shadow: 0 0 0 0 rgba(0, 140, 179, 0.4); }

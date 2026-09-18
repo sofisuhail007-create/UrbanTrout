@@ -44,4 +44,5 @@ next-env.d.ts
 public/Speedtest/
 public/Reel_Ad_campaign/
 *.mp4
+*.pdf
 

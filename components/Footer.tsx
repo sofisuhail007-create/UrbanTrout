@@ -18,6 +18,7 @@ export default function Footer() {
     <footer
       className="w-full mt-20"
       style={{ background: "#020d14", borderTop: "1px solid rgba(61,74,83,0.35)" }}
+      aria-label="Site footer"
     >
       <div className="max-w-7xl mx-auto px-8 py-16 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
 
@@ -72,6 +73,7 @@ export default function Footer() {
           >
             Explore
           </h5>
+          <nav aria-label="Explore navigation">
           <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "12px" }}>
             {[
               { href: "/shop", label: "Shop Fresh Catch" },
@@ -98,6 +100,7 @@ export default function Footer() {
               </li>
             ))}
           </ul>
+          </nav>
         </div>
 
         {/* 3. Customer Policies & Compliance (Mandatory for Razorpay) */}
@@ -115,6 +118,7 @@ export default function Footer() {
           >
             Policies &amp; Support
           </h5>
+          <nav aria-label="Policies navigation">
           <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "12px" }}>
             {[
               { href: "/refund-policy", label: "Refund & Cancellation" },
@@ -140,6 +144,7 @@ export default function Footer() {
               </li>
             ))}
           </ul>
+          </nav>
         </div>
 
         {/* 4. Contact & Farm Location */}
