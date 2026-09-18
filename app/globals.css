@@ -113,12 +113,12 @@ body {
   font-style: normal;
   font-weight: 100 700;
   font-display: block;
-  src: url('https://fonts.gstatic.com/s/materialsymbolsoutlined/v372/kJEhBvYX7BgnkSrUwT8OhrdQw4oELdPIeeII9v6oFsI.woff2') format('woff2'),
+  src: url('https://fonts.gstatic.com/s/materialsymbolsoutlined/v373/kJEhBvYX7BgnkSrUwT8OhrdQw4oELdPIeeII9v6oFsI.woff2') format('woff2'),
        url('/fonts/material-symbols-outlined.woff2') format('woff2');
 }
 
 .material-symbols-outlined {
-  font-family: 'Material Symbols Outlined', sans-serif;
+  font-family: 'Material Symbols Outlined';
   font-weight: normal;
   font-style: normal;
   font-size: 24px;
@@ -137,6 +137,13 @@ body {
   font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
   user-select: none;
   vertical-align: middle;
+  width: 1em;
+  height: 1em;
+  max-width: 1em;
+  max-height: 1em;
+  overflow: hidden;
+  flex-shrink: 0;
+  text-rendering: optimizeLegibility;
 }
 
 /* ─── Neon Glow Utilities ─── */
