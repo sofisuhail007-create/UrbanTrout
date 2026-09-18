@@ -176,6 +176,25 @@ export default function VendingCenterLoggerPage() {
   const [filterType, setFilterType] = useState<string>("all");
   const [filterPayment, setFilterPayment] = useState<string>("all");
 
+  // View mode: "table" (compact ledger table) vs "cards" (visual card grid)
+  const [viewMode, setViewMode] = useState<"table" | "cards">("table");
+
+  useEffect(() => {
+    try {
+      const savedMode = localStorage.getItem("ut_vending_view_mode");
+      if (savedMode === "table" || savedMode === "cards") {
+        setViewMode(savedMode);
+      }
+    } catch (_) {}
+  }, []);
+
+  const handleSetViewMode = (mode: "table" | "cards") => {
+    setViewMode(mode);
+    try {
+      localStorage.setItem("ut_vending_view_mode", mode);
+    } catch (_) {}
+  };
+
   // Table Sorting state (Time descending by default)
   const [sortField, setSortField] = useState<"time" | "date">("time");
   const [sortDirection, setSortDirection] = useState<"desc" | "asc">("desc");
@@ -3617,7 +3636,7 @@ export default function VendingCenterLoggerPage() {
       {/* ══════════════════════════════════════════════════════════
           TABLE FILTERS & CONTROLS
           ══════════════════════════════════════════════════════════ */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-3 flex flex-wrap items-center justify-between gap-3">
+      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-3 flex flex-wrap items-center justify-between gap-3 shadow-sm">
         {/* Search */}
         <div className="relative flex-1 min-w-[220px]">
           <span className="material-symbols-outlined absolute left-3 top-2.5 text-slate-500 text-sm">
@@ -3628,7 +3647,7 @@ export default function VendingCenterLoggerPage() {
             placeholder="Search date, time, customer, notes, payment..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-slate-950/80 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400"
+            className="w-full pl-9 pr-4 py-2 bg-slate-950/80 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-400 font-sans"
           />
         </div>
 
@@ -3661,6 +3680,36 @@ export default function VendingCenterLoggerPage() {
           </select>
         </div>
 
+        {/* View Mode Toggle: Table vs Cards */}
+        <div className="flex items-center p-0.5 rounded-xl bg-slate-950 border border-slate-800">
+          <button
+            type="button"
+            onClick={() => handleSetViewMode("table")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono transition-all cursor-pointer ${
+              viewMode === "table"
+                ? "bg-slate-800 text-emerald-400 border border-slate-700 shadow-sm font-bold"
+                : "text-slate-400 hover:text-white"
+            }`}
+            title="Compact Ledger Table View"
+          >
+            <span className="material-symbols-outlined text-[15px]">table_rows</span>
+            Table
+          </button>
+          <button
+            type="button"
+            onClick={() => handleSetViewMode("cards")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono transition-all cursor-pointer ${
+              viewMode === "cards"
+                ? "bg-slate-800 text-emerald-400 border border-slate-700 shadow-sm font-bold"
+                : "text-slate-400 hover:text-white"
+            }`}
+            title="Visual Cards View"
+          >
+            <span className="material-symbols-outlined text-[15px]">grid_view</span>
+            Cards
+          </button>
+        </div>
+
         <button
           type="button"
           onClick={fetchData}
@@ -3672,341 +3721,566 @@ export default function VendingCenterLoggerPage() {
       </div>
 
       {/* ══════════════════════════════════════════════════════════
-          SALES ENTRIES — CARD LIST (NO HORIZONTAL SCROLL)
+          SALES ENTRIES — MODERN LEDGER TABLE OR CARD GRID
           ══════════════════════════════════════════════════════════ */}
-      <div className="space-y-1.5">
-        {/* Column Header Strip */}
-        <div className="grid items-center gap-x-2 px-4 py-2.5 rounded-2xl bg-slate-950/80 border border-slate-800/80 text-[9.5px] font-mono uppercase tracking-wider text-slate-500 select-none"
-          style={{gridTemplateColumns:"1.8rem 7rem 4.5rem 1fr 5.5rem 4rem 5rem 5.5rem 6rem 6.5rem auto"}}>
-          <span className="text-center">#</span>
-          <span>Date</span>
-          <span>Time</span>
-          <span>Type</span>
-          <span className="text-right">Weight</span>
-          <span className="text-right">Rate</span>
-          <span className="text-right">Expected</span>
-          <span className="text-right text-cyan-400/80">Taken</span>
-          <span className="text-right text-amber-400/80">Loss</span>
-          <span>Payment</span>
-          <span className="text-right pr-1">Actions</span>
+      {loading ? (
+        <div className="py-16 flex flex-col items-center gap-3 text-slate-400 bg-slate-900/40 rounded-3xl border border-slate-800/70">
+          <div className="w-9 h-9 border-2 border-emerald-400 border-t-transparent animate-spin rounded-full" />
+          <span className="text-sm font-mono">Loading sales entries…</span>
         </div>
-
-        {loading ? (
-          <div className="py-16 flex flex-col items-center gap-3 text-slate-400">
-            <div className="w-9 h-9 border-2 border-emerald-400 border-t-transparent animate-spin rounded-full" />
-            <span className="text-sm font-mono">Loading entries…</span>
-          </div>
-        ) : displayEntries.length === 0 ? (
-          <div className="py-16 flex flex-col items-center gap-3 text-slate-400 bg-slate-900/60 rounded-3xl border border-slate-800/70">
-            <span className="material-symbols-outlined text-5xl text-slate-700">set_meal</span>
-            <p className="font-bold text-sm text-white">No sales entries found</p>
-            <p className="text-xs text-slate-500">Click &quot;Log Sale&quot; to record today&apos;s first counter dispatch.</p>
-          </div>
-        ) : (
-          <>
-            {paginatedSalesEntries.map((e, index) => {
-              const isGutted =
-                (e.product_type || "").toLowerCase().includes("gutted") &&
-                !(e.product_type || "").toLowerCase().includes("non");
-              const w = Number(e.weight_kg) || 0;
-              const rate = Number(e.rate_per_kg) || 0;
-              const exp =
-                e.expected_amount !== undefined && e.expected_amount !== null && Number(e.expected_amount) > 0
-                  ? Number(e.expected_amount)
-                  : e.custom_fields?.expected_amount !== undefined && Number(e.custom_fields.expected_amount) > 0
-                  ? Number(e.custom_fields.expected_amount)
-                  : Math.round(w * rate);
-              const taken = Number(e.amount_paid) || 0;
-              const isPendingBal =
-                e.custom_fields?.balance_status === "pending" &&
-                Number(e.custom_fields?.balance_amount) > 0;
-              const loss =
-                e.discount_amount !== undefined && e.discount_amount !== null && Number(e.discount_amount) > 0
-                  ? Number(e.discount_amount)
-                  : e.custom_fields?.discount_amount !== undefined && Number(e.custom_fields.discount_amount) > 0
-                  ? Number(e.custom_fields.discount_amount)
-                  : isPendingBal
-                  ? 0
-                  : Math.max(0, exp - taken);
-              const isSelfCleaned = Boolean(e.custom_fields?.self_cleaned || (e as any).self_cleaned);
-              const isCash = (e.payment_mode || "").toLowerCase().trim() === "cash";
-
-              return (
-                <div
-                  key={e.id}
-                  className={`group rounded-2xl border transition-all ${
-                    isSelfCleaned
-                      ? "bg-amber-950/25 border-amber-500/30 hover:bg-amber-950/35 border-l-4 border-l-amber-400"
-                      : "bg-slate-900/60 border-slate-800/70 hover:bg-slate-800/50 hover:border-slate-700"
-                  }`}
-                >
-                  {/* ── Main Data Row ── */}
-                  <div
-                    className="grid items-center gap-x-2 px-4 py-3.5 font-mono text-xs"
-                    style={{gridTemplateColumns:"1.8rem 7rem 4.5rem 1fr 5.5rem 4rem 5rem 5.5rem 6rem 6.5rem auto"}}
-                  >
-                    {/* # */}
-                    <span className="text-center text-slate-600 font-bold text-[11px]">
-                      {(salesPage - 1) * 50 + index + 1}
-                    </span>
-
-                    {/* Date */}
-                    <span className="text-slate-200 font-bold whitespace-nowrap text-[11px]">{e.entry_date}</span>
-
-                    {/* Time */}
-                    <span className="text-slate-500 whitespace-nowrap text-[10.5px]">{e.entry_time}</span>
-
-                    {/* Type */}
-                    <div className="flex flex-col gap-0.5 min-w-0">
-                      {isGutted && isSelfCleaned ? (
-                        <>
-                          <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-amber-500/20 text-amber-200 border border-amber-500/40 inline-flex items-center gap-1 w-fit">
-                            🐟 Gutted
-                            <span className="text-[8.5px] px-1 rounded bg-amber-500/30 text-amber-100 font-black">Self Cleaned</span>
-                          </span>
-                          <span className="text-[9px] text-amber-400/80 flex items-center gap-0.5">
-                            <span className="material-symbols-outlined text-[10px]">handyman</span>
-                            ₹0 Worker Inc.
-                          </span>
-                        </>
-                      ) : isGutted ? (
-                        <>
-                          <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 inline-flex items-center gap-1 w-fit">
-                            🐟 {e.product_type}
-                          </span>
-                          <span className="text-[9px] text-emerald-400/80 flex items-center gap-0.5">
-                            <span className="material-symbols-outlined text-[10px]">payments</span>
-                            +₹{(w * INCENTIVE_RATE_PER_KG).toFixed(0)} worker inc.
-                          </span>
-                        </>
-                      ) : (
-                        <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 inline-flex items-center gap-1 w-fit">
-                          ✨ {e.product_type}
+      ) : displayEntries.length === 0 ? (
+        <div className="py-16 flex flex-col items-center gap-3 text-slate-400 bg-slate-900/60 rounded-3xl border border-slate-800/70">
+          <span className="material-symbols-outlined text-5xl text-slate-700">set_meal</span>
+          <p className="font-bold text-sm text-white">No sales entries found</p>
+          <p className="text-xs text-slate-500">Click &quot;Log Sale&quot; to record today&apos;s first counter dispatch.</p>
+        </div>
+      ) : viewMode === "table" ? (
+        /* ────────────── VIEW 1: EXECUTIVE LEDGER TABLE ────────────── */
+        <div className="rounded-2xl border border-slate-800 bg-slate-900/70 backdrop-blur-md shadow-2xl shadow-black/40 overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse font-mono text-xs">
+              <thead>
+                <tr className="bg-slate-950/90 border-b border-slate-800 text-[10.5px] font-semibold text-slate-400 uppercase tracking-wider select-none">
+                  <th className="py-3 px-3 text-center w-12 text-slate-500">#</th>
+                  <th className="py-3 px-3.5 min-w-[115px]">
+                    <button
+                      type="button"
+                      onClick={() => toggleSort("time")}
+                      className="flex items-center gap-1 hover:text-white transition-colors cursor-pointer"
+                    >
+                      Date &amp; Time
+                      {sortField === "time" && (
+                        <span className="material-symbols-outlined text-[13px] text-emerald-400">
+                          {sortDirection === "desc" ? "arrow_downward" : "arrow_upward"}
                         </span>
                       )}
-                    </div>
+                    </button>
+                  </th>
+                  <th className="py-3 px-3.5 min-w-[210px]">Product &amp; Destination</th>
+                  <th className="py-3 px-3 min-w-[110px]">Staff</th>
+                  <th className="py-3 px-3.5 text-right min-w-[95px]">Weight</th>
+                  <th className="py-3 px-3 text-right min-w-[70px]">Rate</th>
+                  <th className="py-3 px-3 text-right min-w-[80px]">Expected</th>
+                  <th className="py-3 px-3.5 text-right min-w-[95px] text-cyan-400">Collected</th>
+                  <th className="py-3 px-3.5 text-right min-w-[115px] text-amber-400">Status</th>
+                  <th className="py-3 px-3.5 min-w-[125px]">Payment</th>
+                  <th className="py-3 px-3.5 text-right min-w-[90px]">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/60">
+                {paginatedSalesEntries.map((e, index) => {
+                  const isGutted =
+                    (e.product_type || "").toLowerCase().includes("gutted") &&
+                    !(e.product_type || "").toLowerCase().includes("non");
+                  const w = Number(e.weight_kg) || 0;
+                  const rate = Number(e.rate_per_kg) || 0;
+                  const exp =
+                    e.expected_amount !== undefined && e.expected_amount !== null && Number(e.expected_amount) > 0
+                      ? Number(e.expected_amount)
+                      : e.custom_fields?.expected_amount !== undefined && Number(e.custom_fields.expected_amount) > 0
+                      ? Number(e.custom_fields.expected_amount)
+                      : Math.round(w * rate);
+                  const taken = Number(e.amount_paid) || 0;
+                  const isPendingBal =
+                    e.custom_fields?.balance_status === "pending" &&
+                    Number(e.custom_fields?.balance_amount) > 0;
+                  const loss =
+                    e.discount_amount !== undefined && e.discount_amount !== null && Number(e.discount_amount) > 0
+                      ? Number(e.discount_amount)
+                      : e.custom_fields?.discount_amount !== undefined && Number(e.custom_fields.discount_amount) > 0
+                      ? Number(e.custom_fields.discount_amount)
+                      : isPendingBal
+                      ? 0
+                      : Math.max(0, exp - taken);
+                  const isSelfCleaned = Boolean(e.custom_fields?.self_cleaned || (e as any).self_cleaned);
+                  const isCash = (e.payment_mode || "").toLowerCase().trim() === "cash";
 
-                    {/* Weight */}
-                    <div className="text-right whitespace-nowrap">
-                      <span className="text-emerald-400 font-black text-sm">{formatKg(e.weight_kg)}</span>
-                      <span className="text-slate-500 text-[9.5px] ml-0.5">Kg</span>
-                    </div>
+                  return (
+                    <tr
+                      key={e.id}
+                      className={`group transition-colors ${
+                        isSelfCleaned
+                          ? "bg-amber-950/20 hover:bg-amber-950/35 border-l-4 border-l-amber-400"
+                          : index % 2 === 0
+                          ? "bg-transparent hover:bg-slate-800/40"
+                          : "bg-slate-950/25 hover:bg-slate-800/40"
+                      }`}
+                    >
+                      {/* # */}
+                      <td className="py-3 px-3 text-center text-slate-500 font-bold text-[11px]">
+                        {(salesPage - 1) * 50 + index + 1}
+                      </td>
 
-                    {/* Rate */}
-                    <span className="text-right text-slate-300 whitespace-nowrap">₹{e.rate_per_kg}</span>
-
-                    {/* Expected */}
-                    <span className="text-right text-slate-500 whitespace-nowrap">₹{exp.toLocaleString("en-IN")}</span>
-
-                    {/* Amount Taken */}
-                    <span className="text-right text-cyan-300 font-black text-[13px] whitespace-nowrap">₹{taken.toLocaleString("en-IN")}</span>
-
-                    {/* Negotiation Loss */}
-                    <div className="text-right whitespace-nowrap">
-                      {Number(e.custom_fields?.balance_amount) > 0 && e.custom_fields?.balance_status === "pending" ? (
-                        <button
-                          type="button"
-                          onClick={() => handleOpenBalanceModalForEntry(e)}
-                          className="inline-flex flex-col items-end gap-0.5 cursor-pointer"
-                          title="Click to open Razorpay QR & WhatsApp Reminder"
-                        >
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9.5px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/50 hover:bg-amber-500/30 transition-all">
-                            ⏳ Bal: ₹{Number(e.custom_fields.balance_amount).toLocaleString("en-IN")}
+                      {/* Date & Time */}
+                      <td className="py-3 px-3.5 whitespace-nowrap">
+                        <div className="flex flex-col">
+                          <span className="text-slate-200 font-bold text-[11.5px]">
+                            {formatIstDateDisplay(e.entry_date) || e.entry_date}
                           </span>
-                        </button>
-                      ) : e.custom_fields?.balance_status === "waived_final" ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[9.5px] font-mono text-slate-400 bg-slate-800 border border-slate-700">
-                          🤝 Waived (-₹{loss})
-                        </span>
-                      ) : e.custom_fields?.balance_status === "settled" || e.custom_fields?.settled_at || e.custom_fields?.is_full_payment ? (
-                        <span
-                          className="inline-flex items-center px-2 py-0.5 rounded-lg text-[9.5px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/50"
-                          title={`Settled via ${e.custom_fields?.settled_payment_method || "QR/Online"}`}
-                        >
-                          ✓ FULL PAID
-                        </span>
-                      ) : loss > 0 ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9.5px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
-                          -₹{loss.toLocaleString("en-IN")}
-                          <span className="text-[8.5px] opacity-70">loss</span>
-                        </span>
-                      ) : loss < 0 ? (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[9.5px] font-mono text-cyan-300 bg-cyan-500/10 border border-cyan-500/20">
-                          +₹{Math.abs(loss)}
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-lg text-[9.5px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20">
-                          ₹0 ✓
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Payment Mode */}
-                    <div className="whitespace-nowrap">
-                      {e.payment_mode === "Cash + Online QR" || (e.custom_fields?.settled_at && (e.payment_mode || "").toLowerCase().includes("qr")) ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[9.5px] font-bold">
-                          💵 Cash + ⚡ QR ✓
-                        </span>
-                      ) : isCash ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-teal-500/15 border border-teal-500/30 text-teal-300 text-[9.5px] font-bold">
-                          💵 Cash
-                        </span>
-                      ) : e.payment_mode === "Razorpay Link" && (e.custom_fields?.payment_status === "PENDING_LINK" || Number(e.amount_paid) === 0) ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[9.5px] font-bold">
-                          ⏳ Link Sent
-                        </span>
-                      ) : e.payment_mode === "Razorpay Link" ? (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[9.5px] font-bold">
-                          🔒 Razorpay
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-[9.5px] font-bold">
-                          ⚡ Online
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex items-center justify-end gap-1.5">
-                      {Number(e.custom_fields?.balance_amount) > 0 && e.custom_fields?.balance_status === "pending" && (
-                        <button
-                          type="button"
-                          onClick={() => handleOpenBalanceModalForEntry(e)}
-                          className="px-2 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[9.5px] font-bold font-mono transition-all cursor-pointer flex items-center gap-1 shadow-sm active:scale-95"
-                          title="Send WhatsApp Payment Reminder / Generate Razorpay QR"
-                        >
-                          <span className="material-symbols-outlined text-sm">qr_code_2</span>
-                          Khata
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => openEditModal(e)}
-                        className="w-8 h-8 rounded-xl bg-slate-800/90 hover:bg-emerald-500/25 text-slate-300 hover:text-emerald-300 border border-slate-700/80 hover:border-emerald-500/40 transition-all flex items-center justify-center cursor-pointer shadow-sm active:scale-95"
-                        title="Edit entry"
-                      >
-                        <span className="material-symbols-outlined text-base">edit</span>
-                      </button>
-                      {deleteConfirmId === e.id ? (
-                        <div className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteEntry(e.id)}
-                            className="px-2 py-1.5 rounded-xl bg-red-600 hover:bg-red-500 text-white text-[9.5px] font-bold font-mono shadow-md cursor-pointer active:scale-95"
-                          >
-                            Delete
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setDeleteConfirmId(null)}
-                            className="px-2 py-1.5 rounded-xl bg-slate-700 hover:bg-slate-600 text-slate-300 text-[9.5px] cursor-pointer active:scale-95"
-                          >
-                            ✕
-                          </button>
+                          <span className="text-slate-400 text-[10.5px] mt-0.5 flex items-center gap-1 font-mono">
+                            <span className="material-symbols-outlined text-[11px] text-slate-500">schedule</span>
+                            {e.entry_time}
+                          </span>
                         </div>
-                      ) : (
-                        canDelete && (
+                      </td>
+
+                      {/* Product & Destination */}
+                      <td className="py-3 px-3.5">
+                        <div className="flex flex-col gap-1 min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {isGutted && isSelfCleaned ? (
+                              <>
+                                <span className="px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-amber-500/20 text-amber-200 border border-amber-500/40 inline-flex items-center gap-1">
+                                  🐟 Gutted
+                                  <span className="text-[8.5px] px-1 rounded bg-amber-500/30 text-amber-100 font-bold">Self Cleaned</span>
+                                </span>
+                                <span className="text-[9px] text-amber-400/90 font-sans font-medium">₹0 worker inc</span>
+                              </>
+                            ) : isGutted ? (
+                              <>
+                                <span className="px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 inline-flex items-center gap-1">
+                                  🐟 {e.product_type}
+                                </span>
+                                <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-[9px] text-emerald-400 font-sans font-medium inline-flex items-center gap-0.5">
+                                  <span className="material-symbols-outlined text-[10px]">payments</span>
+                                  +₹{(w * INCENTIVE_RATE_PER_KG).toFixed(0)} worker inc
+                                </span>
+                              </>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 inline-flex items-center gap-1">
+                                ✨ {e.product_type}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Customer / Location / Notes */}
+                          {e.notes && (
+                            <div className="flex items-center gap-1 text-[11px] text-slate-300 font-sans font-medium truncate max-w-[280px]" title={e.notes}>
+                              <span className="material-symbols-outlined text-[13px] text-emerald-400 shrink-0">pin_drop</span>
+                              <span className="truncate">{e.notes}</span>
+                            </div>
+                          )}
+
+                          {/* Custom Columns */}
+                          {customColumns.filter((c) => c.visible && e.custom_fields?.[c.id]).map((c) => (
+                            <span key={c.id} className="text-[9.5px] text-cyan-400/90 font-mono">
+                              <span className="text-slate-500">{c.name}:</span> {e.custom_fields?.[c.id]}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+
+                      {/* Staff */}
+                      <td className="py-3 px-3 whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-xl bg-slate-800/80 border border-slate-700/60 text-slate-300 text-[11px] font-sans font-medium">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"></span>
+                          {formatStaffDisplayName(e.logged_by)}
+                        </span>
+                      </td>
+
+                      {/* Weight */}
+                      <td className="py-3 px-3.5 text-right whitespace-nowrap">
+                        <span className="text-emerald-400 font-black text-sm tracking-tight">{formatKg(e.weight_kg)}</span>
+                        <span className="text-slate-500 text-[10px] ml-1 font-sans">Kg</span>
+                      </td>
+
+                      {/* Rate */}
+                      <td className="py-3 px-3 text-right text-slate-400 whitespace-nowrap">
+                        ₹{e.rate_per_kg}
+                      </td>
+
+                      {/* Expected */}
+                      <td className="py-3 px-3 text-right text-slate-400 font-medium whitespace-nowrap">
+                        ₹{exp.toLocaleString("en-IN")}
+                      </td>
+
+                      {/* Collected */}
+                      <td className="py-3 px-3.5 text-right whitespace-nowrap">
+                        <span className="text-cyan-300 font-black text-sm tracking-tight">₹{taken.toLocaleString("en-IN")}</span>
+                      </td>
+
+                      {/* Loss / Concession / Balance */}
+                      <td className="py-3 px-3.5 text-right whitespace-nowrap">
+                        {Number(e.custom_fields?.balance_amount) > 0 && e.custom_fields?.balance_status === "pending" ? (
                           <button
                             type="button"
-                            onClick={() => setDeleteConfirmId(e.id)}
-                            className="w-8 h-8 rounded-xl bg-slate-800/90 hover:bg-rose-500/25 text-slate-400 hover:text-rose-300 border border-slate-700/80 hover:border-rose-500/40 transition-all flex items-center justify-center cursor-pointer shadow-sm active:scale-95"
-                            title="Delete entry"
+                            onClick={() => handleOpenBalanceModalForEntry(e)}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/50 hover:bg-amber-500/30 transition-all cursor-pointer shadow-sm active:scale-95"
+                            title="Click to open Khata &amp; WhatsApp Reminder"
                           >
-                            <span className="material-symbols-outlined text-base">delete</span>
+                            <span className="material-symbols-outlined text-[12px]">hourglass_top</span>
+                            Bal: ₹{Number(e.custom_fields.balance_amount).toLocaleString("en-IN")}
                           </button>
-                        )
-                      )}
-                    </div>
+                        ) : e.custom_fields?.balance_status === "waived_final" ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-medium text-slate-300 bg-slate-800/90 border border-slate-700">
+                            🤝 Waived (-₹{loss})
+                          </span>
+                        ) : e.custom_fields?.balance_status === "settled" || e.custom_fields?.settled_at || e.custom_fields?.is_full_payment ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/40">
+                            ✓ Full Paid
+                          </span>
+                        ) : loss > 0 ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                            -₹{loss.toLocaleString("en-IN")}
+                          </span>
+                        ) : loss < 0 ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                            +₹{Math.abs(loss)}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20">
+                            ✓ Exact
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Payment Mode */}
+                      <td className="py-3 px-3.5 whitespace-nowrap">
+                        {e.payment_mode === "Cash + Online QR" || (e.custom_fields?.settled_at && (e.payment_mode || "").toLowerCase().includes("qr")) ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold font-sans">
+                            💵 Cash + ⚡ QR
+                          </span>
+                        ) : isCash ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-teal-500/15 border border-teal-500/30 text-teal-300 text-[10px] font-bold font-sans">
+                            💵 Cash
+                          </span>
+                        ) : e.payment_mode === "Razorpay Link" && (e.custom_fields?.payment_status === "PENDING_LINK" || Number(e.amount_paid) === 0) ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-bold font-sans">
+                            ⏳ Link Sent
+                          </span>
+                        ) : e.payment_mode === "Razorpay Link" ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold font-sans">
+                            🔒 Razorpay
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-[10px] font-bold font-sans">
+                            ⚡ Online
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Actions */}
+                      <td className="py-3 px-3.5 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {Number(e.custom_fields?.balance_amount) > 0 && e.custom_fields?.balance_status === "pending" && (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenBalanceModalForEntry(e)}
+                              className="px-2 py-1 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[10px] font-bold font-mono transition-all cursor-pointer flex items-center gap-1 shadow-sm active:scale-95"
+                              title="Send WhatsApp Payment Reminder / Generate Razorpay QR"
+                            >
+                              <span className="material-symbols-outlined text-[13px]">qr_code_2</span>
+                              Khata
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => openEditModal(e)}
+                            className="w-7 h-7 rounded-lg bg-slate-800/90 hover:bg-emerald-500/25 text-slate-400 hover:text-emerald-300 border border-slate-700/80 hover:border-emerald-500/40 transition-all flex items-center justify-center cursor-pointer shadow-sm active:scale-95"
+                            title="Edit entry"
+                          >
+                            <span className="material-symbols-outlined text-sm">edit</span>
+                          </button>
+                          {deleteConfirmId === e.id ? (
+                            <div className="flex items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteEntry(e.id)}
+                                className="px-2 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-bold font-mono shadow-md cursor-pointer active:scale-95"
+                              >
+                                Delete
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setDeleteConfirmId(null)}
+                                className="px-2 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 text-[10px] cursor-pointer active:scale-95"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ) : (
+                            canDelete && (
+                              <button
+                                type="button"
+                                onClick={() => setDeleteConfirmId(e.id)}
+                                className="w-7 h-7 rounded-lg bg-slate-800/90 hover:bg-rose-500/25 text-slate-500 hover:text-rose-300 border border-slate-700/80 hover:border-rose-500/40 transition-all flex items-center justify-center cursor-pointer shadow-sm active:scale-95"
+                                title="Delete entry"
+                              >
+                                <span className="material-symbols-outlined text-sm">delete</span>
+                              </button>
+                            )
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ) : (
+        /* ────────────── VIEW 2: VISUAL CARD GRID ────────────── */
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5">
+          {paginatedSalesEntries.map((e, index) => {
+            const isGutted =
+              (e.product_type || "").toLowerCase().includes("gutted") &&
+              !(e.product_type || "").toLowerCase().includes("non");
+            const w = Number(e.weight_kg) || 0;
+            const rate = Number(e.rate_per_kg) || 0;
+            const exp =
+              e.expected_amount !== undefined && e.expected_amount !== null && Number(e.expected_amount) > 0
+                ? Number(e.expected_amount)
+                : e.custom_fields?.expected_amount !== undefined && Number(e.custom_fields.expected_amount) > 0
+                ? Number(e.custom_fields.expected_amount)
+                : Math.round(w * rate);
+            const taken = Number(e.amount_paid) || 0;
+            const isPendingBal =
+              e.custom_fields?.balance_status === "pending" &&
+              Number(e.custom_fields?.balance_amount) > 0;
+            const loss =
+              e.discount_amount !== undefined && e.discount_amount !== null && Number(e.discount_amount) > 0
+                ? Number(e.discount_amount)
+                : e.custom_fields?.discount_amount !== undefined && Number(e.custom_fields.discount_amount) > 0
+                ? Number(e.custom_fields.discount_amount)
+                : isPendingBal
+                ? 0
+                : Math.max(0, exp - taken);
+            const isSelfCleaned = Boolean(e.custom_fields?.self_cleaned || (e as any).self_cleaned);
+            const isCash = (e.payment_mode || "").toLowerCase().trim() === "cash";
+
+            return (
+              <div
+                key={e.id}
+                className={`rounded-2xl border transition-all p-4 flex flex-col justify-between gap-3 shadow-lg ${
+                  isSelfCleaned
+                    ? "bg-amber-950/20 border-amber-500/40 hover:bg-amber-950/30 border-l-4 border-l-amber-400"
+                    : "bg-slate-900/80 border-slate-800/80 hover:border-slate-700 hover:bg-slate-850/80"
+                }`}
+              >
+                {/* Card Top: Index, Date/Time & Actions */}
+                <div className="flex items-center justify-between border-b border-slate-800/60 pb-2.5">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded-md bg-slate-800 text-slate-400 font-mono text-[10px] font-bold">
+                      #{(salesPage - 1) * 50 + index + 1}
+                    </span>
+                    <span className="text-slate-200 font-bold text-xs">
+                      {formatIstDateDisplay(e.entry_date) || e.entry_date}
+                    </span>
+                    <span className="text-slate-500 text-[10.5px] font-mono">
+                      {e.entry_time}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => openEditModal(e)}
+                      className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-emerald-500/20 text-slate-400 hover:text-emerald-300 border border-slate-700 transition-all flex items-center justify-center cursor-pointer"
+                      title="Edit"
+                    >
+                      <span className="material-symbols-outlined text-sm">edit</span>
+                    </button>
+                    {deleteConfirmId === e.id ? (
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteEntry(e.id)}
+                          className="px-2 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-bold font-mono shadow-md cursor-pointer"
+                        >
+                          Delete
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setDeleteConfirmId(null)}
+                          className="px-2 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 text-[10px] cursor-pointer"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ) : (
+                      canDelete && (
+                        <button
+                          type="button"
+                          onClick={() => setDeleteConfirmId(e.id)}
+                          className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-500 hover:text-rose-300 border border-slate-700 transition-all flex items-center justify-center cursor-pointer"
+                          title="Delete"
+                        >
+                          <span className="material-symbols-outlined text-sm">delete</span>
+                        </button>
+                      )
+                    )}
+                  </div>
+                </div>
+
+                {/* Card Center: Product Badge & Customer Destination */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    {isGutted && isSelfCleaned ? (
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="px-2 py-0.5 rounded-lg text-[11px] font-bold bg-amber-500/20 text-amber-200 border border-amber-500/40 inline-flex items-center gap-1">
+                          🐟 Gutted
+                          <span className="text-[8.5px] px-1 rounded bg-amber-500/30 text-amber-100 font-bold">Self Cleaned</span>
+                        </span>
+                        <span className="text-[9px] text-amber-400 font-sans">₹0 inc</span>
+                      </div>
+                    ) : isGutted ? (
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="px-2 py-0.5 rounded-lg text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 inline-flex items-center gap-1">
+                          🐟 {e.product_type}
+                        </span>
+                        <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-[9px] text-emerald-400 font-sans font-medium inline-flex items-center gap-0.5">
+                          +₹{(w * INCENTIVE_RATE_PER_KG).toFixed(0)} worker inc
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-lg text-[11px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 inline-flex items-center gap-1">
+                        ✨ {e.product_type}
+                      </span>
+                    )}
+
+                    {/* Staff Badge */}
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-800/90 border border-slate-700/60 text-slate-300 text-[10px] font-sans font-medium">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                      {formatStaffDisplayName(e.logged_by)}
+                    </span>
                   </div>
 
-                  {/* ── Secondary Row: Notes · Staff · Custom Columns ── */}
-                  {(e.notes || e.logged_by || customColumns.filter((c) => c.visible).some((c) => e.custom_fields?.[c.id])) && (
-                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-5 pb-3 border-t border-slate-800/40 pt-2 text-[10px] font-mono">
-                      {e.notes && (
-                        <span className="flex items-center gap-1 text-slate-400 max-w-xs truncate" title={e.notes}>
-                          <span className="material-symbols-outlined text-[11px] text-slate-600">sticky_note_2</span>
-                          {e.notes}
-                        </span>
-                      )}
-                      {e.logged_by && (
-                        <span className="flex items-center gap-1 text-slate-500">
-                          <span className="material-symbols-outlined text-[11px]">person</span>
-                          <span className="px-2 py-0.5 rounded-md bg-slate-800/80 border border-slate-700/60 text-slate-300">{formatStaffDisplayName(e.logged_by)}</span>
-                        </span>
-                      )}
-                      {customColumns.filter((c) => c.visible).map((c) =>
-                        e.custom_fields?.[c.id] ? (
-                          <span key={c.id} className="flex items-center gap-1 text-cyan-400/80">
-                            <span className="text-slate-600">{c.name}:</span>
-                            {e.custom_fields[c.id]}
-                          </span>
-                        ) : null
-                      )}
+                  {/* Customer / Location / Notes */}
+                  {e.notes && (
+                    <div className="flex items-center gap-1.5 text-xs text-slate-300 font-sans font-medium bg-slate-950/60 border border-slate-800/80 px-2.5 py-1.5 rounded-xl">
+                      <span className="material-symbols-outlined text-sm text-emerald-400 shrink-0">pin_drop</span>
+                      <span className="truncate" title={e.notes}>{e.notes}</span>
                     </div>
                   )}
-                </div>
-              );
-            })}
 
-            {/* Summary Footer */}
-            {displayEntries.length > 0 && (() => {
-              const totalVisKg = displayEntries.reduce((s, e) => s + (Number(e.weight_kg) || 0), 0);
-              const totalVisExp = displayEntries.reduce((s, e) => {
-                const w = Number(e.weight_kg) || 0;
-                const r = Number(e.rate_per_kg) || 0;
-                return s + (e.expected_amount !== undefined && e.expected_amount !== null ? Number(e.expected_amount) : Math.round(w * r));
-              }, 0);
-              const totalVisTaken = displayEntries.reduce((s, e) => s + (Number(e.amount_paid) || 0), 0);
-              const totalVisLoss = displayEntries.reduce((s, e) => {
-                const w = Number(e.weight_kg) || 0;
-                const r = Number(e.rate_per_kg) || 0;
-                const ex =
-                  e.expected_amount !== undefined && e.expected_amount !== null && Number(e.expected_amount) > 0
-                    ? Number(e.expected_amount)
-                    : e.custom_fields?.expected_amount !== undefined && Number(e.custom_fields.expected_amount) > 0
-                    ? Number(e.custom_fields.expected_amount)
-                    : Math.round(w * r);
-                const paid = Number(e.amount_paid) || 0;
-                const isPendBal = e.custom_fields?.balance_status === "pending" && Number(e.custom_fields?.balance_amount) > 0;
-                const l =
-                  e.discount_amount !== undefined && e.discount_amount !== null && Number(e.discount_amount) > 0
-                    ? Number(e.discount_amount)
-                    : e.custom_fields?.discount_amount !== undefined && Number(e.custom_fields.discount_amount) > 0
-                    ? Number(e.custom_fields.discount_amount)
-                    : isPendBal ? 0 : Math.max(0, ex - paid);
-                return s + l;
-              }, 0);
+                  {/* Twin Metric Boxes: Weight & Amount Collected */}
+                  <div className="grid grid-cols-2 gap-2 pt-1 font-mono">
+                    <div className="bg-slate-950/70 border border-slate-800/80 rounded-xl p-2.5">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block">Weight</span>
+                      <div className="flex items-baseline gap-1 mt-0.5">
+                        <span className="text-emerald-400 font-black text-lg tracking-tight">{formatKg(e.weight_kg)}</span>
+                        <span className="text-slate-500 text-xs font-sans">Kg</span>
+                      </div>
+                      <span className="text-[10.5px] text-slate-400 block mt-0.5">@ ₹{e.rate_per_kg}/Kg</span>
+                    </div>
 
-              return (
-                <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 rounded-2xl bg-slate-950/90 border border-slate-800/80 font-mono text-xs font-bold mt-1">
-                  <span className="text-slate-500 uppercase tracking-wider text-[9.5px]">
-                    Visible Total — {displayEntries.length} entries
-                  </span>
-                  <div className="flex flex-wrap items-center gap-5">
-                    <span className="text-slate-400">
-                      Weight: <span className="text-emerald-400 font-black">{formatKg(totalVisKg)} Kg</span>
-                    </span>
-                    <span className="text-slate-400">
-                      Expected: <span className="text-white">₹{totalVisExp.toLocaleString("en-IN")}</span>
-                    </span>
-                    <span className="text-slate-400">
-                      Collected: <span className="text-cyan-300 font-black">₹{totalVisTaken.toLocaleString("en-IN")}</span>
-                    </span>
-                    <span className="text-slate-400">
-                      Loss:{" "}
-                      {totalVisLoss > 0 ? (
-                        <span className="text-amber-300 font-black">-₹{totalVisLoss.toLocaleString("en-IN")}</span>
-                      ) : (
-                        <span className="text-emerald-400">₹0 ✓</span>
-                      )}
-                    </span>
+                    <div className="bg-slate-950/70 border border-slate-800/80 rounded-xl p-2.5 text-right">
+                      <span className="text-[10px] uppercase font-bold text-cyan-400 block">Collected</span>
+                      <span className="text-cyan-300 font-black text-lg tracking-tight block mt-0.5">₹{taken.toLocaleString("en-IN")}</span>
+                      <span className="text-[10.5px] text-slate-400 block mt-0.5">Exp: ₹{exp.toLocaleString("en-IN")}</span>
+                    </div>
                   </div>
                 </div>
-              );
-            })()}
-          </>
-        )}
-      </div>
+
+                {/* Card Bottom: Payment & Status Badge */}
+                <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-800/60 font-mono text-xs">
+                  <div>
+                    {e.payment_mode === "Cash + Online QR" || (e.custom_fields?.settled_at && (e.payment_mode || "").toLowerCase().includes("qr")) ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold font-sans">
+                        💵 Cash + ⚡ QR
+                      </span>
+                    ) : isCash ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-teal-500/15 border border-teal-500/30 text-teal-300 text-[10px] font-bold font-sans">
+                        💵 Cash
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-[10px] font-bold font-sans">
+                        ⚡ Online
+                      </span>
+                    )}
+                  </div>
+
+                  <div>
+                    {Number(e.custom_fields?.balance_amount) > 0 && e.custom_fields?.balance_status === "pending" ? (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenBalanceModalForEntry(e)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/50 hover:bg-amber-500/30 transition-all cursor-pointer shadow-sm active:scale-95"
+                      >
+                        <span className="material-symbols-outlined text-[12px]">hourglass_top</span>
+                        Khata: ₹{Number(e.custom_fields.balance_amount).toLocaleString("en-IN")}
+                      </button>
+                    ) : e.custom_fields?.balance_status === "waived_final" ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-medium text-slate-300 bg-slate-800/90 border border-slate-700">
+                        🤝 Waived (-₹{loss})
+                      </span>
+                    ) : e.custom_fields?.balance_status === "settled" || e.custom_fields?.settled_at || e.custom_fields?.is_full_payment ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/40">
+                        ✓ Full Paid
+                      </span>
+                    ) : loss > 0 ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                        -₹{loss.toLocaleString("en-IN")}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20">
+                        ✓ Exact
+                      </span>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Summary Footer */}
+      {displayEntries.length > 0 && (() => {
+        const totalVisKg = displayEntries.reduce((s, e) => s + (Number(e.weight_kg) || 0), 0);
+        const totalVisExp = displayEntries.reduce((s, e) => {
+          const w = Number(e.weight_kg) || 0;
+          const r = Number(e.rate_per_kg) || 0;
+          return s + (e.expected_amount !== undefined && e.expected_amount !== null ? Number(e.expected_amount) : Math.round(w * r));
+        }, 0);
+        const totalVisTaken = displayEntries.reduce((s, e) => s + (Number(e.amount_paid) || 0), 0);
+        const totalVisLoss = displayEntries.reduce((s, e) => {
+          const w = Number(e.weight_kg) || 0;
+          const r = Number(e.rate_per_kg) || 0;
+          const ex =
+            e.expected_amount !== undefined && e.expected_amount !== null && Number(e.expected_amount) > 0
+              ? Number(e.expected_amount)
+              : e.custom_fields?.expected_amount !== undefined && Number(e.custom_fields.expected_amount) > 0
+              ? Number(e.custom_fields.expected_amount)
+              : Math.round(w * r);
+          const paid = Number(e.amount_paid) || 0;
+          const isPendBal = e.custom_fields?.balance_status === "pending" && Number(e.custom_fields?.balance_amount) > 0;
+          const l =
+            e.discount_amount !== undefined && e.discount_amount !== null && Number(e.discount_amount) > 0
+              ? Number(e.discount_amount)
+              : e.custom_fields?.discount_amount !== undefined && Number(e.custom_fields.discount_amount) > 0
+              ? Number(e.custom_fields.discount_amount)
+              : isPendBal ? 0 : Math.max(0, ex - paid);
+          return s + l;
+        }, 0);
+
+        return (
+          <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 rounded-2xl bg-slate-950/90 border border-slate-800/80 font-mono text-xs font-bold mt-2 shadow-lg">
+            <span className="text-slate-500 uppercase tracking-wider text-[10px]">
+              Visible Total — {displayEntries.length} entries
+            </span>
+            <div className="flex flex-wrap items-center gap-5 text-xs">
+              <span className="text-slate-400">
+                Weight: <span className="text-emerald-400 font-black">{formatKg(totalVisKg)} Kg</span>
+              </span>
+              <span className="text-slate-400">
+                Expected: <span className="text-white">₹{totalVisExp.toLocaleString("en-IN")}</span>
+              </span>
+              <span className="text-slate-400">
+                Collected: <span className="text-cyan-300 font-black">₹{totalVisTaken.toLocaleString("en-IN")}</span>
+              </span>
+              <span className="text-slate-400">
+                Loss:{" "}
+                {totalVisLoss > 0 ? (
+                  <span className="text-amber-300 font-black">-₹{totalVisLoss.toLocaleString("en-IN")}</span>
+                ) : (
+                  <span className="text-emerald-400">₹0 ✓</span>
+                )}
+              </span>
+            </div>
+          </div>
+        );
+      })()}
       <PaginationBar
         currentPage={salesPage}
         totalItems={displayEntries.length}
