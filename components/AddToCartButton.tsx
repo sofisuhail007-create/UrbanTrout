@@ -13,6 +13,7 @@ type Props = {
   variant?: "primary" | "secondary";
   showDynamicPrice?: boolean;
   minQuantity?: number;
+  maxQuantity?: number;
 };
 
 export default function AddToCartButton({
@@ -25,18 +26,20 @@ export default function AddToCartButton({
   variant = "primary",
   showDynamicPrice = false,
   minQuantity = 1,
+  maxQuantity = 99,
 }: Props) {
   const { addItem } = useCart();
   const effectiveMin = Math.max(1, Number(minQuantity) || 1);
-  const [qty, setQty] = useState(effectiveMin);
+  const effectiveMax = Math.max(effectiveMin, Number(maxQuantity) || 99);
+  const [qty, setQty] = useState(() => Math.min(effectiveMax, effectiveMin));
   const [added, setAdded] = useState(false);
 
   useEffect(() => {
     if (minQuantity) {
       const min = Math.max(1, Number(minQuantity));
-      setQty((prev) => (prev < min ? min : prev));
+      setQty((prev) => (prev < min ? min : prev > effectiveMax ? effectiveMax : prev));
     }
-  }, [minQuantity]);
+  }, [minQuantity, effectiveMax]);
 
   const handleAdd = () => {
     addItem({
@@ -44,10 +47,11 @@ export default function AddToCartButton({
       name: productName,
       price,
       originalPrice,
-      quantity: Math.max(effectiveMin, qty),
+      quantity: Math.min(effectiveMax, Math.max(effectiveMin, qty)),
       unit,
       image,
       minQuantity: effectiveMin,
+      maxQuantity: effectiveMax,
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
@@ -169,10 +173,13 @@ export default function AddToCartButton({
             {qty} {unit}
           </span>
           <button
-            onClick={() => setQty((q) => q + 1)}
-            className="flex items-center justify-center transition-colors duration-150"
+            onClick={() => setQty((q) => Math.min(effectiveMax, q + 1))}
+            disabled={qty >= effectiveMax}
+            className="flex items-center justify-center transition-colors duration-150 disabled:opacity-30 disabled:cursor-not-allowed"
             style={{ width: "44px", height: "44px", color: "#72ddfd" }}
-            onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(114,221,253,0.1)")}
+            onMouseEnter={(e) => {
+              if (qty < effectiveMax) (e.currentTarget as HTMLElement).style.background = "rgba(114,221,253,0.1)";
+            }}
             onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "transparent")}
             aria-label="Increase quantity"
           >

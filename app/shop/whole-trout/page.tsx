@@ -366,42 +366,6 @@ export default async function WholeTroutPage() {
             {/* Divider */}
             <div style={{ height: "1px", background: "rgba(61,74,83,0.4)" }} />
 
-            {/* Aquarium Stock Indicator */}
-            {aquariumStockKg !== undefined && (
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "10px",
-                  padding: "0.7rem 1.1rem",
-                  background: aquariumStockKg > 0 ? "rgba(34,197,94,0.07)" : "rgba(239,68,68,0.07)",
-                  border: `1px solid ${aquariumStockKg > 0 ? "rgba(34,197,94,0.22)" : "rgba(239,68,68,0.22)"}`,
-                  borderRadius: "10px",
-                }}
-              >
-                <span style={{ position: "relative", display: "inline-flex", width: "8px", height: "8px", flexShrink: 0 }}>
-                  <span style={{
-                    position: "absolute", inset: 0, borderRadius: "50%",
-                    background: aquariumStockKg > 0 ? "#4ade80" : "#f87171",
-                    opacity: 0.5,
-                  }} />
-                  <span style={{
-                    position: "relative", width: "8px", height: "8px",
-                    borderRadius: "50%", background: aquariumStockKg > 0 ? "#4ade80" : "#f87171",
-                    display: "inline-flex",
-                  }} />
-                </span>
-                <div>
-                  <p style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", letterSpacing: "0.15em", textTransform: "uppercase", color: aquariumStockKg > 0 ? "#4ade80" : "#f87171", margin: "0 0 1px" }}>
-                    Aquarium Stock
-                  </p>
-                  <p style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "0.88rem", fontWeight: 700, color: C.onSurface, margin: 0 }}>
-                    {aquariumStockKg > 0 ? `~${aquariumStockKg % 1 === 0 ? aquariumStockKg : aquariumStockKg.toFixed(1)} kg available` : "Out of stock — restocking soon"}
-                  </p>
-                </div>
-              </div>
-            )}
-
             {/* Add to cart — or store closed / out of stock state */}
             <div>
               {canOrder ? (
@@ -427,6 +391,7 @@ export default async function WholeTroutPage() {
                     image="https://lh3.googleusercontent.com/aida-public/AB6AXuCfyCpJNmCwVzBHTZw6kqPtCRfTVXNYWrm9Ixqy89okmBbaSGqKYMtEAZ5Jwv4MOwZIKpC3ugBZ1ISA5EfIUrq2lWmta28vvGV-ygjESie53QYIOJoDMgX9cJJWH5V960DeAviDBjjohZeT4WWrdrHC0tY2VnrZZsvftETpZ8ocCU2eupUdyTEoqKa8lgPe2dIHnERZTds7HMPfLKCtr56KHLPC08YZCzexEINcVe6nIrChDatBpMYRAOjGBVKCP2WsVyZicAZsG-kB"
                     showDynamicPrice={true}
                     minQuantity={minQuantity}
+                    maxQuantity={aquariumStockKg !== undefined ? Math.floor(aquariumStockKg) : 99}
                   />
                 </>
               ) : !hoursInfo.isOpen ? (

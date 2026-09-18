@@ -11,11 +11,13 @@ export type CartItem = {
   unit: string;
   image: string;
   minQuantity?: number;
+  maxQuantity?: number;
 };
 
 type CartContextType = {
   items: CartItem[];
   isOpen: boolean;
+  aquariumStockKg: number | null;
   addItem: (item: CartItem) => void;
   removeItem: (id: string) => void;
   updateQuantity: (id: string, qty: number) => void;
@@ -30,10 +32,13 @@ type CartContextType = {
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
+const isAquariumItem = (id: string) => id === "gutted-trout" || id === "whole-trout";
+
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [aquariumStockKg, setAquariumStockKg] = useState<number | null>(null);
 
   // 1. Load initial cart from localStorage & sync MOQ with live inventory
   useEffect(() => {
@@ -46,14 +51,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
         console.error("Failed to load cart", e);
       }
 
-      // Fetch live MOQ and price from inventory API/table to ensure cart respects current rules
+      // Fetch live inventory and live aquarium stock
       let invList: any[] = [];
+      let liveStockVal: number | null = null;
       try {
         const res = await fetch("/api/inventory");
         if (res.ok) {
           const json = await res.json();
           if (json?.success && Array.isArray(json.inventory)) {
             invList = json.inventory;
+          }
+          if (json?.aquariumStockKg !== undefined && json?.aquariumStockKg !== null) {
+            liveStockVal = Number(json.aquariumStockKg);
+            setAquariumStockKg(liveStockVal);
           }
         }
       } catch (_) {}
@@ -85,6 +95,23 @@ export function CartProvider({ children }: { children: ReactNode }) {
         });
       }
 
+      // If cart has existing items that exceed real live stock, clamp them immediately
+      if (liveStockVal !== null && liveStockVal >= 0 && loadedItems.length > 0) {
+        const maxPool = Math.floor(liveStockVal);
+        let remainingBudget = maxPool;
+        loadedItems = loadedItems.map((item) => {
+          if (!isAquariumItem(item.id)) return item;
+          const min = Math.max(1, Number(item.minQuantity) || 1);
+          const allowed = Math.max(min, Math.min(item.quantity, remainingBudget));
+          remainingBudget = Math.max(0, remainingBudget - allowed);
+          return {
+            ...item,
+            quantity: allowed,
+            maxQuantity: maxPool,
+          };
+        });
+      }
+
       setItems(loadedItems);
       setIsInitialized(true);
     }
@@ -99,18 +126,36 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const addItem = (item: CartItem) => {
     const min = Math.max(1, Number(item.minQuantity) || 1);
-    const validItem = {
-      ...item,
-      minQuantity: min,
-      quantity: Math.max(min, item.quantity),
-    };
+    const maxStock = aquariumStockKg !== null && isAquariumItem(item.id)
+      ? Math.floor(aquariumStockKg)
+      : (item.maxQuantity || 99);
 
     setItems((prev) => {
-      const existing = prev.find((i) => i.id === validItem.id);
+      // Combined shared pool check for aquarium trout
+      const otherAquariumQty = prev
+        .filter((i) => isAquariumItem(i.id) && i.id !== item.id)
+        .reduce((sum, i) => sum + i.quantity, 0);
+
+      const remainingAllowance = Math.max(0, maxStock - otherAquariumQty);
+      if (isAquariumItem(item.id) && remainingAllowance < min) {
+        alert(`Cannot add more trout. Total aquarium stock is ${maxStock} kg, and your cart already contains ${otherAquariumQty} kg.`);
+        return prev;
+      }
+
+      const existing = prev.find((i) => i.id === item.id);
+      const requestedTotal = existing ? existing.quantity + item.quantity : item.quantity;
+      const clampedTotal = Math.min(requestedTotal, isAquariumItem(item.id) ? remainingAllowance : maxStock);
+      const finalQty = Math.max(min, clampedTotal);
+
+      const validItem: CartItem = {
+        ...item,
+        minQuantity: min,
+        maxQuantity: maxStock,
+        quantity: finalQty,
+      };
+
       if (existing) {
-        return prev.map((i) =>
-          i.id === validItem.id ? { ...i, quantity: i.quantity + validItem.quantity } : i
-        );
+        return prev.map((i) => (i.id === item.id ? { ...i, quantity: finalQty } : i));
       }
       return [...prev, validItem];
     });
@@ -122,15 +167,23 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const updateQuantity = (id: string, qty: number) => {
-    setItems((prev) =>
-      prev.map((i) => {
-        if (i.id === id) {
-          const min = Math.max(1, Number(i.minQuantity) || 1);
-          return { ...i, quantity: Math.max(min, qty) };
-        }
-        return i;
-      })
-    );
+    setItems((prev) => {
+      const target = prev.find((i) => i.id === id);
+      if (!target) return prev;
+      const min = Math.max(1, Number(target.minQuantity) || 1);
+      const maxStock = aquariumStockKg !== null && isAquariumItem(id)
+        ? Math.floor(aquariumStockKg)
+        : (target.maxQuantity || 99);
+
+      const otherAquariumQty = prev
+        .filter((i) => isAquariumItem(i.id) && i.id !== id)
+        .reduce((sum, i) => sum + i.quantity, 0);
+
+      const remainingAllowance = Math.max(min, maxStock - otherAquariumQty);
+      const safeQty = Math.max(min, Math.min(qty, isAquariumItem(id) ? remainingAllowance : maxStock));
+
+      return prev.map((i) => (i.id === id ? { ...i, quantity: safeQty } : i));
+    });
   };
 
   const clearCart = () => {
@@ -153,6 +206,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       value={{
         items,
         isOpen,
+        aquariumStockKg,
         addItem,
         removeItem,
         updateQuantity,

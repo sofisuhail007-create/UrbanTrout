@@ -10,7 +10,7 @@ const C = {
 };
 
 export default function CartDrawer() {
-  const { isOpen, closeCart, items, removeItem, updateQuantity, total, totalSavings } = useCart();
+  const { isOpen, closeCart, items, removeItem, updateQuantity, total, totalSavings, aquariumStockKg } = useCart();
   const pathname = usePathname();
   if (pathname.startsWith("/admin")) return null;
 
@@ -109,6 +109,17 @@ export default function CartDrawer() {
               const hasItemDiscount = Boolean(item.originalPrice && item.originalPrice > item.price);
               const itemSavings = hasItemDiscount ? (item.originalPrice! - item.price) * item.quantity : 0;
 
+              const isAquarium = item.id === "gutted-trout" || item.id === "whole-trout";
+              const otherAquariumQty = items
+                .filter((i) => (i.id === "gutted-trout" || i.id === "whole-trout") && i.id !== item.id)
+                .reduce((sum, i) => sum + i.quantity, 0);
+              const maxStock = aquariumStockKg !== null && isAquarium
+                ? Math.floor(aquariumStockKg)
+                : (item.maxQuantity || 99);
+              const canIncrease = isAquarium
+                ? (item.quantity + otherAquariumQty) < maxStock
+                : item.quantity < maxStock;
+
               return (
                 <div
                   key={item.id}
@@ -173,8 +184,10 @@ export default function CartDrawer() {
                         </span>
                         <button
                           onClick={() => updateQuantity(item.id, item.quantity + 1)}
-                          className="flex items-center justify-center transition-colors"
+                          disabled={!canIncrease}
+                          className="flex items-center justify-center transition-colors disabled:opacity-20 disabled:cursor-not-allowed"
                           style={{ width: "28px", height: "28px", color: C.primary }}
+                          title={!canIncrease ? "Maximum available stock reached" : "Increase"}
                         >
                           <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>
                         </button>

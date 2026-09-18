@@ -12,7 +12,25 @@ export async function GET() {
     if (error) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
-    return NextResponse.json({ success: true, inventory: data || [] });
+
+    const { getLiveAquariumStock } = await import("@/lib/aquariumStock");
+    const stockSummary = await getLiveAquariumStock();
+
+    const inventory = (data || []).map((item) => {
+      if (item.product_id === "gutted-trout" || item.product_id === "whole-trout") {
+        return {
+          ...item,
+          stock_kg: stockSummary.remainingKg,
+        };
+      }
+      return item;
+    });
+
+    return NextResponse.json({
+      success: true,
+      inventory,
+      aquariumStockKg: stockSummary.remainingKg,
+    });
   } catch (err: any) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }

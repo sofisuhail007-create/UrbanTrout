@@ -6,37 +6,33 @@ import Image from "next/image";
 import { useCart } from "@/context/CartContext";
 import { Product } from "@/lib/data";
 
-/** Derive stock badge appearance from kg available */
-function getStockBadge(stockKg?: number): { label: string; color: string; bg: string; border: string } | null {
-  if (stockKg === undefined || stockKg === null) return null;
-  if (stockKg <= 0) return { label: "Out of Stock", color: "#f87171", bg: "rgba(239,68,68,0.12)", border: "rgba(239,68,68,0.35)" };
-  if (stockKg <= 5) return { label: `~${stockKg.toFixed(1)} kg — Low Stock`, color: "#fbbf24", bg: "rgba(251,191,36,0.12)", border: "rgba(251,191,36,0.35)" };
-  return { label: `~${stockKg % 1 === 0 ? stockKg : stockKg.toFixed(1)} kg Available Today`, color: "#4ade80", bg: "rgba(34,197,94,0.12)", border: "rgba(34,197,94,0.35)" };
-}
-
 export default function ProductCard({ p }: { p: Product }) {
   const { addItem } = useCart();
   const effectiveMin = Math.max(1, Number(p.minQuantity) || 1);
-  const [qty, setQty] = useState(effectiveMin);
+  const maxStock = p.stockKg !== undefined ? Math.max(0, Math.floor(p.stockKg)) : 99;
+  const isOutOfStock = (p.stockKg !== undefined && p.stockKg <= 0) || (maxStock < effectiveMin);
+  const [qty, setQty] = useState(() => Math.min(maxStock, effectiveMin));
   const [added, setAdded] = useState(false);
 
   useEffect(() => {
     if (p.minQuantity) {
       const min = Math.max(1, Number(p.minQuantity));
-      setQty((prev) => (prev < min ? min : prev));
+      setQty((prev) => (prev < min ? min : prev > maxStock ? maxStock : prev));
     }
-  }, [p.minQuantity]);
+  }, [p.minQuantity, maxStock]);
 
   const handleAdd = () => {
+    if (isOutOfStock) return;
     addItem({
       id: p.id,
       name: p.name,
       price: p.price,
       originalPrice: p.originalPrice,
-      quantity: Math.max(effectiveMin, qty),
+      quantity: Math.min(maxStock, Math.max(effectiveMin, qty)),
       unit: p.unit,
       image: p.img,
       minQuantity: effectiveMin,
+      maxQuantity: maxStock,
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
@@ -45,9 +41,7 @@ export default function ProductCard({ p }: { p: Product }) {
   const hasDiscount = Boolean(p.originalPrice && p.originalPrice > p.price);
   const discountAmount = hasDiscount ? (p.originalPrice! - p.price) : 0;
   const discountPercent = hasDiscount ? Math.round(((p.originalPrice! - p.price) / p.originalPrice!) * 100) : 0;
-  const stockBadge = getStockBadge(p.stockKg);
   const isOpen = p.isOpen !== false; // default to open if not specified
-  const isOutOfStock = p.stockKg !== undefined && p.stockKg <= 0;
 
   return (
     <div
@@ -147,45 +141,6 @@ export default function ProductCard({ p }: { p: Product }) {
           </p>
         </div>
 
-        {/* Aquarium Stock Badge */}
-        {stockBadge && (
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            {/* Pulsing dot */}
-            <span style={{ position: "relative", display: "inline-flex", width: "8px", height: "8px", flexShrink: 0 }}>
-              <span
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  borderRadius: "50%",
-                  background: stockBadge.color,
-                  opacity: 0.5,
-                  animation: "ping 1.5s cubic-bezier(0,0,0.2,1) infinite",
-                }}
-              />
-              <span
-                style={{
-                  position: "relative",
-                  display: "inline-flex",
-                  width: "8px",
-                  height: "8px",
-                  borderRadius: "50%",
-                  background: stockBadge.color,
-                }}
-              />
-            </span>
-            <span
-              style={{
-                fontFamily: '"Inter", sans-serif',
-                fontSize: "10px",
-                fontWeight: 600,
-                letterSpacing: "0.08em",
-                color: stockBadge.color,
-              }}
-            >
-              {stockBadge.label}
-            </span>
-          </div>
-        )}
 
         {/* Price & Strikethrough Section */}
         <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -318,10 +273,13 @@ export default function ProductCard({ p }: { p: Product }) {
                 {qty} {p.unit}
               </span>
               <button
-                onClick={() => setQty((q) => q + 1)}
-                className="flex items-center justify-center transition-colors duration-150"
+                onClick={() => setQty((q) => Math.min(maxStock, q + 1))}
+                disabled={qty >= maxStock}
+                className="flex items-center justify-center transition-colors duration-150 disabled:opacity-30 disabled:cursor-not-allowed"
                 style={{ width: "38px", height: "40px", color: "#72ddfd" }}
-                onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(114,221,253,0.1)")}
+                onMouseEnter={(e) => {
+                  if (qty < maxStock) (e.currentTarget as HTMLElement).style.background = "rgba(114,221,253,0.1)";
+                }}
                 onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "transparent")}
                 aria-label="Increase"
               >

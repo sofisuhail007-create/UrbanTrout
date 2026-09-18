@@ -164,40 +164,6 @@ export default async function ShopPage() {
             <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfVar, maxWidth: "380px", lineHeight: 1.75, fontSize: "1rem", margin: 0 }}>
               Sustainably farmed in the icy currents of the Himalayas. Delivered within 2 hours of harvest.
             </p>
-            {/* Live stock indicator */}
-            {aquariumStockKg !== undefined && (
-              <div style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-                padding: "0.6rem 1.25rem",
-                background: aquariumStockKg > 0 ? "rgba(34,197,94,0.08)" : "rgba(239,68,68,0.08)",
-                border: `1px solid ${aquariumStockKg > 0 ? "rgba(34,197,94,0.25)" : "rgba(239,68,68,0.25)"}`,
-                borderRadius: "100px",
-                flexShrink: 0,
-              }}>
-                <span style={{ position: "relative", display: "inline-flex", width: "8px", height: "8px" }}>
-                  <span style={{
-                    position: "absolute", inset: 0, borderRadius: "50%",
-                    background: aquariumStockKg > 0 ? "#4ade80" : "#f87171",
-                    opacity: 0.5, animation: "ping 1.5s cubic-bezier(0,0,0.2,1) infinite",
-                  }} />
-                  <span style={{
-                    position: "relative", display: "inline-flex", width: "8px", height: "8px",
-                    borderRadius: "50%", background: aquariumStockKg > 0 ? "#4ade80" : "#f87171",
-                  }} />
-                </span>
-                <span style={{
-                  fontFamily: '"Inter", sans-serif', fontSize: "11px", fontWeight: 600,
-                  letterSpacing: "0.08em",
-                  color: aquariumStockKg > 0 ? "#4ade80" : "#f87171",
-                }}>
-                  {aquariumStockKg > 0
-                    ? `~${aquariumStockKg % 1 === 0 ? aquariumStockKg : aquariumStockKg.toFixed(1)} kg available from aquarium today`
-                    : "Aquarium stock depleted — restocking soon"}
-                </span>
-              </div>
-            )}
             {/* Business hours indicator */}
             <div style={{
               display: "flex",
