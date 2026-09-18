@@ -1,9 +1,6 @@
-const CACHE_NAME = "urban-trout-v1";
+const CACHE_NAME = "urban-trout-v2";
 const STATIC_ASSETS = [
   "/",
-  "/shop",
-  "/our-farm",
-  "/contact",
   "/favicon.ico",
   "/headerfooterlogo.png",
   "/sitelogo.png",

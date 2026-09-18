@@ -49,7 +49,7 @@ export default function Footer() {
             style={{
               fontFamily: '"Inter", sans-serif',
               fontSize: "11px",
-              color: C.outline,
+              color: C.onSurfVar,
               lineHeight: 1.5,
               display: "block",
             }}
@@ -165,11 +165,11 @@ export default function Footer() {
           <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "1.25rem" }}>
             <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.84rem", color: C.onSurfVar }}>Malabagh, Naseem Bagh</p>
             <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.84rem", color: C.onSurfVar }}>Srinagar — 190006, J&amp;K</p>
-            <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.76rem", color: C.outline }}>Near R P School (Girls Wing)</p>
+            <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.76rem", color: C.onSurfVar }}>Near R P School (Girls Wing)</p>
             
             {/* Primary number */}
             <div style={{ marginTop: "6px", display: "flex", flexDirection: "column", gap: "2px" }}>
-              <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", letterSpacing: "0.15em", textTransform: "uppercase", color: C.outline }}>Primary &amp; WhatsApp</span>
+              <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", letterSpacing: "0.15em", textTransform: "uppercase", color: C.onSurfVar }}>Primary &amp; WhatsApp</span>
               <a
                 href="tel:+918491006127"
                 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1rem", fontWeight: 700, color: C.primary, textDecoration: "none" }}
@@ -180,7 +180,7 @@ export default function Footer() {
 
             {/* Alternate number */}
             <div style={{ marginTop: "4px", display: "flex", flexDirection: "column", gap: "2px" }}>
-              <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", letterSpacing: "0.15em", textTransform: "uppercase", color: C.outline }}>Alternate</span>
+              <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", letterSpacing: "0.15em", textTransform: "uppercase", color: C.onSurfVar }}>Alternate</span>
               <a
                 href="tel:+917006604148"
                 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "0.88rem", fontWeight: 600, color: C.onSurfVar, textDecoration: "none" }}
@@ -286,7 +286,7 @@ export default function Footer() {
           style={{ fontFamily: '"Inter", sans-serif' }}
         >
           <span>© 2026 Urban Trout. All rights reserved.</span>
-          <span className="text-slate-600 hidden sm:inline">|</span>
+          <span className="text-slate-600 hidden sm:inline" aria-hidden="true">|</span>
           <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
             <span>Handcrafted with</span>
             <span

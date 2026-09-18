@@ -1,9 +1,9 @@
 import type { Metadata, Viewport } from "next";
-import dynamic from "next/dynamic";
 import { Space_Grotesk, Manrope, Inter } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import ClientWidgets from "@/components/ClientWidgets";
 import { CartProvider } from "@/context/CartContext";
 import { Toaster } from "react-hot-toast";
 import { Analytics } from "@vercel/analytics/next";
@@ -12,16 +12,9 @@ import { SpeedInsights } from "@vercel/speed-insights/next";
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  maximumScale: 5,
   viewportFit: "cover",
   themeColor: "#031018",
 };
-
-// Optimized Dynamic Preload for non-critical interactive widgets
-const CartDrawer = dynamic(() => import("@/components/CartDrawer"));
-const WhatsAppButton = dynamic(() => import("@/components/WhatsAppButton"));
-const LiveChatWidget = dynamic(() => import("@/components/LiveChatWidget"));
-const InstallPwaPrompt = dynamic(() => import("@/components/InstallPwaPrompt"));
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -197,11 +190,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             }}
           />
           <Navbar />
-          <CartDrawer />
           {children}
-          <WhatsAppButton />
-          <LiveChatWidget />
-          <InstallPwaPrompt />
+          <ClientWidgets />
           <Footer />
           <Analytics />
           <SpeedInsights />

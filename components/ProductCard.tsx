@@ -65,6 +65,7 @@ export default function ProductCard({ p }: { p: Product }) {
         href={`/shop/${p.id}`}
         className="relative block overflow-hidden cursor-pointer"
         style={{ aspectRatio: "16/9" }}
+        aria-label={`View ${p.name} details`}
       >
         <Image
           src={p.img}
@@ -151,14 +152,14 @@ export default function ProductCard({ p }: { p: Product }) {
             <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.75rem", fontWeight: 800, color: "#72ddfd", letterSpacing: "-0.03em" }}>
               {p.price.toLocaleString("en-IN")}
             </span>
-            <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.8rem", color: "#6a7782" }}>/ {p.unit}</span>
+            <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.8rem", color: "#9fadb8" }}>/ {p.unit}</span>
 
             {/* Strikethrough Original Price */}
             {hasDiscount && (
               <span
                 className="line-through ml-1 text-xs md:text-sm font-semibold"
                 style={{
-                  color: "#64748b",
+                  color: "#94a3b8",
                   fontFamily: '"Space Grotesk", sans-serif',
                   textDecorationColor: "#ef4444",
                 }}
@@ -262,9 +263,9 @@ export default function ProductCard({ p }: { p: Product }) {
                 style={{ width: "38px", height: "40px", color: "#72ddfd" }}
                 onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.background = "rgba(114,221,253,0.1)")}
                 onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "transparent")}
-                aria-label="Decrease"
+                aria-label="Decrease quantity"
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
                   <line x1="5" y1="12" x2="19" y2="12" />
                 </svg>
               </button>
@@ -283,9 +284,9 @@ export default function ProductCard({ p }: { p: Product }) {
                   if (qty < maxStock) (e.currentTarget as HTMLElement).style.background = "rgba(114,221,253,0.1)";
                 }}
                 onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.background = "transparent")}
-                aria-label="Increase"
+                aria-label="Increase quantity"
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true">
                   <line x1="12" y1="5" x2="12" y2="19" />
                   <line x1="5" y1="12" x2="19" y2="12" />
                 </svg>

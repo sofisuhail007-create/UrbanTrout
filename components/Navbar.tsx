@@ -38,7 +38,7 @@ export default function Navbar() {
               src="/headerfooterlogo.png"
               alt="Urban Trout"
               width={160}
-              height={36}
+              height={40}
               priority
               sizes="160px"
               className="h-8 sm:h-9 w-auto object-contain transition-transform group-hover:scale-105"
@@ -117,15 +117,16 @@ export default function Navbar() {
               onClick={() => setMobileOpen(!mobileOpen)}
               className="md:hidden flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-300"
               style={{ color: "#9fadb8" }}
-              aria-label="Menu"
+              aria-label="Toggle navigation menu"
+              aria-expanded={mobileOpen}
             >
               {mobileOpen ? (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <line x1="18" y1="6" x2="6" y2="18"></line>
                   <line x1="6" y1="6" x2="18" y2="18"></line>
                 </svg>
               ) : (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                   <line x1="4" y1="12" x2="20" y2="12"></line>
                   <line x1="4" y1="6" x2="20" y2="6"></line>
                   <line x1="4" y1="18" x2="20" y2="18"></line>
@@ -137,9 +138,10 @@ export default function Navbar() {
 
         {/* Mobile Nav */}
         {mobileOpen && (
-          <div
+          <nav
             className="md:hidden border-t px-4 py-4 flex flex-col gap-1"
             style={{ borderColor: "rgba(114,221,253,0.08)" }}
+            aria-label="Mobile navigation"
           >
             {navLinks.map((link) => {
               const isActive = pathname === link.href;
@@ -159,7 +161,7 @@ export default function Navbar() {
                 </Link>
               );
             })}
-          </div>
+          </nav>
         )}
       </header>
     </>

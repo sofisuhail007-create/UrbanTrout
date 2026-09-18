@@ -19,12 +19,12 @@ const C = {
 // Metadata lookup for known products
 const PRODUCT_META: Record<string, { img: string; label: string; desc: string }> = {
   "gutted-trout": {
-    img: "/images/gutted_trout_premium.png",
+    img: "/images/gutted_trout_premium.webp",
     label: "CLEANED & GUTTED",
     desc: "Expertly cleaned, gutted, and ready to cook. Harvested fresh to order and chilled for delivery.",
   },
   "whole-trout": {
-    img: "https://lh3.googleusercontent.com/aida-public/AB6AXuA6az_W5rdEt8WkOzLnn861EIuB2tv1E9ZBuYuxXAnLFmG7ZsCCb0WyuI___JpO7YjI9Vf_XYBLXYanCVvdJyrbf-CarB6-5xxisc34AV5zB1gV5AElNc-POwd_DAA12ADx0vUX87WKN2GVXZapRsMugASCSZsBjri-8d9uI957NqfLv1Hau8-DgJfLrNJoRtSKwJo6uFM1V-GDVCSznDSww8vBl8jD_s-iPkmhUcOhQ6ekndTbbBSJCBon4pCpkvihVwAcuF4JCTVc",
+    img: "/images/whole_trout.jpg",
     label: "WHOLE FRESH FISH",
     desc: "Fresh whole trout straight from our farm. Ideal for pan-frying, roasting, grilling, or curries.",
   },

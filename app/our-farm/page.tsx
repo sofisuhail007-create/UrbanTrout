@@ -45,9 +45,10 @@ export default function OurFarmPage() {
             <div style={{ position: "absolute", inset: 0, border: "1px solid rgba(114,221,253,0.15)", borderRadius: "18px", transform: "rotate(2deg)" }} />
             <div className="relative rounded-2xl overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.08)" }}>
               <img
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuAjxUcblURhTrP1CWfLxzenmfIH8NxsCNoca6Jl9lTR42DileafFoh7Zuc_MVvxSsAyokdscU5c0gorZNdDZSkT8NgkPGTeQjp3x8zZgJ0KhRXfPl8fYIkxTfX4i7cMTIW4GNQt-L7T0J4p2OZlKdBKkc8iqSpWGw506uCFoZMHD_kgEZhVqw3KrrU-Rhm8A_fPEb0yYOHvwHooaJHoHcEam4MgrT2xXP08FHGo-jsgthIzqT94lD_-ZreNGtwnkFsoNIHDAOeRUQSX"
+                src="/images/farm-hero.jpg"
                 alt="Urban Trout Farm in Srinagar"
                 className="w-full h-80 md:h-96 object-cover opacity-85"
+                loading="lazy"
               />
               {/* Status overlay */}
               <div className="absolute bottom-5 left-5 right-5 p-4 rounded-xl" style={{ background: "rgba(6,21,30,0.88)", backdropFilter: "blur(16px)", border: "1px solid rgba(114,221,253,0.15)" }}>
@@ -151,9 +152,10 @@ export default function OurFarmPage() {
           {/* Right Image */}
           <div className="relative rounded-2xl overflow-hidden" style={{ border: "1px solid rgba(114,221,253,0.15)" }}>
             <img
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuCs8Cf-c8I2mgJK97P70dN1ASvgBrTtnrds7ocR8HR0jAxFqFzx_HKUJcRiGBahaZFddGACw-AJIGjONIpDBorLw7p0pX7EqPw-IsXa6-_XwQZBoKdqB8wqKq_hVTzCTLw40Y13u8KZyEvpQx5wgeEg5X8ZTbVUrH4qSnAWs5jCvBRO5BDMbVkxarxbSPPCI-3Jr2WbRygAT6XXzhipUu-agJDbeoAqJsf8bD85wLI-u3jvghBmT0LVHp0o8rkRJ2I5tNGLtqlYw6nL"
+              src="/images/farm-tanks.jpg"
               alt="Fish tanks"
               className="w-full h-80 md:h-[420px] object-cover"
+              loading="lazy"
             />
             <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, #031018 0%, transparent 60%)" }} />
             <div style={{ position: "absolute", bottom: "2rem", left: "2rem", right: "2rem" }}>
@@ -173,11 +175,11 @@ export default function OurFarmPage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
             {[
-              { href: "/shop/gutted-trout", label: "CLEANED & GUTTED", title: "Premium Gutted Trout", img: "/images/gutted_trout_premium.png" },
-              { href: "/shop/whole-trout", label: "WHOLE FISH", title: "Whole Rainbow Trout", img: "https://lh3.googleusercontent.com/aida-public/AB6AXuA6az_W5rdEt8WkOzLnn861EIuB2tv1E9ZBuYuxXAnLFmG7ZsCCb0WyuI___JpO7YjI9Vf_XYBLXYanCVvdJyrbf-CarB6-5xxisc34AV5zB1gV5AElNc-POwd_DAA12ADx0vUX87WKN2GVXZapRsMugASCSZsBjri-8d9uI957NqfLv1Hau8-DgJfLrNJoRtSKwJo6uFM1V-GDVCSznDSww8vBl8jD_s-iPkmhUcOhQ6ekndTbbBSJCBon4pCpkvihVwAcuF4JCTVc" },
+              { href: "/shop/gutted-trout", label: "CLEANED & GUTTED", title: "Premium Gutted Trout", img: "/images/gutted_trout_premium.webp" },
+              { href: "/shop/whole-trout", label: "WHOLE FISH", title: "Whole Rainbow Trout", img: "/images/whole_trout.jpg" },
             ].map(p => (
               <Link key={p.href} href={p.href} className="group relative rounded-2xl overflow-hidden block aspect-[16/10]" style={{ border: `1px solid rgba(61,74,83,0.5)`, textDecoration: "none" }}>
-                <img src={p.img} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                <img src={p.img} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
                 <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(3,16,24,0.85) 0%, transparent 55%)" }} />
                 <div style={{ position: "absolute", bottom: "1.5rem", left: "1.5rem" }}>
                   <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", letterSpacing: "0.2em", textTransform: "uppercase", color: C.primary, display: "block", marginBottom: "0.3rem" }}>{p.label}</span>

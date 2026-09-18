@@ -260,7 +260,7 @@ export default async function HomePage() {
               <div key={i} className="flex flex-col gap-2">
                 <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "10px", textTransform: "uppercase", letterSpacing: "0.15em", color: C.onSurfaceVariant }}>{item.label}</span>
                 <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "clamp(1.75rem, 3vw, 2.25rem)", fontWeight: 800, color: C.primary, letterSpacing: "-0.02em" }}>{item.value}</span>
-                <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.8rem", color: C.outline }}>{item.sub}</span>
+                <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.8rem", color: C.onSurfaceVariant }}>{item.sub}</span>
               </div>
             ))}
           </div>

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
@@ -55,9 +55,15 @@ export default function InstallPwaPrompt() {
       return () => clearTimeout(iosTimer);
     }
 
-    // 5. Register Service Worker
+    // 5. Register Service Worker on window load (never blocks initial render)
     if ("serviceWorker" in navigator) {
-      navigator.serviceWorker.register("/sw.js").catch(() => {});
+      if (document.readyState === "complete") {
+        navigator.serviceWorker.register("/sw.js").catch(() => {});
+      } else {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker.register("/sw.js").catch(() => {});
+        });
+      }
     }
 
     return () => {
