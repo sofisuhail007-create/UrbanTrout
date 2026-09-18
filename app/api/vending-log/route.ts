@@ -580,6 +580,12 @@ export async function POST(request: Request) {
       await saveFallbackEntries(fallbackList);
     } catch (_) {}
 
+    // Check if live stock has dipped below threshold and trigger Telegram alert
+    try {
+      const { checkAndTriggerLowStockAlert } = await import("@/lib/aquariumStock");
+      checkAndTriggerLowStockAlert(`Counter Sale (${parsedWeight} Kg ${product_type || "Trout"})`).catch(console.error);
+    } catch (_) {}
+
     return NextResponse.json({ success: true, entry });
   } catch (err: any) {
     console.error("Vending Log POST Error:", err);

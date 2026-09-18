@@ -94,6 +94,10 @@ export default function AdminSettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [storeManuallyClosed, setStoreManuallyClosed] = useState(false);
   const [isTogglingStore, setIsTogglingStore] = useState(false);
+  const [lowStockThreshold, setLowStockThreshold] = useState("15");
+  const [lowStockAlertsEnabled, setLowStockAlertsEnabled] = useState(true);
+  const [isTestingTelegramAlert, setIsTestingTelegramAlert] = useState(false);
+  const [testAlertFeedback, setTestAlertFeedback] = useState<string | null>(null);
 
 
   useEffect(() => {
@@ -111,6 +115,10 @@ export default function AdminSettingsPage() {
           if (map.delivery_radius_km) setDeliveryRadius(map.delivery_radius_km);
           if (map.farm_latitude) setFarmLat(map.farm_latitude);
           if (map.farm_longitude) setFarmLng(map.farm_longitude);
+          if (map.low_stock_threshold_kg) setLowStockThreshold(map.low_stock_threshold_kg);
+          if (map.telegram_low_stock_alerts_enabled !== undefined) {
+            setLowStockAlertsEnabled(map.telegram_low_stock_alerts_enabled !== "false");
+          }
         }
       } catch (_) {}
 
@@ -132,6 +140,12 @@ export default function AdminSettingsPage() {
           if (map.farm_longitude) setFarmLng(map.farm_longitude);
           if (map.store_manually_closed) {
             setStoreManuallyClosed(map.store_manually_closed === "true");
+          }
+          if (map.low_stock_threshold_kg) {
+            setLowStockThreshold(map.low_stock_threshold_kg);
+          }
+          if (map.telegram_low_stock_alerts_enabled !== undefined) {
+            setLowStockAlertsEnabled(map.telegram_low_stock_alerts_enabled !== "false");
           }
           if (map.staff_permissions) {
             try {
@@ -347,6 +361,16 @@ export default function AdminSettingsPage() {
         value: staffList.map((s) => s.email).join(","),
         description: "Comma-separated list of permitted Google accounts",
       },
+      {
+        key: "low_stock_threshold_kg",
+        value: lowStockThreshold.trim() || "15",
+        description: "Low aquarium live stock alert threshold in kg",
+      },
+      {
+        key: "telegram_low_stock_alerts_enabled",
+        value: lowStockAlertsEnabled ? "true" : "false",
+        description: "Whether to send Telegram alerts when aquarium live stock drops below threshold",
+      },
     ];
 
     // 1. Instant local persistence
@@ -378,6 +402,34 @@ export default function AdminSettingsPage() {
     setIsSaving(false);
     setSavedMsg("Settings & Staff Permissions saved successfully!");
     setTimeout(() => setSavedMsg(""), 4000);
+  };
+
+  const handleSendTestAlert = async () => {
+    setIsTestingTelegramAlert(true);
+    setTestAlertFeedback(null);
+    try {
+      const res = await adminFetch("/api/telegram-notify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "low_stock_test",
+          data: {
+            triggerSource: "Manual Test from Admin Settings",
+            isTest: true,
+          },
+        }),
+      });
+      if (res.ok) {
+        setTestAlertFeedback("✓ Test alert sent to Telegram!");
+      } else {
+        setTestAlertFeedback("⚠️ Failed to send Telegram alert.");
+      }
+    } catch (_) {
+      setTestAlertFeedback("⚠️ Error reaching notification server.");
+    } finally {
+      setIsTestingTelegramAlert(false);
+      setTimeout(() => setTestAlertFeedback(null), 5000);
+    }
   };
 
   return (
@@ -559,6 +611,135 @@ export default function AdminSettingsPage() {
 
             {/* Pulse animation */}
             <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
+          </div>
+
+          {/* ══════════════════════════════════════════════════════════
+              LOW AQUARIUM STOCK TELEGRAM ALERTS CARD
+              ══════════════════════════════════════════════════════════ */}
+          <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 md:p-8 space-y-6 shadow-xl relative overflow-hidden">
+            {/* Ambient subtle glow */}
+            <div className="absolute -top-24 -right-24 w-60 h-60 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
+              <div className="flex items-start sm:items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 flex-shrink-0">
+                  <span className="material-symbols-outlined text-2xl">notifications_active</span>
+                </div>
+                <div>
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <h2 className="text-lg font-bold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                      Low Aquarium Stock Telegram Alerts
+                    </h2>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 font-mono">
+                      Telegram Bot Active
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-1" style={{ fontFamily: '"Manrope", sans-serif' }}>
+                    Automatically alerts you on Telegram when available aquarium fish biomass drops below safety threshold.
+                  </p>
+                </div>
+              </div>
+
+              {/* Test Alert Button */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleSendTestAlert}
+                  disabled={isTestingTelegramAlert}
+                  className="px-3.5 py-2 rounded-xl text-xs font-bold uppercase tracking-wider bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer"
+                  style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                >
+                  {isTestingTelegramAlert ? (
+                    <>
+                      <span className="w-3.5 h-3.5 border-2 border-cyan-400 border-t-transparent animate-spin rounded-full" />
+                      <span>Sending…</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>📲</span>
+                      <span>Send Test Alert</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {testAlertFeedback && (
+              <div
+                className={`px-3.5 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 ${
+                  testAlertFeedback.startsWith("✓")
+                    ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"
+                    : "bg-red-500/15 text-red-300 border border-red-500/30"
+                }`}
+              >
+                <span>{testAlertFeedback}</span>
+              </div>
+            )}
+
+            {/* Settings Inputs Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 pt-1">
+              {/* Alert Toggle */}
+              <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-4 flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-xs font-bold text-white mb-1" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                    Telegram Automation
+                  </p>
+                  <p className="text-[11px] text-slate-400" style={{ fontFamily: '"Manrope", sans-serif' }}>
+                    Send automated high-priority message when stock is low
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setLowStockAlertsEnabled(!lowStockAlertsEnabled)}
+                  className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                    lowStockAlertsEnabled ? "bg-cyan-500" : "bg-slate-700"
+                  }`}
+                  aria-label="Toggle low stock alerts"
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow-lg ring-0 transition duration-200 ease-in-out ${
+                      lowStockAlertsEnabled ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {/* Threshold Input */}
+              <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-4 flex items-center justify-between gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-white mb-0.5" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                    Restock Threshold (Kg)
+                  </label>
+                  <p className="text-[11px] text-slate-400" style={{ fontFamily: '"Manrope", sans-serif' }}>
+                    Alert fires when live stock $\le$ this amount
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <input
+                    type="number"
+                    min={1}
+                    max={100}
+                    step={1}
+                    value={lowStockThreshold}
+                    onChange={(e) => setLowStockThreshold(e.target.value)}
+                    className="w-20 bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-center text-white font-mono font-bold text-sm focus:outline-none focus:border-cyan-400"
+                  />
+                  <span className="text-xs text-slate-400 font-bold">KG</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Details Footer */}
+            <div className="pt-3 border-t border-slate-800/80 flex flex-wrap items-center gap-4 text-xs text-slate-500">
+              <span className="flex items-center gap-1.5">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                Smart 4-hour cooldown prevents notification spam during rush hours
+              </span>
+              <span className="flex items-center gap-1.5">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                Triggers on Counter POS sales &amp; Vending logs
+              </span>
+            </div>
           </div>
 
           {/* ══════════════════════════════════════════════════════════

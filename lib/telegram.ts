@@ -689,4 +689,50 @@ ${cleanPhone ? `<b>Phone:</b> +91 ${cleanPhone}\n` : ""}<b>Channel:</b> ${params
   return sendTelegramMessage(msg, "HTML", buttons.length > 0 ? { inline_keyboard: buttons } : undefined);
 }
 
+export async function notifyLowAquariumStock(params: {
+  remainingKg: number;
+  thresholdKg: number;
+  totalProcuredKg: number;
+  allTimeSoldKg: number;
+  totalMortalityKg?: number;
+  triggerSource?: string;
+  isTest?: boolean;
+}) {
+  const isCritical = params.remainingKg <= 5;
+  const statusEmoji = params.isTest ? "🧪" : isCritical ? "🚨" : "⚠️";
+  const statusHeader = params.isTest
+    ? "TEST ALERT — LOW AQUARIUM STOCK"
+    : isCritical
+    ? "CRITICAL EMERGENCY — AQUARIUM ALMOST EMPTY!"
+    : "LOW AQUARIUM LIVE STOCK ALERT!";
+
+  const statusLabel = params.isTest
+    ? "Test Notification from Settings"
+    : isCritical
+    ? "🔴 CRITICAL: IMMEDIATE RESTOCK REQUIRED"
+    : "🟡 ATTENTION: BIOMASS BELOW THRESHOLD";
+
+  const msg = `${statusEmoji} <b>${statusHeader}</b> 🐟
+━━━━━━━━━━━━━━━━━━━━
+<b>Remaining in Aquarium:</b> <b>${params.remainingKg.toFixed(2)} Kg</b>
+<b>Alert Threshold:</b> <b>${params.thresholdKg} Kg</b>
+<b>Alert Status:</b> <b>${statusLabel}</b>
+━━━━━━━━━━━━━━━━━━━━
+<b>Total Procured:</b> ${params.totalProcuredKg.toFixed(2)} Kg
+<b>Dispatched / Sold:</b> ${params.allTimeSoldKg.toFixed(2)} Kg
+${params.totalMortalityKg !== undefined ? `<b>Mortality Loss:</b> ${params.totalMortalityKg.toFixed(2)} Kg\n` : ""}<b>Triggered By:</b> ${escapeHtml(params.triggerSource || "Counter Dispatch")}
+<b>Time:</b> ${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}
+━━━━━━━━━━━━━━━━━━━━
+💡 <i>Action Recommended: Arrange transfer of fresh rainbow trout batches to maintain counter sales & online order fulfillment.</i>`;
+
+  const buttons: InlineKeyboardButton[][] = [
+    [
+      { text: "📊 Vending Center Log", url: "https://urbantrout.in/admin/dashboard/vending-log" },
+      { text: "📦 Inventory & Stock", url: "https://urbantrout.in/admin/dashboard/inventory" },
+    ],
+  ];
+
+  return sendTelegramMessage(msg, "HTML", { inline_keyboard: buttons });
+}
+
 

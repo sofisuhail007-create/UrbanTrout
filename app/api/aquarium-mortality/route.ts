@@ -192,6 +192,12 @@ export async function POST(req: NextRequest) {
     const updated = [newEntry, ...current.filter((e) => e.id !== newEntry.id)];
     await saveStoredMortalityLedger(updated);
 
+    // Check if live stock has dipped below threshold and trigger Telegram alert
+    try {
+      const { checkAndTriggerLowStockAlert } = await import("@/lib/aquariumStock");
+      checkAndTriggerLowStockAlert(`Aquarium Mortality (${w} Kg / ${count} fish)`).catch(console.error);
+    } catch (_) {}
+
     return NextResponse.json(
       {
         success: true,

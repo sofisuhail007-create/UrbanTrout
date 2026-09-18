@@ -46,6 +46,14 @@ export async function POST(request: Request) {
       await notifyAbandonedLead(data);
     } else if (type === "bio_alarm") {
       await notifyBioAlarm(data);
+    } else if (type === "low_stock_alert" || type === "low_stock_test") {
+      const { checkAndTriggerLowStockAlert } = await import("@/lib/aquariumStock");
+      const isTest = type === "low_stock_test" || Boolean(data?.isTest);
+      const res = await checkAndTriggerLowStockAlert(
+        data?.triggerSource || (isTest ? "Manual Test from Admin Settings" : "System Check"),
+        isTest
+      );
+      return NextResponse.json({ success: true, result: res });
     }
 
     return NextResponse.json({ success: true });

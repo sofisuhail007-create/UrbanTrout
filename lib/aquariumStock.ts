@@ -92,3 +92,85 @@ export async function getLiveAquariumStock(): Promise<AquariumStockSummary> {
     };
   }
 }
+
+/**
+ * Checks if current live aquarium biomass is below the configured threshold.
+ * If below threshold and not in cooldown, sends an alert via Telegram.
+ */
+export async function checkAndTriggerLowStockAlert(
+  triggerSource: string = "Counter Dispatch",
+  force: boolean = false
+) {
+  try {
+    // 1. Fetch threshold and enabled status from app_settings
+    const { data: settingsRows } = await supabase
+      .from("app_settings")
+      .select("key, value")
+      .in("key", [
+        "low_stock_threshold_kg",
+        "telegram_low_stock_alerts_enabled",
+        "last_low_stock_alert_sent_at",
+      ]);
+
+    const settingsMap: Record<string, string> = {};
+    (settingsRows || []).forEach((r) => {
+      settingsMap[r.key] = r.value;
+    });
+
+    const isAlertEnabled = settingsMap.telegram_low_stock_alerts_enabled !== "false";
+    if (!isAlertEnabled && !force) {
+      return { skipped: "alerts_disabled" };
+    }
+
+    const thresholdKg = Number(settingsMap.low_stock_threshold_kg) || 15;
+
+    // 2. Get current live stock
+    const stockSummary = await getLiveAquariumStock();
+    const remainingKg = stockSummary.remainingKg;
+
+    if (remainingKg > thresholdKg && !force) {
+      return { skipped: "stock_above_threshold", remainingKg, thresholdKg };
+    }
+
+    // 3. Cooldown check: 4 hours cooldown between regular alerts (1 hour if critical <= 5kg)
+    const now = Date.now();
+    const lastSentAt = settingsMap.last_low_stock_alert_sent_at
+      ? Number(settingsMap.last_low_stock_alert_sent_at)
+      : 0;
+    const cooldownMs = remainingKg <= 5 ? 60 * 60 * 1000 : 4 * 60 * 60 * 1000;
+
+    if (!force && now - lastSentAt < cooldownMs) {
+      return { skipped: "cooldown_active", remainingKg, thresholdKg };
+    }
+
+    // 4. Send Telegram Alert
+    const { notifyLowAquariumStock } = await import("@/lib/telegram");
+    await notifyLowAquariumStock({
+      remainingKg,
+      thresholdKg,
+      totalProcuredKg: stockSummary.totalProcuredKg,
+      allTimeSoldKg: stockSummary.allTimeSoldKg,
+      totalMortalityKg: stockSummary.totalMortalityKg,
+      triggerSource,
+      isTest: force,
+    });
+
+    // 5. Update last alert timestamp in app_settings (if not test)
+    if (!force) {
+      await supabase.from("app_settings").upsert(
+        {
+          key: "last_low_stock_alert_sent_at",
+          value: String(now),
+          description: "Timestamp of last low aquarium stock alert sent via Telegram",
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "key" }
+      );
+    }
+
+    return { success: true, remainingKg, thresholdKg };
+  } catch (err) {
+    console.error("Error checking low stock alert:", err);
+    return { error: err };
+  }
+}
