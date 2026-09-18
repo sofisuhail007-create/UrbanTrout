@@ -4,6 +4,7 @@ import AddToCartButton from "@/components/AddToCartButton";
 import StoreClosedBanner from "@/components/StoreClosedBanner";
 import { supabase } from "@/lib/supabase";
 import { getBusinessHoursInfo } from "@/lib/businessHours";
+import { getLiveAquariumStock } from "@/lib/aquariumStock";
 
 export const metadata: Metadata = {
   title: "Whole Fresh Rainbow Trout | Urban Trout Srinagar",
@@ -42,6 +43,16 @@ export default async function WholeTroutPage() {
   // ── Business Hours ──────────────────────────────────────────────────────
   const hoursInfo = getBusinessHoursInfo();
 
+  // ── Manual closure override ─────────────────────────────────────────────
+  const { data: closedRow } = await supabase
+    .from("app_settings")
+    .select("value")
+    .eq("key", "store_manually_closed")
+    .single();
+  const isManuallyClosedFlag = closedRow?.value === "true";
+  const effectivelyOpen = hoursInfo.isOpen && !isManuallyClosedFlag;
+  const effectiveHoursInfo = { ...hoursInfo, isOpen: effectivelyOpen };
+
   const { data } = await supabase
     .from("inventory")
     .select("*")
@@ -55,13 +66,8 @@ export default async function WholeTroutPage() {
   // ── Aquarium Stock (shared pool) ────────────────────────────────────────
   let aquariumStockKg: number | undefined;
   try {
-    const { data: stockData } = await supabase
-      .from("aquarium_available_stock")
-      .select("total_available_kg")
-      .single();
-    if (stockData?.total_available_kg !== null && stockData?.total_available_kg !== undefined) {
-      aquariumStockKg = Number(stockData.total_available_kg);
-    }
+    const liveStock = await getLiveAquariumStock();
+    aquariumStockKg = liveStock.remainingKg;
   } catch {
     aquariumStockKg = undefined;
   }
@@ -75,7 +81,7 @@ export default async function WholeTroutPage() {
   const primaryPhone = phoneRow?.value ?? "+918491006127";
 
   const isOutOfStock = aquariumStockKg !== undefined && aquariumStockKg <= 0;
-  const canOrder = hoursInfo.isOpen && !isOutOfStock;
+  const canOrder = effectiveHoursInfo.isOpen && !isOutOfStock;
 
 
   const productJsonLd = {
@@ -163,7 +169,7 @@ export default async function WholeTroutPage() {
   };
 
   // ── Render closed banner if outside hours ─────────────────────────────
-  if (!hoursInfo.isOpen) {
+  if (!effectiveHoursInfo.isOpen) {
     return (
       <>
         <script
@@ -171,8 +177,8 @@ export default async function WholeTroutPage() {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
         />
         <StoreClosedBanner
-          nextOpenISO={hoursInfo.nextOpenISO}
-          nextOpenLabel={hoursInfo.nextOpenLabel}
+          nextOpenISO={effectiveHoursInfo.nextOpenISO}
+          nextOpenLabel={isManuallyClosedFlag ? "when we reopen" : effectiveHoursInfo.nextOpenLabel}
           primaryPhone={primaryPhone}
         />
       </>
@@ -390,7 +396,7 @@ export default async function WholeTroutPage() {
                     Aquarium Stock
                   </p>
                   <p style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "0.88rem", fontWeight: 700, color: C.onSurface, margin: 0 }}>
-                    {aquariumStockKg > 0 ? `~${Math.floor(aquariumStockKg)} kg available` : "Out of stock — restocking soon"}
+                    {aquariumStockKg > 0 ? `~${aquariumStockKg % 1 === 0 ? aquariumStockKg : aquariumStockKg.toFixed(1)} kg available` : "Out of stock — restocking soon"}
                   </p>
                 </div>
               </div>
@@ -443,7 +449,7 @@ export default async function WholeTroutPage() {
                       Store Closed
                     </p>
                     <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.8rem", color: C.onSurfVar, margin: 0 }}>
-                      Opens {hoursInfo.nextOpenLabel} · 7:00 AM – 10:00 PM daily
+                      Opens {isManuallyClosedFlag ? "when we reopen" : effectiveHoursInfo.nextOpenLabel} · 7:00 AM – 10:00 PM daily
                     </p>
                   </div>
                 </div>

@@ -34,13 +34,15 @@ function getCountdown(targetISO: string) {
 
 export default function StoreClosedBanner({ nextOpenISO, nextOpenLabel, primaryPhone }: Props) {
   const [countdown, setCountdown] = useState(() => getCountdown(nextOpenISO));
+  const isManualClose = !nextOpenISO || nextOpenLabel === "when we reopen";
 
   useEffect(() => {
+    if (isManualClose) return;
     const id = setInterval(() => {
       setCountdown(getCountdown(nextOpenISO));
     }, 1000);
     return () => clearInterval(id);
-  }, [nextOpenISO]);
+  }, [nextOpenISO, isManualClose]);
 
   const whatsappUrl = `https://wa.me/${primaryPhone.replace(/\D/g, "")}?text=${encodeURIComponent("Hi Urban Trout, I'd like to place an order. When will you be available?")}`;
 
@@ -175,7 +177,7 @@ export default function StoreClosedBanner({ nextOpenISO, nextOpenLabel, primaryP
               margin: 0,
             }}
           >
-            We&apos;re Closed{" "}
+            We&apos;re{" "}
             <span
               style={{
                 background: "linear-gradient(135deg, #72ddfd, #c4ebff)",
@@ -183,7 +185,7 @@ export default function StoreClosedBanner({ nextOpenISO, nextOpenLabel, primaryP
                 WebkitTextFillColor: "transparent",
               }}
             >
-              Right Now
+              {isManualClose ? "Taking a Break" : "Closed Right Now"}
             </span>
           </h1>
 
@@ -196,13 +198,14 @@ export default function StoreClosedBanner({ nextOpenISO, nextOpenLabel, primaryP
               margin: 0,
             }}
           >
-            Our store is currently closed. We harvest fresh trout to order during business hours only.
-            <br />
-            <strong style={{ color: C.onSurface }}>Opens {nextOpenLabel}.</strong>
+            {isManualClose
+              ? "Our store is temporarily closed for the day. We'll be back soon — follow us on WhatsApp for updates."
+              : <>Our store is currently closed. We harvest fresh trout to order during business hours only.<br /><strong style={{ color: C.onSurface }}>Opens {nextOpenLabel}.</strong></>}
           </p>
         </div>
 
-        {/* Countdown timer */}
+        {/* Countdown timer — only shown when auto-closed by hours */}
+        {!isManualClose && (
         <div
           style={{
             width: "100%",
@@ -303,6 +306,7 @@ export default function StoreClosedBanner({ nextOpenISO, nextOpenLabel, primaryP
             </div>
           </div>
         </div>
+        )}
 
         {/* Business hours info */}
         <div

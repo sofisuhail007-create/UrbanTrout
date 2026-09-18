@@ -16,11 +16,15 @@
 
 CREATE OR REPLACE VIEW public.aquarium_available_stock AS
 SELECT
-  COALESCE(SUM(weight_kg), 0)::NUMERIC(10, 3) AS total_available_kg,
-  COUNT(*)                                      AS batch_count,
-  MAX(stock_date)                               AS last_stocked_date,
-  MAX(created_at)                               AS last_stocked_at
-FROM public.aquarium_stock_log;
+  GREATEST(
+    0,
+    COALESCE((SELECT SUM(weight_kg) FROM public.aquarium_stock_log), 0)
+    - COALESCE((SELECT SUM(weight_kg) FROM public.vending_sales_log), 0)
+    - 0.400
+  )::NUMERIC(10, 3) AS total_available_kg,
+  (SELECT COUNT(*) FROM public.aquarium_stock_log) AS batch_count,
+  (SELECT MAX(stock_date) FROM public.aquarium_stock_log) AS last_stocked_date,
+  (SELECT MAX(created_at) FROM public.aquarium_stock_log) AS last_stocked_at;
 
 -- Grant public read access (matches the table's RLS policy)
 GRANT SELECT ON public.aquarium_available_stock TO anon;

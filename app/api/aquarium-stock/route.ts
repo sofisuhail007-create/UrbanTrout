@@ -49,11 +49,15 @@ export async function GET(req: NextRequest) {
       throw error;
     }
 
+    const { getLiveAquariumStock } = await import("@/lib/aquariumStock");
+    const liveSummary = await getLiveAquariumStock();
+
     return NextResponse.json(
       {
         success: true,
         entries: data || [],
         isTableAvailable: true,
+        liveSummary,
       },
       {
         headers: {

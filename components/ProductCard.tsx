@@ -11,7 +11,7 @@ function getStockBadge(stockKg?: number): { label: string; color: string; bg: st
   if (stockKg === undefined || stockKg === null) return null;
   if (stockKg <= 0) return { label: "Out of Stock", color: "#f87171", bg: "rgba(239,68,68,0.12)", border: "rgba(239,68,68,0.35)" };
   if (stockKg <= 5) return { label: `~${stockKg.toFixed(1)} kg — Low Stock`, color: "#fbbf24", bg: "rgba(251,191,36,0.12)", border: "rgba(251,191,36,0.35)" };
-  return { label: `~${Math.floor(stockKg)} kg Available Today`, color: "#4ade80", bg: "rgba(34,197,94,0.12)", border: "rgba(34,197,94,0.35)" };
+  return { label: `~${stockKg % 1 === 0 ? stockKg : stockKg.toFixed(1)} kg Available Today`, color: "#4ade80", bg: "rgba(34,197,94,0.12)", border: "rgba(34,197,94,0.35)" };
 }
 
 export default function ProductCard({ p }: { p: Product }) {

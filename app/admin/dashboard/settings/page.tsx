@@ -92,6 +92,9 @@ export default function AdminSettingsPage() {
   const [loading, setLoading] = useState(true);
   const [savedMsg, setSavedMsg] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [storeManuallyClosed, setStoreManuallyClosed] = useState(false);
+  const [isTogglingStore, setIsTogglingStore] = useState(false);
+
 
   useEffect(() => {
     async function loadSettings() {
@@ -127,6 +130,9 @@ export default function AdminSettingsPage() {
           if (map.delivery_radius_km) setDeliveryRadius(map.delivery_radius_km);
           if (map.farm_latitude) setFarmLat(map.farm_latitude);
           if (map.farm_longitude) setFarmLng(map.farm_longitude);
+          if (map.store_manually_closed) {
+            setStoreManuallyClosed(map.store_manually_closed === "true");
+          }
           if (map.staff_permissions) {
             try {
               const parsed = JSON.parse(map.staff_permissions);
@@ -291,6 +297,32 @@ export default function AdminSettingsPage() {
     );
   };
 
+  // Instantly toggle the manual store closure (no need to hit Save All)
+  const handleToggleStore = async () => {
+    const newVal = !storeManuallyClosed;
+    setStoreManuallyClosed(newVal);
+    setIsTogglingStore(true);
+    try {
+      const item = {
+        key: "store_manually_closed",
+        value: String(newVal),
+        description: "Manual store closure override — bypasses business hours check",
+      };
+      await adminFetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify([item]),
+      });
+      await supabase.from("app_settings").upsert(item, { onConflict: "key" });
+      setSavedMsg(newVal ? "🔴 Store marked as CLOSED — customers will see closed banner." : "🟢 Store is now OPEN — customers can order normally.");
+      setTimeout(() => setSavedMsg(""), 4000);
+    } catch (err) {
+      console.warn("Store toggle save notice:", err);
+    } finally {
+      setIsTogglingStore(false);
+    }
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
@@ -377,8 +409,162 @@ export default function AdminSettingsPage() {
       ) : (
         <div className="space-y-8">
           {/* ══════════════════════════════════════════════════════════
+              SECTION 0: MANUAL STORE CLOSURE OVERRIDE
+              ══════════════════════════════════════════════════════════ */}
+          <div
+            className={`relative overflow-hidden rounded-3xl p-6 md:p-8 border transition-all duration-500 shadow-xl ${
+              storeManuallyClosed
+                ? "bg-red-950/40 border-red-500/40"
+                : "bg-slate-900/60 border-slate-800"
+            }`}
+          >
+            {/* Ambient glow when closed */}
+            {storeManuallyClosed && (
+              <div
+                style={{
+                  position: "absolute",
+                  inset: 0,
+                  background: "radial-gradient(ellipse at top left, rgba(239,68,68,0.08) 0%, transparent 70%)",
+                  pointerEvents: "none",
+                }}
+              />
+            )}
+
+            <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+              {/* Left: icon + text */}
+              <div className="flex items-start gap-4">
+                {/* Animated icon */}
+                <div
+                  className={`w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 transition-all duration-300 ${
+                    storeManuallyClosed
+                      ? "bg-red-500/20 border border-red-500/40"
+                      : "bg-emerald-500/15 border border-emerald-500/30"
+                  }`}
+                >
+                  {storeManuallyClosed ? (
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                    </svg>
+                  ) : (
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="10" />
+                      <polyline points="12 6 12 12 16 14" />
+                    </svg>
+                  )}
+                </div>
+
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h2
+                      className={`text-lg font-bold transition-colors duration-300 ${storeManuallyClosed ? "text-red-300" : "text-white"}`}
+                      style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                    >
+                      Manual Store Closure Override
+                    </h2>
+                    {/* Live status pill */}
+                    <span
+                      className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                        storeManuallyClosed
+                          ? "bg-red-500/20 border-red-500/40 text-red-400"
+                          : "bg-emerald-500/15 border-emerald-500/30 text-emerald-400"
+                      }`}
+                    >
+                      <span
+                        className="inline-block w-1.5 h-1.5 rounded-full"
+                        style={{
+                          background: storeManuallyClosed ? "#f87171" : "#4ade80",
+                          animation: "pulse 2s infinite",
+                        }}
+                      />
+                      {storeManuallyClosed ? "Store Closed" : "Store Open"}
+                    </span>
+                  </div>
+                  <p className="text-sm text-slate-400 leading-relaxed" style={{ fontFamily: '"Manrope", sans-serif' }}>
+                    {storeManuallyClosed
+                      ? "⚠️ Your store is manually closed. Customers will see the \"Store Closed\" banner and cannot place orders."
+                      : "Toggle ON to instantly close the store for the day — for breaks, restocking, or special occasions. Customers will see a closed banner with a WhatsApp CTA."}
+                  </p>
+                  {storeManuallyClosed && (
+                    <p className="text-xs text-red-400/70 mt-1.5 font-medium">
+                      Remember to toggle OFF when you&apos;re ready to accept orders again.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Right: Big Toggle */}
+              <div className="flex flex-col items-center gap-3 flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={handleToggleStore}
+                  disabled={isTogglingStore}
+                  className={`relative flex items-center rounded-full transition-all duration-300 cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:opacity-60 ${
+                    storeManuallyClosed
+                      ? "focus:ring-red-500"
+                      : "focus:ring-emerald-500"
+                  }`}
+                  style={{ width: "72px", height: "36px", padding: "3px" }}
+                  aria-label={storeManuallyClosed ? "Open store" : "Close store"}
+                >
+                  {/* Track */}
+                  <span
+                    className={`absolute inset-0 rounded-full transition-all duration-300 ${
+                      storeManuallyClosed
+                        ? "bg-red-500"
+                        : "bg-emerald-500"
+                    }`}
+                    style={{
+                      boxShadow: storeManuallyClosed
+                        ? "0 0 20px rgba(239,68,68,0.4)"
+                        : "0 0 20px rgba(74,222,128,0.3)",
+                    }}
+                  />
+                  {/* Thumb */}
+                  <span
+                    className="relative z-10 inline-block w-7 h-7 bg-white rounded-full shadow-md transition-all duration-300"
+                    style={{
+                      transform: storeManuallyClosed ? "translateX(36px)" : "translateX(0px)",
+                    }}
+                  />
+                </button>
+                <span
+                  className={`text-[10px] font-bold uppercase tracking-widest transition-colors duration-300 ${
+                    storeManuallyClosed ? "text-red-400" : "text-emerald-400"
+                  }`}
+                >
+                  {isTogglingStore ? "Saving…" : storeManuallyClosed ? "Closed" : "Open"}
+                </span>
+              </div>
+            </div>
+
+            {/* Bottom info bar */}
+            <div
+              className={`mt-5 pt-4 border-t flex flex-wrap items-center gap-4 text-xs transition-colors duration-300 ${
+                storeManuallyClosed ? "border-red-500/20 text-red-400/60" : "border-slate-800 text-slate-500"
+              }`}
+            >
+              <span className="flex items-center gap-1.5">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
+                Business hours: 7:00 AM – 10:00 PM IST
+              </span>
+              <span className="flex items-center gap-1.5">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
+                Changes apply instantly — no page reload needed
+              </span>
+              <span className="flex items-center gap-1.5">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                Customers see WhatsApp CTA when closed
+              </span>
+            </div>
+
+            {/* Pulse animation */}
+            <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
+          </div>
+
+          {/* ══════════════════════════════════════════════════════════
               SECTION 1: STAFF PERMISSIONS & GOOGLE ACCOUNT RBAC
               ══════════════════════════════════════════════════════════ */}
+
           <div className="bg-slate-900/80 border border-slate-800 rounded-3xl p-6 md:p-8 space-y-6 shadow-xl">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-4 border-b border-slate-800">
               <div>

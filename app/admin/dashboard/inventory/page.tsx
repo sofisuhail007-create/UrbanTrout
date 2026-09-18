@@ -34,12 +34,33 @@ export default function InventoryPage() {
     description: "",
   });
   const [creating, setCreating] = useState(false);
+  const [aquariumLiveStock, setAquariumLiveStock] = useState<{
+    remainingKg: number;
+    totalProcuredKg: number;
+    allTimeSoldKg: number;
+    totalMortalityKg: number;
+  } | null>(null);
 
   useEffect(() => {
     fetchInventory();
   }, []);
 
   async function fetchInventory() {
+    // 1. Fetch live aquarium stock first
+    let liveKg: number | null = null;
+    try {
+      const stockRes = await fetch("/api/aquarium-stock");
+      if (stockRes.ok) {
+        const stockJson = await stockRes.json();
+        if (stockJson.liveSummary) {
+          setAquariumLiveStock(stockJson.liveSummary);
+          liveKg = stockJson.liveSummary.remainingKg;
+        }
+      }
+    } catch (e) {
+      console.warn("Could not fetch live aquarium stock:", e);
+    }
+
     const { data: invData } = await supabase.from("inventory").select("*").order("product_name");
     const { data: metaRows } = await supabase.from("app_settings").select("*").like("key", "product_meta_%");
 
@@ -69,8 +90,12 @@ export default function InventoryPage() {
       const itemsWithDefaults = invData.map((item) => {
         const hardcoded = PRODUCT_META_DEFAULTS[item.product_id] || {};
         const saved = metaMap[item.product_id] || {};
+        const isAquariumProduct = item.product_id === "gutted-trout" || item.product_id === "whole-trout";
+        const effectiveStock = isAquariumProduct && liveKg !== null ? liveKg : item.stock_kg;
+
         return {
           ...item,
+          stock_kg: effectiveStock,
           image_url: saved.image_url || (item as any).image_url || hardcoded.img || "/images/gutted_trout_premium.png",
           label: saved.label || (item as any).label || hardcoded.label || "FARM FRESH",
           description: saved.description || (item as any).description || hardcoded.desc || "Fresh premium farm trout harvested to order.",
@@ -299,6 +324,36 @@ export default function InventoryPage() {
         </button>
       </div>
 
+      {/* Shared Aquarium Live Stock Indicator Banner */}
+      {aquariumLiveStock && (
+        <div className="bg-gradient-to-r from-cyan-950/40 via-slate-900/60 to-cyan-950/40 border border-cyan-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/30 flex items-center justify-center text-cyan-400 font-bold text-lg flex-shrink-0">
+              🐟
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-white font-bold text-sm" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                  Aquarium Stock Pool Linked
+                </span>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  {aquariumLiveStock.remainingKg} Kg Live Remaining
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5" style={{ fontFamily: '"Manrope", sans-serif' }}>
+                Both Whole and Gutted Trout draw from this same live aquarium pool ({aquariumLiveStock.totalProcuredKg} kg procured − {aquariumLiveStock.allTimeSoldKg} kg sold − {aquariumLiveStock.totalMortalityKg} kg mortality).
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/admin/dashboard/vending-log"
+            className="px-3 py-1.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-xs font-bold transition-all whitespace-nowrap"
+          >
+            View Vending Log →
+          </Link>
+        </div>
+      )}
+
       {/* Inventory Cards Grid */}
       {loading ? (
         <div className="text-center text-slate-500 py-20">Loading inventory catalog...</div>
@@ -468,17 +523,39 @@ export default function InventoryPage() {
                     </div>
 
                     <div>
-                      <label className="block text-[10px] text-slate-400 uppercase tracking-wider mb-1 font-bold">
-                        Stock (Kg)
-                      </label>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="block text-[10px] text-cyan-400 uppercase tracking-wider font-bold">
+                          Stock (Kg)
+                        </label>
+                        {(item.product_id === "gutted-trout" || item.product_id === "whole-trout") && (
+                          <span className="text-[9px] text-emerald-400 font-bold bg-emerald-500/15 px-1.5 py-0.5 rounded border border-emerald-500/30">
+                            🌊 Pool
+                          </span>
+                        )}
+                      </div>
                       <input
                         type="number"
+                        step={0.1}
                         value={String(stock)}
                         onChange={(e) => edit(item.id, "stock_kg", Number(e.target.value))}
-                        className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-cyan-400 font-mono"
+                        className={`w-full bg-slate-950 border rounded-lg px-3 py-2 text-sm focus:outline-none font-mono ${
+                          item.product_id === "gutted-trout" || item.product_id === "whole-trout"
+                            ? "border-cyan-500/40 text-emerald-300 font-bold focus:border-cyan-400"
+                            : "border-slate-700 text-white focus:border-cyan-400"
+                        }`}
                       />
                     </div>
                   </div>
+
+                  {/* Shared Pool Info Note */}
+                  {(item.product_id === "gutted-trout" || item.product_id === "whole-trout") && (
+                    <p className="text-[11px] text-cyan-400/90 bg-cyan-950/30 border border-cyan-900/40 rounded-lg px-2.5 py-1.5 flex items-center gap-1.5">
+                      <span>🌊</span>
+                      <span>
+                        Linked to shared aquarium pool: <strong>{aquariumLiveStock?.remainingKg ?? stock} kg</strong> remaining. Both Whole &amp; Gutted trout draw from this pool.
+                      </span>
+                    </p>
+                  )}
 
                   {/* Photo & Badge Details */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">

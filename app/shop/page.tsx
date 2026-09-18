@@ -4,8 +4,9 @@ import ProductCard from "@/components/ProductCard";
 import StoreClosedBanner from "@/components/StoreClosedBanner";
 import { supabase } from "@/lib/supabase";
 import { getBusinessHoursInfo } from "@/lib/businessHours";
+import { getLiveAquariumStock } from "@/lib/aquariumStock";
 
-// Enable ISR (Incremental Static Regeneration) - refreshed every 60s
+// Enable ISR (Incremental Static Regeneration) - refreshed every 30s
 // Use a short revalidation so hours change is reflected quickly
 export const revalidate = 30;
 
@@ -33,6 +34,20 @@ export default async function ShopPage() {
   // ── Business Hours Check ──────────────────────────────────────────────────
   const hoursInfo = getBusinessHoursInfo();
 
+  // ── Manual closure override (admin toggle) ────────────────────────────────
+  const { data: closedRow } = await supabase
+    .from("app_settings")
+    .select("value")
+    .eq("key", "store_manually_closed")
+    .single();
+  const isManuallyClosedFlag = closedRow?.value === "true";
+  // Effective open state: must be within hours AND not manually closed
+  const effectivelyOpen = hoursInfo.isOpen && !isManuallyClosedFlag;
+  const effectiveHoursInfo = {
+    ...hoursInfo,
+    isOpen: effectivelyOpen,
+  };
+
   // ── Fetch inventory data ──────────────────────────────────────────────────
   const { data: invData } = await supabase
     .from("inventory")
@@ -53,18 +68,13 @@ export default async function ShopPage() {
     .single();
   const primaryPhone = phoneRow?.value ?? "+918491006127";
 
-  // ── Fetch aquarium available stock (shared pool for both products) ────────
+  // ── Fetch aquarium remaining live stock (shared pool for both products) ──
   let aquariumStockKg: number | undefined;
   try {
-    const { data: stockData } = await supabase
-      .from("aquarium_available_stock")
-      .select("total_available_kg")
-      .single();
-    if (stockData && stockData.total_available_kg !== null) {
-      aquariumStockKg = Number(stockData.total_available_kg);
-    }
-  } catch {
-    // View not yet created — gracefully degrade (no stock badge shown)
+    const liveStock = await getLiveAquariumStock();
+    aquariumStockKg = liveStock.remainingKg;
+  } catch (err) {
+    console.error("Failed to calculate live aquarium stock:", err);
     aquariumStockKg = undefined;
   }
 
@@ -116,21 +126,21 @@ export default async function ShopPage() {
             minQuantity,
             // Both products share the same aquarium pool
             stockKg: aquariumStockKg,
-            isOpen: hoursInfo.isOpen,
+            isOpen: effectiveHoursInfo.isOpen,
           };
         })
       : products.map((p) => ({
           ...p,
           stockKg: aquariumStockKg,
-          isOpen: hoursInfo.isOpen,
+          isOpen: effectiveHoursInfo.isOpen,
         }));
 
   // ── If store is closed, render the closed banner ──────────────────────────
-  if (!hoursInfo.isOpen) {
+  if (!effectiveHoursInfo.isOpen) {
     return (
       <StoreClosedBanner
-        nextOpenISO={hoursInfo.nextOpenISO}
-        nextOpenLabel={hoursInfo.nextOpenLabel}
+        nextOpenISO={effectiveHoursInfo.nextOpenISO}
+        nextOpenLabel={isManuallyClosedFlag ? "when we reopen" : effectiveHoursInfo.nextOpenLabel}
         primaryPhone={primaryPhone}
       />
     );
@@ -183,7 +193,7 @@ export default async function ShopPage() {
                   color: aquariumStockKg > 0 ? "#4ade80" : "#f87171",
                 }}>
                   {aquariumStockKg > 0
-                    ? `${Math.floor(aquariumStockKg)} kg available from aquarium today`
+                    ? `~${aquariumStockKg % 1 === 0 ? aquariumStockKg : aquariumStockKg.toFixed(1)} kg available from aquarium today`
                     : "Aquarium stock depleted — restocking soon"}
                 </span>
               </div>
