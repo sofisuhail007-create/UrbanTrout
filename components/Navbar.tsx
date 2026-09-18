@@ -15,8 +15,8 @@ const navLinks = [
 export default function Navbar() {
   const pathname = usePathname();
   const { openCart, itemCount } = useCart();
-  if (pathname.startsWith("/admin")) return null;
   const [mobileOpen, setMobileOpen] = useState(false);
+  if (pathname.startsWith("/admin")) return null;
 
   return (
     <>

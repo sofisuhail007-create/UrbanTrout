@@ -152,7 +152,7 @@ export default function CartDrawer() {
                         </span>
                       )}
                       {hasItemDiscount && (
-                        <span className="px-1.5 py-0.2 rounded text-[9px] font-bold uppercase bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                        <span className="px-1.5 py-0.5 rounded text-[9px] font-bold uppercase bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
                           Save ₹{itemSavings}
                         </span>
                       )}

@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import AddToCartButton from "@/components/AddToCartButton";
+import StoreClosedBanner from "@/components/StoreClosedBanner";
 import { supabase } from "@/lib/supabase";
+import { getBusinessHoursInfo } from "@/lib/businessHours";
 
 export const metadata: Metadata = {
   title: "Whole Fresh Rainbow Trout | Urban Trout Srinagar",
@@ -34,7 +36,12 @@ const C = {
   outlineVar: "#3d4a53",
 };
 
+export const revalidate = 30;
+
 export default async function WholeTroutPage() {
+  // ── Business Hours ──────────────────────────────────────────────────────
+  const hoursInfo = getBusinessHoursInfo();
+
   const { data } = await supabase
     .from("inventory")
     .select("*")
@@ -44,6 +51,32 @@ export default async function WholeTroutPage() {
   const price = data ? data.price_per_kg : 500;
   const minQuantity = data?.min_order_kg ? Number(data.min_order_kg) : 2;
   const originalPrice = data?.original_price_per_kg ? Number(data.original_price_per_kg) : 600;
+
+  // ── Aquarium Stock (shared pool) ────────────────────────────────────────
+  let aquariumStockKg: number | undefined;
+  try {
+    const { data: stockData } = await supabase
+      .from("aquarium_available_stock")
+      .select("total_available_kg")
+      .single();
+    if (stockData?.total_available_kg !== null && stockData?.total_available_kg !== undefined) {
+      aquariumStockKg = Number(stockData.total_available_kg);
+    }
+  } catch {
+    aquariumStockKg = undefined;
+  }
+
+  // ── Primary phone ───────────────────────────────────────────────────────
+  const { data: phoneRow } = await supabase
+    .from("app_settings")
+    .select("value")
+    .eq("key", "primary_phone")
+    .single();
+  const primaryPhone = phoneRow?.value ?? "+918491006127";
+
+  const isOutOfStock = aquariumStockKg !== undefined && aquariumStockKg <= 0;
+  const canOrder = hoursInfo.isOpen && !isOutOfStock;
+
 
   const productJsonLd = {
     "@context": "https://schema.org/",
@@ -128,6 +161,23 @@ export default async function WholeTroutPage() {
       }
     }
   };
+
+  // ── Render closed banner if outside hours ─────────────────────────────
+  if (!hoursInfo.isOpen) {
+    return (
+      <>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
+        />
+        <StoreClosedBanner
+          nextOpenISO={hoursInfo.nextOpenISO}
+          nextOpenLabel={hoursInfo.nextOpenLabel}
+          primaryPhone={primaryPhone}
+        />
+      </>
+    );
+  }
 
   return (
     <div style={{ background: C.bg, minHeight: "100vh" }}>
@@ -310,30 +360,118 @@ export default async function WholeTroutPage() {
             {/* Divider */}
             <div style={{ height: "1px", background: "rgba(61,74,83,0.4)" }} />
 
-            {/* Add to cart */}
-            <div>
-              <p
+            {/* Aquarium Stock Indicator */}
+            {aquariumStockKg !== undefined && (
+              <div
                 style={{
-                  fontFamily: '"Inter", sans-serif',
-                  fontSize: "10px",
-                  letterSpacing: "0.2em",
-                  textTransform: "uppercase",
-                  color: C.outline,
-                  marginBottom: "1rem",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  padding: "0.7rem 1.1rem",
+                  background: aquariumStockKg > 0 ? "rgba(34,197,94,0.07)" : "rgba(239,68,68,0.07)",
+                  border: `1px solid ${aquariumStockKg > 0 ? "rgba(34,197,94,0.22)" : "rgba(239,68,68,0.22)"}`,
+                  borderRadius: "10px",
                 }}
               >
-                Select Quantity (Kg)
-              </p>
-              <AddToCartButton
-                productId="whole-trout"
-                productName="Whole Rainbow Trout"
-                price={price}
-                originalPrice={originalPrice}
-                unit="Kg"
-                image="https://lh3.googleusercontent.com/aida-public/AB6AXuCfyCpJNmCwVzBHTZw6kqPtCRfTVXNYWrm9Ixqy89okmBbaSGqKYMtEAZ5Jwv4MOwZIKpC3ugBZ1ISA5EfIUrq2lWmta28vvGV-ygjESie53QYIOJoDMgX9cJJWH5V960DeAviDBjjohZeT4WWrdrHC0tY2VnrZZsvftETpZ8ocCU2eupUdyTEoqKa8lgPe2dIHnERZTds7HMPfLKCtr56KHLPC08YZCzexEINcVe6nIrChDatBpMYRAOjGBVKCP2WsVyZicAZsG-kB"
-                showDynamicPrice={true}
-                minQuantity={minQuantity}
-              />
+                <span style={{ position: "relative", display: "inline-flex", width: "8px", height: "8px", flexShrink: 0 }}>
+                  <span style={{
+                    position: "absolute", inset: 0, borderRadius: "50%",
+                    background: aquariumStockKg > 0 ? "#4ade80" : "#f87171",
+                    opacity: 0.5,
+                  }} />
+                  <span style={{
+                    position: "relative", width: "8px", height: "8px",
+                    borderRadius: "50%", background: aquariumStockKg > 0 ? "#4ade80" : "#f87171",
+                    display: "inline-flex",
+                  }} />
+                </span>
+                <div>
+                  <p style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", letterSpacing: "0.15em", textTransform: "uppercase", color: aquariumStockKg > 0 ? "#4ade80" : "#f87171", margin: "0 0 1px" }}>
+                    Aquarium Stock
+                  </p>
+                  <p style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "0.88rem", fontWeight: 700, color: C.onSurface, margin: 0 }}>
+                    {aquariumStockKg > 0 ? `~${Math.floor(aquariumStockKg)} kg available` : "Out of stock — restocking soon"}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Add to cart — or store closed / out of stock state */}
+            <div>
+              {canOrder ? (
+                <>
+                  <p
+                    style={{
+                      fontFamily: '"Inter", sans-serif',
+                      fontSize: "10px",
+                      letterSpacing: "0.2em",
+                      textTransform: "uppercase",
+                      color: C.outline,
+                      marginBottom: "1rem",
+                    }}
+                  >
+                    Select Quantity (Kg)
+                  </p>
+                  <AddToCartButton
+                    productId="whole-trout"
+                    productName="Whole Rainbow Trout"
+                    price={price}
+                    originalPrice={originalPrice}
+                    unit="Kg"
+                    image="https://lh3.googleusercontent.com/aida-public/AB6AXuCfyCpJNmCwVzBHTZw6kqPtCRfTVXNYWrm9Ixqy89okmBbaSGqKYMtEAZ5Jwv4MOwZIKpC3ugBZ1ISA5EfIUrq2lWmta28vvGV-ygjESie53QYIOJoDMgX9cJJWH5V960DeAviDBjjohZeT4WWrdrHC0tY2VnrZZsvftETpZ8ocCU2eupUdyTEoqKa8lgPe2dIHnERZTds7HMPfLKCtr56KHLPC08YZCzexEINcVe6nIrChDatBpMYRAOjGBVKCP2WsVyZicAZsG-kB"
+                    showDynamicPrice={true}
+                    minQuantity={minQuantity}
+                  />
+                </>
+              ) : !hoursInfo.isOpen ? (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "12px",
+                    padding: "1rem 1.25rem",
+                    background: "rgba(3,16,24,0.8)",
+                    border: "1px solid rgba(61,74,83,0.5)",
+                    borderRadius: "14px",
+                  }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9fadb8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                  </svg>
+                  <div>
+                    <p style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "0.9rem", fontWeight: 700, color: C.onSurface, margin: 0 }}>
+                      Store Closed
+                    </p>
+                    <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.8rem", color: C.onSurfVar, margin: 0 }}>
+                      Opens {hoursInfo.nextOpenLabel} · 7:00 AM – 10:00 PM daily
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "12px",
+                    padding: "1rem 1.25rem",
+                    background: "rgba(239,68,68,0.07)",
+                    border: "1px solid rgba(239,68,68,0.25)",
+                    borderRadius: "14px",
+                  }}
+                >
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+                  </svg>
+                  <div>
+                    <p style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "0.9rem", fontWeight: 700, color: "#f87171", margin: 0 }}>
+                      Out of Stock
+                    </p>
+                    <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.8rem", color: C.onSurfVar, margin: 0 }}>
+                      Aquarium restocking in progress. Check back soon.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Quick stats */}

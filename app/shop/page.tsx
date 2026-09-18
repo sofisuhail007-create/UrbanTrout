@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { products } from "@/lib/data";
 import ProductCard from "@/components/ProductCard";
+import StoreClosedBanner from "@/components/StoreClosedBanner";
 import { supabase } from "@/lib/supabase";
+import { getBusinessHoursInfo } from "@/lib/businessHours";
 
-// Enable ISR (Incremental Static Regeneration) - cached at Edge CDN and refreshed every 60s
-export const revalidate = 60;
+// Enable ISR (Incremental Static Regeneration) - refreshed every 60s
+// Use a short revalidation so hours change is reflected quickly
+export const revalidate = 30;
 
 const C = {
   bg: "#031018", bgLow: "#06151e", bgHigh: "#10212c", bgHighest: "#152834",
@@ -27,6 +30,10 @@ const PRODUCT_META: Record<string, { img: string; label: string; desc: string }>
 };
 
 export default async function ShopPage() {
+  // ── Business Hours Check ──────────────────────────────────────────────────
+  const hoursInfo = getBusinessHoursInfo();
+
+  // ── Fetch inventory data ──────────────────────────────────────────────────
   const { data: invData } = await supabase
     .from("inventory")
     .select("*")
@@ -37,6 +44,29 @@ export default async function ShopPage() {
     .from("app_settings")
     .select("*")
     .like("key", "product_meta_%");
+
+  // ── Fetch primary phone for WhatsApp CTA ─────────────────────────────────
+  const { data: phoneRow } = await supabase
+    .from("app_settings")
+    .select("value")
+    .eq("key", "primary_phone")
+    .single();
+  const primaryPhone = phoneRow?.value ?? "+918491006127";
+
+  // ── Fetch aquarium available stock (shared pool for both products) ────────
+  let aquariumStockKg: number | undefined;
+  try {
+    const { data: stockData } = await supabase
+      .from("aquarium_available_stock")
+      .select("total_available_kg")
+      .single();
+    if (stockData && stockData.total_available_kg !== null) {
+      aquariumStockKg = Number(stockData.total_available_kg);
+    }
+  } catch {
+    // View not yet created — gracefully degrade (no stock badge shown)
+    aquariumStockKg = undefined;
+  }
 
   const metaMap: Record<string, any> = {};
   (metaRows || []).forEach((r) => {
@@ -84,9 +114,27 @@ export default async function ShopPage() {
               hardcoded?.img ||
               "/images/gutted_trout_premium.png",
             minQuantity,
+            // Both products share the same aquarium pool
+            stockKg: aquariumStockKg,
+            isOpen: hoursInfo.isOpen,
           };
         })
-      : products;
+      : products.map((p) => ({
+          ...p,
+          stockKg: aquariumStockKg,
+          isOpen: hoursInfo.isOpen,
+        }));
+
+  // ── If store is closed, render the closed banner ──────────────────────────
+  if (!hoursInfo.isOpen) {
+    return (
+      <StoreClosedBanner
+        nextOpenISO={hoursInfo.nextOpenISO}
+        nextOpenLabel={hoursInfo.nextOpenLabel}
+        primaryPhone={primaryPhone}
+      />
+    );
+  }
 
   return (
     <div style={{ background: C.bg, minHeight: "100vh" }}>
@@ -102,9 +150,62 @@ export default async function ShopPage() {
               The Purest <span style={{ background: "linear-gradient(135deg, #72ddfd, #c4ebff)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Rainbow Trout</span> Available.
             </h1>
           </div>
-          <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfVar, maxWidth: "380px", lineHeight: 1.75, fontSize: "1rem", margin: 0 }}>
-            Sustainably farmed in the icy currents of the Himalayas. Delivered within 2 hours of harvest.
-          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: "1rem", alignItems: "flex-end" }}>
+            <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfVar, maxWidth: "380px", lineHeight: 1.75, fontSize: "1rem", margin: 0 }}>
+              Sustainably farmed in the icy currents of the Himalayas. Delivered within 2 hours of harvest.
+            </p>
+            {/* Live stock indicator */}
+            {aquariumStockKg !== undefined && (
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "10px",
+                padding: "0.6rem 1.25rem",
+                background: aquariumStockKg > 0 ? "rgba(34,197,94,0.08)" : "rgba(239,68,68,0.08)",
+                border: `1px solid ${aquariumStockKg > 0 ? "rgba(34,197,94,0.25)" : "rgba(239,68,68,0.25)"}`,
+                borderRadius: "100px",
+                flexShrink: 0,
+              }}>
+                <span style={{ position: "relative", display: "inline-flex", width: "8px", height: "8px" }}>
+                  <span style={{
+                    position: "absolute", inset: 0, borderRadius: "50%",
+                    background: aquariumStockKg > 0 ? "#4ade80" : "#f87171",
+                    opacity: 0.5, animation: "ping 1.5s cubic-bezier(0,0,0.2,1) infinite",
+                  }} />
+                  <span style={{
+                    position: "relative", display: "inline-flex", width: "8px", height: "8px",
+                    borderRadius: "50%", background: aquariumStockKg > 0 ? "#4ade80" : "#f87171",
+                  }} />
+                </span>
+                <span style={{
+                  fontFamily: '"Inter", sans-serif', fontSize: "11px", fontWeight: 600,
+                  letterSpacing: "0.08em",
+                  color: aquariumStockKg > 0 ? "#4ade80" : "#f87171",
+                }}>
+                  {aquariumStockKg > 0
+                    ? `${Math.floor(aquariumStockKg)} kg available from aquarium today`
+                    : "Aquarium stock depleted — restocking soon"}
+                </span>
+              </div>
+            )}
+            {/* Business hours indicator */}
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "8px",
+              padding: "0.5rem 1rem",
+              background: "rgba(114,221,253,0.06)",
+              border: "1px solid rgba(114,221,253,0.15)",
+              borderRadius: "100px",
+            }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#72ddfd" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+              </svg>
+              <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "10px", fontWeight: 600, letterSpacing: "0.1em", color: C.primary }}>
+                Open · 7:00 AM – 10:00 PM
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Products Grid */}
@@ -143,7 +244,7 @@ export default async function ShopPage() {
             <div style={{ width: "44px", height: "44px", borderRadius: "12px", background: "rgba(114,221,253,0.1)", border: "1px solid rgba(114,221,253,0.2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
               <svg className="w-5 h-5 text-[#72ddfd]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                 <rect x="1" y="3" width="15" height="13" rx="2" />
-                <polygon points="16 8 20 8 23 11 23 16 16 16 8" />
+                <polygon points="16 8 20 8 23 11 23 16 16 16 16 8" />
                 <circle cx="5.5" cy="18.5" r="2.5" />
                 <circle cx="18.5" cy="18.5" r="2.5" />
               </svg>
@@ -153,6 +254,13 @@ export default async function ShopPage() {
           </div>
         </div>
       </section>
+
+      {/* Ping animation */}
+      <style>{`
+        @keyframes ping {
+          75%, 100% { transform: scale(2); opacity: 0; }
+        }
+      `}</style>
     </div>
   );
 }

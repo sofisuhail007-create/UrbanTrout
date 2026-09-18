@@ -11,6 +11,10 @@ export type Product = {
   // Fields used by dynamically added products from DB
   image_url?: string;
   description?: string;
+  /** Total aquarium biomass available (shared pool for all products) */
+  stockKg?: number;
+  /** Whether the shop is currently within operating hours (7 AM–10 PM IST) */
+  isOpen?: boolean;
 };
 
 export const products: Product[] = [

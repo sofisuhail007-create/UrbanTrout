@@ -138,7 +138,7 @@ async function reverseGeocodeCoords(lat: number, lng: number): Promise<{ localit
 function validateName(v: string) {
   if (!v.trim()) return "Full name is required.";
   if (v.trim().length < 2) return "Please enter at least 2 characters.";
-  if (!/^[a-zA-Z\u0600-\u06FF\s'.'-]+$/.test(v.trim())) return "Name should only contain letters.";
+  if (!/^[a-zA-Z\u0600-\u06FF\s'.\-]+$/.test(v.trim())) return "Name should only contain letters.";
   return "";
 }
 
