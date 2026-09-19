@@ -19,7 +19,7 @@ export const viewport: Viewport = {
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
   variable: "--font-space-grotesk",
-  display: "swap",
+  display: "optional",
   fallback: ["system-ui", "-apple-system", "sans-serif"],
   adjustFontFallback: true,
 });
@@ -27,7 +27,7 @@ const spaceGrotesk = Space_Grotesk({
 const manrope = Manrope({
   subsets: ["latin"],
   variable: "--font-manrope",
-  display: "swap",
+  display: "optional",
   fallback: ["system-ui", "-apple-system", "sans-serif"],
   adjustFontFallback: true,
 });
@@ -35,7 +35,7 @@ const manrope = Manrope({
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
-  display: "swap",
+  display: "optional",
   fallback: ["system-ui", "-apple-system", "sans-serif"],
   adjustFontFallback: true,
 });

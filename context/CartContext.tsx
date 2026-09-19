@@ -51,6 +51,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
         console.error("Failed to load cart", e);
       }
 
+      // If cart is empty on initial visit, avoid blocking initial load with network calls
+      if (loadedItems.length === 0) {
+        setItems([]);
+        setIsInitialized(true);
+        return;
+      }
+
       // Fetch live inventory and live aquarium stock
       let invList: any[] = [];
       let liveStockVal: number | null = null;
