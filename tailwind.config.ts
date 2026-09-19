@@ -85,9 +85,9 @@ const config: Config = {
         full: "0.75rem",
       },
       fontFamily: {
-        headline: ["Space Grotesk", "sans-serif"],
-        body: ["Manrope", "sans-serif"],
-        label: ["Inter", "sans-serif"],
+        headline: ["var(--font-space-grotesk)", "Space Grotesk", "sans-serif"],
+        body: ["var(--font-manrope)", "Manrope", "sans-serif"],
+        label: ["var(--font-inter)", "Inter", "sans-serif"],
       },
       animation: {
         "spin-slow": "spin 10s linear infinite",

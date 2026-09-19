@@ -62,9 +62,9 @@
   --color-on-error-container:     #ffa8a3;
 
   /* Typography */
-  --font-headline: "Space Grotesk", sans-serif;
-  --font-body:     "Manrope", sans-serif;
-  --font-label:    "Inter", sans-serif;
+  --font-headline: var(--font-space-grotesk), "Space Grotesk", sans-serif;
+  --font-body:     var(--font-manrope), "Manrope", sans-serif;
+  --font-label:    var(--font-inter), "Inter", sans-serif;
 
   /* Border Radius */
   --radius:    0.25rem;

@@ -89,9 +89,9 @@ export default function NotFound() {
           href="/"
           className="group relative inline-flex items-center gap-3 px-8 py-4 bg-primary-container text-on-primary-container rounded-xl font-headline font-bold tracking-widest uppercase transition-all duration-300 hover:brightness-110 hover:shadow-[0_0_30px_rgba(114,221,253,0.4)] hover:-translate-y-1"
         >
-          <span className="material-symbols-outlined transform group-hover:-translate-x-1 transition-transform">
-            arrow_back
-          </span>
+          <svg className="w-5 h-5 transform group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
           Swim Upstream
         </Link>
       </div>

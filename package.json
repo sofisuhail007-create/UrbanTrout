@@ -33,6 +33,7 @@
     "typescript": "^5"
   },
   "browserslist": [
+    "defaults and fully supports es6-module",
     "last 2 Chrome versions",
     "last 2 Edge versions",
     "last 2 Firefox versions",
