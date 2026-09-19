@@ -169,6 +169,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`dark ${spaceGrotesk.variable} ${manrope.variable} ${inter.variable}`}>
       <head>
+        <link
+          rel="preload"
+          href="/images/hero-trout-bg.webp"
+          as="image"
+          type="image/webp"
+          fetchPriority="high"
+        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

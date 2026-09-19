@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import dynamic from "next/dynamic";
+import { useCart } from "@/context/CartContext";
 
 const CartDrawer = dynamic(() => import("@/components/CartDrawer"), { ssr: false });
 const WhatsAppButton = dynamic(() => import("@/components/WhatsAppButton"), { ssr: false });
@@ -9,6 +10,7 @@ const LiveChatWidget = dynamic(() => import("@/components/LiveChatWidget"), { ss
 const InstallPwaPrompt = dynamic(() => import("@/components/InstallPwaPrompt"), { ssr: false });
 
 export default function ClientWidgets() {
+  const { isOpen } = useCart();
   const [loadDeferred, setLoadDeferred] = useState(false);
 
   useEffect(() => {
@@ -28,10 +30,10 @@ export default function ClientWidgets() {
 
   return (
     <>
-      <CartDrawer />
-      <WhatsAppButton />
+      {isOpen && <CartDrawer />}
       {loadDeferred && (
         <>
+          <WhatsAppButton />
           <LiveChatWidget />
           <InstallPwaPrompt />
         </>

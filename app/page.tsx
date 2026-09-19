@@ -104,12 +104,12 @@ export default async function HomePage() {
         {/* Background image */}
         <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none" aria-hidden="true">
           <Image
-            src="/images/hero-trout-bg.jpg"
+            src="/images/hero-trout-bg.webp"
             alt="Fresh Rainbow Trout in Srinagar Kashmir"
             fill
             priority
             fetchPriority="high"
-            quality={75}
+            unoptimized
             sizes="100vw"
             className="animate-hero-drift object-cover"
             style={{ filter: "brightness(0.35) saturate(0.8)" }}
@@ -199,9 +199,10 @@ export default async function HomePage() {
               style={{ background: C.bgLow, border: "1px solid rgba(255,255,255,0.06)" }}
             >
               <Image
-                src="/images/borewell-farm-bg.jpg"
+                src="/images/borewell-farm-bg.webp"
                 alt="Clean borewell water trout farm Srinagar"
                 fill
+                unoptimized
                 sizes="(max-width: 768px) 100vw, 1200px"
                 className="object-cover opacity-20 group-hover:scale-105 transition-transform duration-700 pointer-events-none"
               />
