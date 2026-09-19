@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Space_Grotesk, Manrope, Inter } from "next/font/google";
+import { Space_Grotesk, Manrope } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -27,14 +27,6 @@ const spaceGrotesk = Space_Grotesk({
 const manrope = Manrope({
   subsets: ["latin"],
   variable: "--font-manrope",
-  display: "optional",
-  fallback: ["system-ui", "-apple-system", "sans-serif"],
-  adjustFontFallback: true,
-});
-
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
   display: "optional",
   fallback: ["system-ui", "-apple-system", "sans-serif"],
   adjustFontFallback: true,
@@ -167,7 +159,7 @@ const jsonLd = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`dark ${spaceGrotesk.variable} ${manrope.variable} ${inter.variable}`}>
+    <html lang="en" className={`dark ${spaceGrotesk.variable} ${manrope.variable}`}>
       <head>
         <link
           rel="preload"

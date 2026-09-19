@@ -30,6 +30,7 @@ export default function Footer() {
               alt="Urban Trout"
               width={160}
               height={40}
+              unoptimized
               className="h-9 md:h-10 w-auto object-contain"
             />
           </div>
@@ -291,7 +292,7 @@ export default function Footer() {
             <span>Handcrafted with</span>
             <span
               className="animate-heartbeat inline-flex items-center justify-center text-rose-500"
-              title="love"
+              role="img"
               aria-label="love"
             >
               <svg className="w-3.5 h-3.5 stroke-rose-500 fill-none stroke-[2]" viewBox="0 0 24 24">

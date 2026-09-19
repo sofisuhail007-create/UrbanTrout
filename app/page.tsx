@@ -139,9 +139,9 @@ export default async function HomePage() {
           <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "11px", letterSpacing: "0.25em", textTransform: "uppercase", color: C.primary, display: "block", marginBottom: "1rem" }}>
             Fresh Farm Catch • Srinagar, Kashmir
           </span>
-          <h1 className="font-headline" style={{ fontFamily: 'var(--font-space-grotesk), "Space Grotesk", sans-serif', fontSize: "clamp(3.25rem, 9vw, 6.5rem)", fontWeight: 800, letterSpacing: "-0.04em", lineHeight: 0.9, color: "#dfedf9", marginBottom: "1.75rem" }}>
+          <h1 className="font-headline" style={{ fontFamily: 'var(--font-space-grotesk), "Space Grotesk", sans-serif', fontSize: "clamp(3.25rem, 9vw, 6.5rem)", fontWeight: 800, letterSpacing: "-0.04em", lineHeight: 0.9, color: "#dfedf9", marginBottom: "1.75rem", textRendering: "optimizeSpeed" }}>
             Fresh. Local.<br />
-            <span style={{ color: "#72ddfd", textShadow: "0 0 40px rgba(114,221,253,0.5), 0 0 80px rgba(114,221,253,0.2)" }}>
+            <span style={{ color: "#72ddfd", textShadow: "0 0 30px rgba(114,221,253,0.45)" }}>
               Rainbow Trout.
             </span>
           </h1>
