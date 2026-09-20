@@ -1,9 +1,10 @@
 -- ====================================================================
--- URBAN TROUT - COMPREHENSIVE PRODUCTION SECURITY HARDENING (RLS)
--- Run this entire script in Supabase Dashboard -> SQL Editor
+-- URBAN TROUT - ZERO-ERROR PRODUCTION SECURITY HARDENING (RLS)
+-- Dynamically checks table existence so it never fails on missing tables.
+-- Run this entire script in Supabase Dashboard -> SQL Editor.
 -- ====================================================================
 
--- STEP 1: CREATE THE ADMIN VERIFICATION FUNCTION FIRST
+-- ── STEP 1: CREATE THE ADMIN VERIFICATION FUNCTION ──────────────────
 CREATE OR REPLACE FUNCTION public.is_admin_user()
 RETURNS boolean
 LANGUAGE plpgsql
@@ -14,7 +15,7 @@ AS $$
 DECLARE
   user_email text;
 BEGIN
-  -- 1. Always allow server-side service role operations (Next.js backend API)
+  -- 1. Always allow server-side service role operations (Next.js backend APIs)
   IF auth.role() = 'service_role' THEN
     RETURN true;
   END IF;
@@ -52,211 +53,123 @@ BEGIN
 END;
 $$;
 
--- STEP 2: ENABLE ROW LEVEL SECURITY (RLS) ON ALL TABLES
-ALTER TABLE IF EXISTS public.orders ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.customers ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.invoices ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.customer_balances ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.inventory ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.leads ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.app_settings ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.water_parameters ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.feed_log ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.tank_stocking ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.energy_log ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.vending_sales_entries ENABLE ROW LEVEL SECURITY;
+-- ── STEP 2: DYNAMICALLY APPLY RLS ONLY TO EXISTING TABLES ───────────
+DO $$
+DECLARE
+  tbl text;
+BEGIN
+  -- 1. ORDERS (CRITICAL PRIVACY: No Public Read)
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'orders') THEN
+    ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "Public access for orders" ON public.orders;
+    DROP POLICY IF EXISTS "Allow select orders" ON public.orders;
+    DROP POLICY IF EXISTS "Allow insert orders" ON public.orders;
+    DROP POLICY IF EXISTS "Allow update orders" ON public.orders;
+    DROP POLICY IF EXISTS "Allow delete orders" ON public.orders;
+    DROP POLICY IF EXISTS "Admins and service_role can select orders" ON public.orders;
+    DROP POLICY IF EXISTS "Admins and service_role can insert orders" ON public.orders;
+    DROP POLICY IF EXISTS "Admins and service_role can update orders" ON public.orders;
+    DROP POLICY IF EXISTS "Admins and service_role can delete orders" ON public.orders;
 
--- STEP 3: DROP ALL OLD PERMISSIVE POLICIES
-DROP POLICY IF EXISTS "Public access for orders" ON public.orders;
-DROP POLICY IF EXISTS "Allow select orders" ON public.orders;
-DROP POLICY IF EXISTS "Allow insert orders" ON public.orders;
-DROP POLICY IF EXISTS "Allow update orders" ON public.orders;
-DROP POLICY IF EXISTS "Allow delete orders" ON public.orders;
-DROP POLICY IF EXISTS "Admins and service_role can select orders" ON public.orders;
-DROP POLICY IF EXISTS "Admins and service_role can insert orders" ON public.orders;
-DROP POLICY IF EXISTS "Admins and service_role can update orders" ON public.orders;
-DROP POLICY IF EXISTS "Admins and service_role can delete orders" ON public.orders;
+    CREATE POLICY "Admins and service_role can select orders" ON public.orders FOR SELECT USING (public.is_admin_user());
+    CREATE POLICY "Admins and service_role can insert orders" ON public.orders FOR INSERT WITH CHECK (public.is_admin_user());
+    CREATE POLICY "Admins and service_role can update orders" ON public.orders FOR UPDATE USING (public.is_admin_user()) WITH CHECK (public.is_admin_user());
+    CREATE POLICY "Admins and service_role can delete orders" ON public.orders FOR DELETE USING (public.is_admin_user());
+  END IF;
 
-DROP POLICY IF EXISTS "Public access for customers" ON public.customers;
-DROP POLICY IF EXISTS "Allow select customers" ON public.customers;
-DROP POLICY IF EXISTS "Allow insert customers" ON public.customers;
-DROP POLICY IF EXISTS "Allow update customers" ON public.customers;
-DROP POLICY IF EXISTS "Allow delete customers" ON public.customers;
-DROP POLICY IF EXISTS "Admins and service_role can select customers" ON public.customers;
-DROP POLICY IF EXISTS "Admins and service_role can insert customers" ON public.customers;
-DROP POLICY IF EXISTS "Admins and service_role can update customers" ON public.customers;
-DROP POLICY IF EXISTS "Admins and service_role can delete customers" ON public.customers;
+  -- 2. CUSTOMERS (CRITICAL PRIVACY: No Public Read)
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'customers') THEN
+    ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "Public access for customers" ON public.customers;
+    DROP POLICY IF EXISTS "Allow select customers" ON public.customers;
+    DROP POLICY IF EXISTS "Allow insert customers" ON public.customers;
+    DROP POLICY IF EXISTS "Allow update customers" ON public.customers;
+    DROP POLICY IF EXISTS "Allow delete customers" ON public.customers;
+    DROP POLICY IF EXISTS "Admins and service_role can select customers" ON public.customers;
+    DROP POLICY IF EXISTS "Admins and service_role can insert customers" ON public.customers;
+    DROP POLICY IF EXISTS "Admins and service_role can update customers" ON public.customers;
+    DROP POLICY IF EXISTS "Admins and service_role can delete customers" ON public.customers;
 
-DROP POLICY IF EXISTS "Allow select inventory" ON public.inventory;
-DROP POLICY IF EXISTS "Allow insert inventory" ON public.inventory;
-DROP POLICY IF EXISTS "Allow update inventory" ON public.inventory;
-DROP POLICY IF EXISTS "Allow delete inventory" ON public.inventory;
-DROP POLICY IF EXISTS "Public read inventory" ON public.inventory;
-DROP POLICY IF EXISTS "Admins and service_role can insert inventory" ON public.inventory;
-DROP POLICY IF EXISTS "Admins and service_role can update inventory" ON public.inventory;
-DROP POLICY IF EXISTS "Admins and service_role can delete inventory" ON public.inventory;
+    CREATE POLICY "Admins and service_role can select customers" ON public.customers FOR SELECT USING (public.is_admin_user());
+    CREATE POLICY "Admins and service_role can insert customers" ON public.customers FOR INSERT WITH CHECK (public.is_admin_user());
+    CREATE POLICY "Admins and service_role can update customers" ON public.customers FOR UPDATE USING (public.is_admin_user()) WITH CHECK (public.is_admin_user());
+    CREATE POLICY "Admins and service_role can delete customers" ON public.customers FOR DELETE USING (public.is_admin_user());
+  END IF;
 
-DROP POLICY IF EXISTS "Allow select leads" ON public.leads;
-DROP POLICY IF EXISTS "Allow insert leads" ON public.leads;
-DROP POLICY IF EXISTS "Allow update leads" ON public.leads;
-DROP POLICY IF EXISTS "Allow delete leads" ON public.leads;
-DROP POLICY IF EXISTS "Public insert leads" ON public.leads;
-DROP POLICY IF EXISTS "Admins and service_role can select leads" ON public.leads;
-DROP POLICY IF EXISTS "Admins and service_role can update leads" ON public.leads;
-DROP POLICY IF EXISTS "Admins and service_role can delete leads" ON public.leads;
+  -- 3. INVENTORY (Public Read, Admin-Only Write)
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'inventory') THEN
+    ALTER TABLE public.inventory ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "Allow select inventory" ON public.inventory;
+    DROP POLICY IF EXISTS "Allow insert inventory" ON public.inventory;
+    DROP POLICY IF EXISTS "Allow update inventory" ON public.inventory;
+    DROP POLICY IF EXISTS "Allow delete inventory" ON public.inventory;
+    DROP POLICY IF EXISTS "Public read inventory" ON public.inventory;
+    DROP POLICY IF EXISTS "Admins and service_role can insert inventory" ON public.inventory;
+    DROP POLICY IF EXISTS "Admins and service_role can update inventory" ON public.inventory;
+    DROP POLICY IF EXISTS "Admins and service_role can delete inventory" ON public.inventory;
 
-DROP POLICY IF EXISTS "Allow select app_settings" ON public.app_settings;
-DROP POLICY IF EXISTS "Allow insert app_settings" ON public.app_settings;
-DROP POLICY IF EXISTS "Allow update app_settings" ON public.app_settings;
-DROP POLICY IF EXISTS "Public read app_settings" ON public.app_settings;
-DROP POLICY IF EXISTS "Admins and service_role can manage app_settings" ON public.app_settings;
+    CREATE POLICY "Public read inventory" ON public.inventory FOR SELECT USING (true);
+    CREATE POLICY "Admins and service_role can insert inventory" ON public.inventory FOR INSERT WITH CHECK (public.is_admin_user());
+    CREATE POLICY "Admins and service_role can update inventory" ON public.inventory FOR UPDATE USING (public.is_admin_user()) WITH CHECK (public.is_admin_user());
+    CREATE POLICY "Admins and service_role can delete inventory" ON public.inventory FOR DELETE USING (public.is_admin_user());
+  END IF;
 
-DROP POLICY IF EXISTS "Admins and service_role can manage invoices" ON public.invoices;
-DROP POLICY IF EXISTS "Admins and service_role can manage customer_balances" ON public.customer_balances;
+  -- 4. LEADS (Public Insert via Checkout, Admin-Only Read/Modify)
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'leads') THEN
+    ALTER TABLE public.leads ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "Allow select leads" ON public.leads;
+    DROP POLICY IF EXISTS "Allow insert leads" ON public.leads;
+    DROP POLICY IF EXISTS "Allow update leads" ON public.leads;
+    DROP POLICY IF EXISTS "Allow delete leads" ON public.leads;
+    DROP POLICY IF EXISTS "Public insert leads" ON public.leads;
+    DROP POLICY IF EXISTS "Admins and service_role can select leads" ON public.leads;
+    DROP POLICY IF EXISTS "Admins and service_role can update leads" ON public.leads;
+    DROP POLICY IF EXISTS "Admins and service_role can delete leads" ON public.leads;
 
-DROP POLICY IF EXISTS "Allow select water_parameters" ON public.water_parameters;
-DROP POLICY IF EXISTS "Allow insert water_parameters" ON public.water_parameters;
-DROP POLICY IF EXISTS "Allow update water_parameters" ON public.water_parameters;
-DROP POLICY IF EXISTS "Allow delete water_parameters" ON public.water_parameters;
-DROP POLICY IF EXISTS "Admins manage water_parameters" ON public.water_parameters;
+    CREATE POLICY "Public insert leads" ON public.leads FOR INSERT WITH CHECK (true);
+    CREATE POLICY "Admins and service_role can select leads" ON public.leads FOR SELECT USING (public.is_admin_user());
+    CREATE POLICY "Admins and service_role can update leads" ON public.leads FOR UPDATE USING (public.is_admin_user()) WITH CHECK (public.is_admin_user());
+    CREATE POLICY "Admins and service_role can delete leads" ON public.leads FOR DELETE USING (public.is_admin_user());
+  END IF;
 
-DROP POLICY IF EXISTS "Allow select feed_log" ON public.feed_log;
-DROP POLICY IF EXISTS "Allow insert feed_log" ON public.feed_log;
-DROP POLICY IF EXISTS "Allow update feed_log" ON public.feed_log;
-DROP POLICY IF EXISTS "Allow delete feed_log" ON public.feed_log;
-DROP POLICY IF EXISTS "Admins manage feed_log" ON public.feed_log;
+  -- 5. APP SETTINGS (Public Read, Admin-Only Write)
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'app_settings') THEN
+    ALTER TABLE public.app_settings ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "Allow select app_settings" ON public.app_settings;
+    DROP POLICY IF EXISTS "Allow insert app_settings" ON public.app_settings;
+    DROP POLICY IF EXISTS "Allow update app_settings" ON public.app_settings;
+    DROP POLICY IF EXISTS "Public read app_settings" ON public.app_settings;
+    DROP POLICY IF EXISTS "Admins and service_role can manage app_settings" ON public.app_settings;
 
-DROP POLICY IF EXISTS "Allow select tank_stocking" ON public.tank_stocking;
-DROP POLICY IF EXISTS "Allow insert tank_stocking" ON public.tank_stocking;
-DROP POLICY IF EXISTS "Allow update tank_stocking" ON public.tank_stocking;
-DROP POLICY IF EXISTS "Allow delete tank_stocking" ON public.tank_stocking;
-DROP POLICY IF EXISTS "Admins manage tank_stocking" ON public.tank_stocking;
+    CREATE POLICY "Public read app_settings" ON public.app_settings FOR SELECT USING (true);
+    CREATE POLICY "Admins and service_role can manage app_settings" ON public.app_settings FOR ALL USING (public.is_admin_user()) WITH CHECK (public.is_admin_user());
+  END IF;
 
-DROP POLICY IF EXISTS "Allow select energy_log" ON public.energy_log;
-DROP POLICY IF EXISTS "Allow insert energy_log" ON public.energy_log;
-DROP POLICY IF EXISTS "Allow update energy_log" ON public.energy_log;
-DROP POLICY IF EXISTS "Allow delete energy_log" ON public.energy_log;
-DROP POLICY IF EXISTS "Admins manage energy_log" ON public.energy_log;
+  -- 6. INVOICES
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'invoices') THEN
+    ALTER TABLE public.invoices ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "Admins and service_role can manage invoices" ON public.invoices;
+    CREATE POLICY "Admins and service_role can manage invoices" ON public.invoices FOR ALL USING (public.is_admin_user()) WITH CHECK (public.is_admin_user());
+  END IF;
 
-DROP POLICY IF EXISTS "Admins manage vending_sales_entries" ON public.vending_sales_entries;
+  -- 7. CUSTOMER BALANCES
+  IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'customer_balances') THEN
+    ALTER TABLE public.customer_balances ENABLE ROW LEVEL SECURITY;
+    DROP POLICY IF EXISTS "Admins and service_role can manage customer_balances" ON public.customer_balances;
+    CREATE POLICY "Admins and service_role can manage customer_balances" ON public.customer_balances FOR ALL USING (public.is_admin_user()) WITH CHECK (public.is_admin_user());
+  END IF;
 
--- STEP 4: APPLY SECURE PRODUCTION POLICIES
-
--- ── ORDERS (Zero Public Read/Write) ──────────────────────────────
-CREATE POLICY "Admins and service_role can select orders"
-  ON public.orders FOR SELECT
-  USING (public.is_admin_user());
-
-CREATE POLICY "Admins and service_role can insert orders"
-  ON public.orders FOR INSERT
-  WITH CHECK (public.is_admin_user());
-
-CREATE POLICY "Admins and service_role can update orders"
-  ON public.orders FOR UPDATE
-  USING (public.is_admin_user())
-  WITH CHECK (public.is_admin_user());
-
-CREATE POLICY "Admins and service_role can delete orders"
-  ON public.orders FOR DELETE
-  USING (public.is_admin_user());
-
--- ── CUSTOMERS (Zero Public Read/Write) ───────────────────────────
-CREATE POLICY "Admins and service_role can select customers"
-  ON public.customers FOR SELECT
-  USING (public.is_admin_user());
-
-CREATE POLICY "Admins and service_role can insert customers"
-  ON public.customers FOR INSERT
-  WITH CHECK (public.is_admin_user());
-
-CREATE POLICY "Admins and service_role can update customers"
-  ON public.customers FOR UPDATE
-  USING (public.is_admin_user())
-  WITH CHECK (public.is_admin_user());
-
-CREATE POLICY "Admins and service_role can delete customers"
-  ON public.customers FOR DELETE
-  USING (public.is_admin_user());
-
--- ── INVOICES & BALANCES ──────────────────────────────────────────
-CREATE POLICY "Admins and service_role can manage invoices"
-  ON public.invoices FOR ALL
-  USING (public.is_admin_user())
-  WITH CHECK (public.is_admin_user());
-
-CREATE POLICY "Admins and service_role can manage customer_balances"
-  ON public.customer_balances FOR ALL
-  USING (public.is_admin_user())
-  WITH CHECK (public.is_admin_user());
-
--- ── INVENTORY (Public Read, Admin-only Write) ─────────────────────
-CREATE POLICY "Public read inventory"
-  ON public.inventory FOR SELECT
-  USING (true);
-
-CREATE POLICY "Admins and service_role can insert inventory"
-  ON public.inventory FOR INSERT
-  WITH CHECK (public.is_admin_user());
-
-CREATE POLICY "Admins and service_role can update inventory"
-  ON public.inventory FOR UPDATE
-  USING (public.is_admin_user())
-  WITH CHECK (public.is_admin_user());
-
-CREATE POLICY "Admins and service_role can delete inventory"
-  ON public.inventory FOR DELETE
-  USING (public.is_admin_user());
-
--- ── LEADS ────────────────────────────────────────────────────────
-CREATE POLICY "Public insert leads"
-  ON public.leads FOR INSERT
-  WITH CHECK (true);
-
-CREATE POLICY "Admins and service_role can select leads"
-  ON public.leads FOR SELECT
-  USING (public.is_admin_user());
-
-CREATE POLICY "Admins and service_role can update leads"
-  ON public.leads FOR UPDATE
-  USING (public.is_admin_user())
-  WITH CHECK (public.is_admin_user());
-
-CREATE POLICY "Admins and service_role can delete leads"
-  ON public.leads FOR DELETE
-  USING (public.is_admin_user());
-
--- ── APP SETTINGS (Public Read, Admin-only Write) ─────────────────
-CREATE POLICY "Public read app_settings"
-  ON public.app_settings FOR SELECT
-  USING (true);
-
-CREATE POLICY "Admins and service_role can manage app_settings"
-  ON public.app_settings FOR ALL
-  USING (public.is_admin_user())
-  WITH CHECK (public.is_admin_user());
-
--- ── FARM METRICS (Internal Only) ─────────────────────────────────
-CREATE POLICY "Admins manage water_parameters"
-  ON public.water_parameters FOR ALL
-  USING (public.is_admin_user())
-  WITH CHECK (public.is_admin_user());
-
-CREATE POLICY "Admins manage feed_log"
-  ON public.feed_log FOR ALL
-  USING (public.is_admin_user())
-  WITH CHECK (public.is_admin_user());
-
-CREATE POLICY "Admins manage tank_stocking"
-  ON public.tank_stocking FOR ALL
-  USING (public.is_admin_user())
-  WITH CHECK (public.is_admin_user());
-
-CREATE POLICY "Admins manage energy_log"
-  ON public.energy_log FOR ALL
-  USING (public.is_admin_user())
-  WITH CHECK (public.is_admin_user());
-
-CREATE POLICY "Admins manage vending_sales_entries"
-  ON public.vending_sales_entries FOR ALL
-  USING (public.is_admin_user())
-  WITH CHECK (public.is_admin_user());
+  -- 8. FARM & OPTIONAL TABLES (water_parameters, feed_log, tank_stocking, energy_log, vending_sales_entries)
+  FOREACH tbl IN ARRAY ARRAY['water_parameters', 'feed_log', 'tank_stocking', 'energy_log', 'vending_sales_entries'] LOOP
+    IF EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = tbl) THEN
+      EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', tbl);
+      EXECUTE format('DROP POLICY IF EXISTS "Public access for %s" ON public.%I', tbl, tbl);
+      EXECUTE format('DROP POLICY IF EXISTS "Allow select %s" ON public.%I', tbl, tbl);
+      EXECUTE format('DROP POLICY IF EXISTS "Allow insert %s" ON public.%I', tbl, tbl);
+      EXECUTE format('DROP POLICY IF EXISTS "Allow update %s" ON public.%I', tbl, tbl);
+      EXECUTE format('DROP POLICY IF EXISTS "Allow delete %s" ON public.%I', tbl, tbl);
+      EXECUTE format('DROP POLICY IF EXISTS "Admins manage %s" ON public.%I', tbl, tbl);
+      EXECUTE format('CREATE POLICY "Admins manage %s" ON public.%I FOR ALL USING (public.is_admin_user()) WITH CHECK (public.is_admin_user())', tbl, tbl);
+    END IF;
+  END LOOP;
+END $$;
