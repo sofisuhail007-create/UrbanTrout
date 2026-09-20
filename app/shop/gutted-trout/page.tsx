@@ -80,7 +80,7 @@ export default async function GuttedTroutPage() {
     .single();
   const primaryPhone = phoneRow?.value ?? "+918491006127";
 
-  const isOutOfStock = aquariumStockKg !== undefined && aquariumStockKg <= 0;
+  const isOutOfStock = aquariumStockKg !== undefined && (aquariumStockKg <= 0 || aquariumStockKg < minQuantity);
   const canOrder = effectiveHoursInfo.isOpen && !isOutOfStock;
 
 
@@ -435,10 +435,10 @@ export default async function GuttedTroutPage() {
                   </svg>
                   <div>
                     <p style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "0.9rem", fontWeight: 700, color: "#f87171", margin: 0 }}>
-                      Out of Stock
+                      Out of Stock for Today
                     </p>
                     <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.8rem", color: C.onSurfVar, margin: 0 }}>
-                      Aquarium restocking in progress. Check back soon.
+                      All available live aquarium stock has been sold out for today. Fresh harvest opens again tomorrow at 7:00 AM!
                     </p>
                   </div>
                 </div>

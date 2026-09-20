@@ -55,9 +55,29 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Valid customer phone number is required." }, { status: 400 });
     }
 
+    // 2a. Live Aquarium Stock Verification: Urban Trout sells solely out of live aquarium biomass
+    const { getLiveAquariumStock } = await import("@/lib/aquariumStock");
+    const liveStock = await getLiveAquariumStock(supabase);
+
+    const totalRequestedKg = Array.isArray(items) && items.length > 0
+      ? items.reduce((sum: number, it: any) => sum + (Number(it.quantity) || 0), 0)
+      : 0;
+
+    if (liveStock.remainingKg <= 0 || (totalRequestedKg > 0 && liveStock.remainingKg < totalRequestedKg)) {
+      const remainingDisplay = liveStock.remainingKg > 0 ? `${liveStock.remainingKg.toFixed(1)} kg available` : "All sold out";
+      return NextResponse.json(
+        {
+          error: `Sorry, we are out of stock for today! All available live aquarium trout has been sold out (${remainingDisplay}, but ${totalRequestedKg.toFixed(1)} kg requested). Fresh harvest resumes tomorrow at 7:00 AM.`,
+          outOfStock: true,
+          remainingKg: liveStock.remainingKg,
+        },
+        { status: 400 }
+      );
+    }
+
     let finalAmountPaise: number;
 
-    // 2. Server-Side Price Verification: If items array is provided, recalculate against database
+    // 2b. Server-Side Price Verification: If items array is provided, recalculate against database
     if (Array.isArray(items) && items.length > 0) {
       // Fetch current product prices from database
       const { data: invData } = await supabase

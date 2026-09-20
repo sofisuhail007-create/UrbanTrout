@@ -112,6 +112,26 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // 6b. Automatically log confirmed order to Vending Sales Log & deduct Live Aquarium Stock
+    try {
+      const { logOrderToVendingSales } = await import("@/lib/aquariumStock");
+      await logOrderToVendingSales(
+        {
+          id: insertedOrder.id,
+          order_number: insertedOrder.order_number,
+          customer_name: orderPayload.customer_name,
+          customer_phone: cleanPhone,
+          items: orderPayload.items,
+          total: orderPayload.total,
+          subtotal: orderPayload.subtotal,
+        },
+        razorpay_payment_id,
+        supabaseServer
+      );
+    } catch (vendErr) {
+      console.error("[orders/place] Error logging to vending sales log:", vendErr);
+    }
+
     // 7. Update Lead status to converted
     try {
       await supabaseServer

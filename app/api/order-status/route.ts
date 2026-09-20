@@ -48,6 +48,14 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 
+    // Restore biomass to aquarium if order is deleted
+    try {
+      const { removeOrderFromVendingSales } = await import("@/lib/aquariumStock");
+      await removeOrderFromVendingSales(orderId, client);
+    } catch (e) {
+      console.warn("[order-status] Could not remove deleted order from vending sales:", e);
+    }
+
     return NextResponse.json({ success: true, message: `Order ${orderId} deleted successfully` });
   } catch (err: any) {
     console.error("Order delete API error:", err);
@@ -85,6 +93,16 @@ export async function POST(request: Request) {
 
     if (error || !updatedOrder) {
       return NextResponse.json({ success: false, error: error?.message || "Order not found" }, { status: 404 });
+    }
+
+    // Restore biomass to aquarium if order is cancelled
+    if (status === "cancelled") {
+      try {
+        const { removeOrderFromVendingSales } = await import("@/lib/aquariumStock");
+        await removeOrderFromVendingSales(updatedOrder.order_number, client);
+      } catch (err) {
+        console.warn("[order-status] Could not restore aquarium biomass on cancellation:", err);
+      }
     }
 
     // 2. Trigger Customer Email if email exists

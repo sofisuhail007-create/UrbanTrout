@@ -241,12 +241,17 @@ export default function ProductCard({ p }: { p: Product }) {
               borderRadius: "12px",
             }}
           >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0">
               <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
-            <p style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "0.8rem", fontWeight: 700, color: "#f87171", margin: 0 }}>
-              Out of Stock — Check back tomorrow
-            </p>
+            <div>
+              <p style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "0.82rem", fontWeight: 700, color: "#f87171", margin: 0 }}>
+                Out of Stock for Today
+              </p>
+              <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.72rem", color: "#9fadb8", margin: 0 }}>
+                All live aquarium harvest sold out. Please come back tomorrow at 7:00 AM!
+              </p>
+            </div>
           </div>
         ) : (
           /* ── Normal Add to Cart ── */
