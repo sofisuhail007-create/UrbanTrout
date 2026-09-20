@@ -745,6 +745,9 @@ export default function CheckoutPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amount: amountPaise,
+          items: items.map((i) => ({ id: i.id, quantity: i.quantity })),
+          deliveryMode,
+          deliveryFee,
           currency: "INR",
           receipt: `ut_${Date.now()}`,
           customerName: formData.fullName,
@@ -859,13 +862,24 @@ export default function CheckoutPage() {
                 status: "confirmed",
               };
 
-              const { data: insertedOrder, error: insertErr } = await supabase
-                .from("orders")
-                .insert(orderPayload)
-                .select("*")
-                .single();
-              if (insertErr) {
-                console.error("Order Supabase insert error:", insertErr);
+              const placeRes = await fetch("/api/orders/place", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  razorpay_order_id: rzpRes.razorpay_order_id,
+                  razorpay_payment_id: rzpRes.razorpay_payment_id,
+                  razorpay_signature: rzpRes.razorpay_signature,
+                  orderData: orderPayload,
+                }),
+              });
+
+              let insertedOrder: any = null;
+              if (placeRes.ok) {
+                const placeData = await placeRes.json();
+                insertedOrder = placeData.order;
+              } else {
+                const errData = await placeRes.json().catch(() => ({}));
+                console.error("Order placement API error:", errData);
               }
 
               // Mark lead as converted
@@ -896,7 +910,7 @@ export default function CheckoutPage() {
                 );
               } catch (e) {}
 
-              // Telegram & Email notification
+              // Telegram & Email notification fallback (handled server-side, but keep client event for telemetry)
               fetch("/api/telegram-notify", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { requireAdminAuth } from "@/lib/adminAuth";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 // Use service role key if configured in Vercel to bypass RLS, or fallback to anon key
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -9,6 +10,15 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PU
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export async function POST(request: Request) {
+  // Rate limit: max 20 lead creation requests per minute per IP
+  const { limited } = checkRateLimit(request, 20, 60 * 1000);
+  if (limited) {
+    return NextResponse.json(
+      { success: false, error: "Too many requests. Please wait a moment." },
+      { status: 429 }
+    );
+  }
+
   try {
     const body = await request.json();
     const { lead } = body;

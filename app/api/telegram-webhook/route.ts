@@ -126,8 +126,9 @@ export async function POST(request: Request) {
   // ─── Security: Verify request is genuinely from Telegram ───
   const incomingSecret = request.headers.get("x-telegram-bot-api-secret-token");
   const expectedSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
-  if (expectedSecret && incomingSecret !== expectedSecret) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!expectedSecret || incomingSecret !== expectedSecret) {
+    console.error("[telegram-webhook] Unauthorized access attempt: missing or invalid secret token");
+    return NextResponse.json({ error: "Unauthorized: Invalid or missing webhook secret" }, { status: 401 });
   }
 
   try {

@@ -122,27 +122,39 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   useEffect(() => {
     setMounted(true);
-    // 1. Read persistent session from localStorage (with sessionStorage fallback)
-    const authStatus = localStorage.getItem("ut_admin_auth") || sessionStorage.getItem("ut_admin_auth");
-    const storedEmail = localStorage.getItem("ut_admin_email") || sessionStorage.getItem("ut_admin_email") || "sofisuhail007@gmail.com";
-    const isOwner = storedEmail.toLowerCase() === "sofisuhail007@gmail.com" || storedEmail.toLowerCase() === "info.urbantrout@gmail.com";
-    const storedRole = localStorage.getItem("ut_admin_role") || sessionStorage.getItem("ut_admin_role") || (isOwner ? "super_admin" : "sales_staff");
-    const storedPerms = localStorage.getItem("ut_admin_permissions") || sessionStorage.getItem("ut_admin_permissions");
+    // 1. Strictly verify cryptographic Supabase Auth session on mount
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!session?.user?.email) {
+        // Not authenticated — purge any fake/stale tokens and kick to login
+        localStorage.removeItem("ut_admin_auth");
+        localStorage.removeItem("ut_admin_email");
+        localStorage.removeItem("ut_admin_role");
+        localStorage.removeItem("ut_admin_permissions");
+        sessionStorage.removeItem("ut_admin_auth");
+        sessionStorage.removeItem("ut_admin_email");
+        router.replace("/admin");
+        return;
+      }
 
-    setAdminEmail(storedEmail);
-    setAdminRole(storedRole);
-    setAdminName(resolveStaffName(storedEmail));
+      const userEmail = session.user.email.toLowerCase().trim();
+      const isOwner = userEmail === "sofisuhail007@gmail.com" || userEmail === "info.urbantrout@gmail.com";
+      const userRole = isOwner ? "super_admin" : (localStorage.getItem("ut_admin_role") || "sales_staff");
 
-    if (storedPerms) {
-      try {
-        setPermissions(JSON.parse(storedPerms));
-      } catch {}
-    }
+      localStorage.setItem("ut_admin_auth", "1");
+      localStorage.setItem("ut_admin_email", userEmail);
+      localStorage.setItem("ut_admin_role", userRole);
 
-    // 2. Proactive Supabase auth listener to keep session permanently active & refreshed
+      setAdminEmail(userEmail);
+      setAdminRole(userRole);
+      setAdminName(resolveStaffName(userEmail));
+    }).catch(() => {
+      router.replace("/admin");
+    });
+
+    // 2. Proactive Supabase auth listener to keep session permanently active & handle signout
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user?.email) {
-        const userEmail = session.user.email.toLowerCase();
+        const userEmail = session.user.email.toLowerCase().trim();
         const isCurrentOwner = userEmail === "sofisuhail007@gmail.com" || userEmail === "info.urbantrout@gmail.com";
         localStorage.setItem("ut_admin_auth", "1");
         localStorage.setItem("ut_admin_email", userEmail);
@@ -151,6 +163,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           setAdminRole("super_admin");
         }
         setAdminEmail(userEmail);
+        setAdminName(resolveStaffName(userEmail));
       } else if (event === "SIGNED_OUT") {
         localStorage.removeItem("ut_admin_auth");
         localStorage.removeItem("ut_admin_email");
@@ -164,20 +177,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       }
     });
 
-    // 3. If neither localStorage nor Supabase has session, redirect to login
-    if (!authStatus) {
-      supabase.auth.getSession().then(({ data: { session } }) => {
-        if (session?.user?.email) {
-          const userEmail = session.user.email.toLowerCase();
-          localStorage.setItem("ut_admin_auth", "1");
-          localStorage.setItem("ut_admin_email", userEmail);
-          setAdminEmail(userEmail);
-          return;
-        }
-        router.replace("/admin");
-      }).catch(() => {
-        router.replace("/admin");
-      });
+    const storedPerms = localStorage.getItem("ut_admin_permissions") || sessionStorage.getItem("ut_admin_permissions");
+    if (storedPerms) {
+      try {
+        setPermissions(JSON.parse(storedPerms));
+      } catch {}
     }
 
     return () => {

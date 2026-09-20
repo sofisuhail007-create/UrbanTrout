@@ -9,28 +9,23 @@ export default function AdminLoginPage() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
 
-  // ─── Auto-Redirect if Already Authenticated (Persistent Session) ──
+  // ─── Auto-Redirect if Real Supabase Session is Active ─────────────
   useEffect(() => {
-    // 1. Check persistent localStorage first
-    const storedAuth = typeof window !== "undefined" ? (localStorage.getItem("ut_admin_auth") || sessionStorage.getItem("ut_admin_auth")) : null;
-    if (storedAuth === "1") {
-      router.replace("/admin/dashboard");
-      return;
-    }
-
-    // 2. Check active Supabase Auth session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user?.email) {
-        const email = session.user.email.toLowerCase();
+        const email = session.user.email.toLowerCase().trim();
         const isOwner = email === "sofisuhail007@gmail.com" || email === "info.urbantrout@gmail.com";
         localStorage.setItem("ut_admin_auth", "1");
         localStorage.setItem("ut_admin_email", email);
-        if (isOwner && !localStorage.getItem("ut_admin_role")) {
+        if (isOwner) {
           localStorage.setItem("ut_admin_role", "super_admin");
         }
         router.replace("/admin/dashboard");
         return;
       }
+      // No active session — clear any stale fake localStorage tokens
+      localStorage.removeItem("ut_admin_auth");
+      sessionStorage.removeItem("ut_admin_auth");
       setCheckingSession(false);
     }).catch(() => {
       setCheckingSession(false);

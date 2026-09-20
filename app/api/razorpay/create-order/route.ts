@@ -1,9 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
 import Razorpay from "razorpay";
+import { createClient } from "@supabase/supabase-js";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 export const dynamic = "force-dynamic";
 
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+// Fallback pricing if database is unreachable
+const FALLBACK_PRICES: Record<string, number> = {
+  "gutted-trout": 550,
+  "whole-trout": 500,
+};
+
 export async function POST(req: NextRequest) {
+  // 1. Rate Limiting: 15 order creation attempts per minute per IP
+  const { limited } = checkRateLimit(req, 15, 60 * 1000);
+  if (limited) {
+    return NextResponse.json(
+      { error: "Too many payment attempts. Please wait a moment before trying again." },
+      { status: 429 }
+    );
+  }
+
   try {
     const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
     const keySecret = process.env.RAZORPAY_KEY_SECRET;
@@ -18,12 +39,71 @@ export async function POST(req: NextRequest) {
     });
 
     const body = await req.json();
-    const { amount, currency = "INR", receipt, customerName, customerPhone, customerEmail, notes = {} } = body;
+    const {
+      amount: clientAmount,
+      items,
+      deliveryMode = "express_delivery",
+      deliveryFee: clientDeliveryFee = 0,
+      customerName,
+      customerPhone,
+      customerEmail,
+      notes = {},
+    } = body;
 
-    // Validate amount (minimum 100 paise = ₹1)
-    if (!amount || typeof amount !== "number" || amount < 100) {
+    // Validate customer contact
+    if (!customerPhone || typeof customerPhone !== "string") {
+      return NextResponse.json({ error: "Valid customer phone number is required." }, { status: 400 });
+    }
+
+    let finalAmountPaise: number;
+
+    // 2. Server-Side Price Verification: If items array is provided, recalculate against database
+    if (Array.isArray(items) && items.length > 0) {
+      // Fetch current product prices from database
+      const { data: invData } = await supabase
+        .from("inventory")
+        .select("product_id, price_per_kg, available");
+
+      const priceMap = new Map<string, number>();
+      (invData || []).forEach((item) => {
+        if (item.product_id && item.price_per_kg) {
+          priceMap.set(item.product_id, Number(item.price_per_kg));
+        }
+      });
+
+      let calculatedSubtotal = 0;
+      for (const it of items) {
+        const qty = Number(it.quantity);
+        if (isNaN(qty) || qty <= 0 || qty > 100) {
+          return NextResponse.json({ error: `Invalid quantity for item ${it.id}` }, { status: 400 });
+        }
+
+        const pricePerKg = priceMap.get(it.id) || FALLBACK_PRICES[it.id] || 500;
+        calculatedSubtotal += Math.round(pricePerKg * qty);
+      }
+
+      // Determine delivery fee on server
+      let calculatedDeliveryFee = 0;
+      if (deliveryMode === "farm_pickup") {
+        calculatedDeliveryFee = 0;
+      } else {
+        // Standard delivery is free within 5km, or ₹40 outside
+        calculatedDeliveryFee = clientDeliveryFee === 40 ? 40 : 0;
+      }
+
+      const calculatedGrandTotal = calculatedSubtotal + calculatedDeliveryFee;
+      finalAmountPaise = calculatedGrandTotal * 100;
+    } else if (typeof clientAmount === "number" && clientAmount >= 100) {
+      // Fallback if client did not pass detailed items
+      finalAmountPaise = Math.round(clientAmount);
+    } else {
+      return NextResponse.json({ error: "Invalid order amount or items." }, { status: 400 });
+    }
+
+    // Minimum amount sanity check (₹100 = 10,000 paise minimum for fresh trout delivery)
+    if (finalAmountPaise < 10000) {
       return NextResponse.json(
-        { error: "Invalid amount. Minimum is 100 paise (₹1)." },
+        { error: "Order value is below the minimum threshold." },
         { status: 400 }
       );
     }
@@ -31,14 +111,15 @@ export async function POST(req: NextRequest) {
     const orderNotes: Record<string, string> = {
       customer_name: String(customerName || notes.customer_name || "Valued Customer").slice(0, 40),
       customer_phone: String(customerPhone || notes.customer_phone || "").slice(0, 15),
+      server_verified: "true",
       ...notes,
     };
     if (customerEmail) orderNotes.customer_email = String(customerEmail).slice(0, 40);
 
     const order = await razorpay.orders.create({
-      amount, // in paise
-      currency,
-      receipt: receipt || `ut_${Date.now()}`,
+      amount: finalAmountPaise, // in paise
+      currency: "INR",
+      receipt: `ut_${Date.now()}`,
       notes: orderNotes,
     });
 
