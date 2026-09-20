@@ -1,6 +1,5 @@
-const CACHE_NAME = "urban-trout-v2";
+const CACHE_NAME = "urban-trout-v3";
 const STATIC_ASSETS = [
-  "/",
   "/favicon.ico",
   "/headerfooterlogo.png",
   "/sitelogo.png",
@@ -38,11 +37,37 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(event.request.url);
 
-  // Do not cache API routes, admin dashboard, fonts, or external third-party calls
-  if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/admin") || url.pathname.startsWith("/fonts/")) {
+  // Skip API routes, admin, checkout, Next.js RSC requests, fonts, or external origins
+  if (
+    url.origin !== self.location.origin ||
+    url.pathname.startsWith("/api/") ||
+    url.pathname.startsWith("/admin") ||
+    url.pathname.startsWith("/checkout") ||
+    url.pathname.startsWith("/fonts/") ||
+    url.searchParams.has("_rsc") ||
+    event.request.headers.get("RSC") === "1"
+  ) {
     return;
   }
 
+  // 1. Navigation requests (HTML pages): ALWAYS NETWORK-FIRST
+  // Customers must NEVER be trapped on stale cached pages when online
+  if (event.request.mode === "navigate") {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          return networkResponse;
+        })
+        .catch(async () => {
+          // Fallback only if device is completely offline
+          const cached = await caches.match(event.request);
+          return cached || caches.match("/favicon.ico");
+        })
+    );
+    return;
+  }
+
+  // 2. Static assets & images: Stale-While-Revalidate / Cache fallback
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       const fetchPromise = fetch(event.request)

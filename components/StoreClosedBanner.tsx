@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 interface Props {
   nextOpenISO: string;   // ISO string of next open time (UTC)
@@ -24,6 +24,7 @@ function pad2(n: number) {
 }
 
 function getCountdown(targetISO: string) {
+  if (!targetISO) return { h: 0, m: 0, s: 0, done: true };
   const diff = Math.max(0, new Date(targetISO).getTime() - Date.now());
   const totalSec = Math.floor(diff / 1000);
   const h = Math.floor(totalSec / 3600);
@@ -34,15 +35,110 @@ function getCountdown(targetISO: string) {
 
 export default function StoreClosedBanner({ nextOpenISO, nextOpenLabel, primaryPhone }: Props) {
   const [countdown, setCountdown] = useState(() => getCountdown(nextOpenISO));
+  const [isOpeningNow, setIsOpeningNow] = useState(false);
+  const [isCheckingStatus, setIsCheckingStatus] = useState(false);
+  const [statusMessage, setStatusMessage] = useState("");
+
   const isManualClose = !nextOpenISO || nextOpenLabel === "when we reopen";
 
+  // Purge any local navigation cache and reload the page cleanly
+  const triggerReload = useCallback((msg?: string) => {
+    setIsOpeningNow(true);
+    if (msg) setStatusMessage(msg);
+
+    if (typeof window !== "undefined") {
+      try {
+        if ("caches" in window) {
+          caches.keys().then((keys) => {
+            keys.forEach((key) => {
+              caches.open(key).then((cache) => {
+                cache.delete(window.location.href);
+                cache.delete(window.location.pathname);
+                cache.delete("/shop");
+                cache.delete("/shop/whole-trout");
+                cache.delete("/shop/gutted-trout");
+              });
+            });
+          });
+        }
+      } catch {
+        // ignore cache delete errors
+      }
+
+      // Reload page to fetch live store content
+      setTimeout(() => {
+        window.location.reload();
+      }, 800);
+    }
+  }, []);
+
   useEffect(() => {
-    if (isManualClose) return;
-    const id = setInterval(() => {
-      setCountdown(getCountdown(nextOpenISO));
-    }, 1000);
-    return () => clearInterval(id);
-  }, [nextOpenISO, isManualClose]);
+    // 1. If target open time has already elapsed, store is open right now (e.g. stale cache or tab resume)
+    if (!isManualClose && nextOpenISO) {
+      const diff = new Date(nextOpenISO).getTime() - Date.now();
+      if (diff <= 0) {
+        triggerReload("Store is now open! Loading fresh catch...");
+        return;
+      }
+    }
+
+    // 2. Countdown timer ticker
+    let timerId: ReturnType<typeof setInterval> | null = null;
+    if (!isManualClose && nextOpenISO) {
+      timerId = setInterval(() => {
+        const next = getCountdown(nextOpenISO);
+        setCountdown(next);
+        if (next.done) {
+          if (timerId) clearInterval(timerId);
+          triggerReload("Opening hours arrived! Loading store...");
+        }
+      }, 1000);
+    }
+
+    // 3. Status checker function to query the server
+    const checkLiveStoreStatus = async () => {
+      try {
+        const res = await fetch(`/api/store-status?t=${Date.now()}`, {
+          cache: "no-store",
+          headers: { Pragma: "no-cache" },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.isOpen) {
+            triggerReload("Store is now open! Loading fresh catch...");
+          }
+        }
+      } catch {
+        // ignore network error
+      }
+    };
+
+    // 4. Tab reactivation listeners (handles unlocking phone, returning from other tabs/apps, bfcache)
+    const onTabActive = () => {
+      if (document.visibilityState === "visible") {
+        if (!isManualClose && nextOpenISO && Date.now() >= new Date(nextOpenISO).getTime()) {
+          triggerReload("Welcome back! Store is now open, loading...");
+        } else {
+          checkLiveStoreStatus();
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", onTabActive);
+    window.addEventListener("pageshow", onTabActive);
+    window.addEventListener("focus", onTabActive);
+
+    // 5. Periodic polling every 20s (catches manual admin reopen or scheduled clock rollover)
+    const pollId = setInterval(checkLiveStoreStatus, 20000);
+
+    return () => {
+      if (timerId) clearInterval(timerId);
+      clearInterval(pollId);
+      document.removeEventListener("visibilitychange", onTabActive);
+      window.removeEventListener("pageshow", onTabActive);
+      window.removeEventListener("focus", onTabActive);
+    };
+  }, [nextOpenISO, isManualClose, triggerReload]);
 
   const whatsappUrl = `https://wa.me/${primaryPhone.replace(/\D/g, "")}?text=${encodeURIComponent("Hi Urban Trout, I'd like to place an order. When will you be available?")}`;
 
@@ -141,10 +237,16 @@ export default function StoreClosedBanner({ nextOpenISO, nextOpenLabel, primaryP
               boxShadow: "0 0 40px rgba(114,221,253,0.12), inset 0 0 20px rgba(114,221,253,0.08)",
             }}
           >
-            {/* Moon icon */}
-            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#72ddfd" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-            </svg>
+            {/* Moon / Sunrise Icon */}
+            {isOpeningNow || countdown.done ? (
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#72ddfd" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="animate-spin">
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+              </svg>
+            ) : (
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#72ddfd" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+              </svg>
+            )}
           </div>
         </div>
 
@@ -185,7 +287,11 @@ export default function StoreClosedBanner({ nextOpenISO, nextOpenLabel, primaryP
                 WebkitTextFillColor: "transparent",
               }}
             >
-              {isManualClose ? "Taking a Break" : "Closed Right Now"}
+              {isOpeningNow || countdown.done
+                ? "Opening Right Now!"
+                : isManualClose
+                ? "Taking a Break"
+                : "Closed Right Now"}
             </span>
           </h1>
 
@@ -198,114 +304,216 @@ export default function StoreClosedBanner({ nextOpenISO, nextOpenLabel, primaryP
               margin: 0,
             }}
           >
-            {isManualClose
-              ? "Our store is temporarily closed for the day. We'll be back soon — follow us on WhatsApp for updates."
-              : <>Our store is currently closed. We harvest fresh trout to order during business hours only.<br /><strong style={{ color: C.onSurface }}>Opens {nextOpenLabel}.</strong></>}
+            {isOpeningNow || countdown.done ? (
+              <span style={{ color: C.primary, fontWeight: 600 }}>
+                {statusMessage || "Operating hours have arrived! Opening our fresh catch catalog..."}
+              </span>
+            ) : isManualClose ? (
+              "Our store is temporarily closed for the day. We'll be back soon — follow us on WhatsApp for updates."
+            ) : (
+              <>
+                Our store is currently closed. We harvest fresh trout to order during business hours only.
+                <br />
+                <strong style={{ color: C.onSurface }}>Opens {nextOpenLabel}.</strong>
+              </>
+            )}
           </p>
         </div>
 
-        {/* Countdown timer — only shown when auto-closed by hours */}
+        {/* Countdown timer / Loading state — only shown when auto-closed by hours */}
         {!isManualClose && (
-        <div
-          style={{
-            width: "100%",
-            padding: "2rem 2.5rem",
-            background: "rgba(16,33,44,0.8)",
-            borderRadius: "20px",
-            border: "1px solid rgba(61,74,83,0.6)",
-            backdropFilter: "blur(20px)",
-            boxShadow: "0 8px 40px rgba(0,0,0,0.3), inset 0 1px 0 rgba(114,221,253,0.05)",
-          }}
-        >
-          <p
-            style={{
-              fontFamily: '"Inter", sans-serif',
-              fontSize: "9px",
-              letterSpacing: "0.3em",
-              textTransform: "uppercase",
-              color: C.onSurfVar,
-              marginBottom: "1.5rem",
-              margin: "0 0 1.25rem",
-            }}
-          >
-            Opens in
-          </p>
-
           <div
             style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: "0.5rem",
+              width: "100%",
+              padding: "2rem 2.5rem",
+              background: "rgba(16,33,44,0.8)",
+              borderRadius: "20px",
+              border: "1px solid rgba(61,74,83,0.6)",
+              backdropFilter: "blur(20px)",
+              boxShadow: "0 8px 40px rgba(0,0,0,0.3), inset 0 1px 0 rgba(114,221,253,0.05)",
             }}
           >
-            {/* Hours */}
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px", minWidth: "72px" }}>
-              <span
+            {isOpeningNow || countdown.done ? (
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1rem", padding: "1rem 0" }}>
+                <div
+                  style={{
+                    width: "36px",
+                    height: "36px",
+                    borderRadius: "50%",
+                    border: "3px solid rgba(114,221,253,0.2)",
+                    borderTopColor: C.primary,
+                    animation: "spin 0.8s linear infinite",
+                  }}
+                />
+                <span
+                  style={{
+                    fontFamily: '"Space Grotesk", sans-serif',
+                    fontSize: "1.15rem",
+                    fontWeight: 700,
+                    color: C.primary,
+                  }}
+                >
+                  Loading Store...
+                </span>
+                <span
+                  style={{
+                    fontFamily: '"Inter", sans-serif',
+                    fontSize: "11px",
+                    letterSpacing: "0.15em",
+                    textTransform: "uppercase",
+                    color: C.onSurfVar,
+                  }}
+                >
+                  Refreshing live inventory
+                </span>
+              </div>
+            ) : (
+              <>
+                <p
+                  style={{
+                    fontFamily: '"Inter", sans-serif',
+                    fontSize: "9px",
+                    letterSpacing: "0.3em",
+                    textTransform: "uppercase",
+                    color: C.onSurfVar,
+                    marginBottom: "1.5rem",
+                    margin: "0 0 1.25rem",
+                  }}
+                >
+                  Opens in
+                </p>
+
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: "0.5rem",
+                  }}
+                >
+                  {/* Hours */}
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px", minWidth: "72px" }}>
+                    <span
+                      style={{
+                        fontFamily: '"Space Grotesk", sans-serif',
+                        fontSize: "clamp(2.25rem, 7vw, 3.5rem)",
+                        fontWeight: 800,
+                        letterSpacing: "-0.04em",
+                        color: C.primary,
+                        lineHeight: 1,
+                        fontVariantNumeric: "tabular-nums",
+                      }}
+                    >
+                      {pad2(countdown.h)}
+                    </span>
+                    <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", letterSpacing: "0.2em", textTransform: "uppercase", color: C.onSurfVar }}>
+                      Hours
+                    </span>
+                  </div>
+
+                  {/* Separator */}
+                  <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "2.5rem", fontWeight: 800, color: "rgba(114,221,253,0.4)", lineHeight: 1, marginTop: "-12px" }}>:</span>
+
+                  {/* Minutes */}
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px", minWidth: "72px" }}>
+                    <span
+                      style={{
+                        fontFamily: '"Space Grotesk", sans-serif',
+                        fontSize: "clamp(2.25rem, 7vw, 3.5rem)",
+                        fontWeight: 800,
+                        letterSpacing: "-0.04em",
+                        color: C.primary,
+                        lineHeight: 1,
+                        fontVariantNumeric: "tabular-nums",
+                      }}
+                    >
+                      {pad2(countdown.m)}
+                    </span>
+                    <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", letterSpacing: "0.2em", textTransform: "uppercase", color: C.onSurfVar }}>
+                      Minutes
+                    </span>
+                  </div>
+
+                  {/* Separator */}
+                  <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "2.5rem", fontWeight: 800, color: "rgba(114,221,253,0.4)", lineHeight: 1, marginTop: "-12px" }}>:</span>
+
+                  {/* Seconds */}
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px", minWidth: "72px" }}>
+                    <span
+                      style={{
+                        fontFamily: '"Space Grotesk", sans-serif',
+                        fontSize: "clamp(2.25rem, 7vw, 3.5rem)",
+                        fontWeight: 800,
+                        letterSpacing: "-0.04em",
+                        color: C.onSurface,
+                        lineHeight: 1,
+                        fontVariantNumeric: "tabular-nums",
+                      }}
+                    >
+                      {pad2(countdown.s)}
+                    </span>
+                    <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", letterSpacing: "0.2em", textTransform: "uppercase", color: C.onSurfVar }}>
+                      Seconds
+                    </span>
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Quick Refresh Button */}
+            <div style={{ marginTop: "1.5rem", paddingTop: "1.25rem", borderTop: "1px solid rgba(61,74,83,0.4)" }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsCheckingStatus(true);
+                  triggerReload("Checking store status & refreshing...");
+                }}
+                disabled={isCheckingStatus || isOpeningNow}
                 style={{
-                  fontFamily: '"Space Grotesk", sans-serif',
-                  fontSize: "clamp(2.25rem, 7vw, 3.5rem)",
-                  fontWeight: 800,
-                  letterSpacing: "-0.04em",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "8px",
+                  padding: "0.55rem 1.25rem",
+                  borderRadius: "10px",
+                  background: "rgba(114, 221, 253, 0.08)",
+                  border: "1px solid rgba(114, 221, 253, 0.25)",
                   color: C.primary,
-                  lineHeight: 1,
-                  fontVariantNumeric: "tabular-nums",
-                }}
-              >
-                {pad2(countdown.h)}
-              </span>
-              <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", letterSpacing: "0.2em", textTransform: "uppercase", color: C.onSurfVar }}>
-                Hours
-              </span>
-            </div>
-
-            {/* Separator */}
-            <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "2.5rem", fontWeight: 800, color: "rgba(114,221,253,0.4)", lineHeight: 1, marginTop: "-12px" }}>:</span>
-
-            {/* Minutes */}
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px", minWidth: "72px" }}>
-              <span
-                style={{
                   fontFamily: '"Space Grotesk", sans-serif',
-                  fontSize: "clamp(2.25rem, 7vw, 3.5rem)",
-                  fontWeight: 800,
-                  letterSpacing: "-0.04em",
-                  color: C.primary,
-                  lineHeight: 1,
-                  fontVariantNumeric: "tabular-nums",
+                  fontSize: "0.8rem",
+                  fontWeight: 700,
+                  letterSpacing: "0.03em",
+                  cursor: isCheckingStatus || isOpeningNow ? "wait" : "pointer",
+                  transition: "all 0.2s",
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLElement).style.background = "rgba(114, 221, 253, 0.16)";
+                  (e.currentTarget as HTMLElement).style.borderColor = "rgba(114, 221, 253, 0.45)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLElement).style.background = "rgba(114, 221, 253, 0.08)";
+                  (e.currentTarget as HTMLElement).style.borderColor = "rgba(114, 221, 253, 0.25)";
                 }}
               >
-                {pad2(countdown.m)}
-              </span>
-              <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", letterSpacing: "0.2em", textTransform: "uppercase", color: C.onSurfVar }}>
-                Minutes
-              </span>
-            </div>
-
-            {/* Separator */}
-            <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "2.5rem", fontWeight: 800, color: "rgba(114,221,253,0.4)", lineHeight: 1, marginTop: "-12px" }}>:</span>
-
-            {/* Seconds */}
-            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "6px", minWidth: "72px" }}>
-              <span
-                style={{
-                  fontFamily: '"Space Grotesk", sans-serif',
-                  fontSize: "clamp(2.25rem, 7vw, 3.5rem)",
-                  fontWeight: 800,
-                  letterSpacing: "-0.04em",
-                  color: C.onSurface,
-                  lineHeight: 1,
-                  fontVariantNumeric: "tabular-nums",
-                }}
-              >
-                {pad2(countdown.s)}
-              </span>
-              <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", letterSpacing: "0.2em", textTransform: "uppercase", color: C.onSurfVar }}>
-                Seconds
-              </span>
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  style={{
+                    animation: isCheckingStatus || isOpeningNow ? "spin 1s linear infinite" : "none",
+                  }}
+                >
+                  <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+                </svg>
+                {isCheckingStatus || isOpeningNow ? "Checking Status..." : "Refresh Shop Status 🔄"}
+              </button>
             </div>
           </div>
-        </div>
         )}
 
         {/* Business hours info */}
@@ -417,6 +625,10 @@ export default function StoreClosedBanner({ nextOpenISO, nextOpenLabel, primaryP
         @keyframes orb-pulse {
           0%, 100% { opacity: 0.6; transform: scale(1); }
           50% { opacity: 1; transform: scale(1.06); }
+        }
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
         }
       `}</style>
     </div>
