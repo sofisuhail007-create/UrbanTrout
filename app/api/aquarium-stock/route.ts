@@ -20,9 +20,41 @@ export interface AquariumStockEntry {
   weight_kg: number;
   cost_per_kg: number;
   total_cost: number;
+  stock_before_kg?: number; // Present stock in aquarium right before intake
+  stock_after_kg?: number;  // Total stock in aquarium right after intake
   batch_notes?: string;
   logged_by?: string;
   created_at: string;
+}
+
+async function getStockMetadata(): Promise<Record<string, { stock_before_kg: number; stock_after_kg: number }>> {
+  try {
+    const { data } = await supabaseAdmin
+      .from("app_settings")
+      .select("value")
+      .eq("key", "aquarium_stock_metadata")
+      .maybeSingle();
+    if (data?.value) {
+      return JSON.parse(data.value);
+    }
+  } catch (_) {}
+  return {};
+}
+
+async function saveStockMetadata(metadata: Record<string, { stock_before_kg: number; stock_after_kg: number }>) {
+  try {
+    await supabaseAdmin.from("app_settings").upsert(
+      {
+        key: "aquarium_stock_metadata",
+        value: JSON.stringify(metadata),
+        description: "Tracks aquarium stock present before and after each procurement intake batch",
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "key" }
+    );
+  } catch (err) {
+    console.warn("Could not save aquarium_stock_metadata:", err);
+  }
 }
 
 // ─── GET: Fetch all stock procurement entries ───
@@ -49,13 +81,33 @@ export async function GET(req: NextRequest) {
       throw error;
     }
 
-    const { getLiveAquariumStock } = await import("@/lib/aquariumStock");
+    const [meta, { getLiveAquariumStock }] = await Promise.all([
+      getStockMetadata(),
+      import("@/lib/aquariumStock"),
+    ]);
     const liveSummary = await getLiveAquariumStock();
+
+    const entries: AquariumStockEntry[] = (data || []).map((row: any) => {
+      const m = meta[row.id];
+      const stockBefore = m?.stock_before_kg !== undefined ? Number(m.stock_before_kg) : undefined;
+      const stockAfter = m?.stock_after_kg !== undefined
+        ? Number(m.stock_after_kg)
+        : (stockBefore !== undefined ? Math.round((stockBefore + Number(row.weight_kg || 0)) * 1000) / 1000 : undefined);
+
+      return {
+        ...row,
+        weight_kg: Number(row.weight_kg || 0),
+        cost_per_kg: Number(row.cost_per_kg || 0),
+        total_cost: Number(row.total_cost || (row.weight_kg * row.cost_per_kg) || 0),
+        stock_before_kg: stockBefore,
+        stock_after_kg: stockAfter,
+      };
+    });
 
     return NextResponse.json(
       {
         success: true,
-        entries: data || [],
+        entries,
         isTableAvailable: true,
         liveSummary,
       },
@@ -85,6 +137,8 @@ export async function POST(req: NextRequest) {
       product_type,
       weight_kg,
       cost_per_kg,
+      stock_before_kg,
+      stock_after_kg,
       batch_notes,
       logged_by,
     } = body;
@@ -101,6 +155,21 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Determine present stock before adding this batch
+    let beforeKg: number;
+    if (stock_before_kg !== undefined && stock_before_kg !== null && !isNaN(Number(stock_before_kg))) {
+      beforeKg = Math.round(Number(stock_before_kg) * 1000) / 1000;
+    } else {
+      const { getLiveAquariumStock } = await import("@/lib/aquariumStock");
+      const live = await getLiveAquariumStock();
+      beforeKg = live.remainingKg;
+    }
+
+    const afterKg =
+      stock_after_kg !== undefined && stock_after_kg !== null && !isNaN(Number(stock_after_kg))
+        ? Math.round(Number(stock_after_kg) * 1000) / 1000
+        : Math.round((beforeKg + Number(weight_kg)) * 1000) / 1000;
 
     const { data, error } = await supabaseAdmin
       .from("aquarium_stock_log")
@@ -123,7 +192,7 @@ export async function POST(req: NextRequest) {
               timeZone: "Asia/Kolkata",
             }),
           supplier_name: supplier_name || "Khyber Aquaculture",
-          product_type: product_type || "Non Gutted",
+          product_type: product_type || "Live Fish",
           weight_kg: Number(weight_kg),
           cost_per_kg: Number(cost_per_kg),
           batch_notes: batch_notes || null,
@@ -135,7 +204,22 @@ export async function POST(req: NextRequest) {
 
     if (error) throw error;
 
-    return NextResponse.json({ success: true, entry: data }, { status: 201 });
+    // Persist stock before/after metadata in app_settings
+    try {
+      const meta = await getStockMetadata();
+      meta[data.id] = { stock_before_kg: beforeKg, stock_after_kg: afterKg };
+      await saveStockMetadata(meta);
+    } catch (e) {
+      console.warn("Could not save stock metadata:", e);
+    }
+
+    const enrichedEntry: AquariumStockEntry = {
+      ...data,
+      stock_before_kg: beforeKg,
+      stock_after_kg: afterKg,
+    };
+
+    return NextResponse.json({ success: true, entry: enrichedEntry }, { status: 201 });
   } catch (err: any) {
     console.error("[aquarium-stock POST]", err);
     return NextResponse.json(
@@ -164,6 +248,15 @@ export async function DELETE(req: NextRequest) {
       .eq("id", id);
 
     if (error) throw error;
+
+    // Clean up metadata
+    try {
+      const meta = await getStockMetadata();
+      if (meta[id]) {
+        delete meta[id];
+        await saveStockMetadata(meta);
+      }
+    } catch (_) {}
 
     return NextResponse.json({ success: true });
   } catch (err: any) {

@@ -244,6 +244,7 @@ export default function VendingCenterLoggerPage() {
   const [stockFormWeight, setStockFormWeight] = useState("");
   const [stockFormCost, setStockFormCost] = useState("350");
   const [stockFormNotes, setStockFormNotes] = useState("");
+  const [stockFormPresentStock, setStockFormPresentStock] = useState<string>("");
 
   // Entry Form State
   const [formDate, setFormDate] = useState(() => getIstTodayDate());
@@ -1447,6 +1448,11 @@ export default function VendingCenterLoggerPage() {
     setSavingStock(true);
     try {
       const loggedBy = formatStaffDisplayName(localStorage.getItem("ut_admin_email")) || "Mohd Amin";
+      const presentStockVal = stockFormPresentStock !== "" && !isNaN(parseFloat(stockFormPresentStock))
+        ? parseFloat(stockFormPresentStock)
+        : aquariumStock.remainingKg;
+      const totalAfterVal = Math.round((presentStockVal + w) * 1000) / 1000;
+
       const res = await adminFetch("/api/aquarium-stock", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1457,6 +1463,8 @@ export default function VendingCenterLoggerPage() {
           product_type: "Live Fish",
           weight_kg: w,
           cost_per_kg: cost,
+          stock_before_kg: presentStockVal,
+          stock_after_kg: totalAfterVal,
           batch_notes: stockFormNotes.trim() || null,
           logged_by: loggedBy,
         }),
@@ -1469,6 +1477,7 @@ export default function VendingCenterLoggerPage() {
           setStockModalOpen(false);
           setStockFormWeight("");
           setStockFormNotes("");
+          setStockFormPresentStock("");
           setStockFormDate(getTodayDate());
           setStockFormTime(getCurrentTime());
           setStockTableAvailable(true);
@@ -3219,7 +3228,10 @@ export default function VendingCenterLoggerPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setStockModalOpen(true)}
+                onClick={() => {
+                  setStockFormPresentStock(String(aquariumStock.remainingKg > 0 ? aquariumStock.remainingKg : "0"));
+                  setStockModalOpen(true);
+                }}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white text-[11px] font-black uppercase tracking-wider transition-all shadow-lg shadow-blue-500/20 cursor-pointer active:scale-95"
               >
                 <span className="material-symbols-outlined text-sm">add</span>
@@ -3434,7 +3446,8 @@ export default function VendingCenterLoggerPage() {
                       <th className="py-3 px-3">Time</th>
                       <th className="py-3 px-3">Supplier</th>
                       <th className="py-3 px-3">Stock</th>
-                      <th className="py-3 px-3 text-right">Weight (Kg)</th>
+                      <th className="py-3 px-3 text-right text-cyan-300">Present in Aquarium</th>
+                      <th className="py-3 px-3 text-right">Added Weight (Kg)</th>
                       <th className="py-3 px-3 text-right">Cost/Kg (₹)</th>
                       <th className="py-3 px-3 text-right text-violet-300">Total Cost (₹)</th>
                       <th className="py-3 px-3">Notes</th>
@@ -3445,7 +3458,7 @@ export default function VendingCenterLoggerPage() {
                   <tbody className="divide-y divide-slate-800/60 font-mono">
                     {stockEntries.length === 0 ? (
                       <tr>
-                        <td colSpan={11} className="py-10 text-center text-slate-500 text-xs">
+                        <td colSpan={12} className="py-10 text-center text-slate-500 text-xs">
                           <span className="material-symbols-outlined text-2xl block mb-1 text-slate-600">inventory_2</span>
                           No procurement entries yet. Click &ldquo;Log Stock&rdquo; to add your first batch.
                         </td>
@@ -3467,6 +3480,20 @@ export default function VendingCenterLoggerPage() {
                                 <span className="material-symbols-outlined text-[11px]">water</span>
                                 Live Fish
                               </span>
+                            </td>
+                            <td className="py-2.5 px-3 text-right font-mono">
+                              {s.stock_before_kg !== undefined ? (
+                                <div className="flex flex-col items-end">
+                                  <span className="text-xs font-black text-cyan-300">
+                                    {formatKg(s.stock_before_kg)} Kg
+                                  </span>
+                                  <span className="text-[9.5px] text-slate-400">
+                                    After: <strong className="text-emerald-400">{formatKg(s.stock_after_kg ?? (s.stock_before_kg + s.weight_kg))} Kg</strong>
+                                  </span>
+                                </div>
+                              ) : (
+                                <span className="text-slate-500">—</span>
+                              )}
                             </td>
                             <td className="py-2.5 px-3 text-right text-white font-bold">{formatKg(s.weight_kg)}</td>
                             <td className="py-2.5 px-3 text-right text-slate-300">₹{Number(s.cost_per_kg).toLocaleString("en-IN")}</td>
@@ -5852,6 +5879,65 @@ export default function VendingCenterLoggerPage() {
                   <span className="material-symbols-outlined text-blue-400 text-base">water</span>
                   <span className="text-sm font-bold text-blue-200">Live Fish</span>
                   <span className="ml-auto text-[10px] font-mono text-slate-400">Procured from supplier</span>
+                </div>
+              </div>
+
+              {/* Present Aquarium Stock at Intake Section */}
+              <div className="p-3.5 rounded-2xl bg-gradient-to-br from-cyan-950/40 via-slate-900 to-slate-900 border border-cyan-500/30 space-y-2.5 shadow-lg">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-300 font-mono flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-sm text-cyan-400">water</span>
+                    Stock Present in Aquarium at Intake
+                  </span>
+                  <span className="text-[9.5px] font-mono px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-500/30">
+                    Live Biomass Tracker
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">
+                        Present in Aquarium (Kg)
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => setStockFormPresentStock(String(aquariumStock.remainingKg))}
+                        className="text-[9.5px] text-cyan-400 hover:text-cyan-300 underline font-mono cursor-pointer"
+                        title="Reset to current remaining stock"
+                      >
+                        Live: {formatKg(aquariumStock.remainingKg)} Kg
+                      </button>
+                    </div>
+                    <input
+                      type="number"
+                      step="0.001"
+                      min="0"
+                      value={stockFormPresentStock}
+                      onChange={(e) => setStockFormPresentStock(e.target.value)}
+                      placeholder={String(aquariumStock.remainingKg)}
+                      className="w-full px-3 py-2 bg-slate-950 border border-cyan-500/40 rounded-xl text-xs text-cyan-200 font-mono font-bold focus:outline-none focus:border-cyan-300"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex flex-col justify-between p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-[11px] font-mono space-y-1">
+                    <div className="flex items-center justify-between text-slate-400">
+                      <span>+ New Intake:</span>
+                      <span className="text-white font-bold">
+                        {stockFormWeight && parseFloat(stockFormWeight) > 0 ? `${formatKg(parseFloat(stockFormWeight))} Kg` : "0.000 Kg"}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-slate-200 pt-1 border-t border-slate-800 font-bold">
+                      <span className="text-emerald-400">= Total After:</span>
+                      <span className="text-emerald-300 text-xs">
+                        {formatKg(
+                          (parseFloat(stockFormPresentStock) || 0) +
+                          (parseFloat(stockFormWeight) || 0)
+                        )} Kg
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
