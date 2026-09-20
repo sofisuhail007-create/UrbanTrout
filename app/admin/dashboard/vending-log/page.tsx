@@ -846,9 +846,24 @@ export default function VendingCenterLoggerPage() {
     const lossPercent =
       totalExpected > 0 ? ((totalLoss / totalExpected) * 100).toFixed(1) : "0.0";
 
-    // Realized Profit on sold fishes (based on procurement cost)
-    const guttedCost = Math.round(guttedKg * procurementAvgCost);
+    // Worker gutting incentive labor cost (Mohd Amin @ ₹5/Kg for worker-cleaned fish)
+    let periodWorkerGuttedKg = 0;
+    filteredEntriesByPeriod.forEach((e) => {
+      const isGut =
+        (e.product_type || "").toLowerCase().includes("gutted") &&
+        !(e.product_type || "").toLowerCase().includes("non");
+      const isSelf = Boolean(e.custom_fields?.self_cleaned || (e as any).self_cleaned);
+      if (isGut && !isSelf) {
+        periodWorkerGuttedKg = Math.round((periodWorkerGuttedKg + (Number(e.weight_kg) || 0)) * 1000) / 1000;
+      }
+    });
+    const periodWorkerLaborCost = Math.round(periodWorkerGuttedKg * INCENTIVE_RATE_PER_KG);
+
+    // Realized Profit on sold fishes (deducting procurement cost AND Mohd Amin's ₹5/Kg gutting labor)
+    const guttedProcurementCost = Math.round(guttedKg * procurementAvgCost);
     const nonGuttedCost = Math.round(nonGuttedKg * procurementAvgCost);
+    const guttedCost = guttedProcurementCost + periodWorkerLaborCost;
+    const guttedGrossProfit = Math.round(guttedRevenue - guttedProcurementCost);
     const guttedProfit = Math.round(guttedRevenue - guttedCost);
     const nonGuttedProfit = Math.round(nonGuttedRevenue - nonGuttedCost);
     const totalSoldProfit = guttedProfit + nonGuttedProfit;
@@ -869,6 +884,10 @@ export default function VendingCenterLoggerPage() {
       guttedRevenue,
       nonGuttedRevenue,
       guttedCost,
+      guttedProcurementCost,
+      periodWorkerLaborCost,
+      periodWorkerGuttedKg,
+      guttedGrossProfit,
       nonGuttedCost,
       guttedProfit,
       nonGuttedProfit,
@@ -1032,8 +1051,8 @@ export default function VendingCenterLoggerPage() {
     // Procurement cost of remaining stock
     const procurementCostRemaining = Math.round(remainingKg * avgCostPerKg);
 
-    // Expected Profit = Revenue if sold − Procurement cost
-    const expectedProfitGutted = Math.max(0, Math.round(remainingKg * (guttedPrice - avgCostPerKg)));
+    // Expected Profit = Revenue if sold − Procurement cost − Worker gutting incentive
+    const expectedProfitGutted = Math.max(0, Math.round(remainingKg * (guttedPrice - avgCostPerKg - INCENTIVE_RATE_PER_KG)));
     const expectedProfitNonGutted = Math.max(0, Math.round(remainingKg * (nonGuttedPrice - avgCostPerKg)));
 
     return {
@@ -1642,7 +1661,8 @@ export default function VendingCenterLoggerPage() {
 
     const guttedCost = Math.round(guttedSoldKg * procurementAvgCost);
     const nonGuttedCost = Math.round(nonGuttedSoldKg * procurementAvgCost);
-    const totalCost = guttedCost + nonGuttedCost;
+    const aminDailyIncentive = Math.round(aminGuttedSoldKg * INCENTIVE_RATE_PER_KG);
+    const totalCost = guttedCost + nonGuttedCost + aminDailyIncentive;
     const netRealizedProfit = grossRevenue - totalCost;
     const profitMarginPercent =
       grossRevenue > 0 ? ((netRealizedProfit / grossRevenue) * 100).toFixed(1) : "0.0";
@@ -1762,7 +1782,8 @@ export default function VendingCenterLoggerPage() {
 
     const guttedCost = Math.round(guttedSoldKg * procurementAvgCost);
     const nonGuttedCost = Math.round(nonGuttedSoldKg * procurementAvgCost);
-    const totalCost = guttedCost + nonGuttedCost;
+    const aminDailyIncentive = Math.round(aminGuttedSoldKg * INCENTIVE_RATE_PER_KG);
+    const totalCost = guttedCost + nonGuttedCost + aminDailyIncentive;
     const netRealizedProfit = grossRevenue - totalCost;
     const profitMarginPercent =
       grossRevenue > 0 ? ((netRealizedProfit / grossRevenue) * 100).toFixed(1) : "0.0";
@@ -2081,7 +2102,8 @@ export default function VendingCenterLoggerPage() {
         { "Vending Center Metric": "Active Filter Period", "Value / Amount": period.toUpperCase() },
         { "Vending Center Metric": "Total Vending Revenue (Rs)", "Value / Amount": kpis.totalRevenue },
         { "Vending Center Metric": "Realized Net Profit on Sold Fish (Rs)", "Value / Amount": kpis.totalSoldProfit },
-        { "Vending Center Metric": "Gutted Trout Sold Profit (Rs)", "Value / Amount": kpis.guttedProfit },
+        { "Vending Center Metric": "Gutted Trout Sold Net Profit (Rs)", "Value / Amount": kpis.guttedProfit },
+        { "Vending Center Metric": "Mohd Amin Gutting Labor Incentive Deducted (Rs)", "Value / Amount": kpis.periodWorkerLaborCost },
         { "Vending Center Metric": "Non-Gutted Trout Sold Profit (Rs)", "Value / Amount": kpis.nonGuttedProfit },
         { "Vending Center Metric": "Net Profit Margin on Sold Fish (%)", "Value / Amount": `${kpis.profitMarginPercent}%` },
         { "Vending Center Metric": "Avg Procurement Cost per Kg (Rs)", "Value / Amount": procurementAvgCost },
@@ -2800,13 +2822,23 @@ export default function VendingCenterLoggerPage() {
                     )}
                   </div>
                 </div>
-                <div className="mt-3.5 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2.5 space-y-0.5">
+                <div className="mt-3.5 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2.5 space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-emerald-300 font-bold">G: ₹{kpis.guttedProfit.toLocaleString("en-IN")}</span>
-                    <span className="text-cyan-300 font-bold">NG: ₹{kpis.nonGuttedProfit.toLocaleString("en-IN")}</span>
+                    <span className="text-emerald-300 font-bold" title="Net Gutted Profit after procurement and worker labor">
+                      G: ₹{kpis.guttedProfit.toLocaleString("en-IN")}
+                    </span>
+                    <span className="text-cyan-300 font-bold">
+                      NG: ₹{kpis.nonGuttedProfit.toLocaleString("en-IN")}
+                    </span>
                   </div>
-                  <div className="text-[10px] text-slate-500 truncate">
-                    At ₹{kpis.procurementAvgCost}/Kg procurement cost
+                  <div className="flex items-center justify-between text-[10px] text-slate-500">
+                    <span>Proc: ₹{kpis.procurementAvgCost}/Kg</span>
+                    <span
+                      className="text-amber-300/90 font-medium"
+                      title="Mohd Amin's ₹5/Kg gutting incentive deducted from gutted profit"
+                    >
+                      Worker: -₹{kpis.periodWorkerLaborCost.toLocaleString("en-IN")} (₹5/Kg)
+                    </span>
                   </div>
                 </div>
               </div>
