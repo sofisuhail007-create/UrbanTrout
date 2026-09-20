@@ -512,13 +512,14 @@ export async function POST(request: Request) {
     }
 
     const parsedWeight = parseFloat(weight_kg);
-    const parsedRate = parseFloat(rate_per_kg) || 650;
+    const parsedRate = parseFloat(rate_per_kg) || 580;
     const parsedPaid = parseFloat(amount_paid);
     const calculatedExpected = Math.round(parsedWeight * parsedRate);
     const expected = body.expected_amount !== undefined && body.expected_amount !== null
       ? parseFloat(body.expected_amount)
       : calculatedExpected;
     const discount = Math.max(0, expected - parsedPaid);
+    const effectiveRate = parsedWeight > 0 ? Math.round((parsedPaid / parsedWeight) * 10) / 10 : parsedRate;
 
     const now = new Date();
     const entry: VendingSalesEntry = {
@@ -536,6 +537,7 @@ export async function POST(request: Request) {
         ...(custom_fields || {}),
         expected_amount: expected,
         discount_amount: discount,
+        effective_rate: effectiveRate,
         self_cleaned: Boolean(body.self_cleaned ?? custom_fields?.self_cleaned),
       },
       logged_by: normalizeStaffName(logged_by),
@@ -612,6 +614,12 @@ export async function PUT(request: Request) {
       const paid = updates.amount_paid !== undefined ? parseFloat(updates.amount_paid) : 0;
       updates.expected_amount = updates.expected_amount !== undefined ? parseFloat(updates.expected_amount) : Math.round(w * r);
       updates.discount_amount = Math.max(0, updates.expected_amount - paid);
+      if (w > 0 && paid > 0) {
+        updates.custom_fields = {
+          ...(updates.custom_fields || {}),
+          effective_rate: Math.round((paid / w) * 10) / 10,
+        };
+      }
     }
 
     updates.updated_at = new Date().toISOString();

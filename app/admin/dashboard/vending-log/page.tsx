@@ -1180,8 +1180,10 @@ export default function VendingCenterLoggerPage() {
       return;
     }
 
+    const defaultStandardRate = formType === "Gutted" ? (guttedPrice || DEFAULT_GUTTED_PRICE) : (nonGuttedPrice || DEFAULT_NON_GUTTED_PRICE);
+    const standardExpected = Math.round(w * defaultStandardRate);
     const calculatedExpected = Math.round(w * formRate);
-    const expected = calculatedExpected;
+    const expected = (formRate < defaultStandardRate && formRate > 0) ? standardExpected : calculatedExpected;
     const difference = Math.max(0, expected - amt);
 
     if (formBalanceAction === "balance" && difference > 0) {
@@ -1213,6 +1215,7 @@ export default function VendingCenterLoggerPage() {
       finalDiscount = Math.max(0, expected - amt);
     }
 
+    const calculatedEffectiveRate = w > 0 ? Math.round((amt / w) * 10) / 10 : formRate;
     const updatedCustomFields = {
       ...(formCustomFields || {}),
       self_cleaned: formType === "Gutted" ? formSelfCleaned : false,
@@ -1221,6 +1224,7 @@ export default function VendingCenterLoggerPage() {
       balance_ref_id: balanceRefId || null,
       customer_name: formCustomerName.trim() || undefined,
       customer_phone: formCustomerPhone.trim() || undefined,
+      effective_rate: calculatedEffectiveRate,
     };
 
     setSaving(true);
@@ -2019,6 +2023,7 @@ export default function VendingCenterLoggerPage() {
       "Rate (Rs/Kg)",
       "Expected Amount (Rs)",
       "Amount Taken (Rs)",
+      "Effective Rate (Rs/Kg)",
       "Negotiation Loss (Rs)",
       "Payment Mode",
       ...activeCustomCols.map((c) => c.name),
@@ -2032,6 +2037,8 @@ export default function VendingCenterLoggerPage() {
           ? Number(e.expected_amount)
           : Math.round(Number(e.weight_kg) * Number(e.rate_per_kg));
       const taken = Number(e.amount_paid) || 0;
+      const w = Number(e.weight_kg) || 0;
+      const effRate = w > 0 && taken > 0 ? Math.round((taken / w) * 10) / 10 : Number(e.rate_per_kg);
       const loss =
         e.discount_amount !== undefined && e.discount_amount !== null
           ? Number(e.discount_amount)
@@ -2045,6 +2052,7 @@ export default function VendingCenterLoggerPage() {
         e.rate_per_kg,
         exp,
         taken,
+        effRate,
         loss,
         `"${e.payment_mode}"`,
         ...activeCustomCols.map((c) => `"${e.custom_fields?.[c.id] ?? ""}"`),
@@ -2133,6 +2141,7 @@ export default function VendingCenterLoggerPage() {
           "Rate (Rs/Kg)": Number(e.rate_per_kg),
           "Expected Amount (Rs)": exp,
           "Amount Received (Rs)": taken,
+          "Effective Rate (Rs/Kg)": Number((Number(e.weight_kg) > 0 && taken > 0 ? taken / Number(e.weight_kg) : Number(e.rate_per_kg)).toFixed(1)),
           "Negotiation Loss (Rs)": loss,
           "Payment Mode": e.payment_mode,
           "Notes": e.notes || "",
@@ -3789,6 +3798,7 @@ export default function VendingCenterLoggerPage() {
                   <th className="py-3 px-3 text-right min-w-[70px]">Rate</th>
                   <th className="py-3 px-3 text-right min-w-[80px]">Expected</th>
                   <th className="py-3 px-3.5 text-right min-w-[95px] text-cyan-400">Collected</th>
+                  <th className="py-3 px-3.5 text-right min-w-[115px] text-teal-300">Eff. Rate</th>
                   <th className="py-3 px-3.5 text-right min-w-[115px] text-amber-400">Status</th>
                   <th className="py-3 px-3.5 min-w-[125px]">Payment</th>
                   <th className="py-3 px-3.5 text-right min-w-[90px]">Actions</th>
@@ -3924,6 +3934,43 @@ export default function VendingCenterLoggerPage() {
                       {/* Collected */}
                       <td className="py-3 px-3.5 text-right whitespace-nowrap">
                         <span className="text-cyan-300 font-black text-sm tracking-tight">₹{taken.toLocaleString("en-IN")}</span>
+                      </td>
+
+                      {/* Effective Realized Rate */}
+                      <td className="py-3 px-3.5 text-right whitespace-nowrap font-mono">
+                        {(() => {
+                          const effRate = w > 0 && taken > 0 ? taken / w : rate;
+                          const standardBenchmarkRate = isGutted ? (guttedPrice || DEFAULT_GUTTED_PRICE) : rate;
+                          const rateDiff = standardBenchmarkRate - effRate;
+                          const isLoss = rateDiff > 0.5;
+                          const isGain = rateDiff < -0.5;
+
+                          return (
+                            <div className="flex flex-col items-end">
+                              <span
+                                className={`font-mono font-black text-xs tracking-tight ${
+                                  isLoss ? "text-amber-300" : isGain ? "text-cyan-300" : "text-emerald-400"
+                                }`}
+                              >
+                                ₹{effRate.toFixed(1)}
+                                <span className="text-[9.5px] text-slate-400 font-sans font-normal ml-0.5">/Kg</span>
+                              </span>
+                              {isLoss ? (
+                                <span className="text-[9.5px] font-mono text-rose-400/90 font-medium">
+                                  -₹{rateDiff.toFixed(1)}/Kg {loss > 0 ? `(₹${loss})` : ""}
+                                </span>
+                              ) : isGain ? (
+                                <span className="text-[9.5px] font-mono text-cyan-400/90 font-medium">
+                                  +₹{Math.abs(rateDiff).toFixed(1)}/Kg
+                                </span>
+                              ) : (
+                                <span className="text-[9px] font-mono text-slate-500">
+                                  Standard
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </td>
 
                       {/* Loss / Concession / Balance */}
@@ -4197,6 +4244,48 @@ export default function VendingCenterLoggerPage() {
                       <span className="text-[10.5px] text-slate-400 block mt-0.5">Exp: ₹{exp.toLocaleString("en-IN")}</span>
                     </div>
                   </div>
+
+                  {/* Effective Rate Strip */}
+                  {(() => {
+                    const effRate = w > 0 && taken > 0 ? taken / w : rate;
+                    const standardBenchmarkRate = isGutted ? (guttedPrice || DEFAULT_GUTTED_PRICE) : rate;
+                    const rateDiff = standardBenchmarkRate - effRate;
+                    const isLoss = rateDiff > 0.5;
+                    const isGain = rateDiff < -0.5;
+
+                    return (
+                      <div className="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-slate-950/80 border border-slate-800/90 text-[10.5px] font-mono mt-1.5">
+                        <span className="text-slate-400 flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[12px] text-teal-400">price_change</span>
+                          Eff. Rate:
+                        </span>
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={`font-black ${
+                              isLoss ? "text-amber-300" : isGain ? "text-cyan-300" : "text-emerald-400"
+                            }`}
+                          >
+                            ₹{effRate.toFixed(1)}/Kg
+                          </span>
+                          {isLoss && (
+                            <span className="text-[9.5px] text-rose-400 font-medium">
+                              (-₹{rateDiff.toFixed(1)}/Kg)
+                            </span>
+                          )}
+                          {isGain && (
+                            <span className="text-[9.5px] text-cyan-400 font-medium">
+                              (+₹{Math.abs(rateDiff).toFixed(1)}/Kg)
+                            </span>
+                          )}
+                          {!isLoss && !isGain && (
+                            <span className="text-[9px] text-slate-500">
+                              (Std)
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* Card Bottom: Payment & Status Badge */}
@@ -4554,10 +4643,16 @@ export default function VendingCenterLoggerPage() {
 
               {/* Expected vs Actual Price & Negotiation Loss Section */}
               {(() => {
+                const defaultStandardRate = formType === "Gutted" ? (guttedPrice || DEFAULT_GUTTED_PRICE) : (nonGuttedPrice || DEFAULT_NON_GUTTED_PRICE);
                 const wNum = parseFloat(formWeight) || 0;
                 const expectedTotal = Math.round(wNum * formRate);
+                const standardExpectedTotal = Math.round(wNum * defaultStandardRate);
                 const actualPaid = parseFloat(formAmount) || 0;
                 const loss = wNum > 0 ? expectedTotal - actualPaid : 0;
+                const benchmarkLoss = wNum > 0 ? standardExpectedTotal - actualPaid : 0;
+                const effectiveRate = wNum > 0 && actualPaid > 0 ? (actualPaid / wNum) : formRate;
+                const rateLossPerKg = defaultStandardRate - effectiveRate;
+                const displayLoss = benchmarkLoss > 0 ? benchmarkLoss : loss;
 
                 return (
                   <div className="space-y-3">
@@ -4565,17 +4660,17 @@ export default function VendingCenterLoggerPage() {
                     <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800 space-y-2 font-mono">
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-slate-400">Standard Rate:</span>
-                        <span className="text-white font-bold">₹{formRate} / Kg</span>
+                        <span className="text-white font-bold">₹{defaultStandardRate} / Kg</span>
                       </div>
                       <div className="flex items-center justify-between text-xs border-t border-slate-800/80 pt-2">
                         <span className="text-slate-400">Expected Customer Total:</span>
                         <span className="text-emerald-400 font-black text-sm">
-                          ₹{expectedTotal.toLocaleString("en-IN")}
+                          ₹{standardExpectedTotal.toLocaleString("en-IN")}
                         </span>
                       </div>
                       {wNum > 0 && (
                         <div className="text-[10px] text-slate-500">
-                          Calculation: {wNum} Kg × ₹{formRate}/Kg = ₹{expectedTotal}
+                          Calculation: {wNum} Kg × ₹{defaultStandardRate}/Kg = ₹{standardExpectedTotal}
                         </div>
                       )}
                     </div>
@@ -4583,19 +4678,58 @@ export default function VendingCenterLoggerPage() {
                     {/* Row 4: Rate & Actual Amount Taken */}
                     <div className="grid grid-cols-2 gap-2.5">
                       <div>
-                        <label className="block text-[10px] uppercase font-bold text-slate-400 font-mono mb-1">
-                          Rate @/Kg (₹)
-                        </label>
+                        <div className="flex items-center justify-between mb-1">
+                          <label className="text-[10px] uppercase font-bold text-slate-400 font-mono">
+                            Rate @/Kg (₹)
+                          </label>
+                          {formRate !== defaultStandardRate && (
+                            <span className="text-[9px] text-amber-400 font-mono font-bold">
+                              Negotiated
+                            </span>
+                          )}
+                        </div>
                         <input
                           type="number"
                           value={formRate}
                           onChange={(e) => {
-                            setFormRate(parseFloat(e.target.value) || 0);
-                            setFormAmountOverridden(false);
+                            const newR = parseFloat(e.target.value) || 0;
+                            setFormRate(newR);
+                            if (wNum > 0) {
+                              setFormAmount(Math.round(wNum * newR).toString());
+                              setFormAmountOverridden(newR !== defaultStandardRate);
+                            }
                           }}
                           required
                           className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm font-mono text-white focus:outline-none focus:border-emerald-400"
                         />
+                        {/* Quick Rate Negotiation Presets */}
+                        <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+                          {[
+                            { label: `Std ₹${defaultStandardRate}`, r: defaultStandardRate },
+                            { label: "₹570", r: 570 },
+                            { label: "₹560", r: 560 },
+                            { label: "₹550", r: 550 },
+                          ].map((chip) => (
+                            <button
+                              key={chip.r}
+                              type="button"
+                              onClick={() => {
+                                setFormRate(chip.r);
+                                if (wNum > 0) {
+                                  setFormAmount(Math.round(wNum * chip.r).toString());
+                                  setFormAmountOverridden(chip.r !== defaultStandardRate);
+                                }
+                              }}
+                              className={`px-2 py-0.5 rounded-md text-[9.5px] font-mono font-bold transition-all cursor-pointer ${
+                                formRate === chip.r
+                                  ? "bg-emerald-500/30 border border-emerald-400 text-emerald-300 shadow-sm"
+                                  : "bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700"
+                              }`}
+                            >
+                              {chip.label}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                       <div>
                         <div className="flex items-center justify-between mb-1">
@@ -4603,7 +4737,7 @@ export default function VendingCenterLoggerPage() {
                             Amount Taken (₹) <span className="text-emerald-400">*</span>
                           </label>
                           {formAmountOverridden && (
-                            <span className="text-[9px] text-amber-400 font-mono">Negotiated</span>
+                            <span className="text-[9px] text-amber-400 font-mono">Custom</span>
                           )}
                         </div>
                         <input
@@ -4614,55 +4748,120 @@ export default function VendingCenterLoggerPage() {
                             setFormAmountOverridden(true);
                           }}
                           required
-                          placeholder={`Expected: ₹${expectedTotal}`}
+                          placeholder={`Expected: ₹${standardExpectedTotal}`}
                           className="w-full bg-slate-950 border-2 border-cyan-500/50 rounded-xl px-3 py-2.5 text-base font-black text-cyan-300 font-mono focus:outline-none focus:border-cyan-400"
                         />
+                        <span className="text-[9.5px] text-slate-500 font-mono mt-1 block">
+                          Type amount paid by customer
+                        </span>
                       </div>
                     </div>
 
-                    {/* Live Negotiation Loss Banner */}
+                    {/* Dynamic Realized Effective Rate & Loss Calculator */}
                     {wNum > 0 && (actualPaid > 0 || formAmount === "0") && (
                       <div
-                        className={`p-2.5 rounded-xl border text-xs font-mono flex items-center justify-between ${
-                          loss > 0
-                            ? "bg-amber-950/40 border-amber-500/40 text-amber-300"
-                            : loss < 0
-                            ? "bg-cyan-950/40 border-cyan-500/40 text-cyan-300"
-                            : "bg-emerald-950/40 border-emerald-500/40 text-emerald-300"
+                        className={`p-3 rounded-2xl border font-mono space-y-2.5 shadow-lg transition-all ${
+                          displayLoss > 0
+                            ? "bg-gradient-to-br from-amber-950/40 via-slate-950 to-slate-950 border-amber-500/40 text-amber-200"
+                            : displayLoss < 0
+                            ? "bg-gradient-to-br from-cyan-950/40 via-slate-950 to-slate-950 border-cyan-500/40 text-cyan-200"
+                            : "bg-gradient-to-br from-emerald-950/40 via-slate-950 to-slate-950 border-emerald-500/40 text-emerald-200"
                         }`}
                       >
-                        <div className="flex items-center gap-1.5">
-                          <span className="material-symbols-outlined text-sm">
-                            {loss > 0 ? "trending_down" : loss < 0 ? "trending_up" : "check_circle"}
+                        <div className="flex items-center justify-between">
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5 font-mono">
+                            <span className="material-symbols-outlined text-sm text-teal-400">
+                              {displayLoss > 0 ? "trending_down" : displayLoss < 0 ? "trending_up" : "verified"}
+                            </span>
+                            Dynamic Effective Rate &amp; Loss
                           </span>
-                          <span>
-                            {loss > 0
-                              ? "Negotiation / Balance Difference:"
-                              : loss < 0
-                              ? "Extra Paid (Premium):"
-                              : "Price Status:"}
+                          <span
+                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${
+                              displayLoss > 0
+                                ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
+                                : displayLoss < 0
+                                ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40"
+                                : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                            }`}
+                          >
+                            {displayLoss > 0
+                              ? `Loss: -₹${displayLoss.toLocaleString("en-IN")}`
+                              : displayLoss < 0
+                              ? `Extra: +₹${Math.abs(displayLoss).toLocaleString("en-IN")}`
+                              : "Exact Standard Rate ✓"}
                           </span>
                         </div>
-                        <span className="font-black text-sm">
-                          {loss > 0 ? (
-                            `-₹${loss.toLocaleString("en-IN")}`
-                          ) : loss < 0 ? (
-                            `+₹${Math.abs(loss).toLocaleString("en-IN")}`
-                          ) : (
-                            "Exact Full Price ✓"
-                          )}
-                        </span>
+
+                        {/* Twin metric display */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="p-2.5 rounded-xl bg-slate-950/90 border border-slate-800">
+                            <span className="text-[9.5px] uppercase font-bold text-slate-400 block font-mono">
+                              Effective Rate / Kg
+                            </span>
+                            <div className="flex items-baseline gap-1 mt-0.5">
+                              <span
+                                className={`text-lg font-black tracking-tight ${
+                                  rateLossPerKg > 0.5
+                                    ? "text-amber-300"
+                                    : rateLossPerKg < -0.5
+                                    ? "text-cyan-300"
+                                    : "text-emerald-400"
+                                }`}
+                              >
+                                ₹{effectiveRate.toFixed(1)}
+                              </span>
+                              <span className="text-[10px] font-sans text-slate-400">/ Kg</span>
+                            </div>
+                            {rateLossPerKg > 0.5 ? (
+                              <span className="text-[9px] text-rose-400 font-medium block mt-0.5">
+                                -₹{rateLossPerKg.toFixed(1)}/Kg vs ₹{defaultStandardRate} std
+                              </span>
+                            ) : rateLossPerKg < -0.5 ? (
+                              <span className="text-[9px] text-cyan-400 font-medium block mt-0.5">
+                                +₹{Math.abs(rateLossPerKg).toFixed(1)}/Kg premium
+                              </span>
+                            ) : (
+                              <span className="text-[9px] text-emerald-400/80 block mt-0.5">
+                                100% Full Standard Price
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="p-2.5 rounded-xl bg-slate-950/90 border border-slate-800 text-right">
+                            <span className="text-[9.5px] uppercase font-bold text-slate-400 block font-mono">
+                              Concession / Loss
+                            </span>
+                            <span
+                              className={`text-lg font-black tracking-tight block mt-0.5 ${
+                                displayLoss > 0
+                                  ? "text-rose-400"
+                                  : displayLoss < 0
+                                  ? "text-cyan-300"
+                                  : "text-emerald-400"
+                              }`}
+                            >
+                              {displayLoss > 0
+                                ? `-₹${displayLoss.toLocaleString("en-IN")}`
+                                : displayLoss < 0
+                                ? `+₹${Math.abs(displayLoss).toLocaleString("en-IN")}`
+                                : "₹0"}
+                            </span>
+                            <span className="text-[9px] text-slate-400 block mt-0.5">
+                              Exp: ₹{standardExpectedTotal.toLocaleString("en-IN")} → Paid: ₹{actualPaid.toLocaleString("en-IN")}
+                            </span>
+                          </div>
+                        </div>
                       </div>
                     )}
 
                     {/* Balance vs Final Settlement Options (When customer paid less than expected) */}
-                    {wNum > 0 && (actualPaid > 0 || formAmount === "0") && loss > 0 && (
+                    {wNum > 0 && (actualPaid > 0 || formAmount === "0") && displayLoss > 0 && (
                       <div className="p-3.5 rounded-2xl bg-slate-950/90 border border-amber-500/40 space-y-3">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <span className="material-symbols-outlined text-amber-400 text-base">account_balance_wallet</span>
                             <span className="text-xs font-bold text-slate-200 font-mono">
-                              Remaining Difference: ₹{loss.toLocaleString("en-IN")}
+                              Remaining Difference: ₹{displayLoss.toLocaleString("en-IN")}
                             </span>
                           </div>
                           <span className="text-[10px] text-slate-400 font-mono">Treatment</span>
@@ -4683,7 +4882,7 @@ export default function VendingCenterLoggerPage() {
                               <span>🤝 Final Settlement</span>
                             </div>
                             <p className="text-[10px] opacity-75 mt-0.5 leading-snug">
-                              Concede ₹{loss} as courtesy discount. No balance pending.
+                              Concede ₹{displayLoss} as courtesy discount. No balance pending.
                             </p>
                           </button>
 
@@ -4701,7 +4900,7 @@ export default function VendingCenterLoggerPage() {
                               <span>📒 Keep Balance (Khata)</span>
                             </div>
                             <p className="text-[10px] opacity-75 mt-0.5 leading-snug">
-                              Record ₹{loss} balance. Send QR & WhatsApp reminder later.
+                              Record ₹{displayLoss} balance. Send QR & WhatsApp reminder later.
                             </p>
                           </button>
                         </div>
