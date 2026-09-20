@@ -35,7 +35,7 @@ export async function POST(request: Request) {
       {
         id,
         data: typeof data === "object" ? data : JSON.parse(data),
-        expires_at: new Date(Date.now() + 48 * 60 * 60 * 1000).toISOString(),
+        expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
       },
       { onConflict: "id" }
     );
@@ -108,12 +108,13 @@ export async function GET(request: Request) {
     const cleanDigits = id.replace(/\D/g, "");
     const lookupId = cleanDigits || id;
 
-    // Fetch single invoice
+    // Fetch single invoice: matches either raw string or clean digits
     const { data: row, error } = await supabase
       .from("invoices")
       .select("data, expires_at")
-      .eq("id", lookupId)
-      .single();
+      .or(`id.eq.${lookupId},id.eq.${id}`)
+      .limit(1)
+      .maybeSingle();
 
     if (row?.data) {
       return NextResponse.json({ success: true, invoice: row.data, expiresAt: row.expires_at });

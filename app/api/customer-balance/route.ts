@@ -29,6 +29,11 @@ export interface CustomerBalanceRecord {
   updated_at?: string;
 }
 
+function isUUID(str?: string | null): boolean {
+  if (!str || typeof str !== "string") return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(str.trim());
+}
+
 // Fallback helper to store/retrieve from app_settings if customer_balances table is not yet created
 async function getFallbackBalances(): Promise<CustomerBalanceRecord[]> {
   try {
@@ -239,6 +244,45 @@ export async function GET(request: Request) {
       }
     } catch (_) {}
 
+    // Deduplicate records by invoice_id to guarantee strictly 1 entry per bill/order
+    const deduplicatedMap = new Map<string, CustomerBalanceRecord>();
+    for (const rec of records) {
+      const key = (rec.invoice_id || rec.id || "").trim();
+      if (!key) continue;
+
+      if (!deduplicatedMap.has(key)) {
+        deduplicatedMap.set(key, rec);
+      } else {
+        const existing = deduplicatedMap.get(key)!;
+        // Prefer record with active payment link or higher/more recent updated_at timestamp
+        const preferRec =
+          (!existing.razorpay_payment_link_id && !!rec.razorpay_payment_link_id) ||
+          (new Date(rec.updated_at || rec.created_at || 0).getTime() >
+            new Date(existing.updated_at || existing.created_at || 0).getTime());
+
+        if (preferRec) {
+          deduplicatedMap.set(key, {
+            ...existing,
+            ...rec,
+            razorpay_payment_link_id: rec.razorpay_payment_link_id || existing.razorpay_payment_link_id,
+            razorpay_payment_link_url: rec.razorpay_payment_link_url || existing.razorpay_payment_link_url,
+            razorpay_qr_id: rec.razorpay_qr_id || existing.razorpay_qr_id,
+            last_reminder_sent_at: rec.last_reminder_sent_at || existing.last_reminder_sent_at,
+          });
+        } else {
+          deduplicatedMap.set(key, {
+            ...rec,
+            ...existing,
+            razorpay_payment_link_id: existing.razorpay_payment_link_id || rec.razorpay_payment_link_id,
+            razorpay_payment_link_url: existing.razorpay_payment_link_url || rec.razorpay_payment_link_url,
+            razorpay_qr_id: existing.razorpay_qr_id || rec.razorpay_qr_id,
+            last_reminder_sent_at: existing.last_reminder_sent_at || rec.last_reminder_sent_at,
+          });
+        }
+      }
+    }
+    records = Array.from(deduplicatedMap.values());
+
     // Apply status filter
     let filtered = records;
     if (filterStatus === "pending") {
@@ -399,11 +443,13 @@ export async function POST(request: Request) {
 
     // 4. Also sync vending_sales_log table if this is a vending log balance
     try {
-      const { data: vslMatch } = await supabase
-        .from("vending_sales_log")
-        .select("id, custom_fields")
-        .or(`id.eq.${newRecord.invoice_id},custom_fields->>balance_ref_id.eq.${newRecord.invoice_id}`)
-        .maybeSingle();
+      let vslQuery = supabase.from("vending_sales_log").select("id, custom_fields");
+      if (isUUID(newRecord.invoice_id)) {
+        vslQuery = vslQuery.or(`id.eq.${newRecord.invoice_id},custom_fields->>balance_ref_id.eq.${newRecord.invoice_id}`);
+      } else {
+        vslQuery = vslQuery.eq("custom_fields->>balance_ref_id", newRecord.invoice_id);
+      }
+      const { data: vslMatch } = await vslQuery.maybeSingle();
 
       if (vslMatch) {
         const cf = vslMatch.custom_fields || {};
@@ -456,11 +502,13 @@ export async function PATCH(request: Request) {
 
     if (!current) {
       try {
-        const { data: dbRecord } = await supabase
-          .from("customer_balances")
-          .select("*")
-          .or(`id.eq.${lookupId},invoice_id.eq.${lookupId}`)
-          .maybeSingle();
+        let dbQuery = supabase.from("customer_balances").select("*");
+        if (isUUID(lookupId)) {
+          dbQuery = dbQuery.or(`id.eq.${lookupId},invoice_id.eq.${lookupId}`);
+        } else {
+          dbQuery = dbQuery.eq("invoice_id", lookupId);
+        }
+        const { data: dbRecord } = await dbQuery.maybeSingle();
 
         if (dbRecord) {
           current = {
@@ -476,11 +524,13 @@ export async function PATCH(request: Request) {
     // Check vending_sales_log if not found yet
     if (!current) {
       try {
-        const { data: vslMatch } = await supabase
-          .from("vending_sales_log")
-          .select("*")
-          .or(`id.eq.${lookupId},custom_fields->>balance_ref_id.eq.${lookupId}`)
-          .maybeSingle();
+        let vslQuery = supabase.from("vending_sales_log").select("*");
+        if (isUUID(lookupId)) {
+          vslQuery = vslQuery.or(`id.eq.${lookupId},custom_fields->>balance_ref_id.eq.${lookupId}`);
+        } else {
+          vslQuery = vslQuery.eq("custom_fields->>balance_ref_id", lookupId);
+        }
+        const { data: vslMatch } = await vslQuery.maybeSingle();
 
         if (vslMatch) {
           const cf = vslMatch.custom_fields || {};
@@ -548,19 +598,24 @@ export async function PATCH(request: Request) {
 
     current.updated_at = new Date().toISOString();
 
-    // 1. Update in customer_balances table
+    // 1. Update in customer_balances table (deduplicated by invoice_id)
     try {
-      const { data: rows } = await supabase
-        .from("customer_balances")
-        .select("id")
-        .or(`id.eq.${lookupId},invoice_id.eq.${lookupId}`)
-        .limit(1);
+      let cbQuery = supabase.from("customer_balances").select("id");
+      if (isUUID(lookupId)) {
+        cbQuery = cbQuery.or(`id.eq.${lookupId},invoice_id.eq.${current.invoice_id}`);
+      } else {
+        cbQuery = cbQuery.eq("invoice_id", current.invoice_id);
+      }
+      const { data: rows } = await cbQuery.limit(1);
       const existingRow = rows?.[0];
 
       if (existingRow?.id) {
         await supabase
           .from("customer_balances")
           .update({
+            customer_name: current.customer_name,
+            customer_phone: current.customer_phone,
+            total_amount: current.total_amount,
             paid_amount: current.paid_amount,
             balance_amount: current.balance_amount,
             status: current.status,
@@ -572,7 +627,7 @@ export async function PATCH(request: Request) {
             last_reminder_sent_at: current.last_reminder_sent_at,
             updated_at: current.updated_at,
           })
-          .eq("id", existingRow.id);
+          .eq("invoice_id", current.invoice_id);
       } else {
         await supabase.from("customer_balances").insert({
           invoice_id: current.invoice_id,
@@ -606,11 +661,15 @@ export async function PATCH(request: Request) {
 
     // 4. Also sync vending_sales_log table if this is a vending log balance
     try {
-      const { data: vslMatch } = await supabase
+      let vslMatchQuery = supabase
         .from("vending_sales_log")
-        .select("id, custom_fields, notes, payment_mode, amount_paid, expected_amount, weight_kg, rate_per_kg")
-        .or(`id.eq.${lookupId},custom_fields->>balance_ref_id.eq.${lookupId},custom_fields->>balance_ref_id.eq.${current.invoice_id}`)
-        .maybeSingle();
+        .select("id, custom_fields, notes, payment_mode, amount_paid, expected_amount, weight_kg, rate_per_kg");
+      if (isUUID(lookupId)) {
+        vslMatchQuery = vslMatchQuery.or(`id.eq.${lookupId},custom_fields->>balance_ref_id.eq.${lookupId},custom_fields->>balance_ref_id.eq.${current.invoice_id}`);
+      } else {
+        vslMatchQuery = vslMatchQuery.or(`custom_fields->>balance_ref_id.eq.${lookupId},custom_fields->>balance_ref_id.eq.${current.invoice_id}`);
+      }
+      const { data: vslMatch } = await vslMatchQuery.maybeSingle();
 
       if (vslMatch) {
         const cf = vslMatch.custom_fields || {};
@@ -758,10 +817,17 @@ export async function DELETE(request: Request) {
     if (!id) return NextResponse.json({ success: false, error: "Missing id" }, { status: 400 });
 
     try {
-      await supabase
-        .from("customer_balances")
-        .delete()
-        .or(`id.eq.${id},invoice_id.eq.${id}`);
+      if (isUUID(id)) {
+        await supabase
+          .from("customer_balances")
+          .delete()
+          .or(`id.eq.${id},invoice_id.eq.${id}`);
+      } else {
+        await supabase
+          .from("customer_balances")
+          .delete()
+          .eq("invoice_id", id);
+      }
     } catch (_) {}
 
     const cached = await getFallbackBalances();
@@ -770,11 +836,13 @@ export async function DELETE(request: Request) {
 
     // Also sync delete/clear in vending_sales_log
     try {
-      const { data: vslMatch } = await supabase
-        .from("vending_sales_log")
-        .select("id, custom_fields")
-        .or(`id.eq.${id},custom_fields->>balance_ref_id.eq.${id}`)
-        .maybeSingle();
+      let vslDelQuery = supabase.from("vending_sales_log").select("id, custom_fields");
+      if (isUUID(id)) {
+        vslDelQuery = vslDelQuery.or(`id.eq.${id},custom_fields->>balance_ref_id.eq.${id}`);
+      } else {
+        vslDelQuery = vslDelQuery.eq("custom_fields->>balance_ref_id", id);
+      }
+      const { data: vslMatch } = await vslDelQuery.maybeSingle();
 
       if (vslMatch) {
         const cf = vslMatch.custom_fields || {};

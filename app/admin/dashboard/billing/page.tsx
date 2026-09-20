@@ -733,12 +733,21 @@ export default function POSBillingPage() {
       ts: Date.now(), // 48-Hour validity timestamp
     };
 
-    // Encode invoice payload directly into URL (fallback if DB save fails)
-    const encodedPayload = btoa(encodeURIComponent(JSON.stringify(invoicePayload)));
+    // Save invoice to database for clean, permanent short URL (/invoice/UT-INV-XXXX)
+    try {
+      await adminFetch("/api/invoice", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ invoiceId: shortDigits, data: invoicePayload }),
+      });
+    } catch (e) {
+      console.warn("Could not save invoice to /api/invoice:", e);
+    }
+
     const origin = typeof window !== "undefined" ? window.location.origin : "https://urbantrout.in";
 
-    // Encode invoice payload directly into URL for instant public viewing & printing
-    const invoicePublicUrl = `${origin}/invoice/${invoiceNumber}?d=${encodedPayload}`;
+    // Clean, short public URL for WhatsApp sharing and customer viewing
+    const invoicePublicUrl = `${origin}/invoice/${invoiceNumber}`;
 
     // Auto-record into Customer Khata & Balances Ledger if partial or waived
     if (hasRemainingBalance || balanceStatus === "waived_final") {

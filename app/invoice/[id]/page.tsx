@@ -51,8 +51,13 @@ export default function PublicInvoicePage() {
             const parsed = JSON.parse(decodeURIComponent(atob(encodedData)));
             const createdTimestamp = parsed.ts || Date.now();
             const elapsedMs = Date.now() - createdTimestamp;
+            const isPaidOrSettled =
+              parsed.paymentStatus === "PAID" ||
+              parsed.balanceStatus === "settled" ||
+              parsed.balanceStatus === "waived_final" ||
+              (parsed.balanceAmount !== undefined && parsed.balanceAmount <= 0);
             const maxAgeMs = 48 * 60 * 60 * 1000;
-            const isExpired = elapsedMs > maxAgeMs;
+            const isExpired = !isPaidOrSettled && elapsedMs > maxAgeMs;
             const remainingHours = Math.max(0, Math.ceil((maxAgeMs - elapsedMs) / (1000 * 60 * 60)));
 
             setInvoice({
@@ -96,8 +101,13 @@ export default function PublicInvoicePage() {
             const parsed = json.invoice;
             const createdTimestamp = parsed.ts || Date.now();
             const elapsedMs = Date.now() - createdTimestamp;
-            const maxAgeMs = 48 * 60 * 60 * 1000; // 48 Hours
-            const isExpired = elapsedMs > maxAgeMs;
+            const isPaidOrSettled =
+              parsed.paymentStatus === "PAID" ||
+              parsed.balanceStatus === "settled" ||
+              parsed.balanceStatus === "waived_final" ||
+              (parsed.balanceAmount !== undefined && parsed.balanceAmount <= 0);
+            const maxAgeMs = 48 * 60 * 60 * 1000;
+            const isExpired = !isPaidOrSettled && elapsedMs > maxAgeMs;
             const remainingHours = Math.max(0, Math.ceil((maxAgeMs - elapsedMs) / (1000 * 60 * 60)));
 
             setInvoice({
