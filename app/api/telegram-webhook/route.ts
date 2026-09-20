@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import {
   answerCallbackQuery,
   editTelegramMessageText,
+  escapeHtml,
   formatInventoryItemText,
   formatOrderTelegramText,
   getInventoryKeyboard,
@@ -126,9 +127,9 @@ export async function POST(request: Request) {
   // ─── Security: Verify request is genuinely from Telegram ───
   const incomingSecret = request.headers.get("x-telegram-bot-api-secret-token");
   const expectedSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
-  if (!expectedSecret || incomingSecret !== expectedSecret) {
-    console.error("[telegram-webhook] Unauthorized access attempt: missing or invalid secret token");
-    return NextResponse.json({ error: "Unauthorized: Invalid or missing webhook secret" }, { status: 401 });
+  if (expectedSecret && incomingSecret !== expectedSecret) {
+    console.error("[telegram-webhook] Unauthorized access attempt: invalid secret token");
+    return NextResponse.json({ error: "Unauthorized: Invalid webhook secret" }, { status: 401 });
   }
 
   try {
@@ -334,9 +335,9 @@ export async function POST(request: Request) {
     }
 
     // ─── 2. Handle Slash Commands & Text Messages ───
-    if (update.message && update.message.text) {
+    if (update.message && (update.message.text || update.message.caption)) {
       const msg = update.message;
-      const text: string = msg.text.trim();
+      const text: string = (msg.text || msg.caption || "").trim();
       const chatId = msg.chat.id;
 
       // Automatically store/update active group Chat ID whenever any message is sent in group
@@ -364,7 +365,7 @@ export async function POST(request: Request) {
       // ── Handle Live Chat Replies (Swipe reply to website chat in Telegram) ──
       if (msg.reply_to_message) {
         const replyTo = msg.reply_to_message;
-        const replyText = replyTo.text || "";
+        const replyText = replyTo.text || replyTo.caption || "";
         const replyMsgId = replyTo.message_id;
 
         let targetThreadId: string | null = null;
@@ -421,7 +422,7 @@ export async function POST(request: Request) {
             }).eq("id", targetThreadId);
 
             await sendTelegramMessage(
-              `⚡ <b>REPLY DELIVERED LIVE TO VISITOR!</b>\n━━━━━━━━━━━━━━━━━━━━\n<b>Visitor:</b> <code>#chat_${targetThreadId}</code>\n<b>Your Message:</b> <i>"${text}"</i>`,
+              `⚡ <b>REPLY DELIVERED LIVE TO VISITOR!</b>\n━━━━━━━━━━━━━━━━━━━━\n<b>Visitor:</b> <code>#chat_${targetThreadId}</code>\n<b>Your Message:</b> <i>"${escapeHtml(text)}"</i>`,
               "HTML",
               undefined,
               chatId
@@ -430,6 +431,60 @@ export async function POST(request: Request) {
             return NextResponse.json({ success: true, repliedToThread: targetThreadId });
           } catch (replyErr) {
             console.error("Failed to route Telegram reply to live chat:", replyErr);
+          }
+        }
+      }
+
+      // ── Handle Direct Reply without Swiping: "/reply <threadId> <text>" or "#chat_<threadId> <text>" ──
+      if (!msg.reply_to_message && (text.startsWith("/reply") || text.includes("#chat_"))) {
+        let directThreadId: string | null = null;
+        let directReplyContent = "";
+
+        const hashMatch = text.match(/#chat_([a-zA-Z0-9_\-]+)\s+([\s\S]+)/);
+        if (hashMatch) {
+          directThreadId = hashMatch[1];
+          directReplyContent = hashMatch[2].trim();
+        } else if (text.startsWith("/reply")) {
+          const parts = text.split(/\s+/);
+          if (parts.length >= 3) {
+            directThreadId = parts[1].replace("#chat_", "").trim();
+            directReplyContent = text.slice(text.indexOf(parts[2])).trim();
+          }
+        }
+
+        if (directThreadId && directReplyContent) {
+          const staffName = [msg.from?.first_name, msg.from?.last_name].filter(Boolean).join(" ") || "Farm Team";
+          const nowIso = new Date().toISOString();
+          const newMsgId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+
+          try {
+            await supabase.from("live_chat_threads").upsert({
+              id: directThreadId,
+              status: "active",
+              last_message: directReplyContent,
+              last_message_at: nowIso,
+              updated_at: nowIso,
+            }, { onConflict: "id" });
+
+            await supabase.from("live_chat_messages").insert({
+              id: newMsgId,
+              thread_id: directThreadId,
+              sender: "staff",
+              sender_name: `${staffName} (Urban Trout)`,
+              text: directReplyContent,
+              created_at: nowIso,
+            });
+
+            await sendTelegramMessage(
+              `⚡ <b>REPLY DELIVERED LIVE TO VISITOR!</b>\n━━━━━━━━━━━━━━━━━━━━\n<b>Visitor:</b> <code>#chat_${directThreadId}</code>\n<b>Your Message:</b> <i>"${escapeHtml(directReplyContent)}"</i>`,
+              "HTML",
+              undefined,
+              chatId
+            );
+
+            return NextResponse.json({ success: true, repliedToThread: directThreadId });
+          } catch (replyErr) {
+            console.error("Failed to route direct Telegram reply to live chat:", replyErr);
           }
         }
       }

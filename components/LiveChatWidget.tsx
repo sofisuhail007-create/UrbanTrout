@@ -230,14 +230,16 @@ export default function LiveChatWidget() {
               }
               map.set(m.id, { ...m, status: "sent" });
             });
-            return Array.from(map.values()).sort(
+            const sorted = Array.from(map.values()).sort(
               (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
             );
+            const lastMsg = sorted[sorted.length - 1];
+            const isEndingMsg = lastMsg
+              ? lastMsg.text.includes("conversation has been ended") || lastMsg.text.includes("conversation has ended")
+              : false;
+            setIsClosed(isEndingMsg);
+            return sorted;
           });
-
-          if (data.messages.some((m: ChatMessage) => m.text.includes("conversation has been ended") || m.text.includes("conversation has ended"))) {
-            setIsClosed(true);
-          }
         }
       }
     } catch (_) {}
@@ -269,22 +271,25 @@ export default function LiveChatWidget() {
 
           if (newMsg.sender === "staff") {
             triggerStaffReplyAlert(newMsg);
+            if (newMsg.text.includes("conversation has been ended") || newMsg.text.includes("conversation has ended")) {
+              setIsClosed(true);
+            } else {
+              setIsClosed(false);
+            }
           }
         }
       )
       .subscribe();
 
-    // Gentle fallback polling only when the chat drawer is open
-    let pollInterval: NodeJS.Timeout | null = null;
-    if (isOpen) {
-      pollInterval = setInterval(() => {
-        fetchHistory(threadId);
-      }, 6000);
-    }
+    // Reliable polling: every 4 seconds when chat is open, every 10 seconds when minimized
+    // to ensure visitor always receives replies, toast notifications, and chime alerts
+    const pollInterval = setInterval(() => {
+      fetchHistory(threadId);
+    }, isOpen ? 4000 : 10000);
 
     return () => {
       supabase.removeChannel(channel);
-      if (pollInterval) clearInterval(pollInterval);
+      clearInterval(pollInterval);
     };
   }, [threadId, isOpen, isLeadCaptured]);
 
