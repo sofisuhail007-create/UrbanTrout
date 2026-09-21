@@ -6,7 +6,7 @@ import ProductCard from "@/components/ProductCard";
 import { supabase } from "@/lib/supabase";
 
 export const metadata: Metadata = {
-  title: "Fresh Rainbow Trout in Srinagar | Buy Online | Urban Trout",
+  title: "Urban Trout: Fresh Rainbow Trout in Srinagar | Buy Online",
   description:
     "Buy fresh Rainbow Trout online in Srinagar. Farmed in Malabagh in clean mountain water. Harvested to order with rapid delivery within 2 hours across Srinagar.",
   alternates: {

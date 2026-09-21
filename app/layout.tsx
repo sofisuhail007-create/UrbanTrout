@@ -36,7 +36,7 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://urbantrout.in"),
   title: {
     default: "Urban Trout | Buy Fresh Rainbow Trout in Srinagar | Home Delivery",
-    template: "%s | Urban Trout Srinagar",
+    template: "%s | Urban Trout",
   },
   description:
     "Order fresh Rainbow Trout in Srinagar. Harvested to order from our cold-water farm in Malabagh & delivered within 2 hours to your doorstep. Zero antibiotics, pure filtered water.",
@@ -64,7 +64,7 @@ export const metadata: Metadata = {
     description:
       "Order fresh Rainbow Trout in Srinagar. Farmed in clean borewell water in Malabagh. Harvested fresh to order with rapid delivery within 2 hours.",
     url: "https://urbantrout.in",
-    siteName: "Urban Trout Srinagar",
+    siteName: "Urban Trout",
     images: [
       {
         url: "https://urbantrout.in/og-image.jpg",
@@ -112,48 +112,64 @@ export const metadata: Metadata = {
 
 const jsonLd = {
   "@context": "https://schema.org",
-  "@type": ["LocalBusiness", "Store"],
-  "name": "Urban Trout",
-  "alternateName": "Urban Trout Srinagar",
-  "image": "https://urbantrout.in/images/og-image.png",
-  "description": "Srinagar's premier cold-water trout farm located in Malabagh. Providing fresh whole and cleaned Rainbow Trout harvested to order with rapid delivery within 2 hours across Srinagar, Kashmir.",
-  "@id": "https://urbantrout.in",
-  "url": "https://urbantrout.in",
-  "telephone": "+918491006127",
-  "email": "info.urbantrout@gmail.com",
-  "priceRange": "₹500 - ₹600 per Kg",
-  "currenciesAccepted": "INR",
-  "paymentAccepted": "Cash, UPI, Online Payment Link",
-  "address": {
-    "@type": "PostalAddress",
-    "streetAddress": "Malabagh, Near R P School (Girls Wing)",
-    "addressLocality": "Srinagar",
-    "addressRegion": "Jammu and Kashmir",
-    "postalCode": "190006",
-    "addressCountry": "IN"
-  },
-  "geo": {
-    "@type": "GeoCoordinates",
-    "latitude": 34.144709,
-    "longitude": 74.824525
-  },
-  "openingHoursSpecification": {
-    "@type": "OpeningHoursSpecification",
-    "dayOfWeek": [
-      "Monday",
-      "Tuesday",
-      "Wednesday",
-      "Thursday",
-      "Friday",
-      "Saturday",
-      "Sunday"
-    ],
-    "opens": "08:00",
-    "closes": "20:00"
-  },
-  "servesCuisine": "Seafood, Freshwater Fish",
-  "areaServed": [
-    { "@type": "AdministrativeArea", "name": "Srinagar Delivery Zone (from Malabagh Farm)" }
+  "@graph": [
+    {
+      "@type": "WebSite",
+      "@id": "https://urbantrout.in/#website",
+      "url": "https://urbantrout.in/",
+      "name": "Urban Trout",
+      "alternateName": ["Urban Trout Srinagar", "UrbanTrout", "Urban Trout Aquaculture"],
+      "publisher": {
+        "@id": "https://urbantrout.in/#organization"
+      },
+      "inLanguage": "en-IN"
+    },
+    {
+      "@type": ["LocalBusiness", "Store", "Organization"],
+      "@id": "https://urbantrout.in/#organization",
+      "name": "Urban Trout",
+      "alternateName": "Urban Trout Srinagar",
+      "image": "https://urbantrout.in/images/og-image.png",
+      "logo": "https://urbantrout.in/sitelogo.png",
+      "description": "Srinagar's premier cold-water trout farm located in Malabagh. Providing fresh whole and cleaned Rainbow Trout harvested to order with rapid delivery within 2 hours across Srinagar, Kashmir.",
+      "url": "https://urbantrout.in",
+      "telephone": "+918491006127",
+      "email": "info.urbantrout@gmail.com",
+      "priceRange": "₹500 - ₹600 per Kg",
+      "currenciesAccepted": "INR",
+      "paymentAccepted": "Cash, UPI, Online Payment Link",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "Malabagh, Near R P School (Girls Wing)",
+        "addressLocality": "Srinagar",
+        "addressRegion": "Jammu and Kashmir",
+        "postalCode": "190006",
+        "addressCountry": "IN"
+      },
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": 34.144709,
+        "longitude": 74.824525
+      },
+      "openingHoursSpecification": {
+        "@type": "OpeningHoursSpecification",
+        "dayOfWeek": [
+          "Monday",
+          "Tuesday",
+          "Wednesday",
+          "Thursday",
+          "Friday",
+          "Saturday",
+          "Sunday"
+        ],
+        "opens": "08:00",
+        "closes": "20:00"
+      },
+      "servesCuisine": "Seafood, Freshwater Fish",
+      "areaServed": [
+        { "@type": "AdministrativeArea", "name": "Srinagar Delivery Zone (from Malabagh Farm)" }
+      ]
+    }
   ]
 };
 
