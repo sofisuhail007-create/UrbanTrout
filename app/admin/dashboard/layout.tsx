@@ -61,15 +61,6 @@ const NAV_GROUPS: NavGroup[] = [
         permKey: "billing",
         activeTheme: "emerald",
       },
-      {
-        href: "/admin/dashboard/billing/social-pay",
-        icon: "send_to_mobile",
-        label: "Social / Remote Pay",
-        permKey: "billing",
-        badge: "New",
-        badgeType: "new",
-        activeTheme: "cyan",
-      },
     ],
   },
   {

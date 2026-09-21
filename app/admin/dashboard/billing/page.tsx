@@ -115,6 +115,35 @@ export default function POSBillingPage() {
   const [manualPayNote, setManualPayNote] = useState<string>("");
   const [deletingOrderId, setDeletingOrderId] = useState<string | null>(null);
 
+  // ─── NEW REMOTE WHATSAPP BILL & EDIT CUSTOMER MODALS ───
+  const [newRemoteModalOpen, setNewRemoteModalOpen] = useState(false);
+  const [newRemoteCustomerName, setNewRemoteCustomerName] = useState("");
+  const [newRemotePhone, setNewRemotePhone] = useState("");
+  const [newRemoteEmail, setNewRemoteEmail] = useState("");
+  const [newRemoteNotes, setNewRemoteNotes] = useState("");
+  const [newRemoteProductId, setNewRemoteProductId] = useState<string>("gutted-trout");
+  const [newRemoteWeight, setNewRemoteWeight] = useState<string>("2.0");
+  const [newRemoteBaseRate, setNewRemoteBaseRate] = useState<string>("580");
+  const [newRemoteDealRate, setNewRemoteDealRate] = useState<string>("560");
+  const [newRemoteGenerating, setNewRemoteGenerating] = useState(false);
+  const [newRemoteGeneratedData, setNewRemoteGeneratedData] = useState<{
+    billNum: string;
+    payUrl: string;
+    message: string;
+    total: number;
+    phone: string;
+    email: string;
+  } | null>(null);
+  const [newRemoteCopied, setNewRemoteCopied] = useState(false);
+  const [newRemoteLinkCopied, setNewRemoteLinkCopied] = useState(false);
+
+  // Edit Customer Modal State
+  const [editCustomerModal, setEditCustomerModal] = useState<any | null>(null);
+  const [editCustomerName, setEditCustomerName] = useState("");
+  const [editCustomerPhone, setEditCustomerPhone] = useState("");
+  const [editCustomerAddress, setEditCustomerAddress] = useState("");
+  const [editCustomerSaving, setEditCustomerSaving] = useState(false);
+
   // Customer Khata & Balance Tracking State
   const [amountPaidInput, setAmountPaidInput] = useState<string>("");
   const [balanceAction, setBalanceAction] = useState<"none" | "record_balance" | "settle_final">("none");
@@ -1561,6 +1590,204 @@ ${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━
     const enc = encodeURIComponent(ticket);
     window.open(`https://wa.me/?text=${enc}`, "_blank");
   };
+
+  // ─── GENERATE NEW REMOTE WHATSAPP BILL & PAYMENT LINK ───
+  const handleGenerateNewRemoteBill = async () => {
+    const weight = parseFloat(newRemoteWeight) || 0;
+    const baseRate = parseFloat(newRemoteBaseRate) || 0;
+    const dealRate = parseFloat(newRemoteDealRate) || baseRate;
+    const dealTotal = Math.round(weight * dealRate);
+    const standardTotal = Math.round(weight * baseRate);
+    const discountAmount = Math.max(0, standardTotal - dealTotal);
+    const discountPercent = standardTotal > 0 ? (discountAmount / standardTotal) * 100 : 0;
+
+    if (weight <= 0 || dealRate <= 0 || dealTotal <= 0) {
+      alert("Please enter a valid harvest weight and rate per kg.");
+      return;
+    }
+
+    setNewRemoteGenerating(true);
+    try {
+      const billNum = `UT-REM-${Date.now().toString().slice(-5)}`;
+      const cleanPhone = newRemotePhone.replace(/\D/g, "").slice(-10);
+      const cleanName = newRemoteCustomerName.trim() || "Valued Customer";
+      const selProd =
+        products.find((p) => p.id === newRemoteProductId) ||
+        products[0] || { id: "gutted-trout", name: "Premium Gutted Rainbow Trout", pricePerKg: 580 };
+
+      // 1. Create Razorpay Payment Link
+      const res = await fetch("/api/razorpay/payment-link", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: dealTotal,
+          customerName: cleanName,
+          customerPhone: cleanPhone,
+          customerEmail: newRemoteEmail.trim() || undefined,
+          orderRef: billNum,
+          itemsSummary: `${weight.toFixed(2)} Kg ${selProd.name}`,
+          channel: "WHATSAPP_DEAL",
+          weightKg: weight,
+          productType: selProd.name.toLowerCase().includes("gutted") ? "Gutted" : "Whole",
+          dealRate: dealRate,
+          standardRate: baseRate,
+          standardTotal: standardTotal,
+          discountAmount: discountAmount,
+          discountPercent: discountPercent,
+          notes: newRemoteNotes || `Agreed Rate: ₹${dealRate}/Kg (Base: ₹${baseRate}/Kg)`,
+        }),
+      });
+
+      const data = await res.json();
+      if (!data.success || !data.paymentLink?.short_url) {
+        throw new Error(data?.error || "Could not generate payment link");
+      }
+
+      const payUrl = data.paymentLink.short_url;
+      const plId = data.paymentLink.id;
+
+      // 2. Save Invoice in Supabase so it instantly appears as a card in Remote Orders!
+      const invoicePayload = {
+        num: billNum,
+        name: cleanName,
+        customerName: cleanName,
+        phone: cleanPhone,
+        customerPhone: cleanPhone,
+        email: newRemoteEmail.trim(),
+        items: [
+          {
+            n: `${selProd.name} (Special Agreed Price)`,
+            name: `${selProd.name} (Special Agreed Price)`,
+            w: weight,
+            weightKg: weight,
+            r: dealRate,
+            pricePerKg: dealRate,
+            t: dealTotal,
+            total: dealTotal,
+            standardRate: baseRate,
+            standardTotal: standardTotal,
+            discountAmount: discountAmount,
+          },
+        ],
+        tw: weight,
+        totalWeight: weight,
+        tot: dealTotal,
+        grandTotal: dealTotal,
+        standardTotal: standardTotal,
+        discountAmount: discountAmount,
+        notes: newRemoteNotes || `Special Rate: ₹${dealRate}/Kg (Base: ₹${baseRate}/Kg)`,
+        paymentMethod: "Razorpay Link (WhatsApp)",
+        paymentStatus: "PAYMENT DUE",
+        paymentId: null,
+        paymentLinkId: plId,
+        paymentLinkUrl: payUrl,
+        ts: Date.now(),
+        createdAt: new Date().toISOString(),
+      };
+
+      await adminFetch("/api/invoice", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ invoiceId: billNum, data: invoicePayload }),
+      });
+
+      // 3. Build the professional message template
+      const msg = `*URBAN TROUT AQUACULTURE*
+_Fresh Himalayan Rainbow Trout · Srinagar_
+
+Dear *${cleanName}*,
+Here is your order bill details:
+
+*ORDER & BILL SUMMARY*
+- *Product:* ${selProd.name}
+- *Harvest Weight:* ${weight.toFixed(2)} Kg
+- *Standard Rate:* Rs. ${baseRate}/Kg (Rs. ${standardTotal.toLocaleString("en-IN")})
+- *Agreed Price Per Kg:* *Rs. ${dealRate}/Kg*
+- *Total Payable Amount:* *Rs. ${dealTotal.toLocaleString("en-IN")}*
+${discountAmount > 0 ? `- *Discount Saved:* Rs. ${discountAmount.toLocaleString("en-IN")} (${discountPercent.toFixed(1)}% OFF)\n` : ""}
+*TAP TO PAY SECURELY*
+${payUrl}
+
+• Accepted: Google Pay • PhonePe • Paytm • UPI • Cards • NetBanking
+• Amount Locked: Rs. ${dealTotal.toLocaleString("en-IN")} (Exact billing)
+• Instant Confirmation: Payment auto-verifies upon completion. No screenshot required.
+
+*Urban Trout Farm Helpline:* +91 84910 06127
+Naseem Bagh / Malabagh, Srinagar`;
+
+      setNewRemoteGeneratedData({
+        billNum,
+        payUrl,
+        message: msg,
+        total: dealTotal,
+        phone: cleanPhone,
+        email: newRemoteEmail.trim(),
+      });
+
+      // Refresh orders list so card appears in background
+      await fetchRemoteOrders();
+    } catch (err: any) {
+      alert("Error generating bill: " + (err.message || err));
+    } finally {
+      setNewRemoteGenerating(false);
+    }
+  };
+
+  // ─── SAVE EDITED CUSTOMER DETAILS (NAME, PHONE, NOTES/ADDRESS) ───
+  const handleSaveEditCustomer = async () => {
+    if (!editCustomerModal) return;
+    setEditCustomerSaving(true);
+    try {
+      const cleanPhone = editCustomerPhone.trim().replace(/\D/g, "").slice(-10);
+      const cleanName = editCustomerName.trim() || "Valued Customer";
+
+      const res = await adminFetch("/api/invoice", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          invoiceId: editCustomerModal.id,
+          name: cleanName,
+          customerName: cleanName,
+          phone: cleanPhone,
+          customerPhone: cleanPhone,
+          address: editCustomerAddress.trim(),
+          notes: editCustomerAddress.trim() || editCustomerModal.data?.notes,
+        }),
+      });
+
+      const data = await res.json();
+      if (!data?.success) {
+        throw new Error(data?.error || "Failed to update customer details");
+      }
+
+      // Update local state in remoteOrders immediately
+      setRemoteOrders((prev) =>
+        prev.map((o) =>
+          o.id === editCustomerModal.id
+            ? {
+                ...o,
+                data: {
+                  ...o.data,
+                  name: cleanName,
+                  customerName: cleanName,
+                  phone: cleanPhone,
+                  customerPhone: cleanPhone,
+                  address: editCustomerAddress.trim(),
+                  notes: editCustomerAddress.trim() || o.data?.notes,
+                },
+              }
+            : o
+        )
+      );
+
+      setEditCustomerModal(null);
+    } catch (err: any) {
+      alert("Could not update customer: " + (err.message || err));
+    } finally {
+      setEditCustomerSaving(false);
+    }
+  };
+
 
   // KPI calculations for Remote Orders
   const pendingRemoteOrders = remoteOrders.filter((o) => getOrderStatus(o) !== "PAID");
@@ -3192,8 +3419,10 @@ ${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━
               <button
                 type="button"
                 onClick={() => {
-                  setActiveTab("pos");
-                  setPaymentMethod("WhatsAppLink");
+                  setNewRemoteModalOpen(true);
+                  setNewRemoteGeneratedData(null);
+                  setNewRemoteCopied(false);
+                  setNewRemoteLinkCopied(false);
                 }}
                 className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer shadow-sm shrink-0"
               >
@@ -3232,8 +3461,10 @@ ${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━
               <button
                 type="button"
                 onClick={() => {
-                  setActiveTab("pos");
-                  setPaymentMethod("WhatsAppLink");
+                  setNewRemoteModalOpen(true);
+                  setNewRemoteGeneratedData(null);
+                  setNewRemoteCopied(false);
+                  setNewRemoteLinkCopied(false);
                 }}
                 className="px-4 py-2 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 rounded-xl text-xs font-bold uppercase tracking-wider inline-flex items-center gap-1.5 cursor-pointer"
               >
@@ -3328,9 +3559,25 @@ ${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━
                       {/* Customer Information Row */}
                       <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800/80 space-y-1.5">
                         <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-slate-200 truncate" title={cName}>
-                            👤 {cName || "Valued Customer"}
-                          </span>
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="text-xs font-bold text-slate-200 truncate" title={cName}>
+                              👤 {cName || "Valued Customer"}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setEditCustomerModal(order);
+                                setEditCustomerName(cName !== "Valued Customer" ? cName : "");
+                                setEditCustomerPhone(cleanPhone !== "N/A" ? cleanPhone : "");
+                                setEditCustomerAddress(order.data?.address || order.address || orderNotes || "");
+                              }}
+                              className="px-1.5 py-0.5 rounded-md bg-slate-800/90 hover:bg-slate-700 text-slate-400 hover:text-cyan-300 transition-all text-[10px] font-mono flex items-center gap-0.5 cursor-pointer border border-slate-700 shrink-0"
+                              title="Edit Customer Name, Phone, or Delivery Note"
+                            >
+                              <span className="material-symbols-outlined text-[11px]">edit</span>
+                              <span>Edit</span>
+                            </button>
+                          </div>
                           <div className="flex items-center gap-1 shrink-0">
                             {cleanPhone && (
                               <>
@@ -4108,6 +4355,478 @@ ${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━
         </div>
       )}
 
+      {/* ─── NEW REMOTE / WHATSAPP BILL MODAL ─── */}
+      {newRemoteModalOpen && (
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setNewRemoteModalOpen(false);
+          }}
+          className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-fadeIn"
+        >
+          <div className="bg-slate-950 border border-emerald-500/40 rounded-3xl w-full max-w-lg p-5 sm:p-6 space-y-4 shadow-2xl relative text-left max-h-[92vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center text-lg shadow-md shadow-emerald-500/10">
+                  <span className="material-symbols-outlined text-xl">send_to_mobile</span>
+                </div>
+                <div>
+                  <h3 className="text-base sm:text-lg font-black text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                    New Remote / WhatsApp Bill
+                  </h3>
+                  <p className="text-[10.5px] text-slate-400 font-mono">
+                    Locked Razorpay link &amp; professional message for WhatsApp / Telegram / Socials
+                  </p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setNewRemoteModalOpen(false)}
+                className="w-8 h-8 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-xs font-black cursor-pointer border border-slate-800 transition-all"
+              >
+                ✕
+              </button>
+            </div>
+
+            {!newRemoteGeneratedData ? (
+              /* FORM STEP */
+              <div className="space-y-3.5">
+                {/* Customer Details */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div className="space-y-1">
+                    <label className="text-[10.5px] font-bold text-slate-400 uppercase font-mono">
+                      Customer Name:
+                    </label>
+                    <input
+                      type="text"
+                      value={newRemoteCustomerName}
+                      onChange={(e) => setNewRemoteCustomerName(e.target.value)}
+                      placeholder="e.g. Mushtaq Ahmad"
+                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-mono"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10.5px] font-bold text-slate-400 uppercase font-mono">
+                      Mobile (WhatsApp):
+                    </label>
+                    <input
+                      type="tel"
+                      value={newRemotePhone}
+                      onChange={(e) => setNewRemotePhone(e.target.value)}
+                      placeholder="10-digit mobile"
+                      maxLength={10}
+                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-mono"
+                    />
+                  </div>
+                </div>
+
+                {/* Product Select */}
+                <div className="space-y-1.5">
+                  <label className="text-[10.5px] font-bold text-slate-400 uppercase font-mono block">
+                    Select Product:
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {products.map((p) => {
+                      const isSel = newRemoteProductId === p.id;
+                      return (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => {
+                            setNewRemoteProductId(p.id);
+                            setNewRemoteBaseRate(String(p.pricePerKg));
+                            setNewRemoteDealRate(String(p.pricePerKg));
+                          }}
+                          className={`p-2.5 rounded-xl text-left border transition-all cursor-pointer ${
+                            isSel
+                              ? "bg-emerald-500/20 border-emerald-400 text-white shadow-md shadow-emerald-500/10"
+                              : "bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700"
+                          }`}
+                        >
+                          <div className="font-bold text-xs truncate">{p.name.split(" ")[0]} Trout</div>
+                          <div className="text-emerald-400 font-mono text-xs font-bold mt-0.5">
+                            ₹{p.pricePerKg}/Kg
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Harvest Weight & Live Pull */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-[11px]">
+                    <label className="uppercase tracking-wider font-bold text-slate-400 font-mono">
+                      Harvest Weight:
+                    </label>
+                    {currentWeight && (
+                      <button
+                        type="button"
+                        onClick={() => setNewRemoteWeight(currentWeight)}
+                        className="text-cyan-400 hover:text-cyan-300 text-[10px] font-mono underline cursor-pointer"
+                      >
+                        📥 Pull Live Scale ({currentWeight} Kg)
+                      </button>
+                    )}
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0.1"
+                      value={newRemoteWeight}
+                      onChange={(e) => setNewRemoteWeight(e.target.value)}
+                      placeholder="e.g. 2.0"
+                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-xl font-mono text-cyan-300 font-bold focus:outline-none focus:border-cyan-400 shadow-inner"
+                    />
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-xs">
+                      KG
+                    </span>
+                  </div>
+
+                  {/* Weight chips */}
+                  <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                    <span className="text-[10px] text-slate-500 font-mono">Presets:</span>
+                    {["0.5", "1.0", "1.5", "2.0", "2.5", "3.0", "4.0", "5.0"].map((w) => (
+                      <button
+                        key={w}
+                        type="button"
+                        onClick={() => setNewRemoteWeight(w)}
+                        className={`px-2 py-0.5 rounded-lg font-mono text-[11px] font-semibold border transition-all cursor-pointer ${
+                          newRemoteWeight === w
+                            ? "bg-cyan-500/20 text-cyan-300 border-cyan-400"
+                            : "bg-slate-900 hover:bg-slate-800 text-slate-400 border-slate-800"
+                        }`}
+                      >
+                        {w}k
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Rates Row: Base Rate & Agreed Price Per Kg */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 p-3 rounded-2xl bg-slate-900/80 border border-slate-800">
+                  <div className="space-y-1">
+                    <label className="text-[10.5px] font-bold text-slate-400 font-mono block">
+                      Our Base Rate (₹ / Kg):
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-xs">₹</span>
+                      <input
+                        type="number"
+                        value={newRemoteBaseRate}
+                        onChange={(e) => setNewRemoteBaseRate(e.target.value)}
+                        placeholder="580"
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-6 pr-3 py-1.5 text-sm font-mono text-white font-bold focus:outline-none focus:border-cyan-400"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10.5px] font-bold text-amber-300 font-mono block">
+                      Agreed Price Given (₹ / Kg):
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-400 font-mono text-xs">₹</span>
+                      <input
+                        type="number"
+                        value={newRemoteDealRate}
+                        onChange={(e) => setNewRemoteDealRate(e.target.value)}
+                        placeholder="560"
+                        className="w-full bg-slate-950 border-2 border-amber-500/60 rounded-xl pl-6 pr-3 py-1.5 text-sm font-mono text-amber-300 font-black focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Real-time Calculation Summary Card */}
+                {(() => {
+                  const w = parseFloat(newRemoteWeight) || 0;
+                  const b = parseFloat(newRemoteBaseRate) || 0;
+                  const d = parseFloat(newRemoteDealRate) || b;
+                  const stdTot = Math.round(w * b);
+                  const dealTot = Math.round(w * d);
+                  const disc = Math.max(0, stdTot - dealTot);
+                  const discPct = stdTot > 0 ? (disc / stdTot) * 100 : 0;
+
+                  return (
+                    <div className="p-3.5 rounded-2xl bg-gradient-to-b from-slate-900 to-slate-950 border border-emerald-500/30 space-y-2">
+                      <div className="flex items-center justify-between text-xs font-mono">
+                        <span className="text-slate-400">Total Payable Amount:</span>
+                        <span className="text-xl font-black text-emerald-400 font-mono">
+                          ₹{dealTot.toLocaleString("en-IN")}
+                        </span>
+                      </div>
+                      <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 border-t border-slate-800/80 pt-1.5">
+                        <span>Standard Total (₹{b}/Kg):</span>
+                        <span>₹{stdTot.toLocaleString("en-IN")}</span>
+                      </div>
+                      {disc > 0 && (
+                        <div className="flex items-center justify-between text-[11px] font-mono text-rose-400 font-bold">
+                          <span>Discount Given to Customer:</span>
+                          <span>-₹{disc.toLocaleString("en-IN")} ({discPct.toFixed(1)}% OFF)</span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* Optional Note / Address */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-slate-400 uppercase font-mono block">
+                      Delivery Note / Address (Optional):
+                    </label>
+                    <input
+                      type="text"
+                      value={newRemoteNotes}
+                      onChange={(e) => setNewRemoteNotes(e.target.value)}
+                      placeholder="e.g. Naseem Bagh, morning harvest"
+                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-mono"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-slate-400 uppercase font-mono block">
+                      Customer Email (Optional):
+                    </label>
+                    <input
+                      type="email"
+                      value={newRemoteEmail}
+                      onChange={(e) => setNewRemoteEmail(e.target.value)}
+                      placeholder="customer@email.com"
+                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-mono"
+                    />
+                  </div>
+                </div>
+
+                {/* Generate Button */}
+                <button
+                  type="button"
+                  onClick={handleGenerateNewRemoteBill}
+                  disabled={newRemoteGenerating}
+                  className="w-full py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-cyan-500 hover:from-emerald-400 hover:to-cyan-400 active:scale-[0.98] disabled:opacity-50 text-slate-950 font-black uppercase tracking-wider text-xs transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  {newRemoteGenerating ? (
+                    <>
+                      <span className="animate-spin text-base">⏳</span>
+                      <span>Generating Locked Payment Link...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-base">lock</span>
+                      <span>Generate Payment Link &amp; WhatsApp Message</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            ) : (
+              /* GENERATED SUCCESS STEP */
+              <div className="space-y-4 animate-fadeIn">
+                <div className="p-3.5 rounded-2xl bg-emerald-950/40 border border-emerald-500/50 text-center space-y-1">
+                  <div className="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto text-xl font-black">
+                    ✓
+                  </div>
+                  <h4 className="text-base font-black text-white">Bill Created &amp; Link Ready!</h4>
+                  <p className="text-xs text-slate-400 font-mono">
+                    Order <strong className="text-emerald-300">#{newRemoteGeneratedData.billNum}</strong> • Amount:{" "}
+                    <strong className="text-emerald-300">₹{newRemoteGeneratedData.total.toLocaleString("en-IN")}</strong>
+                  </p>
+                </div>
+
+                {/* Action Buttons: WhatsApp, Copy, Email */}
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const enc = encodeURIComponent(newRemoteGeneratedData.message);
+                      const url = newRemoteGeneratedData.phone
+                        ? `https://wa.me/91${newRemoteGeneratedData.phone}?text=${enc}`
+                        : `https://wa.me/?text=${enc}`;
+                      window.open(url, "_blank");
+                    }}
+                    className="py-2.5 px-3 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow-md cursor-pointer transition-all"
+                  >
+                    <span className="material-symbols-outlined text-base">chat</span>
+                    <span>Open on WhatsApp</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(newRemoteGeneratedData.message);
+                      setNewRemoteCopied(true);
+                      setTimeout(() => setNewRemoteCopied(false), 3000);
+                    }}
+                    className="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 border border-slate-700 cursor-pointer transition-all"
+                  >
+                    <span className="material-symbols-outlined text-base">content_copy</span>
+                    <span>{newRemoteCopied ? "✓ Message Copied!" : "Copy Full Message"}</span>
+                  </button>
+                </div>
+
+                {/* Secondary Actions: Copy Link Only & Email */}
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(newRemoteGeneratedData.payUrl);
+                      setNewRemoteLinkCopied(true);
+                      setTimeout(() => setNewRemoteLinkCopied(false), 2500);
+                    }}
+                    className="py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 font-mono text-xs font-bold border border-slate-800 flex items-center justify-center gap-1 cursor-pointer transition-all"
+                  >
+                    <span>🔗</span>
+                    <span>{newRemoteLinkCopied ? "✓ Link Copied!" : "Copy Link Only"}</span>
+                  </button>
+
+                  {newRemoteGeneratedData.email ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const subject = encodeURIComponent(`Urban Trout Bill #${newRemoteGeneratedData.billNum}`);
+                        const body = encodeURIComponent(newRemoteGeneratedData.message);
+                        window.open(`mailto:${newRemoteGeneratedData.email}?subject=${subject}&body=${body}`, "_self");
+                      }}
+                      className="py-2 px-3 rounded-xl bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 font-mono text-xs font-bold border border-blue-500/40 flex items-center justify-center gap-1 cursor-pointer transition-all"
+                    >
+                      <span>✉️</span>
+                      <span>Email Customer</span>
+                    </button>
+                  ) : (
+                    <div className="py-2 px-3 rounded-xl bg-slate-900/60 text-slate-500 font-mono text-[11px] text-center border border-slate-800/80">
+                      Auto-Logged in Cards ✓
+                    </div>
+                  )}
+                </div>
+
+                {/* Message Preview Box */}
+                <div className="space-y-1">
+                  <span className="text-[10px] text-slate-400 font-mono uppercase block">
+                    Message Preview (Formatted for WhatsApp / Telegram / SMS):
+                  </span>
+                  <pre className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-[10.5px] text-slate-300 font-mono whitespace-pre-wrap max-h-40 overflow-y-auto">
+                    {newRemoteGeneratedData.message}
+                  </pre>
+                </div>
+
+                {/* Done Button */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setNewRemoteModalOpen(false);
+                    setNewRemoteGeneratedData(null);
+                  }}
+                  className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs uppercase tracking-wider cursor-pointer transition-all"
+                >
+                  Done &amp; View Remote Orders Cards →
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ─── EDIT CUSTOMER DETAILS MODAL ─── */}
+      {editCustomerModal && (
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setEditCustomerModal(null);
+          }}
+          className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-fadeIn"
+        >
+          <div className="bg-slate-950 border border-cyan-500/40 rounded-3xl w-full max-w-md p-5 space-y-4 shadow-2xl relative text-left">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-1.5" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                  <span className="material-symbols-outlined text-cyan-400 text-lg">edit</span>
+                  Edit Customer Information
+                </h3>
+                <p className="text-xs text-slate-400 font-mono mt-0.5">
+                  Order #{editCustomerModal.data?.num || editCustomerModal.id}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditCustomerModal(null)}
+                className="w-7 h-7 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-xs font-black cursor-pointer border border-slate-800"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-400 uppercase font-mono block">
+                  Customer Name:
+                </label>
+                <input
+                  type="text"
+                  value={editCustomerName}
+                  onChange={(e) => setEditCustomerName(e.target.value)}
+                  placeholder="e.g. Mushtaq Ahmad"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-400 font-mono"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-400 uppercase font-mono block">
+                  Mobile Number:
+                </label>
+                <input
+                  type="tel"
+                  value={editCustomerPhone}
+                  onChange={(e) => setEditCustomerPhone(e.target.value)}
+                  placeholder="10-digit mobile"
+                  maxLength={10}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-400 font-mono"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-[11px] font-bold text-slate-400 uppercase font-mono block">
+                  Delivery Address / Note:
+                </label>
+                <textarea
+                  rows={2}
+                  value={editCustomerAddress}
+                  onChange={(e) => setEditCustomerAddress(e.target.value)}
+                  placeholder="e.g. Malabagh, Srinagar"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-400 font-mono resize-none"
+                />
+              </div>
+            </div>
+
+            <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-800/80">
+              <button
+                type="button"
+                onClick={() => setEditCustomerModal(null)}
+                className="px-4 py-2 rounded-xl bg-slate-800 text-slate-300 hover:text-white text-xs font-bold font-mono cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveEditCustomer}
+                disabled={editCustomerSaving}
+                className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold font-mono uppercase tracking-wider cursor-pointer shadow-md shadow-cyan-500/20 flex items-center gap-1.5 disabled:opacity-50"
+              >
+                {editCustomerSaving ? (
+                  <>
+                    <span className="animate-spin text-xs">⏳</span>
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>✓</span>
+                    <span>Save Customer Details</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ─── CUSTOMER KHATA BALANCE REMINDER & RAZORPAY QR MODAL ─── */}
       <BalanceReminderModal
         isOpen={isBalanceModalOpen}
@@ -4124,3 +4843,4 @@ ${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━
     </div>
   );
 }
+

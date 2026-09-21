@@ -137,37 +137,59 @@ export async function PATCH(request: Request) {
 
   try {
     const body = await request.json();
-    const { invoiceId, paymentStatus, paymentId, paymentMethod, notes } = body;
+    const {
+      invoiceId,
+      paymentStatus,
+      paymentId,
+      paymentMethod,
+      notes,
+      name,
+      customerName,
+      phone,
+      customerPhone,
+      address,
+    } = body;
     if (!invoiceId) {
       return NextResponse.json({ success: false, error: "Missing invoiceId" }, { status: 400 });
     }
 
     const cleanDigits = String(invoiceId).replace(/\D/g, "") || String(invoiceId);
 
-    const { data: row } = await supabase
+    // Look up by cleanDigits or exact invoiceId
+    const { data: matchedRows } = await supabase
       .from("invoices")
       .select("id, data")
-      .eq("id", cleanDigits)
-      .single();
+      .or(`id.eq.${cleanDigits},id.eq.${invoiceId}`)
+      .limit(1);
+
+    const row = matchedRows?.[0];
 
     if (!row) {
       return NextResponse.json({ success: false, error: "Invoice not found" }, { status: 404 });
     }
 
     const existingData = typeof row.data === "object" ? row.data : JSON.parse(row.data || "{}");
+    const newName = name || customerName || existingData.name || existingData.customerName;
+    const newPhone = phone || customerPhone || existingData.phone || existingData.customerPhone;
+
     const updatedData = {
       ...existingData,
+      name: newName,
+      customerName: newName,
+      phone: newPhone,
+      customerPhone: newPhone,
+      address: address !== undefined ? address : existingData.address,
       paymentStatus: paymentStatus || existingData.paymentStatus,
       paymentId: paymentId !== undefined ? paymentId : existingData.paymentId,
       paymentMethod: paymentMethod || existingData.paymentMethod,
       notes: notes !== undefined ? notes : existingData.notes,
-      paidAt: paymentStatus === "PAID" ? new Date().toISOString() : existingData.paidAt,
+      paidAt: paymentStatus === "PAID" ? (existingData.paidAt || new Date().toISOString()) : existingData.paidAt,
     };
 
     const { error: updateErr } = await supabase
       .from("invoices")
       .update({ data: updatedData })
-      .eq("id", cleanDigits);
+      .eq("id", row.id);
 
     if (updateErr) {
       return NextResponse.json({ success: false, error: updateErr.message }, { status: 500 });
