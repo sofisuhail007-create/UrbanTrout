@@ -31,6 +31,7 @@ export interface BargainDealItem {
   qrId?: string | null;
   status: "PENDING" | "PAID";
   paymentId?: string | null;
+  paymentLinkId?: string | null;
 }
 
 interface DealCalculatorTabProps {
@@ -335,6 +336,41 @@ export default function DealCalculatorTab({
     return () => clearInterval(interval);
   }, [qrEngine, rzpQrId, isDealPaid, dealTotal, customerName, activeDealNumber]);
 
+  // ─── 7b. PAYMENT LINK POLLER (for WhatsApp deals) ───
+  useEffect(() => {
+    const pendingWithLink = dealsLedger.filter(
+      (d) => d.status === "PENDING" && d.paymentLinkId
+    );
+    if (pendingWithLink.length === 0) return;
+
+    const interval = setInterval(async () => {
+      for (const deal of pendingWithLink) {
+        try {
+          const res = await fetch(
+            `/api/razorpay/payment-link?link_id=${encodeURIComponent(deal.paymentLinkId!)}`
+          );
+          const data = await res.json();
+          if (data.success && data.paid) {
+            const payId = data.payment?.id || `pl_paid_${Date.now()}`;
+            playSuccessChime();
+            speakPaymentAnnouncement(deal.dealTotal, "WhatsApp Deal", deal.customerName);
+            setDealsLedger((prev) =>
+              prev.map((d) =>
+                d.id === deal.id
+                  ? { ...d, status: "PAID", paymentId: payId }
+                  : d
+              )
+            );
+          }
+        } catch (err) {
+          console.warn("Error polling payment link status for deal", deal.id, err);
+        }
+      }
+    }, 8000);
+
+    return () => clearInterval(interval);
+  }, [dealsLedger, playSuccessChime, speakPaymentAnnouncement]);
+
   // Manual Soundbox Confirmation
   const handleConfirmSoundboxPaid = () => {
     setIsDealPaid(true);
@@ -457,6 +493,7 @@ export default function DealCalculatorTab({
         discountPercent: Math.round(discountPercent * 10) / 10,
         lossPerKg: Math.round(lossPerKg * 100) / 100,
         qrEngine,
+        paymentLinkId: plId || null,
         status: "PENDING",
       };
       setDealsLedger((prev) => [newDealItem, ...prev.filter((d) => d.id !== dealNum)]);
@@ -1269,6 +1306,27 @@ Naseem Bagh / Malabagh, Srinagar`;
                       >
                         Show QR
                       </button>
+                      {item.status === "PENDING" && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (confirm(`Mark deal ${item.id} as PAID manually?`)) {
+                              setDealsLedger((prev) =>
+                                prev.map((d) =>
+                                  d.id === item.id
+                                    ? { ...d, status: "PAID", paymentId: "manual_" + Date.now().toString().slice(-6) }
+                                    : d
+                                )
+                              );
+                              playSuccessChime();
+                            }
+                          }}
+                          className="px-2 py-1 rounded bg-emerald-900/60 hover:bg-emerald-800 text-emerald-300 text-[10px] font-mono cursor-pointer ml-1"
+                          title="Manually mark this deal as paid"
+                        >
+                          ✓ Paid
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

@@ -58,6 +58,7 @@ async function isDuplicatePayment(keys: string | (string | null | undefined)[]):
     // Check if any key in keyList is in the processed list
     const isDup = pruned.some((p) => keyList.includes(p.id));
     if (isDup) {
+      console.log('[webhook dedup] Duplicate detected for keys:', keyList.join(', '));
       keyList.forEach((k) => inMemoryDedup.set(k, now));
       return true;
     }
@@ -424,7 +425,7 @@ export async function POST(req: NextRequest) {
       const notes = payment.notes || {};
       const description = payment.description || null;
       const orderRef = notes.order_ref || notes.bill_number || null;
-      const paymentLinkId = notes.payment_link_id || null;
+      const paymentLinkId = notes.payment_link_id || payment.invoice_id || null;
 
       // Prevent duplicate notification: Razorpay fires payment_link.paid, payment.captured AND order.paid
       const isDuplicate = await isDuplicatePayment([paymentId, orderId, orderRef, paymentLinkId]);
