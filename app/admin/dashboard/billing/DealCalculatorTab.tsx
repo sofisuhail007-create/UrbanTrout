@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import PaginationBar from "@/components/PaginationBar";
+import { adminFetch } from "@/lib/adminClient";
 
 export interface DealProduct {
   id: string;
@@ -356,7 +357,18 @@ export default function DealCalculatorTab({
     if (dealTotal <= 0) return;
     setWaLinkLoading(true);
     try {
+      const dealNum = activeDealNumber || `UT-DEAL-${Date.now().toString().slice(-5)}`;
+      if (!activeDealNumber) setActiveDealNumber(dealNum);
+
+      const cName = customerName.trim() || "Valued Customer";
+      const cleanPhone = customerPhone.replace(/\D/g, "").slice(-10);
+      const isGutted =
+        activeProduct.name.toLowerCase().includes("gutted") &&
+        !activeProduct.name.toLowerCase().includes("non");
+      const prodType = isGutted ? "Gutted" : "Non Gutted";
+
       let payUrl = "";
+      let plId = "";
       if (activePaymentLink) {
         payUrl = activePaymentLink;
       } else {
@@ -365,42 +377,113 @@ export default function DealCalculatorTab({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             amount: dealTotal,
-            customerName: customerName.trim() || "Valued Customer",
-            customerPhone: customerPhone,
-            orderRef: activeDealNumber || `UT-DEAL-${Date.now().toString().slice(-5)}`,
+            customerName: cName,
+            customerPhone: cleanPhone,
+            orderRef: dealNum,
             itemsSummary: `${weight} Kg ${activeProduct.name} (Special Agreed Price)`,
-            notes: `Standard Price: ₹${standardTotal}. Concession: ₹${discountAmount} (${discountPercent.toFixed(1)}% OFF).`,
+            channel: "WHATSAPP_DEAL",
+            weightKg: weight,
+            productType: prodType,
+            dealRate: Math.round(dealRate * 100) / 100,
+            standardRate: standardRate,
+            standardTotal: standardTotal,
+            discountAmount: discountAmount,
+            discountPercent: discountPercent,
+            notes: `Deal Desk: Rs. ${standardRate}/Kg standard negotiated to Rs. ${dealRate.toFixed(1)}/Kg. Concession: Rs. ${discountAmount} (${discountPercent.toFixed(1)}% OFF).`,
           }),
         });
         const data = await res.json();
         if (data.success && data.paymentLink?.short_url) {
           payUrl = data.paymentLink.short_url;
+          plId = data.paymentLink.id;
           setActivePaymentLink(payUrl);
         }
       }
 
-      const cName = customerName.trim() || "Customer";
-      const cleanPhone = customerPhone.replace(/\D/g, "").slice(-10);
+      // Auto-save Invoice to DB with status PAYMENT DUE so it shows in POS Billing WhatsApp Orders!
+      const invoicePayload = {
+        num: dealNum,
+        name: cName,
+        phone: cleanPhone,
+        items: [
+          {
+            n: `${activeProduct.name} (Special Agreed Price)`,
+            w: weight,
+            r: Math.round(dealRate * 100) / 100,
+            t: dealTotal,
+            standardRate,
+            standardTotal,
+            discountAmount,
+          },
+        ],
+        tw: weight,
+        tot: dealTotal,
+        standardTotal,
+        discountAmount,
+        notes: `Deal Desk: Rs. ${standardRate}/Kg standard negotiated to Rs. ${dealRate.toFixed(1)}/Kg`,
+        paymentMethod: "Razorpay Link (WhatsApp Deal)",
+        paymentStatus: "PAYMENT DUE",
+        paymentId: null,
+        paymentLinkId: plId || undefined,
+        paymentLinkUrl: payUrl,
+        ts: Date.now(),
+      };
 
-      const msg = `🐟 *URBAN TROUT AQUACULTURE* 🐟
-*SPECIAL LOCKED DEAL INVOICE*
-────────────────────────
+      try {
+        await adminFetch("/api/invoice", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ invoiceId: dealNum, data: invoicePayload }),
+        });
+      } catch (invErr) {
+        console.warn("Could not save deal invoice to /api/invoice:", invErr);
+      }
+
+      // Also ensure this deal is registered in local session deals ledger
+      const newDealItem: BargainDealItem = {
+        id: dealNum,
+        date: new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date()),
+        time: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true }),
+        customerName: cName,
+        customerPhone: cleanPhone || "N/A",
+        productId: activeProduct.id,
+        productName: activeProduct.name,
+        weightKg: weight,
+        standardRate,
+        standardTotal,
+        dealTotal,
+        effectiveRate: Math.round(dealRate * 100) / 100,
+        discountAmount,
+        discountPercent: Math.round(discountPercent * 10) / 10,
+        lossPerKg: Math.round(lossPerKg * 100) / 100,
+        qrEngine,
+        status: "PENDING",
+      };
+      setDealsLedger((prev) => [newDealItem, ...prev.filter((d) => d.id !== dealNum)]);
+
+      // Clean, professional, 100% Unicode-safe message template (No broken box glyphs, no exclamation marks)
+      const msg = `*URBAN TROUT AQUACULTURE*
+_Fresh Himalayan Rainbow Trout · Srinagar_
+
 Dear *${cName}*,
-Here is your agreed locked deal:
+Here is your agreed locked deal invoice summary:
 
-📦 *Product:* ${activeProduct.name}
-⚖️ *Quantity:* ${weight} Kg
-🏷️ *Standard Price:* ₹${standardTotal.toLocaleString("en-IN")} (₹${standardRate}/Kg)
+*DEAL DETAILS*
+- *Product:* ${activeProduct.name}
+- *Quantity:* ${weight} Kg
+- *Standard Price:* Rs. ${standardTotal.toLocaleString("en-IN")} (Rs. ${standardRate}/Kg)
+- *Agreed Deal Price:* *Rs. ${dealTotal.toLocaleString("en-IN")}*
+- *Total Discount:* Rs. ${discountAmount.toLocaleString("en-IN")} (${discountPercent.toFixed(1)}% OFF)
+- *Effective Rate:* Rs. ${dealRate.toFixed(1)}/Kg
 
-🔥 *Special Agreed Deal Price:* *₹${dealTotal.toLocaleString("en-IN")}*
-🎉 *You Saved:* ₹${discountAmount.toLocaleString("en-IN")} (${discountPercent.toFixed(1)}% OFF)
-⚡ *Effective Rate:* ₹${dealRate.toFixed(1)}/Kg
-
-────────────────────────
-🔒 *Pay Exact Locked Amount Here:*
+*TAP TO PAY SECURELY*
 ${payUrl || "Scan our J&K Bank Soundbox Counter QR upon collection"}
 
-_Thank you for choosing fresh Himalayan Rainbow Trout!_`;
+> *Amount Locked:* Rs. ${dealTotal.toLocaleString("en-IN")} (Exact billing)
+> *Instant Confirmation:* Payment verifies automatically via UPI, Google Pay, PhonePe, Paytm, or Card. No screenshot required.
+
+*Urban Trout Farm Helpline:* +91 84910 06127
+Naseem Bagh / Malabagh, Srinagar`;
 
       const targetUrl = cleanPhone
         ? `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(msg)}`
