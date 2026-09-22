@@ -78,11 +78,23 @@ export default function CustomersPage() {
   const [addingCustomer, setAddingCustomer] = useState(false);
 
   // Broadcast Form State
-  const [broadcastTemplate, setBroadcastTemplate] = useState<"harvest" | "special" | "inactive" | "custom">("harvest");
+  const [broadcastTemplate, setBroadcastTemplate] = useState<"harvest" | "special" | "inactive" | "review" | "custom">("harvest");
   const [broadcastMessage, setBroadcastMessage] = useState(
     "Salam {name}! Fresh Rainbow Trout has just been harvested from our cold-water spring raceways at Urban Trout Harwan. Whole and gutted available fresh today. Would you like to reserve yours? 🌊🐟"
   );
   const [broadcastIndex, setBroadcastIndex] = useState(0);
+
+  // Google Review Collector State
+  const [googleReviewUrl, setGoogleReviewUrl] = useState("https://g.page/r/CTVKEpV62HMmECE/review");
+  const [reviewSentPhones, setReviewSentPhones] = useState<Set<string>>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = JSON.parse(localStorage.getItem("ut_cust_review_sent_phones") || "[]");
+        return new Set(stored);
+      } catch { return new Set(); }
+    }
+    return new Set();
+  });
 
   // Notes inline state
   const [noteValue, setNoteValue] = useState("");
@@ -130,12 +142,71 @@ export default function CustomersPage() {
           setBalances(bJson.records);
         }
       }
+
+      // Fetch Google Review URL setting
+      try {
+        const { data: revData } = await supabase
+          .from("app_settings")
+          .select("value")
+          .eq("key", "google_review_url")
+          .single();
+        if (revData?.value && revData.value.startsWith("http")) {
+          setGoogleReviewUrl(revData.value);
+        }
+      } catch (_) {}
     } catch (err) {
       console.warn("Error loading customer database data:", err);
     } finally {
       setLoading(false);
     }
   }, []);
+
+  // ── Send Review Request for a Customer ────────────────────────────────────
+  const handleRequestCustomerReview = (customer: CustomerRecord) => {
+    const cleanPhone = customer.phone.replace(/\D/g, "").slice(-10);
+    const reviewUrl = googleReviewUrl || "https://g.page/r/CTVKEpV62HMmECE/review";
+
+    const msg = `*URBAN TROUT AQUACULTURE*
+_Fresh Himalayan Rainbow Trout · Srinagar_
+
+Dear *${customer.name}*,
+
+Thank you for choosing *Urban Trout*!
+We hope you loved your fresh Himalayan Rainbow Trout.
+
+Your feedback means the world to us and helps other trout lovers in Kashmir find us. If you enjoyed your order, please take 30 seconds to leave us a quick Google review:
+
+*Leave us a review on Google:*
+${reviewUrl}
+
+It makes a huge difference to our local farm! Thank you for your support.
+
+_Warm regards,_
+*Urban Trout Team, Srinagar*`;
+
+    // 1. Copy to clipboard
+    try {
+      navigator.clipboard.writeText(msg);
+    } catch (_) {}
+
+    // 2. Open WhatsApp directly
+    const enc = encodeURIComponent(msg);
+    const url = cleanPhone.length === 10
+      ? `https://wa.me/91${cleanPhone}?text=${enc}`
+      : `https://wa.me/?text=${enc}`;
+    window.open(url, "_blank");
+
+    // Track
+    const newSent = new Set(reviewSentPhones);
+    newSent.add(cleanPhone);
+    setReviewSentPhones(newSent);
+    try {
+      localStorage.setItem("ut_cust_review_sent_phones", JSON.stringify([...newSent]));
+    } catch (_) {}
+
+    setCopyNotice(`Review request opened on WhatsApp for ${customer.name}!`);
+    setTimeout(() => setCopyNotice(null), 3500);
+  };
 
   useEffect(() => {
     loadData();
@@ -742,6 +813,22 @@ export default function CustomersPage() {
                 <span>Broadcast to {selectedIds.length} (WhatsApp)</span>
               </button>
 
+              {/* Review Broadcast to selected */}
+              <button
+                type="button"
+                onClick={() => {
+                  setBroadcastTemplate("review");
+                  setBroadcastMessage(
+                    `*URBAN TROUT AQUACULTURE*\n_Fresh Himalayan Rainbow Trout · Srinagar_\n\nDear *{name}*,\n\nThank you for being a valued customer of *Urban Trout*!\n\nIf you have enjoyed our fresh trout, we would be deeply grateful for a quick Google review. It takes 30 seconds and helps other trout lovers in Kashmir find our farm:\n\n*Leave us a review on Google:*\n${googleReviewUrl || "https://g.page/r/CTVKEpV62HMmECE/review"}\n\nThank you for supporting local aquaculture!\n\n_Warm regards,_\n*Urban Trout Team, Srinagar*`
+                  );
+                  setBroadcastModalOpen(true);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-bold text-xs transition-all cursor-pointer active:scale-95 shadow-md shadow-yellow-500/20"
+              >
+                <span>⭐</span>
+                <span>Ask Review ({selectedIds.length})</span>
+              </button>
+
               {/* Copy Selected Numbers */}
               <button
                 type="button"
@@ -907,9 +994,28 @@ export default function CustomersPage() {
                             <span className="text-slate-500 truncate">{c.locality}</span>
                           </>
                         )}
+                        {reviewSentPhones.has(c.phone.replace(/\D/g, "").slice(-10)) && (
+                          <span className="text-[9px] px-1.5 py-0.2 rounded bg-yellow-500/15 text-yellow-300 border border-yellow-500/30">
+                            ⭐ Asked
+                          </span>
+                        )}
                       </div>
 
                       <div className="flex items-center gap-1.5 flex-shrink-0">
+                        {/* Quick 1-Click Review Button */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRequestCustomerReview(c);
+                          }}
+                          className="px-2 py-0.5 rounded-lg bg-yellow-500/10 hover:bg-yellow-500/25 text-yellow-300 border border-yellow-500/30 text-[10px] font-mono font-bold flex items-center gap-1 transition-all cursor-pointer"
+                          title={`Send WhatsApp Google Review Request to ${c.name}`}
+                        >
+                          <span>⭐</span>
+                          <span>Review</span>
+                        </button>
+
                         {isInactive ? (
                           <span className="flex items-center gap-1 text-rose-400 font-bold">
                             <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
@@ -1006,6 +1112,25 @@ export default function CustomersPage() {
 
                 {/* Primary CTA Row */}
                 <div className="flex items-center gap-2 flex-wrap">
+                  {/* ⭐ Request Google Review */}
+                  <button
+                    type="button"
+                    onClick={() => handleRequestCustomerReview(selected)}
+                    className={`flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold font-mono transition-all cursor-pointer shadow-md ${
+                      reviewSentPhones.has(selected.phone.replace(/\D/g, "").slice(-10))
+                        ? "bg-yellow-950/40 border border-yellow-500/40 text-yellow-300 hover:bg-yellow-950/60"
+                        : "bg-yellow-500 hover:bg-yellow-400 text-slate-950 shadow-yellow-500/20"
+                    }`}
+                    title="Send WhatsApp message asking for a Google review"
+                  >
+                    <span>⭐</span>
+                    <span>
+                      {reviewSentPhones.has(selected.phone.replace(/\D/g, "").slice(-10))
+                        ? "Review Requested ✓"
+                        : "Request Review"}
+                    </span>
+                  </button>
+
                   {/* WhatsApp One-Click */}
                   <a
                     href={`https://wa.me/91${selected.phone.replace(/\D/g, "").slice(-10)}?text=${encodeURIComponent(
@@ -1414,7 +1539,7 @@ export default function CustomersPage() {
               <label className="block text-[10px] uppercase font-mono font-bold text-slate-400 mb-1.5">
                 Quick Campaign Templates
               </label>
-              <div className="grid grid-cols-3 gap-1.5">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
                 <button
                   type="button"
                   onClick={() => {
@@ -1462,6 +1587,22 @@ export default function CustomersPage() {
                   }`}
                 >
                   ⏰ Re-engagement
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setBroadcastTemplate("review");
+                    setBroadcastMessage(
+                      `*URBAN TROUT AQUACULTURE*\n_Fresh Himalayan Rainbow Trout · Srinagar_\n\nDear *{name}*,\n\nThank you for choosing *Urban Trout*!\nWe hope you loved your fresh Himalayan Rainbow Trout.\n\nYour feedback means the world to us and helps other trout lovers in Kashmir find us. If you enjoyed your order, please take 30 seconds to leave us a quick Google review:\n\n*Leave us a review on Google:*\n${googleReviewUrl || "https://g.page/r/CTVKEpV62HMmECE/review"}\n\nIt makes a huge difference to our local farm! Thank you for your support.\n\n_Warm regards,_\n*Urban Trout Team, Srinagar*`
+                    );
+                  }}
+                  className={`p-2 rounded-xl text-center text-xs font-mono transition-all cursor-pointer ${
+                    broadcastTemplate === "review"
+                      ? "bg-yellow-500/20 text-yellow-300 border border-yellow-500/50 font-bold"
+                      : "bg-slate-950 border border-slate-800 text-slate-400 hover:text-white"
+                  }`}
+                >
+                  ⭐ Google Review
                 </button>
               </div>
             </div>
