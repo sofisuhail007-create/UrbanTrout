@@ -108,7 +108,7 @@ export default function AdminSettingsPage() {
   const [priceSavedMsg, setPriceSavedMsg] = useState("");
 
   // ─── GOOGLE REVIEW URL STATE ───
-  const [googleReviewUrl, setGoogleReviewUrl] = useState("https://g.page/r/YOUR_GBP_REVIEW_ID/review");
+  const [googleReviewUrl, setGoogleReviewUrl] = useState("https://g.page/r/CTVKEpV62HMmECE/review");
   const [reviewUrlSaving, setReviewUrlSaving] = useState(false);
   const [reviewUrlSavedMsg, setReviewUrlSavedMsg] = useState("");
 

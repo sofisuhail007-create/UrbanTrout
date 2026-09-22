@@ -145,7 +145,7 @@ export default function POSBillingPage() {
   const [editCustomerSaving, setEditCustomerSaving] = useState(false);
 
   // ─── GOOGLE REVIEW COLLECTOR STATE ───
-  const [googleReviewUrl, setGoogleReviewUrl] = useState("https://g.page/r/YOUR_GBP_REVIEW_ID/review");
+  const [googleReviewUrl, setGoogleReviewUrl] = useState("https://g.page/r/CTVKEpV62HMmECE/review");
   const [reviewSentIds, setReviewSentIds] = useState<Set<string>>(() => {
     if (typeof window !== "undefined") {
       try {
