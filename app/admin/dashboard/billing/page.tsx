@@ -1596,34 +1596,37 @@ ${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━
     const cleanPhone = String(getOrderPhone(order)).replace(/\D/g, "").slice(-10);
     const reviewUrl = googleReviewUrl || "https://g.page/r/CTVKEpV62HMmECE/review";
 
-    // Build emoji at runtime via fromCodePoint — safe in all transpiler targets
-    const FISH  = String.fromCodePoint(0x1F41F); // 🐟
-    const STAR  = String.fromCodePoint(0x2B50);  // ⭐
-    const PRAY  = String.fromCodePoint(0x1F64F); // 🙏
+    const msg = `*URBAN TROUT AQUACULTURE*
+_Fresh Himalayan Rainbow Trout · Srinagar_
 
-    const msg = [
-      `Dear *${cName}*,`,
-      ``,
-      `Thank you for choosing *Urban Trout* ${FISH}`,
-      `We hope you loved your fresh Himalayan Rainbow Trout!`,
-      ``,
-      `Your feedback means the world to us and helps other fish lovers in Kashmir find us. If you enjoyed your experience, we\u2019d be incredibly grateful for a quick Google review:`,
-      ``,
-      `${STAR} *Leave us a review:*`,
-      reviewUrl,
-      ``,
-      `It only takes 30 seconds and makes a big difference! ${PRAY}`,
-      ``,
-      `_Thank you \u2014 Urban Trout Team, Srinagar_`,
-    ].join("\n");
+Dear *${cName}*,
 
+Thank you for choosing *Urban Trout*!
+We hope you loved your fresh Himalayan Rainbow Trout.
+
+Your feedback means the world to us and helps other trout lovers in Kashmir find us. If you enjoyed your order, please take 30 seconds to leave us a quick Google review:
+
+*Leave us a review on Google:*
+${reviewUrl}
+
+It makes a huge difference to our local farm! Thank you for your support.
+
+_Warm regards,_
+*Urban Trout Team, Srinagar*`;
+
+    // 1. Copy to clipboard
+    try {
+      navigator.clipboard.writeText(msg);
+    } catch (_) {}
+
+    // 2. Open WhatsApp with pre-filled message
     const enc = encodeURIComponent(msg);
     const url = cleanPhone.length === 10
       ? `https://wa.me/91${cleanPhone}?text=${enc}`
       : `https://wa.me/?text=${enc}`;
     window.open(url, "_blank");
 
-    // Track as sent (persisted in localStorage)
+    // Track as sent
     const newSent = new Set(reviewSentIds);
     newSent.add(order.id);
     setReviewSentIds(newSent);
@@ -1640,37 +1643,34 @@ ${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━
     const tot = getOrderTotal(order);
     const payUrl = order.data?.paymentLinkUrl || order.paymentLinkUrl || "";
 
-    const FISH = String.fromCodePoint(0x1F41F); // 🐟
-    const CARD = String.fromCodePoint(0x1F4B3); // 💳
+    const msg = `*URBAN TROUT AQUACULTURE*
+_Fresh Himalayan Rainbow Trout · Srinagar_
 
-    const parts = [
-      `Dear *${cName}*,`,
-      ``,
-      `A friendly reminder from *Urban Trout Aquaculture* ${FISH}`,
-      ``,
-      `Your fresh trout order *#${invNum}* of *\u20B9${tot.toLocaleString("en-IN")}* is waiting for payment.`,
-      ``,
-    ];
-    if (payUrl) {
-      parts.push(`${CARD} *Pay securely here:*`);
-      parts.push(payUrl);
-      parts.push(``);
-    }
-    parts.push(`Please complete the payment at your earliest convenience so we can process your order promptly.`);
-    parts.push(``);
-    parts.push(`For any queries, call/WhatsApp us: *+91 8491006127*`);
-    parts.push(``);
-    parts.push(`_Thank you \u2014 Urban Trout Team_`);
+Dear *${cName}*,
 
-    const msg = parts.join("\n");
+This is a gentle reminder regarding your fresh trout order *#${invNum}*.
 
+• *Total Payable Amount:* *Rs. ${tot.toLocaleString("en-IN")}*
+• *Payment Status:* Payment Pending
+${payUrl ? `\n*Tap to complete your payment securely:*\n${payUrl}\n` : ""}
+Please complete the payment so we can process and dispatch your fresh trout order promptly.
+
+*Urban Trout Farm Helpline:* +91 84910 06127
+Naseem Bagh / Malabagh, Srinagar`;
+
+    // 1. Copy to clipboard
+    try {
+      navigator.clipboard.writeText(msg);
+    } catch (_) {}
+
+    // 2. Open WhatsApp with pre-filled message
     const enc = encodeURIComponent(msg);
     const url = cleanPhone.length === 10
       ? `https://wa.me/91${cleanPhone}?text=${enc}`
       : `https://wa.me/?text=${enc}`;
     window.open(url, "_blank");
 
-    // Mark as reminded (session only)
+    // Mark as reminded
     setReminderSentIds((prev) => new Set([...prev, order.id]));
   };
 
