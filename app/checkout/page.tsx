@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import Link from "next/link";
 import Script from "next/script";
 import dynamic from "next/dynamic";
+import { fbPurchase, fbInitiateCheckout } from "@/lib/fbpixel";
 import { useRouter } from "next/navigation";
 
 const CustomerLiveMap = dynamic(() => import("@/components/CustomerLiveMap"), {
@@ -722,6 +723,8 @@ export default function CheckoutPage() {
     }
 
     captureLead(formData, grandTotal, items);
+    // ─── FB Pixel: User reached payment step ─────────────────────
+    fbInitiateCheckout({ value: grandTotal, numItems: items.reduce((s, i) => s + i.quantity, 0) });
     setCurrentStep(3);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
@@ -967,6 +970,14 @@ export default function CheckoutPage() {
                 })),
                 date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
                 time: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
+              });
+
+              // ─── FB Pixel: Confirmed Purchase ─────────────────────────
+              fbPurchase({
+                value: grandTotal,
+                contentName: items.map((i) => i.name).join(", "),
+                contentIds: items.map((i) => String(i.id)),
+                numItems: items.reduce((s, i) => s + i.quantity, 0),
               });
 
               if (clearCart) clearCart();

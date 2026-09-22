@@ -1093,8 +1093,19 @@ export default function VendingCenterLoggerPage() {
       // Payment filter
       if (filterPayment !== "all") {
         const isCash = (e.payment_mode || "").toLowerCase().trim() === "cash";
-        if (filterPayment === "Cash" && !isCash) return false;
-        if (filterPayment === "Online Payment" && isCash) return false;
+        const isCredit =
+          (e.custom_fields?.balance_status === "pending" && Number(e.custom_fields?.balance_amount) > 0) ||
+          (e.payment_mode || "").toLowerCase().includes("credit") ||
+          (e.payment_mode || "").toLowerCase().includes("khata") ||
+          (Number(e.amount_paid) === 0 && e.custom_fields?.balance_status !== "waived_final");
+
+        if (filterPayment === "Credit") {
+          if (!isCredit) return false;
+        } else if (filterPayment === "Cash") {
+          if (!isCash || isCredit) return false;
+        } else if (filterPayment === "Online Payment") {
+          if (isCash || isCredit) return false;
+        }
       }
 
       // Search query
@@ -1201,9 +1212,10 @@ export default function VendingCenterLoggerPage() {
 
     const defaultStandardRate = formType === "Gutted" ? (guttedPrice || DEFAULT_GUTTED_PRICE) : (nonGuttedPrice || DEFAULT_NON_GUTTED_PRICE);
     const standardExpected = Math.round(w * defaultStandardRate);
-    const calculatedExpected = Math.round(w * formRate);
-    const expected = (formRate < defaultStandardRate && formRate > 0) ? standardExpected : calculatedExpected;
-    const difference = Math.max(0, expected - amt);
+    const agreedBill = Math.round(w * formRate);
+    const rateDiscount = Math.max(0, standardExpected - agreedBill);
+    const unpaidAmount = Math.max(0, agreedBill - amt);
+    const difference = unpaidAmount;
 
     if (formBalanceAction === "balance" && difference > 0) {
       if (!formCustomerPhone.trim()) {
@@ -1220,21 +1232,26 @@ export default function VendingCenterLoggerPage() {
     if (formBalanceAction === "balance" && difference > 0) {
       balanceAmount = difference;
       balanceStatus = "pending";
-      finalDiscount = 0; // Customer owes this balance, not a concession!
+      finalDiscount = rateDiscount; // Customer owes this balance on Khata; rate concession is the only discount
       if (!balanceRefId) {
         balanceRefId = `VL-${formDate.replace(/\D/g, "")}-${Date.now().toString().slice(-4)}`;
       }
     } else if (formBalanceAction === "final_settlement" && difference > 0) {
       balanceAmount = 0;
       balanceStatus = "waived_final";
-      finalDiscount = difference; // Full difference conceded as courtesy discount
+      finalDiscount = rateDiscount + difference; // Full difference conceded as courtesy discount + rate concession
     } else {
       balanceAmount = 0;
       balanceStatus = "none";
-      finalDiscount = Math.max(0, expected - amt);
+      finalDiscount = rateDiscount + Math.max(0, agreedBill - amt);
     }
 
-    const calculatedEffectiveRate = w > 0 ? Math.round((amt / w) * 10) / 10 : formRate;
+    const calculatedEffectiveRate = w > 0 ? (amt > 0 ? Math.round((amt / w) * 10) / 10 : formRate) : formRate;
+    const resolvedPaymentMode =
+      formPayment === "Credit (Khata)" || (balanceStatus === "pending" && amt === 0)
+        ? "Credit (Khata)"
+        : formPayment;
+
     const updatedCustomFields = {
       ...(formCustomFields || {}),
       self_cleaned: formType === "Gutted" ? formSelfCleaned : false,
@@ -1244,6 +1261,7 @@ export default function VendingCenterLoggerPage() {
       customer_name: formCustomerName.trim() || undefined,
       customer_phone: formCustomerPhone.trim() || undefined,
       effective_rate: calculatedEffectiveRate,
+      standard_expected: standardExpected,
     };
 
     setSaving(true);
@@ -1258,12 +1276,12 @@ export default function VendingCenterLoggerPage() {
               invoiceId: balanceRefId,
               customerName: formCustomerName.trim() || "Counter Customer",
               customerPhone: formCustomerPhone.trim(),
-              totalAmount: expected,
+              totalAmount: agreedBill,
               paidAmount: amt,
               balanceAmount: balanceAmount,
               status: "pending",
-              paymentMethod: formPayment,
-              settlementNote: `Vending Center Sale: ${w} Kg ${formType} Trout`,
+              paymentMethod: resolvedPaymentMode,
+              settlementNote: `Vending Center Sale: ${w} Kg ${formType} Trout @ ₹${formRate}/Kg`,
               itemsSummary: `${w} Kg ${formType} Trout (Vending Center)`,
             }),
           });
@@ -1300,10 +1318,10 @@ export default function VendingCenterLoggerPage() {
           product_type: formType,
           weight_kg: w,
           rate_per_kg: formRate,
-          expected_amount: expected,
+          expected_amount: agreedBill,
           amount_paid: amt,
           discount_amount: finalDiscount,
-          payment_mode: formPayment,
+          payment_mode: resolvedPaymentMode,
           custom_fields: updatedCustomFields,
           notes: formNotes,
           logged_by: formLoggedBy,
@@ -1324,6 +1342,9 @@ export default function VendingCenterLoggerPage() {
           setNewEntryModalOpen(false);
           resetForm();
           playLogChime();
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          alert(errData.error || "Failed to update entry.");
         }
       } else {
         // Create new entry
@@ -1333,10 +1354,10 @@ export default function VendingCenterLoggerPage() {
           product_type: formType,
           weight_kg: w,
           rate_per_kg: formRate,
-          expected_amount: expected,
+          expected_amount: agreedBill,
           amount_paid: amt,
           discount_amount: finalDiscount,
-          payment_mode: formPayment,
+          payment_mode: resolvedPaymentMode,
           custom_fields: updatedCustomFields,
           notes: formNotes,
           logged_by: formLoggedBy,
@@ -1370,7 +1391,12 @@ export default function VendingCenterLoggerPage() {
                 }),
               }).catch((e) => console.warn("Customer sync notice:", e));
             }
+          } else {
+            alert(json.error || "Could not save sales log entry.");
           }
+        } else {
+          const errJson = await res.json().catch(() => ({}));
+          alert(errJson.error || "Failed to save sales log entry.");
         }
       }
     } catch (err) {
@@ -3745,6 +3771,7 @@ export default function VendingCenterLoggerPage() {
             <option value="all">All Payments</option>
             <option value="Cash">💵 Cash</option>
             <option value="Online Payment">⚡ Online Payment</option>
+            <option value="Credit">📒 Credit / Khata</option>
           </select>
         </div>
 
@@ -3851,8 +3878,12 @@ export default function VendingCenterLoggerPage() {
                       : Math.round(w * rate);
                   const taken = Number(e.amount_paid) || 0;
                   const isPendingBal =
-                    e.custom_fields?.balance_status === "pending" &&
-                    Number(e.custom_fields?.balance_amount) > 0;
+                    (e.custom_fields?.balance_status === "pending" && Number(e.custom_fields?.balance_amount) > 0) ||
+                    (e.payment_mode || "").toLowerCase().includes("credit") ||
+                    (e.payment_mode || "").toLowerCase().includes("khata");
+                  const isCreditSale =
+                    isPendingBal ||
+                    (Number(e.amount_paid) === 0 && e.custom_fields?.balance_status !== "waived_final");
                   const loss =
                     e.discount_amount !== undefined && e.discount_amount !== null && Number(e.discount_amount) > 0
                       ? Number(e.discount_amount)
@@ -3868,7 +3899,9 @@ export default function VendingCenterLoggerPage() {
                     <tr
                       key={e.id}
                       className={`group transition-colors ${
-                        isSelfCleaned
+                        isCreditSale
+                          ? "bg-purple-950/25 hover:bg-purple-950/40 border-l-4 border-l-purple-400"
+                          : isSelfCleaned
                           ? "bg-amber-950/20 hover:bg-amber-950/35 border-l-4 border-l-amber-400"
                           : index % 2 === 0
                           ? "bg-transparent hover:bg-slate-800/40"
@@ -3920,7 +3953,31 @@ export default function VendingCenterLoggerPage() {
                                 ✨ {e.product_type}
                               </span>
                             )}
+
+                            {/* Distinct Credit / Khata Badge */}
+                            {isCreditSale && (
+                              <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-purple-500/25 text-purple-200 border border-purple-500/50 inline-flex items-center gap-1 shadow-sm">
+                                <span className="material-symbols-outlined text-[11px] text-purple-300">account_balance_wallet</span>
+                                <span>Credit (Khata)</span>
+                                {Number(e.custom_fields?.balance_amount) > 0 && (
+                                  <span className="text-[8.5px] px-1 rounded bg-purple-500/30 text-purple-100 font-mono">
+                                    ₹{Number(e.custom_fields?.balance_amount).toLocaleString("en-IN")} due
+                                  </span>
+                                )}
+                              </span>
+                            )}
                           </div>
+
+                          {/* Customer / Phone info */}
+                          {(e.custom_fields?.customer_name || e.custom_fields?.customer_phone) && (
+                            <div className="flex items-center gap-1 text-[10.5px] text-purple-300/90 font-mono">
+                              <span className="material-symbols-outlined text-[12px] text-purple-400 shrink-0">person</span>
+                              <span className="font-semibold">{e.custom_fields.customer_name || "Customer"}</span>
+                              {e.custom_fields?.customer_phone && (
+                                <span className="text-purple-400/80">({e.custom_fields.customer_phone})</span>
+                              )}
+                            </div>
+                          )}
 
                           {/* Customer / Location / Notes */}
                           {e.notes && (
@@ -3965,7 +4022,14 @@ export default function VendingCenterLoggerPage() {
 
                       {/* Collected */}
                       <td className="py-3 px-3.5 text-right whitespace-nowrap">
-                        <span className="text-cyan-300 font-black text-sm tracking-tight">₹{taken.toLocaleString("en-IN")}</span>
+                        {taken === 0 && isCreditSale ? (
+                          <div className="flex flex-col items-end">
+                            <span className="text-rose-400 font-black text-sm tracking-tight font-mono">₹0</span>
+                            <span className="text-purple-400 text-[9px] font-mono">On Credit</span>
+                          </div>
+                        ) : (
+                          <span className="text-cyan-300 font-black text-sm tracking-tight">₹{taken.toLocaleString("en-IN")}</span>
+                        )}
                       </td>
 
                       {/* Effective Realized Rate */}
@@ -4011,7 +4075,7 @@ export default function VendingCenterLoggerPage() {
                           <button
                             type="button"
                             onClick={() => handleOpenBalanceModalForEntry(e)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/50 hover:bg-amber-500/30 transition-all cursor-pointer shadow-sm active:scale-95"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-bold bg-purple-500/25 text-purple-200 border border-purple-500/50 hover:bg-purple-500/35 transition-all cursor-pointer shadow-sm active:scale-95 font-mono"
                             title="Click to open Khata &amp; WhatsApp Reminder"
                           >
                             <span className="material-symbols-outlined text-[12px]">hourglass_top</span>
@@ -4042,7 +4106,19 @@ export default function VendingCenterLoggerPage() {
 
                       {/* Payment Mode */}
                       <td className="py-3 px-3.5 whitespace-nowrap">
-                        {e.payment_mode === "Cash + Online QR" || (e.custom_fields?.settled_at && (e.payment_mode || "").toLowerCase().includes("qr")) ? (
+                        {isCreditSale && taken === 0 ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-purple-500/20 border border-purple-500/40 text-purple-200 text-[10px] font-bold font-sans">
+                            📒 Credit (Khata)
+                          </span>
+                        ) : isCreditSale && taken > 0 ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-purple-500/20 border border-purple-500/40 text-purple-200 text-[10px] font-bold font-sans">
+                            💵 ₹{taken} + 📒 Credit
+                          </span>
+                        ) : (e.payment_mode || "").toLowerCase().includes("credit") ? (
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-purple-500/20 border border-purple-500/40 text-purple-200 text-[10px] font-bold font-sans">
+                            📒 Credit (Khata)
+                          </span>
+                        ) : e.payment_mode === "Cash + Online QR" || (e.custom_fields?.settled_at && (e.payment_mode || "").toLowerCase().includes("qr")) ? (
                           <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold font-sans">
                             💵 Cash + ⚡ QR
                           </span>
@@ -4072,7 +4148,7 @@ export default function VendingCenterLoggerPage() {
                             <button
                               type="button"
                               onClick={() => handleOpenBalanceModalForEntry(e)}
-                              className="px-2 py-1 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[10px] font-bold font-mono transition-all cursor-pointer flex items-center gap-1 shadow-sm active:scale-95"
+                              className="px-2 py-1 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-200 border border-purple-500/40 text-[10px] font-bold font-mono transition-all cursor-pointer flex items-center gap-1 shadow-sm active:scale-95"
                               title="Send WhatsApp Payment Reminder / Generate Razorpay QR"
                             >
                               <span className="material-symbols-outlined text-[13px]">qr_code_2</span>
@@ -4142,8 +4218,12 @@ export default function VendingCenterLoggerPage() {
                 : Math.round(w * rate);
             const taken = Number(e.amount_paid) || 0;
             const isPendingBal =
-              e.custom_fields?.balance_status === "pending" &&
-              Number(e.custom_fields?.balance_amount) > 0;
+              (e.custom_fields?.balance_status === "pending" && Number(e.custom_fields?.balance_amount) > 0) ||
+              (e.payment_mode || "").toLowerCase().includes("credit") ||
+              (e.payment_mode || "").toLowerCase().includes("khata");
+            const isCreditSale =
+              isPendingBal ||
+              (Number(e.amount_paid) === 0 && e.custom_fields?.balance_status !== "waived_final");
             const loss =
               e.discount_amount !== undefined && e.discount_amount !== null && Number(e.discount_amount) > 0
                 ? Number(e.discount_amount)
@@ -4159,7 +4239,9 @@ export default function VendingCenterLoggerPage() {
               <div
                 key={e.id}
                 className={`rounded-2xl border transition-all p-4 flex flex-col justify-between gap-3 shadow-lg ${
-                  isSelfCleaned
+                  isCreditSale
+                    ? "bg-purple-950/20 border-purple-500/40 hover:bg-purple-950/30 border-l-4 border-l-purple-400"
+                    : isSelfCleaned
                     ? "bg-amber-950/20 border-amber-500/40 hover:bg-amber-950/30 border-l-4 border-l-amber-400"
                     : "bg-slate-900/80 border-slate-800/80 hover:border-slate-700 hover:bg-slate-850/80"
                 }`}
@@ -4244,6 +4326,14 @@ export default function VendingCenterLoggerPage() {
                       </span>
                     )}
 
+                    {/* Distinct Credit / Khata Badge */}
+                    {isCreditSale && (
+                      <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-purple-500/25 text-purple-200 border border-purple-500/50 inline-flex items-center gap-1 shadow-sm">
+                        <span className="material-symbols-outlined text-[11px] text-purple-300">account_balance_wallet</span>
+                        <span>Credit (Khata)</span>
+                      </span>
+                    )}
+
                     {/* Staff Badge */}
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-800/90 border border-slate-700/60 text-slate-300 text-[10px] font-sans font-medium">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
@@ -4272,7 +4362,14 @@ export default function VendingCenterLoggerPage() {
 
                     <div className="bg-slate-950/70 border border-slate-800/80 rounded-xl p-2.5 text-right">
                       <span className="text-[10px] uppercase font-bold text-cyan-400 block">Collected</span>
-                      <span className="text-cyan-300 font-black text-lg tracking-tight block mt-0.5">₹{taken.toLocaleString("en-IN")}</span>
+                      {taken === 0 && isCreditSale ? (
+                        <div className="flex flex-col items-end">
+                          <span className="text-rose-400 font-black text-lg tracking-tight block mt-0.5">₹0</span>
+                          <span className="text-purple-400 text-[9.5px] font-mono block">On Credit</span>
+                        </div>
+                      ) : (
+                        <span className="text-cyan-300 font-black text-lg tracking-tight block mt-0.5">₹{taken.toLocaleString("en-IN")}</span>
+                      )}
                       <span className="text-[10.5px] text-slate-400 block mt-0.5">Exp: ₹{exp.toLocaleString("en-IN")}</span>
                     </div>
                   </div>
@@ -4323,7 +4420,15 @@ export default function VendingCenterLoggerPage() {
                 {/* Card Bottom: Payment & Status Badge */}
                 <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-800/60 font-mono text-xs">
                   <div>
-                    {e.payment_mode === "Cash + Online QR" || (e.custom_fields?.settled_at && (e.payment_mode || "").toLowerCase().includes("qr")) ? (
+                    {isCreditSale && taken === 0 ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-purple-500/20 border border-purple-500/40 text-purple-200 text-[10px] font-bold font-sans">
+                        📒 Credit (Khata)
+                      </span>
+                    ) : isCreditSale && taken > 0 ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-purple-500/20 border border-purple-500/40 text-purple-200 text-[10px] font-bold font-sans">
+                        💵 ₹{taken} + 📒 Credit
+                      </span>
+                    ) : e.payment_mode === "Cash + Online QR" || (e.custom_fields?.settled_at && (e.payment_mode || "").toLowerCase().includes("qr")) ? (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold font-sans">
                         💵 Cash + ⚡ QR
                       </span>
@@ -4680,11 +4785,13 @@ export default function VendingCenterLoggerPage() {
                 const expectedTotal = Math.round(wNum * formRate);
                 const standardExpectedTotal = Math.round(wNum * defaultStandardRate);
                 const actualPaid = parseFloat(formAmount) || 0;
+                const rateConcession = Math.max(0, standardExpectedTotal - expectedTotal);
+                const customerRemainingDue = Math.max(0, expectedTotal - actualPaid);
                 const loss = wNum > 0 ? expectedTotal - actualPaid : 0;
                 const benchmarkLoss = wNum > 0 ? standardExpectedTotal - actualPaid : 0;
                 const effectiveRate = wNum > 0 && actualPaid > 0 ? (actualPaid / wNum) : formRate;
                 const rateLossPerKg = defaultStandardRate - effectiveRate;
-                const displayLoss = benchmarkLoss > 0 ? benchmarkLoss : loss;
+                const displayLoss = customerRemainingDue;
 
                 return (
                   <div className="space-y-3">
@@ -4694,15 +4801,25 @@ export default function VendingCenterLoggerPage() {
                         <span className="text-slate-400">Standard Rate:</span>
                         <span className="text-white font-bold">₹{defaultStandardRate} / Kg</span>
                       </div>
+                      {formRate !== defaultStandardRate && (
+                        <div className="flex items-center justify-between text-xs border-t border-slate-800/80 pt-1.5">
+                          <span className="text-amber-400 font-bold">Negotiated Customer Rate:</span>
+                          <span className="text-amber-300 font-black">₹{formRate} / Kg</span>
+                        </div>
+                      )}
                       <div className="flex items-center justify-between text-xs border-t border-slate-800/80 pt-2">
-                        <span className="text-slate-400">Expected Customer Total:</span>
+                        <span className="text-slate-400">
+                          {formRate !== defaultStandardRate ? "Agreed Customer Bill:" : "Expected Customer Total:"}
+                        </span>
                         <span className="text-emerald-400 font-black text-sm">
-                          ₹{standardExpectedTotal.toLocaleString("en-IN")}
+                          ₹{expectedTotal.toLocaleString("en-IN")}
                         </span>
                       </div>
                       {wNum > 0 && (
                         <div className="text-[10px] text-slate-500">
-                          Calculation: {wNum} Kg × ₹{defaultStandardRate}/Kg = ₹{standardExpectedTotal}
+                          {formRate !== defaultStandardRate
+                            ? `Agreed: ${wNum} Kg × ₹${formRate}/Kg = ₹${expectedTotal} (Std Rate ₹${defaultStandardRate} = ₹${standardExpectedTotal})`
+                            : `Calculation: ${wNum} Kg × ₹${defaultStandardRate}/Kg = ₹${standardExpectedTotal}`}
                         </div>
                       )}
                     </div>
@@ -4780,11 +4897,11 @@ export default function VendingCenterLoggerPage() {
                             setFormAmountOverridden(true);
                           }}
                           required
-                          placeholder={`Expected: ₹${standardExpectedTotal}`}
+                          placeholder={`Agreed: ₹${expectedTotal}`}
                           className="w-full bg-slate-950 border-2 border-cyan-500/50 rounded-xl px-3 py-2.5 text-base font-black text-cyan-300 font-mono focus:outline-none focus:border-cyan-400"
                         />
                         <span className="text-[9.5px] text-slate-500 font-mono mt-1 block">
-                          Type amount paid by customer
+                          Type amount paid by customer (0 for Credit)
                         </span>
                       </div>
                     </div>
@@ -4793,7 +4910,9 @@ export default function VendingCenterLoggerPage() {
                     {wNum > 0 && (actualPaid > 0 || formAmount === "0") && (
                       <div
                         className={`p-3 rounded-2xl border font-mono space-y-2.5 shadow-lg transition-all ${
-                          displayLoss > 0
+                          customerRemainingDue > 0
+                            ? "bg-gradient-to-br from-purple-950/40 via-slate-950 to-slate-950 border-purple-500/40 text-purple-200"
+                            : rateLossPerKg > 0.5
                             ? "bg-gradient-to-br from-amber-950/40 via-slate-950 to-slate-950 border-amber-500/40 text-amber-200"
                             : displayLoss < 0
                             ? "bg-gradient-to-br from-cyan-950/40 via-slate-950 to-slate-950 border-cyan-500/40 text-cyan-200"
@@ -4803,23 +4922,27 @@ export default function VendingCenterLoggerPage() {
                         <div className="flex items-center justify-between">
                           <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5 font-mono">
                             <span className="material-symbols-outlined text-sm text-teal-400">
-                              {displayLoss > 0 ? "trending_down" : displayLoss < 0 ? "trending_up" : "verified"}
+                              {customerRemainingDue > 0 ? "account_balance_wallet" : rateLossPerKg > 0.5 ? "trending_down" : rateLossPerKg < -0.5 ? "trending_up" : "verified"}
                             </span>
                             Dynamic Effective Rate &amp; Loss
                           </span>
                           <span
                             className={`text-[10px] font-bold px-2 py-0.5 rounded-full font-mono ${
-                              displayLoss > 0
+                              customerRemainingDue > 0
+                                ? "bg-purple-500/20 text-purple-300 border border-purple-500/40"
+                                : rateLossPerKg > 0.5
                                 ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
-                                : displayLoss < 0
+                                : rateLossPerKg < -0.5
                                 ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40"
                                 : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
                             }`}
                           >
-                            {displayLoss > 0
-                              ? `Loss: -₹${displayLoss.toLocaleString("en-IN")}`
-                              : displayLoss < 0
-                              ? `Extra: +₹${Math.abs(displayLoss).toLocaleString("en-IN")}`
+                            {customerRemainingDue > 0
+                              ? `Credit / Due: ₹${customerRemainingDue.toLocaleString("en-IN")}`
+                              : rateLossPerKg > 0.5
+                              ? `Rate Disc: -₹${rateConcession.toLocaleString("en-IN")}`
+                              : rateLossPerKg < -0.5
+                              ? `Extra: +₹${Math.abs(expectedTotal - standardExpectedTotal).toLocaleString("en-IN")}`
                               : "Exact Standard Rate ✓"}
                           </span>
                         </div>
@@ -4861,25 +4984,25 @@ export default function VendingCenterLoggerPage() {
 
                           <div className="p-2.5 rounded-xl bg-slate-950/90 border border-slate-800 text-right">
                             <span className="text-[9.5px] uppercase font-bold text-slate-400 block font-mono">
-                              Concession / Loss
+                              {customerRemainingDue > 0 ? "Due from Customer" : "Concession / Loss"}
                             </span>
                             <span
                               className={`text-lg font-black tracking-tight block mt-0.5 ${
-                                displayLoss > 0
+                                customerRemainingDue > 0
+                                  ? "text-purple-300"
+                                  : rateConcession > 0
                                   ? "text-rose-400"
-                                  : displayLoss < 0
-                                  ? "text-cyan-300"
                                   : "text-emerald-400"
                               }`}
                             >
-                              {displayLoss > 0
-                                ? `-₹${displayLoss.toLocaleString("en-IN")}`
-                                : displayLoss < 0
-                                ? `+₹${Math.abs(displayLoss).toLocaleString("en-IN")}`
+                              {customerRemainingDue > 0
+                                ? `₹${customerRemainingDue.toLocaleString("en-IN")}`
+                                : rateConcession > 0
+                                ? `-₹${rateConcession.toLocaleString("en-IN")}`
                                 : "₹0"}
                             </span>
                             <span className="text-[9px] text-slate-400 block mt-0.5">
-                              Exp: ₹{standardExpectedTotal.toLocaleString("en-IN")} → Paid: ₹{actualPaid.toLocaleString("en-IN")}
+                              Bill: ₹{expectedTotal.toLocaleString("en-IN")} → Paid: ₹{actualPaid.toLocaleString("en-IN")}
                             </span>
                           </div>
                         </div>
@@ -4887,13 +5010,13 @@ export default function VendingCenterLoggerPage() {
                     )}
 
                     {/* Balance vs Final Settlement Options (When customer paid less than expected) */}
-                    {wNum > 0 && (actualPaid > 0 || formAmount === "0") && displayLoss > 0 && (
-                      <div className="p-3.5 rounded-2xl bg-slate-950/90 border border-amber-500/40 space-y-3">
+                    {wNum > 0 && (actualPaid > 0 || formAmount === "0") && customerRemainingDue > 0 && (
+                      <div className="p-3.5 rounded-2xl bg-slate-950/90 border border-purple-500/40 space-y-3">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
-                            <span className="material-symbols-outlined text-amber-400 text-base">account_balance_wallet</span>
+                            <span className="material-symbols-outlined text-purple-400 text-base">account_balance_wallet</span>
                             <span className="text-xs font-bold text-slate-200 font-mono">
-                              Remaining Difference: ₹{displayLoss.toLocaleString("en-IN")}
+                              Remaining Difference: ₹{customerRemainingDue.toLocaleString("en-IN")}
                             </span>
                           </div>
                           <span className="text-[10px] text-slate-400 font-mono">Treatment</span>
@@ -4914,17 +5037,20 @@ export default function VendingCenterLoggerPage() {
                               <span>🤝 Final Settlement</span>
                             </div>
                             <p className="text-[10px] opacity-75 mt-0.5 leading-snug">
-                              Concede ₹{displayLoss} as courtesy discount. No balance pending.
+                              Concede ₹{customerRemainingDue} as courtesy discount. No balance pending.
                             </p>
                           </button>
 
                           {/* Option 2: Keep Balance (Khata) */}
                           <button
                             type="button"
-                            onClick={() => setFormBalanceAction("balance")}
+                            onClick={() => {
+                              setFormBalanceAction("balance");
+                              if (actualPaid === 0) setFormPayment("Credit (Khata)");
+                            }}
                             className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                               formBalanceAction === "balance"
-                                ? "bg-amber-950/40 border-amber-400 text-amber-200 ring-1 ring-amber-400/50 shadow-md shadow-amber-950/30"
+                                ? "bg-purple-950/40 border-purple-400 text-purple-200 ring-1 ring-purple-400/50 shadow-md shadow-purple-950/30"
                                 : "bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-300"
                             }`}
                           >
@@ -4932,29 +5058,29 @@ export default function VendingCenterLoggerPage() {
                               <span>📒 Keep Balance (Khata)</span>
                             </div>
                             <p className="text-[10px] opacity-75 mt-0.5 leading-snug">
-                              Record ₹{displayLoss} balance. Send QR & WhatsApp reminder later.
+                              Record ₹{customerRemainingDue} balance. Send QR & WhatsApp reminder later.
                             </p>
                           </button>
                         </div>
 
                         {/* Customer details when Balance is chosen */}
                         {formBalanceAction === "balance" && (
-                          <div className="p-3 rounded-xl bg-slate-900/90 border border-amber-500/30 space-y-2.5">
-                            <div className="flex items-center justify-between text-[11px] text-amber-300 font-mono">
+                          <div className="p-3 rounded-xl bg-slate-900/90 border border-purple-500/30 space-y-2.5">
+                            <div className="flex items-center justify-between text-[11px] text-purple-300 font-mono">
                               <span className="font-bold">Customer Contact for Balance Reminder</span>
-                              <span className="text-[10px] text-amber-400/80">Phone required for WhatsApp/QR</span>
+                              <span className="text-[10px] text-purple-400/80">Phone required for WhatsApp/QR</span>
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                               <div>
                                 <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">
-                                  Customer Phone (WhatsApp) <span className="text-amber-400">*</span>
+                                  Customer Phone (WhatsApp) <span className="text-purple-400">*</span>
                                 </label>
                                 <input
                                   type="tel"
                                   value={formCustomerPhone}
                                   onChange={(e) => setFormCustomerPhone(e.target.value)}
                                   placeholder="e.g. 9876543210"
-                                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-amber-400"
+                                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-purple-400"
                                 />
                               </div>
                               <div>
@@ -4966,11 +5092,11 @@ export default function VendingCenterLoggerPage() {
                                   value={formCustomerName}
                                   onChange={(e) => setFormCustomerName(e.target.value)}
                                   placeholder="e.g. Dr. Farooq / Tariq Sb"
-                                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-amber-400"
+                                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-purple-400"
                                 />
                               </div>
                             </div>
-                            <p className="text-[10px] text-amber-300/80 font-mono">
+                            <p className="text-[10px] text-purple-300/80 font-mono">
                               💡 This balance will appear on your Executive Dashboard Flashcard and Khata tab with one-click Razorpay QR & polite WhatsApp reminders.
                             </p>
                           </div>
@@ -5012,25 +5138,41 @@ export default function VendingCenterLoggerPage() {
                 <label className="block text-[10px] uppercase font-bold text-slate-400 font-mono mb-1.5">
                   Mode of Payment <span className="text-emerald-400">*</span>
                 </label>
-                <div className="grid grid-cols-2 gap-2.5">
+                <div className="grid grid-cols-3 gap-2">
                   {[
-                    { id: "Cash", label: "💵 Cash", sub: "Counter Cash Drawer" },
-                    { id: "Online Payment", label: "⚡ Online Payment", sub: "Soundbox UPI / QR / Card" },
+                    { id: "Cash", label: "💵 Cash", sub: "Counter Drawer" },
+                    { id: "Online Payment", label: "⚡ Online", sub: "Soundbox / UPI" },
+                    { id: "Credit (Khata)", label: "📒 Credit", sub: "Khata Ledger" },
                   ].map((m) => {
-                    const isSel = formPayment === m.id || (m.id === "Online Payment" && formPayment !== "Cash");
+                    const isSel =
+                      formPayment === m.id ||
+                      (m.id === "Credit (Khata)" && formPayment === "Credit (Khata)") ||
+                      (m.id === "Online Payment" && formPayment !== "Cash" && formPayment !== "Credit (Khata)");
                     return (
                       <button
                         key={m.id}
                         type="button"
-                        onClick={() => setFormPayment(m.id)}
-                        className={`py-3 px-3 rounded-2xl font-bold text-xs transition-all cursor-pointer text-center ${
+                        onClick={() => {
+                          setFormPayment(m.id);
+                          if (m.id === "Credit (Khata)") {
+                            setFormBalanceAction("balance");
+                            const currentW = parseFloat(formWeight) || 0;
+                            if (formAmount === "" || formAmount === Math.round(currentW * formRate).toString()) {
+                              setFormAmount("0");
+                              setFormAmountOverridden(true);
+                            }
+                          }
+                        }}
+                        className={`py-2.5 px-2 rounded-2xl font-bold text-xs transition-all cursor-pointer text-center ${
                           isSel
-                            ? "bg-emerald-500/20 text-emerald-300 border-2 border-emerald-500 shadow-md shadow-emerald-950/40"
+                            ? m.id === "Credit (Khata)"
+                              ? "bg-purple-500/25 text-purple-200 border-2 border-purple-400 shadow-md shadow-purple-950/40"
+                              : "bg-emerald-500/20 text-emerald-300 border-2 border-emerald-500 shadow-md shadow-emerald-950/40"
                             : "bg-slate-950/80 text-slate-400 border border-slate-700 hover:text-white"
                         }`}
                       >
-                        <span className="block text-sm leading-tight font-black">{m.label}</span>
-                        <span className="text-[10px] opacity-80 font-mono block mt-0.5">{m.sub}</span>
+                        <span className="block text-xs sm:text-sm leading-tight font-black">{m.label}</span>
+                        <span className="text-[9.5px] opacity-80 font-mono block mt-0.5">{m.sub}</span>
                       </button>
                     );
                   })}

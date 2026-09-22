@@ -504,9 +504,12 @@ export async function POST(request: Request) {
       notes,
     } = body;
 
-    if (!weight_kg || !amount_paid) {
+    if (
+      weight_kg === undefined || weight_kg === null || weight_kg === "" || isNaN(parseFloat(weight_kg)) || parseFloat(weight_kg) <= 0 ||
+      amount_paid === undefined || amount_paid === null || amount_paid === "" || isNaN(parseFloat(amount_paid)) || parseFloat(amount_paid) < 0
+    ) {
       return NextResponse.json(
-        { success: false, error: "Weight and Amount Paid are required." },
+        { success: false, error: "Valid Weight and non-negative Amount Paid are required." },
         { status: 400 }
       );
     }
@@ -518,8 +521,15 @@ export async function POST(request: Request) {
     const expected = body.expected_amount !== undefined && body.expected_amount !== null
       ? parseFloat(body.expected_amount)
       : calculatedExpected;
-    const discount = Math.max(0, expected - parsedPaid);
-    const effectiveRate = parsedWeight > 0 ? Math.round((parsedPaid / parsedWeight) * 10) / 10 : parsedRate;
+    const isPendingBalance =
+      custom_fields?.balance_status === "pending" &&
+      Number(custom_fields?.balance_amount) > 0;
+    const discount = body.discount_amount !== undefined && body.discount_amount !== null
+      ? parseFloat(body.discount_amount)
+      : isPendingBalance
+      ? 0
+      : Math.max(0, expected - parsedPaid);
+    const effectiveRate = parsedWeight > 0 ? (parsedPaid > 0 ? Math.round((parsedPaid / parsedWeight) * 10) / 10 : parsedRate) : parsedRate;
 
     const now = new Date();
     const entry: VendingSalesEntry = {
