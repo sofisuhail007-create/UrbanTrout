@@ -20,6 +20,7 @@ const DEFAULT_SETTINGS: Record<string, string> = {
   primary_phone: "+918491006127",
   alternate_phone: "+917006604148",
   email: "info.urbantrout@gmail.com",
+  google_review_url: "https://g.page/r/YOUR_GBP_REVIEW_ID/review",
 };
 
 const CACHE_FILE = path.join(process.cwd(), ".app_settings_cache.json");

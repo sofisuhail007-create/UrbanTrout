@@ -99,6 +99,19 @@ export default function AdminSettingsPage() {
   const [isTestingTelegramAlert, setIsTestingTelegramAlert] = useState(false);
   const [testAlertFeedback, setTestAlertFeedback] = useState<string | null>(null);
 
+  // ─── LIVE PRICE BOARD STATE ───
+  const [priceProducts, setPriceProducts] = useState<Array<{ product_id: string; product_name: string; price_per_kg: number }>>([
+    { product_id: "gutted-trout", product_name: "Premium Gutted Rainbow Trout (Cleaned)", price_per_kg: 590 },
+    { product_id: "whole-trout", product_name: "Whole Rainbow Trout", price_per_kg: 550 },
+  ]);
+  const [priceSaving, setPriceSaving] = useState(false);
+  const [priceSavedMsg, setPriceSavedMsg] = useState("");
+
+  // ─── GOOGLE REVIEW URL STATE ───
+  const [googleReviewUrl, setGoogleReviewUrl] = useState("https://g.page/r/YOUR_GBP_REVIEW_ID/review");
+  const [reviewUrlSaving, setReviewUrlSaving] = useState(false);
+  const [reviewUrlSavedMsg, setReviewUrlSavedMsg] = useState("");
+
 
   useEffect(() => {
     async function loadSettings() {
@@ -155,16 +168,94 @@ export default function AdminSettingsPage() {
               }
             } catch {}
           }
+          if (map.google_review_url) {
+            setGoogleReviewUrl(map.google_review_url);
+          }
           localStorage.setItem("urban_trout_store_settings", JSON.stringify(map));
         }
       } catch (err) {
         console.warn("Notice loading settings from API:", err);
-      } finally {
-        setLoading(false);
       }
+
+      // Load live prices from Supabase inventory
+      try {
+        const { data: invData } = await supabase.from("inventory").select("product_id, product_name, price_per_kg");
+        if (invData && invData.length > 0) {
+          setPriceProducts(invData.map((r: any) => ({
+            product_id: r.product_id,
+            product_name: r.product_name,
+            price_per_kg: Number(r.price_per_kg),
+          })));
+        }
+      } catch (_) {}
+
+      setLoading(false);
     }
     loadSettings();
   }, []);
+
+  // ─── SAVE PRICES HANDLER ───
+  const handleSavePrices = async () => {
+    if (priceProducts.some((p) => p.price_per_kg <= 0)) {
+      alert("All prices must be greater than ₹0.");
+      return;
+    }
+    setPriceSaving(true);
+    setPriceSavedMsg("");
+    try {
+      const res = await adminFetch("/api/inventory/update-prices", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ products: priceProducts }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        // Also update local POS cache so billing page picks it up instantly
+        try {
+          const cached = JSON.parse(localStorage.getItem("urban_trout_pos_products_v3") || "[]");
+          const merged = priceProducts.map((pp) => {
+            const existing = cached.find((c: any) => c.id === pp.product_id) || {};
+            return { ...existing, id: pp.product_id, name: pp.product_name, pricePerKg: pp.price_per_kg, unit: "Kg" };
+          });
+          localStorage.setItem("urban_trout_pos_products_v3", JSON.stringify(merged));
+        } catch (_) {}
+        setPriceSavedMsg("✓ Prices updated! POS & Remote Bills will reflect the new rates.");
+        setTimeout(() => setPriceSavedMsg(""), 5000);
+      } else {
+        setPriceSavedMsg("⚠️ " + (json.error || "Failed to save prices."));
+        setTimeout(() => setPriceSavedMsg(""), 5000);
+      }
+    } catch (err: any) {
+      setPriceSavedMsg("⚠️ Error: " + err.message);
+      setTimeout(() => setPriceSavedMsg(""), 5000);
+    } finally {
+      setPriceSaving(false);
+    }
+  };
+
+  // ─── SAVE GOOGLE REVIEW URL HANDLER ───
+  const handleSaveReviewUrl = async () => {
+    if (!googleReviewUrl.trim().startsWith("http")) {
+      alert("Please enter a valid URL starting with https://");
+      return;
+    }
+    setReviewUrlSaving(true);
+    setReviewUrlSavedMsg("");
+    try {
+      await adminFetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify([{ key: "google_review_url", value: googleReviewUrl.trim(), description: "Google Business Profile review deep-link URL" }]),
+      });
+      setReviewUrlSavedMsg("✓ Review link saved! Billing page will now use this URL.");
+      setTimeout(() => setReviewUrlSavedMsg(""), 4000);
+    } catch (err: any) {
+      setReviewUrlSavedMsg("⚠️ Error: " + err.message);
+      setTimeout(() => setReviewUrlSavedMsg(""), 4000);
+    } finally {
+      setReviewUrlSaving(false);
+    }
+  };
 
   // Update new staff role preset permissions
   const handleRoleSelect = (role: typeof newRole) => {
@@ -611,6 +702,157 @@ export default function AdminSettingsPage() {
 
             {/* Pulse animation */}
             <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
+          </div>
+
+          {/* ══════════════════════════════════════════════════════════
+              💰 LIVE PRICE BOARD
+              ══════════════════════════════════════════════════════════ */}
+          <div className="bg-slate-900/80 border border-amber-500/30 rounded-3xl p-6 md:p-8 space-y-5 shadow-xl relative overflow-hidden">
+            <div className="absolute -top-24 -right-24 w-60 h-60 bg-amber-500/8 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="flex items-start gap-3 pb-4 border-b border-slate-800">
+              <div className="w-11 h-11 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 flex-shrink-0">
+                <span className="material-symbols-outlined text-2xl">price_change</span>
+              </div>
+              <div>
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <h2 className="text-lg font-bold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                    Live Price Board
+                  </h2>
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-amber-500/15 text-amber-300 border border-amber-500/30 font-mono">
+                    Instant Sync
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 mt-1" style={{ fontFamily: '"Manrope", sans-serif' }}>
+                  Update fish prices here and they will instantly reflect across POS billing, Remote Order bills, and Deal Calculator — no deploy needed.
+                </p>
+              </div>
+            </div>
+
+            {/* Price inputs */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {priceProducts.map((prod, idx) => (
+                <div key={prod.product_id} className="space-y-1.5">
+                  <label className="text-[11px] font-bold text-slate-400 uppercase font-mono block">
+                    {prod.product_name}
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-400 font-black text-sm font-mono">₹</span>
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={prod.price_per_kg}
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value, 10);
+                        setPriceProducts((prev) =>
+                          prev.map((p, i) => i === idx ? { ...p, price_per_kg: isNaN(val) ? 0 : val } : p)
+                        );
+                      }}
+                      className="w-full pl-8 pr-14 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:border-amber-400 font-mono font-bold transition-all"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-xs font-mono">/Kg</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Save feedback */}
+            {priceSavedMsg && (
+              <div className={`p-3 rounded-xl text-xs font-semibold flex items-center gap-2 ${priceSavedMsg.startsWith("✓") ? "bg-emerald-500/15 border border-emerald-500/30 text-emerald-400" : "bg-red-500/15 border border-red-500/30 text-red-400"}`}>
+                {priceSavedMsg}
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={handleSavePrices}
+              disabled={priceSaving}
+              className="px-6 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer shadow-lg shadow-amber-500/20"
+            >
+              {priceSaving ? (
+                <>
+                  <span className="w-3.5 h-3.5 border-2 border-slate-800 border-t-transparent animate-spin rounded-full" />
+                  <span>Updating Prices…</span>
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-base">save</span>
+                  <span>Update Prices Now</span>
+                </>
+              )}
+            </button>
+
+            <p className="text-[10px] text-slate-500 font-mono">
+              Tip: After saving, reload the POS billing tab to see the updated prices in the counter.
+            </p>
+          </div>
+
+          {/* ══════════════════════════════════════════════════════════
+              ⭐ GOOGLE REVIEW LINK
+              ══════════════════════════════════════════════════════════ */}
+          <div className="bg-slate-900/80 border border-yellow-500/30 rounded-3xl p-6 md:p-8 space-y-5 shadow-xl relative overflow-hidden">
+            <div className="absolute -top-24 -right-24 w-60 h-60 bg-yellow-500/6 rounded-full blur-3xl pointer-events-none" />
+
+            <div className="flex items-start gap-3 pb-4 border-b border-slate-800">
+              <div className="w-11 h-11 rounded-2xl bg-yellow-500/15 border border-yellow-500/30 flex items-center justify-center text-yellow-400 flex-shrink-0">
+                <span className="material-symbols-outlined text-2xl">star</span>
+              </div>
+              <div>
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <h2 className="text-lg font-bold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                    Google Review Link
+                  </h2>
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-yellow-500/15 text-yellow-300 border border-yellow-500/30 font-mono">
+                    SEO Boost
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 mt-1" style={{ fontFamily: '"Manrope", sans-serif' }}>
+                  Paste your Google Business Profile review URL here. The billing page will use it to send customers a WhatsApp review request after payment.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold text-slate-400 uppercase font-mono block">
+                Google Review URL:
+              </label>
+              <input
+                type="url"
+                value={googleReviewUrl}
+                onChange={(e) => setGoogleReviewUrl(e.target.value)}
+                placeholder="https://g.page/r/XXXXXX/review"
+                className="w-full px-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-yellow-400 font-mono transition-all"
+              />
+              <p className="text-[10px] text-slate-500 font-mono">
+                Find this link in your Google Business Profile → Get more reviews → Copy the link
+              </p>
+            </div>
+
+            {reviewUrlSavedMsg && (
+              <div className={`p-3 rounded-xl text-xs font-semibold flex items-center gap-2 ${reviewUrlSavedMsg.startsWith("✓") ? "bg-emerald-500/15 border border-emerald-500/30 text-emerald-400" : "bg-red-500/15 border border-red-500/30 text-red-400"}`}>
+                {reviewUrlSavedMsg}
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={handleSaveReviewUrl}
+              disabled={reviewUrlSaving}
+              className="px-6 py-2.5 rounded-xl bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer shadow-lg shadow-yellow-500/20"
+            >
+              {reviewUrlSaving ? (
+                <>
+                  <span className="w-3.5 h-3.5 border-2 border-slate-800 border-t-transparent animate-spin rounded-full" />
+                  <span>Saving…</span>
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-base">save</span>
+                  <span>Save Review Link</span>
+                </>
+              )}
+            </button>
           </div>
 
           {/* ══════════════════════════════════════════════════════════

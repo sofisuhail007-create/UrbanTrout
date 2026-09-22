@@ -144,6 +144,21 @@ export default function POSBillingPage() {
   const [editCustomerAddress, setEditCustomerAddress] = useState("");
   const [editCustomerSaving, setEditCustomerSaving] = useState(false);
 
+  // ─── GOOGLE REVIEW COLLECTOR STATE ───
+  const [googleReviewUrl, setGoogleReviewUrl] = useState("https://g.page/r/YOUR_GBP_REVIEW_ID/review");
+  const [reviewSentIds, setReviewSentIds] = useState<Set<string>>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = JSON.parse(localStorage.getItem("ut_review_sent_ids") || "[]");
+        return new Set(stored);
+      } catch { return new Set(); }
+    }
+    return new Set();
+  });
+
+  // ─── PAYMENT REMINDER STATE ───
+  const [reminderSentIds, setReminderSentIds] = useState<Set<string>>(new Set());
+
   // Customer Khata & Balance Tracking State
   const [amountPaidInput, setAmountPaidInput] = useState<string>("");
   const [balanceAction, setBalanceAction] = useState<"none" | "record_balance" | "settle_final">("none");
@@ -242,6 +257,18 @@ export default function POSBillingPage() {
       } catch (err) {
         console.warn("Could not load inventory prices:", err);
       }
+
+      // Load Google Review URL from app_settings
+      try {
+        const { data: reviewData } = await supabase
+          .from("app_settings")
+          .select("value")
+          .eq("key", "google_review_url")
+          .single();
+        if (reviewData?.value && reviewData.value.startsWith("http")) {
+          setGoogleReviewUrl(reviewData.value);
+        }
+      } catch (_) {}
     }
     loadData();
   }, []);
@@ -1523,34 +1550,6 @@ Naseem Bagh / Malabagh, Srinagar`;
     }
   };
 
-  // ─── SEND WHATSAPP PAYMENT REMINDER ───
-  const handleSendReminder = (order: any) => {
-    const cleanPhone = String(getOrderPhone(order)).replace(/\D/g, "").slice(-10);
-    const link = order.data?.paymentLinkUrl || order.paymentLinkUrl || `https://urbantrout.in/invoice/${order.id}`;
-    const invNum = getOrderNum(order);
-    const tot = getOrderTotal(order);
-    const tw = getOrderWeight(order);
-    const cName = getOrderName(order);
-
-    const msg = `*URBAN TROUT AQUACULTURE*
-_Fresh Himalayan Rainbow Trout · Srinagar_
-
-Dear *${cName}*,
-This is a gentle reminder regarding your fresh trout order *#${invNum}*.
-
-- *Total Amount Payable:* *Rs. ${tot.toLocaleString("en-IN")}*
-- *Harvest Weight:* ${tw ? tw.toFixed(2) : ""} Kg
-
-*Tap below to complete your payment securely via UPI, GPay, PhonePe, or Card:*
-${link}
-
-*Urban Trout Farm Helpline:* +91 84910 06127`;
-
-    const enc = encodeURIComponent(msg);
-    const url = cleanPhone.length === 10 ? `https://wa.me/91${cleanPhone}?text=${enc}` : `https://wa.me/?text=${enc}`;
-    window.open(url, "_blank");
-  };
-
   // ─── 1-CLICK DISPATCH TICKET FOR DELIVERY BOY ───
   const handleDispatchToDeliveryBoy = (order: any) => {
     const isPaid = getOrderStatus(order) === "PAID";
@@ -1589,6 +1588,49 @@ ${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━
 
     const enc = encodeURIComponent(ticket);
     window.open(`https://wa.me/?text=${enc}`, "_blank");
+  };
+
+  // ─── SEND GOOGLE REVIEW REQUEST (WhatsApp) ───
+  const handleSendReview = (order: any) => {
+    const cName = getOrderName(order);
+    const cleanPhone = String(getOrderPhone(order)).replace(/\D/g, "").slice(-10);
+    const reviewUrl = googleReviewUrl || "https://g.page/r/YOUR_GBP_REVIEW_ID/review";
+
+    const msg = `Dear *${cName}*,\n\nThank you for choosing *Urban Trout* 🐟\nWe hope you loved your fresh Himalayan Rainbow Trout!\n\nYour feedback means the world to us and helps other fish lovers in Kashmir find us. If you enjoyed your experience, we'd be incredibly grateful for a quick Google review:\n\n⭐ *Leave us a review:*\n${reviewUrl}\n\nIt only takes 30 seconds and makes a big difference! 🙏\n\n_Thank you — Urban Trout Team, Srinagar_`;
+
+    const enc = encodeURIComponent(msg);
+    const url = cleanPhone.length === 10
+      ? `https://wa.me/91${cleanPhone}?text=${enc}`
+      : `https://wa.me/?text=${enc}`;
+    window.open(url, "_blank");
+
+    // Track as sent (persisted in localStorage)
+    const newSent = new Set(reviewSentIds);
+    newSent.add(order.id);
+    setReviewSentIds(newSent);
+    try {
+      localStorage.setItem("ut_review_sent_ids", JSON.stringify([...newSent]));
+    } catch (_) {}
+  };
+
+  // ─── SEND PAYMENT REMINDER (WhatsApp) ───
+  const handleSendReminder = (order: any) => {
+    const cName = getOrderName(order);
+    const cleanPhone = String(getOrderPhone(order)).replace(/\D/g, "").slice(-10);
+    const invNum = getOrderNum(order);
+    const tot = getOrderTotal(order);
+    const payUrl = order.data?.paymentLinkUrl || order.paymentLinkUrl || "";
+
+    const msg = `Dear *${cName}*,\n\nA friendly reminder from *Urban Trout Aquaculture* 🐟\n\nYour fresh trout order *#${invNum}* of *₹${tot.toLocaleString("en-IN")}* is waiting for payment.\n\n${payUrl ? `💳 *Pay securely here:*\n${payUrl}\n\n` : ""}Please complete the payment at your earliest convenience so we can process your order promptly.\n\nFor any queries, call/WhatsApp us: *+91 8491006127*\n\n_Thank you — Urban Trout Team_`;
+
+    const enc = encodeURIComponent(msg);
+    const url = cleanPhone.length === 10
+      ? `https://wa.me/91${cleanPhone}?text=${enc}`
+      : `https://wa.me/?text=${enc}`;
+    window.open(url, "_blank");
+
+    // Mark as reminded (session only)
+    setReminderSentIds((prev) => new Set([...prev, order.id]));
   };
 
   // ─── GENERATE NEW REMOTE WHATSAPP BILL & PAYMENT LINK ───
@@ -3658,67 +3700,107 @@ Naseem Bagh / Malabagh, Srinagar`;
                               {isDeleting ? "..." : "Delete"}
                             </button>
                           </div>
+
+                          {/* ⭐ Google Review Request Button */}
+                          {(() => {
+                            const hasSentReview = reviewSentIds.has(order.id);
+                            return (
+                              <button
+                                type="button"
+                                onClick={() => handleSendReview(order)}
+                                className={`w-full py-1.5 px-2 rounded-xl text-[10.5px] font-bold font-mono transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                                  hasSentReview
+                                    ? "bg-yellow-950/30 border border-yellow-500/30 text-yellow-400"
+                                    : "bg-yellow-500/15 hover:bg-yellow-500/25 border border-yellow-500/40 text-yellow-300 hover:text-yellow-200"
+                                }`}
+                                title="Send customer a WhatsApp message asking for a Google review"
+                              >
+                                <span>⭐</span>
+                                {hasSentReview ? "✓ Review Requested" : "Request Google Review"}
+                              </button>
+                            );
+                          })()}
                         </div>
                       ) : (
                         /* PENDING ACTIONS */
-                        <div className="space-y-1.5">
-                          <div className="grid grid-cols-2 gap-1.5">
-                            {/* Check Status Now */}
-                            <button
-                              type="button"
-                              onClick={() => handleCheckRemoteOrderStatus(order)}
-                              disabled={isChecking}
-                              className="py-1.5 px-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[10.5px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
-                              title="Poll Razorpay status directly"
-                            >
-                              <span className={`material-symbols-outlined text-xs ${isChecking ? "animate-spin" : ""}`}>
-                                sync
-                              </span>
-                              {isChecking ? "Checking..." : "Check Status"}
-                            </button>
+                        (() => {
+                          // Calculate order age for reminder badge
+                          const orderTs = order.data?.ts || (order.created_at ? new Date(order.created_at).getTime() : 0);
+                          const hoursOld = orderTs ? (Date.now() - orderTs) / 3600000 : 0;
+                          const needsReminder = hoursOld >= 2;
+                          const hasReminded = reminderSentIds.has(order.id);
+                          return (
+                            <div className="space-y-1.5">
+                              <div className="grid grid-cols-2 gap-1.5">
+                                {/* Check Status Now */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleCheckRemoteOrderStatus(order)}
+                                  disabled={isChecking}
+                                  className="py-1.5 px-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[10.5px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
+                                  title="Poll Razorpay status directly"
+                                >
+                                  <span className={`material-symbols-outlined text-xs ${isChecking ? "animate-spin" : ""}`}>
+                                    sync
+                                  </span>
+                                  {isChecking ? "Checking..." : "Check Status"}
+                                </button>
 
-                            {/* WhatsApp Reminder */}
-                            <button
-                              type="button"
-                              onClick={() => handleSendReminder(order)}
-                              className="py-1.5 px-2 rounded-xl bg-green-600/20 hover:bg-green-600/30 text-green-300 border border-green-500/40 text-[10.5px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer"
-                              title="Send WhatsApp payment link reminder"
-                            >
-                              <span className="material-symbols-outlined text-xs">send</span>
-                              WhatsApp
-                            </button>
-                          </div>
+                                {/* WhatsApp Reminder — pulsing if 2hr+ overdue */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleSendReminder(order)}
+                                  className={`py-1.5 px-2 rounded-xl text-[10.5px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer relative ${
+                                    hasReminded
+                                      ? "bg-slate-800 border border-slate-700 text-slate-400"
+                                      : needsReminder
+                                      ? "bg-green-600/30 hover:bg-green-600/40 text-green-200 border border-green-400/60 shadow-md shadow-green-900/30 animate-pulse"
+                                      : "bg-green-600/20 hover:bg-green-600/30 text-green-300 border border-green-500/40"
+                                  }`}
+                                  title="Send WhatsApp payment reminder"
+                                >
+                                  {needsReminder && !hasReminded && (
+                                    <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-green-400 border border-slate-900" />
+                                  )}
+                                  <span className="material-symbols-outlined text-xs">
+                                    {hasReminded ? "check" : "send"}
+                                  </span>
+                                  {hasReminded ? "Reminded ✓" : needsReminder ? "⏰ Remind Now!" : "WhatsApp"}
+                                </button>
+                              </div>
 
-                          <div className="grid grid-cols-2 gap-1.5">
-                            {/* Mark Paid Manually */}
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setManualPayModal(order);
-                                setManualPayMode("Cash on Delivery (Driver)");
-                                setManualPayNote("");
-                              }}
-                              className="py-1.5 px-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer"
-                              title="Mark paid via Cash on Delivery or offline transfer"
-                            >
-                              <span>💵</span> Mark Paid
-                            </button>
+                              <div className="grid grid-cols-2 gap-1.5">
+                                {/* Mark Paid Manually */}
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setManualPayModal(order);
+                                    setManualPayMode("Cash on Delivery (Driver)");
+                                    setManualPayNote("");
+                                  }}
+                                  className="py-1.5 px-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer"
+                                  title="Mark paid via Cash on Delivery or offline transfer"
+                                >
+                                  <span>💵</span> Mark Paid
+                                </button>
 
-                            {/* Delete / Cancel & Expire */}
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteRemoteOrder(order)}
-                              disabled={isDeleting}
-                              className="py-1.5 px-2 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 hover:text-rose-200 border border-rose-500/40 hover:border-rose-400 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
-                              title="Cancel this order and expire the Razorpay payment link so customer cannot pay"
-                            >
-                              <span className={`material-symbols-outlined text-xs ${isDeleting ? "animate-spin" : ""}`}>
-                                {isDeleting ? "sync" : "delete_forever"}
-                              </span>
-                              {isDeleting ? "Expiring..." : "Cancel & Expire"}
-                            </button>
-                          </div>
-                        </div>
+                                {/* Delete / Cancel & Expire */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteRemoteOrder(order)}
+                                  disabled={isDeleting}
+                                  className="py-1.5 px-2 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 hover:text-rose-200 border border-rose-500/40 hover:border-rose-400 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
+                                  title="Cancel this order and expire the Razorpay payment link so customer cannot pay"
+                                >
+                                  <span className={`material-symbols-outlined text-xs ${isDeleting ? "animate-spin" : ""}`}>
+                                    {isDeleting ? "sync" : "delete_forever"}
+                                  </span>
+                                  {isDeleting ? "Expiring..." : "Cancel & Expire"}
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })()
                       )}
                     </div>
                   </div>
