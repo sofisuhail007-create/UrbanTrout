@@ -28,6 +28,10 @@ export interface EodReportPayload {
   aminSalaryMonthPaid?: number;
   aminSalaryBalanceDue?: number;
   aminBaseSalary?: number;
+  creditSalesAmount?: number;
+  creditSalesKg?: number;
+  creditSalesCount?: number;
+  allCustomersTotalCredit?: number;
   customNote?: string;
   previewOnly?: boolean;
 }
@@ -88,7 +92,16 @@ export function formatEodTelegramMessage(p: EodReportPayload): string {
 
   msg += `💳 <b>PAYMENT COLLECTION:</b>\n`;
   msg += `• <b>Cash in Drawer:</b> ₹${cash} (${cashCount} sales)\n`;
-  msg += `• <b>UPI / Soundbox / Online:</b> ₹${online} (${onlineCount} orders)\n\n`;
+  msg += `• <b>UPI / Soundbox / Online:</b> ₹${online} (${onlineCount} orders)\n`;
+  if (Number(p.creditSalesAmount || 0) > 0 || Number(p.allCustomersTotalCredit || 0) > 0) {
+    if (Number(p.creditSalesAmount || 0) > 0) {
+      msg += `• 📒 <b>Credit Given (Khata):</b> ₹${Number(p.creditSalesAmount).toLocaleString("en-IN")} (${Number(p.creditSalesKg || 0).toFixed(2)} Kg · ${p.creditSalesCount ?? 1} customer${p.creditSalesCount === 1 ? "" : "s"})\n`;
+    }
+    if (Number(p.allCustomersTotalCredit || 0) > 0) {
+      msg += `• 👥 <b>All-Customers Khata Balance:</b> ₹${Number(p.allCustomersTotalCredit).toLocaleString("en-IN")}\n`;
+    }
+  }
+  msg += `\n`;
 
   msg += `🌊 <b>LIVE AQUARIUM STATUS:</b>\n`;
   msg += `• <b>Current Live Stock Remaining:</b> <b>${liveStock} Kg</b>\n`;

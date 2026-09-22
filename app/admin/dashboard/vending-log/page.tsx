@@ -301,6 +301,40 @@ export default function VendingCenterLoggerPage() {
   const [selectedBalanceRecord, setSelectedBalanceRecord] = useState<CustomerBalanceRecord | null>(null);
   const [balanceModalOpen, setBalanceModalOpen] = useState(false);
 
+  // ─── Customer Khata Ledger Balance Summary (All Customers) ───
+  const [khataSummary, setKhataSummary] = useState<{
+    totalPendingAmount: number;
+    pendingCustomersCount: number;
+    pendingRecordsCount: number;
+    loading: boolean;
+  }>({
+    totalPendingAmount: 0,
+    pendingCustomersCount: 0,
+    pendingRecordsCount: 0,
+    loading: true,
+  });
+
+  const fetchKhataSummary = useCallback(async () => {
+    try {
+      const res = await adminFetch("/api/customer-balance?status=pending");
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.summary) {
+          setKhataSummary({
+            totalPendingAmount: Number(data.summary.totalPendingAmount || 0),
+            pendingCustomersCount: Number(data.summary.pendingCustomersCount || 0),
+            pendingRecordsCount: Number(data.summary.pendingRecordsCount || 0),
+            loading: false,
+          });
+          return;
+        }
+      }
+    } catch (e) {
+      console.warn("Could not fetch customer khata summary:", e);
+    }
+    setKhataSummary((prev) => ({ ...prev, loading: false }));
+  }, []);
+
   // ─── Organized Executive KPI Cards Category State ───
   const [kpiCategory, setKpiCategory] = useState<"sales" | "aquarium" | "staff" | "all">("sales");
 
@@ -472,11 +506,16 @@ export default function VendingCenterLoggerPage() {
     } finally {
       setLoading(false);
     }
-  }, [period, customStartDate, customEndDate]);
+    fetchKhataSummary();
+  }, [period, customStartDate, customEndDate, fetchKhataSummary]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  useEffect(() => {
+    fetchKhataSummary();
+  }, [fetchKhataSummary]);
 
   // ─── Fetch Staff Incentive Payouts (Admin Only) ───
   const fetchPayouts = useCallback(async () => {
@@ -762,18 +801,24 @@ export default function VendingCenterLoggerPage() {
     let totalRevenue = 0;
     let totalExpected = 0;
     let totalLoss = 0;
+    let periodCreditTotal = 0;
+    let periodCreditCount = 0;
+    let periodCreditKg = 0;
     let pendingBalanceTotal = 0;
     let pendingBalanceCount = 0;
     let guttedKg = 0;
     let nonGuttedKg = 0;
     let guttedRevenue = 0;
     let nonGuttedRevenue = 0;
+    let realizedGuttedKg = 0;
+    let realizedNonGuttedKg = 0;
     let onlineRevenue = 0;
     let onlineCount = 0;
     let onlineKg = 0;
     let cashRevenue = 0;
     let cashCount = 0;
     let cashKg = 0;
+    let payingCount = 0;
     const byMode: Record<string, { count: number; revenue: number; kg: number }> = {};
 
     filteredEntriesByPeriod.forEach((e) => {
@@ -787,47 +832,72 @@ export default function VendingCenterLoggerPage() {
           ? Number(e.custom_fields.expected_amount)
           : Math.round(w * rate);
 
-      const isPendingBal =
-        e.custom_fields?.balance_status === "pending" &&
-        Number(e.custom_fields?.balance_amount) > 0;
-
-      const loss =
-        e.discount_amount !== undefined && e.discount_amount !== null && Number(e.discount_amount) > 0
-          ? Number(e.discount_amount)
-          : e.custom_fields?.discount_amount !== undefined && Number(e.custom_fields.discount_amount) > 0
-          ? Number(e.custom_fields.discount_amount)
-          : isPendingBal
-          ? 0
-          : Math.max(0, exp - rev);
-
       const bal = Number(e.custom_fields?.balance_amount || 0);
-      if (bal > 0 && e.custom_fields?.balance_status === "pending") {
-        pendingBalanceTotal += bal;
-        pendingBalanceCount += 1;
-      }
-
-      totalKg = Math.round((totalKg + w) * 1000) / 1000;
-      totalRevenue += rev;
-      totalExpected += exp;
-      totalLoss += loss;
+      const modeStr = (e.payment_mode || "").toLowerCase().trim();
+      const isPendingBal =
+        e.custom_fields?.balance_status === "pending" ||
+        bal > 0;
+      const isCredit =
+        modeStr.includes("credit") ||
+        modeStr.includes("khata") ||
+        isPendingBal;
 
       const isGutted =
         (e.product_type || "").toLowerCase().includes("gutted") &&
         !(e.product_type || "").toLowerCase().includes("non");
+
+      // Physical aquarium stock dispatched (tracks biomass leaving the tank)
+      totalKg = Math.round((totalKg + w) * 1000) / 1000;
       if (isGutted) {
         guttedKg = Math.round((guttedKg + w) * 1000) / 1000;
-        guttedRevenue += rev;
       } else {
         nonGuttedKg = Math.round((nonGuttedKg + w) * 1000) / 1000;
-        nonGuttedRevenue += rev;
       }
 
-      const isCash = (e.payment_mode || "").toLowerCase().trim() === "cash";
-      if (isCash) {
+      // Credit tracking (Khata)
+      if (isCredit) {
+        const creditAmt = bal > 0 ? bal : (rev === 0 ? exp : Math.max(0, exp - rev));
+        periodCreditTotal += creditAmt;
+        periodCreditCount += 1;
+        periodCreditKg = Math.round((periodCreditKg + w) * 1000) / 1000;
+        if (bal > 0) {
+          pendingBalanceTotal += bal;
+          pendingBalanceCount += 1;
+        }
+      }
+
+      // Revenue: strictly realized collected cash & online
+      totalRevenue += rev;
+      if (rev > 0) {
+        payingCount += 1;
+        totalExpected += (isCredit ? rev : exp);
+        if (isGutted) {
+          guttedRevenue += rev;
+          realizedGuttedKg = Math.round((realizedGuttedKg + w) * 1000) / 1000;
+        } else {
+          nonGuttedRevenue += rev;
+          realizedNonGuttedKg = Math.round((realizedNonGuttedKg + w) * 1000) / 1000;
+        }
+      }
+
+      // Negotiation Loss: ONLY for non-credit sales!
+      // Credit sales are tracked as customer Khata receivables, never negotiation concession loss.
+      if (!isCredit) {
+        const loss =
+          e.discount_amount !== undefined && e.discount_amount !== null && Number(e.discount_amount) > 0
+            ? Number(e.discount_amount)
+            : e.custom_fields?.discount_amount !== undefined && Number(e.custom_fields.discount_amount) > 0
+            ? Number(e.custom_fields.discount_amount)
+            : Math.max(0, exp - rev);
+        totalLoss += loss;
+      }
+
+      const isCash = modeStr === "cash";
+      if (isCash && rev > 0) {
         cashRevenue += rev;
         cashCount += 1;
         cashKg = Math.round((cashKg + w) * 1000) / 1000;
-      } else {
+      } else if (!isCash && rev > 0) {
         onlineRevenue += rev;
         onlineCount += 1;
         onlineKg = Math.round((onlineKg + w) * 1000) / 1000;
@@ -842,7 +912,7 @@ export default function VendingCenterLoggerPage() {
 
     const count = filteredEntriesByPeriod.length;
     const avgKgPerBill = count > 0 ? (totalKg / count).toFixed(3) : "0.000";
-    const avgBillValue = count > 0 ? Math.round(totalRevenue / count) : 0;
+    const avgBillValue = payingCount > 0 ? Math.round(totalRevenue / payingCount) : 0;
     const lossPercent =
       totalExpected > 0 ? ((totalLoss / totalExpected) * 100).toFixed(1) : "0.0";
 
@@ -859,9 +929,9 @@ export default function VendingCenterLoggerPage() {
     });
     const periodWorkerLaborCost = Math.round(periodWorkerGuttedKg * INCENTIVE_RATE_PER_KG);
 
-    // Realized Profit on sold fishes (deducting procurement cost AND Mohd Amin's ₹5/Kg gutting labor)
-    const guttedProcurementCost = Math.round(guttedKg * procurementAvgCost);
-    const nonGuttedCost = Math.round(nonGuttedKg * procurementAvgCost);
+    // Realized Profit on sold fishes (deducting procurement cost on realized sold fish AND Mohd Amin's ₹5/Kg gutting labor)
+    const guttedProcurementCost = Math.round(realizedGuttedKg * procurementAvgCost);
+    const nonGuttedCost = Math.round(realizedNonGuttedKg * procurementAvgCost);
     const guttedCost = guttedProcurementCost + periodWorkerLaborCost;
     const guttedGrossProfit = Math.round(guttedRevenue - guttedProcurementCost);
     const guttedProfit = Math.round(guttedRevenue - guttedCost);
@@ -869,7 +939,11 @@ export default function VendingCenterLoggerPage() {
     const totalSoldProfit = guttedProfit + nonGuttedProfit;
     const profitMarginPercent =
       totalRevenue > 0 ? ((totalSoldProfit / totalRevenue) * 100).toFixed(1) : "0.0";
-    const avgProfitPerKg = totalKg > 0 ? Math.round(totalSoldProfit / totalKg) : 0;
+    const realizedKg = Math.round((realizedGuttedKg + realizedNonGuttedKg) * 1000) / 1000;
+    const avgProfitPerKg = realizedKg > 0 ? Math.round(totalSoldProfit / realizedKg) : 0;
+    const avgSellRate = realizedKg > 0 ? Math.round(totalRevenue / realizedKg) : 0;
+    const guttedAvgRate = realizedGuttedKg > 0 ? Math.round(guttedRevenue / realizedGuttedKg) : 0;
+    const nonGuttedAvgRate = realizedNonGuttedKg > 0 ? Math.round(nonGuttedRevenue / realizedNonGuttedKg) : 0;
 
     return {
       totalKg,
@@ -877,6 +951,9 @@ export default function VendingCenterLoggerPage() {
       totalExpected,
       totalLoss,
       lossPercent,
+      periodCreditTotal,
+      periodCreditCount,
+      periodCreditKg,
       pendingBalanceTotal,
       pendingBalanceCount,
       guttedKg,
@@ -896,6 +973,7 @@ export default function VendingCenterLoggerPage() {
       avgProfitPerKg,
       procurementAvgCost,
       count,
+      payingCount,
       avgKgPerBill,
       avgBillValue,
       onlineRevenue,
@@ -905,6 +983,12 @@ export default function VendingCenterLoggerPage() {
       cashCount,
       cashKg,
       byMode,
+      realizedKg,
+      realizedGuttedKg,
+      realizedNonGuttedKg,
+      avgSellRate,
+      guttedAvgRate,
+      nonGuttedAvgRate,
     };
   }, [filteredEntriesByPeriod, procurementAvgCost]);
 
@@ -1232,7 +1316,7 @@ export default function VendingCenterLoggerPage() {
     if (formBalanceAction === "balance" && difference > 0) {
       balanceAmount = difference;
       balanceStatus = "pending";
-      finalDiscount = rateDiscount; // Customer owes this balance on Khata; rate concession is the only discount
+      finalDiscount = 0; // Pure credit on Khata, not a concession discount loss
       if (!balanceRefId) {
         balanceRefId = `VL-${formDate.replace(/\D/g, "")}-${Date.now().toString().slice(-4)}`;
       }
@@ -1342,6 +1426,7 @@ export default function VendingCenterLoggerPage() {
           setNewEntryModalOpen(false);
           resetForm();
           playLogChime();
+          fetchKhataSummary();
         } else {
           const errData = await res.json().catch(() => ({}));
           alert(errData.error || "Failed to update entry.");
@@ -1376,6 +1461,7 @@ export default function VendingCenterLoggerPage() {
             setNewEntryModalOpen(false);
             resetForm();
             playLogChime();
+            fetchKhataSummary();
 
             // ── Sync customer to CRM database (non-blocking) ──────────────
             if (formCustomerName.trim() && formCustomerPhone.trim()) {
@@ -1416,6 +1502,7 @@ export default function VendingCenterLoggerPage() {
       if (res.ok) {
         setEntries((prev) => prev.filter((e) => e.id !== id));
         setDeleteConfirmId(null);
+        fetchKhataSummary();
       }
     } catch (err) {
       console.error("Failed to delete entry:", err);
@@ -1639,6 +1726,11 @@ export default function VendingCenterLoggerPage() {
     let grossRevenue = 0;
     let expectedRevenue = 0;
     let negotiationLoss = 0;
+    let creditSalesAmount = 0;
+    let creditSalesKg = 0;
+    let creditSalesCount = 0;
+    let realizedGuttedKg = 0;
+    let realizedNonGuttedKg = 0;
     let cashRevenue = 0;
     let cashCount = 0;
     let onlineRevenue = 0;
@@ -1652,15 +1744,17 @@ export default function VendingCenterLoggerPage() {
         e.expected_amount !== undefined && e.expected_amount !== null
           ? Number(e.expected_amount)
           : Math.round(w * rate);
-      const loss =
-        e.discount_amount !== undefined && e.discount_amount !== null
-          ? Number(e.discount_amount)
-          : Math.max(0, exp - rev);
+      const bal = Number(e.custom_fields?.balance_amount || 0);
+      const modeStr = (e.payment_mode || "").toLowerCase().trim();
+      const isPendingBal =
+        e.custom_fields?.balance_status === "pending" ||
+        bal > 0;
+      const isCredit =
+        modeStr.includes("credit") ||
+        modeStr.includes("khata") ||
+        isPendingBal;
 
       totalSoldKg = Math.round((totalSoldKg + w) * 1000) / 1000;
-      grossRevenue += rev;
-      expectedRevenue += exp;
-      negotiationLoss += loss;
 
       const isGutted =
         (e.product_type || "").toLowerCase().includes("gutted") &&
@@ -1675,18 +1769,43 @@ export default function VendingCenterLoggerPage() {
         nonGuttedSoldKg = Math.round((nonGuttedSoldKg + w) * 1000) / 1000;
       }
 
-      const isCash = (e.payment_mode || "").toLowerCase().trim() === "cash";
-      if (isCash) {
+      if (isCredit) {
+        const creditAmt = bal > 0 ? bal : (rev === 0 ? exp : Math.max(0, exp - rev));
+        creditSalesAmount += creditAmt;
+        creditSalesKg = Math.round((creditSalesKg + w) * 1000) / 1000;
+        creditSalesCount += 1;
+      }
+
+      grossRevenue += rev;
+      if (rev > 0) {
+        expectedRevenue += (isCredit ? rev : exp);
+        if (isGutted) {
+          realizedGuttedKg = Math.round((realizedGuttedKg + w) * 1000) / 1000;
+        } else {
+          realizedNonGuttedKg = Math.round((realizedNonGuttedKg + w) * 1000) / 1000;
+        }
+      }
+
+      if (!isCredit) {
+        const loss =
+          e.discount_amount !== undefined && e.discount_amount !== null
+            ? Number(e.discount_amount)
+            : Math.max(0, exp - rev);
+        negotiationLoss += loss;
+      }
+
+      const isCash = modeStr === "cash";
+      if (isCash && rev > 0) {
         cashRevenue += rev;
         cashCount += 1;
-      } else {
+      } else if (rev > 0) {
         onlineRevenue += rev;
         onlineCount += 1;
       }
     });
 
-    const guttedCost = Math.round(guttedSoldKg * procurementAvgCost);
-    const nonGuttedCost = Math.round(nonGuttedSoldKg * procurementAvgCost);
+    const guttedCost = Math.round(realizedGuttedKg * procurementAvgCost);
+    const nonGuttedCost = Math.round(realizedNonGuttedKg * procurementAvgCost);
     const aminDailyIncentive = Math.round(aminGuttedSoldKg * INCENTIVE_RATE_PER_KG);
     const totalCost = guttedCost + nonGuttedCost + aminDailyIncentive;
     const netRealizedProfit = grossRevenue - totalCost;
@@ -1713,6 +1832,10 @@ export default function VendingCenterLoggerPage() {
       cashRevenue,
       cashCount,
       negotiationLoss,
+      creditSalesAmount,
+      creditSalesKg,
+      creditSalesCount,
+      allCustomersTotalCredit: khataSummary.totalPendingAmount,
       totalBills: todayEntries.length,
       liveStockRemainingKg: aquariumStock.remainingKg,
       stockWorthGutted: aquariumStock.valueIfGutted,
@@ -1760,6 +1883,11 @@ export default function VendingCenterLoggerPage() {
     let grossRevenue = 0;
     let expectedRevenue = 0;
     let negotiationLoss = 0;
+    let creditSalesAmount = 0;
+    let creditSalesKg = 0;
+    let creditSalesCount = 0;
+    let realizedGuttedKg = 0;
+    let realizedNonGuttedKg = 0;
     let cashRevenue = 0;
     let cashCount = 0;
     let onlineRevenue = 0;
@@ -1773,15 +1901,17 @@ export default function VendingCenterLoggerPage() {
         e.expected_amount !== undefined && e.expected_amount !== null
           ? Number(e.expected_amount)
           : Math.round(w * rate);
-      const loss =
-        e.discount_amount !== undefined && e.discount_amount !== null
-          ? Number(e.discount_amount)
-          : Math.max(0, exp - rev);
+      const bal = Number(e.custom_fields?.balance_amount || 0);
+      const modeStr = (e.payment_mode || "").toLowerCase().trim();
+      const isPendingBal =
+        e.custom_fields?.balance_status === "pending" ||
+        bal > 0;
+      const isCredit =
+        modeStr.includes("credit") ||
+        modeStr.includes("khata") ||
+        isPendingBal;
 
       totalSoldKg = Math.round((totalSoldKg + w) * 1000) / 1000;
-      grossRevenue += rev;
-      expectedRevenue += exp;
-      negotiationLoss += loss;
 
       const isGutted =
         (e.product_type || "").toLowerCase().includes("gutted") &&
@@ -1796,18 +1926,43 @@ export default function VendingCenterLoggerPage() {
         nonGuttedSoldKg = Math.round((nonGuttedSoldKg + w) * 1000) / 1000;
       }
 
-      const isCash = (e.payment_mode || "").toLowerCase().trim() === "cash";
-      if (isCash) {
+      if (isCredit) {
+        const creditAmt = bal > 0 ? bal : (rev === 0 ? exp : Math.max(0, exp - rev));
+        creditSalesAmount += creditAmt;
+        creditSalesKg = Math.round((creditSalesKg + w) * 1000) / 1000;
+        creditSalesCount += 1;
+      }
+
+      grossRevenue += rev;
+      if (rev > 0) {
+        expectedRevenue += (isCredit ? rev : exp);
+        if (isGutted) {
+          realizedGuttedKg = Math.round((realizedGuttedKg + w) * 1000) / 1000;
+        } else {
+          realizedNonGuttedKg = Math.round((realizedNonGuttedKg + w) * 1000) / 1000;
+        }
+      }
+
+      if (!isCredit) {
+        const loss =
+          e.discount_amount !== undefined && e.discount_amount !== null
+            ? Number(e.discount_amount)
+            : Math.max(0, exp - rev);
+        negotiationLoss += loss;
+      }
+
+      const isCash = modeStr === "cash";
+      if (isCash && rev > 0) {
         cashRevenue += rev;
         cashCount += 1;
-      } else {
+      } else if (rev > 0) {
         onlineRevenue += rev;
         onlineCount += 1;
       }
     });
 
-    const guttedCost = Math.round(guttedSoldKg * procurementAvgCost);
-    const nonGuttedCost = Math.round(nonGuttedSoldKg * procurementAvgCost);
+    const guttedCost = Math.round(realizedGuttedKg * procurementAvgCost);
+    const nonGuttedCost = Math.round(realizedNonGuttedKg * procurementAvgCost);
     const aminDailyIncentive = Math.round(aminGuttedSoldKg * INCENTIVE_RATE_PER_KG);
     const totalCost = guttedCost + nonGuttedCost + aminDailyIncentive;
     const netRealizedProfit = grossRevenue - totalCost;
@@ -1834,6 +1989,10 @@ export default function VendingCenterLoggerPage() {
       cashRevenue,
       cashCount,
       negotiationLoss,
+      creditSalesAmount,
+      creditSalesKg,
+      creditSalesCount,
+      allCustomersTotalCredit: khataSummary.totalPendingAmount,
       totalBills: todayEntries.length,
       liveStockRemainingKg: aquariumStock.remainingKg,
       stockWorthGutted: aquariumStock.valueIfGutted,
@@ -2138,6 +2297,9 @@ export default function VendingCenterLoggerPage() {
         { "Vending Center Metric": "Non-Gutted Trout Sold (Kg)", "Value / Amount": Number(kpis.nonGuttedKg.toFixed(3)) },
         { "Vending Center Metric": "Online Payments (Rs)", "Value / Amount": kpis.onlineRevenue },
         { "Vending Center Metric": "Cash Drawer Payments (Rs)", "Value / Amount": kpis.cashRevenue },
+        { "Vending Center Metric": "Period Credit / Khata Dispatched (Rs)", "Value / Amount": kpis.periodCreditTotal },
+        { "Vending Center Metric": "Period Credit Weight (Kg)", "Value / Amount": kpis.periodCreditKg },
+        { "Vending Center Metric": "All Customers Total Khata Due (Rs)", "Value / Amount": khataSummary.totalPendingAmount },
         { "Vending Center Metric": "Negotiation Discount Loss (Rs)", "Value / Amount": kpis.totalLoss },
         { "Vending Center Metric": "Total Live Fish Stock Procured (Kg)", "Value / Amount": Number(aquariumStock.totalProcuredKg.toFixed(3)) },
         { "Vending Center Metric": "Live Fish Dispatched / Sold (Kg)", "Value / Amount": Number(aquariumStock.soldKg.toFixed(3)) },
@@ -2385,6 +2547,7 @@ export default function VendingCenterLoggerPage() {
           return item;
         })
       );
+      fetchKhataSummary();
     }
   };
 
@@ -2751,7 +2914,7 @@ export default function VendingCenterLoggerPage() {
                 <span>Section 1: Sales &amp; Revenue Performance</span>
               </div>
             )}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-7 gap-3.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 2xl:grid-cols-8 gap-3.5">
               {/* Card 1: Total Weight Sold */}
               <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-emerald-950/40 via-slate-900/80 to-slate-900 border border-emerald-500/30 shadow-xl shadow-emerald-950/20 relative overflow-hidden flex flex-col justify-between">
                 <div>
@@ -2780,7 +2943,9 @@ export default function VendingCenterLoggerPage() {
                     <span className="text-emerald-300 font-bold">Gutted: {formatKg(kpis.guttedKg)} Kg</span>
                     <span className="text-cyan-300">Non: {formatKg(kpis.nonGuttedKg)} Kg</span>
                   </div>
-                  <div className="text-[10px] text-slate-500 truncate">{kpis.count} total dispatches</div>
+                  <div className="text-[10px] text-slate-500 truncate">
+                    {kpis.count} total dispatches {kpis.periodCreditCount > 0 ? `(${kpis.periodCreditCount} on credit)` : ""}
+                  </div>
                 </div>
               </div>
 
@@ -2812,12 +2977,69 @@ export default function VendingCenterLoggerPage() {
                     <span>Expected: ₹{kpis.totalExpected.toLocaleString("en-IN")}</span>
                   </div>
                   <div className="text-[10px] text-slate-500 truncate">
-                    {kpis.count} bills • Avg ₹{kpis.avgBillValue}/bill
+                    {kpis.payingCount} bills • Avg ₹{kpis.avgBillValue}/bill
                   </div>
                 </div>
               </div>
 
-              {/* Card 3: Realized Profit on Sold Trout (NEW) */}
+              {/* Card 3: Credit & Khata Balance (All Customers) */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-purple-950/60 via-slate-900/90 to-slate-900 border border-purple-500/40 shadow-xl shadow-purple-950/25 relative overflow-hidden flex flex-col justify-between group hover:border-purple-400/70 transition-all">
+                <div>
+                  <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
+                    <span className="text-purple-300 font-bold tracking-wider flex items-center gap-1.5">
+                      <span>CREDIT</span>
+                      <span className="px-1.5 py-0.2 rounded bg-purple-500/20 text-[9px] text-purple-200 border border-purple-500/30 font-bold">
+                        Khata
+                      </span>
+                    </span>
+                    <span className="material-symbols-outlined text-purple-400 text-lg">account_balance_wallet</span>
+                  </div>
+                  <div className="mt-2.5 flex items-baseline gap-1 min-h-[36px]">
+                    {khataSummary.loading ? (
+                      <div className="h-8 w-24 bg-purple-500/10 rounded animate-pulse" />
+                    ) : (
+                      <>
+                        <span className="text-purple-400 font-bold text-xl">₹</span>
+                        <span
+                          className="text-3xl sm:text-4xl font-black text-white"
+                          style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                        >
+                          {khataSummary.totalPendingAmount.toLocaleString("en-IN")}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-3.5 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2.5 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-purple-300 font-medium truncate">
+                      All Customers ({khataSummary.pendingCustomersCount})
+                    </span>
+                    {kpis.periodCreditTotal > 0 && (
+                      <span className="text-purple-200 font-bold font-mono">
+                        +₹{kpis.periodCreditTotal.toLocaleString("en-IN")}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between text-[10px] text-slate-500">
+                    <span>
+                      {kpis.periodCreditCount > 0
+                        ? `${kpis.periodCreditCount} order · ${formatKg(kpis.periodCreditKg)} Kg`
+                        : "0 in period"}
+                    </span>
+                    <Link
+                      href="/admin/dashboard/billing?tab=customer_balances"
+                      className="text-purple-400 hover:text-purple-200 underline flex items-center gap-0.5 transition-colors font-mono"
+                      title="Open Khata & Balances ledger"
+                    >
+                      <span>Ledger</span>
+                      <span className="material-symbols-outlined text-[10px]">arrow_forward</span>
+                    </Link>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 4: Realized Profit on Sold Trout */}
               <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-teal-950/50 via-slate-900/90 to-slate-900 border border-teal-500/40 shadow-xl shadow-teal-950/25 relative overflow-hidden flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
@@ -2869,7 +3091,7 @@ export default function VendingCenterLoggerPage() {
                 </div>
               </div>
 
-              {/* Card 4: Online Payments */}
+              {/* Card 5: Online Payments */}
               <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-indigo-950/40 via-slate-900/80 to-slate-900 border border-indigo-500/30 shadow-xl shadow-indigo-950/20 relative overflow-hidden flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
@@ -2901,7 +3123,7 @@ export default function VendingCenterLoggerPage() {
                 </div>
               </div>
 
-              {/* Card 5: Cash Payments */}
+              {/* Card 6: Cash Payments */}
               <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-blue-950/40 via-slate-900/80 to-slate-900 border border-blue-500/30 shadow-xl shadow-blue-950/20 relative overflow-hidden flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
@@ -2955,9 +3177,9 @@ export default function VendingCenterLoggerPage() {
                           className="text-3xl sm:text-4xl font-black text-white"
                           style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                         >
-                          {kpis.totalKg > 0 ? Math.round(kpis.totalRevenue / kpis.totalKg).toLocaleString("en-IN") : "—"}
+                          {kpis.avgSellRate > 0 ? kpis.avgSellRate.toLocaleString("en-IN") : "—"}
                         </span>
-                        {kpis.totalKg > 0 && (
+                        {kpis.avgSellRate > 0 && (
                           <span className="text-[11px] font-bold text-violet-400 font-mono ml-0.5">/Kg</span>
                         )}
                       </>
@@ -2967,19 +3189,19 @@ export default function VendingCenterLoggerPage() {
                 <div className="mt-3.5 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2.5 space-y-0.5">
                   <div className="flex items-center justify-between">
                     <span className="text-emerald-300 font-bold">
-                      G: ₹{kpis.guttedKg > 0 ? Math.round(kpis.guttedRevenue / kpis.guttedKg).toLocaleString("en-IN") : "—"}/Kg
+                      G: ₹{kpis.guttedAvgRate > 0 ? kpis.guttedAvgRate.toLocaleString("en-IN") : "—"}/Kg
                     </span>
                     <span className="text-cyan-300">
-                      NG: ₹{kpis.nonGuttedKg > 0 ? Math.round(kpis.nonGuttedRevenue / kpis.nonGuttedKg).toLocaleString("en-IN") : "—"}/Kg
+                      NG: {kpis.nonGuttedAvgRate > 0 ? `₹${kpis.nonGuttedAvgRate.toLocaleString("en-IN")}/Kg` : "—"}
                     </span>
                   </div>
                   <div className="text-[10px] text-slate-500 truncate">
-                    Revenue ÷ Total Kg Dispatched
+                    Revenue ÷ Realized Sold Kg
                   </div>
                 </div>
               </div>
 
-              {/* Card 6: Negotiation Concession / Loss */}
+              {/* Card 8: Negotiation Concession / Loss */}
               <div
                 className={`p-4 sm:p-5 rounded-2xl border shadow-xl relative overflow-hidden flex flex-col justify-between ${
                   kpis.totalLoss > 0
@@ -3041,15 +3263,9 @@ export default function VendingCenterLoggerPage() {
                   </div>
                   <div className="text-[10px] text-slate-500 truncate">
                     {kpis.totalLoss > 0
-                      ? "Lost to customer bargaining"
+                      ? "Lost to customer bargaining (0 on credit)"
                       : "All orders at full inventory price"}
                   </div>
-                  {kpis.pendingBalanceTotal > 0 && (
-                    <div className="mt-1 flex items-center justify-between text-[10px] text-amber-300 font-mono bg-amber-500/15 px-2 py-0.5 rounded border border-amber-500/30">
-                      <span>⏳ Khata Due:</span>
-                      <span className="font-bold">₹{kpis.pendingBalanceTotal.toLocaleString("en-IN")} ({kpis.pendingBalanceCount})</span>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
@@ -3884,14 +4100,13 @@ export default function VendingCenterLoggerPage() {
                   const isCreditSale =
                     isPendingBal ||
                     (Number(e.amount_paid) === 0 && e.custom_fields?.balance_status !== "waived_final");
-                  const loss =
-                    e.discount_amount !== undefined && e.discount_amount !== null && Number(e.discount_amount) > 0
-                      ? Number(e.discount_amount)
-                      : e.custom_fields?.discount_amount !== undefined && Number(e.custom_fields.discount_amount) > 0
-                      ? Number(e.custom_fields.discount_amount)
-                      : isPendingBal
-                      ? 0
-                      : Math.max(0, exp - taken);
+                  const loss = isCreditSale
+                    ? 0
+                    : e.discount_amount !== undefined && e.discount_amount !== null && Number(e.discount_amount) > 0
+                    ? Number(e.discount_amount)
+                    : e.custom_fields?.discount_amount !== undefined && Number(e.custom_fields.discount_amount) > 0
+                    ? Number(e.custom_fields.discount_amount)
+                    : Math.max(0, exp - taken);
                   const isSelfCleaned = Boolean(e.custom_fields?.self_cleaned || (e as any).self_cleaned);
                   const isCash = (e.payment_mode || "").toLowerCase().trim() === "cash";
 
@@ -3949,40 +4164,34 @@ export default function VendingCenterLoggerPage() {
                                 </span>
                               </>
                             ) : (
-                              <span className="px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 inline-flex items-center gap-1">
-                                ✨ {e.product_type}
+                              <span className="px-2 py-0.5 rounded-lg text-[10.5px] font-medium bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                                🐟 {e.product_type}
                               </span>
                             )}
 
-                            {/* Distinct Credit / Khata Badge */}
+                            {/* Credit Badge */}
                             {isCreditSale && (
                               <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-purple-500/25 text-purple-200 border border-purple-500/50 inline-flex items-center gap-1 shadow-sm">
                                 <span className="material-symbols-outlined text-[11px] text-purple-300">account_balance_wallet</span>
                                 <span>Credit (Khata)</span>
-                                {Number(e.custom_fields?.balance_amount) > 0 && (
-                                  <span className="text-[8.5px] px-1 rounded bg-purple-500/30 text-purple-100 font-mono">
-                                    ₹{Number(e.custom_fields?.balance_amount).toLocaleString("en-IN")} due
-                                  </span>
-                                )}
                               </span>
                             )}
                           </div>
 
-                          {/* Customer / Phone info */}
-                          {(e.custom_fields?.customer_name || e.custom_fields?.customer_phone) && (
-                            <div className="flex items-center gap-1 text-[10.5px] text-purple-300/90 font-mono">
-                              <span className="material-symbols-outlined text-[12px] text-purple-400 shrink-0">person</span>
-                              <span className="font-semibold">{e.custom_fields.customer_name || "Customer"}</span>
-                              {e.custom_fields?.customer_phone && (
-                                <span className="text-purple-400/80">({e.custom_fields.customer_phone})</span>
+                          {/* Customer contact info */}
+                          {e.custom_fields?.customer_name && (
+                            <div className="flex items-center gap-1 text-[11px] text-purple-300 font-medium truncate">
+                              <span className="material-symbols-outlined text-[12px] text-purple-400">person</span>
+                              <span>{e.custom_fields.customer_name}</span>
+                              {e.custom_fields.customer_phone && (
+                                <span className="text-slate-400 text-[10px]">({e.custom_fields.customer_phone})</span>
                               )}
                             </div>
                           )}
 
-                          {/* Customer / Location / Notes */}
                           {e.notes && (
-                            <div className="flex items-center gap-1 text-[11px] text-slate-300 font-sans font-medium truncate max-w-[280px]" title={e.notes}>
-                              <span className="material-symbols-outlined text-[13px] text-emerald-400 shrink-0">pin_drop</span>
+                            <div className="text-[11px] text-slate-400 truncate flex items-center gap-1">
+                              <span className="material-symbols-outlined text-[12px] text-emerald-400 flex-shrink-0">location_on</span>
                               <span className="truncate">{e.notes}</span>
                             </div>
                           )}
@@ -3997,9 +4206,9 @@ export default function VendingCenterLoggerPage() {
                       </td>
 
                       {/* Staff */}
-                      <td className="py-3 px-3 whitespace-nowrap">
-                        <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-xl bg-slate-800/80 border border-slate-700/60 text-slate-300 text-[11px] font-sans font-medium">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"></span>
+                      <td className="py-3 px-3.5 whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-800/90 border border-slate-700/60 text-slate-300 text-[11px] font-sans font-medium">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
                           {formatStaffDisplayName(e.logged_by)}
                         </span>
                       </td>
@@ -4038,14 +4247,14 @@ export default function VendingCenterLoggerPage() {
                           const effRate = w > 0 && taken > 0 ? taken / w : rate;
                           const standardBenchmarkRate = isGutted ? (guttedPrice || DEFAULT_GUTTED_PRICE) : rate;
                           const rateDiff = standardBenchmarkRate - effRate;
-                          const isLoss = rateDiff > 0.5;
+                          const isLoss = !isCreditSale && rateDiff > 0.5;
                           const isGain = rateDiff < -0.5;
 
                           return (
                             <div className="flex flex-col items-end">
                               <span
                                 className={`font-mono font-black text-xs tracking-tight ${
-                                  isLoss ? "text-amber-300" : isGain ? "text-cyan-300" : "text-emerald-400"
+                                  isCreditSale ? "text-purple-300" : isLoss ? "text-amber-300" : isGain ? "text-cyan-300" : "text-emerald-400"
                                 }`}
                               >
                                 ₹{effRate.toFixed(1)}
@@ -4071,7 +4280,7 @@ export default function VendingCenterLoggerPage() {
 
                       {/* Loss / Concession / Balance */}
                       <td className="py-3 px-3.5 text-right whitespace-nowrap">
-                        {Number(e.custom_fields?.balance_amount) > 0 && e.custom_fields?.balance_status === "pending" ? (
+                        {isCreditSale && e.custom_fields?.balance_status !== "waived_final" && e.custom_fields?.balance_status !== "settled" ? (
                           <button
                             type="button"
                             onClick={() => handleOpenBalanceModalForEntry(e)}
@@ -4079,13 +4288,13 @@ export default function VendingCenterLoggerPage() {
                             title="Click to open Khata &amp; WhatsApp Reminder"
                           >
                             <span className="material-symbols-outlined text-[12px]">hourglass_top</span>
-                            Bal: ₹{Number(e.custom_fields.balance_amount).toLocaleString("en-IN")}
+                            Bal: ₹{Number(e.custom_fields?.balance_amount || exp).toLocaleString("en-IN")}
                           </button>
                         ) : e.custom_fields?.balance_status === "waived_final" ? (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-medium text-slate-300 bg-slate-800/90 border border-slate-700">
                             🤝 Waived (-₹{loss})
                           </span>
-                        ) : e.custom_fields?.balance_status === "settled" || e.custom_fields?.settled_at || e.custom_fields?.is_full_payment ? (
+                        ) : e.custom_fields?.balance_status === "settled" || e.custom_fields?.settled_at || (e.custom_fields?.is_full_payment && !isCreditSale) ? (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/40">
                             ✓ Full Paid
                           </span>
@@ -4225,7 +4434,9 @@ export default function VendingCenterLoggerPage() {
               isPendingBal ||
               (Number(e.amount_paid) === 0 && e.custom_fields?.balance_status !== "waived_final");
             const loss =
-              e.discount_amount !== undefined && e.discount_amount !== null && Number(e.discount_amount) > 0
+              isCreditSale
+                ? 0
+                : e.discount_amount !== undefined && e.discount_amount !== null && Number(e.discount_amount) > 0
                 ? Number(e.discount_amount)
                 : e.custom_fields?.discount_amount !== undefined && Number(e.custom_fields.discount_amount) > 0
                 ? Number(e.custom_fields.discount_amount)
@@ -4273,14 +4484,14 @@ export default function VendingCenterLoggerPage() {
                         <button
                           type="button"
                           onClick={() => handleDeleteEntry(e.id)}
-                          className="px-2 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-bold font-mono shadow-md cursor-pointer"
+                          className="px-2 py-0.5 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-bold font-mono shadow-md cursor-pointer"
                         >
-                          Delete
+                          Confirm
                         </button>
                         <button
                           type="button"
                           onClick={() => setDeleteConfirmId(null)}
-                          className="px-2 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 text-[10px] cursor-pointer"
+                          className="px-1.5 py-0.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 text-[10px] cursor-pointer"
                         >
                           ✕
                         </button>
@@ -4376,11 +4587,11 @@ export default function VendingCenterLoggerPage() {
 
                   {/* Effective Rate Strip */}
                   {(() => {
-                    const effRate = w > 0 && taken > 0 ? taken / w : rate;
+                    const effRate = isCreditSale ? rate : (w > 0 && taken > 0 ? taken / w : rate);
                     const standardBenchmarkRate = isGutted ? (guttedPrice || DEFAULT_GUTTED_PRICE) : rate;
                     const rateDiff = standardBenchmarkRate - effRate;
-                    const isLoss = rateDiff > 0.5;
-                    const isGain = rateDiff < -0.5;
+                    const isLoss = !isCreditSale && rateDiff > 0.5;
+                    const isGain = !isCreditSale && rateDiff < -0.5;
 
                     return (
                       <div className="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-slate-950/80 border border-slate-800/90 text-[10.5px] font-mono mt-1.5">
@@ -4391,22 +4602,24 @@ export default function VendingCenterLoggerPage() {
                         <div className="flex items-center gap-1.5">
                           <span
                             className={`font-black ${
-                              isLoss ? "text-amber-300" : isGain ? "text-cyan-300" : "text-emerald-400"
+                              isCreditSale ? "text-purple-300" : isLoss ? "text-amber-300" : isGain ? "text-cyan-300" : "text-emerald-400"
                             }`}
                           >
                             ₹{effRate.toFixed(1)}/Kg
                           </span>
-                          {isLoss && (
+                          {isCreditSale ? (
+                            <span className="text-[9.5px] text-purple-400 font-medium">
+                              (Credit)
+                            </span>
+                          ) : isLoss ? (
                             <span className="text-[9.5px] text-rose-400 font-medium">
                               (-₹{rateDiff.toFixed(1)}/Kg)
                             </span>
-                          )}
-                          {isGain && (
+                          ) : isGain ? (
                             <span className="text-[9.5px] text-cyan-400 font-medium">
                               (+₹{Math.abs(rateDiff).toFixed(1)}/Kg)
                             </span>
-                          )}
-                          {!isLoss && !isGain && (
+                          ) : (
                             <span className="text-[9px] text-slate-500">
                               (Std)
                             </span>
@@ -4448,10 +4661,19 @@ export default function VendingCenterLoggerPage() {
                       <button
                         type="button"
                         onClick={() => handleOpenBalanceModalForEntry(e)}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/50 hover:bg-amber-500/30 transition-all cursor-pointer shadow-sm active:scale-95"
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/50 hover:bg-purple-500/30 transition-all cursor-pointer shadow-sm active:scale-95"
                       >
                         <span className="material-symbols-outlined text-[12px]">hourglass_top</span>
                         Khata: ₹{Number(e.custom_fields.balance_amount).toLocaleString("en-IN")}
+                      </button>
+                    ) : isCreditSale && (Number(e.custom_fields?.balance_amount) > 0 || taken === 0) ? (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenBalanceModalForEntry(e)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/50 hover:bg-purple-500/30 transition-all cursor-pointer shadow-sm active:scale-95"
+                      >
+                        <span className="material-symbols-outlined text-[12px]">hourglass_top</span>
+                        Khata: ₹{Number(e.custom_fields?.balance_amount || exp).toLocaleString("en-IN")}
                       </button>
                     ) : e.custom_fields?.balance_status === "waived_final" ? (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-medium text-slate-300 bg-slate-800/90 border border-slate-700">
@@ -4487,6 +4709,28 @@ export default function VendingCenterLoggerPage() {
           return s + (e.expected_amount !== undefined && e.expected_amount !== null ? Number(e.expected_amount) : Math.round(w * r));
         }, 0);
         const totalVisTaken = displayEntries.reduce((s, e) => s + (Number(e.amount_paid) || 0), 0);
+        const totalVisCredit = displayEntries.reduce((s, e) => {
+          const isPendingBal =
+            (e.custom_fields?.balance_status === "pending" && Number(e.custom_fields?.balance_amount) > 0) ||
+            (e.payment_mode || "").toLowerCase().includes("credit") ||
+            (e.payment_mode || "").toLowerCase().includes("khata");
+          const isCredit =
+            isPendingBal ||
+            (Number(e.amount_paid) === 0 && e.custom_fields?.balance_status !== "waived_final");
+          if (isCredit) {
+            const bal = Number(e.custom_fields?.balance_amount);
+            const w = Number(e.weight_kg) || 0;
+            const r = Number(e.rate_per_kg) || 0;
+            const exp =
+              e.expected_amount !== undefined && e.expected_amount !== null && Number(e.expected_amount) > 0
+                ? Number(e.expected_amount)
+                : e.custom_fields?.expected_amount !== undefined && Number(e.custom_fields.expected_amount) > 0
+                ? Number(e.custom_fields.expected_amount)
+                : Math.round(w * r);
+            return s + (bal > 0 ? bal : Math.max(0, exp - (Number(e.amount_paid) || 0)));
+          }
+          return s;
+        }, 0);
         const totalVisLoss = displayEntries.reduce((s, e) => {
           const w = Number(e.weight_kg) || 0;
           const r = Number(e.rate_per_kg) || 0;
@@ -4497,13 +4741,20 @@ export default function VendingCenterLoggerPage() {
               ? Number(e.custom_fields.expected_amount)
               : Math.round(w * r);
           const paid = Number(e.amount_paid) || 0;
-          const isPendBal = e.custom_fields?.balance_status === "pending" && Number(e.custom_fields?.balance_amount) > 0;
-          const l =
-            e.discount_amount !== undefined && e.discount_amount !== null && Number(e.discount_amount) > 0
-              ? Number(e.discount_amount)
-              : e.custom_fields?.discount_amount !== undefined && Number(e.custom_fields.discount_amount) > 0
-              ? Number(e.custom_fields.discount_amount)
-              : isPendBal ? 0 : Math.max(0, ex - paid);
+          const isPendBal =
+            (e.custom_fields?.balance_status === "pending" && Number(e.custom_fields?.balance_amount) > 0) ||
+            (e.payment_mode || "").toLowerCase().includes("credit") ||
+            (e.payment_mode || "").toLowerCase().includes("khata");
+          const isCredit =
+            isPendBal ||
+            (paid === 0 && e.custom_fields?.balance_status !== "waived_final");
+          const l = isCredit
+            ? 0
+            : e.discount_amount !== undefined && e.discount_amount !== null && Number(e.discount_amount) > 0
+            ? Number(e.discount_amount)
+            : e.custom_fields?.discount_amount !== undefined && Number(e.custom_fields.discount_amount) > 0
+            ? Number(e.custom_fields.discount_amount)
+            : isPendBal ? 0 : Math.max(0, ex - paid);
           return s + l;
         }, 0);
 
@@ -4522,6 +4773,11 @@ export default function VendingCenterLoggerPage() {
               <span className="text-slate-400">
                 Collected: <span className="text-cyan-300 font-black">₹{totalVisTaken.toLocaleString("en-IN")}</span>
               </span>
+              {totalVisCredit > 0 && (
+                <span className="text-slate-400">
+                  Credit (Khata): <span className="text-purple-300 font-black">₹{totalVisCredit.toLocaleString("en-IN")}</span>
+                </span>
+              )}
               <span className="text-slate-400">
                 Loss:{" "}
                 {totalVisLoss > 0 ? (

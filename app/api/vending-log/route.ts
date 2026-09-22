@@ -521,13 +521,15 @@ export async function POST(request: Request) {
     const expected = body.expected_amount !== undefined && body.expected_amount !== null
       ? parseFloat(body.expected_amount)
       : calculatedExpected;
-    const isPendingBalance =
-      custom_fields?.balance_status === "pending" &&
-      Number(custom_fields?.balance_amount) > 0;
-    const discount = body.discount_amount !== undefined && body.discount_amount !== null
-      ? parseFloat(body.discount_amount)
-      : isPendingBalance
+    const isCreditSale =
+      (payment_mode || "").toLowerCase().includes("credit") ||
+      (payment_mode || "").toLowerCase().includes("khata") ||
+      (custom_fields?.balance_status === "pending" && Number(custom_fields?.balance_amount) > 0) ||
+      (Number(custom_fields?.balance_amount) > 0);
+    const discount = isCreditSale
       ? 0
+      : body.discount_amount !== undefined && body.discount_amount !== null
+      ? parseFloat(body.discount_amount)
       : Math.max(0, expected - parsedPaid);
     const effectiveRate = parsedWeight > 0 ? (parsedPaid > 0 ? Math.round((parsedPaid / parsedWeight) * 10) / 10 : parsedRate) : parsedRate;
 
