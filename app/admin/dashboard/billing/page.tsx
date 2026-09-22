@@ -1594,20 +1594,25 @@ ${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━
   const handleSendReview = (order: any) => {
     const cName = getOrderName(order);
     const cleanPhone = String(getOrderPhone(order)).replace(/\D/g, "").slice(-10);
-    const reviewUrl = googleReviewUrl || "https://g.page/r/YOUR_GBP_REVIEW_ID/review";
+    const reviewUrl = googleReviewUrl || "https://g.page/r/CTVKEpV62HMmECE/review";
+
+    // Build emoji at runtime via fromCodePoint — safe in all transpiler targets
+    const FISH  = String.fromCodePoint(0x1F41F); // 🐟
+    const STAR  = String.fromCodePoint(0x2B50);  // ⭐
+    const PRAY  = String.fromCodePoint(0x1F64F); // 🙏
 
     const msg = [
       `Dear *${cName}*,`,
       ``,
-      `Thank you for choosing *Urban Trout* \u{1F41F}`,
+      `Thank you for choosing *Urban Trout* ${FISH}`,
       `We hope you loved your fresh Himalayan Rainbow Trout!`,
       ``,
       `Your feedback means the world to us and helps other fish lovers in Kashmir find us. If you enjoyed your experience, we\u2019d be incredibly grateful for a quick Google review:`,
       ``,
-      `\u2B50 *Leave us a review:*`,
+      `${STAR} *Leave us a review:*`,
       reviewUrl,
       ``,
-      `It only takes 30 seconds and makes a big difference! \u{1F64F}`,
+      `It only takes 30 seconds and makes a big difference! ${PRAY}`,
       ``,
       `_Thank you \u2014 Urban Trout Team, Srinagar_`,
     ].join("\n");
@@ -1635,16 +1640,19 @@ ${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━
     const tot = getOrderTotal(order);
     const payUrl = order.data?.paymentLinkUrl || order.paymentLinkUrl || "";
 
+    const FISH = String.fromCodePoint(0x1F41F); // 🐟
+    const CARD = String.fromCodePoint(0x1F4B3); // 💳
+
     const parts = [
       `Dear *${cName}*,`,
       ``,
-      `A friendly reminder from *Urban Trout Aquaculture* \u{1F41F}`,
+      `A friendly reminder from *Urban Trout Aquaculture* ${FISH}`,
       ``,
       `Your fresh trout order *#${invNum}* of *\u20B9${tot.toLocaleString("en-IN")}* is waiting for payment.`,
       ``,
     ];
     if (payUrl) {
-      parts.push(`\u{1F4B3} *Pay securely here:*`);
+      parts.push(`${CARD} *Pay securely here:*`);
       parts.push(payUrl);
       parts.push(``);
     }
