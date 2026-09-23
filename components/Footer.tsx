@@ -57,9 +57,21 @@ export default function Footer() {
           >
             Operated by <strong style={{ color: "#c4ebff" }}>Skindar Mohd Sideeq</strong>
           </span>
+          <span
+            style={{
+              fontFamily: '"Inter", sans-serif',
+              fontSize: "11px",
+              color: "#34d399",
+              lineHeight: 1.5,
+              display: "block",
+              marginTop: "4px",
+            }}
+          >
+            ✓ FSSAI Food Hygiene &amp; J&amp;K Fisheries Standards
+          </span>
         </div>
 
-        {/* 2. Explore */}
+        {/* 2. Explore & Guides */}
         <div>
           <h5
             style={{
@@ -72,13 +84,16 @@ export default function Footer() {
               marginBottom: "1.25rem",
             }}
           >
-            Explore
+            Explore &amp; Guides
           </h5>
           <nav aria-label="Explore navigation">
-          <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "12px" }}>
+          <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "10px" }}>
             {[
               { href: "/shop", label: "Shop Fresh Catch" },
               { href: "/our-farm", label: "About Our Farm" },
+              { href: "/trout-price-srinagar", label: "Trout Rates (2026 Guide)" },
+              { href: "/kashmiri-trout-recipe", label: "Kashmiri Trout Recipes" },
+              { href: "/fresh-trout-guide", label: "Freshness & Species Guide" },
               { href: "/shop/gutted-trout", label: "Cleaned & Gutted Trout" },
               { href: "/shop/whole-trout", label: "Whole Rainbow Trout" },
               { href: "/farm-visits", label: "Pre-Notify Farm Visit" },
@@ -89,7 +104,7 @@ export default function Footer() {
                   href={link.href}
                   style={{
                     fontFamily: '"Manrope", sans-serif',
-                    fontSize: "0.85rem",
+                    fontSize: "0.83rem",
                     color: C.onSurfVar,
                     textDecoration: "none",
                     transition: "color 0.2s",

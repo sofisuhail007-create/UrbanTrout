@@ -343,6 +343,108 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* ── 2026 Srinagar Rainbow Trout Price Comparison Matrix (Price Hook & Transparency) ── */}
+      <section style={{ padding: "5rem 1.5rem", background: C.bgHigh, borderTop: "1px solid rgba(114,221,253,0.1)", borderBottom: "1px solid rgba(114,221,253,0.1)" }} aria-label="Srinagar Rainbow Trout Price Comparison Table">
+        <div className="max-w-6xl mx-auto">
+          <div className="text-center max-w-3xl mx-auto mb-10">
+            <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "11px", letterSpacing: "0.25em", textTransform: "uppercase", color: C.primary, fontWeight: 700 }}>
+              Transparent Price Benchmark (2026 Guide)
+            </span>
+            <h2 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "clamp(2rem, 4.5vw, 3.25rem)", fontWeight: 800, letterSpacing: "-0.03em", color: C.onSurface, marginTop: "0.5rem" }}>
+              Farm Direct vs. Srinagar Markets &amp; Directories
+            </h2>
+            <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfaceVariant, fontSize: "0.95rem", lineHeight: 1.7 }}>
+              Directories and marketplaces in Srinagar list trout between ₹650 and ₹1,000 per kg with extra packaging and transit charges. At Urban Trout, you get live farm-harvested fish delivered chilled to your doorstep at true farm-gate rates.
+            </p>
+          </div>
+
+          {/* Responsive Comparison Table */}
+          <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950/70 shadow-2xl backdrop-blur-md">
+            <table className="w-full text-left text-xs md:text-sm border-collapse min-w-[700px]">
+              <thead>
+                <tr className="border-b border-slate-800 bg-slate-900/80">
+                  <th className="p-4 md:p-5 font-semibold text-slate-300">Feature / Channel</th>
+                  <th className="p-4 md:p-5 font-bold text-cyan-300 bg-cyan-950/40 border-x border-cyan-500/20">
+                    <span className="block text-xs uppercase tracking-wider text-cyan-400">Urban Trout</span>
+                    <span className="text-base md:text-lg">Farm Direct Live</span>
+                  </th>
+                  <th className="p-4 md:p-5 font-semibold text-slate-400">Srinagar Wet Fish Markets</th>
+                  <th className="p-4 md:p-5 font-semibold text-slate-400">IndiaMART / B2B Directories</th>
+                  <th className="p-4 md:p-5 font-semibold text-slate-400">Srinagar Specialty Restaurants</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/80 font-sans text-slate-300">
+                <tr className="hover:bg-slate-900/30 transition-colors">
+                  <td className="p-4 md:p-5 font-medium text-white">Whole Trout Rate / Kg</td>
+                  <td className="p-4 md:p-5 font-bold text-emerald-400 bg-cyan-950/30 border-x border-cyan-500/20 text-base">₹540 / Kg</td>
+                  <td className="p-4 md:p-5 text-slate-400">₹650 – ₹700 / Kg</td>
+                  <td className="p-4 md:p-5 text-slate-400">₹650 – ₹1,000 / Kg</td>
+                  <td className="p-4 md:p-5 text-slate-400">₹1,000 – ₹1,400 / Kg (Cooked)</td>
+                </tr>
+                <tr className="hover:bg-slate-900/30 transition-colors">
+                  <td className="p-4 md:p-5 font-medium text-white">Cleaned &amp; Gutted Rate / Kg</td>
+                  <td className="p-4 md:p-5 font-bold text-emerald-400 bg-cyan-950/30 border-x border-cyan-500/20 text-base">₹580 / Kg <span className="text-[11px] font-normal text-slate-400">(100% Pan-Ready)</span></td>
+                  <td className="p-4 md:p-5 text-slate-400">₹720 – ₹780 / Kg</td>
+                  <td className="p-4 md:p-5 text-slate-400">₹750 – ₹1,100 / Kg</td>
+                  <td className="p-4 md:p-5 text-slate-400">₹1,200 – ₹1,600 / Kg</td>
+                </tr>
+                <tr className="hover:bg-slate-900/30 transition-colors">
+                  <td className="p-4 md:p-5 font-medium text-white">Harvesting &amp; Freshness</td>
+                  <td className="p-4 md:p-5 text-cyan-200 bg-cyan-950/30 border-x border-cyan-500/20">
+                    <strong className="text-emerald-400">Live harvest to order</strong>. Swimming in raceways until confirmed.
+                  </td>
+                  <td className="p-4 md:p-5 text-slate-400">Caught days prior; stored on melting municipal ice.</td>
+                  <td className="p-4 md:p-5 text-slate-400">Bulk frozen blocks; transit haul delays.</td>
+                  <td className="p-4 md:p-5 text-slate-400">Prepared from refrigerated or frozen inventory.</td>
+                </tr>
+                <tr className="hover:bg-slate-900/30 transition-colors">
+                  <td className="p-4 md:p-5 font-medium text-white">Doorstep Delivery Across Srinagar</td>
+                  <td className="p-4 md:p-5 text-cyan-200 bg-cyan-950/30 border-x border-cyan-500/20 font-semibold text-emerald-400">
+                    100% FREE within 2 Hours (Chilled on ice)
+                  </td>
+                  <td className="p-4 md:p-5 text-slate-400">Self-pickup required or ₹100+ local courier.</td>
+                  <td className="p-4 md:p-5 text-slate-400">₹200–₹400 extra packing &amp; freight box.</td>
+                  <td className="p-4 md:p-5 text-slate-400">Dine-in only (no raw fish supply).</td>
+                </tr>
+                <tr className="hover:bg-slate-900/30 transition-colors">
+                  <td className="p-4 md:p-5 font-medium text-white">Minimum Order Quantity</td>
+                  <td className="p-4 md:p-5 text-white bg-cyan-950/30 border-x border-cyan-500/20 font-medium">2 Kg (Family friendly)</td>
+                  <td className="p-4 md:p-5 text-slate-400">1 Kg</td>
+                  <td className="p-4 md:p-5 text-slate-400">5 – 10 Kg wholesale lot</td>
+                  <td className="p-4 md:p-5 text-slate-400">Single plate portion</td>
+                </tr>
+                <tr className="hover:bg-slate-900/30 transition-colors">
+                  <td className="p-4 md:p-5 font-medium text-white">Bone &amp; Edibility Profile</td>
+                  <td className="p-4 md:p-5 text-cyan-200 bg-cyan-950/30 border-x border-cyan-500/20">
+                    <strong className="text-white">Single central spine</strong>. Soft pin-bones pull out cleanly in 1 piece. <em>Kid-friendly &amp; safe.</em>
+                  </td>
+                  <td className="p-4 md:p-5 text-slate-400">Variable species quality; risk of broken bones.</td>
+                  <td className="p-4 md:p-5 text-slate-400">Standard commercial harvest.</td>
+                  <td className="p-4 md:p-5 text-slate-400">Deboned fillet at 2x premium.</td>
+                </tr>
+                <tr className="hover:bg-slate-900/30 transition-colors">
+                  <td className="p-4 md:p-5 font-medium text-white">Water Purity &amp; Chemicals</td>
+                  <td className="p-4 md:p-5 text-cyan-200 bg-cyan-950/30 border-x border-cyan-500/20">
+                    <strong className="text-emerald-400">100% Deep Groundwater</strong>. Zero antibiotics, zero mud taste.
+                  </td>
+                  <td className="p-4 md:p-5 text-slate-400">Often open canal or river water with silt.</td>
+                  <td className="p-4 md:p-5 text-slate-400">Unverified aquaculture practices.</td>
+                  <td className="p-4 md:p-5 text-slate-400">Depends on vendor source.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-400">
+            <span>Rates verified for Srinagar, Kashmir (2026). Urban Trout rates include 100% free insulated doorstep delivery.</span>
+            <Link href="/trout-price-srinagar" className="inline-flex items-center gap-1.5 text-cyan-400 font-bold hover:underline">
+              <span>Read Full Srinagar Trout Price Guide &amp; Wholesale Rates</span>
+              <span>→</span>
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* ── Evidence-Backed Farm Conditions Strip ── */}
       <section style={{ padding: "4rem 1.5rem", borderTop: "1px solid rgba(114,221,253,0.1)", borderBottom: "1px solid rgba(114,221,253,0.1)", background: C.bgLow }} aria-label="Verified Farm Conditions">
         <div className="max-w-7xl mx-auto">
@@ -359,6 +461,52 @@ export default async function HomePage() {
                 <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.8rem", color: "#a5b4fc", lineHeight: 1.4 }}>{item.sub}</span>
               </div>
             ))}
+          </div>
+
+          {/* Cold Chain Harvest-to-Doorstep Timeline */}
+          <div className="mt-12 pt-10 border-t border-slate-800">
+            <div className="text-center mb-6">
+              <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "10px", letterSpacing: "0.2em", textTransform: "uppercase", color: "#34d399", fontWeight: 700 }}>
+                From Malabagh Raceways to Your Kitchen in Under 120 Minutes
+              </span>
+              <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.4rem", fontWeight: 700, color: C.onSurface, margin: "4px 0 0" }}>
+                Our 4-Stage Fresh Harvest Timeline
+              </h3>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-mono font-bold text-cyan-300 bg-cyan-950/80 px-2 py-0.5 rounded border border-cyan-500/30">00:00 MIN</span>
+                  <span className="text-base">🐟</span>
+                </div>
+                <h4 className="font-bold text-sm text-white">Live Netting</h4>
+                <p className="text-xs text-slate-400 leading-relaxed">Fish is netted live from cold 10°C borewell water solely after order verification.</p>
+              </div>
+              <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-mono font-bold text-cyan-300 bg-cyan-950/80 px-2 py-0.5 rounded border border-cyan-500/30">00:15 MIN</span>
+                  <span className="text-base">🔪</span>
+                </div>
+                <h4 className="font-bold text-sm text-white">Precision Prep</h4>
+                <p className="text-xs text-slate-400 leading-relaxed">Expertly descaled and gutted with cold groundwater rinse. 100% pan-ready.</p>
+              </div>
+              <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-mono font-bold text-cyan-300 bg-cyan-950/80 px-2 py-0.5 rounded border border-cyan-500/30">00:25 MIN</span>
+                  <span className="text-base">🧊</span>
+                </div>
+                <h4 className="font-bold text-sm text-white">Bio-Thermal Chilling</h4>
+                <p className="text-xs text-slate-400 leading-relaxed">Packed in insulated food-grade containers on crushed ice at 0°C–2°C.</p>
+              </div>
+              <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-950/80 px-2 py-0.5 rounded border border-emerald-500/30">&lt; 120 MIN</span>
+                  <span className="text-base">🚀</span>
+                </div>
+                <h4 className="font-bold text-sm text-white">Doorstep Arrival</h4>
+                <p className="text-xs text-slate-400 leading-relaxed">Handed directly to you anywhere in Srinagar with zero delivery fees.</p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
@@ -439,7 +587,7 @@ export default async function HomePage() {
                 </svg>
                 <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.4rem", fontWeight: 700, color: C.onSurface, margin: "0 0 0.75rem" }}>Harvested Live to Order</h3>
                 <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfaceVariant, fontSize: "0.9rem", lineHeight: 1.75, margin: 0 }}>
-                  We never store slaughtered fish in deep freezers. Fish are netted alive only after your order is confirmed, immediately chilled on ice, and delivered within 2 hours for unbeatable firmness and bounce.
+                  Never pre-harvested or kept in stagnant cold storage. Fish swim in clean, continuous cold-water currents until your order is confirmed, then hand-harvested live, cleaned, and packed on food-grade ice for delivery within 2 hours.
                 </p>
               </div>
             </div>
@@ -462,80 +610,132 @@ export default async function HomePage() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {/* Card 1: Freshness Test */}
-            <div className="p-7 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-4">
-              <div className="w-12 h-12 rounded-xl bg-cyan-950/70 border border-cyan-500/30 flex items-center justify-center text-cyan-300 text-xl font-bold">
-                🔍
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            {/* Card 1: Freshness Verification */}
+            <div className="p-7 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-4 flex flex-col justify-between">
+              <div>
+                <div className="w-12 h-12 rounded-xl bg-cyan-950/70 border border-cyan-500/30 flex items-center justify-center text-cyan-300 text-xl font-bold mb-3">
+                  🔍
+                </div>
+                <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.3rem", fontWeight: 700, color: C.onSurface, marginBottom: "0.75rem" }}>
+                  How to Spot 100% Fresh Trout
+                </h3>
+                <ul className="text-xs text-slate-300 space-y-2.5 leading-relaxed font-sans">
+                  <li className="flex items-start gap-2">
+                    <span className="text-emerald-400 font-bold">✓</span>
+                    <span><strong>Convex, crystal-clear eyes:</strong> Fresh trout has bulging, shiny eyes. Sunken, clouded, or milky eyes indicate days-old fish.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-emerald-400 font-bold">✓</span>
+                    <span><strong>Vibrant crimson red gills:</strong> Gills must be moist and deep scarlet. Avoid fish with dull brown or mucus-covered gills.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-emerald-400 font-bold">✓</span>
+                    <span><strong>Elastic, firm flesh:</strong> Gently press the skin—the muscle must spring back immediately without leaving a permanent dent.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-emerald-400 font-bold">✓</span>
+                    <span><strong>Clean freshwater scent:</strong> Smells like clean Himalayan river currents, with zero sour or ammonia odor.</span>
+                  </li>
+                </ul>
               </div>
-              <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.25rem", fontWeight: 700, color: C.onSurface }}>
-                How to Spot Real Fresh Trout
-              </h3>
-              <ul className="text-xs text-slate-300 space-y-2.5 leading-relaxed font-sans">
-                <li className="flex items-start gap-2">
-                  <span className="text-emerald-400 font-bold">✓</span>
-                  <span><strong>Bright, clear, convex eyes:</strong> Never sunken, cloudy, or glazed.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-emerald-400 font-bold">✓</span>
-                  <span><strong>Rich crimson red gills:</strong> Clean and moist, never brownish or mucus-covered.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-emerald-400 font-bold">✓</span>
-                  <span><strong>Firm, resilient flesh:</strong> Springs back immediately when pressed with a finger.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-emerald-400 font-bold">✓</span>
-                  <span><strong>Mild, fresh river aroma:</strong> Zero unpleasant fishy smell.</span>
-                </li>
-              </ul>
+              <Link href="/fresh-trout-guide" className="inline-flex items-center gap-1.5 text-xs text-cyan-400 font-bold hover:underline pt-2">
+                <span>View Full Trout Freshness &amp; Identification Guide</span>
+                <span>→</span>
+              </Link>
             </div>
 
-            {/* Card 2: Whole vs Gutted Yield */}
-            <div className="p-7 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-4">
-              <div className="w-12 h-12 rounded-xl bg-cyan-950/70 border border-cyan-500/30 flex items-center justify-center text-cyan-300 text-xl font-bold">
-                ⚖️
+            {/* Card 2: Single-Bone Anatomy & Child-Safe Nutrition */}
+            <div className="p-7 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-4 flex flex-col justify-between">
+              <div>
+                <div className="w-12 h-12 rounded-xl bg-cyan-950/70 border border-cyan-500/30 flex items-center justify-center text-cyan-300 text-xl font-bold mb-3">
+                  🦴
+                </div>
+                <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.3rem", fontWeight: 700, color: C.onSurface, marginBottom: "0.75rem" }}>
+                  Single Pin-Bone Anatomy &amp; Kid-Safe Dining
+                </h3>
+                <p className="text-xs text-slate-300 leading-relaxed font-sans mb-3">
+                  Unlike local river carp, Rohu, or Katla which are packed with sharp, hazardous intramuscular &ldquo;Y-bones&rdquo;, Rainbow Trout features an uncomplicated, single central backbone.
+                </p>
+                <ul className="text-xs text-slate-300 space-y-2.5 leading-relaxed font-sans">
+                  <li className="flex items-start gap-2">
+                    <span className="text-cyan-400 font-bold">•</span>
+                    <span><strong>Effortless deboning:</strong> Once steamed, pan-fried, or baked, the central spine lifts out completely in one single motion.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-cyan-400 font-bold">•</span>
+                    <span><strong>100% Safe for children &amp; elders:</strong> Zero tiny hidden bones embedded in the meat.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-cyan-400 font-bold">•</span>
+                    <span><strong>High Omega-3 &amp; Protein:</strong> Delivers 20.5g lean protein and 1,200mg+ essential EPA/DHA Omega-3s per 100g serving for heart and cognitive vitality.</span>
+                  </li>
+                </ul>
               </div>
-              <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.25rem", fontWeight: 700, color: C.onSurface }}>
-                Whole vs. Cleaned &amp; Gutted
-              </h3>
-              <p className="text-xs text-slate-300 leading-relaxed font-sans">
-                Our farm harvests table-sized trout (typically <strong>350g to 600g per fish</strong>), ideal for quick even cooking.
-              </p>
-              <ul className="text-xs text-slate-300 space-y-2.5 leading-relaxed font-sans">
-                <li className="flex items-start gap-2">
-                  <span className="text-cyan-400 font-bold">•</span>
-                  <span><strong>Whole Trout (₹540/kg):</strong> 100% natural weight with head, gills, and scales intact. Best for traditional whole tandoori, baking, or whole fish barbecue.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-cyan-400 font-bold">•</span>
-                  <span><strong>Cleaned &amp; Gutted (₹580/kg):</strong> Descaled, cleaned, and gutted. Natural viscera removal is only 15%–18%, leaving 100% pan-ready meat.</span>
-                </li>
-              </ul>
+              <span className="text-[11px] text-emerald-400 font-mono">Recommended by Srinagar pediatricians &amp; health-conscious families</span>
             </div>
 
-            {/* Card 3: Kashmiri Cooking & Storage */}
-            <div className="p-7 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-4">
-              <div className="w-12 h-12 rounded-xl bg-cyan-950/70 border border-cyan-500/30 flex items-center justify-center text-cyan-300 text-xl font-bold">
-                🍳
+            {/* Card 3: Species Science & The "Himalayan Salmon" */}
+            <div className="p-7 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-4 flex flex-col justify-between">
+              <div>
+                <div className="w-12 h-12 rounded-xl bg-cyan-950/70 border border-cyan-500/30 flex items-center justify-center text-cyan-300 text-xl font-bold mb-3">
+                  🧬
+                </div>
+                <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.3rem", fontWeight: 700, color: C.onSurface, marginBottom: "0.75rem" }}>
+                  Rainbow vs. Brown Trout &amp; &ldquo;Himalayan Salmon&rdquo;
+                </h3>
+                <p className="text-xs text-slate-300 leading-relaxed font-sans mb-3">
+                  Rainbow Trout (<em className="text-cyan-300 font-serif">Oncorhynchus mykiss</em>) is widely celebrated as the <strong>&ldquo;Himalayan Salmon&rdquo;</strong> of Kashmir. Both belong to the esteemed <em className="text-slate-300">Salmonidae</em> family.
+                </p>
+                <ul className="text-xs text-slate-300 space-y-2.5 leading-relaxed font-sans">
+                  <li className="flex items-start gap-2">
+                    <span className="text-amber-400 font-bold">★</span>
+                    <span><strong>Rainbow Trout:</strong> Distinguished by its vibrant iridescent pink lateral stripe, tender white-to-light-pink meat, mild sweetness, and rapid even cooking.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-amber-400 font-bold">★</span>
+                    <span><strong>Brown Trout (Salmo trutta):</strong> Darker with red halos, denser gamey flesh, primarily found in wild torrential streams rather than controlled bio-secure aquaculture.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-amber-400 font-bold">★</span>
+                    <span><strong>Why Rainbow Trout leads:</strong> Superior disease resistance in pure borewell currents and unmatched culinary tenderness.</span>
+                  </li>
+                </ul>
               </div>
-              <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.25rem", fontWeight: 700, color: C.onSurface }}>
-                Cooking &amp; Storage Tips
-              </h3>
-              <ul className="text-xs text-slate-300 space-y-2.5 leading-relaxed font-sans">
-                <li className="flex items-start gap-2">
-                  <span className="text-amber-400 font-bold">★</span>
-                  <span><strong>Kashmiri Pan-Fry:</strong> Heat mustard oil till smoking, dust fish with salt, turmeric, and Kashmiri deghi mirch. Sear 4 minutes per side until the delicate skin turns golden and crisp.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-amber-400 font-bold">★</span>
-                  <span><strong>Mujh Gaad (Trout with Radish):</strong> Classic winter delicacy simmered with sliced radishes and ver masala.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="text-amber-400 font-bold">★</span>
-                  <span><strong>Storage:</strong> Keep on crushed ice in the fridge chiller up to 48 hours, or freeze in airtight wrap up to 3 months.</span>
-                </li>
-              </ul>
+              <span className="text-[11px] text-cyan-300 font-mono">100% Pure Bred Oncorhynchus mykiss stock</span>
+            </div>
+
+            {/* Card 4: Authentic Kashmiri Culinary Traditions & Marinade */}
+            <div className="p-7 rounded-2xl bg-slate-900/80 border border-slate-800 space-y-4 flex flex-col justify-between">
+              <div>
+                <div className="w-12 h-12 rounded-xl bg-cyan-950/70 border border-cyan-500/30 flex items-center justify-center text-cyan-300 text-xl font-bold mb-3">
+                  🍳
+                </div>
+                <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.3rem", fontWeight: 700, color: C.onSurface, marginBottom: "0.75rem" }}>
+                  Authentic Kashmiri Marinade &amp; Recipes
+                </h3>
+                <p className="text-xs text-slate-300 leading-relaxed font-sans mb-3">
+                  Kashmiri culinary heritage pairs trout with warm digestive aromatics and cold-pressed mustard oil (<em className="text-amber-300">Kaer tuel</em>):
+                </p>
+                <ul className="text-xs text-slate-300 space-y-2.5 leading-relaxed font-sans">
+                  <li className="flex items-start gap-2">
+                    <span className="text-amber-400 font-bold">1.</span>
+                    <span><strong>The Signature Marinade:</strong> Rub gutted trout with pure mustard oil, dried ginger powder (<em className="text-white">shonth</em>), ground fennel (<em className="text-white">badiyan / saunf</em>), Kashmiri deghi chili, and rock salt. Rest 15 mins.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-amber-400 font-bold">2.</span>
+                    <span><strong>Golden Pan-Fry:</strong> Sear in smoking mustard oil for 4 minutes per side. The microscopic scales crisp into an ultra-delicate skin.</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-amber-400 font-bold">3.</span>
+                    <span><strong>Mujh Gaad (Trout with Radish):</strong> Slow-simmered winter specialty with sliced tender radishes and aromatic Kashmiri <em className="text-white">ver</em> masala cake.</span>
+                  </li>
+                </ul>
+              </div>
+              <Link href="/kashmiri-trout-recipe" className="inline-flex items-center gap-1.5 text-xs text-cyan-400 font-bold hover:underline pt-2">
+                <span>Explore Full Kashmiri Trout Recipes &amp; Step-by-Step Cooking</span>
+                <span>→</span>
+              </Link>
             </div>
           </div>
         </div>
@@ -655,6 +855,27 @@ export default async function HomePage() {
             </div>
             <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: "0.95rem", color: C.onSurface }}>Farm Gate Pickup</span>
             <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.8rem", color: C.onSurfaceVariant }}>Open 7:00 AM – 10:00 PM</span>
+          </div>
+        </div>
+
+        {/* E-E-A-T Compliance, FSSAI Hygiene & Freshness Guarantee */}
+        <div className="max-w-7xl mx-auto mt-12 pt-8 border-t border-slate-800/80 flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-lg bg-emerald-950/60 border border-emerald-500/40 flex items-center justify-center text-emerald-400 text-lg">
+              🛡️
+            </div>
+            <div>
+              <span className="block text-xs font-bold text-white font-['Space_Grotesk'] uppercase tracking-wider">
+                FSSAI Hygiene &amp; J&amp;K Fisheries Standards Compliant
+              </span>
+              <span className="text-[11px] text-slate-400 font-sans">
+                Bio-secure cold-chain handling, 0°C–2°C food-grade ice insulation, and pure Himalayan borewell groundwater.
+              </span>
+            </div>
+          </div>
+
+          <div className="text-xs text-slate-400 font-sans max-w-md">
+            <strong className="text-emerald-400">100% Freshness Guarantee Terms:</strong> If your delivery is anything less than vibrant, firm, and ice-chilled upon arrival, contact us immediately for a free replacement or instant 100% refund.
           </div>
         </div>
       </section>

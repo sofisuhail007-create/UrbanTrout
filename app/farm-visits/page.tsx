@@ -30,7 +30,7 @@ const TIME_SLOTS = [
     label: "Afternoon Batch",
     time: "02:00 PM – 03:00 PM",
     icon: "light_mode",
-    desc: "Post-feeding tour & recirculating bio-filter walkthrough",
+    desc: "Post-feeding tour & continuous-flow bio-filter walkthrough",
   },
   {
     id: "batch_evening",
@@ -49,7 +49,7 @@ const GUEST_OPTIONS = [
 
 const PURPOSES = [
   { id: "purchase", label: "🐟 Fresh Trout Sourcing & Packaging", desc: "Select fresh Rainbow Trout prepared straight from the farm" },
-  { id: "family_tour", label: "👨‍👩‍👧 Family Educational Tour", desc: "Learn about cold-water RAS aquaculture & fish welfare" },
+  { id: "family_tour", label: "👨‍👩‍👧 Family Educational Tour", desc: "Learn about cold-water borewell aquaculture & fish welfare" },
   { id: "bulk_commercial", label: "📦 Restaurant / Commercial Sourcing", desc: "Bulk wholesale inquiry & harvest schedule alignment" },
   { id: "educational", label: "🔬 Aquaculture & Tech Study", desc: "Inspect filtration, oxygen cones & water parameters" },
 ];
@@ -57,7 +57,7 @@ const PURPOSES = [
 const FAQS = [
   {
     q: "Why is prior Farm Manager approval mandatory for all visits?",
-    a: "Urban Trout operates a high-density, bio-secure Recirculating Aquaculture System (RAS). Uncontrolled walk-ins or random timings disrupt automated oxygen injection, feeding cycles, and risk pathogen contamination. Our Farm Manager reviews every request to ensure biosecurity and dedicated staff guidance.",
+    a: "Urban Trout operates a high-density, bio-secure deep borewell groundwater continuous-flow raceway facility with high-velocity aeration. Uncontrolled walk-ins or random timings disrupt automated oxygen injection, feeding cycles, and risk pathogen contamination. Our Farm Manager reviews every request to ensure biosecurity and dedicated staff guidance.",
   },
   {
     q: "How will I know if my visit is approved?",
@@ -213,7 +213,7 @@ export default function FarmVisitsPage() {
             }}
             className="max-w-2xl mx-auto"
           >
-            Urban Trout operates a high-density, bio-secure <strong>Recirculating Aquaculture System (RAS)</strong>. To protect fish health and avoid disrupting feeding cycles, all farm visits are strictly controlled by our <strong>Farm Manager</strong>.
+            Urban Trout operates a high-density, bio-secure <strong>Cold-Water Borewell Aquaculture Facility</strong>. To protect fish health and avoid disrupting feeding cycles, all farm visits are strictly controlled by our <strong>Farm Manager</strong>.
           </p>
 
           {/* Strict Policy Badges */}
@@ -603,7 +603,7 @@ export default function FarmVisitsPage() {
                       className="mt-0.5 w-4 h-4 accent-amber-400 rounded cursor-pointer flex-shrink-0"
                     />
                     <label htmlFor="agree_rules" className="cursor-pointer leading-relaxed select-none">
-                      <strong className="text-amber-300 block mb-0.5">Strict RAS Agreement:</strong>
+                      <strong className="text-amber-300 block mb-0.5">Strict Biosecurity Agreement:</strong>
                       I agree to wait for the Farm Manager&apos;s <strong>Email Approval Pass</strong> before visiting. I agree to follow all on-site biosecurity protocols (disinfection foot dips, no touching water, and arriving strictly within my approved slot).
                     </label>
                   </div>
@@ -655,7 +655,7 @@ export default function FarmVisitsPage() {
                     style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                     className="text-base font-bold text-white"
                   >
-                    Strict RAS Bio-Security Protocols
+                    Strict Farm Biosecurity Protocols
                   </h3>
                   <span className="text-[10px] text-amber-400 font-mono font-bold uppercase">Mandatory Compliance</span>
                 </div>
