@@ -6,7 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCustomerAuth, SavedCustomerProfile } from "@/context/CustomerAuthContext";
 import { useCart } from "@/context/CartContext";
-import { VAPID_PUBLIC_KEY } from "@/lib/vapidKeys";
+import { VAPID_PUBLIC_KEY, urlBase64ToUint8Array, serializePushSubscription } from "@/lib/vapidKeys";
 import toast from "react-hot-toast";
 
 const SRINAGAR_LOCALITIES = [
@@ -238,16 +238,51 @@ export default function CustomerAccountPage() {
     if (typeof window !== "undefined" && "Notification" in window) {
       setPushPermission(Notification.permission);
       if ("serviceWorker" in navigator && "PushManager" in window) {
-        navigator.serviceWorker.ready.then((reg) => {
-          reg.pushManager.getSubscription().then((sub) => {
-            setPushSubscribed(Boolean(sub));
-          });
+        // Ensure SW is registered
+        navigator.serviceWorker.getRegistration().then((reg) => {
+          if (!reg) {
+            navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {});
+          }
         });
+
+        const readyTimeout = new Promise<ServiceWorkerRegistration>((_, reject) =>
+          setTimeout(() => reject(new Error("Timeout")), 4000)
+        );
+        Promise.race([navigator.serviceWorker.ready, readyTimeout])
+          .then(async (reg: any) => {
+            if (reg?.pushManager) {
+              const sub = await reg.pushManager.getSubscription();
+              setPushSubscribed(Boolean(sub));
+              // If permission is already granted on iOS but sub was not recorded, auto-subscribe
+              if (!sub && Notification.permission === "granted" && VAPID_PUBLIC_KEY) {
+                try {
+                  const newSub = await reg.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+                  });
+                  if (newSub) {
+                    setPushSubscribed(true);
+                    await fetch("/api/push/subscribe", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        subscription: serializePushSubscription(newSub),
+                        phone: savedProfile?.phone || addressForm.phone,
+                        email: user?.email || savedProfile?.email,
+                        userId: user?.id,
+                      }),
+                    });
+                  }
+                } catch (_) {}
+              }
+            }
+          })
+          .catch(() => {});
       }
     } else {
       setPushPermission("unsupported");
     }
-  }, []);
+  }, [user, savedProfile, addressForm.phone]);
 
   const handleEnablePush = async () => {
     const vapidKey = VAPID_PUBLIC_KEY;
@@ -264,36 +299,50 @@ export default function CustomerAccountPage() {
         setIsPushLoading(false);
         return;
       }
-      const reg = await navigator.serviceWorker.ready;
-      let sub = await reg.pushManager.getSubscription();
+
+      // Ensure SW registration exists
+      let reg: ServiceWorkerRegistration | undefined = await navigator.serviceWorker.getRegistration();
+      if (!reg) {
+        reg = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+      }
+
+      const readyTimeout = new Promise<ServiceWorkerRegistration>((_, reject) =>
+        setTimeout(() => reject(new Error("Service Worker activation timeout. Please refresh and try again.")), 7000)
+      );
+      const activeReg = (await Promise.race([navigator.serviceWorker.ready, readyTimeout]).catch(() => reg)) || reg;
+
+      if (!activeReg || !activeReg.pushManager) {
+        throw new Error("Push notifications are not supported or ready on this browser.");
+      }
+
+      let sub = await activeReg.pushManager.getSubscription();
       if (!sub) {
-        const padding = "=".repeat((4 - (vapidKey.length % 4)) % 4);
-        const base64 = (vapidKey + padding).replace(/-/g, "+").replace(/_/g, "/");
-        const rawData = window.atob(base64);
-        const outputArray = new Uint8Array(rawData.length);
-        for (let i = 0; i < rawData.length; ++i) {
-          outputArray[i] = rawData.charCodeAt(i);
-        }
-        sub = await reg.pushManager.subscribe({
+        sub = await activeReg.pushManager.subscribe({
           userVisibleOnly: true,
-          applicationServerKey: outputArray,
+          applicationServerKey: urlBase64ToUint8Array(vapidKey),
         });
       }
 
-      await fetch("/api/push/subscribe", {
+      const res = await fetch("/api/push/subscribe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          subscription: sub.toJSON(),
+          subscription: serializePushSubscription(sub),
           phone: savedProfile?.phone || addressForm.phone,
           email: user?.email || savedProfile?.email,
           userId: user?.id,
         }),
       });
 
-      setPushSubscribed(true);
-      toast.success("Push notifications enabled on this device! 🐟");
+      if (res.ok) {
+        setPushSubscribed(true);
+        toast.success("Push notifications enabled on this device! 🐟");
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || "Failed to register notifications.");
+      }
     } catch (err: any) {
+      console.error("Account push subscription error:", err);
       toast.error(err.message || "Failed to subscribe to notifications.");
     } finally {
       setIsPushLoading(false);
@@ -303,15 +352,25 @@ export default function CustomerAccountPage() {
   const handleSendTestPush = async () => {
     try {
       if (!("serviceWorker" in navigator)) return;
-      const reg = await navigator.serviceWorker.ready;
-      await reg.showNotification("Urban Trout Test Alert 🐟", {
-        body: "Web Push is working! You will receive live harvest and delivery updates.",
-        icon: "/icon-192.png",
-        badge: "/icon-192.png",
-        data: { url: "/account" },
-        vibrate: [100, 50, 100],
-      } as any);
-      toast.success("Test notification displayed on your device!");
+      let reg = await navigator.serviceWorker.getRegistration();
+      if (!reg) {
+        reg = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+      }
+      const readyTimeout = new Promise<ServiceWorkerRegistration>((_, reject) =>
+        setTimeout(() => reject(new Error("Service Worker timeout")), 4000)
+      );
+      const activeReg = (await Promise.race([navigator.serviceWorker.ready, readyTimeout]).catch(() => reg)) || reg;
+
+      if (activeReg && activeReg.showNotification) {
+        await activeReg.showNotification("Urban Trout Test Alert 🐟", {
+          body: "Web Push is working! You will receive live harvest and delivery updates.",
+          icon: "/icon-192.png",
+          badge: "/icon-192.png",
+          data: { url: "/account" },
+          vibrate: [100, 50, 100],
+        } as any);
+        toast.success("Test notification displayed on your device!");
+      }
     } catch (err: any) {
       toast.error(err.message || "Test notification error.");
     }

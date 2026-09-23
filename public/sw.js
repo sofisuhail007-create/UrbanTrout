@@ -1,4 +1,4 @@
-const CACHE_NAME = "urban-trout-v4";
+const CACHE_NAME = "urban-trout-v5";
 const STATIC_ASSETS = [
   "/favicon.ico",
   "/headerfooterlogo.png",
@@ -7,6 +7,12 @@ const STATIC_ASSETS = [
   "/icon-512.png",
   "/apple-touch-icon.png",
 ];
+
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
+});
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

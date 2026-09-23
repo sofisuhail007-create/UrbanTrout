@@ -17,6 +17,11 @@ export default function ClientWidgets() {
   useEffect(() => {
     if (typeof window === "undefined") return;
 
+    // Immediately register Service Worker so PWA & push alerts are always ready
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {});
+    }
+
     if ("requestIdleCallback" in window) {
       const handle = (window as any).requestIdleCallback(
         () => setLoadDeferred(true),

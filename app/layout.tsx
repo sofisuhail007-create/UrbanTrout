@@ -243,6 +243,21 @@ fbq('track', 'PageView');
           <Footer />
           <Analytics />
           <SpeedInsights />
+          {/* ─── PWA Service Worker Global Registration ─────────────────── */}
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                if ('serviceWorker' in navigator) {
+                  window.addEventListener('load', function() {
+                    navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(function() {});
+                  });
+                  if (document.readyState === 'complete') {
+                    navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(function() {});
+                  }
+                }
+              `.trim(),
+            }}
+          />
         </CartProvider>
       </CustomerAuthProvider>
     </body>

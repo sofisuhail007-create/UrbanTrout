@@ -11,6 +11,11 @@ export default function InstallPwaPrompt() {
   const [isStandalone, setIsStandalone] = useState(false);
 
   useEffect(() => {
+    // 0. Register Service Worker immediately (works in both standalone PWA and browser mode)
+    if (typeof window !== "undefined" && "serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {});
+    }
+
     // 1. Check if already running in standalone PWA mode
     const isStandaloneMode =
       window.matchMedia("(display-mode: standalone)").matches ||
@@ -53,17 +58,6 @@ export default function InstallPwaPrompt() {
         setShowPrompt(true);
       }, 4000);
       return () => clearTimeout(iosTimer);
-    }
-
-    // 5. Register Service Worker on window load (never blocks initial render)
-    if ("serviceWorker" in navigator) {
-      if (document.readyState === "complete") {
-        navigator.serviceWorker.register("/sw.js").catch(() => {});
-      } else {
-        window.addEventListener("load", () => {
-          navigator.serviceWorker.register("/sw.js").catch(() => {});
-        });
-      }
     }
 
     return () => {

@@ -2,19 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useCustomerAuth } from "@/context/CustomerAuthContext";
-import { VAPID_PUBLIC_KEY } from "@/lib/vapidKeys";
+import { VAPID_PUBLIC_KEY, urlBase64ToUint8Array, serializePushSubscription } from "@/lib/vapidKeys";
 import toast from "react-hot-toast";
-
-function urlBase64ToUint8Array(base64String: string) {
-  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
-  const rawData = window.atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i);
-  }
-  return outputArray;
-}
 
 export default function PushNotificationPrompt() {
   const { user, savedProfile } = useCustomerAuth();
@@ -59,14 +48,39 @@ export default function PushNotificationPrompt() {
 
   const syncExistingSubscription = async () => {
     try {
-      const reg = await navigator.serviceWorker.ready;
-      const sub = await reg.pushManager.getSubscription();
+      if (!("serviceWorker" in navigator)) return;
+      let reg = await navigator.serviceWorker.getRegistration();
+      if (!reg) {
+        reg = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+      }
+
+      // Safe ready promise with 5s timeout safeguard
+      const readyTimeout = new Promise<ServiceWorkerRegistration>((_, reject) =>
+        setTimeout(() => reject(new Error("Timeout waiting for SW")), 5000)
+      );
+      const activeReg = (await Promise.race([navigator.serviceWorker.ready, readyTimeout]).catch(() => reg)) || reg;
+      if (!activeReg || !activeReg.pushManager) return;
+
+      let sub = await activeReg.pushManager.getSubscription();
+
+      // If user previously granted permission on iOS but subscription got stuck, auto-create it now
+      if (!sub && Notification.permission === "granted" && VAPID_PUBLIC_KEY) {
+        try {
+          sub = await activeReg.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+          });
+        } catch (subErr) {
+          console.warn("[PushPrompt] Auto-subscribe error:", subErr);
+        }
+      }
+
       if (sub) {
         await fetch("/api/push/subscribe", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            subscription: sub.toJSON(),
+            subscription: serializePushSubscription(sub),
             phone: savedProfile?.phone,
             email: user?.email || savedProfile?.email,
             userId: user?.id,
@@ -95,13 +109,25 @@ export default function PushNotificationPrompt() {
         return;
       }
 
-      // 2. Wait for active Service Worker
-      const registration = await navigator.serviceWorker.ready;
+      // 2. Ensure Service Worker is registered & active (never hang on iOS)
+      let registration: ServiceWorkerRegistration | undefined = await navigator.serviceWorker.getRegistration();
+      if (!registration) {
+        registration = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+      }
+
+      const readyTimeout = new Promise<ServiceWorkerRegistration>((_, reject) =>
+        setTimeout(() => reject(new Error("Service Worker activation timeout. Please refresh and try again.")), 7000)
+      );
+      const activeReg = (await Promise.race([navigator.serviceWorker.ready, readyTimeout]).catch(() => registration)) || registration;
+
+      if (!activeReg || !activeReg.pushManager) {
+        throw new Error("Push notifications are not supported or ready on this browser.");
+      }
 
       // 3. Subscribe to push manager
-      let subscription = await registration.pushManager.getSubscription();
+      let subscription = await activeReg.pushManager.getSubscription();
       if (!subscription) {
-        subscription = await registration.pushManager.subscribe({
+        subscription = await activeReg.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: urlBase64ToUint8Array(vapidKey),
         });
@@ -112,7 +138,7 @@ export default function PushNotificationPrompt() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          subscription: subscription.toJSON(),
+          subscription: serializePushSubscription(subscription),
           phone: savedProfile?.phone,
           email: user?.email || savedProfile?.email,
           userId: user?.id,
@@ -123,7 +149,8 @@ export default function PushNotificationPrompt() {
         toast.success("Fresh catch alerts enabled! 🐟");
         setShowPrompt(false);
       } else {
-        toast.error("Could not register notifications.");
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error || "Could not register notifications.");
       }
     } catch (err: any) {
       console.error("Push subscription error:", err);

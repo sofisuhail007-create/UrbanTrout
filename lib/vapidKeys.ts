@@ -18,3 +18,56 @@ export const VAPID_PRIVATE_KEY =
 
 export const VAPID_SUBJECT =
   process.env.VAPID_SUBJECT || DEFAULT_VAPID_SUBJECT;
+
+export function urlBase64ToUint8Array(base64String: string): any {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+  const rawData =
+    typeof window !== "undefined"
+      ? window.atob(base64)
+      : Buffer.from(base64, "base64").toString("binary");
+  const outputArray = new Uint8Array(rawData.length);
+  for (let i = 0; i < rawData.length; ++i) {
+    outputArray[i] = rawData.charCodeAt(i);
+  }
+  return outputArray;
+}
+
+export function serializePushSubscription(sub: PushSubscription): any {
+  const json = sub.toJSON();
+  const keys: { p256dh?: string; auth?: string } = { ...json.keys };
+
+  if (!keys.p256dh && typeof sub.getKey === "function") {
+    try {
+      const rawKey = sub.getKey("p256dh");
+      if (rawKey) {
+        const arr = new Uint8Array(rawKey);
+        let binary = "";
+        for (let i = 0; i < arr.length; i++) {
+          binary += String.fromCharCode(arr[i]);
+        }
+        keys.p256dh = btoa(binary);
+      }
+    } catch (_) {}
+  }
+
+  if (!keys.auth && typeof sub.getKey === "function") {
+    try {
+      const rawAuth = sub.getKey("auth");
+      if (rawAuth) {
+        const arr = new Uint8Array(rawAuth);
+        let binary = "";
+        for (let i = 0; i < arr.length; i++) {
+          binary += String.fromCharCode(arr[i]);
+        }
+        keys.auth = btoa(binary);
+      }
+    } catch (_) {}
+  }
+
+  return {
+    endpoint: sub.endpoint,
+    expirationTime: sub.expirationTime,
+    keys,
+  };
+}
