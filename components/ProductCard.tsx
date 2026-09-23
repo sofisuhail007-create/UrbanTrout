@@ -94,6 +94,12 @@ export default function ProductCard({ p }: { p: Product }) {
           >
             {p.label}
           </span>
+          <span
+            className="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider backdrop-blur-md bg-emerald-500/25 border border-emerald-400/50 text-emerald-300"
+            style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+          >
+            🛵 Free Delivery
+          </span>
           {hasDiscount && (
             <span
               className="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider backdrop-blur-md"
@@ -197,6 +203,12 @@ export default function ProductCard({ p }: { p: Product }) {
           >
             MIN. {effectiveMin} {p.unit}
           </span>
+        </div>
+
+        {/* Free Delivery Reassurance */}
+        <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-400">
+          <span>🛵</span>
+          <span>FREE Chilled Delivery Across Srinagar</span>
         </div>
 
         {/* Divider */}

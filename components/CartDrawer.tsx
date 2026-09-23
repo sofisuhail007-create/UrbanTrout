@@ -224,11 +224,29 @@ export default function CartDrawer() {
               </div>
             )}
 
+            {/* 100% Free Delivery Assurance */}
+            <div
+              className="flex items-center justify-between px-3.5 py-2 rounded-xl text-xs font-semibold"
+              style={{
+                background: "rgba(16,185,129,0.12)",
+                border: "1px solid rgba(16,185,129,0.35)",
+                color: "#34d399",
+                fontFamily: '"Space Grotesk", sans-serif',
+              }}
+            >
+              <span className="flex items-center gap-1.5">
+                <span>🛵</span> Delivery (Across Srinagar):
+              </span>
+              <span className="text-[11px] font-black uppercase tracking-wider bg-emerald-500/25 px-2 py-0.5 rounded-full text-emerald-300">
+                100% FREE
+              </span>
+            </div>
+
             {/* Subtotal */}
             <div className="flex justify-between items-center">
               <div>
                 <p style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", letterSpacing: "0.2em", textTransform: "uppercase", color: C.outline, marginBottom: "4px" }}>
-                  Subtotal (excl. delivery)
+                  Total Amount (Free Delivery)
                 </p>
                 <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.75rem", fontWeight: 800, color: C.primary, letterSpacing: "-0.04em", lineHeight: 1 }}>
                   ₹{total.toLocaleString("en-IN")}
@@ -238,7 +256,7 @@ export default function CartDrawer() {
                 <p style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", letterSpacing: "0.1em", textTransform: "uppercase", color: C.outline, marginBottom: "4px" }}>
                   Packaging
                 </p>
-                <p style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "0.9rem", fontWeight: 700, color: C.onSurfVar }}>Bio-Thermal</p>
+                <p style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "0.9rem", fontWeight: 700, color: "#34d399" }}>FREE Bio-Thermal</p>
               </div>
             </div>
 

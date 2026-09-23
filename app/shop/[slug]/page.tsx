@@ -161,6 +161,23 @@ export default async function DynamicProductPage({ params }: Props) {
                 >
                   {label}
                 </span>
+                <span
+                  style={{
+                    padding: "4px 12px",
+                    background: "rgba(16,185,129,0.25)",
+                    backdropFilter: "blur(12px)",
+                    borderRadius: "6px",
+                    border: "1px solid rgba(16,185,129,0.45)",
+                    fontFamily: '"Space Grotesk", sans-serif',
+                    fontSize: "10px",
+                    fontWeight: 800,
+                    letterSpacing: "0.08em",
+                    textTransform: "uppercase",
+                    color: "#34d399",
+                  }}
+                >
+                  🛵 FREE DELIVERY
+                </span>
                 {hasDiscount && (
                   <span
                     style={{
@@ -256,6 +273,25 @@ export default async function DynamicProductPage({ params }: Props) {
 
             {/* Add to cart */}
             <div>
+              {/* Free Delivery Callout Banner */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  padding: "10px 14px",
+                  background: "rgba(16,185,129,0.12)",
+                  border: "1px solid rgba(16,185,129,0.35)",
+                  borderRadius: "12px",
+                  marginBottom: "1.25rem",
+                }}
+              >
+                <span style={{ fontSize: "18px" }}>🛵</span>
+                <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.82rem", color: "#a7f3d0", margin: 0, fontWeight: 600 }}>
+                  <strong style={{ color: "#34d399" }}>100% Free Doorstep Delivery</strong> across Srinagar. Harvested live to order &amp; delivered ice-chilled within 2 hours.
+                </p>
+              </div>
+
               <p
                 style={{
                   fontFamily: '"Inter", sans-serif',
@@ -292,7 +328,7 @@ export default async function DynamicProductPage({ params }: Props) {
                 { label: "Origin", value: "Srinagar" },
                 { label: "Harvest", value: "To Order" },
                 { label: "Antibiotics", value: "Zero" },
-                { label: "Delivery", value: "Within 2 Hours" },
+                { label: "Delivery", value: "FREE • 2 Hours" },
               ].map((stat) => (
                 <div
                   key={stat.label}

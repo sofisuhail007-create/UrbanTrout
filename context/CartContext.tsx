@@ -1,6 +1,7 @@
 "use client";
 import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import { supabase } from "@/lib/supabase";
+import { fbAddToCart } from "@/lib/fbpixel";
 
 export type CartItem = {
   id: string;
@@ -166,6 +167,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
       return [...prev, validItem];
     });
+
+    try {
+      fbAddToCart({
+        value: item.price * (item.quantity || 1),
+        contentName: item.name,
+        contentId: item.id,
+      });
+    } catch (_) {}
+
     setIsOpen(true);
   };
 

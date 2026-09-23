@@ -164,22 +164,38 @@ export default async function ShopPage() {
             <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfVar, maxWidth: "380px", lineHeight: 1.75, fontSize: "1rem", margin: 0 }}>
               Sustainably farmed in the icy currents of the Himalayas. Delivered within 2 hours of harvest.
             </p>
-            {/* Business hours indicator */}
-            <div style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              padding: "0.5rem 1rem",
-              background: "rgba(114,221,253,0.06)",
-              border: "1px solid rgba(114,221,253,0.15)",
-              borderRadius: "100px",
-            }}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#72ddfd" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
-              </svg>
-              <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "10px", fontWeight: 600, letterSpacing: "0.1em", color: C.primary }}>
-                Open · 7:00 AM – 10:00 PM
-              </span>
+            {/* Free Delivery & Business hours indicators */}
+            <div className="flex flex-wrap items-center gap-2">
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+                padding: "0.5rem 0.9rem",
+                background: "rgba(16,185,129,0.12)",
+                border: "1px solid rgba(16,185,129,0.35)",
+                borderRadius: "100px",
+              }}>
+                <span className="text-xs">🛵</span>
+                <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "11px", fontWeight: 700, letterSpacing: "0.05em", color: "#34d399", textTransform: "uppercase" }}>
+                  Free Delivery Across Srinagar
+                </span>
+              </div>
+              <div style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "0.5rem 1rem",
+                background: "rgba(114,221,253,0.06)",
+                border: "1px solid rgba(114,221,253,0.15)",
+                borderRadius: "100px",
+              }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#72ddfd" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+                </svg>
+                <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "10px", fontWeight: 600, letterSpacing: "0.1em", color: C.primary }}>
+                  Open · 7:00 AM – 10:00 PM
+                </span>
+              </div>
             </div>
           </div>
         </div>
