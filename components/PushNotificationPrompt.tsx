@@ -38,10 +38,14 @@ export default function PushNotificationPrompt() {
       if (days < 3) return;
     }
 
-    // 4. Show gentle banner after 6 seconds
+    // 4. Show gentle banner only after 22 seconds of active organic browsing
     const timer = setTimeout(() => {
+      try {
+        if (sessionStorage.getItem("ut_active_popup") === "true") return;
+        sessionStorage.setItem("ut_active_popup", "true");
+      } catch (_) {}
       setShowPrompt(true);
-    }, 6000);
+    }, 22000);
 
     return () => clearTimeout(timer);
   }, [user, savedProfile]);
@@ -163,6 +167,9 @@ export default function PushNotificationPrompt() {
   const handleDismiss = () => {
     setShowPrompt(false);
     localStorage.setItem("ut_push_snooze", String(Date.now()));
+    try {
+      sessionStorage.removeItem("ut_active_popup");
+    } catch (_) {}
   };
 
   if (!isSupported || !showPrompt) return null;

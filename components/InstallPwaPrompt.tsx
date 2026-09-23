@@ -16,7 +16,7 @@ export default function InstallPwaPrompt() {
       navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {});
     }
 
-    // 1. Check if already running in standalone PWA mode
+    // 1. Check if already running in standalone PWA mode or in an ad/checkout session
     const isStandaloneMode =
       window.matchMedia("(display-mode: standalone)").matches ||
       (window.navigator as any).standalone === true;
@@ -25,6 +25,9 @@ export default function InstallPwaPrompt() {
       setIsStandalone(true);
       return;
     }
+
+    // Suppress if another popup was shown or if user came from a paid ad / is in an in-app browser
+    if (sessionStorage.getItem("ut_active_popup") === "true") return;
 
     // 2. Check if user dismissed prompt recently (snooze for 7 days)
     const dismissedAt = localStorage.getItem("ut_pwa_dismissed");
@@ -44,19 +47,23 @@ export default function InstallPwaPrompt() {
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      // Wait 3 seconds after page load before showing prompt for better UX
+      // Wait 25 seconds of active browsing so we never interrupt purchasing
       setTimeout(() => {
+        if (sessionStorage.getItem("ut_active_popup") === "true") return;
+        sessionStorage.setItem("ut_active_popup", "true");
         setShowPrompt(true);
-      }, 3000);
+      }, 25000);
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
 
-    // If iOS and not standalone, show prompt after 4 seconds
+    // If iOS and not standalone, show polite prompt after 25 seconds of browsing
     if (isIosDevice && !isStandaloneMode) {
       const iosTimer = setTimeout(() => {
+        if (sessionStorage.getItem("ut_active_popup") === "true") return;
+        sessionStorage.setItem("ut_active_popup", "true");
         setShowPrompt(true);
-      }, 4000);
+      }, 25000);
       return () => clearTimeout(iosTimer);
     }
 
@@ -85,6 +92,9 @@ export default function InstallPwaPrompt() {
     setShowPrompt(false);
     setShowIosGuide(false);
     localStorage.setItem("ut_pwa_dismissed", String(Date.now()));
+    try {
+      sessionStorage.removeItem("ut_active_popup");
+    } catch (_) {}
   };
 
   if (isStandalone || !showPrompt) return null;
