@@ -2352,7 +2352,7 @@ export default function CheckoutPage() {
                         border: "none",
                       }}
                     >
-                      Proceed to UPI Payment
+                      Proceed to Payment
                       <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                         <line x1="5" y1="12" x2="19" y2="12" />
                         <polyline points="12 5 19 12 12 19" />

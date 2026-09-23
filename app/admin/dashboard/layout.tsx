@@ -84,6 +84,7 @@ const NAV_GROUPS: NavGroup[] = [
   {
     title: "SYSTEM",
     items: [
+      { href: "/admin/dashboard/notifications", icon: "notifications_active", label: "Push Alerts", permKey: "settings", badge: "Push", badgeType: "new", activeTheme: "cyan" },
       { href: "/admin/dashboard/delivery", icon: "radar", label: "Delivery Radius", permKey: "settings", badge: "Map", badgeType: "map" },
       { href: "/admin/dashboard/settings", icon: "settings", label: "Settings", permKey: "settings" },
     ],

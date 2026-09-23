@@ -135,6 +135,29 @@ export async function POST(request: Request) {
       );
     }
 
+    // 4. Trigger Instant Web Push Notification to customer's phone/desktop
+    try {
+      const { sendPushToCustomer } = await import("@/lib/pushNotifications");
+      const pushMessages: Record<string, string> = {
+        processing: "Your Rainbow Trout has been harvested from our cold-water tanks & is being packed on ice! ❄️",
+        out_for_delivery: "Your fresh catch is out for delivery with our rider across Srinagar! 🛵",
+        delivered: "Your order has been delivered! Enjoy your fresh Rainbow Trout 🐟",
+        cancelled: "Your order has been cancelled. Please contact us on WhatsApp if you have questions.",
+      };
+
+      if (pushMessages[status]) {
+        await sendPushToCustomer({
+          phone: updatedOrder.customer_phone,
+          email: customerEmail,
+          title: `Order #${updatedOrder.order_number} Update 🐟`,
+          body: pushMessages[status],
+          url: "/account",
+        });
+      }
+    } catch (pushErr) {
+      console.warn("[order-status] Push notification trigger error:", pushErr);
+    }
+
     return NextResponse.json({ success: true, order: updatedOrder });
 
   } catch (err) {

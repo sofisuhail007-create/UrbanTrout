@@ -50,7 +50,12 @@ export default function CustomerAccountPage() {
   const { addItem, openCart } = useCart();
 
   // Navigation tab
-  const [activeTab, setActiveTab] = useState<"orders" | "address">("orders");
+  const [activeTab, setActiveTab] = useState<"orders" | "address" | "notifications">("orders");
+
+  // Push Notifications state
+  const [pushPermission, setPushPermission] = useState<NotificationPermission | "unsupported">("default");
+  const [pushSubscribed, setPushSubscribed] = useState(false);
+  const [isPushLoading, setIsPushLoading] = useState(false);
 
   // Orders state
   const [orders, setOrders] = useState<any[]>([]);
@@ -224,6 +229,90 @@ export default function CustomerAccountPage() {
       openCart();
     } else {
       toast.error("Could not add items to cart.");
+    }
+  };
+
+  // Check Web Push status on mount
+  useEffect(() => {
+    if (typeof window !== "undefined" && "Notification" in window) {
+      setPushPermission(Notification.permission);
+      if ("serviceWorker" in navigator && "PushManager" in window) {
+        navigator.serviceWorker.ready.then((reg) => {
+          reg.pushManager.getSubscription().then((sub) => {
+            setPushSubscribed(Boolean(sub));
+          });
+        });
+      }
+    } else {
+      setPushPermission("unsupported");
+    }
+  }, []);
+
+  const handleEnablePush = async () => {
+    const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    if (!vapidKey) {
+      toast.error("VAPID public key not configured.");
+      return;
+    }
+    setIsPushLoading(true);
+    try {
+      const permission = await Notification.requestPermission();
+      setPushPermission(permission);
+      if (permission !== "granted") {
+        toast.error("Notification permission was not granted.");
+        setIsPushLoading(false);
+        return;
+      }
+      const reg = await navigator.serviceWorker.ready;
+      let sub = await reg.pushManager.getSubscription();
+      if (!sub) {
+        const padding = "=".repeat((4 - (vapidKey.length % 4)) % 4);
+        const base64 = (vapidKey + padding).replace(/-/g, "+").replace(/_/g, "/");
+        const rawData = window.atob(base64);
+        const outputArray = new Uint8Array(rawData.length);
+        for (let i = 0; i < rawData.length; ++i) {
+          outputArray[i] = rawData.charCodeAt(i);
+        }
+        sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: outputArray,
+        });
+      }
+
+      await fetch("/api/push/subscribe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          subscription: sub.toJSON(),
+          phone: savedProfile?.phone || addressForm.phone,
+          email: user?.email || savedProfile?.email,
+          userId: user?.id,
+        }),
+      });
+
+      setPushSubscribed(true);
+      toast.success("Push notifications enabled on this device! 🐟");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to subscribe to notifications.");
+    } finally {
+      setIsPushLoading(false);
+    }
+  };
+
+  const handleSendTestPush = async () => {
+    try {
+      if (!("serviceWorker" in navigator)) return;
+      const reg = await navigator.serviceWorker.ready;
+      await reg.showNotification("Urban Trout Test Alert 🐟", {
+        body: "Web Push is working! You will receive live harvest and delivery updates.",
+        icon: "/icon-192.png",
+        badge: "/icon-192.png",
+        data: { url: "/account" },
+        vibrate: [100, 50, 100],
+      } as any);
+      toast.success("Test notification displayed on your device!");
+    } catch (err: any) {
+      toast.error(err.message || "Test notification error.");
     }
   };
 
@@ -498,6 +587,18 @@ export default function CustomerAccountPage() {
               <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-cyan-400 shadow-[0_0_8px_#22d3ee]" />
             )}
           </button>
+
+          <button
+            onClick={() => setActiveTab("notifications")}
+            className={`pb-3 px-4 font-['Space_Grotesk'] text-sm font-bold transition-all relative cursor-pointer ${
+              activeTab === "notifications" ? "text-cyan-400" : "text-slate-400 hover:text-white"
+            }`}
+          >
+            Push Alerts {pushSubscribed ? "🔔" : ""}
+            {activeTab === "notifications" && (
+              <span className="absolute bottom-0 left-0 right-0 h-[2px] bg-cyan-400 shadow-[0_0_8px_#22d3ee]" />
+            )}
+          </button>
         </div>
 
         {/* ── TAB 1: ORDERS & TRACKING ── */}
@@ -735,6 +836,90 @@ export default function CustomerAccountPage() {
                 </button>
               </div>
             </form>
+          </div>
+        )}
+
+        {/* ── TAB 3: PUSH ALERTS ── */}
+        {activeTab === "notifications" && (
+          <div className="p-6 rounded-2xl bg-slate-950/70 border border-slate-800 shadow-xl space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-slate-800">
+              <div>
+                <h2 className="text-base font-bold text-white font-['Space_Grotesk']">
+                  Morning Harvest &amp; Order Push Alerts
+                </h2>
+                <p className="text-xs text-slate-400 font-['Manrope'] mt-0.5">
+                  Receive instant notifications when fresh trout is harvested at Malabagh or dispatched for delivery.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span
+                  className={`w-2.5 h-2.5 rounded-full ${
+                    pushSubscribed ? "bg-emerald-400 animate-pulse" : "bg-amber-400"
+                  }`}
+                />
+                <span className="text-xs font-mono font-medium text-slate-300">
+                  {pushSubscribed ? "Active on this Device ✓" : "Not Active"}
+                </span>
+              </div>
+            </div>
+
+            {/* Status & Actions */}
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-3">
+                <h3 className="text-xs font-bold text-cyan-300 uppercase tracking-wider font-['Space_Grotesk']">
+                  Device Status
+                </h3>
+                <p className="text-xs text-slate-300 leading-relaxed font-['Manrope']">
+                  {pushPermission === "unsupported"
+                    ? "Push notifications are not supported on this browser."
+                    : pushSubscribed
+                    ? "This device is registered to receive instant harvest alerts and live dispatch updates."
+                    : "Notifications are not active yet on this device. Click below to enable."}
+                </p>
+
+                <div className="pt-1 flex flex-wrap gap-2">
+                  {!pushSubscribed ? (
+                    <button
+                      type="button"
+                      onClick={handleEnablePush}
+                      disabled={isPushLoading}
+                      className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer shadow-md shadow-cyan-500/20"
+                    >
+                      {isPushLoading ? "Enabling…" : "Enable Push Alerts 🔔"}
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleSendTestPush}
+                      className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/30 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer"
+                    >
+                      Test Alert on My Device 📲
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-800 space-y-2">
+                <h3 className="text-xs font-bold text-cyan-300 uppercase tracking-wider font-['Space_Grotesk']">
+                  What You&apos;ll Receive
+                </h3>
+                <ul className="text-xs text-slate-300 space-y-2 font-['Manrope']">
+                  <li className="flex items-center gap-2">
+                    <span>🐟</span>
+                    <span><strong>Daily Fresh Harvest:</strong> First alerts when morning trout is pulled.</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span>🛵</span>
+                    <span><strong>Live Dispatch:</strong> Alerts when your order leaves Malabagh on ice.</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span>⚡</span>
+                    <span><strong>Weekend Catch Deals:</strong> Exclusive flash discounts for regulars.</span>
+                  </li>
+                </ul>
+              </div>
+            </div>
           </div>
         )}
       </div>
