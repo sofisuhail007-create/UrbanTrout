@@ -1,14 +1,15 @@
 import webpush from "web-push";
 import { createClient } from "@supabase/supabase-js";
+import { VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT } from "./vapidKeys";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabaseServer = createClient(supabaseUrl, supabaseKey);
 
 // ─── Initialize VAPID Keys ────────────────────────────────────────────
-const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-const vapidPrivateKey = process.env.VAPID_PRIVATE_KEY;
-const vapidSubject = process.env.VAPID_SUBJECT || "mailto:info.urbantrout@gmail.com";
+const vapidPublicKey = VAPID_PUBLIC_KEY;
+const vapidPrivateKey = VAPID_PRIVATE_KEY;
+const vapidSubject = VAPID_SUBJECT;
 
 let isVapidConfigured = false;
 if (vapidPublicKey && vapidPrivateKey) {

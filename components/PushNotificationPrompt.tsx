@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useCustomerAuth } from "@/context/CustomerAuthContext";
+import { VAPID_PUBLIC_KEY } from "@/lib/vapidKeys";
 import toast from "react-hot-toast";
 
 function urlBase64ToUint8Array(base64String: string) {
@@ -76,7 +77,7 @@ export default function PushNotificationPrompt() {
   };
 
   const handleSubscribe = async () => {
-    const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    const vapidKey = VAPID_PUBLIC_KEY;
     if (!vapidKey) {
       toast.error("Push service is currently being configured.");
       return;

@@ -6,6 +6,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useCustomerAuth, SavedCustomerProfile } from "@/context/CustomerAuthContext";
 import { useCart } from "@/context/CartContext";
+import { VAPID_PUBLIC_KEY } from "@/lib/vapidKeys";
 import toast from "react-hot-toast";
 
 const SRINAGAR_LOCALITIES = [
@@ -249,7 +250,7 @@ export default function CustomerAccountPage() {
   }, []);
 
   const handleEnablePush = async () => {
-    const vapidKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
+    const vapidKey = VAPID_PUBLIC_KEY;
     if (!vapidKey) {
       toast.error("VAPID public key not configured.");
       return;
