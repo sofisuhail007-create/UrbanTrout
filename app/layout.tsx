@@ -5,6 +5,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ClientWidgets from "@/components/ClientWidgets";
 import { CartProvider } from "@/context/CartContext";
+import { CustomerAuthProvider } from "@/context/CustomerAuthContext";
 import { Toaster } from "react-hot-toast";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
@@ -222,19 +223,20 @@ fbq('track', 'PageView');
         )}
       </head>
       <body className={`${manrope.className} bg-[#031018] text-[#dfedf9] antialiased selection:bg-cyan-500/20 selection:text-cyan-300`}>
-        <CartProvider>
-          <Toaster 
-            position="bottom-center"
-            toastOptions={{
-              style: {
-                background: '#10212c',
-                color: '#dfedf9',
-                border: '1px solid #3d4a53',
-                fontFamily: 'var(--font-manrope), sans-serif',
-                boxShadow: '0 4px 30px rgba(0, 0, 0, 0.5)'
-              },
-            }}
-          />
+        <CustomerAuthProvider>
+          <CartProvider>
+            <Toaster 
+              position="bottom-center"
+              toastOptions={{
+                style: {
+                  background: '#10212c',
+                  color: '#dfedf9',
+                  border: '1px solid #3d4a53',
+                  fontFamily: 'var(--font-manrope), sans-serif',
+                  boxShadow: '0 4px 30px rgba(0, 0, 0, 0.5)',
+                },
+              }}
+            />
           <Navbar />
           {children}
           <ClientWidgets />
@@ -242,7 +244,8 @@ fbq('track', 'PageView');
           <Analytics />
           <SpeedInsights />
         </CartProvider>
-      </body>
+      </CustomerAuthProvider>
+    </body>
     </html>
   );
 }

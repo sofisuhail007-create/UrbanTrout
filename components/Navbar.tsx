@@ -3,6 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useCart } from "@/context/CartContext";
+import { useCustomerAuth } from "@/context/CustomerAuthContext";
 import { useState } from "react";
 
 const navLinks = [
@@ -15,6 +16,7 @@ const navLinks = [
 export default function Navbar() {
   const pathname = usePathname();
   const { openCart, itemCount } = useCart();
+  const { user } = useCustomerAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
   if (pathname.startsWith("/admin")) return null;
 
@@ -81,6 +83,46 @@ export default function Navbar() {
 
           {/* Right Actions */}
           <div className="flex items-center gap-2">
+            {/* Account / My Orders */}
+            <Link
+              href="/account"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl transition-all duration-300 text-xs"
+              style={{
+                background: user ? "rgba(114,221,253,0.12)" : "transparent",
+                border: user ? "1px solid rgba(114,221,253,0.3)" : "1px solid transparent",
+                color: user ? "#72ddfd" : "#9fadb8",
+              }}
+              onMouseEnter={(e) => {
+                if (!user) (e.currentTarget as HTMLElement).style.background = "rgba(114,221,253,0.08)";
+              }}
+              onMouseLeave={(e) => {
+                if (!user) (e.currentTarget as HTMLElement).style.background = "transparent";
+              }}
+              title={user ? "My Orders & Profile" : "Sign In / Track Orders"}
+              aria-label="Account and orders"
+            >
+              {user ? (
+                <>
+                  <div className="w-5 h-5 rounded-full bg-cyan-400 text-slate-950 flex items-center justify-center font-bold text-[10px]">
+                    {(user.user_metadata?.full_name || user.email || "U")[0].toUpperCase()}
+                  </div>
+                  <span className="hidden sm:inline font-semibold text-xs tracking-tight text-cyan-300 max-w-[85px] truncate font-['Space_Grotesk']">
+                    {(user.user_metadata?.full_name || user.email?.split("@")[0] || "Account").split(" ")[0]}
+                  </span>
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                  </svg>
+                  <span className="hidden sm:inline text-xs font-medium font-['Space_Grotesk']">
+                    Sign In
+                  </span>
+                </>
+              )}
+            </Link>
+
             {/* Cart */}
             <button
               onClick={openCart}
@@ -162,6 +204,24 @@ export default function Navbar() {
                 </Link>
               );
             })}
+
+            {/* Account in mobile drawer */}
+            <Link
+              href="/account"
+              onClick={() => setMobileOpen(false)}
+              className="mt-2 flex items-center justify-between px-4 py-3 rounded-xl text-sm font-semibold transition-all border border-cyan-500/25"
+              style={{
+                fontFamily: '"Space Grotesk", sans-serif',
+                color: "#72ddfd",
+                background: "rgba(114,221,253,0.08)",
+              }}
+            >
+              <div className="flex items-center gap-2.5">
+                <span>👤</span>
+                <span>{user ? "My Orders & Profile" : "Sign In / Track Order"}</span>
+              </div>
+              <span className="text-xs text-cyan-400 font-mono">→</span>
+            </Link>
           </nav>
         )}
       </header>

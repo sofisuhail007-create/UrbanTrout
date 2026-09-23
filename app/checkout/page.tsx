@@ -18,6 +18,7 @@ const CustomerLiveMap = dynamic(() => import("@/components/CustomerLiveMap"), {
   ),
 });
 import { useCart } from "@/context/CartContext";
+import { useCustomerAuth } from "@/context/CustomerAuthContext";
 import { supabase } from "@/lib/supabase";
 
 // ─── Razorpay global type ───────────────────────────────────────
@@ -303,6 +304,7 @@ function Field({
 
 export default function CheckoutPage() {
   const { items, total, totalSavings, updateQuantity, removeItem, clearCart } = useCart();
+  const { user, savedProfile, saveCustomerProfile } = useCustomerAuth();
   const router = useRouter();
 
   // ─── 3-Stage Process: 1 = Location Check, 2 = Customer Details, 3 = Payment ───
@@ -328,6 +330,8 @@ export default function CheckoutPage() {
   const [orderSuccess, setOrderSuccess] = useState<any>(null);
   const [razorpayError, setRazorpayError] = useState("");
   const [copiedOrderId, setCopiedOrderId] = useState(false);
+  const [rememberDetails, setRememberDetails] = useState(true);
+  const [showPrefillBanner, setShowPrefillBanner] = useState(false);
 
   // ─── Form Data State ───
   const [formData, setFormData] = useState({
@@ -339,6 +343,39 @@ export default function CheckoutPage() {
     pincode: "",
     notes: "",
   });
+
+  // ─── Auto-Pre-fill Saved Address or Logged-in Profile ───
+  useEffect(() => {
+    if (savedProfile) {
+      setFormData((prev) => {
+        const isBlank = !prev.phone && !prev.house;
+        if (!isBlank) return prev;
+        if (savedProfile.house || savedProfile.phone || savedProfile.fullName) {
+          setShowPrefillBanner(true);
+        }
+        return {
+          fullName: savedProfile.fullName || prev.fullName,
+          phone: savedProfile.phone || prev.phone,
+          email: savedProfile.email || user?.email || prev.email,
+          locality: savedProfile.locality || prev.locality,
+          house: savedProfile.house || prev.house,
+          pincode: savedProfile.pincode || prev.pincode,
+          notes: savedProfile.notes || prev.notes,
+        };
+      });
+    } else if (user) {
+      const meta = user.user_metadata || {};
+      setFormData((prev) => {
+        if (prev.fullName || prev.email) return prev;
+        return {
+          ...prev,
+          fullName: meta.full_name || meta.name || user.email?.split("@")[0] || "",
+          email: user.email || "",
+          phone: meta.phone || prev.phone,
+        };
+      });
+    }
+  }, [savedProfile, user]);
 
   // ─── Errors & Touched State ───
   const [errors, setErrors] = useState({
@@ -863,6 +900,8 @@ export default function CheckoutPage() {
                 total: grandTotal,
                 delivery_zone: deliveryMode,
                 status: "confirmed",
+                user_id: user?.id || null,
+                customer_email: formData.email?.trim() || user?.email || "",
               };
 
               const placeRes = await fetch("/api/orders/place", {
@@ -883,6 +922,19 @@ export default function CheckoutPage() {
               } else {
                 const errData = await placeRes.json().catch(() => ({}));
                 console.error("Order placement API error:", errData);
+              }
+
+              // Save to customer profile / localStorage for instant 1-tap reordering
+              if (rememberDetails) {
+                saveCustomerProfile({
+                  fullName: formData.fullName.trim(),
+                  phone: cleanPhone,
+                  email: formData.email?.trim() || user?.email || "",
+                  locality: formData.locality.trim(),
+                  house: formData.house.trim(),
+                  pincode: formData.pincode.trim(),
+                  notes: formData.notes?.trim() || "",
+                });
               }
 
               // Mark lead as converted
@@ -2079,6 +2131,48 @@ export default function CheckoutPage() {
 
                 {/* Form */}
                 <form onSubmit={handleProceedToPayment} noValidate className="space-y-6">
+                  {/* Account Status / Guest Sign-In Notice */}
+                  {user ? (
+                    <div className="p-3.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-between gap-3 text-xs">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-cyan-400" />
+                        <span className="text-slate-200">
+                          Ordering as <strong>{user.user_metadata?.full_name || user.email}</strong>
+                        </span>
+                      </div>
+                      <Link href="/account" className="text-cyan-400 hover:text-cyan-300 font-semibold underline text-[11px]">
+                        My Account
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between text-xs text-slate-300">
+                      <span>Have an Urban Trout account?</span>
+                      <Link
+                        href="/account"
+                        className="text-cyan-400 hover:text-cyan-300 font-bold tracking-wide uppercase text-[11px]"
+                      >
+                        Sign In for 1-Tap Checkout →
+                      </Link>
+                    </div>
+                  )}
+
+                  {/* Saved Address Prefill Notice */}
+                  {showPrefillBanner && (
+                    <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between text-xs text-emerald-300">
+                      <div className="flex items-center gap-2">
+                        <span>✨</span>
+                        <span>Saved delivery details loaded for this device.</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setShowPrefillBanner(false)}
+                        className="text-emerald-400 hover:text-emerald-200 text-[11px] underline cursor-pointer"
+                      >
+                        Dismiss
+                      </button>
+                    </div>
+                  )}
+
                   {/* Card 1: Contact Info */}
                   <div
                     className="p-5 rounded-xl space-y-4"
@@ -2185,6 +2279,19 @@ export default function CheckoutPage() {
                         onBlur={handleBlur}
                       />
                     </div>
+                  </div>
+
+                  {/* Remember Details Checkbox */}
+                  <div className="px-1">
+                    <label className="flex items-center gap-2.5 text-xs text-slate-300 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={rememberDetails}
+                        onChange={(e) => setRememberDetails(e.target.checked)}
+                        className="w-4 h-4 rounded border-slate-700 text-cyan-400 focus:ring-cyan-500 bg-slate-900 cursor-pointer accent-cyan-500"
+                      />
+                      <span>Remember my address &amp; contact details on this device for fast 1-tap reordering</span>
+                    </label>
                   </div>
 
                   {/* Card 3: Harvest & Delivery Notes */}

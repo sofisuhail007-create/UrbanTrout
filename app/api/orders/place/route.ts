@@ -83,10 +83,16 @@ export async function POST(req: NextRequest) {
 
     // 5. Clean customer data
     const cleanPhone = String(orderData.customer_phone).replace(/\D/g, "").slice(-10);
+    const customerEmail = orderData.customer_email ? String(orderData.customer_email).trim() : "";
+    let finalAddress = String(orderData.customer_address || "").trim();
+    if (customerEmail && !finalAddress.toLowerCase().includes(customerEmail.toLowerCase())) {
+      finalAddress += ` (Email: ${customerEmail})`;
+    }
+
     const orderPayload = {
       customer_name: String(orderData.customer_name || "Valued Customer").trim(),
       customer_phone: cleanPhone,
-      customer_address: String(orderData.customer_address || "").trim(),
+      customer_address: finalAddress,
       customer_locality: String(orderData.customer_locality || "").trim(),
       customer_pincode: String(orderData.customer_pincode || "").trim(),
       items: orderData.items,
