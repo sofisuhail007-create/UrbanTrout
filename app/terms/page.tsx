@@ -3,7 +3,15 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Terms of Service | Urban Trout Srinagar",
-  description: "Urban Trout terms and conditions of service, ordering, and payment processing.",
+  description: "Urban Trout terms and conditions of service, ordering, 100% free delivery across Srinagar, and payment processing.",
+  alternates: {
+    canonical: "https://urbantrout.in/terms",
+  },
+  openGraph: {
+    title: "Terms of Service | Urban Trout Srinagar",
+    url: "https://urbantrout.in/terms",
+    siteName: "Urban Trout",
+  },
 };
 
 const C = {
@@ -22,7 +30,7 @@ const sections = [
   },
   {
     title: "2. Service Area & Eligibility",
-    body: "Urban Trout operates a modern cold-water aquaculture farm in Malabagh, Srinagar and fulfills fresh doorstep deliveries within the Srinagar city limits (up to an approximate 25km radius). We reserve the right to decline or reschedule orders located outside our viable refrigerated delivery routes.",
+    body: "Urban Trout operates a modern cold-water aquaculture farm in Malabagh, Srinagar and fulfills fresh doorstep deliveries across the Srinagar city limits. We reserve the right to decline or reschedule orders located outside our viable refrigerated delivery routes.",
   },
   {
     title: "3. Fresh Harvest Order Process & Weight Verification",
@@ -34,7 +42,7 @@ const sections = [
   },
   {
     title: "5. Shipping, Delivery & Packaging",
-    body: "• Doorstep deliveries are fulfilled using food-grade bio-thermal insulation and crushed ice to maintain temperature control.\n• Deliveries within 5km of our farm are free; deliveries beyond 5km incur a flat delivery charge of ₹40.\n• Detailed terms regarding delivery timelines and zones are governed by our Shipping & Delivery Policy.",
+    body: "• Doorstep deliveries are fulfilled using food-grade bio-thermal insulation and crushed ice to maintain temperature control.\n• Deliveries across all Srinagar neighborhoods are 100% free of charge on all orders.\n• Detailed terms regarding delivery timelines and zones are governed by our Shipping & Delivery Policy.",
   },
   {
     title: "6. Cancellation, Return & Refund Policy",

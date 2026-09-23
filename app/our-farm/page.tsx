@@ -2,9 +2,29 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Our Farm | Fresh Trout in Srinagar",
+  title: "Our Farm & Cold-Water Aquaculture in Malabagh, Srinagar | Urban Trout",
   description:
-    "Learn how we farm fresh, healthy rainbow trout in Srinagar using clean water recirculating systems. Zero antibiotics, harvested to order.",
+    "Learn how Urban Trout raises fresh Rainbow Trout (Oncorhynchus mykiss) in Malabagh, Srinagar using clean deep borewell groundwater, high-velocity aeration raceways, and zero antibiotics.",
+  alternates: {
+    canonical: "https://urbantrout.in/our-farm",
+  },
+  openGraph: {
+    title: "Our Farm & Cold-Water Aquaculture in Malabagh, Srinagar | Urban Trout",
+    description:
+      "Deep borewell groundwater aquaculture in Malabagh, Srinagar. High dissolved oxygen, zero antibiotics, harvested live to order.",
+    url: "https://urbantrout.in/our-farm",
+    siteName: "Urban Trout",
+    images: [
+      {
+        url: "https://urbantrout.in/images/farm-hero.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Urban Trout Farm in Malabagh, Srinagar",
+      },
+    ],
+    locale: "en_IN",
+    type: "website",
+  },
 };
 
 const C = {
@@ -69,7 +89,7 @@ export default function OurFarmPage() {
           <div className="mb-12">
             <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "10px", letterSpacing: "0.2em", textTransform: "uppercase", color: C.primary, display: "block", marginBottom: "0.5rem" }}>Our Process</span>
             <h2 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "clamp(2rem, 4vw, 3rem)", fontWeight: 800, letterSpacing: "-0.03em", color: C.onSurface, margin: "0 0 0.75rem" }}>How We Farm Fresh Trout</h2>
-            <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfVar, maxWidth: "560px", lineHeight: 1.7, margin: 0 }}>We use modern recirculating freshwater tanks to provide our fish with clean, continuous cold water currents, free from pollutants and mud.</p>
+            <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfVar, maxWidth: "600px", lineHeight: 1.75, margin: 0 }}>We pump pure, naturally cold Himalayan groundwater (10°C–12°C) through continuous-flow raceways with bio-filtration to provide our trout with oxygen-rich currents, 100% free from pollutants, Dal Lake silt, and mud.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

@@ -3,7 +3,15 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Privacy Policy | Urban Trout Srinagar",
-  description: "Urban Trout privacy policy, data protection, and payment security standards.",
+  description: "Urban Trout privacy policy, customer data protection, and secure payment standards in Srinagar.",
+  alternates: {
+    canonical: "https://urbantrout.in/privacy",
+  },
+  openGraph: {
+    title: "Privacy Policy | Urban Trout Srinagar",
+    url: "https://urbantrout.in/privacy",
+    siteName: "Urban Trout",
+  },
 };
 
 const C = {

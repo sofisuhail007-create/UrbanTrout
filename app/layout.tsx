@@ -36,34 +36,15 @@ const manrope = Manrope({
 export const metadata: Metadata = {
   metadataBase: new URL("https://urbantrout.in"),
   title: {
-    default: "Urban Trout | Buy Fresh Rainbow Trout in Srinagar | Home Delivery",
+    default: "Buy Fresh Rainbow Trout in Srinagar | Urban Trout",
     template: "%s | Urban Trout",
   },
   description:
-    "Order fresh Rainbow Trout in Srinagar. Harvested to order from our cold-water farm in Malabagh & delivered within 2 hours to your doorstep. Zero antibiotics, pure filtered water.",
-  keywords: [
-    "trout fish in srinagar",
-    "buy trout online srinagar",
-    "fresh rainbow trout kashmir",
-    "trout fish price in srinagar",
-    "trout home delivery srinagar",
-    "best fish in srinagar",
-    "trout farm srinagar",
-    "trout farm malabagh",
-    "cleaned gutted trout srinagar",
-    "fresh fish delivery kashmir",
-    "rainbow trout rate per kg srinagar",
-    "buy fish online kashmir",
-    "trout fish near me srinagar",
-    "Urban Trout",
-  ],
-  alternates: {
-    canonical: "https://urbantrout.in",
-  },
+    "Buy fresh Rainbow Trout in Srinagar. Farmed in clean groundwater in Malabagh, harvested to order and delivered chilled to your doorstep within 2 hours. 100% Free delivery across Srinagar.",
   openGraph: {
-    title: "Urban Trout | Fresh Rainbow Trout in Srinagar",
+    title: "Buy Fresh Rainbow Trout in Srinagar | Urban Trout",
     description:
-      "Order fresh Rainbow Trout in Srinagar. Farmed in clean borewell water in Malabagh. Harvested fresh to order with rapid delivery within 2 hours.",
+      "Farm-fresh Rainbow Trout harvested live to order at our Malabagh farm. Delivered chilled to your doorstep within 2 hours across Srinagar.",
     url: "https://urbantrout.in",
     siteName: "Urban Trout",
     images: [
@@ -81,7 +62,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Urban Trout | Fresh Rainbow Trout in Srinagar",
+    title: "Buy Fresh Rainbow Trout in Srinagar | Urban Trout",
     description: "Farm-fresh Rainbow Trout harvested to order in Srinagar. Same-day chilled home delivery.",
     images: ["https://urbantrout.in/og-image.jpg"],
   },
@@ -126,19 +107,23 @@ const jsonLd = {
       "inLanguage": "en-IN"
     },
     {
-      "@type": ["LocalBusiness", "Store", "Organization"],
+      "@type": ["LocalBusiness", "FishStore", "Store", "Organization"],
       "@id": "https://urbantrout.in/#organization",
       "name": "Urban Trout",
-      "alternateName": "Urban Trout Srinagar",
+      "alternateName": ["Urban Trout Srinagar", "ٹراؤٹ مچھلی سرینگر", "ट्राउट मछली श्रीनगर"],
       "image": "https://urbantrout.in/images/og-image.png",
       "logo": "https://urbantrout.in/sitelogo.png",
-      "description": "Srinagar's premier cold-water trout farm located in Malabagh. Providing fresh whole and cleaned Rainbow Trout harvested to order with rapid delivery within 2 hours across Srinagar, Kashmir.",
+      "description": "Srinagar's premier cold-water aquaculture farm located in Malabagh. Producing fresh whole and cleaned Rainbow Trout (Oncorhynchus mykiss) harvested live to order with rapid chilled delivery within 2 hours across Srinagar.",
       "url": "https://urbantrout.in",
       "telephone": "+918491006127",
       "email": "info.urbantrout@gmail.com",
-      "priceRange": "₹500 - ₹600 per Kg",
+      "founder": {
+        "@type": "Person",
+        "name": "Skindar Mohd Sideeq"
+      },
+      "priceRange": "₹540 - ₹580 per Kg",
       "currenciesAccepted": "INR",
-      "paymentAccepted": "Cash, UPI, Online Payment Link",
+      "paymentAccepted": "Cash on Delivery, UPI, Debit Card, Credit Card, Net Banking",
       "address": {
         "@type": "PostalAddress",
         "streetAddress": "Malabagh, Near R P School (Girls Wing)",
@@ -163,13 +148,64 @@ const jsonLd = {
           "Saturday",
           "Sunday"
         ],
-        "opens": "08:00",
-        "closes": "20:00"
+        "opens": "07:00",
+        "closes": "22:00"
       },
-      "servesCuisine": "Seafood, Freshwater Fish",
+      "servesCuisine": "Freshwater Trout, Himalayan Fish, Seafood",
       "areaServed": [
-        { "@type": "AdministrativeArea", "name": "Srinagar Delivery Zone (from Malabagh Farm)" }
-      ]
+        {
+          "@type": "City",
+          "name": "Srinagar",
+          "containedInPlace": {
+            "@type": "State",
+            "name": "Jammu and Kashmir"
+          }
+        }
+      ],
+      "hasOfferCatalog": {
+        "@type": "OfferCatalog",
+        "name": "Fresh Rainbow Trout Catalog",
+        "itemListElement": [
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Product",
+              "name": "Whole Fresh Rainbow Trout",
+              "alternateName": "Oncorhynchus mykiss",
+              "image": "https://urbantrout.in/images/whole_trout.jpg",
+              "description": "Live harvest whole Rainbow Trout raised in pure cold groundwater in Malabagh, Srinagar. Harvested to order.",
+              "sku": "whole-trout",
+              "offers": {
+                "@type": "Offer",
+                "price": "540",
+                "priceCurrency": "INR",
+                "availability": "https://schema.org/InStock",
+                "priceValidUntil": "2027-12-31",
+                "url": "https://urbantrout.in/shop/whole-trout"
+              }
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Product",
+              "name": "Cleaned & Gutted Rainbow Trout",
+              "alternateName": "Oncorhynchus mykiss",
+              "image": "https://urbantrout.in/images/gutted_trout_premium.webp",
+              "description": "Descaled, cleaned, and gutted fresh Rainbow Trout. 100% pan-ready with delicate skin and rich Omega-3 content.",
+              "sku": "gutted-trout",
+              "offers": {
+                "@type": "Offer",
+                "price": "580",
+                "priceCurrency": "INR",
+                "availability": "https://schema.org/InStock",
+                "priceValidUntil": "2027-12-31",
+                "url": "https://urbantrout.in/shop/gutted-trout"
+              }
+            }
+          }
+        ]
+      }
     }
   ]
 };

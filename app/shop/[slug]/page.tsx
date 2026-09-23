@@ -28,14 +28,37 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   const { data } = await supabase
     .from("inventory")
-    .select("product_name")
+    .select("product_name, price_per_kg")
     .eq("product_id", slug)
     .single();
 
-  const title = data?.product_name || "Fresh Rainbow Trout";
+  const title = data?.product_name || (slug === "gutted-trout" ? "Cleaned & Gutted Rainbow Trout" : "Whole Fresh Rainbow Trout");
+  const price = data?.price_per_kg ? `₹${data.price_per_kg}/Kg` : (slug === "gutted-trout" ? "₹580/Kg" : "₹540/Kg");
+  const desc = `Order fresh ${title} (${price}) harvested live to order in Malabagh, Srinagar. 100% Free chilled doorstep delivery within 2 hours across Srinagar.`;
+  const canonicalUrl = `https://urbantrout.in/shop/${slug}`;
+
   return {
-    title: title + " | Urban Trout Srinagar",
-    description: "Order fresh " + title + " from our Srinagar farm in Naseem Bagh. Same-day delivery.",
+    title: `${title} (${price}) | Urban Trout Srinagar`,
+    description: desc,
+    alternates: {
+      canonical: canonicalUrl,
+    },
+    openGraph: {
+      title: `${title} (${price}) | Urban Trout Srinagar`,
+      description: desc,
+      url: canonicalUrl,
+      siteName: "Urban Trout",
+      images: [
+        {
+          url: slug === "gutted-trout" ? "https://urbantrout.in/images/gutted_trout_premium.webp" : "https://urbantrout.in/images/whole_trout.jpg",
+          width: 1200,
+          height: 630,
+          alt: `${title} - Urban Trout Srinagar`,
+        },
+      ],
+      locale: "en_IN",
+      type: "website",
+    },
   };
 }
 
@@ -94,8 +117,52 @@ export default async function DynamicProductPage({ params }: Props) {
   const hasDiscount = originalPrice > price;
   const discountPercent = hasDiscount ? Math.round(((originalPrice - price) / originalPrice) * 100) : 0;
 
+  const productSchema = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: name,
+    alternateName: "Oncorhynchus mykiss",
+    description: description,
+    image: image.startsWith("http") ? image : `https://urbantrout.in${image}`,
+    sku: slug,
+    brand: {
+      "@type": "Brand",
+      name: "Urban Trout",
+    },
+    offers: {
+      "@type": "Offer",
+      price: price,
+      priceCurrency: "INR",
+      priceValidUntil: "2027-12-31",
+      itemCondition: "https://schema.org/NewCondition",
+      availability: "https://schema.org/InStock",
+      url: `https://urbantrout.in/shop/${slug}`,
+      seller: {
+        "@type": "Organization",
+        name: "Urban Trout",
+      },
+      shippingDetails: {
+        "@type": "OfferShippingDetails",
+        shippingRate: {
+          "@type": "MonetaryAmount",
+          value: "0",
+          currency: "INR",
+        },
+        shippingDestination: {
+          "@type": "DefinedRegion",
+          addressCountry: "IN",
+          addressRegion: "Jammu and Kashmir",
+        },
+      },
+    },
+  };
+
   return (
     <div style={{ background: C.bg, minHeight: "100vh" }}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
+      />
       <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "7rem 1.5rem 5rem" }}>
         {/* Breadcrumb */}
         <div style={{ marginBottom: "2.5rem" }}>

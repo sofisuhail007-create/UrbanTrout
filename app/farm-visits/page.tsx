@@ -827,7 +827,7 @@ export default function FarmVisitsPage() {
             Need Same-Day Fresh Trout Delivered to Your Door?
           </h3>
           <p style={{ fontFamily: '"Manrope", sans-serif' }} className="text-xs sm:text-sm text-slate-300 max-w-lg mx-auto mb-6">
-            Skip the visit and order fresh chilled Rainbow Trout harvested to order with same-day home delivery across Srinagar within a 5km radius.
+            Skip the visit and order fresh chilled Rainbow Trout harvested to order with 100% Free Doorstep Delivery across Srinagar within 2 hours.
           </p>
           <Link
             href="/shop"

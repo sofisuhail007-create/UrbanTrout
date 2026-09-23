@@ -7,9 +7,12 @@ import { getBusinessHoursInfo } from "@/lib/businessHours";
 import { getLiveAquariumStock } from "@/lib/aquariumStock";
 
 export const metadata: Metadata = {
-  title: "Premium Cleaned & Gutted Rainbow Trout | Urban Trout Srinagar",
+  title: "Premium Cleaned & Gutted Rainbow Trout (₹580/Kg) | Urban Trout Srinagar",
   description:
-    "Expertly cleaned, scaled, gutted, and prepared for immediate cooking. Farmed in Malabagh, Srinagar. Delivered within 2 hours.",
+    "Expertly cleaned, scaled, gutted, and prepared for immediate cooking. Farmed in Malabagh, Srinagar. 100% Free delivery within 2 hours across Srinagar.",
+  alternates: {
+    canonical: "https://urbantrout.in/shop/gutted-trout",
+  },
   openGraph: {
     title: "Cleaned & Gutted Fresh Rainbow Trout | Urban Trout Srinagar",
     description: "Pan-ready, 100% fresh cleaned Rainbow Trout farmed in Srinagar. Delivered within 2 hours in ice.",
@@ -17,7 +20,7 @@ export const metadata: Metadata = {
     siteName: "Urban Trout",
     images: [
       {
-        url: "https://urbantrout.in/images/gutted_trout_premium.png",
+        url: "https://urbantrout.in/images/gutted_trout_premium.webp",
         width: 800,
         height: 600,
         alt: "Cleaned and Gutted Fresh Rainbow Trout Srinagar",
@@ -59,7 +62,7 @@ export default async function GuttedTroutPage() {
     .eq("product_id", "gutted-trout")
     .single();
 
-  const price = data ? data.price_per_kg : 550;
+  const price = data ? data.price_per_kg : 580;
   const minQuantity = data?.min_order_kg ? Number(data.min_order_kg) : 2;
   const originalPrice = data?.original_price_per_kg ? Number(data.original_price_per_kg) : 650;
 

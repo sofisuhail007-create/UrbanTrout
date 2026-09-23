@@ -5,7 +5,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: ["/admin/", "/checkout"],
+      disallow: ["/admin/", "/checkout", "/account/", "/api/", "/invoice/"],
     },
     sitemap: "https://urbantrout.in/sitemap.xml",
   };

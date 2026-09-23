@@ -11,8 +11,8 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Fallback pricing if database is unreachable
 const FALLBACK_PRICES: Record<string, number> = {
-  "gutted-trout": 550,
-  "whole-trout": 500,
+  "gutted-trout": 580,
+  "whole-trout": 540,
 };
 
 export async function POST(req: NextRequest) {

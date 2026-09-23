@@ -21,7 +21,7 @@ export const products: Product[] = [
   {
     id: "gutted-trout",
     name: "Premium Gutted Rainbow Trout",
-    price: 550,
+    price: 580,
     originalPrice: 650,
     unit: "Kg",
     label: "CLEANED & GUTTED",
@@ -32,7 +32,7 @@ export const products: Product[] = [
   {
     id: "whole-trout",
     name: "Whole Rainbow Trout",
-    price: 500,
+    price: 540,
     originalPrice: 600,
     unit: "Kg",
     label: "WHOLE FRESH FISH",

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { products } from "@/lib/data";
 import ProductCard from "@/components/ProductCard";
@@ -5,6 +6,32 @@ import StoreClosedBanner from "@/components/StoreClosedBanner";
 import { supabase } from "@/lib/supabase";
 import { getBusinessHoursInfo } from "@/lib/businessHours";
 import { getLiveAquariumStock } from "@/lib/aquariumStock";
+
+export const metadata: Metadata = {
+  title: "Shop Fresh Rainbow Trout Online in Srinagar | Urban Trout",
+  description:
+    "Order live-harvested whole (₹540/kg) and cleaned & gutted (₹580/kg) Rainbow Trout online in Srinagar. 100% Free bio-thermal doorstep delivery within 2 hours.",
+  alternates: {
+    canonical: "https://urbantrout.in/shop",
+  },
+  openGraph: {
+    title: "Shop Fresh Rainbow Trout Online in Srinagar | Urban Trout",
+    description:
+      "Buy fresh Rainbow Trout from our Malabagh farm. Whole from ₹540/kg, gutted from ₹580/kg. Free delivery across Srinagar.",
+    url: "https://urbantrout.in/shop",
+    siteName: "Urban Trout",
+    images: [
+      {
+        url: "https://urbantrout.in/og-image.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Shop Fresh Rainbow Trout Srinagar",
+      },
+    ],
+    locale: "en_IN",
+    type: "website",
+  },
+};
 
 // Enable ISR (Incremental Static Regeneration) - refreshed every 30s
 // Use a short revalidation so hours change is reflected quickly

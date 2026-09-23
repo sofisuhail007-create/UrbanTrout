@@ -7,9 +7,12 @@ import { getBusinessHoursInfo } from "@/lib/businessHours";
 import { getLiveAquariumStock } from "@/lib/aquariumStock";
 
 export const metadata: Metadata = {
-  title: "Whole Fresh Rainbow Trout | Urban Trout Srinagar",
+  title: "Whole Fresh Rainbow Trout (₹540/Kg) | Urban Trout Srinagar",
   description:
-    "Fresh whole Rainbow Trout from our Srinagar farm in Malabagh. Ideal for roasting, whole grilling, or traditional Kashmiri recipes.",
+    "Fresh whole cold-water Rainbow Trout from our Srinagar farm in Malabagh. 100% Free delivery within 2 hours across Srinagar.",
+  alternates: {
+    canonical: "https://urbantrout.in/shop/whole-trout",
+  },
   openGraph: {
     title: "Whole Fresh Rainbow Trout | Urban Trout Srinagar",
     description: "Farm-fresh whole Rainbow Trout harvested to order in Malabagh, Srinagar. Delivered within 2 hours.",
@@ -17,7 +20,7 @@ export const metadata: Metadata = {
     siteName: "Urban Trout",
     images: [
       {
-        url: "https://urbantrout.in/images/trout_pure_black.png",
+        url: "https://urbantrout.in/images/whole_trout.jpg",
         width: 800,
         height: 600,
         alt: "Whole Fresh Rainbow Trout Srinagar",
@@ -59,7 +62,7 @@ export default async function WholeTroutPage() {
     .eq("product_id", "whole-trout")
     .single();
 
-  const price = data ? data.price_per_kg : 500;
+  const price = data ? data.price_per_kg : 540;
   const minQuantity = data?.min_order_kg ? Number(data.min_order_kg) : 2;
   const originalPrice = data?.original_price_per_kg ? Number(data.original_price_per_kg) : 600;
 

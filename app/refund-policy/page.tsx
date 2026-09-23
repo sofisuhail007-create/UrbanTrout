@@ -2,8 +2,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Refund & Cancellation Policy | Urban Trout Srinagar",
-  description: "Official cancellation, return, and refund policy for Urban Trout fresh harvest orders.",
+  title: "Refund & Freshness Guarantee Policy | Urban Trout Srinagar",
+  description: "Official cancellation, return, and 100% freshness guarantee policy for Urban Trout fresh harvest orders in Srinagar.",
+  alternates: {
+    canonical: "https://urbantrout.in/refund-policy",
+  },
+  openGraph: {
+    title: "Refund & Freshness Guarantee Policy | Urban Trout Srinagar",
+    url: "https://urbantrout.in/refund-policy",
+    siteName: "Urban Trout",
+  },
 };
 
 const C = {

@@ -3,7 +3,16 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Shipping & Delivery Policy | Urban Trout Srinagar",
-  description: "Official delivery zones, timelines, packaging, and shipping charges for Urban Trout fresh fish orders.",
+  description: "Official delivery coverage, 100% Free doorstep delivery across Srinagar, cold-chain packaging, and operating hours.",
+  alternates: {
+    canonical: "https://urbantrout.in/shipping-policy",
+  },
+  openGraph: {
+    title: "Shipping & Delivery Policy | Urban Trout Srinagar",
+    description: "100% Free doorstep delivery across Srinagar within 2 hours of harvest. Food-grade ice packaging.",
+    url: "https://urbantrout.in/shipping-policy",
+    siteName: "Urban Trout",
+  },
 };
 
 const C = {
@@ -18,15 +27,15 @@ const C = {
 const sections = [
   {
     title: "1. Service Area & Delivery Coverage",
-    body: "• Urban Trout provides fresh doorstep delivery across the Srinagar municipal area and surrounding localities in Jammu & Kashmir (within an approximate 25km radius from Urban Trout Aquaculture Farm in Malabagh).\n• Core Free Delivery Localities (within 5km): Malabagh, Hazratbal, Habak, Naseem Bagh, Zakura, Lal Bazar, Soura / SKIMS, Bachpora, and Illahibagh.\n• Extended Localities: Rainawari, Dalgate, Rajbagh, Lal Chowk, and other Srinagar areas are serviced with standard delivery schedules.",
+    body: "• Urban Trout provides 100% Free Doorstep Delivery across the entire Srinagar municipal area and all surrounding neighborhoods.\n• Localities Served: Malabagh, Hazratbal, Habak, Naseem Bagh, Zakura, Lal Bazar, Soura (SKIMS), Bachpora, Illahibagh, Rainawari, Dalgate, Rajbagh, Lal Chowk, Jawahar Nagar, Hyderpora, Sanat Nagar, Bemina, and all other Srinagar pin codes.\n• Farm Gate Pickup: You are also welcome to visit and pick up live catch directly from our farm counter in Malabagh, Srinagar.",
   },
   {
     title: "2. Harvest-to-Order & Delivery Timelines",
-    body: "• Farm-Fresh Quality: Every order is freshly harvested to order from our state-of-the-art aquaculture tanks upon order confirmation to ensure maximum freshness and taste.\n• Rapid Delivery Timeframe: Orders are freshly harvested to order, cleaned, chilled in food-grade ice, and delivered to your doorstep within 2 hours across Srinagar.\n• Operating Delivery Hours: Monday to Sunday between 8:00 AM and 8:00 PM IST.",
+    body: "• Farm-Fresh Quality: Every order is freshly harvested live from our cold-water aquaculture tanks upon order confirmation to ensure maximum freshness and taste.\n• Rapid Delivery Timeframe: Orders are freshly harvested to order, cleaned/gutted if requested, chilled in food-grade ice, and delivered to your doorstep within 2 hours across Srinagar.\n• Operating Delivery Hours: Monday to Sunday between 7:00 AM and 10:00 PM IST.",
   },
   {
-    title: "3. Shipping & Delivery Charges",
-    body: "• Orders within 5 km of Farm: FREE Delivery on all minimum order thresholds.\n• Orders beyond 5 km: A flat delivery fee of ₹40 (or nominal delivery charge as calculated at checkout) applies to cover refrigerated transit logistics.\n• All delivery charges are transparently displayed during checkout before payment is initiated.",
+    title: "3. 100% Free Shipping & Delivery Policy",
+    body: "• 100% FREE Doorstep Delivery across all Srinagar neighborhoods on every order.\n• Product pricing includes free bio-thermal cold-chain insulated packaging and food-grade crushed ice. There are zero hidden delivery fees, packing charges, or surprise shipping costs at checkout.",
   },
   {
     title: "4. Cold-Chain Packaging & Temperature Control",
