@@ -88,7 +88,7 @@ export default function FreshTroutGuidePage() {
             style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfVar }}
             className="text-base md:text-lg leading-relaxed"
           >
-            Because fish in local wet markets is frequently transported from remote streams or kept on melting municipal ice for days, knowing how to verify freshness is vital for flavor and family health. Here are the 5 biological tests used by professional aquaculturists.
+            When buying <Link href="/" className="text-cyan-400 font-semibold underline hover:text-cyan-300">fresh Rainbow Trout in Srinagar</Link>, verifying biological freshness is critical because local market fish is frequently caught days in advance and transported on melting municipal ice. Here are the 5 biological tests used by professional aquaculturists.
           </p>
         </header>
 

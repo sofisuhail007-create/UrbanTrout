@@ -674,11 +674,11 @@ export default function CheckoutPage() {
         if (dist <= deliveryRadiusKm) {
           setDeliveryMode("under5");
           setLocatingStep("locked");
-          setLocationMsg(`${dist.toFixed(1)} km from Urban Trout Aquaculture Farm • Free Express Delivery within 2 Hours ✓`);
+          setLocationMsg(`${dist.toFixed(1)} km from Urban Trout Hub, Malabagh • Free Express Delivery within 2 Hours ✓`);
         } else {
           setDeliveryMode("unavailable");
           setLocatingStep("locked");
-          setLocationMsg(`${dist.toFixed(1)} km from Farm • Outside our ${deliveryRadiusKm}km live harvest delivery perimeter.`);
+          setLocationMsg(`${dist.toFixed(1)} km from Urban Trout Hub • Outside our ${deliveryRadiusKm}km live harvest delivery perimeter.`);
         }
 
         // Immediately sync lead with exact coordinates if phone is already known
@@ -1917,8 +1917,8 @@ export default function CheckoutPage() {
                         >
                           {locationMsg ||
                             (deliveryMode === "under5"
-                              ? `${calculatedDistance?.toFixed(1)} km from Urban Trout Aquaculture Farm, Malabagh • Free Express Delivery within 2 Hours ✓`
-                              : `${calculatedDistance?.toFixed(1)} km from Farm • Outside our ${deliveryRadiusKm}km live harvest delivery perimeter.`)}
+                              ? `${calculatedDistance?.toFixed(1)} km from Urban Trout Hub, Malabagh • Free Express Delivery within 2 Hours ✓`
+                              : `${calculatedDistance?.toFixed(1)} km from Urban Trout Hub • Outside our ${deliveryRadiusKm}km live harvest delivery perimeter.`)}
                         </p>
                       </div>
 
@@ -2016,7 +2016,7 @@ export default function CheckoutPage() {
                             rel="noopener noreferrer"
                             className="px-4 py-3 rounded-xl font-bold uppercase text-xs flex items-center justify-center gap-2 bg-slate-900 border border-slate-700 text-slate-200 hover:text-white shadow-md"
                           >
-                            📍 Farm Route on Google Maps
+                            📍 Vending Center Route on Google Maps
                           </a>
                         </div>
                       </div>

@@ -127,7 +127,7 @@ export default function KashmiriTroutRecipePage() {
             style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfVar }}
             className="text-base md:text-lg leading-relaxed"
           >
-            Because fresh Rainbow Trout (<em className="text-cyan-300 font-serif">Oncorhynchus mykiss</em>) is naturally delicate, clean-tasting, and packed with healthy Omega-3 fats, Kashmiri home cooks never overpower it with heavy masalas. Here is the authentic guide to preparing trout like a true Kashmiri gourmet.
+            Because <Link href="/" className="text-cyan-400 font-semibold underline hover:text-cyan-300">fresh Rainbow Trout in Srinagar</Link> (<em className="text-cyan-300 font-serif">Oncorhynchus mykiss</em>) is naturally delicate, clean-tasting, and packed with healthy Omega-3 fats, Kashmiri home cooks never overpower it with heavy masalas. Here is the authentic guide to preparing trout like a true Kashmiri gourmet.
           </p>
         </header>
 

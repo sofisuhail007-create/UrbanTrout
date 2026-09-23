@@ -40,11 +40,11 @@ export const metadata: Metadata = {
     template: "%s | Urban Trout",
   },
   description:
-    "Farm-harvested rainbow trout, delivered chilled in Srinagar. Whole ₹540/kg, cleaned & gutted ₹580/kg. Min 2 kg. Order online for free delivery or pickup at our Srinagar vending center.",
+    "Fresh Rainbow Trout in Srinagar from ₹540/kg. Harvested live to order & delivered chilled in 2 hrs. Free delivery or vending center pickup.",
   openGraph: {
     title: "Fresh Rainbow Trout in Srinagar from ₹540/kg | Urban Trout",
     description:
-      "Farm-harvested rainbow trout, delivered chilled in Srinagar. Whole ₹540/kg, cleaned & gutted ₹580/kg. Min 2 kg. Order online or pick up at our Srinagar vending center.",
+      "Fresh Rainbow Trout in Srinagar from ₹540/kg. Harvested live to order & delivered chilled in 2 hrs. Free delivery or vending center pickup.",
     url: "https://urbantrout.in",
     siteName: "Urban Trout",
     images: [

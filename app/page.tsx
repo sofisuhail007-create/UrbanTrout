@@ -8,14 +8,14 @@ import { supabase } from "@/lib/supabase";
 export const metadata: Metadata = {
   title: "Fresh Rainbow Trout in Srinagar from ₹540/kg | Urban Trout",
   description:
-    "Farm-harvested rainbow trout, delivered chilled in Srinagar. Whole ₹540/kg, cleaned & gutted ₹580/kg. Min 2 kg. Order online for free delivery or pickup at our Srinagar vending center.",
+    "Fresh Rainbow Trout in Srinagar from ₹540/kg. Harvested live to order & delivered chilled in 2 hrs. Free delivery or vending center pickup.",
   alternates: {
     canonical: "https://urbantrout.in",
   },
   openGraph: {
     title: "Fresh Rainbow Trout in Srinagar from ₹540/kg | Urban Trout",
     description:
-      "Farm-harvested rainbow trout, delivered chilled in Srinagar. Whole ₹540/kg, cleaned & gutted ₹580/kg. Min 2 kg. Order online or pick up at our Srinagar vending center.",
+      "Fresh Rainbow Trout in Srinagar from ₹540/kg. Harvested live to order & delivered chilled in 2 hrs. Free delivery or vending center pickup.",
     url: "https://urbantrout.in",
     siteName: "Urban Trout",
     images: [
@@ -380,7 +380,7 @@ export default async function HomePage() {
               Farm Direct vs. Srinagar Markets &amp; Directories
             </h2>
             <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfaceVariant, fontSize: "0.95rem", lineHeight: 1.7 }}>
-              Directories and marketplaces in Srinagar list trout between ₹650 and ₹1,000 per kg with extra packaging and transit charges. At Urban Trout, you get live farm-harvested fish delivered chilled to your doorstep at true farm-gate rates.
+              Directories and marketplaces in Srinagar list trout between ₹650 and ₹1,000 per kg with extra packaging and transit charges. At Urban Trout, you get live-harvested fish delivered chilled to your doorstep at direct producer rates.
             </p>
           </div>
 

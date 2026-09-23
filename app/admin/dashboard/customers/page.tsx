@@ -1561,7 +1561,7 @@ _Warm regards,_
                   onClick={() => {
                     setBroadcastTemplate("special");
                     setBroadcastMessage(
-                      "Salam {name}! Planning a special family dinner? Farm-fresh crystal-clear Rainbow Trout is ready at Urban Trout Harwan. Reply here to arrange delivery or counter pickup! 🍽️✨"
+                      "Salam {name}! Planning a special family dinner? Fresh crystal-clear Rainbow Trout is ready at Urban Trout Srinagar. Reply here to arrange delivery or vending center pickup! 🍽️✨"
                     );
                   }}
                   className={`p-2 rounded-xl text-center text-xs font-mono transition-all cursor-pointer ${

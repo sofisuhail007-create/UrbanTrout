@@ -4,7 +4,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "Bulk & Wholesale Trout Supply in Srinagar | Urban Trout",
   description:
-    "Direct farm-gate wholesale supply of fresh Rainbow Trout for Srinagar restaurants, hotels, weddings, and caterers. GST invoices, cold-chain delivery, and bulk rates from 10 kg.",
+    "Direct producer wholesale supply of fresh Rainbow Trout for Srinagar restaurants, hotels, weddings, and caterers. GST invoices, cold-chain delivery, and bulk rates from 10 kg.",
   alternates: {
     canonical: "https://urbantrout.in/bulk",
   },
@@ -83,7 +83,7 @@ export default function BulkSupplyPage() {
             style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfVar }}
             className="text-base md:text-lg leading-relaxed"
           >
-            Direct farm-gate cold-water aquaculture partnership for Srinagar restaurateurs, hotel chefs, wazwan caterers, and wedding planners. Freshly harvested to schedule with guaranteed cold-chain temperature control and GST invoicing.
+            Direct commercial cold-water aquaculture partnership for Srinagar restaurateurs, hotel chefs, wazwan caterers, and wedding planners. Freshly harvested to schedule with guaranteed cold-chain temperature control and GST invoicing.
           </p>
         </header>
 
@@ -140,7 +140,7 @@ export default function BulkSupplyPage() {
                   <td className="p-4 font-bold text-white">Event / Wedding Lot</td>
                   <td className="p-4">25 Kg – 100+ Kg</td>
                   <td className="p-4">Scheduled 2h prior to cooking</td>
-                  <td className="p-4 font-bold text-emerald-400">Direct Farm-Gate Discount</td>
+                  <td className="p-4 font-bold text-emerald-400">Direct Producer Discount</td>
                 </tr>
                 <tr>
                   <td className="p-4 font-bold text-white">Bulk Cleaned &amp; Gutted</td>

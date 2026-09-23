@@ -4,7 +4,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "Rainbow Trout Price Per Kg in Srinagar (2026 Live Rates) | Urban Trout",
   description:
-    "Official 2026 Rainbow Trout rates in Srinagar. Whole trout at ₹540/kg, cleaned & gutted at ₹580/kg with 100% Free Doorstep Delivery. Compare farm-gate vs market rates.",
+    "Official 2026 Rainbow Trout rates in Srinagar. Whole trout at ₹540/kg, cleaned & gutted at ₹580/kg with 100% Free Doorstep Delivery. Compare direct producer vs market rates.",
   alternates: {
     canonical: "https://urbantrout.in/trout-price-srinagar",
   },
@@ -61,8 +61,8 @@ const articleJsonLd = {
   "@graph": [
     {
       "@type": "Article",
-      "headline": "Rainbow Trout Price Per Kg in Srinagar: 2026 Market Rates & Farm-Direct Comparison",
-      "description": "Comprehensive 2026 price guide comparing farm-gate rates, market rates, and restaurant pricing for Rainbow Trout in Srinagar, Kashmir.",
+      "headline": "Rainbow Trout Price Per Kg in Srinagar: 2026 Market Rates & Direct Producer Comparison",
+      "description": "Comprehensive 2026 price guide comparing direct producer rates, market rates, and restaurant pricing for Rainbow Trout in Srinagar, Kashmir.",
       "image": "https://urbantrout.in/og-image.jpg",
       "author": {
         "@type": "Person",
@@ -123,7 +123,7 @@ export default function TroutPriceSrinagarPage() {
             style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfVar }}
             className="text-base md:text-lg leading-relaxed"
           >
-            Looking to buy fresh Rainbow Trout (<em className="text-cyan-300 font-serif">Oncorhynchus mykiss</em>) in Srinagar without overpaying? Here is the transparent breakdown of farm-direct live harvest rates versus local wet markets and online directories.
+            Looking to buy <Link href="/" className="text-cyan-400 font-semibold underline hover:text-cyan-300">fresh Rainbow Trout in Srinagar</Link> (<em className="text-cyan-300 font-serif">Oncorhynchus mykiss</em>) without overpaying? Here is the transparent breakdown of live harvest rates from our modern RAS tanks versus local wet markets and online directories.
           </p>
         </header>
 
