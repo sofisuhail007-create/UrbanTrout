@@ -42,8 +42,6 @@ export default function CustomerAccountPage() {
     isLoading: authLoading,
     savedProfile,
     signInWithGoogle,
-    signInWithEmail,
-    signUpWithEmail,
     signOut,
     saveCustomerProfile,
   } = useCustomerAuth();
@@ -66,14 +64,6 @@ export default function CustomerAccountPage() {
   // Guest phone lookup
   const [guestPhone, setGuestPhone] = useState("");
   const [lookupPhone, setLookupPhone] = useState("");
-
-  // Auth form state
-  const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
-  const [authEmail, setAuthEmail] = useState("");
-  const [authPassword, setAuthPassword] = useState("");
-  const [authName, setAuthName] = useState("");
-  const [authPhone, setAuthPhone] = useState("");
-  const [authSubmitting, setAuthSubmitting] = useState(false);
 
   // Address edit state
   const [addressForm, setAddressForm] = useState<SavedCustomerProfile>({
@@ -162,37 +152,6 @@ export default function CustomerAccountPage() {
     }
     setLookupPhone(clean);
     fetchOrders(clean);
-  };
-
-  // Handle Auth Submit
-  const handleAuthSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!authEmail.trim()) {
-      toast.error("Please enter your email.");
-      return;
-    }
-    setAuthSubmitting(true);
-
-    try {
-      if (authMode === "signin") {
-        const res = await signInWithEmail(authEmail, authPassword || undefined);
-        if (!res.success) {
-          toast.error(res.error || "Sign-in failed.");
-        }
-      } else {
-        if (!authPassword || authPassword.length < 6) {
-          toast.error("Password must be at least 6 characters.");
-          setAuthSubmitting(false);
-          return;
-        }
-        const res = await signUpWithEmail(authEmail, authPassword, authName || "Customer", authPhone);
-        if (!res.success) {
-          toast.error(res.error || "Registration failed.");
-        }
-      }
-    } finally {
-      setAuthSubmitting(false);
-    }
   };
 
   // Handle Address Save
@@ -467,30 +426,37 @@ export default function CustomerAccountPage() {
           )}
         </div>
 
-        {/* ── Logged-Out Authentication Card (if not logged in) ── */}
+        {/* ── Logged-Out Authentication Card (Google 1-Tap & Guest Lookup) ── */}
         {!user && (
-          <div className="mb-10 p-6 rounded-3xl bg-slate-950/80 border border-cyan-500/30 shadow-2xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none" />
+          <div className="mb-10 rounded-3xl bg-gradient-to-b from-slate-900/90 via-slate-950/95 to-slate-950 border border-cyan-500/30 p-6 md:p-8 shadow-2xl relative overflow-hidden backdrop-blur-xl">
+            {/* Ambient background glow */}
+            <div className="absolute top-0 right-0 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute bottom-0 left-0 w-60 h-60 bg-blue-600/5 rounded-full blur-3xl pointer-events-none" />
 
-            <div className="grid md:grid-cols-2 gap-8 items-center">
-              {/* Left Column: 1-Tap Google + Benefits */}
-              <div>
-                <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 uppercase tracking-wider">
-                  Quick Access
-                </span>
-                <h2 className="text-xl font-bold text-white mt-2 mb-2 font-['Space_Grotesk']">
-                  Sign in for 1-Tap Reordering
+            <div className="relative z-10 max-w-2xl mx-auto text-center space-y-6">
+              {/* Badge */}
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-semibold uppercase tracking-wider">
+                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                Hassle-Free 1-Tap Access
+              </div>
+
+              {/* Title & Description */}
+              <div className="space-y-2">
+                <h2 className="text-2xl md:text-3xl font-extrabold text-white font-['Space_Grotesk'] tracking-tight">
+                  Sign in with Google
                 </h2>
-                <p className="text-xs text-slate-300 leading-relaxed font-['Manrope'] mb-5">
-                  Save your Srinagar delivery address, view live trout harvest status, and reorder your favorite catch in 10 seconds.
+                <p className="text-xs sm:text-sm text-slate-300 font-['Manrope'] max-w-lg mx-auto leading-relaxed">
+                  No passwords to remember, no magic email links to wait for. Instant 1-tap sign-in to save your delivery address, track live harvest status, and reorder fresh trout in 10 seconds.
                 </p>
+              </div>
 
-                {/* Google 1-Tap Button */}
+              {/* Google 1-Tap Button */}
+              <div className="pt-1">
                 <button
                   onClick={() => signInWithGoogle("/account")}
-                  className="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-xl bg-white hover:bg-slate-100 text-slate-900 font-bold text-xs uppercase tracking-wider transition-all shadow-lg shadow-white/10 active:scale-[0.99] cursor-pointer mb-3"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-3.5 px-8 py-3.5 rounded-2xl bg-white hover:bg-slate-100 text-slate-900 font-bold text-sm uppercase tracking-wider transition-all duration-200 shadow-xl shadow-white/10 hover:shadow-cyan-500/20 active:scale-[0.98] cursor-pointer"
                 >
-                  <svg className="w-4 h-4" viewBox="0 0 24 24">
+                  <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24">
                     <path
                       fill="#4285F4"
                       d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -508,113 +474,51 @@ export default function CustomerAccountPage() {
                       d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"
                     />
                   </svg>
-                  Continue with Google
+                  <span>Continue with Google</span>
                 </button>
+                <p className="text-[11px] text-slate-400 mt-2 font-['Manrope']">
+                  Secure OAuth login powered by Google
+                </p>
+              </div>
 
-                {/* Guest Phone Track Box */}
-                <div className="mt-4 pt-4 border-t border-slate-800">
-                  <p className="text-[11px] text-slate-400 font-medium mb-2">
-                    Already ordered as a guest? Look up by mobile number:
-                  </p>
-                  <form onSubmit={handleGuestLookup} className="flex gap-2">
-                    <input
-                      type="tel"
-                      value={guestPhone}
-                      onChange={(e) => setGuestPhone(e.target.value)}
-                      placeholder="10-digit mobile number"
-                      maxLength={10}
-                      className="flex-1 bg-slate-900 border border-slate-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs text-white outline-none font-mono"
-                    />
-                    <button
-                      type="submit"
-                      className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-cyan-300 font-semibold text-xs rounded-xl transition-all cursor-pointer"
-                    >
-                      Track Catch
-                    </button>
-                  </form>
+              {/* Benefits Pills */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 text-left">
+                  <div className="text-lg mb-1">⚡</div>
+                  <div className="text-xs font-bold text-white font-['Space_Grotesk']">1-Tap Reorder</div>
+                  <div className="text-[11px] text-slate-400 mt-0.5">Reorder your favourite trout in seconds</div>
+                </div>
+                <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 text-left">
+                  <div className="text-lg mb-1">📍</div>
+                  <div className="text-xs font-bold text-white font-['Space_Grotesk']">Saved Address</div>
+                  <div className="text-[11px] text-slate-400 mt-0.5">Fast checkout across Srinagar</div>
+                </div>
+                <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 text-left">
+                  <div className="text-lg mb-1">🔔</div>
+                  <div className="text-xs font-bold text-white font-['Space_Grotesk']">Live Harvest Alerts</div>
+                  <div className="text-[11px] text-slate-400 mt-0.5">Push notifications when catch is ready</div>
                 </div>
               </div>
 
-              {/* Right Column: Email Sign In / Sign Up */}
-              <div className="bg-slate-900/60 p-5 rounded-2xl border border-slate-800">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-sm font-bold text-white font-['Space_Grotesk']">
-                    {authMode === "signin" ? "Sign In with Email" : "Create New Account"}
-                  </h3>
-                  <button
-                    type="button"
-                    onClick={() => setAuthMode(authMode === "signin" ? "signup" : "signin")}
-                    className="text-xs text-cyan-400 hover:text-cyan-300 font-medium cursor-pointer"
-                  >
-                    {authMode === "signin" ? "Need an account? Register" : "Have an account? Sign In"}
-                  </button>
-                </div>
-
-                <form onSubmit={handleAuthSubmit} className="space-y-3">
-                  {authMode === "signup" && (
-                    <>
-                      <div>
-                        <label className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">
-                          Full Name
-                        </label>
-                        <input
-                          type="text"
-                          required
-                          value={authName}
-                          onChange={(e) => setAuthName(e.target.value)}
-                          placeholder="e.g. Suhail Sofi"
-                          className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs text-white outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">
-                          Phone Number
-                        </label>
-                        <input
-                          type="tel"
-                          value={authPhone}
-                          onChange={(e) => setAuthPhone(e.target.value)}
-                          placeholder="10-digit mobile number"
-                          maxLength={10}
-                          className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs text-white outline-none font-mono"
-                        />
-                      </div>
-                    </>
-                  )}
-
-                  <div>
-                    <label className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">
-                      Email Address
-                    </label>
-                    <input
-                      type="email"
-                      required
-                      value={authEmail}
-                      onChange={(e) => setAuthEmail(e.target.value)}
-                      placeholder="your.email@example.com"
-                      className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs text-white outline-none"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 block mb-1">
-                      Password {authMode === "signin" && <span className="text-slate-500 font-normal">(Leave blank for magic link)</span>}
-                    </label>
-                    <input
-                      type="password"
-                      value={authPassword}
-                      onChange={(e) => setAuthPassword(e.target.value)}
-                      placeholder={authMode === "signin" ? "Password (optional for magic link)" : "Create a password (min 6 chars)"}
-                      className="w-full bg-slate-950 border border-slate-800 focus:border-cyan-500 rounded-xl px-3 py-2 text-xs text-white outline-none"
-                    />
-                  </div>
-
+              {/* Guest Phone Track Box */}
+              <div className="pt-6 border-t border-slate-800/80 max-w-md mx-auto">
+                <p className="text-xs text-slate-300 font-medium mb-2.5">
+                  Ordered as a guest without signing in? Look up by mobile:
+                </p>
+                <form onSubmit={handleGuestLookup} className="flex gap-2">
+                  <input
+                    type="tel"
+                    value={guestPhone}
+                    onChange={(e) => setGuestPhone(e.target.value)}
+                    placeholder="10-digit mobile number"
+                    maxLength={10}
+                    className="flex-1 bg-slate-900/90 border border-slate-800 focus:border-cyan-500 rounded-xl px-3.5 py-2.5 text-xs text-white outline-none font-mono placeholder:text-slate-500"
+                  />
                   <button
                     type="submit"
-                    disabled={authSubmitting}
-                    className="w-full py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs uppercase tracking-wider transition-all disabled:opacity-50 cursor-pointer shadow-md shadow-cyan-500/20"
+                    className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 font-semibold text-xs rounded-xl transition-all cursor-pointer whitespace-nowrap border border-cyan-500/20 hover:border-cyan-500/40"
                   >
-                    {authSubmitting ? "Processing…" : authMode === "signin" ? (authPassword ? "Sign In" : "Send Magic Link 📧") : "Create Account ⚡"}
+                    Track Catch 🎣
                   </button>
                 </form>
               </div>
