@@ -94,6 +94,7 @@ export default function Footer() {
               { href: "/trout-price-srinagar", label: "Trout Rates (2026 Guide)" },
               { href: "/kashmiri-trout-recipe", label: "Kashmiri Trout Recipes" },
               { href: "/fresh-trout-guide", label: "Freshness & Species Guide" },
+              { href: "/bulk", label: "Bulk Wholesale Supply" },
               { href: "/shop/gutted-trout", label: "Cleaned & Gutted Trout" },
               { href: "/shop/whole-trout", label: "Whole Rainbow Trout" },
               { href: "/farm-visits", label: "Pre-Notify Farm Visit" },
@@ -213,6 +214,19 @@ export default function Footer() {
                 className="hover:text-primary transition-colors"
               >
                 info.urbantrout@gmail.com
+              </a>
+            </div>
+
+            {/* Google Business Profile / Maps */}
+            <div style={{ marginTop: "6px" }}>
+              <a
+                href="https://maps.google.com/?q=34.144709,74.824525"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-xs text-cyan-400 font-bold hover:underline"
+              >
+                <span>📍 View on Google Maps &amp; Reviews</span>
+                <span>↗</span>
               </a>
             </div>
           </div>

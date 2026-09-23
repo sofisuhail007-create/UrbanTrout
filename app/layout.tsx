@@ -36,15 +36,15 @@ const manrope = Manrope({
 export const metadata: Metadata = {
   metadataBase: new URL("https://urbantrout.in"),
   title: {
-    default: "Buy Fresh Rainbow Trout in Srinagar | Urban Trout",
+    default: "Fresh Rainbow Trout in Srinagar from ₹540/kg | Urban Trout",
     template: "%s | Urban Trout",
   },
   description:
-    "Buy fresh Rainbow Trout in Srinagar. Farmed in clean groundwater in Malabagh, harvested to order and delivered chilled to your doorstep within 2 hours. 100% Free delivery across Srinagar.",
+    "Farm-harvested rainbow trout, delivered chilled in Srinagar. Whole ₹540/kg, cleaned & gutted ₹580/kg. Min 2 kg. Order online or pick up at Malabagh farm.",
   openGraph: {
-    title: "Buy Fresh Rainbow Trout in Srinagar | Urban Trout",
+    title: "Fresh Rainbow Trout in Srinagar from ₹540/kg | Urban Trout",
     description:
-      "Farm-fresh Rainbow Trout harvested live to order at our Malabagh farm. Delivered chilled to your doorstep within 2 hours across Srinagar.",
+      "Farm-harvested rainbow trout, delivered chilled in Srinagar. Whole ₹540/kg, cleaned & gutted ₹580/kg. Min 2 kg. Order online or pick up.",
     url: "https://urbantrout.in",
     siteName: "Urban Trout",
     images: [
