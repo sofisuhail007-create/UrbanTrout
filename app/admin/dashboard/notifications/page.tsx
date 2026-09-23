@@ -19,33 +19,286 @@ function getDeviceLabel(ua?: string) {
   return "🌐 Web Browser Device";
 }
 
-const PRESET_TEMPLATES = [
+export interface MarketingTemplate {
+  id: string;
+  name: string;
+  icon: string;
+  category: "wit" | "weather" | "dinner" | "fitness" | "fomo" | "weekend";
+  tag: string;
+  title: string;
+  body: string;
+  url: string;
+}
+
+const CATEGORIES = [
+  { id: "all", label: "All Strategies", icon: "✨" },
+  { id: "wit", label: "Zomato Wit", icon: "🔥" },
+  { id: "weather", label: "Mausam & Srinagar", icon: "🌧️" },
+  { id: "dinner", label: "Meal Rush", icon: "🍽️" },
+  { id: "fitness", label: "Gym & Protein", icon: "💪" },
+  { id: "fomo", label: "Flash & FOMO", icon: "⚡" },
+  { id: "weekend", label: "Weekend & Feasts", icon: "🎉" },
+];
+
+function getCategoryColor(category: string) {
+  switch (category) {
+    case "wit":
+      return "bg-amber-500/10 text-amber-300 border-amber-500/30";
+    case "weather":
+      return "bg-cyan-500/10 text-cyan-300 border-cyan-500/30";
+    case "dinner":
+      return "bg-rose-500/10 text-rose-300 border-rose-500/30";
+    case "fitness":
+      return "bg-emerald-500/10 text-emerald-300 border-emerald-500/30";
+    case "fomo":
+      return "bg-red-500/10 text-red-300 border-red-500/30";
+    case "weekend":
+      return "bg-purple-500/10 text-purple-300 border-purple-500/30";
+    default:
+      return "bg-slate-800 text-slate-300 border-slate-700";
+  }
+}
+
+const PRESET_TEMPLATES: MarketingTemplate[] = [
+  // ── 1. Zomato Wit & Relatable Banter ──
   {
-    name: "Morning Harvest",
-    icon: "🐟",
-    title: "Morning Harvest Alert 🐟",
-    body: "Fresh Rainbow Trout just harvested at our Malabagh farm! Order now for rapid 2-hour chilled delivery across Srinagar.",
-    url: "/shop",
-  },
-  {
-    name: "Weekend Special",
-    icon: "⚡",
-    title: "Weekend BBQ Trout Special ⚡",
-    body: "Fresh cold-water trout available for your weekend feast. Cleaned, gutted, and packed on ice to your doorstep.",
+    id: "wit-1",
+    name: "Uska Message Nahi Hai 😅",
+    icon: "📱",
+    category: "wit",
+    tag: "Relatable Wit",
+    title: "Notification sun ke laga uska tha? 😅",
+    body: "Nahi, fresh Himalayan Trout ka hai! She might ghost you, but our delivery rider never will. Hot crispy trout tonight?",
     url: "/shop/gutted-trout",
   },
   {
-    name: "Live Tanks Restocked",
-    icon: "🌊",
-    title: "Live Aquarium Restocked 🌊",
-    body: "Our high-density RAS tanks at Malabagh are fully stocked with fresh trout. Reserve your catch before stock runs out.",
+    id: "wit-2",
+    name: "Commitment Issues? 💍",
+    icon: "💍",
+    category: "wit",
+    tag: "Witty Hook",
+    title: "Commitment issues? No pressure. 🐟",
+    body: "Don't commit to forever, just commit to dinner tonight. Cleaned & gutted Rainbow Trout delivered cold on ice in 90 mins.",
     url: "/shop",
   },
   {
-    name: "Express Delivery",
-    icon: "🛵",
-    title: "Express Chilled Delivery Today 🛵",
-    body: "Order fresh trout before 4 PM today for immediate harvesting & dispatch within 90 minutes anywhere in Srinagar.",
+    id: "wit-3",
+    name: "Khali Fridge Syndrome 👀",
+    icon: "👀",
+    category: "wit",
+    tag: "Kitchen Banter",
+    title: "Khali fridge ko baar baar dekhna band karo 👀",
+    body: "Opening the door for the 5th time won't cook dinner. Treat yourself to fresh trout—pan-sear in 6 mins, dinner sorted!",
+    url: "/shop/gutted-trout",
+  },
+  {
+    id: "wit-4",
+    name: "Salary Day Royalty 👑",
+    icon: "💸",
+    category: "wit",
+    tag: "Payday Craving",
+    title: "Salary aa gayi? Time to eat like royalty 👑",
+    body: "Skip the regular dal-chawal today. You worked hard all month—celebrate with fresh pan-fried Rainbow Trout tonight!",
+    url: "/shop",
+  },
+
+  // ── 2. Weather & Srinagar Vibes ──
+  {
+    id: "weather-1",
+    name: "Mausam Toh Dekho 🌧️",
+    icon: "🌧️",
+    category: "weather",
+    tag: "Srinagar Weather",
+    title: "Srinagar ka mausam dekha? 🌧️🐟",
+    body: "Chilly breeze + hot pan-fried crispy trout with garlic butter. It doesn't get more heavenly than this. Order now!",
+    url: "/shop/gutted-trout",
+  },
+  {
+    id: "weather-2",
+    name: "Jumma Mubarak Feast 🤲",
+    icon: "🤲",
+    category: "weather",
+    tag: "Friday Special",
+    title: "Jumma Mubarak! Royal Lunch Awaits 🤲",
+    body: "Upgrade today's family feast with fresh cold-water Rainbow Trout from Malabagh. Fresh morning harvest packing now!",
+    url: "/shop/whole-trout",
+  },
+  {
+    id: "weather-3",
+    name: "Tired of Mutton? 🐑",
+    icon: "🐑",
+    category: "weather",
+    tag: "Palate Cleanser",
+    title: "Wazwan & mutton overload? 🤤",
+    body: "Give your stomach a delicious light break! Clean, crisp Himalayan trout packed with pure flavour and zero heaviness.",
+    url: "/shop/gutted-trout",
+  },
+  {
+    id: "weather-4",
+    name: "Sham Ki Sardi Comfort ❄️",
+    icon: "❄️",
+    category: "weather",
+    tag: "Winter Comfort",
+    title: "Sham ki sardi + Garama-garam Trout ❄️🔥",
+    body: "When temperatures drop, nothing warms the soul like spicy pan-seared trout. Packed on ice, delivered to your door.",
+    url: "/shop",
+  },
+
+  // ── 3. Lunch & Dinner Rush ──
+  {
+    id: "dinner-1",
+    name: "Office Hunger Pangs 🤤",
+    icon: "🤤",
+    category: "dinner",
+    tag: "Lunch Reminder",
+    title: "Office mein baithe baithe bhook lag gayi? 🤤",
+    body: "Plan tonight's dinner now so you don't scramble at 9 PM. Farm-fresh trout waiting at your doorstep when you reach home!",
+    url: "/shop",
+  },
+  {
+    id: "dinner-2",
+    name: "6-Minute Quick Dinner ⏱️",
+    icon: "⏱️",
+    category: "dinner",
+    tag: "Quick Cook",
+    title: "Too tired to cook after a long day? 😴",
+    body: "Cleaned, gutted, zero fishy smell. Pan-sear for 3 minutes each side and your 5-star restaurant dinner is ready!",
+    url: "/shop/gutted-trout",
+  },
+  {
+    id: "dinner-3",
+    name: "Aaj Dinner Mein Kya Hai? 🍲",
+    icon: "🍲",
+    category: "dinner",
+    tag: "Dinner Solved",
+    title: "Aaj dinner mein kya banega? Problem solved! 💡",
+    body: "Crispy skin rainbow trout with steamed basmati rice. Freshly harvested from Malabagh springs today.",
+    url: "/shop",
+  },
+  {
+    id: "dinner-4",
+    name: "Late Evening Delivery 🌙",
+    icon: "🌙",
+    category: "dinner",
+    tag: "Last Dispatch",
+    title: "Evening craving rescue squad! 🌙🐟",
+    body: "Last delivery slot closing soon for Srinagar! Lock in your fresh catch before our chilled dispatch vans roll out.",
+    url: "/shop",
+  },
+
+  // ── 4. Gym & High-Protein Fitness ──
+  {
+    id: "fitness-1",
+    name: "Ditch Dry Chicken Breast 🐔",
+    icon: "🐔",
+    category: "fitness",
+    tag: "Gym & Macros",
+    title: "Still chewing dry chicken breast? 😩",
+    body: "Switch to 32g clean protein + Omega-3s. Tender, juicy Rainbow Trout with zero carbs and natural healthy fats. Hit your macros!",
+    url: "/shop/gutted-trout",
+  },
+  {
+    id: "fitness-2",
+    name: "Post-Workout Muscle Fuel 💪",
+    icon: "💪",
+    category: "fitness",
+    tag: "Post-Workout",
+    title: "Your muscles called: they want real nutrition 💪",
+    body: "Glacier-water Rainbow Trout packed with pure anti-inflammatory Omega-3 fatty acids. Clean fuel for lean gains.",
+    url: "/shop",
+  },
+  {
+    id: "fitness-3",
+    name: "Brain & Heart Superfood 🧠",
+    icon: "🧠",
+    category: "fitness",
+    tag: "Clean Nutrition",
+    title: "Eat smarter: Himalayan Trout nutrition 🐟⚡",
+    body: "Zero antibiotics, zero muddy taste. Raised in oxygen-rich mountain water. Pure brain food for you and your family.",
+    url: "/shop",
+  },
+  {
+    id: "fitness-4",
+    name: "Zero Cheat Meal Guilt 🥗",
+    icon: "🥗",
+    category: "fitness",
+    tag: "Guilt-Free",
+    title: "Taste of a cheat meal, macros of a champion 🏆",
+    body: "Crispy skin trout that tastes like a luxury restaurant cheat meal, but fits your clean diet perfectly. Order fresh today.",
+    url: "/shop/gutted-trout",
+  },
+
+  // ── 5. Flash Urgency & Scarcity ──
+  {
+    id: "fomo-1",
+    name: "7 AM Glacier Harvest ❄️",
+    icon: "❄️",
+    category: "fomo",
+    tag: "Hyper-Fresh",
+    title: "Swimming in glacier water at 7 AM ❄️",
+    body: "On your dining table by 1 PM! You can't get fresher than this anywhere in Srinagar. Morning batch selling fast.",
+    url: "/shop",
+  },
+  {
+    id: "fomo-2",
+    name: "Stock Running Low 🚨",
+    icon: "🚨",
+    category: "fomo",
+    tag: "Urgency / FOMO",
+    title: "Stock running critically low! 🚨",
+    body: "Today's fresh harvest is almost sold out. Grab your 1kg cleaned trout box before the live tanks close for the day.",
+    url: "/shop/gutted-trout",
+  },
+  {
+    id: "fomo-3",
+    name: "Live Tanks Jumbo Restock 🌊",
+    icon: "🌊",
+    category: "fomo",
+    tag: "Jumbo Catch",
+    title: "Live Tanks Restocked with Jumbo Trout! 🌊",
+    body: "Our high-density RAS tanks just harvested prime 400g-500g beauties. Juicy, thick fillets perfect for pan-frying.",
+    url: "/shop/whole-trout",
+  },
+
+  // ── 6. Weekend & Gatherings ──
+  {
+    id: "weekend-1",
+    name: "Weekend BBQ Grill Night 🔥",
+    icon: "🔥",
+    category: "weekend",
+    tag: "BBQ Showstopper",
+    title: "The boys are coming over? Fire up the grill! 🔥",
+    body: "Marinate whole rainbow trout with lemon, garlic & Kashmiri red chili. The ultimate weekend BBQ showstopper.",
+    url: "/shop/whole-trout",
+  },
+  {
+    id: "weekend-2",
+    name: "Sunday Family Lunch 👨‍👩‍👧‍👦",
+    icon: "👨‍👩‍👧‍👦",
+    category: "weekend",
+    tag: "Family Feast",
+    title: "Sunday Family Lunch sorted in style 👨‍👩‍👧‍👦",
+    body: "Gather everyone around a sizzling platter of fresh Rainbow Trout. Cleaned, gutted, packed on ice—zero kitchen hassle.",
+    url: "/shop",
+  },
+  {
+    id: "weekend-3",
+    name: "Surprise Guests at Home? ✨",
+    icon: "✨",
+    category: "weekend",
+    tag: "Guest Hosting",
+    title: "Mehmon aa rahe hain? Impress them! 🍽️✨",
+    body: "Nothing impresses guests like fresh Himalayan Rainbow Trout. Delivered chilled in sealed ice packs in 90 mins.",
+    url: "/shop/whole-trout",
+  },
+  {
+    id: "weekend-4",
+    name: "We Miss You! 🥺",
+    icon: "🥺",
+    category: "weekend",
+    tag: "Re-engagement",
+    title: "It's been a while since your last fresh catch... 🥺",
+    body: "Your tastebuds miss that crisp skin and tender flaky meat. Fresh trout is calling your name today!",
     url: "/shop",
   },
 ];
@@ -60,6 +313,11 @@ export default function AdminNotificationsPage() {
   const [url, setUrl] = useState(PRESET_TEMPLATES[0].url);
   const [targetMode, setTargetMode] = useState<"broadcast" | "targeted">("broadcast");
   const [targetPhone, setTargetPhone] = useState("");
+
+  // Preset Template Filter & Selection State
+  const [activePresetId, setActivePresetId] = useState<string>(PRESET_TEMPLATES[0].id);
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
   const [isSending, setIsSending] = useState(false);
   const [lastBroadcast, setLastBroadcast] = useState<any>(null);
@@ -86,12 +344,25 @@ export default function AdminNotificationsPage() {
     }
   };
 
-  const applyPreset = (preset: typeof PRESET_TEMPLATES[0]) => {
+  const applyPreset = (preset: MarketingTemplate) => {
+    setActivePresetId(preset.id);
     setTitle(preset.title);
     setBody(preset.body);
     setUrl(preset.url);
-    toast.success(`Loaded "${preset.name}" template`);
+    toast.success(`Loaded "${preset.name}" into Composer`);
   };
+
+  const filteredTemplates = PRESET_TEMPLATES.filter((preset) => {
+    const matchesCategory = selectedCategory === "all" || preset.category === selectedCategory;
+    const q = searchQuery.toLowerCase().trim();
+    const matchesSearch =
+      !q ||
+      preset.name.toLowerCase().includes(q) ||
+      preset.title.toLowerCase().includes(q) ||
+      preset.body.toLowerCase().includes(q) ||
+      preset.tag.toLowerCase().includes(q);
+    return matchesCategory && matchesSearch;
+  });
 
   const handleSendPush = async () => {
     if (!title.trim() || !body.trim()) {
@@ -267,31 +538,138 @@ export default function AdminNotificationsPage() {
         </div>
       )}
 
-      {/* ── Preset Templates ── */}
-      <div>
-        <p className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-3 font-['Space_Grotesk']">
-          Quick Preset Templates
-        </p>
-        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {PRESET_TEMPLATES.map((preset, idx) => (
-            <button
-              key={idx}
-              type="button"
-              onClick={() => applyPreset(preset)}
-              className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 hover:border-cyan-500/50 hover:bg-slate-900/80 text-left transition-all group cursor-pointer"
-            >
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-lg">{preset.icon}</span>
-                <span className="text-[10px] text-cyan-400 group-hover:underline font-mono">Use ↵</span>
-              </div>
-              <p className="text-xs font-bold text-white group-hover:text-cyan-300 transition-colors">
-                {preset.name}
-              </p>
-              <p className="text-[11px] text-slate-400 line-clamp-2 mt-1">
-                {preset.body}
-              </p>
-            </button>
-          ))}
+      {/* ── Zomato-Style Marketing Preset Templates ── */}
+      <div className="space-y-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 uppercase tracking-wider">
+                Marketing Strategy Center
+              </span>
+              <span className="text-xs font-mono text-slate-400">
+                {filteredTemplates.length} of {PRESET_TEMPLATES.length} Templates
+              </span>
+            </div>
+            <h2 className="text-sm md:text-base font-bold text-white mt-1 font-['Space_Grotesk']">
+              Zomato-Style Marketing Alert Templates
+            </h2>
+            <p className="text-xs text-slate-400">
+              Witty hooks, weather cravings, meal rushes &amp; high-protein angles. Click any card to instantly populate the composer.
+            </p>
+          </div>
+
+          {/* Search Bar */}
+          <div className="relative w-full md:w-64">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">
+              search
+            </span>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search templates (e.g. gym, rain, fridge)..."
+              className="w-full bg-slate-900 border border-slate-800 focus:border-cyan-500 rounded-xl pl-9 pr-7 py-2 text-xs text-white outline-none placeholder:text-slate-500 font-['Manrope']"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white text-xs cursor-pointer"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Category Filter Chips */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+          {CATEGORIES.map((cat) => {
+            const count =
+              cat.id === "all"
+                ? PRESET_TEMPLATES.length
+                : PRESET_TEMPLATES.filter((t) => t.category === cat.id).length;
+            const isSelected = selectedCategory === cat.id;
+            return (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => setSelectedCategory(cat.id)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer ${
+                  isSelected
+                    ? "bg-cyan-500 text-slate-950 font-bold shadow-md shadow-cyan-500/20"
+                    : "bg-slate-900/80 text-slate-400 hover:text-white border border-slate-800 hover:border-slate-700"
+                }`}
+              >
+                <span>{cat.icon}</span>
+                <span>{cat.label}</span>
+                <span
+                  className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${
+                    isSelected ? "bg-slate-950 text-cyan-300" : "bg-slate-800 text-slate-400"
+                  }`}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Templates Grid */}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 max-h-[480px] overflow-y-auto pr-1">
+          {filteredTemplates.map((preset) => {
+            const isActive = activePresetId === preset.id;
+            return (
+              <button
+                key={preset.id}
+                type="button"
+                onClick={() => applyPreset(preset)}
+                className={`p-3.5 rounded-2xl text-left transition-all group cursor-pointer flex flex-col justify-between relative overflow-hidden border ${
+                  isActive
+                    ? "bg-slate-900/90 border-cyan-400 ring-1 ring-cyan-400/40 shadow-lg shadow-cyan-500/10"
+                    : "bg-slate-950/80 border-slate-800/80 hover:border-cyan-500/40 hover:bg-slate-900/70"
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-1 mb-2">
+                    <span
+                      className={`px-2 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider border ${getCategoryColor(
+                        preset.category
+                      )}`}
+                    >
+                      {preset.tag}
+                    </span>
+                    <span className="text-lg">{preset.icon}</span>
+                  </div>
+
+                  <p className="text-xs font-bold text-white group-hover:text-cyan-300 transition-colors font-['Space_Grotesk'] line-clamp-1">
+                    {preset.name}
+                  </p>
+
+                  <p className="text-[11px] font-semibold text-cyan-300/90 mt-1 line-clamp-1">
+                    {preset.title}
+                  </p>
+
+                  <p className="text-[11px] text-slate-400 line-clamp-2 mt-1 leading-relaxed">
+                    {preset.body}
+                  </p>
+                </div>
+
+                <div className="mt-3 pt-2.5 border-t border-slate-800/60 flex items-center justify-between text-[10px]">
+                  <span className="text-slate-500 font-mono truncate max-w-[120px]">
+                    {preset.url}
+                  </span>
+                  <span
+                    className={`font-bold flex items-center gap-1 ${
+                      isActive ? "text-cyan-400" : "text-slate-400 group-hover:text-cyan-300"
+                    }`}
+                  >
+                    {isActive ? "Loaded ✓" : "Use ↵"}
+                  </span>
+                </div>
+              </button>
+            );
+          })}
         </div>
       </div>
 
