@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Contact Urban Trout | Farm Location & Support in Srinagar",
+  title: "Contact Us & Farm Location in Srinagar",
   description:
     "Contact Urban Trout Aquaculture Farm in Malabagh, Srinagar. Call or WhatsApp +91 84910 06127 for fresh harvest orders, farm visits, and restaurant supply.",
   alternates: {

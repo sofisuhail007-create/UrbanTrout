@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Our Farm & Cold-Water Aquaculture in Malabagh, Srinagar | Urban Trout",
+  title: "Our Farm & Cold-Water Aquaculture in Malabagh, Srinagar",
   description:
     "Learn how Urban Trout raises fresh Rainbow Trout (Oncorhynchus mykiss) in Malabagh, Srinagar using clean deep borewell groundwater, high-velocity aeration raceways, and zero antibiotics.",
   alternates: {

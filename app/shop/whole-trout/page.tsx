@@ -7,7 +7,7 @@ import { getBusinessHoursInfo } from "@/lib/businessHours";
 import { getLiveAquariumStock } from "@/lib/aquariumStock";
 
 export const metadata: Metadata = {
-  title: "Whole Fresh Rainbow Trout (₹540/Kg) | Urban Trout Srinagar",
+  title: "Whole Fresh Rainbow Trout (₹540/Kg)",
   description:
     "Fresh whole cold-water Rainbow Trout from our Srinagar farm in Malabagh. 100% Free delivery within 2 hours across Srinagar.",
   alternates: {

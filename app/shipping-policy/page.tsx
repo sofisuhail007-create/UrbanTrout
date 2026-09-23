@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Shipping & Delivery Policy | Urban Trout Srinagar",
+  title: "Shipping & Delivery Policy",
   description: "Official delivery coverage, 100% Free doorstep delivery across Srinagar, cold-chain packaging, and operating hours.",
   alternates: {
     canonical: "https://urbantrout.in/shipping-policy",

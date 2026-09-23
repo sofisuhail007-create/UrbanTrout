@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | Urban Trout Srinagar",
+  title: "Privacy Policy",
   description: "Urban Trout privacy policy, customer data protection, and secure payment standards in Srinagar.",
   alternates: {
     canonical: "https://urbantrout.in/privacy",

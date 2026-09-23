@@ -7,7 +7,7 @@ import { getBusinessHoursInfo } from "@/lib/businessHours";
 import { getLiveAquariumStock } from "@/lib/aquariumStock";
 
 export const metadata: Metadata = {
-  title: "Premium Cleaned & Gutted Rainbow Trout (₹580/Kg) | Urban Trout Srinagar",
+  title: "Premium Cleaned & Gutted Rainbow Trout (₹580/Kg)",
   description:
     "Expertly cleaned, scaled, gutted, and prepared for immediate cooking. Farmed in Malabagh, Srinagar. 100% Free delivery within 2 hours across Srinagar.",
   alternates: {

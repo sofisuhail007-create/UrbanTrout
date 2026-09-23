@@ -38,7 +38,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const canonicalUrl = `https://urbantrout.in/shop/${slug}`;
 
   return {
-    title: `${title} (${price}) | Urban Trout Srinagar`,
+    title: `${title} (${price}) - Fresh Srinagar Farm Harvest`,
     description: desc,
     alternates: {
       canonical: canonicalUrl,
