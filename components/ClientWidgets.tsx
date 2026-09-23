@@ -7,7 +7,6 @@ import { useCart } from "@/context/CartContext";
 import { isDistractionFreeSession } from "@/lib/adTrafficShield";
 
 const CartDrawer = dynamic(() => import("@/components/CartDrawer"), { ssr: false });
-const StickyMobileOrderBar = dynamic(() => import("@/components/StickyMobileOrderBar"), { ssr: false });
 const WhatsAppButton = dynamic(() => import("@/components/WhatsAppButton"), { ssr: false });
 const LiveChatWidget = dynamic(() => import("@/components/LiveChatWidget"), { ssr: false });
 const InstallPwaPrompt = dynamic(() => import("@/components/InstallPwaPrompt"), { ssr: false });
@@ -50,7 +49,6 @@ export default function ClientWidgets() {
   return (
     <>
       {isOpen && <CartDrawer />}
-      <StickyMobileOrderBar />
       {loadDeferred && !isCheckoutOrAdmin && (
         <>
           <WhatsAppButton />
