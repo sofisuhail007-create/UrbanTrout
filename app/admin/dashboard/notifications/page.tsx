@@ -1,11 +1,22 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { adminFetch } from "@/lib/adminClient";
 import toast from "react-hot-toast";
 
 interface SubscriberStats {
   totalSubscribers: number;
   sampleSubscribers: any[];
+}
+
+function getDeviceLabel(ua?: string) {
+  if (!ua) return "Connected Device";
+  if (/iphone/i.test(ua)) return "📱 Apple iPhone (iOS PWA)";
+  if (/ipad/i.test(ua)) return "📱 Apple iPad (iOS PWA)";
+  if (/android/i.test(ua)) return "🤖 Android Device";
+  if (/windows/i.test(ua)) return "💻 Windows PC (Chrome/Edge)";
+  if (/macintosh|mac os x/i.test(ua)) return "💻 Apple Mac (Safari/Chrome)";
+  return "🌐 Web Browser Device";
 }
 
 const PRESET_TEMPLATES = [
@@ -61,17 +72,15 @@ export default function AdminNotificationsPage() {
   const fetchStats = async () => {
     setLoadingStats(true);
     try {
-      const adminToken = localStorage.getItem("ut_admin_secret") || "";
-      const res = await fetch("/api/push/send", {
-        headers: {
-          "x-admin-token": adminToken,
-        },
-      });
+      const res = await adminFetch("/api/push/send");
       const data = await res.json();
       if (data.success) {
         setStats(data);
+      } else {
+        console.warn("Failed to load subscriber stats:", data.error);
       }
-    } catch (_) {
+    } catch (err: any) {
+      console.warn("Error fetching subscriber stats:", err);
     } finally {
       setLoadingStats(false);
     }
@@ -97,19 +106,17 @@ export default function AdminNotificationsPage() {
 
     const confirmMsg =
       targetMode === "broadcast"
-        ? `Are you sure you want to broadcast this push notification to all ${stats?.totalSubscribers || "active"} subscribers?`
+        ? `Are you sure you want to broadcast this push notification to all ${stats?.totalSubscribers ?? "active"} subscribers?`
         : `Send targeted push notification to ${targetPhone}?`;
 
     if (!window.confirm(confirmMsg)) return;
 
     setIsSending(true);
     try {
-      const adminToken = localStorage.getItem("ut_admin_secret") || "";
-      const res = await fetch("/api/push/send", {
+      const res = await adminFetch("/api/push/send", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-admin-token": adminToken,
         },
         body: JSON.stringify({
           mode: targetMode,
@@ -188,22 +195,77 @@ export default function AdminNotificationsPage() {
           </p>
         </div>
 
-        {/* Stats Chip */}
-        <div className="flex items-center gap-3 bg-slate-900/80 border border-cyan-500/30 px-4 py-2.5 rounded-2xl shadow-lg">
-          <div className="w-8 h-8 rounded-xl bg-cyan-500/20 text-cyan-300 flex items-center justify-center font-bold text-sm">
-            🔔
+        {/* Stats Chip & Refresh */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3 bg-slate-900/80 border border-cyan-500/30 px-4 py-2.5 rounded-2xl shadow-lg">
+            <div className="w-8 h-8 rounded-xl bg-cyan-500/20 text-cyan-300 flex items-center justify-center font-bold text-sm">
+              🔔
+            </div>
+            <div>
+              <p className="text-[10px] text-slate-400 uppercase font-mono tracking-wider">
+                Active Subscribers
+              </p>
+              <p className="text-lg font-black text-white font-['Space_Grotesk'] leading-tight">
+                {loadingStats ? "…" : stats?.totalSubscribers ?? 0}{" "}
+                <span className="text-xs text-cyan-400 font-normal">Devices</span>
+              </p>
+            </div>
           </div>
-          <div>
-            <p className="text-[10px] text-slate-400 uppercase font-mono tracking-wider">
-              Active Subscribers
-            </p>
-            <p className="text-lg font-black text-white font-['Space_Grotesk'] leading-tight">
-              {loadingStats ? "…" : stats?.totalSubscribers ?? 0}{" "}
-              <span className="text-xs text-cyan-400 font-normal">Devices</span>
-            </p>
-          </div>
+
+          <button
+            type="button"
+            onClick={fetchStats}
+            disabled={loadingStats}
+            title="Refresh subscriber count"
+            className="w-10 h-10 rounded-2xl bg-slate-900/80 border border-slate-800 hover:border-cyan-500/40 flex items-center justify-center text-slate-400 hover:text-white transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+          >
+            <span className={`material-symbols-outlined text-base ${loadingStats ? "animate-spin text-cyan-400" : ""}`}>
+              sync
+            </span>
+          </button>
         </div>
       </div>
+
+      {/* ── Active Subscriber Devices Panel ── */}
+      {stats && stats.totalSubscribers > 0 && (
+        <div className="p-4 rounded-2xl bg-slate-950/80 border border-cyan-500/20 shadow-xl space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <h3 className="text-xs font-bold text-white uppercase tracking-wider font-['Space_Grotesk']">
+                Connected Subscriber Devices ({stats.totalSubscribers})
+              </h3>
+            </div>
+            <span className="text-[10px] text-slate-400 font-mono">
+              Ready for Instant Web Push
+            </span>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+            {stats.sampleSubscribers?.map((sub, idx) => {
+              const deviceLabel = getDeviceLabel(sub.userAgent);
+              return (
+                <div
+                  key={idx}
+                  className="p-3 rounded-xl bg-slate-900/60 border border-slate-800/80 flex items-center justify-between gap-3 text-xs"
+                >
+                  <div className="min-w-0">
+                    <p className="font-bold text-white truncate font-['Space_Grotesk']">
+                      {deviceLabel}
+                    </p>
+                    <p className="text-[10px] text-slate-400 truncate mt-0.5 font-mono">
+                      {sub.phone ? `Phone: ${sub.phone}` : sub.email ? sub.email : "Customer PWA"}
+                    </p>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-full text-[9px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shrink-0">
+                    Active ✓
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ── Preset Templates ── */}
       <div>
