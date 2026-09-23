@@ -27,7 +27,7 @@ const C = {
 const sections = [
   {
     title: "1. Service Area & Delivery Coverage",
-    body: "• Urban Trout provides 100% Free Doorstep Delivery across the entire Srinagar municipal area and all surrounding neighborhoods.\n• Localities Served: Malabagh, Hazratbal, Habak, Naseem Bagh, Zakura, Lal Bazar, Soura (SKIMS), Bachpora, Illahibagh, Rainawari, Dalgate, Rajbagh, Lal Chowk, Jawahar Nagar, Hyderpora, Sanat Nagar, Bemina, and all other Srinagar pin codes.\n• Farm Gate Pickup: You are also welcome to visit and pick up live catch directly from our farm counter in Malabagh, Srinagar.",
+    body: "• Urban Trout provides 100% Free Doorstep Delivery across the entire Srinagar municipal area and all surrounding neighborhoods.\n• Localities Served: Malabagh, Hazratbal, Habak, Naseem Bagh, Zakura, Lal Bazar, Soura (SKIMS), Bachpora, Illahibagh, Rainawari, Dalgate, Rajbagh, Lal Chowk, Jawahar Nagar, Hyderpora, Sanat Nagar, Bemina, and all other Srinagar pin codes.\n• Vending Center Pickup: All in-person collections and physical retail orders are fulfilled through our dedicated Live Trout Vending Center in Srinagar.",
   },
   {
     title: "2. Harvest-to-Order & Delivery Timelines",

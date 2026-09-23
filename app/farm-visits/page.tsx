@@ -57,7 +57,7 @@ const PURPOSES = [
 const FAQS = [
   {
     q: "Why is prior Farm Manager approval mandatory for all visits?",
-    a: "Urban Trout operates a high-density, bio-secure deep borewell groundwater continuous-flow raceway facility with high-velocity aeration. Uncontrolled walk-ins or random timings disrupt automated oxygen injection, feeding cycles, and risk pathogen contamination. Our Farm Manager reviews every request to ensure biosecurity and dedicated staff guidance.",
+    a: "Urban Trout operates a high-density, bio-secure deep borewell groundwater Recirculating Aquaculture System (RAS) facility with continuous aeration and bio-filtration. Uncontrolled walk-ins or random timings disrupt automated oxygen injection, feeding cycles, and risk pathogen contamination. Our Farm Manager reviews every request to ensure biosecurity and dedicated staff guidance.",
   },
   {
     q: "How will I know if my visit is approved?",

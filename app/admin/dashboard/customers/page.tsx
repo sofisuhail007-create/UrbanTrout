@@ -80,7 +80,7 @@ export default function CustomersPage() {
   // Broadcast Form State
   const [broadcastTemplate, setBroadcastTemplate] = useState<"harvest" | "special" | "inactive" | "review" | "custom">("harvest");
   const [broadcastMessage, setBroadcastMessage] = useState(
-    "Salam {name}! Fresh Rainbow Trout has just been harvested from our cold-water spring raceways at Urban Trout Harwan. Whole and gutted available fresh today. Would you like to reserve yours? 🌊🐟"
+    "Salam {name}! Fresh Rainbow Trout has just been harvested from our cold-water RAS tanks at Urban Trout Malabagh. Whole and gutted available fresh today. Would you like to reserve yours? 🌊🐟"
   );
   const [broadcastIndex, setBroadcastIndex] = useState(0);
 
@@ -1545,7 +1545,7 @@ _Warm regards,_
                   onClick={() => {
                     setBroadcastTemplate("harvest");
                     setBroadcastMessage(
-                      "Salam {name}! Fresh Rainbow Trout has just been harvested from our cold-water spring raceways at Urban Trout Harwan. Whole and gutted available fresh today. Would you like to reserve yours? 🌊🐟"
+                      "Salam {name}! Fresh Rainbow Trout has just been harvested from our cold-water RAS tanks at Urban Trout Malabagh. Whole and gutted available fresh today. Would you like to reserve yours? 🌊🐟"
                     );
                   }}
                   className={`p-2 rounded-xl text-center text-xs font-mono transition-all cursor-pointer ${

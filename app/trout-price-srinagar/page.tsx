@@ -44,7 +44,7 @@ const priceFaqs = [
   },
   {
     q: "Why are market fish and IndiaMART rates higher than Urban Trout?",
-    a: "Market fish sellers and IndiaMART brokers operate through multiple layers of middlemen, transit freight, and packaging surcharges, charging between ₹650 and ₹1,000 per kg. Because Urban Trout delivers directly from our Malabagh cold-water raceways straight to your home, there are zero middleman commissions or freight overheads.",
+    a: "Market fish sellers and IndiaMART brokers operate through multiple layers of middlemen, transit freight, and packaging surcharges, charging between ₹650 and ₹1,000 per kg. Because Urban Trout harvests directly from our Malabagh cold-water RAS tanks and fulfills through our dedicated Srinagar vending center, there are zero middleman commissions or freight overheads.",
   },
   {
     q: "What is the minimum order quantity for free delivery in Srinagar?",
@@ -196,7 +196,7 @@ export default function TroutPriceSrinagarPage() {
                   <td className="p-4 font-bold text-white">Urban Trout (Farm Direct)</td>
                   <td className="p-4 font-bold text-emerald-400">₹540 – ₹580</td>
                   <td className="p-4 text-emerald-400 font-bold">FREE (Chilled)</td>
-                  <td className="p-4 text-slate-300">Live harvested to order from raceways</td>
+                  <td className="p-4 text-slate-300">Live harvested to order from RAS tanks</td>
                 </tr>
                 <tr>
                   <td className="p-4 font-medium text-slate-300">Srinagar Wet Fish Markets</td>

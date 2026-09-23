@@ -169,7 +169,7 @@ export default function FreshTroutGuidePage() {
                 <li>• <strong>Nicknamed:</strong> &ldquo;Himalayan Salmon&rdquo;</li>
                 <li>• <strong>Flavor:</strong> Mild, sweet, clean, and non-fishy</li>
                 <li>• <strong>Flesh:</strong> Succulent, delicate flakes with rich Omega-3 fat marbling</li>
-                <li>• <strong>Aquaculture:</strong> Thrives in fast-flowing oxygenated raceways with zero antibiotics</li>
+                <li>• <strong>Aquaculture:</strong> Thrives in fast-flowing oxygenated RAS tanks with zero antibiotics</li>
                 <li>• <strong>Culinary use:</strong> Ideal for pan-frying, baking, and Kashmiri Mujh Gaad</li>
               </ul>
             </div>

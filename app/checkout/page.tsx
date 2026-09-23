@@ -1994,7 +1994,7 @@ export default function CheckoutPage() {
                             🏪 Live Vending Center Self-Pickup Available:
                           </strong>
                           <p className="text-slate-300">
-                            Because live harvested trout requires express aeration within 90 minutes, doorstep delivery is restricted to a {deliveryRadiusKm}km perimeter. You are always welcome to pick up freshly harvested catch directly from our live raceways:
+                            Because live harvested trout requires express aeration within 90 minutes, doorstep delivery is restricted to a {deliveryRadiusKm}km perimeter. You are always welcome to pick up freshly harvested catch directly from our dedicated Live Trout Vending Center:
                           </p>
                           <span className="text-slate-200 block font-semibold pt-1">
                             📍 Malabagh, Srinagar — 190006 (Near R P School, Girls Wing)

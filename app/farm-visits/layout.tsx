@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Plan Your Farm Visit | Urban Trout Srinagar",
     description:
-      "Pre-notify your visit to Urban Trout's cold-water borewell trout farm in Srinagar. Free entry, raceway tank tours, and live catch harvested to order.",
+      "Pre-notify your visit to Urban Trout's cold-water borewell trout farm in Srinagar. Biosecure RAS facility tours and educational visits.",
     url: "https://urbantrout.in/farm-visits",
     siteName: "Urban Trout Srinagar",
     images: [

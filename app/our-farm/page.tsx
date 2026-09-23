@@ -4,7 +4,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "Our Farm & Cold-Water Aquaculture in Malabagh, Srinagar",
   description:
-    "Learn how Urban Trout raises fresh Rainbow Trout (Oncorhynchus mykiss) in Malabagh, Srinagar using clean deep borewell groundwater, high-velocity aeration raceways, and zero antibiotics.",
+    "Learn how Urban Trout raises fresh Rainbow Trout (Oncorhynchus mykiss) in Malabagh, Srinagar using clean deep borewell groundwater, advanced RAS tank technology, and zero antibiotics.",
   alternates: {
     canonical: "https://urbantrout.in/our-farm",
   },
@@ -89,7 +89,7 @@ export default function OurFarmPage() {
           <div className="mb-12">
             <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "10px", letterSpacing: "0.2em", textTransform: "uppercase", color: C.primary, display: "block", marginBottom: "0.5rem" }}>Our Process</span>
             <h2 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "clamp(2rem, 4vw, 3rem)", fontWeight: 800, letterSpacing: "-0.03em", color: C.onSurface, margin: "0 0 0.75rem" }}>How We Farm Fresh Trout</h2>
-            <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfVar, maxWidth: "600px", lineHeight: 1.75, margin: 0 }}>We pump pure, naturally cold Himalayan groundwater (10°C–12°C) through continuous-flow raceways with bio-filtration to provide our trout with oxygen-rich currents, 100% free from pollutants, Dal Lake silt, and mud.</p>
+            <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfVar, maxWidth: "600px", lineHeight: 1.75, margin: 0 }}>We pump pure, naturally cold Himalayan groundwater (10°C–12°C) through closed-loop RAS (Recirculating Aquaculture System) tanks with mechanical and biological filtration to provide our trout with oxygen-rich currents, 100% free from pollutants, Dal Lake silt, and mud.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">

@@ -500,7 +500,7 @@ export default function ContactPage() {
                         <option value="Home Delivery Inquiry">Home Delivery (Across Srinagar)</option>
                         <option value="Bulk / Event Order">Bulk Order / Special Event</option>
                         <option value="Restaurant Supply">Hotel & Restaurant Supply</option>
-                        <option value="Farm Gate Pickup">Farm Gate Pickup Inquiry</option>
+                        <option value="Vending Center Pickup">Vending Center Pickup Inquiry</option>
                         <option value="Other Question">General Question</option>
                       </select>
                     </div>

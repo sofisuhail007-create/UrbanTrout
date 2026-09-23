@@ -8,14 +8,14 @@ import { supabase } from "@/lib/supabase";
 export const metadata: Metadata = {
   title: "Fresh Rainbow Trout in Srinagar from ₹540/kg | Urban Trout",
   description:
-    "Farm-harvested rainbow trout, delivered chilled in Srinagar. Whole ₹540/kg, cleaned & gutted ₹580/kg. Min 2 kg. Order online or pick up at Malabagh farm.",
+    "Farm-harvested rainbow trout, delivered chilled in Srinagar. Whole ₹540/kg, cleaned & gutted ₹580/kg. Min 2 kg. Order online for free delivery or pickup at our Srinagar vending center.",
   alternates: {
     canonical: "https://urbantrout.in",
   },
   openGraph: {
     title: "Fresh Rainbow Trout in Srinagar from ₹540/kg | Urban Trout",
     description:
-      "Farm-harvested rainbow trout, delivered chilled in Srinagar. Whole ₹540/kg, cleaned & gutted ₹580/kg. Min 2 kg. Order online or pick up.",
+      "Farm-harvested rainbow trout, delivered chilled in Srinagar. Whole ₹540/kg, cleaned & gutted ₹580/kg. Min 2 kg. Order online or pick up at our Srinagar vending center.",
     url: "https://urbantrout.in",
     siteName: "Urban Trout",
     images: [
@@ -58,7 +58,7 @@ const farmConditions = [
 const faqs = [
   {
     q: "Where can I buy fresh trout fish in Srinagar?",
-    a: "You can order fresh Rainbow Trout online directly through urbantrout.in or via WhatsApp (+91 84910 06127) for free doorstep delivery within 2 hours anywhere across Srinagar. You can also pick it up fresh from our farm gate at Urban Trout Aquaculture Farm in Malabagh (near R P School Girls Wing, Naseem Bagh).",
+    a: "You can order fresh Rainbow Trout online directly through urbantrout.in or via WhatsApp (+91 84910 06127) for free doorstep delivery within 2 hours anywhere across Srinagar. All retail orders are fulfilled through our dedicated Live Trout Vending Center in Srinagar or delivered direct to your home.",
   },
   {
     q: "What is the price of Rainbow Trout per Kg in Srinagar?",
@@ -225,7 +225,7 @@ export default async function HomePage() {
               lineHeight: 1.75,
             }}
           >
-            Your trout is still swimming when you place your order. Farmed in clean, subterranean borewell water in Malabagh, packed on crushed ice, and delivered chilled to your doorstep: whole from <strong style={{ color: "#72ddfd" }}>₹540/kg</strong>, cleaned &amp; gutted from <strong style={{ color: "#72ddfd" }}>₹580/kg</strong> with <strong style={{ color: "#34d399" }}>100% Free Doorstep Delivery</strong> across Srinagar within 2 hours or fresh farm pickup. Min 2 kg for thermal cold-chain insulation.
+            Your trout is still swimming when you place your order. Farmed in clean, subterranean borewell water in Malabagh using advanced RAS tanks, packed on crushed ice, and delivered chilled to your doorstep: whole from <strong style={{ color: "#72ddfd" }}>₹540/kg</strong>, cleaned &amp; gutted from <strong style={{ color: "#72ddfd" }}>₹580/kg</strong> with <strong style={{ color: "#34d399" }}>100% Free Doorstep Delivery</strong> across Srinagar within 2 hours or live vending center pickup. Min 2 kg for thermal cold-chain insulation.
           </p>
 
           {/* CTAs */}
@@ -353,7 +353,7 @@ export default async function HomePage() {
               </span>
             </div>
             <p className="text-xs text-slate-300 leading-relaxed font-sans mb-3">
-              When ordering Whole Trout (₹540/kg), the fish is weighed whole as harvested from the raceway. When electing our Cleaned &amp; Gutted option (₹580/kg), our farm butchers eviscerate, gill-bleed, and descale the fish immediately. This standard preparation removes roughly 150g–180g of inedible viscera and gills per kg, delivering approximately <strong>820g–850g of 100% pan-ready edible fish</strong> with intact single-bone spine, saving you 20 minutes of messy kitchen prep.
+              When ordering Whole Trout (₹540/kg), the fish is weighed whole as harvested from our RAS cold-water tanks. When electing our Cleaned &amp; Gutted option (₹580/kg), our farm butchers eviscerate, gill-bleed, and descale the fish immediately. This standard preparation removes roughly 150g–180g of inedible viscera and gills per kg, delivering approximately <strong>820g–850g of 100% pan-ready edible fish</strong> with intact single-bone spine, saving you 20 minutes of messy kitchen prep.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
               <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800/80">
@@ -417,7 +417,7 @@ export default async function HomePage() {
                 <tr className="hover:bg-slate-900/30 transition-colors">
                   <td className="p-4 md:p-5 font-medium text-white">Harvesting &amp; Freshness</td>
                   <td className="p-4 md:p-5 text-cyan-200 bg-cyan-950/30 border-x border-cyan-500/20">
-                    <strong className="text-emerald-400">Live harvest to order</strong>. Swimming in raceways until confirmed.
+                    <strong className="text-emerald-400">Live harvest to order</strong>. Swimming in circular RAS tanks until confirmed.
                   </td>
                   <td className="p-4 md:p-5 text-slate-400">Caught days prior; stored on melting municipal ice.</td>
                   <td className="p-4 md:p-5 text-slate-400">Bulk frozen blocks; transit haul delays.</td>
@@ -475,7 +475,7 @@ export default async function HomePage() {
               <span className="text-[10px] uppercase font-mono font-bold tracking-widest text-amber-400">Srinagar Trout Buying Channels</span>
               <h4 className="text-sm font-bold text-white font-['Space_Grotesk']">Farm-Direct Doorstep Delivery vs. J&amp;K Fisheries Department Outlets</h4>
               <p className="text-xs text-slate-300 leading-relaxed font-sans max-w-3xl">
-                The J&amp;K Department of Fisheries operates respected retail counters at <strong>Gagribal (Boulevard)</strong>, <strong>Laribal Hatchery</strong>, and <strong>Kokernag</strong>. While official outlets provide subsidized public stock, they operate during strict morning windows (typically 8:00 AM – 11:00 AM), enforce strict per-citizen purchase quotas, and require in-person queuing. Urban Trout complements this ecosystem with <strong>on-demand live raceway netting, guaranteed continuous availability, and 100% Free Doorstep Delivery</strong> directly to your home within 2 hours across all 16 Srinagar municipal zones.
+                The J&amp;K Department of Fisheries operates respected retail counters at <strong>Gagribal (Boulevard)</strong>, <strong>Laribal Hatchery</strong>, and <strong>Kokernag</strong>. While official outlets provide subsidized public stock, they operate during strict morning windows (typically 8:00 AM – 11:00 AM), enforce strict per-citizen purchase quotas, and require in-person queuing. Urban Trout complements this ecosystem with <strong>on-demand live harvest from our modern RAS facility, distribution via our dedicated Srinagar vending center, and 100% Free Doorstep Delivery</strong> directly to your home within 2 hours across all 16 Srinagar municipal zones.
               </p>
             </div>
             <div className="flex-shrink-0">
@@ -509,7 +509,7 @@ export default async function HomePage() {
           <div className="mt-12 pt-10 border-t border-slate-800">
             <div className="text-center mb-6">
               <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "10px", letterSpacing: "0.2em", textTransform: "uppercase", color: "#34d399", fontWeight: 700 }}>
-                From Malabagh Raceways to Your Kitchen in Under 120 Minutes
+                From Malabagh RAS Tanks to Your Kitchen in Under 120 Minutes
               </span>
               <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.4rem", fontWeight: 700, color: C.onSurface, margin: "4px 0 0" }}>
                 Our 4-Stage Fresh Harvest Timeline
@@ -915,8 +915,8 @@ export default async function HomePage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 21v-8a2 2 0 012-2h2a2 2 0 012 2v8" />
               </svg>
             </div>
-            <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: "0.95rem", color: C.onSurface }}>Farm Gate Pickup</span>
-            <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.8rem", color: C.onSurfaceVariant }}>Open 7:00 AM – 10:00 PM</span>
+            <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: "0.95rem", color: C.onSurface }}>Vending Center Pickup</span>
+            <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.8rem", color: C.onSurfaceVariant }}>Live Trout Center (Srinagar)</span>
           </div>
         </div>
 
