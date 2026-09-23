@@ -340,6 +340,32 @@ export default async function HomePage() {
               </a>
             </p>
           </div>
+
+          {/* Understanding Your Catch: Whole vs. Cleaned Dressing Yield */}
+          <div className="mt-10 p-6 rounded-2xl bg-slate-900/60 border border-slate-800 max-w-4xl mx-auto">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-800 pb-4 mb-4">
+              <div>
+                <span className="text-[10px] uppercase font-mono font-bold tracking-widest text-cyan-400">Yield &amp; Butchery Transparency</span>
+                <h3 className="text-base font-bold text-white font-['Space_Grotesk'] mt-0.5">Whole vs. Cleaned &amp; Gutted Dressing Yield</h3>
+              </div>
+              <span className="px-3 py-1 rounded-full bg-cyan-950/80 border border-cyan-500/30 text-xs font-mono text-cyan-300 font-semibold">
+                Anatomical Viscera Loss: 15% – 18%
+              </span>
+            </div>
+            <p className="text-xs text-slate-300 leading-relaxed font-sans mb-3">
+              When ordering Whole Trout (₹540/kg), the fish is weighed whole as harvested from the raceway. When electing our Cleaned &amp; Gutted option (₹580/kg), our farm butchers eviscerate, gill-bleed, and descale the fish immediately. This standard preparation removes roughly 150g–180g of inedible viscera and gills per kg, delivering approximately <strong>820g–850g of 100% pan-ready edible fish</strong> with intact single-bone spine, saving you 20 minutes of messy kitchen prep.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+              <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800/80">
+                <span className="font-bold text-white block mb-0.5">Whole Trout (₹540/kg):</span>
+                <span className="text-slate-400">Best for experienced cooks, traditional open-fire charcoal grilling, or those using the nutrient-rich head for authentic fish broth (Gaad Soup).</span>
+              </div>
+              <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800/80">
+                <span className="font-bold text-emerald-400 block mb-0.5">Cleaned &amp; Gutted (₹580/kg):</span>
+                <span className="text-slate-400">100% pan-ready. Descaled and eviscerated with chilled groundwater wash. Straight onto the tawa or into the oven upon delivery.</span>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -442,6 +468,22 @@ export default async function HomePage() {
               <span>→</span>
             </Link>
           </div>
+
+          {/* Farm-Direct vs. Government Fisheries Sale Counters Callout */}
+          <div className="mt-8 p-6 rounded-2xl bg-slate-950/80 border border-slate-800 flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="space-y-1.5 text-center md:text-left">
+              <span className="text-[10px] uppercase font-mono font-bold tracking-widest text-amber-400">Srinagar Trout Buying Channels</span>
+              <h4 className="text-sm font-bold text-white font-['Space_Grotesk']">Farm-Direct Doorstep Delivery vs. J&amp;K Fisheries Department Outlets</h4>
+              <p className="text-xs text-slate-300 leading-relaxed font-sans max-w-3xl">
+                The J&amp;K Department of Fisheries operates respected retail counters at <strong>Gagribal (Boulevard)</strong>, <strong>Laribal Hatchery</strong>, and <strong>Kokernag</strong>. While official outlets provide subsidized public stock, they operate during strict morning windows (typically 8:00 AM – 11:00 AM), enforce strict per-citizen purchase quotas, and require in-person queuing. Urban Trout complements this ecosystem with <strong>on-demand live raceway netting, guaranteed continuous availability, and 100% Free Doorstep Delivery</strong> directly to your home within 2 hours across all 16 Srinagar municipal zones.
+              </p>
+            </div>
+            <div className="flex-shrink-0">
+              <Link href="/trout-price-srinagar" className="px-4 py-2 rounded-xl bg-cyan-950/80 border border-cyan-500/30 text-xs font-bold text-cyan-300 hover:bg-cyan-900 transition-colors inline-block whitespace-nowrap">
+                Compare Srinagar Rates →
+              </Link>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -518,7 +560,7 @@ export default async function HomePage() {
               </div>
               <h4 className="text-base font-bold text-white font-['Space_Grotesk']">Malabagh Deep Borewell Aquifer Quality Audit</h4>
               <p className="text-xs text-slate-300 font-sans leading-relaxed">
-                Continuous probe telemetry &amp; laboratory titration: <strong>11.2°C Temperature</strong>, <strong>9.8 mg/L Dissolved Oxygen (98.4% saturation)</strong>, <strong>pH 7.6</strong>, <strong>Ammonia &lt;0.01 mg/L</strong>. Farm aquaculture standards aligned with the <a href="https://fisheries.jk.gov.in" target="_blank" rel="noopener noreferrer" className="text-cyan-400 font-semibold underline hover:text-cyan-300">Jammu &amp; Kashmir Department of Fisheries</a>.
+                Continuous probe telemetry &amp; laboratory titration: <strong>11.2°C Temperature</strong>, <strong>9.8 mg/L Dissolved Oxygen (98.4% saturation)</strong>, <strong>pH 7.6</strong>, <strong>Ammonia &lt;0.01 mg/L</strong>. Unlike surface canal or river waters exposed to agricultural runoff and cyanobacterial blooms that produce earthy <em>Geosmin</em> and <em>2-Methylisoborneol (2-MIB)</em>, our subterranean aquifer is 100% silt-free and sun-shielded, ensuring sweet, clean-tasting white flesh with <strong>zero mud taste</strong>. Farm aquaculture standards aligned with the <a href="https://fisheries.jk.gov.in" target="_blank" rel="noopener noreferrer" className="text-cyan-400 font-semibold underline hover:text-cyan-300">Jammu &amp; Kashmir Department of Fisheries</a>.
               </p>
             </div>
             <div className="flex-shrink-0">
@@ -735,7 +777,7 @@ export default async function HomePage() {
                   Authentic Kashmiri Marinade &amp; Recipes
                 </h3>
                 <p className="text-xs text-slate-300 leading-relaxed font-sans mb-3">
-                  Kashmiri culinary heritage pairs trout with warm digestive aromatics and cold-pressed mustard oil (<em className="text-amber-300">Kaer tuel</em>):
+                  Kashmiri culinary heritage pairs trout with warm digestive aromatics and cold-pressed mustard oil (<em className="text-amber-300">Kaer tuel</em>), whose high smoking point (~250°C) flashes the delicate scales into a micro-crisp crust while pungent ginger (<em className="text-amber-300">shonth</em>) and fennel neutralise any residual fishy amines:
                 </p>
                 <ul className="text-xs text-slate-300 space-y-2.5 leading-relaxed font-sans">
                   <li className="flex items-start gap-2">
@@ -744,11 +786,11 @@ export default async function HomePage() {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-amber-400 font-bold">2.</span>
-                    <span><strong>Golden Pan-Fry:</strong> Sear in smoking mustard oil for 4 minutes per side. The microscopic scales crisp into an ultra-delicate skin.</span>
+                    <span><strong>Versatile Kitchen Cuts:</strong> Cook whole for festive table dining, cross-cut into 1-inch thick steaks (<em>darne</em>) for golden pan-searing, or gently butterfly along the spine for oven baking.</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-amber-400 font-bold">3.</span>
-                    <span><strong>Mujh Gaad (Trout with Radish):</strong> Slow-simmered winter specialty with sliced tender radishes and aromatic Kashmiri <em className="text-white">ver</em> masala cake.</span>
+                    <span><strong>Mujh Gaad &amp; Gaad Soup:</strong> Slow-simmer with sliced winter radishes and aromatic <em className="text-white">ver</em> masala, or simmer heads and bones with garlic into a collagen-rich Kashmiri fish broth (<em>Gaad Soup</em>).</span>
                   </li>
                 </ul>
               </div>
