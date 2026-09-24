@@ -65,8 +65,8 @@ export default function AdminSettingsPage() {
   const [email, setEmail] = useState("info.urbantrout@gmail.com");
   const [deliveryFee, setDeliveryFee] = useState("40");
   const [deliveryRadius, setDeliveryRadius] = useState("5.0");
-  const [farmLat, setFarmLat] = useState("34.144709");
-  const [farmLng, setFarmLng] = useState("74.824525");
+  const [farmLat, setFarmLat] = useState("34.1445563");
+  const [farmLng, setFarmLng] = useState("74.8245018");
   const [staffList, setStaffList] = useState<StaffMember[]>(DEFAULT_STAFF);
 
   // Rename staff state
@@ -1376,7 +1376,7 @@ export default function AdminSettingsPage() {
                     />
                   </div>
                   <p className="text-[11px] text-slate-500">
-                    Default: <code className="text-cyan-300">34.144709, 74.824525</code>
+                    Default: <code className="text-cyan-300">34.1445563, 74.8245018</code>
                   </p>
                 </div>
               </div>

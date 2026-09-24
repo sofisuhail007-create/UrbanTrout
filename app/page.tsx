@@ -920,7 +920,7 @@ export default async function HomePage() {
           </div>
         </div>
 
-        {/* E-E-A-T Compliance, FSSAI Hygiene & Freshness Guarantee */}
+        {/* E-E-A-T Compliance, FSSAI Registration & Freshness Guarantee */}
         <div className="max-w-7xl mx-auto mt-12 pt-8 border-t border-slate-800/80 flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-emerald-950/60 border border-emerald-500/40 flex items-center justify-center text-emerald-400 text-lg">
@@ -928,16 +928,27 @@ export default async function HomePage() {
             </div>
             <div>
               <span className="block text-xs font-bold text-white font-['Space_Grotesk'] uppercase tracking-wider">
-                FSSAI Hygiene &amp; J&amp;K Fisheries Standards Compliant
+                FSSAI Reg. No: <span className="text-emerald-400">21026414000392</span> • J&amp;K Fisheries Compliant
               </span>
               <span className="text-[11px] text-slate-400 font-sans">
-                Bio-secure cold-chain handling, 0°C–2°C food-grade ice insulation, and pure Himalayan borewell groundwater.
+                Dept. of Health &amp; Medical Education, J&amp;K (Valid thru Sep 2027) • 0°C–2°C food-grade ice insulation.
               </span>
             </div>
           </div>
 
-          <div className="text-xs text-slate-400 font-sans max-w-md">
-            <strong className="text-emerald-400">100% Freshness Guarantee Terms:</strong> If your delivery is anything less than vibrant, firm, and ice-chilled upon arrival, contact us immediately for a free replacement or instant 100% refund.
+          <div className="flex items-center gap-4 text-xs font-sans">
+            <a
+              href="https://maps.app.goo.gl/4N8A8ywhJpys9EaDA"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-cyan-400 hover:text-cyan-300 font-bold"
+            >
+              <span>📍 Google Maps (4.9 ★ 8 Reviews)</span>
+              <span>↗</span>
+            </a>
+            <div className="text-slate-400 max-w-sm text-left hidden sm:block">
+              <strong className="text-emerald-400">100% Freshness Guarantee:</strong> Harvested live to order with instant free replacement or refund.
+            </div>
           </div>
         </div>
       </section>

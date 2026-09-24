@@ -18,8 +18,8 @@ const DeliveryRadiusMap = dynamic(() => import("@/components/DeliveryRadiusMap")
   ),
 });
 
-const DEFAULT_FARM_LAT = 34.144709;
-const DEFAULT_FARM_LNG = 74.824525;
+const DEFAULT_FARM_LAT = 34.1445563;
+const DEFAULT_FARM_LNG = 74.8245018;
 const DEFAULT_FARM_NAME = "Urban Trout Farm (Malabagh, Naseem Bagh, Srinagar)";
 const DEFAULT_RADIUS_KM = 5.0;
 

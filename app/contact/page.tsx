@@ -184,12 +184,17 @@ export default function ContactPage() {
                   </h3>
                 </div>
               </div>
-              <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.9rem", color: C.onSurfVar, lineHeight: 1.7, marginBottom: "1.25rem" }}>
-                Malabagh, Naseem Bagh, Srinagar, Jammu &amp; Kashmir — 190006<br />
+              <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.9rem", color: C.onSurfVar, lineHeight: 1.7, marginBottom: "1rem" }}>
+                Malla Bagh Naseem Bagh Hazratbal, Zone-III, Srinagar, Jammu &amp; Kashmir — 190006<br />
                 <span className="text-slate-400 text-xs">(Near R P School Girls Wing)</span>
               </p>
+              <div className="flex items-center gap-2 mb-4">
+                <span className="px-2.5 py-1 rounded-md bg-amber-400/10 border border-amber-400/30 text-amber-300 text-xs font-bold font-mono">
+                  ★ 4.9 on Google Maps (8 reviews)
+                </span>
+              </div>
               <a
-                href="https://maps.google.com/?q=34.144709,74.824525"
+                href="https://maps.app.goo.gl/4N8A8ywhJpys9EaDA"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-cyan-400 hover:text-cyan-300 transition-colors"
@@ -202,6 +207,59 @@ export default function ContactPage() {
                   <line x1="10" y1="14" x2="21" y2="3" />
                 </svg>
               </a>
+            </div>
+
+            {/* Government FSSAI Registration Card */}
+            <div
+              className="p-6 rounded-2xl"
+              style={{
+                background: "linear-gradient(135deg, rgba(6,35,25,0.7) 0%, rgba(16,33,44,0.85) 100%)",
+                border: "1px solid rgba(52,211,153,0.3)",
+                boxShadow: "0 10px 30px rgba(0,0,0,0.3)",
+              }}
+            >
+              <div className="flex items-center gap-3 mb-3">
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 text-emerald-400 font-bold"
+                  style={{ background: "rgba(52,211,153,0.15)", border: "1px solid rgba(52,211,153,0.3)" }}
+                >
+                  <svg className="w-5 h-5 fill-none stroke-current" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+                    <path d="m9 12 2 2 4-4" />
+                  </svg>
+                </div>
+                <div>
+                  <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", letterSpacing: "0.15em", textTransform: "uppercase", color: "#34d399", fontWeight: 700 }}>
+                    Government Certified Food Safety
+                  </span>
+                  <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.05rem", fontWeight: 700, color: C.onSurface, margin: 0 }}>
+                    FSSAI Registration Certificate
+                  </h3>
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-slate-950/70 border border-emerald-500/20 space-y-2 mb-3">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-400 font-mono text-[11px]">Registration No:</span>
+                  <span className="font-mono text-emerald-400 font-bold tracking-wider">21026414000392</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-400 font-mono text-[11px]">FBO Name:</span>
+                  <span className="text-slate-200 font-semibold">Urban Trout Aquaculture</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-400 font-mono text-[11px]">Issuing Authority:</span>
+                  <span className="text-slate-200">Dept. of Health &amp; Medical Education, J&amp;K</span>
+                </div>
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-400 font-mono text-[11px]">Validity:</span>
+                  <span className="text-emerald-400 font-semibold">Valid Thru 02-09-2027</span>
+                </div>
+              </div>
+
+              <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.8rem", color: C.onSurfVar, lineHeight: 1.6, margin: 0 }}>
+                Issued under the Food Safety and Standards Act, 2006. All trout harvested and distributed via our Malabagh farm &amp; vending counter strictly comply with national food hygiene standards.
+              </p>
             </div>
 
             {/* Direct Phone & WhatsApp Card */}

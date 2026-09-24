@@ -157,6 +157,7 @@ export default function OurFarmPage() {
                 { title: "No Muddy Odor", desc: "Filtered water means clean gills and fresh, sweet flesh without riverbed taint." },
                 { title: "Firm, Flaky Texture", desc: "Continuous swimming currents ensure firm muscle structure that flakes perfectly." },
                 { title: "Same-Day Delivery in Srinagar", desc: "Delivered chilled within hours of harvest to preserve original moisture and flavor." },
+                { title: "FSSAI Registered Food Business", desc: "Reg. No: 21026414000392 (Dept. of Health & Medical Education, J&K). Full compliance with national food hygiene standards." },
               ].map(item => (
                 <div key={item.title} style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
                   <span style={{ color: C.primaryCont, fontSize: "16px", marginTop: "2px" }}>✓</span>
@@ -180,7 +181,18 @@ export default function OurFarmPage() {
             <div style={{ position: "absolute", inset: 0, background: "linear-gradient(to top, #031018 0%, transparent 60%)" }} />
             <div style={{ position: "absolute", bottom: "2rem", left: "2rem", right: "2rem" }}>
               <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: "1.25rem", color: C.onSurface }}>Urban Trout Aquaculture Farm</span>
-              <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.85rem", color: C.onSurfVar, margin: "4px 0 0" }}>Malabagh, Srinagar</p>
+              <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.85rem", color: C.onSurfVar, margin: "4px 0 0" }}>Malla Bagh Naseem Bagh Hazratbal, Zone-III, Srinagar</p>
+              <div style={{ marginTop: "8px" }}>
+                <a
+                  href="https://maps.app.goo.gl/4N8A8ywhJpys9EaDA"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs text-cyan-400 font-bold hover:underline"
+                >
+                  <span>📍 View on Google Maps (4.9 ★ 8 Reviews)</span>
+                  <span>↗</span>
+                </a>
+              </div>
             </div>
           </div>
         </div>

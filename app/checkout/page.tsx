@@ -52,8 +52,8 @@ const C = {
 };
 
 // ─── Farm Coordinates (Malabagh / Naseem Bagh, Srinagar) ────────
-const FARM_LAT = 34.144709;
-const FARM_LNG = 74.824525;
+const FARM_LAT = 34.1445563;
+const FARM_LNG = 74.8245018;
 const DELIVERY_RADIUS_KM = 5.0;
 
 // ─── Srinagar Landmark Coordinates for Distance Lookup & GPS Fallback ───
@@ -320,8 +320,8 @@ export default function CheckoutPage() {
   const [calculatedDistance, setCalculatedDistance] = useState<number | null>(null);
   const [selectedZoneName, setSelectedZoneName] = useState<string>("");
   const [deliveryRadiusKm, setDeliveryRadiusKm] = useState<number>(5.0);
-  const [farmLat, setFarmLat] = useState<number>(34.144709);
-  const [farmLng, setFarmLng] = useState<number>(74.824525);
+  const [farmLat, setFarmLat] = useState<number>(34.1445563);
+  const [farmLng, setFarmLng] = useState<number>(74.8245018);
   const [allowOutsideRadius, setAllowOutsideRadius] = useState<boolean>(false);
 
   // ─── Payment & Settings State ───
@@ -2011,7 +2011,7 @@ export default function CheckoutPage() {
                             💬 WhatsApp Support
                           </a>
                           <a
-                            href={`https://maps.google.com/?q=${farmLat},${farmLng}`}
+                            href="https://maps.app.goo.gl/4N8A8ywhJpys9EaDA"
                             target="_blank"
                             rel="noopener noreferrer"
                             className="px-4 py-3 rounded-xl font-bold uppercase text-xs flex items-center justify-center gap-2 bg-slate-900 border border-slate-700 text-slate-200 hover:text-white shadow-md"

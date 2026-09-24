@@ -729,8 +729,8 @@ export default function FarmVisitsPage() {
 
               <div className="space-y-2 text-xs text-slate-300 mb-5" style={{ fontFamily: '"Manrope", sans-serif' }}>
                 <p className="font-semibold text-white">Urban Trout Farm &amp; Fresh Fish Counter</p>
-                <p className="text-slate-400">Malabagh, Naseem Bagh, Srinagar — 190006</p>
-                <p className="text-slate-500 text-[11px]">Landmark: Near R P School (Girls Wing)</p>
+                <p className="text-slate-400">Malla Bagh Naseem Bagh Hazratbal, Zone-III, Srinagar — 190006</p>
+                <p className="text-slate-500 text-[11px]">Landmark: Near R P School Girls Wing</p>
                 <div className="pt-2 flex items-center gap-2 text-cyan-400 font-mono text-xs">
                   <span className="material-symbols-outlined text-sm">schedule</span>
                   <span>Operational Hours: 08:00 AM – 07:00 PM</span>
@@ -739,13 +739,13 @@ export default function FarmVisitsPage() {
 
               <div className="flex flex-col sm:flex-row gap-2.5">
                 <a
-                  href="https://maps.google.com/?q=34.144709,74.824525"
+                  href="https://maps.app.goo.gl/4N8A8ywhJpys9EaDA"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex-1 py-2.5 px-3.5 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 text-cyan-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-all text-center"
                 >
                   <span className="material-symbols-outlined text-base">directions</span>
-                  Open Google Maps
+                  Open on Google Maps (4.9 ★)
                 </a>
                 <a
                   href="tel:+918491006127"

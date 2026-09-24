@@ -110,23 +110,47 @@ const jsonLd = {
       "@type": ["LocalBusiness", "FishStore", "Store", "Organization"],
       "@id": "https://urbantrout.in/#organization",
       "name": "Urban Trout",
-      "alternateName": ["Urban Trout Srinagar", "ٹراؤٹ مچھلی سرینگر", "ट्राउट मछली श्रीनगर"],
+      "legalName": "Urban Trout Aquaculture",
+      "alternateName": ["Urban Trout Srinagar", "Urban Trout Aquaculture", "ٹراؤٹ مچھلی سرینگر", "ट्राउट मछली श्रीनगर"],
       "image": "https://urbantrout.in/images/og-image.png",
       "logo": "https://urbantrout.in/sitelogo.png",
       "description": "Srinagar's premier cold-water aquaculture farm located in Malabagh. Producing fresh whole and cleaned Rainbow Trout (Oncorhynchus mykiss) harvested live to order with rapid chilled delivery within 2 hours within our 5km farm radius.",
       "url": "https://urbantrout.in",
+      "hasMap": "https://maps.app.goo.gl/4N8A8ywhJpys9EaDA",
+      "sameAs": [
+        "https://maps.app.goo.gl/4N8A8ywhJpys9EaDA",
+        "https://www.google.com/maps/place/Urban+Trout+Aquaculture/@34.1445563,74.8245018,124m/data=!3m1!1e3!4m12!1m5!3m4!2zMzTCsDA4JzQwLjQiTiA3NMKwNDknMjguMyJF!8m2!3d34.1445563!4d74.8245018!3m5!1s0x38e185002b8cf0f1:0x4e0a6d5162a4d339!8m2!3d34.1445749!4d74.8245233!16s%2Fg%2F11wsm2z4l0"
+      ],
       "telephone": "+918491006127",
       "email": "info.urbantrout@gmail.com",
       "founder": {
         "@type": "Person",
         "name": "Skindar Mohd Sideeq"
       },
+      "hasCredential": {
+        "@type": "EducationalOccupationalCredential",
+        "credentialCategory": "Government Food Safety Registration",
+        "name": "FSSAI Food Business Registration",
+        "recognizedBy": {
+          "@type": "GovernmentOrganization",
+          "name": "Food Safety and Standards Authority of India (FSSAI), Department of Health & Medical Education, Government of Jammu & Kashmir"
+        },
+        "identifier": "21026414000392",
+        "validUntil": "2027-09-02"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.9",
+        "reviewCount": "8",
+        "bestRating": "5",
+        "worstRating": "1"
+      },
       "priceRange": "₹540 - ₹580 per Kg",
       "currenciesAccepted": "INR",
       "paymentAccepted": "Cash on Delivery, UPI, Debit Card, Credit Card, Net Banking",
       "address": {
         "@type": "PostalAddress",
-        "streetAddress": "Malabagh, Near R P School (Girls Wing)",
+        "streetAddress": "Malla Bagh Naseem Bagh Hazratbal, Zone-III, Near R P School (Girls Wing)",
         "addressLocality": "Srinagar",
         "addressRegion": "Jammu and Kashmir",
         "postalCode": "190006",
@@ -134,8 +158,8 @@ const jsonLd = {
       },
       "geo": {
         "@type": "GeoCoordinates",
-        "latitude": 34.144709,
-        "longitude": 74.824525
+        "latitude": 34.1445563,
+        "longitude": 74.8245018
       },
       "openingHoursSpecification": {
         "@type": "OpeningHoursSpecification",
