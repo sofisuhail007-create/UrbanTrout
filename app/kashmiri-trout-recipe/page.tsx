@@ -2,16 +2,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "How to Cook Kashmiri-Style Trout: Authentic Pan-Fry & Mujh Gaad | Urban Trout",
+  title: "How to Cook Kashmiri-Style Trout: Authentic Pan-Fry & Muji Gaad | Urban Trout",
   description:
-    "Master cooking fresh Rainbow Trout the authentic Kashmiri way. Mustard oil, dried ginger (shonth), and fennel (saunf) marinade, crispy pan-fry, and classic Mujh Gaad.",
+    "Master cooking fresh Rainbow Trout the authentic Kashmiri way. Pure mustard oil (Kaeshur Tiel) sear, fragrant chili & turmeric marinade, and classic winter Muji Gaad.",
   alternates: {
     canonical: "https://urbantrout.in/kashmiri-trout-recipe",
   },
   openGraph: {
-    title: "How to Cook Kashmiri-Style Trout: Pan-Fry & Mujh Gaad | Urban Trout",
+    title: "How to Cook Kashmiri-Style Trout: Pan-Fry & Muji Gaad | Urban Trout",
     description:
-      "Traditional Kashmiri trout recipes: mustard oil sear, shonth & saunf marinade, and Mujh Gaad. Pan-ready trout delivered fresh in Srinagar.",
+      "Traditional Kashmiri trout recipes: pure mustard oil sear (Kaeshur Tiel), authentic marinade, and classic Muji Gaad. Pan-ready trout delivered fresh in Srinagar.",
     url: "https://urbantrout.in/kashmiri-trout-recipe",
     siteName: "Urban Trout",
     images: [
@@ -41,8 +41,8 @@ const recipeJsonLd = {
   "@graph": [
     {
       "@type": "Recipe",
-      "name": "Crispy Kashmiri Pan-Fried Rainbow Trout",
-      "description": "Authentic Kashmiri style pan-fried Rainbow Trout seared in smoking mustard oil with dried ginger (shonth), ground fennel (badiyan), and Kashmiri deghi chili.",
+      "name": "Crispy Kashmiri Pan-Fried Rainbow Trout (Talech Gaad)",
+      "description": "Authentic Kashmiri style pan-fried Rainbow Trout seared in smoking pure mustard oil (Kaeshur Tiel) with Kashmiri red chili (Kashir Marchwangan), turmeric (Lader), and salt (Noon).",
       "image": "https://urbantrout.in/images/gutted_trout_premium.webp",
       "author": {
         "@type": "Person",
@@ -54,31 +54,30 @@ const recipeJsonLd = {
       "recipeYield": "4 servings",
       "recipeCuisine": "Kashmiri",
       "recipeCategory": "Main Course",
-      "keywords": "kashmiri trout recipe, pan fried trout kashmir, mujh gaad, trout fish marinade",
+      "keywords": "kashmiri trout recipe, pan fried trout kashmir, muji gaad, talech gaad, trout fish marinade",
       "recipeIngredient": [
         "1 kg Cleaned & Gutted Rainbow Trout (from Urban Trout)",
-        "3 tablespoons pure cold-pressed Kashmiri mustard oil (Kaer tuel)",
-        "1 teaspoon dried ginger powder (shonth)",
-        "1.5 teaspoons ground fennel powder (badiyan / saunf)",
-        "1 teaspoon Kashmiri red chili powder (deghi mirch)",
-        "0.5 teaspoon turmeric powder (haldi)",
-        "1 teaspoon sea salt or Himalayan pink salt",
-        "1 lemon, sliced into wedges for serving"
+        "3 tablespoons pure cold-pressed Kashmiri mustard oil (Kaeshur Tiel)",
+        "1.5 teaspoons Kashmiri red chili powder (Kashir Marchwangan)",
+        "0.5 teaspoon turmeric powder (Lader)",
+        "1 teaspoon salt (Noon)",
+        "1 lemon, sliced into wedges (or 1 tbsp fresh lemon juice / vinegar)",
+        "Optional: 1 teaspoon crushed garlic paste (Rohan) or 1 tablespoon rice flour for crunch"
       ],
       "recipeInstructions": [
         {
           "@type": "HowToStep",
           "name": "Prepare the Trout",
-          "text": "Pat the cleaned & gutted trout completely dry with a clean kitchen towel. Make 2-3 shallow diagonal slits across each side of the fish to allow aromatics to penetrate.",
+          "text": "Pat the cleaned & gutted trout completely dry with a clean kitchen towel. Make 2-3 shallow diagonal slits across each side of the fish to allow seasonings to penetrate.",
         },
         {
           "@type": "HowToStep",
           "name": "Apply the Kashmiri Spice Rub",
-          "text": "In a small bowl, blend shonth (dried ginger), badiyan (fennel powder), deghi mirch, turmeric, salt, and 1 tablespoon of mustard oil into a wet rub. Massage gently into the fish cavity and skin. Rest for 15 minutes.",
+          "text": "In a small bowl, blend Kashir Marchwangan, Lader, Noon, lemon juice, and 1 tablespoon of mustard oil into a wet rub. Massage gently into the fish cavity and skin. Rest for 10-15 minutes.",
         },
         {
           "@type": "HowToStep",
-          "name": "Heat the Mustard Oil",
+          "name": "Heat the Mustard Oil (Kaeshur Tiel)",
           "text": "Heat 2 tablespoons of mustard oil in a heavy-bottomed iron skillet or cast iron pan until lightly smoking, then reduce flame to medium. This eliminates pungent raw mustard fumes.",
         },
         {
@@ -89,7 +88,7 @@ const recipeJsonLd = {
         {
           "@type": "HowToStep",
           "name": "Debone and Serve",
-          "text": "Transfer to a serving platter, squeeze fresh lemon over the top, and serve hot with Kashmiri saffron rice or steamed basmati. Lift the single central backbone out effortlessly in one piece before eating.",
+          "text": "Transfer to a serving platter, squeeze fresh lemon over the top, and serve hot with steamed rice or Kashmiri saffron rice. Lift the single central backbone out effortlessly in one piece before eating.",
         }
       ],
     }
@@ -121,7 +120,7 @@ export default function KashmiriTroutRecipePage() {
             style={{ fontFamily: '"Space Grotesk", sans-serif', color: C.onSurface }}
             className="text-3xl md:text-5xl font-extrabold tracking-tight mt-3 mb-5 leading-tight"
           >
-            How to Cook Kashmiri-Style Trout: Pan-Fry, Marinade &amp; Mujh Gaad
+            How to Cook Kashmiri-Style Trout: Pan-Fry, Marinade &amp; Muji Gaad
           </h1>
           <p
             style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfVar }}
@@ -160,10 +159,10 @@ export default function KashmiriTroutRecipePage() {
         <article className="p-8 rounded-2xl bg-slate-900/90 border border-slate-800 mb-12 shadow-2xl">
           <span className="text-xs uppercase tracking-widest text-cyan-400 font-mono font-bold">Recipe #1 • Quick &amp; Crispy</span>
           <h2 className="text-2xl md:text-3xl font-bold text-white font-['Space_Grotesk'] mt-2 mb-4">
-            Traditional Kashmiri Crispy Pan-Fried Trout
+            Traditional Kashmiri Crispy Pan-Fried Trout (Talech Gaad)
           </h2>
           <p className="text-sm text-slate-300 font-sans leading-relaxed mb-6">
-            The definitive Kashmir valley method. Requires pure cold-pressed mustard oil, dried ginger, and fragrant fennel.
+            The definitive Kashmir valley method. Requires pure cold-pressed mustard oil (<em className="text-amber-300">Kaeshur Tiel</em>), vibrant red chili, and golden turmeric.
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8 pb-8 border-b border-slate-800">
@@ -173,20 +172,19 @@ export default function KashmiriTroutRecipePage() {
               </h3>
               <ul className="text-xs text-slate-300 space-y-2 font-sans">
                 <li>• <strong>1 kg Cleaned &amp; Gutted Rainbow Trout</strong> (from Urban Trout)</li>
-                <li>• <strong>3 tbsp Mustard Oil</strong> (<em className="text-amber-300">Kaer tuel</em>)</li>
-                <li>• <strong>1 tsp Dried Ginger Powder</strong> (<em className="text-white">Shonth</em>)</li>
-                <li>• <strong>1.5 tsp Fennel Powder</strong> (<em className="text-white">Badiyan / Saunf</em>)</li>
-                <li>• <strong>1 tsp Kashmiri Deghi Mirch</strong></li>
-                <li>• <strong>0.5 tsp Turmeric</strong> (<em className="text-white">Lidar</em>)</li>
-                <li>• <strong>1 tsp Salt</strong> &amp; fresh lemon wedges</li>
+                <li>• <strong>3 tbsp Pure Mustard Oil</strong> (<em className="text-amber-300">Kaeshur Tiel</em>)</li>
+                <li>• <strong>1.5 tsp Kashmiri Red Chili</strong> (<em className="text-white">Kashir Marchwangan</em>)</li>
+                <li>• <strong>0.5 tsp Turmeric</strong> (<em className="text-white">Lader</em>)</li>
+                <li>• <strong>1 tsp Salt</strong> (<em className="text-white">Noon</em>) &amp; fresh lemon wedges</li>
+                <li>• <em>Optional:</em> 1 tsp garlic paste (<em className="text-slate-300">Rohan</em>) or 1 tbsp rice flour for extra crunch</li>
               </ul>
             </div>
             <div>
               <h3 className="text-sm font-bold uppercase tracking-wider text-cyan-300 font-['Space_Grotesk'] mb-3">
-                Why Shonth &amp; Badiyan?
+                Why Kaeshur Tiel &amp; Pure Spices?
               </h3>
               <p className="text-xs text-slate-400 font-sans leading-relaxed mb-3">
-                In traditional Kashmiri Unani and Ayurvedic culinary science, cold-water trout is naturally cooling (<em className="text-slate-300">sard</em>). Warming spices like ginger (<em className="text-white">shonth</em>) and fennel (<em className="text-white">badiyan</em>) balance digestion while enhancing the trout&apos;s natural sweetness.
+                Kashmiri trout has an exceptionally delicate, clean sweetness that heavy masalas overpower. Searing in smoking mustard oil (<em className="text-amber-300">Kaeshur Tiel</em>) dispels raw pungent vapors and locks in moisture with a crackling crisp skin. Simple <em className="text-white">Kashir Marchwangan</em> and <em className="text-white">Lader</em> impart the iconic golden-crimson crust without scorching in high heat. (Aromatic ground spices like <em className="text-white">Shonth</em> and <em className="text-white">Badyan</em> are reserved for curries like Muji Gaad).
               </p>
               <span className="text-[11px] text-emerald-400 font-mono font-bold">Tip: Pat skin bone-dry before cooking for maximum crunch.</span>
             </div>
@@ -197,26 +195,26 @@ export default function KashmiriTroutRecipePage() {
           </h3>
           <ol className="text-xs text-slate-300 space-y-3 font-sans list-decimal pl-4">
             <li><strong>Score:</strong> Make 2–3 light shallow cuts across each side of the cleaned trout.</li>
-            <li><strong>Rub:</strong> Mix shonth, badiyan, deghi mirch, turmeric, salt, and 1 tbsp mustard oil. Rub thoroughly into skin and cavity. Let rest 15 minutes.</li>
+            <li><strong>Rub:</strong> Mix Kashir Marchwangan, Lader, Noon, 1 tbsp fresh lemon juice, and 1 tbsp mustard oil. Rub thoroughly into skin and cavity. Let rest 10–15 minutes.</li>
             <li><strong>Smoke Oil:</strong> Heat remaining mustard oil in a heavy cast-iron skillet until it just starts to smoke, then reduce flame to medium.</li>
             <li><strong>Sear:</strong> Place trout in hot skillet. Sear undisturbed for 4 minutes until golden and crisp. Flip gently and cook 3 minutes on the reverse side.</li>
             <li><strong>Serve:</strong> Squeeze fresh lemon juice over the fish and serve piping hot with steamed rice.</li>
           </ol>
         </article>
 
-        {/* Recipe 2: Kashmiri Mujh Gaad */}
+        {/* Recipe 2: Kashmiri Muji Gaad */}
         <article className="p-8 rounded-2xl bg-slate-900/90 border border-slate-800 mb-12 shadow-2xl">
           <span className="text-xs uppercase tracking-widest text-amber-400 font-mono font-bold">Recipe #2 • Winter Specialty</span>
           <h2 className="text-2xl md:text-3xl font-bold text-white font-['Space_Grotesk'] mt-2 mb-4">
-            Kashmiri Mujh Gaad (Trout Slow-Simmered with Radish)
+            Kashmiri Muji Gaad (Trout Slow-Simmered with Radish)
           </h2>
           <p className="text-sm text-slate-300 font-sans leading-relaxed mb-4">
-            <em className="text-white font-semibold">Mujh Gaad</em> is the quintessential Kashmiri winter dish. Sweet, pungent Kashmiri winter radishes (<em className="text-amber-300">mujh</em>) absorb the rich omega juices of the trout, flavored with Kashmiri <em className="text-white">ver masala</em> cake.
+            <em className="text-white font-semibold">Muji Gaad</em> (مُجِ گاد) is the quintessential Kashmiri winter dish. Sweet, pungent Kashmiri winter radishes (<em className="text-amber-300">muji</em>) absorb the rich omega juices of the trout, flavored with dried ginger (<em className="text-white">shonth</em>), ground fennel (<em className="text-white">badyan</em>), and traditional Kashmiri <em className="text-white">ver masala</em> cake.
           </p>
           <ul className="text-xs text-slate-300 space-y-2.5 font-sans mb-6">
-            <li>1. Slice white radishes into 1-inch thick rounds. Shallow-fry in mustard oil until translucent and golden.</li>
+            <li>1. Slice white radishes (<em className="text-amber-300">muji</em>) into 1-inch thick rounds. Shallow-fry in mustard oil until translucent and golden.</li>
             <li>2. Flash-fry whole or gutted trout pieces for 2 minutes to seal the delicate skin.</li>
-            <li>3. In a deep degchi, combine fried radishes, trout, crushed <em className="text-white">ver masala</em>, dried ginger, and fennel with 1 cup of hot water.</li>
+            <li>3. In a deep degchi, combine fried radishes, trout, crushed <em className="text-white">ver masala</em>, dried ginger (<em className="text-white">shonth</em>), and ground fennel (<em className="text-white">badyan</em>) with 1 cup of hot water.</li>
             <li>4. Simmer gently on low heat for 12 minutes until a silky, aromatic red gravy forms.</li>
           </ul>
         </article>

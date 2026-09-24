@@ -251,7 +251,7 @@ export default function TroutPriceSrinagarPage() {
           <div>
             <h3 className="text-lg font-bold text-white font-['Space_Grotesk']">Ready to Cook Kashmiri Style?</h3>
             <p className="text-xs text-slate-400 font-sans mt-1">
-              Learn our authentic mustard oil, dried ginger (shonth), and fennel marinade.
+              Learn our authentic mustard oil (Kaeshur Tiel) crispy pan-fry and classic Muji Gaad recipes.
             </p>
           </div>
           <div className="flex items-center gap-3">
