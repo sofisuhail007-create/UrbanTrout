@@ -44,7 +44,7 @@ export default function Footer() {
               marginBottom: "0.75rem",
             }}
           >
-            Fresh, locally farmed Rainbow Trout in Srinagar. Freshly harvested to order and delivered chilled directly to your doorstep.
+            Fresh, locally farmed Rainbow Trout in Srinagar. Freshly harvested to order and delivered chilled within our 5km farm zone.
           </p>
           <span
             style={{

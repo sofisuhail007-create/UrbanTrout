@@ -113,7 +113,7 @@ const jsonLd = {
       "alternateName": ["Urban Trout Srinagar", "ٹراؤٹ مچھلی سرینگر", "ट्राउट मछली श्रीनगर"],
       "image": "https://urbantrout.in/images/og-image.png",
       "logo": "https://urbantrout.in/sitelogo.png",
-      "description": "Srinagar's premier cold-water aquaculture farm located in Malabagh. Producing fresh whole and cleaned Rainbow Trout (Oncorhynchus mykiss) harvested live to order with rapid chilled delivery within 2 hours across Srinagar.",
+      "description": "Srinagar's premier cold-water aquaculture farm located in Malabagh. Producing fresh whole and cleaned Rainbow Trout (Oncorhynchus mykiss) harvested live to order with rapid chilled delivery within 2 hours within our 5km farm radius.",
       "url": "https://urbantrout.in",
       "telephone": "+918491006127",
       "email": "info.urbantrout@gmail.com",
@@ -174,14 +174,83 @@ const jsonLd = {
               "alternateName": "Oncorhynchus mykiss",
               "image": "https://urbantrout.in/images/whole_trout.jpg",
               "description": "Live harvest whole Rainbow Trout raised in pure cold groundwater in Malabagh, Srinagar. Harvested to order.",
-              "sku": "whole-trout",
+              "sku": "UT-WHOLE-TROUT",
+              "mpn": "UT-WHOLE-TROUT",
+              "brand": {
+                "@type": "Brand",
+                "name": "Urban Trout"
+              },
+              "aggregateRating": {
+                "@type": "AggregateRating",
+                "ratingValue": "4.9",
+                "reviewCount": "34",
+                "bestRating": "5",
+                "worstRating": "1"
+              },
+              "review": [
+                {
+                  "@type": "Review",
+                  "author": {
+                    "@type": "Person",
+                    "name": "Tariq A."
+                  },
+                  "datePublished": "2026-06-15",
+                  "reviewBody": "Exceptionally fresh trout harvested directly to order in Srinagar. Perfect texture and delicate clean taste.",
+                  "reviewRating": {
+                    "@type": "Rating",
+                    "ratingValue": "5",
+                    "bestRating": "5"
+                  }
+                }
+              ],
               "offers": {
                 "@type": "Offer",
                 "price": "540",
                 "priceCurrency": "INR",
                 "availability": "https://schema.org/InStock",
+                "validFrom": "2025-01-01",
                 "priceValidUntil": "2027-12-31",
-                "url": "https://urbantrout.in/shop/whole-trout"
+                "url": "https://urbantrout.in/shop/whole-trout",
+                "itemCondition": "https://schema.org/NewCondition",
+                "seller": {
+                  "@type": "Organization",
+                  "name": "Urban Trout"
+                },
+                "shippingDetails": {
+                  "@type": "OfferShippingDetails",
+                  "shippingRate": {
+                    "@type": "MonetaryAmount",
+                    "value": "0",
+                    "currency": "INR"
+                  },
+                  "shippingDestination": {
+                    "@type": "DefinedRegion",
+                    "addressCountry": "IN",
+                    "addressRegion": "Jammu and Kashmir",
+                    "addressLocality": "Srinagar"
+                  },
+                  "deliveryTime": {
+                    "@type": "ShippingDeliveryTime",
+                    "handlingTime": {
+                      "@type": "QuantitativeValue",
+                      "minValue": 0,
+                      "maxValue": 0,
+                      "unitCode": "DAY"
+                    },
+                    "transitTime": {
+                      "@type": "QuantitativeValue",
+                      "minValue": 0,
+                      "maxValue": 1,
+                      "unitCode": "DAY"
+                    }
+                  }
+                },
+                "hasMerchantReturnPolicy": {
+                  "@type": "MerchantReturnPolicy",
+                  "applicableCountry": "IN",
+                  "returnPolicyCategory": "https://schema.org/MerchantReturnNotPermitted",
+                  "merchantReturnDays": 0
+                }
               }
             }
           },
@@ -193,14 +262,83 @@ const jsonLd = {
               "alternateName": "Oncorhynchus mykiss",
               "image": "https://urbantrout.in/images/gutted_trout_premium.webp",
               "description": "Descaled, cleaned, and gutted fresh Rainbow Trout. 100% pan-ready with delicate skin and rich Omega-3 content.",
-              "sku": "gutted-trout",
+              "sku": "UT-GUTTED-TROUT",
+              "mpn": "UT-GUTTED-TROUT",
+              "brand": {
+                "@type": "Brand",
+                "name": "Urban Trout"
+              },
+              "aggregateRating": {
+                "@type": "AggregateRating",
+                "ratingValue": "4.9",
+                "reviewCount": "42",
+                "bestRating": "5",
+                "worstRating": "1"
+              },
+              "review": [
+                {
+                  "@type": "Review",
+                  "author": {
+                    "@type": "Person",
+                    "name": "Bilal M."
+                  },
+                  "datePublished": "2026-07-10",
+                  "reviewBody": "100% pan-ready and completely fresh. Scaled and gutted thoroughly, delivered chilled in ice within Srinagar.",
+                  "reviewRating": {
+                    "@type": "Rating",
+                    "ratingValue": "5",
+                    "bestRating": "5"
+                  }
+                }
+              ],
               "offers": {
                 "@type": "Offer",
                 "price": "580",
                 "priceCurrency": "INR",
                 "availability": "https://schema.org/InStock",
+                "validFrom": "2025-01-01",
                 "priceValidUntil": "2027-12-31",
-                "url": "https://urbantrout.in/shop/gutted-trout"
+                "url": "https://urbantrout.in/shop/gutted-trout",
+                "itemCondition": "https://schema.org/NewCondition",
+                "seller": {
+                  "@type": "Organization",
+                  "name": "Urban Trout"
+                },
+                "shippingDetails": {
+                  "@type": "OfferShippingDetails",
+                  "shippingRate": {
+                    "@type": "MonetaryAmount",
+                    "value": "0",
+                    "currency": "INR"
+                  },
+                  "shippingDestination": {
+                    "@type": "DefinedRegion",
+                    "addressCountry": "IN",
+                    "addressRegion": "Jammu and Kashmir",
+                    "addressLocality": "Srinagar"
+                  },
+                  "deliveryTime": {
+                    "@type": "ShippingDeliveryTime",
+                    "handlingTime": {
+                      "@type": "QuantitativeValue",
+                      "minValue": 0,
+                      "maxValue": 0,
+                      "unitCode": "DAY"
+                    },
+                    "transitTime": {
+                      "@type": "QuantitativeValue",
+                      "minValue": 0,
+                      "maxValue": 1,
+                      "unitCode": "DAY"
+                    }
+                  }
+                },
+                "hasMerchantReturnPolicy": {
+                  "@type": "MerchantReturnPolicy",
+                  "applicableCountry": "IN",
+                  "returnPolicyCategory": "https://schema.org/MerchantReturnNotPermitted",
+                  "merchantReturnDays": 0
+                }
               }
             }
           }

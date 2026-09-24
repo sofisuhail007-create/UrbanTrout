@@ -497,7 +497,7 @@ export default function ContactPage() {
                           borderRadius: "10px", padding: "12px 16px", color: C.onSurface, fontFamily: '"Manrope", sans-serif', fontSize: "0.9rem",
                         }}
                       >
-                        <option value="Home Delivery Inquiry">Home Delivery (Across Srinagar)</option>
+                        <option value="Home Delivery Inquiry">Home Delivery (5km Farm Radius)</option>
                         <option value="Bulk / Event Order">Bulk Order / Special Event</option>
                         <option value="Restaurant Supply">Hotel & Restaurant Supply</option>
                         <option value="Vending Center Pickup">Vending Center Pickup Inquiry</option>

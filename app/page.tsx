@@ -58,11 +58,11 @@ const farmConditions = [
 const faqs = [
   {
     q: "Where can I buy fresh trout fish in Srinagar?",
-    a: "You can order fresh Rainbow Trout online directly through urbantrout.in or via WhatsApp (+91 84910 06127) for free doorstep delivery within 2 hours anywhere across Srinagar. All retail orders are fulfilled through our dedicated Live Trout Vending Center in Srinagar or delivered direct to your home.",
+    a: "You can order fresh Rainbow Trout online directly through urbantrout.in or via WhatsApp (+91 84910 06127) for free doorstep delivery within 2 hours within our 5km radius delivery zone from our Malabagh farm. Customers outside our 5km perimeter are welcome to pick up orders directly from our dedicated Live Trout Vending Center.",
   },
   {
     q: "What is the price of Rainbow Trout per Kg in Srinagar?",
-    a: "Our fresh Whole Rainbow Trout is ₹540 per Kg, and our Premium Cleaned & Gutted Trout is ₹580 per Kg. Unlike marketplace suppliers who charge extra for packing and delivery, our prices include 100% Free chilled bio-thermal doorstep delivery anywhere in Srinagar.",
+    a: "Our fresh Whole Rainbow Trout is ₹540 per Kg, and our Premium Cleaned & Gutted Trout is ₹580 per Kg. Unlike marketplace suppliers who charge extra for packing and delivery, our prices include 100% Free chilled bio-thermal doorstep delivery within our 5km farm radius in Srinagar.",
   },
   {
     q: "Do you clean and gut the trout before delivery?",
@@ -70,7 +70,7 @@ const faqs = [
   },
   {
     q: "Which areas in Srinagar do you deliver to?",
-    a: "We provide 100% Free Doorstep Delivery across all Srinagar neighborhoods, including Malabagh, Naseem Bagh, Hazratbal, Habak, Zakura, Lal Bazar, Soura (SKIMS), Bachpora, Illahibagh, Rainawari, Dalgate, Rajbagh, Lal Chowk, Jawahar Nagar, Hyderpora, Sanat Nagar, and Bemina. Orders are delivered chilled within 2 hours of harvest.",
+    a: "To ensure peak freshness and cold-chain integrity, we deliver exclusively within a 5km radius zone from our Malabagh farm. This includes nearby areas such as Malabagh, Naseem Bagh, Hazratbal, Habak, Zakura, Lal Bazar, Soura (SKIMS), Bachpora, Illahibagh, and Nowshera. We do not deliver to outer municipal zones; customers outside our 5km radius are welcome to pick up their fresh catch directly from our Malabagh farm vending center.",
   },
   {
     q: "How fresh is Urban Trout compared to market fish?",
@@ -225,7 +225,7 @@ export default async function HomePage() {
               lineHeight: 1.75,
             }}
           >
-            Your trout is still swimming when you place your order. Farmed in clean, subterranean borewell water in Malabagh using advanced RAS tanks, packed on crushed ice, and delivered chilled to your doorstep: whole from <strong style={{ color: "#72ddfd" }}>₹540/kg</strong>, cleaned &amp; gutted from <strong style={{ color: "#72ddfd" }}>₹580/kg</strong> with <strong style={{ color: "#34d399" }}>100% Free Doorstep Delivery</strong> across Srinagar within 2 hours or live vending center pickup. Min 2 kg for thermal cold-chain insulation.
+            Your trout is still swimming when you place your order. Farmed in clean, subterranean borewell water in Malabagh using advanced RAS tanks, packed on crushed ice, and delivered chilled to your doorstep: whole from <strong style={{ color: "#72ddfd" }}>₹540/kg</strong>, cleaned &amp; gutted from <strong style={{ color: "#72ddfd" }}>₹580/kg</strong> with <strong style={{ color: "#34d399" }}>100% Free Doorstep Delivery</strong> within 5km of our farm (or farm pickup) within 2 hours. Min 2 kg for thermal cold-chain insulation.
           </p>
 
           {/* CTAs */}
@@ -316,13 +316,13 @@ export default async function HomePage() {
         <div className="max-w-7xl mx-auto">
           <div style={{ textAlign: "center", marginBottom: "3rem" }}>
             <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "11px", letterSpacing: "0.25em", textTransform: "uppercase", color: C.primary, display: "block", marginBottom: "0.75rem" }}>
-              Live Farm Harvest • Srinagar Doorstep Delivery
+              Live Farm Harvest • 5km Radius Doorstep Delivery
             </span>
             <h2 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "clamp(2.2rem, 5vw, 3.5rem)", fontWeight: 800, letterSpacing: "-0.03em", color: C.onSurface, margin: 0 }}>
               Today&apos;s Fresh Rainbow Trout Rates
             </h2>
             <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfaceVariant, fontSize: "0.95rem", marginTop: "0.5rem", maxWidth: "600px", margin: "0.5rem auto 0" }}>
-              Farmed in cold borewell water in Malabagh. 100% Free bio-thermal chilled delivery across Srinagar on every order.
+              Farmed in cold borewell water in Malabagh. 100% Free bio-thermal chilled delivery within our 5km farm zone on every order.
             </p>
           </div>
 
@@ -424,7 +424,7 @@ export default async function HomePage() {
                   <td className="p-4 md:p-5 text-slate-400">Prepared from refrigerated or frozen inventory.</td>
                 </tr>
                 <tr className="hover:bg-slate-900/30 transition-colors">
-                  <td className="p-4 md:p-5 font-medium text-white">Doorstep Delivery Across Srinagar</td>
+                  <td className="p-4 md:p-5 font-medium text-white">Doorstep Delivery (5km Farm Zone)</td>
                   <td className="p-4 md:p-5 text-cyan-200 bg-cyan-950/30 border-x border-cyan-500/20 font-semibold text-emerald-400">
                     100% FREE within 2 Hours (Chilled on ice)
                   </td>
@@ -462,7 +462,7 @@ export default async function HomePage() {
           </div>
 
           <div className="mt-6 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-400">
-            <span>Rates verified for Srinagar, Kashmir (2026). Urban Trout rates include 100% free insulated doorstep delivery.</span>
+            <span>Rates verified for Srinagar, Kashmir (2026). Urban Trout rates include 100% free insulated doorstep delivery within our 5km farm zone.</span>
             <Link href="/trout-price-srinagar" className="inline-flex items-center gap-1.5 text-cyan-400 font-bold hover:underline">
               <span>Read Full Srinagar Trout Price Guide &amp; Wholesale Rates</span>
               <span>→</span>
@@ -475,7 +475,7 @@ export default async function HomePage() {
               <span className="text-[10px] uppercase font-mono font-bold tracking-widest text-amber-400">Srinagar Trout Buying Channels</span>
               <h4 className="text-sm font-bold text-white font-['Space_Grotesk']">Farm-Direct Doorstep Delivery vs. J&amp;K Fisheries Department Outlets</h4>
               <p className="text-xs text-slate-300 leading-relaxed font-sans max-w-3xl">
-                The J&amp;K Department of Fisheries operates respected retail counters at <strong>Gagribal (Boulevard)</strong>, <strong>Laribal Hatchery</strong>, and <strong>Kokernag</strong>. While official outlets provide subsidized public stock, they operate during strict morning windows (typically 8:00 AM – 11:00 AM), enforce strict per-citizen purchase quotas, and require in-person queuing. Urban Trout complements this ecosystem with <strong>on-demand live harvest from our modern RAS facility, distribution via our dedicated Srinagar vending center, and 100% Free Doorstep Delivery</strong> directly to your home within 2 hours across all 16 Srinagar municipal zones.
+                The J&amp;K Department of Fisheries operates respected retail counters at <strong>Gagribal (Boulevard)</strong>, <strong>Laribal Hatchery</strong>, and <strong>Kokernag</strong>. While official outlets provide subsidized public stock, they operate during strict morning windows (typically 8:00 AM – 11:00 AM), enforce strict per-citizen purchase quotas, and require in-person queuing. Urban Trout complements this ecosystem with <strong>on-demand live harvest from our modern RAS facility, distribution via our dedicated Srinagar vending center, and 100% Free Doorstep Delivery</strong> directly to your home within 2 hours across our 5km farm delivery zone (or farm pickup for customers outside 5km).
               </p>
             </div>
             <div className="flex-shrink-0">
@@ -546,7 +546,7 @@ export default async function HomePage() {
                   <span className="text-base">🚀</span>
                 </div>
                 <h4 className="font-bold text-sm text-white">Doorstep Arrival</h4>
-                <p className="text-xs text-slate-400 leading-relaxed">Handed directly to you anywhere in Srinagar with zero delivery fees.</p>
+                <p className="text-xs text-slate-400 leading-relaxed">Handed directly to you within our 5km farm delivery zone with zero delivery fees.</p>
               </div>
             </div>
           </div>
@@ -589,7 +589,7 @@ export default async function HomePage() {
               </h2>
             </div>
             <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfaceVariant, maxWidth: "420px", lineHeight: 1.7, borderLeft: "2px solid rgba(114,221,253,0.3)", paddingLeft: "1.25rem", fontSize: "0.95rem" }}>
-              Clean borewell water, zero preventive antibiotics, live netting, and 100% free doorstep delivery across Srinagar within 2 hours.
+              Clean borewell water, zero preventive antibiotics, live netting, and 100% free doorstep delivery within our 5km farm zone in 2 hours.
             </p>
           </div>
 
@@ -904,7 +904,7 @@ export default async function HomePage() {
               </svg>
             </div>
             <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: "0.95rem", color: C.onSurface }}>100% Free Doorstep Delivery</span>
-            <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.8rem", color: C.onSurfaceVariant }}>Delivered chilled across Srinagar</span>
+            <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.8rem", color: C.onSurfaceVariant }}>Delivered chilled within 5km farm radius</span>
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: "10px" }}>

@@ -43,6 +43,8 @@ next-env.d.ts
 # local test reports & heavy media
 public/Speedtest/
 public/Reel_Ad_campaign/
+public/superseo*
 *.mp4
 *.pdf
+
 

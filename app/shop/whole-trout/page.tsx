@@ -9,7 +9,7 @@ import { getLiveAquariumStock } from "@/lib/aquariumStock";
 export const metadata: Metadata = {
   title: "Whole Fresh Rainbow Trout (₹540/Kg)",
   description:
-    "Fresh whole cold-water Rainbow Trout from our Srinagar farm in Malabagh. 100% Free delivery within 2 hours across Srinagar.",
+    "Fresh whole cold-water Rainbow Trout from our Srinagar farm in Malabagh. 100% Free delivery within 2 hours within our 5km farm zone.",
   alternates: {
     canonical: "https://urbantrout.in/shop/whole-trout",
   },
@@ -94,6 +94,7 @@ export default async function WholeTroutPage() {
     "image": ["https://urbantrout.in/images/trout_pure_black.png"],
     "description": "Fresh whole rainbow trout from our Srinagar farm in Malabagh. Ideal for roasting, whole baking, grilling, or traditional recipes.",
     "sku": "UT-WHOLE-TROUT",
+    "mpn": "UT-WHOLE-TROUT",
     "brand": {
       "@type": "Brand",
       "name": "Urban Trout"
@@ -628,7 +629,7 @@ export default async function WholeTroutPage() {
                 </h3>
               </div>
               <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "1rem", color: C.onSurfVar, lineHeight: 1.75, maxWidth: "640px", marginBottom: "2rem" }}>
-                Raised in clean, continuously filtered cold water right here in Srinagar. Harvested only when you order, immediately chilled in ice, and delivered to your doorstep.
+                Raised in clean, continuously filtered cold water right here in Srinagar. Harvested only when you order, immediately chilled in ice, and delivered to your doorstep within our 5km farm zone.
               </p>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "1.5rem" }}>
                 {[

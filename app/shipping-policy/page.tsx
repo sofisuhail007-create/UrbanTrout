@@ -3,13 +3,13 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Shipping & Delivery Policy",
-  description: "Official delivery coverage, 100% Free doorstep delivery across Srinagar, cold-chain packaging, and operating hours.",
+  description: "Official delivery coverage, 100% Free doorstep delivery within 5km radius of Malabagh farm, cold-chain packaging, and operating hours.",
   alternates: {
     canonical: "https://urbantrout.in/shipping-policy",
   },
   openGraph: {
     title: "Shipping & Delivery Policy | Urban Trout Srinagar",
-    description: "100% Free doorstep delivery across Srinagar within 2 hours of harvest. Food-grade ice packaging.",
+    description: "100% Free doorstep delivery within 5km radius of our Malabagh farm within 2 hours of harvest. Food-grade ice packaging.",
     url: "https://urbantrout.in/shipping-policy",
     siteName: "Urban Trout",
   },
@@ -26,16 +26,16 @@ const C = {
 
 const sections = [
   {
-    title: "1. Service Area & Delivery Coverage",
-    body: "• Urban Trout provides 100% Free Doorstep Delivery across the entire Srinagar municipal area and all surrounding neighborhoods.\n• Localities Served: Malabagh, Hazratbal, Habak, Naseem Bagh, Zakura, Lal Bazar, Soura (SKIMS), Bachpora, Illahibagh, Rainawari, Dalgate, Rajbagh, Lal Chowk, Jawahar Nagar, Hyderpora, Sanat Nagar, Bemina, and all other Srinagar pin codes.\n• Vending Center Pickup: All in-person collections and physical retail orders are fulfilled through our dedicated Live Trout Vending Center in Srinagar.",
+    title: "1. Service Area & Delivery Coverage (Strict 5km Farm Radius)",
+    body: "• Strict 5km Delivery Perimeter: To guarantee peak live-harvest freshness and an unbroken cold chain within 90–120 minutes, Urban Trout delivers exclusively within a 5km radius zone from our aquaculture farm base in Malabagh, Srinagar.\n• Localities Served Within 5km: Malabagh, Hazratbal, Habak, Naseem Bagh, Zakura, Lal Bazar, Soura (SKIMS), Bachpora, Illahibagh, and Nowshera.\n• Outer Municipal Srinagar & Beyond: We DO NOT provide doorstep delivery to outer municipal zones or locations beyond our 5km perimeter (such as Dalgate, Rajbagh, Lal Chowk, Jawahar Nagar, Bemina, Hyderpora, Sanat Nagar, etc.).\n• Farm Vending Center Pickup: Customers located outside our 5km delivery radius are warmly invited to place an order for live harvest pickup directly from our dedicated Live Trout Vending Center at our Malabagh farm.",
   },
   {
     title: "2. Harvest-to-Order & Delivery Timelines",
-    body: "• Farm-Fresh Quality: Every order is freshly harvested live from our cold-water aquaculture tanks upon order confirmation to ensure maximum freshness and taste.\n• Rapid Delivery Timeframe: Orders are freshly harvested to order, cleaned/gutted if requested, chilled in food-grade ice, and delivered to your doorstep within 2 hours across Srinagar.\n• Operating Delivery Hours: Monday to Sunday between 7:00 AM and 10:00 PM IST.",
+    body: "• Farm-Fresh Quality: Every order is freshly harvested live from our cold-water aquaculture tanks upon order confirmation to ensure maximum freshness and taste.\n• Rapid Delivery Timeframe: Orders within our 5km radius are freshly harvested to order, cleaned/gutted if requested, chilled in food-grade ice, and delivered to your doorstep within 2 hours.\n• Operating Delivery Hours: Monday to Sunday between 7:00 AM and 10:00 PM IST.",
   },
   {
-    title: "3. 100% Free Shipping & Delivery Policy",
-    body: "• 100% FREE Doorstep Delivery across all Srinagar neighborhoods on every order.\n• Product pricing includes free bio-thermal cold-chain insulated packaging and food-grade crushed ice. There are zero hidden delivery fees, packing charges, or surprise shipping costs at checkout.",
+    title: "3. 100% Free Shipping & Delivery Policy (Within 5km)",
+    body: "• 100% FREE Doorstep Delivery within our 5km farm delivery zone on every order.\n• Product pricing includes free bio-thermal cold-chain insulated packaging and food-grade crushed ice. There are zero hidden delivery fees, packing charges, or surprise shipping costs at checkout within our deliverable zone.",
   },
   {
     title: "4. Cold-Chain Packaging & Temperature Control",

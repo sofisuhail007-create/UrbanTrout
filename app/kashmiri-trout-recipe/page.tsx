@@ -226,7 +226,7 @@ export default function KashmiriTroutRecipePage() {
           <div>
             <h3 className="text-xl font-bold text-white font-['Space_Grotesk']">Get 100% Pan-Ready Trout Delivered</h3>
             <p className="text-xs text-slate-400 font-sans mt-1">
-              Descaled, gutted, and chilled on food-grade ice. Delivered within 2 hours anywhere in Srinagar.
+              Descaled, gutted, and chilled on food-grade ice. Delivered within 2 hours within our 5km farm radius.
             </p>
           </div>
           <div className="flex items-center gap-3">

@@ -235,7 +235,7 @@ export default function CartDrawer() {
               }}
             >
               <span className="flex items-center gap-1.5">
-                <span>🛵</span> Delivery (Across Srinagar):
+                <span>🛵</span> Delivery (5km Farm Radius):
               </span>
               <span className="text-[11px] font-black uppercase tracking-wider bg-emerald-500/25 px-2 py-0.5 rounded-full text-emerald-300">
                 100% FREE

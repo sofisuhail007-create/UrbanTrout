@@ -10,14 +10,14 @@ import { getLiveAquariumStock } from "@/lib/aquariumStock";
 export const metadata: Metadata = {
   title: "Shop Fresh Rainbow Trout Online in Srinagar",
   description:
-    "Order live-harvested whole (₹540/kg) and cleaned & gutted (₹580/kg) Rainbow Trout online in Srinagar. 100% Free bio-thermal doorstep delivery within 2 hours.",
+    "Order live-harvested whole (₹540/kg) and cleaned & gutted (₹580/kg) Rainbow Trout online in Srinagar. 100% Free bio-thermal doorstep delivery within 2 hours within our 5km farm zone.",
   alternates: {
     canonical: "https://urbantrout.in/shop",
   },
   openGraph: {
     title: "Shop Fresh Rainbow Trout Online in Srinagar | Urban Trout",
     description:
-      "Buy fresh Rainbow Trout from our Malabagh farm. Whole from ₹540/kg, gutted from ₹580/kg. Free delivery across Srinagar.",
+      "Buy fresh Rainbow Trout from our Malabagh farm. Whole from ₹540/kg, gutted from ₹580/kg. Free delivery within 5km farm radius.",
     url: "https://urbantrout.in/shop",
     siteName: "Urban Trout",
     images: [
@@ -204,7 +204,7 @@ export default async function ShopPage() {
               }}>
                 <span className="text-xs">🛵</span>
                 <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "11px", fontWeight: 700, letterSpacing: "0.05em", color: "#34d399", textTransform: "uppercase" }}>
-                  Free Delivery Across Srinagar
+                  Free Delivery (5km Farm Radius)
                 </span>
               </div>
               <div style={{
@@ -269,7 +269,7 @@ export default async function ShopPage() {
               </svg>
             </div>
             <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: "0.95rem", color: C.onSurface }}>Direct to Your Door</span>
-            <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.82rem", color: C.onSurfVar, lineHeight: 1.65 }}>Delivered chilled within hours of harvest across Srinagar.</span>
+            <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.82rem", color: C.onSurfVar, lineHeight: 1.65 }}>Delivered chilled within hours of harvest within 5km farm zone.</span>
           </div>
         </div>
       </section>

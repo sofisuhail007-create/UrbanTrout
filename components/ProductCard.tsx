@@ -81,53 +81,61 @@ export default function ProductCard({ p }: { p: Product }) {
           aria-hidden="true"
         />
 
-        {/* Label badge */}
-        <div className="absolute top-4 left-4 flex flex-wrap items-center gap-2 pointer-events-none" aria-hidden="true">
-          <span
-            className="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest backdrop-blur-sm"
-            style={{
-              background: "rgba(114,221,253,0.12)",
-              border: "1px solid rgba(114,221,253,0.35)",
-              color: "#72ddfd",
-              fontFamily: '"Inter", sans-serif',
-            }}
-          >
-            {p.label}
-          </span>
-          <span
-            className="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider backdrop-blur-md bg-emerald-500/25 border border-emerald-400/50 text-emerald-300"
-            style={{ fontFamily: '"Space Grotesk", sans-serif' }}
-          >
-            🛵 Free Delivery
-          </span>
-          {hasDiscount && (
+        {/* Top Badges & Actions Overlay */}
+        <div className="absolute top-3.5 left-3.5 right-3.5 flex items-start justify-between gap-2 pointer-events-none z-20">
+          <div className="flex flex-wrap items-center gap-1.5 min-w-0">
+            {/* Category / Form factor badge */}
             <span
-              className="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider backdrop-blur-md"
+              className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider backdrop-blur-md whitespace-nowrap"
               style={{
-                background: "rgba(34,197,94,0.2)",
-                border: "1px solid rgba(34,197,94,0.45)",
-                color: "#4ade80",
-                fontFamily: '"Space Grotesk", sans-serif',
+                background: "rgba(114,221,253,0.14)",
+                border: "1px solid rgba(114,221,253,0.35)",
+                color: "#72ddfd",
+                fontFamily: '"Inter", sans-serif',
               }}
             >
-              {discountPercent}% OFF
+              {p.label}
             </span>
-          )}
-        </div>
 
-        {/* Details badge */}
-        <span
-          className="absolute top-4 right-4 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest backdrop-blur-sm transition-all duration-200 group-hover:text-white group-hover:border-white/30"
-          style={{
-            background: "rgba(0,0,0,0.45)",
-            border: "1px solid rgba(255,255,255,0.12)",
-            color: "#9fadb8",
-            fontFamily: '"Inter", sans-serif',
-          }}
-          aria-hidden="true"
-        >
-          Details →
-        </span>
+            {/* Promotional Discount Badge */}
+            {hasDiscount && (
+              <span
+                className="px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider backdrop-blur-md whitespace-nowrap"
+                style={{
+                  background: "rgba(34,197,94,0.25)",
+                  border: "1px solid rgba(74,222,128,0.55)",
+                  color: "#4ade80",
+                  fontFamily: '"Space Grotesk", sans-serif',
+                  boxShadow: "0 0 12px rgba(74, 222, 128, 0.25)",
+                }}
+              >
+                {discountPercent}% OFF
+              </span>
+            )}
+
+            {/* Free Delivery badge */}
+            <span
+              className="px-2 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider backdrop-blur-md bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 whitespace-nowrap"
+              style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+            >
+              🛵 Free Delivery
+            </span>
+          </div>
+
+          {/* Details badge */}
+          <span
+            className="shrink-0 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider backdrop-blur-md transition-all duration-200 group-hover:text-white group-hover:border-white/30 group-hover:bg-slate-800/80 whitespace-nowrap pointer-events-auto"
+            style={{
+              background: "rgba(0,0,0,0.55)",
+              border: "1px solid rgba(255,255,255,0.15)",
+              color: "#9fadb8",
+              fontFamily: '"Inter", sans-serif',
+            }}
+            aria-hidden="true"
+          >
+            Details →
+          </span>
+        </div>
       </Link>
 
       {/* Body */}
@@ -208,7 +216,7 @@ export default function ProductCard({ p }: { p: Product }) {
         {/* Free Delivery Reassurance */}
         <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-400">
           <span>🛵</span>
-          <span>FREE Chilled Delivery Across Srinagar</span>
+          <span>FREE Chilled Delivery (Within 5km Radius)</span>
         </div>
 
         {/* Divider */}

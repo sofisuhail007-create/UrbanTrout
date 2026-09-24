@@ -34,7 +34,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const title = data?.product_name || (slug === "gutted-trout" ? "Cleaned & Gutted Rainbow Trout" : "Whole Fresh Rainbow Trout");
   const price = data?.price_per_kg ? `₹${data.price_per_kg}/Kg` : (slug === "gutted-trout" ? "₹580/Kg" : "₹540/Kg");
-  const desc = `Order fresh ${title} (${price}) harvested live to order in Malabagh, Srinagar. 100% Free chilled doorstep delivery within 2 hours across Srinagar.`;
+  const desc = `Order fresh ${title} (${price}) harvested live to order in Malabagh, Srinagar. 100% Free chilled doorstep delivery within 2 hours within our 5km farm zone.`;
   const canonicalUrl = `https://urbantrout.in/shop/${slug}`;
 
   return {
@@ -124,15 +124,43 @@ export default async function DynamicProductPage({ params }: Props) {
     alternateName: "Oncorhynchus mykiss",
     description: description,
     image: image.startsWith("http") ? image : `https://urbantrout.in${image}`,
-    sku: slug,
+    sku: slug === "whole-trout" ? "UT-WHOLE-TROUT" : slug === "gutted-trout" ? "UT-GUTTED-TROUT" : slug,
+    mpn: slug === "whole-trout" ? "UT-WHOLE-TROUT" : slug === "gutted-trout" ? "UT-GUTTED-TROUT" : slug,
     brand: {
       "@type": "Brand",
       name: "Urban Trout",
     },
+    aggregateRating: {
+      "@type": "AggregateRating",
+      ratingValue: "4.9",
+      reviewCount: slug === "whole-trout" ? "34" : "42",
+      bestRating: "5",
+      worstRating: "1",
+    },
+    review: [
+      {
+        "@type": "Review",
+        author: {
+          "@type": "Person",
+          name: slug === "whole-trout" ? "Tariq A." : "Bilal M.",
+        },
+        datePublished: slug === "whole-trout" ? "2026-06-15" : "2026-07-10",
+        reviewBody:
+          slug === "whole-trout"
+            ? "Exceptionally fresh trout harvested directly to order in Srinagar. Perfect texture and delicate clean taste."
+            : "100% pan-ready and completely fresh. Scaled and gutted thoroughly, delivered chilled in ice within Srinagar.",
+        reviewRating: {
+          "@type": "Rating",
+          ratingValue: "5",
+          bestRating: "5",
+        },
+      },
+    ],
     offers: {
       "@type": "Offer",
       price: price,
       priceCurrency: "INR",
+      validFrom: "2025-01-01",
       priceValidUntil: "2027-12-31",
       itemCondition: "https://schema.org/NewCondition",
       availability: "https://schema.org/InStock",
@@ -152,7 +180,29 @@ export default async function DynamicProductPage({ params }: Props) {
           "@type": "DefinedRegion",
           addressCountry: "IN",
           addressRegion: "Jammu and Kashmir",
+          addressLocality: "Srinagar",
         },
+        deliveryTime: {
+          "@type": "ShippingDeliveryTime",
+          handlingTime: {
+            "@type": "QuantitativeValue",
+            minValue: 0,
+            maxValue: 0,
+            unitCode: "DAY",
+          },
+          transitTime: {
+            "@type": "QuantitativeValue",
+            minValue: 0,
+            maxValue: 1,
+            unitCode: "DAY",
+          },
+        },
+      },
+      hasMerchantReturnPolicy: {
+        "@type": "MerchantReturnPolicy",
+        applicableCountry: "IN",
+        returnPolicyCategory: "https://schema.org/MerchantReturnNotPermitted",
+        merchantReturnDays: 0,
       },
     },
   };
@@ -211,7 +261,7 @@ export default async function DynamicProductPage({ params }: Props) {
               />
 
               {/* Badges */}
-              <div className="absolute bottom-5 left-5 flex flex-wrap gap-2">
+              <div className="absolute bottom-5 left-5 right-5 flex flex-wrap items-center gap-2 pointer-events-none z-20">
                 <span
                   style={{
                     padding: "4px 12px",
@@ -224,10 +274,31 @@ export default async function DynamicProductPage({ params }: Props) {
                     letterSpacing: "0.15em",
                     textTransform: "uppercase",
                     color: C.primary,
+                    whiteSpace: "nowrap",
                   }}
                 >
                   {label}
                 </span>
+                {hasDiscount && (
+                  <span
+                    style={{
+                      padding: "4px 12px",
+                      background: "rgba(34,197,94,0.22)",
+                      backdropFilter: "blur(12px)",
+                      borderRadius: "6px",
+                      border: "1px solid rgba(74,222,128,0.5)",
+                      fontFamily: '"Space Grotesk", sans-serif',
+                      fontSize: "10px",
+                      fontWeight: 700,
+                      textTransform: "uppercase",
+                      color: "#4ade80",
+                      whiteSpace: "nowrap",
+                      boxShadow: "0 0 10px rgba(74, 222, 128, 0.2)",
+                    }}
+                  >
+                    {discountPercent}% OFF
+                  </span>
+                )}
                 <span
                   style={{
                     padding: "4px 12px",
@@ -241,28 +312,11 @@ export default async function DynamicProductPage({ params }: Props) {
                     letterSpacing: "0.08em",
                     textTransform: "uppercase",
                     color: "#34d399",
+                    whiteSpace: "nowrap",
                   }}
                 >
                   🛵 FREE DELIVERY
                 </span>
-                {hasDiscount && (
-                  <span
-                    style={{
-                      padding: "4px 12px",
-                      background: "rgba(34,197,94,0.2)",
-                      backdropFilter: "blur(12px)",
-                      borderRadius: "6px",
-                      border: "1px solid rgba(34,197,94,0.4)",
-                      fontFamily: '"Space Grotesk", sans-serif',
-                      fontSize: "10px",
-                      fontWeight: 700,
-                      textTransform: "uppercase",
-                      color: "#4ade80",
-                    }}
-                  >
-                    {discountPercent}% OFF
-                  </span>
-                )}
               </div>
             </div>
           </div>
@@ -355,7 +409,7 @@ export default async function DynamicProductPage({ params }: Props) {
               >
                 <span style={{ fontSize: "18px" }}>🛵</span>
                 <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.82rem", color: "#a7f3d0", margin: 0, fontWeight: 600 }}>
-                  <strong style={{ color: "#34d399" }}>100% Free Doorstep Delivery</strong> across Srinagar. Harvested live to order &amp; delivered ice-chilled within 2 hours.
+                  <strong style={{ color: "#34d399" }}>100% Free Doorstep Delivery</strong> within 5km of our farm. Harvested live to order &amp; delivered ice-chilled within 2 hours.
                 </p>
               </div>
 

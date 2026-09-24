@@ -211,7 +211,7 @@ export default function FreshTroutGuidePage() {
           <div>
             <h3 className="text-xl font-bold text-white font-['Space_Grotesk']">Taste the Live Catch Difference</h3>
             <p className="text-xs text-slate-400 font-sans mt-1">
-              Harvested live upon order from our Malabagh farm. Free chilled delivery across Srinagar in 2 hours.
+              Harvested live upon order from our Malabagh farm. Free chilled delivery within 5km farm radius in 2 hours.
             </p>
           </div>
           <div className="flex items-center gap-3">

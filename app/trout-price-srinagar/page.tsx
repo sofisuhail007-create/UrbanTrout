@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Rainbow Trout Price Per Kg in Srinagar (2026 Rates) | Urban Trout",
     description:
-      "Farm-direct live harvest rates for Rainbow Trout in Srinagar: ₹540/kg whole, ₹580/kg gutted with free chilled delivery across Srinagar within 2 hours.",
+      "Farm-direct live harvest rates for Rainbow Trout in Srinagar: ₹540/kg whole, ₹580/kg gutted with free chilled delivery within our 5km farm radius within 2 hours.",
     url: "https://urbantrout.in/trout-price-srinagar",
     siteName: "Urban Trout",
     images: [
@@ -40,19 +40,19 @@ const C = {
 const priceFaqs = [
   {
     q: "What is the current rate of Rainbow Trout per kg in Srinagar for 2026?",
-    a: "At Urban Trout farm in Malabagh, Srinagar, fresh Whole Rainbow Trout is priced at ₹540 per kg, and Premium Cleaned & Gutted Trout is ₹580 per kg. Both include 100% Free chilled doorstep delivery across Srinagar within 2 hours of harvest.",
+    a: "At Urban Trout farm in Malabagh, Srinagar, fresh Whole Rainbow Trout is priced at ₹540 per kg, and Premium Cleaned & Gutted Trout is ₹580 per kg. Both include 100% Free chilled doorstep delivery within our 5km farm radius within 2 hours of harvest.",
   },
   {
     q: "Why are market fish and IndiaMART rates higher than Urban Trout?",
     a: "Market fish sellers and IndiaMART brokers operate through multiple layers of middlemen, transit freight, and packaging surcharges, charging between ₹650 and ₹1,000 per kg. Because Urban Trout harvests directly from our Malabagh cold-water RAS tanks and fulfills through our dedicated Srinagar vending center, there are zero middleman commissions or freight overheads.",
   },
   {
-    q: "What is the minimum order quantity for free delivery in Srinagar?",
-    a: "Our minimum order is 2 kg. This ensures efficient live harvesting and allows our bio-thermal ice packing to maintain strict 0°C–2°C temperatures throughout transit to your kitchen.",
+    q: "What is the minimum order quantity for free delivery?",
+    a: "Our minimum order is 2 kg for free doorstep delivery within our 5km farm perimeter. This ensures efficient live harvesting and allows our bio-thermal ice packing to maintain strict 0°C–2°C temperatures throughout transit to your kitchen.",
   },
   {
     q: "Is there any extra charge for descaling, gutting, or doorstep delivery?",
-    a: "No hidden charges whatsoever. Doorstep delivery across all Srinagar localities is 100% Free. Our Cleaned & Gutted option (₹580/kg) arrives 100% pan-ready with scales and viscera removed.",
+    a: "No hidden charges whatsoever. Doorstep delivery within our 5km farm delivery zone is 100% Free. Our Cleaned & Gutted option (₹580/kg) arrives 100% pan-ready with scales and viscera removed.",
   },
 ];
 
@@ -139,7 +139,7 @@ export default function TroutPriceSrinagarPage() {
             <ul className="text-xs text-slate-300 space-y-2 mb-6 font-sans">
               <li>✓ 100% natural weight (gills, scales, and head intact)</li>
               <li>✓ Netted live from Malabagh tanks upon order confirmation</li>
-              <li>✓ 100% Free chilled doorstep delivery across Srinagar</li>
+              <li>✓ 100% Free chilled doorstep delivery within 5km farm radius</li>
               <li>✓ Minimum order: 2 Kg</li>
             </ul>
             <Link
@@ -160,7 +160,7 @@ export default function TroutPriceSrinagarPage() {
             <ul className="text-xs text-slate-300 space-y-2 mb-6 font-sans">
               <li>✓ Descaled, cleaned, and gutted by farm specialists</li>
               <li>✓ Washed in cold borewell water, zero kitchen mess</li>
-              <li>✓ 100% Free chilled doorstep delivery across Srinagar</li>
+              <li>✓ 100% Free chilled doorstep delivery within 5km farm radius</li>
               <li>✓ Single central spine, effortless to debone (child-friendly)</li>
             </ul>
             <Link

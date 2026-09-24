@@ -491,7 +491,7 @@ export default function CustomerAccountPage() {
                 <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 text-left">
                   <div className="text-lg mb-1">📍</div>
                   <div className="text-xs font-bold text-white font-['Space_Grotesk']">Saved Address</div>
-                  <div className="text-[11px] text-slate-400 mt-0.5">Fast checkout across Srinagar</div>
+                  <div className="text-[11px] text-slate-400 mt-0.5">Fast checkout for saved addresses</div>
                 </div>
                 <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 text-left">
                   <div className="text-lg mb-1">🔔</div>
@@ -758,6 +758,9 @@ export default function CustomerAccountPage() {
                       </option>
                     ))}
                   </select>
+                  <p className="text-[10px] text-cyan-400/90 mt-1.5 font-medium">
+                    📍 Express Doorstep Delivery is available within 5km of our Malabagh farm. Vending center pickup is available for all areas.
+                  </p>
                 </div>
 
                 <div>

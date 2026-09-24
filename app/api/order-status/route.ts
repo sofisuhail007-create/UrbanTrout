@@ -140,7 +140,7 @@ export async function POST(request: Request) {
       const { sendPushToCustomer } = await import("@/lib/pushNotifications");
       const pushMessages: Record<string, string> = {
         processing: "Your Rainbow Trout has been harvested from our cold-water tanks & is being packed on ice! ❄️",
-        out_for_delivery: "Your fresh catch is out for delivery with our rider across Srinagar! 🛵",
+        out_for_delivery: "Your fresh catch is out for delivery with our express rider! 🛵",
         delivered: "Your order has been delivered! Enjoy your fresh Rainbow Trout 🐟",
         cancelled: "Your order has been cancelled. Please contact us on WhatsApp if you have questions.",
       };
