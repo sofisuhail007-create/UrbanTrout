@@ -161,20 +161,21 @@ const jsonLd = {
         "latitude": 34.1445563,
         "longitude": 74.8245018
       },
-      "openingHoursSpecification": {
-        "@type": "OpeningHoursSpecification",
-        "dayOfWeek": [
-          "Monday",
-          "Tuesday",
-          "Wednesday",
-          "Thursday",
-          "Friday",
-          "Saturday",
-          "Sunday"
-        ],
-        "opens": "07:00",
-        "closes": "22:00"
-      },
+      "openingHoursSpecification": [
+        {
+          "@type": "OpeningHoursSpecification",
+          "dayOfWeek": [
+            "Monday",
+            "Tuesday",
+            "Wednesday",
+            "Thursday",
+            "Saturday",
+            "Sunday"
+          ],
+          "opens": "07:00",
+          "closes": "22:00"
+        }
+      ],
       "servesCuisine": "Freshwater Trout, Himalayan Fish, Seafood",
       "areaServed": [
         {

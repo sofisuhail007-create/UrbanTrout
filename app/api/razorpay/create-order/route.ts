@@ -55,6 +55,39 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Valid customer phone number is required." }, { status: 400 });
     }
 
+    // Business Hours & Friday Maintenance Check
+    const { getBusinessHoursInfo } = await import("@/lib/businessHours");
+    const hoursInfo = getBusinessHoursInfo();
+
+    let isManuallyClosed = false;
+    try {
+      const { data: closedRow } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "store_manually_closed")
+        .single();
+      isManuallyClosed = closedRow?.value === "true";
+    } catch {
+      // ignore
+    }
+
+    if (!hoursInfo.isOpen || isManuallyClosed) {
+      const closedMsg = isManuallyClosed
+        ? "Our store is temporarily taking a break. Please try again when we reopen or contact us on WhatsApp."
+        : hoursInfo.isFridayMaintenance
+        ? `Our farm is closed on Fridays for scheduled Farm Maintenance. Fresh harvest resumes ${hoursInfo.nextOpenLabel || "Saturday at 7:00 AM"}.`
+        : `Our store is currently closed. We harvest fresh trout to order during business hours (Saturday to Thursday, 7:00 AM – 10:00 PM). Opens ${hoursInfo.nextOpenLabel || "tomorrow at 7:00 AM"}.`;
+
+      return NextResponse.json(
+        {
+          error: closedMsg,
+          storeClosed: true,
+          nextOpenLabel: hoursInfo.nextOpenLabel,
+        },
+        { status: 400 }
+      );
+    }
+
     // 2a. Live Aquarium Stock Verification: Urban Trout sells solely out of live aquarium biomass
     const { getLiveAquariumStock } = await import("@/lib/aquariumStock");
     const liveStock = await getLiveAquariumStock(supabase);
@@ -67,7 +100,7 @@ export async function POST(req: NextRequest) {
       const remainingDisplay = liveStock.remainingKg > 0 ? `${liveStock.remainingKg.toFixed(1)} kg available` : "All sold out";
       return NextResponse.json(
         {
-          error: `Sorry, we are out of stock for today! All available live aquarium trout has been sold out (${remainingDisplay}, but ${totalRequestedKg.toFixed(1)} kg requested). Fresh harvest resumes tomorrow at 7:00 AM.`,
+          error: `Sorry, we are out of stock for today! All available live aquarium trout has been sold out (${remainingDisplay}, but ${totalRequestedKg.toFixed(1)} kg requested). Fresh harvest resumes ${hoursInfo.nextOpenLabel || "tomorrow at 7:00 AM"}.`,
           outOfStock: true,
           remainingKg: liveStock.remainingKg,
         },

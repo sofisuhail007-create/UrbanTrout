@@ -217,6 +217,17 @@ export default function Footer() {
               </a>
             </div>
 
+            {/* Operating Schedule */}
+            <div style={{ marginTop: "6px", display: "flex", flexDirection: "column", gap: "2px" }}>
+              <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", letterSpacing: "0.15em", textTransform: "uppercase", color: C.onSurfVar }}>Operating Schedule</span>
+              <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.82rem", color: C.onSurfVar }}>
+                Sat – Thu: <strong style={{ color: "#c4ebff" }}>7:00 AM – 10:00 PM</strong>
+              </span>
+              <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "11px", color: "#f87171", fontWeight: 600 }}>
+                Closed Fridays (Farm Maintenance)
+              </span>
+            </div>
+
             {/* Google Business Profile / Maps */}
             <div style={{ marginTop: "6px" }}>
               <a

@@ -4,8 +4,10 @@ import { useEffect, useState, useCallback } from "react";
 
 interface Props {
   nextOpenISO: string;   // ISO string of next open time (UTC)
-  nextOpenLabel: string; // e.g. "tomorrow at 7:00 AM"
+  nextOpenLabel: string; // e.g. "tomorrow at 7:00 AM" or "tomorrow (Saturday) at 7:00 AM"
   primaryPhone: string;
+  isFridayMaintenance?: boolean;
+  closedReason?: "friday_maintenance" | "outside_hours" | "manual";
 }
 
 const C = {
@@ -33,13 +35,26 @@ function getCountdown(targetISO: string) {
   return { h, m, s, done: diff === 0 };
 }
 
-export default function StoreClosedBanner({ nextOpenISO, nextOpenLabel, primaryPhone }: Props) {
+export default function StoreClosedBanner({
+  nextOpenISO,
+  nextOpenLabel,
+  primaryPhone,
+  isFridayMaintenance,
+  closedReason,
+}: Props) {
   const [countdown, setCountdown] = useState(() => getCountdown(nextOpenISO));
   const [isOpeningNow, setIsOpeningNow] = useState(false);
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
 
-  const isManualClose = !nextOpenISO || nextOpenLabel === "when we reopen";
+  // Determine if closed for Friday maintenance
+  const isFridayNow = isFridayMaintenance ?? (() => {
+    const utcMs = Date.now();
+    const istOffsetMs = (5 * 60 + 30) * 60 * 1000;
+    return new Date(utcMs + istOffsetMs).getUTCDay() === 5;
+  })();
+
+  const isManualClose = !isFridayNow && (!nextOpenISO || nextOpenLabel === "when we reopen" || closedReason === "manual");
 
   // Purge any local navigation cache and reload the page cleanly
   const triggerReload = useCallback((msg?: string) => {
@@ -237,10 +252,14 @@ export default function StoreClosedBanner({ nextOpenISO, nextOpenLabel, primaryP
               boxShadow: "0 0 40px rgba(114,221,253,0.12), inset 0 0 20px rgba(114,221,253,0.08)",
             }}
           >
-            {/* Moon / Sunrise Icon */}
+            {/* Moon / Maintenance / Sunrise Icon */}
             {isOpeningNow || countdown.done ? (
               <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#72ddfd" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="animate-spin">
                 <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
+              </svg>
+            ) : isFridayNow ? (
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#72ddfd" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
               </svg>
             ) : (
               <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#72ddfd" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
@@ -260,10 +279,10 @@ export default function StoreClosedBanner({ nextOpenISO, nextOpenLabel, primaryP
                 fontSize: "10px",
                 letterSpacing: "0.3em",
                 textTransform: "uppercase",
-                color: C.primary,
+                color: isFridayNow ? "#f87171" : C.primary,
               }}
             >
-              Store Status
+              {isFridayNow ? "Weekly Maintenance Day" : "Store Status"}
             </span>
             <div style={{ width: "28px", height: "1px", background: "rgba(114,221,253,0.4)" }} />
           </div>
@@ -282,7 +301,9 @@ export default function StoreClosedBanner({ nextOpenISO, nextOpenLabel, primaryP
             We&apos;re{" "}
             <span
               style={{
-                background: "linear-gradient(135deg, #72ddfd, #c4ebff)",
+                background: isFridayNow
+                  ? "linear-gradient(135deg, #f87171, #fca5a5)"
+                  : "linear-gradient(135deg, #72ddfd, #c4ebff)",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
               }}
@@ -291,6 +312,8 @@ export default function StoreClosedBanner({ nextOpenISO, nextOpenLabel, primaryP
                 ? "Opening Right Now!"
                 : isManualClose
                 ? "Taking a Break"
+                : isFridayNow
+                ? "Closed for Farm Maintenance"
                 : "Closed Right Now"}
             </span>
           </h1>
@@ -310,6 +333,14 @@ export default function StoreClosedBanner({ nextOpenISO, nextOpenLabel, primaryP
               </span>
             ) : isManualClose ? (
               "Our store is temporarily closed for the day. We'll be back soon — follow us on WhatsApp for updates."
+            ) : isFridayNow ? (
+              <>
+                Our farm is closed on Fridays for weekly farm maintenance and bio-security protocols.
+                <br />
+                We are open all other days (Saturday to Thursday, 7:00 AM – 10:00 PM).
+                <br />
+                <strong style={{ color: C.onSurface }}>Fresh catch ordering opens {nextOpenLabel}.</strong>
+              </>
             ) : (
               <>
                 Our store is currently closed. We harvest fresh trout to order during business hours only.
@@ -544,8 +575,9 @@ export default function StoreClosedBanner({ nextOpenISO, nextOpenLabel, primaryP
               <polyline points="12 6 12 12 16 14" />
             </svg>
             <div style={{ textAlign: "left" }}>
-              <p style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", letterSpacing: "0.2em", textTransform: "uppercase", color: C.onSurfVar, margin: "0 0 2px" }}>Business Hours</p>
-              <p style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "0.9rem", fontWeight: 700, color: C.onSurface, margin: 0 }}>7:00 AM – 10:00 PM</p>
+              <p style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", letterSpacing: "0.2em", textTransform: "uppercase", color: C.onSurfVar, margin: "0 0 2px" }}>Farm Operating Schedule</p>
+              <p style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "0.9rem", fontWeight: 700, color: C.onSurface, margin: 0 }}>Sat – Thu: 7:00 AM – 10:00 PM</p>
+              <p style={{ fontFamily: '"Inter", sans-serif', fontSize: "10px", fontWeight: 600, color: "#f87171", margin: "2px 0 0" }}>Closed Fridays (Farm Maintenance)</p>
             </div>
           </div>
 

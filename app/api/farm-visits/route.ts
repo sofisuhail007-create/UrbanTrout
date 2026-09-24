@@ -39,6 +39,21 @@ export async function POST(request: Request) {
       );
     }
 
+    // Validate that visit_date is not a Friday (Farm Maintenance)
+    const dateParts = String(visit_date).split("-").map(Number);
+    if (dateParts.length >= 3) {
+      const visitDay = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]).getDay();
+      if (visitDay === 5) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Our farm is closed on Fridays for scheduled Farm Maintenance. Please select another date between Saturday and Thursday.",
+          },
+          { status: 400 }
+        );
+      }
+    }
+
     // 2. Validate Google reCAPTCHA if token provided
     if (token) {
       try {

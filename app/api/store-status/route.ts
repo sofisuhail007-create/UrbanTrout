@@ -22,11 +22,18 @@ export async function GET() {
     }
 
     const isOpen = hoursInfo.isOpen && !isManuallyClosed;
+    const closedReason = isManuallyClosed
+      ? "manual"
+      : hoursInfo.isFridayMaintenance
+      ? "friday_maintenance"
+      : hoursInfo.closedReason;
 
     return NextResponse.json(
       {
         isOpen,
         isManuallyClosed,
+        isFridayMaintenance: hoursInfo.isFridayMaintenance,
+        closedReason,
         nextOpenISO: hoursInfo.nextOpenISO,
         nextOpenLabel: isManuallyClosed ? "when we reopen" : hoursInfo.nextOpenLabel,
         serverTimeISO: new Date().toISOString(),

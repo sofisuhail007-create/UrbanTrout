@@ -1,7 +1,9 @@
 "use client";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 import { usePathname } from "next/navigation";
+import { getBusinessHoursInfo } from "@/lib/businessHours";
 
 const C = {
   bg: "#031018", bgHigh: "#10212c", bgHighest: "#152834",
@@ -12,6 +14,28 @@ const C = {
 export default function CartDrawer() {
   const { isOpen, closeCart, items, removeItem, updateQuantity, total, totalSavings, aquariumStockKg } = useCart();
   const pathname = usePathname();
+  const [storeStatus, setStoreStatus] = useState(() => getBusinessHoursInfo());
+
+  useEffect(() => {
+    fetch("/api/store-status")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data && typeof data.isOpen === "boolean") {
+          setStoreStatus({
+            isOpen: data.isOpen,
+            isFridayMaintenance: Boolean(data.isFridayMaintenance),
+            closedReason: data.closedReason,
+            nextOpenLabel: data.nextOpenLabel || "",
+            nextOpenISO: data.nextOpenISO || "",
+            currentISTHour: 0,
+            currentISTMinute: 0,
+            currentISTDay: 0,
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   if (pathname.startsWith("/admin")) return null;
 
   return (
@@ -259,6 +283,26 @@ export default function CartDrawer() {
                 <p style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "0.9rem", fontWeight: 700, color: "#34d399" }}>FREE Bio-Thermal</p>
               </div>
             </div>
+
+            {/* Store Status Notification */}
+            {!storeStatus.isOpen && (
+              <div
+                className="p-3 rounded-xl text-xs flex items-center gap-2.5 my-1"
+                style={{
+                  background: storeStatus.isFridayMaintenance ? "rgba(245,158,11,0.12)" : "rgba(248,113,113,0.12)",
+                  border: storeStatus.isFridayMaintenance ? "1px solid rgba(245,158,11,0.3)" : "1px solid rgba(248,113,113,0.3)",
+                  color: storeStatus.isFridayMaintenance ? "#fbbf24" : "#f87171",
+                  fontFamily: '"Manrope", sans-serif',
+                }}
+              >
+                <span className="text-base flex-shrink-0">{storeStatus.isFridayMaintenance ? "🛠️" : "⏰"}</span>
+                <span className="leading-tight font-medium">
+                  {storeStatus.isFridayMaintenance
+                    ? "Closed Fridays for Farm Maintenance. Online checkout reopens Saturday at 7:00 AM."
+                    : `Currently closed. Orders reopen ${storeStatus.nextOpenLabel || "tomorrow at 7:00 AM"}.`}
+                </span>
+              </div>
+            )}
 
             <Link
               href="/checkout"

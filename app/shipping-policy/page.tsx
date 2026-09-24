@@ -31,7 +31,7 @@ const sections = [
   },
   {
     title: "2. Harvest-to-Order & Delivery Timelines",
-    body: "• Farm-Fresh Quality: Every order is freshly harvested live from our cold-water aquaculture tanks upon order confirmation to ensure maximum freshness and taste.\n• Rapid Delivery Timeframe: Orders within our 5km radius are freshly harvested to order, cleaned/gutted if requested, chilled in food-grade ice, and delivered to your doorstep within 2 hours.\n• Operating Delivery Hours: Monday to Sunday between 7:00 AM and 10:00 PM IST.",
+    body: "• Farm-Fresh Quality: Every order is freshly harvested live from our cold-water aquaculture tanks upon order confirmation to ensure maximum freshness and taste.\n• Rapid Delivery Timeframe: Orders within our 5km radius are freshly harvested to order, cleaned/gutted if requested, chilled in food-grade ice, and delivered to your doorstep within 2 hours.\n• Operating Delivery Hours: Saturday to Thursday between 7:00 AM and 10:00 PM IST (Closed on Fridays for scheduled Farm Maintenance).",
   },
   {
     title: "3. 100% Free Shipping & Delivery Policy (Within 5km)",

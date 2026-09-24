@@ -50,7 +50,7 @@ const sections = [
   },
   {
     title: "7. Contact for Refund & Cancellation Support",
-    body: "If you have any questions, wish to cancel an order, or need assistance with a refund, please contact us:\n• Business Name: Urban Trout (Proprietorship: Skindar Mohd Sideeq)\n• Helpline / WhatsApp: +91 84910 06127 (Alt: +91 70066 04148)\n• Email: info.urbantrout@gmail.com\n• Operating Address: Malabagh, Naseem Bagh, Srinagar, Jammu & Kashmir — 190006\n• Support Hours: Monday to Sunday, 8:00 AM – 8:00 PM IST",
+    body: "If you have any questions, wish to cancel an order, or need assistance with a refund, please contact us:\n• Business Name: Urban Trout (Proprietorship: Skindar Mohd Sideeq)\n• Helpline / WhatsApp: +91 84910 06127 (Alt: +91 70066 04148)\n• Email: info.urbantrout@gmail.com\n• Operating Address: Malabagh, Naseem Bagh, Srinagar, Jammu & Kashmir — 190006\n• Support Hours: Saturday to Thursday, 7:00 AM – 10:00 PM IST (Closed on Fridays for Farm Maintenance. For urgent inquiries, message us on WhatsApp).",
   },
 ];
 

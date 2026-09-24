@@ -169,6 +169,8 @@ export default async function ShopPage() {
         nextOpenISO={effectiveHoursInfo.nextOpenISO}
         nextOpenLabel={isManuallyClosedFlag ? "when we reopen" : effectiveHoursInfo.nextOpenLabel}
         primaryPhone={primaryPhone}
+        isFridayMaintenance={effectiveHoursInfo.isFridayMaintenance}
+        closedReason={isManuallyClosedFlag ? "manual" : effectiveHoursInfo.closedReason}
       />
     );
   }
@@ -219,8 +221,8 @@ export default async function ShopPage() {
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#72ddfd" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
                 </svg>
-                <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "10px", fontWeight: 600, letterSpacing: "0.1em", color: C.primary }}>
-                  Open · 7:00 AM – 10:00 PM
+                <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "10px", fontWeight: 600, letterSpacing: "0.06em", color: C.primary }}>
+                  Open Today · 7:00 AM – 10:00 PM (Closed Fridays)
                 </span>
               </div>
             </div>

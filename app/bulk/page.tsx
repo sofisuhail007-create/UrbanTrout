@@ -93,7 +93,7 @@ export default function BulkSupplyPage() {
             <span className="text-2xl">⚡</span>
             <h2 className="text-base font-bold text-white font-['Space_Grotesk'] mt-3 mb-1">Pre-Dawn Harvest</h2>
             <p className="text-xs text-slate-400 font-sans leading-relaxed">
-              Harvested from Malabagh tanks at 6:00 AM and delivered to your kitchen door before 9:00 AM prep window.
+              Harvested from Malabagh tanks at 6:00 AM and delivered to your kitchen door before 9:00 AM prep window (Sat – Thu · Closed Fridays for Maintenance).
             </p>
           </div>
           <div className="p-6 rounded-2xl bg-slate-900/80 border border-slate-800">
@@ -132,8 +132,8 @@ export default function BulkSupplyPage() {
               <tbody className="divide-y divide-slate-800 text-slate-300 font-sans">
                 <tr>
                   <td className="p-4 font-bold text-white">Daily Restaurant Supply</td>
-                  <td className="p-4">5 Kg – 15 Kg daily</td>
-                  <td className="p-4">7:00 AM – 9:30 AM</td>
+                  <td className="p-4">5 Kg – 15 Kg (Sat – Thu)</td>
+                  <td className="p-4">7:00 AM – 9:30 AM <span className="block text-[11px] text-amber-400/90 font-mono">Closed Fridays (Maintenance)</span></td>
                   <td className="p-4 font-bold text-emerald-400">Competitive Contract Rates</td>
                 </tr>
                 <tr>

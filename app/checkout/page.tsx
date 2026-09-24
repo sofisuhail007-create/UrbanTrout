@@ -20,6 +20,7 @@ const CustomerLiveMap = dynamic(() => import("@/components/CustomerLiveMap"), {
 import { useCart } from "@/context/CartContext";
 import { useCustomerAuth } from "@/context/CustomerAuthContext";
 import { supabase } from "@/lib/supabase";
+import { getBusinessHoursInfo } from "@/lib/businessHours";
 
 // ─── Razorpay global type ───────────────────────────────────────
 declare global {
@@ -332,6 +333,27 @@ export default function CheckoutPage() {
   const [copiedOrderId, setCopiedOrderId] = useState(false);
   const [rememberDetails, setRememberDetails] = useState(true);
   const [showPrefillBanner, setShowPrefillBanner] = useState(false);
+  const [storeStatus, setStoreStatus] = useState(() => getBusinessHoursInfo());
+
+  useEffect(() => {
+    fetch("/api/store-status")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data && typeof data.isOpen === "boolean") {
+          setStoreStatus({
+            isOpen: data.isOpen,
+            isFridayMaintenance: Boolean(data.isFridayMaintenance),
+            closedReason: data.closedReason,
+            nextOpenLabel: data.nextOpenLabel || "",
+            nextOpenISO: data.nextOpenISO || "",
+            currentISTHour: 0,
+            currentISTMinute: 0,
+            currentISTDay: 0,
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // ─── Form Data State ───
   const [formData, setFormData] = useState({
@@ -770,6 +792,15 @@ export default function CheckoutPage() {
   // ─── STEP 3: Razorpay Standard Checkout ──────────────────────
   const handleRazorpayPayment = async () => {
     setRazorpayError("");
+
+    if (!storeStatus.isOpen) {
+      if (storeStatus.isFridayMaintenance) {
+        setRazorpayError("Our farm is closed on Fridays for scheduled Farm Maintenance. Orders will resume Saturday at 7:00 AM IST.");
+      } else {
+        setRazorpayError(`We are currently outside operating hours (Sat–Thu, 7:00 AM – 10:00 PM IST · Closed Fridays). Orders reopen ${storeStatus.nextOpenLabel || "tomorrow at 7:00 AM"}.`);
+      }
+      return;
+    }
 
     if (!window.Razorpay) {
       setRazorpayError("Payment gateway not loaded yet. Please wait a moment and try again.");
@@ -1415,6 +1446,63 @@ export default function CheckoutPage() {
         strategy="lazyOnload"
       />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-32 pb-24">
+
+        {/* ─── Store Closed / Friday Maintenance Banner ─── */}
+        {!storeStatus.isOpen && (
+          <div className="max-w-3xl mx-auto mb-8">
+            <div
+              className="p-5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center gap-4 relative overflow-hidden"
+              style={{
+                background: storeStatus.isFridayMaintenance
+                  ? "linear-gradient(135deg, rgba(245,158,11,0.12) 0%, rgba(16,33,44,0.95) 100%)"
+                  : "linear-gradient(135deg, rgba(248,113,113,0.12) 0%, rgba(16,33,44,0.95) 100%)",
+                border: storeStatus.isFridayMaintenance
+                  ? "1px solid rgba(245,158,11,0.35)"
+                  : "1px solid rgba(248,113,113,0.35)",
+              }}
+            >
+              <div
+                className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+                style={{
+                  background: storeStatus.isFridayMaintenance ? "rgba(245,158,11,0.2)" : "rgba(248,113,113,0.2)",
+                  color: storeStatus.isFridayMaintenance ? "#fbbf24" : "#f87171",
+                }}
+              >
+                {storeStatus.isFridayMaintenance ? (
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                ) : (
+                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                )}
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-1">
+                  <span
+                    className="inline-block w-2 h-2 rounded-full animate-pulse"
+                    style={{ background: storeStatus.isFridayMaintenance ? "#fbbf24" : "#f87171" }}
+                  />
+                  <h4
+                    className="font-bold text-sm sm:text-base text-white"
+                    style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                  >
+                    {storeStatus.isFridayMaintenance
+                      ? "Closed Today for Weekly Farm Maintenance"
+                      : "Farm Orders Currently Closed"}
+                  </h4>
+                </div>
+                <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                  {storeStatus.isFridayMaintenance
+                    ? "Our aquaculture facility in Malabagh observes complete scheduled maintenance on Fridays. Live harvesting & online checkout will resume Saturday morning at 7:00 AM IST."
+                    : `We accept live harvest delivery orders Saturday to Thursday, 7:00 AM – 10:00 PM IST (Closed Fridays). Next opening: ${storeStatus.nextOpenLabel || "7:00 AM IST"}.`}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* ─── 3-STAGE PROGRESS STEPPER ─── */}
         <div className="max-w-3xl mx-auto mb-12">
@@ -2575,17 +2663,19 @@ export default function CheckoutPage() {
                 <button
                   type="button"
                   onClick={handleRazorpayPayment}
-                  disabled={isSubmitting}
-                  className="w-full flex items-center justify-center gap-3 font-bold uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 rounded-xl py-5 cursor-pointer"
+                  disabled={isSubmitting || !storeStatus.isOpen}
+                  className="w-full flex items-center justify-center gap-3 font-bold uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed rounded-xl py-5 cursor-pointer"
                   style={{
                     fontFamily: '"Space Grotesk", sans-serif',
                     fontSize: "1rem",
-                    background: isSubmitting
+                    background: !storeStatus.isOpen
+                      ? "rgba(61,74,83,0.5)"
+                      : isSubmitting
                       ? "rgba(58,173,204,0.6)"
                       : "linear-gradient(135deg, #3aadcc 0%, #72ddfd 100%)",
-                    color: "#002730",
+                    color: !storeStatus.isOpen ? "#9fadb8" : "#002730",
                     border: "none",
-                    boxShadow: isSubmitting ? "none" : "0 0 35px rgba(114,221,253,0.45)",
+                    boxShadow: isSubmitting || !storeStatus.isOpen ? "none" : "0 0 35px rgba(114,221,253,0.45)",
                   }}
                 >
                   {isSubmitting ? (
@@ -2596,6 +2686,13 @@ export default function CheckoutPage() {
                       </svg>
                       Processing…
                     </span>
+                  ) : !storeStatus.isOpen ? (
+                    <>
+                      <span>🔒</span>
+                      {storeStatus.isFridayMaintenance
+                        ? "Closed for Friday Maintenance · Reopens Sat 7 AM"
+                        : `Closed · Reopens ${storeStatus.nextOpenLabel || "7:00 AM"}`}
+                    </>
                   ) : (
                     <>
                       <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">

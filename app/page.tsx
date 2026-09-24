@@ -85,6 +85,10 @@ const faqs = [
     a: "If cooking within 48 hours, keep the trout chilled in its ice pack inside your refrigerator chiller (0°C–4°C). For longer storage, wrap the trout in airtight freezer film or vacuum bags and freeze at -18°C for up to 3 months without compromising moisture or texture.",
   },
   {
+    q: "What are your operating hours and are you open every day?",
+    a: "We are open for fresh live harvesting, farm pickups, and doorstep delivery Saturday through Thursday from 7:00 AM to 10:00 PM IST. We are closed on Fridays for scheduled Farm Maintenance, water filtration bio-security sanitization, and RAS system upkeep.",
+  },
+  {
     q: "Is Rainbow Trout skin edible and how is it traditionally cooked in Kashmir?",
     a: "Yes! Rainbow Trout scales are microscopic and delicate. When cooked, the skin crisps up deliciously and is packed with healthy Omega-3 fatty acids. In Kashmir, it is most popularly pan-fried in mustard oil with salt and Kashmiri red chili, cooked as traditional Mujh Gaad (trout with radishes), or grilled with garlic butter and lemon.",
   },

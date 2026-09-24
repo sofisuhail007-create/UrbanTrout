@@ -184,6 +184,8 @@ export default async function WholeTroutPage() {
           nextOpenISO={effectiveHoursInfo.nextOpenISO}
           nextOpenLabel={isManuallyClosedFlag ? "when we reopen" : effectiveHoursInfo.nextOpenLabel}
           primaryPhone={primaryPhone}
+          isFridayMaintenance={effectiveHoursInfo.isFridayMaintenance}
+          closedReason={isManuallyClosedFlag ? "manual" : effectiveHoursInfo.closedReason}
         />
       </>
     );
@@ -415,10 +417,10 @@ export default async function WholeTroutPage() {
                   </svg>
                   <div>
                     <p style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "0.9rem", fontWeight: 700, color: C.onSurface, margin: 0 }}>
-                      Store Closed
+                      {effectiveHoursInfo.isFridayMaintenance ? "Closed for Friday Farm Maintenance" : "Store Closed"}
                     </p>
                     <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.8rem", color: C.onSurfVar, margin: 0 }}>
-                      Opens {isManuallyClosedFlag ? "when we reopen" : effectiveHoursInfo.nextOpenLabel} · 7:00 AM – 10:00 PM daily
+                      Opens {isManuallyClosedFlag ? "when we reopen" : effectiveHoursInfo.nextOpenLabel} · Sat – Thu: 7:00 AM – 10:00 PM (Closed Fridays)
                     </p>
                   </div>
                 </div>
@@ -442,7 +444,7 @@ export default async function WholeTroutPage() {
                       Out of Stock for Today
                     </p>
                     <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.8rem", color: C.onSurfVar, margin: 0 }}>
-                      All available live aquarium stock has been sold out for today. Fresh harvest opens again tomorrow at 7:00 AM!
+                      All available live aquarium stock has been sold out for today. Fresh harvest opens again {effectiveHoursInfo.nextOpenLabel || "tomorrow at 7:00 AM"}!
                     </p>
                   </div>
                 </div>

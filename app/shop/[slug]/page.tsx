@@ -3,8 +3,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import AddToCartButton from "@/components/AddToCartButton";
+import StoreClosedBanner from "@/components/StoreClosedBanner";
 import { supabase } from "@/lib/supabase";
 import { products } from "@/lib/data";
+import { getBusinessHoursInfo } from "@/lib/businessHours";
 
 // Enable ISR (Incremental Static Regeneration) - cached at Edge CDN and refreshed every 60s
 export const revalidate = 60;
@@ -206,6 +208,42 @@ export default async function DynamicProductPage({ params }: Props) {
       },
     },
   };
+
+  // ── Business Hours Check ──────────────────────────────────────────
+  const hoursInfo = getBusinessHoursInfo();
+  const { data: closedRow } = await supabase
+    .from("app_settings")
+    .select("value")
+    .eq("key", "store_manually_closed")
+    .single();
+  const isManuallyClosedFlag = closedRow?.value === "true";
+  const effectivelyOpen = hoursInfo.isOpen && !isManuallyClosedFlag;
+  const effectiveHoursInfo = { ...hoursInfo, isOpen: effectivelyOpen };
+
+  const { data: phoneRow } = await supabase
+    .from("app_settings")
+    .select("value")
+    .eq("key", "primary_phone")
+    .single();
+  const primaryPhone = phoneRow?.value ?? "+918491006127";
+
+  if (!effectiveHoursInfo.isOpen) {
+    return (
+      <>
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
+        />
+        <StoreClosedBanner
+          nextOpenISO={effectiveHoursInfo.nextOpenISO}
+          nextOpenLabel={isManuallyClosedFlag ? "when we reopen" : effectiveHoursInfo.nextOpenLabel}
+          primaryPhone={primaryPhone}
+          isFridayMaintenance={effectiveHoursInfo.isFridayMaintenance}
+          closedReason={isManuallyClosedFlag ? "manual" : effectiveHoursInfo.closedReason}
+        />
+      </>
+    );
+  }
 
   return (
     <div style={{ background: C.bg, minHeight: "100vh" }}>

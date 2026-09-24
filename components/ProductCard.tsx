@@ -244,7 +244,7 @@ export default function ProductCard({ p }: { p: Product }) {
                 Store Closed
               </p>
               <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.72rem", color: "#9fadb8", margin: 0 }}>
-                Opens at 7:00 AM — order tomorrow
+                Sat – Thu: 7 AM – 10 PM · Closed Fridays for Farm Maintenance
               </p>
             </div>
           </div>

@@ -75,6 +75,10 @@ const FAQS = [
     q: "What bio-security rules must I follow on the farm?",
     a: "All visitors must step on the disinfectant foot mat upon entry, stay on designated walkways, never touch the water or put anything into the tanks, and ensure children are held by hand at all times.",
   },
+  {
+    q: "Can I schedule a farm visit on Fridays?",
+    a: "No. Urban Trout is strictly closed on Fridays for scheduled Farm Maintenance, continuous RAS biological filter backwashing, and biosecurity sanitation. Farm visits can be scheduled Saturday through Thursday.",
+  },
 ];
 
 export default function FarmVisitsPage() {
@@ -82,9 +86,13 @@ export default function FarmVisitsPage() {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [visitDate, setVisitDate] = useState(() => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    return tomorrow.toISOString().split("T")[0];
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    // If tomorrow is Friday, default to Saturday (+2 days)
+    if (d.getDay() === 5) {
+      d.setDate(d.getDate() + 1);
+    }
+    return d.toISOString().split("T")[0];
   });
   const [timeSlot, setTimeSlot] = useState(TIME_SLOTS[0].time);
   const [guestCount, setGuestCount] = useState(2);
@@ -94,6 +102,14 @@ export default function FarmVisitsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedVisit, setSubmittedVisit] = useState<any | null>(null);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+
+  const isDateFriday = (dateStr: string) => {
+    if (!dateStr) return false;
+    const parts = dateStr.split("-").map(Number);
+    if (parts.length < 3) return false;
+    const d = new Date(parts[0], parts[1] - 1, parts[2]);
+    return d.getDay() === 5;
+  };
 
   const setQuickDate = (daysAhead: number) => {
     const d = new Date();
@@ -120,6 +136,10 @@ export default function FarmVisitsPage() {
     }
     if (!visitDate) {
       toast.error("Please select a date for your visit request.");
+      return;
+    }
+    if (isDateFriday(visitDate)) {
+      toast.error("Urban Trout is closed on Fridays for Farm Maintenance. Please select another day (Saturday to Thursday).");
       return;
     }
     if (!agreedToRules) {
@@ -464,8 +484,21 @@ export default function FarmVisitsPage() {
                       min={getTodayStr()}
                       value={visitDate}
                       onChange={(e) => setVisitDate(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950/80 border border-slate-700/80 text-white text-sm focus:outline-none focus:border-cyan-400 transition-colors font-mono"
+                      className={`w-full px-3.5 py-2.5 rounded-xl bg-slate-950/80 border text-white text-sm focus:outline-none transition-colors font-mono ${
+                        isDateFriday(visitDate) ? "border-red-500/80 focus:border-red-400" : "border-slate-700/80 focus:border-cyan-400"
+                      }`}
                     />
+                    <p className="text-[11px] text-slate-400 mt-1.5 font-mono">
+                      📅 Visiting Schedule: Saturday to Thursday (Closed on Fridays for Farm Maintenance)
+                    </p>
+                    {isDateFriday(visitDate) && (
+                      <div className="mt-2.5 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs flex items-center gap-2">
+                        <span className="material-symbols-outlined text-base text-red-400 flex-shrink-0">warning</span>
+                        <span>
+                          <strong>Closed for Friday Farm Maintenance:</strong> Visits cannot be scheduled on Fridays. Please select another date (Saturday through Thursday).
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   <div>
