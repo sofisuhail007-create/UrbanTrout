@@ -425,7 +425,8 @@ export async function POST(request: Request) {
               `⚡ <b>REPLY DELIVERED LIVE TO VISITOR!</b>\n━━━━━━━━━━━━━━━━━━━━\n<b>Visitor:</b> <code>#chat_${targetThreadId}</code>\n<b>Your Message:</b> <i>"${escapeHtml(text)}"</i>`,
               "HTML",
               undefined,
-              chatId
+              chatId,
+              msg.message_id
             );
 
             return NextResponse.json({ success: true, repliedToThread: targetThreadId });
@@ -479,7 +480,8 @@ export async function POST(request: Request) {
               `⚡ <b>REPLY DELIVERED LIVE TO VISITOR!</b>\n━━━━━━━━━━━━━━━━━━━━\n<b>Visitor:</b> <code>#chat_${directThreadId}</code>\n<b>Your Message:</b> <i>"${escapeHtml(directReplyContent)}"</i>`,
               "HTML",
               undefined,
-              chatId
+              chatId,
+              msg.message_id
             );
 
             return NextResponse.json({ success: true, repliedToThread: directThreadId });

@@ -251,10 +251,6 @@ export default function ContactPage() {
                   <span className="text-slate-400 font-mono text-[11px]">Issuing Authority:</span>
                   <span className="text-slate-200">Dept. of Health &amp; Medical Education, J&amp;K</span>
                 </div>
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-slate-400 font-mono text-[11px]">Validity:</span>
-                  <span className="text-emerald-400 font-semibold">Valid Thru 02-09-2027</span>
-                </div>
               </div>
 
               <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.8rem", color: C.onSurfVar, lineHeight: 1.6, margin: 0 }}>

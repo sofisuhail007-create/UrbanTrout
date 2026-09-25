@@ -67,7 +67,7 @@ export default function Footer() {
               marginTop: "4px",
             }}
           >
-            ✓ FSSAI Reg. No: <strong style={{ color: "#a7f3d0" }}>21026414000392</strong> (Valid thru 2027)
+            ✓ FSSAI Reg. No: <strong style={{ color: "#a7f3d0" }}>21026414000392</strong>
           </span>
         </div>
 
@@ -180,9 +180,8 @@ export default function Footer() {
             Contact &amp; Farm Location
           </h5>
           <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "1.25rem" }}>
-            <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.84rem", color: C.onSurfVar }}>Malla Bagh Naseem Bagh Hazratbal</p>
-            <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.84rem", color: C.onSurfVar }}>Zone-III, Srinagar — 190006, J&amp;K</p>
-            <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.76rem", color: C.onSurfVar }}>Near R P School Girls Wing</p>
+            <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.84rem", color: C.onSurfVar }}>Malla Bagh Naseem Bagh, Srinagar — 190006, J&amp;K</p>
+            <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.78rem", color: C.onSurfVar }}>Near R P School Girls Wing</p>
             
             {/* Primary number */}
             <div style={{ marginTop: "6px", display: "flex", flexDirection: "column", gap: "2px" }}>
