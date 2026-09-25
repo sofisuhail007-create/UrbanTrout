@@ -92,6 +92,14 @@ const faqs = [
     q: "Is Rainbow Trout skin edible and how is it traditionally cooked in Kashmir?",
     a: "Yes! Rainbow Trout scales are microscopic and delicate. When cooked, the skin crisps up deliciously and is packed with healthy Omega-3 fatty acids. In Kashmir, it is most popularly pan-fried in mustard oil with salt and Kashmiri red chili, cooked as traditional Mujh Gaad (trout with radishes), or grilled with garlic butter and lemon.",
   },
+  {
+    q: "Is fresh trout available year-round in Srinagar or only during seasonal fishing months?",
+    a: "Fresh Rainbow Trout at Urban Trout is available 100% year-round, 365 days a year. While natural Himalayan river angling and wild stream fisheries in Kashmir are subject to winter freeze closures and monsoon breeding bans, our closed-containment deep borewell raceways maintain a pristine, constant 10°C–12°C temperature throughout all seasons, guaranteeing uninterrupted fresh harvest even during the coldest winter months.",
+  },
+  {
+    q: "What do your trout eat and are any antibiotics or chemicals used?",
+    a: "Our fish are nourished exclusively on premium, high-protein floating extruded pellet nutrition designed specifically for cold-water Salmonids. Because our subterranean aquifer supplies continuous high-dissolved-oxygen currents (9.8 mg/L), our trout maintain vigorous natural immunity. We follow a strict zero-prophylactic-antibiotic and zero-growth-hormone protocol, ensuring clean, wholesome fish with zero pond mud or muddy bottom-feeder taste.",
+  },
 ];
 
 const customerReviews = [
@@ -229,7 +237,7 @@ export default async function HomePage() {
               lineHeight: 1.75,
             }}
           >
-            Your trout is still swimming when you place your order. Farmed in clean, subterranean borewell water in Malabagh using advanced RAS tanks, packed on crushed ice, and delivered chilled to your doorstep: whole from <strong style={{ color: "#72ddfd" }}>₹540/kg</strong>, cleaned &amp; gutted from <strong style={{ color: "#72ddfd" }}>₹580/kg</strong> with <strong style={{ color: "#34d399" }}>100% Free Doorstep Delivery</strong> within 5km of our farm (or farm pickup) within 2 hours. Min 2 kg for thermal cold-chain insulation.
+            Urban Trout Srinagar guarantees your fish is still swimming when you place your order. Farmed in clean, subterranean borewell water in Malabagh using advanced RAS tanks, available fresh year-round, packed on crushed ice, and delivered chilled to your doorstep: whole from <strong style={{ color: "#72ddfd" }}>₹540/kg</strong>, cleaned &amp; gutted from <strong style={{ color: "#72ddfd" }}>₹580/kg</strong> with <strong style={{ color: "#34d399" }}>100% Free Doorstep Delivery</strong> within 5km of our farm (or farm pickup) within 2 hours. Min 2 kg for thermal cold-chain insulation.
           </p>
 
           {/* CTAs */}
@@ -598,10 +606,10 @@ export default async function HomePage() {
           </div>
 
           {/* Bento Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Large: Borewell */}
             <div
-              className="md:col-span-2 group relative overflow-hidden rounded-2xl p-8 md:p-10 flex flex-col justify-end min-h-[280px] transition-all hover:border-[#72ddfd]/30"
+              className="md:col-span-3 group relative overflow-hidden rounded-2xl p-8 md:p-10 flex flex-col justify-end min-h-[280px] transition-all hover:border-[#72ddfd]/30"
               style={{ background: C.bgLow, border: "1px solid rgba(255,255,255,0.06)" }}
             >
               <Image
@@ -619,13 +627,13 @@ export default async function HomePage() {
                 <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.75rem", fontWeight: 700, margin: "0 0 0.5rem", color: C.onSurface }}>
                   100% Deep Groundwater (Borewell) System
                 </h3>
-                <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfaceVariant, maxWidth: "660px", lineHeight: 1.75, margin: 0, fontSize: "0.95rem" }}>
-                  Raised in clean, filtered subterranean groundwater at a steady 10°C–12°C. Completely isolated from Dal Lake contaminants, open agricultural runoff, and muddy river silt, resulting in pristine, clean-tasting white flesh.
+                <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfaceVariant, maxWidth: "720px", lineHeight: 1.75, margin: 0, fontSize: "0.95rem" }}>
+                  Raised in clean, filtered subterranean groundwater at a steady 10°C–12°C. Completely isolated from Dal Lake contaminants, open agricultural runoff, and muddy river silt, resulting in pristine, clean-tasting white flesh with zero mud taste.
                 </p>
               </div>
             </div>
 
-            {/* Zero Antibiotics */}
+            {/* Zero Antibiotics & Feed Purity */}
             <div
               className="rounded-2xl p-8 md:p-10 flex flex-col justify-between transition-all hover:border-[#72ddfd]/30"
               style={{ background: C.bgHigh, border: "1px solid rgba(255,255,255,0.06)" }}
@@ -634,9 +642,28 @@ export default async function HomePage() {
                 <svg className="w-9 h-9 text-[#63cfee] mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                 </svg>
-                <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.4rem", fontWeight: 700, color: C.onSurface, margin: "0 0 0.75rem" }}>Zero Preventive Antibiotics</h3>
+                <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.35rem", fontWeight: 700, color: C.onSurface, margin: "0 0 0.75rem" }}>Pure Feed &amp; Zero Antibiotics</h3>
                 <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfaceVariant, fontSize: "0.9rem", lineHeight: 1.75, margin: 0 }}>
-                  High-velocity continuous flow and high dissolved oxygen keep our trout naturally active and vigorous without chemical feeds, hormones, or prophylactic antibiotics.
+                  Fed exclusively on high-protein floating extruded pellet nutrition designed for cold-water Salmonids. High dissolved oxygen keeps fish naturally vigorous without chemical growth promoters, hormones, or preventive antibiotics.
+                </p>
+              </div>
+            </div>
+
+            {/* 365-Day Year-Round Harvest */}
+            <div
+              className="rounded-2xl p-8 md:p-10 flex flex-col justify-between transition-all hover:border-[#72ddfd]/30"
+              style={{ background: C.bgHigh, border: "1px solid rgba(255,255,255,0.06)" }}
+            >
+              <div>
+                <svg className="w-9 h-9 text-[#34d399] mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                  <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                  <line x1="16" y1="2" x2="16" y2="6" />
+                  <line x1="8" y1="2" x2="8" y2="6" />
+                  <line x1="3" y1="10" x2="21" y2="10" />
+                </svg>
+                <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.35rem", fontWeight: 700, color: C.onSurface, margin: "0 0 0.75rem" }}>365-Day Year-Round Harvest</h3>
+                <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfaceVariant, fontSize: "0.9rem", lineHeight: 1.75, margin: 0 }}>
+                  Unlike natural river streams that freeze in sub-zero winter or shut down for seasonal breeding bans, our closed-containment raceways maintain steady temperature for guaranteed fresh trout supply 365 days a year.
                 </p>
               </div>
             </div>
@@ -651,7 +678,7 @@ export default async function HomePage() {
                   <circle cx="12" cy="12" r="9" />
                   <polyline points="12 6 12 12 16 14" />
                 </svg>
-                <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.4rem", fontWeight: 700, color: C.onSurface, margin: "0 0 0.75rem" }}>Harvested Live to Order</h3>
+                <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.35rem", fontWeight: 700, color: C.onSurface, margin: "0 0 0.75rem" }}>Harvested Live to Order</h3>
                 <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfaceVariant, fontSize: "0.9rem", lineHeight: 1.75, margin: 0 }}>
                   Never pre-harvested or kept in stagnant cold storage. Fish swim in clean, continuous cold-water currents until your order is confirmed, then hand-harvested live, cleaned, and packed on food-grade ice for delivery within 2 hours.
                 </p>
@@ -795,6 +822,10 @@ export default async function HomePage() {
                   <li className="flex items-start gap-2">
                     <span className="text-amber-400 font-bold">3.</span>
                     <span><strong>Mujh Gaad &amp; Gaad Soup:</strong> Slow-simmer with sliced winter radishes and aromatic <em className="text-white">ver</em> masala, or simmer heads and bones with garlic into a collagen-rich Kashmiri fish broth (<em>Gaad Soup</em>).</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-amber-400 font-bold">4.</span>
+                    <span><strong>Target Doneness &amp; Core Temperature:</strong> Cook to an internal temperature of <strong>60°C–63°C (140°F–145°F)</strong>. The flesh turns tender opaque and flakes effortlessly with a fork while retaining juicy moisture. Avoid overcooking, as cold-water trout cooks ~40% faster than dense marine fish.</span>
                   </li>
                 </ul>
               </div>
