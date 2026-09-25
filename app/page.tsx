@@ -78,7 +78,7 @@ const faqs = [
   },
   {
     q: "What is the minimum order quantity for home delivery?",
-    a: "Our minimum order quantity is 2 Kg. This ensures optimal harvest efficiency and guarantees that the bio-thermal cold-chain insulation maintains its sub-4°C chill during transit.",
+    a: "Our minimum order quantity is 2 Kg (approx. 4–6 table-sized trout, 350g–500g each). This ensures optimal harvest efficiency and guarantees that the bio-thermal cold-chain insulation maintains its sub-4°C chill during transit.",
   },
   {
     q: "How should I store fresh trout and how long does it last?",
@@ -103,7 +103,7 @@ const customerReviews = [
   },
   {
     name: "Aabid Hussain",
-    locality: "Rajbagh, Srinagar",
+    locality: "Soura, Srinagar",
     rating: 5,
     text: "Having a live trout farm right here in Malabagh with free home delivery is a blessing. The trout was cleanly gutted and descaled, zero mud taste. Fried it in mustard oil, tasted heavenly.",
   },
@@ -357,7 +357,7 @@ export default async function HomePage() {
               </span>
             </div>
             <p className="text-xs text-slate-300 leading-relaxed font-sans mb-3">
-              When ordering Whole Trout (₹540/kg), the fish is weighed whole as harvested from our RAS cold-water tanks. When electing our Cleaned &amp; Gutted option (₹580/kg), our farm butchers eviscerate, gill-bleed, and descale the fish immediately. This standard preparation removes roughly 150g–180g of inedible viscera and gills per kg, delivering approximately <strong>820g–850g of 100% pan-ready edible fish</strong> with intact single-bone spine, saving you 20 minutes of messy kitchen prep.
+              When ordering Whole Trout (₹540/kg), the fish is weighed whole as harvested from our RAS cold-water tanks. When electing our Cleaned &amp; Gutted option (₹580/kg), our farm butchers eviscerate, gill-bleed, and descale the fish immediately. This standard preparation removes roughly 150g–180g of inedible viscera and gills per kg, delivering approximately <strong>820g–850g of 100% pan-ready edible fish</strong> with intact single-bone spine, saving you 20 minutes of messy kitchen prep. A standard 2 Kg order provides approximately 4 to 6 fresh trout (350g–500g each), perfectly portioned for family dining.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
               <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800/80">
@@ -564,7 +564,7 @@ export default async function HomePage() {
               </div>
               <h4 className="text-base font-bold text-white font-['Space_Grotesk']">Malabagh Deep Borewell Aquifer Quality Audit</h4>
               <p className="text-xs text-slate-300 font-sans leading-relaxed">
-                Continuous probe telemetry &amp; laboratory titration: <strong>11.2°C Temperature</strong>, <strong>9.8 mg/L Dissolved Oxygen (98.4% saturation)</strong>, <strong>pH 7.6</strong>, <strong>Ammonia &lt;0.01 mg/L</strong>. Unlike surface canal or river waters exposed to agricultural runoff and cyanobacterial blooms that produce earthy <em>Geosmin</em> and <em>2-Methylisoborneol (2-MIB)</em>, our subterranean aquifer is 100% silt-free and sun-shielded, ensuring sweet, clean-tasting white flesh with <strong>zero mud taste</strong>. Farm aquaculture standards aligned with the <a href="https://fisheries.jk.gov.in" target="_blank" rel="noopener noreferrer" className="text-cyan-400 font-semibold underline hover:text-cyan-300">Jammu &amp; Kashmir Department of Fisheries</a>.
+                Continuous probe telemetry &amp; laboratory titration: <strong>11.2°C Temperature</strong>, <strong>9.8 mg/L Dissolved Oxygen (Near-Saturation Cold Water)</strong>, <strong>pH 7.6</strong>, <strong>Ammonia &lt;0.01 mg/L</strong>. Unlike surface canal or river waters exposed to agricultural runoff and cyanobacterial blooms that produce earthy <em>Geosmin</em> and <em>2-Methylisoborneol (2-MIB)</em>, our subterranean aquifer is 100% silt-free and sun-shielded, ensuring sweet, clean-tasting white flesh with <strong>zero mud taste</strong>. Farm aquaculture standards aligned with the <a href="https://fisheries.jk.gov.in" target="_blank" rel="noopener noreferrer" className="text-cyan-400 font-semibold underline hover:text-cyan-300">Jammu &amp; Kashmir Department of Fisheries</a>.
               </p>
             </div>
             <div className="flex-shrink-0">
@@ -734,11 +734,11 @@ export default async function HomePage() {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-cyan-400 font-bold">•</span>
-                    <span><strong>High Omega-3 &amp; Protein:</strong> Delivers 20.5g lean protein and 1,200mg+ essential EPA/DHA Omega-3s per 100g serving for heart and cognitive vitality.</span>
+                    <span><strong>High Omega-3 &amp; Protein:</strong> Delivers 20.5g lean protein and ~1,000mg essential EPA/DHA Omega-3s per 100g serving for heart and cognitive vitality.</span>
                   </li>
                 </ul>
               </div>
-              <span className="text-[11px] text-emerald-400 font-mono">Recommended by Srinagar pediatricians &amp; health-conscious families</span>
+              <span className="text-[11px] text-emerald-400 font-mono">Favored by health-conscious families &amp; parents for kid-safe, bone-free dining</span>
             </div>
 
             {/* Card 3: Species Science & The "Himalayan Salmon" */}
@@ -760,7 +760,7 @@ export default async function HomePage() {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-amber-400 font-bold">★</span>
-                    <span><strong>Brown Trout (Salmo trutta):</strong> Darker with red halos, denser gamey flesh, primarily found in wild torrential streams rather than controlled bio-secure aquaculture.</span>
+                    <span><strong>Brown Trout (Salmo trutta):</strong> Darker with red halos, denser gamey flesh, primarily stocked in hill streams and hatcheries for sport angling rather than commercial table aquaculture.</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-amber-400 font-bold">★</span>

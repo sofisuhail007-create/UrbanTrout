@@ -165,10 +165,14 @@ export default function StoreClosedBanner({
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        justifyContent: "center",
-        padding: "2rem 1.5rem",
+        justifyContent: "flex-start",
+        paddingTop: "7.5rem",
+        paddingBottom: "4rem",
+        paddingLeft: "1.5rem",
+        paddingRight: "1.5rem",
         position: "relative",
-        overflow: "hidden",
+        overflowX: "hidden",
+        boxSizing: "border-box",
       }}
     >
       {/* Ambient glow blobs */}
@@ -207,62 +211,67 @@ export default function StoreClosedBanner({
           zIndex: 1,
           maxWidth: "580px",
           width: "100%",
+          margin: "auto 0",
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          gap: "2.5rem",
+          gap: "1.75rem",
           textAlign: "center",
         }}
       >
-        {/* Animated moon orb */}
-        <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
+        {/* Animated moon / maintenance orb */}
+        <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", marginTop: "0.5rem" }}>
           {/* Outer pulse ring */}
           <div
             style={{
               position: "absolute",
-              width: "140px",
-              height: "140px",
+              width: "130px",
+              height: "130px",
               borderRadius: "50%",
-              border: "1px solid rgba(114,221,253,0.15)",
+              border: isFridayNow ? "1px solid rgba(248,113,113,0.25)" : "1px solid rgba(114,221,253,0.15)",
               animation: "orb-pulse 3s ease-in-out infinite",
             }}
           />
           <div
             style={{
               position: "absolute",
-              width: "110px",
-              height: "110px",
+              width: "105px",
+              height: "105px",
               borderRadius: "50%",
-              border: "1px solid rgba(114,221,253,0.1)",
+              border: isFridayNow ? "1px solid rgba(248,113,113,0.18)" : "1px solid rgba(114,221,253,0.1)",
               animation: "orb-pulse 3s ease-in-out infinite 0.5s",
             }}
           />
           {/* Core orb */}
           <div
             style={{
-              width: "84px",
-              height: "84px",
+              width: "80px",
+              height: "80px",
               borderRadius: "50%",
-              background: "radial-gradient(circle at 35% 35%, rgba(114,221,253,0.25) 0%, rgba(58,173,204,0.08) 60%, transparent 100%)",
-              border: "1px solid rgba(114,221,253,0.3)",
+              background: isFridayNow
+                ? "radial-gradient(circle at 35% 35%, rgba(248,113,113,0.22) 0%, rgba(239,68,68,0.06) 60%, transparent 100%)"
+                : "radial-gradient(circle at 35% 35%, rgba(114,221,253,0.25) 0%, rgba(58,173,204,0.08) 60%, transparent 100%)",
+              border: isFridayNow ? "1.5px solid rgba(248,113,113,0.4)" : "1px solid rgba(114,221,253,0.3)",
               backdropFilter: "blur(12px)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              boxShadow: "0 0 40px rgba(114,221,253,0.12), inset 0 0 20px rgba(114,221,253,0.08)",
+              boxShadow: isFridayNow
+                ? "0 0 35px rgba(248,113,113,0.2), inset 0 0 20px rgba(248,113,113,0.1)"
+                : "0 0 40px rgba(114,221,253,0.12), inset 0 0 20px rgba(114,221,253,0.08)",
             }}
           >
             {/* Moon / Maintenance / Sunrise Icon */}
             {isOpeningNow || countdown.done ? (
-              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#72ddfd" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="animate-spin">
+              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#72ddfd" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="animate-spin">
                 <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
               </svg>
             ) : isFridayNow ? (
-              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#72ddfd" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fca5a5" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
               </svg>
             ) : (
-              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#72ddfd" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#72ddfd" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
               </svg>
             )}
@@ -356,12 +365,14 @@ export default function StoreClosedBanner({
           <div
             style={{
               width: "100%",
-              padding: "2rem 2.5rem",
-              background: "rgba(16,33,44,0.8)",
+              padding: "1.5rem 1.75rem",
+              background: "rgba(16,33,44,0.85)",
               borderRadius: "20px",
-              border: "1px solid rgba(61,74,83,0.6)",
+              border: isFridayNow ? "1px solid rgba(248,113,113,0.3)" : "1px solid rgba(61,74,83,0.6)",
               backdropFilter: "blur(20px)",
-              boxShadow: "0 8px 40px rgba(0,0,0,0.3), inset 0 1px 0 rgba(114,221,253,0.05)",
+              boxShadow: isFridayNow
+                ? "0 8px 40px rgba(0,0,0,0.35), 0 0 30px rgba(248,113,113,0.06)"
+                : "0 8px 40px rgba(0,0,0,0.3), inset 0 1px 0 rgba(114,221,253,0.05)",
             }}
           >
             {isOpeningNow || countdown.done ? (
@@ -554,7 +565,7 @@ export default function StoreClosedBanner({
             flexWrap: "wrap",
             alignItems: "center",
             justifyContent: "center",
-            gap: "1.5rem",
+            gap: "0.85rem",
             width: "100%",
           }}
         >
@@ -564,7 +575,7 @@ export default function StoreClosedBanner({
               display: "flex",
               alignItems: "center",
               gap: "10px",
-              padding: "0.85rem 1.5rem",
+              padding: "0.75rem 1.25rem",
               background: "rgba(114,221,253,0.06)",
               border: "1px solid rgba(114,221,253,0.2)",
               borderRadius: "12px",
@@ -576,7 +587,7 @@ export default function StoreClosedBanner({
             </svg>
             <div style={{ textAlign: "left" }}>
               <p style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", letterSpacing: "0.2em", textTransform: "uppercase", color: C.onSurfVar, margin: "0 0 2px" }}>Farm Operating Schedule</p>
-              <p style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "0.9rem", fontWeight: 700, color: C.onSurface, margin: 0 }}>Sat – Thu: 7:00 AM – 10:00 PM</p>
+              <p style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "0.88rem", fontWeight: 700, color: C.onSurface, margin: 0 }}>Sat – Thu: 7:00 AM – 10:00 PM</p>
               <p style={{ fontFamily: '"Inter", sans-serif', fontSize: "10px", fontWeight: 600, color: "#f87171", margin: "2px 0 0" }}>Closed Fridays (Farm Maintenance)</p>
             </div>
           </div>
@@ -587,7 +598,7 @@ export default function StoreClosedBanner({
               display: "flex",
               alignItems: "center",
               gap: "10px",
-              padding: "0.85rem 1.5rem",
+              padding: "0.75rem 1.25rem",
               background: "rgba(114,221,253,0.06)",
               border: "1px solid rgba(114,221,253,0.2)",
               borderRadius: "12px",
@@ -599,7 +610,7 @@ export default function StoreClosedBanner({
             </svg>
             <div style={{ textAlign: "left" }}>
               <p style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", letterSpacing: "0.2em", textTransform: "uppercase", color: C.onSurfVar, margin: "0 0 2px" }}>Farm Location</p>
-              <p style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "0.9rem", fontWeight: 700, color: C.onSurface, margin: 0 }}>Malabagh, Srinagar</p>
+              <p style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "0.88rem", fontWeight: 700, color: C.onSurface, margin: 0 }}>Malabagh, Srinagar</p>
             </div>
           </div>
         </div>

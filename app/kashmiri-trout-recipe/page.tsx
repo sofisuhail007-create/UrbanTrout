@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "How to Cook Kashmiri-Style Trout: Authentic Pan-Fry & Muji Gaad | Urban Trout",
+  title: "How to Cook Kashmiri-Style Trout: Authentic Pan-Fry & Muji Gaad",
   description:
     "Master cooking fresh Rainbow Trout the authentic Kashmiri way. Pure mustard oil (Kaeshur Tiel) sear, fragrant chili & turmeric marinade, and classic winter Muji Gaad.",
   alternates: {

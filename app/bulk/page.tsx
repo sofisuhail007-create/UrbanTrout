@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Bulk & Wholesale Trout Supply in Srinagar | Urban Trout",
+  title: "Bulk & Wholesale Trout Supply in Srinagar",
   description:
     "Direct producer wholesale supply of fresh Rainbow Trout for Srinagar restaurants, hotels, weddings, and caterers. GST invoices, cold-chain delivery, and bulk rates from 10 kg.",
   alternates: {

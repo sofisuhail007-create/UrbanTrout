@@ -63,7 +63,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Buy Fresh Rainbow Trout in Srinagar | Urban Trout",
-    description: "Farm-fresh Rainbow Trout harvested to order in Srinagar. Same-day chilled home delivery.",
+    description: "Farm-fresh Rainbow Trout harvested to order in Srinagar. Chilled 2-hour doorstep delivery within our 5km farm zone.",
     images: ["https://urbantrout.in/og-image.jpg"],
   },
   robots: {

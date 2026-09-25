@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "How to Spot Fresh Trout vs Stale Fish: Srinagar Buyer's Guide | Urban Trout",
+  title: "How to Spot Fresh Trout vs Stale Fish: Srinagar Buyer's Guide",
   description:
     "Learn the 5 biological freshness tests for Rainbow Trout: clear eyes, crimson gills, firm flesh, and zero fishy odor. Compare Rainbow vs Brown Trout species in Kashmir.",
   alternates: {

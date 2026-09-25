@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "Rainbow Trout Price Per Kg in Srinagar (2026 Live Rates) | Urban Trout",
+  title: "Rainbow Trout Price Per Kg in Srinagar (2026 Live Rates)",
   description:
     "Official 2026 Rainbow Trout rates in Srinagar. Whole trout at ₹540/kg, cleaned & gutted at ₹580/kg with 100% Free Doorstep Delivery. Compare direct producer vs market rates.",
   alternates: {
