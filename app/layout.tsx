@@ -135,8 +135,7 @@ const jsonLd = {
           "@type": "GovernmentOrganization",
           "name": "Food Safety and Standards Authority of India (FSSAI), Department of Health & Medical Education, Government of Jammu & Kashmir"
         },
-        "identifier": "21026414000392",
-        "validUntil": "2027-09-02"
+        "identifier": "21026414000392"
       },
       "aggregateRating": {
         "@type": "AggregateRating",

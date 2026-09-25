@@ -935,7 +935,7 @@ export default async function HomePage() {
                 FSSAI Reg. No: <span className="text-emerald-400">21026414000392</span> • J&amp;K Fisheries Compliant
               </span>
               <span className="text-[11px] text-slate-400 font-sans">
-                Dept. of Health &amp; Medical Education, J&amp;K (Valid thru Sep 2027) • 0°C–2°C food-grade ice insulation.
+                Dept. of Health &amp; Medical Education, J&amp;K • 0°C–2°C food-grade ice insulation.
               </span>
             </div>
           </div>
