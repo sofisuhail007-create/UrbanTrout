@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCart } from "@/context/CartContext";
 import { usePathname } from "next/navigation";
 import { getBusinessHoursInfo } from "@/lib/businessHours";
+import { calculateTroutNutrition } from "@/lib/nutrition";
 
 const C = {
   bg: "#031018", bgHigh: "#10212c", bgHighest: "#152834",
@@ -15,6 +16,12 @@ export default function CartDrawer() {
   const { isOpen, closeCart, items, removeItem, updateQuantity, total, totalSavings, aquariumStockKg } = useCart();
   const pathname = usePathname();
   const [storeStatus, setStoreStatus] = useState(() => getBusinessHoursInfo());
+
+  const totalTroutKg = items
+    .filter((i) => i.id === "gutted-trout" || i.id === "whole-trout" || i.unit.toLowerCase().includes("kg"))
+    .reduce((sum, i) => sum + i.quantity, 0);
+
+  const cartNutrition = calculateTroutNutrition(totalTroutKg, true);
 
   useEffect(() => {
     fetch("/api/store-status")
@@ -230,6 +237,57 @@ export default function CartDrawer() {
         {/* Footer */}
         {items.length > 0 && (
           <div className="px-6 py-5 space-y-4" style={{ borderTop: `1px solid rgba(61,74,83,0.4)` }}>
+            {/* Catch Nutritional Powerhouse (Interactive Fact Check) */}
+            {totalTroutKg > 0 && (
+              <div
+                className="p-3.5 rounded-2xl transition-all duration-300"
+                style={{
+                  background: "linear-gradient(135deg, rgba(8,27,38,0.95) 0%, rgba(13,38,52,0.85) 100%)",
+                  border: "1px solid rgba(114,221,253,0.28)",
+                  boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
+                }}
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold text-cyan-300 font-['Space_Grotesk'] uppercase tracking-wider flex items-center gap-1.5">
+                    <span>🧬</span> {totalTroutKg} Kg Catch Nutritional Yield
+                  </span>
+                  <span className="text-[10px] font-mono text-emerald-400 font-bold bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-500/30">
+                    Fact-Checked
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 text-center py-1">
+                  <div className="bg-slate-950/70 p-2 rounded-xl border border-slate-800/80">
+                    <span className="text-[10px] text-slate-400 block font-mono uppercase tracking-tight">Pure Protein</span>
+                    <strong className="text-sm md:text-base text-cyan-300 font-bold font-['Space_Grotesk']">
+                      ~{cartNutrition.proteinGrams}g
+                    </strong>
+                    <span className="text-[9px] text-emerald-400 block">≈ {cartNutrition.eggWhiteEquivalent} Eggs</span>
+                  </div>
+
+                  <div className="bg-slate-950/70 p-2 rounded-xl border border-slate-800/80">
+                    <span className="text-[10px] text-slate-400 block font-mono uppercase tracking-tight">EPA + DHA</span>
+                    <strong className="text-sm md:text-base text-emerald-400 font-bold font-['Space_Grotesk']">
+                      ~{(cartNutrition.omega3Mg / 1000).toFixed(1)}g
+                    </strong>
+                    <span className="text-[9px] text-slate-400 block">Omega-3s</span>
+                  </div>
+
+                  <div className="bg-slate-950/70 p-2 rounded-xl border border-slate-800/80">
+                    <span className="text-[10px] text-slate-400 block font-mono uppercase tracking-tight">Natural D3</span>
+                    <strong className="text-sm md:text-base text-amber-300 font-bold font-['Space_Grotesk']">
+                      ~{cartNutrition.vitaminDIU.toLocaleString("en-IN")} IU
+                    </strong>
+                    <span className="text-[9px] text-slate-400 block">Immunity</span>
+                  </div>
+                </div>
+
+                <p className="text-[11px] text-slate-300 leading-snug mt-2 text-center">
+                  ⚡ <strong>Fact Check:</strong> {cartNutrition.headlineFact}
+                </p>
+              </div>
+            )}
+
             {/* Total Savings Banner */}
             {totalSavings > 0 && (
               <div

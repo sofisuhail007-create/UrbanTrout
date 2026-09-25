@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useCart } from "@/context/CartContext";
+import toast from "react-hot-toast";
+import { calculateTroutNutrition } from "@/lib/nutrition";
 
 type Props = {
   productId: string;
@@ -41,13 +43,18 @@ export default function AddToCartButton({
     }
   }, [minQuantity, effectiveMax]);
 
+  const isTroutProduct = productId === "gutted-trout" || productId === "whole-trout" || unit.toLowerCase().includes("kg");
+  const isGutted = productId === "gutted-trout" || productName.toLowerCase().includes("gutted");
+  const currentQuantity = Math.min(effectiveMax, Math.max(effectiveMin, qty));
+  const nutrition = calculateTroutNutrition(currentQuantity, isGutted);
+
   const handleAdd = () => {
     addItem({
       id: productId,
       name: productName,
       price,
       originalPrice,
-      quantity: Math.min(effectiveMax, Math.max(effectiveMin, qty)),
+      quantity: currentQuantity,
       unit,
       image,
       minQuantity: effectiveMin,
@@ -55,6 +62,44 @@ export default function AddToCartButton({
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
+
+    if (isTroutProduct) {
+      toast.custom(
+        (t) => (
+          <div
+            className={`${
+              t.visible ? "opacity-100 scale-100" : "opacity-0 scale-95"
+            } max-w-md w-full bg-[#0a1b24] border border-cyan-500/40 shadow-2xl rounded-2xl pointer-events-auto p-4 transition-all duration-300`}
+            style={{
+              boxShadow: "0 20px 45px rgba(0, 0, 0, 0.7), 0 0 30px rgba(114, 221, 253, 0.25)",
+            }}
+          >
+            <div className="flex items-start gap-3.5">
+              <div className="w-11 h-11 rounded-xl bg-cyan-950/90 border border-cyan-500/40 flex items-center justify-center text-2xl flex-shrink-0">
+                🐟
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between gap-2 mb-0.5">
+                  <p className="text-xs font-bold text-cyan-300 font-['Space_Grotesk'] uppercase tracking-wider">
+                    Added {currentQuantity} Kg Catch to Cart!
+                  </p>
+                  <span className="text-[10px] font-mono text-emerald-400 font-bold bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-500/30 flex-shrink-0">
+                    0g Carbs
+                  </span>
+                </div>
+                <p className="text-sm font-extrabold text-white font-['Space_Grotesk']">
+                  ⚡ ~{nutrition.proteinGrams}g Pure Protein &amp; ~{(nutrition.omega3Mg / 1000).toFixed(1)}g Omega-3
+                </p>
+                <p className="text-[11px] text-slate-300 mt-1 leading-snug">
+                  {nutrition.headlineFact}
+                </p>
+              </div>
+            </div>
+          </div>
+        ),
+        { duration: 4500, position: "top-center" }
+      );
+    }
   };
 
   const hasDiscount = Boolean(originalPrice && originalPrice > price);
@@ -201,6 +246,57 @@ export default function AddToCartButton({
           Min. {effectiveMin} {unit}
         </span>
       </div>
+
+      {/* Live Fact-Checked Nutrition Yield Pill */}
+      {isTroutProduct && (
+        <div
+          className="p-3.5 rounded-2xl transition-all duration-300"
+          style={{
+            background: "linear-gradient(135deg, rgba(16,33,44,0.9) 0%, rgba(13,40,55,0.75) 100%)",
+            border: "1px solid rgba(114,221,253,0.22)",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
+          }}
+        >
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-[11px] font-bold text-cyan-300 font-['Space_Grotesk'] uppercase tracking-wider flex items-center gap-1.5">
+              <span>🧬</span> {currentQuantity} Kg Catch Nutritional Yield
+            </span>
+            <span className="text-[10px] text-emerald-400 font-mono font-bold bg-emerald-950/70 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+              Fact-Checked
+            </span>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 text-center py-1">
+            <div className="bg-slate-950/70 rounded-xl p-2 border border-slate-800/80">
+              <span className="text-[10px] text-slate-400 block uppercase font-mono tracking-tight">Pure Protein</span>
+              <strong className="text-base text-cyan-300 font-bold font-['Space_Grotesk']">
+                ~{nutrition.proteinGrams}g
+              </strong>
+              <span className="text-[9px] text-emerald-400 block">≈ {nutrition.eggWhiteEquivalent} Eggs</span>
+            </div>
+
+            <div className="bg-slate-950/70 rounded-xl p-2 border border-slate-800/80">
+              <span className="text-[10px] text-slate-400 block uppercase font-mono tracking-tight">EPA + DHA</span>
+              <strong className="text-base text-emerald-400 font-bold font-['Space_Grotesk']">
+                ~{(nutrition.omega3Mg / 1000).toFixed(1)}g
+              </strong>
+              <span className="text-[9px] text-slate-400 block">Omega-3s</span>
+            </div>
+
+            <div className="bg-slate-950/70 rounded-xl p-2 border border-slate-800/80">
+              <span className="text-[10px] text-slate-400 block uppercase font-mono tracking-tight">Natural D3</span>
+              <strong className="text-base text-amber-300 font-bold font-['Space_Grotesk']">
+                ~{nutrition.vitaminDIU.toLocaleString("en-IN")} IU
+              </strong>
+              <span className="text-[9px] text-slate-400 block">Immunity</span>
+            </div>
+          </div>
+
+          <p className="text-[11px] text-slate-300 mt-2 text-center leading-relaxed">
+            ⚡ {nutrition.headlineFact}
+          </p>
+        </div>
+      )}
 
       {/* Add to cart button */}
       {variant === "primary" ? (
