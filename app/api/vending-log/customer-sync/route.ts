@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { requireAdminAuth } from "@/lib/adminAuth";
 
@@ -40,7 +40,9 @@ export async function POST(request: Request) {
   }
 
   const paidAmount = Number(amount) || 0;
-  const saleDate = date || new Date().toISOString();
+  const nowIso = new Date().toISOString();
+  const isDateOnly = date && /^\d{4}-\d{2}-\d{2}$/.test(String(date).trim());
+  const saleDate = isDateOnly ? nowIso : (date || nowIso);
 
   try {
     const { data: existing } = await supabase
@@ -54,8 +56,7 @@ export async function POST(request: Request) {
         name: name.trim(),
         total_orders: (existing.total_orders || 0) + 1,
         total_spent: (existing.total_spent || 0) + paidAmount,
-        last_order_at: new Date(saleDate).toISOString(),
-        updated_at: new Date().toISOString(),
+        last_order_at: saleDate,
       }).eq("id", existing.id);
 
       return NextResponse.json({ success: true, is_new: false, customer_id: existing.id });
@@ -68,10 +69,9 @@ export async function POST(request: Request) {
       pincode: "190001",
       total_orders: 1,
       total_spent: paidAmount,
-      last_order_at: new Date(saleDate).toISOString(),
+      last_order_at: saleDate,
       notes: `[Vending Counter] First sale${product_type ? ` — ${product_type}` : ""}. Added ${new Date().toLocaleDateString("en-IN")}.`,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
+      created_at: nowIso,
     }).select("id").single();
 
     if (insErr) throw insErr;
@@ -86,12 +86,12 @@ export async function POST(request: Request) {
       if (idx >= 0) {
         existing[idx].total_orders = (existing[idx].total_orders || 0) + 1;
         existing[idx].total_spent = (existing[idx].total_spent || 0) + paidAmount;
-        existing[idx].last_order_at = new Date(saleDate).toISOString();
+        existing[idx].last_order_at = saleDate;
         existing[idx].name = name.trim();
       } else {
-        existing.push({ id: `vc_${Date.now()}`, phone: cleanPhone, name: name.trim(), total_orders: 1, total_spent: paidAmount, last_order_at: new Date(saleDate).toISOString(), source: "vending_counter", created_at: new Date().toISOString() });
+        existing.push({ id: `vc_${Date.now()}`, phone: cleanPhone, name: name.trim(), total_orders: 1, total_spent: paidAmount, last_order_at: saleDate, source: "vending_counter", created_at: nowIso });
       }
-      await supabase.from("app_settings").upsert({ key: "vending_customers_data", value: JSON.stringify(existing.slice(0, 2000)), description: "Fallback vending counter customer DB", updated_at: new Date().toISOString() }, { onConflict: "key" });
+      await supabase.from("app_settings").upsert({ key: "vending_customers_data", value: JSON.stringify(existing.slice(0, 2000)), description: "Fallback vending counter customer DB", updated_at: nowIso }, { onConflict: "key" });
       return NextResponse.json({ success: true, is_new: idx < 0, fallback: true });
     } catch {
       return NextResponse.json({ success: false, error: err?.message || "Failed" }, { status: 500 });

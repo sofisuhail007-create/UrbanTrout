@@ -77,6 +77,17 @@ export default function CustomersPage() {
   const [addFormNotes, setAddFormNotes] = useState("");
   const [addingCustomer, setAddingCustomer] = useState(false);
 
+  // Edit Customer Form State
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<CustomerRecord | null>(null);
+  const [editFormName, setEditFormName] = useState("");
+  const [editFormPhone, setEditFormPhone] = useState("");
+  const [editFormOriginalPhone, setEditFormOriginalPhone] = useState("");
+  const [editFormLocality, setEditFormLocality] = useState("");
+  const [editFormPincode, setEditFormPincode] = useState("190001");
+  const [editFormNotes, setEditFormNotes] = useState("");
+  const [savingEditCustomer, setSavingEditCustomer] = useState(false);
+
   // Broadcast Form State
   const [broadcastTemplate, setBroadcastTemplate] = useState<"harvest" | "special" | "inactive" | "review" | "custom">("harvest");
   const [broadcastMessage, setBroadcastMessage] = useState(
@@ -352,6 +363,88 @@ _Warm regards,_
     }
   };
 
+  // ── Open Edit Customer Modal ───────────────────────────────────────────────
+  const handleOpenEditModal = (customer: CustomerRecord) => {
+    setEditingCustomer(customer);
+    setEditFormName(customer.name || "");
+    setEditFormPhone(customer.phone || "");
+    setEditFormOriginalPhone(customer.phone || "");
+    setEditFormLocality(customer.locality || "");
+    setEditFormPincode(customer.pincode || "190001");
+    setEditFormNotes(customer.notes || "");
+    setEditModalOpen(true);
+  };
+
+  // ── Save Edited Customer ───────────────────────────────────────────────────
+  const handleSaveEditCustomer = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingCustomer) return;
+
+    const cleanPhone = editFormPhone.replace(/\D/g, "").slice(-10);
+    const cleanOriginalPhone = editFormOriginalPhone.replace(/\D/g, "").slice(-10);
+
+    if (!editFormName.trim()) {
+      alert("Please enter customer name.");
+      return;
+    }
+    if (cleanPhone.length !== 10) {
+      alert("Please enter a valid 10-digit mobile number.");
+      return;
+    }
+
+    setSavingEditCustomer(true);
+    try {
+      const res = await adminFetch("/api/customers", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: editingCustomer.id,
+          originalPhone: cleanOriginalPhone,
+          phone: cleanPhone,
+          name: editFormName.trim(),
+          locality: editFormLocality.trim() || "Srinagar",
+          pincode: editFormPincode.trim() || "190001",
+          notes: editFormNotes.trim(),
+          total_orders: editingCustomer.total_orders,
+          total_spent: editingCustomer.total_spent,
+          last_order_at: editingCustomer.last_order_at,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        const updatedCustomer: CustomerRecord = {
+          ...editingCustomer,
+          name: editFormName.trim(),
+          phone: cleanPhone,
+          locality: editFormLocality.trim() || null,
+          pincode: editFormPincode.trim() || null,
+          notes: editFormNotes.trim() || null,
+        };
+
+        setCustomers((prev) =>
+          prev.map((c) =>
+            c.id === editingCustomer.id || c.phone === cleanOriginalPhone ? updatedCustomer : c
+          )
+        );
+        if (selected && (selected.id === editingCustomer.id || selected.phone === cleanOriginalPhone)) {
+          setSelected(updatedCustomer);
+          setNoteValue(editFormNotes.trim());
+        }
+        setEditModalOpen(false);
+        setEditingCustomer(null);
+        setCopyNotice("Customer details updated successfully!");
+        setTimeout(() => setCopyNotice(null), 3500);
+      } else {
+        alert(data.error || "Failed to update customer details");
+      }
+    } catch (err: any) {
+      alert(`Error updating customer: ${err?.message || err}`);
+    } finally {
+      setSavingEditCustomer(false);
+    }
+  };
+
   // ── Filtered Customers ─────────────────────────────────────────────────────
   const filtered = useMemo(() => {
     return customers.filter((c) => {
@@ -389,6 +482,19 @@ _Warm regards,_
         return isOnline;
       }
       return true;
+    }).sort((a, b) => {
+      const timeA = Math.max(
+        a.last_order_at ? new Date(a.last_order_at).getTime() : 0,
+        a.created_at ? new Date(a.created_at).getTime() : 0
+      );
+      const timeB = Math.max(
+        b.last_order_at ? new Date(b.last_order_at).getTime() : 0,
+        b.created_at ? new Date(b.created_at).getTime() : 0
+      );
+      if (timeB !== timeA) return timeB - timeA;
+      const createdA = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const createdB = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return createdB - createdA;
     });
   }, [customers, search, tierFilter]);
 
@@ -956,6 +1062,17 @@ _Warm regards,_
                                 Counter
                               </span>
                             )}
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleOpenEditModal(c);
+                              }}
+                              className="opacity-0 group-hover:opacity-100 p-0.5 rounded hover:bg-slate-800 text-slate-500 hover:text-cyan-300 transition-all cursor-pointer"
+                              title="Edit customer details"
+                            >
+                              <span className="material-symbols-outlined text-xs">edit</span>
+                            </button>
                           </div>
                           <span className="text-xs font-mono text-slate-400 block mt-0.5">
                             +91 {c.phone}
@@ -1069,6 +1186,14 @@ _Warm regards,_
                     <h2 className="text-xl sm:text-2xl font-black text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
                       {selected.name}
                     </h2>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEditModal(selected)}
+                      className="p-1 rounded-lg text-slate-400 hover:text-cyan-300 hover:bg-slate-800 transition-colors cursor-pointer"
+                      title="Edit customer details"
+                    >
+                      <span className="material-symbols-outlined text-base">edit</span>
+                    </button>
                     {(() => {
                       const tier = loyaltyTier(selected);
                       return (
@@ -1152,6 +1277,17 @@ _Warm regards,_
                     <span className="material-symbols-outlined text-base text-cyan-400">call</span>
                     <span>Call</span>
                   </a>
+
+                  {/* Edit Customer */}
+                  <button
+                    type="button"
+                    onClick={() => handleOpenEditModal(selected)}
+                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-cyan-500/20 text-slate-200 hover:text-cyan-300 border border-slate-700 hover:border-cyan-500/40 font-mono text-xs transition-all cursor-pointer shadow-sm active:scale-95"
+                    title="Edit customer details"
+                  >
+                    <span className="material-symbols-outlined text-base text-cyan-400">edit</span>
+                    <span>Edit</span>
+                  </button>
 
                   {/* Delete Customer */}
                   <button
@@ -1490,6 +1626,130 @@ _Warm regards,_
                   className="w-full py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs uppercase tracking-wider transition-all cursor-pointer disabled:opacity-50"
                 >
                   {addingCustomer ? "Saving to Database..." : "Save Customer Contact (✓)"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════════
+          MODAL: EDIT CUSTOMER DETAILS
+          ════════════════════════════════════════════════════════════════════════ */}
+      {editModalOpen && editingCustomer && (
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setEditModalOpen(false);
+          }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm animate-in fade-in"
+        >
+          <div className="bg-slate-900 border border-cyan-500/40 rounded-3xl p-6 sm:p-7 max-w-md w-full text-slate-200 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div>
+                <span className="text-[10px] uppercase font-mono font-bold text-cyan-400">Customer Intelligence</span>
+                <h3 className="text-lg font-black text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                  Edit Customer Details
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditModalOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white cursor-pointer"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveEditCustomer} className="space-y-3.5">
+              <div>
+                <label className="block text-[10px] uppercase font-mono font-bold text-slate-400 mb-1">
+                  Customer Full Name <span className="text-cyan-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Kashmir Harward Wani"
+                  value={editFormName}
+                  onChange={(e) => setEditFormName(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-cyan-400"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] uppercase font-mono font-bold text-slate-400 mb-1">
+                  Mobile Number (WhatsApp) <span className="text-cyan-400">*</span>
+                </label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-slate-500 font-mono">
+                    +91
+                  </span>
+                  <input
+                    type="tel"
+                    required
+                    maxLength={10}
+                    placeholder="9876543210"
+                    value={editFormPhone}
+                    onChange={(e) => setEditFormPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-10 pr-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-cyan-400"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-[10px] uppercase font-mono font-bold text-slate-400 mb-1">
+                    Locality / Area
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Srinagar, Rajbagh"
+                    value={editFormLocality}
+                    onChange={(e) => setEditFormLocality(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-cyan-400"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] uppercase font-mono font-bold text-slate-400 mb-1">
+                    Pincode
+                  </label>
+                  <input
+                    type="text"
+                    maxLength={6}
+                    placeholder="190001"
+                    value={editFormPincode}
+                    onChange={(e) => setEditFormPincode(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-cyan-400"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] uppercase font-mono font-bold text-slate-400 mb-1">
+                  Customer Notes & Preferences
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="e.g. Regular counter customer, prefers large trout..."
+                  value={editFormNotes}
+                  onChange={(e) => setEditFormNotes(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-cyan-400 resize-none"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditModalOpen(false)}
+                  className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingEditCustomer}
+                  className="flex-1 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs uppercase tracking-wider transition-all cursor-pointer disabled:opacity-50 shadow-lg shadow-cyan-500/20"
+                >
+                  {savingEditCustomer ? "Saving Changes..." : "Save Changes (✓)"}
                 </button>
               </div>
             </form>

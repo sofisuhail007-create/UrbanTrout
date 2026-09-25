@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { requireAdminAuth } from "@/lib/adminAuth";
 
@@ -113,6 +113,39 @@ export async function GET(request: Request) {
       }
     }
 
+    // Helper to get precise timestamp from vending entry
+    function getVendingTimestamp(v: any): string {
+      if (v.created_at && !v.created_at.endsWith("T00:00:00.000Z") && !v.created_at.endsWith("T00:00:00Z")) {
+        return v.created_at;
+      }
+      if (v.entry_date && v.entry_time) {
+        try {
+          const timeStr = String(v.entry_time).trim();
+          const match = timeStr.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm)?$/i);
+          if (match) {
+            let hours = parseInt(match[1], 10);
+            const mins = parseInt(match[2], 10);
+            const secs = match[3] ? parseInt(match[3], 10) : 0;
+            const modifier = (match[4] || "").toLowerCase();
+            if (modifier === "pm" && hours < 12) hours += 12;
+            if (modifier === "am" && hours === 12) hours = 0;
+            
+            const hh = String(hours).padStart(2, "0");
+            const mm = String(mins).padStart(2, "0");
+            const ss = String(secs).padStart(2, "0");
+            const iso = `${v.entry_date}T${hh}:${mm}:${ss}+05:30`;
+            const parsed = new Date(iso);
+            if (!isNaN(parsed.getTime())) {
+              return parsed.toISOString();
+            }
+          }
+        } catch (_) {}
+      }
+      if (v.created_at) return v.created_at;
+      if (v.entry_date) return new Date(v.entry_date).toISOString();
+      return new Date().toISOString();
+    }
+
     // Merge from vending sales entries
     for (const v of vendingEntries) {
       const cf = v.custom_fields || {};
@@ -123,12 +156,18 @@ export async function GET(request: Request) {
       if (cleanPhone.length !== 10) continue;
 
       const amt = Number(v.amount_paid) || 0;
-      const date = v.entry_date || v.created_at || new Date().toISOString();
+      const date = getVendingTimestamp(v);
 
       if (customerMap.has(cleanPhone)) {
         const existing = customerMap.get(cleanPhone);
-        if (name && (!existing.name || existing.name === "Customer")) {
+        if (name && (!existing.name || existing.name === "Customer" || existing.name === "Counter Customer")) {
           existing.name = name;
+        }
+        // Update last_order_at if this entry is newer
+        const existingOrderTime = existing.last_order_at ? new Date(existing.last_order_at).getTime() : 0;
+        const entryTime = new Date(date).getTime();
+        if (entryTime > existingOrderTime) {
+          existing.last_order_at = date;
         }
       } else {
         customerMap.set(cleanPhone, {
@@ -147,10 +186,19 @@ export async function GET(request: Request) {
       }
     }
 
+    const getCustomerLatestTimestamp = (c: any): number => {
+      const orderTime = c.last_order_at ? new Date(c.last_order_at).getTime() : 0;
+      const createdTime = c.created_at ? new Date(c.created_at).getTime() : 0;
+      return Math.max(isNaN(orderTime) ? 0 : orderTime, isNaN(createdTime) ? 0 : createdTime);
+    };
+
     const customers = Array.from(customerMap.values()).sort((a, b) => {
-      const dateA = a.last_order_at ? new Date(a.last_order_at).getTime() : 0;
-      const dateB = b.last_order_at ? new Date(b.last_order_at).getTime() : 0;
-      return dateB - dateA;
+      const timeA = getCustomerLatestTimestamp(a);
+      const timeB = getCustomerLatestTimestamp(b);
+      if (timeB !== timeA) return timeB - timeA;
+      const createdA = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const createdB = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return createdB - createdA;
     });
 
     return NextResponse.json({ success: true, customers });
@@ -188,7 +236,6 @@ export async function POST(request: Request) {
       last_order_at: null,
       notes: notes?.trim() || `[Manual Entry] Added on ${new Date().toLocaleDateString("en-IN")}`,
       created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
     };
 
     let customerRecord: any = null;
@@ -247,49 +294,169 @@ export async function PATCH(request: Request) {
 
   try {
     const body = await request.json();
-    const { id, phone, name, locality, pincode, notes } = body;
+    const { id, phone, originalPhone, name, locality, pincode, notes, total_orders, total_spent, last_order_at } = body;
 
-    if (!id && !phone) {
+    const currentPhone = (originalPhone || phone || "").replace(/\D/g, "").slice(-10);
+    const newPhone = (phone || originalPhone || "").replace(/\D/g, "").slice(-10);
+
+    if (!id && !currentPhone && !newPhone) {
       return NextResponse.json({ success: false, error: "Customer id or phone required" }, { status: 400 });
     }
 
-    const updates: any = { updated_at: new Date().toISOString() };
+    const updates: any = {};
     if (name !== undefined) updates.name = name.trim();
     if (locality !== undefined) updates.locality = locality.trim();
     if (pincode !== undefined) updates.pincode = pincode.trim();
     if (notes !== undefined) updates.notes = notes;
+    if (newPhone) updates.phone = newPhone;
 
-    if (id) {
-      await supabase.from("customers").update(updates).eq("id", id);
-    } else if (phone) {
-      const cleanPhone = phone.replace(/\D/g, "").slice(-10);
-      await supabase.from("customers").update(updates).eq("phone", cleanPhone);
+    // 1. Try updating / upserting into Supabase `customers` table
+    try {
+      const isUuid = id && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+      
+      let existingDbRow = null;
+      if (isUuid) {
+        const { data } = await supabase.from("customers").select("*").eq("id", id).maybeSingle();
+        existingDbRow = data;
+      }
+      if (!existingDbRow && currentPhone) {
+        const { data } = await supabase.from("customers").select("*").eq("phone", currentPhone).maybeSingle();
+        existingDbRow = data;
+      }
+      if (!existingDbRow && newPhone) {
+        const { data } = await supabase.from("customers").select("*").eq("phone", newPhone).maybeSingle();
+        existingDbRow = data;
+      }
+
+      if (existingDbRow) {
+        await supabase.from("customers").update(updates).eq("id", existingDbRow.id);
+      } else {
+        await supabase.from("customers").upsert({
+          phone: newPhone || currentPhone,
+          name: updates.name || "Customer",
+          locality: updates.locality || "Srinagar",
+          pincode: updates.pincode || "190001",
+          notes: updates.notes !== undefined ? updates.notes : "",
+          total_orders: Number(total_orders) || 1,
+          total_spent: Number(total_spent) || 0,
+          last_order_at: last_order_at || new Date().toISOString(),
+          created_at: new Date().toISOString(),
+        }, { onConflict: "phone" });
+      }
+    } catch (dbErr) {
+      console.warn("[customers PATCH] DB update warning:", dbErr);
     }
 
-    // Also update fallback in app_settings if exists
+    // 2. Update fallback `vending_customers_data` in app_settings
     try {
-      const cleanPhone = (phone || "").replace(/\D/g, "").slice(-10);
       const { data } = await supabase
         .from("app_settings")
         .select("value")
         .eq("key", "vending_customers_data")
         .maybeSingle();
-      if (data?.value) {
-        const existing: any[] = JSON.parse(data.value);
-        const idx = existing.findIndex((c) => (id && c.id === id) || (cleanPhone && c.phone === cleanPhone));
-        if (idx >= 0) {
-          existing[idx] = { ...existing[idx], ...updates };
-          await supabase.from("app_settings").upsert({
-            key: "vending_customers_data",
-            value: JSON.stringify(existing),
-            updated_at: new Date().toISOString(),
-          }, { onConflict: "key" });
-        }
-      }
-    } catch (_) {}
 
-    return NextResponse.json({ success: true, message: "Customer updated successfully" });
+      let existingList: any[] = data?.value ? JSON.parse(data.value) : [];
+      const matchIndex = existingList.findIndex(
+        (c) =>
+          (id && c.id === id) ||
+          (currentPhone && c.phone === currentPhone) ||
+          (newPhone && c.phone === newPhone)
+      );
+
+      if (matchIndex >= 0) {
+        existingList[matchIndex] = {
+          ...existingList[matchIndex],
+          ...updates,
+          phone: newPhone || existingList[matchIndex].phone,
+          updated_at: new Date().toISOString(),
+        };
+      } else {
+        existingList.unshift({
+          id: id && !id.startsWith("vlog_") ? id : `vc_${Date.now()}_${newPhone || currentPhone}`,
+          phone: newPhone || currentPhone,
+          name: updates.name || "Customer",
+          locality: updates.locality || "Srinagar (Counter)",
+          pincode: updates.pincode || "190001",
+          notes: updates.notes !== undefined ? updates.notes : "[Vending Counter]",
+          total_orders: Number(total_orders) || 1,
+          total_spent: Number(total_spent) || 0,
+          last_order_at: last_order_at || new Date().toISOString(),
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+          source: "vending_counter",
+        });
+      }
+
+      await supabase.from("app_settings").upsert(
+        {
+          key: "vending_customers_data",
+          value: JSON.stringify(existingList.slice(0, 2000)),
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "key" }
+      );
+    } catch (fallbackErr) {
+      console.warn("[customers PATCH] Fallback update warning:", fallbackErr);
+    }
+
+    // 3. If name or phone changed, update customer name/phone in vending_log_data entries as well
+    if (updates.name || (newPhone && newPhone !== currentPhone)) {
+      try {
+        const { data: vLogData } = await supabase
+          .from("app_settings")
+          .select("value")
+          .eq("key", "vending_log_data")
+          .maybeSingle();
+
+        if (vLogData?.value) {
+          let vLogs: any[] = JSON.parse(vLogData.value);
+          let modified = false;
+          for (const entry of vLogs) {
+            const cf = entry.custom_fields || {};
+            const ePhone = String(cf.customer_phone || entry.customer_phone || "").replace(/\D/g, "").slice(-10);
+            if (ePhone && (ePhone === currentPhone || ePhone === newPhone)) {
+              if (updates.name) {
+                cf.customer_name = updates.name;
+                if (entry.customer_name) entry.customer_name = updates.name;
+              }
+              if (newPhone && newPhone !== currentPhone) {
+                cf.customer_phone = newPhone;
+                if (entry.customer_phone) entry.customer_phone = newPhone;
+              }
+              entry.custom_fields = cf;
+              modified = true;
+            }
+          }
+          if (modified) {
+            await supabase.from("app_settings").upsert(
+              {
+                key: "vending_log_data",
+                value: JSON.stringify(vLogs),
+                updated_at: new Date().toISOString(),
+              },
+              { onConflict: "key" }
+            );
+          }
+        }
+      } catch (vendLogErr) {
+        console.warn("[customers PATCH] vending_log update warning:", vendLogErr);
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Customer updated successfully",
+      customer: {
+        id: id || `vc_${Date.now()}_${newPhone || currentPhone}`,
+        phone: newPhone || currentPhone,
+        name: updates.name,
+        locality: updates.locality,
+        pincode: updates.pincode,
+        notes: updates.notes,
+      },
+    });
   } catch (err: any) {
+    console.error("[customers PATCH] error:", err);
     return NextResponse.json({ success: false, error: err?.message || "Failed to update customer" }, { status: 500 });
   }
 }
@@ -318,7 +485,11 @@ export async function DELETE(request: Request) {
     }
 
     if (idsToDelete.length > 0) {
-      await supabase.from("customers").delete().in("id", idsToDelete);
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+      const validUuids = idsToDelete.filter((id) => uuidRegex.test(id));
+      if (validUuids.length > 0) {
+        await supabase.from("customers").delete().in("id", validUuids);
+      }
     }
     if (phoneParam) {
       const cleanPhone = phoneParam.replace(/\D/g, "").slice(-10);
