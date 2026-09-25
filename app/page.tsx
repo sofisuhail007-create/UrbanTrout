@@ -94,7 +94,7 @@ const faqs = [
   },
   {
     q: "Is fresh trout available year-round in Srinagar or only during seasonal fishing months?",
-    a: "Fresh Rainbow Trout at Urban Trout is available 100% year-round, 365 days a year. While natural Himalayan river angling and wild stream fisheries in Kashmir are subject to winter freeze closures and monsoon breeding bans, our closed-containment deep borewell raceways maintain a pristine, constant 10°C–12°C temperature throughout all seasons, guaranteeing uninterrupted fresh harvest even during the coldest winter months.",
+    a: "Fresh Rainbow Trout at Urban Trout is available 100% year-round, 365 days a year. While natural Himalayan river angling and wild stream fisheries in Kashmir are subject to winter freeze closures and monsoon breeding bans, our advanced deep borewell RAS setup and dedicated Vending Center maintain a pristine, constant 10°C–12°C temperature throughout all seasons, guaranteeing uninterrupted fresh harvest even during the coldest winter months.",
   },
   {
     q: "What do your trout eat and are any antibiotics or chemicals used?",
@@ -663,7 +663,7 @@ export default async function HomePage() {
                 </svg>
                 <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.35rem", fontWeight: 700, color: C.onSurface, margin: "0 0 0.75rem" }}>365-Day Year-Round Harvest</h3>
                 <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfaceVariant, fontSize: "0.9rem", lineHeight: 1.75, margin: 0 }}>
-                  Unlike natural river streams that freeze in sub-zero winter or shut down for seasonal breeding bans, our closed-containment raceways maintain steady temperature for guaranteed fresh trout supply 365 days a year.
+                  Unlike natural river streams that freeze in sub-zero winter or shut down for seasonal breeding bans, our advanced RAS setup and live Vending Center maintain optimal conditions for guaranteed fresh trout supply 365 days a year.
                 </p>
               </div>
             </div>
