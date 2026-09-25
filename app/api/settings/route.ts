@@ -21,6 +21,10 @@ const DEFAULT_SETTINGS: Record<string, string> = {
   alternate_phone: "+917006604148",
   email: "info.urbantrout@gmail.com",
   google_review_url: "https://g.page/r/CTVKEpV62HMmECE/review",
+  store_manually_closed: "false",
+  farm_maintenance_active: "false",
+  allow_friday_orders: "false",
+  force_store_open: "false",
 };
 
 const CACHE_FILE = path.join(process.cwd(), ".app_settings_cache.json");

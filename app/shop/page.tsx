@@ -58,22 +58,24 @@ const PRODUCT_META: Record<string, { img: string; label: string; desc: string }>
 };
 
 export default async function ShopPage() {
-  // ── Business Hours Check ──────────────────────────────────────────────────
-  const hoursInfo = getBusinessHoursInfo();
-
-  // ── Manual closure override (admin toggle) ────────────────────────────────
-  const { data: closedRow } = await supabase
+  // ── Business Hours & Store Overrides Check ────────────────────────────────
+  const { data: settingsRows } = await supabase
     .from("app_settings")
-    .select("value")
-    .eq("key", "store_manually_closed")
-    .single();
-  const isManuallyClosedFlag = closedRow?.value === "true";
-  // Effective open state: must be within hours AND not manually closed
-  const effectivelyOpen = hoursInfo.isOpen && !isManuallyClosedFlag;
-  const effectiveHoursInfo = {
-    ...hoursInfo,
-    isOpen: effectivelyOpen,
-  };
+    .select("key, value")
+    .in("key", ["store_manually_closed", "farm_maintenance_active", "allow_friday_orders", "force_store_open"]);
+
+  const overrides: Record<string, boolean> = {};
+  settingsRows?.forEach((r) => {
+    overrides[r.key] = r.value === "true";
+  });
+
+  const effectiveHoursInfo = getBusinessHoursInfo(new Date(), {
+    storeManuallyClosed: overrides.store_manually_closed,
+    farmMaintenanceActive: overrides.farm_maintenance_active,
+    allowFridayOrders: overrides.allow_friday_orders,
+    forceStoreOpen: overrides.force_store_open,
+  });
+  const isManuallyClosedFlag = Boolean(overrides.store_manually_closed);
 
   // ── Fetch inventory data ──────────────────────────────────────────────────
   const { data: invData } = await supabase
@@ -167,10 +169,10 @@ export default async function ShopPage() {
     return (
       <StoreClosedBanner
         nextOpenISO={effectiveHoursInfo.nextOpenISO}
-        nextOpenLabel={isManuallyClosedFlag ? "when we reopen" : effectiveHoursInfo.nextOpenLabel}
+        nextOpenLabel={effectiveHoursInfo.nextOpenLabel}
         primaryPhone={primaryPhone}
         isFridayMaintenance={effectiveHoursInfo.isFridayMaintenance}
-        closedReason={isManuallyClosedFlag ? "manual" : effectiveHoursInfo.closedReason}
+        closedReason={effectiveHoursInfo.closedReason}
       />
     );
   }

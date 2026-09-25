@@ -31,6 +31,8 @@ export default function CartDrawer() {
           setStoreStatus({
             isOpen: data.isOpen,
             isFridayMaintenance: Boolean(data.isFridayMaintenance),
+            isFarmMaintenance: Boolean(data.farmMaintenanceActive),
+            allowFridayOrders: Boolean(data.allowFridayOrders),
             closedReason: data.closedReason,
             nextOpenLabel: data.nextOpenLabel || "",
             nextOpenISO: data.nextOpenISO || "",
@@ -347,15 +349,17 @@ export default function CartDrawer() {
               <div
                 className="p-3 rounded-xl text-xs flex items-center gap-2.5 my-1"
                 style={{
-                  background: storeStatus.isFridayMaintenance ? "rgba(245,158,11,0.12)" : "rgba(248,113,113,0.12)",
-                  border: storeStatus.isFridayMaintenance ? "1px solid rgba(245,158,11,0.3)" : "1px solid rgba(248,113,113,0.3)",
-                  color: storeStatus.isFridayMaintenance ? "#fbbf24" : "#f87171",
+                  background: (storeStatus.isFridayMaintenance || storeStatus.closedReason === "farm_maintenance") ? "rgba(245,158,11,0.12)" : "rgba(248,113,113,0.12)",
+                  border: (storeStatus.isFridayMaintenance || storeStatus.closedReason === "farm_maintenance") ? "1px solid rgba(245,158,11,0.3)" : "1px solid rgba(248,113,113,0.3)",
+                  color: (storeStatus.isFridayMaintenance || storeStatus.closedReason === "farm_maintenance") ? "#fbbf24" : "#f87171",
                   fontFamily: '"Manrope", sans-serif',
                 }}
               >
-                <span className="text-base flex-shrink-0">{storeStatus.isFridayMaintenance ? "🛠️" : "⏰"}</span>
+                <span className="text-base flex-shrink-0">{(storeStatus.isFridayMaintenance || storeStatus.closedReason === "farm_maintenance") ? "🛠️" : "⏰"}</span>
                 <span className="leading-tight font-medium">
-                  {storeStatus.isFridayMaintenance
+                  {storeStatus.closedReason === "farm_maintenance"
+                    ? "Closed for Farm & Vending Center Maintenance. Online checkout will resume once maintenance concludes."
+                    : storeStatus.isFridayMaintenance
                     ? "Closed Fridays for Farm Maintenance. Online checkout reopens Saturday at 7:00 AM."
                     : `Currently closed. Orders reopen ${storeStatus.nextOpenLabel || "tomorrow at 7:00 AM"}.`}
                 </span>

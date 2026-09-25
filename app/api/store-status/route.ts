@@ -1,41 +1,62 @@
 import { NextResponse } from "next/server";
 import { supabase } from "@/lib/supabase";
-import { getBusinessHoursInfo } from "@/lib/businessHours";
+import { getBusinessHoursInfo, StoreSettingsOverrides } from "@/lib/businessHours";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    const hoursInfo = getBusinessHoursInfo();
+    const overrides: StoreSettingsOverrides = {
+      storeManuallyClosed: false,
+      farmMaintenanceActive: false,
+      allowFridayOrders: false,
+      forceStoreOpen: false,
+    };
 
-    // Check manual store closure override from app_settings
-    let isManuallyClosed = false;
     try {
-      const { data: closedRow } = await supabase
+      const { data: rows } = await supabase
         .from("app_settings")
-        .select("value")
-        .eq("key", "store_manually_closed")
-        .single();
-      isManuallyClosed = closedRow?.value === "true";
+        .select("key, value")
+        .in("key", [
+          "store_manually_closed",
+          "farm_maintenance_active",
+          "allow_friday_orders",
+          "force_store_open",
+        ]);
+
+      if (rows && rows.length > 0) {
+        for (const row of rows) {
+          if (row.key === "store_manually_closed") {
+            overrides.storeManuallyClosed = row.value === "true";
+          } else if (row.key === "farm_maintenance_active") {
+            overrides.farmMaintenanceActive = row.value === "true";
+          } else if (row.key === "allow_friday_orders") {
+            overrides.allowFridayOrders = row.value === "true";
+          } else if (row.key === "force_store_open") {
+            overrides.forceStoreOpen = row.value === "true";
+          }
+        }
+      }
     } catch {
-      // ignore supabase read failures, fallback to business hours
+      // fallback to defaults if database read fails
     }
 
-    const isOpen = hoursInfo.isOpen && !isManuallyClosed;
-    const closedReason = isManuallyClosed
-      ? "manual"
-      : hoursInfo.isFridayMaintenance
-      ? "friday_maintenance"
-      : hoursInfo.closedReason;
+    const hoursInfo = getBusinessHoursInfo(new Date(), overrides);
 
     return NextResponse.json(
       {
-        isOpen,
-        isManuallyClosed,
+        isOpen: hoursInfo.isOpen,
+        isManuallyClosed: Boolean(overrides.storeManuallyClosed),
+        farmMaintenanceActive: Boolean(overrides.farmMaintenanceActive),
+        allowFridayOrders: Boolean(overrides.allowFridayOrders),
+        forceStoreOpen: Boolean(overrides.forceStoreOpen),
         isFridayMaintenance: hoursInfo.isFridayMaintenance,
-        closedReason,
+        closedReason: hoursInfo.closedReason,
         nextOpenISO: hoursInfo.nextOpenISO,
-        nextOpenLabel: isManuallyClosed ? "when we reopen" : hoursInfo.nextOpenLabel,
+        nextOpenLabel: hoursInfo.nextOpenLabel,
+        currentISTHour: hoursInfo.currentISTHour,
+        currentISTMinute: hoursInfo.currentISTMinute,
+        currentISTDay: hoursInfo.currentISTDay,
         serverTimeISO: new Date().toISOString(),
       },
       {

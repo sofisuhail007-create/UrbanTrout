@@ -354,6 +354,8 @@ export default function CheckoutPage() {
           setStoreStatus({
             isOpen: data.isOpen,
             isFridayMaintenance: Boolean(data.isFridayMaintenance),
+            isFarmMaintenance: Boolean(data.farmMaintenanceActive),
+            allowFridayOrders: Boolean(data.allowFridayOrders),
             closedReason: data.closedReason,
             nextOpenLabel: data.nextOpenLabel || "",
             nextOpenISO: data.nextOpenISO || "",
@@ -805,10 +807,12 @@ export default function CheckoutPage() {
     setRazorpayError("");
 
     if (!storeStatus.isOpen) {
-      if (storeStatus.isFridayMaintenance) {
+      if (storeStatus.closedReason === "farm_maintenance") {
+        setRazorpayError("Our farm & vending center are currently undergoing scheduled maintenance. Please message us on WhatsApp or check back soon.");
+      } else if (storeStatus.isFridayMaintenance) {
         setRazorpayError("Our farm is closed on Fridays for scheduled Farm Maintenance. Orders will resume Saturday at 7:00 AM IST.");
       } else {
-        setRazorpayError(`We are currently outside operating hours (Sat–Thu, 7:00 AM – 10:00 PM IST · Closed Fridays). Orders reopen ${storeStatus.nextOpenLabel || "tomorrow at 7:00 AM"}.`);
+        setRazorpayError(`We are currently outside operating hours (7:00 AM – 10:00 PM IST). Orders reopen ${storeStatus.nextOpenLabel || "tomorrow at 7:00 AM"}.`);
       }
       return;
     }
@@ -1487,10 +1491,10 @@ export default function CheckoutPage() {
             <div
               className="p-5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center gap-4 relative overflow-hidden"
               style={{
-                background: storeStatus.isFridayMaintenance
+                background: (storeStatus.isFridayMaintenance || storeStatus.closedReason === "farm_maintenance")
                   ? "linear-gradient(135deg, rgba(245,158,11,0.12) 0%, rgba(16,33,44,0.95) 100%)"
                   : "linear-gradient(135deg, rgba(248,113,113,0.12) 0%, rgba(16,33,44,0.95) 100%)",
-                border: storeStatus.isFridayMaintenance
+                border: (storeStatus.isFridayMaintenance || storeStatus.closedReason === "farm_maintenance")
                   ? "1px solid rgba(245,158,11,0.35)"
                   : "1px solid rgba(248,113,113,0.35)",
               }}
@@ -1498,11 +1502,11 @@ export default function CheckoutPage() {
               <div
                 className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
                 style={{
-                  background: storeStatus.isFridayMaintenance ? "rgba(245,158,11,0.2)" : "rgba(248,113,113,0.2)",
-                  color: storeStatus.isFridayMaintenance ? "#fbbf24" : "#f87171",
+                  background: (storeStatus.isFridayMaintenance || storeStatus.closedReason === "farm_maintenance") ? "rgba(245,158,11,0.2)" : "rgba(248,113,113,0.2)",
+                  color: (storeStatus.isFridayMaintenance || storeStatus.closedReason === "farm_maintenance") ? "#fbbf24" : "#f87171",
                 }}
               >
-                {storeStatus.isFridayMaintenance ? (
+                {(storeStatus.isFridayMaintenance || storeStatus.closedReason === "farm_maintenance") ? (
                   <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -1517,19 +1521,23 @@ export default function CheckoutPage() {
                 <div className="flex items-center gap-2 mb-1">
                   <span
                     className="inline-block w-2 h-2 rounded-full animate-pulse"
-                    style={{ background: storeStatus.isFridayMaintenance ? "#fbbf24" : "#f87171" }}
+                    style={{ background: (storeStatus.isFridayMaintenance || storeStatus.closedReason === "farm_maintenance") ? "#fbbf24" : "#f87171" }}
                   />
                   <h4
                     className="font-bold text-sm sm:text-base text-white"
                     style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                   >
-                    {storeStatus.isFridayMaintenance
+                    {storeStatus.closedReason === "farm_maintenance"
+                      ? "Closed Today for Farm & Vending Center Maintenance"
+                      : storeStatus.isFridayMaintenance
                       ? "Closed Today for Weekly Farm Maintenance"
                       : "Farm Orders Currently Closed"}
                   </h4>
                 </div>
                 <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                  {storeStatus.isFridayMaintenance
+                  {storeStatus.closedReason === "farm_maintenance"
+                    ? "Our aquaculture facility & vending center in Malabagh are currently undergoing scheduled maintenance and bio-security protocols. Online checkout will resume once maintenance completes."
+                    : storeStatus.isFridayMaintenance
                     ? "Our aquaculture facility in Malabagh observes complete scheduled maintenance on Fridays. Live harvesting & online checkout will resume Saturday morning at 7:00 AM IST."
                     : `We accept live harvest delivery orders Saturday to Thursday, 7:00 AM – 10:00 PM IST (Closed Fridays). Next opening: ${storeStatus.nextOpenLabel || "7:00 AM IST"}.`}
                 </p>

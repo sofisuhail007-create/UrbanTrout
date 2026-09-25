@@ -99,6 +99,7 @@ export default function DashboardPage() {
   const [pendingBalances, setPendingBalances] = useState<CustomerBalanceRecord[]>([]);
   const [selectedBalanceRecord, setSelectedBalanceRecord] = useState<CustomerBalanceRecord | null>(null);
   const [isBalanceModalOpen, setIsBalanceModalOpen] = useState(false);
+  const [storeStatus, setStoreStatus] = useState<any>(null);
 
   const fetchBalancesData = async () => {
     try {
@@ -171,6 +172,13 @@ export default function DashboardPage() {
       }
 
       await fetchBalancesData();
+      try {
+        const storeRes = await fetch("/api/store-status");
+        if (storeRes.ok) {
+          const storeJson = await storeRes.json();
+          setStoreStatus(storeJson);
+        }
+      } catch (_) {}
       setLoading(false);
     }
     load();
@@ -204,6 +212,74 @@ export default function DashboardPage() {
           })}
         </p>
       </div>
+
+      {/* Live Store & Facility Status Banner */}
+      {storeStatus && (
+        <div
+          className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md ${
+            storeStatus.isOpen
+              ? "bg-emerald-950/30 border-emerald-500/40 text-emerald-300"
+              : storeStatus.closedReason === "farm_maintenance"
+              ? "bg-amber-950/40 border-amber-500/45 text-amber-300"
+              : storeStatus.closedReason === "friday_maintenance"
+              ? "bg-amber-950/30 border-amber-500/35 text-amber-300"
+              : storeStatus.closedReason === "manual"
+              ? "bg-red-950/40 border-red-500/40 text-red-300"
+              : "bg-slate-900/60 border-slate-800 text-slate-300"
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-xl">
+              {storeStatus.isOpen
+                ? "🟢"
+                : storeStatus.closedReason === "farm_maintenance"
+                ? "🛠️"
+                : storeStatus.closedReason === "friday_maintenance"
+                ? "📅"
+                : storeStatus.closedReason === "manual"
+                ? "🔴"
+                : "⏰"}
+            </span>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-bold text-sm text-white font-['Space_Grotesk']">
+                  Store Status:{" "}
+                  {storeStatus.isOpen
+                    ? "Open · Accepting Online Orders"
+                    : storeStatus.closedReason === "farm_maintenance"
+                    ? "Closed for Farm Maintenance"
+                    : storeStatus.closedReason === "friday_maintenance"
+                    ? "Closed for Friday Maintenance"
+                    : storeStatus.closedReason === "manual"
+                    ? "Manually Paused"
+                    : "Closed Outside Hours"}
+                </span>
+                <span className="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-full border border-current bg-black/20">
+                  {storeStatus.isOpen ? "Checkout Active" : "Checkout Paused"}
+                </span>
+              </div>
+              <p className="text-xs text-slate-400 mt-0.5 font-['Manrope']">
+                {storeStatus.isOpen
+                  ? "Standard schedule: 7:00 AM – 10:00 PM IST. Delivery radius: 5km."
+                  : storeStatus.closedReason === "farm_maintenance"
+                  ? "Farm & Vending Center maintenance active. Online checkout is temporarily paused."
+                  : storeStatus.closedReason === "friday_maintenance"
+                  ? "Closed for regular Friday maintenance. If your vending center is open today, you can enable Friday orders in Settings!"
+                  : storeStatus.closedReason === "manual"
+                  ? "Store is manually paused by an administrator."
+                  : `Store reopens ${storeStatus.nextOpenLabel || "tomorrow at 7:00 AM IST"}.`}
+              </p>
+            </div>
+          </div>
+
+          <Link
+            href="/admin/dashboard/settings"
+            className="flex-shrink-0 text-xs font-bold px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 transition-colors w-max"
+          >
+            Manage Operations →
+          </Link>
+        </div>
+      )}
 
       {/* Bio-Alarm Banner */}
       {alarms.length > 0 && (

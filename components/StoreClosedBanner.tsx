@@ -7,7 +7,7 @@ interface Props {
   nextOpenLabel: string; // e.g. "tomorrow at 7:00 AM" or "tomorrow (Saturday) at 7:00 AM"
   primaryPhone: string;
   isFridayMaintenance?: boolean;
-  closedReason?: "friday_maintenance" | "outside_hours" | "manual";
+  closedReason?: "friday_maintenance" | "farm_maintenance" | "outside_hours" | "manual";
 }
 
 const C = {
@@ -47,14 +47,18 @@ export default function StoreClosedBanner({
   const [isCheckingStatus, setIsCheckingStatus] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
 
+  const isFarmMaintenance = closedReason === "farm_maintenance";
   // Determine if closed for Friday maintenance
-  const isFridayNow = isFridayMaintenance ?? (() => {
-    const utcMs = Date.now();
-    const istOffsetMs = (5 * 60 + 30) * 60 * 1000;
-    return new Date(utcMs + istOffsetMs).getUTCDay() === 5;
-  })();
+  const isFridayNow = !isFarmMaintenance && (isFridayMaintenance !== undefined
+    ? isFridayMaintenance
+    : (() => {
+        const utcMs = Date.now();
+        const istOffsetMs = (5 * 60 + 30) * 60 * 1000;
+        return new Date(utcMs + istOffsetMs).getUTCDay() === 5;
+      })());
 
-  const isManualClose = !isFridayNow && (!nextOpenISO || nextOpenLabel === "when we reopen" || closedReason === "manual");
+  const isManualClose = !isFarmMaintenance && !isFridayNow && (!nextOpenISO || nextOpenLabel === "when we reopen" || closedReason === "manual");
+  const isAnyMaintenance = isFarmMaintenance || isFridayNow;
 
   // Purge any local navigation cache and reload the page cleanly
   const triggerReload = useCallback((msg?: string) => {
@@ -228,7 +232,7 @@ export default function StoreClosedBanner({
               width: "130px",
               height: "130px",
               borderRadius: "50%",
-              border: isFridayNow ? "1px solid rgba(248,113,113,0.25)" : "1px solid rgba(114,221,253,0.15)",
+              border: isAnyMaintenance ? "1px solid rgba(248,113,113,0.25)" : "1px solid rgba(114,221,253,0.15)",
               animation: "orb-pulse 3s ease-in-out infinite",
             }}
           />
@@ -238,7 +242,7 @@ export default function StoreClosedBanner({
               width: "105px",
               height: "105px",
               borderRadius: "50%",
-              border: isFridayNow ? "1px solid rgba(248,113,113,0.18)" : "1px solid rgba(114,221,253,0.1)",
+              border: isAnyMaintenance ? "1px solid rgba(248,113,113,0.18)" : "1px solid rgba(114,221,253,0.1)",
               animation: "orb-pulse 3s ease-in-out infinite 0.5s",
             }}
           />
@@ -248,15 +252,15 @@ export default function StoreClosedBanner({
               width: "80px",
               height: "80px",
               borderRadius: "50%",
-              background: isFridayNow
+              background: isAnyMaintenance
                 ? "radial-gradient(circle at 35% 35%, rgba(248,113,113,0.22) 0%, rgba(239,68,68,0.06) 60%, transparent 100%)"
                 : "radial-gradient(circle at 35% 35%, rgba(114,221,253,0.25) 0%, rgba(58,173,204,0.08) 60%, transparent 100%)",
-              border: isFridayNow ? "1.5px solid rgba(248,113,113,0.4)" : "1px solid rgba(114,221,253,0.3)",
+              border: isAnyMaintenance ? "1.5px solid rgba(248,113,113,0.4)" : "1px solid rgba(114,221,253,0.3)",
               backdropFilter: "blur(12px)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              boxShadow: isFridayNow
+              boxShadow: isAnyMaintenance
                 ? "0 0 35px rgba(248,113,113,0.2), inset 0 0 20px rgba(248,113,113,0.1)"
                 : "0 0 40px rgba(114,221,253,0.12), inset 0 0 20px rgba(114,221,253,0.08)",
             }}
@@ -266,7 +270,7 @@ export default function StoreClosedBanner({
               <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#72ddfd" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" className="animate-spin">
                 <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" />
               </svg>
-            ) : isFridayNow ? (
+            ) : isAnyMaintenance ? (
               <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#fca5a5" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z" />
               </svg>
@@ -288,10 +292,10 @@ export default function StoreClosedBanner({
                 fontSize: "10px",
                 letterSpacing: "0.3em",
                 textTransform: "uppercase",
-                color: isFridayNow ? "#f87171" : C.primary,
+                color: isAnyMaintenance ? "#f87171" : C.primary,
               }}
             >
-              {isFridayNow ? "Weekly Maintenance Day" : "Store Status"}
+              {isFarmMaintenance ? "Facility Maintenance Mode" : isFridayNow ? "Weekly Maintenance Day" : "Store Status"}
             </span>
             <div style={{ width: "28px", height: "1px", background: "rgba(114,221,253,0.4)" }} />
           </div>
@@ -310,7 +314,7 @@ export default function StoreClosedBanner({
             We&apos;re{" "}
             <span
               style={{
-                background: isFridayNow
+                background: isAnyMaintenance
                   ? "linear-gradient(135deg, #f87171, #fca5a5)"
                   : "linear-gradient(135deg, #72ddfd, #c4ebff)",
                 WebkitBackgroundClip: "text",
@@ -321,7 +325,7 @@ export default function StoreClosedBanner({
                 ? "Opening Right Now!"
                 : isManualClose
                 ? "Taking a Break"
-                : isFridayNow
+                : isAnyMaintenance
                 ? "Closed for Farm Maintenance"
                 : "Closed Right Now"}
             </span>
@@ -342,6 +346,12 @@ export default function StoreClosedBanner({
               </span>
             ) : isManualClose ? (
               "Our store is temporarily closed for the day. We'll be back soon — follow us on WhatsApp for updates."
+            ) : isFarmMaintenance ? (
+              <>
+                Our farm &amp; vending center are currently closed for scheduled maintenance, RAS filtration backwashing, and biosecurity sanitation.
+                <br />
+                <strong style={{ color: C.onSurface }}>Fresh catch ordering will resume {nextOpenLabel || "as soon as maintenance concludes"}.</strong>
+              </>
             ) : isFridayNow ? (
               <>
                 Our farm is closed on Fridays for weekly farm maintenance and bio-security protocols.

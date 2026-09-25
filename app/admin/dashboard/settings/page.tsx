@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { adminFetch } from "@/lib/adminClient";
+import { getBusinessHoursInfo } from "@/lib/businessHours";
 
 export interface StaffMember {
   email: string;
@@ -94,6 +95,12 @@ export default function AdminSettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [storeManuallyClosed, setStoreManuallyClosed] = useState(false);
   const [isTogglingStore, setIsTogglingStore] = useState(false);
+  const [farmMaintenanceActive, setFarmMaintenanceActive] = useState(false);
+  const [isTogglingFarmMaintenance, setIsTogglingFarmMaintenance] = useState(false);
+  const [allowFridayOrders, setAllowFridayOrders] = useState(false);
+  const [isTogglingFridayOrders, setIsTogglingFridayOrders] = useState(false);
+  const [forceStoreOpen, setForceStoreOpen] = useState(false);
+  const [isTogglingForceOpen, setIsTogglingForceOpen] = useState(false);
   const [lowStockThreshold, setLowStockThreshold] = useState("15");
   const [lowStockAlertsEnabled, setLowStockAlertsEnabled] = useState(true);
   const [isTestingTelegramAlert, setIsTestingTelegramAlert] = useState(false);
@@ -153,6 +160,15 @@ export default function AdminSettingsPage() {
           if (map.farm_longitude) setFarmLng(map.farm_longitude);
           if (map.store_manually_closed) {
             setStoreManuallyClosed(map.store_manually_closed === "true");
+          }
+          if (map.farm_maintenance_active !== undefined) {
+            setFarmMaintenanceActive(map.farm_maintenance_active === "true");
+          }
+          if (map.allow_friday_orders !== undefined) {
+            setAllowFridayOrders(map.allow_friday_orders === "true");
+          }
+          if (map.force_store_open !== undefined) {
+            setForceStoreOpen(map.force_store_open === "true");
           }
           if (map.low_stock_threshold_kg) {
             setLowStockThreshold(map.low_stock_threshold_kg);
@@ -428,12 +444,94 @@ export default function AdminSettingsPage() {
     }
   };
 
+  // Toggle Farm & Vending Center Maintenance
+  const handleToggleFarmMaintenance = async () => {
+    const newVal = !farmMaintenanceActive;
+    setFarmMaintenanceActive(newVal);
+    setIsTogglingFarmMaintenance(true);
+    try {
+      const item = {
+        key: "farm_maintenance_active",
+        value: String(newVal),
+        description: "Farm & Vending Center Maintenance mode — pauses online checkout and displays maintenance notice",
+      };
+      await adminFetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify([item]),
+      });
+      await supabase.from("app_settings").upsert(item, { onConflict: "key" });
+      setSavedMsg(newVal ? "🛠️ Farm & Vending Center Maintenance is now ACTIVE — checkout paused." : "✅ Farm Maintenance concluded — normal operations restored.");
+      setTimeout(() => setSavedMsg(""), 4000);
+    } catch (err) {
+      console.warn("Farm maintenance toggle notice:", err);
+    } finally {
+      setIsTogglingFarmMaintenance(false);
+    }
+  };
+
+  // Toggle Friday Farm Operations (Open for Online Orders)
+  const handleToggleFridayOrders = async () => {
+    const newVal = !allowFridayOrders;
+    setAllowFridayOrders(newVal);
+    setIsTogglingFridayOrders(true);
+    try {
+      const item = {
+        key: "allow_friday_orders",
+        value: String(newVal),
+        description: "Allow online orders on Fridays (7:00 AM – 10:00 PM IST) when farm/vending center is open",
+      };
+      await adminFetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify([item]),
+      });
+      await supabase.from("app_settings").upsert(item, { onConflict: "key" });
+      setSavedMsg(newVal ? "🟢 Friday Farm & Vending Center is OPEN — customers can place online orders on Fridays!" : "📅 Friday maintenance schedule restored — closed on Fridays.");
+      setTimeout(() => setSavedMsg(""), 4000);
+    } catch (err) {
+      console.warn("Friday orders toggle notice:", err);
+    } finally {
+      setIsTogglingFridayOrders(false);
+    }
+  };
+
+  // Toggle Force Store Open (24/7)
+  const handleToggleForceOpen = async () => {
+    const newVal = !forceStoreOpen;
+    setForceStoreOpen(newVal);
+    setIsTogglingForceOpen(true);
+    try {
+      const item = {
+        key: "force_store_open",
+        value: String(newVal),
+        description: "Force store open override — bypasses all operating hours and maintenance checks",
+      };
+      await adminFetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify([item]),
+      });
+      await supabase.from("app_settings").upsert(item, { onConflict: "key" });
+      setSavedMsg(newVal ? "⚡ 24/7 Force Open is ACTIVE — store will accept orders regardless of hours." : "⏰ 24/7 Force Open disabled — standard operating hours enforced.");
+      setTimeout(() => setSavedMsg(""), 4000);
+    } catch (err) {
+      console.warn("Force open toggle notice:", err);
+    } finally {
+      setIsTogglingForceOpen(false);
+    }
+  };
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
     setSavedMsg("");
 
     const updates = [
+      { key: "store_manually_closed", value: String(storeManuallyClosed), description: "Manual store closure override" },
+      { key: "farm_maintenance_active", value: String(farmMaintenanceActive), description: "Farm & Vending Center Maintenance active toggle" },
+      { key: "allow_friday_orders", value: String(allowFridayOrders), description: "Allow customer online orders on Fridays" },
+      { key: "force_store_open", value: String(forceStoreOpen), description: "Force store open override" },
       { key: "upi_id", value: upiId.trim(), description: "Primary UPI ID for customer direct checkout payments" },
       { key: "primary_phone", value: primaryPhone.trim(), description: "Primary WhatsApp and contact phone" },
       { key: "alternate_phone", value: alternatePhone.trim(), description: "Alternate contact phone" },
@@ -552,157 +650,325 @@ export default function AdminSettingsPage() {
       ) : (
         <div className="space-y-8">
           {/* ══════════════════════════════════════════════════════════
-              SECTION 0: MANUAL STORE CLOSURE OVERRIDE
+              SECTION 0: FACILITY & STORE OPERATIONS COMMAND CENTER
               ══════════════════════════════════════════════════════════ */}
-          <div
-            className={`relative overflow-hidden rounded-3xl p-6 md:p-8 border transition-all duration-500 shadow-xl ${
-              storeManuallyClosed
-                ? "bg-red-950/40 border-red-500/40"
-                : "bg-slate-900/60 border-slate-800"
-            }`}
-          >
-            {/* Ambient glow when closed */}
-            {storeManuallyClosed && (
-              <div
-                style={{
-                  position: "absolute",
-                  inset: 0,
-                  background: "radial-gradient(ellipse at top left, rgba(239,68,68,0.08) 0%, transparent 70%)",
-                  pointerEvents: "none",
-                }}
-              />
-            )}
+          {(() => {
+            const liveStatus = getBusinessHoursInfo(new Date(), {
+              storeManuallyClosed,
+              farmMaintenanceActive,
+              allowFridayOrders,
+              forceStoreOpen,
+            });
 
-            <div className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-6">
-              {/* Left: icon + text */}
-              <div className="flex items-start gap-4">
-                {/* Animated icon */}
+            return (
+              <div className="space-y-4">
+                {/* 1. Live Real-Time Customer Status Beacon */}
                 <div
-                  className={`w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 transition-all duration-300 ${
-                    storeManuallyClosed
-                      ? "bg-red-500/20 border border-red-500/40"
-                      : "bg-emerald-500/15 border border-emerald-500/30"
+                  className={`relative overflow-hidden rounded-3xl p-6 md:p-7 border transition-all duration-500 shadow-2xl ${
+                    liveStatus.isOpen
+                      ? "bg-gradient-to-r from-emerald-950/50 via-slate-900/90 to-slate-900/90 border-emerald-500/40"
+                      : liveStatus.closedReason === "farm_maintenance"
+                      ? "bg-gradient-to-r from-amber-950/60 via-slate-900/90 to-slate-900/90 border-amber-500/40"
+                      : liveStatus.closedReason === "friday_maintenance"
+                      ? "bg-gradient-to-r from-amber-950/50 via-slate-900/90 to-slate-900/90 border-amber-500/35"
+                      : liveStatus.closedReason === "manual"
+                      ? "bg-gradient-to-r from-red-950/60 via-slate-900/90 to-slate-900/90 border-red-500/40"
+                      : "bg-gradient-to-r from-cyan-950/40 via-slate-900/90 to-slate-900/90 border-cyan-500/30"
                   }`}
                 >
-                  {storeManuallyClosed ? (
-                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#f87171" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-                    </svg>
-                  ) : (
-                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <circle cx="12" cy="12" r="10" />
-                      <polyline points="12 6 12 12 16 14" />
-                    </svg>
-                  )}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-center gap-3.5">
+                      <div
+                        className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl flex-shrink-0 border ${
+                          liveStatus.isOpen
+                            ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-400"
+                            : liveStatus.closedReason === "farm_maintenance"
+                            ? "bg-amber-500/20 border-amber-500/40 text-amber-400"
+                            : liveStatus.closedReason === "friday_maintenance"
+                            ? "bg-amber-500/20 border-amber-500/40 text-amber-400"
+                            : liveStatus.closedReason === "manual"
+                            ? "bg-red-500/20 border-red-500/40 text-red-400"
+                            : "bg-cyan-500/20 border-cyan-500/40 text-cyan-400"
+                        }`}
+                      >
+                        {liveStatus.isOpen
+                          ? "🟢"
+                          : liveStatus.closedReason === "farm_maintenance"
+                          ? "🛠️"
+                          : liveStatus.closedReason === "friday_maintenance"
+                          ? "📅"
+                          : liveStatus.closedReason === "manual"
+                          ? "🔴"
+                          : "⏰"}
+                      </div>
+
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h2 className="text-base sm:text-lg font-bold text-white font-['Space_Grotesk']">
+                            Live Customer View:{" "}
+                            <span
+                              className={
+                                liveStatus.isOpen
+                                  ? "text-emerald-300"
+                                  : liveStatus.closedReason === "farm_maintenance"
+                                  ? "text-amber-300"
+                                  : liveStatus.closedReason === "friday_maintenance"
+                                  ? "text-amber-300"
+                                  : liveStatus.closedReason === "manual"
+                                  ? "text-red-300"
+                                  : "text-cyan-300"
+                              }
+                            >
+                              {liveStatus.isOpen
+                                ? "Store Open · Accepting Orders"
+                                : liveStatus.closedReason === "farm_maintenance"
+                                ? "Closed for Farm Maintenance"
+                                : liveStatus.closedReason === "friday_maintenance"
+                                ? "Closed for Friday Maintenance"
+                                : liveStatus.closedReason === "manual"
+                                ? "Manually Paused"
+                                : "Closed Outside Operating Hours"}
+                            </span>
+                          </h2>
+
+                          <span
+                            className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider font-mono border ${
+                              liveStatus.isOpen
+                                ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300"
+                                : "bg-slate-800/80 border-slate-700 text-slate-300"
+                            }`}
+                          >
+                            {liveStatus.isOpen ? "Ordering Active" : "Ordering Paused"}
+                          </span>
+                        </div>
+
+                        <p className="text-xs text-slate-300 mt-1 font-['Manrope']">
+                          {liveStatus.isOpen
+                            ? "✅ Checkout is enabled. Customers can order fresh harvest online."
+                            : liveStatus.closedReason === "farm_maintenance"
+                            ? "⚠️ Customers see the Farm Maintenance banner with our WhatsApp contact CTA."
+                            : liveStatus.closedReason === "friday_maintenance"
+                            ? "⚠️ Closed for regular Friday maintenance. Toggle 'Friday Store Operations' below if your farm is open today!"
+                            : liveStatus.closedReason === "manual"
+                            ? "⚠️ Store manually closed by administrator. Toggle Emergency Pause below to resume."
+                            : `⏰ Standard schedule: 7:00 AM – 10:00 PM IST. Next opening: ${liveStatus.nextOpenLabel}.`}
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="text-left sm:text-right flex-shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-800">
+                      <span className="text-[10px] font-mono text-slate-400 block uppercase tracking-wider">Srinagar Local Time</span>
+                      <span className="text-xs font-mono font-bold text-cyan-300">
+                        {new Intl.DateTimeFormat("en-IN", {
+                          timeZone: "Asia/Kolkata",
+                          weekday: "short",
+                          hour: "numeric",
+                          minute: "numeric",
+                          hour12: true,
+                        }).format(new Date())} IST
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <h2
-                      className={`text-lg font-bold transition-colors duration-300 ${storeManuallyClosed ? "text-red-300" : "text-white"}`}
-                      style={{ fontFamily: '"Space Grotesk", sans-serif' }}
-                    >
-                      Manual Store Closure Override
-                    </h2>
-                    {/* Live status pill */}
-                    <span
-                      className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
-                        storeManuallyClosed
-                          ? "bg-red-500/20 border-red-500/40 text-red-400"
-                          : "bg-emerald-500/15 border-emerald-500/30 text-emerald-400"
-                      }`}
-                    >
-                      <span
-                        className="inline-block w-1.5 h-1.5 rounded-full"
-                        style={{
-                          background: storeManuallyClosed ? "#f87171" : "#4ade80",
-                          animation: "pulse 2s infinite",
-                        }}
-                      />
-                      {storeManuallyClosed ? "Store Closed" : "Store Open"}
+                {/* 2. Operations Controls Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+
+                  {/* CONTROL 1: FARM & VENDING CENTER MAINTENANCE */}
+                  <div
+                    className={`p-5 rounded-2xl border transition-all duration-300 flex flex-col justify-between ${
+                      farmMaintenanceActive
+                        ? "bg-amber-950/40 border-amber-500/50 shadow-lg shadow-amber-950/30"
+                        : "bg-slate-900/60 border-slate-800 hover:border-slate-700"
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 text-lg">
+                          🛠️
+                        </div>
+                        <span
+                          className={`text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+                            farmMaintenanceActive
+                              ? "bg-amber-500/25 border-amber-500/40 text-amber-300"
+                              : "bg-slate-800 border-slate-700 text-slate-400"
+                          }`}
+                        >
+                          {farmMaintenanceActive ? "Maintenance Active" : "Operational"}
+                        </span>
+                      </div>
+
+                      <h3 className="font-bold text-white text-base font-['Space_Grotesk'] mb-1">
+                        Farm &amp; Vending Maintenance
+                      </h3>
+                      <p className="text-xs text-slate-400 leading-relaxed font-['Manrope'] mb-4">
+                        Turn ON when doing RAS bio-filter backwashing, deep sanitization, or tank upkeep. Pauses online checkout and displays the transparent maintenance banner.
+                      </p>
+                    </div>
+
+                    <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between">
+                      <span className="text-xs font-semibold text-slate-300">
+                        {isTogglingFarmMaintenance ? "Saving…" : farmMaintenanceActive ? "Maintenance Mode ON" : "Maintenance Mode OFF"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleToggleFarmMaintenance}
+                        disabled={isTogglingFarmMaintenance}
+                        className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors cursor-pointer disabled:opacity-50 ${
+                          farmMaintenanceActive ? "bg-amber-500" : "bg-slate-700"
+                        }`}
+                        aria-label="Toggle Farm Maintenance"
+                      >
+                        <span
+                          className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${
+                            farmMaintenanceActive ? "translate-x-8" : "translate-x-1"
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* CONTROL 2: FRIDAY STORE OPERATIONS */}
+                  <div
+                    className={`p-5 rounded-2xl border transition-all duration-300 flex flex-col justify-between ${
+                      allowFridayOrders
+                        ? "bg-emerald-950/40 border-emerald-500/50 shadow-lg shadow-emerald-950/30"
+                        : "bg-slate-900/60 border-slate-800 hover:border-slate-700"
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="w-10 h-10 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-lg">
+                          📅
+                        </div>
+                        <span
+                          className={`text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+                            allowFridayOrders
+                              ? "bg-emerald-500/25 border-emerald-500/40 text-emerald-300"
+                              : "bg-slate-800 border-slate-700 text-slate-400"
+                          }`}
+                        >
+                          {allowFridayOrders ? "Open on Fridays" : "Closed Fridays (Default)"}
+                        </span>
+                      </div>
+
+                      <h3 className="font-bold text-white text-base font-['Space_Grotesk'] mb-1">
+                        Friday Store Operations
+                      </h3>
+                      <p className="text-xs text-slate-400 leading-relaxed font-['Manrope'] mb-4">
+                        By default, Fridays are reserved for weekly farm maintenance. Turn this ON whenever you keep the farm or vending center open on a Friday (7 AM – 10 PM IST) to accept orders.
+                      </p>
+                    </div>
+
+                    <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between">
+                      <span className="text-xs font-semibold text-slate-300">
+                        {isTogglingFridayOrders ? "Saving…" : allowFridayOrders ? "Friday Ordering Allowed" : "Friday Orders Blocked"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleToggleFridayOrders}
+                        disabled={isTogglingFridayOrders}
+                        className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors cursor-pointer disabled:opacity-50 ${
+                          allowFridayOrders ? "bg-emerald-500" : "bg-slate-700"
+                        }`}
+                        aria-label="Toggle Friday Operations"
+                      >
+                        <span
+                          className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${
+                            allowFridayOrders ? "translate-x-8" : "translate-x-1"
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* CONTROL 3: EMERGENCY STORE PAUSE OVERRIDE */}
+                  <div
+                    className={`p-5 rounded-2xl border transition-all duration-300 flex flex-col justify-between ${
+                      storeManuallyClosed
+                        ? "bg-red-950/40 border-red-500/50 shadow-lg shadow-red-950/30"
+                        : "bg-slate-900/60 border-slate-800 hover:border-slate-700"
+                    }`}
+                  >
+                    <div>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="w-10 h-10 rounded-xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-red-400 text-lg">
+                          ⏸️
+                        </div>
+                        <span
+                          className={`text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded-full border ${
+                            storeManuallyClosed
+                              ? "bg-red-500/25 border-red-500/40 text-red-300"
+                              : "bg-emerald-500/20 border-emerald-500/30 text-emerald-400"
+                          }`}
+                        >
+                          {storeManuallyClosed ? "Store Paused" : "Accepting Orders"}
+                        </span>
+                      </div>
+
+                      <h3 className="font-bold text-white text-base font-['Space_Grotesk'] mb-1">
+                        Emergency Store Pause
+                      </h3>
+                      <p className="text-xs text-slate-400 leading-relaxed font-['Manrope'] mb-4">
+                        Instantly pause all online orders for short breaks, inventory restocking, or adverse weather. Customers will see a closed banner with a WhatsApp contact CTA.
+                      </p>
+                    </div>
+
+                    <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between">
+                      <span className="text-xs font-semibold text-slate-300">
+                        {isTogglingStore ? "Saving…" : storeManuallyClosed ? "Orders Paused" : "Active & Accepting"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={handleToggleStore}
+                        disabled={isTogglingStore}
+                        className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors cursor-pointer disabled:opacity-50 ${
+                          storeManuallyClosed ? "bg-red-500" : "bg-emerald-500"
+                        }`}
+                        aria-label="Toggle Manual Store Closure"
+                      >
+                        <span
+                          className={`inline-block h-5 w-5 transform rounded-full bg-white shadow-md transition-transform ${
+                            storeManuallyClosed ? "translate-x-8" : "translate-x-1"
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* Optional Quick Force-Open / Advance Note bar */}
+                <div className="p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-sm text-cyan-400">info</span>
+                    <span>
+                      Standard Operating Schedule: <strong>Sat – Thu: 7:00 AM – 10:00 PM IST</strong> (Closed Fridays unless toggled above).
                     </span>
                   </div>
-                  <p className="text-sm text-slate-400 leading-relaxed" style={{ fontFamily: '"Manrope", sans-serif' }}>
-                    {storeManuallyClosed
-                      ? "⚠️ Your store is manually closed. Customers will see the \"Store Closed\" banner and cannot place orders."
-                      : "Toggle ON to instantly close the store for the day — for breaks, restocking, or special occasions. Customers will see a closed banner with a WhatsApp CTA."}
-                  </p>
-                  {storeManuallyClosed && (
-                    <p className="text-xs text-red-400/70 mt-1.5 font-medium">
-                      Remember to toggle OFF when you&apos;re ready to accept orders again.
-                    </p>
-                  )}
+
+                  <div className="flex items-center gap-3">
+                    <span className="text-[11px] font-medium text-slate-300">Force Open 24/7 (Testing Mode):</span>
+                    <button
+                      type="button"
+                      onClick={handleToggleForceOpen}
+                      disabled={isTogglingForceOpen}
+                      className={`relative inline-flex h-5 w-10 items-center rounded-full transition-colors cursor-pointer disabled:opacity-50 ${
+                        forceStoreOpen ? "bg-cyan-500" : "bg-slate-700"
+                      }`}
+                      title="Force Store Open (Bypasses all business hours and maintenance)"
+                    >
+                      <span
+                        className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-md transition-transform ${
+                          forceStoreOpen ? "translate-x-5" : "translate-x-1"
+                        }`}
+                      />
+                    </button>
+                  </div>
                 </div>
               </div>
-
-              {/* Right: Big Toggle */}
-              <div className="flex flex-col items-center gap-3 flex-shrink-0">
-                <button
-                  type="button"
-                  onClick={handleToggleStore}
-                  disabled={isTogglingStore}
-                  className={`relative flex items-center rounded-full transition-all duration-300 cursor-pointer focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-slate-900 disabled:opacity-60 ${
-                    storeManuallyClosed
-                      ? "focus:ring-red-500"
-                      : "focus:ring-emerald-500"
-                  }`}
-                  style={{ width: "72px", height: "36px", padding: "3px" }}
-                  aria-label={storeManuallyClosed ? "Open store" : "Close store"}
-                >
-                  {/* Track */}
-                  <span
-                    className={`absolute inset-0 rounded-full transition-all duration-300 ${
-                      storeManuallyClosed
-                        ? "bg-red-500"
-                        : "bg-emerald-500"
-                    }`}
-                    style={{
-                      boxShadow: storeManuallyClosed
-                        ? "0 0 20px rgba(239,68,68,0.4)"
-                        : "0 0 20px rgba(74,222,128,0.3)",
-                    }}
-                  />
-                  {/* Thumb */}
-                  <span
-                    className="relative z-10 inline-block w-7 h-7 bg-white rounded-full shadow-md transition-all duration-300"
-                    style={{
-                      transform: storeManuallyClosed ? "translateX(36px)" : "translateX(0px)",
-                    }}
-                  />
-                </button>
-                <span
-                  className={`text-[10px] font-bold uppercase tracking-widest transition-colors duration-300 ${
-                    storeManuallyClosed ? "text-red-400" : "text-emerald-400"
-                  }`}
-                >
-                  {isTogglingStore ? "Saving…" : storeManuallyClosed ? "Closed" : "Open"}
-                </span>
-              </div>
-            </div>
-
-            {/* Bottom info bar */}
-            <div
-              className={`mt-5 pt-4 border-t flex flex-wrap items-center gap-4 text-xs transition-colors duration-300 ${
-                storeManuallyClosed ? "border-red-500/20 text-red-400/60" : "border-slate-800 text-slate-500"
-              }`}
-            >
-              <span className="flex items-center gap-1.5">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>
-                Business hours: Sat – Thu, 7:00 AM – 10:00 PM IST (Closed Fridays for Farm Maintenance)
-              </span>
-              <span className="flex items-center gap-1.5">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><polyline points="13 2 13 9 20 9"/></svg>
-                Changes apply instantly — no page reload needed
-              </span>
-              <span className="flex items-center gap-1.5">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-                Customers see WhatsApp CTA when closed
-              </span>
-            </div>
-
-            {/* Pulse animation */}
-            <style>{`@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }`}</style>
-          </div>
+            );
+          })()}
 
           {/* ══════════════════════════════════════════════════════════
               💰 LIVE PRICE BOARD

@@ -55,33 +55,60 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Valid customer phone number is required." }, { status: 400 });
     }
 
-    // Business Hours & Friday Maintenance Check
+    // Business Hours & Farm Maintenance / Friday Operations Check
     const { getBusinessHoursInfo } = await import("@/lib/businessHours");
-    const hoursInfo = getBusinessHoursInfo();
+    
+    const overrides = {
+      storeManuallyClosed: false,
+      farmMaintenanceActive: false,
+      allowFridayOrders: false,
+      forceStoreOpen: false,
+    };
 
-    let isManuallyClosed = false;
     try {
-      const { data: closedRow } = await supabase
+      const { data: rows } = await supabase
         .from("app_settings")
-        .select("value")
-        .eq("key", "store_manually_closed")
-        .single();
-      isManuallyClosed = closedRow?.value === "true";
+        .select("key, value")
+        .in("key", [
+          "store_manually_closed",
+          "farm_maintenance_active",
+          "allow_friday_orders",
+          "force_store_open",
+        ]);
+
+      if (rows && rows.length > 0) {
+        for (const row of rows) {
+          if (row.key === "store_manually_closed") {
+            overrides.storeManuallyClosed = row.value === "true";
+          } else if (row.key === "farm_maintenance_active") {
+            overrides.farmMaintenanceActive = row.value === "true";
+          } else if (row.key === "allow_friday_orders") {
+            overrides.allowFridayOrders = row.value === "true";
+          } else if (row.key === "force_store_open") {
+            overrides.forceStoreOpen = row.value === "true";
+          }
+        }
+      }
     } catch {
       // ignore
     }
 
-    if (!hoursInfo.isOpen || isManuallyClosed) {
-      const closedMsg = isManuallyClosed
+    const hoursInfo = getBusinessHoursInfo(new Date(), overrides);
+
+    if (!hoursInfo.isOpen) {
+      const closedMsg = hoursInfo.closedReason === "manual"
         ? "Our store is temporarily taking a break. Please try again when we reopen or contact us on WhatsApp."
-        : hoursInfo.isFridayMaintenance
+        : hoursInfo.closedReason === "farm_maintenance"
+        ? "Our farm & vending center are currently undergoing scheduled maintenance. Please message us on WhatsApp or check back soon."
+        : hoursInfo.closedReason === "friday_maintenance"
         ? `Our farm is closed on Fridays for scheduled Farm Maintenance. Fresh harvest resumes ${hoursInfo.nextOpenLabel || "Saturday at 7:00 AM"}.`
-        : `Our store is currently closed. We harvest fresh trout to order during business hours (Saturday to Thursday, 7:00 AM – 10:00 PM). Opens ${hoursInfo.nextOpenLabel || "tomorrow at 7:00 AM"}.`;
+        : `Our store is currently closed. We harvest fresh trout to order during business hours (7:00 AM – 10:00 PM). Opens ${hoursInfo.nextOpenLabel || "tomorrow at 7:00 AM"}.`;
 
       return NextResponse.json(
         {
           error: closedMsg,
           storeClosed: true,
+          closedReason: hoursInfo.closedReason,
           nextOpenLabel: hoursInfo.nextOpenLabel,
         },
         { status: 400 }

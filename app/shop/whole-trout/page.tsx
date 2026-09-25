@@ -43,18 +43,24 @@ const C = {
 export const revalidate = 30;
 
 export default async function WholeTroutPage() {
-  // ── Business Hours ──────────────────────────────────────────────────────
-  const hoursInfo = getBusinessHoursInfo();
-
-  // ── Manual closure override ─────────────────────────────────────────────
-  const { data: closedRow } = await supabase
+  // ── Business Hours & Store Overrides Check ────────────────────────────────
+  const { data: settingsRows } = await supabase
     .from("app_settings")
-    .select("value")
-    .eq("key", "store_manually_closed")
-    .single();
-  const isManuallyClosedFlag = closedRow?.value === "true";
-  const effectivelyOpen = hoursInfo.isOpen && !isManuallyClosedFlag;
-  const effectiveHoursInfo = { ...hoursInfo, isOpen: effectivelyOpen };
+    .select("key, value")
+    .in("key", ["store_manually_closed", "farm_maintenance_active", "allow_friday_orders", "force_store_open"]);
+
+  const overrides: Record<string, boolean> = {};
+  settingsRows?.forEach((r) => {
+    overrides[r.key] = r.value === "true";
+  });
+
+  const effectiveHoursInfo = getBusinessHoursInfo(new Date(), {
+    storeManuallyClosed: overrides.store_manually_closed,
+    farmMaintenanceActive: overrides.farm_maintenance_active,
+    allowFridayOrders: overrides.allow_friday_orders,
+    forceStoreOpen: overrides.force_store_open,
+  });
+  const isManuallyClosedFlag = Boolean(overrides.store_manually_closed);
 
   const { data } = await supabase
     .from("inventory")
@@ -182,10 +188,10 @@ export default async function WholeTroutPage() {
         />
         <StoreClosedBanner
           nextOpenISO={effectiveHoursInfo.nextOpenISO}
-          nextOpenLabel={isManuallyClosedFlag ? "when we reopen" : effectiveHoursInfo.nextOpenLabel}
+          nextOpenLabel={effectiveHoursInfo.nextOpenLabel}
           primaryPhone={primaryPhone}
           isFridayMaintenance={effectiveHoursInfo.isFridayMaintenance}
-          closedReason={isManuallyClosedFlag ? "manual" : effectiveHoursInfo.closedReason}
+          closedReason={effectiveHoursInfo.closedReason}
         />
       </>
     );
@@ -400,7 +406,7 @@ export default async function WholeTroutPage() {
                     maxQuantity={aquariumStockKg !== undefined ? Math.floor(aquariumStockKg) : 99}
                   />
                 </>
-              ) : !hoursInfo.isOpen ? (
+              ) : !effectiveHoursInfo.isOpen ? (
                 <div
                   style={{
                     display: "flex",
@@ -417,10 +423,14 @@ export default async function WholeTroutPage() {
                   </svg>
                   <div>
                     <p style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "0.9rem", fontWeight: 700, color: C.onSurface, margin: 0 }}>
-                      {effectiveHoursInfo.isFridayMaintenance ? "Closed for Friday Farm Maintenance" : "Store Closed"}
+                      {effectiveHoursInfo.closedReason === "farm_maintenance"
+                        ? "Closed for Farm Maintenance"
+                        : effectiveHoursInfo.isFridayMaintenance
+                        ? "Closed for Friday Farm Maintenance"
+                        : "Store Closed"}
                     </p>
                     <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.8rem", color: C.onSurfVar, margin: 0 }}>
-                      Opens {isManuallyClosedFlag ? "when we reopen" : effectiveHoursInfo.nextOpenLabel} · Sat – Thu: 7:00 AM – 10:00 PM (Closed Fridays)
+                      Opens {isManuallyClosedFlag ? "when we reopen" : effectiveHoursInfo.nextOpenLabel} · Sat – Thu: 7:00 AM – 10:00 PM
                     </p>
                   </div>
                 </div>
