@@ -118,10 +118,16 @@ export default function AdminSettingsPage() {
   const [priceSaving, setPriceSaving] = useState(false);
   const [priceSavedMsg, setPriceSavedMsg] = useState("");
 
-  // ─── GOOGLE REVIEW URL STATE ───
+  // ─── DYNAMIC GOOGLE REVIEW TRACKER STATE ───
   const [googleReviewUrl, setGoogleReviewUrl] = useState("https://g.page/r/CTVKEpV62HMmECE/review");
-  const [reviewUrlSaving, setReviewUrlSaving] = useState(false);
-  const [reviewUrlSavedMsg, setReviewUrlSavedMsg] = useState("");
+  const [googleReviewsCount, setGoogleReviewsCount] = useState("15");
+  const [googleRating, setGoogleRating] = useState("4.9");
+  const [googleMapsUrl, setGoogleMapsUrl] = useState("https://maps.app.goo.gl/4N8A8ywhJpys9EaDA");
+  const [googlePlaceId, setGooglePlaceId] = useState("ChIJO-ZGTo2F4TgRNUoSlXrYcyY");
+  const [googlePlacesApiKey, setGooglePlacesApiKey] = useState("");
+  const [reviewTrackerSaving, setReviewTrackerSaving] = useState(false);
+  const [reviewTrackerSavedMsg, setReviewTrackerSavedMsg] = useState("");
+  const [isSyncingGoogle, setIsSyncingGoogle] = useState(false);
 
 
   useEffect(() => {
@@ -196,9 +202,12 @@ export default function AdminSettingsPage() {
               }
             } catch {}
           }
-          if (map.google_review_url) {
-            setGoogleReviewUrl(map.google_review_url);
-          }
+          if (map.google_review_url) setGoogleReviewUrl(map.google_review_url);
+          if (map.google_reviews_count) setGoogleReviewsCount(map.google_reviews_count);
+          if (map.google_rating) setGoogleRating(map.google_rating);
+          if (map.google_maps_url) setGoogleMapsUrl(map.google_maps_url);
+          if (map.google_place_id) setGooglePlaceId(map.google_place_id);
+          if (map.google_places_api_key) setGooglePlacesApiKey(map.google_places_api_key);
           localStorage.setItem("urban_trout_store_settings", JSON.stringify(map));
         }
       } catch (err) {
@@ -261,27 +270,77 @@ export default function AdminSettingsPage() {
     }
   };
 
-  // ─── SAVE GOOGLE REVIEW URL HANDLER ───
-  const handleSaveReviewUrl = async () => {
-    if (!googleReviewUrl.trim().startsWith("http")) {
-      alert("Please enter a valid URL starting with https://");
-      return;
-    }
-    setReviewUrlSaving(true);
-    setReviewUrlSavedMsg("");
+  // ─── DYNAMIC GOOGLE REVIEW TRACKER HANDLERS ───
+  const handleSaveReviewTracker = async (countOverride?: number) => {
+    setReviewTrackerSaving(true);
+    setReviewTrackerSavedMsg("");
     try {
-      await adminFetch("/api/settings", {
+      const countToSave = countOverride !== undefined ? countOverride : parseInt(googleReviewsCount, 10) || 15;
+      const res = await adminFetch("/api/reviews", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify([{ key: "google_review_url", value: googleReviewUrl.trim(), description: "Google Business Profile review deep-link URL" }]),
+        body: JSON.stringify({
+          reviewCount: countToSave,
+          rating: parseFloat(googleRating) || 4.9,
+          reviewUrl: googleReviewUrl.trim(),
+          mapsUrl: googleMapsUrl.trim(),
+          placeId: googlePlaceId.trim(),
+          apiKey: googlePlacesApiKey.trim() || undefined,
+          action: "update",
+        }),
       });
-      setReviewUrlSavedMsg("✓ Review link saved! Billing page will now use this URL.");
-      setTimeout(() => setReviewUrlSavedMsg(""), 4000);
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || "Failed to update review tracker");
+      if (data.reviews) {
+        setGoogleReviewsCount(String(data.reviews.reviewCount));
+        setGoogleRating(String(data.reviews.rating));
+      }
+      setReviewTrackerSavedMsg(`✓ Live website updated to ${googleRating} ★ with ${countToSave} reviews!`);
+      setTimeout(() => setReviewTrackerSavedMsg(""), 5000);
     } catch (err: any) {
-      setReviewUrlSavedMsg("⚠️ Error: " + err.message);
-      setTimeout(() => setReviewUrlSavedMsg(""), 4000);
+      setReviewTrackerSavedMsg("⚠️ " + (err.message || err));
+      setTimeout(() => setReviewTrackerSavedMsg(""), 5000);
     } finally {
-      setReviewUrlSaving(false);
+      setReviewTrackerSaving(false);
+    }
+  };
+
+  const handleQuickIncrementReview = () => {
+    const next = (parseInt(googleReviewsCount, 10) || 15) + 1;
+    setGoogleReviewsCount(String(next));
+    handleSaveReviewTracker(next);
+  };
+
+  const handleSyncFromGoogle = async () => {
+    if (!googlePlacesApiKey.trim()) {
+      alert("Please enter a Google Cloud Places API key in the field below to enable direct Google server synchronization.");
+      return;
+    }
+    setIsSyncingGoogle(true);
+    setReviewTrackerSavedMsg("");
+    try {
+      const res = await adminFetch("/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          placeId: googlePlaceId.trim(),
+          apiKey: googlePlacesApiKey.trim(),
+          action: "sync",
+        }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || "Sync failed");
+      if (data.reviews) {
+        setGoogleReviewsCount(String(data.reviews.reviewCount));
+        setGoogleRating(String(data.reviews.rating));
+      }
+      setReviewTrackerSavedMsg("✓ " + data.message);
+      setTimeout(() => setReviewTrackerSavedMsg(""), 5000);
+    } catch (err: any) {
+      setReviewTrackerSavedMsg("⚠️ " + (err.message || err));
+      setTimeout(() => setReviewTrackerSavedMsg(""), 5000);
+    } finally {
+      setIsSyncingGoogle(false);
     }
   };
 
@@ -1071,70 +1130,248 @@ export default function AdminSettingsPage() {
           </div>
 
           {/* ══════════════════════════════════════════════════════════
-              ⭐ GOOGLE REVIEW LINK
+              ⭐ DYNAMIC GOOGLE REVIEW TRACKER & LIVE STORE BADGE
               ══════════════════════════════════════════════════════════ */}
-          <div className="bg-slate-900/80 border border-yellow-500/30 rounded-3xl p-6 md:p-8 space-y-5 shadow-xl relative overflow-hidden">
-            <div className="absolute -top-24 -right-24 w-60 h-60 bg-yellow-500/6 rounded-full blur-3xl pointer-events-none" />
+          <div className="bg-slate-900/80 border border-yellow-500/30 rounded-3xl p-6 md:p-8 space-y-6 shadow-xl relative overflow-hidden">
+            <div className="absolute -top-24 -right-24 w-60 h-60 bg-yellow-500/10 rounded-full blur-3xl pointer-events-none" />
 
-            <div className="flex items-start gap-3 pb-4 border-b border-slate-800">
-              <div className="w-11 h-11 rounded-2xl bg-yellow-500/15 border border-yellow-500/30 flex items-center justify-center text-yellow-400 flex-shrink-0">
-                <span className="material-symbols-outlined text-2xl">star</span>
-              </div>
-              <div>
-                <div className="flex items-center gap-2.5 flex-wrap">
-                  <h2 className="text-lg font-bold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
-                    Google Review Link
-                  </h2>
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-yellow-500/15 text-yellow-300 border border-yellow-500/30 font-mono">
-                    SEO Boost
-                  </span>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
+              <div className="flex items-start sm:items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-yellow-500/15 border border-yellow-500/30 flex items-center justify-center text-yellow-400 flex-shrink-0">
+                  <span className="material-symbols-outlined text-2xl">star</span>
                 </div>
-                <p className="text-xs text-slate-400 mt-1" style={{ fontFamily: '"Manrope", sans-serif' }}>
-                  Paste your Google Business Profile review URL here. The billing page will use it to send customers a WhatsApp review request after payment.
+                <div>
+                  <div className="flex items-center gap-2.5 flex-wrap">
+                    <h2 className="text-lg font-bold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                      Dynamic Google Review Tracker &amp; Live Badges
+                    </h2>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-mono">
+                      Live Synced
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-1" style={{ fontFamily: '"Manrope", sans-serif' }}>
+                    Controls the review count and star rating dynamically displayed across your homepage, about farm page, and contact page. No code deployments needed.
+                  </p>
+                </div>
+              </div>
+
+              {/* Quick +1 Review Button */}
+              <button
+                type="button"
+                onClick={handleQuickIncrementReview}
+                disabled={reviewTrackerSaving}
+                className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-500/20 cursor-pointer shrink-0 disabled:opacity-50"
+                title="Quickly add 1 to the review count and update the website instantly"
+              >
+                <span className="material-symbols-outlined text-base">add_circle</span>
+                <span>+1 Review (Now {(parseInt(googleReviewsCount, 10) || 15) + 1})</span>
+              </button>
+            </div>
+
+            {/* Live Store Badge Preview */}
+            <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">
+                  Live Customer Preview (How it renders on website):
+                </span>
+                <span className="text-[10px] font-mono text-emerald-400 font-bold">
+                  ● Real-time
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-3 pt-1">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-cyan-400 font-bold text-xs">
+                  <span>📍 Google Maps ({googleRating} ★ {googleReviewsCount} Reviews)</span>
+                  <span>↗</span>
+                </div>
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-400/10 border border-amber-400/30 text-amber-300 text-xs font-bold font-mono">
+                  <span>★ {googleRating} on Google Maps</span>
+                  <span className="w-1 h-1 rounded-full bg-amber-400/60" />
+                  <span>{googleReviewsCount} Verified Reviews</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Metric Inputs */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-slate-300 uppercase font-mono block">
+                  Total Reviews Count:
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  step="1"
+                  value={googleReviewsCount}
+                  onChange={(e) => setGoogleReviewsCount(e.target.value)}
+                  placeholder="15"
+                  className="w-full px-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-sm font-bold text-white focus:outline-none focus:border-yellow-400 font-mono transition-all"
+                />
+                <p className="text-[10px] text-slate-500 font-mono">
+                  Currently: {googleReviewsCount} reviews on Google
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-slate-300 uppercase font-mono block">
+                  Star Rating (out of 5.0):
+                </label>
+                <input
+                  type="number"
+                  min="1.0"
+                  max="5.0"
+                  step="0.1"
+                  value={googleRating}
+                  onChange={(e) => setGoogleRating(e.target.value)}
+                  placeholder="4.9"
+                  className="w-full px-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-sm font-bold text-yellow-400 focus:outline-none focus:border-yellow-400 font-mono transition-all"
+                />
+                <p className="text-[10px] text-slate-500 font-mono">
+                  e.g. 4.9 or 5.0
+                </p>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-slate-300 uppercase font-mono block">
+                  Google Place ID:
+                </label>
+                <input
+                  type="text"
+                  value={googlePlaceId}
+                  onChange={(e) => setGooglePlaceId(e.target.value)}
+                  placeholder="ChIJO-ZGTo2F4TgRNUoSlXrYcyY"
+                  className="w-full px-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-slate-300 focus:outline-none focus:border-yellow-400 font-mono transition-all"
+                />
+                <p className="text-[10px] text-slate-500 font-mono">
+                  Urban Trout Aquaculture Place ID
                 </p>
               </div>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-[11px] font-bold text-slate-400 uppercase font-mono block">
-                Google Review URL:
-              </label>
-              <input
-                type="url"
-                value={googleReviewUrl}
-                onChange={(e) => setGoogleReviewUrl(e.target.value)}
-                placeholder="https://g.page/r/XXXXXX/review"
-                className="w-full px-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-yellow-400 font-mono transition-all"
-              />
+            {/* Links Row */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-slate-400 uppercase font-mono block">
+                  Customer Review Write Link (Sent on WhatsApp):
+                </label>
+                <input
+                  type="url"
+                  value={googleReviewUrl}
+                  onChange={(e) => setGoogleReviewUrl(e.target.value)}
+                  placeholder="https://g.page/r/CTVKEpV62HMmECE/review"
+                  className="w-full px-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-yellow-400 font-mono transition-all"
+                />
+                <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono">
+                  <span>Used by POS billing &amp; customer ledger WhatsApp buttons</span>
+                  <a
+                    href={googleReviewUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-cyan-400 hover:underline"
+                  >
+                    Test Link ↗
+                  </a>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-[11px] font-bold text-slate-400 uppercase font-mono block">
+                  Google Maps Store URL (Badges Click Destination):
+                </label>
+                <input
+                  type="url"
+                  value={googleMapsUrl}
+                  onChange={(e) => setGoogleMapsUrl(e.target.value)}
+                  placeholder="https://maps.app.goo.gl/4N8A8ywhJpys9EaDA"
+                  className="w-full px-3 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-yellow-400 font-mono transition-all"
+                />
+                <div className="flex items-center justify-between text-[10px] text-slate-500 font-mono">
+                  <span>Target URL when visitors click the Google Maps badge</span>
+                  <a
+                    href={googleMapsUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-cyan-400 hover:underline"
+                  >
+                    Open Maps ↗
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            {/* Optional Google Cloud API Key for Automatic Sync */}
+            <div className="p-3.5 rounded-xl bg-slate-950/40 border border-slate-800 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold text-slate-300 font-mono uppercase">
+                  Google Places API Key (Optional — For 1-Click Server Sync):
+                </span>
+                <span className="text-[10px] font-mono text-slate-500">
+                  Google Cloud Console
+                </span>
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="password"
+                  value={googlePlacesApiKey}
+                  onChange={(e) => setGooglePlacesApiKey(e.target.value)}
+                  placeholder="AIzaSy... (Leave blank if updating manually)"
+                  className="flex-1 px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white focus:outline-none focus:border-yellow-400 font-mono"
+                />
+                <button
+                  type="button"
+                  onClick={handleSyncFromGoogle}
+                  disabled={isSyncingGoogle || !googlePlacesApiKey.trim()}
+                  className="px-4 py-2 rounded-lg bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 border border-blue-500/40 font-mono text-xs font-bold transition-all disabled:opacity-40 cursor-pointer flex items-center gap-1.5"
+                >
+                  {isSyncingGoogle ? (
+                    <span className="w-3.5 h-3.5 border-2 border-blue-400 border-t-transparent animate-spin rounded-full" />
+                  ) : (
+                    <span className="material-symbols-outlined text-base">sync</span>
+                  )}
+                  <span>Sync from Google</span>
+                </button>
+              </div>
               <p className="text-[10px] text-slate-500 font-mono">
-                Find this link in your Google Business Profile → Get more reviews → Copy the link
+                When provided, clicking &ldquo;Sync from Google&rdquo; queries Google Places API directly to fetch the exact review count &amp; star rating.
               </p>
             </div>
 
-            {reviewUrlSavedMsg && (
-              <div className={`p-3 rounded-xl text-xs font-semibold flex items-center gap-2 ${reviewUrlSavedMsg.startsWith("✓") ? "bg-emerald-500/15 border border-emerald-500/30 text-emerald-400" : "bg-red-500/15 border border-red-500/30 text-red-400"}`}>
-                {reviewUrlSavedMsg}
+            {reviewTrackerSavedMsg && (
+              <div className={`p-3 rounded-xl text-xs font-semibold flex items-center gap-2 ${reviewTrackerSavedMsg.startsWith("✓") ? "bg-emerald-500/15 border border-emerald-500/30 text-emerald-400" : "bg-red-500/15 border border-red-500/30 text-red-400"}`}>
+                {reviewTrackerSavedMsg}
               </div>
             )}
 
-            <button
-              type="button"
-              onClick={handleSaveReviewUrl}
-              disabled={reviewUrlSaving}
-              className="px-6 py-2.5 rounded-xl bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer shadow-lg shadow-yellow-500/20"
-            >
-              {reviewUrlSaving ? (
-                <>
-                  <span className="w-3.5 h-3.5 border-2 border-slate-800 border-t-transparent animate-spin rounded-full" />
-                  <span>Saving…</span>
-                </>
-              ) : (
-                <>
-                  <span className="material-symbols-outlined text-base">save</span>
-                  <span>Save Review Link</span>
-                </>
-              )}
-            </button>
+            {/* Action Row */}
+            <div className="flex flex-wrap items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => handleSaveReviewTracker()}
+                disabled={reviewTrackerSaving}
+                className="px-6 py-2.5 rounded-xl bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 disabled:opacity-50 cursor-pointer shadow-lg shadow-yellow-500/20"
+              >
+                {reviewTrackerSaving ? (
+                  <>
+                    <span className="w-3.5 h-3.5 border-2 border-slate-800 border-t-transparent animate-spin rounded-full" />
+                    <span>Updating Live Site…</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined text-base">save</span>
+                    <span>Save &amp; Update Live Website</span>
+                  </>
+                )}
+              </button>
+
+              <a
+                href="https://www.google.com/search?q=Urban+Trout+Aquaculture+Srinagar"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-mono text-xs font-bold border border-slate-700 transition-all flex items-center gap-1.5"
+              >
+                <span className="material-symbols-outlined text-base">open_in_new</span>
+                <span>Check Live Reviews on Google Search ↗</span>
+              </a>
+            </div>
           </div>
 
           {/* ══════════════════════════════════════════════════════════

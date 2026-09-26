@@ -4,6 +4,7 @@ import Image from "next/image";
 import { products } from "@/lib/data";
 import ProductCard from "@/components/ProductCard";
 import { supabase } from "@/lib/supabase";
+import { getGoogleReviewsData } from "@/lib/reviews";
 
 export const metadata: Metadata = {
   title: "Fresh Rainbow Trout in Srinagar from ₹540/kg | Urban Trout",
@@ -137,7 +138,10 @@ const faqJsonLd = {
 };
 
 export default async function HomePage() {
-  const { data: dbProducts } = await supabase.from("inventory").select("*");
+  const [reviewsData, { data: dbProducts }] = await Promise.all([
+    getGoogleReviewsData(),
+    supabase.from("inventory").select("*"),
+  ]);
   const updatedProducts = products.map((p) => {
     const dbItem = dbProducts?.find((item) => item.product_id === p.id);
     const price = dbItem?.price_per_kg ? Number(dbItem.price_per_kg) : p.price;
@@ -848,6 +852,19 @@ export default async function HomePage() {
             <h2 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "clamp(2rem, 4vw, 3rem)", fontWeight: 800, letterSpacing: "-0.03em", color: C.onSurface, marginTop: "0.5rem" }}>
               Trusted by Srinagar Homes &amp; Food Lovers
             </h2>
+            <div className="mt-3.5 flex items-center justify-center">
+              <a
+                href={reviewsData.mapsUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-400/10 border border-amber-400/30 text-amber-300 text-xs font-bold font-mono hover:bg-amber-400/20 transition-all hover:scale-105"
+              >
+                <span>★ {reviewsData.rating} on Google Maps</span>
+                <span className="w-1 h-1 rounded-full bg-amber-400/60" />
+                <span>{reviewsData.reviewCount} Verified Reviews</span>
+                <span>↗</span>
+              </a>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
@@ -973,12 +990,12 @@ export default async function HomePage() {
 
           <div className="flex items-center gap-4 text-xs font-sans">
             <a
-              href="https://maps.app.goo.gl/4N8A8ywhJpys9EaDA"
+              href={reviewsData.mapsUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-cyan-400 hover:text-cyan-300 font-bold"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-cyan-400 hover:text-cyan-300 font-bold transition-colors"
             >
-              <span>📍 Google Maps (4.9 ★ 8 Reviews)</span>
+              <span>📍 Google Maps ({reviewsData.rating} ★ {reviewsData.reviewCount} Reviews)</span>
               <span>↗</span>
             </a>
             <div className="text-slate-400 max-w-sm text-left hidden sm:block">

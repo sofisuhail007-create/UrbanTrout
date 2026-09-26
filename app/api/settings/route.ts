@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { createClient } from "@supabase/supabase-js";
 import fs from "fs";
 import path from "path";
@@ -25,6 +26,10 @@ const DEFAULT_SETTINGS: Record<string, string> = {
   alternate_phone: "+917006604148",
   email: "info.urbantrout@gmail.com",
   google_review_url: "https://g.page/r/CTVKEpV62HMmECE/review",
+  google_maps_url: "https://maps.app.goo.gl/4N8A8ywhJpys9EaDA",
+  google_reviews_count: "15",
+  google_rating: "4.9",
+  google_place_id: "ChIJO-ZGTo2F4TgRNUoSlXrYcyY",
   store_manually_closed: "false",
   farm_maintenance_active: "false",
   allow_friday_orders: "false",
@@ -135,6 +140,13 @@ export async function POST(request: Request) {
     } catch (_) {
       // ignore if table doesn't exist
     }
+
+    // Revalidate public pages so dynamic reviews and store settings take effect immediately
+    try {
+      revalidatePath("/");
+      revalidatePath("/our-farm");
+      revalidatePath("/contact");
+    } catch (_) {}
 
     return NextResponse.json({
       success: true,

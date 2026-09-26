@@ -34,6 +34,27 @@ export default function ContactPage() {
 
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
+  const [reviewsInfo, setReviewsInfo] = useState({
+    rating: 4.9,
+    reviewCount: 15,
+    mapsUrl: "https://maps.app.goo.gl/4N8A8ywhJpys9EaDA",
+  });
+
+  // Fetch dynamic Google Reviews metrics
+  useEffect(() => {
+    fetch("/api/reviews")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.success && data?.reviews) {
+          setReviewsInfo({
+            rating: data.reviews.rating || 4.9,
+            reviewCount: data.reviews.reviewCount || 15,
+            mapsUrl: data.reviews.mapsUrl || "https://maps.app.goo.gl/4N8A8ywhJpys9EaDA",
+          });
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   // Load Google reCAPTCHA v3 script dynamically
   useEffect(() => {
@@ -190,11 +211,11 @@ export default function ContactPage() {
               </p>
               <div className="flex items-center gap-2 mb-4">
                 <span className="px-2.5 py-1 rounded-md bg-amber-400/10 border border-amber-400/30 text-amber-300 text-xs font-bold font-mono">
-                  ★ 4.9 on Google Maps (8 reviews)
+                  ★ {reviewsInfo.rating} on Google Maps ({reviewsInfo.reviewCount} reviews)
                 </span>
               </div>
               <a
-                href="https://maps.app.goo.gl/4N8A8ywhJpys9EaDA"
+                href={reviewsInfo.mapsUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-cyan-400 hover:text-cyan-300 transition-colors"

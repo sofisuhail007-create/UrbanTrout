@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { getGoogleReviewsData } from "@/lib/reviews";
 
 export const metadata: Metadata = {
   title: "Our Farm & Cold-Water Aquaculture in Malabagh, Srinagar",
@@ -33,7 +34,8 @@ const C = {
   onSurface: "#dfedf9", onSurfVar: "#9fadb8", outline: "#6a7782", outlineVar: "#3d4a53",
 };
 
-export default function OurFarmPage() {
+export default async function OurFarmPage() {
+  const reviewsData = await getGoogleReviewsData();
   return (
     <div style={{ background: C.bg, minHeight: "100vh" }}>
       {/* ── Hero ── */}
@@ -184,12 +186,12 @@ export default function OurFarmPage() {
               <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.85rem", color: C.onSurfVar, margin: "4px 0 0" }}>Malla Bagh Naseem Bagh Hazratbal, Zone-III, Srinagar</p>
               <div style={{ marginTop: "8px" }}>
                 <a
-                  href="https://maps.app.goo.gl/4N8A8ywhJpys9EaDA"
+                  href={reviewsData.mapsUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 text-xs text-cyan-400 font-bold hover:underline"
                 >
-                  <span>📍 View on Google Maps (4.9 ★ 8 Reviews)</span>
+                  <span>📍 View on Google Maps ({reviewsData.rating} ★ {reviewsData.reviewCount} Reviews)</span>
                   <span>↗</span>
                 </a>
               </div>

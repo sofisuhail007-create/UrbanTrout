@@ -46,5 +46,7 @@ public/Reel_Ad_campaign/
 public/superseo*
 *.mp4
 *.pdf
+.app_settings_cache.json
+public/meta-ads/
 
 
