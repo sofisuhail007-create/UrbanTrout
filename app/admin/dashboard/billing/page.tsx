@@ -8,6 +8,19 @@ import DealCalculatorTab from "./DealCalculatorTab";
 import CustomerBalancesTab from "./CustomerBalancesTab";
 import BalanceReminderModal from "./BalanceReminderModal";
 import PaginationBar from "@/components/PaginationBar";
+import CustomerAutocompleteInput, { DbCustomer } from "./CustomerAutocompleteInput";
+
+export interface RemoteBillItem {
+  id: string;
+  productId: string;
+  name: string;
+  weightKg: number;
+  baseRate: number;
+  dealRate: number;
+  total: number;
+  standardTotal: number;
+  discountAmount: number;
+}
 
 interface BillItem {
   id: string;
@@ -126,6 +139,116 @@ export default function POSBillingPage() {
   const [newRemoteBaseRate, setNewRemoteBaseRate] = useState<string>("580");
   const [newRemoteDealRate, setNewRemoteDealRate] = useState<string>("560");
   const [newRemotePaymentMode, setNewRemotePaymentMode] = useState<"both" | "jk_bank" | "razorpay">("both");
+
+  // Database Customers for Autocomplete & Prefill
+  const [dbCustomers, setDbCustomers] = useState<DbCustomer[]>([]);
+  const [loadingDbCustomers, setLoadingDbCustomers] = useState(false);
+
+  useEffect(() => {
+    setLoadingDbCustomers(true);
+    adminFetch("/api/customers")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d?.success && Array.isArray(d.customers)) {
+          setDbCustomers(d.customers);
+        }
+      })
+      .catch((err) => console.warn("Error loading customers:", err))
+      .finally(() => setLoadingDbCustomers(false));
+  }, []);
+
+  // Clubbed Multi-Product WhatsApp Remote Bill Items
+  const [remoteBillItems, setRemoteBillItems] = useState<RemoteBillItem[]>([
+    {
+      id: "rem-1",
+      productId: "gutted-trout",
+      name: "Premium Gutted Rainbow Trout",
+      weightKg: 2.0,
+      baseRate: 580,
+      dealRate: 560,
+      total: 1120,
+      standardTotal: 1160,
+      discountAmount: 40,
+    },
+  ]);
+  const [activeRemoteItemId, setActiveRemoteItemId] = useState<string>("rem-1");
+
+  // Active remote item helper
+  const activeRemoteItem = useMemo(() => {
+    return (
+      remoteBillItems.find((i) => i.id === activeRemoteItemId) ||
+      remoteBillItems[0] || {
+        id: "rem-1",
+        productId: "gutted-trout",
+        name: "Premium Gutted Rainbow Trout",
+        weightKg: 2.0,
+        baseRate: 580,
+        dealRate: 560,
+        total: 1120,
+        standardTotal: 1160,
+        discountAmount: 40,
+      }
+    );
+  }, [remoteBillItems, activeRemoteItemId]);
+
+  const handleAddRemoteItem = (prodId?: string) => {
+    const targetProd = prodId
+      ? products.find((p) => p.id === prodId) || products[0]
+      : products.find((p) => !remoteBillItems.some((i) => i.productId === p.id)) || products[0];
+
+    const baseR = targetProd?.pricePerKg || 580;
+    const dealR = baseR > 20 ? baseR - 20 : baseR;
+    const defWeight = 1.0;
+    const newId = `rem-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+
+    const newItem: RemoteBillItem = {
+      id: newId,
+      productId: targetProd?.id || "whole-trout",
+      name: targetProd?.name || "Whole Rainbow Trout",
+      weightKg: defWeight,
+      baseRate: baseR,
+      dealRate: dealR,
+      total: Math.round(defWeight * dealR),
+      standardTotal: Math.round(defWeight * baseR),
+      discountAmount: Math.max(0, Math.round(defWeight * baseR) - Math.round(defWeight * dealR)),
+    };
+
+    setRemoteBillItems((prev) => [...prev, newItem]);
+    setActiveRemoteItemId(newId);
+  };
+
+  const handleRemoveRemoteItem = (id: string) => {
+    if (remoteBillItems.length <= 1) return;
+    const remaining = remoteBillItems.filter((i) => i.id !== id);
+    setRemoteBillItems(remaining);
+    if (remaining.length > 0) {
+      setActiveRemoteItemId(remaining[0].id);
+    }
+  };
+
+  const handleUpdateActiveRemoteItem = (updates: Partial<RemoteBillItem>) => {
+    setRemoteBillItems((prev) =>
+      prev.map((item) => {
+        if (item.id !== activeRemoteItemId && item.id !== activeRemoteItem.id) return item;
+        const merged = { ...item, ...updates };
+        const w = Number(merged.weightKg) || 0;
+        const b = Number(merged.baseRate) || 0;
+        const d = Number(merged.dealRate) || b;
+        const stdTot = Math.round(w * b);
+        const dealTot = Math.round(w * d);
+        const disc = Math.max(0, stdTot - dealTot);
+        return {
+          ...merged,
+          weightKg: w,
+          baseRate: b,
+          dealRate: d,
+          total: dealTot,
+          standardTotal: stdTot,
+          discountAmount: disc,
+        };
+      })
+    );
+  };
   const [jkBankAccountNumber, setJkBankAccountNumber] = useState<string>(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem("ut_jk_bank_account_number") || "0724010100000499";
@@ -1291,22 +1414,46 @@ Naseem Bagh / Malabagh, Srinagar`;
     discountAmount: number;
     customerName: string;
     customerPhone: string;
+    items?: Array<{
+      productId: string;
+      productName: string;
+      weightKg: number;
+      dealRatePerKg: number;
+      dealTotal: number;
+      standardRatePerKg: number;
+      discountAmount: number;
+    }>;
   }) => {
     if (deal.customerName) setCustomerName(deal.customerName);
     if (deal.customerPhone) setCustomerPhone(deal.customerPhone);
-    setSelectedProductId(deal.productId);
-    setCurrentWeight(String(deal.weightKg));
 
-    setBillItems([
-      {
-        id: `${deal.productId}-deal-${Date.now().toString().slice(-4)}`,
-        name: deal.productName,
-        pricePerKg: deal.dealRatePerKg,
-        weightKg: deal.weightKg,
-        total: deal.dealTotal,
-        unit: "Kg",
-      },
-    ]);
+    if (deal.items && deal.items.length > 0) {
+      setBillItems(
+        deal.items.map((it, idx) => ({
+          id: `${it.productId}-deal-${Date.now().toString().slice(-4)}-${idx}`,
+          name: it.productName,
+          pricePerKg: it.dealRatePerKg,
+          weightKg: it.weightKg,
+          total: it.dealTotal,
+          unit: "Kg",
+        }))
+      );
+      setSelectedProductId(deal.items[0].productId);
+      setCurrentWeight(String(deal.items[0].weightKg));
+    } else {
+      setSelectedProductId(deal.productId);
+      setCurrentWeight(String(deal.weightKg));
+      setBillItems([
+        {
+          id: `${deal.productId}-deal-${Date.now().toString().slice(-4)}`,
+          name: deal.productName,
+          pricePerKg: deal.dealRatePerKg,
+          weightKg: deal.weightKg,
+          total: deal.dealTotal,
+          unit: "Kg",
+        },
+      ]);
+    }
 
     setActiveTab("pos");
   };
@@ -1729,16 +1876,25 @@ Helpline: +91 84910 06127`;
 
   // ─── GENERATE NEW REMOTE WHATSAPP BILL & PAYMENT LINK ───
   const handleGenerateNewRemoteBill = async () => {
-    const weight = parseFloat(newRemoteWeight) || 0;
-    const baseRate = parseFloat(newRemoteBaseRate) || 0;
-    const dealRate = parseFloat(newRemoteDealRate) || baseRate;
-    const dealTotal = Math.round(weight * dealRate);
-    const standardTotal = Math.round(weight * baseRate);
-    const discountAmount = Math.max(0, standardTotal - dealTotal);
-    const discountPercent = standardTotal > 0 ? (discountAmount / standardTotal) * 100 : 0;
+    if (!remoteBillItems || remoteBillItems.length === 0) {
+      alert("Please add at least one item to the bill.");
+      return;
+    }
 
-    if (weight <= 0 || dealRate <= 0 || dealTotal <= 0) {
-      alert("Please enter a valid harvest weight and rate per kg.");
+    const invalidItem = remoteBillItems.find((i) => (Number(i.weightKg) || 0) <= 0 || (Number(i.dealRate) || 0) <= 0);
+    if (invalidItem) {
+      alert(`Please enter a valid harvest weight and rate for "${invalidItem.name}".`);
+      return;
+    }
+
+    const remoteTotalWeight = remoteBillItems.reduce((sum, i) => sum + (Number(i.weightKg) || 0), 0);
+    const remoteStandardTotal = remoteBillItems.reduce((sum, i) => sum + (Number(i.standardTotal) || 0), 0);
+    const remoteDealTotal = remoteBillItems.reduce((sum, i) => sum + (Number(i.total) || 0), 0);
+    const remoteDiscountAmount = Math.max(0, remoteStandardTotal - remoteDealTotal);
+    const remoteDiscountPercent = remoteStandardTotal > 0 ? (remoteDiscountAmount / remoteStandardTotal) * 100 : 0;
+
+    if (remoteDealTotal <= 0) {
+      alert("Total bill amount must be greater than zero.");
       return;
     }
 
@@ -1747,9 +1903,6 @@ Helpline: +91 84910 06127`;
       const billNum = `UT-REM-${Date.now().toString().slice(-5)}`;
       const cleanPhone = newRemotePhone.replace(/\D/g, "").slice(-10);
       const cleanName = newRemoteCustomerName.trim() || "Valued Customer";
-      const selProd =
-        products.find((p) => p.id === newRemoteProductId) ||
-        products[0] || { id: "gutted-trout", name: "Premium Gutted Rainbow Trout", pricePerKg: 580 };
 
       // Persist J&K Bank settings into localStorage
       if (typeof window !== "undefined") {
@@ -1776,27 +1929,32 @@ Helpline: +91 84910 06127`;
         pMethodLabel = "J&K Bank + Razorpay Dual (WhatsApp)";
       }
 
+      const itemsSummary = remoteBillItems
+        .map((i) => `${i.weightKg.toFixed(2)} Kg ${i.name.split(" ")[0]} (@ ₹${i.dealRate}/Kg)`)
+        .join(" + ");
+
       // 2. If Razorpay is needed ("razorpay" or "both" mode), create Razorpay payment link
       if (newRemotePaymentMode === "razorpay" || newRemotePaymentMode === "both") {
+        const primaryProd = remoteBillItems[0];
         const res = await fetch("/api/razorpay/payment-link", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            amount: dealTotal,
+            amount: remoteDealTotal,
             customerName: cleanName,
             customerPhone: cleanPhone,
             customerEmail: newRemoteEmail.trim() || undefined,
             orderRef: billNum,
-            itemsSummary: `${weight.toFixed(2)} Kg ${selProd.name}`,
+            itemsSummary: itemsSummary,
             channel: newRemotePaymentMode === "both" ? "DUAL_WHATSAPP_DEAL" : "WHATSAPP_DEAL",
-            weightKg: weight,
-            productType: selProd.name.toLowerCase().includes("gutted") ? "Gutted" : "Whole",
-            dealRate: dealRate,
-            standardRate: baseRate,
-            standardTotal: standardTotal,
-            discountAmount: discountAmount,
-            discountPercent: discountPercent,
-            notes: newRemoteNotes || `Agreed Rate: ₹${dealRate}/Kg (Base: ₹${baseRate}/Kg)`,
+            weightKg: remoteTotalWeight,
+            productType: remoteBillItems.some((i) => i.name.toLowerCase().includes("gutted")) ? "Gutted" : "Whole",
+            dealRate: remoteBillItems.length === 1 ? primaryProd.dealRate : Math.round((remoteDealTotal / remoteTotalWeight) * 10) / 10,
+            standardRate: remoteBillItems.length === 1 ? primaryProd.baseRate : Math.round((remoteStandardTotal / remoteTotalWeight) * 10) / 10,
+            standardTotal: remoteStandardTotal,
+            discountAmount: remoteDiscountAmount,
+            discountPercent: remoteDiscountPercent,
+            notes: newRemoteNotes || `Items: ${itemsSummary}`,
           }),
         });
 
@@ -1817,28 +1975,26 @@ Helpline: +91 84910 06127`;
         phone: cleanPhone,
         customerPhone: cleanPhone,
         email: newRemoteEmail.trim(),
-        items: [
-          {
-            n: `${selProd.name} (Special Agreed Price)`,
-            name: `${selProd.name} (Special Agreed Price)`,
-            w: weight,
-            weightKg: weight,
-            r: dealRate,
-            pricePerKg: dealRate,
-            t: dealTotal,
-            total: dealTotal,
-            standardRate: baseRate,
-            standardTotal: standardTotal,
-            discountAmount: discountAmount,
-          },
-        ],
-        tw: weight,
-        totalWeight: weight,
-        tot: dealTotal,
-        grandTotal: dealTotal,
-        standardTotal: standardTotal,
-        discountAmount: discountAmount,
-        notes: newRemoteNotes || `Special Rate: ₹${dealRate}/Kg (Base: ₹${baseRate}/Kg)`,
+        items: remoteBillItems.map((item) => ({
+          n: `${item.name} (Special Agreed Price)`,
+          name: `${item.name} (Special Agreed Price)`,
+          w: item.weightKg,
+          weightKg: item.weightKg,
+          r: item.dealRate,
+          pricePerKg: item.dealRate,
+          t: item.total,
+          total: item.total,
+          standardRate: item.baseRate,
+          standardTotal: item.standardTotal,
+          discountAmount: item.discountAmount,
+        })),
+        tw: remoteTotalWeight,
+        totalWeight: remoteTotalWeight,
+        tot: remoteDealTotal,
+        grandTotal: remoteDealTotal,
+        standardTotal: remoteStandardTotal,
+        discountAmount: remoteDiscountAmount,
+        notes: newRemoteNotes || `Items: ${itemsSummary}`,
         paymentMethod: pMethodLabel,
         paymentStatus: "PAYMENT DUE",
         paymentId: null,
@@ -1893,7 +2049,22 @@ Helpline: +91 84910 06127`;
 
       // 4. Build tailored, professional, concise WhatsApp template (100% emoji-free to prevent URL encoding corruption)
       let msg = "";
-      const discountText = discountAmount > 0 ? ` _(Saved Rs. ${discountAmount.toLocaleString("en-IN")})_` : "";
+      const discountText = remoteDiscountAmount > 0 ? ` _(Saved Rs. ${remoteDiscountAmount.toLocaleString("en-IN")})_` : "";
+
+      let itemsFormattedText = "";
+      if (remoteBillItems.length === 1) {
+        const it = remoteBillItems[0];
+        itemsFormattedText = `• *Item:* ${it.weightKg.toFixed(2)} Kg ${it.name}\n• *Rate:* Rs. ${it.dealRate}/Kg *(Total: Rs. ${remoteDealTotal.toLocaleString("en-IN")})*${discountText}`;
+      } else {
+        itemsFormattedText = `*ORDER ITEMS (${remoteBillItems.length}):*\n` +
+          remoteBillItems
+            .map(
+              (it, idx) =>
+                `${idx + 1}. *${it.name}*\n   • ${it.weightKg.toFixed(2)} Kg @ Rs. ${it.dealRate}/Kg = *Rs. ${it.total.toLocaleString("en-IN")}*`
+            )
+            .join("\n") +
+          `\n\n• *Total Quantity:* ${remoteTotalWeight.toFixed(2)} Kg\n• *Total Payable:* *Rs. ${remoteDealTotal.toLocaleString("en-IN")}*${discountText}`;
+      }
 
       if (newRemotePaymentMode === "jk_bank") {
         msg = `*URBAN TROUT AQUACULTURE*
@@ -1902,8 +2073,7 @@ _Fresh Himalayan Rainbow Trout · Srinagar_
 Dear *${cleanName}*,
 Here is your order summary for *#${billNum}*:
 
-• *Item:* ${weight.toFixed(2)} Kg ${selProd.name}
-• *Rate:* Rs. ${dealRate}/Kg *(Total: Rs. ${dealTotal.toLocaleString("en-IN")})*${discountText}
+${itemsFormattedText}
 
 *PAYMENT DETAILS (J&K Bank)*
 • *UPI ID:* ${upiId}
@@ -1923,8 +2093,7 @@ _Fresh Himalayan Rainbow Trout · Srinagar_
 Dear *${cleanName}*,
 Here is your order summary for *#${billNum}*:
 
-• *Item:* ${weight.toFixed(2)} Kg ${selProd.name}
-• *Rate:* Rs. ${dealRate}/Kg *(Total: Rs. ${dealTotal.toLocaleString("en-IN")})*${discountText}
+${itemsFormattedText}
 
 *1. J&K Bank (Direct Transfer):*
 • *UPI ID:* ${upiId}
@@ -1946,8 +2115,7 @@ _Fresh Himalayan Rainbow Trout · Srinagar_
 Dear *${cleanName}*,
 Here is your order summary for *#${billNum}*:
 
-• *Item:* ${weight.toFixed(2)} Kg ${selProd.name}
-• *Rate:* Rs. ${dealRate}/Kg *(Total: Rs. ${dealTotal.toLocaleString("en-IN")})*${discountText}
+${itemsFormattedText}
 
 *Pay Online (UPI, Cards, NetBanking):*
 ${payUrl}
@@ -1964,7 +2132,7 @@ Helpline: +91 84910 06127`;
         payUrl,
         invoiceUrl,
         message: msg,
-        total: dealTotal,
+        total: remoteDealTotal,
         phone: cleanPhone,
         email: newRemoteEmail.trim(),
         mode: newRemotePaymentMode,
@@ -2627,47 +2795,20 @@ Helpline: +91 84910 06127`;
               2. Customer Details (WhatsApp Bill &amp; Invoice)
             </h2>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              <div>
-                <label className="block text-[10px] uppercase tracking-wider font-bold text-slate-400 mb-0.5">
-                  Customer Name
-                </label>
-                <input
-                  type="text"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  placeholder="e.g. Suhail Ahmed"
-                  className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-3 py-2 text-base sm:text-sm text-white focus:outline-none focus:border-cyan-400"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[10px] uppercase tracking-wider font-bold text-slate-400 mb-0.5">
-                  WhatsApp Phone Number
-                </label>
-                <input
-                  type="tel"
-                  value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
-                  placeholder="10-digit mobile"
-                  maxLength={10}
-                  className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-3 py-2 text-base sm:text-sm text-white focus:outline-none focus:border-cyan-400"
-                />
-              </div>
-
-              <div className="sm:col-span-2">
-                <label className="block text-[10px] uppercase tracking-wider font-bold text-slate-400 mb-0.5">
-                  Packaging / Delivery Notes (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={customerNotes}
-                  onChange={(e) => setCustomerNotes(e.target.value)}
-                  placeholder="e.g. Extra iced, clean & cut into steaks."
-                  className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-3 py-2 text-base sm:text-sm text-white focus:outline-none focus:border-cyan-400"
-                />
-              </div>
-            </div>
+            <CustomerAutocompleteInput
+              customerName={customerName}
+              customerPhone={customerPhone}
+              customerNotes={customerNotes}
+              onNameChange={setCustomerName}
+              onPhoneChange={setCustomerPhone}
+              onNotesChange={setCustomerNotes}
+              customers={dbCustomers}
+              loadingCustomers={loadingDbCustomers}
+              showNotesField={true}
+              notesLabel="Packaging / Delivery Notes (Optional)"
+              notesPlaceholder="e.g. Extra iced, clean & cut into steaks."
+              theme="cyan"
+            />
           </div>
         </div>
 
@@ -4064,6 +4205,8 @@ Helpline: +91 84910 06127`;
           playSuccessChime={playSuccessChime}
           onPushDealToBill={handlePushDealToBill}
           onSwitchTab={setActiveTab}
+          customers={dbCustomers}
+          loadingCustomers={loadingDbCustomers}
         />
       )}
 
@@ -4866,213 +5009,291 @@ Helpline: +91 84910 06127`;
                     </div>
                   )}
                 </div>
-                {/* Customer Details */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  <div className="space-y-1">
-                    <label className="text-[10.5px] font-bold text-slate-400 uppercase font-mono">
-                      Customer Name:
-                    </label>
-                    <input
-                      type="text"
-                      value={newRemoteCustomerName}
-                      onChange={(e) => setNewRemoteCustomerName(e.target.value)}
-                      placeholder="e.g. Mushtaq Ahmad"
-                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-mono"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10.5px] font-bold text-slate-400 uppercase font-mono">
-                      Mobile (WhatsApp):
-                    </label>
-                    <input
-                      type="tel"
-                      value={newRemotePhone}
-                      onChange={(e) => setNewRemotePhone(e.target.value)}
-                      placeholder="10-digit mobile"
-                      maxLength={10}
-                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-mono"
-                    />
-                  </div>
+                {/* Customer Details with Autocomplete / Prefill from DB */}
+                <div className="p-3 rounded-2xl bg-slate-900/90 border border-slate-800">
+                  <CustomerAutocompleteInput
+                    customerName={newRemoteCustomerName}
+                    customerPhone={newRemotePhone}
+                    customerNotes={newRemoteNotes}
+                    customerEmail={newRemoteEmail}
+                    onNameChange={setNewRemoteCustomerName}
+                    onPhoneChange={setNewRemotePhone}
+                    onNotesChange={setNewRemoteNotes}
+                    onEmailChange={setNewRemoteEmail}
+                    customers={dbCustomers}
+                    loadingCustomers={loadingDbCustomers}
+                    showNotesField={true}
+                    showEmailField={true}
+                    notesLabel="Delivery Note / Address (Optional)"
+                    notesPlaceholder="e.g. Naseem Bagh, morning harvest"
+                    theme="emerald"
+                  />
                 </div>
 
-                {/* Product Select */}
-                <div className="space-y-1.5">
-                  <label className="text-[10.5px] font-bold text-slate-400 uppercase font-mono block">
-                    Select Product:
-                  </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {products.map((p) => {
-                      const isSel = newRemoteProductId === p.id;
+                {/* ─── ITEMS IN WHATSAPP BILL (CLUBBING MULTIPLE PRODUCTS & PACKS) ─── */}
+                <div className="p-3 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10.5px] font-black text-slate-300 uppercase tracking-wider font-mono flex items-center gap-1.5">
+                      <span>🐟</span> Items in WhatsApp Bill ({remoteBillItems.length}):
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => handleAddRemoteItem()}
+                      className="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                      title="Add another product or weight pack to this WhatsApp bill"
+                    >
+                      <span className="material-symbols-outlined text-sm">add_circle</span>
+                      <span>+ Add Item</span>
+                    </button>
+                  </div>
+
+                  {/* Item Chips / List */}
+                  <div className="space-y-1.5 max-h-48 overflow-y-auto pr-0.5">
+                    {remoteBillItems.map((item, idx) => {
+                      const isFocused = activeRemoteItemId === item.id;
                       return (
-                        <button
-                          key={p.id}
-                          type="button"
-                          onClick={() => {
-                            setNewRemoteProductId(p.id);
-                            setNewRemoteBaseRate(String(p.pricePerKg));
-                            setNewRemoteDealRate(String(p.pricePerKg));
-                          }}
-                          className={`p-2.5 rounded-xl text-left border transition-all cursor-pointer ${
-                            isSel
-                              ? "bg-emerald-500/20 border-emerald-400 text-white shadow-md shadow-emerald-500/10"
-                              : "bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700"
+                        <div
+                          key={item.id}
+                          onClick={() => setActiveRemoteItemId(item.id)}
+                          className={`p-2 sm:p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-2 ${
+                            isFocused
+                              ? "bg-slate-950 border-emerald-400 shadow-md shadow-emerald-500/10"
+                              : "bg-slate-950/60 border-slate-800/80 hover:border-slate-700"
                           }`}
                         >
-                          <div className="font-bold text-xs truncate">{p.name.split(" ")[0]} Trout</div>
-                          <div className="text-emerald-400 font-mono text-xs font-bold mt-0.5">
-                            ₹{p.pricePerKg}/Kg
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[10px] font-mono text-slate-500 font-bold">
+                                #{idx + 1}
+                              </span>
+                              <span className="text-xs font-bold text-white truncate">
+                                {item.name}
+                              </span>
+                              {isFocused && (
+                                <span className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 text-[9px] font-mono font-bold">
+                                  Editing
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[11px] text-slate-400 font-mono mt-0.5 flex items-center gap-2">
+                              <span className="text-cyan-300 font-bold">{item.weightKg} Kg</span>
+                              <span>@</span>
+                              <span className="text-amber-300 font-bold">₹{item.dealRate}/Kg</span>
+                              {item.baseRate > item.dealRate && (
+                                <span className="line-through text-slate-500 text-[10px]">
+                                  ₹{item.baseRate}
+                                </span>
+                              )}
+                            </div>
                           </div>
-                        </button>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="font-mono font-bold text-emerald-400 text-sm">
+                              ₹{item.total.toLocaleString("en-IN")}
+                            </span>
+                            {remoteBillItems.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRemoveRemoteItem(item.id);
+                                }}
+                                className="w-6 h-6 rounded-lg bg-slate-900 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 flex items-center justify-center text-xs font-bold border border-slate-800 transition-colors"
+                                title="Remove this item"
+                              >
+                                ✕
+                              </button>
+                            )}
+                          </div>
+                        </div>
                       );
                     })}
                   </div>
-                </div>
 
-                {/* Harvest Weight & Live Pull */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between text-[11px]">
-                    <label className="uppercase tracking-wider font-bold text-slate-400 font-mono">
-                      Harvest Weight:
-                    </label>
-                    {currentWeight && (
-                      <button
-                        type="button"
-                        onClick={() => setNewRemoteWeight(currentWeight)}
-                        className="text-cyan-400 hover:text-cyan-300 text-[10px] font-mono underline cursor-pointer"
-                      >
-                        📥 Pull Live Scale ({currentWeight} Kg)
-                      </button>
-                    )}
-                  </div>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0.1"
-                      value={newRemoteWeight}
-                      onChange={(e) => setNewRemoteWeight(e.target.value)}
-                      placeholder="e.g. 2.0"
-                      className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-xl font-mono text-cyan-300 font-bold focus:outline-none focus:border-cyan-400 shadow-inner"
-                    />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-xs">
-                      KG
-                    </span>
-                  </div>
+                  {/* Active Item Editor Panel */}
+                  <div className="pt-2 border-t border-slate-800/80 space-y-3">
+                    <div className="flex items-center justify-between text-[11px] font-mono">
+                      <span className="text-emerald-400 font-bold uppercase tracking-wider flex items-center gap-1">
+                        <span>✏️</span> Edit Item #{remoteBillItems.findIndex((i) => i.id === activeRemoteItemId) + 1}:
+                      </span>
+                      <span className="text-slate-400 truncate max-w-[200px]">
+                        {activeRemoteItem.name.split(" ")[0]} Trout ({activeRemoteItem.weightKg} Kg)
+                      </span>
+                    </div>
 
-                  {/* Weight chips */}
-                  <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-                    <span className="text-[10px] text-slate-500 font-mono">Presets:</span>
-                    {["0.5", "1.0", "1.5", "2.0", "2.5", "3.0", "4.0", "5.0"].map((w) => (
-                      <button
-                        key={w}
-                        type="button"
-                        onClick={() => setNewRemoteWeight(w)}
-                        className={`px-2 py-0.5 rounded-lg font-mono text-[11px] font-semibold border transition-all cursor-pointer ${
-                          newRemoteWeight === w
-                            ? "bg-cyan-500/20 text-cyan-300 border-cyan-400"
-                            : "bg-slate-900 hover:bg-slate-800 text-slate-400 border-slate-800"
-                        }`}
-                      >
-                        {w}k
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                    {/* Product Selector with dedicated + button */}
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-slate-400 uppercase font-mono block">
+                        Select Product Variety:
+                      </label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {products.map((p) => {
+                          const isSel = activeRemoteItem.productId === p.id;
+                          return (
+                            <div
+                              key={p.id}
+                              onClick={() => {
+                                handleUpdateActiveRemoteItem({
+                                  productId: p.id,
+                                  name: p.name,
+                                  baseRate: p.pricePerKg,
+                                  dealRate: p.pricePerKg,
+                                });
+                              }}
+                              className={`p-2 rounded-xl text-left border transition-all cursor-pointer flex items-center justify-between gap-1.5 ${
+                                isSel
+                                  ? "bg-emerald-500/20 border-emerald-400 text-white shadow-md shadow-emerald-500/10"
+                                  : "bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700"
+                              }`}
+                            >
+                              <div className="min-w-0 flex-1">
+                                <div className="font-bold text-xs truncate">{p.name.split(" ")[0]} Trout</div>
+                                <div className="text-emerald-400 font-mono text-xs font-bold mt-0.5">
+                                  ₹{p.pricePerKg}/Kg
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleAddRemoteItem(p.id);
+                                }}
+                                className="w-6 h-6 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/35 border border-emerald-500/40 text-emerald-300 flex items-center justify-center font-black text-xs shrink-0 transition-all cursor-pointer"
+                                title={`Club another ${p.name.split(" ")[0]} Trout to bill`}
+                              >
+                                +
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
 
-                {/* Rates Row: Base Rate & Agreed Price Per Kg */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 p-3 rounded-2xl bg-slate-900/80 border border-slate-800">
-                  <div className="space-y-1">
-                    <label className="text-[10.5px] font-bold text-slate-400 font-mono block">
-                      Our Base Rate (₹ / Kg):
-                    </label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-xs">₹</span>
-                      <input
-                        type="number"
-                        value={newRemoteBaseRate}
-                        onChange={(e) => setNewRemoteBaseRate(e.target.value)}
-                        placeholder="580"
-                        className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-6 pr-3 py-1.5 text-sm font-mono text-white font-bold focus:outline-none focus:border-cyan-400"
-                      />
+                    {/* Harvest Weight & Live Scale Pull for Active Item */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <label className="uppercase tracking-wider font-bold text-slate-400 font-mono">
+                          Harvest Weight ({activeRemoteItem.name.split(" ")[0]}):
+                        </label>
+                        {currentWeight && (
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateActiveRemoteItem({ weightKg: parseFloat(currentWeight) || 0 })}
+                            className="text-cyan-400 hover:text-cyan-300 text-[10px] font-mono underline cursor-pointer"
+                          >
+                            📥 Pull Live Scale ({currentWeight} Kg)
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="relative">
+                        <input
+                          type="number"
+                          step="0.01"
+                          min="0.1"
+                          value={activeRemoteItem.weightKg || ""}
+                          onChange={(e) => handleUpdateActiveRemoteItem({ weightKg: parseFloat(e.target.value) || 0 })}
+                          placeholder="e.g. 2.0"
+                          className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-xl font-mono text-cyan-300 font-bold focus:outline-none focus:border-cyan-400 shadow-inner"
+                        />
+                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-xs">
+                          KG
+                        </span>
+                      </div>
+
+                      {/* Preset Chips */}
+                      <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                        <span className="text-[10px] text-slate-500 font-mono">Presets:</span>
+                        {["0.5", "1.0", "1.5", "2.0", "2.5", "3.0", "4.0", "5.0"].map((w) => {
+                          const numW = parseFloat(w);
+                          return (
+                            <button
+                              key={w}
+                              type="button"
+                              onClick={() => handleUpdateActiveRemoteItem({ weightKg: numW })}
+                              className={`px-2 py-0.5 rounded-lg font-mono text-[11px] font-semibold border transition-all cursor-pointer ${
+                                activeRemoteItem.weightKg === numW
+                                  ? "bg-cyan-500/20 text-cyan-300 border-cyan-400"
+                                  : "bg-slate-950 hover:bg-slate-800 text-slate-400 border-slate-800"
+                              }`}
+                            >
+                              {w}k
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    {/* Rates Row for Active Item */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 p-2.5 rounded-xl bg-slate-950/80 border border-slate-800">
+                      <div className="space-y-1">
+                        <label className="text-[10.5px] font-bold text-slate-400 font-mono block">
+                          Our Base Rate (₹ / Kg):
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-xs">₹</span>
+                          <input
+                            type="number"
+                            value={activeRemoteItem.baseRate || ""}
+                            onChange={(e) => handleUpdateActiveRemoteItem({ baseRate: parseFloat(e.target.value) || 0 })}
+                            placeholder="580"
+                            className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-6 pr-3 py-1.5 text-sm font-mono text-white font-bold focus:outline-none focus:border-cyan-400"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[10.5px] font-bold text-amber-300 font-mono block">
+                          Agreed Price Given (₹ / Kg):
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-400 font-mono text-xs">₹</span>
+                          <input
+                            type="number"
+                            value={activeRemoteItem.dealRate || ""}
+                            onChange={(e) => handleUpdateActiveRemoteItem({ dealRate: parseFloat(e.target.value) || 0 })}
+                            placeholder="560"
+                            className="w-full bg-slate-900 border-2 border-amber-500/60 rounded-xl pl-6 pr-3 py-1.5 text-sm font-mono text-amber-300 font-black focus:outline-none focus:border-amber-400"
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
-
-                  <div className="space-y-1">
-                    <label className="text-[10.5px] font-bold text-amber-300 font-mono block">
-                      Agreed Price Given (₹ / Kg):
-                    </label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-400 font-mono text-xs">₹</span>
-                      <input
-                        type="number"
-                        value={newRemoteDealRate}
-                        onChange={(e) => setNewRemoteDealRate(e.target.value)}
-                        placeholder="560"
-                        className="w-full bg-slate-950 border-2 border-amber-500/60 rounded-xl pl-6 pr-3 py-1.5 text-sm font-mono text-amber-300 font-black focus:outline-none focus:border-amber-400"
-                      />
-                    </div>
-                  </div>
                 </div>
 
-                {/* Real-time Calculation Summary Card */}
+                {/* Real-time Combined Calculation Summary Card */}
                 {(() => {
-                  const w = parseFloat(newRemoteWeight) || 0;
-                  const b = parseFloat(newRemoteBaseRate) || 0;
-                  const d = parseFloat(newRemoteDealRate) || b;
-                  const stdTot = Math.round(w * b);
-                  const dealTot = Math.round(w * d);
-                  const disc = Math.max(0, stdTot - dealTot);
-                  const discPct = stdTot > 0 ? (disc / stdTot) * 100 : 0;
+                  const combinedWeight = remoteBillItems.reduce((sum, item) => sum + (Number(item.weightKg) || 0), 0);
+                  const combinedStandardTotal = remoteBillItems.reduce((sum, item) => sum + (Number(item.standardTotal) || 0), 0);
+                  const combinedDealTotal = remoteBillItems.reduce((sum, item) => sum + (Number(item.total) || 0), 0);
+                  const combinedDiscount = Math.max(0, combinedStandardTotal - combinedDealTotal);
+                  const combinedDiscountPct = combinedStandardTotal > 0 ? (combinedDiscount / combinedStandardTotal) * 100 : 0;
 
                   return (
                     <div className="p-3.5 rounded-2xl bg-gradient-to-b from-slate-900 to-slate-950 border border-emerald-500/30 space-y-2">
                       <div className="flex items-center justify-between text-xs font-mono">
                         <span className="text-slate-400">Total Payable Amount:</span>
                         <span className="text-xl font-black text-emerald-400 font-mono">
-                          ₹{dealTot.toLocaleString("en-IN")}
+                          ₹{combinedDealTotal.toLocaleString("en-IN")}
                         </span>
                       </div>
                       <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 border-t border-slate-800/80 pt-1.5">
-                        <span>Standard Total (₹{b}/Kg):</span>
-                        <span>₹{stdTot.toLocaleString("en-IN")}</span>
+                        <span>Combined Quantity ({remoteBillItems.length} {remoteBillItems.length === 1 ? "item" : "items"}):</span>
+                        <span className="text-cyan-300 font-bold">{combinedWeight.toFixed(2)} Kg</span>
                       </div>
-                      {disc > 0 && (
-                        <div className="flex items-center justify-between text-[11px] font-mono text-rose-400 font-bold">
+                      <div className="flex items-center justify-between text-[11px] font-mono text-slate-400">
+                        <span>Standard Total:</span>
+                        <span>₹{combinedStandardTotal.toLocaleString("en-IN")}</span>
+                      </div>
+                      {combinedDiscount > 0 && (
+                        <div className="flex items-center justify-between text-[11px] font-mono text-rose-400 font-bold border-t border-slate-800/60 pt-1">
                           <span>Discount Given to Customer:</span>
-                          <span>-₹{disc.toLocaleString("en-IN")} ({discPct.toFixed(1)}% OFF)</span>
+                          <span>-₹{combinedDiscount.toLocaleString("en-IN")} ({combinedDiscountPct.toFixed(1)}% OFF)</span>
                         </div>
                       )}
                     </div>
                   );
                 })()}
-
-                {/* Optional Note / Address */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                  <div className="space-y-1">
-                    <label className="text-[10px] text-slate-400 uppercase font-mono block">
-                      Delivery Note / Address (Optional):
-                    </label>
-                    <input
-                      type="text"
-                      value={newRemoteNotes}
-                      onChange={(e) => setNewRemoteNotes(e.target.value)}
-                      placeholder="e.g. Naseem Bagh, morning harvest"
-                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-mono"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] text-slate-400 uppercase font-mono block">
-                      Customer Email (Optional):
-                    </label>
-                    <input
-                      type="email"
-                      value={newRemoteEmail}
-                      onChange={(e) => setNewRemoteEmail(e.target.value)}
-                      placeholder="customer@email.com"
-                      className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-mono"
-                    />
-                  </div>
-                </div>
 
                 {/* Generate Button */}
                 <button

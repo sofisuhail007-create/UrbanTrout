@@ -3,12 +3,26 @@
 import React, { useState, useEffect, useMemo } from "react";
 import PaginationBar from "@/components/PaginationBar";
 import { adminFetch } from "@/lib/adminClient";
+import CustomerAutocompleteInput, { DbCustomer } from "./CustomerAutocompleteInput";
 
 export interface DealProduct {
   id: string;
   name: string;
   pricePerKg: number;
   unit: string;
+}
+
+export interface DealDeskItem {
+  id: string;
+  productId: string;
+  productName: string;
+  weightKg: number;
+  standardRate: number;
+  standardTotal: number;
+  dealRate: number;
+  dealTotal: number;
+  discountAmount: number;
+  isCustomRate?: boolean;
 }
 
 export interface BargainDealItem {
@@ -50,8 +64,19 @@ interface DealCalculatorTabProps {
     discountAmount: number;
     customerName: string;
     customerPhone: string;
+    items?: Array<{
+      productId: string;
+      productName: string;
+      weightKg: number;
+      dealRatePerKg: number;
+      dealTotal: number;
+      standardRatePerKg: number;
+      discountAmount: number;
+    }>;
   }) => void;
   onSwitchTab: (tab: "pos" | "remote_orders" | "deal_calculator") => void;
+  customers?: DbCustomer[];
+  loadingCustomers?: boolean;
 }
 
 const DEALS_STORAGE_KEY = "ut_pos_bargain_deals_ledger_v1";
@@ -64,20 +89,50 @@ export default function DealCalculatorTab({
   playSuccessChime,
   onPushDealToBill,
   onSwitchTab,
+  customers = [],
+  loadingCustomers = false,
 }: DealCalculatorTabProps) {
-  // ─── 1. CORE CALCULATOR INPUT STATE ───
+  // ─── 1. CORE CALCULATOR INPUT STATE & CLUBBED MULTI-ITEM STATE ───
+  const [dealItems, setDealItems] = useState<DealDeskItem[]>(() => {
+    const p = products[0] || { id: "gutted-trout", name: "Premium Gutted Rainbow Trout", pricePerKg: 580, unit: "Kg" };
+    const initialWeight = Math.max(0.1, parseFloat(activeScaleWeight || "2.0") || 2.0);
+    const stdRate = p.pricePerKg || 580;
+    const defDealRate = stdRate > 20 ? stdRate - 20 : stdRate;
+    return [
+      {
+        id: "deal-1",
+        productId: p.id,
+        productName: p.name,
+        weightKg: initialWeight,
+        standardRate: stdRate,
+        standardTotal: Math.round(initialWeight * stdRate),
+        dealRate: defDealRate,
+        dealTotal: Math.round(initialWeight * defDealRate),
+        discountAmount: Math.max(0, Math.round(initialWeight * stdRate) - Math.round(initialWeight * defDealRate)),
+        isCustomRate: false,
+      },
+    ];
+  });
+  const [activeDealItemId, setActiveDealItemId] = useState<string>("deal-1");
+
+  const activeDealItem = useMemo(() => {
+    return dealItems.find((i) => i.id === activeDealItemId) || dealItems[0];
+  }, [dealItems, activeDealItemId]);
+
   const [selectedProductId, setSelectedProductId] = useState<string>(
-    products[0]?.id || "gutted-trout"
+    activeDealItem?.productId || products[0]?.id || "gutted-trout"
   );
   const [customStandardRate, setCustomStandardRate] = useState<string>("");
   const [isCustomRateActive, setIsCustomRateActive] = useState<boolean>(false);
 
-  const [weightStr, setWeightStr] = useState<string>(activeScaleWeight || "2.0");
+  const [weightStr, setWeightStr] = useState<string>(
+    activeDealItem ? String(activeDealItem.weightKg) : activeScaleWeight || "2.0"
+  );
 
   // Negotiation input states & mode
   const [activeInputMode, setActiveInputMode] = useState<"total" | "rate" | "percent" | "flat">("total");
-  const [dealTotalStr, setDealTotalStr] = useState<string>("");
-  const [dealRateStr, setDealRateStr] = useState<string>("");
+  const [dealTotalStr, setDealTotalStr] = useState<string>(activeDealItem ? String(activeDealItem.dealTotal) : "");
+  const [dealRateStr, setDealRateStr] = useState<string>(activeDealItem ? String(activeDealItem.dealRate) : "");
   const [discountPercentStr, setDiscountPercentStr] = useState<string>("");
   const [flatDiscountStr, setFlatDiscountStr] = useState<string>("");
 
@@ -131,7 +186,7 @@ export default function DealCalculatorTab({
     return dealsLedger.slice(start, start + LEDGER_PAGE_SIZE);
   }, [dealsLedger, ledgerPage]);
 
-  // Derive active standard product & rate
+  // Active product & standard rate for active deal item
   const activeProduct = products.find((p) => p.id === selectedProductId) || products[0];
   const standardRate = isCustomRateActive && Number(customStandardRate) > 0
     ? Number(customStandardRate)
@@ -140,7 +195,173 @@ export default function DealCalculatorTab({
   const weight = Math.max(0, parseFloat(weightStr) || 0);
   const standardTotal = Math.round(weight * standardRate);
 
-  // ─── 4. BI-DIRECTIONAL BARGAIN COMPUTATIONS ───
+  // ─── MULTI-ITEM OPERATIONS ───
+  const handleSelectDealItem = (id: string) => {
+    setActiveDealItemId(id);
+    const target = dealItems.find((i) => i.id === id);
+    if (target) {
+      setSelectedProductId(target.productId);
+      setWeightStr(String(target.weightKg));
+      setDealRateStr(String(target.dealRate));
+      setDealTotalStr(String(target.dealTotal));
+      setIsCustomRateActive(Boolean(target.isCustomRate));
+      if (target.isCustomRate) {
+        setCustomStandardRate(String(target.standardRate));
+      } else {
+        setCustomStandardRate("");
+      }
+      const disc = Math.max(0, target.standardTotal - target.dealTotal);
+      setFlatDiscountStr(String(disc));
+      setDiscountPercentStr(target.standardTotal > 0 ? ((disc / target.standardTotal) * 100).toFixed(1) : "0");
+    }
+  };
+
+  const handleAddDealItem = (prodId?: string) => {
+    const targetProd = prodId
+      ? products.find((p) => p.id === prodId) || products[0]
+      : products.find((p) => !dealItems.some((i) => i.productId === p.id)) || products[0];
+
+    const stdRate = targetProd?.pricePerKg || 580;
+    const defW = 1.0;
+    const defDealRate = stdRate > 20 ? stdRate - 20 : stdRate;
+    const defDealTotal = Math.round(defW * defDealRate);
+    const defStdTotal = Math.round(defW * stdRate);
+
+    const newId = `deal-item-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    const newItem: DealDeskItem = {
+      id: newId,
+      productId: targetProd?.id || "whole-trout",
+      productName: targetProd?.name || "Whole Rainbow Trout",
+      weightKg: defW,
+      standardRate: stdRate,
+      standardTotal: defStdTotal,
+      dealRate: defDealRate,
+      dealTotal: defDealTotal,
+      discountAmount: Math.max(0, defStdTotal - defDealTotal),
+      isCustomRate: false,
+    };
+
+    setDealItems((prev) => [...prev, newItem]);
+    setActiveDealItemId(newId);
+    setSelectedProductId(newItem.productId);
+    setWeightStr(String(defW));
+    setDealRateStr(String(defDealRate));
+    setDealTotalStr(String(defDealTotal));
+    setIsCustomRateActive(false);
+    setCustomStandardRate("");
+    setFlatDiscountStr(String(newItem.discountAmount));
+    setDiscountPercentStr(defStdTotal > 0 ? ((newItem.discountAmount / defStdTotal) * 100).toFixed(1) : "0");
+  };
+
+  const handleRemoveDealItem = (id: string) => {
+    if (dealItems.length <= 1) return;
+    const remaining = dealItems.filter((i) => i.id !== id);
+    setDealItems(remaining);
+    if (remaining.length > 0) {
+      handleSelectDealItem(remaining[0].id);
+    }
+  };
+
+  const handleSelectProduct = (prodId: string) => {
+    setSelectedProductId(prodId);
+    setIsCustomRateActive(false);
+    const p = products.find((pr) => pr.id === prodId) || products[0];
+    const newStdRate = p.pricePerKg || 580;
+    setDealItems((prev) =>
+      prev.map((item) => {
+        if (item.id !== activeDealItemId && item.id !== activeDealItem.id) return item;
+        const stdTot = Math.round(item.weightKg * newStdRate);
+        const dRate = item.dealRate > 0 && item.dealRate !== item.standardRate ? item.dealRate : (newStdRate > 20 ? newStdRate - 20 : newStdRate);
+        const dTot = Math.round(item.weightKg * dRate);
+        return {
+          ...item,
+          productId: p.id,
+          productName: p.name,
+          standardRate: newStdRate,
+          standardTotal: stdTot,
+          dealRate: dRate,
+          dealTotal: dTot,
+          discountAmount: Math.max(0, stdTot - dTot),
+          isCustomRate: false,
+        };
+      })
+    );
+  };
+
+  const handleWeightChange = (newWeightStr: string) => {
+    setWeightStr(newWeightStr);
+    const w = Math.max(0, parseFloat(newWeightStr) || 0);
+    setDealItems((prev) =>
+      prev.map((item) => {
+        if (item.id !== activeDealItemId && item.id !== activeDealItem.id) return item;
+        const stdTot = Math.round(w * item.standardRate);
+        const dTot = Math.round(w * item.dealRate);
+        return {
+          ...item,
+          weightKg: w,
+          standardTotal: stdTot,
+          dealTotal: dTot,
+          discountAmount: Math.max(0, stdTot - dTot),
+        };
+      })
+    );
+    const target = dealItems.find((i) => i.id === activeDealItemId || i.id === activeDealItem.id);
+    if (target) {
+      const dTot = Math.round(w * target.dealRate);
+      setDealTotalStr(dTot > 0 ? String(dTot) : "");
+    }
+  };
+
+  const handleCustomStandardRateChange = (rateValStr: string) => {
+    setCustomStandardRate(rateValStr);
+    const r = parseFloat(rateValStr) || 0;
+    if (r > 0) {
+      setDealItems((prev) =>
+        prev.map((item) => {
+          if (item.id !== activeDealItemId && item.id !== activeDealItem.id) return item;
+          const stdTot = Math.round(item.weightKg * r);
+          const disc = Math.max(0, stdTot - item.dealTotal);
+          return {
+            ...item,
+            standardRate: r,
+            standardTotal: stdTot,
+            discountAmount: disc,
+            isCustomRate: true,
+          };
+        })
+      );
+    }
+  };
+
+  const handleResetCustomRate = () => {
+    setIsCustomRateActive(false);
+    setCustomStandardRate("");
+    const p = products.find((pr) => pr.id === selectedProductId) || products[0];
+    const stdRate = p.pricePerKg || 580;
+    setDealItems((prev) =>
+      prev.map((item) => {
+        if (item.id !== activeDealItemId && item.id !== activeDealItem.id) return item;
+        const stdTot = Math.round(item.weightKg * stdRate);
+        const disc = Math.max(0, stdTot - item.dealTotal);
+        return {
+          ...item,
+          standardRate: stdRate,
+          standardTotal: stdTot,
+          discountAmount: disc,
+          isCustomRate: false,
+        };
+      })
+    );
+  };
+
+  const handleEnableCustomRate = () => {
+    setIsCustomRateActive(true);
+    const initialCustom = customStandardRate || String(standardRate);
+    setCustomStandardRate(initialCustom);
+    handleCustomStandardRateChange(initialCustom);
+  };
+
+  // ─── 4. BI-DIRECTIONAL BARGAIN COMPUTATIONS FOR ACTIVE ITEM ───
   let dealTotal = 0;
   let dealRate = 0;
   let discountAmount = 0;
@@ -173,12 +394,30 @@ export default function DealCalculatorTab({
     lossPerKg = Math.max(0, standardRate - dealRate);
   }
 
-  // Derive Soundbox UPI URI (J&K Bank Merchant Soundbox)
+  // ─── COMBINED METRICS ACROSS ALL CLUBBED DEAL ITEMS ───
+  const combinedWeight = useMemo(
+    () => dealItems.reduce((sum, item) => sum + (Number(item.weightKg) || 0), 0),
+    [dealItems]
+  );
+  const combinedStandardTotal = useMemo(
+    () => dealItems.reduce((sum, item) => sum + (Number(item.standardTotal) || 0), 0),
+    [dealItems]
+  );
+  const combinedDealTotal = useMemo(
+    () => dealItems.reduce((sum, item) => sum + (Number(item.dealTotal) || 0), 0),
+    [dealItems]
+  );
+  const combinedDiscountAmount = Math.max(0, combinedStandardTotal - combinedDealTotal);
+  const combinedDiscountPercent = combinedStandardTotal > 0 ? (combinedDiscountAmount / combinedStandardTotal) * 100 : 0;
+  const combinedEffectiveRate = combinedWeight > 0 ? combinedDealTotal / combinedWeight : 0;
+  const combinedLossPerKg = combinedWeight > 0 ? combinedDiscountAmount / combinedWeight : 0;
+
+  // Derive Soundbox UPI URI (J&K Bank Merchant Soundbox) for COMBINED deal total
   const terminalId = upiId.includes("@")
     ? `TERM${upiId.split("@")[0].replace(/^JKBMERC/, "")}`
     : "TERM00828895";
-  const soundboxUpiUri = dealTotal > 0
-    ? `upi://pay?pa=${upiId}&pn=Urban%20Trout%20Aquaculture&tr=${terminalId}&am=${dealTotal}&mam=${dealTotal}&cu=INR&tn=Deal-${activeDealNumber || Date.now().toString().slice(-4)}`
+  const soundboxUpiUri = combinedDealTotal > 0
+    ? `upi://pay?pa=${upiId}&pn=Urban%20Trout%20Aquaculture&tr=${terminalId}&am=${combinedDealTotal}&mam=${combinedDealTotal}&cu=INR&tn=Deal-${activeDealNumber || Date.now().toString().slice(-4)}`
     : `upi://pay?pa=${upiId}&pn=Urban%20Trout%20Aquaculture&tr=${terminalId}&cu=INR`;
   const soundboxQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=360x360&data=${encodeURIComponent(
     soundboxUpiUri
@@ -188,12 +427,24 @@ export default function DealCalculatorTab({
   const applyDealTotal = (totalVal: number) => {
     setActiveInputMode("total");
     setDealTotalStr(totalVal > 0 ? String(totalVal) : "");
+    const dRate = weight > 0 && totalVal > 0 ? Math.round((totalVal / weight) * 10) / 10 : 0;
     if (weight > 0 && totalVal > 0) {
-      setDealRateStr((totalVal / weight).toFixed(1));
+      setDealRateStr(dRate.toFixed(1));
       const disc = Math.max(0, standardTotal - totalVal);
       setDiscountPercentStr(((disc / standardTotal) * 100).toFixed(1));
       setFlatDiscountStr(String(disc));
     }
+    setDealItems((prev) =>
+      prev.map((item) => {
+        if (item.id !== activeDealItemId && item.id !== activeDealItem.id) return item;
+        return {
+          ...item,
+          dealTotal: totalVal,
+          dealRate: dRate,
+          discountAmount: Math.max(0, item.standardTotal - totalVal),
+        };
+      })
+    );
   };
 
   const applyDealRate = (rateVal: number) => {
@@ -206,6 +457,17 @@ export default function DealCalculatorTab({
       setDiscountPercentStr(((disc / standardTotal) * 100).toFixed(1));
       setFlatDiscountStr(String(disc));
     }
+    setDealItems((prev) =>
+      prev.map((item) => {
+        if (item.id !== activeDealItemId && item.id !== activeDealItem.id) return item;
+        return {
+          ...item,
+          dealRate: rateVal,
+          dealTotal: tot,
+          discountAmount: Math.max(0, item.standardTotal - tot),
+        };
+      })
+    );
   };
 
   const applyDiscountPercent = (pct: number) => {
@@ -213,20 +475,44 @@ export default function DealCalculatorTab({
     setDiscountPercentStr(String(pct));
     const disc = Math.round(standardTotal * (pct / 100));
     const tot = Math.max(0, standardTotal - disc);
+    const dRate = weight > 0 ? Math.round((tot / weight) * 10) / 10 : 0;
     setDealTotalStr(String(tot));
     setFlatDiscountStr(String(disc));
-    if (weight > 0) setDealRateStr((tot / weight).toFixed(1));
+    if (weight > 0) setDealRateStr(dRate.toFixed(1));
+    setDealItems((prev) =>
+      prev.map((item) => {
+        if (item.id !== activeDealItemId && item.id !== activeDealItem.id) return item;
+        return {
+          ...item,
+          dealTotal: tot,
+          dealRate: dRate,
+          discountAmount: disc,
+        };
+      })
+    );
   };
 
   const applyFlatDiscount = (cashOff: number) => {
     setActiveInputMode("flat");
     setFlatDiscountStr(String(cashOff));
     const tot = Math.max(0, standardTotal - cashOff);
+    const dRate = weight > 0 ? Math.round((tot / weight) * 10) / 10 : 0;
     setDealTotalStr(String(tot));
     if (standardTotal > 0) {
       setDiscountPercentStr(((cashOff / standardTotal) * 100).toFixed(1));
     }
-    if (weight > 0) setDealRateStr((tot / weight).toFixed(1));
+    if (weight > 0) setDealRateStr(dRate.toFixed(1));
+    setDealItems((prev) =>
+      prev.map((item) => {
+        if (item.id !== activeDealItemId && item.id !== activeDealItem.id) return item;
+        return {
+          ...item,
+          dealTotal: tot,
+          dealRate: dRate,
+          discountAmount: cashOff,
+        };
+      })
+    );
   };
 
   // Smart Rounding helpers
@@ -244,7 +530,7 @@ export default function DealCalculatorTab({
 
   // ─── 6. GENERATE SEPARATE LOCKED-IN QR ───
   const handleGenerateLockedQr = async (force = true) => {
-    if (dealTotal <= 0) return;
+    if (combinedDealTotal <= 0) return;
     const dealNum = `DEAL-${Date.now().toString().slice(-6)}`;
     setActiveDealNumber(dealNum);
     setIsDealPaid(false);
@@ -258,7 +544,7 @@ export default function DealCalculatorTab({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            amount: dealTotal,
+            amount: combinedDealTotal,
             customerName: customerName.trim() || "Bargain Deal Customer",
             customerPhone: customerPhone.trim() || "N/A",
             billNumber: dealNum,
@@ -285,15 +571,18 @@ export default function DealCalculatorTab({
       customerName: customerName.trim() || "Counter Customer",
       customerPhone: customerPhone.trim() || "N/A",
       productId: activeProduct.id,
-      productName: activeProduct.name,
-      weightKg: weight,
-      standardRate,
-      standardTotal,
-      dealTotal,
-      effectiveRate: Math.round(dealRate * 100) / 100,
-      discountAmount,
-      discountPercent: Math.round(discountPercent * 10) / 10,
-      lossPerKg: Math.round(lossPerKg * 100) / 100,
+      productName:
+        dealItems.length > 1
+          ? `${dealItems.length} Products Clubbed (${combinedWeight.toFixed(2)} Kg)`
+          : activeProduct.name,
+      weightKg: combinedWeight,
+      standardRate: Math.round((combinedStandardTotal / (combinedWeight || 1)) * 100) / 100,
+      standardTotal: combinedStandardTotal,
+      dealTotal: combinedDealTotal,
+      effectiveRate: Math.round(combinedEffectiveRate * 100) / 100,
+      discountAmount: combinedDiscountAmount,
+      discountPercent: Math.round(combinedDiscountPercent * 10) / 10,
+      lossPerKg: Math.round(combinedLossPerKg * 100) / 100,
       qrEngine,
       status: "PENDING",
     };
@@ -315,7 +604,7 @@ export default function DealCalculatorTab({
           setDealPaymentRef(payId);
 
           playSuccessChime();
-          speakPaymentAnnouncement(dealTotal, "Locked QR Deal", customerName);
+          speakPaymentAnnouncement(combinedDealTotal, "Locked QR Deal", customerName);
 
           // Update ledger
           setDealsLedger((prev) =>
@@ -334,7 +623,7 @@ export default function DealCalculatorTab({
     }, 2500);
 
     return () => clearInterval(interval);
-  }, [qrEngine, rzpQrId, isDealPaid, dealTotal, customerName, activeDealNumber]);
+  }, [qrEngine, rzpQrId, isDealPaid, combinedDealTotal, customerName, activeDealNumber]);
 
   // ─── 7b. PAYMENT LINK POLLER (for WhatsApp deals) ───
   useEffect(() => {
@@ -377,7 +666,7 @@ export default function DealCalculatorTab({
     const payRef = `sbx_${Date.now().toString().slice(-6)}`;
     setDealPaymentRef(payRef);
     playSuccessChime();
-    speakPaymentAnnouncement(dealTotal, "Soundbox QR Deal", customerName);
+    speakPaymentAnnouncement(combinedDealTotal, "Soundbox QR Deal", customerName);
 
     setDealsLedger((prev) =>
       prev.map((d) =>
@@ -390,7 +679,7 @@ export default function DealCalculatorTab({
 
   // ─── 8. SEND WHATSAPP DEAL WITH LOCKED LINK ───
   const handleSendWhatsAppDeal = async () => {
-    if (dealTotal <= 0) return;
+    if (combinedDealTotal <= 0) return;
     setWaLinkLoading(true);
     try {
       const dealNum = activeDealNumber || `UT-DEAL-${Date.now().toString().slice(-5)}`;
@@ -403,6 +692,11 @@ export default function DealCalculatorTab({
         !activeProduct.name.toLowerCase().includes("non");
       const prodType = isGutted ? "Gutted" : "Non Gutted";
 
+      const itemsSummary =
+        dealItems.length > 1
+          ? `${dealItems.length} Products Clubbed (${combinedWeight.toFixed(2)} Kg total)`
+          : `${weight} Kg ${activeProduct.name} (Special Agreed Price)`;
+
       let payUrl = "";
       let plId = "";
       if (activePaymentLink) {
@@ -412,20 +706,23 @@ export default function DealCalculatorTab({
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            amount: dealTotal,
+            amount: combinedDealTotal,
             customerName: cName,
             customerPhone: cleanPhone,
             orderRef: dealNum,
-            itemsSummary: `${weight} Kg ${activeProduct.name} (Special Agreed Price)`,
+            itemsSummary,
             channel: "WHATSAPP_DEAL",
-            weightKg: weight,
+            weightKg: combinedWeight,
             productType: prodType,
-            dealRate: Math.round(dealRate * 100) / 100,
-            standardRate: standardRate,
-            standardTotal: standardTotal,
-            discountAmount: discountAmount,
-            discountPercent: discountPercent,
-            notes: `Deal Desk: Rs. ${standardRate}/Kg standard negotiated to Rs. ${dealRate.toFixed(1)}/Kg. Concession: Rs. ${discountAmount} (${discountPercent.toFixed(1)}% OFF).`,
+            dealRate: Math.round(combinedEffectiveRate * 100) / 100,
+            standardRate: Math.round((combinedStandardTotal / (combinedWeight || 1)) * 100) / 100,
+            standardTotal: combinedStandardTotal,
+            discountAmount: combinedDiscountAmount,
+            discountPercent: combinedDiscountPercent,
+            notes:
+              dealItems.length > 1
+                ? `Deal Desk: ${dealItems.length} items clubbed. Total Rs. ${combinedStandardTotal} negotiated to Rs. ${combinedDealTotal}. Concession: Rs. ${combinedDiscountAmount} (${combinedDiscountPercent.toFixed(1)}% OFF).`
+                : `Deal Desk: Rs. ${standardRate}/Kg standard negotiated to Rs. ${dealRate.toFixed(1)}/Kg. Concession: Rs. ${discountAmount} (${discountPercent.toFixed(1)}% OFF).`,
           }),
         });
         const data = await res.json();
@@ -441,22 +738,23 @@ export default function DealCalculatorTab({
         num: dealNum,
         name: cName,
         phone: cleanPhone,
-        items: [
-          {
-            n: `${activeProduct.name} (Special Agreed Price)`,
-            w: weight,
-            r: Math.round(dealRate * 100) / 100,
-            t: dealTotal,
-            standardRate,
-            standardTotal,
-            discountAmount,
-          },
-        ],
-        tw: weight,
-        tot: dealTotal,
-        standardTotal,
-        discountAmount,
-        notes: `Deal Desk: Rs. ${standardRate}/Kg standard negotiated to Rs. ${dealRate.toFixed(1)}/Kg`,
+        items: dealItems.map((item) => ({
+          n: `${item.productName} (Special Agreed Price)`,
+          w: item.weightKg,
+          r: Math.round(item.dealRate * 100) / 100,
+          t: item.dealTotal,
+          standardRate: item.standardRate,
+          standardTotal: item.standardTotal,
+          discountAmount: item.discountAmount,
+        })),
+        tw: combinedWeight,
+        tot: combinedDealTotal,
+        standardTotal: combinedStandardTotal,
+        discountAmount: combinedDiscountAmount,
+        notes:
+          dealItems.length > 1
+            ? `Deal Desk: ${dealItems.length} items clubbed (${combinedWeight.toFixed(2)} Kg total)`
+            : `Deal Desk: Rs. ${standardRate}/Kg standard negotiated to Rs. ${dealRate.toFixed(1)}/Kg`,
         paymentMethod: "Razorpay Link (WhatsApp Deal)",
         paymentStatus: "PAYMENT DUE",
         paymentId: null,
@@ -483,15 +781,18 @@ export default function DealCalculatorTab({
         customerName: cName,
         customerPhone: cleanPhone || "N/A",
         productId: activeProduct.id,
-        productName: activeProduct.name,
-        weightKg: weight,
-        standardRate,
-        standardTotal,
-        dealTotal,
-        effectiveRate: Math.round(dealRate * 100) / 100,
-        discountAmount,
-        discountPercent: Math.round(discountPercent * 10) / 10,
-        lossPerKg: Math.round(lossPerKg * 100) / 100,
+        productName:
+          dealItems.length > 1
+            ? `${dealItems.length} Products Clubbed (${combinedWeight.toFixed(2)} Kg)`
+            : activeProduct.name,
+        weightKg: combinedWeight,
+        standardRate: Math.round((combinedStandardTotal / (combinedWeight || 1)) * 100) / 100,
+        standardTotal: combinedStandardTotal,
+        dealTotal: combinedDealTotal,
+        effectiveRate: Math.round(combinedEffectiveRate * 100) / 100,
+        discountAmount: combinedDiscountAmount,
+        discountPercent: Math.round(combinedDiscountPercent * 10) / 10,
+        lossPerKg: Math.round(combinedLossPerKg * 100) / 100,
         qrEngine,
         paymentLinkId: plId || null,
         status: "PENDING",
@@ -499,24 +800,30 @@ export default function DealCalculatorTab({
       setDealsLedger((prev) => [newDealItem, ...prev.filter((d) => d.id !== dealNum)]);
 
       // Clean, professional, 100% Unicode-safe message template (No broken box glyphs, no exclamation marks)
+      const detailsSection =
+        dealItems.length > 1
+          ? `*CLUBBED DEAL BREAKDOWN (${dealItems.length} Items)*\n` +
+            dealItems
+              .map(
+                (item, idx) =>
+                  `*Item #${idx + 1}: ${item.productName}*\n- Quantity: ${item.weightKg} Kg @ Rs. ${item.dealRate}/Kg (Std: Rs. ${item.standardRate}/Kg)\n- Agreed Subtotal: *Rs. ${item.dealTotal.toLocaleString("en-IN")}* (Discount: Rs. ${item.discountAmount.toLocaleString("en-IN")})`
+              )
+              .join("\n\n") +
+            `\n\n*COMBINED SUMMARY*\n- *Total Weight:* ${combinedWeight.toFixed(2)} Kg\n- *Standard Total:* Rs. ${combinedStandardTotal.toLocaleString("en-IN")}\n- *Agreed Deal Total:* *Rs. ${combinedDealTotal.toLocaleString("en-IN")}*\n- *Total Concession:* Rs. ${combinedDiscountAmount.toLocaleString("en-IN")} (${combinedDiscountPercent.toFixed(1)}% OFF)\n- *Combined Effective Rate:* Rs. ${combinedEffectiveRate.toFixed(1)}/Kg`
+          : `*DEAL DETAILS*\n- *Product:* ${activeProduct.name}\n- *Quantity:* ${weight} Kg\n- *Standard Price:* Rs. ${standardTotal.toLocaleString("en-IN")} (Rs. ${standardRate}/Kg)\n- *Agreed Deal Price:* *Rs. ${dealTotal.toLocaleString("en-IN")}*\n- *Total Discount:* Rs. ${discountAmount.toLocaleString("en-IN")} (${discountPercent.toFixed(1)}% OFF)\n- *Effective Rate:* Rs. ${dealRate.toFixed(1)}/Kg`;
+
       const msg = `*URBAN TROUT AQUACULTURE*
 _Fresh Himalayan Rainbow Trout · Srinagar_
 
 Dear *${cName}*,
 Here is your agreed locked deal invoice summary:
 
-*DEAL DETAILS*
-- *Product:* ${activeProduct.name}
-- *Quantity:* ${weight} Kg
-- *Standard Price:* Rs. ${standardTotal.toLocaleString("en-IN")} (Rs. ${standardRate}/Kg)
-- *Agreed Deal Price:* *Rs. ${dealTotal.toLocaleString("en-IN")}*
-- *Total Discount:* Rs. ${discountAmount.toLocaleString("en-IN")} (${discountPercent.toFixed(1)}% OFF)
-- *Effective Rate:* Rs. ${dealRate.toFixed(1)}/Kg
+${detailsSection}
 
 *TAP TO PAY SECURELY*
 ${payUrl || "Scan our J&K Bank Soundbox Counter QR upon collection"}
 
-> *Amount Locked:* Rs. ${dealTotal.toLocaleString("en-IN")} (Exact billing)
+> *Amount Locked:* Rs. ${combinedDealTotal.toLocaleString("en-IN")} (Exact billing)
 > *Instant Confirmation:* Payment verifies automatically via UPI, Google Pay, PhonePe, Paytm, or Card. No screenshot required.
 
 *Urban Trout Farm Helpline:* +91 84910 06127
@@ -536,17 +843,29 @@ Naseem Bagh / Malabagh, Srinagar`;
 
   // Push deal to main POS counter bill
   const handlePushToBillAction = () => {
-    if (dealTotal <= 0) return;
+    if (combinedDealTotal <= 0) return;
     onPushDealToBill({
       productId: activeProduct.id,
-      productName: `${activeProduct.name} (Bargained Deal)`,
-      weightKg: weight,
-      dealRatePerKg: Math.round(dealRate * 100) / 100,
-      dealTotal,
-      standardRatePerKg: standardRate,
-      discountAmount,
+      productName:
+        dealItems.length > 1
+          ? `Multi-Item Deal (${dealItems.length} items)`
+          : `${activeProduct.name} (Bargained Deal)`,
+      weightKg: combinedWeight,
+      dealRatePerKg: Math.round(combinedEffectiveRate * 100) / 100,
+      dealTotal: combinedDealTotal,
+      standardRatePerKg: Math.round((combinedStandardTotal / (combinedWeight || 1)) * 100) / 100,
+      discountAmount: combinedDiscountAmount,
       customerName,
       customerPhone,
+      items: dealItems.map((item) => ({
+        productId: item.productId,
+        productName: `${item.productName} (Bargained Deal)`,
+        weightKg: item.weightKg,
+        dealRatePerKg: item.dealRate,
+        dealTotal: item.dealTotal,
+        standardRatePerKg: item.standardRate,
+        discountAmount: item.discountAmount,
+      })),
     });
   };
 
@@ -558,13 +877,90 @@ Naseem Bagh / Malabagh, Srinagar`;
         <div className="lg:col-span-7 space-y-3">
           {/* Card 1: Product, Rate & Harvest Weight */}
           <div className="bg-slate-900/85 border border-slate-800 rounded-2xl p-3 sm:p-4 space-y-3 shadow-xl">
+            {/* Multi-Item Deal Management Header */}
+            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-cyan-400 text-base">layers</span>
+                <span className="text-xs sm:text-sm font-bold text-white font-mono">
+                  Items in Deal ({dealItems.length})
+                </span>
+                {dealItems.length > 1 && (
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-bold">
+                    Combined: {combinedWeight.toFixed(2)} Kg · ₹{combinedDealTotal.toLocaleString("en-IN")}
+                  </span>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => handleAddDealItem()}
+                className="px-2.5 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-300 text-xs font-mono font-bold flex items-center gap-1 cursor-pointer transition-all"
+                title="Add another package or variety to this bargained deal (e.g. 3kg gutted & 2kg whole)"
+              >
+                <span className="text-sm leading-none font-bold">+</span>
+                <span>Add Item</span>
+              </button>
+            </div>
+
+            {/* Deal Items Chips List */}
+            <div className="flex flex-wrap gap-1.5 pb-2 border-b border-slate-800/60">
+              {dealItems.map((item, idx) => {
+                const isActive = item.id === (activeDealItem?.id || activeDealItemId);
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => handleSelectDealItem(item.id)}
+                    className={`group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all cursor-pointer ${
+                      isActive
+                        ? "bg-cyan-500/20 border-cyan-400 text-white shadow-md shadow-cyan-500/10"
+                        : "bg-slate-950/70 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200"
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5 text-xs font-mono">
+                      <span className="w-4 h-4 rounded-full bg-cyan-500/30 text-cyan-300 text-[10px] flex items-center justify-center font-bold">
+                        {idx + 1}
+                      </span>
+                      <span className="font-bold truncate max-w-[110px] sm:max-w-[140px]">
+                        {item.productName.split(" ")[0]}
+                      </span>
+                      <span className="text-slate-400 text-[11px] font-bold">
+                        {item.weightKg}k
+                      </span>
+                      <span className="text-cyan-400 font-bold text-[11px]">
+                        ₹{item.dealTotal.toLocaleString("en-IN")}
+                      </span>
+                    </div>
+
+                    {isActive && (
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-cyan-400/25 text-cyan-200 font-bold uppercase font-mono">
+                        Editing
+                      </span>
+                    )}
+
+                    {dealItems.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveDealItem(item.id);
+                        }}
+                        className="text-slate-500 hover:text-rose-400 text-xs px-1 font-bold transition-colors cursor-pointer"
+                        title="Remove this item from the deal"
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
             <div className="flex items-center justify-between">
               <h2
                 className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5"
                 style={{ fontFamily: '"Space Grotesk", sans-serif' }}
               >
                 <span className="material-symbols-outlined text-cyan-400 text-base">scale</span>
-                1. Select Inventory Product &amp; Harvest Weight
+                1. Product &amp; Harvest Weight (Item #{dealItems.findIndex((i) => i.id === (activeDealItem?.id || activeDealItemId)) + 1 || 1})
               </h2>
               <span className="text-[11px] text-cyan-400 font-mono font-bold">
                 Standard: ₹{standardRate}/Kg
@@ -579,10 +975,7 @@ Naseem Bagh / Malabagh, Srinagar`;
                   <button
                     key={p.id}
                     type="button"
-                    onClick={() => {
-                      setSelectedProductId(p.id);
-                      setIsCustomRateActive(false);
-                    }}
+                    onClick={() => handleSelectProduct(p.id)}
                     className={`p-2.5 rounded-xl text-left transition-all cursor-pointer border ${
                       isSelected
                         ? "bg-cyan-500/20 border-cyan-400 text-white shadow-md shadow-cyan-500/10"
@@ -600,7 +993,7 @@ Naseem Bagh / Malabagh, Srinagar`;
               {/* Custom Standard Rate Toggle */}
               <button
                 type="button"
-                onClick={() => setIsCustomRateActive(true)}
+                onClick={handleEnableCustomRate}
                 className={`p-2.5 rounded-xl text-left transition-all cursor-pointer border ${
                   isCustomRateActive
                     ? "bg-amber-500/20 border-amber-400 text-amber-200"
@@ -609,7 +1002,7 @@ Naseem Bagh / Malabagh, Srinagar`;
               >
                 <div className="font-bold text-xs">✏️ Custom Rate</div>
                 <div className="text-amber-400 font-mono text-xs font-bold mt-0.5">
-                  {isCustomRateActive ? `₹${customStandardRate || "..."}/Kg` : "Override Rate"}
+                  {isCustomRateActive ? `₹${customStandardRate || standardRate}/Kg` : "Override Rate"}
                 </div>
               </button>
             </div>
@@ -624,13 +1017,13 @@ Naseem Bagh / Malabagh, Srinagar`;
                   <input
                     type="number"
                     value={customStandardRate}
-                    onChange={(e) => setCustomStandardRate(e.target.value)}
+                    onChange={(e) => handleCustomStandardRateChange(e.target.value)}
                     placeholder="e.g. 700"
                     className="w-full bg-slate-950 border border-amber-500/40 rounded-lg px-3 py-1.5 text-sm text-white font-mono font-bold focus:outline-none"
                   />
                   <button
                     type="button"
-                    onClick={() => setIsCustomRateActive(false)}
+                    onClick={handleResetCustomRate}
                     className="px-2.5 py-1.5 rounded-lg bg-slate-800 text-slate-300 text-xs font-mono hover:text-white"
                   >
                     Reset
@@ -648,7 +1041,7 @@ Naseem Bagh / Malabagh, Srinagar`;
                 {activeScaleWeight && (
                   <button
                     type="button"
-                    onClick={() => setWeightStr(activeScaleWeight)}
+                    onClick={() => handleWeightChange(activeScaleWeight)}
                     className="text-cyan-400 hover:text-cyan-300 text-[10px] font-mono underline cursor-pointer"
                   >
                     📥 Pull Live Scale Weight ({activeScaleWeight} Kg)
@@ -662,7 +1055,7 @@ Naseem Bagh / Malabagh, Srinagar`;
                   step="0.01"
                   min="0.1"
                   value={weightStr}
-                  onChange={(e) => setWeightStr(e.target.value)}
+                  onChange={(e) => handleWeightChange(e.target.value)}
                   placeholder="e.g. 2.0"
                   className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-xl font-mono text-cyan-300 font-bold focus:outline-none focus:border-cyan-400 shadow-inner"
                 />
@@ -678,7 +1071,7 @@ Naseem Bagh / Malabagh, Srinagar`;
                   <button
                     key={w}
                     type="button"
-                    onClick={() => setWeightStr(w.toFixed(1))}
+                    onClick={() => handleWeightChange(w.toFixed(1))}
                     className={`px-2 py-0.5 rounded-lg font-mono text-[11px] font-semibold border transition-all cursor-pointer ${
                       parseFloat(weightStr) === w
                         ? "bg-cyan-500/20 text-cyan-300 border-cyan-400"
@@ -692,7 +1085,7 @@ Naseem Bagh / Malabagh, Srinagar`;
                   type="button"
                   onClick={() => {
                     const cur = parseFloat(weightStr) || 0;
-                    setWeightStr((cur + 0.5).toFixed(2));
+                    handleWeightChange((cur + 0.5).toFixed(2));
                   }}
                   className="px-2 py-0.5 rounded-lg bg-cyan-950/60 hover:bg-cyan-900/60 text-cyan-400 font-mono text-[11px] font-bold border border-cyan-500/30 cursor-pointer"
                 >
@@ -705,7 +1098,7 @@ Naseem Bagh / Malabagh, Srinagar`;
             <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between">
               <div>
                 <span className="text-[10px] text-slate-400 uppercase font-mono tracking-wider block">
-                  Standard Inventory Bill Total
+                  {dealItems.length > 1 ? "Active Item Standard Baseline" : "Standard Inventory Bill Total"}
                 </span>
                 <div className="text-base sm:text-lg font-black text-white font-mono">
                   ₹{standardTotal.toLocaleString("en-IN")}
@@ -713,7 +1106,11 @@ Naseem Bagh / Malabagh, Srinagar`;
               </div>
               <div className="text-right text-[11px] text-slate-400 font-mono">
                 <div>{weight.toFixed(2)} Kg @ ₹{standardRate}/Kg</div>
-                <div className="text-slate-500 text-[10px]">Zero Discount Baseline</div>
+                {dealItems.length > 1 && (
+                  <div className="text-cyan-400 text-[10px] font-bold">
+                    Combined Std: ₹{combinedStandardTotal.toLocaleString("en-IN")} ({combinedWeight.toFixed(2)} Kg)
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -760,7 +1157,7 @@ Naseem Bagh / Malabagh, Srinagar`;
             {activeInputMode === "total" && (
               <div className="space-y-1">
                 <label className="text-xs text-slate-300 font-bold block">
-                  Customer Offered Lump-Sum Amount (₹ Total):
+                  Customer Offered Lump-Sum Amount (₹ Total for Item #{dealItems.findIndex((i) => i.id === (activeDealItem?.id || activeDealItemId)) + 1 || 1}):
                 </label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-cyan-400 font-bold font-mono text-lg">
@@ -775,7 +1172,7 @@ Naseem Bagh / Malabagh, Srinagar`;
                   />
                 </div>
                 <p className="text-[10px] text-slate-400 font-mono">
-                  Enter what the customer is asking to pay for the whole parcel.
+                  Enter what the customer is asking to pay for this item parcel.
                 </p>
               </div>
             )}
@@ -783,7 +1180,7 @@ Naseem Bagh / Malabagh, Srinagar`;
             {activeInputMode === "rate" && (
               <div className="space-y-1">
                 <label className="text-xs text-slate-300 font-bold block">
-                  Negotiated Rate Per Kg (₹ / Kg):
+                  Negotiated Rate Per Kg (₹ / Kg for Item #{dealItems.findIndex((i) => i.id === (activeDealItem?.id || activeDealItemId)) + 1 || 1}):
                 </label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-cyan-400 font-bold font-mono text-lg">
@@ -809,7 +1206,7 @@ Naseem Bagh / Malabagh, Srinagar`;
             {activeInputMode === "percent" && (
               <div className="space-y-1">
                 <label className="text-xs text-slate-300 font-bold block">
-                  Discount Percentage (% Off):
+                  Discount Percentage (% Off for Item #{dealItems.findIndex((i) => i.id === (activeDealItem?.id || activeDealItemId)) + 1 || 1}):
                 </label>
                 <div className="relative">
                   <input
@@ -829,7 +1226,7 @@ Naseem Bagh / Malabagh, Srinagar`;
             {activeInputMode === "flat" && (
               <div className="space-y-1">
                 <label className="text-xs text-slate-300 font-bold block">
-                  Flat Cash Off Discount (₹ Less):
+                  Flat Cash Off Discount (₹ Less for Item #{dealItems.findIndex((i) => i.id === (activeDealItem?.id || activeDealItemId)) + 1 || 1}):
                 </label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-rose-400 font-bold font-mono text-lg">
@@ -891,33 +1288,19 @@ Naseem Bagh / Malabagh, Srinagar`;
               </div>
             </div>
 
-            {/* Optional Customer Details */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2 border-t border-slate-800/80">
-              <div>
-                <label className="text-[10px] text-slate-400 uppercase font-mono block mb-0.5">
-                  Customer Name (Optional)
-                </label>
-                <input
-                  type="text"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  placeholder="e.g. Mushtaq Ahmad"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-400"
-                />
-              </div>
-              <div>
-                <label className="text-[10px] text-slate-400 uppercase font-mono block mb-0.5">
-                  Mobile Number (For WhatsApp)
-                </label>
-                <input
-                  type="tel"
-                  value={customerPhone}
-                  onChange={(e) => setCustomerPhone(e.target.value)}
-                  placeholder="10-digit mobile"
-                  maxLength={10}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-400"
-                />
-              </div>
+            {/* Customer Details with Autocomplete Search from Database */}
+            <div className="pt-2 border-t border-slate-800/80">
+              <CustomerAutocompleteInput
+                customerName={customerName}
+                customerPhone={customerPhone}
+                onNameChange={setCustomerName}
+                onPhoneChange={setCustomerPhone}
+                customers={customers}
+                loadingCustomers={loadingCustomers}
+                theme="cyan"
+                showNotesField={false}
+                showEmailField={false}
+              />
             </div>
           </div>
         </div>
@@ -929,24 +1312,34 @@ Naseem Bagh / Malabagh, Srinagar`;
             <div className="flex items-center justify-between pb-2 border-b border-slate-800">
               <div>
                 <span className="text-[9px] uppercase font-bold tracking-widest text-slate-500 font-mono">
-                  Live Concession Analysis
+                  {dealItems.length > 1 ? "Live Combined Concession Analysis" : "Live Concession Analysis"}
                 </span>
                 <h3
                   className="text-lg sm:text-xl font-black text-white"
                   style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                 >
-                  Agreed Deal: <span className="text-emerald-400">₹{dealTotal.toLocaleString("en-IN")}</span>
+                  Agreed Deal:{" "}
+                  <span className="text-emerald-400">
+                    ₹{combinedDealTotal.toLocaleString("en-IN")}
+                  </span>
                 </h3>
+                {dealItems.length > 1 && (
+                  <div className="text-[10px] font-mono text-cyan-400 font-bold">
+                    {dealItems.length} Products Clubbed · {combinedWeight.toFixed(2)} Kg Total
+                  </div>
+                )}
               </div>
-              {dealTotal > 0 && (
+              {combinedDealTotal > 0 && (
                 <span
                   className={`px-2.5 py-1 rounded-full text-xs font-mono font-bold border ${
-                    discountAmount > 0
+                    combinedDiscountAmount > 0
                       ? "bg-rose-500/15 text-rose-300 border-rose-500/40"
                       : "bg-emerald-500/15 text-emerald-300 border-emerald-500/40"
                   }`}
                 >
-                  {discountAmount > 0 ? `-${discountPercent.toFixed(1)}% OFF` : "Standard Rate"}
+                  {combinedDiscountAmount > 0
+                    ? `-${combinedDiscountPercent.toFixed(1)}% OFF`
+                    : "Standard Rate"}
                 </span>
               )}
             </div>
@@ -957,10 +1350,12 @@ Naseem Bagh / Malabagh, Srinagar`;
               <div className="p-2.5 rounded-xl bg-slate-950/90 border border-rose-500/30 space-y-0.5">
                 <span className="text-[10px] text-slate-400 block">Less Amount:</span>
                 <div className="text-base font-black text-rose-400">
-                  {discountAmount > 0 ? `-₹${discountAmount.toLocaleString("en-IN")}` : "₹0"}
+                  {combinedDiscountAmount > 0
+                    ? `-₹${combinedDiscountAmount.toLocaleString("en-IN")}`
+                    : "₹0"}
                 </div>
                 <div className="text-[9px] text-rose-400/80">
-                  {discountAmount > 0 ? `Losing ₹${discountAmount}` : "Full price"}
+                  {combinedDiscountAmount > 0 ? `Losing ₹${combinedDiscountAmount}` : "Full price"}
                 </div>
               </div>
 
@@ -968,10 +1363,10 @@ Naseem Bagh / Malabagh, Srinagar`;
               <div className="p-2.5 rounded-xl bg-slate-950/90 border border-rose-500/30 space-y-0.5">
                 <span className="text-[10px] text-slate-400 block">Concession / Kg:</span>
                 <div className="text-base font-black text-rose-400">
-                  {lossPerKg > 0 ? `-₹${lossPerKg.toFixed(1)}/Kg` : "₹0/Kg"}
+                  {combinedLossPerKg > 0 ? `-₹${combinedLossPerKg.toFixed(1)}/Kg` : "₹0/Kg"}
                 </div>
                 <div className="text-[9px] text-rose-400/80">
-                  {lossPerKg > 0 ? `-₹${lossPerKg.toFixed(1)} per kg` : "Zero loss"}
+                  {combinedLossPerKg > 0 ? `-₹${combinedLossPerKg.toFixed(1)}/kg` : "Zero loss"}
                 </div>
               </div>
 
@@ -979,13 +1374,50 @@ Naseem Bagh / Malabagh, Srinagar`;
               <div className="p-2.5 rounded-xl bg-slate-950/90 border border-slate-800 space-y-0.5">
                 <span className="text-[10px] text-slate-400 block">Effective Rate:</span>
                 <div className="text-base font-black text-cyan-300">
-                  ₹{dealRate.toFixed(1)}/Kg
+                  ₹{combinedEffectiveRate.toFixed(1)}/Kg
                 </div>
                 <div className="text-[9px] text-slate-500">
-                  Std: ₹{standardRate}/Kg
+                  Std: ₹{Math.round(combinedStandardTotal / (combinedWeight || 1))}/Kg
                 </div>
               </div>
             </div>
+
+            {/* Multi-Item Breakdown List in Right Card */}
+            {dealItems.length > 1 && (
+              <div className="p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 space-y-1.5 animate-fadeIn">
+                <div className="flex items-center justify-between text-[10px] font-mono font-bold text-slate-400 uppercase tracking-wider">
+                  <span>Clubbed Items ({dealItems.length})</span>
+                  <span>Agreed Price</span>
+                </div>
+                <div className="space-y-1 text-xs font-mono">
+                  {dealItems.map((item, idx) => (
+                    <div
+                      key={item.id}
+                      onClick={() => handleSelectDealItem(item.id)}
+                      className={`flex items-center justify-between p-1.5 rounded-lg border cursor-pointer transition-all ${
+                        item.id === (activeDealItem?.id || activeDealItemId)
+                          ? "bg-cyan-500/10 border-cyan-500/40 text-cyan-200"
+                          : "bg-slate-900/60 border-slate-800/80 text-slate-300 hover:border-slate-700"
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5 truncate">
+                        <span className="text-[10px] font-bold text-slate-400">#{idx + 1}</span>
+                        <span className="font-bold truncate text-[11px]">{item.productName.split(" ")[0]}</span>
+                        <span className="text-slate-400 text-[10px]">{item.weightKg}k @ ₹{item.dealRate}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-bold text-white text-xs">
+                          ₹{item.dealTotal.toLocaleString("en-IN")}
+                        </span>
+                        {item.discountAmount > 0 && (
+                          <span className="text-[10px] text-rose-400">(-₹{item.discountAmount})</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* 2. LOCKED-IN QR CODE GENERATION & REAL-TIME AUTO-VERIFY */}
@@ -1031,7 +1463,7 @@ Naseem Bagh / Malabagh, Srinagar`;
             </div>
 
             {/* QR Code Presentation Box */}
-            {dealTotal <= 0 ? (
+            {combinedDealTotal <= 0 ? (
               <div className="p-8 text-center text-slate-500 space-y-1 font-mono text-xs">
                 <span className="material-symbols-outlined text-3xl opacity-40">qr_code_2</span>
                 <div>Enter customer bargain amount above to generate locked QR</div>
@@ -1047,14 +1479,14 @@ Naseem Bagh / Malabagh, Srinagar`;
                     Locked Deal Paid &amp; Verified ✓
                   </span>
                   <h4 className="text-xl font-black text-white mt-1">
-                    ₹{dealTotal.toLocaleString("en-IN")} Received
+                    ₹{combinedDealTotal.toLocaleString("en-IN")} Received
                   </h4>
                   <p className="text-xs text-slate-400 font-mono mt-0.5">
                     Ref: <strong className="text-emerald-300">{dealPaymentRef}</strong>
                   </p>
                 </div>
                 <div className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[10px] text-emerald-300 font-mono">
-                  ⚡ Payment received successfully. Customer saved ₹{discountAmount.toLocaleString("en-IN")}.
+                  ⚡ Payment received successfully. Customer saved ₹{combinedDiscountAmount.toLocaleString("en-IN")}.
                 </div>
                 <div className="flex items-center justify-center gap-2 pt-1">
                   <button
@@ -1084,7 +1516,7 @@ Naseem Bagh / Malabagh, Srinagar`;
                   <div className="w-full py-4 text-center space-y-2">
                     <p className="text-xs text-slate-400 font-mono">
                       Generate a dynamic single-use QR locked strictly to{" "}
-                      <strong className="text-cyan-300 font-bold">₹{dealTotal}</strong>.
+                      <strong className="text-cyan-300 font-bold">₹{combinedDealTotal}</strong>.
                     </p>
                     <button
                       type="button"
@@ -1100,7 +1532,7 @@ Naseem Bagh / Malabagh, Srinagar`;
                       ) : (
                         <>
                           <span className="material-symbols-outlined text-base">lock</span>
-                          <span>Generate Locked QR (₹{dealTotal.toLocaleString("en-IN")})</span>
+                          <span>Generate Locked QR (₹{combinedDealTotal.toLocaleString("en-IN")})</span>
                         </>
                       )}
                     </button>
@@ -1162,7 +1594,9 @@ Naseem Bagh / Malabagh, Srinagar`;
                     {/* Badge: Locked Notice */}
                     <div className="p-1.5 rounded-lg bg-slate-950 border border-slate-800 text-[10px] text-slate-400 font-mono w-full flex items-center justify-center gap-1">
                       <span>🔒</span>
-                      <span>Amount strictly locked to <strong>₹{dealTotal}</strong>. Cannot be modified by customer.</span>
+                      <span>
+                        Amount strictly locked to <strong>₹{combinedDealTotal}</strong>. Cannot be modified by customer.
+                      </span>
                     </div>
                   </>
                 )}
@@ -1227,7 +1661,9 @@ Naseem Bagh / Malabagh, Srinagar`;
                 Special Locked Deal
               </h2>
               <p className="text-xs text-slate-400 font-mono mt-0.5">
-                {weight.toFixed(2)} Kg {activeProduct.name}
+                {dealItems.length > 1
+                  ? `${dealItems.length} Products Clubbed (${combinedWeight.toFixed(2)} Kg total)`
+                  : `${weight.toFixed(2)} Kg ${activeProduct.name}`}
               </p>
             </div>
 
@@ -1237,14 +1673,32 @@ Naseem Bagh / Malabagh, Srinagar`;
                 Agreed Payable Amount
               </span>
               <div className="text-3xl sm:text-4xl font-black text-emerald-400 font-mono">
-                ₹{dealTotal.toLocaleString("en-IN")}.00
+                ₹{combinedDealTotal.toLocaleString("en-IN")}.00
               </div>
-              {discountAmount > 0 && (
+              {combinedDiscountAmount > 0 && (
                 <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-rose-500/20 text-rose-300 text-xs font-mono font-bold">
-                  <span>🏷️ You Saved ₹{discountAmount.toLocaleString("en-IN")} ({discountPercent.toFixed(1)}% OFF)</span>
+                  <span>
+                    🏷️ You Saved ₹{combinedDiscountAmount.toLocaleString("en-IN")} ({combinedDiscountPercent.toFixed(1)}% OFF)
+                  </span>
                 </div>
               )}
             </div>
+
+            {/* Multi-item breakdown list in modal if > 1 item */}
+            {dealItems.length > 1 && (
+              <div className="p-2.5 rounded-xl bg-slate-900/80 border border-slate-800 text-left space-y-1 font-mono text-xs">
+                {dealItems.map((item, idx) => (
+                  <div key={item.id} className="flex justify-between text-slate-300">
+                    <span>
+                      #{idx + 1} {item.productName.split(" ")[0]} ({item.weightKg}k @ ₹{item.dealRate})
+                    </span>
+                    <span className="font-bold text-white">
+                      ₹{item.dealTotal.toLocaleString("en-IN")}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* High-Resolution QR Display */}
             <div className="w-56 h-56 mx-auto bg-white p-2 rounded-2xl shadow-xl flex items-center justify-center border-4 border-emerald-400">
@@ -1259,7 +1713,7 @@ Naseem Bagh / Malabagh, Srinagar`;
             <div className="space-y-1">
               <div className="flex items-center justify-center gap-2 text-xs font-mono text-emerald-300 font-bold">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                <span>Amount locked to ₹{dealTotal} • Scan to Pay</span>
+                <span>Amount locked to ₹{combinedDealTotal} • Scan to Pay</span>
               </div>
               <p className="text-[10px] text-slate-400 font-mono">
                 Supported: Google Pay • PhonePe • Paytm • BHIM • Cred • Any UPI App
