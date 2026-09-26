@@ -5,6 +5,7 @@ import { useCart } from "@/context/CartContext";
 import { usePathname } from "next/navigation";
 import { getBusinessHoursInfo } from "@/lib/businessHours";
 import { calculateTroutNutrition } from "@/lib/nutrition";
+import NutritionModal from "@/components/NutritionModal";
 
 const C = {
   bg: "#031018", bgHigh: "#10212c", bgHighest: "#152834",
@@ -16,6 +17,7 @@ export default function CartDrawer() {
   const { isOpen, closeCart, items, removeItem, updateQuantity, total, totalSavings, aquariumStockKg } = useCart();
   const pathname = usePathname();
   const [storeStatus, setStoreStatus] = useState(() => getBusinessHoursInfo());
+  const [showNutritionModal, setShowNutritionModal] = useState(false);
 
   const totalTroutKg = items
     .filter((i) => i.id === "gutted-trout" || i.id === "whole-trout" || i.unit.toLowerCase().includes("kg"))
@@ -140,7 +142,8 @@ export default function CartDrawer() {
           ) : (
             items.map((item) => {
               const hasItemDiscount = Boolean(item.originalPrice && item.originalPrice > item.price);
-              const itemSavings = hasItemDiscount ? (item.originalPrice! - item.price) * item.quantity : 0;
+              const unitSavings = hasItemDiscount ? (item.originalPrice! - item.price) : 0;
+              const itemSavings = hasItemDiscount ? unitSavings * item.quantity : 0;
 
               const isAquarium = item.id === "gutted-trout" || item.id === "whole-trout";
               const otherAquariumQty = items
@@ -253,9 +256,21 @@ export default function CartDrawer() {
                   <span className="text-xs font-bold text-cyan-300 font-['Space_Grotesk'] uppercase tracking-wider flex items-center gap-1.5">
                     <span>🧬</span> {totalTroutKg} Kg Catch Nutritional Yield
                   </span>
-                  <span className="text-[10px] font-mono text-emerald-400 font-bold bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-500/30">
-                    Fact-Checked
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] font-mono text-emerald-400 font-bold bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-500/30">
+                      Fact-Checked
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowNutritionModal(true)}
+                      className="relative flex items-center justify-center w-5 h-5 rounded-full bg-gradient-to-tr from-cyan-400 to-teal-300 text-slate-950 font-black text-[11px] shadow-[0_0_12px_rgba(114,221,253,0.7)] hover:shadow-[0_0_18px_rgba(114,221,253,0.9)] hover:scale-110 active:scale-95 transition-all cursor-pointer ring-1 ring-cyan-200"
+                      title="The Nutrition Game: Click to view complete science breakdown"
+                      aria-label="View Nutrition Science Breakdown"
+                    >
+                      <span className="leading-none select-none">!</span>
+                      <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-3 gap-2 text-center py-1">
@@ -264,7 +279,7 @@ export default function CartDrawer() {
                     <strong className="text-sm md:text-base text-cyan-300 font-bold font-['Space_Grotesk']">
                       ~{cartNutrition.proteinGrams}g
                     </strong>
-                    <span className="text-[9px] text-emerald-400 block">≈ {cartNutrition.eggWhiteEquivalent} Eggs</span>
+                    <span className="text-[9px] text-emerald-400 block">≈ {cartNutrition.wholeEggEquivalent} Whole Eggs</span>
                   </div>
 
                   <div className="bg-slate-950/70 p-2 rounded-xl border border-slate-800/80">
@@ -284,9 +299,19 @@ export default function CartDrawer() {
                   </div>
                 </div>
 
-                <p className="text-[11px] text-slate-300 leading-snug mt-2 text-center">
-                  ⚡ <strong>Fact Check:</strong> {cartNutrition.headlineFact}
-                </p>
+                <div
+                  onClick={() => setShowNutritionModal(true)}
+                  className="mt-2 p-2 rounded-xl bg-cyan-950/30 hover:bg-cyan-950/60 border border-cyan-500/20 hover:border-cyan-500/40 transition-all cursor-pointer group flex items-center justify-between gap-2"
+                  title="Click to explore the complete Nutrition Game flash card"
+                >
+                  <p className="text-[11px] text-slate-300 leading-snug">
+                    ⚡ <strong>Fact Check:</strong> {cartNutrition.headlineFact}
+                  </p>
+                  <span className="flex-shrink-0 flex items-center gap-1 text-[10px] font-mono font-bold text-cyan-300 group-hover:text-cyan-200 underline">
+                    <span>Explore</span>
+                    <span className="w-3.5 h-3.5 rounded-full bg-cyan-400 text-slate-950 flex items-center justify-center font-black text-[9px]">!</span>
+                  </span>
+                </div>
               </div>
             )}
 
@@ -389,6 +414,14 @@ export default function CartDrawer() {
           </div>
         )}
       </aside>
+
+      {/* Immersive Nutrition Game Explanation Flash Card */}
+      <NutritionModal
+        isOpen={showNutritionModal}
+        onClose={() => setShowNutritionModal(false)}
+        kg={totalTroutKg || 2}
+        isGutted={true}
+      />
     </>
   );
 }

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useCart } from "@/context/CartContext";
 import toast from "react-hot-toast";
 import { calculateTroutNutrition } from "@/lib/nutrition";
+import NutritionModal from "@/components/NutritionModal";
 
 type Props = {
   productId: string;
@@ -35,6 +36,7 @@ export default function AddToCartButton({
   const effectiveMax = Math.max(effectiveMin, Number(maxQuantity) || 99);
   const [qty, setQty] = useState(() => Math.min(effectiveMax, effectiveMin));
   const [added, setAdded] = useState(false);
+  const [showNutritionModal, setShowNutritionModal] = useState(false);
 
   useEffect(() => {
     if (minQuantity) {
@@ -261,9 +263,21 @@ export default function AddToCartButton({
             <span className="text-[11px] font-bold text-cyan-300 font-['Space_Grotesk'] uppercase tracking-wider flex items-center gap-1.5">
               <span>🧬</span> {currentQuantity} Kg Catch Nutritional Yield
             </span>
-            <span className="text-[10px] text-emerald-400 font-mono font-bold bg-emerald-950/70 border border-emerald-500/30 px-2 py-0.5 rounded-full">
-              Fact-Checked
-            </span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] text-emerald-400 font-mono font-bold bg-emerald-950/70 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                Fact-Checked
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowNutritionModal(true)}
+                className="relative flex items-center justify-center w-5 h-5 rounded-full bg-gradient-to-tr from-cyan-400 to-teal-300 text-slate-950 font-black text-[11px] shadow-[0_0_12px_rgba(114,221,253,0.7)] hover:shadow-[0_0_18px_rgba(114,221,253,0.9)] hover:scale-110 active:scale-95 transition-all cursor-pointer ring-1 ring-cyan-200"
+                title="The Nutrition Game: Click to view complete science breakdown"
+                aria-label="View Nutrition Science Breakdown"
+              >
+                <span className="leading-none select-none">!</span>
+                <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+              </button>
+            </div>
           </div>
 
           <div className="grid grid-cols-3 gap-2 text-center py-1">
@@ -272,7 +286,7 @@ export default function AddToCartButton({
               <strong className="text-base text-cyan-300 font-bold font-['Space_Grotesk']">
                 ~{nutrition.proteinGrams}g
               </strong>
-              <span className="text-[9px] text-emerald-400 block">≈ {nutrition.eggWhiteEquivalent} Eggs</span>
+              <span className="text-[9px] text-emerald-400 block">≈ {nutrition.wholeEggEquivalent} Whole Eggs</span>
             </div>
 
             <div className="bg-slate-950/70 rounded-xl p-2 border border-slate-800/80">
@@ -292,9 +306,19 @@ export default function AddToCartButton({
             </div>
           </div>
 
-          <p className="text-[11px] text-slate-300 mt-2 text-center leading-relaxed">
-            ⚡ {nutrition.headlineFact}
-          </p>
+          <div
+            onClick={() => setShowNutritionModal(true)}
+            className="mt-2 p-2 rounded-xl bg-cyan-950/30 hover:bg-cyan-950/60 border border-cyan-500/20 hover:border-cyan-500/40 transition-all cursor-pointer group flex items-center justify-between gap-2"
+            title="Click to explore the complete Nutrition Game flash card"
+          >
+            <p className="text-[11px] text-slate-300 leading-snug">
+              ⚡ {nutrition.headlineFact}
+            </p>
+            <span className="flex-shrink-0 flex items-center gap-1 text-[10px] font-mono font-bold text-cyan-300 group-hover:text-cyan-200 underline">
+              <span>Explore</span>
+              <span className="w-3.5 h-3.5 rounded-full bg-cyan-400 text-slate-950 flex items-center justify-center font-black text-[9px]">!</span>
+            </span>
+          </div>
         </div>
       )}
 
@@ -348,6 +372,16 @@ export default function AddToCartButton({
         >
           {added ? "✓ Added" : "Add to Selection"}
         </button>
+      )}
+
+      {/* Immersive Nutrition Science Flash Card */}
+      {isTroutProduct && (
+        <NutritionModal
+          isOpen={showNutritionModal}
+          onClose={() => setShowNutritionModal(false)}
+          kg={currentQuantity}
+          isGutted={isGutted}
+        />
       )}
     </div>
   );

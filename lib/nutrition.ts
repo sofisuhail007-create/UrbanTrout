@@ -11,6 +11,7 @@ export interface TroutNutrition {
   vitaminDIU: number;
   caloriesKcal: number;
   eggWhiteEquivalent: number;
+  wholeEggEquivalent: number;
   chickenBreastEquivalent: number;
   headlineFact: string;
   summarySentence: string;
@@ -36,8 +37,10 @@ export function calculateTroutNutrition(
   const caloriesKcal = Math.round(kg * caloriesPerKg);
 
   // Equivalencies:
-  // 1 large egg white ≈ 3.6g - 4g protein (let's use standard 4g for egg white or 6g for whole egg)
+  // 1 large whole egg ≈ 6g protein
+  // 1 large egg white ≈ 4g protein
   // 1 medium chicken breast ≈ 31g lean protein
+  const wholeEggEquivalent = Math.round(proteinGrams / 6);
   const eggWhiteEquivalent = Math.round(proteinGrams / 4);
   const chickenBreastEquivalent = Math.round(proteinGrams / 31);
 
@@ -45,14 +48,14 @@ export function calculateTroutNutrition(
   let summarySentence = "";
 
   if (kg >= 4) {
-    headlineFact = `Delivers ~${proteinGrams}g pure lean protein (≈ ${eggWhiteEquivalent} egg whites) + ~${(omega3Mg / 1000).toFixed(1)}g Omega-3s!`;
+    headlineFact = `Delivers ~${proteinGrams}g lean protein (≈ ${wholeEggEquivalent} whole eggs or ${chickenBreastEquivalent} chicken breasts) + ~${(omega3Mg / 1000).toFixed(1)}g Omega-3s!`;
     summarySentence = `Massive high-yield nutrition for family feasts & athlete recovery with 100% zero carbs.`;
   } else if (kg >= 3) {
-    headlineFact = `Delivers ~${proteinGrams}g lean protein (≈ ${eggWhiteEquivalent} egg whites) + ~${(omega3Mg / 1000).toFixed(1)}g Omega-3s!`;
+    headlineFact = `Delivers ~${proteinGrams}g lean protein (≈ ${wholeEggEquivalent} whole eggs) + ~${(omega3Mg / 1000).toFixed(1)}g Omega-3s!`;
     summarySentence = `Supercharges muscle protein synthesis & heart health with clean, cold-water DHA/EPA.`;
   } else if (kg >= 2) {
-    headlineFact = `Delivers ~${proteinGrams}g lean protein (≈ ${chickenBreastEquivalent} chicken breasts) + ~${(omega3Mg / 1000).toFixed(1)}g Omega-3s!`;
-    summarySentence = `Equivalent to ~${eggWhiteEquivalent} egg whites in clean protein — completely free of carbs or trans fats.`;
+    headlineFact = `Delivers ~${proteinGrams}g lean protein (≈ ${chickenBreastEquivalent} chicken breasts / ${wholeEggEquivalent} eggs) + ~${(omega3Mg / 1000).toFixed(1)}g Omega-3s!`;
+    summarySentence = `Equivalent to ~${wholeEggEquivalent} whole eggs in clean protein — completely free of carbs or trans fats.`;
   } else {
     headlineFact = `Delivers ~${proteinGrams}g bioavailable lean protein + ~${(omega3Mg / 1000).toFixed(1)}g Omega-3s.`;
     summarySentence = `Rich in natural Vitamin D3 and complete essential amino acids.`;
@@ -65,6 +68,7 @@ export function calculateTroutNutrition(
     vitaminDIU,
     caloriesKcal,
     eggWhiteEquivalent,
+    wholeEggEquivalent,
     chickenBreastEquivalent,
     headlineFact,
     summarySentence,
