@@ -9,6 +9,7 @@ const supabaseServer = createClient(supabaseUrl, supabaseKey);
 // Whitelisted owner emails
 const DEFAULT_ALLOWED_EMAILS = [
   "sofisuhail007@gmail.com",
+  "work.suhail007@gmail.com",
   "info.urbantrout@gmail.com",
 ];
 

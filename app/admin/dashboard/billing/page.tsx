@@ -128,9 +128,9 @@ export default function POSBillingPage() {
   const [newRemotePaymentMode, setNewRemotePaymentMode] = useState<"both" | "jk_bank" | "razorpay">("both");
   const [jkBankAccountNumber, setJkBankAccountNumber] = useState<string>(() => {
     if (typeof window !== "undefined") {
-      return localStorage.getItem("ut_jk_bank_account_number") || "";
+      return localStorage.getItem("ut_jk_bank_account_number") || "0724010100000499";
     }
-    return "";
+    return "0724010100000499";
   });
   const [jkBankIfsc, setJkBankIfsc] = useState<string>(() => {
     if (typeof window !== "undefined") {
@@ -1689,18 +1689,18 @@ _Warm regards,_
 
     let paySection = "";
     if (isJkBank) {
-      const accNum = jkData.accountNumber || jkBankAccountNumber;
+      const accNum = jkData.accountNumber || jkBankAccountNumber || "0724010100000499";
       const ifsc = jkData.ifsc || jkBankIfsc || "JAKA0MALBAG";
-      const termId = `TERM${invNum.replace(/\D/g, "") || Date.now().toString().slice(-6)}`;
-      const upiDeep = `upi://pay?pa=${encodeURIComponent(orderUpi)}&pn=Urban%20Trout%20Aquaculture&tr=${termId}&am=${tot}&cu=INR&tn=Invoice-${invNum}`;
+      const cleanBillUrl = payUrl.split("?")[0];
 
-      paySection = `\n*Quick Payment Options (J&K Bank Instant):*
-1️⃣ *Tap to Pay with UPI App:*
-${upiDeep}
-2️⃣ *UPI ID:* ${orderUpi}
-${accNum ? `3️⃣ *J&K Bank A/C:* ${accNum} (IFSC: ${ifsc})\n` : ""}${payUrl ? `📄 *View Digital Bill & QR:* ${payUrl}\n` : ""}`;
+      paySection = `\n*Quick Payment Details (J&K Bank):*
+• *UPI ID:* ${orderUpi}
+• *J&K Bank A/C:* ${accNum}
+• *IFSC Code:* ${ifsc}
+${cleanBillUrl ? `• *View Bill & Scan QR:* ${cleanBillUrl}\n` : ""}`;
     } else if (payUrl) {
-      paySection = `\n*Tap to complete your payment securely:*\n${payUrl}\n`;
+      const cleanBillUrl = payUrl.split("?")[0];
+      paySection = `\n*Tap to complete your payment securely:*\n${cleanBillUrl}\n`;
     }
 
     const msg = `*URBAN TROUT AQUACULTURE*
@@ -1864,29 +1864,41 @@ Naseem Bagh / Malabagh, Srinagar`;
         createdAt: new Date().toISOString(),
       };
 
-      // Generate clean standalone digital invoice URL
-      const invoiceEncoded = btoa(encodeURIComponent(JSON.stringify(invoicePayload)));
-      const invoiceUrl = `${origin}/invoice/${billNum}?d=${invoiceEncoded}`;
+      // Clean, short standalone digital invoice URL
+      const invoiceUrl = `${origin}/invoice/${billNum}`;
       invoicePayload.invoiceUrl = invoiceUrl;
 
-      // In J&K Bank mode, set payUrl to the digital invoice link
+      // In J&K Bank mode, set payUrl to the clean invoice link
       if (!payUrl) {
         payUrl = invoiceUrl;
         invoicePayload.paymentLinkUrl = invoiceUrl;
       }
 
-      // Save Invoice in Supabase so it instantly appears as a card in Remote Orders!
-      await adminFetch("/api/invoice", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ invoiceId: billNum, data: invoicePayload }),
-      });
+      const cleanDigits = billNum.replace(/\D/g, "");
 
-      // UPI Terminal & Deep-Link for instant app launch on customer device
-      const termId = `TERM${billNum.replace(/\D/g, "") || Date.now().toString().slice(-6)}`;
-      const upiDeepLink = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=Urban%20Trout%20Aquaculture&tr=${termId}&am=${dealTotal}&cu=INR&tn=Invoice-${billNum}`;
+      // 1. Save directly into Supabase 'invoices' table so the link is live immediately
+      try {
+        await supabase.from("invoices").upsert({
+          id: cleanDigits || billNum,
+          data: invoicePayload,
+          expires_at: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+        }, { onConflict: "id" });
+      } catch (dbErr) {
+        console.warn("Direct Supabase invoice save error:", dbErr);
+      }
 
-      // 4. Build tailored WhatsApp template based on payment mode
+      // 2. Also sync to /api/invoice
+      try {
+        await adminFetch("/api/invoice", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ invoiceId: billNum, data: invoicePayload }),
+        });
+      } catch (apiErr) {
+        console.warn("API invoice sync error:", apiErr);
+      }
+
+      // 4. Build tailored, professional WhatsApp template based on payment mode
       let msg = "";
 
       if (newRemotePaymentMode === "jk_bank") {
@@ -1903,25 +1915,19 @@ Here is your fresh trout order & bill details:
 - *Agreed Price Per Kg:* *Rs. ${dealRate}/Kg*
 - *Total Payable Amount:* *Rs. ${dealTotal.toLocaleString("en-IN")}*
 ${discountAmount > 0 ? `- *Discount Saved:* Rs. ${discountAmount.toLocaleString("en-IN")} (${discountPercent.toFixed(1)}% OFF)\n` : ""}
-*INSTANT PAYMENT (J&K BANK DIRECT — ZERO FEES)*
-1️⃣ *Tap to Pay with UPI (GPay / PhonePe / Paytm / mPay):*
-${upiDeepLink}
-
-2️⃣ *Direct UPI ID:*
-*${upiId}*
-
-3️⃣ *Direct Bank Transfer (mPay Delight+ / IMPS / NEFT):*
+⚡ *DIRECT J&K BANK PAYMENT (Zero Fees)*
+• *UPI ID:* *${upiId}*
 • *Bank:* Jammu & Kashmir Bank (J&K Bank)
-• *A/C Name:* ${jkBankAccountName || "Urban Trout Aquaculture"}
-• *A/C Number:* *${jkBankAccountNumber || "[Contact Farm for A/C No]"}*
+• *Account Number:* *${jkBankAccountNumber || "0724010100000499"}*
 • *IFSC Code:* *${jkBankIfsc || "JAKA0MALBAG"}*
+• *Account Name:* ${jkBankAccountName || "Urban Trout Aquaculture"}
 • *Branch:* ${jkBankBranch || "Malabagh, Srinagar"}
 
-📄 *View Itemized Digital Tax Invoice & Instant QR:*
+📄 *View Bill & Scan QR Code:*
 ${invoiceUrl}
 
 • Exact Amount: Rs. ${dealTotal.toLocaleString("en-IN")}
-• Instant Settlement (0-day waiting, zero gateway fees)
+• Instant Settlement (0-day waiting, zero fees)
 • Kindly reply with payment confirmation or screenshot once done.
 
 *Urban Trout Farm Helpline:* +91 84910 06127
@@ -1942,20 +1948,19 @@ Here is your fresh trout order & bill details:
 ${discountAmount > 0 ? `- *Discount Saved:* Rs. ${discountAmount.toLocaleString("en-IN")} (${discountPercent.toFixed(1)}% OFF)\n` : ""}
 ⚡ *OPTION 1: INSTANT J&K BANK TRANSFER (Zero Fees)*
 • *UPI ID:* *${upiId}*
-• *Tap to Pay with UPI:* ${upiDeepLink}
-• *Bank:* Jammu & Kashmir Bank (mPay Delight+ / IMPS)
-• *A/C No:* *${jkBankAccountNumber || "[Available on Invoice]"}*
-• *IFSC:* *${jkBankIfsc || "JAKA0MALBAG"}*
-• *A/C Name:* ${jkBankAccountName || "Urban Trout Aquaculture"}
+• *Bank:* Jammu & Kashmir Bank (J&K Bank)
+• *Account Number:* *${jkBankAccountNumber || "0724010100000499"}*
+• *IFSC Code:* *${jkBankIfsc || "JAKA0MALBAG"}*
+• *Account Name:* ${jkBankAccountName || "Urban Trout Aquaculture"}
 
-💳 *OPTION 2: PAY VIA RAZORPAY GATEWAY (Cards, NetBanking, Wallets)*
+💳 *OPTION 2: PAY VIA RAZORPAY GATEWAY (Cards, NetBanking, All Wallets)*
 ${payUrl}
 
-📄 *View Itemized Digital Tax Invoice & Instant QR:*
+📄 *View Bill & Scan QR Code:*
 ${invoiceUrl}
 
 • Amount Locked: Rs. ${dealTotal.toLocaleString("en-IN")}
-• Instant confirmation upon payment. Fresh harvest dispatched promptly!
+• Fresh harvest will be dispatched promptly upon confirmation!
 
 *Urban Trout Farm Helpline:* +91 84910 06127
 Naseem Bagh / Malabagh, Srinagar`;

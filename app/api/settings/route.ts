@@ -17,7 +17,7 @@ const DEFAULT_SETTINGS: Record<string, string> = {
   allow_outside_radius_delivery: "false",
   max_dispatch_mins: "60",
   upi_id: "JKBMERC00828895@jkb",
-  jk_bank_account_number: "",
+  jk_bank_account_number: "0724010100000499",
   jk_bank_ifsc: "JAKA0MALBAG",
   jk_bank_account_name: "Urban Trout Aquaculture",
   jk_bank_branch: "Malabagh, Srinagar",

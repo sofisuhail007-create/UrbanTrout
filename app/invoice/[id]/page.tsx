@@ -139,6 +139,58 @@ export default function PublicInvoicePage() {
           }
         }
 
+        // 3b. Direct Supabase invoices table query fallback
+        try {
+          const { data: dbRow } = await supabase
+            .from("invoices")
+            .select("data")
+            .or(`id.eq.${cleanDigits || rawParam},id.eq.${rawParam}`)
+            .maybeSingle();
+
+          if (dbRow?.data) {
+            const parsed = typeof dbRow.data === "object" ? dbRow.data : JSON.parse(dbRow.data);
+            const createdTimestamp = parsed.ts || Date.now();
+            const elapsedMs = Date.now() - createdTimestamp;
+            const isPaidOrSettled =
+              parsed.paymentStatus === "PAID" ||
+              parsed.balanceStatus === "settled" ||
+              parsed.balanceStatus === "waived_final" ||
+              (parsed.balanceAmount !== undefined && parsed.balanceAmount <= 0);
+            const maxAgeMs = 48 * 60 * 60 * 1000;
+            const isExpired = !isPaidOrSettled && elapsedMs > maxAgeMs;
+            const remainingHours = Math.max(0, Math.ceil((maxAgeMs - elapsedMs) / (1000 * 60 * 60)));
+
+            setInvoice({
+              invoiceNumber: parsed.num || `UT-INV-${cleanDigits || rawParam}`,
+              customerName: parsed.name || "Valued Customer",
+              customerPhone: parsed.phone || "N/A",
+              items: (parsed.items || []).map((i: any) => ({
+                name: i.n || i.name,
+                weightKg: i.w ?? i.weightKg ?? 1,
+                pricePerKg: i.r ?? i.pricePerKg ?? 550,
+                total: i.t ?? i.total ?? 550,
+              })),
+              totalWeight: parsed.tw ?? parsed.totalWeight ?? 0,
+              grandTotal: parsed.tot ?? parsed.grandTotal ?? 0,
+              paidAmount: parsed.paidAmount !== undefined ? parsed.paidAmount : (parsed.balanceAmount !== undefined ? Math.max(0, (parsed.tot ?? parsed.grandTotal ?? 0) - parsed.balanceAmount) : undefined),
+              balanceAmount: parsed.balanceAmount ?? 0,
+              balanceStatus: parsed.balanceStatus || (parsed.balanceAmount > 0 ? "pending" : undefined),
+              notes: parsed.notes || "",
+              createdAt: createdTimestamp,
+              isExpired,
+              expiresInHours: remainingHours,
+              paymentStatus: parsed.paymentStatus || "PAYMENT DUE",
+              paymentMethod: parsed.paymentMethod || "UPI",
+              paymentId: parsed.paymentId || undefined,
+              qrImageUrl: parsed.qrImageUrl || undefined,
+            });
+            setLoading(false);
+            return;
+          }
+        } catch (dbErr) {
+          console.warn("Direct Supabase invoice lookup error:", dbErr);
+        }
+
         // 3. Fallback: Base64 decoding if legacy
         let decodedObj: any = null;
         try {
