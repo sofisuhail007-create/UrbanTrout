@@ -1607,7 +1607,7 @@ Naseem Bagh / Malabagh, Srinagar`;
     const tot = getOrderTotal(order);
     const mode = getOrderPaymentMethod(order);
 
-    const ticket = `🛵 *URBAN TROUT - DELIVERY DISPATCH TICKET*
+    const ticket = `*URBAN TROUT - DELIVERY DISPATCH TICKET*
 ━━━━━━━━━━━━━━━━━━━━━━━
 • *Order Ref:* #${invNum}
 • *Customer:* ${cName}
@@ -1617,7 +1617,7 @@ Naseem Bagh / Malabagh, Srinagar`;
 • *Items:* ${itemsText}
 • *Total Weight:* ${tw ? tw.toFixed(2) : "1.00"} Kg
 • *Billing Amount:* Rs. ${tot.toLocaleString("en-IN")}
-• *Payment Status:* ${isPaid ? "✅ ALREADY PAID (DO NOT COLLECT CASH)" : "⚠️ COLLECT CASH / UPI ON DELIVERY"}
+• *Payment Status:* ${isPaid ? "[ALREADY PAID - DO NOT COLLECT CASH]" : "[PAYMENT DUE - COLLECT ON DELIVERY]"}
 ${mode ? `• *Channel:* ${mode}\n` : ""}━━━━━━━━━━━━━━━━━━━━━━━
 *Farm Location:* Naseem Bagh / Malabagh, Srinagar
 *Dispatch Time:* ${new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true })}`;
@@ -1693,30 +1693,23 @@ _Warm regards,_
       const ifsc = jkData.ifsc || jkBankIfsc || "JAKA0MALBAG";
       const cleanBillUrl = payUrl.split("?")[0];
 
-      paySection = `\n*Quick Payment Details (J&K Bank):*
+      paySection = `*Payment Details (J&K Bank):*
 • *UPI ID:* ${orderUpi}
-• *J&K Bank A/C:* ${accNum}
-• *IFSC Code:* ${ifsc}
-${cleanBillUrl ? `• *View Bill & Scan QR:* ${cleanBillUrl}\n` : ""}`;
+• *A/C No:* ${accNum} (IFSC: ${ifsc})
+${cleanBillUrl ? `• *View Bill & QR:* ${cleanBillUrl}\n` : ""}`;
     } else if (payUrl) {
       const cleanBillUrl = payUrl.split("?")[0];
-      paySection = `\n*Tap to complete your payment securely:*\n${cleanBillUrl}\n`;
+      paySection = `*Pay Securely Online:*\n${cleanBillUrl}\n`;
     }
 
     const msg = `*URBAN TROUT AQUACULTURE*
 _Fresh Himalayan Rainbow Trout · Srinagar_
 
 Dear *${cName}*,
+Gentle reminder regarding order *#${invNum}* (*Total: Rs. ${tot.toLocaleString("en-IN")}*).
 
-This is a gentle reminder regarding your fresh trout order *#${invNum}*.
-
-• *Total Payable Amount:* *Rs. ${tot.toLocaleString("en-IN")}*
-• *Payment Status:* Payment Pending
-${paySection}
-Please complete the payment so we can process and dispatch your fresh trout order promptly.
-
-*Urban Trout Farm Helpline:* +91 84910 06127
-Naseem Bagh / Malabagh, Srinagar`;
+${paySection}Please complete payment so we can dispatch your fresh harvest promptly.
+Helpline: +91 84910 06127`;
 
     // 1. Copy to clipboard
     try {
@@ -1898,95 +1891,72 @@ Naseem Bagh / Malabagh, Srinagar`;
         console.warn("API invoice sync error:", apiErr);
       }
 
-      // 4. Build tailored, professional WhatsApp template based on payment mode
+      // 4. Build tailored, professional, concise WhatsApp template (100% emoji-free to prevent URL encoding corruption)
       let msg = "";
+      const discountText = discountAmount > 0 ? ` _(Saved Rs. ${discountAmount.toLocaleString("en-IN")})_` : "";
 
       if (newRemotePaymentMode === "jk_bank") {
         msg = `*URBAN TROUT AQUACULTURE*
 _Fresh Himalayan Rainbow Trout · Srinagar_
 
 Dear *${cleanName}*,
-Here is your fresh trout order & bill details:
+Here is your order summary for *#${billNum}*:
 
-*ORDER & BILL SUMMARY*
-- *Product:* ${selProd.name}
-- *Harvest Weight:* ${weight.toFixed(2)} Kg
-- *Standard Rate:* Rs. ${baseRate}/Kg (Rs. ${standardTotal.toLocaleString("en-IN")})
-- *Agreed Price Per Kg:* *Rs. ${dealRate}/Kg*
-- *Total Payable Amount:* *Rs. ${dealTotal.toLocaleString("en-IN")}*
-${discountAmount > 0 ? `- *Discount Saved:* Rs. ${discountAmount.toLocaleString("en-IN")} (${discountPercent.toFixed(1)}% OFF)\n` : ""}
-⚡ *DIRECT J&K BANK PAYMENT (Zero Fees)*
-• *UPI ID:* *${upiId}*
-• *Bank:* Jammu & Kashmir Bank (J&K Bank)
-• *Account Number:* *${jkBankAccountNumber || "0724010100000499"}*
-• *IFSC Code:* *${jkBankIfsc || "JAKA0MALBAG"}*
-• *Account Name:* ${jkBankAccountName || "Urban Trout Aquaculture"}
-• *Branch:* ${jkBankBranch || "Malabagh, Srinagar"}
+• *Item:* ${weight.toFixed(2)} Kg ${selProd.name}
+• *Rate:* Rs. ${dealRate}/Kg *(Total: Rs. ${dealTotal.toLocaleString("en-IN")})*${discountText}
 
-📄 *View Bill & Scan QR Code:*
+*PAYMENT DETAILS (J&K Bank)*
+• *UPI ID:* ${upiId}
+• *A/C No:* ${jkBankAccountNumber || "0724010100000499"}
+• *IFSC:* ${jkBankIfsc || "JAKA0MALBAG"}
+• *A/C Name:* ${jkBankAccountName || "Urban Trout Aquaculture"}
+
+*View Bill & Scan QR:*
 ${invoiceUrl}
 
-• Exact Amount: Rs. ${dealTotal.toLocaleString("en-IN")}
-• Instant Settlement (0-day waiting, zero fees)
-• Kindly reply with payment confirmation or screenshot once done.
-
-*Urban Trout Farm Helpline:* +91 84910 06127
-Naseem Bagh / Malabagh, Srinagar`;
+Please reply with confirmation once transferred.
+Helpline: +91 84910 06127`;
       } else if (newRemotePaymentMode === "both") {
         msg = `*URBAN TROUT AQUACULTURE*
 _Fresh Himalayan Rainbow Trout · Srinagar_
 
 Dear *${cleanName}*,
-Here is your fresh trout order & bill details:
+Here is your order summary for *#${billNum}*:
 
-*ORDER & BILL SUMMARY*
-- *Product:* ${selProd.name}
-- *Harvest Weight:* ${weight.toFixed(2)} Kg
-- *Standard Rate:* Rs. ${baseRate}/Kg (Rs. ${standardTotal.toLocaleString("en-IN")})
-- *Agreed Price Per Kg:* *Rs. ${dealRate}/Kg*
-- *Total Payable Amount:* *Rs. ${dealTotal.toLocaleString("en-IN")}*
-${discountAmount > 0 ? `- *Discount Saved:* Rs. ${discountAmount.toLocaleString("en-IN")} (${discountPercent.toFixed(1)}% OFF)\n` : ""}
-⚡ *OPTION 1: INSTANT J&K BANK TRANSFER (Zero Fees)*
-• *UPI ID:* *${upiId}*
-• *Bank:* Jammu & Kashmir Bank (J&K Bank)
-• *Account Number:* *${jkBankAccountNumber || "0724010100000499"}*
-• *IFSC Code:* *${jkBankIfsc || "JAKA0MALBAG"}*
-• *Account Name:* ${jkBankAccountName || "Urban Trout Aquaculture"}
+• *Item:* ${weight.toFixed(2)} Kg ${selProd.name}
+• *Rate:* Rs. ${dealRate}/Kg *(Total: Rs. ${dealTotal.toLocaleString("en-IN")})*${discountText}
 
-💳 *OPTION 2: PAY VIA RAZORPAY GATEWAY (Cards, NetBanking, All Wallets)*
+*1. J&K Bank (Direct Transfer):*
+• *UPI ID:* ${upiId}
+• *A/C No:* ${jkBankAccountNumber || "0724010100000499"} (IFSC: ${jkBankIfsc || "JAKA0MALBAG"})
+• *A/C Name:* ${jkBankAccountName || "Urban Trout Aquaculture"}
+
+*2. Online Gateway (Cards / UPI / NetBanking):*
 ${payUrl}
 
-📄 *View Bill & Scan QR Code:*
+*View Bill & Scan QR:*
 ${invoiceUrl}
 
-• Amount Locked: Rs. ${dealTotal.toLocaleString("en-IN")}
-• Fresh harvest will be dispatched promptly upon confirmation!
-
-*Urban Trout Farm Helpline:* +91 84910 06127
-Naseem Bagh / Malabagh, Srinagar`;
+Please reply with confirmation once paid.
+Helpline: +91 84910 06127`;
       } else {
         msg = `*URBAN TROUT AQUACULTURE*
 _Fresh Himalayan Rainbow Trout · Srinagar_
 
 Dear *${cleanName}*,
-Here is your order bill details:
+Here is your order summary for *#${billNum}*:
 
-*ORDER & BILL SUMMARY*
-- *Product:* ${selProd.name}
-- *Harvest Weight:* ${weight.toFixed(2)} Kg
-- *Standard Rate:* Rs. ${baseRate}/Kg (Rs. ${standardTotal.toLocaleString("en-IN")})
-- *Agreed Price Per Kg:* *Rs. ${dealRate}/Kg*
-- *Total Payable Amount:* *Rs. ${dealTotal.toLocaleString("en-IN")}*
-${discountAmount > 0 ? `- *Discount Saved:* Rs. ${discountAmount.toLocaleString("en-IN")} (${discountPercent.toFixed(1)}% OFF)\n` : ""}
-*TAP TO PAY SECURELY*
+• *Item:* ${weight.toFixed(2)} Kg ${selProd.name}
+• *Rate:* Rs. ${dealRate}/Kg *(Total: Rs. ${dealTotal.toLocaleString("en-IN")})*${discountText}
+
+*Pay Online (UPI, Cards, NetBanking):*
 ${payUrl}
 
-• Accepted: Google Pay • PhonePe • Paytm • UPI • Cards • NetBanking
-• Amount Locked: Rs. ${dealTotal.toLocaleString("en-IN")} (Exact billing)
-• Instant Confirmation: Payment auto-verifies upon completion. No screenshot required.
+*View Bill & Download PDF:*
+${invoiceUrl}
 
-*Urban Trout Farm Helpline:* +91 84910 06127
-Naseem Bagh / Malabagh, Srinagar`;
+Order is confirmed automatically upon payment.
+Helpline: +91 84910 06127`;
       }
 
       setNewRemoteGeneratedData({

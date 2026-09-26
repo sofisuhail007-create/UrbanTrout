@@ -207,12 +207,12 @@ export default function BalanceReminderModal({
 
   const cleanPhone = (record.customer_phone || "").replace(/\D/g, "").slice(-10);
 
-  // Generate polite automated WhatsApp message
+  // Generate polite automated WhatsApp message (100% Unicode-safe, no emojis)
   const generateWhatsAppMessage = (directPayLink?: string) => {
     const link = directPayLink || paymentLink;
     const paySection = link
-      ? `\n💳 *Clear Balance Online (Instant UPI / Cards / NetBanking):*\n👉 ${link}`
-      : `\n💳 *Clear Balance Online (Generating Secure Link...)*`;
+      ? `\n*Clear Balance Online (Instant UPI / Cards / NetBanking):*\n${link}`
+      : "";
 
     return `*AUTOMATED ACCOUNT STATEMENT / PAYMENT UPDATE*
 _Urban Trout Aquaculture · Srinagar, Kashmir_
@@ -221,19 +221,19 @@ Dear *${record.customer_name}*,
 
 This is an automated system-generated billing update regarding your recent order with Urban Trout.
 
-📄 *Statement Details:*
+*Statement Details:*
 • *Order / Invoice Ref:* #${record.invoice_id}
 • *Date:* ${formatSafeDate(record.created_at)}
 • *Order Items:* ${record.items_summary || "Fresh Rainbow Trout"}
 
-💰 *Payment Breakdown:*
+*Payment Breakdown:*
 • *Total Bill Amount:* Rs. ${(Number(record.total_amount) || 0).toLocaleString("en-IN")}
 • *Amount Received:* Rs. ${(Number(record.paid_amount) || 0).toLocaleString("en-IN")}
 • *Outstanding Balance Due:* *Rs. ${(Number(record.balance_amount) || 0).toLocaleString("en-IN")}*
 ${paySection}
 
 ━━━━━━━━━━━━━━━━━━━━
-_ℹ️ Automated Notice: This is a system-generated statement. This secure Razorpay link is locked for this invoice reference and automatically expires upon payment. If you have already cleared this payment in cash or via recent transfer, please disregard this message or reply to this chat so our team can update your ledger._
+_Note: If you have already cleared this payment in cash or via recent transfer, please disregard this message or reply to this chat so our team can update your ledger._
 
 Warm regards,
 *Urban Trout Aquaculture, Srinagar*
