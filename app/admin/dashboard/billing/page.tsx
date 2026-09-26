@@ -125,17 +125,46 @@ export default function POSBillingPage() {
   const [newRemoteWeight, setNewRemoteWeight] = useState<string>("2.0");
   const [newRemoteBaseRate, setNewRemoteBaseRate] = useState<string>("580");
   const [newRemoteDealRate, setNewRemoteDealRate] = useState<string>("560");
+  const [newRemotePaymentMode, setNewRemotePaymentMode] = useState<"both" | "jk_bank" | "razorpay">("both");
+  const [jkBankAccountNumber, setJkBankAccountNumber] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("ut_jk_bank_account_number") || "";
+    }
+    return "";
+  });
+  const [jkBankIfsc, setJkBankIfsc] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("ut_jk_bank_ifsc") || "JAKA0MALBAG";
+    }
+    return "JAKA0MALBAG";
+  });
+  const [jkBankAccountName, setJkBankAccountName] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("ut_jk_bank_account_name") || "Urban Trout Aquaculture";
+    }
+    return "Urban Trout Aquaculture";
+  });
+  const [jkBankBranch, setJkBankBranch] = useState<string>(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("ut_jk_bank_branch") || "Malabagh, Srinagar";
+    }
+    return "Malabagh, Srinagar";
+  });
+  const [showJkBankConfig, setShowJkBankConfig] = useState(false);
   const [newRemoteGenerating, setNewRemoteGenerating] = useState(false);
   const [newRemoteGeneratedData, setNewRemoteGeneratedData] = useState<{
     billNum: string;
     payUrl: string;
+    invoiceUrl: string;
     message: string;
     total: number;
     phone: string;
     email: string;
+    mode: "both" | "jk_bank" | "razorpay";
   } | null>(null);
   const [newRemoteCopied, setNewRemoteCopied] = useState(false);
   const [newRemoteLinkCopied, setNewRemoteLinkCopied] = useState(false);
+  const [newRemoteUpiCopied, setNewRemoteUpiCopied] = useState(false);
 
   // Edit Customer Modal State
   const [editCustomerModal, setEditCustomerModal] = useState<any | null>(null);
@@ -216,12 +245,20 @@ export default function POSBillingPage() {
   useEffect(() => {
     async function loadData() {
       try {
-        const { data: upiData } = await supabase
+        const { data: settingsData } = await supabase
           .from("app_settings")
-          .select("value")
-          .eq("key", "upi_id")
-          .single();
-        if (upiData?.value) setUpiId(upiData.value);
+          .select("key, value");
+        if (settingsData && settingsData.length > 0) {
+          const map: Record<string, string> = {};
+          settingsData.forEach((row: any) => { map[row.key] = row.value; });
+          if (map.upi_id) setUpiId(map.upi_id);
+          if (map.jk_bank_account_number !== undefined && map.jk_bank_account_number !== "") {
+            setJkBankAccountNumber(map.jk_bank_account_number);
+          }
+          if (map.jk_bank_ifsc) setJkBankIfsc(map.jk_bank_ifsc);
+          if (map.jk_bank_account_name) setJkBankAccountName(map.jk_bank_account_name);
+          if (map.jk_bank_branch) setJkBankBranch(map.jk_bank_branch);
+        }
 
         const { data: invData } = await supabase.from("inventory").select("*");
         if (invData && invData.length > 0) {
@@ -1285,7 +1322,10 @@ Naseem Bagh / Malabagh, Srinagar`;
       pMethod.includes("razorpay") ||
       pMethod.includes("whatsapp") ||
       pMethod.includes("delivery") ||
-      pMethod.includes("link")
+      pMethod.includes("link") ||
+      pMethod.includes("jk") ||
+      pMethod.includes("jkb") ||
+      pMethod.includes("mpay")
     );
   };
 
@@ -1641,7 +1681,27 @@ _Warm regards,_
     const cleanPhone = String(getOrderPhone(order)).replace(/\D/g, "").slice(-10);
     const invNum = getOrderNum(order);
     const tot = getOrderTotal(order);
-    const payUrl = order.data?.paymentLinkUrl || order.paymentLinkUrl || "";
+    const payUrl = order.data?.paymentLinkUrl || order.paymentLinkUrl || order.data?.invoiceUrl || "";
+    const pMethod = String(getOrderPaymentMethod(order) || "").toLowerCase();
+    const isJkBank = pMethod.includes("jk") || pMethod.includes("jkb");
+    const jkData = order.data?.jkBankDetails || {};
+    const orderUpi = jkData.upiId || order.data?.upiId || upiId;
+
+    let paySection = "";
+    if (isJkBank) {
+      const accNum = jkData.accountNumber || jkBankAccountNumber;
+      const ifsc = jkData.ifsc || jkBankIfsc || "JAKA0MALBAG";
+      const termId = `TERM${invNum.replace(/\D/g, "") || Date.now().toString().slice(-6)}`;
+      const upiDeep = `upi://pay?pa=${encodeURIComponent(orderUpi)}&pn=Urban%20Trout%20Aquaculture&tr=${termId}&am=${tot}&cu=INR&tn=Invoice-${invNum}`;
+
+      paySection = `\n*Quick Payment Options (J&K Bank Instant):*
+1️⃣ *Tap to Pay with UPI App:*
+${upiDeep}
+2️⃣ *UPI ID:* ${orderUpi}
+${accNum ? `3️⃣ *J&K Bank A/C:* ${accNum} (IFSC: ${ifsc})\n` : ""}${payUrl ? `📄 *View Digital Bill & QR:* ${payUrl}\n` : ""}`;
+    } else if (payUrl) {
+      paySection = `\n*Tap to complete your payment securely:*\n${payUrl}\n`;
+    }
 
     const msg = `*URBAN TROUT AQUACULTURE*
 _Fresh Himalayan Rainbow Trout · Srinagar_
@@ -1652,7 +1712,7 @@ This is a gentle reminder regarding your fresh trout order *#${invNum}*.
 
 • *Total Payable Amount:* *Rs. ${tot.toLocaleString("en-IN")}*
 • *Payment Status:* Payment Pending
-${payUrl ? `\n*Tap to complete your payment securely:*\n${payUrl}\n` : ""}
+${paySection}
 Please complete the payment so we can process and dispatch your fresh trout order promptly.
 
 *Urban Trout Farm Helpline:* +91 84910 06127
@@ -1698,39 +1758,66 @@ Naseem Bagh / Malabagh, Srinagar`;
         products.find((p) => p.id === newRemoteProductId) ||
         products[0] || { id: "gutted-trout", name: "Premium Gutted Rainbow Trout", pricePerKg: 580 };
 
-      // 1. Create Razorpay Payment Link
-      const res = await fetch("/api/razorpay/payment-link", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount: dealTotal,
-          customerName: cleanName,
-          customerPhone: cleanPhone,
-          customerEmail: newRemoteEmail.trim() || undefined,
-          orderRef: billNum,
-          itemsSummary: `${weight.toFixed(2)} Kg ${selProd.name}`,
-          channel: "WHATSAPP_DEAL",
-          weightKg: weight,
-          productType: selProd.name.toLowerCase().includes("gutted") ? "Gutted" : "Whole",
-          dealRate: dealRate,
-          standardRate: baseRate,
-          standardTotal: standardTotal,
-          discountAmount: discountAmount,
-          discountPercent: discountPercent,
-          notes: newRemoteNotes || `Agreed Rate: ₹${dealRate}/Kg (Base: ₹${baseRate}/Kg)`,
-        }),
-      });
-
-      const data = await res.json();
-      if (!data.success || !data.paymentLink?.short_url) {
-        throw new Error(data?.error || "Could not generate payment link");
+      // Persist J&K Bank settings into localStorage
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem("ut_jk_bank_account_number", jkBankAccountNumber);
+          localStorage.setItem("ut_jk_bank_ifsc", jkBankIfsc);
+          localStorage.setItem("ut_jk_bank_account_name", jkBankAccountName);
+          localStorage.setItem("ut_jk_bank_branch", jkBankBranch);
+        } catch (_) {}
       }
 
-      const payUrl = data.paymentLink.short_url;
-      const plId = data.paymentLink.id;
+      const origin = typeof window !== "undefined" && window.location.origin
+        ? window.location.origin
+        : "https://urbantrout.in";
 
-      // 2. Save Invoice in Supabase so it instantly appears as a card in Remote Orders!
-      const invoicePayload = {
+      let payUrl = "";
+      let plId: string | null = null;
+
+      // 1. Determine payment method description
+      let pMethodLabel = "Razorpay Link (WhatsApp)";
+      if (newRemotePaymentMode === "jk_bank") {
+        pMethodLabel = "J&K Bank UPI (Instant WhatsApp)";
+      } else if (newRemotePaymentMode === "both") {
+        pMethodLabel = "J&K Bank + Razorpay Dual (WhatsApp)";
+      }
+
+      // 2. If Razorpay is needed ("razorpay" or "both" mode), create Razorpay payment link
+      if (newRemotePaymentMode === "razorpay" || newRemotePaymentMode === "both") {
+        const res = await fetch("/api/razorpay/payment-link", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            amount: dealTotal,
+            customerName: cleanName,
+            customerPhone: cleanPhone,
+            customerEmail: newRemoteEmail.trim() || undefined,
+            orderRef: billNum,
+            itemsSummary: `${weight.toFixed(2)} Kg ${selProd.name}`,
+            channel: newRemotePaymentMode === "both" ? "DUAL_WHATSAPP_DEAL" : "WHATSAPP_DEAL",
+            weightKg: weight,
+            productType: selProd.name.toLowerCase().includes("gutted") ? "Gutted" : "Whole",
+            dealRate: dealRate,
+            standardRate: baseRate,
+            standardTotal: standardTotal,
+            discountAmount: discountAmount,
+            discountPercent: discountPercent,
+            notes: newRemoteNotes || `Agreed Rate: ₹${dealRate}/Kg (Base: ₹${baseRate}/Kg)`,
+          }),
+        });
+
+        const data = await res.json();
+        if (!data.success || !data.paymentLink?.short_url) {
+          throw new Error(data?.error || "Could not generate Razorpay payment link");
+        }
+
+        payUrl = data.paymentLink.short_url;
+        plId = data.paymentLink.id;
+      }
+
+      // 3. Build Invoice Payload for Supabase & Digital Public Invoice
+      const invoicePayload: any = {
         num: billNum,
         name: cleanName,
         customerName: cleanName,
@@ -1759,23 +1846,121 @@ Naseem Bagh / Malabagh, Srinagar`;
         standardTotal: standardTotal,
         discountAmount: discountAmount,
         notes: newRemoteNotes || `Special Rate: ₹${dealRate}/Kg (Base: ₹${baseRate}/Kg)`,
-        paymentMethod: "Razorpay Link (WhatsApp)",
+        paymentMethod: pMethodLabel,
         paymentStatus: "PAYMENT DUE",
         paymentId: null,
         paymentLinkId: plId,
-        paymentLinkUrl: payUrl,
+        paymentLinkUrl: payUrl || undefined,
+        paymentMode: newRemotePaymentMode,
+        upiId: upiId,
+        jkBankDetails: {
+          accountNumber: jkBankAccountNumber.trim(),
+          ifsc: jkBankIfsc.trim(),
+          accountName: jkBankAccountName.trim(),
+          branch: jkBankBranch.trim(),
+          upiId: upiId.trim(),
+        },
         ts: Date.now(),
         createdAt: new Date().toISOString(),
       };
 
+      // Generate clean standalone digital invoice URL
+      const invoiceEncoded = btoa(encodeURIComponent(JSON.stringify(invoicePayload)));
+      const invoiceUrl = `${origin}/invoice/${billNum}?d=${invoiceEncoded}`;
+      invoicePayload.invoiceUrl = invoiceUrl;
+
+      // In J&K Bank mode, set payUrl to the digital invoice link
+      if (!payUrl) {
+        payUrl = invoiceUrl;
+        invoicePayload.paymentLinkUrl = invoiceUrl;
+      }
+
+      // Save Invoice in Supabase so it instantly appears as a card in Remote Orders!
       await adminFetch("/api/invoice", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ invoiceId: billNum, data: invoicePayload }),
       });
 
-      // 3. Build the professional message template
-      const msg = `*URBAN TROUT AQUACULTURE*
+      // UPI Terminal & Deep-Link for instant app launch on customer device
+      const termId = `TERM${billNum.replace(/\D/g, "") || Date.now().toString().slice(-6)}`;
+      const upiDeepLink = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=Urban%20Trout%20Aquaculture&tr=${termId}&am=${dealTotal}&cu=INR&tn=Invoice-${billNum}`;
+
+      // 4. Build tailored WhatsApp template based on payment mode
+      let msg = "";
+
+      if (newRemotePaymentMode === "jk_bank") {
+        msg = `*URBAN TROUT AQUACULTURE*
+_Fresh Himalayan Rainbow Trout · Srinagar_
+
+Dear *${cleanName}*,
+Here is your fresh trout order & bill details:
+
+*ORDER & BILL SUMMARY*
+- *Product:* ${selProd.name}
+- *Harvest Weight:* ${weight.toFixed(2)} Kg
+- *Standard Rate:* Rs. ${baseRate}/Kg (Rs. ${standardTotal.toLocaleString("en-IN")})
+- *Agreed Price Per Kg:* *Rs. ${dealRate}/Kg*
+- *Total Payable Amount:* *Rs. ${dealTotal.toLocaleString("en-IN")}*
+${discountAmount > 0 ? `- *Discount Saved:* Rs. ${discountAmount.toLocaleString("en-IN")} (${discountPercent.toFixed(1)}% OFF)\n` : ""}
+*INSTANT PAYMENT (J&K BANK DIRECT — ZERO FEES)*
+1️⃣ *Tap to Pay with UPI (GPay / PhonePe / Paytm / mPay):*
+${upiDeepLink}
+
+2️⃣ *Direct UPI ID:*
+*${upiId}*
+
+3️⃣ *Direct Bank Transfer (mPay Delight+ / IMPS / NEFT):*
+• *Bank:* Jammu & Kashmir Bank (J&K Bank)
+• *A/C Name:* ${jkBankAccountName || "Urban Trout Aquaculture"}
+• *A/C Number:* *${jkBankAccountNumber || "[Contact Farm for A/C No]"}*
+• *IFSC Code:* *${jkBankIfsc || "JAKA0MALBAG"}*
+• *Branch:* ${jkBankBranch || "Malabagh, Srinagar"}
+
+📄 *View Itemized Digital Tax Invoice & Instant QR:*
+${invoiceUrl}
+
+• Exact Amount: Rs. ${dealTotal.toLocaleString("en-IN")}
+• Instant Settlement (0-day waiting, zero gateway fees)
+• Kindly reply with payment confirmation or screenshot once done.
+
+*Urban Trout Farm Helpline:* +91 84910 06127
+Naseem Bagh / Malabagh, Srinagar`;
+      } else if (newRemotePaymentMode === "both") {
+        msg = `*URBAN TROUT AQUACULTURE*
+_Fresh Himalayan Rainbow Trout · Srinagar_
+
+Dear *${cleanName}*,
+Here is your fresh trout order & bill details:
+
+*ORDER & BILL SUMMARY*
+- *Product:* ${selProd.name}
+- *Harvest Weight:* ${weight.toFixed(2)} Kg
+- *Standard Rate:* Rs. ${baseRate}/Kg (Rs. ${standardTotal.toLocaleString("en-IN")})
+- *Agreed Price Per Kg:* *Rs. ${dealRate}/Kg*
+- *Total Payable Amount:* *Rs. ${dealTotal.toLocaleString("en-IN")}*
+${discountAmount > 0 ? `- *Discount Saved:* Rs. ${discountAmount.toLocaleString("en-IN")} (${discountPercent.toFixed(1)}% OFF)\n` : ""}
+⚡ *OPTION 1: INSTANT J&K BANK TRANSFER (Zero Fees)*
+• *UPI ID:* *${upiId}*
+• *Tap to Pay with UPI:* ${upiDeepLink}
+• *Bank:* Jammu & Kashmir Bank (mPay Delight+ / IMPS)
+• *A/C No:* *${jkBankAccountNumber || "[Available on Invoice]"}*
+• *IFSC:* *${jkBankIfsc || "JAKA0MALBAG"}*
+• *A/C Name:* ${jkBankAccountName || "Urban Trout Aquaculture"}
+
+💳 *OPTION 2: PAY VIA RAZORPAY GATEWAY (Cards, NetBanking, Wallets)*
+${payUrl}
+
+📄 *View Itemized Digital Tax Invoice & Instant QR:*
+${invoiceUrl}
+
+• Amount Locked: Rs. ${dealTotal.toLocaleString("en-IN")}
+• Instant confirmation upon payment. Fresh harvest dispatched promptly!
+
+*Urban Trout Farm Helpline:* +91 84910 06127
+Naseem Bagh / Malabagh, Srinagar`;
+      } else {
+        msg = `*URBAN TROUT AQUACULTURE*
 _Fresh Himalayan Rainbow Trout · Srinagar_
 
 Dear *${cleanName}*,
@@ -1797,14 +1982,17 @@ ${payUrl}
 
 *Urban Trout Farm Helpline:* +91 84910 06127
 Naseem Bagh / Malabagh, Srinagar`;
+      }
 
       setNewRemoteGeneratedData({
         billNum,
         payUrl,
+        invoiceUrl,
         message: msg,
         total: dealTotal,
         phone: cleanPhone,
         email: newRemoteEmail.trim(),
+        mode: newRemotePaymentMode,
       });
 
       // Refresh orders list so card appears in background
@@ -3591,6 +3779,19 @@ Naseem Bagh / Malabagh, Srinagar`;
                             <span className="font-mono font-black text-sm text-white tracking-tight">
                               #{invNum}
                             </span>
+                            {pMethod.toLowerCase().includes("dual") ? (
+                              <span className="text-[9px] font-mono font-bold bg-cyan-500/15 border border-cyan-500/40 text-cyan-300 px-1.5 py-0.5 rounded">
+                                ✨ Dual (J&amp;K + Rzp)
+                              </span>
+                            ) : pMethod.toLowerCase().includes("jk") || pMethod.toLowerCase().includes("jkb") ? (
+                              <span className="text-[9px] font-mono font-bold bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 px-1.5 py-0.5 rounded">
+                                ⚡ J&amp;K Bank Instant
+                              </span>
+                            ) : (
+                              <span className="text-[9px] font-mono text-slate-400 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800">
+                                💳 Razorpay
+                              </span>
+                            )}
                             {paymentLinkId && (
                               <span
                                 className="text-[9px] font-mono text-slate-500 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800 truncate max-w-[90px]"
@@ -3810,6 +4011,23 @@ Naseem Bagh / Malabagh, Srinagar`;
                                 </button>
                               </div>
 
+                              {/* Quick J&K Bank Confirmation Button for J&K / Dual orders */}
+                              {(pMethod.toLowerCase().includes("jk") || pMethod.toLowerCase().includes("jkb") || pMethod.toLowerCase().includes("dual")) && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setManualPayModal(order);
+                                    setManualPayMode("J&K Bank mPay / Direct Transfer");
+                                    setManualPayNote("J&K Bank transfer confirmed");
+                                  }}
+                                  className="w-full py-1.5 px-2 rounded-xl bg-gradient-to-r from-emerald-600/25 to-teal-600/25 hover:from-emerald-600/35 hover:to-teal-600/35 text-emerald-200 border border-emerald-500/40 text-[10.5px] font-bold font-mono transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-[0.99]"
+                                  title="Customer transferred via J&K Bank mPay or UPI — Confirm & settle in 1 click"
+                                >
+                                  <span>⚡</span>
+                                  <span>Confirm J&amp;K Bank Transfer Received</span>
+                                </button>
+                              )}
+
                               <div className="grid grid-cols-2 gap-1.5">
                                 {/* Mark Paid Manually */}
                                 <button
@@ -3932,8 +4150,9 @@ Naseem Bagh / Malabagh, Srinagar`;
               </label>
               <div className="space-y-1.5">
                 {[
-                  { id: "Cash on Delivery (Driver)", label: "💵 Cash on Delivery (Collected by Driver)" },
+                  { id: "J&K Bank mPay / Direct Transfer", label: "🏦 J&K Bank mPay / Direct Transfer (Instant Settlement)" },
                   { id: "Direct UPI / Bank Transfer", label: "⚡ Direct UPI / NEFT Transfer" },
+                  { id: "Cash on Delivery (Driver)", label: "💵 Cash on Delivery (Collected by Driver)" },
                   { id: "Cash Paid at Counter", label: "🤝 Cash Paid at Counter" },
                 ].map((m) => (
                   <label
@@ -4498,7 +4717,7 @@ Naseem Bagh / Malabagh, Srinagar`;
                     New Remote / WhatsApp Bill
                   </h3>
                   <p className="text-[10.5px] text-slate-400 font-mono">
-                    Locked Razorpay link &amp; professional message for WhatsApp / Telegram / Socials
+                    Instant J&amp;K Bank transfer &amp; Razorpay payment bill for WhatsApp / Telegram
                   </p>
                 </div>
               </div>
@@ -4514,6 +4733,164 @@ Naseem Bagh / Malabagh, Srinagar`;
             {!newRemoteGeneratedData ? (
               /* FORM STEP */
               <div className="space-y-3.5">
+                {/* Payment Mode Selector */}
+                <div className="space-y-2 p-3 rounded-2xl bg-slate-900/90 border border-slate-800">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10.5px] font-black text-slate-300 uppercase tracking-wider font-mono flex items-center gap-1.5">
+                      <span>💰</span> Payment &amp; Settlement Mode:
+                    </label>
+                    <span className="text-[10px] text-cyan-400 font-mono font-semibold">
+                      {newRemotePaymentMode === "jk_bank"
+                        ? "⚡ Instant (0-Day, Zero Fees)"
+                        : newRemotePaymentMode === "both"
+                        ? "✨ Dual: J&K Bank + Gateway"
+                        : "💳 Razorpay Gateway Link"}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {/* Both (Dual) */}
+                    <button
+                      type="button"
+                      onClick={() => setNewRemotePaymentMode("both")}
+                      className={`p-2 rounded-xl text-center border transition-all cursor-pointer ${
+                        newRemotePaymentMode === "both"
+                          ? "bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 border-cyan-400 text-white shadow-md shadow-cyan-500/10 font-bold"
+                          : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700"
+                      }`}
+                    >
+                      <div className="text-xs">✨ Dual (Both)</div>
+                      <div className="text-[9px] text-cyan-300 font-mono mt-0.5 font-semibold">Recommended</div>
+                    </button>
+
+                    {/* J&K Bank Instant */}
+                    <button
+                      type="button"
+                      onClick={() => setNewRemotePaymentMode("jk_bank")}
+                      className={`p-2 rounded-xl text-center border transition-all cursor-pointer ${
+                        newRemotePaymentMode === "jk_bank"
+                          ? "bg-emerald-500/25 border-emerald-400 text-white shadow-md shadow-emerald-500/10 font-bold"
+                          : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700"
+                      }`}
+                    >
+                      <div className="text-xs">⚡ J&amp;K Bank</div>
+                      <div className="text-[9px] text-emerald-400 font-mono mt-0.5 font-semibold">Instant Settle</div>
+                    </button>
+
+                    {/* Razorpay Only */}
+                    <button
+                      type="button"
+                      onClick={() => setNewRemotePaymentMode("razorpay")}
+                      className={`p-2 rounded-xl text-center border transition-all cursor-pointer ${
+                        newRemotePaymentMode === "razorpay"
+                          ? "bg-blue-500/20 border-blue-400 text-white shadow-md shadow-blue-500/10 font-bold"
+                          : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700"
+                      }`}
+                    >
+                      <div className="text-xs">💳 Razorpay</div>
+                      <div className="text-[9px] text-slate-400 font-mono mt-0.5">Gateway Only</div>
+                    </button>
+                  </div>
+
+                  {/* Inline J&K Bank Account Info & Quick Editor */}
+                  {(newRemotePaymentMode === "jk_bank" || newRemotePaymentMode === "both") && (
+                    <div className="mt-2 pt-2 border-t border-slate-800/80 text-[11px] font-mono space-y-2">
+                      <div className="flex items-center justify-between text-slate-300">
+                        <div className="flex items-center gap-1.5 text-emerald-400 font-bold text-[10.5px]">
+                          <span>🏦</span>
+                          <span>UPI ID: <code className="text-cyan-300">{upiId}</code></span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setShowJkBankConfig(!showJkBankConfig)}
+                          className="text-[10px] text-cyan-400 hover:text-cyan-300 underline cursor-pointer"
+                        >
+                          {showJkBankConfig ? "✕ Done Editing" : (jkBankAccountNumber ? "✏️ Edit Bank A/C" : "+ Add Bank A/C No")}
+                        </button>
+                      </div>
+
+                      {!showJkBankConfig ? (
+                        <div className="flex items-center justify-between text-[10px] text-slate-400 bg-slate-950/70 p-2 rounded-lg border border-slate-800">
+                          <div>
+                            <span>A/C: </span>
+                            <span className="text-slate-200 font-bold">
+                              {jkBankAccountNumber ? jkBankAccountNumber : "Not set (Click edit to add)"}
+                            </span>
+                            <span className="mx-1.5 text-slate-600">|</span>
+                            <span>IFSC: </span>
+                            <span className="text-slate-200 font-bold">{jkBankIfsc || "JAKA0MALBAG"}</span>
+                          </div>
+                          <span className="text-[9px] text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-1.5 py-0.5 rounded font-bold">
+                            0-Day Wait
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="p-2.5 rounded-xl bg-slate-950 border border-emerald-500/30 space-y-2 animate-fadeIn">
+                          <div className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">
+                            J&amp;K Bank Transfer Details (Direct mPay / IMPS)
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="text-[9px] text-slate-400 uppercase block">Account Number:</label>
+                              <input
+                                type="text"
+                                value={jkBankAccountNumber}
+                                onChange={(e) => {
+                                  setJkBankAccountNumber(e.target.value);
+                                  try { localStorage.setItem("ut_jk_bank_account_number", e.target.value); } catch (_) {}
+                                }}
+                                placeholder="e.g. 0082040100001234"
+                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-[11px] text-white font-mono focus:outline-none focus:border-emerald-400"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[9px] text-slate-400 uppercase block">IFSC Code:</label>
+                              <input
+                                type="text"
+                                value={jkBankIfsc}
+                                onChange={(e) => {
+                                  const val = e.target.value.toUpperCase();
+                                  setJkBankIfsc(val);
+                                  try { localStorage.setItem("ut_jk_bank_ifsc", val); } catch (_) {}
+                                }}
+                                placeholder="JAKA0MALBAG"
+                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-[11px] text-white font-mono uppercase focus:outline-none focus:border-emerald-400"
+                              />
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <label className="text-[9px] text-slate-400 uppercase block">Beneficiary Name:</label>
+                              <input
+                                type="text"
+                                value={jkBankAccountName}
+                                onChange={(e) => {
+                                  setJkBankAccountName(e.target.value);
+                                  try { localStorage.setItem("ut_jk_bank_account_name", e.target.value); } catch (_) {}
+                                }}
+                                placeholder="Urban Trout Aquaculture"
+                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-[11px] text-white font-mono focus:outline-none focus:border-emerald-400"
+                              />
+                            </div>
+                            <div>
+                              <label className="text-[9px] text-slate-400 uppercase block">Branch:</label>
+                              <input
+                                type="text"
+                                value={jkBankBranch}
+                                onChange={(e) => {
+                                  setJkBankBranch(e.target.value);
+                                  try { localStorage.setItem("ut_jk_bank_branch", e.target.value); } catch (_) {}
+                                }}
+                                placeholder="Malabagh, Srinagar"
+                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-[11px] text-white font-mono focus:outline-none focus:border-emerald-400"
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
                 {/* Customer Details */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   <div className="space-y-1">
@@ -4732,12 +5109,24 @@ Naseem Bagh / Malabagh, Srinagar`;
                   {newRemoteGenerating ? (
                     <>
                       <span className="animate-spin text-base">⏳</span>
-                      <span>Generating Locked Payment Link...</span>
+                      <span>
+                        {newRemotePaymentMode === "jk_bank"
+                          ? "Generating Instant J&K Bank Bill..."
+                          : "Generating Payment Bill & Links..."}
+                      </span>
                     </>
                   ) : (
                     <>
-                      <span className="material-symbols-outlined text-base">lock</span>
-                      <span>Generate Payment Link &amp; WhatsApp Message</span>
+                      <span className="material-symbols-outlined text-base">
+                        {newRemotePaymentMode === "jk_bank" ? "bolt" : "lock"}
+                      </span>
+                      <span>
+                        {newRemotePaymentMode === "jk_bank"
+                          ? "Generate J&K Bank Bill (0-Day Settle)"
+                          : newRemotePaymentMode === "both"
+                          ? "Generate Dual Bill (J&K Bank + Gateway)"
+                          : "Generate Razorpay Payment Link"}
+                      </span>
                     </>
                   )}
                 </button>
@@ -4745,7 +5134,7 @@ Naseem Bagh / Malabagh, Srinagar`;
             ) : (
               /* GENERATED SUCCESS STEP */
               <div className="space-y-4 animate-fadeIn">
-                <div className="p-3.5 rounded-2xl bg-emerald-950/40 border border-emerald-500/50 text-center space-y-1">
+                <div className="p-3.5 rounded-2xl bg-emerald-950/40 border border-emerald-500/50 text-center space-y-1.5">
                   <div className="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto text-xl font-black">
                     ✓
                   </div>
@@ -4754,6 +5143,21 @@ Naseem Bagh / Malabagh, Srinagar`;
                     Order <strong className="text-emerald-300">#{newRemoteGeneratedData.billNum}</strong> • Amount:{" "}
                     <strong className="text-emerald-300">₹{newRemoteGeneratedData.total.toLocaleString("en-IN")}</strong>
                   </p>
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-slate-900 border border-slate-700">
+                    {newRemoteGeneratedData.mode === "jk_bank" ? (
+                      <span className="text-emerald-400 flex items-center gap-1">
+                        <span>⚡</span> J&amp;K Bank Direct (0-Day Settlement, Zero Fees)
+                      </span>
+                    ) : newRemoteGeneratedData.mode === "both" ? (
+                      <span className="text-cyan-400 flex items-center gap-1">
+                        <span>✨</span> Dual: J&amp;K Bank Instant + Razorpay Gateway
+                      </span>
+                    ) : (
+                      <span className="text-blue-400 flex items-center gap-1">
+                        <span>💳</span> Razorpay Gateway Only
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Action Buttons: WhatsApp, Copy, Email */}
@@ -4787,7 +5191,7 @@ Naseem Bagh / Malabagh, Srinagar`;
                   </button>
                 </div>
 
-                {/* Secondary Actions: Copy Link Only & Email */}
+                {/* Secondary Actions: Copy Link Only & UPI ID / Email */}
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
@@ -4797,12 +5201,27 @@ Naseem Bagh / Malabagh, Srinagar`;
                       setTimeout(() => setNewRemoteLinkCopied(false), 2500);
                     }}
                     className="py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 font-mono text-xs font-bold border border-slate-800 flex items-center justify-center gap-1 cursor-pointer transition-all"
+                    title={newRemoteGeneratedData.payUrl}
                   >
                     <span>🔗</span>
-                    <span>{newRemoteLinkCopied ? "✓ Link Copied!" : "Copy Link Only"}</span>
+                    <span>{newRemoteLinkCopied ? "✓ Link Copied!" : "Copy Pay Link Only"}</span>
                   </button>
 
-                  {newRemoteGeneratedData.email ? (
+                  {(newRemoteGeneratedData.mode === "jk_bank" || newRemoteGeneratedData.mode === "both") ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(upiId);
+                        setNewRemoteUpiCopied(true);
+                        setTimeout(() => setNewRemoteUpiCopied(false), 2500);
+                      }}
+                      className="py-2 px-3 rounded-xl bg-emerald-950/40 hover:bg-emerald-900/40 text-emerald-300 font-mono text-xs font-bold border border-emerald-500/40 flex items-center justify-center gap-1 cursor-pointer transition-all"
+                      title={upiId}
+                    >
+                      <span>🏦</span>
+                      <span>{newRemoteUpiCopied ? "✓ UPI ID Copied!" : "Copy J&K UPI ID"}</span>
+                    </button>
+                  ) : newRemoteGeneratedData.email ? (
                     <button
                       type="button"
                       onClick={() => {

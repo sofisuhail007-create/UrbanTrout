@@ -61,6 +61,10 @@ const DEFAULT_STAFF: StaffMember[] = [
 
 export default function AdminSettingsPage() {
   const [upiId, setUpiId] = useState("JKBMERC00828895@jkb");
+  const [jkBankAccountNumber, setJkBankAccountNumber] = useState("");
+  const [jkBankIfsc, setJkBankIfsc] = useState("JAKA0MALBAG");
+  const [jkBankAccountName, setJkBankAccountName] = useState("Urban Trout Aquaculture");
+  const [jkBankBranch, setJkBankBranch] = useState("Malabagh, Srinagar");
   const [primaryPhone, setPrimaryPhone] = useState("+918491006127");
   const [alternatePhone, setAlternatePhone] = useState("+917006604148");
   const [email, setEmail] = useState("info.urbantrout@gmail.com");
@@ -128,6 +132,10 @@ export default function AdminSettingsPage() {
         if (local) {
           const map = JSON.parse(local);
           if (map.upi_id) setUpiId(map.upi_id);
+          if (map.jk_bank_account_number !== undefined) setJkBankAccountNumber(map.jk_bank_account_number);
+          if (map.jk_bank_ifsc) setJkBankIfsc(map.jk_bank_ifsc);
+          if (map.jk_bank_account_name) setJkBankAccountName(map.jk_bank_account_name);
+          if (map.jk_bank_branch) setJkBankBranch(map.jk_bank_branch);
           if (map.primary_phone) setPrimaryPhone(map.primary_phone);
           if (map.alternate_phone) setAlternatePhone(map.alternate_phone);
           if (map.email) setEmail(map.email);
@@ -149,6 +157,10 @@ export default function AdminSettingsPage() {
           const json = await res.json();
           const map = json.settingsMap || {};
           if (map.upi_id) setUpiId(map.upi_id);
+          if (map.jk_bank_account_number !== undefined) setJkBankAccountNumber(map.jk_bank_account_number);
+          if (map.jk_bank_ifsc) setJkBankIfsc(map.jk_bank_ifsc);
+          if (map.jk_bank_account_name) setJkBankAccountName(map.jk_bank_account_name);
+          if (map.jk_bank_branch) setJkBankBranch(map.jk_bank_branch);
           if (map.primary_phone) setPrimaryPhone(map.primary_phone);
           if (map.alternate_phone) setAlternatePhone(map.alternate_phone);
           if (map.email) setEmail(map.email);
@@ -533,6 +545,10 @@ export default function AdminSettingsPage() {
       { key: "allow_friday_orders", value: String(allowFridayOrders), description: "Allow customer online orders on Fridays" },
       { key: "force_store_open", value: String(forceStoreOpen), description: "Force store open override" },
       { key: "upi_id", value: upiId.trim(), description: "Primary UPI ID for customer direct checkout payments" },
+      { key: "jk_bank_account_number", value: jkBankAccountNumber.trim(), description: "J&K Bank account number for direct mPay and IMPS/NEFT transfers" },
+      { key: "jk_bank_ifsc", value: jkBankIfsc.trim(), description: "J&K Bank IFSC Code" },
+      { key: "jk_bank_account_name", value: jkBankAccountName.trim(), description: "J&K Bank account beneficiary holder name" },
+      { key: "jk_bank_branch", value: jkBankBranch.trim(), description: "J&K Bank account branch name" },
       { key: "primary_phone", value: primaryPhone.trim(), description: "Primary WhatsApp and contact phone" },
       { key: "alternate_phone", value: alternatePhone.trim(), description: "Alternate contact phone" },
       { key: "email", value: email.trim(), description: "Official support email" },
@@ -1537,13 +1553,24 @@ export default function AdminSettingsPage() {
           <form onSubmit={handleSave} className="space-y-6">
             {/* Payment Settings Card */}
             <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 md:p-8 space-y-5">
-              <h2 className="text-lg font-bold text-cyan-400 flex items-center gap-2" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
-                <span className="material-symbols-outlined text-base">qr_code_2</span>
-                UPI Payment Gateway Configuration
-              </h2>
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div>
+                  <h2 className="text-lg font-bold text-cyan-400 flex items-center gap-2" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                    <span className="material-symbols-outlined text-base">account_balance</span>
+                    UPI &amp; J&amp;K Bank Settlement Configuration
+                  </h2>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    Configure your UPI Merchant ID and J&amp;K Bank details for instant direct WhatsApp bill settlements (0-day wait, zero gateway fees).
+                  </p>
+                </div>
+                <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono text-[10px] font-bold">
+                  ⚡ 0-Day Settlement
+                </span>
+              </div>
 
+              {/* UPI ID */}
               <div className="space-y-2">
-                <label className="block text-xs uppercase tracking-wider font-bold text-slate-400">
+                <label className="block text-xs uppercase tracking-wider font-bold text-slate-400 font-mono">
                   Primary UPI ID for Checkout &amp; POS <span className="text-red-400">*</span>
                 </label>
                 <input
@@ -1554,9 +1581,77 @@ export default function AdminSettingsPage() {
                   placeholder="e.g. JKBMERC00828895@jkb"
                   className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white font-mono focus:outline-none focus:border-cyan-400"
                 />
-                <p className="text-xs text-slate-500">
-                  Used to generate dynamic QR codes in both customer checkout and staff POS billing. Default: <code className="text-cyan-300">JKBMERC00828895@jkb</code>
+                <p className="text-xs text-slate-500 font-mono">
+                  Used to generate dynamic QR codes in customer checkout, public invoices, and WhatsApp bills. Default: <code className="text-cyan-300">JKBMERC00828895@jkb</code>
                 </p>
+              </div>
+
+              {/* J&K Bank Direct Transfer Details Grid */}
+              <div className="pt-2 border-t border-slate-800/80 space-y-3">
+                <div className="flex items-center gap-2 text-xs font-bold text-emerald-400 font-mono">
+                  <span>🏦</span>
+                  <span>J&amp;K Bank Direct Account Transfer (mPay Delight+ &amp; IMPS / NEFT)</span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="block text-xs uppercase tracking-wider font-bold text-slate-400 font-mono">
+                      J&amp;K Bank Account Number
+                    </label>
+                    <input
+                      type="text"
+                      value={jkBankAccountNumber}
+                      onChange={(e) => setJkBankAccountNumber(e.target.value)}
+                      placeholder="e.g. 0082040100001234"
+                      className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-emerald-400"
+                    />
+                    <p className="text-[11px] text-slate-500 font-mono">
+                      Included in WhatsApp bill templates so customers can transfer directly via mPay Delight+.
+                    </p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="block text-xs uppercase tracking-wider font-bold text-slate-400 font-mono">
+                      J&amp;K Bank IFSC Code
+                    </label>
+                    <input
+                      type="text"
+                      value={jkBankIfsc}
+                      onChange={(e) => setJkBankIfsc(e.target.value.toUpperCase())}
+                      placeholder="e.g. JAKA0MALBAG"
+                      className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white font-mono uppercase focus:outline-none focus:border-emerald-400"
+                    />
+                    <p className="text-[11px] text-slate-500 font-mono">
+                      Branch IFSC for IMPS/NEFT transfers. Default: <code className="text-emerald-300">JAKA0MALBAG</code>
+                    </p>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="block text-xs uppercase tracking-wider font-bold text-slate-400 font-mono">
+                      Beneficiary Account Name
+                    </label>
+                    <input
+                      type="text"
+                      value={jkBankAccountName}
+                      onChange={(e) => setJkBankAccountName(e.target.value)}
+                      placeholder="e.g. Urban Trout Aquaculture"
+                      className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-emerald-400"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="block text-xs uppercase tracking-wider font-bold text-slate-400 font-mono">
+                      J&amp;K Bank Branch Name
+                    </label>
+                    <input
+                      type="text"
+                      value={jkBankBranch}
+                      onChange={(e) => setJkBankBranch(e.target.value)}
+                      placeholder="e.g. Malabagh, Srinagar"
+                      className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-emerald-400"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 
