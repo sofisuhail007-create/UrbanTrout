@@ -181,9 +181,6 @@ export default async function HomePage() {
         ],
         "aggregateRating": {
           "@type": "AggregateRating",
-          "itemReviewed": {
-            "@id": "https://urbantrout.in/#localbusiness",
-          },
           "ratingValue": reviewsData.rating,
           "reviewCount": reviewsData.reviewCount,
           "bestRating": 5,
@@ -240,13 +237,6 @@ export default async function HomePage() {
           "@type": "Brand",
           "name": "Urban Trout",
         },
-        "aggregateRating": {
-          "@type": "AggregateRating",
-          "ratingValue": reviewsData.rating,
-          "reviewCount": reviewsData.reviewCount,
-          "bestRating": 5,
-          "worstRating": 1,
-        },
         "offers": {
           "@type": "Offer",
           "url": "https://urbantrout.in/shop",
@@ -271,13 +261,6 @@ export default async function HomePage() {
         "brand": {
           "@type": "Brand",
           "name": "Urban Trout",
-        },
-        "aggregateRating": {
-          "@type": "AggregateRating",
-          "ratingValue": reviewsData.rating,
-          "reviewCount": reviewsData.reviewCount,
-          "bestRating": 5,
-          "worstRating": 1,
         },
         "offers": {
           "@type": "Offer",
