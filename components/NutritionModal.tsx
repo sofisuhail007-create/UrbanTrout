@@ -110,27 +110,29 @@ export default function NutritionModal({
           </div>
         </div>
 
-        {/* Tab Navigation */}
-        <div className="px-5 sm:px-7 pt-3 pb-1 border-b border-slate-800/60 flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+        {/* Tab Navigation (Zero horizontal scrolling - responsive grid) */}
+        <div className="px-4 sm:px-7 py-2.5 border-b border-slate-800/60 grid grid-cols-3 sm:grid-cols-5 gap-1.5">
           {[
-            { id: "protein", label: "🥩 Protein & Eggs", desc: "Bioavailability" },
-            { id: "omega3", label: "🧠 Glacier Omega-3", desc: "EPA & DHA" },
-            { id: "vitd", label: "☀️ Sunshine D3", desc: "Immunity" },
-            { id: "comparison", label: "⚖️ Trout vs Others", desc: "Comparison" },
-            { id: "purity", label: "🏔️ Himalayan Purity", desc: "Origin" },
+            { id: "protein", icon: "🥩", label: "Protein" },
+            { id: "omega3", icon: "🧠", label: "Omega-3" },
+            { id: "vitd", icon: "☀️", label: "Vitamin D3" },
+            { id: "comparison", icon: "⚖️", label: "Vs Others" },
+            { id: "purity", icon: "🏔️", label: "Purity" },
           ].map((tab) => {
             const active = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
+                type="button"
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`px-3 py-2 rounded-xl text-xs font-mono font-bold whitespace-nowrap transition-all cursor-pointer ${
+                className={`py-2 px-1.5 sm:px-2 rounded-xl text-[11px] sm:text-xs font-mono font-bold transition-all text-center flex items-center justify-center gap-1 cursor-pointer ${
                   active
                     ? "bg-cyan-500 text-slate-950 shadow-[0_0_15px_rgba(6,182,212,0.4)]"
-                    : "text-slate-400 hover:text-cyan-300 hover:bg-slate-800/50"
+                    : "bg-slate-900/60 border border-slate-800/80 text-slate-400 hover:text-cyan-300 hover:bg-slate-800/50"
                 }`}
               >
-                {tab.label}
+                <span>{tab.icon}</span>
+                <span className="truncate">{tab.label}</span>
               </button>
             );
           })}
@@ -307,52 +309,52 @@ export default function NutritionModal({
           {/* TAB 4: HEAD-TO-HEAD COMPARISON */}
           {activeTab === "comparison" && (
             <div className="space-y-4 animate-fadeIn">
-              <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950/60">
-                <table className="w-full text-left text-xs font-mono">
+              <div className="rounded-2xl border border-slate-800 bg-slate-950/60 overflow-hidden">
+                <table className="w-full text-left text-[10px] sm:text-xs font-mono">
                   <thead>
                     <tr className="bg-slate-900/80 text-slate-400 border-b border-slate-800">
-                      <th className="p-3">Nutrient / Metric</th>
-                      <th className="p-3 text-cyan-300 font-bold bg-cyan-950/40">Rainbow Trout</th>
-                      <th className="p-3 text-slate-300">Chicken Breast</th>
-                      <th className="p-3 text-slate-300">Whole Eggs (x2)</th>
-                      <th className="p-3 text-slate-300">Mutton / Lamb</th>
+                      <th className="p-2 sm:p-3">Nutrient</th>
+                      <th className="p-2 sm:p-3 text-cyan-300 font-bold bg-cyan-950/40">🐟 Trout</th>
+                      <th className="p-2 sm:p-3 text-slate-300">🍗 Chicken</th>
+                      <th className="p-2 sm:p-3 text-slate-300">🥚 Eggs</th>
+                      <th className="p-2 sm:p-3 text-slate-300">🥩 Mutton</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/60 text-[11px]">
+                  <tbody className="divide-y divide-slate-800/60 text-[10px] sm:text-[11px]">
                     <tr>
-                      <td className="p-3 font-semibold text-slate-300">Protein / 100g</td>
-                      <td className="p-3 text-cyan-300 font-bold bg-cyan-950/20">~20.5g (Light fiber)</td>
-                      <td className="p-3 text-slate-400">~22g</td>
-                      <td className="p-3 text-slate-400">~12.5g</td>
-                      <td className="p-3 text-slate-400">~17g</td>
+                      <td className="p-2 sm:p-3 font-semibold text-slate-300">Protein / 100g</td>
+                      <td className="p-2 sm:p-3 text-cyan-300 font-bold bg-cyan-950/20">~20.5g</td>
+                      <td className="p-2 sm:p-3 text-slate-400">~22g</td>
+                      <td className="p-2 sm:p-3 text-slate-400">~12.5g</td>
+                      <td className="p-2 sm:p-3 text-slate-400">~17g</td>
                     </tr>
                     <tr>
-                      <td className="p-3 font-semibold text-slate-300">Omega-3 (EPA/DHA)</td>
-                      <td className="p-3 text-emerald-400 font-bold bg-cyan-950/20">~850mg (Exceptional)</td>
-                      <td className="p-3 text-slate-400">&lt; 50mg (Negligible)</td>
-                      <td className="p-3 text-slate-400">~100mg</td>
-                      <td className="p-3 text-slate-400">&lt; 80mg</td>
+                      <td className="p-2 sm:p-3 font-semibold text-slate-300">Omega-3s</td>
+                      <td className="p-2 sm:p-3 text-emerald-400 font-bold bg-cyan-950/20">~850mg ★</td>
+                      <td className="p-2 sm:p-3 text-slate-400">&lt; 50mg</td>
+                      <td className="p-2 sm:p-3 text-slate-400">~100mg</td>
+                      <td className="p-2 sm:p-3 text-slate-400">&lt; 80mg</td>
                     </tr>
                     <tr>
-                      <td className="p-3 font-semibold text-slate-300">Natural Vitamin D3</td>
-                      <td className="p-3 text-amber-300 font-bold bg-cyan-950/20">~540 IU (Very High)</td>
-                      <td className="p-3 text-slate-400">0 IU</td>
-                      <td className="p-3 text-slate-400">~80 IU</td>
-                      <td className="p-3 text-slate-400">0 IU</td>
+                      <td className="p-2 sm:p-3 font-semibold text-slate-300">Vitamin D3</td>
+                      <td className="p-2 sm:p-3 text-amber-300 font-bold bg-cyan-950/20">~540 IU ★</td>
+                      <td className="p-2 sm:p-3 text-slate-400">0 IU</td>
+                      <td className="p-2 sm:p-3 text-slate-400">~80 IU</td>
+                      <td className="p-2 sm:p-3 text-slate-400">0 IU</td>
                     </tr>
                     <tr>
-                      <td className="p-3 font-semibold text-slate-300">Digestibility Speed</td>
-                      <td className="p-3 text-cyan-300 font-bold bg-cyan-950/20">45 - 60 mins</td>
-                      <td className="p-3 text-slate-400">2 - 3 hours</td>
-                      <td className="p-3 text-slate-400">1.5 - 2 hours</td>
-                      <td className="p-3 text-slate-400">4 - 5 hours</td>
+                      <td className="p-2 sm:p-3 font-semibold text-slate-300">Digestion</td>
+                      <td className="p-2 sm:p-3 text-cyan-300 font-bold bg-cyan-950/20">45-60 min</td>
+                      <td className="p-2 sm:p-3 text-slate-400">2-3 hrs</td>
+                      <td className="p-2 sm:p-3 text-slate-400">1.5-2 hrs</td>
+                      <td className="p-2 sm:p-3 text-slate-400">4-5 hrs</td>
                     </tr>
                     <tr>
-                      <td className="p-3 font-semibold text-slate-300">Carbs &amp; Sugar</td>
-                      <td className="p-3 text-emerald-400 font-bold bg-cyan-950/20">0g (100% Keto)</td>
-                      <td className="p-3 text-slate-400">0g</td>
-                      <td className="p-3 text-slate-400">~1g</td>
-                      <td className="p-3 text-slate-400">0g</td>
+                      <td className="p-2 sm:p-3 font-semibold text-slate-300">Net Carbs</td>
+                      <td className="p-2 sm:p-3 text-emerald-400 font-bold bg-cyan-950/20">0g (Keto)</td>
+                      <td className="p-2 sm:p-3 text-slate-400">0g</td>
+                      <td className="p-2 sm:p-3 text-slate-400">~1g</td>
+                      <td className="p-2 sm:p-3 text-slate-400">0g</td>
                     </tr>
                   </tbody>
                 </table>
