@@ -234,30 +234,63 @@ export default async function DynamicProductPage({ params }: Props) {
     .single();
   const primaryPhone = phoneRow?.value ?? "+918491006127";
 
-  if (!effectiveHoursInfo.isOpen) {
-    return (
-      <>
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
-        />
-        <StoreClosedBanner
-          nextOpenISO={effectiveHoursInfo.nextOpenISO}
-          nextOpenLabel={effectiveHoursInfo.nextOpenLabel}
-          primaryPhone={primaryPhone}
-          isFridayMaintenance={effectiveHoursInfo.isFridayMaintenance}
-          closedReason={effectiveHoursInfo.closedReason}
-        />
-      </>
-    );
-  }
-
   return (
     <div style={{ background: C.bg, minHeight: "100vh" }}>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
       />
+
+      {/* ── Scheduled Pre-Order Announcement Banner when paused ── */}
+      {!effectiveHoursInfo.isOpen && (
+        <div
+          style={{
+            background: "linear-gradient(135deg, rgba(58,173,204,0.18) 0%, rgba(16,33,44,0.95) 100%)",
+            borderBottom: "1px solid rgba(114,221,253,0.3)",
+            padding: "1rem 1.5rem",
+            paddingTop: "6.5rem",
+          }}
+        >
+          <div
+            style={{
+              maxWidth: "1280px",
+              margin: "0 auto",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              flexWrap: "wrap",
+              gap: "0.75rem",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <span style={{ fontSize: "20px" }}>📅</span>
+              <p
+                style={{
+                  fontFamily: '"Space Grotesk", sans-serif',
+                  fontSize: "0.92rem",
+                  fontWeight: 700,
+                  color: "#ffffff",
+                  margin: 0,
+                }}
+              >
+                Farm operations paused · <strong>Schedule your order now for {effectiveHoursInfo.nextOpenLabel || "tomorrow"} delivery</strong> (Select time slot at checkout)!
+              </p>
+            </div>
+            <Link
+              href="/checkout"
+              style={{
+                fontFamily: '"Space Grotesk", sans-serif',
+                fontSize: "0.78rem",
+                fontWeight: 800,
+                color: "#72ddfd",
+                textDecoration: "underline",
+              }}
+            >
+              Go to Checkout →
+            </Link>
+          </div>
+        </div>
+      )}
       <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "7rem 1.5rem 5rem" }}>
         {/* Breadcrumb */}
         <div style={{ marginBottom: "2.5rem" }}>

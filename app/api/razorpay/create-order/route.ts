@@ -47,6 +47,9 @@ export async function POST(req: NextRequest) {
       customerName,
       customerPhone,
       customerEmail,
+      isScheduled = false,
+      scheduledDate,
+      scheduledSlot,
       notes = {},
     } = body;
 
@@ -94,20 +97,22 @@ export async function POST(req: NextRequest) {
     }
 
     const hoursInfo = getBusinessHoursInfo(new Date(), overrides);
+    const isScheduledOrder = Boolean(isScheduled && scheduledSlot);
 
-    if (!hoursInfo.isOpen) {
+    if (!hoursInfo.isOpen && !isScheduledOrder) {
       const closedMsg = hoursInfo.closedReason === "manual"
-        ? "Our store is temporarily taking a break. Please try again when we reopen or contact us on WhatsApp."
+        ? "Our store is temporarily taking a break. You can schedule an order for when we reopen!"
         : hoursInfo.closedReason === "farm_maintenance"
-        ? "Our farm & vending center are currently undergoing scheduled maintenance. Please message us on WhatsApp or check back soon."
+        ? "Our farm is currently in scheduled maintenance. You can schedule an order for when operations resume!"
         : hoursInfo.closedReason === "friday_maintenance"
-        ? `Our farm is closed on Fridays for scheduled Farm Maintenance. Fresh harvest resumes ${hoursInfo.nextOpenLabel || "Saturday at 7:00 AM"}.`
-        : `Our store is currently closed. We harvest fresh trout to order during business hours (7:00 AM – 10:00 PM). Opens ${hoursInfo.nextOpenLabel || "tomorrow at 7:00 AM"}.`;
+        ? `Our farm is closed on Fridays for scheduled Farm Maintenance. You can schedule your order for ${hoursInfo.nextOpenLabel || "Saturday at 7:00 AM"}!`
+        : `Our store is currently closed outside operating hours (7:00 AM – 10:00 PM). You can schedule your order for ${hoursInfo.nextOpenLabel || "tomorrow at 7:00 AM"}!`;
 
       return NextResponse.json(
         {
           error: closedMsg,
           storeClosed: true,
+          canSchedule: true,
           closedReason: hoursInfo.closedReason,
           nextOpenLabel: hoursInfo.nextOpenLabel,
         },
@@ -192,6 +197,9 @@ export async function POST(req: NextRequest) {
       customer_name: String(customerName || notes.customer_name || "Valued Customer").slice(0, 40),
       customer_phone: String(customerPhone || notes.customer_phone || "").slice(0, 15),
       server_verified: "true",
+      is_scheduled: isScheduledOrder ? "true" : "false",
+      scheduled_date: isScheduledOrder ? String(scheduledDate || "").slice(0, 30) : "",
+      scheduled_slot: isScheduledOrder ? String(scheduledSlot || "").slice(0, 30) : "",
       ...notes,
     };
     if (customerEmail) orderNotes.customer_email = String(customerEmail).slice(0, 40);

@@ -245,6 +245,9 @@ export async function logOrderToVendingSales(
     items?: any[];
     total?: number;
     subtotal?: number;
+    is_scheduled?: boolean;
+    scheduled_date?: string;
+    scheduled_slot?: string;
   },
   razorpayPaymentId?: string,
   customClient?: any
@@ -289,7 +292,7 @@ export async function logOrderToVendingSales(
         discount_amount: 0,
         payment_mode: "Online Payment (Website)",
         logged_by: "Website Online Order",
-        notes: `Website Online Order #${orderNum} (${customerName}) | Item: ${item.name || productType} | Razorpay: ${razorpayPaymentId || "Verified"}`,
+        notes: `Website Online Order #${orderNum} (${customerName}) | Item: ${item.name || productType} | Razorpay: ${razorpayPaymentId || "Verified"}${order.is_scheduled ? ` | 📅 Scheduled: ${order.scheduled_date} (${order.scheduled_slot})` : ""}`,
         custom_fields: {
           source: "website_online_order",
           order_number: orderNum,
@@ -301,6 +304,9 @@ export async function logOrderToVendingSales(
           item_name: item.name || "",
           expected_amount: expected,
           discount_amount: 0,
+          is_scheduled: Boolean(order.is_scheduled),
+          scheduled_date: order.scheduled_date || null,
+          scheduled_slot: order.scheduled_slot || null,
         },
         created_at: nowIso,
         updated_at: nowIso,

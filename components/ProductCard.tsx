@@ -224,28 +224,80 @@ export default function ProductCard({ p }: { p: Product }) {
 
         {/* Qty + Add to Cart — OR — Closed / Out of Stock state */}
         {!isOpen ? (
-          /* ── Store Closed ── */
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              padding: "0.75rem 1rem",
-              background: "rgba(3,16,24,0.7)",
-              border: "1px solid rgba(61,74,83,0.5)",
-              borderRadius: "12px",
-            }}
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#9fadb8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-            </svg>
-            <div>
-              <p style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "0.8rem", fontWeight: 700, color: "#dfedf9", margin: 0 }}>
-                Store Closed
+          /* ── Store Closed: Schedule Pre-Order Mode ── */
+          <div className="space-y-2.5">
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+                padding: "0.5rem 0.75rem",
+                background: "rgba(58,173,204,0.12)",
+                border: "1px solid rgba(114,221,253,0.3)",
+                borderRadius: "10px",
+              }}
+            >
+              <span className="text-sm">📅</span>
+              <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.72rem", color: "#c4ebff", margin: 0, lineHeight: 1.4 }}>
+                <strong>Schedule Order:</strong> Pre-order now for next-day harvest &amp; delivery!
               </p>
-              <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.72rem", color: "#9fadb8", margin: 0 }}>
-                Sat – Thu: 7 AM – 10 PM · Closed Fridays for Farm Maintenance
-              </p>
+            </div>
+
+            <div className="flex items-center gap-3">
+              {/* Quantity control */}
+              <div
+                className="flex items-center rounded-xl overflow-hidden flex-shrink-0"
+                style={{ background: "rgba(3,16,24,0.8)", border: "1px solid rgba(61,74,83,0.6)" }}
+              >
+                <button
+                  type="button"
+                  onClick={() => setQty((q) => Math.max(effectiveMin, q - 1))}
+                  disabled={qty <= effectiveMin}
+                  className="flex items-center justify-center transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                  style={{ width: "38px", height: "40px", color: "#72ddfd" }}
+                  aria-label="Decrease quantity"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                  </svg>
+                </button>
+                <span
+                  className="text-center font-bold"
+                  style={{ minWidth: "52px", fontFamily: '"Space Grotesk", sans-serif', fontSize: "0.85rem", color: "#dfedf9" }}
+                >
+                  {qty} {p.unit}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setQty((q) => Math.min(maxStock, q + 1))}
+                  disabled={qty >= maxStock}
+                  className="flex items-center justify-center transition-colors duration-150 disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                  style={{ width: "38px", height: "40px", color: "#72ddfd" }}
+                  aria-label="Increase quantity"
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                    <line x1="12" y1="5" x2="12" y2="19" />
+                    <line x1="5" y1="12" x2="19" y2="12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Add to Cart button for scheduled delivery */}
+              <button
+                type="button"
+                onClick={handleAdd}
+                className="flex-1 relative overflow-hidden rounded-xl font-bold uppercase tracking-widest text-xs transition-all duration-200 active:scale-95 cursor-pointer"
+                style={{
+                  height: "40px",
+                  fontFamily: '"Space Grotesk", sans-serif',
+                  background: added ? "rgba(114,221,253,0.15)" : "linear-gradient(135deg, #3aadcc 0%, #72ddfd 100%)",
+                  color: added ? "#72ddfd" : "#002730",
+                  border: added ? "1px solid rgba(114,221,253,0.4)" : "none",
+                  boxShadow: "0 0 20px rgba(114,221,253,0.3)",
+                }}
+              >
+                {added ? "✓ Added to Cart!" : "📅 Schedule Order"}
+              </button>
             </div>
           </div>
         ) : isOutOfStock ? (

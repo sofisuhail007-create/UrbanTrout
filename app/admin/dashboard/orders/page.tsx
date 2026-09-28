@@ -43,6 +43,33 @@ function getOrderMapsUrl(order: any): string | null {
   return null;
 }
 
+function getScheduledInfo(order: any): { isScheduled: boolean; date?: string; slot?: string; text?: string } {
+  if (order.is_scheduled || order.scheduled_date || order.scheduled_slot) {
+    const date = order.scheduled_date || "Scheduled";
+    const slot = order.scheduled_slot || "";
+    return {
+      isScheduled: true,
+      date,
+      slot,
+      text: slot ? `${date} (${slot})` : date,
+    };
+  }
+  if (typeof order.customer_address === "string") {
+    const match = order.customer_address.match(/\[SCHEDULED DELIVERY:\s*([^|]+)\s*\|\s*Slot:\s*([^\]]+)\]/i);
+    if (match) {
+      const date = match[1].trim();
+      const slot = match[2].trim();
+      return {
+        isScheduled: true,
+        date,
+        slot,
+        text: `${date} (${slot})`,
+      };
+    }
+  }
+  return { isScheduled: false };
+}
+
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -156,6 +183,19 @@ export default function OrdersPage() {
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-semibold text-white truncate">{order.customer_name}</p>
                     {(() => {
+                      const sched = getScheduledInfo(order);
+                      if (!sched.isScheduled) return null;
+                      return (
+                        <span
+                          title={`Scheduled Delivery: ${sched.text}`}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-[10px] font-bold tracking-tight flex-shrink-0"
+                        >
+                          <span>📅</span>
+                          <span className="truncate max-w-[130px] sm:max-w-none">{sched.text}</span>
+                        </span>
+                      );
+                    })()}
+                    {(() => {
                       const mapsUrl = getOrderMapsUrl(order);
                       if (!mapsUrl) return null;
                       return (
@@ -195,6 +235,17 @@ export default function OrdersPage() {
                       <p className="text-xs text-slate-600 uppercase tracking-widest mb-1">Delivery Address</p>
                       <p className="text-slate-300">{order.customer_address}</p>
                       <p className="text-slate-500 text-xs">{order.customer_locality} — {order.customer_pincode}</p>
+                      {(() => {
+                        const sched = getScheduledInfo(order);
+                        if (!sched.isScheduled) return null;
+                        return (
+                          <div className="mt-2.5 p-2.5 rounded-lg bg-cyan-950/60 border border-cyan-500/40 text-xs text-cyan-200">
+                            <span className="font-bold text-white block mb-0.5">📅 Scheduled Pre-Order Delivery</span>
+                            <span>Date: <strong className="text-white">{sched.date}</strong></span>
+                            {sched.slot && <span> | Slot: <strong className="text-emerald-400">{sched.slot}</strong></span>}
+                          </div>
+                        );
+                      })()}
                       {(() => {
                         const mapsUrl = getOrderMapsUrl(order);
                         if (!mapsUrl) return null;

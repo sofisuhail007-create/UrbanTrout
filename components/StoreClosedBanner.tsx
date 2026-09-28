@@ -627,6 +627,83 @@ export default function StoreClosedBanner({
 
         {/* CTA */}
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1rem", width: "100%" }}>
+          {/* Schedule Pre-Order Card */}
+          <div
+            style={{
+              width: "100%",
+              maxWidth: "440px",
+              padding: "1.25rem 1.5rem",
+              borderRadius: "16px",
+              background: "linear-gradient(135deg, rgba(58,173,204,0.18) 0%, rgba(16,33,44,0.95) 100%)",
+              border: "1.5px solid rgba(114,221,253,0.35)",
+              backdropFilter: "blur(12px)",
+              boxShadow: "0 8px 30px rgba(0,0,0,0.35), inset 0 1px 0 rgba(114,221,253,0.15)",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "0.75rem",
+              textAlign: "center",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <span style={{ fontSize: "1.2rem" }}>📅</span>
+              <span
+                style={{
+                  fontFamily: '"Space Grotesk", sans-serif',
+                  fontSize: "1.05rem",
+                  fontWeight: 800,
+                  color: "#ffffff",
+                }}
+              >
+                Schedule an Order for Next Day
+              </span>
+            </div>
+
+            <p
+              style={{
+                fontFamily: '"Manrope", sans-serif',
+                fontSize: "0.82rem",
+                color: "#c4ebff",
+                lineHeight: 1.5,
+                margin: 0,
+              }}
+            >
+              Farm operations are paused, but you can pre-book fresh live catch for <strong>{nextOpenLabel || "tomorrow"}</strong> and choose your delivery time slot!
+            </p>
+
+            <a
+              href="#scheduled-catalog"
+              onClick={(e) => {
+                const el = document.getElementById("scheduled-catalog");
+                if (el) {
+                  e.preventDefault();
+                  el.scrollIntoView({ behavior: "smooth" });
+                }
+              }}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "8px",
+                padding: "0.85rem 1.5rem",
+                borderRadius: "12px",
+                background: "linear-gradient(135deg, #3aadcc 0%, #72ddfd 100%)",
+                color: "#002730",
+                fontFamily: '"Space Grotesk", sans-serif',
+                fontSize: "0.82rem",
+                fontWeight: 800,
+                letterSpacing: "0.05em",
+                textTransform: "uppercase",
+                textDecoration: "none",
+                boxShadow: "0 0 25px rgba(114,221,253,0.45)",
+                width: "100%",
+                cursor: "pointer",
+              }}
+            >
+              Browse Products &amp; Schedule Order ↓
+            </a>
+          </div>
+
           <a
             href={whatsappUrl}
             target="_blank"

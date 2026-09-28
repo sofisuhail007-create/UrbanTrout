@@ -374,19 +374,15 @@ export default function CartDrawer() {
               <div
                 className="p-3 rounded-xl text-xs flex items-center gap-2.5 my-1"
                 style={{
-                  background: (storeStatus.isFridayMaintenance || storeStatus.closedReason === "farm_maintenance") ? "rgba(245,158,11,0.12)" : "rgba(248,113,113,0.12)",
-                  border: (storeStatus.isFridayMaintenance || storeStatus.closedReason === "farm_maintenance") ? "1px solid rgba(245,158,11,0.3)" : "1px solid rgba(248,113,113,0.3)",
-                  color: (storeStatus.isFridayMaintenance || storeStatus.closedReason === "farm_maintenance") ? "#fbbf24" : "#f87171",
+                  background: "rgba(58,173,204,0.15)",
+                  border: "1px solid rgba(114,221,253,0.35)",
+                  color: "#72ddfd",
                   fontFamily: '"Manrope", sans-serif',
                 }}
               >
-                <span className="text-base flex-shrink-0">{(storeStatus.isFridayMaintenance || storeStatus.closedReason === "farm_maintenance") ? "🛠️" : "⏰"}</span>
+                <span className="text-base flex-shrink-0">📅</span>
                 <span className="leading-tight font-medium">
-                  {storeStatus.closedReason === "farm_maintenance"
-                    ? "Closed for Farm & Vending Center Maintenance. Online checkout will resume once maintenance concludes."
-                    : storeStatus.isFridayMaintenance
-                    ? "Closed Fridays for Farm Maintenance. Online checkout reopens Saturday at 7:00 AM."
-                    : `Currently closed. Orders reopen ${storeStatus.nextOpenLabel || "tomorrow at 7:00 AM"}.`}
+                  Farm operations paused. <strong>Pre-order for {storeStatus.nextOpenLabel || "tomorrow"} delivery</strong> &amp; select your time slot at checkout!
                 </span>
               </div>
             )}
@@ -398,15 +394,15 @@ export default function CartDrawer() {
               style={{
                 height: "50px",
                 borderRadius: "12px",
-                background: C.primaryCont,
-                color: C.onPrimCont,
+                background: !storeStatus.isOpen ? "linear-gradient(135deg, #059669 0%, #10b981 100%)" : C.primaryCont,
+                color: !storeStatus.isOpen ? "#ffffff" : C.onPrimCont,
                 fontFamily: '"Space Grotesk", sans-serif',
                 fontSize: "0.82rem",
                 textDecoration: "none",
-                boxShadow: "0 0 24px rgba(58,173,204,0.35)",
+                boxShadow: !storeStatus.isOpen ? "0 0 24px rgba(16,185,129,0.4)" : "0 0 24px rgba(58,173,204,0.35)",
               }}
             >
-              Proceed to Checkout
+              {!storeStatus.isOpen ? "📅 Schedule Delivery Slot" : "Proceed to Checkout"}
               <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                 <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
               </svg>

@@ -42,6 +42,8 @@ export async function GET() {
     }
 
     const hoursInfo = getBusinessHoursInfo(new Date(), overrides);
+    const { getDeliveryScheduleInfo } = await import("@/lib/deliverySchedule");
+    const scheduleInfo = getDeliveryScheduleInfo(new Date(), overrides);
 
     return NextResponse.json(
       {
@@ -58,6 +60,8 @@ export async function GET() {
         currentISTMinute: hoursInfo.currentISTMinute,
         currentISTDay: hoursInfo.currentISTDay,
         serverTimeISO: new Date().toISOString(),
+        canSchedule: !hoursInfo.isOpen,
+        scheduleInfo: !hoursInfo.isOpen ? scheduleInfo : null,
       },
       {
         headers: {

@@ -89,6 +89,13 @@ export async function POST(req: NextRequest) {
       finalAddress += ` (Email: ${customerEmail})`;
     }
 
+    const isScheduled = Boolean(orderData.is_scheduled);
+    const scheduledDate = orderData.scheduled_date ? String(orderData.scheduled_date).trim() : "";
+    const scheduledSlot = orderData.scheduled_slot ? String(orderData.scheduled_slot).trim() : "";
+    if (isScheduled && scheduledSlot && !finalAddress.includes("[SCHEDULED DELIVERY:")) {
+      finalAddress += `\n📅 [SCHEDULED DELIVERY: ${scheduledDate || "Next Day"} | Slot: ${scheduledSlot}]`;
+    }
+
     const orderPayload = {
       customer_name: String(orderData.customer_name || "Valued Customer").trim(),
       customer_phone: cleanPhone,
@@ -130,6 +137,9 @@ export async function POST(req: NextRequest) {
           items: orderPayload.items,
           total: orderPayload.total,
           subtotal: orderPayload.subtotal,
+          is_scheduled: isScheduled,
+          scheduled_date: scheduledDate,
+          scheduled_slot: scheduledSlot,
         },
         razorpay_payment_id,
         supabaseServer
@@ -144,7 +154,7 @@ export async function POST(req: NextRequest) {
         .from("leads")
         .update({
           status: "converted",
-          notes: `Converted to Order #${insertedOrder.order_number || ""}. Payment via Razorpay (${razorpay_payment_id})`,
+          notes: `Converted to Order #${insertedOrder.order_number || ""}. Payment via Razorpay (${razorpay_payment_id})${isScheduled ? ` [Scheduled: ${scheduledDate} ${scheduledSlot}]` : ""}`,
           updated_at: new Date().toISOString(),
         })
         .eq("customer_phone", cleanPhone);
@@ -160,7 +170,7 @@ export async function POST(req: NextRequest) {
           name: orderPayload.customer_name,
           locality: orderPayload.customer_locality,
           pincode: orderPayload.customer_pincode,
-          notes: `Order #${insertedOrder.order_number || ""}`,
+          notes: `Order #${insertedOrder.order_number || ""}${isScheduled ? ` (Scheduled: ${scheduledDate})` : ""}`,
           total_orders: 1,
           last_order_at: new Date().toISOString(),
         },
@@ -193,6 +203,9 @@ export async function POST(req: NextRequest) {
             paymentMethod: "Razorpay",
             razorpayPaymentId: razorpay_payment_id,
             razorpayOrderId: razorpay_order_id,
+            isScheduled,
+            scheduledDate,
+            scheduledSlot,
           },
         }),
       }).catch(() => {});

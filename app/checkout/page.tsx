@@ -21,6 +21,7 @@ import { useCart } from "@/context/CartContext";
 import { useCustomerAuth } from "@/context/CustomerAuthContext";
 import { supabase } from "@/lib/supabase";
 import { getBusinessHoursInfo } from "@/lib/businessHours";
+import { getDeliveryScheduleInfo, DeliveryScheduleInfo } from "@/lib/deliverySchedule";
 import { calculateTroutNutrition } from "@/lib/nutrition";
 
 // ─── Razorpay global type ───────────────────────────────────────
@@ -345,6 +346,9 @@ export default function CheckoutPage() {
   const [rememberDetails, setRememberDetails] = useState(true);
   const [showPrefillBanner, setShowPrefillBanner] = useState(false);
   const [storeStatus, setStoreStatus] = useState(() => getBusinessHoursInfo());
+  const [scheduleInfo, setScheduleInfo] = useState<DeliveryScheduleInfo>(() => getDeliveryScheduleInfo());
+  const [selectedScheduledDate, setSelectedScheduledDate] = useState<string>(() => getDeliveryScheduleInfo().defaultDate);
+  const [selectedScheduledSlot, setSelectedScheduledSlot] = useState<string>(() => getDeliveryScheduleInfo().defaultSlot);
 
   useEffect(() => {
     fetch("/api/store-status")
@@ -363,6 +367,15 @@ export default function CheckoutPage() {
             currentISTMinute: 0,
             currentISTDay: 0,
           });
+          if (data.scheduleInfo) {
+            setScheduleInfo(data.scheduleInfo);
+            if (data.scheduleInfo.defaultDate) {
+              setSelectedScheduledDate(data.scheduleInfo.defaultDate);
+            }
+            if (data.scheduleInfo.defaultSlot) {
+              setSelectedScheduledSlot(data.scheduleInfo.defaultSlot);
+            }
+          }
         }
       })
       .catch(() => {});
@@ -806,14 +819,9 @@ export default function CheckoutPage() {
   const handleRazorpayPayment = async () => {
     setRazorpayError("");
 
-    if (!storeStatus.isOpen) {
-      if (storeStatus.closedReason === "farm_maintenance") {
-        setRazorpayError("Our farm & vending center are currently undergoing scheduled maintenance. Please message us on WhatsApp or check back soon.");
-      } else if (storeStatus.isFridayMaintenance) {
-        setRazorpayError("Our farm is closed on Fridays for scheduled Farm Maintenance. Orders will resume Saturday at 7:00 AM IST.");
-      } else {
-        setRazorpayError(`We are currently outside operating hours (7:00 AM – 10:00 PM IST). Orders reopen ${storeStatus.nextOpenLabel || "tomorrow at 7:00 AM"}.`);
-      }
+    const isScheduledOrder = !storeStatus.isOpen;
+    if (isScheduledOrder && !selectedScheduledSlot) {
+      setRazorpayError("Please select a delivery time slot for your scheduled order.");
       return;
     }
 
@@ -839,6 +847,9 @@ export default function CheckoutPage() {
           customerName: formData.fullName,
           customerPhone: formData.phone,
           customerEmail: formData.email,
+          isScheduled: isScheduledOrder,
+          scheduledDate: isScheduledOrder ? selectedScheduledDate : undefined,
+          scheduledSlot: isScheduledOrder ? selectedScheduledSlot : undefined,
         }),
       });
 
@@ -857,7 +868,9 @@ export default function CheckoutPage() {
           currency,
           order_id,
           name: "Urban Trout",
-          description: `Fresh Trout Order — ${items.length} item${items.length > 1 ? "s" : ""}`,
+          description: isScheduledOrder
+            ? `Fresh Trout Scheduled (${selectedScheduledSlot})`
+            : `Fresh Trout Order — ${items.length} item${items.length > 1 ? "s" : ""}`,
           image: "/icon.png",
           prefill: {
             name: formData.fullName,
@@ -875,6 +888,9 @@ export default function CheckoutPage() {
             longitude: detectedCoords ? String(detectedCoords.lng) : "",
             distance_km: calculatedDistance ? calculatedDistance.toFixed(1) : "",
             google_maps_url: detectedCoords ? `https://maps.google.com/?q=${detectedCoords.lat},${detectedCoords.lng}` : "",
+            is_scheduled: isScheduledOrder ? "true" : "false",
+            scheduled_date: isScheduledOrder ? selectedScheduledDate : "",
+            scheduled_slot: isScheduledOrder ? selectedScheduledSlot : "",
           },
           theme: { color: "#3aadcc" },
           modal: {
@@ -920,6 +936,9 @@ export default function CheckoutPage() {
               const emailNote = formData.email?.trim() ? ` (Email: ${formData.email.trim()})` : "";
               const rzpNote = rzpRes.razorpay_payment_id ? ` (Razorpay: ${rzpRes.razorpay_payment_id})` : "";
               const notesNote = formData.notes?.trim() ? ` | Notes: ${formData.notes.trim()}` : "";
+              const scheduleNote = isScheduledOrder
+                ? ` | 📅 SCHEDULED: ${selectedScheduledDate} (${selectedScheduledSlot})`
+                : "";
               const mapsUrl = detectedCoords
                 ? `https://www.google.com/maps/dir/?api=1&destination=${detectedCoords.lat},${detectedCoords.lng}`
                 : "";
@@ -930,7 +949,7 @@ export default function CheckoutPage() {
               const orderPayload = {
                 customer_name: formData.fullName.trim(),
                 customer_phone: cleanPhone,
-                customer_address: `${formData.house.trim()}, ${formData.locality.trim()}${emailNote}${rzpNote}${notesNote}${gpsNote}`,
+                customer_address: `${formData.house.trim()}, ${formData.locality.trim()}${scheduleNote}${emailNote}${rzpNote}${notesNote}${gpsNote}`,
                 customer_locality: formData.locality.trim(),
                 customer_pincode: formData.pincode.trim(),
                 items: items.map((i) => ({
@@ -948,6 +967,9 @@ export default function CheckoutPage() {
                 status: "confirmed",
                 user_id: user?.id || null,
                 customer_email: formData.email?.trim() || user?.email || "",
+                is_scheduled: isScheduledOrder,
+                scheduled_date: isScheduledOrder ? selectedScheduledDate : undefined,
+                scheduled_slot: isScheduledOrder ? selectedScheduledSlot : undefined,
               };
 
               const placeRes = await fetch("/api/orders/place", {
@@ -1058,6 +1080,9 @@ export default function CheckoutPage() {
                 detectedCoords,
                 calculatedDistance,
                 googleMapsUrl: mapsUrl || null,
+                isScheduled: !storeStatus.isOpen,
+                scheduledDate: selectedScheduledDate,
+                scheduledSlot: selectedScheduledSlot,
                 items: items.map((i) => ({
                   id: i.id,
                   name: i.name,
@@ -1157,7 +1182,7 @@ export default function CheckoutPage() {
               style={{ background: "rgba(34,197,94,0.15)", border: "1px solid rgba(34,197,94,0.35)", color: "#4ade80" }}
             >
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              Payment Verified • Order Confirmed
+              {orderSuccess.isScheduled ? "Scheduled Pre-Order Confirmed • Paid" : "Payment Verified • Order Confirmed"}
             </div>
 
             <h1
@@ -1170,8 +1195,18 @@ export default function CheckoutPage() {
               className="text-sm sm:text-base max-w-xl mx-auto text-slate-400 leading-relaxed mb-6"
               style={{ fontFamily: '"Manrope", sans-serif' }}
             >
-              Your order <strong className="text-cyan-300">#{orderSuccess.orderNumber}</strong> has been confirmed and paid.
-              Our aquaculture specialists at Urban Trout Aquaculture Farm in Malabagh are preparing your live harvest for express delivery within 2 hours.
+              Your order <strong className="text-cyan-300">#{orderSuccess.orderNumber}</strong> has been confirmed and paid.{" "}
+              {orderSuccess.isScheduled ? (
+                <>
+                  It is scheduled for live harvest and delivery on{" "}
+                  <strong className="text-white">{orderSuccess.scheduledDate}</strong> during the{" "}
+                  <strong className="text-emerald-400">{orderSuccess.scheduledSlot}</strong> slot.
+                </>
+              ) : (
+                <>
+                  Our aquaculture specialists at Urban Trout Aquaculture Farm in Malabagh are preparing your live harvest for express delivery within 2 hours.
+                </>
+              )}
             </p>
 
             {/* Quick Metrics Banner */}
@@ -1196,9 +1231,15 @@ export default function CheckoutPage() {
               </div>
 
               <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800">
-                <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Delivery Window</span>
-                <div className="text-base font-bold text-emerald-400 mt-1">Within 90 Mins</div>
-                <span className="text-[10px] text-slate-500 block">Same-Day Express</span>
+                <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">
+                  {orderSuccess.isScheduled ? "Delivery Slot" : "Delivery Window"}
+                </span>
+                <div className="text-xs sm:text-sm font-bold text-emerald-400 mt-1 truncate" title={orderSuccess.scheduledSlot || "Within 90 Mins"}>
+                  {orderSuccess.isScheduled ? orderSuccess.scheduledSlot : "Within 90 Mins"}
+                </div>
+                <span className="text-[10px] text-cyan-400 block truncate">
+                  {orderSuccess.isScheduled ? `📅 ${orderSuccess.scheduledDate}` : "Same-Day Express"}
+                </span>
               </div>
 
               <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800">
@@ -1222,7 +1263,7 @@ export default function CheckoutPage() {
             <div className="flex items-center gap-2 mb-6">
               <span className="text-xl">🐟</span>
               <h2 className="text-base font-bold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
-                Live Harvest &amp; Delivery Progress
+                {orderSuccess.isScheduled ? "Scheduled Harvest & Delivery Schedule" : "Live Harvest & Delivery Progress"}
               </h2>
             </div>
 
@@ -1241,10 +1282,18 @@ export default function CheckoutPage() {
               <div className="p-4 rounded-2xl bg-cyan-950/40 border border-cyan-500/50 relative">
                 <div className="flex items-center gap-2 mb-1.5">
                   <span className="w-5 h-5 rounded-full bg-cyan-400 text-slate-950 text-xs font-black flex items-center justify-center animate-pulse">2</span>
-                  <span className="text-xs font-bold text-cyan-300 uppercase tracking-wider">2. Harvesting</span>
+                  <span className="text-xs font-bold text-cyan-300 uppercase tracking-wider">
+                    {orderSuccess.isScheduled ? "2. Harvest Slot" : "2. Harvesting"}
+                  </span>
                 </div>
-                <p className="text-xs text-white font-semibold">Fresh RAS Catch</p>
-                <p className="text-[11px] text-slate-400 mt-0.5">Harvested to order from clean spring tanks.</p>
+                <p className="text-xs text-white font-semibold">
+                  {orderSuccess.isScheduled ? "Fresh Live Catch" : "Fresh RAS Catch"}
+                </p>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  {orderSuccess.isScheduled
+                    ? `Harvested fresh before your ${orderSuccess.scheduledSlot} slot.`
+                    : "Harvested to order from clean spring tanks."}
+                </p>
               </div>
 
               {/* Step 3: Packing */}
@@ -1263,8 +1312,14 @@ export default function CheckoutPage() {
                   <span className="w-5 h-5 rounded-full bg-slate-800 text-slate-400 text-xs font-bold flex items-center justify-center">4</span>
                   <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">4. Dispatched</span>
                 </div>
-                <p className="text-xs text-slate-400 font-semibold">Express Rider</p>
-                <p className="text-[11px] text-slate-500 mt-0.5">Delivered fresh within 90 minutes.</p>
+                <p className="text-xs text-slate-400 font-semibold">
+                  {orderSuccess.isScheduled ? "Slot Delivery" : "Express Rider"}
+                </p>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  {orderSuccess.isScheduled
+                    ? `Delivered within your chosen slot: ${orderSuccess.scheduledSlot}.`
+                    : "Delivered fresh within 90 minutes."}
+                </p>
               </div>
             </div>
           </div>
@@ -1485,61 +1540,45 @@ export default function CheckoutPage() {
       />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-32 pb-24">
 
-        {/* ─── Store Closed / Friday Maintenance Banner ─── */}
+        {/* ─── Scheduled Order Mode Banner (Visible when store operations are paused) ─── */}
         {!storeStatus.isOpen && (
           <div className="max-w-3xl mx-auto mb-8">
             <div
-              className="p-5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center gap-4 relative overflow-hidden"
+              className="p-5 sm:p-6 rounded-2xl sm:rounded-3xl flex flex-col sm:flex-row items-start sm:items-center gap-4 relative overflow-hidden"
               style={{
-                background: (storeStatus.isFridayMaintenance || storeStatus.closedReason === "farm_maintenance")
-                  ? "linear-gradient(135deg, rgba(245,158,11,0.12) 0%, rgba(16,33,44,0.95) 100%)"
-                  : "linear-gradient(135deg, rgba(248,113,113,0.12) 0%, rgba(16,33,44,0.95) 100%)",
-                border: (storeStatus.isFridayMaintenance || storeStatus.closedReason === "farm_maintenance")
-                  ? "1px solid rgba(245,158,11,0.35)"
-                  : "1px solid rgba(248,113,113,0.35)",
+                background: "linear-gradient(135deg, rgba(14,165,233,0.14) 0%, rgba(16,185,129,0.08) 50%, rgba(16,33,44,0.95) 100%)",
+                border: "1px solid rgba(56,189,248,0.35)",
+                boxShadow: "0 8px 30px rgba(14,165,233,0.12)",
               }}
             >
               <div
-                className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0"
+                className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center flex-shrink-0"
                 style={{
-                  background: (storeStatus.isFridayMaintenance || storeStatus.closedReason === "farm_maintenance") ? "rgba(245,158,11,0.2)" : "rgba(248,113,113,0.2)",
-                  color: (storeStatus.isFridayMaintenance || storeStatus.closedReason === "farm_maintenance") ? "#fbbf24" : "#f87171",
+                  background: "linear-gradient(135deg, rgba(14,165,233,0.25), rgba(16,185,129,0.2))",
+                  border: "1px solid rgba(56,189,248,0.4)",
+                  color: "#38bdf8",
                 }}
               >
-                {(storeStatus.isFridayMaintenance || storeStatus.closedReason === "farm_maintenance") ? (
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                ) : (
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                )}
+                <span className="text-2xl">📅</span>
               </div>
               <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <span
-                    className="inline-block w-2 h-2 rounded-full animate-pulse"
-                    style={{ background: (storeStatus.isFridayMaintenance || storeStatus.closedReason === "farm_maintenance") ? "#fbbf24" : "#f87171" }}
-                  />
-                  <h4
-                    className="font-bold text-sm sm:text-base text-white"
-                    style={{ fontFamily: '"Space Grotesk", sans-serif' }}
-                  >
-                    {storeStatus.closedReason === "farm_maintenance"
-                      ? "Closed Today for Farm & Vending Center Maintenance"
-                      : storeStatus.isFridayMaintenance
-                      ? "Closed Today for Weekly Farm Maintenance"
-                      : "Farm Orders Currently Closed"}
-                  </h4>
+                <div className="flex flex-wrap items-center gap-2 mb-1.5">
+                  <span className="inline-block w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse" />
+                  <span className="text-xs uppercase font-extrabold tracking-wider text-cyan-400">
+                    Schedule Order Active
+                  </span>
+                  <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-cyan-950/80 border border-cyan-700/60 text-cyan-300 font-mono">
+                    {scheduleInfo.badgeLabel}
+                  </span>
                 </div>
+                <h4
+                  className="font-bold text-base sm:text-lg text-white mb-1"
+                  style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                >
+                  {scheduleInfo.headline}
+                </h4>
                 <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-                  {storeStatus.closedReason === "farm_maintenance"
-                    ? "Our aquaculture facility & vending center in Malabagh are currently undergoing scheduled maintenance and bio-security protocols. Online checkout will resume once maintenance completes."
-                    : storeStatus.isFridayMaintenance
-                    ? "Our aquaculture facility in Malabagh observes complete scheduled maintenance on Fridays. Live harvesting & online checkout will resume Saturday morning at 7:00 AM IST."
-                    : `We accept live harvest delivery orders Saturday to Thursday, 7:00 AM – 10:00 PM IST (Closed Fridays). Next opening: ${storeStatus.nextOpenLabel || "7:00 AM IST"}.`}
+                  {scheduleInfo.message} Choose your preferred delivery date and time slot in Step 2 to guarantee your fresh morning harvest.
                 </p>
               </div>
             </div>
@@ -2228,7 +2267,7 @@ export default function CheckoutPage() {
                       </span>
                       <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "11px", color: "#86efac", margin: 0 }}>
                         {calculatedDistance ? `~${calculatedDistance.toFixed(1)} km from Urban Trout Aquaculture Farm, Malabagh • ` : ""}
-                        Free Express Delivery within 2 Hours Active
+                        {!storeStatus.isOpen ? "Scheduled Pre-Order Active" : "Free Express Delivery within 2 Hours Active"}
                       </p>
                       {detectedCoords && (
                         <a
@@ -2303,6 +2342,128 @@ export default function CheckoutPage() {
                     </div>
                   )}
 
+                  {/* Scheduled Delivery Date & Slot Selector (Active when store operations are paused) */}
+                  {!storeStatus.isOpen && (
+                    <div
+                      className="p-5 rounded-2xl space-y-4"
+                      style={{
+                        background: "linear-gradient(135deg, rgba(8,27,38,0.95) 0%, rgba(14,40,55,0.85) 100%)",
+                        border: "1px solid rgba(56,189,248,0.35)",
+                        boxShadow: "0 4px 20px rgba(0,0,0,0.35)",
+                      }}
+                    >
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xl">📅</span>
+                          <h3
+                            style={{
+                              fontFamily: '"Space Grotesk", sans-serif',
+                              fontWeight: 700,
+                              fontSize: "1rem",
+                              color: "#f8fafc",
+                              margin: 0,
+                            }}
+                          >
+                            Preferred Delivery Schedule
+                          </h3>
+                        </div>
+                        <span className="text-[11px] font-mono font-semibold px-2.5 py-0.5 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-800/80 self-start sm:self-auto">
+                          Fresh Morning Harvest
+                        </span>
+                      </div>
+
+                      <p className="text-xs text-slate-300">
+                        Since farm operations are currently paused, our aquaculture team will harvest your trout fresh on your selected delivery day.
+                      </p>
+
+                      {/* 1. Date Selection */}
+                      <div>
+                        <label
+                          className="block text-[11px] uppercase tracking-wider font-semibold text-slate-300 mb-2"
+                          style={{ fontFamily: '"Inter", sans-serif' }}
+                        >
+                          1. Select Delivery Date <span className="text-rose-400">*</span>
+                        </label>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                          {scheduleInfo.availableDates.map((d) => {
+                            const isSelected = selectedScheduledDate === d.formattedLabel;
+                            return (
+                              <button
+                                key={d.dateIso}
+                                type="button"
+                                onClick={() => setSelectedScheduledDate(d.formattedLabel)}
+                                className={`text-left p-3.5 rounded-xl border transition-all flex items-center justify-between cursor-pointer ${
+                                  isSelected
+                                    ? "bg-cyan-950/70 border-cyan-400 shadow-[0_0_15px_rgba(56,189,248,0.25)] text-white"
+                                    : "bg-slate-950/60 border-slate-800 text-slate-300 hover:border-slate-700"
+                                }`}
+                              >
+                                <div>
+                                  <div className="font-bold text-sm text-white flex items-center gap-1.5">
+                                    <span>{d.dayName}</span>
+                                    <span className="text-xs font-normal text-slate-400">({d.dateLabel})</span>
+                                  </div>
+                                  <span className="text-[11px] text-cyan-400 font-mono mt-0.5 block">
+                                    {d.formattedLabel.startsWith("Tomorrow") ? "⚡ Earliest Available Harvest" : "Next Operating Day"}
+                                  </span>
+                                </div>
+                                <div
+                                  className={`w-5 h-5 rounded-full border flex items-center justify-center text-[10px] font-bold ${
+                                    isSelected
+                                      ? "border-cyan-400 bg-cyan-400 text-slate-950"
+                                      : "border-slate-700 text-transparent"
+                                  }`}
+                                >
+                                  ✓
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* 2. Slot Selection */}
+                      <div>
+                        <div className="flex items-center justify-between mb-2">
+                          <label
+                            className="text-[11px] uppercase tracking-wider font-semibold text-slate-300"
+                            style={{ fontFamily: '"Inter", sans-serif' }}
+                          >
+                            2. Select Preferred Time Slot <span className="text-rose-400">*</span>
+                          </label>
+                          <span className="text-[10px] text-slate-400">2-hour arrival window</span>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                          {scheduleInfo.availableSlots.map((slot) => {
+                            const isSelected = selectedScheduledSlot === slot;
+                            return (
+                              <button
+                                key={slot}
+                                type="button"
+                                onClick={() => setSelectedScheduledSlot(slot)}
+                                className={`px-2.5 py-2 rounded-xl border text-center transition-all cursor-pointer ${
+                                  isSelected
+                                    ? "bg-emerald-950/70 border-emerald-400 text-emerald-300 font-bold shadow-[0_0_12px_rgba(52,211,153,0.25)]"
+                                    : "bg-slate-950/60 border-slate-800 text-slate-300 hover:border-slate-700 font-medium"
+                                }`}
+                              >
+                                <div className="text-[11px] sm:text-xs font-mono">{slot}</div>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 pt-1 text-[11px] text-slate-400">
+                        <span className="text-emerald-400 font-bold">✓</span>
+                        <span>
+                          Selected: <strong className="text-white">{selectedScheduledDate}</strong> between{" "}
+                          <strong className="text-emerald-400">{selectedScheduledSlot}</strong>
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Card 1: Contact Info */}
                   <div
                     className="p-5 rounded-xl space-y-4"
@@ -2311,7 +2472,7 @@ export default function CheckoutPage() {
                     <div className="flex items-center gap-2">
                       <span style={{ color: C.primary, fontSize: "16px" }}>👤</span>
                       <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: "0.95rem", color: C.onSurface, margin: 0 }}>
-                        1. Contact Information
+                        {!storeStatus.isOpen ? "2. Contact Information" : "1. Contact Information"}
                       </h3>
                     </div>
 
@@ -2701,23 +2862,49 @@ export default function CheckoutPage() {
                   )}
                 </div>
 
+                {/* Scheduled summary pill if store closed */}
+                {!storeStatus.isOpen && (
+                  <div className="p-3.5 rounded-xl bg-cyan-950/60 border border-cyan-500/40 flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-lg">📅</span>
+                      <div>
+                        <span className="text-white font-bold block">Scheduled Delivery Slot Confirmed</span>
+                        <span className="text-cyan-300 font-mono text-[11px]">
+                          {selectedScheduledDate} • {selectedScheduledSlot}
+                        </span>
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setCurrentStep(2)}
+                      className="text-cyan-400 hover:text-cyan-200 underline font-semibold text-[11px] cursor-pointer"
+                    >
+                      Change Slot
+                    </button>
+                  </div>
+                )}
+
                 {/* Pay Now CTA */}
                 <button
                   type="button"
                   onClick={handleRazorpayPayment}
-                  disabled={isSubmitting || !storeStatus.isOpen}
+                  disabled={isSubmitting}
                   className="w-full flex items-center justify-center gap-3 font-bold uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed rounded-xl py-5 cursor-pointer"
                   style={{
                     fontFamily: '"Space Grotesk", sans-serif',
                     fontSize: "1rem",
-                    background: !storeStatus.isOpen
-                      ? "rgba(61,74,83,0.5)"
-                      : isSubmitting
+                    background: isSubmitting
                       ? "rgba(58,173,204,0.6)"
+                      : !storeStatus.isOpen
+                      ? "linear-gradient(135deg, #0284c7 0%, #0d9488 50%, #10b981 100%)"
                       : "linear-gradient(135deg, #3aadcc 0%, #72ddfd 100%)",
-                    color: !storeStatus.isOpen ? "#9fadb8" : "#002730",
+                    color: !storeStatus.isOpen ? "#ffffff" : "#002730",
                     border: "none",
-                    boxShadow: isSubmitting || !storeStatus.isOpen ? "none" : "0 0 35px rgba(114,221,253,0.45)",
+                    boxShadow: isSubmitting
+                      ? "none"
+                      : !storeStatus.isOpen
+                      ? "0 0 35px rgba(16,185,129,0.35)"
+                      : "0 0 35px rgba(114,221,253,0.45)",
                   }}
                 >
                   {isSubmitting ? (
@@ -2730,10 +2917,8 @@ export default function CheckoutPage() {
                     </span>
                   ) : !storeStatus.isOpen ? (
                     <>
-                      <span>🔒</span>
-                      {storeStatus.isFridayMaintenance
-                        ? "Closed for Friday Maintenance · Reopens Sat 7 AM"
-                        : `Closed · Reopens ${storeStatus.nextOpenLabel || "7:00 AM"}`}
+                      <span>📅</span>
+                      <span>Pay ₹{grandTotal.toLocaleString("en-IN")} · Confirm Pre-Order ({selectedScheduledSlot})</span>
                     </>
                   ) : (
                     <>
@@ -3049,6 +3234,16 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
+                {!storeStatus.isOpen && (
+                  <div className="p-3 rounded-xl bg-cyan-950/60 border border-cyan-500/30 text-xs text-cyan-200 mt-2 flex items-center gap-2.5">
+                    <span className="text-base">📅</span>
+                    <div>
+                      <span className="font-bold text-white block">Scheduled Delivery Mode</span>
+                      <span className="text-[11px] text-cyan-300 font-mono">{selectedScheduledDate} • {selectedScheduledSlot}</span>
+                    </div>
+                  </div>
+                )}
+
                 {/* Trust Badges */}
                 <div
                   className="p-3.5 rounded-xl space-y-2 text-xs"
@@ -3064,7 +3259,7 @@ export default function CheckoutPage() {
                   </div>
                   <div className="flex items-center gap-2" style={{ color: "#86efac" }}>
                     <span>✓</span>
-                    <span>Cold-Chain 90-Min Dispatch</span>
+                    <span>{!storeStatus.isOpen ? `Fresh Harvest for ${selectedScheduledSlot}` : "Cold-Chain 90-Min Dispatch"}</span>
                   </div>
                   <div className="flex items-center gap-2" style={{ color: "#86efac" }}>
                     <span>✓</span>

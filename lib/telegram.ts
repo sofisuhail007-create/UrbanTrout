@@ -295,6 +295,9 @@ export function formatOrderTelegramText(order: {
   latitude?: number | null;
   longitude?: number | null;
   distanceKm?: number | null;
+  isScheduled?: boolean;
+  scheduledDate?: string;
+  scheduledSlot?: string;
 }): string {
   const cleanPhone = String(order.phone || "").replace(/\D/g, "").slice(-10);
   const status = order.status || "pending";
@@ -303,7 +306,7 @@ export function formatOrderTelegramText(order: {
     status === "out_of_stock"
       ? "⚠️ <b>OUT OF STOCK (REFUND DUE)</b>"
       : status === "processing" || status === "confirmed"
-      ? "✅ <b>PAYMENT VERIFIED (CONFIRMED & HARVESTING)</b>"
+      ? (order.isScheduled ? "📅 <b>PAYMENT CONFIRMED (SCHEDULED HARVEST)</b>" : "✅ <b>PAYMENT VERIFIED (CONFIRMED & HARVESTING)</b>")
       : status === "out_for_delivery"
       ? "🚚 <b>OUT FOR DELIVERY (RIDER DISPATCHED)</b>"
       : status === "delivered"
@@ -338,9 +341,11 @@ export function formatOrderTelegramText(order: {
     ? `\n📍 <b>1-Tap Navigation:</b> <a href="${resolvedMapsUrl}">Start Google Maps Navigation ↗</a>${distanceInfo}`
     : "";
 
-  return `🚨 <b>ORDER #${order.orderNumber}</b> 🐟✨
-━━━━━━━━━━━━━━━━━━━━
-<b>Status:</b> ${statusLabel}
+  const scheduleHeader = order.isScheduled && order.scheduledSlot
+    ? `📅 <b>SCHEDULED PRE-ORDER #${order.orderNumber}</b> 🐟✨\n━━━━━━━━━━━━━━━━━━━━\n🗓️ <b>Delivery Date:</b> <b>${order.scheduledDate || "Next Day"}</b>\n⏰ <b>Preferred Slot:</b> <b>${order.scheduledSlot}</b>\n`
+    : `🚨 <b>ORDER #${order.orderNumber}</b> 🐟✨\n━━━━━━━━━━━━━━━━━━━━\n`;
+
+  return `${scheduleHeader}<b>Status:</b> ${statusLabel}
 <b>Total:</b> <b>₹${Number(order.total || 0).toLocaleString("en-IN")}</b>
 <b>Payment:</b> ${paymentText}
 
@@ -373,6 +378,9 @@ export async function notifyNewOrder(order: {
   latitude?: number | null;
   longitude?: number | null;
   distanceKm?: number | null;
+  isScheduled?: boolean;
+  scheduledDate?: string;
+  scheduledSlot?: string;
 }) {
   const cleanPhone = String(order.phone || "").replace(/\D/g, "").slice(-10);
   
