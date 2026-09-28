@@ -124,6 +124,7 @@ export async function GET(request: Request) {
       return NextResponse.json({
         success: true,
         entries: fallbackList,
+        expenses: fallbackList,
         isTableAvailable: false,
       });
     }
@@ -131,6 +132,7 @@ export async function GET(request: Request) {
     return NextResponse.json({
       success: true,
       entries: data || [],
+      expenses: data || [],
       isTableAvailable: true,
     });
   } catch (err: any) {
@@ -139,6 +141,7 @@ export async function GET(request: Request) {
     return NextResponse.json({
       success: true,
       entries: fallbackList,
+      expenses: fallbackList,
       isTableAvailable: false,
     });
   }
@@ -207,6 +210,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       entry: newExpense,
+      expense: newExpense,
       tableSaved,
     });
   } catch (err: any) {
@@ -225,9 +229,12 @@ export async function PUT(request: Request) {
 
   try {
     const body = await request.json();
-    const { id, updates } = body;
+    const id = body.id;
+    const rawUpdates = body.updates || body;
+    const updates = { ...rawUpdates };
+    delete updates.id;
 
-    if (!id || !updates) {
+    if (!id || Object.keys(updates).length === 0) {
       return NextResponse.json({ success: false, error: "Missing id or updates" }, { status: 400 });
     }
 
@@ -275,8 +282,10 @@ export async function PUT(request: Request) {
     }
     updates.updated_at = new Date().toISOString();
 
+    let updatedRow: any = null;
     try {
-      await supabase.from("vending_expenses").update(updates).eq("id", id);
+      const { data: updated } = await supabase.from("vending_expenses").update(updates).eq("id", id).select().maybeSingle();
+      if (updated) updatedRow = updated;
     } catch (_) {}
 
     try {
@@ -284,11 +293,20 @@ export async function PUT(request: Request) {
       const idx = fallbackList.findIndex((e) => e.id === id);
       if (idx !== -1) {
         fallbackList[idx] = { ...fallbackList[idx], ...updates };
+        if (!updatedRow) updatedRow = fallbackList[idx];
         await saveFallbackExpenses(fallbackList);
       }
     } catch (_) {}
 
-    return NextResponse.json({ success: true, id, updates });
+    const finalExpense = updatedRow || { id, ...updates };
+
+    return NextResponse.json({
+      success: true,
+      id,
+      updates,
+      entry: finalExpense,
+      expense: finalExpense,
+    });
   } catch (err: any) {
     console.error("Vending Expenses PUT Error:", err);
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });

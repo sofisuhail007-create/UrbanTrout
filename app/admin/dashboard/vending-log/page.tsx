@@ -811,8 +811,9 @@ export default function VendingCenterLoggerPage() {
       const res = await adminFetch("/api/vending-log/expenses");
       if (res.ok) {
         const data = await res.json();
-        if (data.success && Array.isArray(data.expenses)) {
-          setExpenses(data.expenses);
+        const list = data.expenses || data.entries || [];
+        if (data.success && Array.isArray(list)) {
+          setExpenses(list.filter((x: any) => Boolean(x && x.id && x.expense_date)));
         }
       }
     } catch (err) {
@@ -873,24 +874,27 @@ export default function VendingCenterLoggerPage() {
 
     const firstOfMonth = new Date(currDate.getFullYear(), currDate.getMonth(), 1);
 
-    return expenses.filter((ex) => {
-      const [ey, em, ed] = ex.expense_date.split("-").map(Number);
-      const exDate = new Date(ey, em - 1, ed);
-      if (period === "today") return ex.expense_date === todayStr;
-      if (period === "date") return ex.expense_date === selectedDate;
-      if (period === "week") return exDate >= sevenDaysAgo;
-      if (period === "month") return exDate >= firstOfMonth;
-      if (period === "custom") {
-        if (customStartDate && ex.expense_date < customStartDate) return false;
-        if (customEndDate && ex.expense_date > customEndDate) return false;
-        return true;
-      }
-      return true; // "all"
-    });
+    return (expenses || [])
+      .filter((ex): ex is VendingExpenseEntry => Boolean(ex && typeof ex.expense_date === "string"))
+      .filter((ex) => {
+        const p = ex.expense_date.split("-").map(Number);
+        if (p.length !== 3 || !p[0] || !p[1] || !p[2]) return false;
+        const exDate = new Date(p[0], p[1] - 1, p[2]);
+        if (period === "today") return ex.expense_date === todayStr;
+        if (period === "date") return ex.expense_date === selectedDate;
+        if (period === "week") return exDate >= sevenDaysAgo;
+        if (period === "month") return exDate >= firstOfMonth;
+        if (period === "custom") {
+          if (customStartDate && ex.expense_date < customStartDate) return false;
+          if (customEndDate && ex.expense_date > customEndDate) return false;
+          return true;
+        }
+        return true; // "all"
+      });
   }, [expenses, period, customStartDate, customEndDate, selectedDate, getTodayDate]);
 
   const periodExpensesTotal = useMemo(() => {
-    return filteredExpensesByPeriod.reduce((sum, ex) => sum + (Number(ex.amount) || 0), 0);
+    return (filteredExpensesByPeriod || []).reduce((sum, ex) => sum + (Number(ex?.amount) || 0), 0);
   }, [filteredExpensesByPeriod]);
 
 
@@ -2576,14 +2580,14 @@ export default function VendingCenterLoggerPage() {
       XLSX.utils.book_append_sheet(wb, wsMortality, "Mortality & Scrap Log");
 
       // 7. Vending Center Operational Expenses Sheet
-      const expenseRows = expenses.map((ex, idx) => ({
+      const expenseRows = (expenses || []).filter(Boolean).map((ex, idx) => ({
         "#": idx + 1,
-        "Date": ex.expense_date,
-        "Time": ex.expense_time,
-        "Category": ex.category,
-        "Expense Title": ex.title,
-        "Amount (Rs)": Number(ex.amount),
-        "Payment Mode": ex.payment_mode,
+        "Date": ex.expense_date || "",
+        "Time": ex.expense_time || "",
+        "Category": ex.category || "",
+        "Expense Title": ex.title || "",
+        "Amount (Rs)": Number(ex.amount) || 0,
+        "Payment Mode": ex.payment_mode || "",
         "Logged By": ex.logged_by || "Staff",
         "Notes": ex.notes || "",
         "Logged At": ex.created_at || "",
@@ -2620,6 +2624,7 @@ export default function VendingCenterLoggerPage() {
   // Historical expenses can ONLY be edited/deleted by Super Admin.
   const canEditExpense = useCallback(
     (expense: VendingExpenseEntry): boolean => {
+      if (!expense) return false;
       if (isAdmin) return true;
       return expense.expense_date === getTodayDate();
     },
@@ -2693,13 +2698,17 @@ export default function VendingCenterLoggerPage() {
 
       const data = await res.json();
       if (res.ok && data.success) {
-        if (editingExpense) {
-          setExpenses((prev) =>
-            prev.map((item) => (item.id === editingExpense.id ? data.expense : item))
-          );
-        } else {
-          setExpenses((prev) => [data.expense, ...prev]);
+        const savedItem: VendingExpenseEntry | null = data.expense || data.entry || null;
+        if (savedItem && savedItem.id) {
+          if (editingExpense) {
+            setExpenses((prev) =>
+              (prev || []).map((item) => (item?.id === editingExpense.id ? savedItem : item)).filter(Boolean)
+            );
+          } else {
+            setExpenses((prev) => [savedItem, ...(prev || []).filter(Boolean)]);
+          }
         }
+        await fetchExpenses();
         setExpenseModalOpen(false);
         resetExpenseForm();
       } else {
@@ -2726,7 +2735,7 @@ export default function VendingCenterLoggerPage() {
       });
       const data = await res.json();
       if (res.ok && data.success) {
-        setExpenses((prev) => prev.filter((x) => x.id !== id));
+        setExpenses((prev) => (prev || []).filter((x) => x && x.id !== id));
         setDeleteExpenseConfirmId(null);
       } else {
         alert(`Error deleting expense: ${data.error || "Unknown error"}`);
@@ -4476,8 +4485,8 @@ export default function VendingCenterLoggerPage() {
               Breakdown:
             </span>
             {EXPENSE_CATEGORIES.map((cat) => {
-              const catTotal = filteredExpensesByPeriod
-                .filter((ex) => ex.category === cat)
+              const catTotal = (filteredExpensesByPeriod || [])
+                .filter((ex) => ex && ex.category === cat)
                 .reduce((s, ex) => s + (Number(ex.amount) || 0), 0);
               if (catTotal === 0) return null;
               return (
@@ -4529,7 +4538,7 @@ export default function VendingCenterLoggerPage() {
                       </td>
                     </tr>
                   ) : (
-                    filteredExpensesByPeriod.map((ex, idx) => {
+                    filteredExpensesByPeriod.filter(Boolean).map((ex, idx) => {
                       const canModify = canEditExpense(ex);
                       return (
                         <tr key={ex.id} className="hover:bg-slate-800/30 transition-colors group">
