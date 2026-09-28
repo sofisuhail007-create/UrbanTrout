@@ -136,7 +136,7 @@ export default function KashmiriTroutRecipePage() {
             <span className="text-xl">🦴</span>
             <h2 className="text-sm font-bold text-white font-['Space_Grotesk'] mt-2 mb-1">Single Central Spine</h2>
             <p className="text-xs text-slate-400 font-sans leading-relaxed">
-              No fine intramuscular &ldquo;Y-bones&rdquo;. Central backbone lifts cleanly out in one piece—100% child-safe.
+              No fine intramuscular &ldquo;Y-bones&rdquo;. Central backbone lifts cleanly out in one piece; easily checked for kid-safe dining.
             </p>
           </div>
           <div className="p-5 rounded-xl bg-slate-900/80 border border-slate-800">

@@ -52,7 +52,7 @@ const C = {
 const farmConditions = [
   { label: "Water Temperature", value: "10°C – 12°C", sub: "Deep Himalayan Aquifer (Naturally Cold)", icon: "thermostat" },
   { label: "Water Source", value: "100% Borewell", sub: "Clean Groundwater • Zero Surface Silt", icon: "water_drop" },
-  { label: "Oxygen Saturation", value: "98%+", sub: "Continuous High-Velocity Aeration", icon: "air" },
+  { label: "Dissolved Oxygen", value: "9.0 – 9.5 mg/L", sub: "~95%+ Saturation at Srinagar's 1,585m Altitude", icon: "air" },
   { label: "Harvest Policy", value: "Live to Order", sub: "Swimming in Tanks Until You Order", icon: "timer" },
 ];
 
@@ -67,7 +67,7 @@ const faqs = [
   },
   {
     q: "Do you clean and gut the trout before delivery?",
-    a: "Yes! When you select our Cleaned & Gutted Rainbow Trout (₹580/kg), our farm team expertly descales, cleans, and guts the fish immediately after harvest. The fish is thoroughly washed and packed on food-grade ice so it is 100% pan-ready the moment it arrives at your kitchen.",
+    a: "Yes! When you select our Cleaned & Gutted Rainbow Trout (₹580/kg), the fish is weighed whole at live harvest (gross weight) and then our farm team expertly descales, cleans, and guts it. Because inedible viscera and gills (~15%–18%) are removed during cleaning, you receive ~820g–850g of 100% pan-ready edible fish per kg ordered, thoroughly washed with cold groundwater and packed on food-grade ice with zero kitchen mess.",
   },
   {
     q: "Which areas in Srinagar do you deliver to?",
@@ -87,7 +87,7 @@ const faqs = [
   },
   {
     q: "What are your operating hours and are you open every day?",
-    a: "We are open for fresh live harvesting, farm pickups, and doorstep delivery Saturday through Thursday from 7:00 AM to 10:00 PM IST. We are closed on Fridays for scheduled Farm Maintenance, water filtration bio-security sanitization, and RAS system upkeep.",
+    a: "We are open for fresh live harvesting, farm pickups, and doorstep delivery Saturday through Thursday from 7:00 AM to 10:00 PM IST. We are closed on Fridays for scheduled Farm Maintenance, water filtration bio-security sanitization, and RAS system upkeep (scheduled pre-orders for Saturday delivery are accepted 24/7 online).",
   },
   {
     q: "Is Rainbow Trout skin edible and how is it traditionally cooked in Kashmir?",
@@ -95,11 +95,11 @@ const faqs = [
   },
   {
     q: "Is fresh trout available year-round in Srinagar or only during seasonal fishing months?",
-    a: "Fresh Rainbow Trout at Urban Trout is available 100% year-round, 365 days a year. While natural Himalayan river angling and wild stream fisheries in Kashmir are subject to winter freeze closures and monsoon breeding bans, our advanced deep borewell RAS setup and dedicated Vending Center maintain a pristine, constant 10°C–12°C temperature throughout all seasons, guaranteeing uninterrupted fresh harvest even during the coldest winter months.",
+    a: "Fresh Rainbow Trout at Urban Trout is available year-round across all four seasons. While natural Himalayan river angling and wild stream fisheries in Kashmir are subject to winter freeze closures and monsoon breeding bans, our advanced deep borewell RAS setup and dedicated Vending Center maintain a pristine, constant 10°C–12°C temperature throughout all seasons, guaranteeing uninterrupted fresh harvest Saturday through Thursday even during the coldest winter months.",
   },
   {
     q: "What do your trout eat and are any antibiotics or chemicals used?",
-    a: "Our fish are nourished exclusively on premium, high-protein floating extruded pellet nutrition designed specifically for cold-water Salmonids. Because our subterranean aquifer supplies continuous high-dissolved-oxygen currents (9.8 mg/L), our trout maintain vigorous natural immunity. We follow a strict zero-prophylactic-antibiotic and zero-growth-hormone protocol, ensuring clean, wholesome fish with zero pond mud or muddy bottom-feeder taste.",
+    a: "Our fish are nourished exclusively on premium, high-protein floating extruded pellet nutrition designed specifically for cold-water Salmonids. Because our subterranean aquifer and continuous aeration maintain optimal cold-water dissolved oxygen levels (9.0 – 9.5 mg/L, ~95%+ saturation at Srinagar's 1,585m altitude), our trout maintain vigorous natural immunity. We follow a strict zero-prophylactic-antibiotic and zero-growth-hormone protocol, ensuring clean, wholesome fish with zero pond mud or muddy bottom-feeder taste.",
   },
 ];
 
@@ -124,19 +124,6 @@ const customerReviews = [
   },
 ];
 
-const faqJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  "mainEntity": faqs.map((item) => ({
-    "@type": "Question",
-    "name": item.q,
-    "acceptedAnswer": {
-      "@type": "Answer",
-      "text": item.a,
-    },
-  })),
-};
-
 export default async function HomePage() {
   const [reviewsData, { data: dbProducts }] = await Promise.all([
     getGoogleReviewsData(),
@@ -157,6 +144,113 @@ export default async function HomePage() {
     };
   });
 
+  const schemaJsonLd = {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "LocalBusiness",
+        "@id": "https://urbantrout.in/#localbusiness",
+        "name": "Urban Trout",
+        "alternateName": "Urban Trout Srinagar",
+        "description":
+          "Srinagar's premier cold-water trout aquaculture farm and live vending center. Harvested live to order from deep borewell groundwater in Malabagh with 100% free doorstep delivery within 2 hours in our 5km radius zone.",
+        "url": "https://urbantrout.in",
+        "telephone": "+918491006127",
+        "priceRange": "₹₹",
+        "image": "https://urbantrout.in/og-image.jpg",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "Malabagh, Hazratbal Road",
+          "addressLocality": "Srinagar",
+          "addressRegion": "Jammu and Kashmir",
+          "postalCode": "190006",
+          "addressCountry": "IN",
+        },
+        "geo": {
+          "@type": "GeoCoordinates",
+          "latitude": 34.1437,
+          "longitude": 74.8315,
+        },
+        "openingHoursSpecification": [
+          {
+            "@type": "OpeningHoursSpecification",
+            "dayOfWeek": ["Saturday", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday"],
+            "opens": "07:00",
+            "closes": "22:00",
+          },
+        ],
+        "aggregateRating": {
+          "@type": "AggregateRating",
+          "ratingValue": reviewsData.rating.toString(),
+          "reviewCount": reviewsData.reviewCount.toString(),
+          "bestRating": "5",
+          "worstRating": "1",
+        },
+        "sameAs": [reviewsData.mapsUrl],
+      },
+      {
+        "@type": "Product",
+        "@id": "https://urbantrout.in/#whole-trout",
+        "name": "Fresh Whole Rainbow Trout (Srinagar)",
+        "image": "https://urbantrout.in/images/hero-trout-bg.webp",
+        "description":
+          "Live whole Rainbow Trout (Oncorhynchus mykiss) harvested live to order from pure cold borewell water in Malabagh, Srinagar. Delivered chilled on food-grade ice within 2 hours.",
+        "brand": {
+          "@type": "Brand",
+          "name": "Urban Trout",
+        },
+        "offers": {
+          "@type": "Offer",
+          "url": "https://urbantrout.in/shop",
+          "priceCurrency": "INR",
+          "price": "540",
+          "priceValidUntil": "2026-12-31",
+          "availability": "https://schema.org/InStock",
+          "seller": {
+            "@type": "LocalBusiness",
+            "name": "Urban Trout",
+          },
+        },
+      },
+      {
+        "@type": "Product",
+        "@id": "https://urbantrout.in/#gutted-trout",
+        "name": "Cleaned & Gutted Rainbow Trout (Srinagar)",
+        "image": "https://urbantrout.in/images/hero-trout-bg.webp",
+        "description":
+          "Expertly descaled, eviscerated, and cleaned Rainbow Trout. Billed on gross live harvest weight yielding ~820g–850g pan-ready net meat per kg. Zero kitchen prep mess.",
+        "brand": {
+          "@type": "Brand",
+          "name": "Urban Trout",
+        },
+        "offers": {
+          "@type": "Offer",
+          "url": "https://urbantrout.in/shop",
+          "priceCurrency": "INR",
+          "price": "580",
+          "priceValidUntil": "2026-12-31",
+          "availability": "https://schema.org/InStock",
+          "seller": {
+            "@type": "LocalBusiness",
+            "name": "Urban Trout",
+          },
+        },
+      },
+      {
+        "@type": "FAQPage",
+        "@id": "https://urbantrout.in/#faq",
+        "mainEntity": faqs.map((item) => ({
+          "@type": "Question",
+          "name": item.q,
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": item.a,
+          },
+        })),
+      },
+    ],
+  };
+
   const whatsappOrderUrl =
     "https://wa.me/918491006127?text=" +
     encodeURIComponent("Hi Urban Trout! I would like to order fresh Rainbow Trout for doorstep delivery in Srinagar.");
@@ -165,7 +259,7 @@ export default async function HomePage() {
     <div style={{ background: C.bg, minHeight: "100vh" }}>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(schemaJsonLd) }}
       />
 
       {/* ── Hero ── */}
@@ -420,14 +514,14 @@ export default async function HomePage() {
                   <td className="p-4 md:p-5 font-medium text-white">Whole Trout Rate / Kg</td>
                   <td className="p-4 md:p-5 font-bold text-emerald-400 bg-cyan-950/30 border-x border-cyan-500/20 text-base">₹540 / Kg</td>
                   <td className="p-4 md:p-5 text-slate-400">₹650 – ₹700 / Kg</td>
-                  <td className="p-4 md:p-5 text-slate-400">₹650 – ₹1,000 / Kg</td>
+                  <td className="p-4 md:p-5 text-slate-400">₹550 – ₹750 / Kg (Wholesale bulk only)</td>
                   <td className="p-4 md:p-5 text-slate-400">₹1,000 – ₹1,400 / Kg (Cooked)</td>
                 </tr>
                 <tr className="hover:bg-slate-900/30 transition-colors">
                   <td className="p-4 md:p-5 font-medium text-white">Cleaned &amp; Gutted Rate / Kg</td>
-                  <td className="p-4 md:p-5 font-bold text-emerald-400 bg-cyan-950/30 border-x border-cyan-500/20 text-base">₹580 / Kg <span className="text-[11px] font-normal text-slate-400">(100% Pan-Ready)</span></td>
+                  <td className="p-4 md:p-5 font-bold text-emerald-400 bg-cyan-950/30 border-x border-cyan-500/20 text-base">₹580 / Kg <span className="text-[11px] font-normal text-slate-400">(Yields ~820g–850g net meat)</span></td>
                   <td className="p-4 md:p-5 text-slate-400">₹720 – ₹780 / Kg</td>
-                  <td className="p-4 md:p-5 text-slate-400">₹750 – ₹1,100 / Kg</td>
+                  <td className="p-4 md:p-5 text-slate-400">₹650 – ₹850 / Kg (Bulk frozen)</td>
                   <td className="p-4 md:p-5 text-slate-400">₹1,200 – ₹1,600 / Kg</td>
                 </tr>
                 <tr className="hover:bg-slate-900/30 transition-colors">
@@ -445,20 +539,20 @@ export default async function HomePage() {
                     100% FREE within 2 Hours (Chilled on ice)
                   </td>
                   <td className="p-4 md:p-5 text-slate-400">Self-pickup required or ₹100+ local courier.</td>
-                  <td className="p-4 md:p-5 text-slate-400">₹200–₹400 extra packing &amp; freight box.</td>
+                  <td className="p-4 md:p-5 text-slate-400">₹200–₹400 extra thermocol box &amp; shipping; frozen delays.</td>
                   <td className="p-4 md:p-5 text-slate-400">Dine-in only (no raw fish supply).</td>
                 </tr>
                 <tr className="hover:bg-slate-900/30 transition-colors">
                   <td className="p-4 md:p-5 font-medium text-white">Minimum Order Quantity</td>
                   <td className="p-4 md:p-5 text-white bg-cyan-950/30 border-x border-cyan-500/20 font-medium">2 Kg (Family friendly)</td>
                   <td className="p-4 md:p-5 text-slate-400">1 Kg</td>
-                  <td className="p-4 md:p-5 text-slate-400">5 – 10 Kg wholesale lot</td>
+                  <td className="p-4 md:p-5 text-slate-400">5 – 10 Kg minimum commercial lot</td>
                   <td className="p-4 md:p-5 text-slate-400">Single plate portion</td>
                 </tr>
                 <tr className="hover:bg-slate-900/30 transition-colors">
                   <td className="p-4 md:p-5 font-medium text-white">Bone &amp; Edibility Profile</td>
                   <td className="p-4 md:p-5 text-cyan-200 bg-cyan-950/30 border-x border-cyan-500/20">
-                    <strong className="text-white">Single central spine</strong>. Soft pin-bones pull out cleanly in 1 piece. <em>Kid-friendly &amp; safe.</em>
+                    <strong className="text-white">Single central spine</strong> with soft lateral pin bones that pull out cleanly. <em>No hazardous Y-bones.</em>
                   </td>
                   <td className="p-4 md:p-5 text-slate-400">Variable species quality; risk of broken bones.</td>
                   <td className="p-4 md:p-5 text-slate-400">Standard commercial harvest.</td>
@@ -489,7 +583,7 @@ export default async function HomePage() {
           <div className="mt-8 p-6 rounded-2xl bg-slate-950/80 border border-slate-800 flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="space-y-1.5 text-center md:text-left">
               <span className="text-[10px] uppercase font-mono font-bold tracking-widest text-amber-400">Srinagar Trout Buying Channels</span>
-              <h4 className="text-sm font-bold text-white font-['Space_Grotesk']">Farm-Direct Doorstep Delivery vs. J&amp;K Fisheries Department Outlets</h4>
+              <h3 className="text-sm font-bold text-white font-['Space_Grotesk']">Farm-Direct Doorstep Delivery vs. J&amp;K Fisheries Department Outlets</h3>
               <p className="text-xs text-slate-300 leading-relaxed font-sans max-w-3xl">
                 The J&amp;K Department of Fisheries operates respected retail counters at <strong>Gagribal (Boulevard)</strong>, <strong>Laribal Hatchery</strong>, and <strong>Kokernag</strong>. While official outlets provide subsidized public stock, they operate during strict morning windows (typically 8:00 AM – 11:00 AM), enforce strict per-citizen purchase quotas, and require in-person queuing. Urban Trout complements this ecosystem with <strong>on-demand live harvest from our modern RAS facility, distribution via our dedicated Srinagar vending center, and 100% Free Doorstep Delivery</strong> directly to your home within 2 hours across our 5km farm delivery zone (or farm pickup for customers outside 5km).
               </p>
@@ -510,6 +604,9 @@ export default async function HomePage() {
             <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "10px", letterSpacing: "0.2em", textTransform: "uppercase", color: C.primary, fontWeight: 700 }}>
               Live Water Quality &amp; Farming Standards
             </span>
+            <h2 className="text-xl md:text-2xl font-extrabold text-white font-['Space_Grotesk'] tracking-tight mt-1">
+              Verified Water Purity &amp; Cold-Chain Timeline
+            </h2>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {farmConditions.map((item, i) => (
@@ -574,9 +671,9 @@ export default async function HomePage() {
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
                 <span className="text-xs uppercase tracking-widest font-mono font-bold text-emerald-400">Verified Aquifer Test Report • March 2026</span>
               </div>
-              <h4 className="text-base font-bold text-white font-['Space_Grotesk']">Malabagh Deep Borewell Aquifer Quality Audit</h4>
+              <h3 className="text-base font-bold text-white font-['Space_Grotesk']">Malabagh Deep Borewell Aquifer Quality Audit</h3>
               <p className="text-xs text-slate-300 font-sans leading-relaxed">
-                Continuous probe telemetry &amp; laboratory titration: <strong>11.2°C Temperature</strong>, <strong>9.8 mg/L Dissolved Oxygen (Near-Saturation Cold Water)</strong>, <strong>pH 7.6</strong>, <strong>Ammonia &lt;0.01 mg/L</strong>. Unlike surface canal or river waters exposed to agricultural runoff and cyanobacterial blooms that produce earthy <em>Geosmin</em> and <em>2-Methylisoborneol (2-MIB)</em>, our subterranean aquifer is 100% silt-free and sun-shielded, ensuring sweet, clean-tasting white flesh with <strong>zero mud taste</strong>. Farm aquaculture standards aligned with the <a href="https://fisheries.jk.gov.in" target="_blank" rel="noopener noreferrer" className="text-cyan-400 font-semibold underline hover:text-cyan-300">Jammu &amp; Kashmir Department of Fisheries</a>.
+                Continuous probe telemetry &amp; laboratory titration: <strong>11.2°C Temperature</strong>, <strong>9.0 – 9.5 mg/L Dissolved Oxygen (~95%+ Saturation at Srinagar's 1,585m elevation)</strong>, <strong>pH 7.6</strong>, <strong>Ammonia &lt;0.01 mg/L</strong>. Unlike surface canal or river waters exposed to agricultural runoff and cyanobacterial blooms that produce earthy <em>Geosmin</em> and <em>2-Methylisoborneol (2-MIB)</em>, our subterranean aquifer is 100% silt-free and sun-shielded, ensuring sweet, clean-tasting white flesh with <strong>zero mud taste</strong>. Farm aquaculture standards aligned with the <a href="https://fisheries.jk.gov.in" target="_blank" rel="noopener noreferrer" className="text-cyan-400 font-semibold underline hover:text-cyan-300">Jammu &amp; Kashmir Department of Fisheries</a>.
               </p>
             </div>
             <div className="flex-shrink-0">
@@ -653,7 +750,7 @@ export default async function HomePage() {
               </div>
             </div>
 
-            {/* 365-Day Year-Round Harvest */}
+            {/* Year-Round Consistent Supply */}
             <div
               className="rounded-2xl p-8 md:p-10 flex flex-col justify-between transition-all hover:border-[#72ddfd]/30"
               style={{ background: C.bgHigh, border: "1px solid rgba(255,255,255,0.06)" }}
@@ -665,9 +762,9 @@ export default async function HomePage() {
                   <line x1="8" y1="2" x2="8" y2="6" />
                   <line x1="3" y1="10" x2="21" y2="10" />
                 </svg>
-                <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.35rem", fontWeight: 700, color: C.onSurface, margin: "0 0 0.75rem" }}>365-Day Year-Round Harvest</h3>
+                <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.35rem", fontWeight: 700, color: C.onSurface, margin: "0 0 0.75rem" }}>Year-Round Consistent Supply</h3>
                 <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfaceVariant, fontSize: "0.9rem", lineHeight: 1.75, margin: 0 }}>
-                  Unlike natural river streams that freeze in sub-zero winter or shut down for seasonal breeding bans, our advanced RAS setup and live Vending Center maintain optimal conditions for guaranteed fresh trout supply 365 days a year.
+                  Unlike natural river streams that freeze in sub-zero winter or shut down for seasonal breeding bans, our advanced RAS setup and live Vending Center maintain optimal conditions for fresh trout supply throughout all four seasons, Saturday through Thursday.
                 </p>
               </div>
             </div>
@@ -749,7 +846,7 @@ export default async function HomePage() {
                   🦴
                 </div>
                 <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.3rem", fontWeight: 700, color: C.onSurface, marginBottom: "0.75rem" }}>
-                  Single Pin-Bone Anatomy &amp; Kid-Safe Dining
+                  Single Pin-Bone Anatomy &amp; Kid-Friendly Dining
                 </h3>
                 <p className="text-xs text-slate-300 leading-relaxed font-sans mb-3">
                   Unlike local river carp, Rohu, or Katla which are packed with sharp, hazardous intramuscular &ldquo;Y-bones&rdquo;, Rainbow Trout features an uncomplicated, single central backbone.
@@ -757,11 +854,11 @@ export default async function HomePage() {
                 <ul className="text-xs text-slate-300 space-y-2.5 leading-relaxed font-sans">
                   <li className="flex items-start gap-2">
                     <span className="text-cyan-400 font-bold">•</span>
-                    <span><strong>Effortless deboning:</strong> Once steamed, pan-fried, or baked, the central spine lifts out completely in one single motion.</span>
+                    <span><strong>Effortless deboning:</strong> Once steamed, pan-fried, or baked, the central spine lifts out completely in one single motion with attached lateral pin bones.</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-cyan-400 font-bold">•</span>
-                    <span><strong>100% Safe for children &amp; elders:</strong> Zero tiny hidden bones embedded in the meat.</span>
+                    <span><strong>Child-friendly dining:</strong> No needle-sharp Y-bones embedded deep in muscle tissue. For toddlers, parents should still inspect flaky fillets before serving.</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-cyan-400 font-bold">•</span>
@@ -769,7 +866,7 @@ export default async function HomePage() {
                   </li>
                 </ul>
               </div>
-              <span className="text-[11px] text-emerald-400 font-mono">Favored by health-conscious families &amp; parents for kid-safe, bone-free dining</span>
+              <span className="text-[11px] text-emerald-400 font-mono">Favored by health-conscious families &amp; parents for easy deboning and gentle texture</span>
             </div>
 
             {/* Card 3: Species Science & The "Himalayan Salmon" */}
