@@ -204,7 +204,7 @@ const PRESET_TEMPLATES: MarketingTemplate[] = [
     category: "fitness",
     tag: "Post-Workout",
     title: "Your muscles called: they want real nutrition 💪",
-    body: "Glacier-water Rainbow Trout packed with pure anti-inflammatory Omega-3 fatty acids. Clean fuel for lean gains.",
+    body: "Deep borewell cold-water Rainbow Trout packed with pure anti-inflammatory Omega-3 fatty acids. Clean fuel for lean gains.",
     url: "/shop",
   },
   {
@@ -213,8 +213,8 @@ const PRESET_TEMPLATES: MarketingTemplate[] = [
     icon: "🧠",
     category: "fitness",
     tag: "Clean Nutrition",
-    title: "Eat smarter: Himalayan Trout nutrition 🐟⚡",
-    body: "Zero antibiotics, zero muddy taste. Raised in oxygen-rich mountain water. Pure brain food for you and your family.",
+    title: "Eat smarter: Srinagar Trout nutrition 🐟⚡",
+    body: "Zero antibiotics, zero muddy taste. Raised in pure deep borewell subterranean water. Pure brain food for you and your family.",
     url: "/shop",
   },
   {
@@ -231,11 +231,11 @@ const PRESET_TEMPLATES: MarketingTemplate[] = [
   // ── 5. Flash Urgency & Scarcity ──
   {
     id: "fomo-1",
-    name: "7 AM Glacier Harvest ❄️",
+    name: "7 AM Live Harvest ❄️",
     icon: "❄️",
     category: "fomo",
     tag: "Hyper-Fresh",
-    title: "Swimming in glacier water at 7 AM ❄️",
+    title: "Swimming in chilled RAS tanks at 7 AM ❄️",
     body: "On your dining table by 1 PM! You can't get fresher than this anywhere in Srinagar. Morning batch selling fast.",
     url: "/shop",
   },

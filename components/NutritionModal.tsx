@@ -68,7 +68,7 @@ export default function NutritionModal({
           <div>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-950/80 border border-cyan-400/40 text-[10px] font-mono font-bold tracking-wider text-cyan-300 uppercase mb-2">
               <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-              Glacier Aquaculture • Nutritional Blueprint
+              Deep Borewell RAS • Nutritional Blueprint
             </div>
             <h2 className="text-xl sm:text-2xl font-black text-white font-['Space_Grotesk'] tracking-tight flex items-center gap-2">
               <span>The Nutrition Game</span>
@@ -221,20 +221,20 @@ export default function NutritionModal({
             </div>
           )}
 
-          {/* TAB 2: GLACIER OMEGA-3s */}
+          {/* TAB 2: COLD-WATER OMEGA-3s */}
           {activeTab === "omega3" && (
             <div className="space-y-4 animate-fadeIn">
               <div className="p-4 rounded-2xl bg-emerald-950/30 border border-emerald-500/30 space-y-3">
                 <div className="flex items-center justify-between">
                   <h3 className="text-base font-bold text-emerald-300 font-['Space_Grotesk']">
-                    The Glacier Antifreeze: Pristine EPA &amp; DHA
+                    Cold-Water Omega Power: Pristine EPA &amp; DHA
                   </h3>
                   <span className="text-[11px] font-mono text-emerald-400 bg-emerald-950 px-2 py-0.5 rounded-full border border-emerald-500/40 font-bold">
                     ~{(nutrition.omega3Mg / 1000).toFixed(1)}g per catch
                   </span>
                 </div>
                 <p className="text-xs text-slate-300 leading-relaxed font-['Manrope']">
-                  Rainbow trout thrive in sub-zero Himalayan glacier streams. To stay flexible in freezing waters, their biology synthesizes ultra-potent polyunsaturated fatty acids: <strong>EPA (Eicosapentaenoic Acid)</strong> and <strong>DHA (Docosahexaenoic Acid)</strong>.
+                  Rainbow trout thrive strictly in chilled, high-velocity oxygenated waters. To maintain cellular fluidity and vigor in cold temperatures, their biology naturally synthesizes ultra-potent polyunsaturated fatty acids: <strong>EPA (Eicosapentaenoic Acid)</strong> and <strong>DHA (Docosahexaenoic Acid)</strong>.
                 </p>
               </div>
 
@@ -362,34 +362,34 @@ export default function NutritionModal({
             </div>
           )}
 
-          {/* TAB 5: HIMALAYAN PURITY */}
+          {/* TAB 5: DEEP BOREWELL PURITY */}
           {activeTab === "purity" && (
             <div className="space-y-3.5 animate-fadeIn">
               <div className="p-4 rounded-2xl bg-cyan-950/40 border border-cyan-500/30 space-y-2">
                 <span className="text-xs font-mono font-bold text-cyan-300 uppercase tracking-wider block">
-                  🏔️ The Urban Trout Glacier Standard
+                  💧 The Deep Borewell Ground Water Standard
                 </span>
                 <p className="text-xs text-slate-300 leading-relaxed font-['Manrope']">
-                  Unlike warm-water river fish or ocean salmon exposed to industrial microplastics, Urban Trout is reared in pristine spring waters sourced from high-altitude glacier melt in Kashmir.
+                  Unlike open river fisheries exposed to surface runoff, agricultural silt, and wild river contaminants, Urban Trout is reared exclusively using <strong>pure deep borewell subterranean ground water</strong> at our Malabagh farm in Srinagar. Sourced directly from deep subterranean aquifers, the water is naturally filtered, 100% free of surface pollutants, and continuously aerated in bio-secure RAS tanks.
                 </p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                 <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
                   <span className="font-bold text-emerald-300 font-mono flex items-center gap-1.5">
-                    <span>✓</span> Zero Antibiotics
+                    <span>✓</span> Zero River Contaminants
                   </span>
                   <p className="text-[11px] text-slate-400">
-                    High water flow and continuous oxygenation naturally eliminate bacterial pathogens without preventive drugs.
+                    Deep borewell subterranean water completely bypasses open surface pollutants, agricultural chemicals, and flood silt.
                   </p>
                 </div>
 
                 <div className="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-1">
                   <span className="font-bold text-emerald-300 font-mono flex items-center gap-1.5">
-                    <span>✓</span> Sub-Zero Thermal Pack
+                    <span>✓</span> Zero Antibiotics &amp; Chemicals
                   </span>
                   <p className="text-[11px] text-slate-400">
-                    Dispatched in 100% bio-thermal insulated boxes with ice gel to lock in cellular moisture and freshness.
+                    High water flow and continuous oxygenation naturally eliminate bacterial pathogens without preventive drugs or formalin.
                   </p>
                 </div>
               </div>
