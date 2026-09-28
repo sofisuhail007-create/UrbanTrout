@@ -65,7 +65,7 @@ export default function CartDrawer() {
         className={`fixed right-0 top-0 h-full z-[60] flex flex-col transition-transform duration-500 ease-in-out ${isOpen ? "translate-x-0" : "translate-x-full"}`}
         style={{
           width: "100%",
-          maxWidth: "400px",
+          maxWidth: "420px",
           background: "rgba(6,21,30,0.98)",
           backdropFilter: "blur(28px)",
           borderLeft: `1px solid rgba(61,74,83,0.5)`,
@@ -237,88 +237,88 @@ export default function CartDrawer() {
               );
             })
           )}
+
+          {/* Catch Nutritional Powerhouse (Interactive Fact Check inside scroll area) */}
+          {items.length > 0 && totalTroutKg > 0 && (
+            <div
+              className="p-3.5 rounded-2xl transition-all duration-300 mt-2"
+              style={{
+                background: "linear-gradient(135deg, rgba(8,27,38,0.95) 0%, rgba(13,38,52,0.85) 100%)",
+                border: "1px solid rgba(114,221,253,0.28)",
+                boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
+              }}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs font-bold text-cyan-300 font-['Space_Grotesk'] uppercase tracking-wider flex items-center gap-1.5">
+                  <span>🧬</span> {totalTroutKg} Kg Catch Nutritional Yield
+                </span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-mono text-emerald-400 font-bold bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-500/30">
+                    Fact-Checked
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setShowNutritionModal(true)}
+                    className="relative flex items-center justify-center w-5 h-5 rounded-full bg-gradient-to-tr from-cyan-400 to-teal-300 text-slate-950 font-black text-[11px] shadow-[0_0_12px_rgba(114,221,253,0.7)] hover:shadow-[0_0_18px_rgba(114,221,253,0.9)] hover:scale-110 active:scale-95 transition-all cursor-pointer ring-1 ring-cyan-200"
+                    title="The Nutrition Game: Click to view complete science breakdown"
+                    aria-label="View Nutrition Science Breakdown"
+                  >
+                    <span className="leading-none select-none">!</span>
+                    <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-1.5 text-center py-1">
+                <div className="bg-slate-950/70 p-2 rounded-xl border border-slate-800/80">
+                  <span className="text-[10px] text-slate-400 block font-mono uppercase tracking-tight">Pure Protein</span>
+                  <strong className="text-sm sm:text-base text-cyan-300 font-bold font-['Space_Grotesk']">
+                    ~{cartNutrition.proteinGrams}g
+                  </strong>
+                  <span className="text-[9px] text-emerald-400 block">≈ {cartNutrition.wholeEggEquivalent} Whole Eggs</span>
+                </div>
+
+                <div className="bg-slate-950/70 p-2 rounded-xl border border-slate-800/80">
+                  <span className="text-[10px] text-slate-400 block font-mono uppercase tracking-tight">EPA + DHA</span>
+                  <strong className="text-sm sm:text-base text-emerald-400 font-bold font-['Space_Grotesk']">
+                    ~{(cartNutrition.omega3Mg / 1000).toFixed(1)}g
+                  </strong>
+                  <span className="text-[9px] text-slate-400 block">Omega-3s</span>
+                </div>
+
+                <div className="bg-slate-950/70 p-2 rounded-xl border border-slate-800/80">
+                  <span className="text-[10px] text-slate-400 block font-mono uppercase tracking-tight">Natural D3</span>
+                  <strong className="text-sm sm:text-base text-amber-300 font-bold font-['Space_Grotesk']">
+                    ~{cartNutrition.vitaminDIU.toLocaleString("en-IN")} IU
+                  </strong>
+                  <span className="text-[9px] text-slate-400 block">Immunity</span>
+                </div>
+              </div>
+
+              <div
+                onClick={() => setShowNutritionModal(true)}
+                className="mt-2 p-2 rounded-xl bg-cyan-950/40 hover:bg-cyan-950/70 border border-cyan-500/25 hover:border-cyan-500/40 transition-all cursor-pointer group flex items-center justify-between gap-2"
+                title="Click to explore the complete Nutrition Game flash card"
+              >
+                <p className="text-[11px] text-slate-300 leading-snug">
+                  ⚡ <strong>Fact Check:</strong> {cartNutrition.headlineFact}
+                </p>
+                <span className="flex-shrink-0 flex items-center gap-1 text-[10px] font-mono font-bold text-cyan-300 group-hover:text-cyan-200 underline">
+                  <span>Explore</span>
+                  <span className="w-3.5 h-3.5 rounded-full bg-cyan-400 text-slate-950 flex items-center justify-center font-black text-[9px]">!</span>
+                </span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Footer */}
         {items.length > 0 && (
-          <div className="px-6 py-5 space-y-4" style={{ borderTop: `1px solid rgba(61,74,83,0.4)` }}>
-            {/* Catch Nutritional Powerhouse (Interactive Fact Check) */}
-            {totalTroutKg > 0 && (
-              <div
-                className="p-3.5 rounded-2xl transition-all duration-300"
-                style={{
-                  background: "linear-gradient(135deg, rgba(8,27,38,0.95) 0%, rgba(13,38,52,0.85) 100%)",
-                  border: "1px solid rgba(114,221,253,0.28)",
-                  boxShadow: "0 8px 24px rgba(0,0,0,0.35)",
-                }}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold text-cyan-300 font-['Space_Grotesk'] uppercase tracking-wider flex items-center gap-1.5">
-                    <span>🧬</span> {totalTroutKg} Kg Catch Nutritional Yield
-                  </span>
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[10px] font-mono text-emerald-400 font-bold bg-emerald-950/80 px-2 py-0.5 rounded-full border border-emerald-500/30">
-                      Fact-Checked
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setShowNutritionModal(true)}
-                      className="relative flex items-center justify-center w-5 h-5 rounded-full bg-gradient-to-tr from-cyan-400 to-teal-300 text-slate-950 font-black text-[11px] shadow-[0_0_12px_rgba(114,221,253,0.7)] hover:shadow-[0_0_18px_rgba(114,221,253,0.9)] hover:scale-110 active:scale-95 transition-all cursor-pointer ring-1 ring-cyan-200"
-                      title="The Nutrition Game: Click to view complete science breakdown"
-                      aria-label="View Nutrition Science Breakdown"
-                    >
-                      <span className="leading-none select-none">!</span>
-                      <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-2 text-center py-1">
-                  <div className="bg-slate-950/70 p-2 rounded-xl border border-slate-800/80">
-                    <span className="text-[10px] text-slate-400 block font-mono uppercase tracking-tight">Pure Protein</span>
-                    <strong className="text-sm md:text-base text-cyan-300 font-bold font-['Space_Grotesk']">
-                      ~{cartNutrition.proteinGrams}g
-                    </strong>
-                    <span className="text-[9px] text-emerald-400 block">≈ {cartNutrition.wholeEggEquivalent} Whole Eggs</span>
-                  </div>
-
-                  <div className="bg-slate-950/70 p-2 rounded-xl border border-slate-800/80">
-                    <span className="text-[10px] text-slate-400 block font-mono uppercase tracking-tight">EPA + DHA</span>
-                    <strong className="text-sm md:text-base text-emerald-400 font-bold font-['Space_Grotesk']">
-                      ~{(cartNutrition.omega3Mg / 1000).toFixed(1)}g
-                    </strong>
-                    <span className="text-[9px] text-slate-400 block">Omega-3s</span>
-                  </div>
-
-                  <div className="bg-slate-950/70 p-2 rounded-xl border border-slate-800/80">
-                    <span className="text-[10px] text-slate-400 block font-mono uppercase tracking-tight">Natural D3</span>
-                    <strong className="text-sm md:text-base text-amber-300 font-bold font-['Space_Grotesk']">
-                      ~{cartNutrition.vitaminDIU.toLocaleString("en-IN")} IU
-                    </strong>
-                    <span className="text-[9px] text-slate-400 block">Immunity</span>
-                  </div>
-                </div>
-
-                <div
-                  onClick={() => setShowNutritionModal(true)}
-                  className="mt-2 p-2 rounded-xl bg-cyan-950/30 hover:bg-cyan-950/60 border border-cyan-500/20 hover:border-cyan-500/40 transition-all cursor-pointer group flex items-center justify-between gap-2"
-                  title="Click to explore the complete Nutrition Game flash card"
-                >
-                  <p className="text-[11px] text-slate-300 leading-snug">
-                    ⚡ <strong>Fact Check:</strong> {cartNutrition.headlineFact}
-                  </p>
-                  <span className="flex-shrink-0 flex items-center gap-1 text-[10px] font-mono font-bold text-cyan-300 group-hover:text-cyan-200 underline">
-                    <span>Explore</span>
-                    <span className="w-3.5 h-3.5 rounded-full bg-cyan-400 text-slate-950 flex items-center justify-center font-black text-[9px]">!</span>
-                  </span>
-                </div>
-              </div>
-            )}
-
+          <div className="px-5 py-4 space-y-3" style={{ borderTop: `1px solid rgba(61,74,83,0.4)`, background: "rgba(6,21,30,0.98)" }}>
             {/* Total Savings Banner */}
             {totalSavings > 0 && (
               <div
-                className="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold"
+                className="flex items-center justify-between px-3.5 py-2 rounded-xl text-xs font-bold"
                 style={{
                   background: "rgba(34,197,94,0.12)",
                   border: "1px solid rgba(34,197,94,0.35)",
@@ -352,27 +352,27 @@ export default function CartDrawer() {
             </div>
 
             {/* Subtotal */}
-            <div className="flex justify-between items-center">
+            <div className="flex justify-between items-center pt-0.5">
               <div>
-                <p style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", letterSpacing: "0.2em", textTransform: "uppercase", color: C.outline, marginBottom: "4px" }}>
+                <p style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", letterSpacing: "0.2em", textTransform: "uppercase", color: C.outline, marginBottom: "2px" }}>
                   Total Amount (Free Delivery)
                 </p>
-                <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.75rem", fontWeight: 800, color: C.primary, letterSpacing: "-0.04em", lineHeight: 1 }}>
+                <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.65rem", fontWeight: 800, color: C.primary, letterSpacing: "-0.04em", lineHeight: 1 }}>
                   ₹{total.toLocaleString("en-IN")}
                 </h3>
               </div>
               <div style={{ textAlign: "right" }}>
-                <p style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", letterSpacing: "0.1em", textTransform: "uppercase", color: C.outline, marginBottom: "4px" }}>
+                <p style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", letterSpacing: "0.1em", textTransform: "uppercase", color: C.outline, marginBottom: "2px" }}>
                   Packaging
                 </p>
-                <p style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "0.9rem", fontWeight: 700, color: "#34d399" }}>FREE Bio-Thermal</p>
+                <p style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "0.85rem", fontWeight: 700, color: "#34d399" }}>FREE Bio-Thermal</p>
               </div>
             </div>
 
             {/* Store Status Notification */}
             {!storeStatus.isOpen && (
               <div
-                className="p-3 rounded-xl text-xs flex items-center gap-2.5 my-1"
+                className="p-2.5 rounded-xl text-xs flex items-center gap-2.5"
                 style={{
                   background: "rgba(58,173,204,0.15)",
                   border: "1px solid rgba(114,221,253,0.35)",
@@ -381,8 +381,8 @@ export default function CartDrawer() {
                 }}
               >
                 <span className="text-base flex-shrink-0">📅</span>
-                <span className="leading-tight font-medium">
-                  Farm operations paused. <strong>Pre-order for {storeStatus.nextOpenLabel || "tomorrow"} delivery</strong> &amp; select your time slot at checkout!
+                <span className="leading-tight font-medium text-[11px]">
+                  Farm operations paused · <strong>Pre-order for {storeStatus.nextOpenLabel || "tomorrow"} delivery</strong> &amp; select your time slot at checkout!
                 </span>
               </div>
             )}
@@ -392,7 +392,7 @@ export default function CartDrawer() {
               onClick={closeCart}
               className="flex items-center justify-center gap-2 w-full font-bold uppercase tracking-widest transition-all active:scale-[0.98]"
               style={{
-                height: "50px",
+                height: "48px",
                 borderRadius: "12px",
                 background: !storeStatus.isOpen ? "linear-gradient(135deg, #059669 0%, #10b981 100%)" : C.primaryCont,
                 color: !storeStatus.isOpen ? "#ffffff" : C.onPrimCont,
