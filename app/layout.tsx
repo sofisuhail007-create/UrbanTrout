@@ -9,6 +9,7 @@ import { CustomerAuthProvider } from "@/context/CustomerAuthContext";
 import { Toaster } from "react-hot-toast";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import Script from "next/script";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -441,6 +442,21 @@ fbq('track', 'PageView');
           <Footer />
           <Analytics />
           <SpeedInsights />
+          {/* ─── Google Analytics 4 (GA4) ───────────────────────────────── */}
+          <Script
+            src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? "G-VF8E6RTTKM"}`}
+            strategy="afterInteractive"
+          />
+          <Script id="ga4-init" strategy="afterInteractive">
+            {`
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', '${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? "G-VF8E6RTTKM"}', {
+                page_path: window.location.pathname,
+              });
+            `}
+          </Script>
           {/* ─── PWA Service Worker Global Registration ─────────────────── */}
           <script
             dangerouslySetInnerHTML={{
