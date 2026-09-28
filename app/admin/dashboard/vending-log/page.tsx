@@ -9,6 +9,7 @@ import { StaffIncentivePayout } from "@/app/api/vending-log/incentive/route";
 import { AquariumStockEntry } from "@/app/api/aquarium-stock/route";
 import { AquariumMortalityEntry } from "@/app/api/aquarium-mortality/route";
 import { WorkerSalaryPayment, WorkerSalarySettings } from "@/app/api/vending-log/salary/route";
+import { VendingExpenseEntry } from "@/app/api/vending-log/expenses/route";
 import * as XLSX from "xlsx";
 import BalanceReminderModal from "../billing/BalanceReminderModal";
 import type { CustomerBalanceRecord } from "@/app/api/customer-balance/route";
@@ -18,6 +19,17 @@ import PaginationBar from "@/components/PaginationBar";
 const DEFAULT_GUTTED_PRICE = 580;
 const DEFAULT_NON_GUTTED_PRICE = 540;
 const INCENTIVE_RATE_PER_KG = 5; // RS 5 per kg for gutted trout only
+
+const EXPENSE_CATEGORIES = [
+  "Polybags & Packaging",
+  "Ice & Cooling",
+  "Cleaning & Sanitation",
+  "Transport & Fuel",
+  "Electricity & Utilities",
+  "Store Maintenance",
+  "Worker Refreshments",
+  "Miscellaneous",
+];
 
 const ROOT_OWNER_EMAILS = ["sofisuhail007@gmail.com", "info.urbantrout@gmail.com"];
 
@@ -320,6 +332,24 @@ export default function VendingCenterLoggerPage() {
   const [formLoggedBy, setFormLoggedBy] = useState("Mohd Amin");
   const [staffListNames, setStaffListNames] = useState<string[]>(["Mohd Amin", "Suhail"]);
 
+  // ─── Vending Center Operational Expenses State (Ice, Packaging, Sanitation, etc.) ───
+  const [expenses, setExpenses] = useState<VendingExpenseEntry[]>([]);
+  const [expensesLoading, setExpensesLoading] = useState(false);
+  const [expensesLogOpen, setExpensesLogOpen] = useState(false);
+  const [expenseModalOpen, setExpenseModalOpen] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<VendingExpenseEntry | null>(null);
+  const [savingExpense, setSavingExpense] = useState(false);
+  const [deleteExpenseConfirmId, setDeleteExpenseConfirmId] = useState<string | null>(null);
+
+  // Expense Form State
+  const [expenseFormDate, setExpenseFormDate] = useState(() => getIstTodayDate());
+  const [expenseFormTime, setExpenseFormTime] = useState(() => getIstCurrentTime());
+  const [expenseFormCategory, setExpenseFormCategory] = useState<string>("Polybags & Packaging");
+  const [expenseFormTitle, setExpenseFormTitle] = useState("");
+  const [expenseFormAmount, setExpenseFormAmount] = useState("");
+  const [expenseFormPaymentMode, setExpenseFormPaymentMode] = useState("Cash");
+  const [expenseFormNotes, setExpenseFormNotes] = useState("");
+
   // ─── Customer Balance & Khata State (Vending Center) ───
   const [formCustomerName, setFormCustomerName] = useState("");
   const [formCustomerPhone, setFormCustomerPhone] = useState("");
@@ -362,7 +392,7 @@ export default function VendingCenterLoggerPage() {
   }, []);
 
   // ─── Organized Executive KPI Cards Category State ───
-  const [kpiCategory, setKpiCategory] = useState<"sales" | "aquarium" | "staff" | "all">("sales");
+  const [kpiCategory, setKpiCategory] = useState<"sales" | "aquarium" | "staff" | "expenses" | "all">("sales");
 
   // ─── Aquarium Mortality & Scrap Wastage State ───
   const [mortalityEntries, setMortalityEntries] = useState<AquariumMortalityEntry[]>([]);
@@ -774,6 +804,28 @@ export default function VendingCenterLoggerPage() {
     fetchMortalityEntries();
   }, [fetchMortalityEntries]);
 
+  // ─── Fetch Vending Center Operational Expenses ───
+  const fetchExpenses = useCallback(async () => {
+    try {
+      setExpensesLoading(true);
+      const res = await adminFetch("/api/vending-log/expenses");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.expenses)) {
+          setExpenses(data.expenses);
+        }
+      }
+    } catch (err) {
+      console.warn("Could not fetch vending expenses:", err);
+    } finally {
+      setExpensesLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchExpenses();
+  }, [fetchExpenses]);
+
   // ─── Period Calculations ───
   const filteredEntriesByPeriod = useMemo(() => {
     const todayStr = getTodayDate();
@@ -806,6 +858,40 @@ export default function VendingCenterLoggerPage() {
       return true; // "all"
     });
   }, [entries, period, customStartDate, customEndDate, selectedDate, getTodayDate]);
+
+  // ─── Filtered Vending Center Operational Expenses by Active Period ───
+  const filteredExpensesByPeriod = useMemo(() => {
+    const todayStr = getTodayDate();
+    const parts = todayStr.split("-").map(Number);
+    const currDate =
+      parts.length === 3 && parts[0] && parts[1] && parts[2]
+        ? new Date(parts[0], parts[1] - 1, parts[2])
+        : new Date();
+
+    const sevenDaysAgo = new Date(currDate.getFullYear(), currDate.getMonth(), currDate.getDate() - 6);
+    sevenDaysAgo.setHours(0, 0, 0, 0);
+
+    const firstOfMonth = new Date(currDate.getFullYear(), currDate.getMonth(), 1);
+
+    return expenses.filter((ex) => {
+      const [ey, em, ed] = ex.expense_date.split("-").map(Number);
+      const exDate = new Date(ey, em - 1, ed);
+      if (period === "today") return ex.expense_date === todayStr;
+      if (period === "date") return ex.expense_date === selectedDate;
+      if (period === "week") return exDate >= sevenDaysAgo;
+      if (period === "month") return exDate >= firstOfMonth;
+      if (period === "custom") {
+        if (customStartDate && ex.expense_date < customStartDate) return false;
+        if (customEndDate && ex.expense_date > customEndDate) return false;
+        return true;
+      }
+      return true; // "all"
+    });
+  }, [expenses, period, customStartDate, customEndDate, selectedDate, getTodayDate]);
+
+  const periodExpensesTotal = useMemo(() => {
+    return filteredExpensesByPeriod.reduce((sum, ex) => sum + (Number(ex.amount) || 0), 0);
+  }, [filteredExpensesByPeriod]);
 
 
   // ─── Weighted Average Procurement Cost per Kg across all stock batches ───
@@ -1017,6 +1103,15 @@ export default function VendingCenterLoggerPage() {
       nonGuttedAvgRate,
     };
   }, [filteredEntriesByPeriod, procurementAvgCost]);
+
+  // ─── Final Operating Net Profit (Realized Sold Profit minus Operational Expenses) ───
+  const finalProfit = useMemo(() => {
+    return Math.round(kpis.totalSoldProfit - periodExpensesTotal);
+  }, [kpis.totalSoldProfit, periodExpensesTotal]);
+
+  const finalProfitMargin = useMemo(() => {
+    return kpis.totalRevenue > 0 ? ((finalProfit / kpis.totalRevenue) * 100).toFixed(1) : "0.0";
+  }, [finalProfit, kpis.totalRevenue]);
 
   // ─── Staff Gutted Trout Incentive Tracker (₹5/Kg Gutted Only - Excludes Self-Cleaned) ───
   const incentiveStats = useMemo(() => {
@@ -1421,6 +1516,14 @@ export default function VendingCenterLoggerPage() {
       }
 
       if (editingEntry) {
+        if (!canEditEntry(editingEntry)) {
+          alert("Notice: Sales staff can only edit today's vending logs. Historical entries from yesterday or earlier can only be modified by Super Admin.");
+          return;
+        }
+        if (!isAdmin && formDate !== getTodayDate()) {
+          alert("Notice: Sales staff cannot change an entry date to a past date.");
+          return;
+        }
         // Edit entry
         const updates = {
           entry_date: formDate,
@@ -2313,6 +2416,9 @@ export default function VendingCenterLoggerPage() {
         { "Vending Center Metric": "Active Filter Period", "Value / Amount": period.toUpperCase() },
         { "Vending Center Metric": "Total Vending Revenue (Rs)", "Value / Amount": kpis.totalRevenue },
         { "Vending Center Metric": "Realized Net Profit on Sold Fish (Rs)", "Value / Amount": kpis.totalSoldProfit },
+        { "Vending Center Metric": "Vending Center Operational Expenses (Rs)", "Value / Amount": periodExpensesTotal },
+        { "Vending Center Metric": "Final Net Operating Profit After Expenses (Rs)", "Value / Amount": finalProfit },
+        { "Vending Center Metric": "Final Net Operating Profit Margin (%)", "Value / Amount": `${finalProfitMargin}%` },
         { "Vending Center Metric": "Gutted Trout Sold Net Profit (Rs)", "Value / Amount": kpis.guttedProfit },
         { "Vending Center Metric": "Mohd Amin Gutting Labor Incentive Deducted (Rs)", "Value / Amount": kpis.periodWorkerLaborCost },
         { "Vending Center Metric": "Non-Gutted Trout Sold Profit (Rs)", "Value / Amount": kpis.nonGuttedProfit },
@@ -2469,6 +2575,24 @@ export default function VendingCenterLoggerPage() {
       );
       XLSX.utils.book_append_sheet(wb, wsMortality, "Mortality & Scrap Log");
 
+      // 7. Vending Center Operational Expenses Sheet
+      const expenseRows = expenses.map((ex, idx) => ({
+        "#": idx + 1,
+        "Date": ex.expense_date,
+        "Time": ex.expense_time,
+        "Category": ex.category,
+        "Expense Title": ex.title,
+        "Amount (Rs)": Number(ex.amount),
+        "Payment Mode": ex.payment_mode,
+        "Logged By": ex.logged_by || "Staff",
+        "Notes": ex.notes || "",
+        "Logged At": ex.created_at || "",
+      }));
+      const wsExpenses = XLSX.utils.json_to_sheet(
+        expenseRows.length > 0 ? expenseRows : [{ "Status": "No vending expenses logged yet" }]
+      );
+      XLSX.utils.book_append_sheet(wb, wsExpenses, "Vending Center Expenses");
+
       XLSX.writeFile(wb, `UrbanTrout_Complete_Vending_Ledger_${getTodayDate()}.xlsx`);
     } catch (err) {
       console.error("Error generating Excel file:", err);
@@ -2482,8 +2606,142 @@ export default function VendingCenterLoggerPage() {
     setTimeout(() => setCopiedSql(false), 3000);
   };
 
+  // ─── Permission Check: Sales staff can ONLY edit entries of TODAY (IST) ───
+  // Historical entries from yesterday or earlier can ONLY be edited by Super Admin.
+  const canEditEntry = useCallback(
+    (entry: VendingSalesEntry): boolean => {
+      if (isAdmin) return true;
+      return entry.entry_date === getTodayDate();
+    },
+    [isAdmin, getTodayDate]
+  );
+
+  // Sales staff can ONLY edit/delete expenses of TODAY (IST).
+  // Historical expenses can ONLY be edited/deleted by Super Admin.
+  const canEditExpense = useCallback(
+    (expense: VendingExpenseEntry): boolean => {
+      if (isAdmin) return true;
+      return expense.expense_date === getTodayDate();
+    },
+    [isAdmin, getTodayDate]
+  );
+
+  // ─── Vending Expenses Handlers ───
+  const resetExpenseForm = () => {
+    setEditingExpense(null);
+    setExpenseFormDate(getTodayDate());
+    setExpenseFormTime(getCurrentTime());
+    setExpenseFormCategory("Polybags & Packaging");
+    setExpenseFormTitle("");
+    setExpenseFormAmount("");
+    setExpenseFormPaymentMode("Cash");
+    setExpenseFormNotes("");
+  };
+
+  const openEditExpenseModal = (item: VendingExpenseEntry) => {
+    if (!canEditExpense(item)) {
+      alert("Notice: Sales staff can only edit today's expenses. Historical entries from yesterday or earlier can only be modified by Super Admin.");
+      return;
+    }
+    setEditingExpense(item);
+    setExpenseFormDate(item.expense_date);
+    setExpenseFormTime(item.expense_time || getCurrentTime());
+    setExpenseFormCategory(item.category || "Polybags & Packaging");
+    setExpenseFormTitle(item.title);
+    setExpenseFormAmount(item.amount.toString());
+    setExpenseFormPaymentMode(item.payment_mode || "Cash");
+    setExpenseFormNotes(item.notes || "");
+    setExpenseModalOpen(true);
+  };
+
+  const handleSaveExpense = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const amt = parseFloat(expenseFormAmount);
+    if (isNaN(amt) || amt <= 0) {
+      alert("Please enter a valid expense amount greater than 0");
+      return;
+    }
+    if (!expenseFormTitle.trim()) {
+      alert("Please enter an expense title / description");
+      return;
+    }
+
+    if (!isAdmin && expenseFormDate !== getTodayDate()) {
+      alert("Notice: Sales staff can only log or edit expenses for today.");
+      return;
+    }
+
+    setSavingExpense(true);
+    try {
+      const payload = {
+        ...(editingExpense ? { id: editingExpense.id } : {}),
+        expense_date: expenseFormDate,
+        expense_time: expenseFormTime || getCurrentTime(),
+        category: expenseFormCategory,
+        title: expenseFormTitle.trim(),
+        amount: amt,
+        payment_mode: expenseFormPaymentMode,
+        notes: expenseFormNotes.trim() || undefined,
+        logged_by: editingExpense ? editingExpense.logged_by : undefined,
+      };
+
+      const res = await adminFetch("/api/vending-log/expenses", {
+        method: editingExpense ? "PUT" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        if (editingExpense) {
+          setExpenses((prev) =>
+            prev.map((item) => (item.id === editingExpense.id ? data.expense : item))
+          );
+        } else {
+          setExpenses((prev) => [data.expense, ...prev]);
+        }
+        setExpenseModalOpen(false);
+        resetExpenseForm();
+      } else {
+        alert(`Error saving expense: ${data.error || "Unknown error"}`);
+      }
+    } catch (err: any) {
+      alert(`Failed to save expense: ${err.message}`);
+    } finally {
+      setSavingExpense(false);
+    }
+  };
+
+  const handleDeleteExpense = async (id: string) => {
+    const item = expenses.find((x) => x.id === id);
+    if (item && !canEditExpense(item)) {
+      alert("Notice: Sales staff can only delete today's expenses. Historical entries can only be deleted by Super Admin.");
+      setDeleteExpenseConfirmId(null);
+      return;
+    }
+
+    try {
+      const res = await adminFetch(`/api/vending-log/expenses?id=${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setExpenses((prev) => prev.filter((x) => x.id !== id));
+        setDeleteExpenseConfirmId(null);
+      } else {
+        alert(`Error deleting expense: ${data.error || "Unknown error"}`);
+      }
+    } catch (err: any) {
+      alert(`Failed to delete expense: ${err.message}`);
+    }
+  };
+
   // Open Edit modal
   const openEditModal = (entry: VendingSalesEntry) => {
+    if (!canEditEntry(entry)) {
+      alert("Notice: Sales staff can only edit today's vending logs. Historical entries from yesterday or earlier can only be modified by Super Admin.");
+      return;
+    }
     setEditingEntry(entry);
     setFormDate(entry.entry_date);
     setFormTime(entry.entry_time);
@@ -2667,6 +2925,33 @@ export default function VendingCenterLoggerPage() {
           >
             <span className="material-symbols-outlined text-sm">download</span>
             Export CSV
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setExpensesLogOpen((prev) => !prev)}
+            className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95 ${
+              expensesLogOpen
+                ? "bg-rose-500/25 border-rose-400 text-rose-200"
+                : "bg-slate-900 hover:bg-slate-800 text-rose-300 border-rose-500/30"
+            }`}
+            title="Toggle Vending Center Expenses Ledger"
+          >
+            <span className="material-symbols-outlined text-sm">receipt_long</span>
+            <span>Expenses ({filteredExpensesByPeriod.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              resetExpenseForm();
+              setExpenseModalOpen(true);
+            }}
+            className="py-2 px-3.5 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-rose-600/20 flex items-center gap-1.5 cursor-pointer active:scale-95"
+            title="Log Vending Center Operational Expense (Ice, Polybags, Sanitation, Transport, etc.)"
+          >
+            <span className="material-symbols-outlined text-base">receipt_long</span>
+            Log Expense
           </button>
 
           <button
@@ -2948,6 +3233,24 @@ export default function VendingCenterLoggerPage() {
 
               <button
                 type="button"
+                onClick={() => setKpiCategory("expenses")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
+                  kpiCategory === "expenses"
+                    ? "bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-sm"
+                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
+                }`}
+              >
+                <span className="material-symbols-outlined text-sm text-rose-400">receipt_long</span>
+                <span>Expenses</span>
+                {periodExpensesTotal > 0 && (
+                  <span className="px-1.5 py-0.2 rounded bg-rose-500/20 text-[10px] text-rose-300 font-mono">
+                    ₹{periodExpensesTotal.toLocaleString("en-IN")}
+                  </span>
+                )}
+              </button>
+
+              <button
+                type="button"
                 onClick={() => setKpiCategory("all")}
                 className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
                   kpiCategory === "all"
@@ -2964,6 +3267,7 @@ export default function VendingCenterLoggerPage() {
               {kpiCategory === "sales" && "Showing counter sales, revenue & cash flow"}
               {kpiCategory === "aquarium" && "Showing live aquarium biomass, stock & mortality"}
               {kpiCategory === "staff" && "Showing Mohd Amin wages & incentive payouts"}
+              {kpiCategory === "expenses" && "Showing Vending Center operational overheads, ice, packaging & maintenance"}
               {kpiCategory === "all" && "Showing all sections"}
             </div>
           </div>
@@ -2980,7 +3284,7 @@ export default function VendingCenterLoggerPage() {
                 <span>Section 1: Sales &amp; Revenue Performance</span>
               </div>
             )}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-3.5 sm:gap-4">
               {/* Card 1: Total Weight Sold */}
               <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-emerald-950/40 via-slate-900/80 to-slate-900 border border-emerald-500/30 shadow-xl shadow-emerald-950/20 relative overflow-hidden flex flex-col justify-between">
                 <div>
@@ -3331,6 +3635,105 @@ export default function VendingCenterLoggerPage() {
                     {kpis.totalLoss > 0
                       ? "Lost to customer bargaining (0 on credit)"
                       : "All orders at full inventory price"}
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 9: Vending Center Operational Expenses */}
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-rose-950/50 via-slate-900/90 to-slate-900 border border-rose-500/40 shadow-xl shadow-rose-950/20 relative overflow-hidden flex flex-col justify-between">
+                <div>
+                  <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
+                    <span className="text-rose-300 font-bold tracking-wider flex items-center gap-1.5">
+                      <span>VENDING EXPENSES</span>
+                      <span className="px-1.5 py-0.2 rounded bg-rose-500/20 text-[9px] text-rose-200 border border-rose-500/30 font-bold">
+                        Overheads
+                      </span>
+                    </span>
+                    <span className="material-symbols-outlined text-rose-400 text-lg">receipt_long</span>
+                  </div>
+                  <div className="mt-2 flex items-baseline gap-1 min-h-[32px]">
+                    {expensesLoading && expenses.length === 0 ? (
+                      <div className="h-7 w-28 bg-rose-500/10 rounded animate-pulse" />
+                    ) : (
+                      <>
+                        <span className="text-rose-400 font-bold text-lg">₹</span>
+                        <span
+                          className="text-2xl sm:text-3xl font-black text-white"
+                          style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                        >
+                          {periodExpensesTotal.toLocaleString("en-IN")}
+                        </span>
+                        <span className="text-[11px] font-bold text-rose-400 font-mono ml-1">
+                          {filteredExpensesByPeriod.length} {filteredExpensesByPeriod.length === 1 ? "bill" : "bills"}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2.5 space-y-0.5">
+                  <div className="flex items-center justify-between text-rose-300">
+                    <span>Operational Costs</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setKpiCategory("expenses");
+                        setExpensesLogOpen(true);
+                      }}
+                      className="text-[10px] text-rose-400 hover:text-rose-300 underline font-bold cursor-pointer"
+                    >
+                      View Ledger
+                    </button>
+                  </div>
+                  <div className="text-[10.5px] text-slate-500 truncate">
+                    Ice, Bags, Sanitation &amp; Transport
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 10: Final Profit (Realized Sold Profit minus Operational Expenses) */}
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-emerald-950/60 via-slate-900/95 to-teal-950/50 border-2 border-emerald-400/70 shadow-2xl shadow-emerald-950/30 relative overflow-hidden flex flex-col justify-between ring-1 ring-emerald-500/20">
+                <div>
+                  <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
+                    <span className="text-emerald-300 font-black tracking-wider flex items-center gap-1.5">
+                      <span>FINAL PROFIT</span>
+                      <span className="px-1.5 py-0.2 rounded bg-emerald-500/30 text-[9px] text-emerald-200 border border-emerald-400/50 font-black uppercase">
+                        Net Net
+                      </span>
+                    </span>
+                    <span className="material-symbols-outlined text-emerald-400 text-lg">account_balance_wallet</span>
+                  </div>
+                  <div className="mt-2 flex items-baseline gap-1 min-h-[32px]">
+                    {loading && entries.length === 0 ? (
+                      <div className="h-7 w-28 bg-emerald-500/10 rounded animate-pulse" />
+                    ) : (
+                      <>
+                        <span className={finalProfit >= 0 ? "text-emerald-400 font-bold text-lg" : "text-rose-400 font-bold text-lg"}>
+                          {finalProfit >= 0 ? "₹" : "-₹"}
+                        </span>
+                        <span
+                          className={`text-2xl sm:text-3xl font-black ${finalProfit >= 0 ? "text-white" : "text-rose-300"}`}
+                          style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                        >
+                          {Math.abs(finalProfit).toLocaleString("en-IN")}
+                        </span>
+                        <span className={`text-[11px] font-bold font-mono ml-1 ${finalProfit >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                          {finalProfitMargin}%
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2.5 space-y-0.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-teal-300 font-bold" title="Gross Net Sold Profit">
+                      Sold: ₹{kpis.totalSoldProfit.toLocaleString("en-IN")}
+                    </span>
+                    <span className="text-rose-300 font-bold" title="Center Overheads Deducted">
+                      Exp: -₹{periodExpensesTotal.toLocaleString("en-IN")}
+                    </span>
+                  </div>
+                  <div className="text-[10.5px] text-slate-500 truncate">
+                    Sold Profit minus Center Expenses
                   </div>
                 </div>
               </div>
@@ -4009,6 +4412,218 @@ export default function VendingCenterLoggerPage() {
       )}
 
       {/* ══════════════════════════════════════════════════════════
+          SECTION 4: VENDING CENTER OPERATIONAL EXPENSES (Ice, Polybags, Packaging, Sanitation, etc.)
+          ══════════════════════════════════════════════════════════ */}
+      {(((isAdmin && showAdminCards && (kpiCategory === "expenses" || kpiCategory === "all"))) || expensesLogOpen) && (
+        <div className="space-y-3 animate-in fade-in duration-200">
+          {(kpiCategory === "all" || expensesLogOpen) && (
+            <div className="flex items-center justify-between pt-1">
+              <div className="flex items-center gap-2 text-xs font-mono font-bold text-rose-400 uppercase tracking-wider">
+                <span className="material-symbols-outlined text-sm">receipt_long</span>
+                <span>Section 4: Vending Center Operational Expenses</span>
+              </div>
+              {expensesLogOpen && kpiCategory !== "expenses" && kpiCategory !== "all" && (
+                <button
+                  type="button"
+                  onClick={() => setExpensesLogOpen(false)}
+                  className="text-[10px] text-slate-400 hover:text-white font-mono px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 transition-all cursor-pointer"
+                >
+                  ✕ Close Section
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Section Header Toolbar */}
+          <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-slate-900/90 border border-rose-500/30 rounded-2xl shadow-md">
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400">
+                <span className="material-symbols-outlined text-base">receipt_long</span>
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h4 className="text-sm font-black text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                    Center Operating Expenses Ledger
+                  </h4>
+                  <span className="px-2 py-0.5 rounded-full bg-rose-500/20 text-[10px] font-mono font-bold text-rose-300 border border-rose-500/30">
+                    {period.toUpperCase()}: ₹{periodExpensesTotal.toLocaleString("en-IN")}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-400 font-mono">
+                  Ice, Polybags, Packaging, Sanitation, Transport &amp; Utilities
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  resetExpenseForm();
+                  setExpenseModalOpen(true);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white text-[11px] font-black uppercase tracking-wider transition-all shadow-lg shadow-rose-600/20 cursor-pointer active:scale-95"
+              >
+                <span className="material-symbols-outlined text-sm">add</span>
+                <span>Log Expense</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Category Breakdown Chips */}
+          <div className="flex flex-wrap items-center gap-1.5 p-2 bg-slate-950/70 border border-slate-800/80 rounded-xl text-xs font-mono">
+            <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider px-1">
+              Breakdown:
+            </span>
+            {EXPENSE_CATEGORIES.map((cat) => {
+              const catTotal = filteredExpensesByPeriod
+                .filter((ex) => ex.category === cat)
+                .reduce((s, ex) => s + (Number(ex.amount) || 0), 0);
+              if (catTotal === 0) return null;
+              return (
+                <span
+                  key={cat}
+                  className="px-2 py-0.5 rounded-lg bg-slate-900 border border-slate-800 text-[10.5px] text-slate-300 flex items-center gap-1"
+                >
+                  <span className="text-slate-400">{cat}:</span>
+                  <strong className="text-rose-300">₹{catTotal.toLocaleString("en-IN")}</strong>
+                </span>
+              );
+            })}
+          </div>
+
+          {/* Expenses Table */}
+          <div className="bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden shadow-lg animate-in fade-in duration-200">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead>
+                  <tr className="border-b border-slate-800 bg-slate-950/80 text-[10px] font-mono uppercase tracking-wider text-slate-400">
+                    <th className="py-3 px-3 text-center w-8">#</th>
+                    <th className="py-3 px-3">Date</th>
+                    <th className="py-3 px-3">Time</th>
+                    <th className="py-3 px-3">Category</th>
+                    <th className="py-3 px-3">Expense Details / Title</th>
+                    <th className="py-3 px-3 text-right text-rose-300">Amount (₹)</th>
+                    <th className="py-3 px-3">Paid Via</th>
+                    <th className="py-3 px-3">Notes</th>
+                    <th className="py-3 px-3">Logged By</th>
+                    <th className="py-3 px-3 text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60 font-mono">
+                  {filteredExpensesByPeriod.length === 0 ? (
+                    <tr>
+                      <td colSpan={10} className="py-10 text-center text-slate-500 text-xs">
+                        <span className="material-symbols-outlined text-2xl block mb-1 text-slate-600">receipt_long</span>
+                        No operational expenses logged for {period === "today" ? "today" : "this period"}.
+                        <button
+                          type="button"
+                          onClick={() => {
+                            resetExpenseForm();
+                            setExpenseModalOpen(true);
+                          }}
+                          className="ml-2 text-rose-400 underline font-bold cursor-pointer"
+                        >
+                          + Log an Expense
+                        </button>
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredExpensesByPeriod.map((ex, idx) => {
+                      const canModify = canEditExpense(ex);
+                      return (
+                        <tr key={ex.id} className="hover:bg-slate-800/30 transition-colors group">
+                          <td className="py-2.5 px-3 text-center text-slate-500 text-[11px]">{idx + 1}</td>
+                          <td className="py-2.5 px-3 whitespace-nowrap text-slate-200">
+                            {formatIstDateDisplay(ex.expense_date) || ex.expense_date}
+                          </td>
+                          <td className="py-2.5 px-3 text-slate-400 text-[11px] whitespace-nowrap">
+                            {ex.expense_time || "—"}
+                          </td>
+                          <td className="py-2.5 px-3">
+                            <span className="px-2 py-0.5 rounded-md bg-rose-500/15 border border-rose-500/30 text-[10px] text-rose-300 font-bold whitespace-nowrap">
+                              {ex.category}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-3 font-sans font-medium text-white max-w-[240px] truncate" title={ex.title}>
+                            {ex.title}
+                          </td>
+                          <td className="py-2.5 px-3 text-right font-black text-rose-300 text-sm whitespace-nowrap">
+                            ₹{Number(ex.amount).toLocaleString("en-IN")}
+                          </td>
+                          <td className="py-2.5 px-3 whitespace-nowrap">
+                            <span className="px-1.5 py-0.5 rounded bg-slate-800 text-[10px] text-slate-300 border border-slate-700">
+                              {ex.payment_mode || "Cash"}
+                            </span>
+                          </td>
+                          <td className="py-2.5 px-3 font-sans text-slate-400 max-w-[180px] truncate" title={ex.notes || ""}>
+                            {ex.notes || "—"}
+                          </td>
+                          <td className="py-2.5 px-3 text-slate-400 text-[11px] whitespace-nowrap">
+                            {formatStaffDisplayName(ex.logged_by)}
+                          </td>
+                          <td className="py-2.5 px-3 text-center whitespace-nowrap">
+                            <div className="flex items-center justify-center gap-1">
+                              {canModify ? (
+                                <>
+                                  <button
+                                    type="button"
+                                    onClick={() => openEditExpenseModal(ex)}
+                                    className="p-1 rounded-lg hover:bg-emerald-500/20 text-slate-400 hover:text-emerald-300 transition-all cursor-pointer"
+                                    title="Edit expense"
+                                  >
+                                    <span className="material-symbols-outlined text-sm">edit</span>
+                                  </button>
+                                  {deleteExpenseConfirmId === ex.id ? (
+                                    <div className="flex items-center gap-1">
+                                      <button
+                                        type="button"
+                                        onClick={() => handleDeleteExpense(ex.id)}
+                                        className="px-1.5 py-0.5 rounded bg-rose-600 text-white text-[10px] font-bold cursor-pointer"
+                                      >
+                                        Del
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => setDeleteExpenseConfirmId(null)}
+                                        className="px-1 py-0.5 rounded bg-slate-700 text-slate-300 text-[10px] cursor-pointer"
+                                      >
+                                        ✕
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={() => setDeleteExpenseConfirmId(ex.id)}
+                                      className="p-1 rounded-lg hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 transition-all cursor-pointer"
+                                      title="Delete expense"
+                                    >
+                                      <span className="material-symbols-outlined text-sm">delete</span>
+                                    </button>
+                                  )}
+                                </>
+                              ) : (
+                                <span
+                                  className="w-6 h-6 rounded bg-slate-900/60 text-slate-600 border border-slate-800/60 flex items-center justify-center cursor-not-allowed"
+                                  title="Locked: Historical expenses can only be edited or deleted by Super Admin"
+                                >
+                                  <span className="material-symbols-outlined text-[13px]">lock</span>
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════
           TABLE FILTERS & CONTROLS
           ══════════════════════════════════════════════════════════ */}
       <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-3 flex flex-wrap items-center justify-between gap-3 shadow-sm">
@@ -4429,14 +5044,23 @@ export default function VendingCenterLoggerPage() {
                               Khata
                             </button>
                           )}
-                          <button
-                            type="button"
-                            onClick={() => openEditModal(e)}
-                            className="w-7 h-7 rounded-lg bg-slate-800/90 hover:bg-emerald-500/25 text-slate-400 hover:text-emerald-300 border border-slate-700/80 hover:border-emerald-500/40 transition-all flex items-center justify-center cursor-pointer shadow-sm active:scale-95"
-                            title="Edit entry"
-                          >
-                            <span className="material-symbols-outlined text-sm">edit</span>
-                          </button>
+                          {canEditEntry(e) ? (
+                            <button
+                              type="button"
+                              onClick={() => openEditModal(e)}
+                              className="w-7 h-7 rounded-lg bg-slate-800/90 hover:bg-emerald-500/25 text-slate-400 hover:text-emerald-300 border border-slate-700/80 hover:border-emerald-500/40 transition-all flex items-center justify-center cursor-pointer shadow-sm active:scale-95"
+                              title="Edit entry"
+                            >
+                              <span className="material-symbols-outlined text-sm">edit</span>
+                            </button>
+                          ) : (
+                            <span
+                              className="w-7 h-7 rounded-lg bg-slate-900/60 text-slate-600 border border-slate-800/60 flex items-center justify-center cursor-not-allowed"
+                              title="Locked: Past entries can only be edited by Super Admin"
+                            >
+                              <span className="material-symbols-outlined text-[13px]">lock</span>
+                            </span>
+                          )}
                           {deleteConfirmId === e.id ? (
                             <div className="flex items-center gap-1">
                               <button
@@ -4536,14 +5160,23 @@ export default function VendingCenterLoggerPage() {
                     </span>
                   </div>
                   <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => openEditModal(e)}
-                      className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-emerald-500/20 text-slate-400 hover:text-emerald-300 border border-slate-700 transition-all flex items-center justify-center cursor-pointer"
-                      title="Edit"
-                    >
-                      <span className="material-symbols-outlined text-sm">edit</span>
-                    </button>
+                    {canEditEntry(e) ? (
+                      <button
+                        type="button"
+                        onClick={() => openEditModal(e)}
+                        className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-emerald-500/20 text-slate-400 hover:text-emerald-300 border border-slate-700 transition-all flex items-center justify-center cursor-pointer"
+                        title="Edit"
+                      >
+                        <span className="material-symbols-outlined text-sm">edit</span>
+                      </button>
+                    ) : (
+                      <span
+                        className="w-7 h-7 rounded-lg bg-slate-900/60 text-slate-600 border border-slate-800/60 flex items-center justify-center cursor-not-allowed"
+                        title="Locked: Past entries can only be edited by Super Admin"
+                      >
+                        <span className="material-symbols-outlined text-[13px]">lock</span>
+                      </span>
+                    )}
                     {deleteConfirmId === e.id ? (
                       <div className="flex items-center gap-1">
                         <button
@@ -4912,17 +5545,19 @@ export default function VendingCenterLoggerPage() {
                         Today ✓
                       </span>
                     ) : (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setFormDate(getTodayDate());
-                        }}
-                        className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-all cursor-pointer"
-                        title="Reset to today"
-                      >
-                        Today
-                      </button>
+                      isAdmin && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setFormDate(getTodayDate());
+                          }}
+                          className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-all cursor-pointer"
+                          title="Reset to today"
+                        >
+                          Today
+                        </button>
+                      )
                     )}
                   </div>
                   <div className="flex items-center justify-between">
@@ -4930,15 +5565,22 @@ export default function VendingCenterLoggerPage() {
                       {formatIstDateDisplay(formDate) || formDate}
                     </span>
                     <span className="material-symbols-outlined text-base text-slate-500 group-hover:text-emerald-400 transition-colors">
-                      event
+                      {isAdmin ? "event" : "lock"}
                     </span>
                   </div>
                   <input
                     type="date"
                     value={formDate}
-                    onChange={(e) => setFormDate(e.target.value)}
+                    onChange={(e) => {
+                      if (!isAdmin && e.target.value !== getTodayDate()) {
+                        alert("Sales staff can only log or edit entries for today.");
+                        return;
+                      }
+                      setFormDate(e.target.value);
+                    }}
+                    disabled={!isAdmin}
                     required
-                    className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                    className={`absolute inset-0 opacity-0 w-full h-full ${isAdmin ? "cursor-pointer" : "cursor-not-allowed"}`}
                   />
                 </div>
 
@@ -5067,6 +5709,8 @@ export default function VendingCenterLoggerPage() {
                     step="any"
                     min="0.001"
                     value={formWeight}
+                    onFocus={(e) => e.target.select()}
+                    onWheel={(e) => e.currentTarget.blur()}
                     onChange={(e) => {
                       setFormWeight(e.target.value);
                       setFormAmountOverridden(false);
@@ -5161,10 +5805,13 @@ export default function VendingCenterLoggerPage() {
                         <input
                           type="number"
                           value={formRate}
+                          onFocus={(e) => e.target.select()}
+                          onWheel={(e) => e.currentTarget.blur()}
                           onChange={(e) => {
-                            const newR = parseFloat(e.target.value) || 0;
+                            const val = e.target.value;
+                            const newR = parseFloat(val) || 0;
                             setFormRate(newR);
-                            if (wNum > 0) {
+                            if (wNum > 0 && val !== "") {
                               setFormAmount(Math.round(wNum * newR).toString());
                               setFormAmountOverridden(newR !== defaultStandardRate);
                             }
@@ -5213,6 +5860,8 @@ export default function VendingCenterLoggerPage() {
                         <input
                           type="number"
                           value={formAmount}
+                          onFocus={(e) => e.target.select()}
+                          onWheel={(e) => e.currentTarget.blur()}
                           onChange={(e) => {
                             setFormAmount(e.target.value);
                             setFormAmountOverridden(true);
@@ -7018,6 +7667,244 @@ export default function VendingCenterLoggerPage() {
                 <span>{sendingEodReport ? "Sending to Telegram…" : "Send to Telegram Now"}</span>
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════
+          LOG / EDIT VENDING CENTER EXPENSE MODAL
+          ══════════════════════════════════════════════════════════ */}
+      {expenseModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
+          <div className="w-full max-w-md bg-[#0e1626] border border-rose-500/40 rounded-3xl shadow-2xl shadow-rose-950/40 overflow-hidden flex flex-col max-h-[92vh]">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-rose-500/20 bg-slate-950/70">
+              <div>
+                <div className="flex items-center gap-2 mb-0.5">
+                  <span className="material-symbols-outlined text-rose-400 text-base">receipt_long</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-rose-400 font-mono">
+                    Center Overheads
+                  </span>
+                </div>
+                <h3
+                  className="text-base font-black text-white"
+                  style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                >
+                  {editingExpense ? "Edit Vending Expense" : "Log Vending Expense"}
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setExpenseModalOpen(false)}
+                className="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-all cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-sm">close</span>
+              </button>
+            </div>
+
+            {/* Modal Form */}
+            <form onSubmit={handleSaveExpense} className="p-5 space-y-4 overflow-y-auto flex-1 font-sans">
+              {/* Row 1: Date & Time */}
+              <div className="grid grid-cols-2 gap-3">
+                {/* Date Card */}
+                <div className="relative group bg-slate-900 border border-slate-700/80 hover:border-rose-500/50 rounded-2xl p-2.5 sm:p-3 transition-all cursor-pointer shadow-inner flex flex-col justify-between">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-[13px] text-rose-400">calendar_today</span>
+                      Date
+                    </span>
+                    {expenseFormDate === getTodayDate() ? (
+                      <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-rose-950/80 text-rose-400 border border-rose-500/30">
+                        Today ✓
+                      </span>
+                    ) : (
+                      isAdmin && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setExpenseFormDate(getTodayDate());
+                          }}
+                          className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-all cursor-pointer"
+                        >
+                          Today
+                        </button>
+                      )
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-sm sm:text-base font-bold text-white tracking-wide">
+                      {formatIstDateDisplay(expenseFormDate) || expenseFormDate}
+                    </span>
+                    <span className="material-symbols-outlined text-base text-slate-500 group-hover:text-rose-400 transition-colors">
+                      {isAdmin ? "event" : "lock"}
+                    </span>
+                  </div>
+                  <input
+                    type="date"
+                    value={expenseFormDate}
+                    onChange={(e) => {
+                      if (!isAdmin && e.target.value !== getTodayDate()) {
+                        alert("Sales staff can only log or edit expenses for today.");
+                        return;
+                      }
+                      setExpenseFormDate(e.target.value);
+                    }}
+                    disabled={!isAdmin}
+                    required
+                    className={`absolute inset-0 opacity-0 w-full h-full ${isAdmin ? "cursor-pointer" : "cursor-not-allowed"}`}
+                  />
+                </div>
+
+                {/* Time Picker */}
+                <TimePickerInput
+                  label="Time"
+                  value={expenseFormTime}
+                  onChange={setExpenseFormTime}
+                  accentColor="rose"
+                />
+              </div>
+
+              {/* Category Picker */}
+              <div className="space-y-1.5">
+                <label className="text-[10px] uppercase font-bold text-slate-400 font-mono flex items-center justify-between">
+                  <span>Category <span className="text-rose-400">*</span></span>
+                  <span className="text-slate-500 text-[9.5px]">Select overhead type</span>
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5">
+                  {EXPENSE_CATEGORIES.map((cat) => (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setExpenseFormCategory(cat)}
+                      className={`px-2 py-1.5 rounded-xl text-[10px] font-mono font-bold text-center border transition-all cursor-pointer truncate ${
+                        expenseFormCategory === cat
+                          ? "bg-rose-500/25 border-rose-400 text-rose-200 shadow-sm"
+                          : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700"
+                      }`}
+                      title={cat}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Expense Title */}
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-bold text-slate-400 font-mono">
+                  Expense Title / Item Description <span className="text-rose-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={expenseFormTitle}
+                  onChange={(e) => setExpenseFormTitle(e.target.value)}
+                  placeholder="e.g. 50 Polybag Rolls 1kg &amp; 2kg, Ice Blocks 25kg, Floor Cleaner"
+                  className="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-400 font-sans"
+                />
+              </div>
+
+              {/* Amount & Payment Mode */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Amount */}
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-bold text-slate-400 font-mono">
+                    Amount (₹) <span className="text-rose-400">*</span>
+                  </label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-2.5 text-rose-400 font-bold font-mono text-sm">₹</span>
+                    <input
+                      type="number"
+                      step="any"
+                      min="1"
+                      required
+                      value={expenseFormAmount}
+                      onFocus={(e) => e.target.select()}
+                      onWheel={(e) => e.currentTarget.blur()}
+                      onChange={(e) => setExpenseFormAmount(e.target.value)}
+                      placeholder="e.g. 250"
+                      className="w-full bg-slate-950 border-2 border-rose-500/40 rounded-xl pl-7 pr-3 py-2 text-base font-black text-white font-mono focus:outline-none focus:border-rose-400"
+                    />
+                  </div>
+                  {/* Quick Amount presets */}
+                  <div className="flex items-center gap-1 mt-1 flex-wrap">
+                    {[50, 100, 150, 200, 300, 500].map((amt) => (
+                      <button
+                        key={amt}
+                        type="button"
+                        onClick={() => setExpenseFormAmount(amt.toString())}
+                        className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 text-[9.5px] font-mono cursor-pointer"
+                      >
+                        ₹{amt}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Payment Mode */}
+                <div className="space-y-1">
+                  <label className="text-[10px] uppercase font-bold text-slate-400 font-mono">
+                    Paid Via <span className="text-rose-400">*</span>
+                  </label>
+                  <div className="grid grid-cols-2 gap-1.5 pt-0.5">
+                    {["Cash", "Online / UPI", "Admin Fund"].map((mode) => (
+                      <button
+                        key={mode}
+                        type="button"
+                        onClick={() => setExpenseFormPaymentMode(mode)}
+                        className={`py-2 px-2 rounded-xl text-[10.5px] font-mono font-bold border transition-all cursor-pointer text-center ${
+                          expenseFormPaymentMode === mode
+                            ? "bg-rose-500/25 border-rose-400 text-rose-200 shadow-sm"
+                            : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700"
+                        }`}
+                      >
+                        {mode}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Optional Notes */}
+              <div className="space-y-1">
+                <label className="text-[10px] uppercase font-bold text-slate-400 font-mono">
+                  Notes / Vendor Details (Optional)
+                </label>
+                <input
+                  type="text"
+                  value={expenseFormNotes}
+                  onChange={(e) => setExpenseFormNotes(e.target.value)}
+                  placeholder="e.g. Purchased from local market, bill attached"
+                  className="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-400 font-sans"
+                />
+              </div>
+
+              {/* Modal Actions */}
+              <div className="flex items-center justify-between gap-3 pt-3 border-t border-slate-800/80">
+                <button
+                  type="button"
+                  onClick={() => setExpenseModalOpen(false)}
+                  className="py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingExpense}
+                  className="flex-1 py-2.5 px-5 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white text-xs font-black uppercase tracking-wider transition-all disabled:opacity-60 cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-rose-600/25 active:scale-95"
+                >
+                  {savingExpense ? (
+                    <span className="w-4 h-4 border-2 border-white border-t-transparent animate-spin rounded-full" />
+                  ) : (
+                    <span className="material-symbols-outlined text-sm">
+                      {editingExpense ? "save" : "check"}
+                    </span>
+                  )}
+                  <span>{savingExpense ? "Saving…" : editingExpense ? "Update Expense" : "Save Expense"}</span>
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

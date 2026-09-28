@@ -254,7 +254,7 @@ export async function POST(req: NextRequest) {
               // AUTO-INSERT NEW VENDING LOG ENTRY for this remote payment!
               let tw = 1.0;
               let prodType = "Gutted";
-              let rate = 570;
+              let rate = 580;
               let expAmount = amount;
               let discAmount = 0;
 
@@ -267,21 +267,55 @@ export async function POST(req: NextRequest) {
                 expAmount = invData.standardTotal ? Number(invData.standardTotal) : (invData.tot || amount);
                 discAmount = invData.discountAmount !== undefined ? Number(invData.discountAmount) : Math.max(0, expAmount - amount);
               } else {
-                // Fallback to structured notes from Razorpay
+                // Check structured notes from Razorpay first
                 if (notes.weight_kg) tw = parseFloat(notes.weight_kg) || 1.0;
                 if (notes.product_type) prodType = notes.product_type;
-                if (notes.rate_per_kg) rate = parseFloat(notes.rate_per_kg) || Math.round((amount / tw) * 10) / 10;
+                if (notes.rate_per_kg) rate = parseFloat(notes.rate_per_kg) || 580;
                 if (notes.standard_total) expAmount = parseFloat(notes.standard_total) || amount;
                 if (notes.discount_amount) discAmount = parseFloat(notes.discount_amount) || 0;
 
-                // Fallback parsing from itemsSummary
-                if (tw === 1.0 && itemsSummary) {
+                // Fallback parsing from itemsSummary text
+                if (!notes.weight_kg && itemsSummary) {
                   const wtMatch = itemsSummary.match(/([\d.]+)\s*kg/i);
                   if (wtMatch) tw = parseFloat(wtMatch[1]) || 1.0;
-                  if (itemsSummary.toLowerCase().includes("gutted") && !itemsSummary.toLowerCase().includes("non")) {
+                  if (itemsSummary.toLowerCase().includes("whole") || (itemsSummary.toLowerCase().includes("non") && itemsSummary.toLowerCase().includes("gutted"))) {
+                    prodType = "Non Gutted";
+                  } else if (itemsSummary.toLowerCase().includes("gutted")) {
                     prodType = "Gutted";
                   }
-                  if (!notes.rate_per_kg) rate = Math.round((amount / tw) * 10) / 10;
+                  if (notes.rate_per_kg) {
+                    rate = parseFloat(notes.rate_per_kg);
+                  }
+                }
+
+                // Smart inference for manual payment links (e.g. generated via Razorpay mobile app without weights)
+                // If amount is 1160, understand that 1160 @ 580/Kg = 2 Kg Gutted Trout!
+                if (!notes.weight_kg && (!itemsSummary || !itemsSummary.match(/([\d.]+)\s*kg/i))) {
+                  if (amount % 580 === 0 && amount >= 580) {
+                    tw = Math.round(amount / 580);
+                    rate = 580;
+                    prodType = "Gutted";
+                    expAmount = amount;
+                    discAmount = 0;
+                  } else if (amount % 560 === 0 && amount >= 560) {
+                    tw = Math.round(amount / 560);
+                    rate = 560;
+                    prodType = "Gutted";
+                    expAmount = Math.round(tw * 580);
+                    discAmount = Math.max(0, expAmount - amount);
+                  } else if (amount % 540 === 0 && amount >= 540) {
+                    tw = Math.round(amount / 540);
+                    rate = 540;
+                    prodType = "Non Gutted";
+                    expAmount = amount;
+                    discAmount = 0;
+                  } else if (amount >= 400) {
+                    tw = Math.round((amount / 580) * 10) / 10;
+                    if (tw <= 0) tw = 1.0;
+                    rate = Math.round((amount / tw) * 10) / 10;
+                    prodType = "Gutted";
+                    expAmount = amount;
+                  }
                 }
               }
 

@@ -1017,6 +1017,8 @@ Naseem Bagh / Malabagh, Srinagar`;
                   <input
                     type="number"
                     value={customStandardRate}
+                    onFocus={(e) => e.target.select()}
+                    onWheel={(e) => (e.target as HTMLElement).blur()}
                     onChange={(e) => handleCustomStandardRateChange(e.target.value)}
                     placeholder="e.g. 700"
                     className="w-full bg-slate-950 border border-amber-500/40 rounded-lg px-3 py-1.5 text-sm text-white font-mono font-bold focus:outline-none"
@@ -1055,6 +1057,8 @@ Naseem Bagh / Malabagh, Srinagar`;
                   step="0.01"
                   min="0.1"
                   value={weightStr}
+                  onFocus={(e) => e.target.select()}
+                  onWheel={(e) => (e.target as HTMLElement).blur()}
                   onChange={(e) => handleWeightChange(e.target.value)}
                   placeholder="e.g. 2.0"
                   className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-xl font-mono text-cyan-300 font-bold focus:outline-none focus:border-cyan-400 shadow-inner"
@@ -1166,7 +1170,15 @@ Naseem Bagh / Malabagh, Srinagar`;
                   <input
                     type="number"
                     value={dealTotalStr}
-                    onChange={(e) => applyDealTotal(parseFloat(e.target.value) || 0)}
+                    onFocus={(e) => e.target.select()}
+                    onWheel={(e) => (e.target as HTMLElement).blur()}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setDealTotalStr(val);
+                      if (val === "") return;
+                      const num = parseFloat(val);
+                      if (!isNaN(num)) applyDealTotal(num);
+                    }}
                     placeholder={`e.g. ${Math.floor(standardTotal * 0.9)}`}
                     className="w-full bg-slate-950 border-2 border-cyan-500/50 rounded-xl pl-8 pr-4 py-2 text-xl font-mono text-white font-black focus:outline-none focus:border-cyan-400"
                   />
@@ -1189,7 +1201,15 @@ Naseem Bagh / Malabagh, Srinagar`;
                   <input
                     type="number"
                     value={dealRateStr}
-                    onChange={(e) => applyDealRate(parseFloat(e.target.value) || 0)}
+                    onFocus={(e) => e.target.select()}
+                    onWheel={(e) => (e.target as HTMLElement).blur()}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setDealRateStr(val);
+                      if (val === "") return;
+                      const num = parseFloat(val);
+                      if (!isNaN(num)) applyDealRate(num);
+                    }}
                     placeholder={`e.g. ${standardRate - 50}`}
                     className="w-full bg-slate-950 border-2 border-cyan-500/50 rounded-xl pl-8 pr-16 py-2 text-xl font-mono text-white font-black focus:outline-none focus:border-cyan-400"
                   />
@@ -1212,7 +1232,15 @@ Naseem Bagh / Malabagh, Srinagar`;
                   <input
                     type="number"
                     value={discountPercentStr}
-                    onChange={(e) => applyDiscountPercent(parseFloat(e.target.value) || 0)}
+                    onFocus={(e) => e.target.select()}
+                    onWheel={(e) => (e.target as HTMLElement).blur()}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setDiscountPercentStr(val);
+                      if (val === "") return;
+                      const num = parseFloat(val);
+                      if (!isNaN(num)) applyDiscountPercent(num);
+                    }}
                     placeholder="e.g. 10"
                     className="w-full bg-slate-950 border-2 border-cyan-500/50 rounded-xl px-4 py-2 text-xl font-mono text-white font-black focus:outline-none focus:border-cyan-400"
                   />
@@ -1235,7 +1263,15 @@ Naseem Bagh / Malabagh, Srinagar`;
                   <input
                     type="number"
                     value={flatDiscountStr}
-                    onChange={(e) => applyFlatDiscount(parseFloat(e.target.value) || 0)}
+                    onFocus={(e) => e.target.select()}
+                    onWheel={(e) => (e.target as HTMLElement).blur()}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      setFlatDiscountStr(val);
+                      if (val === "") return;
+                      const num = parseFloat(val);
+                      if (!isNaN(num)) applyFlatDiscount(num);
+                    }}
                     placeholder="e.g. 100"
                     className="w-full bg-slate-950 border-2 border-cyan-500/50 rounded-xl pl-10 pr-4 py-2 text-xl font-mono text-white font-black focus:outline-none focus:border-cyan-400"
                   />

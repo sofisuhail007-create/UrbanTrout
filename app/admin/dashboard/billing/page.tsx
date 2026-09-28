@@ -15,8 +15,11 @@ export interface RemoteBillItem {
   productId: string;
   name: string;
   weightKg: number;
+  weightInput?: string;
   baseRate: number;
+  baseRateInput?: string;
   dealRate: number;
+  dealRateInput?: string;
   total: number;
   standardTotal: number;
   discountAmount: number;
@@ -164,8 +167,11 @@ export default function POSBillingPage() {
       productId: "gutted-trout",
       name: "Premium Gutted Rainbow Trout",
       weightKg: 2.0,
+      weightInput: "2.0",
       baseRate: 580,
+      baseRateInput: "580",
       dealRate: 560,
+      dealRateInput: "560",
       total: 1120,
       standardTotal: 1160,
       discountAmount: 40,
@@ -182,14 +188,43 @@ export default function POSBillingPage() {
         productId: "gutted-trout",
         name: "Premium Gutted Rainbow Trout",
         weightKg: 2.0,
+        weightInput: "2.0",
         baseRate: 580,
+        baseRateInput: "580",
         dealRate: 560,
+        dealRateInput: "560",
         total: 1120,
         standardTotal: 1160,
         discountAmount: 40,
       }
     );
   }, [remoteBillItems, activeRemoteItemId]);
+
+  const handleOpenNewRemoteModal = () => {
+    const defProd = products.find((p) => p.id === "gutted-trout") || products[0];
+    const baseR = defProd?.pricePerKg || 580;
+    const dealR = baseR > 20 ? baseR - 20 : baseR;
+    const initialItem: RemoteBillItem = {
+      id: "rem-1",
+      productId: defProd?.id || "gutted-trout",
+      name: defProd?.name || "Premium Gutted Rainbow Trout",
+      weightKg: 2.0,
+      weightInput: "2.0",
+      baseRate: baseR,
+      baseRateInput: String(baseR),
+      dealRate: dealR,
+      dealRateInput: String(dealR),
+      total: Math.round(2.0 * dealR),
+      standardTotal: Math.round(2.0 * baseR),
+      discountAmount: Math.max(0, Math.round(2.0 * baseR) - Math.round(2.0 * dealR)),
+    };
+    setRemoteBillItems([initialItem]);
+    setActiveRemoteItemId("rem-1");
+    setNewRemoteGeneratedData(null);
+    setNewRemoteCopied(false);
+    setNewRemoteLinkCopied(false);
+    setNewRemoteModalOpen(true);
+  };
 
   const handleAddRemoteItem = (prodId?: string) => {
     const targetProd = prodId
@@ -206,8 +241,11 @@ export default function POSBillingPage() {
       productId: targetProd?.id || "whole-trout",
       name: targetProd?.name || "Whole Rainbow Trout",
       weightKg: defWeight,
+      weightInput: "1.0",
       baseRate: baseR,
+      baseRateInput: String(baseR),
       dealRate: dealR,
+      dealRateInput: String(dealR),
       total: Math.round(defWeight * dealR),
       standardTotal: Math.round(defWeight * baseR),
       discountAmount: Math.max(0, Math.round(defWeight * baseR) - Math.round(defWeight * dealR)),
@@ -231,12 +269,21 @@ export default function POSBillingPage() {
       prev.map((item) => {
         if (item.id !== activeRemoteItemId && item.id !== activeRemoteItem.id) return item;
         const merged = { ...item, ...updates };
-        const w = Number(merged.weightKg) || 0;
-        const b = Number(merged.baseRate) || 0;
-        const d = Number(merged.dealRate) || b;
+
+        let w = merged.weightInput !== undefined ? (parseFloat(merged.weightInput) || 0) : Number(merged.weightKg);
+        if (isNaN(w)) w = 0;
+
+        let b = merged.baseRateInput !== undefined ? (parseFloat(merged.baseRateInput) || 0) : Number(merged.baseRate);
+        if (isNaN(b)) b = 0;
+
+        let d = merged.dealRateInput !== undefined ? (parseFloat(merged.dealRateInput) || 0) : Number(merged.dealRate);
+        if (isNaN(d)) d = b;
+
+        const effectiveDealRate = d > 0 ? d : b;
         const stdTot = Math.round(w * b);
-        const dealTot = Math.round(w * d);
+        const dealTot = Math.round(w * effectiveDealRate);
         const disc = Math.max(0, stdTot - dealTot);
+
         return {
           ...merged,
           weightKg: w,
@@ -2617,6 +2664,8 @@ Helpline: +91 84910 06127`;
                       step="0.01"
                       min="0.1"
                       value={currentWeight}
+                      onFocus={(e) => e.target.select()}
+                      onWheel={(e) => (e.target as HTMLElement).blur()}
                       onChange={(e) => updateActiveWeight(e.target.value)}
                       placeholder="e.g. 1.0"
                       className="w-full bg-slate-950/90 border border-slate-700 rounded-xl px-4 py-2 sm:py-2.5 text-xl sm:text-2xl font-mono text-cyan-300 font-bold focus:outline-none focus:border-cyan-400 shadow-inner"
@@ -2705,6 +2754,8 @@ Helpline: +91 84910 06127`;
                       min="1"
                       step="1"
                       value={customAmount}
+                      onFocus={(e) => e.target.select()}
+                      onWheel={(e) => (e.target as HTMLElement).blur()}
                       onChange={(e) => setCustomAmount(e.target.value)}
                       placeholder="e.g. 500"
                       className="w-full bg-transparent pl-10 pr-4 py-2 text-2xl sm:text-3xl font-black text-white font-mono focus:outline-none placeholder:text-slate-600"
@@ -3473,6 +3524,8 @@ Helpline: +91 84910 06127`;
                     <input
                       type="number"
                       value={amountPaidInput}
+                      onFocus={(e) => e.target.select()}
+                      onWheel={(e) => (e.target as HTMLElement).blur()}
                       onChange={(e) => {
                         setAmountPaidInput(e.target.value);
                         const val = parseFloat(e.target.value);
@@ -3805,12 +3858,7 @@ Helpline: +91 84910 06127`;
 
               <button
                 type="button"
-                onClick={() => {
-                  setNewRemoteModalOpen(true);
-                  setNewRemoteGeneratedData(null);
-                  setNewRemoteCopied(false);
-                  setNewRemoteLinkCopied(false);
-                }}
+                onClick={handleOpenNewRemoteModal}
                 className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer shadow-sm shrink-0"
               >
                 <span className="material-symbols-outlined text-sm">add</span>
@@ -3847,12 +3895,7 @@ Helpline: +91 84910 06127`;
               </div>
               <button
                 type="button"
-                onClick={() => {
-                  setNewRemoteModalOpen(true);
-                  setNewRemoteGeneratedData(null);
-                  setNewRemoteCopied(false);
-                  setNewRemoteLinkCopied(false);
-                }}
+                onClick={handleOpenNewRemoteModal}
                 className="px-4 py-2 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 rounded-xl text-xs font-bold uppercase tracking-wider inline-flex items-center gap-1.5 cursor-pointer"
               >
                 <span className="material-symbols-outlined text-sm">add_shopping_cart</span>
@@ -5133,11 +5176,15 @@ Helpline: +91 84910 06127`;
                             <div
                               key={p.id}
                               onClick={() => {
+                                const pPrice = p.pricePerKg || 580;
+                                const pDeal = pPrice > 20 ? pPrice - 20 : pPrice;
                                 handleUpdateActiveRemoteItem({
                                   productId: p.id,
                                   name: p.name,
-                                  baseRate: p.pricePerKg,
-                                  dealRate: p.pricePerKg,
+                                  baseRate: pPrice,
+                                  baseRateInput: String(pPrice),
+                                  dealRate: pDeal,
+                                  dealRateInput: String(pDeal),
                                 });
                               }}
                               className={`p-2 rounded-xl text-left border transition-all cursor-pointer flex items-center justify-between gap-1.5 ${
@@ -5149,7 +5196,7 @@ Helpline: +91 84910 06127`;
                               <div className="min-w-0 flex-1">
                                 <div className="font-bold text-xs truncate">{p.name.split(" ")[0]} Trout</div>
                                 <div className="text-emerald-400 font-mono text-xs font-bold mt-0.5">
-                                  ₹{p.pricePerKg}/Kg
+                                  ₹{p.pricePerKg || 580}/Kg
                                 </div>
                               </div>
                               <button
@@ -5178,7 +5225,7 @@ Helpline: +91 84910 06127`;
                         {currentWeight && (
                           <button
                             type="button"
-                            onClick={() => handleUpdateActiveRemoteItem({ weightKg: parseFloat(currentWeight) || 0 })}
+                            onClick={() => handleUpdateActiveRemoteItem({ weightKg: parseFloat(currentWeight) || 0, weightInput: currentWeight })}
                             className="text-cyan-400 hover:text-cyan-300 text-[10px] font-mono underline cursor-pointer"
                           >
                             📥 Pull Live Scale ({currentWeight} Kg)
@@ -5191,8 +5238,16 @@ Helpline: +91 84910 06127`;
                           type="number"
                           step="0.01"
                           min="0.1"
-                          value={activeRemoteItem.weightKg || ""}
-                          onChange={(e) => handleUpdateActiveRemoteItem({ weightKg: parseFloat(e.target.value) || 0 })}
+                          value={activeRemoteItem.weightInput !== undefined ? activeRemoteItem.weightInput : (activeRemoteItem.weightKg || "")}
+                          onFocus={(e) => e.target.select()}
+                          onWheel={(e) => (e.target as HTMLElement).blur()}
+                          onChange={(e) => {
+                            const raw = e.target.value;
+                            handleUpdateActiveRemoteItem({
+                              weightInput: raw,
+                              weightKg: parseFloat(raw) || 0,
+                            });
+                          }}
                           placeholder="e.g. 2.0"
                           className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-xl font-mono text-cyan-300 font-bold focus:outline-none focus:border-cyan-400 shadow-inner"
                         />
@@ -5210,7 +5265,7 @@ Helpline: +91 84910 06127`;
                             <button
                               key={w}
                               type="button"
-                              onClick={() => handleUpdateActiveRemoteItem({ weightKg: numW })}
+                              onClick={() => handleUpdateActiveRemoteItem({ weightKg: numW, weightInput: String(numW) })}
                               className={`px-2 py-0.5 rounded-lg font-mono text-[11px] font-semibold border transition-all cursor-pointer ${
                                 activeRemoteItem.weightKg === numW
                                   ? "bg-cyan-500/20 text-cyan-300 border-cyan-400"
@@ -5234,8 +5289,24 @@ Helpline: +91 84910 06127`;
                           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-xs">₹</span>
                           <input
                             type="number"
-                            value={activeRemoteItem.baseRate || ""}
-                            onChange={(e) => handleUpdateActiveRemoteItem({ baseRate: parseFloat(e.target.value) || 0 })}
+                            value={activeRemoteItem.baseRateInput !== undefined ? activeRemoteItem.baseRateInput : (activeRemoteItem.baseRate ?? 580)}
+                            onFocus={(e) => e.target.select()}
+                            onWheel={(e) => (e.target as HTMLElement).blur()}
+                            onChange={(e) => {
+                              const raw = e.target.value;
+                              handleUpdateActiveRemoteItem({
+                                baseRateInput: raw,
+                                baseRate: parseFloat(raw) || 0,
+                              });
+                            }}
+                            onBlur={() => {
+                              if (!activeRemoteItem.baseRate || activeRemoteItem.baseRate <= 0) {
+                                handleUpdateActiveRemoteItem({
+                                  baseRateInput: "580",
+                                  baseRate: 580,
+                                });
+                              }
+                            }}
                             placeholder="580"
                             className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-6 pr-3 py-1.5 text-sm font-mono text-white font-bold focus:outline-none focus:border-cyan-400"
                           />
@@ -5250,8 +5321,25 @@ Helpline: +91 84910 06127`;
                           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-400 font-mono text-xs">₹</span>
                           <input
                             type="number"
-                            value={activeRemoteItem.dealRate || ""}
-                            onChange={(e) => handleUpdateActiveRemoteItem({ dealRate: parseFloat(e.target.value) || 0 })}
+                            value={activeRemoteItem.dealRateInput !== undefined ? activeRemoteItem.dealRateInput : (activeRemoteItem.dealRate ?? 560)}
+                            onFocus={(e) => e.target.select()}
+                            onWheel={(e) => (e.target as HTMLElement).blur()}
+                            onChange={(e) => {
+                              const raw = e.target.value;
+                              handleUpdateActiveRemoteItem({
+                                dealRateInput: raw,
+                                dealRate: parseFloat(raw) || 0,
+                              });
+                            }}
+                            onBlur={() => {
+                              if (!activeRemoteItem.dealRate || activeRemoteItem.dealRate <= 0) {
+                                const fallback = activeRemoteItem.baseRate || 580;
+                                handleUpdateActiveRemoteItem({
+                                  dealRateInput: String(fallback),
+                                  dealRate: fallback,
+                                });
+                              }
+                            }}
                             placeholder="560"
                             className="w-full bg-slate-900 border-2 border-amber-500/60 rounded-xl pl-6 pr-3 py-1.5 text-sm font-mono text-amber-300 font-black focus:outline-none focus:border-amber-400"
                           />

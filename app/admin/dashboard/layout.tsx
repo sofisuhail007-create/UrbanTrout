@@ -125,7 +125,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       if (e.detail) setUiZoom(e.detail);
     };
     window.addEventListener("ut_admin_ui_zoom_change", handleZoomEvent);
-    return () => window.removeEventListener("ut_admin_ui_zoom_change", handleZoomEvent);
+
+    // Prevent mouse wheel from incrementing/decrementing number inputs across the entire admin panel
+    const handleWheel = (e: WheelEvent) => {
+      const activeEl = document.activeElement;
+      const target = e.target as HTMLElement | null;
+      const isTargetNumber = target instanceof HTMLInputElement && target.type === "number";
+      const isActiveNumber = activeEl instanceof HTMLInputElement && activeEl.type === "number";
+
+      if (isTargetNumber || isActiveNumber) {
+        if (target instanceof HTMLInputElement && target.type === "number") {
+          target.blur();
+        } else if (activeEl instanceof HTMLInputElement && activeEl.type === "number") {
+          activeEl.blur();
+        }
+        e.preventDefault();
+      }
+    };
+    window.addEventListener("wheel", handleWheel, { passive: false });
+
+    return () => {
+      window.removeEventListener("ut_admin_ui_zoom_change", handleZoomEvent);
+      window.removeEventListener("wheel", handleWheel);
+    };
   }, []);
 
   const handleSetUiZoom = (val: string) => {

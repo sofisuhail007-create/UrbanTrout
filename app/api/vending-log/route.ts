@@ -620,6 +620,81 @@ export async function PUT(request: Request) {
       return NextResponse.json({ success: false, error: "Missing id or updates" }, { status: 400 });
     }
 
+    // ── Staff past-entry edit restriction ──────────────────────────────────
+    // Staff can ONLY edit entries created today. Only super admin can edit past entries.
+    const authHeader = request.headers.get("authorization") || request.headers.get("Authorization");
+    let isRootOwner = false;
+    let isStaffAdmin = false;
+    if (authHeader && authHeader.toLowerCase().startsWith("bearer ")) {
+      const bearerToken = authHeader.substring(7).trim();
+      try {
+        const { data: { user } } = await supabase.auth.getUser(bearerToken);
+        if (user?.email) {
+          const userEmail = user.email.toLowerCase().trim();
+          isRootOwner = ROOT_OWNER_EMAILS.includes(userEmail);
+          if (!isRootOwner) {
+            const { data: staffRow } = await supabase
+              .from("app_settings")
+              .select("value")
+              .eq("key", "staff_permissions")
+              .maybeSingle();
+            if (staffRow?.value) {
+              const staffList = JSON.parse(staffRow.value);
+              const member = Array.isArray(staffList)
+                ? staffList.find((s: any) => s.email?.toLowerCase().trim() === userEmail)
+                : null;
+              if (member) {
+                const r = (member.role || "").toLowerCase().trim();
+                isStaffAdmin = r === "super_admin" || r === "admin";
+              }
+            }
+          }
+        }
+      } catch (_) {}
+    }
+
+    if (!isRootOwner && !isStaffAdmin) {
+      const istToday = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
+
+      let existingDate: string | null = null;
+      try {
+        const { data: existingRow } = await supabase
+          .from("vending_sales_log")
+          .select("entry_date")
+          .eq("id", id)
+          .maybeSingle();
+        if (existingRow?.entry_date) {
+          existingDate = existingRow.entry_date;
+        }
+      } catch (_) {}
+
+      if (!existingDate) {
+        const fallbackList = await getFallbackEntries();
+        const existingFallback = fallbackList.find((e) => e.id === id);
+        if (existingFallback) existingDate = existingFallback.entry_date;
+      }
+
+      if (existingDate && existingDate !== istToday) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Access denied: Sales staff can only edit today's entries. Contact Super Admin to modify past logs.",
+          },
+          { status: 403 }
+        );
+      }
+
+      if (updates.entry_date && updates.entry_date !== istToday) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Access denied: Staff cannot change entry date to a past date.",
+          },
+          { status: 403 }
+        );
+      }
+    }
+
     if (updates.weight_kg !== undefined && updates.rate_per_kg !== undefined) {
       const w = parseFloat(updates.weight_kg);
       const r = parseFloat(updates.rate_per_kg);
