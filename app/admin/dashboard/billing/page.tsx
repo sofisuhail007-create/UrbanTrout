@@ -1611,43 +1611,66 @@ Naseem Bagh / Malabagh, Srinagar`;
 
         // 2. Auto-record into Vending Center Sales Data Logger!
         try {
-          const tw = Number(order.data.tw) || 1.0;
-          const firstItem = order.data.items?.[0];
+          const tw = Number(order.data?.totalWeight ?? order.data?.tw) || 1.0;
+          const firstItem = order.data?.items?.[0];
+          const itemN = (firstItem?.n || firstItem?.name || "").toLowerCase();
           const prodType =
-            (firstItem?.n || "").toLowerCase().includes("gutted") &&
-            !(firstItem?.n || "").toLowerCase().includes("non")
+            (itemN.includes("gutted") && !itemN.includes("non")) || itemN.includes("premium")
               ? "Gutted"
-              : "Non Gutted";
-          const rate = firstItem?.r
-            ? Number(firstItem.r)
-            : Math.round((order.data.tot || 0) / (tw || 1));
+              : (itemN.includes("whole") || itemN.includes("non") ? "Non Gutted" : "Gutted");
+          const rate = firstItem?.dealRate || firstItem?.pricePerKg || firstItem?.r
+            ? Number(firstItem.dealRate || firstItem.pricePerKg || firstItem.r)
+            : (tw > 0 ? Math.round((Number(order.data?.tot) || 0) / tw) : 580);
+
+          const expAmount = order.data?.standardTotal !== undefined ? Number(order.data?.standardTotal) : (Number(order.data?.tot) || 0);
+          const discAmount = order.data?.discountAmount !== undefined ? Number(order.data?.discountAmount) : 0;
+
+          const now = new Date();
+          const istDate = new Intl.DateTimeFormat("en-CA", {
+            timeZone: "Asia/Kolkata",
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+          }).format(now);
+          const istTime = new Intl.DateTimeFormat("en-IN", {
+            timeZone: "Asia/Kolkata",
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true,
+          }).format(now).toLowerCase();
+
+          const effectiveRate = tw > 0 ? Math.round((Number(order.data?.tot) / tw) * 10) / 10 : rate;
 
           await adminFetch("/api/vending-log", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              entry_date: new Date().toISOString().split("T")[0],
-              entry_time: new Date().toLocaleTimeString("en-IN", {
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: true,
-              }),
+              entry_date: istDate,
+              entry_time: istTime,
               weight_kg: tw,
               product_type: prodType,
               rate_per_kg: rate,
-              amount_paid: order.data.tot,
-              expected_amount: order.data.tot,
-              discount_amount: 0,
+              amount_paid: Number(order.data.tot) || 0,
+              expected_amount: expAmount || Number(order.data.tot) || 0,
+              discount_amount: discAmount,
               payment_mode: "Razorpay Link",
               logged_by: "WhatsApp Remote Sync",
               notes: `Remote Order #${order.data.num || order.id} - ${order.data.name} (Phone: ${order.data.phone}) [Verified Paid ✓]`,
               custom_fields: {
+                expected_amount: expAmount || Number(order.data.tot) || 0,
+                discount_amount: discAmount,
+                standard_expected: expAmount || Number(order.data.tot) || 0,
+                effective_rate: effectiveRate,
+                balance_status: "none",
+                balance_amount: 0,
                 payment_status: "PAID",
                 payment_id: paymentId,
                 payment_link_id: linkId,
                 customer_name: order.data.name,
                 customer_phone: order.data.phone,
-                paid_at: new Date().toISOString(),
+                paid_at: now.toISOString(),
+                source: "whatsapp_remote_order",
+                order_ref: order.data.num || order.id,
               },
             }),
           });
@@ -1690,41 +1713,64 @@ Naseem Bagh / Malabagh, Srinagar`;
 
       // Auto-insert entry to Vending Center Sales Data Logger
       try {
-        const tw = Number(order.data?.tw) || 1.0;
+        const tw = Number(order.data?.totalWeight ?? order.data?.tw) || 1.0;
         const firstItem = order.data?.items?.[0];
+        const itemN = (firstItem?.n || firstItem?.name || "").toLowerCase();
         const prodType =
-          (firstItem?.n || "").toLowerCase().includes("gutted") &&
-          !(firstItem?.n || "").toLowerCase().includes("non")
+          (itemN.includes("gutted") && !itemN.includes("non")) || itemN.includes("premium")
             ? "Gutted"
-            : "Non Gutted";
-        const rate = firstItem?.r
-          ? Number(firstItem.r)
-          : Math.round((order.data?.tot || 0) / (tw || 1));
+            : (itemN.includes("whole") || itemN.includes("non") ? "Non Gutted" : "Gutted");
+        const rate = firstItem?.dealRate || firstItem?.pricePerKg || firstItem?.r
+          ? Number(firstItem.dealRate || firstItem.pricePerKg || firstItem.r)
+          : (tw > 0 ? Math.round((Number(order.data?.tot) || 0) / tw) : 580);
+
+        const expAmount = order.data?.standardTotal !== undefined ? Number(order.data?.standardTotal) : (Number(order.data?.tot) || 0);
+        const discAmount = order.data?.discountAmount !== undefined ? Number(order.data?.discountAmount) : 0;
+
+        const now = new Date();
+        const istDate = new Intl.DateTimeFormat("en-CA", {
+          timeZone: "Asia/Kolkata",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        }).format(now);
+        const istTime = new Intl.DateTimeFormat("en-IN", {
+          timeZone: "Asia/Kolkata",
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true,
+        }).format(now).toLowerCase();
+
+        const effectiveRate = tw > 0 ? Math.round((Number(order.data?.tot) / tw) * 10) / 10 : rate;
 
         await adminFetch("/api/vending-log", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            entry_date: new Date().toISOString().split("T")[0],
-            entry_time: new Date().toLocaleTimeString("en-IN", {
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: true,
-            }),
+            entry_date: istDate,
+            entry_time: istTime,
             weight_kg: tw,
             product_type: prodType,
             rate_per_kg: rate,
-            amount_paid: order.data?.tot,
-            expected_amount: order.data?.tot,
-            discount_amount: 0,
+            amount_paid: Number(order.data?.tot) || 0,
+            expected_amount: expAmount || Number(order.data?.tot) || 0,
+            discount_amount: discAmount,
             payment_mode: mode.includes("Cash") ? "Cash" : "Online Payment",
             logged_by: "Manual POS Settlement",
             notes: `Remote Order #${order.data?.num || order.id} - ${order.data?.name} (Phone: ${order.data?.phone}) [Marked Paid: ${mode}]`,
             custom_fields: {
+              expected_amount: expAmount || Number(order.data?.tot) || 0,
+              discount_amount: discAmount,
+              standard_expected: expAmount || Number(order.data?.tot) || 0,
+              effective_rate: effectiveRate,
+              balance_status: "none",
+              balance_amount: 0,
               payment_status: "PAID",
               payment_id: paymentId,
               settlement_mode: mode,
-              settled_at: new Date().toISOString(),
+              settled_at: now.toISOString(),
+              source: "whatsapp_remote_order",
+              order_ref: order.data?.num || order.id,
             },
           }),
         });

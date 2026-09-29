@@ -39,6 +39,20 @@ function getIstToday(): string {
   }
 }
 
+// Canonical Indian Standard Time time helper
+function getIstTime(): string {
+  try {
+    return new Intl.DateTimeFormat("en-IN", {
+      timeZone: "Asia/Kolkata",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    }).format(new Date()).toLowerCase();
+  } catch (_) {
+    return new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true });
+  }
+}
+
 // Fallback storage in app_settings (key: vending_expenses_data)
 async function getFallbackExpenses(): Promise<VendingExpenseEntry[]> {
   try {
@@ -183,7 +197,7 @@ export async function POST(request: Request) {
     const newExpense: VendingExpenseEntry = {
       id: crypto.randomUUID(),
       expense_date: expense_date || getIstToday(),
-      expense_time: expense_time || new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true }),
+      expense_time: expense_time || getIstTime(),
       category: category.trim(),
       title: title.trim(),
       amount: numAmount,

@@ -204,10 +204,18 @@ export async function POST(req: NextRequest) {
           const cleanRef = String(orderRef).replace(/\D/g, "") || String(orderRef);
           let invData: any = null;
           try {
+            const orFilters = [
+              `id.eq.${orderRef}`,
+              cleanRef ? `id.eq.${cleanRef}` : null,
+              `id.ilike.%${orderRef}%`,
+              `data->>num.eq.${orderRef}`,
+              paymentLinkId ? `data->>paymentLinkId.eq.${paymentLinkId}` : null,
+            ].filter(Boolean).join(",");
+
             const { data: matchedInvs } = await supabase
               .from("invoices")
               .select("id, data")
-              .or(`id.eq.${cleanRef},id.ilike.%${orderRef}%`)
+              .or(orFilters)
               .limit(1);
             if (matchedInvs && matchedInvs[0]?.data) {
               invData = typeof matchedInvs[0].data === "object" ? matchedInvs[0].data : JSON.parse(matchedInvs[0].data);
@@ -259,13 +267,18 @@ export async function POST(req: NextRequest) {
               let discAmount = 0;
 
               if (invData) {
-                tw = Number(invData.tw) || 1.0;
+                tw = Number(invData.totalWeight ?? invData.tw) || 1.0;
                 const firstItem = invData.items?.[0];
-                const itemN = (firstItem?.n || "").toLowerCase();
-                prodType = itemN.includes("gutted") && !itemN.includes("non") ? "Gutted" : "Non Gutted";
-                rate = firstItem?.r ? Number(firstItem.r) : Math.round(amount / (tw || 1));
-                expAmount = invData.standardTotal ? Number(invData.standardTotal) : (invData.tot || amount);
+                const itemN = (firstItem?.n || firstItem?.name || "").toLowerCase();
+                prodType = (itemN.includes("gutted") && !itemN.includes("non")) || itemN.includes("premium")
+                  ? "Gutted"
+                  : (itemN.includes("whole") || itemN.includes("non") ? "Non Gutted" : "Gutted");
+                rate = firstItem?.dealRate || firstItem?.pricePerKg || firstItem?.r
+                  ? Number(firstItem.dealRate || firstItem.pricePerKg || firstItem.r)
+                  : (tw > 0 ? Math.round(amount / tw) : 580);
+                expAmount = invData.standardTotal !== undefined ? Number(invData.standardTotal) : (Number(invData.grandTotal ?? invData.tot) || amount);
                 discAmount = invData.discountAmount !== undefined ? Number(invData.discountAmount) : Math.max(0, expAmount - amount);
+                if (expAmount <= 0) expAmount = amount;
               } else {
                 // Check structured notes from Razorpay first
                 if (notes.weight_kg) tw = parseFloat(notes.weight_kg) || 1.0;
@@ -319,10 +332,32 @@ export async function POST(req: NextRequest) {
                 }
               }
 
+              // Compute exact IST date & time for the moment customer paid
+              const paymentEpoch = payment?.created_at
+                ? Number(payment.created_at) * 1000
+                : (paymentLink?.updated_at ? Number(paymentLink.updated_at) * 1000 : Date.now());
+              const paymentDate = new Date(paymentEpoch);
+
+              const istDate = new Intl.DateTimeFormat("en-CA", {
+                timeZone: "Asia/Kolkata",
+                year: "numeric",
+                month: "2-digit",
+                day: "2-digit",
+              }).format(paymentDate);
+
+              const istTime = new Intl.DateTimeFormat("en-IN", {
+                timeZone: "Asia/Kolkata",
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true,
+              }).format(paymentDate).toLowerCase();
+
+              const effectiveRate = tw > 0 ? Math.round((amount / tw) * 10) / 10 : rate;
+
               const newLog = {
                 id: crypto.randomUUID(),
-                entry_date: new Date().toISOString().split("T")[0],
-                entry_time: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", hour12: true }),
+                entry_date: istDate,
+                entry_time: istTime,
                 weight_kg: tw,
                 product_type: prodType,
                 rate_per_kg: rate,
@@ -335,13 +370,18 @@ export async function POST(req: NextRequest) {
                 custom_fields: {
                   expected_amount: expAmount,
                   discount_amount: discAmount,
-                  effective_rate: rate,
+                  standard_expected: expAmount,
+                  effective_rate: effectiveRate,
+                  balance_status: "none",
+                  balance_amount: 0,
                   payment_status: "PAID",
                   payment_id: paymentId,
                   payment_link_id: paymentLinkId,
                   customer_name: customerName,
                   customer_phone: customerPhone,
-                  paid_at: new Date().toISOString(),
+                  paid_at: paymentDate.toISOString(),
+                  source: "whatsapp_remote_order",
+                  order_ref: orderRef,
                 },
               };
 
