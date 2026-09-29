@@ -19,6 +19,7 @@ const supabase = createClient(
 );
 
 function extractEmail(order: any): string | undefined {
+  if (!order) return undefined;
   if (order.customer_email && typeof order.customer_email === "string" && order.customer_email.includes("@")) {
     return order.customer_email.trim();
   }
