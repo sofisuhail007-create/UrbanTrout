@@ -87,6 +87,29 @@ export async function GET(req: NextRequest) {
     ]);
     const liveSummary = await getLiveAquariumStock();
 
+    // Check if request is from an authenticated admin
+    const { requireAdminAuth } = await import("@/lib/adminAuth");
+    const authError = await requireAdminAuth(req);
+    const isAdmin = authError === null;
+
+    if (!isAdmin) {
+      // 🔒 Public visitor or client: NEVER expose supplier names, costs, or procurement history!
+      return NextResponse.json(
+        {
+          success: true,
+          liveSummary: {
+            remainingKg: liveSummary.remainingKg,
+          },
+        },
+        {
+          headers: {
+            "Cache-Control": "private, no-cache, no-store, max-age=0, must-revalidate",
+          },
+        }
+      );
+    }
+
+    // 🛡️ Authorized Admin: Return full procurement ledger
     const entries: AquariumStockEntry[] = (data || []).map((row: any) => {
       const m = meta[row.id];
       const stockBefore = m?.stock_before_kg !== undefined ? Number(m.stock_before_kg) : undefined;
