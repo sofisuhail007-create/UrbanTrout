@@ -34,16 +34,29 @@ export default function ClientWidgets() {
       navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {});
     }
 
-    if ("requestIdleCallback" in window) {
-      const handle = (window as any).requestIdleCallback(
-        () => setLoadDeferred(true),
-        { timeout: 3000 }
-      );
-      return () => (window as any).cancelIdleCallback?.(handle);
-    } else {
-      const timer = setTimeout(() => setLoadDeferred(true), 2500);
-      return () => clearTimeout(timer);
-    }
+    // Load non-essential floating widgets on user interaction or idle time
+    let triggered = false;
+    const triggerLoad = () => {
+      if (triggered) return;
+      triggered = true;
+      setLoadDeferred(true);
+      window.removeEventListener("scroll", triggerLoad);
+      window.removeEventListener("touchstart", triggerLoad);
+      window.removeEventListener("pointerdown", triggerLoad);
+    };
+
+    window.addEventListener("scroll", triggerLoad, { passive: true });
+    window.addEventListener("touchstart", triggerLoad, { passive: true });
+    window.addEventListener("pointerdown", triggerLoad, { passive: true });
+
+    const timer = setTimeout(triggerLoad, 5000);
+
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("scroll", triggerLoad);
+      window.removeEventListener("touchstart", triggerLoad);
+      window.removeEventListener("pointerdown", triggerLoad);
+    };
   }, [pathname]);
 
   return (

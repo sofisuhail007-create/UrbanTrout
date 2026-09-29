@@ -238,6 +238,16 @@ body {
   pointer-events: none;
 }
 
+@media (max-width: 768px), (prefers-reduced-motion: reduce) {
+  .animate-hero-drift {
+    animation: none !important;
+    transform: none !important;
+  }
+  .ambient-bubble {
+    display: none !important;
+  }
+}
+
 
 @keyframes pulse-ring {
   0%   { box-shadow: 0 0 0 0 rgba(0, 140, 179, 0.4); }

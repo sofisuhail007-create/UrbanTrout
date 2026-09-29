@@ -389,37 +389,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
 
-        {/* ─── Facebook Pixel Base Code ──────────────────────────────── */}
-        {process.env.NEXT_PUBLIC_FB_PIXEL_ID && (
-          <>
-            <script
-              dangerouslySetInnerHTML={{
-                __html: `
-!function(f,b,e,v,n,t,s)
-{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-n.queue=[];t=b.createElement(e);t.async=!0;
-t.src=v;s=b.getElementsByTagName(e)[0];
-s.parentNode.insertBefore(t,s)}(window, document,'script',
-'https://connect.facebook.net/en_US/fbevents.js');
-fbq('init', '${process.env.NEXT_PUBLIC_FB_PIXEL_ID}');
-fbq('track', 'PageView');
-                `.trim(),
-              }}
-            />
-            <noscript>
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                height="1"
-                width="1"
-                style={{ display: "none" }}
-                src={`https://www.facebook.com/tr?id=${process.env.NEXT_PUBLIC_FB_PIXEL_ID}&ev=PageView&noscript=1`}
-                alt=""
-              />
-            </noscript>
-          </>
-        )}
+        {/* ─── Preconnect to 3rd party origins ─────────────────────── */}
+        <link rel="preconnect" href="https://connect.facebook.net" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://www.googletagmanager.com" crossOrigin="anonymous" />
       </head>
       <body className={`${manrope.className} bg-[#031018] text-[#dfedf9] antialiased selection:bg-cyan-500/20 selection:text-cyan-300`}>
         <CustomerAuthProvider>
@@ -442,12 +414,31 @@ fbq('track', 'PageView');
           <Footer />
           <Analytics />
           <SpeedInsights />
-          {/* ─── Google Analytics 4 (GA4) ───────────────────────────────── */}
+
+          {/* ─── Facebook Pixel (Deferred via lazyOnload for optimal Core Web Vitals) ─── */}
+          {process.env.NEXT_PUBLIC_FB_PIXEL_ID && (
+            <Script id="fb-pixel" strategy="lazyOnload">
+              {`
+                !function(f,b,e,v,n,t,s)
+                {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+                n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+                if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+                n.queue=[];t=b.createElement(e);t.async=!0;
+                t.src=v;s=b.getElementsByTagName(e)[0];
+                s.parentNode.insertBefore(t,s)}(window, document,'script',
+                'https://connect.facebook.net/en_US/fbevents.js');
+                fbq('init', '${process.env.NEXT_PUBLIC_FB_PIXEL_ID}');
+                fbq('track', 'PageView');
+              `}
+            </Script>
+          )}
+
+          {/* ─── Google Analytics 4 (GA4 - Deferred via lazyOnload) ───── */}
           <Script
             src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? "G-VF8E6RTTKM"}`}
-            strategy="afterInteractive"
+            strategy="lazyOnload"
           />
-          <Script id="ga4-init" strategy="afterInteractive">
+          <Script id="ga4-init" strategy="lazyOnload">
             {`
               window.dataLayer = window.dataLayer || [];
               function gtag(){dataLayer.push(arguments);}
@@ -457,21 +448,6 @@ fbq('track', 'PageView');
               });
             `}
           </Script>
-          {/* ─── PWA Service Worker Global Registration ─────────────────── */}
-          <script
-            dangerouslySetInnerHTML={{
-              __html: `
-                if ('serviceWorker' in navigator) {
-                  window.addEventListener('load', function() {
-                    navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(function() {});
-                  });
-                  if (document.readyState === 'complete') {
-                    navigator.serviceWorker.register('/sw.js', { scope: '/' }).catch(function() {});
-                  }
-                }
-              `.trim(),
-            }}
-          />
         </CartProvider>
       </CustomerAuthProvider>
     </body>
