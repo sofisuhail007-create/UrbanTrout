@@ -95,8 +95,8 @@ async function findAndUpdateOrder(rawIdOrNum: string, newStatus: string) {
   try {
     const { data: logs } = await supabase
       .from("vending_sales_log")
-      .select("id, notes, custom_fields, amount_paid, weight_sold")
-      .or(`notes.ilike.%${rawIdOrNum}%,custom_fields->>order_ref.eq.${rawIdOrNum},custom_fields->>payment_id.eq.${rawIdOrNum}`)
+      .select("id, notes, custom_fields, amount_paid, weight_kg")
+      .ilike("notes", `%${rawIdOrNum}%`)
       .limit(1);
 
     if (logs && logs[0]) {
@@ -122,7 +122,7 @@ async function findAndUpdateOrder(rawIdOrNum: string, newStatus: string) {
         total: log.amount_paid || 0,
         status: newStatus,
         customer_locality: custom.delivery_locality || "Srinagar (Within 4km)",
-        items: [{ name: `${log.weight_sold || 2}kg Rainbow Trout`, quantity: 1, price: log.amount_paid }],
+        items: [{ name: `${log.weight_kg || 2}kg Rainbow Trout`, quantity: 1, price: log.amount_paid }],
       };
     }
   } catch (logErr) {
@@ -304,27 +304,31 @@ export async function POST(request: Request) {
 
         // 5. Update the Telegram message text and inline buttons in-place
         if (chatId && messageId) {
-          const newText = formatOrderTelegramText({
-            orderNumber: updatedOrder?.order_number || orderNumberOrId,
-            status: newStatus,
-            total: totalAmount,
-            paymentMethod: "Razorpay / UPI",
-            customerName: customerName,
-            phone: customerPhone,
-            locality: updatedOrder?.customer_locality,
-            address: updatedOrder?.customer_address,
-            pincode: updatedOrder?.customer_pincode,
-            items: updatedOrder?.items,
-          });
+          try {
+            const newText = formatOrderTelegramText({
+              orderNumber: updatedOrder?.order_number || orderNumberOrId,
+              status: newStatus,
+              total: totalAmount,
+              paymentMethod: "Razorpay / UPI",
+              customerName: customerName,
+              phone: customerPhone,
+              locality: updatedOrder?.customer_locality,
+              address: updatedOrder?.customer_address,
+              pincode: updatedOrder?.customer_pincode,
+              items: updatedOrder?.items,
+            });
 
-          const newKeyboard = getOrderKeyboard(
-            updatedOrder?.order_number || orderNumberOrId,
-            newStatus,
-            customerPhone,
-            customerName
-          );
+            const newKeyboard = getOrderKeyboard(
+              updatedOrder?.order_number || orderNumberOrId,
+              newStatus,
+              customerPhone,
+              customerName
+            );
 
-          await editTelegramMessageText(chatId, messageId, newText, newKeyboard);
+            await editTelegramMessageText(chatId, messageId, newText, newKeyboard);
+          } catch (editErr) {
+            console.warn("[telegram-webhook] Edit message notice:", editErr);
+          }
         }
 
         return NextResponse.json({ success: true, updated: orderNumberOrId, status: newStatus });
