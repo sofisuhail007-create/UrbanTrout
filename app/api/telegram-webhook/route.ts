@@ -956,12 +956,10 @@ export async function POST(request: Request) {
         );
         return NextResponse.json({ success: true });
       }
-    }
-
     return NextResponse.json({ ok: true });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Telegram webhook error:", error);
-    return NextResponse.json({ ok: false, error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ ok: false, error: error?.message || "Internal server error", stack: error?.stack }, { status: 500 });
   }
 }
 
