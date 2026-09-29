@@ -283,13 +283,13 @@ export async function POST(request: Request) {
           let waText = "";
 
           if (newStatus === "out_for_delivery") {
-            waText = `Assalam-o-Alaikum Janab ${cleanCustomerName}! 🛵\n\nGood news — your fresh live-harvested Rainbow Trout order (#${orderNumberOrId}) is packed on ice and is *OUT FOR DELIVERY*!\n\nOur delivery rider is on the way to your address. Please keep your phone reachable. Thank you for choosing Urban Trout, Malabagh! 🐟`;
+            waText = `Assalam-o-Alaikum ${cleanCustomerName}! 🛵\n\nGood news — your fresh live-harvested Rainbow Trout order (#${orderNumberOrId}) is packed on ice and is *OUT FOR DELIVERY*!\n\nOur delivery rider is on the way to your address. Please keep your phone reachable. Thank you for choosing Urban Trout, Malabagh! 🐟`;
           } else if (newStatus === "delivered") {
-            waText = `Assalam-o-Alaikum Janab ${cleanCustomerName}! ✅\n\nYour live-harvested Rainbow Trout order (#${orderNumberOrId}) has been successfully *DELIVERED*!\n\nWe hope you enjoy the pure Himalayan spring-water freshness. Cook it fresh, and feel free to reach back anytime for your next fresh catch. Khuda Hafiz! 🐟✨`;
+            waText = `Assalam-o-Alaikum ${cleanCustomerName}! ✅\n\nYour live-harvested Rainbow Trout order (#${orderNumberOrId}) has been successfully *DELIVERED*!\n\nWe hope you enjoy the pure Himalayan spring-water freshness. Cook it fresh, and feel free to reach back anytime for your next fresh catch. Khuda Hafiz! 🐟✨`;
           } else if (newStatus === "processing" || newStatus === "confirmed") {
-            waText = `Assalam-o-Alaikum Janab ${cleanCustomerName}! 🐟\n\nUpdate on your order (#${orderNumberOrId}): Our team has started the *LIVE HARVEST* and fresh cleaning/gutting from our Malabagh RAS tanks. We will dispatch it shortly!`;
+            waText = `Assalam-o-Alaikum ${cleanCustomerName}! 🐟\n\nUpdate on your order (#${orderNumberOrId}): Our team has started the *LIVE HARVEST* and fresh cleaning/gutting from our Malabagh RAS tanks. We will dispatch it shortly!`;
           } else if (newStatus === "cancelled") {
-            waText = `Assalam-o-Alaikum Janab ${cleanCustomerName}. Your order (#${orderNumberOrId}) has been cancelled. If any payment was captured, our team is processing your full refund immediately.`;
+            waText = `Assalam-o-Alaikum ${cleanCustomerName}. Your order (#${orderNumberOrId}) has been cancelled. If any payment was captured, our team is processing your full refund immediately.`;
           }
 
           if (waText) {
