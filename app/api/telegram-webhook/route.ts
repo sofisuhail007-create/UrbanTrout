@@ -237,7 +237,7 @@ export async function POST(request: Request) {
       // ── Handle Order Status Callbacks: "ord:<status>:<orderNumber>" ──
       if (dataStr.startsWith("ord:")) {
         const parts = dataStr.split(":");
-        const newStatus = parts[1] as "pending" | "processing" | "out_for_delivery" | "delivered" | "cancelled" | "out_of_stock";
+        const newStatus = parts[1] as "pending" | "processing" | "confirmed" | "out_for_delivery" | "delivered" | "cancelled" | "out_of_stock";
         const orderNumberOrId = parts[2];
 
         // 1. Fetch & Update order in Supabase
@@ -269,7 +269,7 @@ export async function POST(request: Request) {
                 phone: customerPhone,
                 total: totalAmount,
               },
-              newStatus
+              newStatus === "confirmed" ? "processing" : newStatus
             );
           } catch (mailErr) {
             console.error("Failed to send order status update email:", mailErr);
@@ -956,6 +956,8 @@ export async function POST(request: Request) {
         );
         return NextResponse.json({ success: true });
       }
+    }
+
     return NextResponse.json({ ok: true });
   } catch (error: any) {
     console.error("Telegram webhook error:", error);
