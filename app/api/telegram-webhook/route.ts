@@ -91,7 +91,98 @@ async function findAndUpdateOrder(rawIdOrNum: string, newStatus: string) {
     }
   } catch (_) {}
 
+  // 4. Try lookup in vending_sales_log (where remote/WhatsApp orders live)
+  try {
+    const { data: logs } = await supabase
+      .from("vending_sales_log")
+      .select("id, notes, custom_fields, amount_paid, weight_sold")
+      .or(`notes.ilike.%${rawIdOrNum}%,custom_fields->>order_ref.eq.${rawIdOrNum},custom_fields->>payment_id.eq.${rawIdOrNum}`)
+      .limit(1);
+
+    if (logs && logs[0]) {
+      const log = logs[0];
+      const custom = typeof log.custom_fields === "object" && log.custom_fields ? log.custom_fields : {};
+      const updatedCustom = {
+        ...custom,
+        delivery_status: newStatus,
+        status_updated_at: new Date().toISOString(),
+      };
+      await supabase
+        .from("vending_sales_log")
+        .update({
+          custom_fields: updatedCustom,
+          notes: `${log.notes || ""} [STATUS: ${newStatus.toUpperCase()}]`.trim(),
+        })
+        .eq("id", log.id);
+
+      return {
+        order_number: custom.order_ref || rawIdOrNum,
+        customer_name: custom.customer_name || "Customer",
+        customer_phone: custom.customer_phone || "",
+        total: log.amount_paid || 0,
+        status: newStatus,
+        customer_locality: custom.delivery_locality || "Srinagar (Within 4km)",
+        items: [{ name: `${log.weight_sold || 2}kg Rainbow Trout`, quantity: 1, price: log.amount_paid }],
+      };
+    }
+  } catch (logErr) {
+    console.warn("Vending log lookup notice in telegram-webhook:", logErr);
+  }
+
   return null;
+}
+
+// Helper to enqueue WhatsApp dispatches for the local WhatsApp agent to transmit
+async function queueWhatsAppDispatch(dispatch: {
+  phone: string;
+  customerName: string;
+  orderRef: string;
+  status: string;
+  messageText: string;
+}) {
+  if (!dispatch.phone) return;
+  const cleanPhone = String(dispatch.phone).replace(/\D/g, "").slice(-10);
+  if (cleanPhone.length !== 10) return;
+
+  try {
+    const { data: row } = await supabase
+      .from("app_settings")
+      .select("value")
+      .eq("key", "whatsapp_dispatch_queue")
+      .maybeSingle();
+
+    let queue: any[] = [];
+    if (row?.value) {
+      try {
+        queue = JSON.parse(row.value);
+      } catch (_) {}
+    }
+
+    const newEntry = {
+      id: `disp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      orderRef: dispatch.orderRef,
+      phone: cleanPhone,
+      customerName: dispatch.customerName,
+      status: dispatch.status,
+      messageText: dispatch.messageText,
+      dispatched: false,
+      queuedAt: new Date().toISOString(),
+    };
+
+    queue.push(newEntry);
+    if (queue.length > 50) queue = queue.slice(-50);
+
+    await supabase.from("app_settings").upsert({
+      key: "whatsapp_dispatch_queue",
+      value: JSON.stringify(queue),
+      description: "Pending WhatsApp customer notifications from Telegram status updates",
+      updated_at: new Date().toISOString(),
+    }, { onConflict: "key" });
+
+    console.log(`[WhatsApp Dispatch Queue] Enqueued ${dispatch.status} message for +91 ${cleanPhone}`);
+  } catch (err) {
+    console.error("[WhatsApp Dispatch Queue] Error enqueuing message:", err);
+  }
 }
 
 async function findOrder(queryNum: string) {
@@ -157,9 +248,9 @@ export async function POST(request: Request) {
         await answerCallbackQuery(cq.id, `✅ Order #${orderNumberOrId} marked as ${statusName}!`);
 
         const existingText = message?.text || "";
-        const phoneMatch = existingText.match(/\+91\s*(\d{10})/);
-        const nameMatch = existingText.match(/Name:\s*([^\n\r]+)/);
-        const totalMatch = existingText.match(/Total:\s*[₹Rs.]*\s*([0-9,]+)/i);
+        const phoneMatch = existingText.match(/(?:\+91|Phone:)\s*(\d{10})/i) || existingText.match(/\b([6-9]\d{9})\b/);
+        const nameMatch = existingText.match(/(?:Customer|Name):\s*([^\n\r<]+)/i);
+        const totalMatch = existingText.match(/(?:Amount|Total):\s*[₹Rs.]*\s*([0-9,]+)/i);
         const emailMatch = (updatedOrder?.customer_address || existingText).match(/Email:\s*([^\s)\n<]+@[^\s)\n<]+)/i);
 
         const customerPhone = updatedOrder?.customer_phone || (phoneMatch ? phoneMatch[1] : "");
@@ -185,7 +276,33 @@ export async function POST(request: Request) {
           }
         }
 
-        // 4. Update the Telegram message text and inline buttons in-place
+        // 4. Send automated WhatsApp message to Customer via Agent Dispatch Queue
+        if (customerPhone) {
+          const cleanCustomerName = customerName.replace(/Janab\s*/i, "").trim() || "Customer";
+          let waText = "";
+
+          if (newStatus === "out_for_delivery") {
+            waText = `Assalam-o-Alaikum Janab ${cleanCustomerName}! 🛵\n\nGood news — your fresh live-harvested Rainbow Trout order (#${orderNumberOrId}) is packed on ice and is *OUT FOR DELIVERY*!\n\nOur delivery rider is on the way to your address. Please keep your phone reachable. Thank you for choosing Urban Trout, Malabagh! 🐟`;
+          } else if (newStatus === "delivered") {
+            waText = `Assalam-o-Alaikum Janab ${cleanCustomerName}! ✅\n\nYour live-harvested Rainbow Trout order (#${orderNumberOrId}) has been successfully *DELIVERED*!\n\nWe hope you enjoy the pure Himalayan spring-water freshness. Cook it fresh, and feel free to reach back anytime for your next fresh catch. Khuda Hafiz! 🐟✨`;
+          } else if (newStatus === "processing" || newStatus === "confirmed") {
+            waText = `Assalam-o-Alaikum Janab ${cleanCustomerName}! 🐟\n\nUpdate on your order (#${orderNumberOrId}): Our team has started the *LIVE HARVEST* and fresh cleaning/gutting from our Malabagh RAS tanks. We will dispatch it shortly!`;
+          } else if (newStatus === "cancelled") {
+            waText = `Assalam-o-Alaikum Janab ${cleanCustomerName}. Your order (#${orderNumberOrId}) has been cancelled. If any payment was captured, our team is processing your full refund immediately.`;
+          }
+
+          if (waText) {
+            await queueWhatsAppDispatch({
+              phone: customerPhone,
+              customerName: cleanCustomerName,
+              orderRef: String(orderNumberOrId),
+              status: newStatus,
+              messageText: waText,
+            });
+          }
+        }
+
+        // 5. Update the Telegram message text and inline buttons in-place
         if (chatId && messageId) {
           const newText = formatOrderTelegramText({
             orderNumber: updatedOrder?.order_number || orderNumberOrId,

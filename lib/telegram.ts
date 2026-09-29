@@ -631,6 +631,25 @@ ${params.orderId ? `<b>Order ID:</b> <code>${params.orderId}</code>\n` : ""}${pa
 ⚡ <i>Payment auto-captured & verified</i>`;
 
   const buttons: InlineKeyboardButton[][] = [];
+
+  // 1-Click Order Status Action Buttons for Telegram
+  const orderRef = params.orderId || params.paymentId;
+  const statusRow: InlineKeyboardButton[] = [
+    {
+      text: "🛵 Out for Delivery",
+      callback_data: `ord:out_for_delivery:${orderRef}`,
+    },
+    {
+      text: "✅ Delivered",
+      callback_data: `ord:delivered:${orderRef}`,
+    },
+    {
+      text: "🐟 Harvesting",
+      callback_data: `ord:processing:${orderRef}`,
+    },
+  ];
+  buttons.push(statusRow);
+
   const actionRow: InlineKeyboardButton[] = [];
 
   if (resolvedMapsUrl) {
