@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { requireAdminAuth } from "@/lib/adminAuth";
+import { recordAuditLog, resolveActorFromRequest } from "@/lib/auditLog";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -221,6 +222,21 @@ export async function POST(request: Request) {
       await saveFallbackExpenses(fallbackList);
     } catch (_) {}
 
+    // Audit Log: Record expense creation
+    try {
+      const actor = await resolveActorFromRequest(request, logged_by);
+      await recordAuditLog({
+        action: "CREATE_EXPENSE",
+        entity_type: "vending_expense",
+        entity_id: newExpense.id,
+        actor_name: actor.actor_name,
+        actor_email: actor.actor_email,
+        actor_role: actor.actor_role,
+        summary: `Logged expense ₹${numAmount} [${newExpense.category} - ${newExpense.title}] (${newExpense.payment_mode})`,
+        new_snapshot: newExpense,
+      });
+    } catch (_) {}
+
     return NextResponse.json({
       success: true,
       entry: newExpense,
@@ -314,6 +330,21 @@ export async function PUT(request: Request) {
 
     const finalExpense = updatedRow || { id, ...updates };
 
+    // Audit Log: Record expense update
+    try {
+      const actor = await resolveActorFromRequest(request, updates.logged_by);
+      await recordAuditLog({
+        action: "UPDATE_EXPENSE",
+        entity_type: "vending_expense",
+        entity_id: id,
+        actor_name: actor.actor_name,
+        actor_email: actor.actor_email,
+        actor_role: actor.actor_role,
+        summary: `Modified expense: ${finalExpense.title || "Expense"} (₹${finalExpense.amount || 0})`,
+        new_snapshot: finalExpense,
+      });
+    } catch (_) {}
+
     return NextResponse.json({
       success: true,
       id,
@@ -344,23 +375,24 @@ export async function DELETE(request: Request) {
     }
 
     // Restriction: Staff can ONLY delete entries of today!
+    let existingItem: any = null;
+    try {
+      const { data: row } = await supabase
+        .from("vending_expenses")
+        .select("*")
+        .eq("id", id)
+        .maybeSingle();
+      if (row) existingItem = row;
+    } catch (_) {}
+
+    if (!existingItem) {
+      const fallbackList = await getFallbackExpenses();
+      const match = fallbackList.find((e) => e.id === id);
+      if (match) existingItem = match;
+    }
+
     if (!isAdmin) {
-      let existingDate: string | null = null;
-      try {
-        const { data: row } = await supabase
-          .from("vending_expenses")
-          .select("expense_date")
-          .eq("id", id)
-          .maybeSingle();
-        if (row?.expense_date) existingDate = row.expense_date;
-      } catch (_) {}
-
-      if (!existingDate) {
-        const fallbackList = await getFallbackExpenses();
-        const match = fallbackList.find((e) => e.id === id);
-        if (match) existingDate = match.expense_date;
-      }
-
+      const existingDate = existingItem?.expense_date || null;
       if (existingDate && existingDate !== istToday) {
         return NextResponse.json(
           {
@@ -382,6 +414,21 @@ export async function DELETE(request: Request) {
       if (filtered.length !== fallbackList.length) {
         await saveFallbackExpenses(filtered);
       }
+    } catch (_) {}
+
+    // Audit Log: Record expense deletion
+    try {
+      const actor = await resolveActorFromRequest(request);
+      await recordAuditLog({
+        action: "DELETE_EXPENSE",
+        entity_type: "vending_expense",
+        entity_id: id,
+        actor_name: actor.actor_name,
+        actor_email: actor.actor_email,
+        actor_role: actor.actor_role,
+        summary: `Deleted expense #${id.slice(0, 8)}: ₹${existingItem?.amount || 0} [${existingItem?.category || ""} - ${existingItem?.title || ""}]`,
+        previous_snapshot: existingItem,
+      });
     } catch (_) {}
 
     return NextResponse.json({ success: true, id });

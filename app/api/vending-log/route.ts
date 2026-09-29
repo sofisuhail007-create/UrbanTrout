@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { requireAdminAuth } from "@/lib/adminAuth";
+import { recordAuditLog, resolveActorFromRequest } from "@/lib/auditLog";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -600,6 +601,21 @@ export async function POST(request: Request) {
       checkAndTriggerLowStockAlert(`Counter Sale (${parsedWeight} Kg ${product_type || "Trout"})`).catch(console.error);
     } catch (_) {}
 
+    // Audit Log: Record new sales entry creation
+    try {
+      const actor = await resolveActorFromRequest(request, logged_by);
+      await recordAuditLog({
+        action: "CREATE_ENTRY",
+        entity_type: "vending_sale",
+        entity_id: entry.id,
+        actor_name: actor.actor_name,
+        actor_email: actor.actor_email,
+        actor_role: actor.actor_role,
+        summary: `Added new sale: ${parsedWeight} Kg ${product_type || "Gutted"} Trout | Rate ₹${parsedRate}/Kg | Paid ₹${parsedPaid} (${payment_mode || "Cash"}) [Staff: ${entry.logged_by}]`,
+        new_snapshot: entry,
+      });
+    } catch (_) {}
+
     return NextResponse.json({ success: true, entry });
   } catch (err: any) {
     console.error("Vending Log POST Error:", err);
@@ -653,26 +669,25 @@ export async function PUT(request: Request) {
       } catch (_) {}
     }
 
+    // Fetch existing entry for diff and permission checks
+    let existingRow: any = null;
+    try {
+      const { data: dbRow } = await supabase
+        .from("vending_sales_log")
+        .select("*")
+        .eq("id", id)
+        .maybeSingle();
+      if (dbRow) existingRow = dbRow;
+    } catch (_) {}
+
+    if (!existingRow) {
+      const fallbackList = await getFallbackEntries();
+      existingRow = fallbackList.find((e) => e.id === id) || null;
+    }
+
     if (!isRootOwner && !isStaffAdmin) {
       const istToday = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
-
-      let existingDate: string | null = null;
-      try {
-        const { data: existingRow } = await supabase
-          .from("vending_sales_log")
-          .select("entry_date")
-          .eq("id", id)
-          .maybeSingle();
-        if (existingRow?.entry_date) {
-          existingDate = existingRow.entry_date;
-        }
-      } catch (_) {}
-
-      if (!existingDate) {
-        const fallbackList = await getFallbackEntries();
-        const existingFallback = fallbackList.find((e) => e.id === id);
-        if (existingFallback) existingDate = existingFallback.entry_date;
-      }
+      const existingDate = existingRow?.entry_date || null;
 
       if (existingDate && existingDate !== istToday) {
         return NextResponse.json(
@@ -712,6 +727,81 @@ export async function PUT(request: Request) {
     updates.updated_at = new Date().toISOString();
     if (updates.logged_by) updates.logged_by = normalizeStaffName(updates.logged_by);
 
+    // Compute detailed audit diff
+    const changes: Record<string, { from: any; to: any }> = {};
+    const diffSummaries: string[] = [];
+
+    if (updates.weight_kg !== undefined && existingRow && Number(updates.weight_kg) !== Number(existingRow.weight_kg)) {
+      changes.weight_kg = { from: Number(existingRow.weight_kg), to: Number(updates.weight_kg) };
+      diffSummaries.push(`Weight: ${existingRow.weight_kg} Kg → ${updates.weight_kg} Kg`);
+    }
+    if (updates.amount_paid !== undefined && existingRow && Number(updates.amount_paid) !== Number(existingRow.amount_paid)) {
+      changes.amount_paid = { from: Number(existingRow.amount_paid), to: Number(updates.amount_paid) };
+      diffSummaries.push(`Paid: ₹${existingRow.amount_paid} → ₹${updates.amount_paid}`);
+    }
+    if (updates.rate_per_kg !== undefined && existingRow && Number(updates.rate_per_kg) !== Number(existingRow.rate_per_kg)) {
+      changes.rate_per_kg = { from: Number(existingRow.rate_per_kg), to: Number(updates.rate_per_kg) };
+      diffSummaries.push(`Rate: ₹${existingRow.rate_per_kg} → ₹${updates.rate_per_kg}`);
+    }
+    if (updates.expected_amount !== undefined && existingRow && Number(updates.expected_amount) !== Number(existingRow.expected_amount)) {
+      changes.expected_amount = { from: Number(existingRow.expected_amount), to: Number(updates.expected_amount) };
+      diffSummaries.push(`Expected: ₹${existingRow.expected_amount} → ₹${updates.expected_amount}`);
+    }
+    if (updates.discount_amount !== undefined && existingRow && Number(updates.discount_amount) !== Number(existingRow.discount_amount)) {
+      changes.discount_amount = { from: Number(existingRow.discount_amount), to: Number(updates.discount_amount) };
+      diffSummaries.push(`Discount: ₹${existingRow.discount_amount} → ₹${updates.discount_amount}`);
+    }
+    if (updates.product_type && existingRow && updates.product_type !== existingRow.product_type) {
+      changes.product_type = { from: existingRow.product_type, to: updates.product_type };
+      diffSummaries.push(`Product: ${existingRow.product_type} → ${updates.product_type}`);
+    }
+    if (updates.payment_mode && existingRow && updates.payment_mode !== existingRow.payment_mode) {
+      changes.payment_mode = { from: existingRow.payment_mode, to: updates.payment_mode };
+      diffSummaries.push(`Mode: ${existingRow.payment_mode} → ${updates.payment_mode}`);
+    }
+    if (updates.notes !== undefined && existingRow && (updates.notes || "").trim() !== (existingRow.notes || "").trim()) {
+      changes.notes = { from: existingRow.notes || "", to: updates.notes || "" };
+      diffSummaries.push(`Notes updated`);
+    }
+
+    const actor = await resolveActorFromRequest(request, updates.logged_by);
+
+    // Embed edit history directly onto the entry's custom_fields
+    const nowIstTime = new Intl.DateTimeFormat("en-IN", {
+      timeZone: "Asia/Kolkata",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    }).format(new Date()).toLowerCase();
+
+    const nowIstDate = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Kolkata",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date());
+
+    const editHistoryItem = {
+      timestamp: new Date().toISOString(),
+      ist_date: nowIstDate,
+      ist_time: nowIstTime,
+      actor_name: actor.actor_name,
+      actor_email: actor.actor_email,
+      actor_role: actor.actor_role,
+      summary: diffSummaries.length > 0 ? diffSummaries.join(", ") : "Updated entry details",
+      changes,
+    };
+
+    const existingHistory = Array.isArray(existingRow?.custom_fields?.edit_history)
+      ? existingRow.custom_fields.edit_history
+      : [];
+
+    updates.custom_fields = {
+      ...(existingRow?.custom_fields || {}),
+      ...(updates.custom_fields || {}),
+      edit_history: [editHistoryItem, ...existingHistory].slice(0, 50),
+    };
+
     // Try Supabase table update
     try {
       const { error } = await supabase
@@ -744,6 +834,22 @@ export async function PUT(request: Request) {
         fallbackList[idx] = { ...fallbackList[idx], ...updates };
         await saveFallbackEntries(fallbackList);
       }
+    } catch (_) {}
+
+    // Record to global Audit Log
+    try {
+      await recordAuditLog({
+        action: "UPDATE_ENTRY",
+        entity_type: "vending_sale",
+        entity_id: id,
+        actor_name: actor.actor_name,
+        actor_email: actor.actor_email,
+        actor_role: actor.actor_role,
+        summary: `Modified sale: ${diffSummaries.join(", ") || "Updated entry details"}`,
+        changes,
+        previous_snapshot: existingRow,
+        new_snapshot: { ...existingRow, ...updates },
+      });
     } catch (_) {}
 
     return NextResponse.json({ success: true, id });
@@ -811,6 +917,22 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ success: false, error: "Missing id" }, { status: 400 });
     }
 
+    // Fetch existing entry for audit preservation
+    let existingRow: any = null;
+    try {
+      const { data: dbRow } = await supabase
+        .from("vending_sales_log")
+        .select("*")
+        .eq("id", id)
+        .maybeSingle();
+      if (dbRow) existingRow = dbRow;
+    } catch (_) {}
+
+    if (!existingRow) {
+      const fallbackList = await getFallbackEntries();
+      existingRow = fallbackList.find((e) => e.id === id) || null;
+    }
+
     try {
       await supabase.from("vending_sales_log").delete().eq("id", id);
     } catch (_) {}
@@ -821,6 +943,21 @@ export async function DELETE(request: Request) {
       if (filtered.length !== fallbackList.length) {
         await saveFallbackEntries(filtered);
       }
+    } catch (_) {}
+
+    // Audit Log: Record deletion with full snapshot preserved
+    try {
+      const actor = await resolveActorFromRequest(request);
+      await recordAuditLog({
+        action: "DELETE_ENTRY",
+        entity_type: "vending_sale",
+        entity_id: id,
+        actor_name: actor.actor_name,
+        actor_email: actor.actor_email,
+        actor_role: actor.actor_role,
+        summary: `Deleted sale #${id.slice(0, 8)}: ${existingRow?.weight_kg || 0} Kg ${existingRow?.product_type || "Trout"} (Paid: ₹${existingRow?.amount_paid || 0}, ${existingRow?.payment_mode || "N/A"}) [Staff: ${existingRow?.logged_by || "N/A"}, Notes: ${existingRow?.notes || "None"}]`,
+        previous_snapshot: existingRow,
+      });
     } catch (_) {}
 
     return NextResponse.json({ success: true, id });

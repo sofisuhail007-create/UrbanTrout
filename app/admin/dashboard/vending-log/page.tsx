@@ -15,6 +15,8 @@ import BalanceReminderModal from "../billing/BalanceReminderModal";
 import type { CustomerBalanceRecord } from "@/app/api/customer-balance/route";
 import TimePickerInput, { parseTimeToMinutes } from "@/components/TimePickerInput";
 import PaginationBar from "@/components/PaginationBar";
+import StaffAuditModal from "./StaffAuditModal";
+import EntryHistoryModal from "./EntryHistoryModal";
 
 const DEFAULT_GUTTED_PRICE = 580;
 const DEFAULT_NON_GUTTED_PRICE = 540;
@@ -421,6 +423,10 @@ export default function VendingCenterLoggerPage() {
   const [triggeringBackup, setTriggeringBackup] = useState(false);
   const [backupSuccessNotice, setBackupSuccessNotice] = useState<string | null>(null);
 
+
+  // ─── Staff Activity & Audit Trail State ───
+  const [staffAuditModalOpen, setStaffAuditModalOpen] = useState(false);
+  const [selectedHistoryEntry, setSelectedHistoryEntry] = useState<VendingSalesEntry | null>(null);
 
   // Dynamic Pricing from Supabase Inventory table
   const [guttedPrice, setGuttedPrice] = useState<number>(DEFAULT_GUTTED_PRICE);
@@ -2892,6 +2898,16 @@ export default function VendingCenterLoggerPage() {
             <>
               <button
                 type="button"
+                onClick={() => setStaffAuditModalOpen(true)}
+                className="py-2 px-3 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
+                title="View chronological audit trail of all staff activities, sales edits, and deletions by Mohd Amin and counter staff"
+              >
+                <span className="material-symbols-outlined text-sm">history_edu</span>
+                <span>Staff Audit Log</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={handleOpenEodModal}
                 className="py-2 px-3 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 text-sky-300 border border-sky-500/40 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
                 title="Preview and dispatch End-of-Day (EOD) sales & aquarium audit to Telegram"
@@ -5053,6 +5069,24 @@ export default function VendingCenterLoggerPage() {
                               Khata
                             </button>
                           )}
+                          {/* Audit History Button */}
+                          <button
+                            type="button"
+                            onClick={() => setSelectedHistoryEntry(e)}
+                            className={`w-7 h-7 rounded-lg transition-all flex items-center justify-center cursor-pointer shadow-sm active:scale-95 border ${
+                              Array.isArray(e.custom_fields?.edit_history) && e.custom_fields.edit_history.length > 0
+                                ? "bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30"
+                                : "bg-slate-800/90 text-slate-400 hover:text-sky-300 border-slate-700/80 hover:border-sky-500/40"
+                            }`}
+                            title={
+                              Array.isArray(e.custom_fields?.edit_history) && e.custom_fields.edit_history.length > 0
+                                ? `Modified ${e.custom_fields.edit_history.length} time(s). Click to view edit audit trail.`
+                                : "View provenance & creation history"
+                            }
+                          >
+                            <span className="material-symbols-outlined text-[13px]">history</span>
+                          </button>
+
                           {canEditEntry(e) ? (
                             <button
                               type="button"
@@ -5169,6 +5203,22 @@ export default function VendingCenterLoggerPage() {
                     </span>
                   </div>
                   <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedHistoryEntry(e)}
+                      className={`w-7 h-7 rounded-lg transition-all flex items-center justify-center cursor-pointer border ${
+                        Array.isArray(e.custom_fields?.edit_history) && e.custom_fields.edit_history.length > 0
+                          ? "bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30"
+                          : "bg-slate-800 text-slate-400 hover:text-sky-300 border-slate-700 hover:border-sky-500/40"
+                      }`}
+                      title={
+                        Array.isArray(e.custom_fields?.edit_history) && e.custom_fields.edit_history.length > 0
+                          ? `Modified ${e.custom_fields.edit_history.length} time(s). Click to view audit trail.`
+                          : "View provenance & history"
+                      }
+                    >
+                      <span className="material-symbols-outlined text-[13px]">history</span>
+                    </button>
                     {canEditEntry(e) ? (
                       <button
                         type="button"
@@ -7929,6 +7979,23 @@ export default function VendingCenterLoggerPage() {
         }}
         record={selectedBalanceRecord}
         onBalanceUpdated={handleBalanceUpdated}
+      />
+
+      {/* ══════════════════════════════════════════════════════════
+          STAFF AUDIT TRAIL & LOG MODAL (MOHD AMIN / SALES STAFF)
+          ══════════════════════════════════════════════════════════ */}
+      <StaffAuditModal
+        isOpen={staffAuditModalOpen}
+        onClose={() => setStaffAuditModalOpen(false)}
+        adminFetch={adminFetch}
+      />
+
+      {/* ══════════════════════════════════════════════════════════
+          ROW-LEVEL SALES ENTRY PROVENANCE & HISTORY MODAL
+          ══════════════════════════════════════════════════════════ */}
+      <EntryHistoryModal
+        entry={selectedHistoryEntry}
+        onClose={() => setSelectedHistoryEntry(null)}
       />
     </div>
   );
