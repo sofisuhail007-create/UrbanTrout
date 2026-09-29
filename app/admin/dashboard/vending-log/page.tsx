@@ -167,7 +167,20 @@ export default function VendingCenterLoggerPage() {
   const [copiedSql, setCopiedSql] = useState(false);
 
   // Admin access control (metric cards strictly hidden for staff)
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      const storedEmail = (localStorage.getItem("ut_admin_email") || "").toLowerCase().trim();
+      const storedRole = (localStorage.getItem("ut_admin_role") || "").toLowerCase().trim();
+      return (
+        ROOT_OWNER_EMAILS.includes(storedEmail) ||
+        storedRole === "super_admin" ||
+        storedRole === "admin"
+      );
+    } catch (_) {
+      return false;
+    }
+  });
   const [showAdminCards, setShowAdminCards] = useState(true);
   // can_delete: controls visibility of the delete button for non-admin staff
   const [canDelete, setCanDelete] = useState(false);
@@ -427,6 +440,15 @@ export default function VendingCenterLoggerPage() {
   // ─── Staff Activity & Audit Trail State ───
   const [staffAuditModalOpen, setStaffAuditModalOpen] = useState(false);
   const [selectedHistoryEntry, setSelectedHistoryEntry] = useState<VendingSalesEntry | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("audit") === "true" || params.get("tab") === "audit") {
+        setStaffAuditModalOpen(true);
+      }
+    }
+  }, []);
 
   // Dynamic Pricing from Supabase Inventory table
   const [guttedPrice, setGuttedPrice] = useState<number>(DEFAULT_GUTTED_PRICE);

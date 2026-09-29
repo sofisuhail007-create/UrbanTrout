@@ -61,6 +61,15 @@ const NAV_GROUPS: NavGroup[] = [
         permKey: "billing",
         activeTheme: "emerald",
       },
+      {
+        href: "/admin/dashboard/vending-log?audit=true",
+        icon: "history_edu",
+        label: "Staff Audit Trail",
+        permKey: "settings",
+        badge: "Audit",
+        badgeType: "new",
+        activeTheme: "emerald",
+      },
     ],
   },
   {
