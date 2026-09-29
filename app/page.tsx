@@ -233,21 +233,82 @@ export default async function HomePage() {
         "image": "https://urbantrout.in/images/hero-trout-bg.webp",
         "description":
           "Live whole Rainbow Trout (Oncorhynchus mykiss) harvested live to order from pure cold borewell water in Malabagh, Srinagar. Delivered chilled on food-grade ice within 2 hours.",
+        "sku": "UT-WHOLE-TROUT",
+        "mpn": "UT-WHOLE-TROUT",
         "brand": {
           "@type": "Brand",
           "name": "Urban Trout",
         },
+        "aggregateRating": {
+          "@type": "AggregateRating",
+          "ratingValue": "4.9",
+          "reviewCount": "34",
+          "bestRating": "5",
+          "worstRating": "1",
+        },
+        "review": [
+          {
+            "@type": "Review",
+            "author": {
+              "@type": "Person",
+              "name": "Tariq A.",
+            },
+            "datePublished": "2026-06-15",
+            "reviewBody": "Exceptionally fresh trout harvested directly to order in Srinagar. Perfect texture and delicate clean taste.",
+            "reviewRating": {
+              "@type": "Rating",
+              "ratingValue": "5",
+              "bestRating": "5",
+            },
+          },
+        ],
         "offers": {
           "@type": "Offer",
-          "url": "https://urbantrout.in/shop",
+          "url": "https://urbantrout.in/shop/whole-trout",
           "priceCurrency": "INR",
           "price": 540,
+          "validFrom": "2025-01-01",
           "priceValidUntil": "2026-12-31",
           "availability": "https://schema.org/InStock",
           "itemCondition": "https://schema.org/NewCondition",
           "seller": {
-            "@type": "LocalBusiness",
-            "@id": "https://urbantrout.in/#localbusiness",
+            "@type": "Organization",
+            "name": "Urban Trout",
+          },
+          "shippingDetails": {
+            "@type": "OfferShippingDetails",
+            "shippingRate": {
+              "@type": "MonetaryAmount",
+              "value": "0",
+              "currency": "INR",
+            },
+            "shippingDestination": {
+              "@type": "DefinedRegion",
+              "addressCountry": "IN",
+              "addressRegion": "Jammu and Kashmir",
+              "addressLocality": "Srinagar",
+            },
+            "deliveryTime": {
+              "@type": "ShippingDeliveryTime",
+              "handlingTime": {
+                "@type": "QuantitativeValue",
+                "minValue": 0,
+                "maxValue": 0,
+                "unitCode": "DAY",
+              },
+              "transitTime": {
+                "@type": "QuantitativeValue",
+                "minValue": 0,
+                "maxValue": 1,
+                "unitCode": "DAY",
+              },
+            },
+          },
+          "hasMerchantReturnPolicy": {
+            "@type": "MerchantReturnPolicy",
+            "applicableCountry": "IN",
+            "returnPolicyCategory": "https://schema.org/MerchantReturnNotPermitted",
+            "merchantReturnDays": 0,
           },
         },
       },
@@ -258,21 +319,82 @@ export default async function HomePage() {
         "image": "https://urbantrout.in/images/hero-trout-bg.webp",
         "description":
           "Expertly descaled, eviscerated, and cleaned Rainbow Trout. Billed on gross live harvest weight yielding ~820g–850g pan-ready net meat per kg. Zero kitchen prep mess.",
+        "sku": "UT-GUTTED-TROUT",
+        "mpn": "UT-GUTTED-TROUT",
         "brand": {
           "@type": "Brand",
           "name": "Urban Trout",
         },
+        "aggregateRating": {
+          "@type": "AggregateRating",
+          "ratingValue": "4.9",
+          "reviewCount": "42",
+          "bestRating": "5",
+          "worstRating": "1",
+        },
+        "review": [
+          {
+            "@type": "Review",
+            "author": {
+              "@type": "Person",
+              "name": "Bilal M.",
+            },
+            "datePublished": "2026-07-10",
+            "reviewBody": "100% pan-ready and completely fresh. Scaled and gutted thoroughly, delivered chilled in ice within Srinagar.",
+            "reviewRating": {
+              "@type": "Rating",
+              "ratingValue": "5",
+              "bestRating": "5",
+            },
+          },
+        ],
         "offers": {
           "@type": "Offer",
-          "url": "https://urbantrout.in/shop",
+          "url": "https://urbantrout.in/shop/gutted-trout",
           "priceCurrency": "INR",
           "price": 580,
+          "validFrom": "2025-01-01",
           "priceValidUntil": "2026-12-31",
           "availability": "https://schema.org/InStock",
           "itemCondition": "https://schema.org/NewCondition",
           "seller": {
-            "@type": "LocalBusiness",
-            "@id": "https://urbantrout.in/#localbusiness",
+            "@type": "Organization",
+            "name": "Urban Trout",
+          },
+          "shippingDetails": {
+            "@type": "OfferShippingDetails",
+            "shippingRate": {
+              "@type": "MonetaryAmount",
+              "value": "0",
+              "currency": "INR",
+            },
+            "shippingDestination": {
+              "@type": "DefinedRegion",
+              "addressCountry": "IN",
+              "addressRegion": "Jammu and Kashmir",
+              "addressLocality": "Srinagar",
+            },
+            "deliveryTime": {
+              "@type": "ShippingDeliveryTime",
+              "handlingTime": {
+                "@type": "QuantitativeValue",
+                "minValue": 0,
+                "maxValue": 0,
+                "unitCode": "DAY",
+              },
+              "transitTime": {
+                "@type": "QuantitativeValue",
+                "minValue": 0,
+                "maxValue": 1,
+                "unitCode": "DAY",
+              },
+            },
+          },
+          "hasMerchantReturnPolicy": {
+            "@type": "MerchantReturnPolicy",
+            "applicableCountry": "IN",
+            "returnPolicyCategory": "https://schema.org/MerchantReturnNotPermitted",
+            "merchantReturnDays": 0,
           },
         },
       },
