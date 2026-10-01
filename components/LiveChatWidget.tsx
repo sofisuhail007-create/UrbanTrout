@@ -461,8 +461,8 @@ export default function LiveChatWidget() {
 
   return (
     <>
-      {/* ─── FLOATING TOGGLE BUTTON (Bottom Right) ─── */}
-      <div className="fixed bottom-6 right-6 z-40 flex items-center gap-3">
+      {/* ─── FLOATING TOGGLE BUTTON (Bottom Left - Telegram Staff Chat) ─── */}
+      <div className="fixed bottom-6 left-6 z-40 flex items-center gap-3">
         {/* Floating Reply Notification Toast */}
         {!isOpen && toastNotification && (
           <div
@@ -592,7 +592,7 @@ export default function LiveChatWidget() {
       {/* ─── LIVE CHAT POPUP WINDOW ─── */}
       {isOpen && (
         <div
-          className="fixed bottom-24 right-4 sm:right-6 z-50 w-[92vw] sm:w-[400px] h-[560px] max-h-[82vh] rounded-3xl flex flex-col overflow-hidden shadow-2xl transition-all border animate-fade-in"
+          className="fixed bottom-24 left-4 sm:left-6 z-50 w-[92vw] sm:w-[400px] h-[560px] max-h-[82vh] rounded-3xl flex flex-col overflow-hidden shadow-2xl transition-all border animate-fade-in"
           style={{
             background: "rgba(4, 15, 24, 0.98)",
             borderColor: "rgba(114, 221, 253, 0.35)",
