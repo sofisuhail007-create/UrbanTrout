@@ -38,7 +38,7 @@ const sections = [
   },
   {
     title: "4. Pricing, Currency & Payment Terms",
-    body: "• All prices are quoted in Indian Rupees (₹ / INR) inclusive of applicable taxes unless stated otherwise.\n• We accept online payments securely via Razorpay Payment Gateway (UPI, Debit/Credit Cards, Net Banking) as well as direct UPI or authorized COD on delivery.\n• Urban Trout reserves the right to revise pricing per kilogram based on seasonal farm yield and feed costs without prior notice.",
+    body: "• All prices are quoted in Indian Rupees (₹ / INR) inclusive of applicable taxes unless stated otherwise.\n• We accept online payments securely via Razorpay Payment Gateway (UPI, Debit/Credit Cards, Net Banking). Because every trout is harvested live to order specifically for each customer, Cash on Delivery (COD) is not supported to prevent dead fish wastage.\n• Urban Trout reserves the right to revise pricing per kilogram based on seasonal farm yield and feed costs without prior notice.",
   },
   {
     title: "5. Shipping, Delivery & Packaging",

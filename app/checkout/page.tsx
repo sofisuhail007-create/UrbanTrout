@@ -1803,7 +1803,7 @@ export default function CheckoutPage() {
                   className="hidden sm:block"
                   style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", color: C.onSurfVar }}
                 >
-                  Razorpay &amp; COD
+                  Razorpay (Instant UPI)
                 </span>
               </div>
             </button>
@@ -2242,7 +2242,7 @@ export default function CheckoutPage() {
                     </button>
                   </div>
                   <p className="text-[11px] text-center text-slate-400 font-mono">
-                    🔒 Instant lead recovery • 100% Free Doorstep Delivery inside 5km • Online UPI &amp; Cash on Delivery
+                    🔒 Instant lead recovery • 100% Free Doorstep Delivery inside 5km • Live Catch Harvested to Order • Instant UPI &amp; Cards
                   </p>
                 </form>
               </div>
@@ -2590,11 +2590,11 @@ export default function CheckoutPage() {
                         )}
                       </button>
 
-                      {/* Quick 13 Srinagar Beats Selector (Zero friction fallback) */}
+                      {/* Quick 13 Srinagar Areas Selector (Zero friction fallback) */}
                       <div className="pt-2 text-left w-full">
                         <div className="text-[11px] uppercase tracking-wider font-semibold text-slate-400 mb-2 flex items-center justify-between">
-                          <span>Or select your Srinagar delivery beat:</span>
-                          <span className="text-[10px] text-cyan-300 font-mono">13 Delivery Beats</span>
+                          <span>Or select your Srinagar delivery area:</span>
+                          <span className="text-[10px] text-cyan-300 font-mono">13 Delivery Hubs</span>
                         </div>
                         <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-1 bg-slate-950/60 rounded-xl border border-slate-800">
                           {SRINAGAR_LANDMARKS.map((lm) => {
@@ -2628,8 +2628,8 @@ export default function CheckoutPage() {
                 {detectedCoords && deliveryMode && (
                   <div className="space-y-6 pt-2">
                     {/* Status Header */}
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 rounded-2xl bg-slate-950/70 border border-slate-800">
-                      <div>
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 rounded-2xl bg-slate-950/70 border border-slate-800">
+                      <div className="flex-1 min-w-0 pr-2">
                         <div className="flex items-center gap-2 mb-1">
                           <span
                             className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider ${
@@ -2646,7 +2646,7 @@ export default function CheckoutPage() {
                             {deliveryMode === "under5" ? "Delivery Zone Verified" : "Outside Delivery Zone"}
                           </span>
                         </div>
-                        <h3 className="text-lg sm:text-xl font-extrabold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                        <h3 className="text-lg sm:text-xl font-extrabold text-white truncate" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
                           {selectedZoneName || "GPS Location Confirmed"}
                         </h3>
                         <p
@@ -2661,21 +2661,25 @@ export default function CheckoutPage() {
                         </p>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2 flex-shrink-0 self-start md:self-auto">
                         <button
                           type="button"
                           onClick={detectLocation}
                           disabled={isLocating}
-                          className="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs text-cyan-300 hover:text-white bg-cyan-950/80 border border-cyan-800 transition-colors cursor-pointer"
+                          className="px-3 py-1.5 rounded-lg text-xs text-cyan-300 hover:text-white bg-cyan-950/80 border border-cyan-800 transition-colors cursor-pointer flex items-center gap-1.5"
+                          title="Re-check device GPS"
                         >
-                          📍 Use Device GPS
+                          <span>📍</span>
+                          <span>Re-check GPS</span>
                         </button>
                         <button
                           type="button"
                           onClick={handleResetLocation}
-                          className="flex-shrink-0 px-3 py-1.5 rounded-lg text-xs text-slate-400 hover:text-cyan-300 bg-slate-900 border border-slate-800 transition-colors cursor-pointer"
+                          className="px-3 py-1.5 rounded-lg text-xs text-slate-300 hover:text-cyan-300 bg-slate-900 border border-slate-700 transition-colors cursor-pointer flex items-center gap-1.5"
+                          title="Choose another Srinagar locality"
                         >
-                          🔄 Change Beat
+                          <span>🔄</span>
+                          <span>Change Location</span>
                         </button>
                       </div>
                     </div>
@@ -2943,6 +2947,84 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
+                {/* ─── WHY WE DON'T OFFER CASH ON DELIVERY (LIVE HARVEST POLICY) ─── */}
+                <div
+                  className="p-5 sm:p-6 rounded-2xl space-y-4"
+                  style={{
+                    background: "linear-gradient(135deg, rgba(8,27,38,0.95) 0%, rgba(13,38,52,0.85) 100%)",
+                    border: "1.5px solid rgba(114,221,253,0.3)",
+                    boxShadow: "0 8px 30px rgba(0,0,0,0.4)",
+                  }}
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1 border-b border-slate-800/80">
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-2xl">🐟</span>
+                      <div>
+                        <h4
+                          style={{
+                            fontFamily: '"Space Grotesk", sans-serif',
+                            fontWeight: 800,
+                            fontSize: "1.05rem",
+                            color: "#ffffff",
+                            margin: 0,
+                          }}
+                        >
+                          Why Advance Payment is Required (No COD)
+                        </h4>
+                        <span className="text-[11px] text-cyan-300 font-mono">
+                          Live Farm Harvest Policy · Zero Dead Fish Waste
+                        </span>
+                      </div>
+                    </div>
+                    <span className="self-start sm:self-auto text-[10px] font-mono font-bold px-2.5 py-1 rounded-full bg-cyan-950/80 text-cyan-300 border border-cyan-700/60 uppercase tracking-wider">
+                      Prepaid Only
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-slate-300 leading-relaxed" style={{ fontFamily: '"Manrope", sans-serif' }}>
+                    Unlike supermarkets selling pre-slaughtered frozen fish, <strong>every Urban Trout is swimming alive in our cold-water aquifer raceways in Malabagh right now</strong>. We only net, humanely harvest, descale, and pack it on ice <em>after</em> your order is confirmed and paid.
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 flex items-start gap-2.5">
+                      <span className="text-amber-400 text-base mt-0.5">🚫</span>
+                      <div>
+                        <strong className="text-xs text-white block" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                          Why We Do Not Do Cash on Delivery
+                        </strong>
+                        <span className="text-[11px] text-slate-400 leading-normal block mt-0.5">
+                          Once harvested from spring water, trout cannot be returned to the raceway alive. Advance payment protects our fresh, ethically raised fish from refusal or last-minute cancellation.
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 flex items-start gap-2.5">
+                      <span className="text-emerald-400 text-base mt-0.5">⚡</span>
+                      <div>
+                        <strong className="text-xs text-white block" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                          Guaranteed &lt; 2-Hour Delivery on Ice
+                        </strong>
+                        <span className="text-[11px] text-slate-400 leading-normal block mt-0.5">
+                          Prepaid orders trigger instant priority harvest and chilled dispatch directly to your doorstep with zero cash delays, OTP friction, or loose change hassles.
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* 100% Quality & Freshness Guarantee */}
+                  <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-start sm:items-center gap-3 text-xs">
+                    <span className="text-xl flex-shrink-0">🛡️</span>
+                    <div className="flex-1">
+                      <strong className="text-emerald-300 block" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                        100% Freshness &amp; Weight Guarantee
+                      </strong>
+                      <span className="text-emerald-200/90 text-[11px] leading-relaxed block">
+                        If your trout is not fresh, pristine, and perfectly cleaned upon doorstep arrival, we provide an immediate 100% refund or free replacement catch — guaranteed.
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
                 {/* ─── Razorpay Payment Card ─── */}
                 <div
                   className="p-6 md:p-8 rounded-2xl space-y-6"
@@ -2986,7 +3068,7 @@ export default function CheckoutPage() {
                         margin: 0,
                       }}
                     >
-                      Free Delivery • Secure Payment via Razorpay
+                      Free Doorstep Delivery • Instant 1-Tap UPI (GPay, PhonePe, Paytm, Cards)
                     </p>
                   </div>
 
@@ -2998,7 +3080,7 @@ export default function CheckoutPage() {
                     <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", color: C.outline, textTransform: "uppercase", letterSpacing: "0.1em", whiteSpace: "nowrap" }}>
                       Accepts:
                     </span>
-                    {["UPI", "Cards", "Net Banking", "Wallets"].map((m) => (
+                    {["UPI / QR", "Google Pay", "PhonePe", "Paytm", "Cards", "Net Banking"].map((m) => (
                       <span
                         key={m}
                         style={{
@@ -3023,7 +3105,7 @@ export default function CheckoutPage() {
                       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                     </svg>
                     <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "11px", color: "#4ade80" }}>
-                      256-bit SSL secured · PCI-DSS compliant · Powered by Razorpay
+                      256-bit SSL secured · Bank-grade encrypted · Powered by Razorpay
                     </span>
                   </div>
 
@@ -3055,7 +3137,10 @@ export default function CheckoutPage() {
                     </div>
                     <button
                       type="button"
-                      onClick={() => setCurrentStep(2)}
+                      onClick={() => {
+                        setCurrentStep(1);
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
                       className="text-cyan-400 hover:text-cyan-200 underline font-semibold text-[11px] cursor-pointer"
                     >
                       Change Slot
@@ -3109,6 +3194,20 @@ export default function CheckoutPage() {
                     </>
                   )}
                 </button>
+
+                <div className="flex flex-wrap items-center justify-center gap-3 pt-2 text-[11px] text-slate-400 font-mono">
+                  <span className="flex items-center gap-1 text-emerald-400">
+                    <span>✓</span> Zero Convenience Fees
+                  </span>
+                  <span>•</span>
+                  <span className="flex items-center gap-1 text-cyan-300">
+                    <span>⚡</span> Priority Live Harvest Triggered
+                  </span>
+                  <span>•</span>
+                  <span className="flex items-center gap-1 text-emerald-400">
+                    <span>🛡️</span> 100% Money-Back Guarantee
+                  </span>
+                </div>
               </div>
             )}
           </section>
