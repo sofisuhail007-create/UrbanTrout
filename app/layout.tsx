@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Space_Grotesk, Manrope } from "next/font/google";
+import { Space_Grotesk, Manrope, Inter } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
@@ -21,7 +21,8 @@ export const viewport: Viewport = {
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
   variable: "--font-space-grotesk",
-  display: "optional",
+  display: "swap",
+  preload: true,
   fallback: ["system-ui", "-apple-system", "sans-serif"],
   adjustFontFallback: true,
 });
@@ -29,7 +30,17 @@ const spaceGrotesk = Space_Grotesk({
 const manrope = Manrope({
   subsets: ["latin"],
   variable: "--font-manrope",
-  display: "optional",
+  display: "swap",
+  preload: true,
+  fallback: ["system-ui", "-apple-system", "sans-serif"],
+  adjustFontFallback: true,
+});
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+  preload: true,
   fallback: ["system-ui", "-apple-system", "sans-serif"],
   adjustFontFallback: true,
 });
@@ -375,8 +386,16 @@ const jsonLd = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`dark ${spaceGrotesk.variable} ${manrope.variable}`}>
+    <html lang="en" className={`dark ${spaceGrotesk.variable} ${manrope.variable} ${inter.variable}`}>
       <head>
+        {/* ─── Preconnect & Load Font Stylesheets for Instant Webfont Rendering ─── */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700;800&display=swap"
+        />
+
         <link
           rel="preload"
           href="/images/hero-trout-bg.webp"
@@ -393,7 +412,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://connect.facebook.net" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://www.googletagmanager.com" crossOrigin="anonymous" />
       </head>
-      <body className={`${manrope.className} bg-[#031018] text-[#dfedf9] antialiased selection:bg-cyan-500/20 selection:text-cyan-300`}>
+      <body className={`${manrope.className} ${spaceGrotesk.variable} ${manrope.variable} ${inter.variable} bg-[#031018] text-[#dfedf9] antialiased selection:bg-cyan-500/20 selection:text-cyan-300`}>
         <CustomerAuthProvider>
           <CartProvider>
             <Toaster 
