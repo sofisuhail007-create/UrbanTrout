@@ -212,6 +212,7 @@ export function getOrderKeyboard(
 ): InlineKeyboardMarkup {
   const isOut = currentStatus === "out_for_delivery";
   const isDelivered = currentStatus === "delivered";
+  const isHarvested = currentStatus === "harvested" || currentStatus === "processing";
   const isOutOfStock = currentStatus === "out_of_stock";
   const isCancelled = currentStatus === "cancelled";
 
@@ -228,8 +229,10 @@ export function getOrderKeyboard(
 
   if (cleanPhone) {
     let updateMsg = `Hi ${customerName || "there"}! Urban Trout here regarding your fresh trout order #${orderNumber}.`;
-    if (isOut) {
-      updateMsg = `Hi ${customerName || "there"}! Your fresh Rainbow Trout order #${orderNumber} is packed chilled and OUT FOR DELIVERY with our rider! 🚚`;
+    if (isHarvested) {
+      updateMsg = `Assalam-o-Alaikum ${customerName || "there"}! 🐟 Your fresh Rainbow Trout order #${orderNumber} has been LIVE-HARVESTED from our Malabagh tanks, cleaned, and packed on ice! (Non-refundable / Locked). Dispatching shortly!`;
+    } else if (isOut) {
+      updateMsg = `Hi ${customerName || "there"}! Your fresh Rainbow Trout order #${orderNumber} is packed chilled and OUT FOR DELIVERY with our rider! 🛵`;
     } else if (isDelivered) {
       updateMsg = `Hi ${customerName || "there"}! Your fresh Rainbow Trout order #${orderNumber} has been DELIVERED. Thank you for choosing Urban Trout! ✨`;
     } else if (isOutOfStock) {
@@ -237,7 +240,7 @@ export function getOrderKeyboard(
     } else if (isCancelled) {
       updateMsg = `Hi ${customerName || "there"}! Your order #${orderNumber} has been cancelled. Please reach out if you have any questions.`;
     } else {
-      updateMsg = `Hi ${customerName || "there"}! Your Urban Trout order #${orderNumber} is CONFIRMED & PAID! Harvesting fresh from tanks now. 🐟`;
+      updateMsg = `Hi ${customerName || "there"}! Your Urban Trout order #${orderNumber} is CONFIRMED & PAID! Ready to harvest fresh from tanks. 🐟`;
     }
 
     const waUrl = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(updateMsg)}`;
@@ -255,18 +258,18 @@ export function getOrderKeyboard(
   rows.push(
     [
       {
-        text: isOut ? "● 🚚 Dispatched" : "🚚 Out for Delivery",
-        callback_data: `ord:out_for_delivery:${orderNumber}`,
+        text: isHarvested ? "● 🐟 Harvested (Locked)" : "🐟 Mark Harvested",
+        callback_data: `ord:harvested:${orderNumber}`,
       },
       {
-        text: isDelivered ? "● 🎉 Delivered" : "🎉 Mark Delivered",
-        callback_data: `ord:delivered:${orderNumber}`,
+        text: isOut ? "● 🛵 Out for Delivery" : "🛵 Out for Delivery",
+        callback_data: `ord:out_for_delivery:${orderNumber}`,
       },
     ],
     [
       {
-        text: isOutOfStock ? "● ⚠️ Out of Stock" : "⚠️ Out of Stock (Refund)",
-        callback_data: `ord:out_of_stock:${orderNumber}`,
+        text: isDelivered ? "● ✅ Delivered" : "✅ Mark Delivered",
+        callback_data: `ord:delivered:${orderNumber}`,
       },
       {
         text: isCancelled ? "● ❌ Cancelled" : "❌ Cancel Order",
@@ -305,14 +308,16 @@ export function formatOrderTelegramText(order: {
   const statusLabel =
     status === "out_of_stock"
       ? "⚠️ <b>OUT OF STOCK (REFUND DUE)</b>"
-      : status === "processing" || status === "confirmed"
-      ? (order.isScheduled ? "📅 <b>PAYMENT CONFIRMED (SCHEDULED HARVEST)</b>" : "✅ <b>PAYMENT VERIFIED (CONFIRMED & HARVESTING)</b>")
+      : status === "harvested" || status === "processing"
+      ? "🐟 <b>HARVESTED & PACKED (LOCKED / NON-REFUNDABLE)</b>"
+      : status === "confirmed"
+      ? (order.isScheduled ? "📅 <b>PAYMENT CONFIRMED (SCHEDULED HARVEST)</b>" : "✅ <b>PAYMENT VERIFIED (CONFIRMED & READY TO HARVEST)</b>")
       : status === "out_for_delivery"
-      ? "🚚 <b>OUT FOR DELIVERY (RIDER DISPATCHED)</b>"
+      ? "🛵 <b>OUT FOR DELIVERY (RIDER DISPATCHED)</b>"
       : status === "delivered"
       ? "🎉 <b>DELIVERED SUCCESSFULLY</b>"
       : status === "cancelled"
-      ? "❌ <b>ORDER CANCELLED</b>"
+      ? "❌ <b>ORDER CANCELLED (REFUNDABLE)</b>"
       : "⏳ <b>AWAITING VERIFICATION</b>";
 
   const itemsText = order.items && order.items.length > 0
@@ -636,16 +641,16 @@ ${params.orderId ? `<b>Order ID:</b> <code>${params.orderId}</code>\n` : ""}${pa
   const orderRef = params.orderId || params.paymentId;
   const statusRow: InlineKeyboardButton[] = [
     {
+      text: "🐟 Mark Harvested",
+      callback_data: `ord:harvested:${orderRef}`,
+    },
+    {
       text: "🛵 Out for Delivery",
       callback_data: `ord:out_for_delivery:${orderRef}`,
     },
     {
       text: "✅ Delivered",
       callback_data: `ord:delivered:${orderRef}`,
-    },
-    {
-      text: "🐟 Harvesting",
-      callback_data: `ord:processing:${orderRef}`,
     },
   ];
   buttons.push(statusRow);

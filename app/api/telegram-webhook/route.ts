@@ -207,8 +207,9 @@ async function findOrder(queryNum: string) {
 // Helper to determine status display name
 const STATUS_NAMES: Record<string, string> = {
   pending: "Awaiting Verification",
-  processing: "Confirmed & Harvesting",
-  confirmed: "Confirmed & Harvesting",
+  processing: "Harvested & Non-Refundable",
+  harvested: "Harvested & Non-Refundable",
+  confirmed: "Confirmed & In Queue",
   out_for_delivery: "Out for Delivery",
   delivered: "Delivered",
   out_of_stock: "Out of Stock (Refund Due)",
@@ -238,7 +239,7 @@ export async function POST(request: Request) {
       // ── Handle Order Status Callbacks: "ord:<status>:<orderNumber>" ──
       if (dataStr.startsWith("ord:")) {
         const parts = dataStr.split(":");
-        const newStatus = parts[1] as "pending" | "processing" | "confirmed" | "out_for_delivery" | "delivered" | "cancelled" | "out_of_stock";
+        const newStatus = parts[1] as "pending" | "processing" | "harvested" | "confirmed" | "out_for_delivery" | "delivered" | "cancelled" | "out_of_stock";
         const orderNumberOrId = parts[2];
 
         // 1. Fetch & Update order in Supabase
@@ -282,14 +283,14 @@ export async function POST(request: Request) {
           const cleanCustomerName = customerName.replace(/Janab\s*/i, "").trim() || "Customer";
           let waText = "";
 
-          if (newStatus === "out_for_delivery") {
+          if (newStatus === "harvested" || newStatus === "processing") {
+            waText = `Assalam-o-Alaikum ${cleanCustomerName}! 🐟✨\n\n*ORDER UPDATE (#${orderNumberOrId}): LIVE HARVEST COMPLETE!*\n\nYour fresh Rainbow Trout has just been live-harvested from our pure spring-water tanks in Malabagh, cleaned, and packed on food-grade ice!\n\n⚠️ *Important Notice:* Because your fish has been harvested live specifically for you, this order is now locked and cannot be cancelled or refunded.\n\nOur dispatch team is prepping your parcel. Your delivery rider will be on the way shortly! 🛵`;
+          } else if (newStatus === "out_for_delivery") {
             waText = `Assalam-o-Alaikum ${cleanCustomerName}! 🛵\n\nGood news — your fresh live-harvested Rainbow Trout order (#${orderNumberOrId}) is packed on ice and is *OUT FOR DELIVERY*!\n\nOur delivery rider is on the way to your address. Please keep your phone reachable. Thank you for choosing Urban Trout, Malabagh! 🐟`;
           } else if (newStatus === "delivered") {
             waText = `Assalam-o-Alaikum ${cleanCustomerName}! ✅\n\nYour live-harvested Rainbow Trout order (#${orderNumberOrId}) has been successfully *DELIVERED*!\n\nWe hope you enjoy the pure Himalayan spring-water freshness. Cook it fresh, and feel free to reach back anytime for your next fresh catch. Khuda Hafiz! 🐟✨`;
-          } else if (newStatus === "processing" || newStatus === "confirmed") {
-            waText = `Assalam-o-Alaikum ${cleanCustomerName}! 🐟\n\nUpdate on your order (#${orderNumberOrId}): Our team has started the *LIVE HARVEST* and fresh cleaning/gutting from our Malabagh RAS tanks. We will dispatch it shortly!`;
           } else if (newStatus === "cancelled") {
-            waText = `Assalam-o-Alaikum ${cleanCustomerName}. Your order (#${orderNumberOrId}) has been cancelled. If any payment was captured, our team is processing your full refund immediately.`;
+            waText = `Assalam-o-Alaikum ${cleanCustomerName}. Your order (#${orderNumberOrId}) has been cancelled. As the fish was not yet harvested, your full refund is being processed to your original payment method.`;
           }
 
           if (waText) {
