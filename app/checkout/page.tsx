@@ -65,22 +65,208 @@ interface SrinagarLandmark {
   lat: number;
   lng: number;
   pincode: string;
+  aliases?: string[];
 }
 
 const SRINAGAR_LANDMARKS: SrinagarLandmark[] = [
-  { name: "Naseem Bagh", lat: 34.1378, lng: 74.8385, pincode: "190006" },
-  { name: "Malabagh", lat: 34.1450, lng: 74.8250, pincode: "190006" },
-  { name: "Hazratbal", lat: 34.1250, lng: 74.8430, pincode: "190006" },
-  { name: "Habak", lat: 34.1480, lng: 74.8410, pincode: "190006" },
-  { name: "Zakura", lat: 34.1590, lng: 74.8190, pincode: "190024" },
-  { name: "Lal Bazar", lat: 34.1160, lng: 74.8180, pincode: "190011" },
-  { name: "Soura / SKIMS", lat: 34.1330, lng: 74.8080, pincode: "190011" },
-  { name: "Bachpora", lat: 34.1520, lng: 74.8050, pincode: "190020" },
-  { name: "Illahibagh", lat: 34.1400, lng: 74.8120, pincode: "190011" },
-  { name: "Rainawari", lat: 34.0950, lng: 74.8310, pincode: "190003" },
-  { name: "Dalgate", lat: 34.0780, lng: 74.8340, pincode: "190001" },
-  { name: "Rajbagh", lat: 34.0620, lng: 74.8250, pincode: "190008" },
-  { name: "Lal Chowk", lat: 34.0710, lng: 74.8110, pincode: "190001" },
+  {
+    name: "Malabagh",
+    lat: 34.145,
+    lng: 74.825,
+    pincode: "190006",
+    aliases: ["malabagh", "mala bagh", "mallabagh", "malla bagh", "malabagh srinagar", "elahi bagh road malabagh"],
+  },
+  {
+    name: "Illahibagh",
+    lat: 34.14,
+    lng: 74.812,
+    pincode: "190011",
+    aliases: [
+      "illahibagh",
+      "illahi bagh",
+      "ellahi bagh",
+      "ellahibagh",
+      "elahi bagh",
+      "elahibagh",
+      "ilahi bagh",
+      "ilahibagh",
+      "ellahi",
+      "illahi",
+      "elahi",
+      "ilahi",
+      "illahi bagh srinagar",
+      "ellahi bagh srinagar",
+      "elahibagh srinagar",
+    ],
+  },
+  {
+    name: "Naseem Bagh",
+    lat: 34.1378,
+    lng: 74.8385,
+    pincode: "190006",
+    aliases: ["naseem bagh", "naseembagh", "nasim bagh", "nasimbagh", "kashmir university", "ku", "hazratbal road"],
+  },
+  {
+    name: "Hazratbal",
+    lat: 34.125,
+    lng: 74.843,
+    pincode: "190006",
+    aliases: ["hazratbal", "hazrat bal", "hazratbal shrine", "dargah", "dargah hazratbal", "hazratbal srinagar"],
+  },
+  {
+    name: "Habak",
+    lat: 34.148,
+    lng: 74.841,
+    pincode: "190006",
+    aliases: ["habak", "habbak", "habak crossing", "habbak crossing", "habak naseembagh", "habak srinagar"],
+  },
+  {
+    name: "Zakura",
+    lat: 34.159,
+    lng: 74.819,
+    pincode: "190024",
+    aliases: ["zakura", "zakoora", "zakura crossing", "zakoora crossing", "zakura industrial area", "zakura srinagar"],
+  },
+  {
+    name: "Soura / SKIMS",
+    lat: 34.133,
+    lng: 74.808,
+    pincode: "190011",
+    aliases: ["soura", "skims", "skims soura", "sowra", "90 feet soura", "90 feet", "90ft", "90ft road", "soura srinagar"],
+  },
+  {
+    name: "Bachpora",
+    lat: 34.152,
+    lng: 74.805,
+    pincode: "190020",
+    aliases: ["bachpora", "buchpora", "batpora", "bhatpora", "bach pora", "buch pora", "bachpora srinagar", "buchpora srinagar"],
+  },
+  {
+    name: "Lal Bazar",
+    lat: 34.116,
+    lng: 74.818,
+    pincode: "190011",
+    aliases: ["lal bazar", "lalbazar", "lal bazaar", "lalbazaar", "molvi stop", "bota kadal", "lal bazar srinagar"],
+  },
+  {
+    name: "Umar Colony",
+    lat: 34.136,
+    lng: 74.821,
+    pincode: "190011",
+    aliases: ["umar colony", "umer colony", "umar colony a", "umar colony b", "umer colony a", "umer colony b"],
+  },
+  {
+    name: "Gulab Bagh",
+    lat: 34.161,
+    lng: 74.832,
+    pincode: "190006",
+    aliases: ["gulab bagh", "gulabbagh", "gulab bagh srinagar"],
+  },
+  {
+    name: "Nowshera",
+    lat: 34.122,
+    lng: 74.812,
+    pincode: "190011",
+    aliases: ["nowshera", "nowshehra", "nowshera srinagar"],
+  },
+  {
+    name: "Hawal",
+    lat: 34.11,
+    lng: 74.813,
+    pincode: "190002",
+    aliases: ["hawal", "hawal chowk", "hawal srinagar"],
+  },
+  {
+    name: "Alamgiri Bazar",
+    lat: 34.108,
+    lng: 74.817,
+    pincode: "190002",
+    aliases: ["alamgiri bazar", "alamgiri bazaar", "alamgiribazar"],
+  },
+  {
+    name: "Khanyar",
+    lat: 34.095,
+    lng: 74.82,
+    pincode: "190003",
+    aliases: ["khanyar", "dastgeer sahib", "khanyar srinagar"],
+  },
+  {
+    name: "Rainawari",
+    lat: 34.095,
+    lng: 74.831,
+    pincode: "190003",
+    aliases: ["rainawari", "raina wari", "rainawari srinagar", "jlnm hospital"],
+  },
+  {
+    name: "Dalgate",
+    lat: 34.078,
+    lng: 74.834,
+    pincode: "190001",
+    aliases: ["dalgate", "dal gate", "boulevard", "boulevard road", "dalgate srinagar", "nehru park"],
+  },
+  {
+    name: "Rajbagh",
+    lat: 34.062,
+    lng: 74.825,
+    pincode: "190008",
+    aliases: ["rajbagh", "raj bagh", "rajbagh srinagar", "zero bridge", "kursoo rajbagh", "rajbagh extension"],
+  },
+  {
+    name: "Lal Chowk",
+    lat: 34.071,
+    lng: 74.811,
+    pincode: "190001",
+    aliases: ["lal chowk", "lalchowk", "clock tower", "ghanta ghar", "residency road", "maisuma", "regal chowk", "lal chowk srinagar"],
+  },
+  {
+    name: "Sanat Nagar",
+    lat: 34.032,
+    lng: 74.801,
+    pincode: "190005",
+    aliases: ["sanat nagar", "sanatnagar", "sanat nagar srinagar"],
+  },
+  {
+    name: "Hyderpora",
+    lat: 34.037,
+    lng: 74.789,
+    pincode: "190014",
+    aliases: ["hyderpora", "hyder pora", "hyderpora flyover", "hyderpora chowk", "hyderpora srinagar"],
+  },
+  {
+    name: "Bemina",
+    lat: 34.088,
+    lng: 74.779,
+    pincode: "190018",
+    aliases: ["bemina", "sd colony", "hamdania colony", "bemina byepass", "bemina chowk", "bemina srinagar"],
+  },
+  {
+    name: "Batamaloo",
+    lat: 34.074,
+    lng: 74.792,
+    pincode: "190009",
+    aliases: ["batamaloo", "batamalo", "batmaloo", "batamaloo srinagar"],
+  },
+  {
+    name: "Jawahar Nagar",
+    lat: 34.058,
+    lng: 74.818,
+    pincode: "190008",
+    aliases: ["jawahar nagar", "jawaharnagar", "jawahar nagar srinagar"],
+  },
+  {
+    name: "Chanapora",
+    lat: 34.035,
+    lng: 74.808,
+    pincode: "190015",
+    aliases: ["chanapora", "channapora", "chanapora srinagar", "chanapora bypass"],
+  },
+  {
+    name: "Nishat",
+    lat: 34.12,
+    lng: 74.88,
+    pincode: "190019",
+    aliases: ["nishat", "nishat garden", "brein", "brein nishat", "nishat srinagar"],
+  },
 ];
 
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -104,6 +290,56 @@ function findNearestLandmark(lat: number, lng: number): { name: string; pincode:
     }
   }
   return { name: closest.name, pincode: closest.pincode };
+}
+
+function findMatchingLandmark(localityInput: string): SrinagarLandmark | null {
+  if (!localityInput || !localityInput.trim()) return null;
+
+  const raw = localityInput.toLowerCase().trim();
+  const normalized = raw.replace(/[^a-z0-9]/g, "");
+  if (!normalized) return null;
+
+  // 1. Exact match with primary name or any alias
+  for (const lm of SRINAGAR_LANDMARKS) {
+    const normPrimary = lm.name.toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (normalized === normPrimary) return lm;
+    if (lm.aliases) {
+      for (const alias of lm.aliases) {
+        const normAlias = alias.toLowerCase().replace(/[^a-z0-9]/g, "");
+        if (normalized === normAlias) return lm;
+      }
+    }
+  }
+
+  // 2. Contains match: if user's input contains landmark name or alias (e.g. "Ellahi Bagh near masjid")
+  const sortedLandmarks = [...SRINAGAR_LANDMARKS].sort((a, b) => b.name.length - a.name.length);
+  for (const lm of sortedLandmarks) {
+    const normPrimary = lm.name.toLowerCase().replace(/[^a-z0-9]/g, "");
+    if (normPrimary.length >= 4 && normalized.includes(normPrimary)) return lm;
+    if (lm.aliases) {
+      const sortedAliases = [...lm.aliases].sort((a, b) => b.length - a.length);
+      for (const alias of sortedAliases) {
+        const normAlias = alias.toLowerCase().replace(/[^a-z0-9]/g, "");
+        if (normAlias.length >= 4 && normalized.includes(normAlias)) return lm;
+      }
+    }
+  }
+
+  // 3. Reverse contains: if landmark name or alias contains input (min length 4)
+  if (normalized.length >= 4) {
+    for (const lm of SRINAGAR_LANDMARKS) {
+      const normPrimary = lm.name.toLowerCase().replace(/[^a-z0-9]/g, "");
+      if (normPrimary.includes(normalized)) return lm;
+      if (lm.aliases) {
+        for (const alias of lm.aliases) {
+          const normAlias = alias.toLowerCase().replace(/[^a-z0-9]/g, "");
+          if (normAlias.includes(normalized)) return lm;
+        }
+      }
+    }
+  }
+
+  return null;
 }
 
 async function reverseGeocodeCoords(lat: number, lng: number): Promise<{ locality: string; pincode: string }> {
@@ -635,6 +871,16 @@ export default function CheckoutPage() {
     const next = { ...formData, [field]: value };
     setFormData(next);
 
+    // If customer changes the locality text, reset previous coordinates so the new locality recalculates cleanly
+    if (field === "locality") {
+      setDetectedCoords(null);
+      setDeliveryMode(null);
+      setSelectedZoneName("");
+      setCalculatedDistance(null);
+      setLocationMsg("");
+      setLocatingStep("idle");
+    }
+
     const validators: Record<string, (v: string) => string> = {
       fullName: validateName,
       phone: validatePhone,
@@ -767,6 +1013,19 @@ export default function CheckoutPage() {
     setCalculatedDistance(null);
   };
 
+  // ─── Return to Step 1 & Reset Stale Location Calculations ─────
+  const handleBackToAddressEdit = () => {
+    setDeliveryMode(null);
+    setDetectedCoords(null);
+    setSelectedZoneName("");
+    setCalculatedDistance(null);
+    setLocationMsg("");
+    setLocatingStep("idle");
+    setPermissionErrorHelp("");
+    setCurrentStep(1);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   // ─── STEP 1 -> STEP 2 Transition (Customer Details -> Location Check) ───
   const handleProceedToLocation = (e: React.FormEvent) => {
     e.preventDefault();
@@ -796,18 +1055,15 @@ export default function CheckoutPage() {
     // Capture lead immediately upon proceeding
     captureLead(formData, grandTotal, items);
 
-    // If customer entered a locality and GPS hasn't been locked yet, match with SRINAGAR_LANDMARKS
-    if (!detectedCoords && formData.locality) {
-      const locLower = formData.locality.toLowerCase().trim();
-      const matched = SRINAGAR_LANDMARKS.find((lm) => {
-        const primaryName = lm.name.toLowerCase().split("/")[0].trim();
-        return locLower.includes(primaryName) || primaryName.includes(locLower);
-      });
+    // Match customer-entered locality against Srinagar landmarks and calculate distance
+    if (formData.locality) {
+      const matched = findMatchingLandmark(formData.locality);
       if (matched) {
         setSelectedZoneName(matched.name);
         setDetectedCoords({ lat: matched.lat, lng: matched.lng });
         const dist = calculateDistance(farmLat, farmLng, matched.lat, matched.lng);
         setCalculatedDistance(dist);
+        setLocatingStep("locked");
         if (dist <= deliveryRadiusKm) {
           setDeliveryMode("under5");
           setLocationMsg(`${dist.toFixed(1)} km from Urban Trout Hub, Malabagh • Free Express Delivery within 2 Hours ✓`);
@@ -815,6 +1071,22 @@ export default function CheckoutPage() {
           setDeliveryMode("unavailable");
           setLocationMsg(`${dist.toFixed(1)} km from Urban Trout Hub • Outside our ${deliveryRadiusKm}km live harvest delivery perimeter.`);
         }
+      } else if (detectedCoords) {
+        // Fallback: If customer had previous device GPS coordinates locked
+        const dist = calculateDistance(farmLat, farmLng, detectedCoords.lat, detectedCoords.lng);
+        setCalculatedDistance(dist);
+        setLocatingStep("locked");
+        if (dist <= deliveryRadiusKm) {
+          setDeliveryMode("under5");
+          setLocationMsg(`${dist.toFixed(1)} km from Urban Trout Hub, Malabagh • Free Express Delivery within 2 Hours ✓`);
+        } else {
+          setDeliveryMode("unavailable");
+          setLocationMsg(`${dist.toFixed(1)} km from Urban Trout Hub • Outside our ${deliveryRadiusKm}km live harvest delivery perimeter.`);
+        }
+      } else {
+        // Locality not recognized in landmark list and no device GPS locked yet
+        setDeliveryMode(null);
+        setLocatingStep("idle");
       }
     }
 
@@ -822,7 +1094,7 @@ export default function CheckoutPage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  // ─── Quick Beat Select Helper for Step 2 ────────────────────
+  // ─── Quick Landmark Select Helper for Step 2 ────────────────────
   const handleSelectLandmarkBeat = (landmark: SrinagarLandmark) => {
     setSelectedZoneName(landmark.name);
     setDetectedCoords({ lat: landmark.lat, lng: landmark.lng });
@@ -832,7 +1104,7 @@ export default function CheckoutPage() {
 
     const updatedForm = {
       ...formData,
-      locality: formData.locality || landmark.name,
+      locality: landmark.name,
       pincode: formData.pincode || landmark.pincode,
     };
     setFormData(updatedForm);
@@ -853,7 +1125,7 @@ export default function CheckoutPage() {
   // ─── STEP 2 -> STEP 3 Transition (Location Check -> Payment) ──
   const handleConfirmLocationProceed = () => {
     if (!deliveryMode || !detectedCoords) {
-      alert("Please auto-detect your delivery location using device GPS or select your Srinagar delivery beat first.");
+      alert("Please auto-detect your delivery location using device GPS or select your Srinagar delivery area first.");
       return;
     }
     if (deliveryMode === "unavailable" && !allowOutsideRadius) {
@@ -1653,7 +1925,7 @@ export default function CheckoutPage() {
             {/* Step 1 Node: Fill Details */}
             <button
               type="button"
-              onClick={() => setCurrentStep(1)}
+              onClick={handleBackToAddressEdit}
               className="relative z-10 flex items-center gap-2.5 px-4 py-2.5 rounded-full transition-all cursor-pointer"
               style={{
                 background: currentStep === 1 ? "#10212c" : "rgba(16,33,44,0.95)",
@@ -2285,10 +2557,7 @@ export default function CheckoutPage() {
                   <div className="flex items-center gap-3">
                     <button
                       type="button"
-                      onClick={() => {
-                        setCurrentStep(1);
-                        window.scrollTo({ top: 0, behavior: "smooth" });
-                      }}
+                      onClick={handleBackToAddressEdit}
                       className="flex items-center justify-center w-10 h-10 rounded-xl transition-all flex-shrink-0 cursor-pointer"
                       style={{
                         background: "rgba(3,16,24,0.7)",
@@ -2337,10 +2606,7 @@ export default function CheckoutPage() {
 
                   <button
                     type="button"
-                    onClick={() => {
-                      setCurrentStep(1);
-                      window.scrollTo({ top: 0, behavior: "smooth" });
-                    }}
+                    onClick={handleBackToAddressEdit}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-cyan-950/50 border border-cyan-800/50 text-[11px] text-cyan-300 hover:text-white cursor-pointer transition-colors"
                   >
                     <span>✏️</span>
@@ -2373,10 +2639,7 @@ export default function CheckoutPage() {
                   </div>
                   <button
                     type="button"
-                    onClick={() => {
-                      setCurrentStep(1);
-                      window.scrollTo({ top: 0, behavior: "smooth" });
-                    }}
+                    onClick={handleBackToAddressEdit}
                     className="self-start sm:self-auto px-3.5 py-1.5 rounded-lg text-xs font-semibold text-cyan-300 hover:text-white bg-cyan-950/60 border border-cyan-800 transition-colors cursor-pointer flex items-center gap-1.5 flex-shrink-0"
                   >
                     <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -2590,13 +2853,13 @@ export default function CheckoutPage() {
                         )}
                       </button>
 
-                      {/* Quick 13 Srinagar Areas Selector (Zero friction fallback) */}
+                      {/* Quick Srinagar Areas Selector (Zero friction fallback) */}
                       <div className="pt-2 text-left w-full">
                         <div className="text-[11px] uppercase tracking-wider font-semibold text-slate-400 mb-2 flex items-center justify-between">
                           <span>Or select your Srinagar delivery area:</span>
-                          <span className="text-[10px] text-cyan-300 font-mono">13 Delivery Hubs</span>
+                          <span className="text-[10px] text-cyan-300 font-mono">Popular Srinagar Hubs</span>
                         </div>
-                        <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-1 bg-slate-950/60 rounded-xl border border-slate-800">
+                        <div className="flex flex-wrap gap-1.5 max-h-44 overflow-y-auto p-1.5 bg-slate-950/60 rounded-xl border border-slate-800">
                           {SRINAGAR_LANDMARKS.map((lm) => {
                             const d = calculateDistance(farmLat, farmLng, lm.lat, lm.lng);
                             const inZone = d <= deliveryRadiusKm;
@@ -2721,10 +2984,7 @@ export default function CheckoutPage() {
                         <div className="flex flex-col sm:flex-row gap-3">
                           <button
                             type="button"
-                            onClick={() => {
-                              setCurrentStep(1);
-                              window.scrollTo({ top: 0, behavior: "smooth" });
-                            }}
+                            onClick={handleBackToAddressEdit}
                             className="px-6 py-4 rounded-xl font-bold uppercase text-xs tracking-wider transition-all order-2 sm:order-1 text-center cursor-pointer"
                             style={{
                               background: "rgba(3,16,24,0.8)",
@@ -2765,11 +3025,37 @@ export default function CheckoutPage() {
                             🏪 Live Vending Center Self-Pickup Available:
                           </strong>
                           <p className="text-slate-300">
-                            Because live harvested trout requires express aeration within 90 minutes, doorstep delivery is restricted to a ${deliveryRadiusKm}km perimeter. You are always welcome to pick up freshly harvested catch directly from our dedicated Live Trout Vending Center:
+                            Because live harvested trout requires express aeration within 90 minutes, doorstep delivery is restricted to our {deliveryRadiusKm}km perimeter. You are always welcome to pick up freshly harvested catch directly from our dedicated Live Trout Vending Center:
                           </p>
                           <span className="text-slate-200 block font-semibold pt-1">
                             📍 Malabagh, Srinagar — 190006 (Near R P School, Girls Wing)
                           </span>
+                        </div>
+
+                        {/* Quick 1-tap in-zone selector if customer wants delivery to a friend/office in-zone */}
+                        <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 text-left space-y-2">
+                          <div className="text-[11px] font-semibold text-slate-300 flex items-center justify-between">
+                            <span>Delivering to an office, friend, or relative within 5km?</span>
+                            <span className="text-[10px] text-emerald-400 font-mono">1-Tap Select</span>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+                            {SRINAGAR_LANDMARKS.filter((lm) => calculateDistance(farmLat, farmLng, lm.lat, lm.lng) <= deliveryRadiusKm).map((lm) => {
+                              const d = calculateDistance(farmLat, farmLng, lm.lat, lm.lng);
+                              return (
+                                <button
+                                  key={lm.name}
+                                  type="button"
+                                  onClick={() => handleSelectLandmarkBeat(lm)}
+                                  className="px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all cursor-pointer flex items-center gap-1.5 bg-slate-900 hover:bg-cyan-950/70 border border-slate-700 hover:border-cyan-400 text-slate-200"
+                                >
+                                  <span>{lm.name}</span>
+                                  <span className="text-[10px] font-mono text-emerald-400">
+                                    {d.toFixed(1)}km
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -2794,10 +3080,7 @@ export default function CheckoutPage() {
                         <div className="pt-2 text-center">
                           <button
                             type="button"
-                            onClick={() => {
-                              setCurrentStep(1);
-                              window.scrollTo({ top: 0, behavior: "smooth" });
-                            }}
+                            onClick={handleBackToAddressEdit}
                             className="text-xs text-cyan-300 underline cursor-pointer"
                           >
                             ← Change Delivery Address
@@ -2873,10 +3156,7 @@ export default function CheckoutPage() {
                       </span>
                       <button
                         type="button"
-                        onClick={() => {
-                          setCurrentStep(1);
-                          window.scrollTo({ top: 0, behavior: "smooth" });
-                        }}
+                        onClick={handleBackToAddressEdit}
                         className="text-[10px] text-cyan-300 hover:text-white underline cursor-pointer"
                       >
                         Edit Details
