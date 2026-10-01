@@ -218,7 +218,7 @@ export async function sendOrderStatusUpdateEmail(order: {
   email?: string;
   phone: string;
   total: number;
-}, status: "pending" | "processing" | "out_for_delivery" | "delivered" | "cancelled" | "out_of_stock") {
+}, status: "pending" | "processing" | "harvested" | "out_for_delivery" | "delivered" | "cancelled" | "out_of_stock") {
 
   if (!order.email || !order.email.includes("@")) return;
 
@@ -229,6 +229,13 @@ export async function sendOrderStatusUpdateEmail(order: {
   }
 
   const STATUS_DETAILS: Record<string, { title: string; subtitle: string; icon: string; color: string; subject: string }> = {
+    harvested: {
+      title: "Live Harvest Complete & Order Locked! 🐟✨",
+      subtitle: "Your fresh Rainbow Trout has been harvested live from our spring-water tanks in Malabagh, cleaned, and packed on food-grade ice! Because your fish was harvested live specifically for you, this order is now locked and non-refundable. Our dispatch rider will be on the way shortly.",
+      icon: "🐟",
+      color: "#0284c7",
+      subject: `🐟 Harvest Complete (Order Locked): Order #${order.orderNumber} - Urban Trout`,
+    },
     processing: {
       title: "Payment Verified & Order Confirmed! 🎉",
       subtitle: "We have confirmed your payment. Our team at Urban Trout Farm is now harvesting and ice-packing your fresh Rainbow Trout.",
