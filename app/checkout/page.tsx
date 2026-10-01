@@ -3262,7 +3262,7 @@ export default function CheckoutPage() {
                   </div>
 
                   <p className="text-xs text-slate-300 leading-relaxed" style={{ fontFamily: '"Manrope", sans-serif' }}>
-                    Unlike supermarkets selling pre-slaughtered frozen fish, <strong>every Urban Trout is swimming alive in our cold-water aquifer raceways in Malabagh right now</strong>. We only net, humanely harvest, descale, and pack it on ice <em>after</em> your order is confirmed and paid.
+                    Unlike supermarkets selling pre-slaughtered frozen fish, <strong>every Rainbow Trout is swimming alive in our cold-water Recirculating Aquaculture System (RAS) tanks in Malabagh right now</strong>. We only net, humanely harvest, descale, and pack it on ice <em>after</em> your order is confirmed and paid.
                   </p>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -3273,7 +3273,7 @@ export default function CheckoutPage() {
                           Why We Do Not Do Cash on Delivery
                         </strong>
                         <span className="text-[11px] text-slate-400 leading-normal block mt-0.5">
-                          Once harvested from spring water, trout cannot be returned to the raceway alive. Advance payment protects our fresh, ethically raised fish from refusal or last-minute cancellation.
+                          Once harvested from pristine borewell water, trout cannot be returned to the RAS tanks alive. Advance payment protects our fresh, ethically raised fish from refusal or last-minute cancellation.
                         </span>
                       </div>
                     </div>
