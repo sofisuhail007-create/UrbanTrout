@@ -4779,14 +4779,14 @@ export default function VendingCenterLoggerPage() {
             <table className="w-full text-left border-collapse font-mono text-xs">
               <thead>
                 <tr className="bg-slate-950/90 border-b border-slate-800 text-[10.5px] font-semibold text-slate-400 uppercase tracking-wider select-none">
-                  <th className="py-3 px-3 text-center w-12 text-slate-500">#</th>
-                  <th className="py-3 px-3.5 min-w-[115px]">
+                  <th className="py-3.5 px-2.5 text-center w-10 text-slate-500">#</th>
+                  <th className="py-3.5 px-3 text-left w-32">
                     <button
                       type="button"
                       onClick={() => toggleSort("time")}
                       className="flex items-center gap-1 hover:text-white transition-colors cursor-pointer"
                     >
-                      Date &amp; Time
+                      Date &amp; Staff
                       {sortField === "time" && (
                         <span className="material-symbols-outlined text-[13px] text-emerald-400">
                           {sortDirection === "desc" ? "arrow_downward" : "arrow_upward"}
@@ -4794,16 +4794,11 @@ export default function VendingCenterLoggerPage() {
                       )}
                     </button>
                   </th>
-                  <th className="py-3 px-3.5 min-w-[210px]">Product &amp; Destination</th>
-                  <th className="py-3 px-3 min-w-[110px]">Staff</th>
-                  <th className="py-3 px-3.5 text-right min-w-[95px]">Weight</th>
-                  <th className="py-3 px-3 text-right min-w-[70px]">Rate</th>
-                  <th className="py-3 px-3 text-right min-w-[80px]">Expected</th>
-                  <th className="py-3 px-3.5 text-right min-w-[95px] text-cyan-400">Collected</th>
-                  <th className="py-3 px-3.5 text-right min-w-[115px] text-teal-300">Eff. Rate</th>
-                  <th className="py-3 px-3.5 text-right min-w-[115px] text-amber-400">Status</th>
-                  <th className="py-3 px-3.5 min-w-[125px]">Payment</th>
-                  <th className="py-3 px-3.5 text-right min-w-[90px]">Actions</th>
+                  <th className="py-3.5 px-3.5 text-left">Product &amp; Destination</th>
+                  <th className="py-3.5 px-3 text-right w-24">Weight / Rate</th>
+                  <th className="py-3.5 px-3 text-right w-32 text-cyan-400">Collected / Exp.</th>
+                  <th className="py-3.5 px-3 text-left w-36">Payment &amp; Status</th>
+                  <th className="py-3.5 px-3 text-right w-24">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60">
@@ -4850,27 +4845,33 @@ export default function VendingCenterLoggerPage() {
                           : "bg-slate-950/25 hover:bg-slate-800/40"
                       }`}
                     >
-                      {/* # */}
-                      <td className="py-3 px-3 text-center text-slate-500 font-bold text-[11px]">
+                      {/* 1. # */}
+                      <td className="py-3.5 px-2.5 text-center text-slate-500 font-bold text-[11px] align-top">
                         {(salesPage - 1) * 50 + index + 1}
                       </td>
 
-                      {/* Date & Time */}
-                      <td className="py-3 px-3.5 whitespace-nowrap">
-                        <div className="flex flex-col">
-                          <span className="text-slate-200 font-bold text-[11.5px]">
+                      {/* 2. Date & Staff */}
+                      <td className="py-3.5 px-3 whitespace-nowrap align-top">
+                        <div className="flex flex-col gap-1">
+                          <span className="text-slate-200 font-bold text-xs">
                             {formatIstDateDisplay(e.entry_date) || e.entry_date}
                           </span>
-                          <span className="text-slate-400 text-[10.5px] mt-0.5 flex items-center gap-1 font-mono">
-                            <span className="material-symbols-outlined text-[11px] text-slate-500">schedule</span>
+                          <span className="text-slate-400 text-[10.5px] flex items-center gap-1 font-mono">
+                            <span className="material-symbols-outlined text-[12px] text-slate-500">schedule</span>
                             {e.entry_time}
                           </span>
+                          <div className="mt-0.5">
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-800/90 border border-slate-700/60 text-slate-300 text-[10px] font-sans font-medium">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span>
+                              <span className="truncate max-w-[90px]">{formatStaffDisplayName(e.logged_by)}</span>
+                            </span>
+                          </div>
                         </div>
                       </td>
 
-                      {/* Product & Destination */}
-                      <td className="py-3 px-3.5">
-                        <div className="flex flex-col gap-1 min-w-0">
+                      {/* 3. Product & Destination */}
+                      <td className="py-3.5 px-3.5 align-top">
+                        <div className="flex flex-col gap-1.5 min-w-0">
                           <div className="flex items-center gap-1.5 flex-wrap">
                             {isGutted && isSelfCleaned ? (
                               <>
@@ -4907,19 +4908,20 @@ export default function VendingCenterLoggerPage() {
 
                           {/* Customer contact info */}
                           {e.custom_fields?.customer_name && (
-                            <div className="flex items-center gap-1 text-[11px] text-purple-300 font-medium truncate">
-                              <span className="material-symbols-outlined text-[12px] text-purple-400">person</span>
+                            <div className="flex items-center gap-1 text-[11.5px] text-purple-200 font-medium">
+                              <span className="material-symbols-outlined text-[13px] text-purple-400 flex-shrink-0">person</span>
                               <span>{e.custom_fields.customer_name}</span>
                               {e.custom_fields.customer_phone && (
-                                <span className="text-slate-400 text-[10px]">({e.custom_fields.customer_phone})</span>
+                                <span className="text-slate-400 text-[10.5px] font-mono">({e.custom_fields.customer_phone})</span>
                               )}
                             </div>
                           )}
 
+                          {/* Notes / Destination */}
                           {e.notes && (
-                            <div className="text-[11px] text-slate-400 truncate flex items-center gap-1">
-                              <span className="material-symbols-outlined text-[12px] text-emerald-400 flex-shrink-0">location_on</span>
-                              <span className="truncate">{e.notes}</span>
+                            <div className="text-[11px] text-slate-300/90 flex items-start gap-1 leading-snug break-words">
+                              <span className="material-symbols-outlined text-[12px] text-emerald-400 flex-shrink-0 mt-0.5">location_on</span>
+                              <span className="break-words">{e.notes}</span>
                             </div>
                           )}
 
@@ -4932,162 +4934,150 @@ export default function VendingCenterLoggerPage() {
                         </div>
                       </td>
 
-                      {/* Staff */}
-                      <td className="py-3 px-3.5 whitespace-nowrap">
-                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-800/90 border border-slate-700/60 text-slate-300 text-[11px] font-sans font-medium">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
-                          {formatStaffDisplayName(e.logged_by)}
-                        </span>
-                      </td>
-
-                      {/* Weight */}
-                      <td className="py-3 px-3.5 text-right whitespace-nowrap">
-                        <span className="text-emerald-400 font-black text-sm tracking-tight">{formatKg(e.weight_kg)}</span>
-                        <span className="text-slate-500 text-[10px] ml-1 font-sans">Kg</span>
-                      </td>
-
-                      {/* Rate */}
-                      <td className="py-3 px-3 text-right text-slate-400 whitespace-nowrap">
-                        ₹{e.rate_per_kg}
-                      </td>
-
-                      {/* Expected */}
-                      <td className="py-3 px-3 text-right text-slate-400 font-medium whitespace-nowrap">
-                        ₹{exp.toLocaleString("en-IN")}
-                      </td>
-
-                      {/* Collected */}
-                      <td className="py-3 px-3.5 text-right whitespace-nowrap">
-                        {taken === 0 && isCreditSale ? (
-                          <div className="flex flex-col items-end">
-                            <span className="text-rose-400 font-black text-sm tracking-tight font-mono">₹0</span>
-                            <span className="text-purple-400 text-[9px] font-mono">On Credit</span>
+                      {/* 4. Weight / Rate */}
+                      <td className="py-3.5 px-3 text-right whitespace-nowrap align-top font-mono">
+                        <div className="flex flex-col items-end">
+                          <div>
+                            <span className="text-emerald-400 font-black text-sm tracking-tight">{formatKg(e.weight_kg)}</span>
+                            <span className="text-slate-500 text-[10px] ml-1 font-sans">Kg</span>
                           </div>
-                        ) : (
-                          <span className="text-cyan-300 font-black text-sm tracking-tight">₹{taken.toLocaleString("en-IN")}</span>
-                        )}
+                          <span className="text-slate-400 text-[10.5px] mt-0.5 font-sans">
+                            @ ₹{e.rate_per_kg}/Kg
+                          </span>
+                        </div>
                       </td>
 
-                      {/* Effective Realized Rate */}
-                      <td className="py-3 px-3.5 text-right whitespace-nowrap font-mono">
-                        {(() => {
-                          const effRate = w > 0 && taken > 0 ? taken / w : rate;
-                          const standardBenchmarkRate = isGutted ? (guttedPrice || DEFAULT_GUTTED_PRICE) : rate;
-                          const rateDiff = standardBenchmarkRate - effRate;
-                          const isLoss = !isCreditSale && rateDiff > 0.5;
-                          const isGain = rateDiff < -0.5;
-
-                          return (
+                      {/* 5. Collected / Expected */}
+                      <td className="py-3.5 px-3 text-right whitespace-nowrap align-top font-mono">
+                        <div className="flex flex-col items-end gap-0.5">
+                          {taken === 0 && isCreditSale ? (
                             <div className="flex flex-col items-end">
-                              <span
-                                className={`font-mono font-black text-xs tracking-tight ${
-                                  isCreditSale ? "text-purple-300" : isLoss ? "text-amber-300" : isGain ? "text-cyan-300" : "text-emerald-400"
-                                }`}
-                              >
-                                ₹{effRate.toFixed(1)}
-                                <span className="text-[9.5px] text-slate-400 font-sans font-normal ml-0.5">/Kg</span>
-                              </span>
-                              {isLoss ? (
-                                <span className="text-[9.5px] font-mono text-rose-400/90 font-medium">
-                                  -₹{rateDiff.toFixed(1)}/Kg {loss > 0 ? `(₹${loss})` : ""}
-                                </span>
-                              ) : isGain ? (
-                                <span className="text-[9.5px] font-mono text-cyan-400/90 font-medium">
-                                  +₹{Math.abs(rateDiff).toFixed(1)}/Kg
-                                </span>
-                              ) : (
-                                <span className="text-[9px] font-mono text-slate-500">
-                                  Standard
-                                </span>
-                              )}
+                              <span className="text-rose-400 font-black text-sm tracking-tight font-mono">₹0</span>
+                              <span className="text-purple-400 text-[9px] font-mono">On Credit</span>
                             </div>
-                          );
-                        })()}
+                          ) : (
+                            <span className="text-cyan-300 font-black text-sm tracking-tight">₹{taken.toLocaleString("en-IN")}</span>
+                          )}
+
+                          <span className="text-slate-400 text-[10px] font-sans">
+                            Exp: ₹{exp.toLocaleString("en-IN")}
+                          </span>
+
+                          {(() => {
+                            const effRate = w > 0 && taken > 0 ? taken / w : rate;
+                            const standardBenchmarkRate = isGutted ? (guttedPrice || DEFAULT_GUTTED_PRICE) : rate;
+                            const rateDiff = standardBenchmarkRate - effRate;
+                            const isLoss = !isCreditSale && rateDiff > 0.5;
+                            const isGain = rateDiff < -0.5;
+
+                            return (
+                              <div className="flex items-center gap-1 mt-0.5">
+                                <span
+                                  className={`font-mono text-[10.5px] font-bold ${
+                                    isCreditSale ? "text-purple-300" : isLoss ? "text-amber-300" : isGain ? "text-cyan-300" : "text-emerald-400"
+                                  }`}
+                                >
+                                  ₹{effRate.toFixed(1)}/Kg
+                                </span>
+                                {isLoss ? (
+                                  <span className="text-[9.5px] font-mono text-rose-400/90 font-medium">
+                                    (-₹{rateDiff.toFixed(0)})
+                                  </span>
+                                ) : isGain ? (
+                                  <span className="text-[9.5px] font-mono text-cyan-400/90 font-medium">
+                                    (+₹{Math.abs(rateDiff).toFixed(0)})
+                                  </span>
+                                ) : null}
+                              </div>
+                            );
+                          })()}
+                        </div>
                       </td>
 
-                      {/* Loss / Concession / Balance */}
-                      <td className="py-3 px-3.5 text-right whitespace-nowrap">
-                        {isCreditSale && e.custom_fields?.balance_status !== "waived_final" && e.custom_fields?.balance_status !== "settled" ? (
-                          <button
-                            type="button"
-                            onClick={() => handleOpenBalanceModalForEntry(e)}
-                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-bold bg-purple-500/25 text-purple-200 border border-purple-500/50 hover:bg-purple-500/35 transition-all cursor-pointer shadow-sm active:scale-95 font-mono"
-                            title="Click to open Khata &amp; WhatsApp Reminder"
-                          >
-                            <span className="material-symbols-outlined text-[12px]">hourglass_top</span>
-                            Bal: ₹{Number(e.custom_fields?.balance_amount || exp).toLocaleString("en-IN")}
-                          </button>
-                        ) : e.custom_fields?.balance_status === "waived_final" ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-medium text-slate-300 bg-slate-800/90 border border-slate-700">
-                            🤝 Waived (-₹{loss})
-                          </span>
-                        ) : e.custom_fields?.balance_status === "settled" || e.custom_fields?.settled_at || (e.custom_fields?.is_full_payment && !isCreditSale) ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/40">
-                            ✓ Full Paid
-                          </span>
-                        ) : loss > 0 ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
-                            -₹{loss.toLocaleString("en-IN")}
-                          </span>
-                        ) : loss < 0 ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
-                            +₹{Math.abs(loss)}
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20">
-                            ✓ Exact
-                          </span>
-                        )}
+                      {/* 6. Payment & Status */}
+                      <td className="py-3.5 px-3 whitespace-nowrap align-top">
+                        <div className="flex flex-col items-start gap-1.5">
+                          {/* Payment Mode */}
+                          {isCreditSale && taken === 0 ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-purple-500/20 border border-purple-500/40 text-purple-200 text-[10px] font-bold font-sans">
+                              📒 Credit (Khata)
+                            </span>
+                          ) : isCreditSale && taken > 0 ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-purple-500/20 border border-purple-500/40 text-purple-200 text-[10px] font-bold font-sans">
+                              💵 ₹{taken} + 📒 Credit
+                            </span>
+                          ) : (e.payment_mode || "").toLowerCase().includes("credit") ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-purple-500/20 border border-purple-500/40 text-purple-200 text-[10px] font-bold font-sans">
+                              📒 Credit (Khata)
+                            </span>
+                          ) : e.payment_mode === "Cash + Online QR" || (e.custom_fields?.settled_at && (e.payment_mode || "").toLowerCase().includes("qr")) ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold font-sans">
+                              💵 Cash + ⚡ QR
+                            </span>
+                          ) : isCash ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-teal-500/15 border border-teal-500/30 text-teal-300 text-[10px] font-bold font-sans">
+                              💵 Cash
+                            </span>
+                          ) : e.payment_mode === "Razorpay Link" && (e.custom_fields?.payment_status === "PENDING_LINK" || Number(e.amount_paid) === 0) ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-bold font-sans">
+                              ⏳ Link Sent
+                            </span>
+                          ) : e.payment_mode === "Razorpay Link" ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold font-sans">
+                              🔒 Razorpay
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-[10px] font-bold font-sans">
+                              ⚡ Online
+                            </span>
+                          )}
+
+                          {/* Status / Concession / Balance */}
+                          {isCreditSale && e.custom_fields?.balance_status !== "waived_final" && e.custom_fields?.balance_status !== "settled" ? (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenBalanceModalForEntry(e)}
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9.5px] font-bold bg-purple-500/25 text-purple-200 border border-purple-500/50 hover:bg-purple-500/35 transition-all cursor-pointer shadow-sm active:scale-95 font-mono"
+                              title="Click to open Khata & WhatsApp Reminder"
+                            >
+                              <span className="material-symbols-outlined text-[11px]">hourglass_top</span>
+                              Bal: ₹{Number(e.custom_fields?.balance_amount || exp).toLocaleString("en-IN")}
+                            </button>
+                          ) : e.custom_fields?.balance_status === "waived_final" ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9.5px] font-medium text-slate-300 bg-slate-800/90 border border-slate-700">
+                              🤝 Waived (-₹{loss})
+                            </span>
+                          ) : e.custom_fields?.balance_status === "settled" || e.custom_fields?.settled_at || (e.custom_fields?.is_full_payment && !isCreditSale) ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9.5px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/40">
+                              ✓ Full Paid
+                            </span>
+                          ) : loss > 0 ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9.5px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                              -₹{loss.toLocaleString("en-IN")}
+                            </span>
+                          ) : loss < 0 ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9.5px] font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                              +₹{Math.abs(loss)}
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9.5px] font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20">
+                              ✓ Exact
+                            </span>
+                          )}
+                        </div>
                       </td>
 
-                      {/* Payment Mode */}
-                      <td className="py-3 px-3.5 whitespace-nowrap">
-                        {isCreditSale && taken === 0 ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-purple-500/20 border border-purple-500/40 text-purple-200 text-[10px] font-bold font-sans">
-                            📒 Credit (Khata)
-                          </span>
-                        ) : isCreditSale && taken > 0 ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-purple-500/20 border border-purple-500/40 text-purple-200 text-[10px] font-bold font-sans">
-                            💵 ₹{taken} + 📒 Credit
-                          </span>
-                        ) : (e.payment_mode || "").toLowerCase().includes("credit") ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-purple-500/20 border border-purple-500/40 text-purple-200 text-[10px] font-bold font-sans">
-                            📒 Credit (Khata)
-                          </span>
-                        ) : e.payment_mode === "Cash + Online QR" || (e.custom_fields?.settled_at && (e.payment_mode || "").toLowerCase().includes("qr")) ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold font-sans">
-                            💵 Cash + ⚡ QR
-                          </span>
-                        ) : isCash ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-teal-500/15 border border-teal-500/30 text-teal-300 text-[10px] font-bold font-sans">
-                            💵 Cash
-                          </span>
-                        ) : e.payment_mode === "Razorpay Link" && (e.custom_fields?.payment_status === "PENDING_LINK" || Number(e.amount_paid) === 0) ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-bold font-sans">
-                            ⏳ Link Sent
-                          </span>
-                        ) : e.payment_mode === "Razorpay Link" ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold font-sans">
-                            🔒 Razorpay
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-[10px] font-bold font-sans">
-                            ⚡ Online
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Actions */}
-                      <td className="py-3 px-3.5 text-right whitespace-nowrap">
-                        <div className="flex items-center justify-end gap-1.5">
+                      {/* 7. Actions */}
+                      <td className="py-3.5 px-3 text-right whitespace-nowrap align-top">
+                        <div className="flex items-center justify-end gap-1.5 pt-0.5">
                           {Number(e.custom_fields?.balance_amount) > 0 && e.custom_fields?.balance_status === "pending" && (
                             <button
                               type="button"
                               onClick={() => handleOpenBalanceModalForEntry(e)}
-                              className="px-2 py-1 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-200 border border-purple-500/40 text-[10px] font-bold font-mono transition-all cursor-pointer flex items-center gap-1 shadow-sm active:scale-95"
+                              className="px-2 py-1 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 text-purple-200 border border-purple-500/40 text-[10px] font-bold font-mono transition-all cursor-pointer flex items-center gap-1 shadow-sm active:scale-95"
                               title="Send WhatsApp Payment Reminder / Generate Razorpay QR"
                             >
-                              <span className="material-symbols-outlined text-[13px]">qr_code_2</span>
+                              <span className="material-symbols-outlined text-[12px]">qr_code_2</span>
                               Khata
                             </button>
                           )}

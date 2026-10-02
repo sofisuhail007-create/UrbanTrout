@@ -157,6 +157,12 @@ export async function POST(req: NextRequest) {
 
       const channelLabel = notes.channel === "WHATSAPP_DEAL"
         ? "🤝 WhatsApp Deal (Deal Desk)"
+        : notes.channel === "WHATSAPP_AI_AGENT"
+        ? "🤖 WhatsApp AI Agent"
+        : notes.channel === "POS_BILLING"
+        ? "Counter POS QR"
+        : !notes.channel
+        ? "📱 Razorpay Mobile App"
         : "🛵 Home Delivery (Razorpay Link)";
 
       if (!isDuplicate) {
@@ -275,12 +281,27 @@ export async function POST(req: NextRequest) {
                   .eq("id", log.id);
               }
             } else {
-              // AUTO-INSERT NEW VENDING LOG ENTRY for this remote payment!
-              let tw = 1.0;
-              let prodType = "Gutted";
-              let rate = 580;
-              let expAmount = amount;
-              let discAmount = 0;
+              // ⚠️ USER DIRECTIVE: Only log entries created via polling feature or WhatsApp orders.
+              // Skip auto-insert if created directly via Razorpay mobile app on phone or external links.
+              const isWhatsAppOrPollingOrder = Boolean(
+                invData ||
+                notes.channel === "WHATSAPP_DEAL" ||
+                notes.channel === "WHATSAPP_AI_AGENT" ||
+                notes.channel === "POLLING_FEATURE" ||
+                notes.source === "whatsapp_remote_order"
+              );
+
+              if (!isWhatsAppOrPollingOrder) {
+                console.log(
+                  `[webhook] Payment link ${paymentLinkId || paymentId} was created directly via Razorpay mobile app / external source without a WhatsApp deal or invoice. Skipping vending log auto-insert.`
+                );
+              } else {
+                // AUTO-INSERT NEW VENDING LOG ENTRY for verified WhatsApp / Polling order!
+                let tw = 1.0;
+                let prodType = "Gutted";
+                let rate = 580;
+                let expAmount = amount;
+                let discAmount = 0;
 
               if (invData) {
                 tw = Number(invData.totalWeight ?? invData.tw) || 1.0;
@@ -431,7 +452,8 @@ export async function POST(req: NextRequest) {
               } catch (_) {}
             }
           }
-        } catch (dbErr) {
+        }
+      } catch (dbErr) {
           console.warn("Vending log update notice for payment_link.paid:", dbErr);
         }
       } else {
