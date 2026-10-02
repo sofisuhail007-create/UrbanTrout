@@ -204,13 +204,14 @@ export async function POST(req: NextRequest) {
 
         // 3. Instant WhatsApp Order Confirmation to Customer
         if (customerPhone) {
+          const safeName = (!customerName || customerName.toLowerCase() === "void" || customerName.toLowerCase() === "customer") ? "" : `, ${customerName}`;
           try {
             await enqueueWhatsAppDispatch({
               orderRef,
               phone: customerPhone,
-              customerName,
+              customerName: customerName || "Valued Customer",
               status: "payment_confirmed",
-              messageText: `✅ *ORDER CONFIRMED & PAYMENT RECEIVED!* 🐟\n\nThank you, ${customerName}! Your payment of *₹${amount}* has been verified successfully (Payment ID: ${paymentId}).\n\n📋 *Order Ref:* #${orderRef}\n📦 *Items:* ${itemsSummary}\n\nOur farm team at Malabagh is now preparing your fresh live harvest. You will receive real-time status updates right here as your order is harvested and out for delivery!`,
+              messageText: `✅ *Payment Received & Order Confirmed!* 🐟\n\nThank you${safeName}! Your payment of *₹${amount}* has been verified successfully.\n\n📋 *Order Details:*\n• *Order Ref:* #${orderRef}\n• *Items:* ${itemsSummary}\n• *Payment ID:* ${paymentId}\n• *Status:* Live Harvest Scheduled\n\nOur farm team at Malabagh is preparing your fresh harvest. We will deliver it fresh to your doorstep within 2 hours!`,
             });
           } catch (waErr) {
             console.error("WhatsApp notification error for payment_link.paid:", waErr);

@@ -209,13 +209,7 @@ export function getOrderKeyboard(
   cleanPhone?: string,
   customerName?: string,
   googleMapsUrl?: string | null
-): InlineKeyboardMarkup {
-  const isOut = currentStatus === "out_for_delivery";
-  const isDelivered = currentStatus === "delivered";
-  const isHarvested = currentStatus === "harvested" || currentStatus === "processing";
-  const isOutOfStock = currentStatus === "out_of_stock";
-  const isCancelled = currentStatus === "cancelled";
-
+): InlineKeyboardMarkup | undefined {
   const rows: InlineKeyboardButton[][] = [];
 
   // Top action row: Google Maps Navigation (if GPS coordinates provided) & WhatsApp Customer
@@ -228,22 +222,8 @@ export function getOrderKeyboard(
   }
 
   if (cleanPhone) {
-    let updateMsg = `Hi ${customerName || "there"}! Urban Trout here regarding your fresh trout order #${orderNumber}.`;
-    if (isHarvested) {
-      updateMsg = `Assalam-o-Alaikum ${customerName || "there"}! 🐟 Your fresh Rainbow Trout order #${orderNumber} has been LIVE-HARVESTED from our Malabagh tanks, cleaned, and packed on ice! (Non-refundable / Locked). Dispatching shortly!`;
-    } else if (isOut) {
-      updateMsg = `Hi ${customerName || "there"}! Your fresh Rainbow Trout order #${orderNumber} is packed chilled and OUT FOR DELIVERY with our rider! 🛵`;
-    } else if (isDelivered) {
-      updateMsg = `Hi ${customerName || "there"}! Your fresh Rainbow Trout order #${orderNumber} has been DELIVERED. Thank you for choosing Urban Trout! ✨`;
-    } else if (isOutOfStock) {
-      updateMsg = `Hi ${customerName || "there"}! We sincerely apologize, but due to high sudden demand, your fresh trout order #${orderNumber} is currently OUT OF STOCK. If you have already paid, your full refund has been initiated to your original payment account. We are extremely sorry for the inconvenience!`;
-    } else if (isCancelled) {
-      updateMsg = `Hi ${customerName || "there"}! Your order #${orderNumber} has been cancelled. Please reach out if you have any questions.`;
-    } else {
-      updateMsg = `Hi ${customerName || "there"}! Your Urban Trout order #${orderNumber} is CONFIRMED & PAID! Ready to harvest fresh from tanks. 🐟`;
-    }
-
-    const waUrl = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(updateMsg)}`;
+    const safeName = (!customerName || customerName.toLowerCase() === "void") ? "there" : customerName;
+    const waUrl = `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(`Hello ${safeName}! Urban Trout here regarding your fresh trout order #${orderNumber}.`)}`;
     contactRow.push({
       text: "💬 WhatsApp Customer",
       url: waUrl,
@@ -254,31 +234,10 @@ export function getOrderKeyboard(
     rows.push(contactRow);
   }
 
-  // Status Action Buttons
-  rows.push(
-    [
-      {
-        text: isHarvested ? "● 🐟 Harvested (Locked)" : "🐟 Mark Harvested",
-        callback_data: `ord:harvested:${orderNumber}`,
-      },
-      {
-        text: isOut ? "● 🛵 Out for Delivery" : "🛵 Out for Delivery",
-        callback_data: `ord:out_for_delivery:${orderNumber}`,
-      },
-    ],
-    [
-      {
-        text: isDelivered ? "● ✅ Delivered" : "✅ Mark Delivered",
-        callback_data: `ord:delivered:${orderNumber}`,
-      },
-      {
-        text: isCancelled ? "● ❌ Cancelled" : "❌ Cancel Order",
-        callback_data: `ord:cancelled:${orderNumber}`,
-      },
-    ]
-  );
+  // NOTE: Status callback badges ("Delivered", "Out for Delivery", "Harvested", "Cancelled")
+  // have been removed per user instruction.
 
-  return { inline_keyboard: rows };
+  return rows.length > 0 ? { inline_keyboard: rows } : undefined;
 }
 
 export function formatOrderTelegramText(order: {
