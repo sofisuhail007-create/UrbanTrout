@@ -3,6 +3,7 @@ import crypto from "crypto";
 import { createClient } from "@supabase/supabase-js";
 import { notifyRazorpayPayment } from "@/lib/telegram";
 import { sendPaymentLinkConfirmationEmail } from "@/lib/email";
+import { enqueueWhatsAppDispatch } from "@/lib/whatsappDispatch";
 
 export const dynamic = "force-dynamic";
 
@@ -194,9 +195,24 @@ export async function POST(req: NextRequest) {
         } catch (emErr) {
           console.error("Email notification error for payment_link.paid:", emErr);
         }
+
+        // 3. Instant WhatsApp Order Confirmation to Customer
+        if (customerPhone) {
+          try {
+            await enqueueWhatsAppDispatch({
+              orderRef,
+              phone: customerPhone,
+              customerName,
+              status: "payment_confirmed",
+              messageText: `✅ *ORDER CONFIRMED & PAYMENT RECEIVED!* 🐟\n\nThank you, ${customerName}! Your payment of *₹${amount}* has been verified successfully (Payment ID: ${paymentId}).\n\n📋 *Order Ref:* #${orderRef}\n📦 *Items:* ${itemsSummary}\n\nOur farm team at Malabagh is now preparing your fresh live harvest. You will receive real-time status updates right here as your order is harvested and out for delivery!`,
+            });
+          } catch (waErr) {
+            console.error("WhatsApp notification error for payment_link.paid:", waErr);
+          }
+        }
       }
 
-      // 3. Mark or auto-insert into vending sales log
+      // 4. Mark or auto-insert into vending sales log
       // ⚠️ SKIP auto-insert for POS_BILLING channel — counter staff add entries manually.
       const isPosChannel = notes.channel === "POS_BILLING";
       if (!isPosChannel) {

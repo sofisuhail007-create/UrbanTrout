@@ -598,6 +598,30 @@ export default async function HomePage() {
             </p>
           </div>
 
+          {/* High-Converting 5km Delivery Perimeter & Walk-in Store Notice */}
+          <div className="max-w-4xl mx-auto mb-10 p-4 sm:p-5 rounded-2xl bg-cyan-950/40 border border-cyan-500/30 backdrop-blur-md shadow-lg">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-400/40 flex items-center justify-center shrink-0">
+                  <span className="text-xl">📍</span>
+                </div>
+                <div>
+                  <h3 className="text-sm sm:text-base font-bold text-cyan-200" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                    Live Harvest Doorstep Delivery Zone (Within 5 km)
+                  </h3>
+                  <p className="text-xs sm:text-sm text-cyan-100/75 mt-0.5" style={{ fontFamily: '"Manrope", sans-serif' }}>
+                    Malabagh • Buchpora • Soura • Hazratbal • Zakura • Illahi Bagh • Nowshera • Lal Bazar • Hawal • Habak
+                  </p>
+                </div>
+              </div>
+              <div className="shrink-0 flex items-center gap-2">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                  Counter Pickup: All Srinagar
+                </span>
+              </div>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
             {updatedProducts.map((p) => (
               <ProductCard key={p.id} p={p} />
