@@ -9,7 +9,7 @@ export async function GET() {
     const overrides: StoreSettingsOverrides = {
       storeManuallyClosed: false,
       farmMaintenanceActive: false,
-      allowFridayOrders: false,
+      allowFridayOrders: true,
       forceStoreOpen: false,
     };
 

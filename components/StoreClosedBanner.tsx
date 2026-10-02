@@ -354,11 +354,11 @@ export default function StoreClosedBanner({
               </>
             ) : isFridayNow ? (
               <>
-                Our farm is closed on Fridays for weekly farm maintenance and bio-security protocols.
+                Our physical Vending Center &amp; Store in Malabagh is closed on Fridays for counter walk-ins.
                 <br />
-                We are open all other days (Saturday to Thursday, 7:00 AM – 10:00 PM).
+                However, online doorstep delivery within our 5 km delivery zone is actively accepted!
                 <br />
-                <strong style={{ color: C.onSurface }}>Fresh catch ordering opens {nextOpenLabel}.</strong>
+                <strong style={{ color: C.onSurface }}>Live harvest doorstep delivery ordering opens {nextOpenLabel}.</strong>
               </>
             ) : (
               <>

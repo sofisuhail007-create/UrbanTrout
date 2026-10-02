@@ -62,7 +62,9 @@ export function getBusinessHoursInfo(
   const currentISTMinute = istDate.getUTCMinutes();
 
   const isFriday = currentISTDay === 5;
-  const allowFridayOrders = Boolean(overrides?.allowFridayOrders);
+  const allowFridayOrders = overrides?.allowFridayOrders !== undefined
+    ? Boolean(overrides?.allowFridayOrders)
+    : true;
   const farmMaintenanceActive = Boolean(overrides?.farmMaintenanceActive);
   const storeManuallyClosed = Boolean(overrides?.storeManuallyClosed);
   const forceStoreOpen = Boolean(overrides?.forceStoreOpen);
