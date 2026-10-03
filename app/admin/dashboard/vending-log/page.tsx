@@ -124,6 +124,69 @@ export const formatIstDateDisplay = (dateStr?: string | null): string => {
   }
 };
 
+// Canonical Month key normalizer (e.g. "September 2026", "2026-09", "Sep 2026" -> "2026-09")
+export const normalizeMonthKey = (monthStr?: string, fallbackDate?: string): string => {
+  if (!monthStr && !fallbackDate) return "";
+  const s = (monthStr || "").trim().toLowerCase();
+
+  // If already "YYYY-MM"
+  if (/^\d{4}-\d{2}$/.test(s)) return s;
+  // If "YYYY-MM-DD"
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s.slice(0, 7);
+
+  // If "MM-YYYY" or "MM/YYYY"
+  const mYMatch = s.match(/^(\d{1,2})[\/\-](\d{4})$/);
+  if (mYMatch) {
+    const m = String(Number(mYMatch[1])).padStart(2, "0");
+    return `${mYMatch[2]}-${m}`;
+  }
+
+  const months = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
+  for (let m = 0; m < 12; m++) {
+    if (s.includes(months[m])) {
+      const yearMatch = s.match(/\b(20\d{2})\b/);
+      let year = yearMatch ? yearMatch[1] : "";
+      if (!year && fallbackDate) {
+        year = fallbackDate.slice(0, 4);
+      }
+      if (!year) {
+        year = new Date().getFullYear().toString();
+      }
+      const monthNum = String(m + 1).padStart(2, "0");
+      return `${year}-${monthNum}`;
+    }
+  }
+
+  if (fallbackDate && fallbackDate.length >= 7) {
+    return fallbackDate.slice(0, 7);
+  }
+  return "";
+};
+
+export const formatMonthDisplay = (monthKey?: string): string => {
+  if (!monthKey) return "";
+  const norm = normalizeMonthKey(monthKey);
+  if (!norm || !norm.includes("-")) return monthKey;
+  const [y, m] = norm.split("-").map(Number);
+  if (!y || !m) return monthKey;
+  const d = new Date(y, m - 1, 1);
+  return d.toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+};
+
+export const getPreviousMonthKey = (monthKey?: string): string => {
+  const norm = normalizeMonthKey(monthKey) || getIstTodayDate().slice(0, 7);
+  const [y, m] = norm.split("-").map(Number);
+  const d = new Date(y, m - 2, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+};
+
+export const getNextMonthKey = (monthKey?: string): string => {
+  const norm = normalizeMonthKey(monthKey) || getIstTodayDate().slice(0, 7);
+  const [y, m] = norm.split("-").map(Number);
+  const d = new Date(y, m, 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+};
+
 const VENDING_SQL_QUERY = `-- URBAN TROUT VENDING CENTER SALES DATA LOGGER TABLE
 CREATE TABLE IF NOT EXISTS public.vending_sales_log (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -196,6 +259,8 @@ export default function VendingCenterLoggerPage() {
     d.setDate(d.getDate() - 1);
     return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(d);
   });
+  // Active month picker (for "month" period) - defaults to current month in IST (e.g. "2026-10")
+  const [selectedMonth, setSelectedMonth] = useState<string>(() => getIstTodayDate().slice(0, 7));
 
 
   // Search & Type/Payment filters
@@ -319,14 +384,20 @@ export default function VendingCenterLoggerPage() {
   const [salaryPayments, setSalaryPayments] = useState<WorkerSalaryPayment[]>([]);
   const [salaryConfig, setSalaryConfig] = useState<WorkerSalarySettings>({
     worker_name: "Mohd Amin",
-    base_monthly_salary: 15000,
+    base_monthly_salary: 10500,
   });
   const [salaryModalOpen, setSalaryModalOpen] = useState(false);
   const [savingSalary, setSavingSalary] = useState(false);
   const [salaryFormAmount, setSalaryFormAmount] = useState("");
-  const [salaryFormMonth, setSalaryFormMonth] = useState(() =>
-    new Date().toLocaleDateString("en-IN", { month: "long", year: "numeric", timeZone: "Asia/Kolkata" })
-  );
+  const [salaryFormMonth, setSalaryFormMonth] = useState(() => {
+    // If today is within the first 10 days of the month, default suggestion to previous month! Otherwise current month
+    const d = new Date();
+    if (d.getDate() <= 10) {
+      d.setDate(1);
+      d.setMonth(d.getMonth() - 1);
+    }
+    return d.toLocaleDateString("en-IN", { month: "long", year: "numeric", timeZone: "Asia/Kolkata" });
+  });
   const [salaryFormDate, setSalaryFormDate] = useState(getTodayDate());
   const [salaryFormTime, setSalaryFormTime] = useState(getCurrentTime());
   const [salaryFormMode, setSalaryFormMode] = useState("Cash");
@@ -334,7 +405,32 @@ export default function VendingCenterLoggerPage() {
   const [deleteSalaryConfirmId, setDeleteSalaryConfirmId] = useState<string | null>(null);
   const [editingBaseSalary, setEditingBaseSalary] = useState(false);
   const [editingBaseSalaryCard, setEditingBaseSalaryCard] = useState(false);
-  const [baseSalaryInput, setBaseSalaryInput] = useState("15000");
+  const [baseSalaryInput, setBaseSalaryInput] = useState("10500");
+
+  // List of available months for salary allocation dropdown (past 12 months down to next month)
+  const availableSalaryMonths = useMemo(() => {
+    const list: { key: string; labelClean: string; displayLabel: string; isPrev: boolean; isCurrent: boolean }[] = [];
+    const now = new Date();
+    const currentKey = getIstTodayDate().slice(0, 7);
+    const prevKey = getPreviousMonthKey(currentKey);
+
+    // List: next month (i = -1), current month (i = 0), and past 12 months (i = 1 to 12)
+    for (let i = -1; i <= 12; i++) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      const labelClean = d.toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+      const isPrev = key === prevKey;
+      const isCurrent = key === currentKey;
+      const displayLabel = isPrev
+        ? `${labelClean} (Previous Month)`
+        : isCurrent
+        ? `${labelClean} (Current Month)`
+        : labelClean;
+
+      list.push({ key, labelClean, displayLabel, isPrev, isCurrent });
+    }
+    return list;
+  }, []);
   const [formType, setFormType] = useState<"Gutted" | "Non Gutted" | string>("Gutted");
   const [formSelfCleaned, setFormSelfCleaned] = useState<boolean>(false);
   const [formWeight, setFormWeight] = useState<string>("");
@@ -878,7 +974,10 @@ export default function VendingCenterLoggerPage() {
       if (period === "today") return e.entry_date === todayStr;
       if (period === "date") return e.entry_date === selectedDate;
       if (period === "week") return eDate >= sevenDaysAgo;
-      if (period === "month") return eDate >= firstOfMonth;
+      if (period === "month") {
+        const targetMonth = selectedMonth || todayStr.slice(0, 7);
+        return e.entry_date.startsWith(targetMonth);
+      }
       if (period === "custom") {
         if (customStartDate && e.entry_date < customStartDate) return false;
         if (customEndDate && e.entry_date > customEndDate) return false;
@@ -886,7 +985,7 @@ export default function VendingCenterLoggerPage() {
       }
       return true; // "all"
     });
-  }, [entries, period, customStartDate, customEndDate, selectedDate, getTodayDate]);
+  }, [entries, period, selectedMonth, customStartDate, customEndDate, selectedDate, getTodayDate]);
 
   // ─── Filtered Vending Center Operational Expenses by Active Period ───
   const filteredExpensesByPeriod = useMemo(() => {
@@ -900,8 +999,6 @@ export default function VendingCenterLoggerPage() {
     const sevenDaysAgo = new Date(currDate.getFullYear(), currDate.getMonth(), currDate.getDate() - 6);
     sevenDaysAgo.setHours(0, 0, 0, 0);
 
-    const firstOfMonth = new Date(currDate.getFullYear(), currDate.getMonth(), 1);
-
     return (expenses || [])
       .filter((ex): ex is VendingExpenseEntry => Boolean(ex && typeof ex.expense_date === "string"))
       .filter((ex) => {
@@ -911,7 +1008,10 @@ export default function VendingCenterLoggerPage() {
         if (period === "today") return ex.expense_date === todayStr;
         if (period === "date") return ex.expense_date === selectedDate;
         if (period === "week") return exDate >= sevenDaysAgo;
-        if (period === "month") return exDate >= firstOfMonth;
+        if (period === "month") {
+          const targetMonth = selectedMonth || todayStr.slice(0, 7);
+          return ex.expense_date.startsWith(targetMonth);
+        }
         if (period === "custom") {
           if (customStartDate && ex.expense_date < customStartDate) return false;
           if (customEndDate && ex.expense_date > customEndDate) return false;
@@ -919,11 +1019,59 @@ export default function VendingCenterLoggerPage() {
         }
         return true; // "all"
       });
-  }, [expenses, period, customStartDate, customEndDate, selectedDate, getTodayDate]);
+  }, [expenses, period, selectedMonth, customStartDate, customEndDate, selectedDate, getTodayDate]);
 
   const periodExpensesTotal = useMemo(() => {
     return (filteredExpensesByPeriod || []).reduce((sum, ex) => sum + (Number(ex?.amount) || 0), 0);
   }, [filteredExpensesByPeriod]);
+
+  // ─── Filtered Worker Salary Payments by Active Period (Mohd Amin) ───
+  // Accrual Accounting: When viewing a month (e.g. September 2026), any salary payment
+  // that accounts for that month is counted, even if disbursed on 1st of the next month!
+  const filteredSalaryByPeriod = useMemo(() => {
+    const todayStr = getTodayDate();
+    const activeMonth = selectedMonth || todayStr.slice(0, 7);
+
+    return (salaryPayments || []).filter((p) => {
+      if (!p) return false;
+      const salaryMonthKey = normalizeMonthKey(p.salary_month, p.payment_date);
+      const paymentDate = p.payment_date || "";
+
+      if (period === "month") {
+        // Accrual basis: matches the month this salary ACCOUNTS for!
+        // (e.g. Paid on 1st Oct for Sept 2026 -> accounts for Sept 2026)
+        return salaryMonthKey === activeMonth;
+      }
+      if (period === "all") {
+        return true;
+      }
+      if (period === "custom") {
+        if (customStartDate && customEndDate) {
+          const startMonth = customStartDate.slice(0, 7);
+          const endMonth = customEndDate.slice(0, 7);
+          if (salaryMonthKey >= startMonth && salaryMonthKey <= endMonth) return true;
+          if (paymentDate >= customStartDate && paymentDate <= customEndDate) return true;
+        }
+        return false;
+      }
+      if (period === "today") {
+        return paymentDate === todayStr;
+      }
+      if (period === "date") {
+        return paymentDate === selectedDate;
+      }
+      return false;
+    });
+  }, [salaryPayments, period, selectedMonth, customStartDate, customEndDate, selectedDate, getTodayDate]);
+
+  const periodSalaryTotal = useMemo(() => {
+    // For single-day views (today/date), monthly worker wages are accounted under monthly P&L,
+    // so they don't distort single-day fish sales margin. In month, all, and custom views, they are deducted.
+    if (period === "today" || period === "date") {
+      return 0;
+    }
+    return (filteredSalaryByPeriod || []).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+  }, [filteredSalaryByPeriod, period]);
 
 
   // ─── Weighted Average Procurement Cost per Kg across all stock batches ───
@@ -1136,10 +1284,10 @@ export default function VendingCenterLoggerPage() {
     };
   }, [filteredEntriesByPeriod, procurementAvgCost]);
 
-  // ─── Final Operating Net Profit (Realized Sold Profit minus Operational Expenses) ───
+  // ─── Final Operating Net Profit (Realized Sold Profit minus Operational Expenses & Worker Salary) ───
   const finalProfit = useMemo(() => {
-    return Math.round(kpis.totalSoldProfit - periodExpensesTotal);
-  }, [kpis.totalSoldProfit, periodExpensesTotal]);
+    return Math.round(kpis.totalSoldProfit - periodExpensesTotal - periodSalaryTotal);
+  }, [kpis.totalSoldProfit, periodExpensesTotal, periodSalaryTotal]);
 
   const finalProfitMargin = useMemo(() => {
     return kpis.totalRevenue > 0 ? ((finalProfit / kpis.totalRevenue) * 100).toFixed(1) : "0.0";
@@ -1205,12 +1353,19 @@ export default function VendingCenterLoggerPage() {
 
   // ─── Worker Salary Stats (Mohd Amin) ───
   const salaryStats = useMemo(() => {
-    const currentMonthLabel = new Date().toLocaleDateString("en-IN", { month: "long", year: "numeric", timeZone: "Asia/Kolkata" });
+    const activeMonthKey =
+      period === "month"
+        ? (selectedMonth || getIstTodayDate().slice(0, 7))
+        : getIstTodayDate().slice(0, 7);
+    const activeMonthLabel = formatMonthDisplay(activeMonthKey);
+
+    // Payments accounted for the active month (Accrual principle)
     const thisMonthPaid = salaryPayments
-      .filter((p) => (p.salary_month || "").toLowerCase() === currentMonthLabel.toLowerCase())
+      .filter((p) => normalizeMonthKey(p.salary_month, p.payment_date) === activeMonthKey)
       .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+
     const allTimePaid = salaryPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
-    const baseMonthly = salaryConfig.base_monthly_salary || 15000;
+    const baseMonthly = salaryConfig.base_monthly_salary || 10500;
     const monthBalanceDue = Math.max(0, baseMonthly - thisMonthPaid);
 
     return {
@@ -1219,9 +1374,20 @@ export default function VendingCenterLoggerPage() {
       thisMonthPaid,
       allTimePaid,
       monthBalanceDue,
-      currentMonthLabel,
+      currentMonthLabel: activeMonthLabel,
+      activeMonthKey,
     };
-  }, [salaryPayments, salaryConfig]);
+  }, [salaryPayments, salaryConfig, period, selectedMonth]);
+
+  // Real-time calculations for whatever month is actively picked in the Salary Form dropdown
+  const selectedFormMonthNorm = normalizeMonthKey(salaryFormMonth) || normalizeMonthKey(salaryStats.currentMonthLabel);
+  const selectedFormMonthPaid = useMemo(() => {
+    return salaryPayments
+      .filter((p) => normalizeMonthKey(p.salary_month, p.payment_date) === selectedFormMonthNorm)
+      .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+  }, [salaryPayments, selectedFormMonthNorm]);
+  const selectedFormMonthDue = Math.max(0, (salaryConfig.base_monthly_salary || 10500) - selectedFormMonthPaid);
+  const selectedFormMonthLabel = formatMonthDisplay(salaryFormMonth) || salaryStats.currentMonthLabel;
 
   // ─── Aquarium Live Stock Calculations ───
   // All stock procured is LIVE FISH. We track what's left in the aquarium.
@@ -2445,11 +2611,12 @@ export default function VendingCenterLoggerPage() {
       // 1. Executive Summary Sheet
       const summaryRows = [
         { "Vending Center Metric": "Report Generated Date", "Value / Amount": getTodayDate() },
-        { "Vending Center Metric": "Active Filter Period", "Value / Amount": period.toUpperCase() },
+        { "Vending Center Metric": "Active Filter Period", "Value / Amount": period === "month" ? `MONTH (${formatMonthDisplay(selectedMonth)})` : period.toUpperCase() },
         { "Vending Center Metric": "Total Vending Revenue (Rs)", "Value / Amount": kpis.totalRevenue },
         { "Vending Center Metric": "Realized Net Profit on Sold Fish (Rs)", "Value / Amount": kpis.totalSoldProfit },
         { "Vending Center Metric": "Vending Center Operational Expenses (Rs)", "Value / Amount": periodExpensesTotal },
-        { "Vending Center Metric": "Final Net Operating Profit After Expenses (Rs)", "Value / Amount": finalProfit },
+        { "Vending Center Metric": "Worker Salary / Wages Accounted (Mohd Amin) (Rs)", "Value / Amount": periodSalaryTotal },
+        { "Vending Center Metric": "Final Net Operating Profit After Expenses & Wages (Rs)", "Value / Amount": finalProfit },
         { "Vending Center Metric": "Final Net Operating Profit Margin (%)", "Value / Amount": `${finalProfitMargin}%` },
         { "Vending Center Metric": "Gutted Trout Sold Net Profit (Rs)", "Value / Amount": kpis.guttedProfit },
         { "Vending Center Metric": "Mohd Amin Gutting Labor Incentive Deducted (Rs)", "Value / Amount": kpis.periodWorkerLaborCost },
@@ -3152,6 +3319,53 @@ export default function VendingCenterLoggerPage() {
               </div>
             )}
 
+            {/* Single Month Picker (Month tab) */}
+            {period === "month" && (
+              <div className="flex items-center gap-1.5 text-xs font-mono">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedMonth(getPreviousMonthKey(selectedMonth));
+                  }}
+                  className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition-all cursor-pointer"
+                  title="Previous Month"
+                >
+                  <span className="material-symbols-outlined text-sm">chevron_left</span>
+                </button>
+                <select
+                  value={selectedMonth}
+                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  className="bg-slate-900 border border-emerald-500/60 rounded-lg px-2.5 py-1 text-emerald-300 font-bold focus:outline-none focus:border-emerald-400 cursor-pointer shadow-sm text-xs font-mono"
+                >
+                  {availableSalaryMonths.map((m) => (
+                    <option key={m.key} value={m.key} className="bg-slate-900 text-white">
+                      {m.displayLabel}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedMonth(getNextMonthKey(selectedMonth));
+                  }}
+                  className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition-all cursor-pointer"
+                  title="Next Month"
+                >
+                  <span className="material-symbols-outlined text-sm">chevron_right</span>
+                </button>
+                {selectedMonth !== getIstTodayDate().slice(0, 7) && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedMonth(getIstTodayDate().slice(0, 7))}
+                    className="px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] hover:bg-emerald-500/30 transition-all cursor-pointer"
+                    title="Jump to Current Month"
+                  >
+                    Current Month
+                  </button>
+                )}
+              </div>
+            )}
+
             {/* Custom Range Picker */}
             {period === "custom" && (
               <div className="flex items-center gap-2 text-xs font-mono">
@@ -3770,7 +3984,7 @@ export default function VendingCenterLoggerPage() {
                     )}
                   </div>
                 </div>
-                <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2.5 space-y-0.5">
+                <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2.5 space-y-1">
                   <div className="flex items-center justify-between">
                     <span className="text-teal-300 font-bold" title="Gross Net Sold Profit">
                       Sold: ₹{kpis.totalSoldProfit.toLocaleString("en-IN")}
@@ -3779,8 +3993,14 @@ export default function VendingCenterLoggerPage() {
                       Exp: -₹{periodExpensesTotal.toLocaleString("en-IN")}
                     </span>
                   </div>
-                  <div className="text-[10.5px] text-slate-500 truncate">
-                    Sold Profit minus Center Expenses
+                  {periodSalaryTotal > 0 && (
+                    <div className="flex items-center justify-between text-sky-300 font-bold text-[10.5px]">
+                      <span>Wages ({salaryConfig.worker_name}):</span>
+                      <span>-₹{periodSalaryTotal.toLocaleString("en-IN")}</span>
+                    </div>
+                  )}
+                  <div className="text-[10px] text-slate-500 truncate">
+                    Sold Profit minus Overheads {periodSalaryTotal > 0 ? "& Worker Salary" : ""}
                   </div>
                 </div>
               </div>
@@ -6918,10 +7138,10 @@ export default function VendingCenterLoggerPage() {
 
               <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800">
                 <span className="text-[10px] text-slate-400 uppercase tracking-wider block">
-                  Paid for {salaryStats.currentMonthLabel}
+                  Paid for {selectedFormMonthLabel}
                 </span>
                 <div className="mt-1 text-base sm:text-lg font-black text-emerald-400">
-                  ₹{salaryStats.thisMonthPaid.toLocaleString("en-IN")}
+                  ₹{selectedFormMonthPaid.toLocaleString("en-IN")}
                 </div>
                 <span className="text-[10px] text-slate-500 block mt-0.5">
                   All-time: ₹{salaryStats.allTimePaid.toLocaleString("en-IN")}
@@ -6930,27 +7150,27 @@ export default function VendingCenterLoggerPage() {
 
               <div
                 className={`p-3 rounded-2xl border ${
-                  salaryStats.monthBalanceDue > 0
+                  selectedFormMonthDue > 0
                     ? "bg-amber-950/20 border-amber-500/40"
                     : "bg-emerald-950/20 border-emerald-500/40"
                 }`}
               >
                 <span
                   className={`text-[10px] uppercase tracking-wider block ${
-                    salaryStats.monthBalanceDue > 0 ? "text-amber-300 font-bold" : "text-emerald-300"
+                    selectedFormMonthDue > 0 ? "text-amber-300 font-bold" : "text-emerald-300"
                   }`}
                 >
-                  Balance Due This Month
+                  Balance Due for {selectedFormMonthLabel}
                 </span>
                 <div
                   className={`mt-1 text-base sm:text-lg font-black ${
-                    salaryStats.monthBalanceDue > 0 ? "text-amber-300" : "text-emerald-400"
+                    selectedFormMonthDue > 0 ? "text-amber-300" : "text-emerald-400"
                   }`}
                 >
-                  ₹{salaryStats.monthBalanceDue.toLocaleString("en-IN")}
+                  ₹{selectedFormMonthDue.toLocaleString("en-IN")}
                 </div>
                 <span className="text-[10px] text-slate-400 block mt-0.5">
-                  {salaryStats.monthBalanceDue > 0 ? "Pending disbursement" : "Current month settled ✓"}
+                  {selectedFormMonthDue > 0 ? "Pending disbursement" : "Month settled ✓"}
                 </span>
               </div>
             </div>
@@ -6967,7 +7187,7 @@ export default function VendingCenterLoggerPage() {
                     value={baseSalaryInput}
                     onChange={(e) => setBaseSalaryInput(e.target.value)}
                     className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-sky-400 font-bold"
-                    placeholder="15000"
+                    placeholder="10500"
                     required
                   />
                 </div>
@@ -6981,27 +7201,37 @@ export default function VendingCenterLoggerPage() {
             )}
 
             {/* Form to Log New Salary Payment */}
-            <div className="p-4 rounded-2xl bg-slate-950/90 border border-sky-500/30 space-y-3">
-              <div className="flex items-center justify-between">
+            <div className="p-4 rounded-2xl bg-slate-950/90 border border-sky-500/30 space-y-3.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-xs uppercase tracking-wider font-bold text-sky-300 flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-sm">payments</span>
                   Record Salary Payment to {salaryConfig.worker_name}
                 </span>
-                {salaryStats.monthBalanceDue > 0 && (
+                <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    onClick={() => setSalaryFormAmount(String(salaryStats.monthBalanceDue))}
-                    className="text-[10px] text-sky-300 hover:text-white underline cursor-pointer"
+                    onClick={() => setSalaryFormAmount(String(salaryConfig.base_monthly_salary || 10500))}
+                    className="text-[10px] px-2 py-0.5 rounded-lg bg-sky-500/20 text-sky-200 border border-sky-500/30 hover:bg-sky-500/30 cursor-pointer font-mono"
                   >
-                    Auto-fill due: ₹{salaryStats.monthBalanceDue}
+                    Fill Base (₹{salaryConfig.base_monthly_salary || 10500})
                   </button>
-                )}
+                  {selectedFormMonthDue > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setSalaryFormAmount(String(selectedFormMonthDue))}
+                      className="text-[10px] px-2 py-0.5 rounded-lg bg-amber-500/20 text-amber-200 border border-amber-500/30 hover:bg-amber-500/30 cursor-pointer font-mono"
+                    >
+                      Fill Due for {selectedFormMonthLabel} (₹{selectedFormMonthDue})
+                    </button>
+                  )}
+                </div>
               </div>
 
               <form onSubmit={handleAddSalaryPayment} className="space-y-3">
+                {/* Row 1: Amount, Dropdown Month Selector, Payment Mode */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                   <div>
-                    <label className="text-[10px] uppercase text-slate-400 block mb-1">
+                    <label className="text-[10px] uppercase font-bold text-slate-300 block mb-1">
                       Salary Amount (₹) *
                     </label>
                     <div className="relative">
@@ -7009,36 +7239,44 @@ export default function VendingCenterLoggerPage() {
                       <input
                         type="number"
                         step="any"
-                        placeholder="e.g. 15000"
+                        placeholder="e.g. 10500"
                         value={salaryFormAmount}
                         onChange={(e) => setSalaryFormAmount(e.target.value)}
                         required
-                        className="w-full pl-7 pr-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-sky-400 font-bold"
+                        className="w-full pl-7 pr-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-sky-400 font-bold font-mono"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="text-[10px] uppercase text-slate-400 block mb-1">
-                      Salary Month / Period
+                    <label className="text-[10px] uppercase font-bold text-emerald-300 block mb-1 flex items-center justify-between">
+                      <span className="flex items-center gap-1">
+                        <span className="material-symbols-outlined text-xs text-emerald-400">event_repeat</span>
+                        Salary For Month (Account For) *
+                      </span>
                     </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. September 2026"
-                      value={salaryFormMonth}
+                    <select
+                      value={formatMonthDisplay(salaryFormMonth)}
                       onChange={(e) => setSalaryFormMonth(e.target.value)}
-                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-sky-400 font-bold"
-                    />
+                      required
+                      className="w-full px-3 py-1.5 bg-slate-900 border-2 border-emerald-500/60 rounded-xl text-xs text-emerald-300 focus:outline-none focus:border-emerald-400 font-bold font-mono cursor-pointer shadow-md"
+                    >
+                      {availableSalaryMonths.map((m) => (
+                        <option key={m.key} value={m.labelClean} className="bg-slate-900 text-white py-1">
+                          {m.displayLabel}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   <div>
-                    <label className="text-[10px] uppercase text-slate-400 block mb-1">
+                    <label className="text-[10px] uppercase font-bold text-slate-300 block mb-1">
                       Payment Mode
                     </label>
                     <select
                       value={salaryFormMode}
                       onChange={(e) => setSalaryFormMode(e.target.value)}
-                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-sky-400"
+                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-sky-400 font-mono cursor-pointer"
                     >
                       <option value="Cash">Cash Drawer</option>
                       <option value="UPI">UPI / GPay / PhonePe</option>
@@ -7048,26 +7286,28 @@ export default function VendingCenterLoggerPage() {
                   </div>
                 </div>
 
+                {/* Row 2: Payment Date & Notes */}
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                   <div>
-                    <label className="text-[10px] uppercase text-slate-400 block mb-1">
-                      Payment Date
+                    <label className="text-[10px] uppercase font-bold text-slate-300 block mb-1">
+                      Payment Date (When Paid) *
                     </label>
                     <input
                       type="date"
                       value={salaryFormDate}
                       onChange={(e) => setSalaryFormDate(e.target.value)}
-                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-sky-400"
+                      required
+                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-sky-400 font-mono"
                     />
                   </div>
 
                   <div className="sm:col-span-2">
-                    <label className="text-[10px] uppercase text-slate-400 block mb-1">
+                    <label className="text-[10px] uppercase font-bold text-slate-300 block mb-1">
                       Notes / Reference (Optional)
                     </label>
                     <input
                       type="text"
-                      placeholder="e.g. Full month salary via counter cash"
+                      placeholder="e.g. Paid on 1st Oct for September 2026 work"
                       value={salaryFormNotes}
                       onChange={(e) => setSalaryFormNotes(e.target.value)}
                       className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-sky-400"
@@ -7075,11 +7315,19 @@ export default function VendingCenterLoggerPage() {
                   </div>
                 </div>
 
+                {/* Accrual Guidance Notice */}
+                <div className="flex items-start gap-2 p-2.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-[10.5px] text-emerald-200">
+                  <span className="material-symbols-outlined text-sm text-emerald-400 shrink-0 mt-0.5">verified</span>
+                  <span>
+                    <strong>Accrual Accounting:</strong> Even if paid on {salaryFormDate ? formatIstDateDisplay(salaryFormDate) : "the 1st of this month"}, selecting <strong>&quot;{formatMonthDisplay(salaryFormMonth)}&quot;</strong> from the dropdown ensures this salary is counted and deducted under <strong>{formatMonthDisplay(salaryFormMonth)}&apos;s Profit &amp; Loss data table</strong> (Final Profit after wages).
+                  </span>
+                </div>
+
                 <div className="flex justify-end pt-1">
                   <button
                     type="submit"
                     disabled={savingSalary}
-                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md disabled:opacity-50 flex items-center gap-1.5"
+                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md disabled:opacity-50 flex items-center gap-1.5 active:scale-95"
                   >
                     {savingSalary ? (
                       <>

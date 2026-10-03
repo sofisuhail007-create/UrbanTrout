@@ -31,7 +31,7 @@ const CONFIG_KEY = "worker_salary_config";
 
 const DEFAULT_CONFIG: WorkerSalarySettings = {
   worker_name: "Mohd Amin",
-  base_monthly_salary: 15000,
+  base_monthly_salary: 10500,
 };
 
 async function getStoredSalaryPayments(): Promise<WorkerSalaryPayment[]> {
