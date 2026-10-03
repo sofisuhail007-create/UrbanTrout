@@ -91,6 +91,24 @@ export const getIstTodayDate = (): string => {
   }
 };
 
+export const getIstYesterdayDate = (): string => {
+  try {
+    const today = getIstTodayDate();
+    const parts = today.split("-").map(Number);
+    if (parts.length === 3 && parts[0] && parts[1] && parts[2]) {
+      const dt = new Date(parts[0], parts[1] - 1, parts[2]);
+      dt.setDate(dt.getDate() - 1);
+      const year = dt.getFullYear();
+      const month = String(dt.getMonth() + 1).padStart(2, "0");
+      const day = String(dt.getDate()).padStart(2, "0");
+      return `${year}-${month}-${day}`;
+    }
+  } catch (_) {}
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().split("T")[0];
+};
+
 export const getIstCurrentTime = (): string => {
   try {
     return new Intl.DateTimeFormat("en-IN", {
@@ -248,19 +266,15 @@ export default function VendingCenterLoggerPage() {
   // can_delete: controls visibility of the delete button for non-admin staff
   const [canDelete, setCanDelete] = useState(false);
 
-  // Period filter: today | week | month | date | all | custom
-  const [period, setPeriod] = useState<"today" | "week" | "month" | "date" | "all" | "custom">("today");
+  // Period filter: today | yesterday | week | month | date | all | custom
+  const [period, setPeriod] = useState<"today" | "yesterday" | "week" | "month" | "date" | "all" | "custom">("today");
   const [customStartDate, setCustomStartDate] = useState("");
   const [customEndDate, setCustomEndDate] = useState("");
   // Single-day date picker (for "date" period)
-  const [selectedDate, setSelectedDate] = useState<string>(() => {
-    // Default to yesterday
-    const d = new Date();
-    d.setDate(d.getDate() - 1);
-    return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(d);
-  });
+  const [selectedDate, setSelectedDate] = useState<string>(() => getIstYesterdayDate());
   // Active month picker (for "month" period) - defaults to current month in IST (e.g. "2026-10")
   const [selectedMonth, setSelectedMonth] = useState<string>(() => getIstTodayDate().slice(0, 7));
+  const [monthWiseModalOpen, setMonthWiseModalOpen] = useState(false);
 
 
   // Search & Type/Payment filters
@@ -954,6 +968,7 @@ export default function VendingCenterLoggerPage() {
   // ─── Period Calculations ───
   const filteredEntriesByPeriod = useMemo(() => {
     const todayStr = getTodayDate();
+    const yesterdayStr = getIstYesterdayDate();
     const parts = todayStr.split("-").map(Number);
     const currDate =
       parts.length === 3 && parts[0] && parts[1] && parts[2]
@@ -972,6 +987,7 @@ export default function VendingCenterLoggerPage() {
       const [ey, em, ed] = e.entry_date.split("-").map(Number);
       const eDate = new Date(ey, em - 1, ed);
       if (period === "today") return e.entry_date === todayStr;
+      if (period === "yesterday") return e.entry_date === yesterdayStr;
       if (period === "date") return e.entry_date === selectedDate;
       if (period === "week") return eDate >= sevenDaysAgo;
       if (period === "month") {
@@ -990,6 +1006,7 @@ export default function VendingCenterLoggerPage() {
   // ─── Filtered Vending Center Operational Expenses by Active Period ───
   const filteredExpensesByPeriod = useMemo(() => {
     const todayStr = getTodayDate();
+    const yesterdayStr = getIstYesterdayDate();
     const parts = todayStr.split("-").map(Number);
     const currDate =
       parts.length === 3 && parts[0] && parts[1] && parts[2]
@@ -1006,6 +1023,7 @@ export default function VendingCenterLoggerPage() {
         if (p.length !== 3 || !p[0] || !p[1] || !p[2]) return false;
         const exDate = new Date(p[0], p[1] - 1, p[2]);
         if (period === "today") return ex.expense_date === todayStr;
+        if (period === "yesterday") return ex.expense_date === yesterdayStr;
         if (period === "date") return ex.expense_date === selectedDate;
         if (period === "week") return exDate >= sevenDaysAgo;
         if (period === "month") {
@@ -1030,6 +1048,7 @@ export default function VendingCenterLoggerPage() {
   // that accounts for that month is counted, even if disbursed on 1st of the next month!
   const filteredSalaryByPeriod = useMemo(() => {
     const todayStr = getTodayDate();
+    const yesterdayStr = getIstYesterdayDate();
     const activeMonth = selectedMonth || todayStr.slice(0, 7);
 
     return (salaryPayments || []).filter((p) => {
@@ -1057,6 +1076,9 @@ export default function VendingCenterLoggerPage() {
       if (period === "today") {
         return paymentDate === todayStr;
       }
+      if (period === "yesterday") {
+        return paymentDate === yesterdayStr;
+      }
       if (period === "date") {
         return paymentDate === selectedDate;
       }
@@ -1065,9 +1087,9 @@ export default function VendingCenterLoggerPage() {
   }, [salaryPayments, period, selectedMonth, customStartDate, customEndDate, selectedDate, getTodayDate]);
 
   const periodSalaryTotal = useMemo(() => {
-    // For single-day views (today/date), monthly worker wages are accounted under monthly P&L,
+    // For single-day views (today/yesterday/date), monthly worker wages are accounted under monthly P&L,
     // so they don't distort single-day fish sales margin. In month, all, and custom views, they are deducted.
-    if (period === "today" || period === "date") {
+    if (period === "today" || period === "yesterday" || period === "date") {
       return 0;
     }
     return (filteredSalaryByPeriod || []).reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
@@ -1388,6 +1410,126 @@ export default function VendingCenterLoggerPage() {
   }, [salaryPayments, selectedFormMonthNorm]);
   const selectedFormMonthDue = Math.max(0, (salaryConfig.base_monthly_salary || 10500) - selectedFormMonthPaid);
   const selectedFormMonthLabel = formatMonthDisplay(salaryFormMonth) || salaryStats.currentMonthLabel;
+
+  // ─── Month-Wise Historical Summary Across All Months ───
+  const monthWiseData = useMemo(() => {
+    const monthMap: Record<
+      string,
+      {
+        monthKey: string;
+        monthLabel: string;
+        billsCount: number;
+        totalSoldKg: number;
+        guttedKg: number;
+        nonGuttedKg: number;
+        revenue: number;
+        expectedRevenue: number;
+        guttingLaborCost: number;
+        expenses: number;
+        salaryPaid: number;
+      }
+    > = {};
+
+    const allMonthsSet = new Set<string>();
+    entries.forEach((e) => {
+      if (e.entry_date && e.entry_date.length >= 7) {
+        allMonthsSet.add(e.entry_date.slice(0, 7));
+      }
+    });
+    expenses.forEach((ex) => {
+      if (ex.expense_date && ex.expense_date.length >= 7) {
+        allMonthsSet.add(ex.expense_date.slice(0, 7));
+      }
+    });
+    salaryPayments.forEach((p) => {
+      const mk = normalizeMonthKey(p.salary_month, p.payment_date);
+      if (mk) allMonthsSet.add(mk);
+    });
+    allMonthsSet.add(getIstTodayDate().slice(0, 7));
+    allMonthsSet.add(getPreviousMonthKey(getIstTodayDate().slice(0, 7)));
+
+    allMonthsSet.forEach((mKey) => {
+      monthMap[mKey] = {
+        monthKey: mKey,
+        monthLabel: formatMonthDisplay(mKey),
+        billsCount: 0,
+        totalSoldKg: 0,
+        guttedKg: 0,
+        nonGuttedKg: 0,
+        revenue: 0,
+        expectedRevenue: 0,
+        guttingLaborCost: 0,
+        expenses: 0,
+        salaryPaid: 0,
+      };
+    });
+
+    entries.forEach((e) => {
+      if (!e.entry_date || e.entry_date.length < 7) return;
+      const mKey = e.entry_date.slice(0, 7);
+      if (!monthMap[mKey]) return;
+
+      const w = Number(e.weight_kg) || 0;
+      const rev = Number(e.amount_paid) || 0;
+      const isGutted =
+        (e.product_type || "").toLowerCase().includes("gutted") &&
+        !(e.product_type || "").toLowerCase().includes("non");
+      const isSelfCleaned = Boolean(e.custom_fields?.self_cleaned || (e as any).self_cleaned);
+
+      monthMap[mKey].billsCount += 1;
+      monthMap[mKey].totalSoldKg = Math.round((monthMap[mKey].totalSoldKg + w) * 1000) / 1000;
+      monthMap[mKey].revenue += rev;
+
+      if (isGutted) {
+        monthMap[mKey].guttedKg = Math.round((monthMap[mKey].guttedKg + w) * 1000) / 1000;
+        if (!isSelfCleaned) {
+          monthMap[mKey].guttingLaborCost += Math.round(w * INCENTIVE_RATE_PER_KG);
+        }
+      } else {
+        monthMap[mKey].nonGuttedKg = Math.round((monthMap[mKey].nonGuttedKg + w) * 1000) / 1000;
+      }
+    });
+
+    expenses.forEach((ex) => {
+      if (!ex.expense_date || ex.expense_date.length < 7) return;
+      const mKey = ex.expense_date.slice(0, 7);
+      if (monthMap[mKey]) {
+        monthMap[mKey].expenses += Number(ex.amount) || 0;
+      }
+    });
+
+    salaryPayments.forEach((p) => {
+      const mKey = normalizeMonthKey(p.salary_month, p.payment_date);
+      if (mKey && monthMap[mKey]) {
+        monthMap[mKey].salaryPaid += Number(p.amount) || 0;
+      }
+    });
+
+    const currMonthKey = getIstTodayDate().slice(0, 7);
+    const prevMonthKey = getPreviousMonthKey(currMonthKey);
+
+    const rows = Object.values(monthMap).map((m) => {
+      const guttedCost = Math.round(m.guttedKg * procurementAvgCost);
+      const nonGuttedCost = Math.round(m.nonGuttedKg * procurementAvgCost);
+      const totalFishCost = guttedCost + nonGuttedCost + m.guttingLaborCost;
+      const fishGrossProfit = Math.round(m.revenue - totalFishCost);
+      const finalNetProfit = Math.round(fishGrossProfit - m.expenses - m.salaryPaid);
+      const marginPercent = m.revenue > 0 ? ((finalNetProfit / m.revenue) * 100).toFixed(1) : "0.0";
+
+      return {
+        ...m,
+        guttedCost,
+        nonGuttedCost,
+        fishGrossProfit,
+        finalNetProfit,
+        marginPercent,
+        isCurrentMonth: m.monthKey === currMonthKey,
+        isPreviousMonth: m.monthKey === prevMonthKey,
+      };
+    });
+
+    return rows.sort((a, b) => b.monthKey.localeCompare(a.monthKey));
+  }, [entries, expenses, salaryPayments, procurementAvgCost]);
 
   // ─── Aquarium Live Stock Calculations ───
   // All stock procured is LIVE FISH. We track what's left in the aquarium.
@@ -2604,14 +2746,69 @@ export default function VendingCenterLoggerPage() {
     URL.revokeObjectURL(url);
   };
 
+  // ─── Export Month-Wise Summary to CSV ───
+  const handleExportMonthWiseCSV = () => {
+    if (monthWiseData.length === 0) {
+      alert("No month data available.");
+      return;
+    }
+    const headers = [
+      "Month",
+      "Bills Count",
+      "Total Sold (Kg)",
+      "Gutted Sold (Kg)",
+      "Non-Gutted Sold (Kg)",
+      "Sales Revenue (Rs)",
+      "Fish Procurement Cost (Rs)",
+      "Gutting Labor Incentive (Rs)",
+      "Fish Gross Profit (Rs)",
+      "Vending Expenses (Rs)",
+      "Worker Wages (Rs)",
+      "Final Net Operating Profit (Rs)",
+      "Net Margin (%)",
+    ];
+    const rows = monthWiseData.map((m) => [
+      `"${m.monthLabel}"`,
+      m.billsCount,
+      m.totalSoldKg,
+      m.guttedKg,
+      m.nonGuttedKg,
+      m.revenue,
+      m.guttedCost + m.nonGuttedCost,
+      m.guttingLaborCost,
+      m.fishGrossProfit,
+      m.expenses,
+      m.salaryPaid,
+      m.finalNetProfit,
+      `"${m.marginPercent}%"`,
+    ]);
+    const csvContent = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `Urban_Trout_Month_Wise_Summary_${getTodayDate()}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   // ─── Export Multi-Sheet Excel (.xlsx) ───
   // Contains: Sales Dispatches, Aquarium Stock Log, Mohd Amin Incentives, Mohd Amin Salary, Summary KPIs
   const handleExportExcel = () => {
     try {
       // 1. Executive Summary Sheet
+      const activePeriodLabel =
+        period === "month"
+          ? `MONTH (${formatMonthDisplay(selectedMonth)})`
+          : period === "yesterday"
+          ? `YESTERDAY (${formatIstDateDisplay(getIstYesterdayDate())})`
+          : period === "today"
+          ? `TODAY (${formatIstDateDisplay(getTodayDate())})`
+          : period.toUpperCase();
+
       const summaryRows = [
         { "Vending Center Metric": "Report Generated Date", "Value / Amount": getTodayDate() },
-        { "Vending Center Metric": "Active Filter Period", "Value / Amount": period === "month" ? `MONTH (${formatMonthDisplay(selectedMonth)})` : period.toUpperCase() },
+        { "Vending Center Metric": "Active Filter Period", "Value / Amount": activePeriodLabel },
         { "Vending Center Metric": "Total Vending Revenue (Rs)", "Value / Amount": kpis.totalRevenue },
         { "Vending Center Metric": "Realized Net Profit on Sold Fish (Rs)", "Value / Amount": kpis.totalSoldProfit },
         { "Vending Center Metric": "Vending Center Operational Expenses (Rs)", "Value / Amount": periodExpensesTotal },
@@ -3237,47 +3434,66 @@ export default function VendingCenterLoggerPage() {
         {/* Period Selector Pills */}
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800 text-xs font-mono">
+            <div className="flex flex-wrap items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800 text-xs font-mono gap-0.5">
               {[
-                { id: "today", label: "Today" },
-                { id: "date", label: "📅 By Date" },
+                { id: "today", label: `Today · ${formatIstDateDisplay(getTodayDate())}` },
+                { id: "yesterday", label: `Yesterday · ${formatIstDateDisplay(getIstYesterdayDate())}` },
+                { id: "month", label: "📅 Month Wise" },
+                { id: "date", label: "🗓️ By Date" },
                 { id: "week", label: "This Week" },
-                { id: "month", label: "This Month" },
                 { id: "all", label: "All Time" },
                 { id: "custom", label: "Custom Range" },
               ].map((tab) => {
                 const isSel = period === tab.id;
-                const tabLabel =
-                  tab.id === "today"
-                    ? `Today · ${formatIstDateDisplay(getTodayDate())}`
-                    : tab.label;
                 return (
                   <button
                     key={tab.id}
                     type="button"
                     onClick={() => setPeriod(tab.id as any)}
-                    className={`py-1 px-2.5 rounded-lg font-bold transition-all cursor-pointer ${
+                    className={`py-1 px-2.5 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 ${
                       isSel
                         ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm"
                         : "text-slate-400 hover:text-white"
                     }`}
                   >
-                    {tabLabel}
+                    <span>{tab.label}</span>
+                    {tab.id === "month" && (
+                      <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono ${
+                        isSel
+                          ? "bg-emerald-500/30 text-emerald-200 border border-emerald-400/50"
+                          : "bg-slate-800 text-slate-300 border border-slate-700"
+                      }`}>
+                        {formatMonthDisplay(selectedMonth)}
+                      </span>
+                    )}
                   </button>
                 );
               })}
             </div>
 
-            {/* Live IST Status indicator */}
-            <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/80 border border-slate-800/80 text-[11px] font-mono text-slate-400">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-emerald-400 font-semibold">IST</span>
-              <span>·</span>
-              <span className="text-slate-300">{serverDateFormatted || formatIstDateDisplay(getTodayDate())}</span>
+            {/* Live IST Status & All Months Table button */}
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setMonthWiseModalOpen(true)}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-emerald-300 hover:text-emerald-200 border border-emerald-500/30 text-[11px] font-mono font-bold transition-all cursor-pointer active:scale-95 shadow-sm"
+                title="Open Month-Wise All Months Comparison Table"
+              >
+                <span className="material-symbols-outlined text-sm text-emerald-400">table_chart</span>
+                <span className="hidden sm:inline">Month-Wise Summary</span>
+                <span className="sm:hidden">Summary</span>
+              </button>
+
+              <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/80 border border-slate-800/80 text-[11px] font-mono text-slate-400">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-emerald-400 font-semibold">IST</span>
+                <span>·</span>
+                <span className="text-slate-300">{serverDateFormatted || formatIstDateDisplay(getTodayDate())}</span>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {/* Single Date Picker (Date tab) */}
             {period === "date" && (
               <div className="flex items-center gap-2 text-xs font-mono">
@@ -3321,13 +3537,17 @@ export default function VendingCenterLoggerPage() {
 
             {/* Single Month Picker (Month tab) */}
             {period === "month" && (
-              <div className="flex items-center gap-1.5 text-xs font-mono">
+              <div className="flex flex-wrap items-center gap-1.5 text-xs font-mono bg-slate-900/90 p-1 rounded-xl border border-emerald-500/40">
+                <span className="text-[10px] uppercase font-bold text-emerald-400 px-1 flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[13px]">calendar_month</span>
+                  <span>Month:</span>
+                </span>
                 <button
                   type="button"
                   onClick={() => {
                     setSelectedMonth(getPreviousMonthKey(selectedMonth));
                   }}
-                  className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition-all cursor-pointer"
+                  className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition-all cursor-pointer active:scale-95"
                   title="Previous Month"
                 >
                   <span className="material-symbols-outlined text-sm">chevron_left</span>
@@ -3335,7 +3555,7 @@ export default function VendingCenterLoggerPage() {
                 <select
                   value={selectedMonth}
                   onChange={(e) => setSelectedMonth(e.target.value)}
-                  className="bg-slate-900 border border-emerald-500/60 rounded-lg px-2.5 py-1 text-emerald-300 font-bold focus:outline-none focus:border-emerald-400 cursor-pointer shadow-sm text-xs font-mono"
+                  className="bg-slate-950 border border-emerald-500/60 rounded-lg px-2.5 py-1 text-emerald-300 font-bold focus:outline-none focus:border-emerald-400 cursor-pointer shadow-sm text-xs font-mono"
                 >
                   {availableSalaryMonths.map((m) => (
                     <option key={m.key} value={m.key} className="bg-slate-900 text-white">
@@ -3348,7 +3568,7 @@ export default function VendingCenterLoggerPage() {
                   onClick={() => {
                     setSelectedMonth(getNextMonthKey(selectedMonth));
                   }}
-                  className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition-all cursor-pointer"
+                  className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center transition-all cursor-pointer active:scale-95"
                   title="Next Month"
                 >
                   <span className="material-symbols-outlined text-sm">chevron_right</span>
@@ -3363,6 +3583,15 @@ export default function VendingCenterLoggerPage() {
                     Current Month
                   </button>
                 )}
+                <button
+                  type="button"
+                  onClick={() => setMonthWiseModalOpen(true)}
+                  className="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 shadow-sm active:scale-95 ml-1"
+                  title="Open Month-Wise All Months Comparison Table"
+                >
+                  <span className="material-symbols-outlined text-xs">table_chart</span>
+                  <span>All Months Summary</span>
+                </button>
               </div>
             )}
 
@@ -7433,6 +7662,221 @@ export default function VendingCenterLoggerPage() {
           </div>
         </div>
       )}
+
+      {/* ══════════════════════════════════════════════════════════
+          MONTH-WISE FINANCIAL PERFORMANCE & SUMMARY MODAL
+          ══════════════════════════════════════════════════════════ */}
+      {monthWiseModalOpen && (
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setMonthWiseModalOpen(false);
+          }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto"
+        >
+          <div className="w-full max-w-5xl bg-[#0a1322] border-2 border-emerald-500/40 rounded-3xl shadow-2xl shadow-emerald-950/40 overflow-hidden flex flex-col max-h-[92vh]">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-slate-800/80 bg-slate-950/60 flex-shrink-0">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                  <span className="material-symbols-outlined text-xl">calendar_month</span>
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400 font-mono">
+                      Vending Center Analytics
+                    </span>
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-bold font-mono">
+                      Month-Wise Performance
+                    </span>
+                  </div>
+                  <h3 className="text-base sm:text-lg font-black text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                    Month-Wise Sales &amp; Profit Ledger
+                  </h3>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleExportMonthWiseCSV}
+                  className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-emerald-300 border border-emerald-500/30 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+                  title="Export month-by-month summary to CSV"
+                >
+                  <span className="material-symbols-outlined text-sm">download</span>
+                  <span className="hidden sm:inline">Export CSV</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setMonthWiseModalOpen(false)}
+                  className="p-1.5 rounded-xl bg-slate-800 text-slate-400 hover:text-white transition-all cursor-pointer"
+                  title="Close Modal"
+                >
+                  <span className="material-symbols-outlined text-base">close</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body: Scrollable Table */}
+            <div className="p-4 sm:p-6 overflow-y-auto space-y-4">
+              {/* Instructions banner */}
+              <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-900/80 border border-slate-800 text-xs font-mono text-slate-300">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-base text-emerald-400">info</span>
+                  <span>
+                    Click <strong>&quot;Select Month&quot;</strong> on any row to instantly filter the entire Vending Center dashboard, KPI cards, and sales ledger for that specific month.
+                  </span>
+                </div>
+                <div className="text-[11px] text-slate-400">
+                  {monthWiseData.length} {monthWiseData.length === 1 ? "Month Recorded" : "Months Recorded"}
+                </div>
+              </div>
+
+              {/* Table */}
+              <div className="border border-slate-800 rounded-2xl overflow-hidden bg-slate-950/40 shadow-inner">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs font-mono">
+                    <thead>
+                      <tr className="bg-slate-950 border-b border-slate-800 text-[10px] text-slate-400 uppercase tracking-wider">
+                        <th className="py-2.5 px-3.5">Month</th>
+                        <th className="py-2.5 px-3 text-right">Bills</th>
+                        <th className="py-2.5 px-3 text-right">Sold Kg</th>
+                        <th className="py-2.5 px-3 text-right">Sales Revenue</th>
+                        <th className="py-2.5 px-3 text-right">Fish Gross Profit</th>
+                        <th className="py-2.5 px-3 text-right">Expenses</th>
+                        <th className="py-2.5 px-3 text-right">Mohd Amin Wages</th>
+                        <th className="py-2.5 px-3.5 text-right font-black text-emerald-400">Final Net Profit</th>
+                        <th className="py-2.5 px-3 text-center">Margin</th>
+                        <th className="py-2.5 px-3.5 text-center">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-800/60">
+                      {monthWiseData.map((row) => {
+                        const isCurrentActive = period === "month" && selectedMonth === row.monthKey;
+                        return (
+                          <tr
+                            key={row.monthKey}
+                            className={`hover:bg-slate-900/60 transition-colors ${
+                              isCurrentActive ? "bg-emerald-950/20 border-l-2 border-emerald-400" : ""
+                            }`}
+                          >
+                            <td className="py-3 px-3.5 whitespace-nowrap">
+                              <div className="font-bold text-white text-xs flex items-center gap-1.5">
+                                <span>{row.monthLabel}</span>
+                                {row.isCurrentMonth && (
+                                  <span className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 text-[9px] font-bold border border-emerald-500/30">
+                                    Current
+                                  </span>
+                                )}
+                                {row.isPreviousMonth && (
+                                  <span className="px-1.5 py-0.2 rounded bg-sky-500/20 text-sky-300 text-[9px] font-bold border border-sky-500/30">
+                                    Previous
+                                  </span>
+                                )}
+                                {isCurrentActive && (
+                                  <span className="px-1.5 py-0.2 rounded bg-teal-500/20 text-teal-200 text-[9px] font-bold border border-teal-500/30">
+                                    Active View
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-[10px] text-slate-500">Key: {row.monthKey}</div>
+                            </td>
+
+                            <td className="py-3 px-3 text-right text-slate-300 whitespace-nowrap font-bold">
+                              {row.billsCount}
+                            </td>
+
+                            <td className="py-3 px-3 text-right whitespace-nowrap">
+                              <div className="font-bold text-emerald-300">{formatKg(row.totalSoldKg)} Kg</div>
+                              <div className="text-[10px] text-slate-500">
+                                Gut: {formatKg(row.guttedKg)} • Non: {formatKg(row.nonGuttedKg)}
+                              </div>
+                            </td>
+
+                            <td className="py-3 px-3 text-right text-cyan-300 font-bold whitespace-nowrap">
+                              ₹{row.revenue.toLocaleString("en-IN")}
+                            </td>
+
+                            <td className="py-3 px-3 text-right text-teal-300 font-bold whitespace-nowrap">
+                              ₹{row.fishGrossProfit.toLocaleString("en-IN")}
+                            </td>
+
+                            <td className="py-3 px-3 text-right text-rose-300 whitespace-nowrap">
+                              {row.expenses > 0 ? `-₹${row.expenses.toLocaleString("en-IN")}` : "₹0"}
+                            </td>
+
+                            <td className="py-3 px-3 text-right text-sky-300 whitespace-nowrap">
+                              {row.salaryPaid > 0 ? `-₹${row.salaryPaid.toLocaleString("en-IN")}` : "₹0"}
+                            </td>
+
+                            <td className="py-3 px-3.5 text-right whitespace-nowrap">
+                              <span
+                                className={`font-black text-sm ${
+                                  row.finalNetProfit >= 0 ? "text-emerald-400" : "text-rose-400"
+                                }`}
+                              >
+                                {row.finalNetProfit >= 0 ? "₹" : "-₹"}
+                                {Math.abs(row.finalNetProfit).toLocaleString("en-IN")}
+                              </span>
+                            </td>
+
+                            <td className="py-3 px-3 text-center whitespace-nowrap">
+                              <span
+                                className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                                  Number(row.marginPercent) >= 20
+                                    ? "bg-emerald-500/20 text-emerald-300"
+                                    : Number(row.marginPercent) > 0
+                                    ? "bg-amber-500/20 text-amber-300"
+                                    : "bg-rose-500/20 text-rose-300"
+                                }`}
+                              >
+                                {row.marginPercent}%
+                              </span>
+                            </td>
+
+                            <td className="py-3 px-3.5 text-center whitespace-nowrap">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedMonth(row.monthKey);
+                                  setPeriod("month");
+                                  setMonthWiseModalOpen(false);
+                                }}
+                                className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm active:scale-95 ${
+                                  isCurrentActive
+                                    ? "bg-emerald-500 text-slate-950 hover:bg-emerald-400"
+                                    : "bg-slate-800 hover:bg-emerald-600 hover:text-white text-slate-300 border border-slate-700 hover:border-emerald-500"
+                                }`}
+                              >
+                                {isCurrentActive ? "Active" : "View Month"}
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="flex items-center justify-between px-5 sm:px-6 py-3.5 border-t border-slate-800 bg-slate-950/80 flex-shrink-0">
+              <div className="text-[11px] font-mono text-slate-400">
+                Data accounts on accrual basis. Salaries are matched to the month they were allocated for.
+              </div>
+              <button
+                type="button"
+                onClick={() => setMonthWiseModalOpen(false)}
+                className="px-4 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-bold transition-all cursor-pointer font-mono active:scale-95"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ══════════════════════════════════════════════════════════
           LOG STOCK MODAL — Add New Biomass Procurement Entry
           ══════════════════════════════════════════════════════════ */}
