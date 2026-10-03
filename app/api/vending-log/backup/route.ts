@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { requireAdminAuth } from "@/lib/adminAuth";
 
 export const dynamic = "force-dynamic";
 
@@ -66,18 +67,26 @@ async function executeBackup(req: NextRequest) {
   const isQueryAuthorized =
     queryKey && cronSecret && (queryKey === cronSecret || queryKey === process.env.ADMIN_API_SECRET || queryKey === "urbantrout2026");
 
-  const isAuthorized =
-    isVercelCron ||
-    isQueryAuthorized ||
-    (authHeader && cronSecret && (authHeader === `Bearer ${cronSecret}` || authHeader === cronSecret || authHeader.includes(cronSecret)));
+  let isAuthorized =
+    Boolean(isVercelCron) ||
+    Boolean(isQueryAuthorized) ||
+    Boolean(authHeader && cronSecret && (authHeader === `Bearer ${cronSecret}` || authHeader === cronSecret || authHeader.includes(cronSecret)));
+
+  // If not already authorized via cron or secret key, check if logged-in admin session
+  if (!isAuthorized) {
+    const adminError = await requireAdminAuth(req);
+    if (!adminError) {
+      isAuthorized = true;
+    }
+  }
 
   if (!isAuthorized) {
-    // If accessed directly in browser without token, give friendly guide
+    // If accessed directly in browser without token or login, give friendly guide
     return NextResponse.json(
       {
         success: false,
         error: "Unauthorized",
-        hint: "Vercel cron triggers automatically via GET. For manual triggers, provide ?key=<secret> or x-admin-token header.",
+        hint: "Vercel cron triggers automatically via GET. For manual triggers, log in as admin or provide ?key=<secret> or x-admin-token header.",
       },
       { status: 401 }
     );

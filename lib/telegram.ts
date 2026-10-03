@@ -43,6 +43,82 @@ export interface InlineKeyboardMarkup {
   inline_keyboard: InlineKeyboardButton[][];
 }
 
+const TG_DEDUP_SETTINGS_KEY = "telegram_dedup_processed";
+const TG_DEDUP_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
+const inMemoryTgDedup = new Map<string, number>();
+
+export async function isTelegramDuplicate(keys: (string | null | undefined)[]): Promise<boolean> {
+  const validKeys = Array.from(
+    new Set(
+      keys
+        .filter((k): k is string => typeof k === "string" && k.trim().length > 0)
+        .map((k) => k.trim())
+    )
+  );
+
+  if (validKeys.length === 0) return false;
+
+  const now = Date.now();
+
+  // 1. In-memory fast check
+  for (const k of validKeys) {
+    const ts = inMemoryTgDedup.get(k);
+    if (ts && now - ts < TG_DEDUP_TTL_MS) {
+      console.log(`[Telegram Dedup] In-memory duplicate detected for key: ${k}`);
+      return true;
+    }
+  }
+
+  // 2. Persistent Supabase check
+  try {
+    const { data: row } = await supabase
+      .from("app_settings")
+      .select("value")
+      .eq("key", TG_DEDUP_SETTINGS_KEY)
+      .maybeSingle();
+
+    let processed: Array<{ id: string; ts: number }> = [];
+    if (row?.value) {
+      try {
+        processed = JSON.parse(row.value);
+      } catch (_) {}
+    }
+
+    // Prune stale entries
+    const pruned = processed.filter((p) => now - p.ts < TG_DEDUP_TTL_MS);
+
+    // Check if any key exists in processed list
+    const isDup = pruned.some((p) => validKeys.includes(p.id));
+    if (isDup) {
+      console.log(`[Telegram Dedup] Persistent duplicate detected for keys: ${validKeys.join(", ")}`);
+      validKeys.forEach((k) => inMemoryTgDedup.set(k, now));
+      return true;
+    }
+
+    // Register all keys
+    validKeys.forEach((k) => {
+      pruned.push({ id: k, ts: now });
+      inMemoryTgDedup.set(k, now);
+    });
+
+    await supabase.from("app_settings").upsert(
+      {
+        key: TG_DEDUP_SETTINGS_KEY,
+        value: JSON.stringify(pruned.slice(-400)),
+        description: "Persistent Telegram notification deduplication store (2hr TTL)",
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "key" }
+    );
+
+    return false;
+  } catch (err) {
+    console.warn("[Telegram Dedup] Supabase check error, falling back to memory:", err);
+    validKeys.forEach((k) => inMemoryTgDedup.set(k, now));
+    return false;
+  }
+}
+
 export function escapeHtml(str: string): string {
   if (!str) return "";
   return String(str)
@@ -320,9 +396,7 @@ export function formatOrderTelegramText(order: {
 ${order.address ? `• <b>House/Lane:</b> ${order.address}\n` : ""}${gpsLine}
 🛒 <b>Items:</b>
 ${itemsText}
-
-━━━━━━━━━━━━━━━━━━━━
-👇 <b>1-Tap Status Buttons:</b>`;
+━━━━━━━━━━━━━━━━━━━━`;
 }
 
 export async function notifyNewOrder(order: {
@@ -347,6 +421,18 @@ export async function notifyNewOrder(order: {
   scheduledSlot?: string;
 }) {
   const cleanPhone = String(order.phone || "").replace(/\D/g, "").slice(-10);
+
+  // Centralized Telegram Deduplication: prevent duplicate new order alerts
+  const amtPhoneKey = cleanPhone && order.total ? `amt_ph_${cleanPhone}_${Math.round(order.total)}` : null;
+  const isDup = await isTelegramDuplicate([
+    order.orderNumber,
+    order.razorpayPaymentId,
+    amtPhoneKey,
+  ]);
+  if (isDup) {
+    console.log(`[Telegram Dedup] Skipping duplicate new order notification for #${order.orderNumber}`);
+    return { ok: true, duplicate: true };
+  }
   
   // Resolve Google Maps URL (1-tap driving navigation mode)
   let resolvedMapsUrl = order.googleMapsUrl || null;
@@ -570,72 +656,91 @@ export async function notifyRazorpayPayment(params: {
   const channel = params.channel || (params.description?.includes("POS") ? "Counter POS QR" : "Website Checkout");
   const method = (params.method || "UPI").toUpperCase() + (params.vpa ? ` (${params.vpa})` : "");
 
+  // Centralized Telegram Deduplication: prevent duplicate payment alerts across webhooks/lambdas
+  const amtPhoneKey = cleanPhone && params.amount ? `amt_ph_${cleanPhone}_${Math.round(params.amount)}` : null;
+  const isDup = await isTelegramDuplicate([
+    params.paymentId,
+    params.orderId,
+    amtPhoneKey,
+  ]);
+  if (isDup) {
+    console.log(`[Telegram Dedup] Skipping duplicate payment notification for ${params.paymentId} / ${params.orderId}`);
+    return { ok: true, duplicate: true };
+  }
+
   let resolvedMapsUrl = params.googleMapsUrl || null;
   if (!resolvedMapsUrl && params.latitude && params.longitude) {
     resolvedMapsUrl = `https://maps.google.com/?q=${params.latitude},${params.longitude}`;
   }
 
   const distanceInfo = params.distanceKm !== undefined && params.distanceKm !== null
-    ? ` (~${Number(params.distanceKm).toFixed(1)} km from Farm)`
+    ? ` (~${Number(params.distanceKm).toFixed(1)} km from Malabagh Farm)`
     : "";
 
-  const gpsLine = resolvedMapsUrl
-    ? `\n📍 <b>GPS Pinpoint:</b> <a href="${resolvedMapsUrl}">Open in Google Maps</a>${distanceInfo}`
-    : "";
+  const istDateTime = new Date().toLocaleString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
 
-  const msg = `💰 <b>RAZORPAY PAYMENT RECEIVED!</b> ⚡
+  const orderRef = params.orderId || params.paymentId;
+  const isWhatsAppAgent =
+    channel.toLowerCase().includes("whatsapp") ||
+    (params.orderId && params.orderId.startsWith("UT-WA-")) ||
+    (params.description && params.description.toLowerCase().includes("whatsapp"));
+
+  let msg: string;
+  if (isWhatsAppAgent) {
+    msg = `🐟 <b>NEW CONFIRMED ORDER (WHATSAPP SALES AGENT)</b> ⚡
+━━━━━━━━━━━━━━━━━━━━
+📋 <b>Order Ref:</b> <code>#${orderRef}</code>
+👤 <b>Customer Name:</b> <b>${escapeHtml(name)}</b>
+📞 <b>Contact Number:</b> ${cleanPhone ? `<a href="tel:+91${cleanPhone}">+91 ${cleanPhone}</a> | <a href="https://wa.me/91${cleanPhone}">💬 WhatsApp</a>` : "N/A"}
+🗓️ <b>Date & Time:</b> <b>${istDateTime} IST</b>
+🛒 <b>Items / Summary:</b> <b>${escapeHtml(params.description || "Fresh Rainbow Trout Harvest")}</b>
+💰 <b>Amount Paid:</b> <b>₹${Number(params.amount || 0).toLocaleString("en-IN")}</b> (PAID ✓)
+💳 <b>Payment ID:</b> <code>${params.paymentId}</code> (${escapeHtml(method)})
+🤖 <b>Channel:</b> WhatsApp AI Sales Agent
+📍 <b>Delivery Location:</b>
+${resolvedMapsUrl ? `🗺️ <a href="${resolvedMapsUrl}"><b>Click here for 1-Tap Google Maps Navigation</b> ↗</a>${distanceInfo}` : `<i>Customer confirmed in-zone via WhatsApp (no GPS pin shared)</i>`}
+━━━━━━━━━━━━━━━━━━━━
+⚡ <i>Payment auto-captured & verified. Ready for live harvest!</i>`;
+  } else {
+    const gpsLine = resolvedMapsUrl
+      ? `\n📍 <b>GPS Pinpoint:</b> <a href="${resolvedMapsUrl}">Open in Google Maps</a>${distanceInfo}`
+      : "";
+
+    msg = `💰 <b>RAZORPAY PAYMENT RECEIVED!</b> ⚡
 ━━━━━━━━━━━━━━━━━━━━
 <b>Amount:</b> <b>₹${Number(params.amount || 0).toLocaleString("en-IN")}</b> (PAID ✓)
 <b>Customer:</b> ${escapeHtml(name)}
 ${cleanPhone ? `<b>Phone:</b> <a href="tel:+91${cleanPhone}">+91 ${cleanPhone}</a>\n` : ""}${params.customerEmail ? `<b>Email:</b> ${escapeHtml(params.customerEmail)}\n` : ""}<b>Method:</b> ${escapeHtml(method)}
 <b>Txn Ref:</b> <code>${params.paymentId}</code>
 ${params.orderId ? `<b>Order ID:</b> <code>${params.orderId}</code>\n` : ""}${params.description ? `<b>Desc:</b> ${escapeHtml(params.description)}\n` : ""}<b>Channel:</b> <b>${escapeHtml(channel)}</b>${gpsLine}
-<b>Time:</b> ${new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}
+<b>Time:</b> ${istDateTime} IST
 ━━━━━━━━━━━━━━━━━━━━
 ⚡ <i>Payment auto-captured & verified</i>`;
+  }
 
   const buttons: InlineKeyboardButton[][] = [];
 
-  // 1-Click Order Status Action Buttons for Telegram
-  const orderRef = params.orderId || params.paymentId;
-  const statusRow: InlineKeyboardButton[] = [
-    {
-      text: "🐟 Mark Harvested",
-      callback_data: `ord:harvested:${orderRef}`,
-    },
-    {
-      text: "🛵 Out for Delivery",
-      callback_data: `ord:out_for_delivery:${orderRef}`,
-    },
-    {
-      text: "✅ Delivered",
-      callback_data: `ord:delivered:${orderRef}`,
-    },
-  ];
-  buttons.push(statusRow);
-
-  const actionRow: InlineKeyboardButton[] = [];
-
+  // User Request: Remove "Mark Harvested", "Out for Delivery", "Delivered", and "WhatsApp Receipt" badges.
+  // ONLY keep 1-tap Google Maps Navigation button if a maps URL is present.
   if (resolvedMapsUrl) {
-    actionRow.push({
-      text: "🗺️ Navigate on Google Maps",
-      url: resolvedMapsUrl,
-    });
+    buttons.push([
+      {
+        text: "🗺️ Navigate on Google Maps",
+        url: resolvedMapsUrl,
+      },
+    ]);
   }
 
-  if (cleanPhone) {
-    const waText = `Hi ${name}! Thank you for your payment of Rs. ${params.amount} to Urban Trout, Srinagar. Txn Ref: ${params.paymentId}. 🐟✨`;
-    actionRow.push({
-      text: "💬 WhatsApp Receipt",
-      url: `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(waText)}`,
-    });
-  }
-
-  if (actionRow.length > 0) {
-    buttons.push(actionRow);
-  }
-
-  return sendTelegramMessage(msg, "HTML", buttons.length > 0 ? { inline_keyboard: buttons } : undefined);
+  const keyboard: InlineKeyboardMarkup | undefined = buttons.length > 0 ? { inline_keyboard: buttons } : undefined;
+  return sendTelegramMessage(msg, "HTML", keyboard);
 }
 
 export async function notifyPosInvoice(params: {

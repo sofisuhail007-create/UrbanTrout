@@ -1358,35 +1358,37 @@ export default function CheckoutPage() {
                 );
               } catch (e) {}
 
-              // Telegram & Email notification fallback (handled server-side, but keep client event for telemetry)
-              fetch("/api/telegram-notify", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  type: "new_order",
-                  data: {
-                    orderNumber: String(insertedOrder?.order_number || "UT-" + Math.floor(1000 + Math.random() * 9000)),
-                    customerName: formData.fullName,
-                    phone: cleanPhone,
-                    email: formData.email?.trim() || undefined,
-                    locality: formData.locality,
-                    address: `${formData.house.trim()}, ${formData.locality.trim()}${notesNote}${gpsNote}`,
-                    pincode: formData.pincode,
-                    items: items.map((i) => ({ name: i.name, quantity: i.quantity, price: i.price, unit: i.unit })),
-                    subtotal: total,
-                    deliveryFee,
-                    total: grandTotal,
-                    status: "confirmed",
-                    paymentMethod: "Razorpay",
-                    razorpayPaymentId: rzpRes.razorpay_payment_id,
-                    razorpayOrderId: rzpRes.razorpay_order_id,
-                    googleMapsUrl: mapsUrl || undefined,
-                    latitude: detectedCoords?.lat,
-                    longitude: detectedCoords?.lng,
-                    distanceKm: calculatedDistance || undefined,
-                  },
-                }),
-              }).catch(() => {});
+              // Telegram & Email notification fallback (only if server-side orders/place did not handle it)
+              if (!insertedOrder) {
+                fetch("/api/telegram-notify", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    type: "new_order",
+                    data: {
+                      orderNumber: "UT-" + Math.floor(1000 + Math.random() * 9000),
+                      customerName: formData.fullName,
+                      phone: cleanPhone,
+                      email: formData.email?.trim() || undefined,
+                      locality: formData.locality,
+                      address: `${formData.house.trim()}, ${formData.locality.trim()}${notesNote}${gpsNote}`,
+                      pincode: formData.pincode,
+                      items: items.map((i) => ({ name: i.name, quantity: i.quantity, price: i.price, unit: i.unit })),
+                      subtotal: total,
+                      deliveryFee,
+                      total: grandTotal,
+                      status: "confirmed",
+                      paymentMethod: "Razorpay",
+                      razorpayPaymentId: rzpRes.razorpay_payment_id,
+                      razorpayOrderId: rzpRes.razorpay_order_id,
+                      googleMapsUrl: mapsUrl || undefined,
+                      latitude: detectedCoords?.lat,
+                      longitude: detectedCoords?.lng,
+                      distanceKm: calculatedDistance || undefined,
+                    },
+                  }),
+                }).catch(() => {});
+              }
 
               setOrderSuccess({
                 orderNumber: insertedOrder?.order_number || "UT-" + Math.floor(1000 + Math.random() * 9000),

@@ -3270,16 +3270,6 @@ export default function VendingCenterLoggerPage() {
             POS Billing
           </Link>
 
-          <button
-            type="button"
-            onClick={() => setColumnManagerOpen(true)}
-            className="py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
-            title="Add or remove dynamic custom columns"
-          >
-            <span className="material-symbols-outlined text-sm">view_column</span>
-            Columns ({customColumns.filter((c) => c.visible).length})
-          </button>
-
           {isAdmin && (
             <>
               <button

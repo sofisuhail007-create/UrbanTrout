@@ -152,8 +152,14 @@ export async function POST(req: NextRequest) {
       const itemsSummary = notes.items_summary || paymentLink?.description || "Fresh Himalayan Rainbow Trout";
       const method = payment?.method ? payment.method.toUpperCase() : "UPI / Razorpay Link";
       const vpa = payment?.vpa || null;
+      const googleMapsUrl = notes.google_maps_url || null;
+      const latitude = notes.latitude ? Number(notes.latitude) : null;
+      const longitude = notes.longitude ? Number(notes.longitude) : null;
+      const distanceKm = notes.distance_km ? Number(notes.distance_km) : null;
 
-      const isDuplicate = await isDuplicatePayment([paymentId, paymentLinkId, orderRef, orderId]);
+      const cleanPhone = customerPhone ? String(customerPhone).replace(/\D/g, "").slice(-10) : "";
+      const amtPhoneKey = cleanPhone && amount ? `amt_ph_${cleanPhone}_${Math.round(amount)}` : null;
+      const isDuplicate = await isDuplicatePayment([paymentId, paymentLinkId, orderRef, orderId, amtPhoneKey]);
 
       const channelLabel = notes.channel === "WHATSAPP_DEAL"
         ? "🤝 WhatsApp Deal (Deal Desk)"
@@ -180,6 +186,10 @@ export async function POST(req: NextRequest) {
             customerEmail,
             description: itemsSummary,
             channel: channelLabel,
+            googleMapsUrl,
+            latitude,
+            longitude,
+            distanceKm,
           });
         } catch (tgErr) {
           console.error("Telegram notification error for payment_link.paid:", tgErr);
@@ -539,9 +549,11 @@ export async function POST(req: NextRequest) {
       const description = payment.description || null;
       const orderRef = notes.order_ref || notes.bill_number || null;
       const paymentLinkId = notes.payment_link_id || payment.invoice_id || null;
+      const cleanPhone = (notes.customer_phone || notes.phone || contact) ? String(notes.customer_phone || notes.phone || contact).replace(/\D/g, "").slice(-10) : "";
+      const amtPhoneKey = cleanPhone && amount ? `amt_ph_${cleanPhone}_${Math.round(amount)}` : null;
 
       // Prevent duplicate notification: Razorpay fires payment_link.paid, payment.captured AND order.paid
-      const isDuplicate = await isDuplicatePayment([paymentId, orderId, orderRef, paymentLinkId]);
+      const isDuplicate = await isDuplicatePayment([paymentId, orderId, orderRef, paymentLinkId, amtPhoneKey]);
 
 
       // Check if order exists in Supabase
@@ -576,26 +588,41 @@ export async function POST(req: NextRequest) {
       const isPos = notes.channel === "POS_BILLING" || (description && description.includes("POS"));
       const isHomeDelivery = notes.channel === "HOME_DELIVERY" || (description && description.toLowerCase().includes("home delivery"));
 
-      const channelLabel = isHomeDelivery
+      const channelLabel = notes.channel === "WHATSAPP_DEAL"
+        ? "🤝 WhatsApp Deal (Deal Desk)"
+        : notes.channel === "WHATSAPP_AI_AGENT"
+        ? "🤖 WhatsApp AI Agent"
+        : isHomeDelivery
         ? "🛵 Home Delivery (Razorpay Link)"
         : isPos
         ? "Counter POS QR"
+        : !notes.channel
+        ? "📱 Razorpay Mobile App"
         : "Website Checkout";
+
+      const googleMapsUrl = notes.google_maps_url || null;
+      const latitude = notes.latitude ? Number(notes.latitude) : null;
+      const longitude = notes.longitude ? Number(notes.longitude) : null;
+      const distanceKm = notes.distance_km ? Number(notes.distance_km) : null;
 
       // 1. Send Instant Telegram Alert ONLY ONCE per payment ID
       if (!isDuplicate) {
         await notifyRazorpayPayment({
           paymentId,
-          orderId,
+          orderId: orderRef || orderId,
           amount,
           status: "captured",
           method,
           vpa,
           customerName,
-          customerPhone,
+          customerPhone: cleanPhone || customerPhone,
           customerEmail: email,
-          description,
+          description: notes.items_summary || description,
           channel: channelLabel,
+          googleMapsUrl,
+          latitude,
+          longitude,
+          distanceKm,
         });
 
         // If this was a home delivery payment captured, trigger email receipt too!
