@@ -17,6 +17,7 @@ import TimePickerInput, { parseTimeToMinutes } from "@/components/TimePickerInpu
 import PaginationBar from "@/components/PaginationBar";
 import StaffAuditModal from "./StaffAuditModal";
 import EntryHistoryModal from "./EntryHistoryModal";
+import DailySalesHistogram from "./DailySalesHistogram";
 
 const DEFAULT_GUTTED_PRICE = 580;
 const DEFAULT_NON_GUTTED_PRICE = 540;
@@ -263,6 +264,7 @@ export default function VendingCenterLoggerPage() {
     }
   });
   const [showAdminCards, setShowAdminCards] = useState(true);
+  const [showDailyHistogram, setShowDailyHistogram] = useState(true);
   // can_delete: controls visibility of the delete button for non-admin staff
   const [canDelete, setCanDelete] = useState(false);
 
@@ -3461,8 +3463,28 @@ export default function VendingCenterLoggerPage() {
               })}
             </div>
 
-            {/* Live IST Status & All Months Table button */}
+            {/* Live IST Status, Histogram & All Months Table button */}
             <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => {
+                  if (period !== "month") {
+                    setPeriod("month");
+                  }
+                  setShowDailyHistogram((prev) => !prev);
+                }}
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-mono font-bold transition-all cursor-pointer active:scale-95 shadow-sm ${
+                  showDailyHistogram && period === "month"
+                    ? "bg-emerald-500 text-slate-950 border border-emerald-400 font-extrabold shadow-emerald-500/20 shadow-md"
+                    : "bg-slate-900/90 hover:bg-slate-800 text-cyan-300 hover:text-cyan-200 border border-cyan-500/30"
+                }`}
+                title="Toggle Everyday Sales Histogram & Detailed Flashcards"
+              >
+                <span className="material-symbols-outlined text-sm">bar_chart</span>
+                <span className="hidden sm:inline">Sales Histogram</span>
+                <span className="sm:hidden">Histogram</span>
+              </button>
+
               <button
                 type="button"
                 onClick={() => setMonthWiseModalOpen(true)}
@@ -3581,6 +3603,20 @@ export default function VendingCenterLoggerPage() {
                 >
                   <span className="material-symbols-outlined text-xs">table_chart</span>
                   <span>All Months Summary</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowDailyHistogram((prev) => !prev)}
+                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 shadow-sm active:scale-95 ml-1 ${
+                    showDailyHistogram
+                      ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40"
+                      : "bg-slate-800 text-slate-400 border border-slate-700 hover:text-white"
+                  }`}
+                  title={showDailyHistogram ? "Hide Everyday Sales Histogram" : "Show Everyday Sales Histogram"}
+                >
+                  <span className="material-symbols-outlined text-xs">bar_chart</span>
+                  <span>{showDailyHistogram ? "Histogram: Visible" : "Show Histogram"}</span>
                 </button>
               </div>
             )}
@@ -5107,6 +5143,23 @@ export default function VendingCenterLoggerPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════
+          MONTH-WISE EVERYDAY SALES HISTOGRAM & DETAILED FLASHCARDS
+          ══════════════════════════════════════════════════════════ */}
+      {isAdmin && (period === "month" || showDailyHistogram) && (
+        <DailySalesHistogram
+          entries={entries}
+          selectedMonth={selectedMonth}
+          onSelectMonth={(m) => setSelectedMonth(m)}
+          onFilterToDate={(d) => {
+            setSelectedDate(d);
+            setPeriod("date");
+          }}
+          availableMonths={availableSalaryMonths}
+          onClose={() => setShowDailyHistogram(false)}
+        />
       )}
 
       {/* ══════════════════════════════════════════════════════════
@@ -7830,15 +7883,18 @@ export default function VendingCenterLoggerPage() {
                                 onClick={() => {
                                   setSelectedMonth(row.monthKey);
                                   setPeriod("month");
+                                  setShowDailyHistogram(true);
                                   setMonthWiseModalOpen(false);
                                 }}
-                                className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm active:scale-95 ${
+                                className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm active:scale-95 flex items-center gap-1 mx-auto ${
                                   isCurrentActive
                                     ? "bg-emerald-500 text-slate-950 hover:bg-emerald-400"
                                     : "bg-slate-800 hover:bg-emerald-600 hover:text-white text-slate-300 border border-slate-700 hover:border-emerald-500"
                                 }`}
+                                title="Open Month & Daily Sales Histogram"
                               >
-                                {isCurrentActive ? "Active" : "View Month"}
+                                <span className="material-symbols-outlined text-xs">bar_chart</span>
+                                <span>{isCurrentActive ? "Active" : "View Month"}</span>
                               </button>
                             </td>
                           </tr>
