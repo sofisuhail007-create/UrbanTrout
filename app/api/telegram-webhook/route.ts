@@ -92,43 +92,7 @@ async function findAndUpdateOrder(rawIdOrNum: string, newStatus: string) {
     }
   } catch (_) {}
 
-  // 4. Try lookup in vending_sales_log (where remote/WhatsApp orders live)
-  try {
-    const { data: logs } = await supabase
-      .from("vending_sales_log")
-      .select("id, notes, custom_fields, amount_paid, weight_kg")
-      .ilike("notes", `%${rawIdOrNum}%`)
-      .limit(1);
-
-    if (logs && logs[0]) {
-      const log = logs[0];
-      const custom = typeof log.custom_fields === "object" && log.custom_fields ? log.custom_fields : {};
-      const updatedCustom = {
-        ...custom,
-        delivery_status: newStatus,
-        status_updated_at: new Date().toISOString(),
-      };
-      await supabase
-        .from("vending_sales_log")
-        .update({
-          custom_fields: updatedCustom,
-          notes: `${log.notes || ""} [STATUS: ${newStatus.toUpperCase()}]`.trim(),
-        })
-        .eq("id", log.id);
-
-      return {
-        order_number: custom.order_ref || rawIdOrNum,
-        customer_name: custom.customer_name || "Customer",
-        customer_phone: custom.customer_phone || "",
-        total: log.amount_paid || 0,
-        status: newStatus,
-        customer_locality: custom.delivery_locality || "Srinagar (Within 4km)",
-        items: [{ name: `${log.weight_kg || 2}kg Rainbow Trout`, quantity: 1, price: log.amount_paid }],
-      };
-    }
-  } catch (logErr) {
-    console.warn("Vending log lookup notice in telegram-webhook:", logErr);
-  }
+  // 4. Vending log is manually maintained by farm staff — never modify vending_sales_log from telegram status clicks.
 
   return null;
 }

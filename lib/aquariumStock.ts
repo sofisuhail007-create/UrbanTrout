@@ -405,12 +405,14 @@ export async function removeOrderFromVendingSales(
     const strVal = String(orderNumberOrId).trim();
     if (!strVal) return { skipped: "no_order_id" };
 
-    // 1. Delete from vending_sales_log table
+    // 1. Only delete if explicitly marked as an automated online order
+    // NEVER touch manual vending counter entries logged by staff.
     try {
       await db
         .from("vending_sales_log")
         .delete()
-        .or(`notes.ilike.%#${strVal}%,notes.ilike.%Order ${strVal}%`);
+        .eq("custom_fields->>source", "website_online_order")
+        .or(`custom_fields->>order_number.eq.${strVal},custom_fields->>order_id.eq.${strVal}`);
     } catch (e) {
       console.warn("[aquariumStock] Error deleting order from vending_sales_log:", e);
     }
@@ -427,12 +429,12 @@ export async function removeOrderFromVendingSales(
         const parsed = JSON.parse(settingRow.value);
         if (Array.isArray(parsed)) {
           const filtered = parsed.filter((e: any) => {
+            // NEVER touch manual vending log entries!
+            if (e.custom_fields?.source !== "website_online_order") return true;
             const num = e.custom_fields?.order_number;
             const id = e.custom_fields?.order_id;
-            const notes = e.notes || "";
             if (num && String(num) === strVal) return false;
             if (id && String(id) === strVal) return false;
-            if (notes.includes(`#${strVal}`) || notes.includes(`Order ${strVal}`)) return false;
             return true;
           });
 

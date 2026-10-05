@@ -291,17 +291,7 @@ export async function DELETE(request: Request) {
       }
     } catch (_) {}
 
-    // 6. If there's an unpaid draft in vending_sales_log with this order ref, clean it up
-    try {
-      if (orderNum || cleanDigits) {
-        const searchRef = orderNum || cleanDigits;
-        await supabase
-          .from("vending_sales_log")
-          .delete()
-          .ilike("notes", `%${searchRef}%`)
-          .eq("amount_paid", 0);
-      }
-    } catch (_) {}
+    // 6. Vending log is manually maintained — never touch or delete vending_sales_log on invoice cancellation.
 
     return NextResponse.json({
       success: true,

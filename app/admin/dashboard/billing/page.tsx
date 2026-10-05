@@ -1614,80 +1614,12 @@ Naseem Bagh / Malabagh, Srinagar`;
           }),
         });
 
-        // 2. Auto-record into Vending Center Sales Data Logger!
-        try {
-          const tw = Number(order.data?.totalWeight ?? order.data?.tw) || 1.0;
-          const firstItem = order.data?.items?.[0];
-          const itemN = (firstItem?.n || firstItem?.name || "").toLowerCase();
-          const prodType =
-            (itemN.includes("gutted") && !itemN.includes("non")) || itemN.includes("premium")
-              ? "Gutted"
-              : (itemN.includes("whole") || itemN.includes("non") ? "Non Gutted" : "Gutted");
-          const rate = firstItem?.dealRate || firstItem?.pricePerKg || firstItem?.r
-            ? Number(firstItem.dealRate || firstItem.pricePerKg || firstItem.r)
-            : (tw > 0 ? Math.round((Number(order.data?.tot) || 0) / tw) : 580);
-
-          const expAmount = order.data?.standardTotal !== undefined ? Number(order.data?.standardTotal) : (Number(order.data?.tot) || 0);
-          const discAmount = order.data?.discountAmount !== undefined ? Number(order.data?.discountAmount) : 0;
-
-          const now = new Date();
-          const istDate = new Intl.DateTimeFormat("en-CA", {
-            timeZone: "Asia/Kolkata",
-            year: "numeric",
-            month: "2-digit",
-            day: "2-digit",
-          }).format(now);
-          const istTime = new Intl.DateTimeFormat("en-IN", {
-            timeZone: "Asia/Kolkata",
-            hour: "2-digit",
-            minute: "2-digit",
-            hour12: true,
-          }).format(now).toLowerCase();
-
-          const effectiveRate = tw > 0 ? Math.round((Number(order.data?.tot) / tw) * 10) / 10 : rate;
-
-          await adminFetch("/api/vending-log", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              entry_date: istDate,
-              entry_time: istTime,
-              weight_kg: tw,
-              product_type: prodType,
-              rate_per_kg: rate,
-              amount_paid: Number(order.data.tot) || 0,
-              expected_amount: expAmount || Number(order.data.tot) || 0,
-              discount_amount: discAmount,
-              payment_mode: "Razorpay Link",
-              logged_by: "WhatsApp Remote Sync",
-              notes: `Remote Order #${order.data.num || order.id} - ${order.data.name} (Phone: ${order.data.phone}) [Verified Paid ✓]`,
-              custom_fields: {
-                expected_amount: expAmount || Number(order.data.tot) || 0,
-                discount_amount: discAmount,
-                standard_expected: expAmount || Number(order.data.tot) || 0,
-                effective_rate: effectiveRate,
-                balance_status: "none",
-                balance_amount: 0,
-                payment_status: "PAID",
-                payment_id: paymentId,
-                payment_link_id: linkId,
-                customer_name: order.data.name,
-                customer_phone: order.data.phone,
-                paid_at: now.toISOString(),
-                source: "whatsapp_remote_order",
-                order_ref: order.data.num || order.id,
-              },
-            }),
-          });
-        } catch (logErr) {
-          console.warn("Could not log to vending sales:", logErr);
-        }
-
+        // 2. Play chime and voice announcement (Vending log is maintained manually by staff)
         playSuccessChime();
         speakPaymentAnnouncement(order.data.tot, "WhatsApp Link", order.data.name);
 
         await fetchRemoteOrders();
-        alert(`🎉 Payment Confirmed! ₹${Number(order.data.tot).toLocaleString("en-IN")} received from ${order.data.name}. Auto-logged to Vending Log.`);
+        alert(`🎉 Payment Confirmed! ₹${Number(order.data.tot).toLocaleString("en-IN")} received from ${order.data.name}.`);
       } else {
         alert(`⏳ Customer has NOT paid yet (Razorpay link status: "${data.status}").`);
       }
@@ -1716,73 +1648,7 @@ Naseem Bagh / Malabagh, Srinagar`;
         }),
       });
 
-      // Auto-insert entry to Vending Center Sales Data Logger
-      try {
-        const tw = Number(order.data?.totalWeight ?? order.data?.tw) || 1.0;
-        const firstItem = order.data?.items?.[0];
-        const itemN = (firstItem?.n || firstItem?.name || "").toLowerCase();
-        const prodType =
-          (itemN.includes("gutted") && !itemN.includes("non")) || itemN.includes("premium")
-            ? "Gutted"
-            : (itemN.includes("whole") || itemN.includes("non") ? "Non Gutted" : "Gutted");
-        const rate = firstItem?.dealRate || firstItem?.pricePerKg || firstItem?.r
-          ? Number(firstItem.dealRate || firstItem.pricePerKg || firstItem.r)
-          : (tw > 0 ? Math.round((Number(order.data?.tot) || 0) / tw) : 580);
-
-        const expAmount = order.data?.standardTotal !== undefined ? Number(order.data?.standardTotal) : (Number(order.data?.tot) || 0);
-        const discAmount = order.data?.discountAmount !== undefined ? Number(order.data?.discountAmount) : 0;
-
-        const now = new Date();
-        const istDate = new Intl.DateTimeFormat("en-CA", {
-          timeZone: "Asia/Kolkata",
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-        }).format(now);
-        const istTime = new Intl.DateTimeFormat("en-IN", {
-          timeZone: "Asia/Kolkata",
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: true,
-        }).format(now).toLowerCase();
-
-        const effectiveRate = tw > 0 ? Math.round((Number(order.data?.tot) / tw) * 10) / 10 : rate;
-
-        await adminFetch("/api/vending-log", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            entry_date: istDate,
-            entry_time: istTime,
-            weight_kg: tw,
-            product_type: prodType,
-            rate_per_kg: rate,
-            amount_paid: Number(order.data?.tot) || 0,
-            expected_amount: expAmount || Number(order.data?.tot) || 0,
-            discount_amount: discAmount,
-            payment_mode: mode.includes("Cash") ? "Cash" : "Online Payment",
-            logged_by: "Manual POS Settlement",
-            notes: `Remote Order #${order.data?.num || order.id} - ${order.data?.name} (Phone: ${order.data?.phone}) [Marked Paid: ${mode}]`,
-            custom_fields: {
-              expected_amount: expAmount || Number(order.data?.tot) || 0,
-              discount_amount: discAmount,
-              standard_expected: expAmount || Number(order.data?.tot) || 0,
-              effective_rate: effectiveRate,
-              balance_status: "none",
-              balance_amount: 0,
-              payment_status: "PAID",
-              payment_id: paymentId,
-              settlement_mode: mode,
-              settled_at: now.toISOString(),
-              source: "whatsapp_remote_order",
-              order_ref: order.data?.num || order.id,
-            },
-          }),
-        });
-      } catch (logErr) {
-        console.warn("Could not log to vending sales:", logErr);
-      }
-
+      // Vending log is maintained manually by staff at the counter — do not auto-insert.
       playSuccessChime();
       speakPaymentAnnouncement(order.data?.tot, mode.includes("Cash") ? "Cash" : "Soundbox", order.data?.name);
 
@@ -3776,18 +3642,18 @@ Helpline: +91 84910 06127`;
               </div>
             </div>
 
-            {/* 4. Vending Log Sync Engine */}
+            {/* 4. Payment Verification Engine */}
             <div className="bg-slate-900/85 border border-cyan-500/30 rounded-2xl p-3 sm:p-4 space-y-1 shadow-lg">
               <div className="flex items-center justify-between text-cyan-300 text-xs font-mono font-bold">
-                <span>⚡ Vending Log Sync</span>
-                <span className="material-symbols-outlined text-sm text-cyan-400">sync_saved_locally</span>
+                <span>⚡ Payment Verification</span>
+                <span className="material-symbols-outlined text-sm text-cyan-400">verified</span>
               </div>
               <div className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5 pt-1">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                Auto-Logged On Payment
+                Live Status Poller
               </div>
               <div className="text-[10px] text-cyan-400/80 font-mono">
-                Webhook + Live Counter Poller
+                Webhook + Instant Check
               </div>
             </div>
           </div>
@@ -4099,8 +3965,8 @@ Helpline: +91 84910 06127`;
                         <div className="space-y-1.5">
                           <div className="flex items-center justify-between gap-1.5">
                             <div className="flex-1 p-1 rounded-lg bg-emerald-950/30 border border-emerald-500/30 text-[9.5px] text-emerald-300 font-mono text-center flex items-center justify-center gap-1">
-                              <span className="material-symbols-outlined text-xs">sync_saved_locally</span>
-                              Auto-Logged to Vending Log ✓
+                              <span className="material-symbols-outlined text-xs">verified</span>
+                              Payment Confirmed ✓
                             </div>
                             <button
                               type="button"
@@ -4391,7 +4257,7 @@ Helpline: +91 84910 06127`;
                 onClick={() => handleMarkManualPaid(manualPayModal, manualPayMode, manualPayNote)}
                 className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold font-mono uppercase tracking-wider cursor-pointer shadow-lg shadow-emerald-500/20 flex items-center gap-1.5"
               >
-                <span>✓</span> Confirm &amp; Log to Vending Log
+                <span>✓</span> Confirm Payment
               </button>
             </div>
           </div>
