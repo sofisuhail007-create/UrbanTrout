@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import FourUpInvoiceSheet, { InvoiceSlipData } from "@/components/FourUpInvoiceSheet";
 
 interface DecodedInvoice {
   invoiceNumber: string;
@@ -31,6 +32,7 @@ export default function PublicInvoicePage() {
   const [loading, setLoading] = useState(true);
   const [upiId, setUpiId] = useState("JKBMERC00828895@jkb");
   const [copiedUpi, setCopiedUpi] = useState(false);
+  const [viewMode, setViewMode] = useState<"standard" | "4up">("standard");
 
   useEffect(() => {
     async function loadInvoice() {
@@ -43,8 +45,13 @@ export default function PublicInvoicePage() {
           .single();
         if (upiData?.value) setUpiId(upiData.value);
 
-        // 2. PRIMARY: Read invoice data from URL ?d= query param (100% reliable, zero DB)
+        // Check if 4-up mode is requested via URL
         const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get("format") === "4up" || urlParams.get("mode") === "4up") {
+          setViewMode("4up");
+        }
+
+        // 2. PRIMARY: Read invoice data from URL ?d= query param (100% reliable, zero DB)
         const encodedData = urlParams.get("d");
         if (encodedData) {
           try {
@@ -353,23 +360,94 @@ export default function PublicInvoicePage() {
     upiPayUri
   )}&bgcolor=255-255-255&color=2-13-18&margin=2`;
 
+  // 4-in-1 Sheet Mode (Canon MF244dw Laser Printer Optimized)
+  if (viewMode === "4up") {
+    return (
+      <div className="min-h-screen bg-[#020d12] py-6 px-3 sm:px-6">
+        <div className="max-w-4xl mx-auto space-y-4">
+          <div className="flex items-center justify-between print:hidden">
+            <Link href="/" className="flex items-center gap-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/headerfooterlogo.png" alt="Urban Trout" className="h-6 w-auto object-contain" />
+            </Link>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setViewMode("standard")}
+                className="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs transition-colors cursor-pointer"
+              >
+                ← Full Page View
+              </button>
+              <button
+                type="button"
+                onClick={() => window.print()}
+                className="py-2 px-4 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-cyan-500/20 cursor-pointer active:scale-95"
+              >
+                <span className="material-symbols-outlined text-base">print</span>
+                Print A4 Sheet (4 Slips)
+              </button>
+            </div>
+          </div>
+
+          <FourUpInvoiceSheet
+            invoices={[
+              {
+                invoiceNumber: invoice.invoiceNumber,
+                customerName: invoice.customerName,
+                customerPhone: invoice.customerPhone,
+                createdAt: invoice.createdAt,
+                items: invoice.items,
+                totalWeight: invoice.totalWeight,
+                grandTotal: invoice.grandTotal,
+                paidAmount: invoice.paidAmount,
+                balanceAmount: invoice.balanceAmount,
+                paymentStatus: invoice.paymentStatus,
+                paymentMethod: invoice.paymentMethod,
+                paymentId: invoice.paymentId,
+                notes: invoice.notes,
+                upiId,
+                qrImageUrl: invoice.qrImageUrl,
+              },
+            ]}
+            repeatSingle={true}
+            onClose={() => setViewMode("standard")}
+            showControls={false}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#020d12] py-8 px-4 sm:px-6">
       <div className="max-w-xl mx-auto space-y-5">
         {/* Top Controls (Hidden in Print) */}
-        <div className="flex items-center justify-between print:hidden">
+        <div className="flex items-center justify-between print:hidden gap-2 flex-wrap">
           <Link href="/" className="flex items-center gap-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/headerfooterlogo.png" alt="Urban Trout" className="h-6 w-auto object-contain" />
           </Link>
 
-          <button
-            type="button"
-            onClick={() => window.print()}
-            className="py-2.5 px-4 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-cyan-500/20 cursor-pointer active:scale-95"
-          >
-            <span className="material-symbols-outlined text-base">print</span>
-            Download PDF / Print
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setViewMode("4up")}
+              title="Print 4 slips on a single A4 sheet using your Canon MF244dw laser printer"
+              className="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 cursor-pointer transition-colors"
+            >
+              <span>🖨️</span>
+              <span>4-in-1 Sheet (Canon MF244dw)</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="py-2.5 px-4 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-cyan-500/20 cursor-pointer active:scale-95"
+            >
+              <span className="material-symbols-outlined text-base">print</span>
+              Print Full A4
+            </button>
+          </div>
         </div>
 
         {/* 48-Hour Timer Badge */}
@@ -607,6 +685,45 @@ export default function PublicInvoicePage() {
               </div>
             </div>
           )}
+
+          {/* ─── VISCERAL LOSS EDUCATION NOTICE (USER MANDATE) ─── */}
+          <div className="bg-slate-50 border border-slate-300 rounded-2xl p-4 text-xs text-slate-800 leading-relaxed space-y-1">
+            <div className="flex items-center gap-1.5 font-bold text-slate-900 text-sm">
+              <span>⚖️</span>
+              <span>Net Weight &amp; Visceral Loss Notice (Cleaned &amp; Gutted Trout)</span>
+            </div>
+            <p className="text-slate-600 text-[11px] leading-relaxed">
+              Fresh Himalayan Rainbow Trout is weighed whole at live harvest. During professional hygienic cleaning &amp; gutting, the entrails, gills, and internal viscera are thoroughly removed and washed. This results in a natural, standard visceral loss of <strong>12% to 18%</strong> in total weight. You receive 100% wholesome, clean, ready-to-cook meat with zero kitchen waste!
+            </p>
+          </div>
+
+          {/* ─── FRESH TROUT CARE: DO'S & DON'TS (USER MANDATE) ─── */}
+          <div className="border border-slate-300 rounded-2xl p-4 text-xs text-slate-800 space-y-2">
+            <div className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
+              <span>🐟</span>
+              <span>Fresh Trout Care: Do&apos;s &amp; Don&apos;ts</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px] leading-relaxed">
+              <div className="bg-emerald-50/70 p-3 rounded-xl border border-emerald-200/80">
+                <p className="font-bold text-emerald-900 mb-1">✅ DO&apos;S:</p>
+                <ul className="text-slate-700 list-disc pl-4 space-y-1">
+                  <li>Keep chilled in refrigerator (0°C–4°C) immediately upon delivery.</li>
+                  <li>Consume fresh within 24–48 hours for prime mountain spring flavour.</li>
+                  <li>Rinse gently under cold running water before cooking.</li>
+                  <li>Trout cooks quickly (6–8 mins gentle heat)—cook lightly to preserve tenderness &amp; rich omega-3 oils.</li>
+                </ul>
+              </div>
+              <div className="bg-rose-50/70 p-3 rounded-xl border border-rose-200/80">
+                <p className="font-bold text-rose-900 mb-1">❌ DON&apos;TS:</p>
+                <ul className="text-slate-700 list-disc pl-4 space-y-1">
+                  <li>Do NOT wash with warm or hot water.</li>
+                  <li>Do NOT leave fish sitting at room temperature.</li>
+                  <li>Do NOT refreeze once thawed (it breaks delicate cellular texture).</li>
+                  <li>Do NOT overcook—gentle pan-fry, bake, or steam yields the juiciest results!</li>
+                </ul>
+              </div>
+            </div>
+          </div>
 
           {/* Footer Note */}
           <div className="text-center pt-2 text-xs text-slate-500 leading-tight">

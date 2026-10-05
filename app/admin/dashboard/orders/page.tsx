@@ -4,6 +4,49 @@ import { supabase } from "@/lib/supabase";
 import type { Order, OrderStatus } from "@/lib/supabase";
 import { adminFetch } from "@/lib/adminClient";
 import PaginationBar from "@/components/PaginationBar";
+import FourUpInvoiceSheet, { InvoiceSlipData } from "@/components/FourUpInvoiceSheet";
+
+function orderToSlipData(order: Order, upi: string): InvoiceSlipData {
+  const items = Array.isArray(order.items)
+    ? order.items.map((i: any) => {
+        const qty = typeof i.quantity === "number" ? i.quantity : parseFloat(i.quantity) || 1;
+        const rate = typeof i.price === "number" ? i.price : parseFloat(i.price) || 580;
+        return {
+          name: i.name || "Fresh Rainbow Trout",
+          quantity: qty,
+          weightKg: qty,
+          unit: i.unit || "Kg",
+          price: rate,
+          pricePerKg: rate,
+          total: qty * rate,
+        };
+      })
+    : [];
+
+  const totalWeight = items.reduce((sum, item) => sum + (item.weightKg || 0), 0);
+  const isPaid =
+    order.status === "processing" ||
+    order.status === "out_for_delivery" ||
+    order.status === "delivered";
+
+  return {
+    invoiceNumber: String(order.order_number),
+    orderNumber: order.order_number,
+    customerName: order.customer_name || "Valued Customer",
+    customerPhone: order.customer_phone || "",
+    customerAddress: order.customer_address || "",
+    customerLocality: order.customer_locality || "",
+    createdAt: order.created_at,
+    items,
+    totalWeight,
+    subtotal: order.subtotal || order.total,
+    deliveryFee: order.delivery_fee,
+    grandTotal: order.total || 0,
+    paymentStatus: isPaid ? "PAID" : "PAYMENT DUE",
+    paymentMethod: isPaid ? "Razorpay Online / UPI" : "Cash on Delivery",
+    upiId: upi,
+  };
+}
 
 const STATUSES: { value: OrderStatus; label: string; color: string }[] = [
   { value: "pending", label: "Awaiting Verification", color: "bg-amber-500/15 text-amber-400 border-amber-500/30" },
@@ -76,10 +119,27 @@ export default function OrdersPage() {
   const [filter, setFilter] = useState<string>("all");
   const [expanded, setExpanded] = useState<string | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
+  const [selectedOrderIds, setSelectedOrderIds] = useState<Set<string>>(new Set());
+  const [printModalOrders, setPrintModalOrders] = useState<Order[] | null>(null);
+  const [upiId, setUpiId] = useState<string>("JKBMERC00828895@jkb");
 
   useEffect(() => {
     fetchOrders();
+    fetchUpi();
   }, []);
+
+  async function fetchUpi() {
+    try {
+      const { data } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "upi_id")
+        .maybeSingle();
+      if (data?.value) setUpiId(data.value);
+    } catch (err) {
+      console.warn("Could not load store UPI ID:", err);
+    }
+  }
 
   async function fetchOrders() {
     setLoading(true);
@@ -87,6 +147,34 @@ export default function OrdersPage() {
     setOrders(data ?? []);
     setLoading(false);
   }
+
+  const toggleSelectOrder = (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setSelectedOrderIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const toggleSelectAllPage = (pageOrders: Order[]) => {
+    const pageIds = pageOrders.map((o) => o.id);
+    const allSelected = pageIds.length > 0 && pageIds.every((id) => selectedOrderIds.has(id));
+    if (allSelected) {
+      setSelectedOrderIds((prev) => {
+        const next = new Set(prev);
+        pageIds.forEach((id) => next.delete(id));
+        return next;
+      });
+    } else {
+      setSelectedOrderIds((prev) => {
+        const next = new Set(prev);
+        pageIds.forEach((id) => next.add(id));
+        return next;
+      });
+    }
+  };
 
   async function updateStatus(id: string, status: OrderStatus) {
     setUpdating(id);
@@ -139,13 +227,63 @@ export default function OrdersPage() {
 
   return (
     <div className="p-6 max-w-6xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>Orders</h1>
-        <p className="text-slate-500 text-sm mt-1">{orders.length} total orders</p>
+      <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>Orders</h1>
+          <p className="text-slate-500 text-sm mt-1">{orders.length} total orders</p>
+        </div>
+
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Quick Active Deliveries 4-Up button */}
+          <button
+            type="button"
+            onClick={() => {
+              const active = orders.filter(
+                (o) => o.status === "processing" || o.status === "out_for_delivery" || o.status === "pending"
+              );
+              if (active.length === 0) {
+                alert("No active delivery orders currently pending or out for delivery.");
+                return;
+              }
+              setPrintModalOrders(active);
+            }}
+            className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer"
+            title="Print all active deliveries on Canon MF244dw (4 slips per A4 sheet)"
+          >
+            <span>🖨️</span>
+            <span>Print Active Deliveries (4-Up)</span>
+          </button>
+
+          {/* Batch Print Selected Button */}
+          {selectedOrderIds.size > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                const selected = orders.filter((o) => selectedOrderIds.has(o.id));
+                setPrintModalOrders(selected);
+              }}
+              className="px-3.5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-cyan-500/20 active:scale-95 transition-all cursor-pointer animate-pulse"
+              title="Print selected orders on Canon MF244dw (4 slips per A4 sheet)"
+            >
+              <span>🖨️</span>
+              <span>Print Selected ({selectedOrderIds.size}) (4-Up)</span>
+            </button>
+          )}
+
+          {selectedOrderIds.size > 0 && (
+            <button
+              type="button"
+              onClick={() => setSelectedOrderIds(new Set())}
+              className="px-2.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 text-xs font-medium border border-slate-800 transition-colors cursor-pointer"
+            >
+              Clear
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Filter tabs */}
-      <div className="flex gap-2 flex-wrap mb-6">
+      <div className="flex gap-2 flex-wrap mb-4">
         {[{ value: "all", label: "All" }, ...STATUSES].map((s) => (
           <button
             key={s.value}
@@ -160,6 +298,28 @@ export default function OrdersPage() {
           </button>
         ))}
       </div>
+
+      {/* Select All on Page bar */}
+      {filtered.length > 0 && (
+        <div className="flex items-center justify-between pb-3 px-1 text-xs text-slate-500">
+          <label className="inline-flex items-center gap-2 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={paginatedOrders.length > 0 && paginatedOrders.every((o) => selectedOrderIds.has(o.id))}
+              onChange={() => toggleSelectAllPage(paginatedOrders)}
+              className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-cyan-500 focus:ring-cyan-500/20 cursor-pointer"
+            />
+            <span className="hover:text-slate-300 transition-colors font-medium">
+              Select all on page ({paginatedOrders.length})
+            </span>
+          </label>
+          {selectedOrderIds.size > 0 && (
+            <span className="text-cyan-400 font-mono text-[11px] font-semibold">
+              {selectedOrderIds.size} order{selectedOrderIds.size > 1 ? "s" : ""} selected for 4-up printing
+            </span>
+          )}
+        </div>
+      )}
 
       {loading ? (
         <div className="text-center text-slate-600 py-20">Loading orders...</div>
@@ -178,6 +338,14 @@ export default function OrdersPage() {
                 className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-slate-800/40 transition-colors"
                 onClick={() => setExpanded(expanded === order.id ? null : order.id)}
               >
+                <input
+                  type="checkbox"
+                  checked={selectedOrderIds.has(order.id)}
+                  onChange={() => {}}
+                  onClick={(e) => toggleSelectOrder(order.id, e)}
+                  className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-cyan-500 focus:ring-cyan-500/20 cursor-pointer flex-shrink-0"
+                  title="Select for batch 4-up printing"
+                />
                 <span className="text-slate-600 text-xs font-mono w-10 flex-shrink-0">#{order.order_number}</span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
@@ -294,9 +462,19 @@ export default function OrdersPage() {
                     </div>
                   </div>
 
-                  {/* Actions (Navigate + WhatsApp + Delete) */}
+                  {/* Actions (Print 4-Up + Navigate + WhatsApp + Delete) */}
                   <div className="flex items-center justify-between pt-2 border-t border-slate-800/80 flex-wrap gap-2">
                     <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => setPrintModalOrders([order])}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 rounded-lg text-xs font-bold hover:bg-cyan-500/30 transition-colors shadow-sm cursor-pointer"
+                        title="Print 4 slips on 1 A4 sheet using Canon MF244dw laser printer"
+                      >
+                        <span>🖨️</span>
+                        <span>Print 4-Up Slip (Canon)</span>
+                      </button>
+
                       {(() => {
                         const mapsUrl = getOrderMapsUrl(order);
                         if (!mapsUrl) return null;
@@ -356,6 +534,25 @@ export default function OrdersPage() {
         />
       </>
     )}
+
+      {/* ─── 4-UP BATCH INVOICE MODAL (CANON MF244DW) ─── */}
+      {printModalOrders && printModalOrders.length > 0 && (
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setPrintModalOrders(null);
+          }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto"
+        >
+          <div className="relative w-full max-w-4xl my-4">
+            <FourUpInvoiceSheet
+              invoices={printModalOrders.map((o) => orderToSlipData(o, upiId))}
+              repeatSingle={printModalOrders.length === 1}
+              onClose={() => setPrintModalOrders(null)}
+              showControls={true}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

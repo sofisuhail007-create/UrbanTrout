@@ -9,6 +9,7 @@ import CustomerBalancesTab from "./CustomerBalancesTab";
 import BalanceReminderModal from "./BalanceReminderModal";
 import PaginationBar from "@/components/PaginationBar";
 import CustomerAutocompleteInput, { DbCustomer } from "./CustomerAutocompleteInput";
+import FourUpInvoiceSheet from "@/components/FourUpInvoiceSheet";
 
 export interface RemoteBillItem {
   id: string;
@@ -407,6 +408,7 @@ export default function POSBillingPage() {
 
   // State flags
   const [invoiceModalOpen, setInvoiceModalOpen] = useState(false);
+  const [fourUpModalOpen, setFourUpModalOpen] = useState(false);
   const [enlargeQrModal, setEnlargeQrModal] = useState(false);
   const [generatedInvoice, setGeneratedInvoice] = useState<any>(null);
   const [copiedUpi, setCopiedUpi] = useState(false);
@@ -4450,11 +4452,21 @@ Helpline: +91 84910 06127`;
 
                 <button
                   type="button"
+                  onClick={() => setFourUpModalOpen(true)}
+                  className="flex-1 sm:flex-initial py-2 px-2.5 sm:px-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1 border border-slate-700 transition-all cursor-pointer"
+                  title="Print 4 slips on 1 A4 sheet using Canon MF244dw laser printer"
+                >
+                  <span>🖨️</span>
+                  <span className="truncate">4-in-1 Sheet</span>
+                </button>
+
+                <button
+                  type="button"
                   onClick={() => window.print()}
                   className="flex-1 sm:flex-initial py-2 px-2.5 sm:px-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1 border border-slate-700 transition-all cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-base">print</span>
-                  <span className="truncate">Print</span>
+                  <span className="truncate">Print Full</span>
                 </button>
 
                 <button
@@ -4631,6 +4643,45 @@ Helpline: +91 84910 06127`;
                 </div>
               )}
 
+              {/* ─── VISCERAL LOSS EDUCATION NOTICE (USER MANDATE) ─── */}
+              <div className="bg-slate-50 border border-slate-300 rounded-xl p-3 text-[11px] text-slate-800 leading-relaxed space-y-1">
+                <div className="flex items-center gap-1.5 font-bold text-slate-900 text-xs">
+                  <span>⚖️</span>
+                  <span>Net Weight &amp; Visceral Loss Notice (Cleaned &amp; Gutted Trout)</span>
+                </div>
+                <p className="text-slate-600 text-[10px] leading-relaxed">
+                  Fresh Himalayan Rainbow Trout is weighed whole at live harvest. During professional hygienic cleaning &amp; gutting, the entrails, gills, and internal viscera are thoroughly removed and washed. This results in a natural, standard visceral loss of <strong>12% to 18%</strong> in total weight. You receive 100% wholesome, clean, ready-to-cook meat with zero kitchen waste!
+                </p>
+              </div>
+
+              {/* ─── FRESH TROUT CARE: DO'S & DON'TS (USER MANDATE) ─── */}
+              <div className="border border-slate-300 rounded-xl p-3 text-[11px] text-slate-800 space-y-2">
+                <div className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
+                  <span>🐟</span>
+                  <span>Fresh Trout Care: Do&apos;s &amp; Don&apos;ts</span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px] leading-relaxed">
+                  <div className="bg-emerald-50/70 p-2.5 rounded-lg border border-emerald-200/80">
+                    <p className="font-bold text-emerald-900 mb-0.5">✅ DO&apos;S:</p>
+                    <ul className="text-slate-700 list-disc pl-3.5 space-y-0.5">
+                      <li>Keep chilled in refrigerator (0°C–4°C) immediately.</li>
+                      <li>Consume fresh within 24–48 hours for prime flavour.</li>
+                      <li>Rinse gently under cold running water before cooking.</li>
+                      <li>Cook lightly (6–8 mins) to preserve tenderness &amp; omega-3s.</li>
+                    </ul>
+                  </div>
+                  <div className="bg-rose-50/70 p-2.5 rounded-lg border border-rose-200/80">
+                    <p className="font-bold text-rose-900 mb-0.5">❌ DON&apos;TS:</p>
+                    <ul className="text-slate-700 list-disc pl-3.5 space-y-0.5">
+                      <li>Do NOT wash with warm or hot water.</li>
+                      <li>Do NOT leave sitting at room temperature.</li>
+                      <li>Do NOT refreeze once thawed (breaks delicate texture).</li>
+                      <li>Do NOT overcook—gentle pan-fry or bake is best!</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
               {/* Footer Note */}
               <div className="text-center pt-2 text-[10px] sm:text-[11px] text-slate-500 leading-tight">
                 <p className="font-semibold text-slate-700">Fresh Live RAS Tank Harvested Trout</p>
@@ -4649,6 +4700,50 @@ Helpline: +91 84910 06127`;
                 Done &amp; Close Window
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── 4-UP INVOICE MODAL (CANON MF244DW) ─── */}
+      {fourUpModalOpen && generatedInvoice && (
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setFourUpModalOpen(false);
+          }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto"
+        >
+          <div className="relative w-full max-w-4xl my-4">
+            <FourUpInvoiceSheet
+              invoices={[
+                {
+                  invoiceNumber: generatedInvoice.invoiceNumber,
+                  customerName: generatedInvoice.customerName,
+                  customerPhone: generatedInvoice.customerPhone,
+                  createdAt: generatedInvoice.date || Date.now(),
+                  items: (generatedInvoice.items || []).map((i: any) => ({
+                    name: i.name,
+                    weightKg: i.weightKg,
+                    quantity: i.weightKg,
+                    pricePerKg: i.pricePerKg,
+                    price: i.pricePerKg,
+                    total: i.total,
+                  })),
+                  totalWeight: generatedInvoice.totalWeight,
+                  grandTotal: generatedInvoice.grandTotal,
+                  paidAmount: generatedInvoice.paidAmount,
+                  balanceAmount: generatedInvoice.balanceAmount,
+                  paymentStatus: generatedInvoice.paymentStatus,
+                  paymentMethod: generatedInvoice.paymentMethod,
+                  paymentId: generatedInvoice.paymentId,
+                  notes: generatedInvoice.notes,
+                  upiId: generatedInvoice.upiId || upiId,
+                  qrImageUrl: generatedInvoice.upiQrCodeUrl,
+                },
+              ]}
+              repeatSingle={true}
+              onClose={() => setFourUpModalOpen(false)}
+              showControls={true}
+            />
           </div>
         </div>
       )}
