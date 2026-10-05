@@ -9,7 +9,8 @@ import CustomerBalancesTab from "./CustomerBalancesTab";
 import BalanceReminderModal from "./BalanceReminderModal";
 import PaginationBar from "@/components/PaginationBar";
 import CustomerAutocompleteInput, { DbCustomer } from "./CustomerAutocompleteInput";
-import FourUpInvoiceSheet from "@/components/FourUpInvoiceSheet";
+import FourUpInvoiceSheet, { InvoiceSlipData } from "@/components/FourUpInvoiceSheet";
+import CatchWeightWorkspaceTab from "./CatchWeightWorkspaceTab";
 
 export interface RemoteBillItem {
   id: string;
@@ -120,7 +121,9 @@ export default function POSBillingPage() {
   const [voiceTesting, setVoiceTesting] = useState<boolean>(false);
 
   // ─── DEDICATED REMOTE ORDERS & WHATSAPP PAYMENT TRACKER STATE ───
-  const [activeTab, setActiveTab] = useState<"pos" | "remote_orders" | "deal_calculator" | "customer_balances">("pos");
+  const [activeTab, setActiveTab] = useState<"pos" | "catch_weight" | "remote_orders" | "deal_calculator" | "customer_balances">("pos");
+  const [catchWeightPrintSlip, setCatchWeightPrintSlip] = useState<InvoiceSlipData | null>(null);
+  const [catchWeightPrintOpen, setCatchWeightPrintOpen] = useState<boolean>(false);
   const [remoteOrders, setRemoteOrders] = useState<any[]>([]);
   const [remoteLoading, setRemoteLoading] = useState(false);
   const [remoteFilter, setRemoteFilter] = useState<"all" | "pending" | "paid">("all");
@@ -2400,7 +2403,7 @@ Helpline: +91 84910 06127`;
       </div>
 
       {/* ─── MOBILE COMPACT TAB BAR (< sm) ─── */}
-      <div className="grid grid-cols-4 gap-1 p-1 bg-slate-950/95 border border-slate-800/90 rounded-2xl sm:hidden text-center shadow-lg">
+      <div className="grid grid-cols-5 gap-1 p-1 bg-slate-950/95 border border-slate-800/90 rounded-2xl sm:hidden text-center shadow-lg">
         <button
           type="button"
           onClick={() => setActiveTab("pos")}
@@ -2411,7 +2414,19 @@ Helpline: +91 84910 06127`;
           }`}
         >
           <span className="material-symbols-outlined text-lg">point_of_sale</span>
-          <span className="text-[10px] font-mono leading-none tracking-tight">Counter POS</span>
+          <span className="text-[9.5px] font-mono leading-none tracking-tight">Counter</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("catch_weight")}
+          className={`py-2 px-1 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer ${
+            activeTab === "catch_weight"
+              ? "bg-purple-500/20 text-purple-300 border border-purple-500/50 shadow-sm shadow-purple-500/20 font-black"
+              : "text-slate-400 hover:text-slate-200"
+          }`}
+        >
+          <span className="material-symbols-outlined text-lg">scale</span>
+          <span className="text-[9.5px] font-mono leading-none tracking-tight">Catch-Wt</span>
         </button>
         <button
           type="button"
@@ -2426,7 +2441,7 @@ Helpline: +91 84910 06127`;
           }`}
         >
           <span className="material-symbols-outlined text-lg">local_shipping</span>
-          <span className="text-[10px] font-mono leading-none tracking-tight">Remote</span>
+          <span className="text-[9.5px] font-mono leading-none tracking-tight">Remote</span>
           {pendingRemoteCount > 0 && (
             <span className="absolute top-1.5 right-2 w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
           )}
@@ -2441,7 +2456,7 @@ Helpline: +91 84910 06127`;
           }`}
         >
           <span className="material-symbols-outlined text-lg">handshake</span>
-          <span className="text-[10px] font-mono leading-none tracking-tight">Deal Desk</span>
+          <span className="text-[9.5px] font-mono leading-none tracking-tight">Deal</span>
         </button>
         <button
           type="button"
@@ -2453,15 +2468,15 @@ Helpline: +91 84910 06127`;
           }`}
         >
           <span className="material-symbols-outlined text-lg">account_balance_wallet</span>
-          <span className="text-[10px] font-mono leading-none tracking-tight">Khata</span>
+          <span className="text-[9.5px] font-mono leading-none tracking-tight">Khata</span>
           {pendingKhataCount > 0 && (
             <span className="absolute top-1.5 right-2 w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
           )}
         </button>
       </div>
 
-      {/* ─── DESKTOP / TABLET SPACIOUS 4-PILLAR HUB (Visible on sm and up) ─── */}
-      <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-2.5 p-1.5 sm:p-2 bg-slate-950/85 border border-slate-800/80 rounded-2xl shadow-xl">
+      {/* ─── DESKTOP / TABLET SPACIOUS 5-PILLAR HUB (Visible on sm and up) ─── */}
+      <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-2.5 p-1.5 sm:p-2 bg-slate-950/85 border border-slate-800/80 rounded-2xl shadow-xl">
         {/* Feature 1: Counter POS */}
         <button
           type="button"
@@ -2496,7 +2511,41 @@ Helpline: +91 84910 06127`;
           </div>
         </button>
 
-        {/* Feature 2: Remote Orders & WhatsApp Links */}
+        {/* Feature 2: WhatsApp Catch-Weight Desk */}
+        <button
+          type="button"
+          onClick={() => setActiveTab("catch_weight")}
+          className={`group relative flex items-center gap-3 p-2.5 sm:p-3 rounded-xl border text-left transition-all cursor-pointer ${
+            activeTab === "catch_weight"
+              ? "bg-gradient-to-br from-purple-950/40 via-slate-900 to-slate-900/90 border-purple-500/60 shadow-lg shadow-purple-500/10 ring-1 ring-purple-500/30"
+              : "bg-slate-900/40 hover:bg-slate-900/80 border-slate-800/80 hover:border-slate-700 text-slate-400 hover:text-slate-200"
+          }`}
+        >
+          <div
+            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 transition-all ${
+              activeTab === "catch_weight"
+                ? "bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-sm shadow-purple-500/20"
+                : "bg-slate-800/70 text-slate-400 group-hover:text-purple-400 group-hover:bg-purple-500/10"
+            }`}
+          >
+            <span className="material-symbols-outlined text-lg sm:text-xl">scale</span>
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center justify-between gap-1">
+              <span className={`text-xs sm:text-sm font-bold truncate ${activeTab === "catch_weight" ? "text-purple-200" : "text-white"}`}>
+                Catch-Weight
+              </span>
+              <span className="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 text-[9px] font-mono font-bold border border-purple-500/30 shrink-0">
+                ADVANCE
+              </span>
+            </div>
+            <p className="text-[10px] sm:text-[11px] text-slate-400 truncate mt-0.5">
+              WhatsApp &amp; Refund Slips
+            </p>
+          </div>
+        </button>
+
+        {/* Feature 3: Remote Orders & WhatsApp Links */}
         <button
           type="button"
           onClick={() => {
@@ -2535,7 +2584,7 @@ Helpline: +91 84910 06127`;
           </div>
         </button>
 
-        {/* Feature 3: Deal Desk & Locked QR */}
+        {/* Feature 4: Deal Desk & Locked QR */}
         <button
           type="button"
           onClick={() => setActiveTab("deal_calculator")}
@@ -2569,7 +2618,7 @@ Helpline: +91 84910 06127`;
           </div>
         </button>
 
-        {/* Feature 4: Customer Khata & Balances */}
+        {/* Feature 5: Customer Khata & Balances */}
         <button
           type="button"
           onClick={() => setActiveTab("customer_balances")}
@@ -3561,102 +3610,7 @@ Helpline: +91 84910 06127`;
               </div>
             )}
 
-            {/* ─── AMOUNT RECEIVED & BALANCE TRACKING (KHATA / SETTLEMENT) ─── */}
-            {grandTotal > 0 && (
-              <div className="p-3 rounded-2xl bg-slate-950/90 border border-slate-800 space-y-2.5">
-                <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                    <span className="material-symbols-outlined text-sm text-amber-400">price_change</span>
-                    Amount Received &amp; Balance
-                  </span>
-                  {amountPaidInput && parseFloat(amountPaidInput) < grandTotal && (
-                    <span className="text-[10px] font-mono font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30">
-                      Balance Due: ₹{(grandTotal - parseFloat(amountPaidInput)).toLocaleString("en-IN")}
-                    </span>
-                  )}
-                </div>
 
-                <div className="flex items-center gap-2">
-                  <div className="relative flex-1">
-                    <span className="absolute left-3 top-2 text-slate-500 text-xs font-mono">₹</span>
-                    <input
-                      type="number"
-                      value={amountPaidInput}
-                      onFocus={(e) => e.target.select()}
-                      onWheel={(e) => (e.target as HTMLElement).blur()}
-                      onChange={(e) => {
-                        setAmountPaidInput(e.target.value);
-                        const val = parseFloat(e.target.value);
-                        if (!isNaN(val) && val < grandTotal && balanceAction === "none") {
-                          setBalanceAction("record_balance");
-                        } else if (isNaN(val) || val >= grandTotal) {
-                          setBalanceAction("none");
-                        }
-                      }}
-                      placeholder={`Full Amount: ₹${grandTotal.toLocaleString("en-IN")}`}
-                      className="w-full bg-slate-900 border border-slate-700/80 rounded-xl pl-7 pr-3 py-2 text-base sm:text-xs text-white font-mono placeholder:text-slate-500 focus:outline-none focus:border-amber-400"
-                    />
-
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setAmountPaidInput(grandTotal.toString());
-                      setBalanceAction("none");
-                    }}
-                    className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-bold uppercase transition-colors"
-                  >
-                    Full Pay
-                  </button>
-                </div>
-
-                {/* If partial amount entered, offer 2 clear choices */}
-                {amountPaidInput && parseFloat(amountPaidInput) < grandTotal && (
-                  <div className="pt-1 space-y-2 animate-fadeIn">
-                    <p className="text-[10px] text-slate-400">
-                      Customer is paying <strong className="text-emerald-400">₹{parseFloat(amountPaidInput).toLocaleString("en-IN")}</strong>. What should happen to the remaining <strong className="text-amber-400">₹{(grandTotal - parseFloat(amountPaidInput)).toLocaleString("en-IN")}</strong>?
-                    </p>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setBalanceAction("record_balance")}
-                        className={`p-2 rounded-xl text-left border transition-all cursor-pointer ${
-                          balanceAction === "record_balance"
-                            ? "bg-amber-500/20 border-amber-500 text-amber-300 shadow-md shadow-amber-950/30"
-                            : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200"
-                        }`}
-                      >
-                        <div className="text-[11px] font-bold flex items-center gap-1">
-                          <span>📒</span> Record in Khata
-                        </div>
-                        <div className="text-[9.5px] opacity-80 mt-0.5">
-                          Keep as balance &amp; send WhatsApp reminder with QR
-                        </div>
-                      </button>
-
-                      <button
-                        type="button"
-                        onClick={() => setBalanceAction("settle_final")}
-                        className={`p-2 rounded-xl text-left border transition-all cursor-pointer ${
-                          balanceAction === "settle_final"
-                            ? "bg-blue-500/20 border-blue-500 text-blue-300 shadow-md shadow-blue-950/30"
-                            : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200"
-                        }`}
-                      >
-                        <div className="text-[11px] font-bold flex items-center gap-1">
-                          <span>🤝</span> Settle as Final
-                        </div>
-                        <div className="text-[9.5px] opacity-80 mt-0.5">
-                          Agreed discount / cash settlement. Balance = ₹0
-                        </div>
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
 
             {/* Primary Action Button */}
             <div className="pt-1">
@@ -4296,6 +4250,21 @@ Helpline: +91 84910 06127`;
         </div>
       )}
 
+      {/* ─── DEDICATED WHATSAPP CATCH-WEIGHT & RECONCILIATION WORKSPACE ─── */}
+      {activeTab === "catch_weight" && (
+        <CatchWeightWorkspaceTab
+          upiId={upiId}
+          activeScaleWeight={currentWeight}
+          onOpenFourUpPrint={(slip) => {
+            setCatchWeightPrintSlip(slip);
+            setCatchWeightPrintOpen(true);
+          }}
+          onSwitchTab={setActiveTab}
+          customers={dbCustomers}
+          loadingCustomers={loadingDbCustomers}
+        />
+      )}
+
       {/* ─── DEDICATED DEAL DESK & LOCKED-IN QR WORKSPACE ─── */}
       {activeTab === "deal_calculator" && (
         <DealCalculatorTab
@@ -4752,6 +4721,25 @@ Helpline: +91 84910 06127`;
               ]}
               repeatSingle={true}
               onClose={() => setFourUpModalOpen(false)}
+              showControls={true}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* ─── CATCH-WEIGHT 4-UP INVOICE MODAL (CANON MF244DW) ─── */}
+      {catchWeightPrintOpen && catchWeightPrintSlip && (
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setCatchWeightPrintOpen(false);
+          }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto"
+        >
+          <div className="relative w-full max-w-4xl my-4">
+            <FourUpInvoiceSheet
+              invoices={[catchWeightPrintSlip]}
+              repeatSingle={true}
+              onClose={() => setCatchWeightPrintOpen(false)}
               showControls={true}
             />
           </div>
