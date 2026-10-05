@@ -697,28 +697,28 @@ export default function PublicInvoicePage() {
             </p>
           </div>
 
-          {/* ─── FRESH TROUT CARE: DO'S & DON'TS (USER MANDATE) ─── */}
+          {/* ─── FRESH TROUT CULINARY TIPS & CARE ─── */}
           <div className="border border-slate-300 rounded-2xl p-4 text-xs text-slate-800 space-y-2">
             <div className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
               <span>🐟</span>
-              <span>Fresh Trout Care: Do&apos;s &amp; Don&apos;ts</span>
+              <span>Fresh Trout Culinary Tips &amp; Care</span>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px] leading-relaxed">
               <div className="bg-emerald-50/70 p-3 rounded-xl border border-emerald-200/80">
-                <p className="font-bold text-emerald-900 mb-1">✅ DO&apos;S:</p>
+                <p className="font-bold text-emerald-900 mb-1">✅ DO&apos;S (Gourmet Tips):</p>
                 <ul className="text-slate-700 list-disc pl-4 space-y-1">
-                  <li>Keep chilled in refrigerator (0°C–4°C) immediately upon delivery.</li>
-                  <li>Consume fresh within 24–48 hours for prime mountain spring flavour.</li>
-                  <li>Rinse gently under cold running water before cooking.</li>
+                  <li>Store in refrigerator (0°C–4°C) until ready to cook to lock in natural mountain sweetness.</li>
+                  <li>Best cooked fresh within 24–48 hours for prime mountain spring flavour.</li>
+                  <li>Rinse gently under cold running water before seasoning.</li>
                   <li>Trout cooks quickly (6–8 mins gentle heat)—cook lightly to preserve tenderness &amp; rich omega-3 oils.</li>
                 </ul>
               </div>
               <div className="bg-rose-50/70 p-3 rounded-xl border border-rose-200/80">
                 <p className="font-bold text-rose-900 mb-1">❌ DON&apos;TS:</p>
                 <ul className="text-slate-700 list-disc pl-4 space-y-1">
-                  <li>Do NOT wash with warm or hot water.</li>
-                  <li>Do NOT leave fish sitting at room temperature.</li>
-                  <li>Do NOT refreeze once thawed (it breaks delicate cellular texture).</li>
+                  <li>Do NOT wash with warm or hot water (preserves delicate flaky texture).</li>
+                  <li>Do NOT leave fish standing at room temperature.</li>
+                  <li>Do NOT refreeze once thawed.</li>
                   <li>Do NOT overcook—gentle pan-fry, bake, or steam yields the juiciest results!</li>
                 </ul>
               </div>
@@ -728,7 +728,7 @@ export default function PublicInvoicePage() {
           {/* Footer Note */}
           <div className="text-center pt-2 text-xs text-slate-500 leading-tight">
             <p className="font-semibold text-slate-700">Fresh Live RAS Tank Harvested Trout</p>
-            <p className="mt-0.5">Keep chilled at 0°C - 4°C. Valid for 48 hours.</p>
+            <p className="mt-0.5">Live mountain spring harvest • Best enjoyed fresh within 48 hours.</p>
             <p className="font-mono text-[10px] text-slate-400 mt-1">Thank you for supporting sustainable Kashmiri aquaculture!</p>
           </div>
         </div>

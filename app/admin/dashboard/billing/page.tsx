@@ -4654,28 +4654,28 @@ Helpline: +91 84910 06127`;
                 </p>
               </div>
 
-              {/* ─── FRESH TROUT CARE: DO'S & DON'TS (USER MANDATE) ─── */}
+              {/* ─── FRESH TROUT CULINARY TIPS & CARE ─── */}
               <div className="border border-slate-300 rounded-xl p-3 text-[11px] text-slate-800 space-y-2">
                 <div className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
                   <span>🐟</span>
-                  <span>Fresh Trout Care: Do&apos;s &amp; Don&apos;ts</span>
+                  <span>Fresh Trout Culinary Tips &amp; Care</span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[10px] leading-relaxed">
                   <div className="bg-emerald-50/70 p-2.5 rounded-lg border border-emerald-200/80">
-                    <p className="font-bold text-emerald-900 mb-0.5">✅ DO&apos;S:</p>
+                    <p className="font-bold text-emerald-900 mb-0.5">✅ DO&apos;S (Gourmet Tips):</p>
                     <ul className="text-slate-700 list-disc pl-3.5 space-y-0.5">
-                      <li>Keep chilled in refrigerator (0°C–4°C) immediately.</li>
-                      <li>Consume fresh within 24–48 hours for prime flavour.</li>
-                      <li>Rinse gently under cold running water before cooking.</li>
+                      <li>Store in refrigerator (0°C–4°C) to lock in natural mountain sweetness.</li>
+                      <li>Best cooked fresh within 24–48 hours for prime flavour.</li>
+                      <li>Rinse gently under cold water before seasoning.</li>
                       <li>Cook lightly (6–8 mins) to preserve tenderness &amp; omega-3s.</li>
                     </ul>
                   </div>
                   <div className="bg-rose-50/70 p-2.5 rounded-lg border border-rose-200/80">
                     <p className="font-bold text-rose-900 mb-0.5">❌ DON&apos;TS:</p>
                     <ul className="text-slate-700 list-disc pl-3.5 space-y-0.5">
-                      <li>Do NOT wash with warm or hot water.</li>
-                      <li>Do NOT leave sitting at room temperature.</li>
-                      <li>Do NOT refreeze once thawed (breaks delicate texture).</li>
+                      <li>Do NOT wash with warm or hot water (preserves firm texture).</li>
+                      <li>Do NOT leave standing at room temperature.</li>
+                      <li>Do NOT refreeze once thawed.</li>
                       <li>Do NOT overcook—gentle pan-fry or bake is best!</li>
                     </ul>
                   </div>
@@ -4685,7 +4685,7 @@ Helpline: +91 84910 06127`;
               {/* Footer Note */}
               <div className="text-center pt-2 text-[10px] sm:text-[11px] text-slate-500 leading-tight">
                 <p className="font-semibold text-slate-700">Fresh Live RAS Tank Harvested Trout</p>
-                <p className="mt-0.5">Keep chilled at 0°C - 4°C. Valid for 48 hours.</p>
+                <p className="mt-0.5">Live mountain spring harvest • Best enjoyed fresh within 48 hours.</p>
                 <p className="font-mono text-[9px] text-slate-400 mt-1">Thank you for visiting Urban Trout Farm, Srinagar!</p>
               </div>
             </div>

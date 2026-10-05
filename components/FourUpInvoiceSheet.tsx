@@ -48,10 +48,12 @@ function SingleInvoiceSlip({
   data,
   isRightCol,
   isBottomRow,
+  copyLabel,
 }: {
   data: InvoiceSlipData;
   isRightCol: boolean;
   isBottomRow: boolean;
+  copyLabel?: string;
 }) {
   const isPaid =
     data.paymentStatus === "PAID" ||
@@ -116,8 +118,8 @@ function SingleInvoiceSlip({
             </p>
           </div>
           <div className="text-right">
-            <span className="inline-block border border-black px-1.5 py-0.2 rounded text-[7.5px] font-black uppercase tracking-wider bg-slate-100">
-              TAX INVOICE / DELIVERY SLIP
+            <span className="inline-block border border-black px-1.5 py-0.2 rounded text-[7px] font-black uppercase tracking-wider bg-slate-100">
+              {copyLabel || "TAX INVOICE / DELIVERY SLIP"}
             </span>
             <p className="text-[8px] font-mono font-bold mt-0.5">
               #{data.invoiceNumber || data.orderNumber}
@@ -214,23 +216,23 @@ function SingleInvoiceSlip({
         </p>
       </div>
 
-      {/* ─── 5. DO'S & DON'TS FOR FRESH TROUT (USER MANDATE) ─── */}
+      {/* ─── 5. FRESH TROUT CULINARY TIPS & CARE ─── */}
       <div className="border border-slate-400 rounded p-1 mb-1 text-[7px] leading-tight">
         <div className="grid grid-cols-2 gap-1">
           <div>
-            <p className="font-bold text-black">✅ DO&apos;S:</p>
+            <p className="font-bold text-black">✅ DO&apos;S (Gourmet Tips):</p>
             <ul className="text-slate-800 list-disc pl-2.5 space-y-0.2">
-              <li>Refrigerate immediately (0°C–4°C) upon delivery.</li>
-              <li>Cook within 24–48 hours for peak freshness.</li>
-              <li>Rinse gently in cold water; cooks fast (6–8 mins)!</li>
+              <li>Store in refrigerator (0°C–4°C) to lock in natural sweetness.</li>
+              <li>Cook fresh within 24–48h for peak mountain flavour.</li>
+              <li>Rinse gently in cold water; cooks tender &amp; fast (6–8 mins)!</li>
             </ul>
           </div>
           <div>
             <p className="font-bold text-black">❌ DON&apos;TS:</p>
             <ul className="text-slate-800 list-disc pl-2.5 space-y-0.2">
-              <li>Do NOT wash with warm or hot water.</li>
-              <li>Do NOT leave at room temperature.</li>
-              <li>Do NOT refreeze once thawed (damages texture).</li>
+              <li>Do NOT wash with warm or hot water (keeps meat firm).</li>
+              <li>Do NOT leave standing at room temperature.</li>
+              <li>Do NOT refreeze once thawed (preserves flaky texture).</li>
             </ul>
           </div>
         </div>
@@ -241,7 +243,7 @@ function SingleInvoiceSlip({
         <div className="text-[6.5px] text-slate-700 leading-tight">
           <p className="font-bold text-black">Urban Trout RAS Aquaculture Farm</p>
           <p>Near R. P. School Girls Wing, Malabagh, Srinagar</p>
-          <p className="font-mono text-[6px]">www.urbantrout.in • Fresh Himalayan Rainbow Trout</p>
+          <p className="font-mono text-[6px]">Live mountain spring harvest • Best enjoyed fresh within 48 hours</p>
         </div>
 
         {isPaid ? (
@@ -270,9 +272,16 @@ function SingleInvoiceSlip({
   );
 }
 
+const COPY_LABELS = [
+  "TAX INVOICE • CUSTOMER COPY",
+  "DELIVERY SLIP • RIDER COPY",
+  "GATE PASS • FARM LOG RECORD",
+  "ACCOUNTS SLIP • OFFICE COPY",
+];
+
 /**
  * 4-in-1 A4 Sheet Layout (Canon MF244dw Laser Printer Optimized)
- * Arranges up to 4 orders/invoices per A4 portrait page with ✂ cutting guidelines.
+ * Formats up to 4 orders/invoices per A4 portrait page with waste-free print output.
  */
 export default function FourUpInvoiceSheet({
   invoices,
@@ -280,8 +289,10 @@ export default function FourUpInvoiceSheet({
   onClose,
   showControls = true,
 }: FourUpInvoiceSheetProps) {
+  // If only 1 invoice is provided, default to repeating 4 useful copies (Customer + Rider + Farm + Accounts)
+  // or allow 1 single slip with 100% clean blank paper on the other 3 quadrants to cut and reuse.
   const [repeatMode, setRepeatMode] = useState<boolean>(
-    repeatSingle && invoices.length === 1
+    repeatSingle || invoices.length === 1
   );
 
   // Prepare slips array: if repeatMode is active for a single invoice, duplicate 4 times
@@ -313,28 +324,43 @@ export default function FourUpInvoiceSheet({
               <h2 className="text-sm font-bold text-white flex items-center gap-1.5">
                 <span>Canon MF244dw 4-in-1 A4 Sheet</span>
                 <span className="px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 text-[10px] font-mono font-semibold">
-                  Cost-Saver Mode
+                  Zero-Waste Mode
                 </span>
               </h2>
               <p className="text-[11px] text-slate-400">
-                4 bills per A4 page • Monochrome laser crisp • ✂ Cut along dashed guides
+                4 bills per A4 page • Monochrome laser crisp • ✂ Zero ink on blank spaces
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
             {invoices.length === 1 && (
-              <button
-                type="button"
-                onClick={() => setRepeatMode(!repeatMode)}
-                className={`px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
-                  repeatMode
-                    ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/40"
-                    : "bg-slate-800 text-slate-400 border-slate-700 hover:text-white"
-                }`}
-              >
-                {repeatMode ? "✓ 4 Copies on Sheet" : "1 Copy (Top-Left)"}
-              </button>
+              <div className="inline-flex rounded-xl bg-slate-800 p-1 border border-slate-700 gap-1">
+                <button
+                  type="button"
+                  onClick={() => setRepeatMode(true)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    repeatMode
+                      ? "bg-cyan-500 text-slate-950 shadow-md"
+                      : "text-slate-300 hover:text-white"
+                  }`}
+                  title="Fill all 4 quadrants with Customer, Rider, Farm, and Accounts copies"
+                >
+                  📄 4 Copies (Customer + Rider + Farm + Accounts)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRepeatMode(false)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    !repeatMode
+                      ? "bg-cyan-500 text-slate-950 shadow-md"
+                      : "text-slate-300 hover:text-white"
+                  }`}
+                  title="Print 1 slip only in the top-left and leave 3/4th of the page 100% blank to cut and reuse paper"
+                >
+                  ✂️ 1 Slip Only (Save Paper)
+                </button>
+              </div>
             )}
 
             <button
@@ -361,84 +387,114 @@ export default function FourUpInvoiceSheet({
 
       {/* ─── PRINTABLE A4 SHEETS CONTAINER ─── */}
       <div id="four-up-sheet-root" className="space-y-6">
-        {pages.map((pageInvoices, pageIdx) => (
-          <div
-            key={pageIdx}
-            className="a4-sheet-container mx-auto bg-white text-black shadow-2xl relative border border-slate-300"
-            style={{
-              width: "210mm",
-              height: "297mm",
-              maxHeight: "297mm",
-              boxSizing: "border-box",
-              padding: "4mm",
-              backgroundColor: "#ffffff",
-              pageBreakAfter: pageIdx < pages.length - 1 ? "always" : "auto",
-              breakAfter: pageIdx < pages.length - 1 ? "page" : "auto",
-            }}
-          >
-            {/* Scissor cutting guides along center lines */}
-            <div className="absolute inset-0 pointer-events-none z-10">
-              {/* Vertical center cut line */}
-              <div
-                className="absolute top-0 bottom-0 border-l border-dashed border-slate-400"
-                style={{ left: "50%" }}
-              >
-                <span className="absolute top-1 -left-2 text-[9px] text-slate-500">✂</span>
-                <span className="absolute top-1/2 -left-2 text-[9px] text-slate-500 -translate-y-1/2">✂</span>
-                <span className="absolute bottom-1 -left-2 text-[9px] text-slate-500">✂</span>
-              </div>
-              {/* Horizontal center cut line */}
-              <div
-                className="absolute left-0 right-0 border-t border-dashed border-slate-400"
-                style={{ top: "50%" }}
-              >
-                <span className="absolute left-1 -top-2 text-[9px] text-slate-500">✂</span>
-                <span className="absolute left-1/2 -top-2 text-[9px] text-slate-500 -translate-x-1/2">✂</span>
-                <span className="absolute right-1 -top-2 text-[9px] text-slate-500">✂</span>
-              </div>
-            </div>
-
-            {/* 2x2 Grid of Invoices */}
+        {pages.map((pageInvoices, pageIdx) => {
+          const activeCount = pageInvoices.length;
+          return (
             <div
-              className="grid grid-cols-2 grid-rows-2 h-full w-full box-border"
+              key={pageIdx}
+              className="a4-sheet-container mx-auto bg-white text-black shadow-2xl relative border border-slate-300"
               style={{
-                height: "100%",
-                width: "100%",
+                width: "210mm",
+                height: "297mm",
+                maxHeight: "297mm",
+                boxSizing: "border-box",
+                padding: "4mm",
+                backgroundColor: "#ffffff",
+                pageBreakAfter: pageIdx < pages.length - 1 ? "always" : "auto",
+                breakAfter: pageIdx < pages.length - 1 ? "page" : "auto",
               }}
             >
-              {[0, 1, 2, 3].map((slotIdx) => {
-                const invoice = pageInvoices[slotIdx];
-                const isRightCol = slotIdx % 2 === 1;
-                const isBottomRow = slotIdx >= 2;
-
-                if (!invoice) {
-                  return (
+              {/* Scissor cutting guides: drawn only along borders of active slips */}
+              <div className="absolute inset-0 pointer-events-none z-10">
+                {activeCount > 1 ? (
+                  <>
+                    {/* Full Vertical center cut line */}
                     <div
-                      key={slotIdx}
-                      className={`p-3 flex items-center justify-center text-slate-300 text-xs italic ${
-                        !isRightCol ? "border-r border-dashed border-slate-400" : ""
-                      } ${!isBottomRow ? "border-b border-dashed border-slate-400" : ""}`}
-                      style={{ height: "100%" }}
+                      className="absolute top-0 bottom-0 border-l border-dashed border-slate-400"
+                      style={{ left: "50%" }}
                     >
-                      <span className="text-[10px] text-slate-400 font-mono">
-                        [ Empty Slip Slot — Reserved for next delivery ]
-                      </span>
+                      <span className="absolute top-1 -left-2 text-[9px] text-slate-500">✂</span>
+                      <span className="absolute top-1/2 -left-2 text-[9px] text-slate-500 -translate-y-1/2">✂</span>
+                      <span className="absolute bottom-1 -left-2 text-[9px] text-slate-500">✂</span>
                     </div>
-                  );
-                }
+                    {/* Full Horizontal center cut line */}
+                    <div
+                      className="absolute left-0 right-0 border-t border-dashed border-slate-400"
+                      style={{ top: "50%" }}
+                    >
+                      <span className="absolute left-1 -top-2 text-[9px] text-slate-500">✂</span>
+                      <span className="absolute left-1/2 -top-2 text-[9px] text-slate-500 -translate-x-1/2">✂</span>
+                      <span className="absolute right-1 -top-2 text-[9px] text-slate-500">✂</span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    {/* Only 1 slip (Top-Left): Cut lines ONLY outline the top-left quadrant so the rest of the sheet is 100% untouched clean paper */}
+                    <div
+                      className="absolute border-l border-dashed border-slate-400"
+                      style={{ left: "50%", top: 0, height: "50%" }}
+                    >
+                      <span className="absolute top-1 -left-2 text-[9px] text-slate-500">✂</span>
+                      <span className="absolute bottom-1 -left-2 text-[9px] text-slate-500">✂</span>
+                    </div>
+                    <div
+                      className="absolute border-t border-dashed border-slate-400"
+                      style={{ top: "50%", left: 0, width: "50%" }}
+                    >
+                      <span className="absolute left-1 -top-2 text-[9px] text-slate-500">✂</span>
+                      <span className="absolute right-1 -top-2 text-[9px] text-slate-500">✂</span>
+                    </div>
+                  </>
+                )}
+              </div>
 
-                return (
-                  <SingleInvoiceSlip
-                    key={slotIdx}
-                    data={invoice}
-                    isRightCol={isRightCol}
-                    isBottomRow={isBottomRow}
-                  />
-                );
-              })}
+              {/* 2x2 Grid of Invoices */}
+              <div
+                className="grid grid-cols-2 grid-rows-2 h-full w-full box-border"
+                style={{
+                  height: "100%",
+                  width: "100%",
+                }}
+              >
+                {[0, 1, 2, 3].map((slotIdx) => {
+                  const invoice = pageInvoices[slotIdx];
+                  const isRightCol = slotIdx % 2 === 1;
+                  const isBottomRow = slotIdx >= 2;
+
+                  if (!invoice) {
+                    // Empty quadrant: 100% clean white paper with ZERO text, ZERO lines, ZERO ink
+                    return (
+                      <div
+                        key={slotIdx}
+                        className="bg-white pointer-events-none"
+                        style={{
+                          height: "100%",
+                          width: "100%",
+                          backgroundColor: "#ffffff",
+                        }}
+                      />
+                    );
+                  }
+
+                  const copyLabel =
+                    repeatMode && invoices.length === 1
+                      ? COPY_LABELS[slotIdx] || "TAX INVOICE / DELIVERY SLIP"
+                      : undefined;
+
+                  return (
+                    <SingleInvoiceSlip
+                      key={slotIdx}
+                      data={invoice}
+                      isRightCol={isRightCol}
+                      isBottomRow={isBottomRow}
+                      copyLabel={copyLabel}
+                    />
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Global Print Media CSS injection for Canon MF244dw */}
