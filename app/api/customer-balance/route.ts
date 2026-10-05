@@ -816,6 +816,9 @@ export async function DELETE(request: Request) {
     const id = searchParams.get("id");
     if (!id) return NextResponse.json({ success: false, error: "Missing id" }, { status: 400 });
 
+    const cleanDigits = String(id).replace(/\D/g, "");
+
+    // 1. Delete from customer_balances table
     try {
       if (isUUID(id)) {
         await supabase
@@ -826,15 +829,34 @@ export async function DELETE(request: Request) {
         await supabase
           .from("customer_balances")
           .delete()
-          .eq("invoice_id", id);
+          .or(`invoice_id.eq.${id},invoice_id.eq.UT-INV-${cleanDigits}`);
       }
     } catch (_) {}
 
+    // 2. Delete / clear from invoices table so it is never re-harvested
+    try {
+      if (cleanDigits) {
+        await supabase
+          .from("invoices")
+          .delete()
+          .or(`id.eq.${cleanDigits},id.eq.${id}`);
+      } else {
+        await supabase
+          .from("invoices")
+          .delete()
+          .eq("id", id);
+      }
+    } catch (_) {}
+
+    // 3. Delete from app_settings fallback
     const cached = await getFallbackBalances();
-    const filtered = cached.filter((r) => r.id !== id && r.invoice_id !== id);
+    const filtered = cached.filter((r) => {
+      const rDigits = String(r.invoice_id || r.id).replace(/\D/g, "");
+      return r.id !== id && r.invoice_id !== id && (cleanDigits ? rDigits !== cleanDigits : true);
+    });
     await saveFallbackBalances(filtered);
 
-    // Also sync delete/clear in vending_sales_log
+    // 4. Also sync delete/clear in vending_sales_log
     try {
       let vslDelQuery = supabase.from("vending_sales_log").select("id, custom_fields");
       if (isUUID(id)) {

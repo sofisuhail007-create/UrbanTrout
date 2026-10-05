@@ -531,6 +531,35 @@ export default function OrdersPage() {
                   {statusLabel(order.status)}
                 </span>
                 <span className="text-sm font-bold text-cyan-400 font-mono">₹{order.total?.toLocaleString("en-IN")}</span>
+
+                {/* 1-Tap Weigh Button right on every row */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openScaleModal(order);
+                  }}
+                  className="px-2.5 py-1 rounded-lg bg-amber-500/25 hover:bg-amber-500/40 text-amber-300 border border-amber-500/50 text-xs font-bold transition-all flex items-center gap-1 shrink-0 cursor-pointer shadow-md hover:scale-105 active:scale-95"
+                  title="⚖️ Weigh / Catch-Weight: Enter harvest scale weight and calculate customer refund or balance due"
+                >
+                  <span>⚖️</span>
+                  <span>Weigh</span>
+                </button>
+
+                {/* 1-Tap Canon Print Button right on every row */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setPrintModalOrders([order]);
+                  }}
+                  className="px-2 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/35 text-cyan-300 border border-cyan-500/40 text-xs font-bold transition-all flex items-center gap-1 shrink-0 cursor-pointer shadow-sm hidden sm:flex"
+                  title="🖨️ Print 4-Up delivery slip on Canon MF244dw"
+                >
+                  <span>🖨️</span>
+                  <span className="hidden md:inline">Print</span>
+                </button>
+
                 <span className="text-xs text-slate-600 hidden md:block w-20 text-right">
                   {new Date(order.created_at).toLocaleDateString("en-IN")}
                 </span>

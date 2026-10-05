@@ -2377,6 +2377,16 @@ Helpline: +91 84910 06127`;
             <span className="hidden sm:inline">Vending Log</span>
             <span className="sm:hidden">Log</span>
           </Link>
+
+          <Link
+            href="/admin/dashboard/orders"
+            className="px-2 sm:px-3 py-1 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/35 text-amber-300 transition-all text-[11px] sm:text-xs font-bold uppercase tracking-wider flex items-center gap-1 shadow-sm cursor-pointer"
+            title="⚖️ Weigh / Catch-Weight Orders & Print 4-Up Delivery Slips"
+          >
+            <span>⚖️</span>
+            <span className="hidden sm:inline">Weigh Orders</span>
+            <span className="sm:hidden">Orders</span>
+          </Link>
           <button
             type="button"
             onClick={handleReset}
