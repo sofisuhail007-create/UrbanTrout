@@ -9,11 +9,13 @@ interface DecodedInvoice {
   invoiceNumber: string;
   customerName: string;
   customerPhone: string;
-  items: Array<{ name: string; weightKg: number; pricePerKg: number; total: number }>;
+  items: Array<{ name: string; weightKg: number; orderedWeightKg?: number; pricePerKg: number; total: number }>;
+  orderedWeight?: number;
   totalWeight: number;
   grandTotal: number;
   paidAmount?: number;
   balanceAmount?: number;
+  refundAmount?: number;
   balanceStatus?: string;
   notes?: string;
   createdAt: number;
@@ -67,6 +69,17 @@ export default function PublicInvoicePage() {
             const isExpired = !isPaidOrSettled && elapsedMs > maxAgeMs;
             const remainingHours = Math.max(0, Math.ceil((maxAgeMs - elapsedMs) / (1000 * 60 * 60)));
 
+            const grandTot = parsed.tot ?? parsed.grandTotal ?? 0;
+            const paid = parsed.paidAmount !== undefined
+              ? parsed.paidAmount
+              : (parsed.balanceAmount !== undefined ? Math.max(0, grandTot - parsed.balanceAmount) : (isPaidOrSettled ? grandTot : undefined));
+            const refund = parsed.refundAmount !== undefined
+              ? parsed.refundAmount
+              : (paid !== undefined && paid > grandTot ? paid - grandTot : 0);
+            const balance = parsed.balanceAmount !== undefined
+              ? parsed.balanceAmount
+              : (paid !== undefined && grandTot > paid ? grandTot - paid : (isPaidOrSettled ? 0 : grandTot));
+
             setInvoice({
               invoiceNumber: parsed.num || rawParam,
               customerName: parsed.name || "Valued Customer",
@@ -74,19 +87,22 @@ export default function PublicInvoicePage() {
               items: (parsed.items || []).map((i: any) => ({
                 name: i.n || i.name,
                 weightKg: i.w ?? i.weightKg ?? 1,
+                orderedWeightKg: i.ow ?? i.orderedWeightKg ?? (i.w ?? i.weightKg ?? 1),
                 pricePerKg: i.r ?? i.pricePerKg ?? 550,
                 total: i.t ?? i.total ?? 550,
               })),
+              orderedWeight: parsed.ow ?? parsed.orderedWeight,
               totalWeight: parsed.tw ?? parsed.totalWeight ?? 0,
-              grandTotal: parsed.tot ?? parsed.grandTotal ?? 0,
-              paidAmount: parsed.paidAmount !== undefined ? parsed.paidAmount : (parsed.balanceAmount !== undefined ? Math.max(0, (parsed.tot ?? parsed.grandTotal ?? 0) - parsed.balanceAmount) : undefined),
-              balanceAmount: parsed.balanceAmount ?? 0,
-              balanceStatus: parsed.balanceStatus || (parsed.balanceAmount > 0 ? "pending" : undefined),
+              grandTotal: grandTot,
+              paidAmount: paid,
+              balanceAmount: balance,
+              refundAmount: refund,
+              balanceStatus: parsed.balanceStatus || (balance > 0 ? "pending" : undefined),
               notes: parsed.notes || "",
               createdAt: createdTimestamp,
               isExpired,
               expiresInHours: remainingHours,
-              paymentStatus: parsed.paymentStatus || "PAYMENT DUE",
+              paymentStatus: parsed.paymentStatus || (refund > 0 ? "REFUND DUE" : (isPaidOrSettled ? "PAID" : "PAYMENT DUE")),
               paymentMethod: parsed.paymentMethod || "UPI",
               paymentId: parsed.paymentId || undefined,
               qrImageUrl: parsed.qrImageUrl || undefined,
@@ -117,6 +133,17 @@ export default function PublicInvoicePage() {
             const isExpired = !isPaidOrSettled && elapsedMs > maxAgeMs;
             const remainingHours = Math.max(0, Math.ceil((maxAgeMs - elapsedMs) / (1000 * 60 * 60)));
 
+            const grandTot = parsed.tot ?? parsed.grandTotal ?? 0;
+            const paid = parsed.paidAmount !== undefined
+              ? parsed.paidAmount
+              : (parsed.balanceAmount !== undefined ? Math.max(0, grandTot - parsed.balanceAmount) : (isPaidOrSettled ? grandTot : undefined));
+            const refund = parsed.refundAmount !== undefined
+              ? parsed.refundAmount
+              : (paid !== undefined && paid > grandTot ? paid - grandTot : 0);
+            const balance = parsed.balanceAmount !== undefined
+              ? parsed.balanceAmount
+              : (paid !== undefined && grandTot > paid ? grandTot - paid : (isPaidOrSettled ? 0 : grandTot));
+
             setInvoice({
               invoiceNumber: parsed.num || `UT-INV-${cleanDigits || rawParam}`,
               customerName: parsed.name || "Valued Customer",
@@ -124,19 +151,22 @@ export default function PublicInvoicePage() {
               items: (parsed.items || []).map((i: any) => ({
                 name: i.n || i.name,
                 weightKg: i.w ?? i.weightKg ?? 1,
+                orderedWeightKg: i.ow ?? i.orderedWeightKg ?? (i.w ?? i.weightKg ?? 1),
                 pricePerKg: i.r ?? i.pricePerKg ?? 550,
                 total: i.t ?? i.total ?? 550,
               })),
+              orderedWeight: parsed.ow ?? parsed.orderedWeight,
               totalWeight: parsed.tw ?? parsed.totalWeight ?? 0,
-              grandTotal: parsed.tot ?? parsed.grandTotal ?? 0,
-              paidAmount: parsed.paidAmount !== undefined ? parsed.paidAmount : (parsed.balanceAmount !== undefined ? Math.max(0, (parsed.tot ?? parsed.grandTotal ?? 0) - parsed.balanceAmount) : undefined),
-              balanceAmount: parsed.balanceAmount ?? 0,
-              balanceStatus: parsed.balanceStatus || (parsed.balanceAmount > 0 ? "pending" : undefined),
+              grandTotal: grandTot,
+              paidAmount: paid,
+              balanceAmount: balance,
+              refundAmount: refund,
+              balanceStatus: parsed.balanceStatus || (balance > 0 ? "pending" : undefined),
               notes: parsed.notes || "",
               createdAt: createdTimestamp,
               isExpired,
               expiresInHours: remainingHours,
-              paymentStatus: parsed.paymentStatus || "PAYMENT DUE",
+              paymentStatus: parsed.paymentStatus || (refund > 0 ? "REFUND DUE" : (isPaidOrSettled ? "PAID" : "PAYMENT DUE")),
               paymentMethod: parsed.paymentMethod || "UPI",
               paymentId: parsed.paymentId || undefined,
               qrImageUrl: parsed.qrImageUrl || undefined,
@@ -167,6 +197,17 @@ export default function PublicInvoicePage() {
             const isExpired = !isPaidOrSettled && elapsedMs > maxAgeMs;
             const remainingHours = Math.max(0, Math.ceil((maxAgeMs - elapsedMs) / (1000 * 60 * 60)));
 
+            const grandTot = parsed.tot ?? parsed.grandTotal ?? 0;
+            const paid = parsed.paidAmount !== undefined
+              ? parsed.paidAmount
+              : (parsed.balanceAmount !== undefined ? Math.max(0, grandTot - parsed.balanceAmount) : (isPaidOrSettled ? grandTot : undefined));
+            const refund = parsed.refundAmount !== undefined
+              ? parsed.refundAmount
+              : (paid !== undefined && paid > grandTot ? paid - grandTot : 0);
+            const balance = parsed.balanceAmount !== undefined
+              ? parsed.balanceAmount
+              : (paid !== undefined && grandTot > paid ? grandTot - paid : (isPaidOrSettled ? 0 : grandTot));
+
             setInvoice({
               invoiceNumber: parsed.num || `UT-INV-${cleanDigits || rawParam}`,
               customerName: parsed.name || "Valued Customer",
@@ -174,19 +215,22 @@ export default function PublicInvoicePage() {
               items: (parsed.items || []).map((i: any) => ({
                 name: i.n || i.name,
                 weightKg: i.w ?? i.weightKg ?? 1,
+                orderedWeightKg: i.ow ?? i.orderedWeightKg ?? (i.w ?? i.weightKg ?? 1),
                 pricePerKg: i.r ?? i.pricePerKg ?? 550,
                 total: i.t ?? i.total ?? 550,
               })),
+              orderedWeight: parsed.ow ?? parsed.orderedWeight,
               totalWeight: parsed.tw ?? parsed.totalWeight ?? 0,
-              grandTotal: parsed.tot ?? parsed.grandTotal ?? 0,
-              paidAmount: parsed.paidAmount !== undefined ? parsed.paidAmount : (parsed.balanceAmount !== undefined ? Math.max(0, (parsed.tot ?? parsed.grandTotal ?? 0) - parsed.balanceAmount) : undefined),
-              balanceAmount: parsed.balanceAmount ?? 0,
-              balanceStatus: parsed.balanceStatus || (parsed.balanceAmount > 0 ? "pending" : undefined),
+              grandTotal: grandTot,
+              paidAmount: paid,
+              balanceAmount: balance,
+              refundAmount: refund,
+              balanceStatus: parsed.balanceStatus || (balance > 0 ? "pending" : undefined),
               notes: parsed.notes || "",
               createdAt: createdTimestamp,
               isExpired,
               expiresInHours: remainingHours,
-              paymentStatus: parsed.paymentStatus || "PAYMENT DUE",
+              paymentStatus: parsed.paymentStatus || (refund > 0 ? "REFUND DUE" : (isPaidOrSettled ? "PAID" : "PAYMENT DUE")),
               paymentMethod: parsed.paymentMethod || "UPI",
               paymentId: parsed.paymentId || undefined,
               qrImageUrl: parsed.qrImageUrl || undefined,
@@ -198,7 +242,7 @@ export default function PublicInvoicePage() {
           console.warn("Direct Supabase invoice lookup error:", dbErr);
         }
 
-        // 3. Fallback: Base64 decoding if legacy
+        // 3c. Fallback: Base64 decoding if legacy
         let decodedObj: any = null;
         try {
           const jsonStr = decodeURIComponent(atob(rawParam));
@@ -245,23 +289,51 @@ export default function PublicInvoicePage() {
         const { data: dbOrder } = await query.single();
         if (dbOrder) {
           const orderItems = Array.isArray(dbOrder.items) ? dbOrder.items : [];
-          const tw = orderItems.reduce((s: number, i: any) => s + (parseFloat(i.quantity) || 0), 0);
+          let totalOrdWeight = 0;
+          let totalActWeight = 0;
+          const mappedItems = orderItems.map((i: any) => {
+            const ordQty = typeof i.orderedWeight === "number" ? i.orderedWeight : (typeof i.orderedWeightKg === "number" ? i.orderedWeightKg : parseFloat(i.quantity) || 1);
+            const actQty = typeof i.actualWeight === "number" ? i.actualWeight : (typeof i.weightKg === "number" ? i.weightKg : parseFloat(i.quantity) || 1);
+            const rate = typeof i.price === "number" ? i.price : parseFloat(i.price) || 580;
+            totalOrdWeight += ordQty;
+            totalActWeight += actQty;
+            return {
+              name: i.name || "Fresh Rainbow Trout",
+              weightKg: actQty,
+              orderedWeightKg: ordQty,
+              pricePerKg: rate,
+              total: actQty * rate,
+            };
+          });
+
+          const isPaid = dbOrder.status === "processing" || dbOrder.status === "out_for_delivery" || dbOrder.status === "delivered";
+          const grandTotal = Number(dbOrder.total) || 0;
+          const paidAmount = dbOrder.paid_amount !== undefined
+            ? Number(dbOrder.paid_amount)
+            : ((orderItems[0] as any)?.paidAmount !== undefined
+                ? Number((orderItems[0] as any).paidAmount)
+                : ((orderItems[0] as any)?.originalTotal !== undefined
+                    ? Number((orderItems[0] as any).originalTotal)
+                    : (isPaid ? grandTotal : 0)));
+          const refundAmount = paidAmount > grandTotal ? paidAmount - grandTotal : 0;
+          const balanceAmount = grandTotal > paidAmount ? grandTotal - paidAmount : (isPaid ? 0 : grandTotal);
           const orderCreated = new Date(dbOrder.created_at).getTime();
 
           setInvoice({
             invoiceNumber: `UT-INV-${dbOrder.order_number || dbOrder.id.slice(0, 6)}`,
             customerName: dbOrder.customer_name || "Valued Customer",
             customerPhone: dbOrder.customer_phone || "N/A",
-            items: orderItems.map((i: any) => ({
-              name: i.name,
-              weightKg: parseFloat(i.quantity) || 1,
-              pricePerKg: i.price || 550,
-              total: (parseFloat(i.quantity) || 1) * (i.price || 550),
-            })),
-            totalWeight: tw,
-            grandTotal: dbOrder.total || 0,
+            items: mappedItems,
+            orderedWeight: totalOrdWeight > 0 ? totalOrdWeight : totalActWeight,
+            totalWeight: totalActWeight,
+            grandTotal,
+            paidAmount,
+            balanceAmount,
+            refundAmount,
             createdAt: orderCreated,
             isExpired: false,
+            paymentStatus: isPaid ? (refundAmount > 0 ? "REFUND DUE" : "PAID") : "PAYMENT DUE",
+            paymentMethod: isPaid ? "Online / Advance" : "Cash on Delivery",
           });
         }
       } catch (err) {
@@ -397,10 +469,12 @@ export default function PublicInvoicePage() {
                 customerPhone: invoice.customerPhone,
                 createdAt: invoice.createdAt,
                 items: invoice.items,
+                orderedWeight: invoice.orderedWeight,
                 totalWeight: invoice.totalWeight,
                 grandTotal: invoice.grandTotal,
                 paidAmount: invoice.paidAmount,
                 balanceAmount: invoice.balanceAmount,
+                refundAmount: invoice.refundAmount,
                 paymentStatus: invoice.paymentStatus,
                 paymentMethod: invoice.paymentMethod,
                 paymentId: invoice.paymentId,
@@ -545,7 +619,24 @@ export default function PublicInvoicePage() {
               <span className="text-xl text-slate-950">₹{grandTotal.toLocaleString("en-IN")}</span>
             </div>
 
-            {invoice.paidAmount !== undefined && invoice.paidAmount < grandTotal && (
+            {invoice.refundAmount !== undefined && invoice.refundAmount > 0 ? (
+              <div className="space-y-1.5 pt-1.5 text-left">
+                <div className="flex justify-between text-xs text-slate-600 font-mono">
+                  <span>Advance Received:</span>
+                  <span>₹{invoice.paidAmount?.toLocaleString("en-IN")}</span>
+                </div>
+                <div className="flex justify-between text-sm sm:text-base text-emerald-900 font-black font-mono bg-emerald-50 p-2.5 rounded-2xl border-2 border-emerald-500">
+                  <span className="flex items-center gap-1.5">
+                    <span>💵</span>
+                    <span>CASH REFUND DUE TO YOU:</span>
+                  </span>
+                  <span>₹{invoice.refundAmount.toLocaleString("en-IN")}</span>
+                </div>
+                <p className="text-[11px] text-emerald-700 font-medium leading-tight">
+                  🛵 <strong>Delivery Note:</strong> Our delivery rider will hand you <strong>₹{invoice.refundAmount}</strong> in cash or direct UPI at handover.
+                </p>
+              </div>
+            ) : invoice.paidAmount !== undefined && invoice.paidAmount < grandTotal && (
               <div className="space-y-1.5 pt-1.5 text-left">
                 <div className="flex justify-between text-xs text-emerald-800 font-mono font-semibold">
                   <span>Amount Paid / Advance:</span>
@@ -567,7 +658,22 @@ export default function PublicInvoicePage() {
           </div>
 
           {/* ─── PAYMENT STATUS / EMBEDDED UPI QR CODE ─── */}
-          {invoice.paymentStatus === "PAID" ? (
+          {invoice.refundAmount && invoice.refundAmount > 0 ? (
+            <div className="p-6 rounded-2xl bg-emerald-50 border-2 border-emerald-500 text-center space-y-2">
+              <div className="w-12 h-12 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto text-2xl font-bold shadow-sm">
+                💵
+              </div>
+              <h3 className="text-base font-extrabold text-emerald-900 tracking-wide uppercase">
+                Prepaid • Cash Refund Due: ₹{invoice.refundAmount}
+              </h3>
+              <p className="text-xs text-emerald-800 font-mono font-medium">
+                Advance Paid: ₹{invoice.paidAmount?.toLocaleString("en-IN")} • Actual Harvest: ₹{grandTotal.toLocaleString("en-IN")}
+              </p>
+              <p className="text-[11px] text-emerald-700">
+                You were charged for estimated weight. Delivery executive will return the difference of ₹{invoice.refundAmount} at your doorstep.
+              </p>
+            </div>
+          ) : invoice.paymentStatus === "PAID" ? (
             <div className="p-6 rounded-2xl bg-emerald-50 border border-emerald-200 text-center space-y-2">
               <div className="w-12 h-12 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto text-2xl font-bold shadow-sm">
                 ✓
@@ -628,53 +734,53 @@ export default function PublicInvoicePage() {
                 <div className="grid grid-cols-2 gap-2">
                   {/* PhonePe */}
                   <a
-                    href={`phonepe://pay?pa=${upiId}&pn=Urban%20Trout&am=${grandTotal}&cu=INR&tn=Invoice%20${invoice.invoiceNumber}`}
+                    href={`phonepe://pay?pa=${upiId}&pn=Urban%20Trout&am=${remainingAmount.toFixed(2)}&cu=INR&tn=Invoice%20${invoice.invoiceNumber}`}
                     className="flex items-center gap-2.5 p-3 rounded-xl border transition-all active:scale-95 cursor-pointer"
                     style={{ background: "#5f259f", borderColor: "#4a1a7a" }}
                   >
                     <img src="/icons8-phone-pe-480.svg" alt="PhonePe" style={{ width: 28, height: 28, borderRadius: 6, flexShrink: 0 }} />
                     <div className="text-left">
                       <p className="text-white font-bold text-xs">PhonePe</p>
-                      <p className="text-purple-200 text-[10px]">₹{grandTotal.toLocaleString("en-IN")}</p>
+                      <p className="text-purple-200 text-[10px]">₹{remainingAmount.toLocaleString("en-IN")}</p>
                     </div>
                   </a>
 
                   {/* Google Pay */}
                   <a
-                    href={`tez://upi/pay?pa=${upiId}&pn=Urban%20Trout&am=${grandTotal}&cu=INR&tn=Invoice%20${invoice.invoiceNumber}`}
+                    href={`tez://upi/pay?pa=${upiId}&pn=Urban%20Trout&am=${remainingAmount.toFixed(2)}&cu=INR&tn=Invoice%20${invoice.invoiceNumber}`}
                     className="flex items-center gap-2.5 p-3 rounded-xl border transition-all active:scale-95 cursor-pointer"
                     style={{ background: "#1a73e8", borderColor: "#1558b0" }}
                   >
                     <img src="/icons8-google-pay-480.svg" alt="Google Pay" style={{ width: 28, height: 28, borderRadius: 6, flexShrink: 0, background: "white", padding: 2 }} />
                     <div className="text-left">
                       <p className="text-white font-bold text-xs">Google Pay</p>
-                      <p className="text-blue-200 text-[10px]">₹{grandTotal.toLocaleString("en-IN")}</p>
+                      <p className="text-blue-200 text-[10px]">₹{remainingAmount.toLocaleString("en-IN")}</p>
                     </div>
                   </a>
 
                   {/* Paytm */}
                   <a
-                    href={`paytmmp://pay?pa=${upiId}&pn=Urban%20Trout&am=${grandTotal}&cu=INR&tn=Invoice%20${invoice.invoiceNumber}`}
+                    href={`paytmmp://pay?pa=${upiId}&pn=Urban%20Trout&am=${remainingAmount.toFixed(2)}&cu=INR&tn=Invoice%20${invoice.invoiceNumber}`}
                     className="flex items-center gap-2.5 p-3 rounded-xl border transition-all active:scale-95 cursor-pointer"
                     style={{ background: "#00BAF2", borderColor: "#0096c4" }}
                   >
                     <img src="/icons8-paytm-480.svg" alt="Paytm" style={{ width: 28, height: 28, borderRadius: 6, flexShrink: 0, background: "white", padding: 2 }} />
                     <div className="text-left">
                       <p className="text-white font-bold text-xs">Paytm</p>
-                      <p className="text-blue-100 text-[10px]">₹{grandTotal.toLocaleString("en-IN")}</p>
+                      <p className="text-blue-100 text-[10px]">₹{remainingAmount.toLocaleString("en-IN")}</p>
                     </div>
                   </a>
 
                   {/* BHIM UPI */}
                   <a
-                    href={`upi://pay?pa=${upiId}&pn=Urban%20Trout&am=${grandTotal}&cu=INR&tn=Invoice%20${invoice.invoiceNumber}`}
+                    href={`upi://pay?pa=${upiId}&pn=Urban%20Trout&am=${remainingAmount.toFixed(2)}&cu=INR&tn=Invoice%20${invoice.invoiceNumber}`}
                     className="flex items-center gap-2.5 p-3 rounded-xl border transition-all active:scale-95 cursor-pointer"
                     style={{ background: "#FF6600", borderColor: "#cc5200" }}
                   >
                     <img src="/icons8-bhim-480.svg" alt="BHIM UPI" style={{ width: 28, height: 28, borderRadius: 6, flexShrink: 0 }} />
                     <div className="text-left">
                       <p className="text-white font-bold text-xs">BHIM / Any App</p>
-                      <p className="text-orange-100 text-[10px]">₹{grandTotal.toLocaleString("en-IN")}</p>
+                      <p className="text-orange-100 text-[10px]">₹{remainingAmount.toLocaleString("en-IN")}</p>
                     </div>
                   </a>
                 </div>

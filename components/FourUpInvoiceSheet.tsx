@@ -13,18 +13,21 @@ export interface InvoiceSlipData {
   items: Array<{
     name: string;
     weightKg?: number;
+    orderedWeightKg?: number;
     quantity?: number;
     unit?: string;
     pricePerKg?: number;
     price?: number;
     total: number;
   }>;
+  orderedWeight?: number;
   totalWeight?: number;
   subtotal?: number;
   deliveryFee?: number;
   grandTotal: number;
   paidAmount?: number;
   balanceAmount?: number;
+  refundAmount?: number;
   paymentStatus?: string;
   paymentMethod?: string;
   paymentId?: string;
@@ -55,19 +58,22 @@ function SingleInvoiceSlip({
   isBottomRow: boolean;
   copyLabel?: string;
 }) {
-  const isPaid =
-    data.paymentStatus === "PAID" ||
-    (data.balanceAmount !== undefined && data.balanceAmount <= 0) ||
-    (data.paidAmount !== undefined && data.paidAmount >= data.grandTotal);
+  const orderedWeight = data.orderedWeight || 0;
+  const actualWeight = data.totalWeight || 0;
+  const hasWeightVariance = orderedWeight > 0 && actualWeight > 0 && Math.abs(orderedWeight - actualWeight) >= 0.02;
+
+  const paidAmount = data.paidAmount !== undefined ? data.paidAmount : (data.paymentStatus === "PAID" ? data.grandTotal : 0);
+  const refundAmount = data.refundAmount !== undefined ? data.refundAmount : (paidAmount > data.grandTotal ? paidAmount - data.grandTotal : 0);
+  const remainingAmount = data.balanceAmount !== undefined ? data.balanceAmount : (data.grandTotal > paidAmount ? data.grandTotal - paidAmount : (data.paymentStatus === "PAID" ? 0 : data.grandTotal));
+  const isPaid = (data.paymentStatus === "PAID" || paidAmount >= data.grandTotal) && refundAmount <= 0;
 
   const cleanPhone = String(data.customerPhone || "").replace(/\D/g, "").slice(-10);
   const upi = data.upiId || "JKBMERC00828895@jkb";
-  const remainingAmount = data.balanceAmount && data.balanceAmount > 0 ? data.balanceAmount : data.grandTotal;
 
   const terminalId = upi.includes("@")
     ? `TERM${upi.split("@")[0].replace(/^JKBMERC/, "")}`
     : "TERM00828895";
-  const upiPayUri = `upi://pay?pa=${upi}&pn=Urban%20Trout%20Aquaculture&tr=${terminalId}&am=${remainingAmount}&cu=INR&tn=Inv-${data.invoiceNumber || data.orderNumber}`;
+  const upiPayUri = `upi://pay?pa=${upi}&pn=Urban%20Trout%20Aquaculture&tr=${terminalId}&am=${remainingAmount.toFixed(2)}&cu=INR&tn=Inv-${data.invoiceNumber || data.orderNumber}`;
   const qrUrl = data.qrImageUrl || `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(upiPayUri)}&bgcolor=255-255-255&color=0-0-0&margin=1`;
 
   const dateStr = data.createdAt
@@ -147,10 +153,14 @@ function SingleInvoiceSlip({
           </p>
           <p>
             <strong className="text-black">Status:</strong>{" "}
-            {isPaid ? (
+            {refundAmount > 0 ? (
+              <span className="font-bold border border-black px-1 bg-slate-200 text-black">
+                REFUND DUE (₹{refundAmount})
+              </span>
+            ) : isPaid ? (
               <span className="font-bold underline text-black">PAID IN FULL ✓</span>
             ) : (
-              <span className="font-bold border border-black px-1 bg-slate-100">
+              <span className="font-bold border border-black px-1 bg-slate-100 text-black">
                 PAYMENT DUE (₹{remainingAmount})
               </span>
             )}
@@ -193,19 +203,76 @@ function SingleInvoiceSlip({
         </table>
 
         {/* Total Summary Row */}
-        <div className="flex justify-between items-center text-[9px] font-black border-t border-black pt-0.5 mt-0.5 font-mono">
-          <span>
-            {data.totalWeight && data.totalWeight > 0
-              ? `Harvest Wt: ${data.totalWeight.toFixed(2)} Kg`
-              : "NET PAYABLE"}
-          </span>
-          <span className="text-[10.5px]">
-            TOTAL: ₹{data.grandTotal.toLocaleString("en-IN")}
-          </span>
+        <div className="border-t border-black pt-0.5 mt-0.5 font-mono text-[7.5px]">
+          <div className="flex justify-between items-center font-black">
+            <span>
+              {hasWeightVariance ? (
+                <span>Scale: <strong>{actualWeight.toFixed(2)} Kg</strong> (Ordered: {orderedWeight.toFixed(2)} Kg)</span>
+              ) : (
+                actualWeight > 0 ? `Harvest Wt: ${actualWeight.toFixed(2)} Kg` : "NET PAYABLE"
+              )}
+            </span>
+            <span className="text-[10px]">
+              ACTUAL TOTAL: ₹{data.grandTotal.toLocaleString("en-IN")}
+            </span>
+          </div>
+
+          {paidAmount > 0 && (
+            <div className="flex justify-between text-[6.5px] text-slate-700 font-mono mt-0.5">
+              <span>Advance Paid ({data.paymentMethod || "Online / UPI"}):</span>
+              <span className="font-bold">₹{paidAmount.toLocaleString("en-IN")}</span>
+            </div>
+          )}
         </div>
       </div>
 
-      {/* ─── 4. VISCERAL LOSS EDUCATION NOTICE (USER MANDATE) ─── */}
+      {/* ─── 4. CATCH-WEIGHT RECONCILIATION & PAYMENT ACTION BANNER ─── */}
+      {refundAmount > 0 ? (
+        <div className="border border-black rounded p-1 mb-1 bg-slate-100 text-black leading-tight">
+          <div className="flex items-center justify-between text-[7.5px] font-black">
+            <span className="flex items-center gap-1">
+              <span>💵</span>
+              <span>CASH REFUND DUE TO CUSTOMER:</span>
+            </span>
+            <span className="text-[9.5px] font-mono underline font-black">₹{refundAmount.toLocaleString("en-IN")}</span>
+          </div>
+          <div className="text-[6.5px] mt-0.5 space-y-0.2">
+            <p>
+              Client paid for {orderedWeight ? `${orderedWeight.toFixed(2)} Kg` : "ordered wt"} (₹{paidAmount.toLocaleString("en-IN")}) • Actual net scale wt is {actualWeight.toFixed(2)} Kg (₹{data.grandTotal.toLocaleString("en-IN")}).
+            </p>
+            <p className="font-bold text-black">
+              🛵 RIDER ACTION: Please return ₹{refundAmount.toLocaleString("en-IN")} cash or UPI refund to customer!
+            </p>
+          </div>
+        </div>
+      ) : remainingAmount > 0 ? (
+        <div className="border border-black rounded p-1 mb-1 bg-white text-black leading-tight">
+          <div className="flex items-center justify-between text-[7.5px] font-black">
+            <span className="flex items-center gap-1">
+              <span>⚠️</span>
+              <span>PAYMENT DUE ON DELIVERY:</span>
+            </span>
+            <span className="text-[9.5px] font-mono font-black">₹{remainingAmount.toLocaleString("en-IN")}</span>
+          </div>
+          <div className="text-[6.5px] mt-0.5">
+            {paidAmount > 0 ? (
+              <p>Advance Paid: ₹{paidAmount.toLocaleString("en-IN")} • Actual Total: ₹{data.grandTotal.toLocaleString("en-IN")} • <strong>Balance Due: ₹{remainingAmount.toLocaleString("en-IN")}</strong></p>
+            ) : (
+              <p>Order not prepaid • Pay rider via Cash or scan locked J&amp;K Bank QR below</p>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="border border-black rounded p-1 mb-1 bg-slate-50 text-black text-[7px] leading-tight flex items-center justify-between">
+          <span className="font-bold flex items-center gap-1">
+            <span>✓</span>
+            <span>PAID IN FULL (PREPAID):</span>
+          </span>
+          <span className="font-mono font-bold">₹{data.grandTotal.toLocaleString("en-IN")} • DO NOT COLLECT PAYMENT</span>
+        </div>
+      )}
+
+      {/* ─── 5. VISCERAL LOSS EDUCATION NOTICE (USER MANDATE) ─── */}
       <div className="bg-slate-50 border border-slate-400 rounded p-1 mb-1 text-[7px] leading-snug">
         <p className="font-bold text-black flex items-center gap-1">
           <span>⚖️</span>
@@ -216,7 +283,7 @@ function SingleInvoiceSlip({
         </p>
       </div>
 
-      {/* ─── 5. FRESH TROUT CULINARY TIPS & CARE ─── */}
+      {/* ─── 6. FRESH TROUT CULINARY TIPS & CARE ─── */}
       <div className="border border-slate-400 rounded p-1 mb-1 text-[7px] leading-tight">
         <div className="grid grid-cols-2 gap-1">
           <div>
@@ -238,7 +305,7 @@ function SingleInvoiceSlip({
         </div>
       </div>
 
-      {/* ─── 6. FOOTER: VERIFICATION STAMP / DOORSTEP UPI QR CODE ─── */}
+      {/* ─── 7. FOOTER: VERIFICATION STAMP / LOCKED J&K BANK QR CODE ─── */}
       <div className="flex items-center justify-between border-t border-black pt-1 mt-0.5">
         <div className="text-[6.5px] text-slate-700 leading-tight">
           <p className="font-bold text-black">Urban Trout RAS Aquaculture Farm</p>
@@ -246,25 +313,36 @@ function SingleInvoiceSlip({
           <p className="font-mono text-[6px]">Live mountain spring harvest • Best enjoyed fresh within 48 hours</p>
         </div>
 
-        {isPaid ? (
+        {refundAmount > 0 ? (
           <div className="border border-black px-1.5 py-0.5 rounded text-center bg-slate-100">
-            <span className="text-[7.5px] font-black uppercase tracking-wider block">
-              ✓ VERIFIED PAID
-            </span>
-            <span className="text-[6.5px] font-mono text-slate-600 block">
-              {data.paymentMethod || "Online / UPI"}
-            </span>
+            <span className="text-[7.5px] font-black block">💵 CASH REFUND HANDOVER</span>
+            <span className="text-[6px] font-mono block">Rider Handover: [ ] Cash  [ ] UPI</span>
+            <span className="text-[6px] font-mono block font-bold">₹{refundAmount.toLocaleString("en-IN")} Returned</span>
+          </div>
+        ) : remainingAmount > 0 ? (
+          <div className="flex items-center gap-1.5">
+            <div className="text-right text-[6px] font-mono leading-tight">
+              <span className="font-black block text-black text-[7px]">LOCKED J&amp;K BANK QR</span>
+              <span className="font-black block text-black">₹{remainingAmount.toLocaleString("en-IN")}</span>
+              <span className="text-[5.5px] block text-slate-600 truncate max-w-[28mm]">{upi}</span>
+              <span className="text-[5px] block text-slate-500">Scan: GPay / mPay / PhonePe</span>
+            </div>
+            <div className="w-10 h-10 border border-black p-0.5 bg-white flex-shrink-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={qrUrl} alt="Locked UPI QR" className="w-full h-full object-contain" />
+            </div>
           </div>
         ) : (
-          <div className="flex items-center gap-1.5">
-            <div className="text-right text-[6.5px] font-mono">
-              <span className="font-bold block text-black">Doorstep UPI QR</span>
-              <span className="text-[6px] block text-slate-600 truncate max-w-[28mm]">{upi}</span>
-            </div>
-            <div className="w-9 h-9 border border-black p-0.5 bg-white flex-shrink-0">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={qrUrl} alt="UPI QR" className="w-full h-full object-contain" />
-            </div>
+          <div className="border border-black px-2 py-0.5 rounded text-center bg-slate-100">
+            <span className="text-[7.5px] font-black uppercase tracking-wider block">
+              ✓ VERIFIED PREPAID
+            </span>
+            <span className="text-[6px] font-mono text-slate-600 block">
+              {data.paymentMethod || "Online / UPI"}
+            </span>
+            <span className="text-[5.5px] font-mono text-slate-500 block">
+              Do Not Collect Payment
+            </span>
           </div>
         )}
       </div>

@@ -71,16 +71,23 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { orderId, status } = body;
 
-    if (!orderId || !status) {
-      return NextResponse.json({ success: false, error: "Missing orderId or status" }, { status: 400 });
+    if (!orderId) {
+      return NextResponse.json({ success: false, error: "Missing orderId" }, { status: 400 });
     }
 
     const client = getServiceClient();
 
-    // 1. Update status in Supabase using service role client
+    // 1. Build update payload
+    const updatePayload: any = {};
+    if (status) updatePayload.status = status;
+    if (body.items !== undefined) updatePayload.items = body.items;
+    if (body.total !== undefined) updatePayload.total = body.total;
+    if (body.subtotal !== undefined) updatePayload.subtotal = body.subtotal;
+    if (body.notes !== undefined) updatePayload.notes = body.notes;
+
     let query = client
       .from("orders")
-      .update({ status });
+      .update(updatePayload);
 
     const isNumeric = /^\d+$/.test(String(orderId));
     if (isNumeric) {
