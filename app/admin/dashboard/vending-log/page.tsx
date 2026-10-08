@@ -350,7 +350,28 @@ export default function VendingCenterLoggerPage() {
   };
 
   // ─── Aquarium Stock (Biomass Procurement) State ───
-  const [stockEntries, setStockEntries] = useState<AquariumStockEntry[]>([]);
+  const [stockEntries, setStockEntries] = useState<AquariumStockEntry[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const cached = localStorage.getItem("ut_aquarium_stock_cache");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (_) {}
+    return [];
+  });
+  const [stockLoading, setStockLoading] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    try {
+      const cached = localStorage.getItem("ut_aquarium_stock_cache");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) return false;
+      }
+    } catch (_) {}
+    return true;
+  });
   const [stockTableAvailable, setStockTableAvailable] = useState(true);
   const [stockLogOpen, setStockLogOpen] = useState(false); // collapsible section
   const [stockModalOpen, setStockModalOpen] = useState(false);
@@ -359,8 +380,19 @@ export default function VendingCenterLoggerPage() {
 
   // ─── Supplier Volume Rebates (Khyber Aquaculture) State ───
   const [supplierRebatesOpen, setSupplierRebatesOpen] = useState(true);
-  const [supplierRebatesMap, setSupplierRebatesMap] = useState<Record<string, number>>({
-    "2026-09": 3020, // Finalized September 2026 volume rebate (302 Kg @ ₹10/Kg)
+  const [supplierRebatesMap, setSupplierRebatesMap] = useState<Record<string, number>>(() => {
+    const defaultMap: Record<string, number> = {
+      "2026-09": 3020, // Finalized September 2026 volume rebate (302 Kg @ ₹10/Kg)
+    };
+    if (typeof window === "undefined") return defaultMap;
+    try {
+      const cached = localStorage.getItem("ut_supplier_rebates_cache");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        return { ...defaultMap, ...parsed };
+      }
+    } catch (_) {}
+    return defaultMap;
   });
 
   // Authoritative server date synchronized from API (Asia/Kolkata)
@@ -383,7 +415,7 @@ export default function VendingCenterLoggerPage() {
   const [stockFormSupplier, setStockFormSupplier] = useState("Khyber Aquaculture");
   const [stockFormType, setStockFormType] = useState<"Gutted" | "Non Gutted">("Non Gutted");
   const [stockFormWeight, setStockFormWeight] = useState("");
-  const [stockFormCost, setStockFormCost] = useState("350");
+  const [stockFormCost, setStockFormCost] = useState("435");
   const [stockFormNotes, setStockFormNotes] = useState("");
   const [stockFormPresentStock, setStockFormPresentStock] = useState<string>("");
 
@@ -529,7 +561,17 @@ export default function VendingCenterLoggerPage() {
   const [kpiCategory, setKpiCategory] = useState<"sales" | "aquarium" | "staff" | "expenses" | "all">("sales");
 
   // ─── Aquarium Mortality & Scrap Wastage State ───
-  const [mortalityEntries, setMortalityEntries] = useState<AquariumMortalityEntry[]>([]);
+  const [mortalityEntries, setMortalityEntries] = useState<AquariumMortalityEntry[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const cached = localStorage.getItem("ut_aquarium_mortality_cache");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (_) {}
+    return [];
+  });
   const [mortalityModalOpen, setMortalityModalOpen] = useState(false);
   const [savingMortality, setSavingMortality] = useState(false);
   const [showMortalityTable, setShowMortalityTable] = useState(false);
@@ -894,12 +936,18 @@ export default function VendingCenterLoggerPage() {
       if (res.ok) {
         const data = await res.json();
         if (data.success) {
-          setStockEntries(data.entries || []);
+          const list = data.entries || [];
+          setStockEntries(list);
           setStockTableAvailable(data.isTableAvailable ?? true);
+          try {
+            localStorage.setItem("ut_aquarium_stock_cache", JSON.stringify(list));
+          } catch (_) {}
         }
       }
     } catch (err) {
       console.warn("Could not fetch aquarium stock entries:", err);
+    } finally {
+      setStockLoading(false);
     }
   }, []);
 
@@ -921,6 +969,9 @@ export default function VendingCenterLoggerPage() {
           // Ensure September 2026 has at least the confirmed ₹3,020 rebate
           if (!map["2026-09"]) map["2026-09"] = 3020;
           setSupplierRebatesMap(map);
+          try {
+            localStorage.setItem("ut_supplier_rebates_cache", JSON.stringify(map));
+          } catch (_) {}
         }
       }
     } catch (err) {
@@ -965,6 +1016,9 @@ export default function VendingCenterLoggerPage() {
         const data = await res.json();
         if (data.success && Array.isArray(data.entries)) {
           setMortalityEntries(data.entries);
+          try {
+            localStorage.setItem("ut_aquarium_mortality_cache", JSON.stringify(data.entries));
+          } catch (_) {}
         }
       }
     } catch (err) {
@@ -1140,7 +1194,8 @@ export default function VendingCenterLoggerPage() {
       totalProcuredKg = Math.round((totalProcuredKg + w) * 1000) / 1000;
       totalProcuredCost += w * cost;
     });
-    return totalProcuredKg > 0 ? Math.round(totalProcuredCost / totalProcuredKg) : 350;
+    // Standard Khyber delivered live trout procurement is Rs 410 base + Rs 25 transport = Rs 435/Kg
+    return totalProcuredKg > 0 ? Math.round(totalProcuredCost / totalProcuredKg) : 435;
   }, [stockEntries]);
 
   // ─── KPI Metrics (Computed on period filtered entries) ───
@@ -1643,8 +1698,8 @@ export default function VendingCenterLoggerPage() {
     // Value of remaining stock if ALL sold as Non-Gutted
     const valueIfNonGutted = Math.round(remainingKg * nonGuttedPrice);
 
-    // Avg procurement cost per kg
-    const avgCostPerKg = totalProcuredKg > 0 ? totalProcuredCost / totalProcuredKg : 350;
+    // Avg procurement cost per kg (Standard delivered procurement is Rs 435/Kg: Rs 410 base + Rs 25 transport)
+    const avgCostPerKg = totalProcuredKg > 0 ? totalProcuredCost / totalProcuredKg : 435;
 
     // Financial loss due to mortality
     const totalMortalityCost = Math.round(totalMortalityKg * avgCostPerKg);
@@ -2137,7 +2192,13 @@ export default function VendingCenterLoggerPage() {
       if (res.ok) {
         const data = await res.json();
         if (data.success && data.entry) {
-          setStockEntries((prev) => [data.entry, ...prev]);
+          setStockEntries((prev) => {
+            const updated = [data.entry, ...prev];
+            try {
+              localStorage.setItem("ut_aquarium_stock_cache", JSON.stringify(updated));
+            } catch (_) {}
+            return updated;
+          });
           setStockModalOpen(false);
           setStockFormWeight("");
           setStockFormNotes("");
@@ -2165,7 +2226,13 @@ export default function VendingCenterLoggerPage() {
         method: "DELETE",
       });
       if (res.ok) {
-        setStockEntries((prev) => prev.filter((s) => s.id !== id));
+        setStockEntries((prev) => {
+          const updated = prev.filter((s) => s.id !== id);
+          try {
+            localStorage.setItem("ut_aquarium_stock_cache", JSON.stringify(updated));
+          } catch (_) {}
+          return updated;
+        });
         setDeleteStockConfirmId(null);
       }
     } catch (err) {
@@ -2203,7 +2270,13 @@ export default function VendingCenterLoggerPage() {
       if (res.ok) {
         const data = await res.json();
         if (data.success && data.entry) {
-          setMortalityEntries((prev) => [data.entry, ...prev]);
+          setMortalityEntries((prev) => {
+            const updated = [data.entry, ...prev];
+            try {
+              localStorage.setItem("ut_aquarium_mortality_cache", JSON.stringify(updated));
+            } catch (_) {}
+            return updated;
+          });
           setMortalityModalOpen(false);
           setMortalityFormWeight("");
           setMortalityFormCount("1");
@@ -2230,7 +2303,13 @@ export default function VendingCenterLoggerPage() {
         method: "DELETE",
       });
       if (res.ok) {
-        setMortalityEntries((prev) => prev.filter((m) => m.id !== id));
+        setMortalityEntries((prev) => {
+          const updated = prev.filter((m) => m.id !== id);
+          try {
+            localStorage.setItem("ut_aquarium_mortality_cache", JSON.stringify(updated));
+          } catch (_) {}
+          return updated;
+        });
         setDeleteMortalityConfirmId(null);
       }
     } catch (err) {
@@ -3784,7 +3863,7 @@ export default function VendingCenterLoggerPage() {
                 <span className="material-symbols-outlined text-sm text-blue-400">set_meal</span>
                 <span>Aquarium Stock</span>
                 <span className="px-1.5 py-0.2 rounded bg-blue-500/20 text-[10px] text-blue-300 font-mono">
-                  {formatKg(aquariumStock.remainingKg)} Kg
+                  {stockLoading && stockEntries.length === 0 ? "..." : `${formatKg(aquariumStock.remainingKg)} Kg`}
                 </span>
               </button>
 
@@ -3997,7 +4076,7 @@ export default function VendingCenterLoggerPage() {
                     <span className="material-symbols-outlined text-teal-400 text-lg">trending_up</span>
                   </div>
                   <div className="mt-2 flex items-baseline gap-1 min-h-[32px]">
-                    {loading && entries.length === 0 ? (
+                    {(loading && entries.length === 0) || (stockLoading && stockEntries.length === 0) ? (
                       <div className="h-7 w-28 bg-teal-500/10 rounded animate-pulse" />
                     ) : (
                       <>
@@ -4025,7 +4104,7 @@ export default function VendingCenterLoggerPage() {
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-[10.5px] text-slate-500">
-                    <span>Proc: ₹{kpis.procurementAvgCost}/Kg</span>
+                    <span>Proc: {stockLoading && stockEntries.length === 0 ? "..." : `₹${kpis.procurementAvgCost}/Kg`}</span>
                     <span
                       className="text-amber-300/90 font-medium"
                       title="Mohd Amin's ₹5/Kg gutting incentive deducted from gutted profit"
@@ -4637,23 +4716,35 @@ export default function VendingCenterLoggerPage() {
                   <span className="material-symbols-outlined text-blue-400 text-lg">water</span>
                 </div>
                 <div className="mt-2 flex items-baseline gap-2 min-h-[32px]">
-                  <span
-                    className="text-2xl sm:text-3xl font-black text-white"
-                    style={{ fontFamily: '"Space Grotesk", sans-serif' }}
-                  >
-                    {formatKg(aquariumStock.remainingKg)}
-                  </span>
-                  <span className="text-blue-400 font-bold font-mono text-sm">Kg</span>
+                  {stockLoading && stockEntries.length === 0 ? (
+                    <div className="h-7 w-28 bg-blue-500/10 rounded animate-pulse" />
+                  ) : (
+                    <>
+                      <span
+                        className="text-2xl sm:text-3xl font-black text-white"
+                        style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                      >
+                        {formatKg(aquariumStock.remainingKg)}
+                      </span>
+                      <span className="text-blue-400 font-bold font-mono text-sm">Kg</span>
+                    </>
+                  )}
                 </div>
               </div>
               <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2 space-y-0.5">
                 <div className="flex items-center justify-between">
                   <span className="text-slate-400">Procured:</span>
-                  <span className="text-blue-200 font-bold">{formatKg(aquariumStock.totalProcuredKg)} Kg</span>
+                  <span className="text-blue-200 font-bold">
+                    {stockLoading && stockEntries.length === 0 ? "..." : `${formatKg(aquariumStock.totalProcuredKg)} Kg`}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between text-[10.5px]">
-                  <span className="text-rose-400">Mortality: -{formatKg(aquariumStock.totalMortalityKg)} Kg</span>
-                  <span className="text-slate-500">₹{aquariumStock.avgCostPerKg}/Kg</span>
+                  <span className="text-rose-400">
+                    Mortality: {stockLoading && stockEntries.length === 0 ? "..." : `-${formatKg(aquariumStock.totalMortalityKg)} Kg`}
+                  </span>
+                  <span className="text-slate-500">
+                    {stockLoading && stockEntries.length === 0 ? "..." : `₹${aquariumStock.avgCostPerKg}/Kg`}
+                  </span>
                 </div>
               </div>
             </div>
@@ -8254,7 +8345,7 @@ export default function VendingCenterLoggerPage() {
                     value={stockFormCost}
                     onChange={(e) => setStockFormCost(e.target.value)}
                     className="w-full px-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-blue-400 font-mono"
-                    placeholder="350"
+                    placeholder="435"
                     required
                   />
                 </div>
