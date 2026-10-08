@@ -18,6 +18,7 @@ import PaginationBar from "@/components/PaginationBar";
 import StaffAuditModal from "./StaffAuditModal";
 import EntryHistoryModal from "./EntryHistoryModal";
 import DailySalesHistogram from "./DailySalesHistogram";
+import SupplierRebateTracker from "@/components/SupplierRebateTracker";
 
 const DEFAULT_GUTTED_PRICE = 580;
 const DEFAULT_NON_GUTTED_PRICE = 540;
@@ -355,6 +356,12 @@ export default function VendingCenterLoggerPage() {
   const [stockModalOpen, setStockModalOpen] = useState(false);
   const [savingStock, setSavingStock] = useState(false);
   const [deleteStockConfirmId, setDeleteStockConfirmId] = useState<string | null>(null);
+
+  // ─── Supplier Volume Rebates (Khyber Aquaculture) State ───
+  const [supplierRebatesOpen, setSupplierRebatesOpen] = useState(true);
+  const [supplierRebatesMap, setSupplierRebatesMap] = useState<Record<string, number>>({
+    "2026-09": 3020, // Finalized September 2026 volume rebate (302 Kg @ ₹10/Kg)
+  });
 
   // Authoritative server date synchronized from API (Asia/Kolkata)
   const [serverTodayDate, setServerTodayDate] = useState<string>(() => getIstTodayDate());
@@ -900,6 +907,31 @@ export default function VendingCenterLoggerPage() {
     fetchStockEntries();
   }, [fetchStockEntries]);
 
+  // ─── Fetch Supplier Volume Rebates (Khyber Aquaculture) ───
+  const fetchSupplierRebates = useCallback(async () => {
+    try {
+      const res = await adminFetch("/api/supplier-rebates");
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && data.monthlySummaries) {
+          const map: Record<string, number> = {};
+          Object.keys(data.monthlySummaries).forEach((mKey) => {
+            map[mKey] = data.monthlySummaries[mKey].rebateEarned || 0;
+          });
+          // Ensure September 2026 has at least the confirmed ₹3,020 rebate
+          if (!map["2026-09"]) map["2026-09"] = 3020;
+          setSupplierRebatesMap(map);
+        }
+      }
+    } catch (err) {
+      console.warn("Could not fetch supplier rebates:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchSupplierRebates();
+  }, [fetchSupplierRebates]);
+
   // ─── Fetch Worker Salary Payments (Mohd Amin) ───
   const fetchSalaryPayments = useCallback(async () => {
     try {
@@ -1308,10 +1340,30 @@ export default function VendingCenterLoggerPage() {
     };
   }, [filteredEntriesByPeriod, procurementAvgCost]);
 
-  // ─── Final Operating Net Profit (Realized Sold Profit minus Operational Expenses & Worker Salary) ───
+  // ─── Period Supplier Volume Rebate (Khyber Aquaculture Slabs) ───
+  const periodSupplierRebate = useMemo(() => {
+    if (period === "month" && selectedMonth) {
+      return supplierRebatesMap[selectedMonth] ?? (selectedMonth === "2026-09" ? 3020 : 0);
+    }
+    if (period === "all") {
+      return Object.values(supplierRebatesMap).reduce((sum, v) => sum + (Number(v) || 0), 0) || 3020;
+    }
+    if (period === "custom" && customStartDate && customEndDate) {
+      let total = 0;
+      Object.entries(supplierRebatesMap).forEach(([mKey, amt]) => {
+        if (mKey >= customStartDate.slice(0, 7) && mKey <= customEndDate.slice(0, 7)) {
+          total += amt;
+        }
+      });
+      return total;
+    }
+    return 0;
+  }, [period, selectedMonth, customStartDate, customEndDate, supplierRebatesMap]);
+
+  // ─── Final Operating Net Profit (Realized Sold Profit + Supplier Rebate minus Operational Expenses & Worker Salary) ───
   const finalProfit = useMemo(() => {
-    return Math.round(kpis.totalSoldProfit - periodExpensesTotal - periodSalaryTotal);
-  }, [kpis.totalSoldProfit, periodExpensesTotal, periodSalaryTotal]);
+    return Math.round(kpis.totalSoldProfit + periodSupplierRebate - periodExpensesTotal - periodSalaryTotal);
+  }, [kpis.totalSoldProfit, periodSupplierRebate, periodExpensesTotal, periodSalaryTotal]);
 
   const finalProfitMargin = useMemo(() => {
     return kpis.totalRevenue > 0 ? ((finalProfit / kpis.totalRevenue) * 100).toFixed(1) : "0.0";
@@ -1514,7 +1566,8 @@ export default function VendingCenterLoggerPage() {
       const guttedCost = Math.round(m.guttedKg * procurementAvgCost);
       const nonGuttedCost = Math.round(m.nonGuttedKg * procurementAvgCost);
       const totalFishCost = guttedCost + nonGuttedCost + m.guttingLaborCost;
-      const fishGrossProfit = Math.round(m.revenue - totalFishCost);
+      const supplierRebate = supplierRebatesMap[m.monthKey] ?? (m.monthKey === "2026-09" ? 3020 : 0);
+      const fishGrossProfit = Math.round(m.revenue - totalFishCost + supplierRebate);
       const finalNetProfit = Math.round(fishGrossProfit - m.expenses - m.salaryPaid);
       const marginPercent = m.revenue > 0 ? ((finalNetProfit / m.revenue) * 100).toFixed(1) : "0.0";
 
@@ -1522,6 +1575,7 @@ export default function VendingCenterLoggerPage() {
         ...m,
         guttedCost,
         nonGuttedCost,
+        supplierRebate,
         fishGrossProfit,
         finalNetProfit,
         marginPercent,
@@ -1531,7 +1585,7 @@ export default function VendingCenterLoggerPage() {
     });
 
     return rows.sort((a, b) => b.monthKey.localeCompare(a.monthKey));
-  }, [entries, expenses, salaryPayments, procurementAvgCost]);
+  }, [entries, expenses, salaryPayments, procurementAvgCost, supplierRebatesMap]);
 
   // ─── Aquarium Live Stock Calculations ───
   // All stock procured is LIVE FISH. We track what's left in the aquarium.
@@ -2761,6 +2815,7 @@ export default function VendingCenterLoggerPage() {
       "Gutted Sold (Kg)",
       "Non-Gutted Sold (Kg)",
       "Sales Revenue (Rs)",
+      "Supplier Volume Rebate (Rs)",
       "Fish Procurement Cost (Rs)",
       "Gutting Labor Incentive (Rs)",
       "Fish Gross Profit (Rs)",
@@ -2776,6 +2831,7 @@ export default function VendingCenterLoggerPage() {
       m.guttedKg,
       m.nonGuttedKg,
       m.revenue,
+      (m as any).supplierRebate || 0,
       m.guttedCost + m.nonGuttedCost,
       m.guttingLaborCost,
       m.fishGrossProfit,
@@ -4254,6 +4310,15 @@ export default function VendingCenterLoggerPage() {
                       <span>-₹{periodSalaryTotal.toLocaleString("en-IN")}</span>
                     </div>
                   )}
+                  {periodSupplierRebate > 0 && (
+                    <div className="flex items-center justify-between text-emerald-400 font-bold text-[10.5px] bg-emerald-950/40 px-1.5 py-0.5 rounded border border-emerald-500/30">
+                      <span className="flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[12px]">verified</span>
+                        Khyber Volume Rebate:
+                      </span>
+                      <span>+₹{periodSupplierRebate.toLocaleString("en-IN")}</span>
+                    </div>
+                  )}
                   <div className="text-[10px] text-slate-500 truncate">
                     Sold Profit minus Overheads {periodSalaryTotal > 0 ? "& Worker Salary" : ""}
                   </div>
@@ -4480,6 +4545,24 @@ export default function VendingCenterLoggerPage() {
             <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
+                onClick={() => setSupplierRebatesOpen((p) => !p)}
+                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-mono font-bold transition-all cursor-pointer ${
+                  supplierRebatesOpen
+                    ? "bg-blue-600 text-white border-blue-500 shadow-md shadow-blue-500/30"
+                    : "bg-slate-900/80 hover:bg-slate-800 text-blue-300 border-blue-500/30"
+                }`}
+                title="Toggle Khyber Aquaculture Volume Rebate Tracker & Credit Ledger"
+              >
+                <span className="material-symbols-outlined text-xs">
+                  {supplierRebatesOpen ? "expand_less" : "expand_more"}
+                </span>
+                <span>🏢 Khyber Rebates</span>
+                <span className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[9.5px]">
+                  ₹3,020 Credit
+                </span>
+              </button>
+              <button
+                type="button"
                 onClick={() => setStockLogOpen((p) => !p)}
                 className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900/80 hover:bg-slate-800 text-slate-300 border border-slate-700/60 text-[11px] font-mono font-bold transition-all cursor-pointer"
                 title="Toggle procurement log"
@@ -4521,6 +4604,23 @@ export default function VendingCenterLoggerPage() {
               </button>
             </div>
           </div>
+
+          {/* 🏢 Dedicated Khyber Aquaculture Volume Rebate & Slab Intelligence System */}
+          {supplierRebatesOpen && (
+            <div className="animate-in fade-in duration-200">
+              <SupplierRebateTracker
+                onRebateUpdated={() => {
+                  fetchStockEntries();
+                  fetchSupplierRebates();
+                }}
+                currentFilterMonth={selectedMonth}
+                onFilterToMonth={(mKey) => {
+                  setPeriod("month");
+                  setSelectedMonth(mKey);
+                }}
+              />
+            </div>
+          )}
 
           {/* Flash Cards Row — 6 cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-3.5">
@@ -7785,6 +7885,7 @@ export default function VendingCenterLoggerPage() {
                         <th className="py-2.5 px-3 text-right">Bills</th>
                         <th className="py-2.5 px-3 text-right">Sold Kg</th>
                         <th className="py-2.5 px-3 text-right">Sales Revenue</th>
+                        <th className="py-2.5 px-3 text-right text-emerald-400 font-bold">Supplier Rebate</th>
                         <th className="py-2.5 px-3 text-right">Fish Gross Profit</th>
                         <th className="py-2.5 px-3 text-right">Expenses</th>
                         <th className="py-2.5 px-3 text-right">Mohd Amin Wages</th>
@@ -7840,6 +7941,27 @@ export default function VendingCenterLoggerPage() {
                               ₹{row.revenue.toLocaleString("en-IN")}
                             </td>
 
+                            <td className="py-3 px-3 text-right whitespace-nowrap">
+                              {row.supplierRebate > 0 ? (
+                                <div className="flex flex-col items-end">
+                                  <span className="font-black text-emerald-400 font-mono">
+                                    +₹{row.supplierRebate.toLocaleString("en-IN")}
+                                  </span>
+                                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold flex items-center gap-0.5">
+                                    <span className="material-symbols-outlined text-[10px]">verified</span>
+                                    Khyber Slab 2
+                                  </span>
+                                </div>
+                              ) : row.monthKey === "2026-10" ? (
+                                <div className="flex flex-col items-end">
+                                  <span className="text-slate-400 font-mono">₹0</span>
+                                  <span className="text-[9px] text-amber-400 font-bold">110/300 Kg (190 Kg to next)</span>
+                                </div>
+                              ) : (
+                                <span className="text-slate-600 font-mono">₹0</span>
+                              )}
+                            </td>
+
                             <td className="py-3 px-3 text-right text-teal-300 font-bold whitespace-nowrap">
                               ₹{row.fishGrossProfit.toLocaleString("en-IN")}
                             </td>
@@ -7853,14 +7975,21 @@ export default function VendingCenterLoggerPage() {
                             </td>
 
                             <td className="py-3 px-3.5 text-right whitespace-nowrap">
-                              <span
-                                className={`font-black text-sm ${
-                                  row.finalNetProfit >= 0 ? "text-emerald-400" : "text-rose-400"
-                                }`}
-                              >
-                                {row.finalNetProfit >= 0 ? "₹" : "-₹"}
-                                {Math.abs(row.finalNetProfit).toLocaleString("en-IN")}
-                              </span>
+                              <div className="flex flex-col items-end">
+                                <span
+                                  className={`font-black text-sm ${
+                                    row.finalNetProfit >= 0 ? "text-emerald-400" : "text-rose-400"
+                                  }`}
+                                >
+                                  {row.finalNetProfit >= 0 ? "₹" : "-₹"}
+                                  {Math.abs(row.finalNetProfit).toLocaleString("en-IN")}
+                                </span>
+                                {row.supplierRebate > 0 && (
+                                  <span className="text-[9px] text-emerald-400/90 font-mono">
+                                    +₹{row.supplierRebate.toLocaleString("en-IN")} rebate included
+                                  </span>
+                                )}
+                              </div>
                             </td>
 
                             <td className="py-3 px-3 text-center whitespace-nowrap">

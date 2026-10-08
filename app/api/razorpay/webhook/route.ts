@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { notifyRazorpayPayment } from "@/lib/telegram";
 import { sendPaymentLinkConfirmationEmail } from "@/lib/email";
 import { enqueueWhatsAppDispatch } from "@/lib/whatsappDispatch";
+import { autoSettleKhataPayment } from "@/lib/khataAutoSettle";
 
 export const dynamic = "force-dynamic";
 
@@ -265,29 +266,20 @@ export async function POST(req: NextRequest) {
         console.warn("Invoices sync notice for payment_link.paid:", invErr);
       }
 
-      // 5. If this is a Customer Balance (Khata) Payment Link:
-      if (String(orderRef).startsWith("BAL-") || String(orderRef).startsWith("Bal-")) {
-        try {
-          const balanceRef = String(orderRef).replace(/^(BAL-|Bal-)/, "");
-          const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://urbantrout.in";
-          const adminAuthToken = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.ADMIN_API_SECRET || "";
-          await fetch(`${siteUrl}/api/customer-balance`, {
-            method: "PATCH",
-            headers: {
-              "Content-Type": "application/json",
-              "x-admin-token": adminAuthToken,
-            },
-            body: JSON.stringify({
-              id: balanceRef,
-              action: "RECORD_PAYMENT",
-              amountReceived: amount,
-              paymentMethod: "Razorpay Link (Verified)",
-              settlementNote: `Paid in full via Razorpay Online Link (Payment ID: ${paymentId})`,
-            }),
-          });
-        } catch (balErr) {
-          console.warn("Error auto-settling customer balance via webhook:", balErr);
-        }
+      // 5. Check and Auto-Settle Customer Balance (Khata) if customer has open balance
+      try {
+        await autoSettleKhataPayment({
+          paymentId,
+          paymentLinkId,
+          orderRef,
+          amount,
+          customerPhone: cleanPhone || customerPhone,
+          customerName,
+          notes,
+          method,
+        });
+      } catch (autoKhataErr) {
+        console.warn("[webhook] autoSettleKhataPayment notice for payment_link.paid:", autoKhataErr);
       }
 
       return NextResponse.json({ success: true, processed: paymentId, type: "payment_link.paid" });
@@ -452,33 +444,20 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // 4. Update customer balance / vending log if this was a Balance QR or Balance Order
-      const rawRef = notes.order_ref || notes.bill_number || description || "";
-      if (String(rawRef).includes("BAL-") || String(rawRef).includes("Bal-")) {
-        try {
-          const match = String(rawRef).match(/Bal(?:ance)?-([A-Za-z0-9\-_]+)/i);
-          const balanceRef = match ? match[1] : null;
-          if (balanceRef) {
-            const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://urbantrout.in";
-            const adminAuthToken = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.ADMIN_API_SECRET || "";
-            await fetch(`${siteUrl}/api/customer-balance`, {
-              method: "PATCH",
-              headers: {
-                "Content-Type": "application/json",
-                "x-admin-token": adminAuthToken,
-              },
-              body: JSON.stringify({
-                id: balanceRef,
-                action: "RECORD_PAYMENT",
-                amountReceived: amount,
-                paymentMethod: "Razorpay QR (Verified)",
-                settlementNote: `Paid in full via Razorpay Dynamic QR (Payment ID: ${paymentId})`,
-              }),
-            });
-          }
-        } catch (balQrErr) {
-          console.warn("Error auto-settling balance QR via webhook:", balQrErr);
-        }
+      // 4. Check and Auto-Settle Customer Balance (Khata) if customer has open balance
+      try {
+        await autoSettleKhataPayment({
+          paymentId,
+          paymentLinkId,
+          orderRef: orderRef || notes?.order_ref || null,
+          amount,
+          customerPhone: cleanPhone || customerPhone,
+          customerName,
+          notes,
+          method: payment.method ? payment.method.toUpperCase() : "Online Payment (Razorpay)",
+        });
+      } catch (autoKhataErr) {
+        console.warn("[webhook] autoSettleKhataPayment notice for payment.captured:", autoKhataErr);
       }
 
       return NextResponse.json({ success: true, processed: paymentId });
