@@ -1,4 +1,5 @@
 "use client";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -12,6 +13,34 @@ const C = {
 
 export default function Footer() {
   const pathname = usePathname();
+  const [reviewsData, setReviewsData] = useState<{ rating: number; reviewCount: number; mapsUrl: string }>({
+    rating: 5.0,
+    reviewCount: 22,
+    mapsUrl: "https://maps.app.goo.gl/4N8A8ywhJpys9EaDA",
+  });
+
+  useEffect(() => {
+    try {
+      const cached = localStorage.getItem("ut_reviews_cache");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed?.rating) setReviewsData(parsed);
+      }
+    } catch (_) {}
+
+    fetch("/api/reviews")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.success && data?.reviews) {
+          setReviewsData(data.reviews);
+          try {
+            localStorage.setItem("ut_reviews_cache", JSON.stringify(data.reviews));
+          } catch (_) {}
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   if (pathname.startsWith("/admin")) return null;
 
   return (
@@ -230,12 +259,12 @@ export default function Footer() {
             {/* Google Business Profile / Maps */}
             <div style={{ marginTop: "6px" }}>
               <a
-                href="https://maps.app.goo.gl/4N8A8ywhJpys9EaDA"
+                href={reviewsData.mapsUrl || "https://maps.app.goo.gl/4N8A8ywhJpys9EaDA"}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 text-xs text-cyan-400 font-bold hover:underline"
               >
-                <span>📍 Urban Trout Aquaculture on Google Maps (4.9 ★)</span>
+                <span>📍 Urban Trout Aquaculture on Google Maps ({Number(reviewsData.rating).toFixed(1)} ★)</span>
                 <span>↗</span>
               </a>
             </div>

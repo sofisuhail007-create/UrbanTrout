@@ -5,6 +5,7 @@ import StoreClosedBanner from "@/components/StoreClosedBanner";
 import { supabase } from "@/lib/supabase";
 import { getBusinessHoursInfo } from "@/lib/businessHours";
 import { getLiveAquariumStock } from "@/lib/aquariumStock";
+import { getGoogleReviewsData } from "@/lib/reviews";
 
 export const metadata: Metadata = {
   title: "Premium Cleaned & Gutted Rainbow Trout (₹580/Kg)",
@@ -43,6 +44,7 @@ const C = {
 export const revalidate = 30;
 
 export default async function GuttedTroutPage() {
+  const reviewsData = await getGoogleReviewsData();
   // ── Business Hours & Store Overrides Check ────────────────────────────────
   const { data: settingsRows } = await supabase
     .from("app_settings")
@@ -107,8 +109,8 @@ export default async function GuttedTroutPage() {
     },
     "aggregateRating": {
       "@type": "AggregateRating",
-      "ratingValue": "4.9",
-      "reviewCount": "42",
+      "ratingValue": String(Number(reviewsData.rating).toFixed(1)),
+      "reviewCount": String(reviewsData.reviewCount),
       "bestRating": "5",
       "worstRating": "1"
     },

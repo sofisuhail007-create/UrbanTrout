@@ -9,8 +9,8 @@ export interface GoogleReviewsData {
 }
 
 export const DEFAULT_REVIEWS: GoogleReviewsData = {
-  rating: 4.9,
-  reviewCount: 15,
+  rating: 5.0,
+  reviewCount: 22,
   reviewUrl: "https://g.page/r/CTVKEpV62HMmECE/review",
   mapsUrl: "https://maps.app.goo.gl/4N8A8ywhJpys9EaDA",
   placeId: "ChIJO-ZGTo2F4TgRNUoSlXrYcyY",

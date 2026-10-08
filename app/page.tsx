@@ -241,8 +241,8 @@ export default async function HomePage() {
         },
         "aggregateRating": {
           "@type": "AggregateRating",
-          "ratingValue": "4.9",
-          "reviewCount": "34",
+          "ratingValue": String(Number(reviewsData.rating).toFixed(1)),
+          "reviewCount": String(reviewsData.reviewCount),
           "bestRating": "5",
           "worstRating": "1",
         },
@@ -327,8 +327,8 @@ export default async function HomePage() {
         },
         "aggregateRating": {
           "@type": "AggregateRating",
-          "ratingValue": "4.9",
-          "reviewCount": "42",
+          "ratingValue": String(Number(reviewsData.rating).toFixed(1)),
+          "reviewCount": String(reviewsData.reviewCount),
           "bestRating": "5",
           "worstRating": "1",
         },
@@ -1095,12 +1095,12 @@ export default async function HomePage() {
                   Authentic Kashmiri Marinade &amp; Recipes
                 </h3>
                 <p className="text-xs text-slate-300 leading-relaxed font-sans mb-3">
-                  Kashmiri culinary heritage pairs trout with warm digestive aromatics and cold-pressed mustard oil (<em className="text-amber-300">Kaer tuel</em>), whose high smoking point (~250°C) flashes the delicate scales into a micro-crisp crust while pungent ginger (<em className="text-amber-300">shonth</em>) and fennel neutralise any residual fishy amines:
+                  Kashmiri culinary heritage pairs trout with warm digestive aromatics and cold-pressed mustard oil (<em className="text-amber-300">Kaeshur Tiel</em>), whose high smoking point (~250°C) flashes the delicate scales into a micro-crisp crust while pungent ginger (<em className="text-amber-300">shonth</em>) and fennel neutralise any residual fishy amines:
                 </p>
                 <ul className="text-xs text-slate-300 space-y-2.5 leading-relaxed font-sans">
                   <li className="flex items-start gap-2">
                     <span className="text-amber-400 font-bold">1.</span>
-                    <span><strong>The Signature Marinade:</strong> Rub gutted trout with pure mustard oil, dried ginger powder (<em className="text-white">shonth</em>), ground fennel (<em className="text-white">badiyan / saunf</em>), Kashmiri deghi chili, and rock salt. Rest 15 mins.</span>
+                    <span><strong>The Signature Marinade:</strong> Rub gutted trout with pure mustard oil (<em className="text-white">Kaeshur Tiel</em>), dried ginger powder (<em className="text-white">shonth</em>), ground fennel (<em className="text-white">badiyan / saunf</em>), Kashmiri deghi chili, and rock salt. Rest 15 mins.</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-amber-400 font-bold">2.</span>
@@ -1142,7 +1142,7 @@ export default async function HomePage() {
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-amber-400/10 border border-amber-400/30 text-amber-300 text-xs font-bold font-mono hover:bg-amber-400/20 transition-all hover:scale-105"
               >
-                <span>★ {reviewsData.rating} on Google Maps</span>
+                <span>★ {Number(reviewsData.rating).toFixed(1)} on Google Maps</span>
                 <span className="w-1 h-1 rounded-full bg-amber-400/60" />
                 <span>{reviewsData.reviewCount} Verified Reviews</span>
                 <span>↗</span>
@@ -1278,7 +1278,7 @@ export default async function HomePage() {
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 border border-slate-700 text-cyan-400 hover:text-cyan-300 font-bold transition-colors"
             >
-              <span>📍 Google Maps ({reviewsData.rating} ★ {reviewsData.reviewCount} Reviews)</span>
+              <span>📍 Google Maps ({Number(reviewsData.rating).toFixed(1)} ★ {reviewsData.reviewCount} Reviews)</span>
               <span>↗</span>
             </a>
             <div className="text-slate-400 max-w-sm text-left hidden sm:block">

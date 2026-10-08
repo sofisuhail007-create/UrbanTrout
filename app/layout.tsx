@@ -151,8 +151,8 @@ const jsonLd = {
       },
       "aggregateRating": {
         "@type": "AggregateRating",
-        "ratingValue": "4.9",
-        "reviewCount": "8",
+        "ratingValue": "5.0",
+        "reviewCount": "22",
         "bestRating": "5",
         "worstRating": "1"
       },
@@ -218,8 +218,8 @@ const jsonLd = {
               },
               "aggregateRating": {
                 "@type": "AggregateRating",
-                "ratingValue": "4.9",
-                "reviewCount": "34",
+                "ratingValue": "5.0",
+                "reviewCount": "22",
                 "bestRating": "5",
                 "worstRating": "1"
               },
@@ -306,8 +306,8 @@ const jsonLd = {
               },
               "aggregateRating": {
                 "@type": "AggregateRating",
-                "ratingValue": "4.9",
-                "reviewCount": "42",
+                "ratingValue": "5.0",
+                "reviewCount": "22",
                 "bestRating": "5",
                 "worstRating": "1"
               },

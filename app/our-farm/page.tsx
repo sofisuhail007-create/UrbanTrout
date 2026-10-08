@@ -191,7 +191,7 @@ export default async function OurFarmPage() {
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1.5 text-xs text-cyan-400 font-bold hover:underline"
                 >
-                  <span>📍 View on Google Maps ({reviewsData.rating} ★ {reviewsData.reviewCount} Reviews)</span>
+                  <span>📍 View on Google Maps ({Number(reviewsData.rating).toFixed(1)} ★ {reviewsData.reviewCount} Reviews)</span>
                   <span>↗</span>
                 </a>
               </div>

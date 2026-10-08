@@ -35,8 +35,8 @@ export default function ContactPage() {
   const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
   const [reviewsInfo, setReviewsInfo] = useState({
-    rating: 4.9,
-    reviewCount: 15,
+    rating: 5.0,
+    reviewCount: 22,
     mapsUrl: "https://maps.app.goo.gl/4N8A8ywhJpys9EaDA",
   });
 
@@ -47,8 +47,8 @@ export default function ContactPage() {
       .then((data) => {
         if (data?.success && data?.reviews) {
           setReviewsInfo({
-            rating: data.reviews.rating || 4.9,
-            reviewCount: data.reviews.reviewCount || 15,
+            rating: data.reviews.rating || 5.0,
+            reviewCount: data.reviews.reviewCount || 22,
             mapsUrl: data.reviews.mapsUrl || "https://maps.app.goo.gl/4N8A8ywhJpys9EaDA",
           });
         }
@@ -211,7 +211,7 @@ export default function ContactPage() {
               </p>
               <div className="flex items-center gap-2 mb-4">
                 <span className="px-2.5 py-1 rounded-md bg-amber-400/10 border border-amber-400/30 text-amber-300 text-xs font-bold font-mono">
-                  ★ {reviewsInfo.rating} on Google Maps ({reviewsInfo.reviewCount} reviews)
+                  ★ {Number(reviewsInfo.rating).toFixed(1)} on Google Maps ({reviewsInfo.reviewCount} reviews)
                 </span>
               </div>
               <a

@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
+import fs from "fs";
+import path from "path";
 import { createClient } from "@supabase/supabase-js";
 import { requireAdminAuth } from "@/lib/adminAuth";
 import { getGoogleReviewsData, DEFAULT_REVIEWS } from "@/lib/reviews";
@@ -139,11 +141,30 @@ export async function POST(request: Request) {
       );
     }
 
+    // Update local cache file if exists
+    try {
+      const cachePath = path.join(process.cwd(), ".app_settings_cache.json");
+      if (fs.existsSync(cachePath)) {
+        const raw = fs.readFileSync(cachePath, "utf-8");
+        const json = JSON.parse(raw);
+        if (finalCount !== undefined) json.google_reviews_count = String(finalCount);
+        if (finalRating !== undefined) json.google_rating = String(finalRating);
+        if (reviewUrl) json.google_review_url = String(reviewUrl).trim();
+        if (mapsUrl) json.google_maps_url = String(mapsUrl).trim();
+        if (placeId) json.google_place_id = String(placeId).trim();
+        fs.writeFileSync(cachePath, JSON.stringify(json, null, 2), "utf-8");
+      }
+    } catch (_) {}
+
     // Force Next.js ISR cache revalidation on customer-facing pages
     try {
+      revalidatePath("/", "layout");
       revalidatePath("/");
       revalidatePath("/our-farm");
+      revalidatePath("/farm-visits");
       revalidatePath("/contact");
+      revalidatePath("/shop/gutted-trout");
+      revalidatePath("/shop/whole-trout");
     } catch (_) {}
 
     const updatedData = await getGoogleReviewsData();

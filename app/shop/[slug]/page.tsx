@@ -7,6 +7,7 @@ import StoreClosedBanner from "@/components/StoreClosedBanner";
 import { supabase } from "@/lib/supabase";
 import { products } from "@/lib/data";
 import { getBusinessHoursInfo } from "@/lib/businessHours";
+import { getGoogleReviewsData } from "@/lib/reviews";
 
 // Enable ISR (Incremental Static Regeneration) - cached at Edge CDN and refreshed every 60s
 export const revalidate = 60;
@@ -66,6 +67,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function DynamicProductPage({ params }: Props) {
   const { slug } = await params;
+  const reviewsData = await getGoogleReviewsData();
 
   // 1. Fetch inventory record
   const { data: invItem } = await supabase
@@ -134,8 +136,8 @@ export default async function DynamicProductPage({ params }: Props) {
     },
     aggregateRating: {
       "@type": "AggregateRating",
-      ratingValue: "4.9",
-      reviewCount: slug === "whole-trout" ? "34" : "42",
+      ratingValue: String(Number(reviewsData.rating).toFixed(1)),
+      reviewCount: String(reviewsData.reviewCount),
       bestRating: "5",
       worstRating: "1",
     },

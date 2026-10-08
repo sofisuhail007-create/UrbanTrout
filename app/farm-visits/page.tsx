@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
 
@@ -102,6 +102,33 @@ export default function FarmVisitsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submittedVisit, setSubmittedVisit] = useState<any | null>(null);
   const [openFaq, setOpenFaq] = useState<number | null>(null);
+  const [reviewsData, setReviewsData] = useState<{ rating: number; reviewCount: number; mapsUrl: string }>({
+    rating: 5.0,
+    reviewCount: 22,
+    mapsUrl: "https://maps.app.goo.gl/4N8A8ywhJpys9EaDA",
+  });
+
+  useEffect(() => {
+    try {
+      const cached = localStorage.getItem("ut_reviews_cache");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed?.rating) setReviewsData(parsed);
+      }
+    } catch (_) {}
+
+    fetch("/api/reviews")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.success && data?.reviews) {
+          setReviewsData(data.reviews);
+          try {
+            localStorage.setItem("ut_reviews_cache", JSON.stringify(data.reviews));
+          } catch (_) {}
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const isDateFriday = (dateStr: string) => {
     if (!dateStr) return false;
@@ -772,13 +799,13 @@ export default function FarmVisitsPage() {
 
               <div className="flex flex-col sm:flex-row gap-2.5">
                 <a
-                  href="https://maps.app.goo.gl/4N8A8ywhJpys9EaDA"
+                  href={reviewsData.mapsUrl || "https://maps.app.goo.gl/4N8A8ywhJpys9EaDA"}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex-1 py-2.5 px-3.5 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/30 text-cyan-300 text-xs font-bold flex items-center justify-center gap-1.5 transition-all text-center"
                 >
                   <span className="material-symbols-outlined text-base">directions</span>
-                  Open on Google Maps (4.9 ★)
+                  Open on Google Maps ({Number(reviewsData.rating).toFixed(1)} ★)
                 </a>
                 <a
                   href="tel:+918491006127"
