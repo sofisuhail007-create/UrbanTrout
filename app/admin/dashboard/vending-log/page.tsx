@@ -1567,7 +1567,8 @@ export default function VendingCenterLoggerPage() {
       const nonGuttedCost = Math.round(m.nonGuttedKg * procurementAvgCost);
       const totalFishCost = guttedCost + nonGuttedCost + m.guttingLaborCost;
       const supplierRebate = supplierRebatesMap[m.monthKey] ?? (m.monthKey === "2026-09" ? 3020 : 0);
-      const fishGrossProfit = Math.round(m.revenue - totalFishCost + supplierRebate);
+      const operationalGrossProfit = Math.round(m.revenue - totalFishCost);
+      const fishGrossProfit = Math.round(operationalGrossProfit + supplierRebate);
       const finalNetProfit = Math.round(fishGrossProfit - m.expenses - m.salaryPaid);
       const marginPercent = m.revenue > 0 ? ((finalNetProfit / m.revenue) * 100).toFixed(1) : "0.0";
 
@@ -1575,6 +1576,8 @@ export default function VendingCenterLoggerPage() {
         ...m,
         guttedCost,
         nonGuttedCost,
+        totalFishCost,
+        operationalGrossProfit,
         supplierRebate,
         fishGrossProfit,
         finalNetProfit,
@@ -4614,6 +4617,7 @@ export default function VendingCenterLoggerPage() {
                   fetchSupplierRebates();
                 }}
                 currentFilterMonth={selectedMonth}
+                monthWiseData={monthWiseData}
                 onFilterToMonth={(mKey) => {
                   setPeriod("month");
                   setSelectedMonth(mKey);

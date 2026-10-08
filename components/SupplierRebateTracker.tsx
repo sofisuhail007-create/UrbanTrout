@@ -8,6 +8,7 @@ interface SupplierRebateTrackerProps {
   onRebateUpdated?: () => void;
   onFilterToMonth?: (monthKey: string) => void;
   currentFilterMonth?: string;
+  monthWiseData?: any[];
   className?: string;
 }
 
@@ -15,6 +16,7 @@ export default function SupplierRebateTracker({
   onRebateUpdated,
   onFilterToMonth,
   currentFilterMonth,
+  monthWiseData,
   className = "",
 }: SupplierRebateTrackerProps) {
   const [loading, setLoading] = useState(true);
@@ -89,6 +91,18 @@ export default function SupplierRebateTracker({
   const octData = useMemo(() => {
     return rebatesData?.monthlySummaries?.["2026-10"] || null;
   }, [rebatesData]);
+
+  // September P&L from Vending Log
+  const septPnl = useMemo(() => {
+    if (!monthWiseData || monthWiseData.length === 0) return null;
+    return monthWiseData.find((m) => m.monthKey === "2026-09") || null;
+  }, [monthWiseData]);
+
+  // Selected Month P&L from Vending Log
+  const activePnl = useMemo(() => {
+    if (!monthWiseData || monthWiseData.length === 0) return null;
+    return monthWiseData.find((m) => m.monthKey === selectedMonth) || null;
+  }, [monthWiseData, selectedMonth]);
 
   // Simulator dynamic calculation
   const simulatorResult = useMemo(() => {
@@ -346,8 +360,8 @@ export default function SupplierRebateTracker({
           ══════════════════════════════════════════════════════════ */}
       {activeTab === "overview" && (
         <div className="space-y-3.5">
-          {/* Top 3 Primary Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
+          {/* Top 4 Primary Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3.5">
             {/* Card 1: October 2026 Live Target & Milestone */}
             <div className="rounded-2xl bg-gradient-to-br from-blue-950/50 via-slate-900/90 to-slate-950 border border-blue-500/40 p-4 shadow-xl relative overflow-hidden flex flex-col justify-between">
               <div className="space-y-2">
@@ -481,11 +495,101 @@ export default function SupplierRebateTracker({
                 </div>
               </div>
 
-              <div className="mt-3 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-mono">
-                <span className="text-slate-400">Confirmed by Khyber ERP:</span>
-                <span className="text-slate-300 font-mono text-[10px]">-3,020.00 Cr verified</span>
+              <div className="mt-3 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[10.5px] font-mono">
+                <span className="text-slate-400 flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[12px] text-cyan-400">lock</span>
+                  Locked @ ₹435/Kg invoice rate
+                </span>
+                <span className="text-slate-400 text-[10px]">ERP verified</span>
               </div>
             </div>
+
+            {/* Card 4: September Final Profit With Rebate (NEW) */}
+            <div className="rounded-2xl bg-gradient-to-br from-amber-950/50 via-slate-900/90 to-slate-950 border border-amber-500/40 p-4 shadow-xl relative overflow-hidden flex flex-col justify-between">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-xs font-mono">
+                  <span className="text-amber-300 font-bold flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-sm text-amber-400">trending_up</span>
+                    FINAL PROFIT · WITH REBATE
+                  </span>
+                  <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold">
+                    Sept Realized
+                  </span>
+                </div>
+
+                <div className="pt-1 flex items-baseline justify-between">
+                  <div className="flex items-baseline gap-1">
+                    <span className="text-emerald-400 font-bold text-lg font-mono">₹</span>
+                    <span className="text-3xl font-black text-white font-mono">
+                      {septPnl ? Math.abs(septPnl.finalNetProfit).toLocaleString("en-IN") : "—"}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-emerald-400 font-bold font-mono text-xs">
+                      {septPnl?.marginPercent ?? "0.0"}%
+                    </span>
+                    <div className="text-[9.5px] text-slate-400 font-mono">Net Margin</div>
+                  </div>
+                </div>
+
+                <div className="p-2 rounded-xl bg-slate-950/70 border border-slate-800 text-[11px] font-mono text-slate-300 space-y-1">
+                  <div className="flex items-center justify-between text-[10.5px]">
+                    <span className="text-slate-400">Sales Gross Profit:</span>
+                    <span className="text-slate-200 font-mono font-bold">
+                      ₹{(septPnl?.operationalGrossProfit ?? (septPnl ? septPnl.fishGrossProfit - 3020 : 0)).toLocaleString("en-IN")}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-[10.5px]">
+                    <span className="text-emerald-400 font-bold flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[11px]">add_circle</span>
+                      Khyber Slab Rebate:
+                    </span>
+                    <strong className="text-emerald-300 font-bold">+₹3,020.00</strong>
+                  </div>
+                  <div className="flex items-center justify-between text-[10px] text-slate-500 pt-0.5 border-t border-slate-800/60">
+                    <span>Expenses &amp; Wages:</span>
+                    <span className="text-rose-400">
+                      -₹{((septPnl?.expenses || 0) + (septPnl?.salaryPaid || 0)).toLocaleString("en-IN")}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-3 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[10.5px] font-mono">
+                <span className="text-slate-400 flex items-center gap-1">
+                  <span className="material-symbols-outlined text-[13px] text-cyan-400">verified_user</span>
+                  Stock logs kept @ ₹435
+                </span>
+                <span className="text-emerald-400 font-bold text-[10px]">
+                  Untouched History ✓
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Operational Workflow & Accounting Reassurance Banner */}
+          <div className="p-3.5 rounded-2xl bg-gradient-to-r from-blue-950/40 via-slate-900 to-emerald-950/30 border border-blue-500/20 text-xs font-mono text-slate-300 flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-lg">
+            <div className="flex items-start md:items-center gap-2.5">
+              <span className="material-symbols-outlined text-blue-400 text-lg mt-0.5 md:mt-0 flex-shrink-0">
+                security
+              </span>
+              <div className="leading-relaxed">
+                <strong className="text-white">Next Order Payment &amp; Accounting Workflow:</strong> When you place a new batch order with Khyber Aquaculture,
+                log it normally in the stock log at standard invoice cost (<strong>₹435/Kg</strong>).
+                Pay Khyber <strong>₹3,020 less</strong> (deducting your September credit from the bank transfer), then click <strong className="text-emerald-400">&quot;Deduct Credit&quot;</strong> here.
+                <span className="text-slate-400 ml-1">
+                  Historical September stock entries are <strong>never modified</strong> to ₹425 — your procurement logs stay 100% clean and audit-ready!
+                </span>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => setDeductModalOpen(true)}
+              className="px-3 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold whitespace-nowrap self-start md:self-center cursor-pointer transition-all shadow-md shadow-emerald-600/20 flex items-center gap-1"
+            >
+              <span className="material-symbols-outlined text-sm">payments</span>
+              <span>Deduct Credit</span>
+            </button>
           </div>
 
           {/* Bottom Row: Selected Month Breakdown & Insights */}
@@ -919,6 +1023,16 @@ export default function SupplierRebateTracker({
             <p className="text-[11px] text-slate-400">
               When you pay Khyber Aquaculture for a new batch and deduct part (or all) of your available rebate balance (₹{availableCredit.toLocaleString("en-IN")}), record it here to keep your credit ledger in sync.
             </p>
+
+            <div className="p-2.5 rounded-xl bg-blue-950/60 border border-blue-500/30 text-[10.5px] text-blue-200 space-y-1">
+              <div className="flex items-center gap-1.5 font-bold text-blue-300">
+                <span className="material-symbols-outlined text-sm">verified_user</span>
+                <span>Accounting &amp; History Protection Guarantee</span>
+              </div>
+              <p className="text-slate-300 leading-normal">
+                Recording this deduction only reconciles your supplier ledger balance. It does <strong>NOT</strong> change, edit, or rewrite any past September or upcoming stock batch entries in your database (all logs remain strictly at ₹435/Kg).
+              </p>
+            </div>
 
             {errorMsg && (
               <div className="p-2.5 rounded-lg bg-rose-950/60 border border-rose-500/40 text-rose-300 text-[11px]">
