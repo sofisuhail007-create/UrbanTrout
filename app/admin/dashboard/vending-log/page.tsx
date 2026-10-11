@@ -1221,7 +1221,7 @@ export default function VendingCenterLoggerPage() {
   // Automatically detects when physical aquarium stock was exhausted on 10th Oct 2026.
   // Any sale beyond total procured biomass (net of mortality) or marked as surplus has ₹0 procurement cost,
   // meaning 100% of revenue from surplus fish is counted as whole profit in the vending data.
-  const { surplusInfoMap, allTimeSurplusKg, netProcuredAvailableKg } = useMemo(() => {
+  const { surplusInfoMap, allTimeSurplusKg, netProcuredAvailableKg, liveRemainingKg } = useMemo(() => {
     let totalProcuredKg = 0;
     stockEntries.forEach((s) => {
       totalProcuredKg = Math.round((totalProcuredKg + (Number(s.weight_kg) || 0)) * 1000) / 1000;
@@ -1234,57 +1234,101 @@ export default function VendingCenterLoggerPage() {
 
     const netAvailable = Math.max(0, Math.round((totalProcuredKg - totalMortalityKg) * 1000) / 1000);
 
-    // Sort entries chronologically across all time to determine exact depletion sequence
-    const sorted = [...entries].sort((a, b) => {
-      if (a.entry_date !== b.entry_date) {
-        return a.entry_date.localeCompare(b.entry_date);
-      }
-      const tA = parseTimeToMinutes(a.entry_time);
-      const tB = parseTimeToMinutes(b.entry_time);
-      if (tA !== tB) return tA - tB;
-      return (a.created_at || "").localeCompare(b.created_at || "");
+    // Build unified chronological timeline of procurements, mortality, and sales
+    interface TimelineItem {
+      type: "procurement" | "mortality" | "sale";
+      id: string;
+      date: string;
+      time: string;
+      weight: number;
+      stock_after_kg?: number;
+      isSurplusMarked?: boolean;
+    }
+
+    const timeline: TimelineItem[] = [];
+
+    stockEntries.forEach((s) => {
+      timeline.push({
+        type: "procurement",
+        id: s.id,
+        date: s.stock_date || "2026-01-01",
+        time: s.stock_time || "12:00 am",
+        weight: Number(s.weight_kg) || 0,
+        stock_after_kg: s.stock_after_kg !== undefined ? Number(s.stock_after_kg) : undefined,
+      });
     });
 
-    let cumulativeSold = 0;
+    mortalityEntries.forEach((m) => {
+      timeline.push({
+        type: "mortality",
+        id: m.id || "mort",
+        date: m.mortality_date || "2026-01-01",
+        time: m.mortality_time || "12:00 pm",
+        weight: Number(m.weight_kg) || 0,
+      });
+    });
+
+    entries.forEach((e) => {
+      timeline.push({
+        type: "sale",
+        id: e.id,
+        date: e.entry_date || "2026-01-01",
+        time: e.entry_time || "12:00 pm",
+        weight: Number(e.weight_kg) || 0,
+        isSurplusMarked: Boolean(e.custom_fields?.is_surplus || (e as any).is_surplus),
+      });
+    });
+
+    timeline.sort((a, b) => {
+      if (a.date !== b.date) return a.date.localeCompare(b.date);
+      const tA = parseTimeToMinutes(a.time);
+      const tB = parseTimeToMinutes(b.time);
+      if (tA !== tB) return tA - tB;
+      const order = { procurement: 1, mortality: 2, sale: 3 };
+      return (order[a.type] || 2) - (order[b.type] || 2);
+    });
+
+    let runningStock = 0;
+    let totalSurplusKg = 0;
     const map = new Map<string, { regularKg: number; surplusKg: number; isSurplus: boolean; isPureSurplus: boolean }>();
 
-    sorted.forEach((e) => {
-      const w = Number(e.weight_kg) || 0;
-      if (w <= 0) {
-        map.set(e.id, { regularKg: 0, surplusKg: 0, isSurplus: false, isPureSurplus: false });
-        return;
+    for (const item of timeline) {
+      if (item.type === "procurement") {
+        if (item.stock_after_kg !== undefined && !isNaN(item.stock_after_kg)) {
+          runningStock = Math.round(item.stock_after_kg * 1000) / 1000;
+        } else {
+          runningStock = Math.round((runningStock + item.weight) * 1000) / 1000;
+        }
+      } else if (item.type === "mortality") {
+        runningStock = Math.max(0, Math.round((runningStock - item.weight) * 1000) / 1000);
+      } else if (item.type === "sale") {
+        const w = item.weight;
+        if (w <= 0) {
+          map.set(item.id, { regularKg: 0, surplusKg: 0, isSurplus: false, isPureSurplus: false });
+          continue;
+        }
+
+        if (item.isSurplusMarked || runningStock <= 0) {
+          map.set(item.id, { regularKg: 0, surplusKg: w, isSurplus: true, isPureSurplus: true });
+          totalSurplusKg = Math.round((totalSurplusKg + w) * 1000) / 1000;
+        } else if (runningStock >= w) {
+          map.set(item.id, { regularKg: w, surplusKg: 0, isSurplus: false, isPureSurplus: false });
+          runningStock = Math.round((runningStock - w) * 1000) / 1000;
+        } else {
+          const reg = runningStock;
+          const sur = Math.round((w - reg) * 1000) / 1000;
+          runningStock = 0;
+          map.set(item.id, { regularKg: reg, surplusKg: sur, isSurplus: true, isPureSurplus: false });
+          totalSurplusKg = Math.round((totalSurplusKg + sur) * 1000) / 1000;
+        }
       }
-
-      // Explicit surplus override in custom fields
-      if (e.custom_fields?.is_surplus === true) {
-        map.set(e.id, { regularKg: 0, surplusKg: w, isSurplus: true, isPureSurplus: true });
-        return;
-      }
-
-      const prevCum = cumulativeSold;
-      const newCum = Math.round((prevCum + w) * 1000) / 1000;
-      cumulativeSold = newCum;
-
-      if (newCum <= netAvailable) {
-        // Fully covered by paid procurement stock
-        map.set(e.id, { regularKg: w, surplusKg: 0, isSurplus: false, isPureSurplus: false });
-      } else if (prevCum >= netAvailable) {
-        // Completely beyond paid procurement stock -> 100% surplus bonus fish!
-        map.set(e.id, { regularKg: 0, surplusKg: w, isSurplus: true, isPureSurplus: true });
-      } else {
-        // Crossed the boundary into surplus on 10th Oct! Part regular, part surplus!
-        const reg = Math.max(0, Math.round((netAvailable - prevCum) * 1000) / 1000);
-        const sur = Math.max(0, Math.round((w - reg) * 1000) / 1000);
-        map.set(e.id, { regularKg: reg, surplusKg: sur, isSurplus: sur > 0, isPureSurplus: sur > 0 && reg === 0 });
-      }
-    });
-
-    const allTimeSurplus = Math.max(0, Math.round((cumulativeSold - netAvailable) * 1000) / 1000);
+    }
 
     return {
       surplusInfoMap: map,
-      allTimeSurplusKg: allTimeSurplus,
+      allTimeSurplusKg: totalSurplusKg,
       netProcuredAvailableKg: netAvailable,
+      liveRemainingKg: Math.max(0, Math.round(runningStock * 1000) / 1000),
     };
   }, [entries, stockEntries, mortalityEntries]);
 
@@ -1819,18 +1863,12 @@ export default function VendingCenterLoggerPage() {
       }
     });
 
-    // Live fish remaining in aquarium (Net Procured − All-time Sold)
+    // Live fish remaining in aquarium from true chronological timeline
     const netAvailableProcuredKg = Math.max(0, Math.round((totalProcuredKg - totalMortalityKg) * 1000) / 1000);
-    const remainingKg = Math.max(
-      0,
-      Math.round((netAvailableProcuredKg - allTimeSoldKg) * 1000) / 1000
-    );
+    const remainingKg = Math.max(0, Math.round(liveRemainingKg * 1000) / 1000);
 
     // Surplus biomass sold beyond paid procurement batches
-    const surplusKg = Math.max(
-      0,
-      Math.round((allTimeSoldKg - netAvailableProcuredKg) * 1000) / 1000
-    );
+    const surplusKg = allTimeSurplusKg;
     const isOutOfStock = remainingKg === 0;
 
     // Gone from aquarium = all physical fish dispatched/sold
@@ -1887,7 +1925,7 @@ export default function VendingCenterLoggerPage() {
       procurementCostRemaining,
       batchCount: stockEntries.length,
     };
-  }, [entries, stockEntries, mortalityEntries, guttedPrice, nonGuttedPrice]);
+  }, [entries, stockEntries, mortalityEntries, guttedPrice, nonGuttedPrice, liveRemainingKg, allTimeSurplusKg]);
 
   // ─── Search & Dropdown Filtered Table List ───
   const displayEntries = useMemo(() => {

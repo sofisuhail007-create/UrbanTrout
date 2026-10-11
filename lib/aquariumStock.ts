@@ -61,30 +61,50 @@ export function getIstTimeString(): string {
   }).format(new Date());
 }
 
+function parseTimeToMinutes(timeStr?: string | null): number {
+  if (!timeStr || !timeStr.trim()) return 0;
+  const str = timeStr.trim().toLowerCase();
+  const match = str.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(am|pm)?$/i);
+  if (!match) return 720;
+  let h = parseInt(match[1], 10);
+  const m = Math.min(59, Math.max(0, parseInt(match[2], 10)));
+  const mer = match[4]?.toLowerCase();
+  let hours24 = h;
+  if (mer === "pm") hours24 = h < 12 ? h + 12 : h;
+  else if (mer === "am") hours24 = h === 12 ? 0 : h;
+  else hours24 = h;
+  return hours24 * 60 + m;
+}
+
 /**
  * Calculates real-time live trout biomass remaining in the aquarium.
- * Formula: Total Live Fish Procured − Total Sold (Vending Counter) − Mortality/Scrap Loss
- * This matches the exact calculation shown on /admin/dashboard/vending-log.
+ * Tracks true chronological inventory flow: procurement batches, verified intake baselines,
+ * mortality losses, and vending sales without penalizing new batches for past surplus bonus fish.
  */
 export async function getLiveAquariumStock(customClient?: any): Promise<AquariumStockSummary> {
   try {
     const db = getAquariumDbClient(customClient);
 
-    // 1. Fetch procurement batches (aquarium_stock_log)
-    const { data: stockBatches } = await db
-      .from("aquarium_stock_log")
-      .select("weight_kg");
+    // 1. Fetch procurement batches, metadata, sales and mortality
+    const [stockRes, metaRes, tableRes, fallbackRes, mortRow] = await Promise.all([
+      db.from("aquarium_stock_log").select("id, stock_date, stock_time, weight_kg"),
+      db.from("app_settings").select("value").eq("key", "aquarium_stock_metadata").maybeSingle(),
+      db.from("vending_sales_log").select("id, weight_kg, entry_date, entry_time, custom_fields"),
+      db.from("app_settings").select("value").eq("key", "vending_log_data").maybeSingle(),
+      db.from("app_settings").select("value").eq("key", "aquarium_mortality_ledger").maybeSingle(),
+    ]);
+
+    let stockMeta: Record<string, { stock_before_kg?: number; stock_after_kg?: number }> = {};
+    if (metaRes.data?.value) {
+      try {
+        stockMeta = JSON.parse(metaRes.data.value);
+      } catch (_) {}
+    }
 
     let totalProcuredKg = 0;
-    (stockBatches || []).forEach((b: any) => {
+    (stockRes.data || []).forEach((b: any) => {
       totalProcuredKg = Math.round((totalProcuredKg + (Number(b.weight_kg) || 0)) * 1000) / 1000;
     });
-
-    // 2. Fetch sales from vending_sales_log and fallback app_settings
-    const [tableRes, fallbackRes] = await Promise.all([
-      db.from("vending_sales_log").select("id, weight_kg"),
-      db.from("app_settings").select("value").eq("key", "vending_log_data").maybeSingle(),
-    ]);
 
     let fallbackEntries: any[] = [];
     if (fallbackRes.data?.value) {
@@ -95,31 +115,26 @@ export async function getLiveAquariumStock(customClient?: any): Promise<Aquarium
     }
 
     // Deduplicate by ID (same dual-layer merge as vending-log)
-    const salesMap = new Map<string, number>();
+    const salesMap = new Map<string, any>();
     for (const e of fallbackEntries) {
-      if (e?.id) salesMap.set(e.id, Number(e.weight_kg) || 0);
+      if (e?.id) salesMap.set(e.id, e);
     }
     for (const e of tableRes.data || []) {
-      if (e?.id) salesMap.set(e.id, Number(e.weight_kg) || 0);
+      if (e?.id) salesMap.set(e.id, e);
     }
 
     let allTimeSoldKg = 0;
-    salesMap.forEach((w) => {
-      allTimeSoldKg = Math.round((allTimeSoldKg + w) * 1000) / 1000;
+    salesMap.forEach((e) => {
+      allTimeSoldKg = Math.round((allTimeSoldKg + (Number(e.weight_kg) || 0)) * 1000) / 1000;
     });
 
-    // 3. Fetch mortality ledger from app_settings
-    const { data: mortRow } = await db
-      .from("app_settings")
-      .select("value")
-      .eq("key", "aquarium_mortality_ledger")
-      .maybeSingle();
-
     let totalMortalityKg = 0;
+    let mortalityEntries: any[] = [];
     if (mortRow?.value) {
       try {
         const parsed = JSON.parse(mortRow.value);
         if (Array.isArray(parsed)) {
+          mortalityEntries = parsed;
           parsed.forEach((m: any) => {
             totalMortalityKg = Math.round((totalMortalityKg + (Number(m.weight_kg) || 0)) * 1000) / 1000;
           });
@@ -127,16 +142,89 @@ export async function getLiveAquariumStock(customClient?: any): Promise<Aquarium
       } catch (_) {}
     }
 
-    const netAvailableProcuredKg = Math.max(0, Math.round((totalProcuredKg - totalMortalityKg) * 1000) / 1000);
-    const remainingKg = Math.max(
-      0,
-      Math.round((netAvailableProcuredKg - allTimeSoldKg) * 1000) / 1000
-    );
-    const surplusKg = Math.max(
-      0,
-      Math.round((allTimeSoldKg - netAvailableProcuredKg) * 1000) / 1000
-    );
+    // 4. Build chronological timeline to track true live aquarium inventory flow
+    interface TimelineEvent {
+      type: "procurement" | "mortality" | "sale";
+      id: string;
+      date: string;
+      time: string;
+      weight: number;
+      stock_after_kg?: number;
+      isSurplusMarked?: boolean;
+    }
+
+    const timeline: TimelineEvent[] = [];
+    (stockRes.data || []).forEach((b: any) => {
+      const m = stockMeta[b.id];
+      timeline.push({
+        type: "procurement",
+        id: b.id,
+        date: b.stock_date || "2026-01-01",
+        time: b.stock_time || "12:00 am",
+        weight: Number(b.weight_kg) || 0,
+        stock_after_kg: m?.stock_after_kg !== undefined ? Number(m.stock_after_kg) : undefined,
+      });
+    });
+
+    mortalityEntries.forEach((m: any) => {
+      timeline.push({
+        type: "mortality",
+        id: m.id || "mort",
+        date: m.mortality_date || "2026-01-01",
+        time: m.mortality_time || "12:00 pm",
+        weight: Number(m.weight_kg) || 0,
+      });
+    });
+
+    salesMap.forEach((s: any) => {
+      timeline.push({
+        type: "sale",
+        id: s.id,
+        date: s.entry_date || "2026-01-01",
+        time: s.entry_time || "12:00 pm",
+        weight: Number(s.weight_kg) || 0,
+        isSurplusMarked: Boolean(s.custom_fields?.is_surplus || s.is_surplus),
+      });
+    });
+
+    timeline.sort((a, b) => {
+      if (a.date !== b.date) return a.date.localeCompare(b.date);
+      const tA = parseTimeToMinutes(a.time);
+      const tB = parseTimeToMinutes(b.time);
+      if (tA !== tB) return tA - tB;
+      const order = { procurement: 1, mortality: 2, sale: 3 };
+      return (order[a.type] || 2) - (order[b.type] || 2);
+    });
+
+    let runningStock = 0;
+    let totalSurplusKg = 0;
+
+    for (const item of timeline) {
+      if (item.type === "procurement") {
+        if (item.stock_after_kg !== undefined && !isNaN(item.stock_after_kg)) {
+          runningStock = Math.round(item.stock_after_kg * 1000) / 1000;
+        } else {
+          runningStock = Math.round((runningStock + item.weight) * 1000) / 1000;
+        }
+      } else if (item.type === "mortality") {
+        runningStock = Math.max(0, Math.round((runningStock - item.weight) * 1000) / 1000);
+      } else if (item.type === "sale") {
+        const w = item.weight;
+        if (item.isSurplusMarked || runningStock <= 0) {
+          totalSurplusKg = Math.round((totalSurplusKg + w) * 1000) / 1000;
+        } else if (runningStock >= w) {
+          runningStock = Math.round((runningStock - w) * 1000) / 1000;
+        } else {
+          const sur = Math.round((w - runningStock) * 1000) / 1000;
+          runningStock = 0;
+          totalSurplusKg = Math.round((totalSurplusKg + sur) * 1000) / 1000;
+        }
+      }
+    }
+
+    const remainingKg = Math.max(0, Math.round(runningStock * 1000) / 1000);
     const isOutOfStock = remainingKg === 0;
+    const surplusKg = totalSurplusKg;
 
     return {
       remainingKg,
