@@ -506,7 +506,6 @@ export default function VendingCenterLoggerPage() {
   }, []);
   const [formType, setFormType] = useState<"Gutted" | "Non Gutted" | string>("Gutted");
   const [formSelfCleaned, setFormSelfCleaned] = useState<boolean>(false);
-  const [formIsSurplus, setFormIsSurplus] = useState<boolean>(false);
   const [formWeight, setFormWeight] = useState<string>("");
   const [formRate, setFormRate] = useState<number>(DEFAULT_GUTTED_PRICE);
   const [formAmount, setFormAmount] = useState<string>("");
@@ -2042,7 +2041,6 @@ export default function VendingCenterLoggerPage() {
     setFormCustomerName("");
     setFormCustomerPhone("");
     setFormBalanceAction("final_settlement");
-    setFormIsSurplus(aquariumStock.remainingKg === 0);
     setEditingEntry(null);
   };
 
@@ -2106,7 +2104,6 @@ export default function VendingCenterLoggerPage() {
     const updatedCustomFields = {
       ...(formCustomFields || {}),
       self_cleaned: formType === "Gutted" ? formSelfCleaned : false,
-      is_surplus: formIsSurplus,
       balance_amount: balanceAmount,
       balance_status: balanceStatus,
       balance_ref_id: balanceRefId || null,
@@ -3504,7 +3501,6 @@ export default function VendingCenterLoggerPage() {
     setFormTime(entry.entry_time);
     setFormType(entry.product_type);
     setFormSelfCleaned(Boolean(entry.custom_fields?.self_cleaned || (entry as any).self_cleaned));
-    setFormIsSurplus(Boolean(entry.custom_fields?.is_surplus || surplusInfoMap.get(entry.id)?.isSurplus));
     setFormWeight(entry.weight_kg.toString());
     setFormRate(entry.rate_per_kg);
     setFormAmount(entry.amount_paid.toString());
@@ -6834,59 +6830,6 @@ export default function VendingCenterLoggerPage() {
                     type="checkbox"
                     checked={formSelfCleaned}
                     onChange={(e) => setFormSelfCleaned(e.target.checked)}
-                    className="sr-only"
-                  />
-                </div>
-              )}
-
-              {/* Row 2.6: Procurement Surplus Stock Toggle - ADMIN ONLY */}
-              {isSuperAdmin && (
-                <div
-                  onClick={() => setFormIsSurplus(!formIsSurplus)}
-                  className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 select-none ${
-                    formIsSurplus || aquariumStock.isOutOfStock
-                      ? "bg-emerald-950/40 border-emerald-500/60 shadow-lg shadow-emerald-950/30"
-                      : "bg-slate-950/80 border-slate-800 hover:border-slate-700"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={`w-6 h-6 rounded-lg flex items-center justify-center border transition-all flex-shrink-0 ${
-                        formIsSurplus || aquariumStock.isOutOfStock
-                          ? "bg-emerald-500 border-emerald-400 text-slate-950 font-black shadow-sm"
-                          : "bg-slate-900 border-slate-700 text-transparent"
-                      }`}
-                    >
-                      <span className="material-symbols-outlined text-sm font-black">check</span>
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span
-                          className={`text-xs font-bold font-mono ${
-                            formIsSurplus || aquariumStock.isOutOfStock ? "text-emerald-200" : "text-slate-300"
-                          }`}
-                        >
-                          Procurement Surplus Fish (100% Whole Profit)
-                        </span>
-                        {(formIsSurplus || aquariumStock.isOutOfStock) && (
-                          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold">
-                            🎁 Zero Procurement Deduction
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-[10px] text-slate-400 font-mono mt-0.5 leading-snug">
-                        {aquariumStock.isOutOfStock
-                          ? "Tank is Out of Stock (0.000 Kg). All sales are automatically treated as Surplus with ₹0 procurement cost (100% pure profit)."
-                          : formIsSurplus
-                          ? "Fish was received as extra weight during procurement. ₹0 procurement cost will be deducted (100% pure profit)."
-                          : "Check if this fish was extra biomass delivered during procurement beyond weighed invoice."}
-                      </p>
-                    </div>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={formIsSurplus || aquariumStock.isOutOfStock}
-                    onChange={(e) => setFormIsSurplus(e.target.checked)}
                     className="sr-only"
                   />
                 </div>
