@@ -6,6 +6,8 @@ export interface AquariumStockSummary {
   totalProcuredKg: number;
   allTimeSoldKg: number;
   totalMortalityKg: number;
+  surplusKg: number;
+  isOutOfStock: boolean;
 }
 
 export interface VendingSalesEntry {
@@ -125,16 +127,24 @@ export async function getLiveAquariumStock(customClient?: any): Promise<Aquarium
       } catch (_) {}
     }
 
+    const netAvailableProcuredKg = Math.max(0, Math.round((totalProcuredKg - totalMortalityKg) * 1000) / 1000);
     const remainingKg = Math.max(
       0,
-      Math.round((totalProcuredKg - allTimeSoldKg - totalMortalityKg) * 1000) / 1000
+      Math.round((netAvailableProcuredKg - allTimeSoldKg) * 1000) / 1000
     );
+    const surplusKg = Math.max(
+      0,
+      Math.round((allTimeSoldKg - netAvailableProcuredKg) * 1000) / 1000
+    );
+    const isOutOfStock = remainingKg === 0;
 
     return {
       remainingKg,
       totalProcuredKg,
       allTimeSoldKg,
       totalMortalityKg,
+      surplusKg,
+      isOutOfStock,
     };
   } catch (err) {
     console.error("Error calculating live aquarium stock:", err);
@@ -143,6 +153,8 @@ export async function getLiveAquariumStock(customClient?: any): Promise<Aquarium
       totalProcuredKg: 0,
       allTimeSoldKg: 0,
       totalMortalityKg: 0,
+      surplusKg: 0,
+      isOutOfStock: true,
     };
   }
 }

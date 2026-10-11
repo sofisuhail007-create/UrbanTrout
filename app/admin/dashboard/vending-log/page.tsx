@@ -488,6 +488,7 @@ export default function VendingCenterLoggerPage() {
   }, []);
   const [formType, setFormType] = useState<"Gutted" | "Non Gutted" | string>("Gutted");
   const [formSelfCleaned, setFormSelfCleaned] = useState<boolean>(false);
+  const [formIsSurplus, setFormIsSurplus] = useState<boolean>(false);
   const [formWeight, setFormWeight] = useState<string>("");
   const [formRate, setFormRate] = useState<number>(DEFAULT_GUTTED_PRICE);
   const [formAmount, setFormAmount] = useState<string>("");
@@ -1198,6 +1199,77 @@ export default function VendingCenterLoggerPage() {
     return totalProcuredKg > 0 ? Math.round(totalProcuredCost / totalProcuredKg) : 435;
   }, [stockEntries]);
 
+  // ─── Procurement Stock Surplus Mapping & Whole Profit Calculation ───
+  // Automatically detects when physical aquarium stock was exhausted on 10th Oct 2026.
+  // Any sale beyond total procured biomass (net of mortality) or marked as surplus has ₹0 procurement cost,
+  // meaning 100% of revenue from surplus fish is counted as whole profit in the vending data.
+  const { surplusInfoMap, allTimeSurplusKg, netProcuredAvailableKg } = useMemo(() => {
+    let totalProcuredKg = 0;
+    stockEntries.forEach((s) => {
+      totalProcuredKg = Math.round((totalProcuredKg + (Number(s.weight_kg) || 0)) * 1000) / 1000;
+    });
+
+    let totalMortalityKg = 0;
+    mortalityEntries.forEach((m) => {
+      totalMortalityKg = Math.round((totalMortalityKg + (Number(m.weight_kg) || 0)) * 1000) / 1000;
+    });
+
+    const netAvailable = Math.max(0, Math.round((totalProcuredKg - totalMortalityKg) * 1000) / 1000);
+
+    // Sort entries chronologically across all time to determine exact depletion sequence
+    const sorted = [...entries].sort((a, b) => {
+      if (a.entry_date !== b.entry_date) {
+        return a.entry_date.localeCompare(b.entry_date);
+      }
+      const tA = parseTimeToMinutes(a.entry_time);
+      const tB = parseTimeToMinutes(b.entry_time);
+      if (tA !== tB) return tA - tB;
+      return (a.created_at || "").localeCompare(b.created_at || "");
+    });
+
+    let cumulativeSold = 0;
+    const map = new Map<string, { regularKg: number; surplusKg: number; isSurplus: boolean; isPureSurplus: boolean }>();
+
+    sorted.forEach((e) => {
+      const w = Number(e.weight_kg) || 0;
+      if (w <= 0) {
+        map.set(e.id, { regularKg: 0, surplusKg: 0, isSurplus: false, isPureSurplus: false });
+        return;
+      }
+
+      // Explicit surplus override in custom fields
+      if (e.custom_fields?.is_surplus === true) {
+        map.set(e.id, { regularKg: 0, surplusKg: w, isSurplus: true, isPureSurplus: true });
+        return;
+      }
+
+      const prevCum = cumulativeSold;
+      const newCum = Math.round((prevCum + w) * 1000) / 1000;
+      cumulativeSold = newCum;
+
+      if (newCum <= netAvailable) {
+        // Fully covered by paid procurement stock
+        map.set(e.id, { regularKg: w, surplusKg: 0, isSurplus: false, isPureSurplus: false });
+      } else if (prevCum >= netAvailable) {
+        // Completely beyond paid procurement stock -> 100% surplus bonus fish!
+        map.set(e.id, { regularKg: 0, surplusKg: w, isSurplus: true, isPureSurplus: true });
+      } else {
+        // Crossed the boundary into surplus on 10th Oct! Part regular, part surplus!
+        const reg = Math.max(0, Math.round((netAvailable - prevCum) * 1000) / 1000);
+        const sur = Math.max(0, Math.round((w - reg) * 1000) / 1000);
+        map.set(e.id, { regularKg: reg, surplusKg: sur, isSurplus: sur > 0, isPureSurplus: sur > 0 && reg === 0 });
+      }
+    });
+
+    const allTimeSurplus = Math.max(0, Math.round((cumulativeSold - netAvailable) * 1000) / 1000);
+
+    return {
+      surplusInfoMap: map,
+      allTimeSurplusKg: allTimeSurplus,
+      netProcuredAvailableKg: netAvailable,
+    };
+  }, [entries, stockEntries, mortalityEntries]);
+
   // ─── KPI Metrics (Computed on period filtered entries) ───
   const kpis = useMemo(() => {
     let totalKg = 0;
@@ -1332,9 +1404,35 @@ export default function VendingCenterLoggerPage() {
     });
     const periodWorkerLaborCost = Math.round(periodWorkerGuttedKg * INCENTIVE_RATE_PER_KG);
 
-    // Realized Profit on sold fishes (deducting procurement cost on realized sold fish AND Mohd Amin's ₹5/Kg gutting labor)
-    const guttedProcurementCost = Math.round(realizedGuttedKg * procurementAvgCost);
-    const nonGuttedCost = Math.round(realizedNonGuttedKg * procurementAvgCost);
+    // Separate regular weight vs surplus weight for the active period
+    let periodRegularGuttedKg = 0;
+    let periodSurplusGuttedKg = 0;
+    let periodRegularNonGuttedKg = 0;
+    let periodSurplusNonGuttedKg = 0;
+
+    filteredEntriesByPeriod.forEach((e) => {
+      const w = Number(e.weight_kg) || 0;
+      const rev = Number(e.amount_paid) || 0;
+      if (rev <= 0) return; // only realized/paying sales generate realized cost & profit
+      const isGut =
+        (e.product_type || "").toLowerCase().includes("gutted") &&
+        !(e.product_type || "").toLowerCase().includes("non");
+      const sInfo = surplusInfoMap.get(e.id) || { regularKg: w, surplusKg: 0, isSurplus: false };
+      if (isGut) {
+        periodRegularGuttedKg = Math.round((periodRegularGuttedKg + sInfo.regularKg) * 1000) / 1000;
+        periodSurplusGuttedKg = Math.round((periodSurplusGuttedKg + sInfo.surplusKg) * 1000) / 1000;
+      } else {
+        periodRegularNonGuttedKg = Math.round((periodRegularNonGuttedKg + sInfo.regularKg) * 1000) / 1000;
+        periodSurplusNonGuttedKg = Math.round((periodSurplusNonGuttedKg + sInfo.surplusKg) * 1000) / 1000;
+      }
+    });
+
+    const periodTotalSurplusKg = Math.round((periodSurplusGuttedKg + periodSurplusNonGuttedKg) * 1000) / 1000;
+    const periodTotalRegularKg = Math.round((periodRegularGuttedKg + periodRegularNonGuttedKg) * 1000) / 1000;
+
+    // Realized Profit on sold fishes (deducting procurement cost ONLY on regular stock; surplus has ₹0 procurement cost!)
+    const guttedProcurementCost = Math.round(periodRegularGuttedKg * procurementAvgCost);
+    const nonGuttedCost = Math.round(periodRegularNonGuttedKg * procurementAvgCost);
     const guttedCost = guttedProcurementCost + periodWorkerLaborCost;
     const guttedGrossProfit = Math.round(guttedRevenue - guttedProcurementCost);
     const guttedProfit = Math.round(guttedRevenue - guttedCost);
@@ -1347,6 +1445,9 @@ export default function VendingCenterLoggerPage() {
     const avgSellRate = realizedKg > 0 ? Math.round(totalRevenue / realizedKg) : 0;
     const guttedAvgRate = realizedGuttedKg > 0 ? Math.round(guttedRevenue / realizedGuttedKg) : 0;
     const nonGuttedAvgRate = realizedNonGuttedKg > 0 ? Math.round(nonGuttedRevenue / realizedNonGuttedKg) : 0;
+
+    // Extra pure profit from surplus (procurement cost saved that directly becomes 100% whole profit)
+    const surplusProfitBonus = Math.round(periodTotalSurplusKg * procurementAvgCost);
 
     return {
       totalKg,
@@ -1392,8 +1493,15 @@ export default function VendingCenterLoggerPage() {
       avgSellRate,
       guttedAvgRate,
       nonGuttedAvgRate,
+      periodRegularGuttedKg,
+      periodSurplusGuttedKg,
+      periodRegularNonGuttedKg,
+      periodSurplusNonGuttedKg,
+      periodTotalSurplusKg,
+      periodTotalRegularKg,
+      surplusProfitBonus,
     };
-  }, [filteredEntriesByPeriod, procurementAvgCost]);
+  }, [filteredEntriesByPeriod, procurementAvgCost, surplusInfoMap]);
 
   // ─── Period Supplier Volume Rebate (Khyber Aquaculture Slabs) ───
   const periodSupplierRebate = useMemo(() => {
@@ -1531,6 +1639,9 @@ export default function VendingCenterLoggerPage() {
         totalSoldKg: number;
         guttedKg: number;
         nonGuttedKg: number;
+        regularGuttedKg: number;
+        regularNonGuttedKg: number;
+        surplusKg: number;
         revenue: number;
         expectedRevenue: number;
         guttingLaborCost: number;
@@ -1565,6 +1676,9 @@ export default function VendingCenterLoggerPage() {
         totalSoldKg: 0,
         guttedKg: 0,
         nonGuttedKg: 0,
+        regularGuttedKg: 0,
+        regularNonGuttedKg: 0,
+        surplusKg: 0,
         revenue: 0,
         expectedRevenue: 0,
         guttingLaborCost: 0,
@@ -1584,18 +1698,22 @@ export default function VendingCenterLoggerPage() {
         (e.product_type || "").toLowerCase().includes("gutted") &&
         !(e.product_type || "").toLowerCase().includes("non");
       const isSelfCleaned = Boolean(e.custom_fields?.self_cleaned || (e as any).self_cleaned);
+      const sInfo = surplusInfoMap.get(e.id) || { regularKg: w, surplusKg: 0, isSurplus: false };
 
       monthMap[mKey].billsCount += 1;
       monthMap[mKey].totalSoldKg = Math.round((monthMap[mKey].totalSoldKg + w) * 1000) / 1000;
       monthMap[mKey].revenue += rev;
+      monthMap[mKey].surplusKg = Math.round((monthMap[mKey].surplusKg + sInfo.surplusKg) * 1000) / 1000;
 
       if (isGutted) {
         monthMap[mKey].guttedKg = Math.round((monthMap[mKey].guttedKg + w) * 1000) / 1000;
+        monthMap[mKey].regularGuttedKg = Math.round((monthMap[mKey].regularGuttedKg + sInfo.regularKg) * 1000) / 1000;
         if (!isSelfCleaned) {
           monthMap[mKey].guttingLaborCost += Math.round(w * INCENTIVE_RATE_PER_KG);
         }
       } else {
         monthMap[mKey].nonGuttedKg = Math.round((monthMap[mKey].nonGuttedKg + w) * 1000) / 1000;
+        monthMap[mKey].regularNonGuttedKg = Math.round((monthMap[mKey].regularNonGuttedKg + sInfo.regularKg) * 1000) / 1000;
       }
     });
 
@@ -1618,8 +1736,8 @@ export default function VendingCenterLoggerPage() {
     const prevMonthKey = getPreviousMonthKey(currMonthKey);
 
     const rows = Object.values(monthMap).map((m) => {
-      const guttedCost = Math.round(m.guttedKg * procurementAvgCost);
-      const nonGuttedCost = Math.round(m.nonGuttedKg * procurementAvgCost);
+      const guttedCost = Math.round(m.regularGuttedKg * procurementAvgCost);
+      const nonGuttedCost = Math.round(m.regularNonGuttedKg * procurementAvgCost);
       const totalFishCost = guttedCost + nonGuttedCost + m.guttingLaborCost;
       const supplierRebate = supplierRebatesMap[m.monthKey] ?? (m.monthKey === "2026-09" ? 3020 : 0);
       const operationalGrossProfit = Math.round(m.revenue - totalFishCost);
@@ -1643,7 +1761,7 @@ export default function VendingCenterLoggerPage() {
     });
 
     return rows.sort((a, b) => b.monthKey.localeCompare(a.monthKey));
-  }, [entries, expenses, salaryPayments, procurementAvgCost, supplierRebatesMap]);
+  }, [entries, expenses, salaryPayments, procurementAvgCost, supplierRebatesMap, surplusInfoMap]);
 
   // ─── Aquarium Live Stock Calculations ───
   // All stock procured is LIVE FISH. We track what's left in the aquarium.
@@ -1683,14 +1801,22 @@ export default function VendingCenterLoggerPage() {
       }
     });
 
-    // Live fish remaining in aquarium (Procured − Sold − Mortality)
+    // Live fish remaining in aquarium (Net Procured − All-time Sold)
+    const netAvailableProcuredKg = Math.max(0, Math.round((totalProcuredKg - totalMortalityKg) * 1000) / 1000);
     const remainingKg = Math.max(
       0,
-      Math.round((totalProcuredKg - allTimeSoldKg - totalMortalityKg) * 1000) / 1000
+      Math.round((netAvailableProcuredKg - allTimeSoldKg) * 1000) / 1000
     );
 
-    // Gone from aquarium = sold already
-    const soldKg = Math.min(allTimeSoldKg, totalProcuredKg);
+    // Surplus biomass sold beyond paid procurement batches
+    const surplusKg = Math.max(
+      0,
+      Math.round((allTimeSoldKg - netAvailableProcuredKg) * 1000) / 1000
+    );
+    const isOutOfStock = remainingKg === 0;
+
+    // Gone from aquarium = all physical fish dispatched/sold
+    const soldKg = allTimeSoldKg;
 
     // Value of remaining stock if ALL sold as Gutted
     const valueIfGutted = Math.round(remainingKg * guttedPrice);
@@ -1700,6 +1826,9 @@ export default function VendingCenterLoggerPage() {
 
     // Avg procurement cost per kg (Standard delivered procurement is Rs 435/Kg: Rs 410 base + Rs 25 transport)
     const avgCostPerKg = totalProcuredKg > 0 ? totalProcuredCost / totalProcuredKg : 435;
+
+    // Financial surplus pure profit: 100% of procurement cost saved that is pure profit
+    const surplusPureProfit = Math.round(surplusKg * avgCostPerKg);
 
     // Financial loss due to mortality
     const totalMortalityCost = Math.round(totalMortalityKg * avgCostPerKg);
@@ -1719,6 +1848,11 @@ export default function VendingCenterLoggerPage() {
       totalProcuredCost: Math.round(totalProcuredCost),
       soldKg,
       remainingKg,
+      netAvailableProcuredKg,
+      surplusKg,
+      isOutOfStock,
+      surplusPureProfit,
+      allTimeSoldKg,
       totalMortalityKg,
       totalMortalityCount,
       totalMortalityCost,
@@ -1851,6 +1985,7 @@ export default function VendingCenterLoggerPage() {
     setFormCustomerName("");
     setFormCustomerPhone("");
     setFormBalanceAction("final_settlement");
+    setFormIsSurplus(aquariumStock.remainingKg === 0);
     setEditingEntry(null);
   };
 
@@ -1914,6 +2049,7 @@ export default function VendingCenterLoggerPage() {
     const updatedCustomFields = {
       ...(formCustomFields || {}),
       self_cleaned: formType === "Gutted" ? formSelfCleaned : false,
+      is_surplus: formIsSurplus,
       balance_amount: balanceAmount,
       balance_status: balanceStatus,
       balance_ref_id: balanceRefId || null,
@@ -2434,6 +2570,8 @@ export default function VendingCenterLoggerPage() {
       expectedRevenue,
       netRealizedProfit,
       profitMarginPercent,
+      surplusSoldKg: kpis.periodTotalSurplusKg,
+      surplusProfitAdded: kpis.surplusProfitBonus,
       onlineRevenue,
       onlineCount,
       cashRevenue,
@@ -2591,6 +2729,8 @@ export default function VendingCenterLoggerPage() {
       expectedRevenue,
       netRealizedProfit,
       profitMarginPercent,
+      surplusSoldKg: kpis.periodTotalSurplusKg,
+      surplusProfitAdded: kpis.surplusProfitBonus,
       onlineRevenue,
       onlineCount,
       cashRevenue,
@@ -2960,6 +3100,9 @@ export default function VendingCenterLoggerPage() {
         { "Vending Center Metric": "Non-Gutted Trout Sold Profit (Rs)", "Value / Amount": kpis.nonGuttedProfit },
         { "Vending Center Metric": "Net Profit Margin on Sold Fish (%)", "Value / Amount": `${kpis.profitMarginPercent}%` },
         { "Vending Center Metric": "Avg Procurement Cost per Kg (Rs)", "Value / Amount": procurementAvgCost },
+        { "Vending Center Metric": "Surplus Stock Sold in Period (Kg)", "Value / Amount": Number(kpis.periodTotalSurplusKg.toFixed(3)) },
+        { "Vending Center Metric": "Surplus Stock Whole Profit Bonus in Period (Rs)", "Value / Amount": kpis.surplusProfitBonus },
+        { "Vending Center Metric": "All-Time Procurement Surplus Sold (Kg)", "Value / Amount": Number(allTimeSurplusKg.toFixed(3)) },
         { "Vending Center Metric": "Total Weight Sold (Kg)", "Value / Amount": Number(kpis.totalKg.toFixed(3)) },
         { "Vending Center Metric": "Gutted Trout Sold (Kg)", "Value / Amount": Number(kpis.guttedKg.toFixed(3)) },
         { "Vending Center Metric": "Non-Gutted Trout Sold (Kg)", "Value / Amount": Number(kpis.nonGuttedKg.toFixed(3)) },
@@ -2972,6 +3115,7 @@ export default function VendingCenterLoggerPage() {
         { "Vending Center Metric": "Total Live Fish Stock Procured (Kg)", "Value / Amount": Number(aquariumStock.totalProcuredKg.toFixed(3)) },
         { "Vending Center Metric": "Live Fish Dispatched / Sold (Kg)", "Value / Amount": Number(aquariumStock.soldKg.toFixed(3)) },
         { "Vending Center Metric": "Current Live Stock in Aquarium (Kg)", "Value / Amount": Number(aquariumStock.remainingKg.toFixed(3)) },
+        { "Vending Center Metric": "Aquarium Live Stock Status", "Value / Amount": aquariumStock.isOutOfStock ? "OUT OF STOCK (0.000 Kg)" : `${formatKg(aquariumStock.remainingKg)} Kg Live` },
         { "Vending Center Metric": "Total Aquarium Mortality (Kg)", "Value / Amount": Number(aquariumStock.totalMortalityKg.toFixed(3)) },
         { "Vending Center Metric": "Total Mortality Fish Count", "Value / Amount": aquariumStock.totalMortalityCount },
         { "Vending Center Metric": "Total Mortality Financial Loss (Rs)", "Value / Amount": aquariumStock.totalMortalityCost },
@@ -2993,6 +3137,7 @@ export default function VendingCenterLoggerPage() {
       // 2. Sales Dispatches Sheet
       const activeCustomCols = customColumns.filter((c) => c.visible);
       const salesRows = entries.map((e, idx) => {
+        const sInfo = surplusInfoMap.get(e.id);
         const exp =
           e.expected_amount !== undefined && e.expected_amount !== null
             ? Number(e.expected_amount)
@@ -3008,6 +3153,12 @@ export default function VendingCenterLoggerPage() {
         const workerIncentiveRs = isGut && !isSelf ? Math.round(Number(e.weight_kg) * INCENTIVE_RATE_PER_KG) : 0;
         const cleaningType = isGut ? (isSelf ? "Self Cleaned (Owner)" : "Worker Cleaned (Mohd Amin)") : "Whole Fish (Non Gutted)";
 
+        const isSurplusSale = Boolean(sInfo?.isSurplus);
+        const surplusKg = sInfo?.surplusKg || 0;
+        const regularKg = sInfo ? sInfo.regularKg : Number(e.weight_kg);
+        const procCostDeducted = Math.round(regularKg * procurementAvgCost);
+        const netProfitRs = Math.round(taken - workerIncentiveRs - procCostDeducted);
+
         const row: Record<string, any> = {
           "#": idx + 1,
           "Date": e.entry_date,
@@ -3016,9 +3167,13 @@ export default function VendingCenterLoggerPage() {
           "Cleaning / Gutting": cleaningType,
           "Worker Incentive (Rs)": workerIncentiveRs,
           "Weight (Kg)": Number(Number(e.weight_kg).toFixed(3)),
+          "Surplus Stock?": isSurplusSale ? (sInfo?.isPureSurplus ? "Yes (100% Whole Profit)" : `Partial (${formatKg(surplusKg)} Kg Surplus)`) : "Regular Stock",
+          "Surplus Weight (Kg)": Number(surplusKg.toFixed(3)),
           "Rate (Rs/Kg)": Number(e.rate_per_kg),
           "Expected Amount (Rs)": exp,
           "Amount Received (Rs)": taken,
+          "Procurement Cost Deducted (Rs)": procCostDeducted,
+          "Net Profit on Sale (Rs)": netProfitRs,
           "Effective Rate (Rs/Kg)": Number((Number(e.weight_kg) > 0 && taken > 0 ? taken / Number(e.weight_kg) : Number(e.rate_per_kg)).toFixed(1)),
           "Negotiation Loss (Rs)": loss,
           "Payment Mode": e.payment_mode,
@@ -3288,6 +3443,7 @@ export default function VendingCenterLoggerPage() {
     setFormTime(entry.entry_time);
     setFormType(entry.product_type);
     setFormSelfCleaned(Boolean(entry.custom_fields?.self_cleaned || (entry as any).self_cleaned));
+    setFormIsSurplus(Boolean(entry.custom_fields?.is_surplus || surplusInfoMap.get(entry.id)?.isSurplus));
     setFormWeight(entry.weight_kg.toString());
     setFormRate(entry.rate_per_kg);
     setFormAmount(entry.amount_paid.toString());
@@ -3553,6 +3709,60 @@ export default function VendingCenterLoggerPage() {
             >
               <span className="material-symbols-outlined text-sm">close</span>
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════
+          AQUARIUM OUT-OF-STOCK & PROCUREMENT SURPLUS PROFIT BANNER
+          ══════════════════════════════════════════════════════════ */}
+      {(aquariumStock.isOutOfStock || allTimeSurplusKg > 0 || kpis.periodTotalSurplusKg > 0) && (
+        <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-emerald-950/60 via-slate-900/90 to-teal-950/50 border border-emerald-500/40 shadow-xl shadow-emerald-950/20 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs animate-fadeIn">
+          <div className="flex items-start sm:items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0 text-xl">
+              🎁
+            </div>
+            <div className="space-y-0.5">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="font-mono font-black text-emerald-300 text-xs sm:text-sm tracking-wide">
+                  Procurement Surplus Active · 100% Whole Profit
+                </span>
+                {aquariumStock.isOutOfStock && (
+                  <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-mono text-[10px] font-bold">
+                    Tank Out of Stock (0.000 Kg)
+                  </span>
+                )}
+                <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-200 border border-emerald-500/40 font-mono text-[10px] font-bold">
+                  ₹0 Proc. Deduction
+                </span>
+              </div>
+              <p className="text-slate-300/90 text-[11px] leading-relaxed">
+                Extra biomass delivered during procurement is recognized as whole profit. Every sale beyond procured stock incurs{" "}
+                <strong className="text-emerald-300">₹0 procurement cost</strong>, counting revenue directly as pure profit.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-800">
+            {kpis.periodTotalSurplusKg > 0 ? (
+              <div className="bg-emerald-950/80 border border-emerald-500/40 rounded-xl px-3 py-1.5 text-right font-mono">
+                <span className="text-[10px] text-emerald-400 block font-bold">Period Surplus Bonus</span>
+                <span className="text-emerald-200 font-black text-sm">
+                  +₹{kpis.surplusProfitBonus.toLocaleString("en-IN")}
+                </span>
+                <span className="text-[10px] text-slate-400 block">
+                  ({formatKg(kpis.periodTotalSurplusKg)} Kg pure profit)
+                </span>
+              </div>
+            ) : (
+              <div className="bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-1.5 text-right font-mono">
+                <span className="text-[10px] text-slate-400 block font-bold">All-Time Surplus Sold</span>
+                <span className="text-emerald-300 font-bold text-xs">
+                  +{formatKg(allTimeSurplusKg)} Kg
+                </span>
+                <span className="text-[10px] text-slate-500 block">Whole Profit</span>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -4103,6 +4313,15 @@ export default function VendingCenterLoggerPage() {
                       NG: ₹{kpis.nonGuttedProfit.toLocaleString("en-IN")}
                     </span>
                   </div>
+                  {kpis.periodTotalSurplusKg > 0 && (
+                    <div className="flex items-center justify-between text-[10.5px] bg-emerald-500/15 border border-emerald-500/30 rounded px-1.5 py-0.5 text-emerald-300 font-bold shadow-sm">
+                      <span className="flex items-center gap-1">
+                        <span>🎁</span>
+                        <span>Surplus Bonus:</span>
+                      </span>
+                      <span>+₹{kpis.surplusProfitBonus.toLocaleString("en-IN")} (100% Margin · {formatKg(kpis.periodTotalSurplusKg)} Kg)</span>
+                    </div>
+                  )}
                   <div className="flex items-center justify-between text-[10.5px] text-slate-500">
                     <span>Proc: {stockLoading && stockEntries.length === 0 ? "..." : `₹${kpis.procurementAvgCost}/Kg`}</span>
                     <span
@@ -4709,11 +4928,24 @@ export default function VendingCenterLoggerPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-3 sm:gap-3.5">
 
             {/* Card 1: Live Stock Remaining in Aquarium */}
-            <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-blue-950/50 via-slate-900/90 to-slate-900 border border-blue-500/40 shadow-xl shadow-blue-950/20 relative overflow-hidden flex flex-col justify-between">
+            <div className={`p-3.5 sm:p-4 rounded-2xl border shadow-xl relative overflow-hidden flex flex-col justify-between ${
+              aquariumStock.isOutOfStock
+                ? "bg-gradient-to-br from-amber-950/40 via-slate-900/90 to-slate-900 border-amber-500/40 shadow-amber-950/20"
+                : "bg-gradient-to-br from-blue-950/50 via-slate-900/90 to-slate-900 border-blue-500/40 shadow-blue-950/20"
+            }`}>
               <div>
                 <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
-                  <span className="text-blue-300 font-bold">LIVE IN AQUARIUM</span>
-                  <span className="material-symbols-outlined text-blue-400 text-lg">water</span>
+                  <span className={aquariumStock.isOutOfStock ? "text-amber-300 font-bold flex items-center gap-1.5" : "text-blue-300 font-bold"}>
+                    <span>LIVE IN AQUARIUM</span>
+                    {aquariumStock.isOutOfStock && (
+                      <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[9px] font-bold">
+                        OUT OF STOCK
+                      </span>
+                    )}
+                  </span>
+                  <span className={`material-symbols-outlined text-lg ${aquariumStock.isOutOfStock ? "text-amber-400" : "text-blue-400"}`}>
+                    {aquariumStock.isOutOfStock ? "inventory_2" : "water"}
+                  </span>
                 </div>
                 <div className="mt-2 flex items-baseline gap-2 min-h-[32px]">
                   {stockLoading && stockEntries.length === 0 ? (
@@ -4721,17 +4953,28 @@ export default function VendingCenterLoggerPage() {
                   ) : (
                     <>
                       <span
-                        className="text-2xl sm:text-3xl font-black text-white"
+                        className={`text-2xl sm:text-3xl font-black ${aquariumStock.isOutOfStock ? "text-amber-300" : "text-white"}`}
                         style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                       >
                         {formatKg(aquariumStock.remainingKg)}
                       </span>
-                      <span className="text-blue-400 font-bold font-mono text-sm">Kg</span>
+                      <span className={`${aquariumStock.isOutOfStock ? "text-amber-400" : "text-blue-400"} font-bold font-mono text-sm`}>Kg</span>
+                      {aquariumStock.isOutOfStock && (
+                        <span className="text-[10px] font-mono text-slate-400 ml-auto">
+                          Tank Empty (10th Oct)
+                        </span>
+                      )}
                     </>
                   )}
                 </div>
               </div>
-              <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2 space-y-0.5">
+              <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2 space-y-1">
+                {aquariumStock.surplusKg > 0 && (
+                  <div className="flex items-center justify-between text-[10.5px] bg-emerald-500/15 border border-emerald-500/30 rounded px-1.5 py-0.5 text-emerald-300 font-bold shadow-sm">
+                    <span>🎁 Surplus Dispatched:</span>
+                    <span>+{formatKg(aquariumStock.surplusKg)} Kg (+₹{aquariumStock.surplusPureProfit.toLocaleString("en-IN")})</span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between">
                   <span className="text-slate-400">Procured:</span>
                   <span className="text-blue-200 font-bold">
@@ -5354,6 +5597,7 @@ export default function VendingCenterLoggerPage() {
           }}
           availableMonths={availableSalaryMonths}
           onClose={() => setShowDailyHistogram(false)}
+          surplusInfoMap={surplusInfoMap}
         />
       )}
 
@@ -5490,6 +5734,7 @@ export default function VendingCenterLoggerPage() {
               </thead>
               <tbody className="divide-y divide-slate-800/60">
                 {paginatedSalesEntries.map((e, index) => {
+                  const sInfo = surplusInfoMap.get(e.id);
                   const isGutted =
                     (e.product_type || "").toLowerCase().includes("gutted") &&
                     !(e.product_type || "").toLowerCase().includes("non");
@@ -5631,6 +5876,19 @@ export default function VendingCenterLoggerPage() {
                           <span className="text-slate-400 text-[10.5px] mt-0.5 font-sans">
                             @ ₹{e.rate_per_kg}/Kg
                           </span>
+                          {sInfo?.isSurplus && (
+                            <span
+                              className="mt-1 px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[9.5px] font-bold font-mono inline-flex items-center gap-1 shadow-sm"
+                              title={
+                                sInfo.isPureSurplus
+                                  ? "100% Procurement Surplus Stock (Pure Profit, ₹0 procurement cost deducted)"
+                                  : `Partial Surplus: ${formatKg(sInfo.surplusKg)} Kg pure profit`
+                              }
+                            >
+                              <span>🎁</span>
+                              <span>{sInfo.isPureSurplus ? "Surplus (100% Profit)" : `+${formatKg(sInfo.surplusKg)} Kg Surplus`}</span>
+                            </span>
+                          )}
                         </div>
                       </td>
 
@@ -5845,6 +6103,7 @@ export default function VendingCenterLoggerPage() {
         /* ────────────── VIEW 2: VISUAL CARD GRID ────────────── */
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5">
           {paginatedSalesEntries.map((e, index) => {
+            const sInfo = surplusInfoMap.get(e.id);
             const isGutted =
               (e.product_type || "").toLowerCase().includes("gutted") &&
               !(e.product_type || "").toLowerCase().includes("non");
@@ -6019,7 +6278,18 @@ export default function VendingCenterLoggerPage() {
                   {/* Twin Metric Boxes: Weight & Amount Collected */}
                   <div className="grid grid-cols-2 gap-2 pt-1 font-mono">
                     <div className="bg-slate-950/70 border border-slate-800/80 rounded-xl p-2.5">
-                      <span className="text-[10px] uppercase font-bold text-slate-400 block">Weight</span>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block">Weight</span>
+                        {sInfo?.isSurplus && (
+                          <span
+                            className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[9px] font-bold font-mono inline-flex items-center gap-0.5"
+                            title={sInfo.isPureSurplus ? "Procurement surplus stock (100% Pure Profit)" : `Partial surplus: ${formatKg(sInfo.surplusKg)} Kg pure profit`}
+                          >
+                            <span>🎁</span>
+                            <span>{sInfo.isPureSurplus ? "Surplus" : `+${formatKg(sInfo.surplusKg)} Kg`}</span>
+                          </span>
+                        )}
+                      </div>
                       <div className="flex items-baseline gap-1 mt-0.5">
                         <span className="text-emerald-400 font-black text-lg tracking-tight">{formatKg(e.weight_kg)}</span>
                         <span className="text-slate-500 text-xs font-sans">Kg</span>
@@ -6450,6 +6720,57 @@ export default function VendingCenterLoggerPage() {
                   />
                 </div>
               )}
+
+              {/* Row 2.6: Procurement Surplus Stock Toggle */}
+              <div
+                onClick={() => setFormIsSurplus(!formIsSurplus)}
+                className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 select-none ${
+                  formIsSurplus || aquariumStock.isOutOfStock
+                    ? "bg-emerald-950/40 border-emerald-500/60 shadow-lg shadow-emerald-950/30"
+                    : "bg-slate-950/80 border-slate-800 hover:border-slate-700"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`w-6 h-6 rounded-lg flex items-center justify-center border transition-all flex-shrink-0 ${
+                      formIsSurplus || aquariumStock.isOutOfStock
+                        ? "bg-emerald-500 border-emerald-400 text-slate-950 font-black shadow-sm"
+                        : "bg-slate-900 border-slate-700 text-transparent"
+                    }`}
+                  >
+                    <span className="material-symbols-outlined text-sm font-black">check</span>
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span
+                        className={`text-xs font-bold font-mono ${
+                          formIsSurplus || aquariumStock.isOutOfStock ? "text-emerald-200" : "text-slate-300"
+                        }`}
+                      >
+                        Procurement Surplus Fish (100% Whole Profit)
+                      </span>
+                      {(formIsSurplus || aquariumStock.isOutOfStock) && (
+                        <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold">
+                          🎁 Zero Procurement Deduction
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-[10px] text-slate-400 font-mono mt-0.5 leading-snug">
+                      {aquariumStock.isOutOfStock
+                        ? "Tank is Out of Stock (0.000 Kg). All sales are automatically treated as Surplus with ₹0 procurement cost (100% pure profit)."
+                        : formIsSurplus
+                        ? "Fish was received as extra weight during procurement. ₹0 procurement cost will be deducted (100% pure profit)."
+                        : "Check if this fish was extra biomass delivered during procurement beyond weighed invoice."}
+                    </p>
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={formIsSurplus || aquariumStock.isOutOfStock}
+                  onChange={(e) => setFormIsSurplus(e.target.checked)}
+                  className="sr-only"
+                />
+              </div>
 
               {/* Row 3: Weight (Exact Precision Scale Input) */}
               <div>

@@ -17,6 +17,7 @@ interface DailySalesHistogramProps {
   onSelectMonth: (monthKey: string) => void;
   onFilterToDate: (dateStr: string) => void;
   availableMonths: { key: string; displayLabel: string }[];
+  surplusInfoMap?: Map<string, { regularKg: number; surplusKg: number; isSurplus: boolean; isPureSurplus?: boolean }>;
   onClose?: () => void;
 }
 
@@ -31,6 +32,7 @@ interface DayAggregate {
   weightKg: number;
   guttedKg: number;
   nonGuttedKg: number;
+  surplusKg: number;
   ordersCount: number;
   onlineRevenue: number;
   cashRevenue: number;
@@ -43,6 +45,7 @@ export default function DailySalesHistogram({
   onSelectMonth,
   onFilterToDate,
   availableMonths,
+  surplusInfoMap,
   onClose,
 }: DailySalesHistogramProps) {
   const [metricMode, setMetricMode] = useState<MetricMode>("revenue");
@@ -68,6 +71,7 @@ export default function DailySalesHistogram({
     monthTotals: {
       revenue: number;
       weightKg: number;
+      surplusKg: number;
       orders: number;
       online: number;
       cash: number;
@@ -99,6 +103,7 @@ export default function DailySalesHistogram({
           weightKg: 0,
           guttedKg: 0,
           nonGuttedKg: 0,
+          surplusKg: 0,
           ordersCount: 0,
           onlineRevenue: 0,
           cashRevenue: 0,
@@ -111,9 +116,13 @@ export default function DailySalesHistogram({
       const payMethod = ((e as any).payment_mode || (e as any).payment_method || "").toLowerCase();
       const prodType = (e.product_type || "").toLowerCase();
       const isGutted = prodType.includes("gutted") && !prodType.includes("non");
+      const sInfo = surplusInfoMap?.get(e.id);
 
       map[dStr].revenue += rev;
       map[dStr].weightKg = Math.round((map[dStr].weightKg + wt) * 1000) / 1000;
+      if (sInfo?.surplusKg) {
+        map[dStr].surplusKg = Math.round((map[dStr].surplusKg + sInfo.surplusKg) * 1000) / 1000;
+      }
       if (isGutted) {
         map[dStr].guttedKg = Math.round((map[dStr].guttedKg + wt) * 1000) / 1000;
       } else {
@@ -153,6 +162,7 @@ export default function DailySalesHistogram({
             weightKg: 0,
             guttedKg: 0,
             nonGuttedKg: 0,
+            surplusKg: 0,
             ordersCount: 0,
             onlineRevenue: 0,
             cashRevenue: 0,
@@ -168,6 +178,7 @@ export default function DailySalesHistogram({
     // Totals & Peak
     let totalRev = 0;
     let totalWt = 0;
+    let totalSurplus = 0;
     let totalOrders = 0;
     let totalOnline = 0;
     let totalCash = 0;
@@ -177,6 +188,7 @@ export default function DailySalesHistogram({
     list.forEach((day) => {
       totalRev += day.revenue;
       totalWt += day.weightKg;
+      totalSurplus += day.surplusKg;
       totalOrders += day.ordersCount;
       totalOnline += day.onlineRevenue;
       totalCash += day.cashRevenue;
@@ -194,13 +206,14 @@ export default function DailySalesHistogram({
       monthTotals: {
         revenue: totalRev,
         weightKg: Math.round(totalWt * 1000) / 1000,
+        surplusKg: Math.round(totalSurplus * 1000) / 1000,
         orders: totalOrders,
         online: totalOnline,
         cash: totalCash,
         activeDays: list.filter((d) => d.ordersCount > 0).length,
       },
     };
-  }, [entries, yearNum, monthNum, daysInMonth, showAllMonthDays, metricMode]);
+  }, [entries, yearNum, monthNum, daysInMonth, showAllMonthDays, metricMode, surplusInfoMap]);
 
   // Default selected day to Peak Day or the latest active day
   const activeDay = useMemo(() => {
@@ -461,6 +474,16 @@ export default function DailySalesHistogram({
           </div>
         </div>
       </div>
+
+      {/* Month Surplus Alert Pill */}
+      {monthTotals.surplusKg > 0 && (
+        <div className="mb-4 p-2.5 px-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs font-mono flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="text-base">🎁</span>
+            <span><strong>Procurement Surplus Active:</strong> {formatKg(monthTotals.surplusKg)} Kg bonus fish sold in this month with ₹0 procurement cost applied (100% Whole Profit).</span>
+          </div>
+        </div>
+      )}
 
       {/* ─── The Histogram (SVG Bar Chart) ─── */}
       <div className="bg-slate-950/70 border border-slate-800/80 rounded-2xl p-3 sm:p-4 relative">
@@ -763,6 +786,12 @@ export default function DailySalesHistogram({
                   <span className="text-slate-400">🐟 Whole / Non-Gutted:</span>
                   <span className="font-bold text-white">{formatKg(activeDay.nonGuttedKg)} Kg</span>
                 </div>
+                {activeDay.surplusKg > 0 && (
+                  <div className="flex justify-between text-amber-300 font-bold pt-0.5 border-t border-slate-800/60">
+                    <span>🎁 Procurement Surplus:</span>
+                    <span>+{formatKg(activeDay.surplusKg)} Kg (100% Profit)</span>
+                  </div>
+                )}
               </div>
             </div>
 

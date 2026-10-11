@@ -172,9 +172,9 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
-    if (!cost_per_kg || Number(cost_per_kg) <= 0) {
+    if (cost_per_kg === undefined || cost_per_kg === null || isNaN(Number(cost_per_kg)) || Number(cost_per_kg) < 0) {
       return NextResponse.json(
-        { success: false, error: "cost_per_kg must be a positive number" },
+        { success: false, error: "cost_per_kg must be a non-negative number" },
         { status: 400 }
       );
     }

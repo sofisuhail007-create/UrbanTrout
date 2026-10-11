@@ -11,6 +11,8 @@ export interface EodReportPayload {
   expectedRevenue?: number;
   netRealizedProfit?: number;
   profitMarginPercent?: string;
+  surplusSoldKg?: number;
+  surplusProfitAdded?: number;
   onlineRevenue?: number;
   onlineCount?: number;
   cashRevenue?: number;
@@ -85,6 +87,9 @@ export function formatEodTelegramMessage(p: EodReportPayload): string {
   msg += `  ↳ <i>Gutted:</i> ${guttedKg} Kg | <i>Non-Gutted:</i> ${nonGuttedKg} Kg\n`;
   msg += `• <b>Gross Revenue:</b> ₹${revenue}\n`;
   msg += `• <b>Net Realized Profit:</b> <b>₹${profit}</b> (${margin}% net margin)\n`;
+  if (Number(p.surplusSoldKg || 0) > 0) {
+    msg += `• 🎁 <b>Procurement Surplus Sold:</b> ${Number(p.surplusSoldKg).toFixed(2)} Kg (<b>100% Whole Profit:</b> +₹${Number(p.surplusProfitAdded || 0).toLocaleString("en-IN")})\n`;
+  }
   if (Number(p.negotiationLoss || 0) > 0) {
     msg += `• <b>Negotiation Discount Loss:</b> ₹${loss}\n`;
   }
