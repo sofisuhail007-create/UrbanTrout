@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { adminFetch } from "@/lib/adminClient";
@@ -264,6 +264,24 @@ export default function VendingCenterLoggerPage() {
       return false;
     }
   });
+  // Super Admin check: either isAdmin state or localStorage super_admin role or root email
+  const isSuperAdmin = useMemo(() => {
+    if (isAdmin) return true;
+    if (typeof window === "undefined") return false;
+    try {
+      const storedRole = (localStorage.getItem("ut_admin_role") || sessionStorage.getItem("ut_admin_role") || "").toLowerCase().trim();
+      const storedEmail = (localStorage.getItem("ut_admin_email") || sessionStorage.getItem("ut_admin_email") || "").toLowerCase().trim();
+      return (
+        storedRole === "super_admin" ||
+        storedRole === "admin" ||
+        ROOT_OWNER_EMAILS.includes(storedEmail)
+      );
+    } catch (_) {
+      return false;
+    }
+  }, [isAdmin]);
+  const dateInputRef = useRef<HTMLInputElement>(null);
+
   const [showAdminCards, setShowAdminCards] = useState(true);
   const [showDailyHistogram, setShowDailyHistogram] = useState(true);
   // can_delete: controls visibility of the delete button for non-admin staff
@@ -861,12 +879,11 @@ export default function VendingCenterLoggerPage() {
 
         if (user?.email) {
           const userEmail = user.email.toLowerCase().trim();
-          if (isEmailAdmin(userEmail)) {
+          if (isEmailAdmin(userEmail) || storedRole === "super_admin") {
             setIsAdmin(true);
             setCanDelete(true);
             return;
           }
-
 
           // Check database staff_permissions list
           const { data: staffRow } = await supabase
@@ -894,7 +911,6 @@ export default function VendingCenterLoggerPage() {
             } catch (_) {}
           }
 
-
           // Fallback whitelist check
           const { data: whitelistRow } = await supabase
             .from("app_settings")
@@ -906,7 +922,7 @@ export default function VendingCenterLoggerPage() {
 
           if (whitelistRow?.value) {
             const allowed = whitelistRow.value.split(",").map((e: string) => e.trim().toLowerCase());
-            if (allowed.includes(userEmail)) {
+            if (allowed.includes(userEmail) && !isEmailAdmin(userEmail) && storedRole !== "super_admin") {
               // admin_whitelist users without super_admin role are treated as staff
               setIsAdmin(false);
               return;
@@ -914,7 +930,9 @@ export default function VendingCenterLoggerPage() {
           }
 
           // If user email doesn't match root admin or super_admin role, revoke admin cards
-          setIsAdmin(false);
+          if (!locallyAdmin) {
+            setIsAdmin(false);
+          }
         } else if (!locallyAdmin) {
           setIsAdmin(false);
         }
@@ -1971,7 +1989,8 @@ export default function VendingCenterLoggerPage() {
 
   // ─── Reset Form ───
   const resetForm = () => {
-    setFormDate(getTodayDate());
+    const initialDate = isSuperAdmin && period === "yesterday" ? getIstYesterdayDate() : getTodayDate();
+    setFormDate(initialDate);
     setFormTime(getCurrentTime());
     setFormType("Gutted");
     setFormSelfCleaned(false);
@@ -2110,8 +2129,8 @@ export default function VendingCenterLoggerPage() {
           alert("Notice: Sales staff can only edit today's vending logs. Historical entries from yesterday or earlier can only be modified by Super Admin.");
           return;
         }
-        if (!isAdmin && formDate !== getTodayDate()) {
-          alert("Notice: Sales staff cannot change an entry date to a past date.");
+        if (!isSuperAdmin && !isAdmin && formDate !== getTodayDate()) {
+          alert("Notice: Sales staff cannot change an entry date to a past date. Previous dates can only be modified by Super Admin.");
           return;
         }
         // Edit entry
@@ -2151,6 +2170,10 @@ export default function VendingCenterLoggerPage() {
           alert(errData.error || "Failed to update entry.");
         }
       } else {
+        if (!isSuperAdmin && !isAdmin && formDate !== getTodayDate()) {
+          alert("Notice: Sales staff can only log entries for today. Previous dates can only be logged by Super Admin.");
+          return;
+        }
         // Create new entry
         const payload = {
           entry_date: formDate,
@@ -3301,10 +3324,10 @@ export default function VendingCenterLoggerPage() {
   // Historical entries from yesterday or earlier can ONLY be edited by Super Admin.
   const canEditEntry = useCallback(
     (entry: VendingSalesEntry): boolean => {
-      if (isAdmin) return true;
+      if (isSuperAdmin || isAdmin) return true;
       return entry.entry_date === getTodayDate();
     },
-    [isAdmin, getTodayDate]
+    [isSuperAdmin, isAdmin, getTodayDate]
   );
 
   // Sales staff can ONLY edit/delete expenses of TODAY (IST).
@@ -3312,10 +3335,10 @@ export default function VendingCenterLoggerPage() {
   const canEditExpense = useCallback(
     (expense: VendingExpenseEntry): boolean => {
       if (!expense) return false;
-      if (isAdmin) return true;
+      if (isSuperAdmin || isAdmin) return true;
       return expense.expense_date === getTodayDate();
     },
-    [isAdmin, getTodayDate]
+    [isSuperAdmin, isAdmin, getTodayDate]
   );
 
   // ─── Vending Expenses Handlers ───
@@ -6562,53 +6585,110 @@ export default function VendingCenterLoggerPage() {
               {/* Row 1: Symmetrical Twin Cards (Date & Time) */}
               <div className="grid grid-cols-2 gap-3">
                 {/* Date Card */}
-                <div className="relative group bg-slate-950/80 border border-slate-800 hover:border-emerald-500/50 rounded-2xl p-2.5 sm:p-3 transition-all cursor-pointer shadow-inner flex flex-col justify-between">
-                  <div className="flex items-center justify-between mb-1.5">
+                <div
+                  onClick={() => {
+                    if (isSuperAdmin || isAdmin) {
+                      try {
+                        dateInputRef.current?.showPicker();
+                      } catch (_) {
+                        dateInputRef.current?.focus();
+                      }
+                    }
+                  }}
+                  className={`relative group bg-slate-950/80 border rounded-2xl p-2.5 sm:p-3 transition-all flex flex-col justify-between shadow-inner ${
+                    isSuperAdmin || isAdmin
+                      ? "border-slate-800 hover:border-emerald-500/60 cursor-pointer"
+                      : "border-slate-800/80 cursor-not-allowed opacity-90"
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-1.5 flex-wrap gap-1">
                     <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
                       <span className="material-symbols-outlined text-[13px] text-emerald-400">calendar_today</span>
                       Date
                     </span>
-                    {formDate === getTodayDate() ? (
-                      <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-emerald-950/80 text-emerald-400 border border-emerald-500/30">
-                        Today ✓
-                      </span>
-                    ) : (
-                      isAdmin && (
+                    {isSuperAdmin || isAdmin ? (
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setFormDate(getIstYesterdayDate());
+                          }}
+                          className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-full border transition-all cursor-pointer ${
+                            formDate === getIstYesterdayDate()
+                              ? "bg-amber-500/25 text-amber-200 border-amber-500/50"
+                              : "bg-slate-800/90 hover:bg-slate-700 text-slate-400 hover:text-white border-slate-700"
+                          }`}
+                          title={`Set to Yesterday (${formatIstDateDisplay(getIstYesterdayDate())})`}
+                        >
+                          Yesterday
+                        </button>
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
                             setFormDate(getTodayDate());
                           }}
-                          className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-all cursor-pointer"
-                          title="Reset to today"
+                          className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-full border transition-all cursor-pointer ${
+                            formDate === getTodayDate()
+                              ? "bg-emerald-950/90 text-emerald-300 border border-emerald-500/50"
+                              : "bg-slate-800/90 hover:bg-slate-700 text-slate-400 hover:text-white border-slate-700"
+                          }`}
+                          title={`Set to Today (${formatIstDateDisplay(getTodayDate())})`}
                         >
                           Today
                         </button>
-                      )
+                      </div>
+                    ) : (
+                      <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700">
+                        🔒 Today Only
+                      </span>
                     )}
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="font-mono text-sm sm:text-base font-bold text-white tracking-wide">
                       {formatIstDateDisplay(formDate) || formDate}
                     </span>
-                    <span className="material-symbols-outlined text-base text-slate-500 group-hover:text-emerald-400 transition-colors">
-                      {isAdmin ? "event" : "lock"}
-                    </span>
+                    <button
+                      type="button"
+                      disabled={!(isSuperAdmin || isAdmin)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        try {
+                          dateInputRef.current?.showPicker();
+                        } catch (_) {
+                          dateInputRef.current?.focus();
+                        }
+                      }}
+                      className={`p-1 rounded-lg transition-colors flex items-center justify-center ${
+                        isSuperAdmin || isAdmin
+                          ? "text-slate-400 hover:text-emerald-400 hover:bg-emerald-500/10 cursor-pointer"
+                          : "text-slate-600 cursor-not-allowed"
+                      }`}
+                      title={isSuperAdmin || isAdmin ? "Click to open calendar" : "Locked for sales staff"}
+                    >
+                      <span className="material-symbols-outlined text-base">
+                        {isSuperAdmin || isAdmin ? "edit_calendar" : "lock"}
+                      </span>
+                    </button>
                   </div>
                   <input
+                    ref={dateInputRef}
                     type="date"
                     value={formDate}
+                    max={getTodayDate()}
                     onChange={(e) => {
-                      if (!isAdmin && e.target.value !== getTodayDate()) {
+                      if (!isSuperAdmin && !isAdmin && e.target.value !== getTodayDate()) {
                         alert("Sales staff can only log or edit entries for today.");
                         return;
                       }
-                      setFormDate(e.target.value);
+                      if (e.target.value) setFormDate(e.target.value);
                     }}
-                    disabled={!isAdmin}
+                    disabled={!(isSuperAdmin || isAdmin)}
                     required
-                    className={`absolute inset-0 opacity-0 w-full h-full ${isAdmin ? "cursor-pointer" : "cursor-not-allowed"}`}
+                    className={`absolute inset-0 opacity-0 w-full h-full ${
+                      isSuperAdmin || isAdmin ? "cursor-pointer" : "cursor-not-allowed pointer-events-none"
+                    }`}
                   />
                 </div>
 
@@ -6721,56 +6801,58 @@ export default function VendingCenterLoggerPage() {
                 </div>
               )}
 
-              {/* Row 2.6: Procurement Surplus Stock Toggle */}
-              <div
-                onClick={() => setFormIsSurplus(!formIsSurplus)}
-                className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 select-none ${
-                  formIsSurplus || aquariumStock.isOutOfStock
-                    ? "bg-emerald-950/40 border-emerald-500/60 shadow-lg shadow-emerald-950/30"
-                    : "bg-slate-950/80 border-slate-800 hover:border-slate-700"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`w-6 h-6 rounded-lg flex items-center justify-center border transition-all flex-shrink-0 ${
-                      formIsSurplus || aquariumStock.isOutOfStock
-                        ? "bg-emerald-500 border-emerald-400 text-slate-950 font-black shadow-sm"
-                        : "bg-slate-900 border-slate-700 text-transparent"
-                    }`}
-                  >
-                    <span className="material-symbols-outlined text-sm font-black">check</span>
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span
-                        className={`text-xs font-bold font-mono ${
-                          formIsSurplus || aquariumStock.isOutOfStock ? "text-emerald-200" : "text-slate-300"
-                        }`}
-                      >
-                        Procurement Surplus Fish (100% Whole Profit)
-                      </span>
-                      {(formIsSurplus || aquariumStock.isOutOfStock) && (
-                        <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold">
-                          🎁 Zero Procurement Deduction
-                        </span>
-                      )}
+              {/* Row 2.6: Procurement Surplus Stock Toggle - ADMIN ONLY */}
+              {isSuperAdmin && (
+                <div
+                  onClick={() => setFormIsSurplus(!formIsSurplus)}
+                  className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 select-none ${
+                    formIsSurplus || aquariumStock.isOutOfStock
+                      ? "bg-emerald-950/40 border-emerald-500/60 shadow-lg shadow-emerald-950/30"
+                      : "bg-slate-950/80 border-slate-800 hover:border-slate-700"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`w-6 h-6 rounded-lg flex items-center justify-center border transition-all flex-shrink-0 ${
+                        formIsSurplus || aquariumStock.isOutOfStock
+                          ? "bg-emerald-500 border-emerald-400 text-slate-950 font-black shadow-sm"
+                          : "bg-slate-900 border-slate-700 text-transparent"
+                      }`}
+                    >
+                      <span className="material-symbols-outlined text-sm font-black">check</span>
                     </div>
-                    <p className="text-[10px] text-slate-400 font-mono mt-0.5 leading-snug">
-                      {aquariumStock.isOutOfStock
-                        ? "Tank is Out of Stock (0.000 Kg). All sales are automatically treated as Surplus with ₹0 procurement cost (100% pure profit)."
-                        : formIsSurplus
-                        ? "Fish was received as extra weight during procurement. ₹0 procurement cost will be deducted (100% pure profit)."
-                        : "Check if this fish was extra biomass delivered during procurement beyond weighed invoice."}
-                    </p>
+                    <div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span
+                          className={`text-xs font-bold font-mono ${
+                            formIsSurplus || aquariumStock.isOutOfStock ? "text-emerald-200" : "text-slate-300"
+                          }`}
+                        >
+                          Procurement Surplus Fish (100% Whole Profit)
+                        </span>
+                        {(formIsSurplus || aquariumStock.isOutOfStock) && (
+                          <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold">
+                            🎁 Zero Procurement Deduction
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[10px] text-slate-400 font-mono mt-0.5 leading-snug">
+                        {aquariumStock.isOutOfStock
+                          ? "Tank is Out of Stock (0.000 Kg). All sales are automatically treated as Surplus with ₹0 procurement cost (100% pure profit)."
+                          : formIsSurplus
+                          ? "Fish was received as extra weight during procurement. ₹0 procurement cost will be deducted (100% pure profit)."
+                          : "Check if this fish was extra biomass delivered during procurement beyond weighed invoice."}
+                      </p>
+                    </div>
                   </div>
+                  <input
+                    type="checkbox"
+                    checked={formIsSurplus || aquariumStock.isOutOfStock}
+                    onChange={(e) => setFormIsSurplus(e.target.checked)}
+                    className="sr-only"
+                  />
                 </div>
-                <input
-                  type="checkbox"
-                  checked={formIsSurplus || aquariumStock.isOutOfStock}
-                  onChange={(e) => setFormIsSurplus(e.target.checked)}
-                  className="sr-only"
-                />
-              </div>
+              )}
 
               {/* Row 3: Weight (Exact Precision Scale Input) */}
               <div>
