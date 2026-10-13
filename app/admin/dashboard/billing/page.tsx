@@ -56,12 +56,33 @@ function getInitialProducts() {
   return DEFAULT_PRODUCTS;
 }
 
+const POS_DRAFT_CACHE_KEY = "ut_pos_billing_active_draft_v1";
+
+function getInitialPosDraft() {
+  if (typeof window !== "undefined") {
+    try {
+      const saved = localStorage.getItem(POS_DRAFT_CACHE_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch (_) {}
+  }
+  return null;
+}
+
 export default function POSBillingPage() {
+  const initialPosDraft = useMemo(() => getInitialPosDraft(), []);
+
   const [products, setProducts] = useState<typeof DEFAULT_PRODUCTS>(() => getInitialProducts());
-  const [selectedProductId, setSelectedProductId] = useState<string>("gutted-trout");
-  const [currentWeight, setCurrentWeight] = useState<string>("1.0");
+  const [selectedProductId, setSelectedProductId] = useState<string>(
+    initialPosDraft?.selectedProductId || "gutted-trout"
+  );
+  const [currentWeight, setCurrentWeight] = useState<string>(
+    initialPosDraft?.currentWeight || "1.0"
+  );
 
   const [billItems, setBillItems] = useState<BillItem[]>(() => {
+    if (initialPosDraft?.billItems && Array.isArray(initialPosDraft.billItems) && initialPosDraft.billItems.length > 0) {
+      return initialPosDraft.billItems;
+    }
     const prods = getInitialProducts();
     const defaultProd = prods.find((p) => p.id === "gutted-trout") || prods[0] || DEFAULT_PRODUCTS[0];
     return [
@@ -77,15 +98,29 @@ export default function POSBillingPage() {
   });
 
   // POS Input Mode: "scale" (default fish weight calculator) or "custom_amount" (direct ₹ without kg)
-  const [posInputMode, setPosInputMode] = useState<"scale" | "custom_amount">("scale");
-  const [customAmount, setCustomAmount] = useState<string>("500");
-  const [customNote, setCustomNote] = useState<string>("");
+  const [posInputMode, setPosInputMode] = useState<"scale" | "custom_amount">(
+    initialPosDraft?.posInputMode || "scale"
+  );
+  const [customAmount, setCustomAmount] = useState<string>(
+    initialPosDraft?.customAmount || "500"
+  );
+  const [customNote, setCustomNote] = useState<string>(
+    initialPosDraft?.customNote || ""
+  );
 
   // Customer Details
-  const [customerName, setCustomerName] = useState("");
-  const [customerPhone, setCustomerPhone] = useState("");
-  const [customerNotes, setCustomerNotes] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"JkBankSoundbox" | "RazorpayQR" | "WhatsAppLink" | "Cash">("JkBankSoundbox");
+  const [customerName, setCustomerName] = useState(
+    initialPosDraft?.customerName || ""
+  );
+  const [customerPhone, setCustomerPhone] = useState(
+    initialPosDraft?.customerPhone || ""
+  );
+  const [customerNotes, setCustomerNotes] = useState(
+    initialPosDraft?.customerNotes || ""
+  );
+  const [paymentMethod, setPaymentMethod] = useState<"JkBankSoundbox" | "RazorpayQR" | "WhatsAppLink" | "Cash">(
+    initialPosDraft?.paymentMethod || "JkBankSoundbox"
+  );
   const [upiId, setUpiId] = useState("JKBMERC00828895@jkb");
   const [soundboxPaid, setSoundboxPaid] = useState(false);
   const [soundboxQrView, setSoundboxQrView] = useState<"dynamic" | "standee">("dynamic");
@@ -203,6 +238,38 @@ export default function POSBillingPage() {
       }
     );
   }, [remoteBillItems, activeRemoteItemId]);
+
+  // Auto-save active POS billing draft to localStorage
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const draft = {
+          billItems,
+          posInputMode,
+          customAmount,
+          customNote,
+          currentWeight,
+          selectedProductId,
+          customerName,
+          customerPhone,
+          customerNotes,
+          paymentMethod,
+        };
+        localStorage.setItem(POS_DRAFT_CACHE_KEY, JSON.stringify(draft));
+      } catch (_) {}
+    }
+  }, [
+    billItems,
+    posInputMode,
+    customAmount,
+    customNote,
+    currentWeight,
+    selectedProductId,
+    customerName,
+    customerPhone,
+    customerNotes,
+    paymentMethod,
+  ]);
 
   const handleOpenNewRemoteModal = () => {
     const defProd = products.find((p) => p.id === "gutted-trout") || products[0];
@@ -1488,6 +1555,9 @@ Naseem Bagh / Malabagh, Srinagar`;
         unit: "Kg",
       },
     ]);
+    try {
+      localStorage.removeItem(POS_DRAFT_CACHE_KEY);
+    } catch (_) {}
   };
 
   // 1-Click Explicit Cancellation & Expiry of Counter Razorpay QR
@@ -2588,7 +2658,7 @@ Helpline: +91 84910 06127`;
 
 
       {/* ─── MAIN 2-COLUMN GRID (COMPACT ABOVE-THE-FOLD) ─── */}
-      {activeTab === "pos" && (
+      <div className={activeTab === "pos" ? "block" : "hidden"}>
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 items-start">
         {/* LEFT COLUMN: Weight Input & Customer (7 Cols) */}
         <div className="lg:col-span-7 space-y-3">
@@ -3623,7 +3693,7 @@ Helpline: +91 84910 06127`;
           </div>
         </div>
       </div>
-      )}
+      </div>
 
 
       {/* ─── DEDICATED REMOTE ORDERS & WHATSAPP PAYMENTS DASHBOARD ─── */}
@@ -4197,7 +4267,7 @@ Helpline: +91 84910 06127`;
       )}
 
       {/* ─── DEDICATED DEAL DESK & LOCKED-IN QR WORKSPACE ─── */}
-      {activeTab === "deal_calculator" && (
+      <div className={activeTab === "deal_calculator" ? "block" : "hidden"}>
         <DealCalculatorTab
           products={products}
           activeScaleWeight={currentWeight}
@@ -4209,7 +4279,7 @@ Helpline: +91 84910 06127`;
           customers={dbCustomers}
           loadingCustomers={loadingDbCustomers}
         />
-      )}
+      </div>
 
       {/* ─── DEDICATED CUSTOMER KHATA & BALANCES LEDGER ─── */}
       {activeTab === "customer_balances" && (

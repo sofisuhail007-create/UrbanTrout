@@ -100,6 +100,9 @@ export default function DashboardPage() {
   const [selectedBalanceRecord, setSelectedBalanceRecord] = useState<CustomerBalanceRecord | null>(null);
   const [isBalanceModalOpen, setIsBalanceModalOpen] = useState(false);
   const [storeStatus, setStoreStatus] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState<boolean>(true);
+  const [aquariumStockKg, setAquariumStockKg] = useState<number>(0);
+  const [isAquariumOutOfStock, setIsAquariumOutOfStock] = useState<boolean>(false);
 
   const fetchBalancesData = async () => {
     try {
@@ -179,6 +182,25 @@ export default function DashboardPage() {
           setStoreStatus(storeJson);
         }
       } catch (_) {}
+
+      // Check admin status for staff vs owner
+      const storedEmail = (localStorage.getItem("ut_admin_email") || sessionStorage.getItem("ut_admin_email") || "").toLowerCase().trim();
+      const storedRole = (localStorage.getItem("ut_admin_role") || sessionStorage.getItem("ut_admin_role") || "").toLowerCase().trim();
+      const isOwner = storedEmail === "sofisuhail007@gmail.com" || storedEmail === "info.urbantrout@gmail.com" || storedRole === "super_admin";
+      setIsAdmin(isOwner);
+
+      // Fetch live aquarium stock for flash card
+      try {
+        const stockRes = await fetch("/api/aquarium-stock");
+        if (stockRes.ok) {
+          const stockJson = await stockRes.json();
+          if (stockJson?.summary) {
+            setAquariumStockKg(Number(stockJson.summary.remainingKg || 0));
+            setIsAquariumOutOfStock(Boolean(stockJson.summary.isOutOfStock));
+          }
+        }
+      } catch (_) {}
+
       setLoading(false);
     }
     load();
@@ -327,23 +349,89 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* ─── AQUARIUM LIVE STOCK FLASH CARD (STAFF VIEW - MOHD AMIN) ─── */}
+      {!isAdmin && (
+        <div className="bg-gradient-to-r from-cyan-950/40 via-slate-900 to-slate-950 border border-cyan-500/40 rounded-2xl p-5 shadow-2xl relative overflow-hidden animate-fadeIn">
+          <div className="absolute top-0 right-0 w-36 h-36 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none" />
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-400 flex items-center justify-center flex-shrink-0">
+                <span className="material-symbols-outlined text-2xl">water_ph</span>
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="font-bold text-white text-base" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                    Aquarium Live Trout Stock
+                  </h2>
+                  <span
+                    className={`px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold border ${
+                      isAquariumOutOfStock
+                        ? "bg-rose-500/20 text-rose-300 border-rose-500/40"
+                        : aquariumStockKg < 10
+                        ? "bg-amber-500/20 text-amber-300 border-amber-500/40 animate-pulse"
+                        : "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                    }`}
+                  >
+                    {isAquariumOutOfStock ? "EMPTY / RESTOCK" : aquariumStockKg < 10 ? "LOW STOCK" : "OPTIMAL ACTIVE"}
+                  </span>
+                </div>
+                <p className="text-slate-400 text-xs mt-0.5">
+                  Real-time live trout biomass remaining in shop display aquarium for counter sales
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+              <div className="text-right">
+                <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Current Stock</div>
+                <div className="text-2xl font-black text-cyan-400 font-mono tracking-tight">
+                  {aquariumStockKg.toFixed(3)} <span className="text-xs text-cyan-300/80 font-normal">Kg</span>
+                </div>
+              </div>
+              <Link
+                href="/admin/dashboard/billing"
+                className="px-3.5 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
+              >
+                <span className="material-symbols-outlined text-sm">point_of_sale</span>
+                <span>Open POS</span>
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5">
-        <StatCard icon="today" label="Today's Orders" value={todayOrders.length} color="bg-cyan-500/15 text-cyan-400" />
-        <StatCard icon="currency_rupee" label="Today's Revenue" value={`₹${todayRevenue.toLocaleString("en-IN")}`} color="bg-green-500/15 text-green-400" />
-        <StatCard icon="pending" label="Pending Orders" value={pending} color="bg-amber-500/15 text-amber-400" sub="Needs action" />
-        <StatCard
-          icon="account_balance_wallet"
-          label="Pending Khata"
-          value={`₹${balanceSummary.totalPendingAmount.toLocaleString("en-IN")}`}
-          color="bg-amber-500/15 text-amber-400"
-          sub={balanceSummary.pendingRecordsCount > 0 ? `${balanceSummary.pendingRecordsCount} unpaid bills` : "All clear ✓"}
-        />
-        <StatCard icon="group" label="Total Customers" value={customers} color="bg-purple-500/15 text-purple-400" />
-      </div>
+      {isAdmin ? (
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5">
+          <StatCard icon="today" label="Today's Orders" value={todayOrders.length} color="bg-cyan-500/15 text-cyan-400" />
+          <StatCard icon="currency_rupee" label="Today's Revenue" value={`₹${todayRevenue.toLocaleString("en-IN")}`} color="bg-green-500/15 text-green-400" />
+          <StatCard icon="pending" label="Pending Orders" value={pending} color="bg-amber-500/15 text-amber-400" sub="Needs action" />
+          <StatCard
+            icon="account_balance_wallet"
+            label="Pending Khata"
+            value={`₹${balanceSummary.totalPendingAmount.toLocaleString("en-IN")}`}
+            color="bg-amber-500/15 text-amber-400"
+            sub={balanceSummary.pendingRecordsCount > 0 ? `${balanceSummary.pendingRecordsCount} unpaid bills` : "All clear ✓"}
+          />
+          <StatCard icon="group" label="Total Customers" value={customers} color="bg-purple-500/15 text-purple-400" />
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+          <StatCard icon="today" label="Today's Orders" value={todayOrders.length} color="bg-cyan-500/15 text-cyan-400" />
+          <StatCard icon="pending" label="Pending Orders" value={pending} color="bg-amber-500/15 text-amber-400" sub="Needs action" />
+          <StatCard
+            icon="water_ph"
+            label="Aquarium Stock"
+            value={`${aquariumStockKg.toFixed(3)} Kg`}
+            color="bg-cyan-500/15 text-cyan-400"
+            sub={isAquariumOutOfStock ? "Needs Restock" : "Available in Tank"}
+          />
+          <StatCard icon="group" label="Total Customers" value={customers} color="bg-purple-500/15 text-purple-400" />
+        </div>
+      )}
 
       {/* ─── OUTSTANDING BALANCES FLASHCARD (KHATA WIDGET) ─── */}
-      {balanceSummary.pendingRecordsCount > 0 && (
+      {isAdmin && balanceSummary.pendingRecordsCount > 0 && (
         <div className="bg-gradient-to-r from-amber-950/40 via-slate-900 to-slate-950 border border-amber-500/40 rounded-2xl p-5 shadow-2xl relative overflow-hidden animate-fadeIn">
           <div className="absolute top-0 right-0 w-36 h-36 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
 

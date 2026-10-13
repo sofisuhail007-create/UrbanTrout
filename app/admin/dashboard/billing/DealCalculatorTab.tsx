@@ -80,6 +80,17 @@ interface DealCalculatorTabProps {
 }
 
 const DEALS_STORAGE_KEY = "ut_pos_bargain_deals_ledger_v1";
+const DEAL_DESK_CACHE_KEY = "ut_deal_desk_active_draft_v2";
+
+function getInitialDealDeskDraft() {
+  if (typeof window !== "undefined") {
+    try {
+      const saved = localStorage.getItem(DEAL_DESK_CACHE_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch (_) {}
+  }
+  return null;
+}
 
 export default function DealCalculatorTab({
   products,
@@ -92,8 +103,13 @@ export default function DealCalculatorTab({
   customers = [],
   loadingCustomers = false,
 }: DealCalculatorTabProps) {
+  const initialDraft = useMemo(() => getInitialDealDeskDraft(), []);
+
   // ─── 1. CORE CALCULATOR INPUT STATE & CLUBBED MULTI-ITEM STATE ───
   const [dealItems, setDealItems] = useState<DealDeskItem[]>(() => {
+    if (initialDraft?.dealItems && Array.isArray(initialDraft.dealItems) && initialDraft.dealItems.length > 0) {
+      return initialDraft.dealItems;
+    }
     const p = products[0] || { id: "gutted-trout", name: "Premium Gutted Rainbow Trout", pricePerKg: 580, unit: "Kg" };
     const initialWeight = Math.max(0.1, parseFloat(activeScaleWeight || "2.0") || 2.0);
     const stdRate = p.pricePerKg || 580;
@@ -113,35 +129,69 @@ export default function DealCalculatorTab({
       },
     ];
   });
-  const [activeDealItemId, setActiveDealItemId] = useState<string>("deal-1");
+  const [activeDealItemId, setActiveDealItemId] = useState<string>(
+    initialDraft?.activeDealItemId || "deal-1"
+  );
 
   const activeDealItem = useMemo(() => {
     return dealItems.find((i) => i.id === activeDealItemId) || dealItems[0];
   }, [dealItems, activeDealItemId]);
 
   const [selectedProductId, setSelectedProductId] = useState<string>(
-    activeDealItem?.productId || products[0]?.id || "gutted-trout"
+    initialDraft?.selectedProductId || activeDealItem?.productId || products[0]?.id || "gutted-trout"
   );
-  const [customStandardRate, setCustomStandardRate] = useState<string>("");
-  const [isCustomRateActive, setIsCustomRateActive] = useState<boolean>(false);
+  const [customStandardRate, setCustomStandardRate] = useState<string>(
+    initialDraft?.customStandardRate || ""
+  );
+  const [isCustomRateActive, setIsCustomRateActive] = useState<boolean>(
+    Boolean(initialDraft?.isCustomRateActive)
+  );
 
   const [weightStr, setWeightStr] = useState<string>(
-    activeDealItem ? String(activeDealItem.weightKg) : activeScaleWeight || "2.0"
+    initialDraft?.weightStr !== undefined
+      ? String(initialDraft.weightStr)
+      : activeDealItem
+      ? String(activeDealItem.weightKg)
+      : activeScaleWeight || "2.0"
   );
 
-  // Negotiation input states & mode
-  const [activeInputMode, setActiveInputMode] = useState<"total" | "rate" | "percent" | "flat">("total");
-  const [dealTotalStr, setDealTotalStr] = useState<string>(activeDealItem ? String(activeDealItem.dealTotal) : "");
-  const [dealRateStr, setDealRateStr] = useState<string>(activeDealItem ? String(activeDealItem.dealRate) : "");
-  const [discountPercentStr, setDiscountPercentStr] = useState<string>("");
-  const [flatDiscountStr, setFlatDiscountStr] = useState<string>("");
+  // Negotiation input states & mode (default: "rate" per kg rate as first option)
+  const [activeInputMode, setActiveInputMode] = useState<"total" | "rate" | "percent" | "flat">(
+    initialDraft?.activeInputMode || "rate"
+  );
+  const [dealTotalStr, setDealTotalStr] = useState<string>(
+    initialDraft?.dealTotalStr !== undefined
+      ? String(initialDraft.dealTotalStr)
+      : activeDealItem
+      ? String(activeDealItem.dealTotal)
+      : ""
+  );
+  const [dealRateStr, setDealRateStr] = useState<string>(
+    initialDraft?.dealRateStr !== undefined
+      ? String(initialDraft.dealRateStr)
+      : activeDealItem
+      ? String(activeDealItem.dealRate)
+      : ""
+  );
+  const [discountPercentStr, setDiscountPercentStr] = useState<string>(
+    initialDraft?.discountPercentStr || ""
+  );
+  const [flatDiscountStr, setFlatDiscountStr] = useState<string>(
+    initialDraft?.flatDiscountStr || ""
+  );
 
   // Customer details
-  const [customerName, setCustomerName] = useState<string>("");
-  const [customerPhone, setCustomerPhone] = useState<string>("");
+  const [customerName, setCustomerName] = useState<string>(
+    initialDraft?.customerName || ""
+  );
+  const [customerPhone, setCustomerPhone] = useState<string>(
+    initialDraft?.customerPhone || ""
+  );
 
   // ─── 2. LOCKED QR ENGINE STATE (DEFAULT: J&K BANK SOUNDBOX) ───
-  const [qrEngine, setQrEngine] = useState<"soundbox" | "razorpay">("soundbox");
+  const [qrEngine, setQrEngine] = useState<"soundbox" | "razorpay">(
+    initialDraft?.qrEngine || "soundbox"
+  );
   const [rzpQrId, setRzpQrId] = useState<string | null>(null);
   const [rzpQrImageUrl, setRzpQrImageUrl] = useState<string | null>(null);
   const [rzpQrLoading, setRzpQrLoading] = useState<boolean>(false);
@@ -176,6 +226,86 @@ export default function DealCalculatorTab({
       } catch (_) {}
     }
   }, [dealsLedger]);
+
+  // Auto-save active Deal Desk draft to localStorage
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const draft = {
+          dealItems,
+          activeDealItemId,
+          selectedProductId,
+          customStandardRate,
+          isCustomRateActive,
+          weightStr,
+          activeInputMode,
+          dealTotalStr,
+          dealRateStr,
+          discountPercentStr,
+          flatDiscountStr,
+          customerName,
+          customerPhone,
+          qrEngine,
+        };
+        localStorage.setItem(DEAL_DESK_CACHE_KEY, JSON.stringify(draft));
+      } catch (_) {}
+    }
+  }, [
+    dealItems,
+    activeDealItemId,
+    selectedProductId,
+    customStandardRate,
+    isCustomRateActive,
+    weightStr,
+    activeInputMode,
+    dealTotalStr,
+    dealRateStr,
+    discountPercentStr,
+    flatDiscountStr,
+    customerName,
+    customerPhone,
+    qrEngine,
+  ]);
+
+  const handleClearDealDraft = () => {
+    try {
+      localStorage.removeItem(DEAL_DESK_CACHE_KEY);
+    } catch (_) {}
+    const p = products[0] || { id: "gutted-trout", name: "Premium Gutted Rainbow Trout", pricePerKg: 580, unit: "Kg" };
+    const initialWeight = Math.max(0.1, parseFloat(activeScaleWeight || "2.0") || 2.0);
+    const stdRate = p.pricePerKg || 580;
+    const defDealRate = stdRate > 20 ? stdRate - 20 : stdRate;
+    setDealItems([
+      {
+        id: "deal-1",
+        productId: p.id,
+        productName: p.name,
+        weightKg: initialWeight,
+        standardRate: stdRate,
+        standardTotal: Math.round(initialWeight * stdRate),
+        dealRate: defDealRate,
+        dealTotal: Math.round(initialWeight * defDealRate),
+        discountAmount: Math.max(0, Math.round(initialWeight * stdRate) - Math.round(initialWeight * defDealRate)),
+        isCustomRate: false,
+      },
+    ]);
+    setActiveDealItemId("deal-1");
+    setSelectedProductId(p.id);
+    setCustomStandardRate("");
+    setIsCustomRateActive(false);
+    setWeightStr(String(initialWeight));
+    setActiveInputMode("rate");
+    setDealTotalStr(String(Math.round(initialWeight * defDealRate)));
+    setDealRateStr(String(defDealRate));
+    setDiscountPercentStr("");
+    setFlatDiscountStr("");
+    setCustomerName("");
+    setCustomerPhone("");
+    setQrEngine("soundbox");
+    setActiveDealNumber("");
+    setIsDealPaid(false);
+    setDealPaymentRef(null);
+  };
 
   // ─── PAGINATION (50 entries/page) ───
   const [ledgerPage, setLedgerPage] = useState(1);
@@ -1134,16 +1264,26 @@ Naseem Bagh / Malabagh, Srinagar`;
                 <span className="material-symbols-outlined text-amber-400 text-base">calculate</span>
                 2. Customer Bargain / Offer Calculator
               </h2>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold">
-                Instant Loss &amp; Rate Breakdown
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold">
+                  Instant Loss &amp; Rate Breakdown
+                </span>
+                <button
+                  type="button"
+                  onClick={handleClearDealDraft}
+                  className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-all cursor-pointer"
+                  title="Reset all Deal Desk inputs and clear cached draft"
+                >
+                  Clear Deal
+                </button>
+              </div>
             </div>
 
             {/* 4 Interactive Input Mode Tabs */}
             <div className="grid grid-cols-4 gap-1 p-1 bg-slate-950 rounded-xl border border-slate-800 text-[10px] font-mono font-bold">
               {[
-                { id: "total", label: "₹ Deal Total" },
                 { id: "rate", label: "₹ / Kg Rate" },
+                { id: "total", label: "₹ Deal Total" },
                 { id: "percent", label: "% Discount" },
                 { id: "flat", label: "₹ Flat Off" },
               ].map((m) => (

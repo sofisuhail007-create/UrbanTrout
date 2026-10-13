@@ -18,6 +18,7 @@ interface DailySalesHistogramProps {
   onFilterToDate: (dateStr: string) => void;
   availableMonths: { key: string; displayLabel: string }[];
   surplusInfoMap?: Map<string, { regularKg: number; surplusKg: number; isSurplus: boolean; isPureSurplus?: boolean }>;
+  isAdmin?: boolean;
   onClose?: () => void;
 }
 
@@ -46,6 +47,7 @@ export default function DailySalesHistogram({
   onFilterToDate,
   availableMonths,
   surplusInfoMap,
+  isAdmin = false,
   onClose,
 }: DailySalesHistogramProps) {
   const [metricMode, setMetricMode] = useState<MetricMode>("revenue");
@@ -476,7 +478,7 @@ export default function DailySalesHistogram({
       </div>
 
       {/* Month Surplus Alert Pill */}
-      {monthTotals.surplusKg > 0 && (
+      {isAdmin && monthTotals.surplusKg > 0 && (
         <div className="mb-4 p-2.5 px-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs font-mono flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <span className="text-base">🎁</span>

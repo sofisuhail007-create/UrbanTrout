@@ -3771,9 +3771,9 @@ export default function VendingCenterLoggerPage() {
       )}
 
       {/* ══════════════════════════════════════════════════════════
-          AQUARIUM OUT-OF-STOCK & PROCUREMENT SURPLUS PROFIT BANNER
+          AQUARIUM OUT-OF-STOCK & PROCUREMENT SURPLUS PROFIT BANNER (Admin Only)
           ══════════════════════════════════════════════════════════ */}
-      {(aquariumStock.isOutOfStock || allTimeSurplusKg > 0 || kpis.periodTotalSurplusKg > 0) && (
+      {isAdmin && (aquariumStock.isOutOfStock || allTimeSurplusKg > 0 || kpis.periodTotalSurplusKg > 0) && (
         <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-emerald-950/60 via-slate-900/90 to-teal-950/50 border border-emerald-500/40 shadow-xl shadow-emerald-950/20 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs animate-fadeIn">
           <div className="flex items-start sm:items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0 text-xl">
@@ -3820,6 +3820,53 @@ export default function VendingCenterLoggerPage() {
                 <span className="text-[10px] text-slate-500 block">Whole Profit</span>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════
+          STAFF FLASH CARD: CURRENT AQUARIUM STOCK ONLY (MOHD AMIN)
+          ══════════════════════════════════════════════════════════ */}
+      {!isAdmin && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-blue-950/60 via-slate-900 to-slate-950 border border-blue-500/40 shadow-xl relative overflow-hidden animate-fadeIn">
+          <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/5 rounded-full blur-2xl pointer-events-none" />
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-blue-500/20 border border-blue-500/40 flex items-center justify-center text-blue-400 shrink-0">
+                <span className="material-symbols-outlined text-2xl">water</span>
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono font-bold uppercase tracking-wider text-blue-300">
+                    Current Stock in Aquarium
+                  </span>
+                  {aquariumStock.isOutOfStock ? (
+                    <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-mono text-[10.5px] font-bold">
+                      Tank Out of Stock
+                    </span>
+                  ) : (
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-mono text-[10.5px] font-bold flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                      Live in Tank
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-slate-400 font-['Manrope'] mt-0.5">
+                  Live trout biomass currently available in the counter aquarium
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-baseline gap-2 bg-slate-950/90 px-5 py-3 rounded-2xl border border-blue-500/30 self-start sm:self-auto shadow-inner">
+              <span
+                className={`text-3xl sm:text-4xl font-black font-['Space_Grotesk'] ${
+                  aquariumStock.isOutOfStock ? "text-amber-300" : "text-white"
+                }`}
+              >
+                {stockLoading && stockEntries.length === 0 ? "..." : formatKg(aquariumStock.remainingKg)}
+              </span>
+              <span className="text-blue-400 font-bold font-mono text-base">Kg</span>
+            </div>
           </div>
         </div>
       )}
@@ -5026,7 +5073,7 @@ export default function VendingCenterLoggerPage() {
                 </div>
               </div>
               <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2 space-y-1">
-                {aquariumStock.surplusKg > 0 && (
+                {isAdmin && aquariumStock.surplusKg > 0 && (
                   <div className="flex items-center justify-between text-[10.5px] bg-emerald-500/15 border border-emerald-500/30 rounded px-1.5 py-0.5 text-emerald-300 font-bold shadow-sm">
                     <span>🎁 Surplus Dispatched:</span>
                     <span>+{formatKg(aquariumStock.surplusKg)} Kg (+₹{aquariumStock.surplusPureProfit.toLocaleString("en-IN")})</span>
@@ -5655,6 +5702,7 @@ export default function VendingCenterLoggerPage() {
           availableMonths={availableSalaryMonths}
           onClose={() => setShowDailyHistogram(false)}
           surplusInfoMap={surplusInfoMap}
+          isAdmin={isAdmin}
         />
       )}
 
@@ -5933,7 +5981,7 @@ export default function VendingCenterLoggerPage() {
                           <span className="text-slate-400 text-[10.5px] mt-0.5 font-sans">
                             @ ₹{e.rate_per_kg}/Kg
                           </span>
-                          {sInfo?.isSurplus && (
+                          {isAdmin && sInfo?.isSurplus && (
                             <span
                               className="mt-1 px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[9.5px] font-bold font-mono inline-flex items-center gap-1 shadow-sm"
                               title={
@@ -6337,7 +6385,7 @@ export default function VendingCenterLoggerPage() {
                     <div className="bg-slate-950/70 border border-slate-800/80 rounded-xl p-2.5">
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] uppercase font-bold text-slate-400 block">Weight</span>
-                        {sInfo?.isSurplus && (
+                        {isAdmin && sInfo?.isSurplus && (
                           <span
                             className="px-1.5 py-0.2 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[9px] font-bold font-mono inline-flex items-center gap-0.5"
                             title={sInfo.isPureSurplus ? "Procurement surplus stock (100% Pure Profit)" : `Partial surplus: ${formatKg(sInfo.surplusKg)} Kg pure profit`}
