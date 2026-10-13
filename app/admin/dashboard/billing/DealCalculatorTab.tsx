@@ -217,9 +217,14 @@ export default function DealCalculatorTab({
   };
 
   const handleAddDealItem = (prodId?: string) => {
+    const currentActiveProd =
+      products.find((p) => p.id === selectedProductId) ||
+      products.find((p) => p.id === "gutted-trout") ||
+      products[0];
+
     const targetProd = prodId
-      ? products.find((p) => p.id === prodId) || products[0]
-      : products.find((p) => !dealItems.some((i) => i.productId === p.id)) || products[0];
+      ? products.find((p) => p.id === prodId) || currentActiveProd
+      : currentActiveProd;
 
     const stdRate = targetProd?.pricePerKg || 580;
     const defW = 1.0;
@@ -230,8 +235,8 @@ export default function DealCalculatorTab({
     const newId = `deal-item-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
     const newItem: DealDeskItem = {
       id: newId,
-      productId: targetProd?.id || "whole-trout",
-      productName: targetProd?.name || "Whole Rainbow Trout",
+      productId: targetProd?.id || "gutted-trout",
+      productName: targetProd?.name || "Premium Gutted Rainbow Trout",
       weightKg: defW,
       standardRate: stdRate,
       standardTotal: defStdTotal,

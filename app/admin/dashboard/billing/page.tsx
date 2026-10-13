@@ -231,9 +231,14 @@ export default function POSBillingPage() {
   };
 
   const handleAddRemoteItem = (prodId?: string) => {
+    const currentActiveProd =
+      products.find((p) => p.id === activeRemoteItem.productId) ||
+      products.find((p) => p.id === "gutted-trout") ||
+      products[0];
+
     const targetProd = prodId
-      ? products.find((p) => p.id === prodId) || products[0]
-      : products.find((p) => !remoteBillItems.some((i) => i.productId === p.id)) || products[0];
+      ? products.find((p) => p.id === prodId) || currentActiveProd
+      : currentActiveProd;
 
     const baseR = targetProd?.pricePerKg || 580;
     const dealR = baseR > 20 ? baseR - 20 : baseR;
@@ -242,8 +247,8 @@ export default function POSBillingPage() {
 
     const newItem: RemoteBillItem = {
       id: newId,
-      productId: targetProd?.id || "whole-trout",
-      name: targetProd?.name || "Whole Rainbow Trout",
+      productId: targetProd?.id || "gutted-trout",
+      name: targetProd?.name || "Premium Gutted Rainbow Trout",
       weightKg: defWeight,
       weightInput: "1.0",
       baseRate: baseR,
@@ -396,6 +401,61 @@ export default function POSBillingPage() {
       }
     }
   }, []);
+
+  // ─── Auto-reset to Counter POS Billing on 5-Minute Inactivity ───
+  useEffect(() => {
+    const handleInactivityReset = () => {
+      setActiveTab("pos");
+      if (typeof window !== "undefined" && window.location.search) {
+        window.history.replaceState(null, "", "/admin/dashboard/billing");
+      }
+      setNewRemoteModalOpen(false);
+      setVoiceModalOpen(false);
+      setIsBalanceModalOpen(false);
+      setInvoiceModalOpen(false);
+      setFourUpModalOpen(false);
+      setEnlargeQrModal(false);
+    };
+
+    window.addEventListener("ut_reset_to_pos_billing", handleInactivityReset);
+    return () => {
+      window.removeEventListener("ut_reset_to_pos_billing", handleInactivityReset);
+    };
+  }, []);
+
+  // Safety timer: If user is on Deal Desk / Khata / Remote sub-tabs, snap back after 5 minutes of inactivity
+  useEffect(() => {
+    if (activeTab === "pos") return;
+    const INACTIVITY_MS = 5 * 60 * 1000;
+    let timer = setTimeout(() => {
+      setActiveTab("pos");
+      if (typeof window !== "undefined" && window.location.search) {
+        window.history.replaceState(null, "", "/admin/dashboard/billing");
+      }
+      setNewRemoteModalOpen(false);
+      setIsBalanceModalOpen(false);
+    }, INACTIVITY_MS);
+
+    const onActivity = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        setActiveTab("pos");
+        if (typeof window !== "undefined" && window.location.search) {
+          window.history.replaceState(null, "", "/admin/dashboard/billing");
+        }
+        setNewRemoteModalOpen(false);
+        setIsBalanceModalOpen(false);
+      }, INACTIVITY_MS);
+    };
+
+    const events = ["mousedown", "mousemove", "keydown", "touchstart", "scroll", "click"] as const;
+    events.forEach((ev) => window.addEventListener(ev, onActivity, { passive: true }));
+
+    return () => {
+      clearTimeout(timer);
+      events.forEach((ev) => window.removeEventListener(ev, onActivity));
+    };
+  }, [activeTab]);
 
   // Load voice preferences from localStorage
   useEffect(() => {
@@ -606,9 +666,14 @@ export default function POSBillingPage() {
   };
 
   const handleAddProductItem = (prodId?: string) => {
+    const currentActiveProd =
+      products.find((p) => p.id === selectedProductId || selectedProductId?.startsWith(p.id)) ||
+      products.find((p) => p.id === "gutted-trout") ||
+      products[0];
+
     const targetProd = prodId
-      ? products.find((p) => p.id === prodId) || products[0]
-      : products.find((p) => !billItems.some((i) => i.id === p.id || i.id.startsWith(p.id))) || products[0];
+      ? products.find((p) => p.id === prodId) || currentActiveProd
+      : currentActiveProd;
 
     const uniqueId = billItems.some((i) => i.id === targetProd.id)
       ? `${targetProd.id}-${Date.now()}`

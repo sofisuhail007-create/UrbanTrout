@@ -167,6 +167,62 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     window.dispatchEvent(new CustomEvent("ut_admin_ui_zoom_change", { detail: val }));
   };
 
+  // ─── 5-MINUTE INACTIVITY AUTO-HOMEPAGE TO POS BILLING ───
+  useEffect(() => {
+    const INACTIVITY_MS = 5 * 60 * 1000; // 5 minutes of inactivity
+    let inactivityTimer: NodeJS.Timeout | null = null;
+    let lastActivityTime = Date.now();
+
+    const triggerAutoHomepage = () => {
+      // If user is currently on any other dashboard page (vending log, farm, orders, etc.), redirect to POS Billing
+      if (pathname !== "/admin/dashboard/billing") {
+        router.push("/admin/dashboard/billing");
+      }
+      // Broadcast event so billing page snaps to counter "pos" tab & closes sub-modals
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("ut_reset_to_pos_billing"));
+      }
+    };
+
+    const resetTimer = () => {
+      lastActivityTime = Date.now();
+      if (inactivityTimer) clearTimeout(inactivityTimer);
+      inactivityTimer = setTimeout(() => {
+        triggerAutoHomepage();
+      }, INACTIVITY_MS);
+    };
+
+    const handleUserActivity = () => {
+      const now = Date.now();
+      // Throttle activity checks to once every 2 seconds
+      if (now - lastActivityTime > 2000) {
+        resetTimer();
+      }
+    };
+
+    const checkInactivityOnFocus = () => {
+      // When device screen wakes up or browser tab regains focus, check elapsed idle time
+      if (Date.now() - lastActivityTime >= INACTIVITY_MS) {
+        triggerAutoHomepage();
+      }
+    };
+
+    const activityEvents = ["mousedown", "mousemove", "keydown", "touchstart", "scroll", "click"] as const;
+    activityEvents.forEach((ev) => window.addEventListener(ev, handleUserActivity, { passive: true }));
+    window.addEventListener("focus", checkInactivityOnFocus);
+    document.addEventListener("visibilitychange", checkInactivityOnFocus);
+
+    // Initialize timer
+    resetTimer();
+
+    return () => {
+      if (inactivityTimer) clearTimeout(inactivityTimer);
+      activityEvents.forEach((ev) => window.removeEventListener(ev, handleUserActivity));
+      window.removeEventListener("focus", checkInactivityOnFocus);
+      document.removeEventListener("visibilitychange", checkInactivityOnFocus);
+    };
+  }, [pathname, router]);
+
   const resolveStaffName = (em: string): string => {
     const clean = em.toLowerCase().trim();
     if (clean === "sofisuhail007@gmail.com" || clean === "info.urbantrout@gmail.com") return "Suhail";
