@@ -629,10 +629,17 @@ export default function VendingCenterLoggerPage() {
       clearTimeout(customerSearchTimeoutRef.current);
     }
 
+    const trimmed = queryValue.trim();
+    if (!trimmed) {
+      setCustomerDropdownOpen(false);
+      setCustomerSearchResults([]);
+      return;
+    }
+
     setCustomerDropdownOpen(true);
     customerSearchTimeoutRef.current = setTimeout(() => {
-      fetchCustomerSuggestions(queryValue);
-    }, 200);
+      fetchCustomerSuggestions(trimmed);
+    }, 180);
   };
 
   const handleSelectCustomer = (cust: CustomerRecord) => {
@@ -640,6 +647,7 @@ export default function VendingCenterLoggerPage() {
     setFormCustomerName(cust.name || "");
     setFormCustomerPhone(cust.phone || "");
     setCustomerDropdownOpen(false);
+    setCustomerSearchResults([]);
   };
 
   const handleClearCustomer = () => {
@@ -7684,275 +7692,145 @@ export default function VendingCenterLoggerPage() {
                 </div>
               )}
 
-              {/* ── Customer Info & Lifetime Loyalty Intelligence ──────────────── */}
-              <div ref={customerDropdownRef} className="pt-3 border-t border-slate-800/80 space-y-2.5 relative">
-                <div className="flex items-center justify-between mb-1">
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-sm text-cyan-400">query_stats</span>
-                    <span className="text-[10px] uppercase font-bold text-cyan-400 font-mono tracking-wider">
-                      Customer Intelligence &amp; Database
+              {/* ── Customer Info & Quick Lookup ──────────────── */}
+              <div ref={customerDropdownRef} className="pt-3 border-t border-slate-800/80 space-y-2 relative">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-xs text-slate-400">person_search</span>
+                    <span className="text-[10px] uppercase font-bold text-slate-400 font-mono tracking-wider">
+                      Customer Info
                     </span>
-                    <span className="text-[9px] font-mono text-cyan-300 bg-cyan-950/70 px-2 py-0.5 rounded-full border border-cyan-800/60">
-                      Live Search
+                    <span className="text-[9px] font-mono text-slate-500">
+                      (Type name or phone to search)
                     </span>
                   </div>
                   {selectedCustomer && (
                     <button
                       type="button"
                       onClick={handleClearCustomer}
-                      className="text-[10px] font-mono text-slate-400 hover:text-rose-400 flex items-center gap-1 transition-colors cursor-pointer"
+                      className="text-[10px] font-mono text-rose-400 hover:text-rose-300 flex items-center gap-0.5 cursor-pointer"
                     >
                       <span className="material-symbols-outlined text-xs">close</span>
-                      Clear Customer
+                      Clear
                     </button>
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {/* Two clean input fields */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 relative">
                   {/* Customer Name Input */}
-                  <div className="relative">
-                    <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1 flex items-center justify-between">
-                      <span>Customer Name</span>
-                      {isSearchingCustomer && (
-                        <span className="text-[9px] text-cyan-400 font-mono animate-pulse">Searching...</span>
-                      )}
-                    </label>
+                  <div>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 material-symbols-outlined text-sm select-none">
-                        person
-                      </span>
                       <input
                         type="text"
                         value={formCustomerName}
                         onChange={(e) => handleCustomerSearchChange("name", e.target.value)}
-                        onFocus={() => {
-                          setCustomerDropdownOpen(true);
-                          if (customerSearchResults.length === 0) {
-                            fetchCustomerSuggestions(formCustomerName || formCustomerPhone);
-                          }
-                        }}
-                        placeholder="e.g. Dr. Farooq / Tariq Sb / Zubair"
-                        className="w-full bg-slate-950 border border-slate-700 focus:border-cyan-400 rounded-xl pl-9 pr-3 py-2 text-xs text-white font-mono focus:outline-none transition-all"
+                        placeholder="Customer Name (e.g. Ovais / Zubair)"
+                        className="w-full bg-slate-950 border border-slate-700/80 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none transition-all placeholder:text-slate-600"
                       />
+                      {isSearchingCustomer && (
+                        <span className="absolute right-2.5 top-1/2 -translate-y-1/2 material-symbols-outlined text-xs text-cyan-400 animate-spin">
+                          sync
+                        </span>
+                      )}
                     </div>
                   </div>
 
                   {/* Customer Phone Input */}
-                  <div className="relative">
-                    <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1 flex items-center justify-between">
-                      <span>Phone (WhatsApp) <span className="text-slate-500 font-normal">+91</span></span>
-                      {formCustomerPhone.length === 10 && (
-                        <span className="text-[9px] text-emerald-400 font-mono font-bold flex items-center gap-0.5">
-                          <span className="material-symbols-outlined text-xs">verified</span>
-                          10 Digits
-                        </span>
-                      )}
-                    </label>
+                  <div>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-mono font-bold select-none">
+                      <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-500 font-mono select-none">
                         +91
                       </span>
                       <input
                         type="tel"
                         value={formCustomerPhone}
                         onChange={(e) => handleCustomerSearchChange("phone", e.target.value)}
-                        onFocus={() => {
-                          setCustomerDropdownOpen(true);
-                          if (customerSearchResults.length === 0) {
-                            fetchCustomerSuggestions(formCustomerPhone || formCustomerName);
-                          }
-                        }}
-                        placeholder="9876543210"
+                        placeholder="10-digit Phone"
                         maxLength={10}
-                        className="w-full bg-slate-950 border border-slate-700 focus:border-cyan-400 rounded-xl pl-10 pr-3 py-2 text-xs text-white font-mono focus:outline-none transition-all"
+                        className="w-full bg-slate-950 border border-slate-700/80 focus:border-cyan-400 rounded-xl pl-9 pr-3 py-2 text-xs text-white font-mono focus:outline-none transition-all placeholder:text-slate-600"
                       />
                     </div>
                   </div>
+
+                  {/* Floating Autocomplete Dropdown - Positioned strictly BELOW inputs */}
+                  {customerDropdownOpen && (formCustomerName.trim() || formCustomerPhone.trim()) && (
+                    <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-slate-900 border border-cyan-500/40 rounded-xl shadow-2xl shadow-black/80 max-h-48 overflow-y-auto divide-y divide-slate-800">
+                      {isSearchingCustomer ? (
+                        <div className="py-3 px-3 text-center text-[11px] text-slate-400 font-mono flex items-center justify-center gap-2">
+                          <span className="material-symbols-outlined text-xs animate-spin text-cyan-400">sync</span>
+                          Searching customer database...
+                        </div>
+                      ) : customerSearchResults.length > 0 ? (
+                        customerSearchResults.slice(0, 5).map((cust) => {
+                          const isVip = (cust.total_spent || 0) >= 2500 || (cust.total_orders || 0) >= 3;
+                          return (
+                            <div
+                              key={cust.id || cust.phone}
+                              onClick={() => handleSelectCustomer(cust)}
+                              className="px-3 py-2 flex items-center justify-between gap-2 cursor-pointer hover:bg-slate-800/90 transition-colors"
+                            >
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className="text-xs font-bold text-white font-mono truncate">
+                                  {cust.name}
+                                </span>
+                                {isVip && (
+                                  <span className="text-[8.5px] px-1 py-0.2 rounded bg-amber-500/20 text-amber-300 font-mono font-bold">
+                                    VIP
+                                  </span>
+                                )}
+                                <span className="text-[10px] text-slate-400 font-mono">
+                                  +91 {cust.phone}
+                                </span>
+                              </div>
+
+                              <div className="text-right shrink-0 flex items-center gap-1.5 font-mono">
+                                <span className="text-xs font-bold text-emerald-400">
+                                  ₹{Number(cust.total_spent || 0).toLocaleString("en-IN")}
+                                </span>
+                                <span className="text-[9px] text-slate-400">
+                                  ({cust.total_orders || 0} {cust.total_orders === 1 ? "order" : "orders"})
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <div className="px-3 py-2.5 text-center text-[10.5px] text-slate-400 font-mono">
+                          No customer found matching &quot;{formCustomerName || formCustomerPhone}&quot;. Auto-creates on save.
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
-                {/* Floating Autocomplete Search Dropdown */}
-                {customerDropdownOpen && (
-                  <div className="absolute left-0 right-0 top-[70px] z-50 bg-slate-950/98 backdrop-blur-xl border border-cyan-500/50 rounded-2xl shadow-2xl shadow-cyan-950/60 max-h-72 overflow-y-auto divide-y divide-slate-800/80">
-                    <div className="px-3 py-2 bg-slate-900/90 flex items-center justify-between sticky top-0 z-10 border-b border-slate-800">
-                      <span className="text-[10px] uppercase font-mono font-bold tracking-wider text-cyan-400 flex items-center gap-1.5">
-                        <span className="material-symbols-outlined text-xs">group</span>
-                        {formCustomerName.trim() || formCustomerPhone.trim()
-                          ? `Matching Customers (${customerSearchResults.length})`
-                          : "Frequent & Recent Customers"}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setCustomerDropdownOpen(false)}
-                        className="text-[10px] text-slate-400 hover:text-white font-mono px-1.5 py-0.5 rounded hover:bg-slate-800"
-                      >
-                        ✕ Close
-                      </button>
-                    </div>
-
-                    {isSearchingCustomer ? (
-                      <div className="py-6 text-center text-xs text-slate-400 font-mono flex items-center justify-center gap-2">
-                        <span className="material-symbols-outlined text-sm animate-spin text-cyan-400">sync</span>
-                        Searching customer database...
-                      </div>
-                    ) : customerSearchResults.length > 0 ? (
-                      customerSearchResults.map((cust) => {
-                        const isVip = (cust.total_spent || 0) >= 2500 || (cust.total_orders || 0) >= 3;
-                        const isSelected = selectedCustomer?.id === cust.id || selectedCustomer?.phone === cust.phone;
-                        return (
-                          <div
-                            key={cust.id || cust.phone}
-                            onClick={() => handleSelectCustomer(cust)}
-                            className={`p-2.5 flex items-center justify-between gap-3 cursor-pointer transition-colors ${
-                              isSelected
-                                ? "bg-cyan-950/50 border-l-4 border-cyan-400"
-                                : "hover:bg-slate-900/90"
-                            }`}
-                          >
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              {/* Avatar circle */}
-                              <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs font-mono shrink-0 shadow-sm ${
-                                isVip
-                                  ? "bg-gradient-to-tr from-amber-600 to-amber-400 text-slate-950 font-black"
-                                  : "bg-gradient-to-tr from-cyan-700 to-blue-600 text-white"
-                              }`}>
-                                {cust.name ? cust.name.charAt(0).toUpperCase() : "C"}
-                              </div>
-                              <div className="truncate">
-                                <div className="flex items-center gap-1.5">
-                                  <span className="text-xs font-bold text-white font-mono truncate">
-                                    {cust.name}
-                                  </span>
-                                  {isVip ? (
-                                    <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-mono font-bold">
-                                      💎 VIP
-                                    </span>
-                                  ) : (cust.total_orders || 0) > 1 ? (
-                                    <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-mono">
-                                      ⭐ Regular
-                                    </span>
-                                  ) : null}
-                                </div>
-                                <div className="text-[10px] text-slate-400 font-mono flex items-center gap-2 mt-0.5">
-                                  <span>+91 {cust.phone}</span>
-                                  {cust.locality && cust.locality !== "Srinagar (Counter)" && (
-                                    <span className="text-slate-500">· {cust.locality}</span>
-                                  )}
-                                  {cust.last_order_at && (
-                                    <span className="text-slate-500">· {formatCustomerDate(cust.last_order_at)}</span>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* Lifetime Purchases metric */}
-                            <div className="text-right shrink-0">
-                              <div className="text-xs font-mono font-bold text-emerald-400">
-                                ₹{Number(cust.total_spent || 0).toLocaleString("en-IN")}
-                              </div>
-                              <div className="text-[9.5px] font-mono text-slate-400">
-                                {cust.total_orders || 0} {(cust.total_orders || 0) === 1 ? "order" : "orders"}
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })
-                    ) : (
-                      <div className="p-4 text-center space-y-1">
-                        <p className="text-xs text-slate-300 font-mono font-semibold">
-                          ✨ No customer found matching &quot;{formCustomerName || formCustomerPhone}&quot;
-                        </p>
-                        <p className="text-[10px] text-slate-400 font-mono">
-                          Enter name and 10-digit phone to register this customer automatically upon saving.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {/* Selected Customer Loyalty & Lifetime Intelligence Card */}
+                {/* Sleek 1-Line Status Strip When Customer is Selected */}
                 {selectedCustomer ? (
-                  <div className="mt-2 p-3 rounded-2xl bg-gradient-to-r from-slate-950 via-slate-900 to-cyan-950/40 border border-cyan-500/40 shadow-lg space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <div className="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-300">
-                          <span className="material-symbols-outlined text-sm">verified_user</span>
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs font-bold text-white font-mono">
-                              {selectedCustomer.name}
-                            </span>
-                            <span className="text-[9px] font-mono px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold">
-                              {(selectedCustomer.total_spent || 0) >= 2500 ? "💎 VIP Patron" : "⭐ Returning Patron"}
-                            </span>
-                          </div>
-                          <span className="text-[10px] text-slate-400 font-mono">
-                            +91 {selectedCustomer.phone} {selectedCustomer.locality ? `· ${selectedCustomer.locality}` : ""}
-                          </span>
-                        </div>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={handleClearCustomer}
-                        className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-[10px] font-mono border border-slate-700 transition-colors"
-                      >
-                        Change
-                      </button>
+                  <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-emerald-950/40 border border-emerald-500/40 text-xs font-mono">
+                    <div className="flex items-center gap-2 min-w-0 truncate">
+                      <span className="material-symbols-outlined text-sm text-emerald-400 shrink-0">verified</span>
+                      <span className="font-bold text-white truncate">{selectedCustomer.name}</span>
+                      <span className="text-slate-400 text-[11px] shrink-0">+91 {selectedCustomer.phone}</span>
+                      <span className="text-[10.5px] font-bold text-emerald-400 shrink-0">
+                        · ₹{Number(selectedCustomer.total_spent || 0).toLocaleString("en-IN")} Lifetime ({selectedCustomer.total_orders || 0} {selectedCustomer.total_orders === 1 ? "visit" : "visits"})
+                      </span>
                     </div>
-
-                    {/* Metric Cards Row */}
-                    <div className="grid grid-cols-3 gap-2 pt-1">
-                      <div className="p-2 rounded-xl bg-slate-950/80 border border-emerald-500/30">
-                        <span className="block text-[9px] uppercase tracking-wider font-mono text-slate-400">
-                          Total Purchases
-                        </span>
-                        <span className="text-sm font-black font-mono text-emerald-400">
-                          ₹{Number(selectedCustomer.total_spent || 0).toLocaleString("en-IN")}
-                        </span>
-                        <span className="block text-[8.5px] font-mono text-slate-500 mt-0.5">
-                          Lifetime spend
-                        </span>
-                      </div>
-
-                      <div className="p-2 rounded-xl bg-slate-950/80 border border-cyan-500/30">
-                        <span className="block text-[9px] uppercase tracking-wider font-mono text-slate-400">
-                          Total Visits
-                        </span>
-                        <span className="text-sm font-black font-mono text-cyan-300">
-                          {selectedCustomer.total_orders || 0} visits
-                        </span>
-                        <span className="block text-[8.5px] font-mono text-slate-500 mt-0.5">
-                          Visit #{(selectedCustomer.total_orders || 0) + 1} today
-                        </span>
-                      </div>
-
-                      <div className="p-2 rounded-xl bg-slate-950/80 border border-slate-800">
-                        <span className="block text-[9px] uppercase tracking-wider font-mono text-slate-400">
-                          Last Purchase
-                        </span>
-                        <span className="text-xs font-bold font-mono text-slate-200">
-                          {formatCustomerDate(selectedCustomer.last_order_at)}
-                        </span>
-                        <span className="block text-[8.5px] font-mono text-slate-500 mt-0.5">
-                          Counter history
-                        </span>
-                      </div>
-                    </div>
+                    <button
+                      type="button"
+                      onClick={handleClearCustomer}
+                      className="text-[10px] text-slate-400 hover:text-white px-1.5 py-0.5 rounded hover:bg-slate-800 ml-2 shrink-0 transition-colors"
+                    >
+                      Change
+                    </button>
                   </div>
                 ) : formCustomerName.trim() && formCustomerPhone.trim().length === 10 ? (
-                  /* New Customer Auto-Registration Alert */
-                  <div className="mt-2 p-2.5 rounded-xl bg-emerald-950/30 border border-emerald-500/40 text-emerald-300 text-xs font-mono flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <span className="material-symbols-outlined text-base text-emerald-400">person_add</span>
-                      <div>
-                        <span className="font-bold text-[11px] block">New Customer Auto-Enrollment</span>
-                        <span className="text-[9.5px] text-slate-400 block">
-                          Will create profile for &quot;{formCustomerName}&quot; (+91 {formCustomerPhone}) &amp; record this ₹{formAmount || 0} purchase.
-                        </span>
-                      </div>
-                    </div>
-                    <span className="text-[9px] uppercase font-bold bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-500/30 shrink-0">
-                      Auto-Save
+                  <div className="flex items-center justify-between px-3 py-1.5 rounded-xl bg-cyan-950/30 border border-cyan-500/30 text-[11px] font-mono text-cyan-300">
+                    <span className="flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-xs text-cyan-400">person_add</span>
+                      New customer · Will automatically save to database
+                    </span>
+                    <span className="text-[9px] uppercase font-bold text-cyan-400 bg-cyan-900/40 px-1.5 py-0.5 rounded">
+                      Auto-Enroll
                     </span>
                   </div>
                 ) : null}
