@@ -7,11 +7,15 @@ function QuickQrContent() {
   const searchParams = useSearchParams();
   const urlAm = searchParams.get("am") || searchParams.get("amount") || "";
   const urlOrd = searchParams.get("ord") || searchParams.get("order") || "";
+  const urlMode = searchParams.get("gateway") || searchParams.get("mode") || "jk_bank";
 
   const [amount, setAmount] = useState<string>(urlAm || "1160");
   const [orderRef, setOrderRef] = useState<string>(urlOrd);
+  const [gateway, setGateway] = useState<"jk_bank" | "razorpay">(urlMode === "razorpay" ? "razorpay" : "jk_bank");
   const [copied, setCopied] = useState<boolean>(false);
   const [paidCelebration, setPaidCelebration] = useState<boolean>(false);
+  const [rzpLoading, setRzpLoading] = useState<boolean>(false);
+  const [rzpQrData, setRzpQrData] = useState<{ qr_id: string; image_url: string; amount: number } | null>(null);
 
   useEffect(() => {
     if (urlAm) setAmount(urlAm);
@@ -25,9 +29,58 @@ function QuickQrContent() {
     ? `upi://pay?pa=${upiId}&pn=Urban%20Trout%20Aquaculture&am=${numAmount.toFixed(2)}&cu=INR&tn=${encodeURIComponent(noteText)}`
     : "";
 
-  const qrImageUrl = upiUri
+  const jkQrImageUrl = upiUri
     ? `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(upiUri)}&bgcolor=255-255-255&color=0-0-0&margin=2`
     : "";
+
+  // Fetch dynamic Razorpay QR if gateway is razorpay
+  useEffect(() => {
+    if (gateway !== "razorpay" || numAmount <= 0) {
+      setRzpQrData(null);
+      return;
+    }
+
+    let isSubscribed = true;
+    setRzpLoading(true);
+
+    fetch(`/api/razorpay/quick-qr?amount=${numAmount}&format=json`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (isSubscribed && data.success && data.image_url) {
+          setRzpQrData(data);
+        }
+      })
+      .catch((err) => console.warn("Failed to load Razorpay dynamic QR:", err))
+      .finally(() => {
+        if (isSubscribed) setRzpLoading(false);
+      });
+
+    return () => {
+      isSubscribed = false;
+    };
+  }, [gateway, numAmount]);
+
+  // Poll for payment when in Razorpay mode
+  useEffect(() => {
+    if (gateway !== "razorpay" || !rzpQrData?.qr_id || paidCelebration) return;
+
+    let isSubscribed = true;
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/razorpay/pos-qr?qr_id=${encodeURIComponent(rzpQrData.qr_id)}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.success && data.paid && isSubscribed) {
+          triggerPaidChime();
+        }
+      } catch (_) {}
+    }, 2500);
+
+    return () => {
+      isSubscribed = false;
+      clearInterval(interval);
+    };
+  }, [gateway, rzpQrData?.qr_id, paidCelebration]);
 
   const handleQuickAmount = (val: number) => {
     setAmount(String(val));
@@ -67,6 +120,8 @@ function QuickQrContent() {
     setPaidCelebration(true);
   };
 
+  const activeQrImage = gateway === "razorpay" ? rzpQrData?.image_url : jkQrImageUrl;
+
   return (
     <main className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-between p-4 pb-8 max-w-md mx-auto select-none">
       {/* Top Header */}
@@ -79,12 +134,44 @@ function QuickQrContent() {
           </div>
         </div>
         <div className="flex items-center gap-1.5 bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 px-2.5 py-1 rounded-full text-xs font-bold font-mono">
-          <span>🔒 0% Fee UPI</span>
+          <span>{gateway === "razorpay" ? "⚡ Auto-Telegram" : "🔒 0% Fee J&K"}</span>
         </div>
       </div>
 
+      {/* Gateway Selector Tabs */}
+      <div className="w-full grid grid-cols-2 gap-1.5 p-1 bg-slate-900 border border-slate-800 rounded-2xl mt-2">
+        <button
+          type="button"
+          onClick={() => {
+            setGateway("jk_bank");
+            setPaidCelebration(false);
+          }}
+          className={`py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+            gateway === "jk_bank"
+              ? "bg-emerald-500 text-slate-950 shadow-md font-black"
+              : "text-slate-400 hover:text-white"
+          }`}
+        >
+          <span>🏦 J&K Bank (0% Fee)</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            setGateway("razorpay");
+            setPaidCelebration(false);
+          }}
+          className={`py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+            gateway === "razorpay"
+              ? "bg-cyan-500 text-slate-950 shadow-md font-black"
+              : "text-slate-400 hover:text-white"
+          }`}
+        >
+          <span>⚡ Razorpay + Telegram</span>
+        </button>
+      </div>
+
       {/* Amount Input & Quick Chips */}
-      <div className="w-full my-3 space-y-2.5">
+      <div className="w-full my-2 space-y-2">
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 flex items-center justify-between shadow-xl">
           <div className="flex-1">
             <span className="text-[11px] text-slate-400 uppercase tracking-widest font-bold block mb-0.5">
@@ -147,13 +234,16 @@ function QuickQrContent() {
       {/* QR Code Presentation Box */}
       <div className="w-full flex-1 flex flex-col items-center justify-center p-4 bg-slate-900 border border-slate-800 rounded-3xl shadow-2xl relative">
         {paidCelebration ? (
-          <div className="py-12 flex flex-col items-center justify-center text-center space-y-3 animate-fadeIn">
+          <div className="py-10 flex flex-col items-center justify-center text-center space-y-3 animate-fadeIn">
             <div className="w-20 h-20 rounded-full bg-emerald-500/20 border-2 border-emerald-400 flex items-center justify-center text-4xl text-emerald-400 shadow-xl shadow-emerald-500/30 animate-bounce">
               ✓
             </div>
             <div>
               <h2 className="text-2xl font-black text-emerald-400">Payment Collected!</h2>
               <p className="text-sm font-mono text-slate-300 mt-1">₹{numAmount.toLocaleString("en-IN")}</p>
+              {gateway === "razorpay" && (
+                <p className="text-xs text-cyan-300 mt-1 font-semibold">📲 Telegram notification sent to group</p>
+              )}
             </div>
             <button
               type="button"
@@ -163,22 +253,34 @@ function QuickQrContent() {
               Show QR Again
             </button>
           </div>
-        ) : numAmount > 0 && qrImageUrl ? (
+        ) : rzpLoading ? (
+          <div className="py-16 flex flex-col items-center justify-center gap-3">
+            <div className="w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-xs text-slate-400">Generating Razorpay Dynamic QR...</span>
+          </div>
+        ) : numAmount > 0 && activeQrImage ? (
           <div className="flex flex-col items-center">
             {/* Crisp High-Contrast QR Card */}
             <div className="p-3 bg-white rounded-2xl shadow-2xl border-4 border-white">
               <img
-                src={qrImageUrl}
+                src={activeQrImage}
                 alt={`Locked UPI QR for ₹${numAmount}`}
                 className="w-64 h-64 sm:w-72 sm:h-72 object-contain block rounded-lg"
               />
             </div>
 
-            {/* Locked Amount Pill */}
-            <div className="mt-3 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 text-xs font-bold">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-              <span>🔒 ₹{numAmount.toLocaleString("en-IN")} Locked in Customer&apos;s UPI App</span>
-            </div>
+            {/* Mode-specific status pill */}
+            {gateway === "razorpay" ? (
+              <div className="mt-3 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-950/90 border border-cyan-500/50 text-cyan-300 text-xs font-bold">
+                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+                <span>⚡ Auto-Detects &amp; Sends Telegram Alert</span>
+              </div>
+            ) : (
+              <div className="mt-3 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 text-xs font-bold">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                <span>🔒 ₹{numAmount.toLocaleString("en-IN")} Locked in Customer&apos;s UPI App</span>
+              </div>
+            )}
 
             {/* Supported App Badges */}
             <div className="mt-3 flex items-center justify-center gap-2 text-[10px] text-slate-400 font-semibold">
@@ -197,7 +299,7 @@ function QuickQrContent() {
       </div>
 
       {/* Action Buttons */}
-      <div className="w-full mt-4 space-y-2">
+      <div className="w-full mt-3 space-y-2">
         {numAmount > 0 && !paidCelebration && (
           <button
             type="button"

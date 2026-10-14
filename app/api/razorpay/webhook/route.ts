@@ -285,8 +285,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: true, processed: paymentId, type: "payment_link.paid" });
     }
 
-    // ── 2. Payment Captured / Order Paid (Checkout, POS QR, or Links) ──
-    if (eventType === "payment.captured" || eventType === "order.paid") {
+    // ── 2. Payment Captured / Order Paid / QR Code Credited (Checkout, POS QR, or Links) ──
+    if (eventType === "payment.captured" || eventType === "order.paid" || eventType === "qr_code.credited") {
       const payment = event.payload?.payment?.entity;
       if (!payment) {
         return NextResponse.json({ status: "ignored_no_payment_entity" });
@@ -299,8 +299,11 @@ export async function POST(req: NextRequest) {
       const vpa = payment.vpa || null;
       const email = payment.email || null;
       const contact = payment.contact || null;
-      const notes = payment.notes || {};
-      const description = payment.description || null;
+      const qrCodeEntity = event.payload?.qr_code?.entity;
+      const notes = (payment.notes && Object.keys(payment.notes).length > 0)
+        ? payment.notes
+        : (qrCodeEntity?.notes || {});
+      const description = payment.description || qrCodeEntity?.description || null;
       const orderRef = notes.order_ref || notes.bill_number || null;
       const paymentLinkId = notes.payment_link_id || payment.invoice_id || null;
       const cleanPhone = (notes.customer_phone || notes.phone || contact) ? String(notes.customer_phone || notes.phone || contact).replace(/\D/g, "").slice(-10) : "";
@@ -341,11 +344,14 @@ export async function POST(req: NextRequest) {
 
       const isPos = notes.channel === "POS_BILLING" || (description && description.includes("POS"));
       const isHomeDelivery = notes.channel === "HOME_DELIVERY" || (description && description.toLowerCase().includes("home delivery"));
+      const isRiderCod = notes.channel === "RIDER_COD_QR";
 
       const channelLabel = notes.channel === "WHATSAPP_DEAL"
         ? "🤝 WhatsApp Deal (Deal Desk)"
         : notes.channel === "WHATSAPP_AI_AGENT"
         ? "🤖 WhatsApp AI Agent"
+        : isRiderCod
+        ? "🛵 Doorstep Rider COD (Razorpay QR)"
         : isHomeDelivery
         ? "🛵 Home Delivery (Razorpay Link)"
         : isPos
