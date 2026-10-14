@@ -37,9 +37,27 @@ const EXPENSE_CATEGORIES = [
 
 const ROOT_OWNER_EMAILS = ["sofisuhail007@gmail.com", "info.urbantrout@gmail.com"];
 
+export const isOwnerOrSuperAdmin = (email?: string | null, role?: string | null): boolean => {
+  if (!email && !role) return false;
+  const cleanEmail = (email || "").trim().toLowerCase();
+  const cleanRole = (role || "").trim().toLowerCase();
+  // Mohd Amin or worker staff is strictly NEVER an admin
+  if (
+    cleanEmail === "worksuhail007" ||
+    cleanEmail === "work.suhail007" ||
+    cleanEmail === "work.suhail007@gmail.com" ||
+    cleanEmail === "worksuhail007@gmail.com" ||
+    cleanEmail === "mohd amin" ||
+    cleanEmail === "amin" ||
+    cleanEmail.includes("amin")
+  ) {
+    return false;
+  }
+  return ROOT_OWNER_EMAILS.includes(cleanEmail) || cleanRole === "super_admin";
+};
+
 const isEmailAdmin = (email?: string | null): boolean => {
-  if (!email) return false;
-  return ROOT_OWNER_EMAILS.includes(email.trim().toLowerCase());
+  return isOwnerOrSuperAdmin(email, null);
 };
 
 export const formatStaffDisplayName = (raw?: string | null): string => {
@@ -253,29 +271,20 @@ export default function VendingCenterLoggerPage() {
   const [isAdmin, setIsAdmin] = useState(() => {
     if (typeof window === "undefined") return false;
     try {
-      const storedEmail = (localStorage.getItem("ut_admin_email") || "").toLowerCase().trim();
-      const storedRole = (localStorage.getItem("ut_admin_role") || "").toLowerCase().trim();
-      return (
-        ROOT_OWNER_EMAILS.includes(storedEmail) ||
-        storedRole === "super_admin" ||
-        storedRole === "admin"
-      );
+      const storedEmail = (localStorage.getItem("ut_admin_email") || sessionStorage.getItem("ut_admin_email") || "").toLowerCase().trim();
+      const storedRole = (localStorage.getItem("ut_admin_role") || sessionStorage.getItem("ut_admin_role") || "").toLowerCase().trim();
+      return isOwnerOrSuperAdmin(storedEmail, storedRole);
     } catch (_) {
       return false;
     }
   });
   // Super Admin check: either isAdmin state or localStorage super_admin role or root email
   const isSuperAdmin = useMemo(() => {
-    if (isAdmin) return true;
     if (typeof window === "undefined") return false;
     try {
       const storedRole = (localStorage.getItem("ut_admin_role") || sessionStorage.getItem("ut_admin_role") || "").toLowerCase().trim();
       const storedEmail = (localStorage.getItem("ut_admin_email") || sessionStorage.getItem("ut_admin_email") || "").toLowerCase().trim();
-      return (
-        storedRole === "super_admin" ||
-        storedRole === "admin" ||
-        ROOT_OWNER_EMAILS.includes(storedEmail)
-      );
+      return isOwnerOrSuperAdmin(storedEmail, storedRole);
     } catch (_) {
       return false;
     }
@@ -283,7 +292,7 @@ export default function VendingCenterLoggerPage() {
   const dateInputRef = useRef<HTMLInputElement>(null);
 
   const [showAdminCards, setShowAdminCards] = useState(true);
-  const [showDailyHistogram, setShowDailyHistogram] = useState(true);
+  const [showDailyHistogram, setShowDailyHistogram] = useState(false);
   // can_delete: controls visibility of the delete button for non-admin staff
   const [canDelete, setCanDelete] = useState(false);
 
@@ -858,18 +867,12 @@ export default function VendingCenterLoggerPage() {
         // 1. Immediate local/session storage check for fast rendering without flashing
         const storedEmail = (localStorage.getItem("ut_admin_email") || sessionStorage.getItem("ut_admin_email") || "").toLowerCase().trim();
         const storedRole = (localStorage.getItem("ut_admin_role") || sessionStorage.getItem("ut_admin_role") || "").toLowerCase().trim();
-        const storedPerms = localStorage.getItem("ut_admin_permissions") || sessionStorage.getItem("ut_admin_permissions");
 
-        let locallyAdmin = isEmailAdmin(storedEmail) || storedRole === "super_admin" || storedRole === "admin";
-        if (!locallyAdmin && storedPerms) {
-          try {
-            const parsed = JSON.parse(storedPerms);
-            if (parsed.analytics && parsed.settings) locallyAdmin = true;
-          } catch (_) {}
-        }
+        // Mohd Amin is strictly NEVER admin
+        const locallyAdmin = isOwnerOrSuperAdmin(storedEmail, storedRole);
 
-        if (locallyAdmin && active) {
-          setIsAdmin(true);
+        if (active) {
+          setIsAdmin(locallyAdmin);
         }
 
         // 2. Validate against live Supabase Auth session & app_settings to prevent tampering
@@ -878,60 +881,9 @@ export default function VendingCenterLoggerPage() {
 
         if (user?.email) {
           const userEmail = user.email.toLowerCase().trim();
-          if (isEmailAdmin(userEmail) || storedRole === "super_admin") {
-            setIsAdmin(true);
-            setCanDelete(true);
-            return;
-          }
-
-          // Check database staff_permissions list
-          const { data: staffRow } = await supabase
-            .from("app_settings")
-            .select("value")
-            .eq("key", "staff_permissions")
-            .maybeSingle();
-
-          if (!active) return;
-
-          if (staffRow?.value) {
-            try {
-              const parsed = JSON.parse(staffRow.value);
-              if (Array.isArray(parsed)) {
-                const member = parsed.find((s: any) => s.email?.toLowerCase().trim() === userEmail);
-                if (member) {
-                  const role = (member.role || "").toLowerCase().trim();
-                  const isStaffAdmin = role === "super_admin" || role === "admin";
-                  setIsAdmin(isStaffAdmin);
-                  // Set can_delete from the staff member's permissions
-                  setCanDelete(isStaffAdmin || member.permissions?.can_delete === true);
-                  return;
-                }
-              }
-            } catch (_) {}
-          }
-
-          // Fallback whitelist check
-          const { data: whitelistRow } = await supabase
-            .from("app_settings")
-            .select("value")
-            .eq("key", "admin_whitelist")
-            .maybeSingle();
-
-          if (!active) return;
-
-          if (whitelistRow?.value) {
-            const allowed = whitelistRow.value.split(",").map((e: string) => e.trim().toLowerCase());
-            if (allowed.includes(userEmail) && !isEmailAdmin(userEmail) && storedRole !== "super_admin") {
-              // admin_whitelist users without super_admin role are treated as staff
-              setIsAdmin(false);
-              return;
-            }
-          }
-
-          // If user email doesn't match root admin or super_admin role, revoke admin cards
-          if (!locallyAdmin) {
-            setIsAdmin(false);
-          }
+          const liveAdmin = isOwnerOrSuperAdmin(userEmail, storedRole);
+          setIsAdmin(liveAdmin);
+          setCanDelete(liveAdmin);
         } else if (!locallyAdmin) {
           setIsAdmin(false);
         }
@@ -946,6 +898,17 @@ export default function VendingCenterLoggerPage() {
       active = false;
     };
   }, []);
+
+  // Strict security cleanup for non-admin staff (Mohd Amin): reset period, close modals & histogram
+  useEffect(() => {
+    if (!isAdmin) {
+      setShowDailyHistogram(false);
+      setMonthWiseModalOpen(false);
+      if (period !== "today" && period !== "yesterday" && period !== "date") {
+        setPeriod("today");
+      }
+    }
+  }, [isAdmin, period]);
 
   // ─── Fetch Aquarium Stock Procurement Entries ───
   const fetchStockEntries = useCallback(async () => {
@@ -3879,15 +3842,22 @@ export default function VendingCenterLoggerPage() {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-2">
             <div className="flex flex-wrap items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800 text-xs font-mono gap-0.5">
-              {[
-                { id: "today", label: `Today · ${formatIstDateDisplay(getTodayDate())}` },
-                { id: "yesterday", label: `Yesterday · ${formatIstDateDisplay(getIstYesterdayDate())}` },
-                { id: "month", label: "📅 Month Wise" },
-                { id: "date", label: "🗓️ By Date" },
-                { id: "week", label: "This Week" },
-                { id: "all", label: "All Time" },
-                { id: "custom", label: "Custom Range" },
-              ].map((tab) => {
+              {(isAdmin
+                ? [
+                    { id: "today", label: `Today · ${formatIstDateDisplay(getTodayDate())}` },
+                    { id: "yesterday", label: `Yesterday · ${formatIstDateDisplay(getIstYesterdayDate())}` },
+                    { id: "month", label: "📅 Month Wise" },
+                    { id: "date", label: "🗓️ By Date" },
+                    { id: "week", label: "This Week" },
+                    { id: "all", label: "All Time" },
+                    { id: "custom", label: "Custom Range" },
+                  ]
+                : [
+                    { id: "today", label: `Today · ${formatIstDateDisplay(getTodayDate())}` },
+                    { id: "yesterday", label: `Yesterday · ${formatIstDateDisplay(getIstYesterdayDate())}` },
+                    { id: "date", label: "🗓️ By Date" },
+                  ]
+              ).map((tab) => {
                 const isSel = period === tab.id;
                 return (
                   <button
@@ -3915,38 +3885,42 @@ export default function VendingCenterLoggerPage() {
               })}
             </div>
 
-            {/* Live IST Status, Histogram & All Months Table button */}
+            {/* Live IST Status, Histogram & All Months Table button (Strictly Admin Only) */}
             <div className="flex items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => {
-                  if (period !== "month") {
-                    setPeriod("month");
-                  }
-                  setShowDailyHistogram((prev) => !prev);
-                }}
-                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-mono font-bold transition-all cursor-pointer active:scale-95 shadow-sm ${
-                  showDailyHistogram && period === "month"
-                    ? "bg-emerald-500 text-slate-950 border border-emerald-400 font-extrabold shadow-emerald-500/20 shadow-md"
-                    : "bg-slate-900/90 hover:bg-slate-800 text-cyan-300 hover:text-cyan-200 border border-cyan-500/30"
-                }`}
-                title="Toggle Everyday Sales Histogram & Detailed Flashcards"
-              >
-                <span className="material-symbols-outlined text-sm">bar_chart</span>
-                <span className="hidden sm:inline">Sales Histogram</span>
-                <span className="sm:hidden">Histogram</span>
-              </button>
+              {isAdmin && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (period !== "month") {
+                        setPeriod("month");
+                      }
+                      setShowDailyHistogram((prev) => !prev);
+                    }}
+                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-mono font-bold transition-all cursor-pointer active:scale-95 shadow-sm ${
+                      showDailyHistogram && period === "month"
+                        ? "bg-emerald-500 text-slate-950 border border-emerald-400 font-extrabold shadow-emerald-500/20 shadow-md"
+                        : "bg-slate-900/90 hover:bg-slate-800 text-cyan-300 hover:text-cyan-200 border border-cyan-500/30"
+                    }`}
+                    title="Toggle Everyday Sales Histogram & Detailed Flashcards"
+                  >
+                    <span className="material-symbols-outlined text-sm">bar_chart</span>
+                    <span className="hidden sm:inline">Sales Histogram</span>
+                    <span className="sm:hidden">Histogram</span>
+                  </button>
 
-              <button
-                type="button"
-                onClick={() => setMonthWiseModalOpen(true)}
-                className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-emerald-300 hover:text-emerald-200 border border-emerald-500/30 text-[11px] font-mono font-bold transition-all cursor-pointer active:scale-95 shadow-sm"
-                title="Open Month-Wise All Months Comparison Table"
-              >
-                <span className="material-symbols-outlined text-sm text-emerald-400">table_chart</span>
-                <span className="hidden sm:inline">Month-Wise Summary</span>
-                <span className="sm:hidden">Summary</span>
-              </button>
+                  <button
+                    type="button"
+                    onClick={() => setMonthWiseModalOpen(true)}
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-emerald-300 hover:text-emerald-200 border border-emerald-500/30 text-[11px] font-mono font-bold transition-all cursor-pointer active:scale-95 shadow-sm"
+                    title="Open Month-Wise All Months Comparison Table"
+                  >
+                    <span className="material-symbols-outlined text-sm text-emerald-400">table_chart</span>
+                    <span className="hidden sm:inline">Month-Wise Summary</span>
+                    <span className="sm:hidden">Summary</span>
+                  </button>
+                </>
+              )}
 
               <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/80 border border-slate-800/80 text-[11px] font-mono text-slate-400">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -3999,8 +3973,8 @@ export default function VendingCenterLoggerPage() {
               </div>
             )}
 
-            {/* Single Month Picker (Month tab) */}
-            {period === "month" && (
+            {/* Single Month Picker (Month tab - Admin Only) */}
+            {isAdmin && period === "month" && (
               <div className="flex flex-wrap items-center gap-1.5 text-xs font-mono bg-slate-900/90 p-1 rounded-xl border border-emerald-500/40">
                 <span className="text-[10px] uppercase font-bold text-emerald-400 px-1 flex items-center gap-1">
                   <span className="material-symbols-outlined text-[13px]">calendar_month</span>
@@ -8336,7 +8310,7 @@ export default function VendingCenterLoggerPage() {
       {/* ══════════════════════════════════════════════════════════
           MONTH-WISE FINANCIAL PERFORMANCE & SUMMARY MODAL
           ══════════════════════════════════════════════════════════ */}
-      {monthWiseModalOpen && (
+      {isAdmin && monthWiseModalOpen && (
         <div
           onClick={(e) => {
             if (e.target === e.currentTarget) setMonthWiseModalOpen(false);

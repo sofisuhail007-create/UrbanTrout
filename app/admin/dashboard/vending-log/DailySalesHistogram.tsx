@@ -50,6 +50,8 @@ export default function DailySalesHistogram({
   isAdmin = false,
   onClose,
 }: DailySalesHistogramProps) {
+  if (!isAdmin) return null;
+
   const [metricMode, setMetricMode] = useState<MetricMode>("revenue");
   const [showAllMonthDays, setShowAllMonthDays] = useState<boolean>(false);
   const [hoveredDate, setHoveredDate] = useState<string | null>(null);
