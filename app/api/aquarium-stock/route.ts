@@ -99,6 +99,11 @@ export async function GET(req: NextRequest) {
           success: true,
           liveSummary: {
             remainingKg: liveSummary.remainingKg,
+            isOutOfStock: liveSummary.isOutOfStock,
+          },
+          summary: {
+            remainingKg: liveSummary.remainingKg,
+            isOutOfStock: liveSummary.isOutOfStock,
           },
         },
         {
@@ -133,6 +138,7 @@ export async function GET(req: NextRequest) {
         entries,
         isTableAvailable: true,
         liveSummary,
+        summary: liveSummary,
       },
       {
         headers: {

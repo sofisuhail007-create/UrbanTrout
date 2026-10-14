@@ -199,6 +199,87 @@ export async function POST(request: Request) {
       currentRules[date] = updatedRule;
       await saveStoredSpecialRules(currentRules);
 
+      // Auto-synchronize daily salary deduction with worker salary deductions ledger
+      try {
+        const DEDUCTIONS_KEY = "worker_salary_deductions";
+        const { data: dData } = await supabase
+          .from("app_settings")
+          .select("value")
+          .eq("key", DEDUCTIONS_KEY)
+          .maybeSingle();
+
+        let currentDeductions: any[] = [];
+        if (dData?.value) {
+          try {
+            const parsed = JSON.parse(dData.value);
+            if (Array.isArray(parsed)) currentDeductions = parsed;
+          } catch (_) {}
+        }
+
+        const isFridayDeduction = (d: any) =>
+          d.date === date &&
+          (String(d.reason || "").toLowerCase().includes("friday deal") ||
+            String(d.notes || "").toLowerCase().includes("friday deal"));
+
+        if (updatedRule.enabled && updatedRule.deduct_daily_salary) {
+          const deductionAmount = Number(updatedRule.salary_deduction_amount) || 350;
+          const dParts = date.split("-").map(Number);
+          const dt =
+            dParts.length === 3 && dParts[0] && dParts[1] && dParts[2]
+              ? new Date(dParts[0], dParts[1] - 1, dParts[2])
+              : new Date();
+          const monthLabel = dt.toLocaleDateString("en-IN", {
+            month: "long",
+            year: "numeric",
+            timeZone: "Asia/Kolkata",
+          });
+
+          const existingIdx = currentDeductions.findIndex(isFridayDeduction);
+          if (existingIdx >= 0) {
+            currentDeductions[existingIdx].amount = deductionAmount;
+            currentDeductions[existingIdx].daily_rate = deductionAmount;
+            currentDeductions[existingIdx].salary_month = monthLabel;
+          } else {
+            currentDeductions.unshift({
+              id: crypto.randomUUID(),
+              worker_name: "Mohd Amin",
+              salary_month: monthLabel,
+              date,
+              reason: "Friday Deal Pact (Incentive Only)",
+              days_count: 1,
+              daily_rate: deductionAmount,
+              amount: deductionAmount,
+              notes: "Auto-synced with Friday Deal toggle",
+              created_at: new Date().toISOString(),
+            });
+          }
+          await supabase.from("app_settings").upsert(
+            {
+              key: DEDUCTIONS_KEY,
+              value: JSON.stringify(currentDeductions),
+              description: "Vending center worker salary deductions ledger (Mohd Amin sick/leave days)",
+              updated_at: new Date().toISOString(),
+            },
+            { onConflict: "key" }
+          );
+        } else if (!updatedRule.enabled || !updatedRule.deduct_daily_salary) {
+          const filtered = currentDeductions.filter((d: any) => !isFridayDeduction(d));
+          if (filtered.length !== currentDeductions.length) {
+            await supabase.from("app_settings").upsert(
+              {
+                key: DEDUCTIONS_KEY,
+                value: JSON.stringify(filtered),
+                description: "Vending center worker salary deductions ledger (Mohd Amin sick/leave days)",
+                updated_at: new Date().toISOString(),
+              },
+              { onConflict: "key" }
+            );
+          }
+        }
+      } catch (deductErr) {
+        console.warn("Notice syncing Friday deal deduction:", deductErr);
+      }
+
       return NextResponse.json({
         success: true,
         rule: updatedRule,
@@ -268,6 +349,37 @@ export async function DELETE(request: Request) {
       const currentRules = await getStoredSpecialRules();
       delete currentRules[date];
       await saveStoredSpecialRules(currentRules);
+
+      try {
+        const DEDUCTIONS_KEY = "worker_salary_deductions";
+        const { data: dData } = await supabase
+          .from("app_settings")
+          .select("value")
+          .eq("key", DEDUCTIONS_KEY)
+          .maybeSingle();
+
+        if (dData?.value) {
+          const currentDeductions = JSON.parse(dData.value);
+          if (Array.isArray(currentDeductions)) {
+            const filtered = currentDeductions.filter(
+              (d: any) =>
+                !(d.date === date && String(d.reason || "").toLowerCase().includes("friday deal"))
+            );
+            if (filtered.length !== currentDeductions.length) {
+              await supabase.from("app_settings").upsert(
+                {
+                  key: DEDUCTIONS_KEY,
+                  value: JSON.stringify(filtered),
+                  description: "Vending center worker salary deductions ledger (Mohd Amin sick/leave days)",
+                  updated_at: new Date().toISOString(),
+                },
+                { onConflict: "key" }
+              );
+            }
+          }
+        }
+      } catch (_) {}
+
       return NextResponse.json({ success: true, specialRules: currentRules });
     }
 

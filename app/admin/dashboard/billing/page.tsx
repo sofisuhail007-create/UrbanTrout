@@ -1319,8 +1319,20 @@ Naseem Bagh / Malabagh, Srinagar`;
   // Re-generate WhatsApp message whenever the user switches message style
   useEffect(() => {
     if (rzpLinkData?.short_url && rzpLinkData?.orderRef) {
+      const itemsForMsg: BillItem[] = isCustomAmountMode
+        ? [
+            {
+              id: "direct-amount",
+              name: customNote.trim() || "Counter Direct Sale",
+              pricePerKg: grandTotal,
+              weightKg: 1.0,
+              total: grandTotal,
+              unit: "Item",
+            },
+          ]
+        : billItems;
       const updated = createWhatsAppMessage(
-        billItems,
+        itemsForMsg,
         rzpLinkData.orderRef,
         totalWeight,
         grandTotal,

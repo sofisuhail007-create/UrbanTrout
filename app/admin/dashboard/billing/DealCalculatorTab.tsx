@@ -320,7 +320,7 @@ export default function DealCalculatorTab({
   const activeProduct = products.find((p) => p.id === selectedProductId) || products[0];
   const standardRate = isCustomRateActive && Number(customStandardRate) > 0
     ? Number(customStandardRate)
-    : activeProduct?.pricePerKg || 750;
+    : activeProduct?.pricePerKg || 580;
 
   const weight = Math.max(0, parseFloat(weightStr) || 0);
   const standardTotal = Math.round(weight * standardRate);

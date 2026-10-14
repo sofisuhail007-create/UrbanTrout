@@ -10,6 +10,7 @@ import { AquariumStockEntry } from "@/app/api/aquarium-stock/route";
 import { AquariumMortalityEntry } from "@/app/api/aquarium-mortality/route";
 import { WorkerSalaryPayment, WorkerSalarySettings, WorkerSalaryDeduction } from "@/app/api/vending-log/salary/route";
 import { VendingExpenseEntry } from "@/app/api/vending-log/expenses/route";
+import { CustomerRecord } from "@/app/api/vending-log/customers/route";
 import * as XLSX from "xlsx";
 import BalanceReminderModal from "../billing/BalanceReminderModal";
 import type { CustomerBalanceRecord } from "@/app/api/customer-balance/route";
@@ -25,6 +26,21 @@ import StaffLeaveModal from "./StaffLeaveModal";
 const DEFAULT_GUTTED_PRICE = 580;
 const DEFAULT_NON_GUTTED_PRICE = 540;
 export const INCENTIVE_RATE_PER_KG = 5; // RS 5 per kg for gutted trout only
+
+export const formatCustomerDate = (dateStr?: string | null): string => {
+  if (!dateStr) return "First visit";
+  try {
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return String(dateStr);
+    return d.toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  } catch {
+    return String(dateStr);
+  }
+};
 
 export const getIncentiveRateForDate = (
   dateStr?: string | null,
@@ -567,6 +583,88 @@ export default function VendingCenterLoggerPage() {
   const [selectedBalanceRecord, setSelectedBalanceRecord] = useState<CustomerBalanceRecord | null>(null);
   const [balanceModalOpen, setBalanceModalOpen] = useState(false);
 
+  // ─── Customer Search & Loyalty Intelligence State ───
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerRecord | null>(null);
+  const [customerSearchResults, setCustomerSearchResults] = useState<CustomerRecord[]>([]);
+  const [isSearchingCustomer, setIsSearchingCustomer] = useState(false);
+  const [customerDropdownOpen, setCustomerDropdownOpen] = useState(false);
+  const customerSearchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const customerDropdownRef = useRef<HTMLDivElement | null>(null);
+
+  const fetchCustomerSuggestions = useCallback(async (queryStr: string = "") => {
+    setIsSearchingCustomer(true);
+    try {
+      const q = queryStr.trim();
+      const res = await adminFetch(`/api/vending-log/customers${q ? `?q=${encodeURIComponent(q)}` : ""}`);
+      if (res.ok) {
+        const data = await res.json();
+        setCustomerSearchResults(data.customers || []);
+      }
+    } catch (e) {
+      console.warn("Error fetching customer suggestions:", e);
+    } finally {
+      setIsSearchingCustomer(false);
+    }
+  }, []);
+
+  const handleCustomerSearchChange = (field: "name" | "phone", value: string) => {
+    let queryValue = value;
+    if (field === "name") {
+      setFormCustomerName(value);
+    } else {
+      const cleaned = value.replace(/\D/g, "").slice(0, 10);
+      setFormCustomerPhone(cleaned);
+      queryValue = cleaned;
+    }
+
+    if (selectedCustomer) {
+      if (field === "name" && value.toLowerCase().trim() !== selectedCustomer.name.toLowerCase().trim()) {
+        setSelectedCustomer(null);
+      } else if (field === "phone" && queryValue !== selectedCustomer.phone) {
+        setSelectedCustomer(null);
+      }
+    }
+
+    if (customerSearchTimeoutRef.current) {
+      clearTimeout(customerSearchTimeoutRef.current);
+    }
+
+    setCustomerDropdownOpen(true);
+    customerSearchTimeoutRef.current = setTimeout(() => {
+      fetchCustomerSuggestions(queryValue);
+    }, 200);
+  };
+
+  const handleSelectCustomer = (cust: CustomerRecord) => {
+    setSelectedCustomer(cust);
+    setFormCustomerName(cust.name || "");
+    setFormCustomerPhone(cust.phone || "");
+    setCustomerDropdownOpen(false);
+  };
+
+  const handleClearCustomer = () => {
+    setSelectedCustomer(null);
+    setFormCustomerName("");
+    setFormCustomerPhone("");
+    setCustomerSearchResults([]);
+    setCustomerDropdownOpen(false);
+  };
+
+  // Close customer dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (customerDropdownRef.current && !customerDropdownRef.current.contains(e.target as Node)) {
+        setCustomerDropdownOpen(false);
+      }
+    };
+    if (customerDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [customerDropdownOpen]);
+
   // ─── Customer Khata Ledger Balance Summary (All Customers) ───
   const [khataSummary, setKhataSummary] = useState<{
     totalPendingAmount: number;
@@ -957,6 +1055,28 @@ export default function VendingCenterLoggerPage() {
   useEffect(() => {
     fetchStockEntries();
   }, [fetchStockEntries]);
+
+  // Re-fetch automatically when window gains focus, device wakes up (crucial for iPhone/Mobile Safari), or every 60s
+  useEffect(() => {
+    const handleActiveRefresh = () => {
+      fetchData();
+      fetchStockEntries();
+      if (isAdmin) {
+        fetchPayouts();
+      }
+    };
+
+    window.addEventListener("focus", handleActiveRefresh);
+    document.addEventListener("visibilitychange", handleActiveRefresh);
+
+    const timer = setInterval(handleActiveRefresh, 60000);
+
+    return () => {
+      window.removeEventListener("focus", handleActiveRefresh);
+      document.removeEventListener("visibilitychange", handleActiveRefresh);
+      clearInterval(timer);
+    };
+  }, [fetchData, fetchStockEntries, fetchPayouts, isAdmin]);
 
   // ─── Fetch Supplier Volume Rebates (Khyber Aquaculture) ───
   const fetchSupplierRebates = useCallback(async () => {
@@ -1489,18 +1609,22 @@ export default function VendingCenterLoggerPage() {
     const lossPercent =
       totalExpected > 0 ? ((totalLoss / totalExpected) * 100).toFixed(1) : "0.0";
 
-    // Worker gutting incentive labor cost (Mohd Amin @ ₹5/Kg for worker-cleaned fish)
+    // Worker gutting incentive labor cost (Mohd Amin @ ₹5/Kg, or special rate if active on that date)
     let periodWorkerGuttedKg = 0;
+    let periodWorkerLaborCostFloat = 0;
     filteredEntriesByPeriod.forEach((e) => {
       const isGut =
         (e.product_type || "").toLowerCase().includes("gutted") &&
         !(e.product_type || "").toLowerCase().includes("non");
       const isSelf = Boolean(e.custom_fields?.self_cleaned || (e as any).self_cleaned);
       if (isGut && !isSelf) {
-        periodWorkerGuttedKg = Math.round((periodWorkerGuttedKg + (Number(e.weight_kg) || 0)) * 1000) / 1000;
+        const kg = Number(e.weight_kg) || 0;
+        periodWorkerGuttedKg = Math.round((periodWorkerGuttedKg + kg) * 1000) / 1000;
+        const rate = getIncentiveRateForDate(e.entry_date, specialRules);
+        periodWorkerLaborCostFloat += kg * rate;
       }
     });
-    const periodWorkerLaborCost = Math.round(periodWorkerGuttedKg * INCENTIVE_RATE_PER_KG);
+    const periodWorkerLaborCost = Math.round(periodWorkerLaborCostFloat);
 
     // Separate regular weight vs surplus weight for the active period
     let periodRegularGuttedKg = 0;
@@ -1599,7 +1723,7 @@ export default function VendingCenterLoggerPage() {
       periodTotalRegularKg,
       surplusProfitBonus,
     };
-  }, [filteredEntriesByPeriod, procurementAvgCost, surplusInfoMap]);
+  }, [filteredEntriesByPeriod, procurementAvgCost, surplusInfoMap, specialRules]);
 
   // ─── Period Supplier Volume Rebate (Khyber Aquaculture Slabs) ───
   const periodSupplierRebate = useMemo(() => {
@@ -1866,7 +1990,8 @@ export default function VendingCenterLoggerPage() {
         monthMap[mKey].guttedKg = Math.round((monthMap[mKey].guttedKg + w) * 1000) / 1000;
         monthMap[mKey].regularGuttedKg = Math.round((monthMap[mKey].regularGuttedKg + sInfo.regularKg) * 1000) / 1000;
         if (!isSelfCleaned) {
-          monthMap[mKey].guttingLaborCost += Math.round(w * INCENTIVE_RATE_PER_KG);
+          const rate = getIncentiveRateForDate(e.entry_date, specialRules);
+          monthMap[mKey].guttingLaborCost += w * rate;
         }
       } else {
         monthMap[mKey].nonGuttedKg = Math.round((monthMap[mKey].nonGuttedKg + w) * 1000) / 1000;
@@ -1895,7 +2020,8 @@ export default function VendingCenterLoggerPage() {
     const rows = Object.values(monthMap).map((m) => {
       const guttedCost = Math.round(m.regularGuttedKg * procurementAvgCost);
       const nonGuttedCost = Math.round(m.regularNonGuttedKg * procurementAvgCost);
-      const totalFishCost = guttedCost + nonGuttedCost + m.guttingLaborCost;
+      const laborCost = Math.round(m.guttingLaborCost);
+      const totalFishCost = guttedCost + nonGuttedCost + laborCost;
       const supplierRebate = supplierRebatesMap[m.monthKey] ?? (m.monthKey === "2026-09" ? 3020 : 0);
       const operationalGrossProfit = Math.round(m.revenue - totalFishCost);
       const fishGrossProfit = Math.round(operationalGrossProfit + supplierRebate);
@@ -1904,6 +2030,7 @@ export default function VendingCenterLoggerPage() {
 
       return {
         ...m,
+        guttingLaborCost: laborCost,
         guttedCost,
         nonGuttedCost,
         totalFishCost,
@@ -1918,7 +2045,7 @@ export default function VendingCenterLoggerPage() {
     });
 
     return rows.sort((a, b) => b.monthKey.localeCompare(a.monthKey));
-  }, [entries, expenses, salaryPayments, procurementAvgCost, supplierRebatesMap, surplusInfoMap]);
+  }, [entries, expenses, salaryPayments, procurementAvgCost, supplierRebatesMap, surplusInfoMap, specialRules]);
 
   // ─── Aquarium Live Stock Calculations ───
   // All stock procured is LIVE FISH. We track what's left in the aquarium.
@@ -2136,6 +2263,9 @@ export default function VendingCenterLoggerPage() {
     setFormNotes("");
     setFormCustomerName("");
     setFormCustomerPhone("");
+    setSelectedCustomer(null);
+    setCustomerSearchResults([]);
+    setCustomerDropdownOpen(false);
     setFormBalanceAction("final_settlement");
     setEditingEntry(null);
   };
@@ -2338,16 +2468,23 @@ export default function VendingCenterLoggerPage() {
 
             // ── Sync customer to CRM database (non-blocking) ──────────────
             if (formCustomerName.trim() && formCustomerPhone.trim()) {
+              const custPayload = {
+                name: formCustomerName.trim(),
+                phone: formCustomerPhone.trim(),
+                amount: amt,
+                date: formDate,
+                product_type: formType,
+              };
+              adminFetch("/api/vending-log/customers", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(custPayload),
+              }).catch((e) => console.warn("Customer database sync notice:", e));
+
               adminFetch("/api/vending-log/customer-sync", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  name: formCustomerName.trim(),
-                  phone: formCustomerPhone.trim(),
-                  amount: amt,
-                  date: formDate,
-                  product_type: formType,
-                }),
+                body: JSON.stringify(custPayload),
               }).catch((e) => console.warn("Customer sync notice:", e));
             }
           } else {
@@ -2703,7 +2840,7 @@ export default function VendingCenterLoggerPage() {
 
     const guttedCost = Math.round(realizedGuttedKg * procurementAvgCost);
     const nonGuttedCost = Math.round(realizedNonGuttedKg * procurementAvgCost);
-    const aminDailyIncentive = Math.round(aminGuttedSoldKg * INCENTIVE_RATE_PER_KG);
+    const aminDailyIncentive = incentiveStats.todayEarned;
     const totalCost = guttedCost + nonGuttedCost + aminDailyIncentive;
     const netRealizedProfit = grossRevenue - totalCost;
     const profitMarginPercent =
@@ -2742,7 +2879,7 @@ export default function VendingCenterLoggerPage() {
       todayMortalityKg: aquariumStock.todayMortalityKg,
       todayMortalityCost: aquariumStock.todayMortalityCost,
       todayMortalityCount: aquariumStock.todayMortalityCount,
-      aminDailyIncentive: Math.round(aminGuttedSoldKg * INCENTIVE_RATE_PER_KG),
+      aminDailyIncentive: incentiveStats.todayEarned,
       aminIncentivePending: incentiveStats.balanceRemaining,
       aminSalaryMonthPaid: salaryStats.thisMonthPaid,
       aminSalaryBalanceDue: salaryStats.monthBalanceDue,
@@ -2862,7 +2999,7 @@ export default function VendingCenterLoggerPage() {
 
     const guttedCost = Math.round(realizedGuttedKg * procurementAvgCost);
     const nonGuttedCost = Math.round(realizedNonGuttedKg * procurementAvgCost);
-    const aminDailyIncentive = Math.round(aminGuttedSoldKg * INCENTIVE_RATE_PER_KG);
+    const aminDailyIncentive = incentiveStats.todayEarned;
     const totalCost = guttedCost + nonGuttedCost + aminDailyIncentive;
     const netRealizedProfit = grossRevenue - totalCost;
     const profitMarginPercent =
@@ -2901,7 +3038,7 @@ export default function VendingCenterLoggerPage() {
       todayMortalityKg: aquariumStock.todayMortalityKg,
       todayMortalityCost: aquariumStock.todayMortalityCost,
       todayMortalityCount: aquariumStock.todayMortalityCount,
-      aminDailyIncentive: Math.round(aminGuttedSoldKg * INCENTIVE_RATE_PER_KG),
+      aminDailyIncentive: incentiveStats.todayEarned,
       aminIncentivePending: incentiveStats.balanceRemaining,
       aminSalaryMonthPaid: salaryStats.thisMonthPaid,
       aminSalaryBalanceDue: salaryStats.monthBalanceDue,
@@ -3304,7 +3441,8 @@ export default function VendingCenterLoggerPage() {
 
         const isGut = (e.product_type || "").toLowerCase().includes("gutted") && !(e.product_type || "").toLowerCase().includes("non");
         const isSelf = Boolean(e.custom_fields?.self_cleaned || (e as any).self_cleaned);
-        const workerIncentiveRs = isGut && !isSelf ? Math.round(Number(e.weight_kg) * INCENTIVE_RATE_PER_KG) : 0;
+        const entryIncentiveRate = getIncentiveRateForDate(e.entry_date, specialRules);
+        const workerIncentiveRs = isGut && !isSelf ? Math.round(Number(e.weight_kg) * entryIncentiveRate) : 0;
         const cleaningType = isGut ? (isSelf ? "Self Cleaned (Owner)" : "Worker Cleaned (Mohd Amin)") : "Whole Fish (Non Gutted)";
 
         const isSurplusSale = Boolean(sInfo?.isSurplus);
@@ -3608,8 +3746,26 @@ export default function VendingCenterLoggerPage() {
     setFormLoggedBy(formatStaffDisplayName(entry.logged_by));
 
     const cf = entry.custom_fields || {};
-    setFormCustomerName(cf.customer_name || "");
-    setFormCustomerPhone(cf.customer_phone || "");
+    const existingName = cf.customer_name || "";
+    const existingPhone = cf.customer_phone || "";
+    setFormCustomerName(existingName);
+    setFormCustomerPhone(existingPhone);
+    setSelectedCustomer(null);
+    if (existingPhone || existingName) {
+      const q = existingPhone || existingName;
+      adminFetch(`/api/vending-log/customers?q=${encodeURIComponent(q)}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data?.customers?.length) {
+            const match = data.customers.find((c: CustomerRecord) =>
+              (existingPhone && c.phone === existingPhone) ||
+              (existingName && c.name.toLowerCase() === existingName.toLowerCase())
+            );
+            if (match) setSelectedCustomer(match);
+          }
+        })
+        .catch(() => {});
+    }
     const balAmt = Number(cf.balance_amount || 0);
     if (balAmt > 0 && cf.balance_status === "pending") {
       setFormBalanceAction("balance");
@@ -4175,29 +4331,33 @@ export default function VendingCenterLoggerPage() {
                     Current Month
                   </button>
                 )}
-                <button
-                  type="button"
-                  onClick={() => setMonthWiseModalOpen(true)}
-                  className="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 shadow-sm active:scale-95 ml-1"
-                  title="Open Month-Wise All Months Comparison Table"
-                >
-                  <span className="material-symbols-outlined text-xs">table_chart</span>
-                  <span>All Months Summary</span>
-                </button>
+                {isAdmin && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setMonthWiseModalOpen(true)}
+                      className="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 shadow-sm active:scale-95 ml-1"
+                      title="Open Month-Wise All Months Comparison Table"
+                    >
+                      <span className="material-symbols-outlined text-xs">table_chart</span>
+                      <span>All Months Summary</span>
+                    </button>
 
-                <button
-                  type="button"
-                  onClick={() => setShowDailyHistogram((prev) => !prev)}
-                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 shadow-sm active:scale-95 ml-1 ${
-                    showDailyHistogram
-                      ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40"
-                      : "bg-slate-800 text-slate-400 border border-slate-700 hover:text-white"
-                  }`}
-                  title={showDailyHistogram ? "Hide Everyday Sales Histogram" : "Show Everyday Sales Histogram"}
-                >
-                  <span className="material-symbols-outlined text-xs">bar_chart</span>
-                  <span>{showDailyHistogram ? "Histogram: Visible" : "Show Histogram"}</span>
-                </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowDailyHistogram((prev) => !prev)}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 shadow-sm active:scale-95 ml-1 ${
+                        showDailyHistogram
+                          ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40"
+                          : "bg-slate-800 text-slate-400 border border-slate-700 hover:text-white"
+                      }`}
+                      title={showDailyHistogram ? "Hide Everyday Sales Histogram" : "Show Everyday Sales Histogram"}
+                    >
+                      <span className="material-symbols-outlined text-xs">bar_chart</span>
+                      <span>{showDailyHistogram ? "Histogram: Visible" : "Show Histogram"}</span>
+                    </button>
+                  </>
+                )}
               </div>
             )}
 
@@ -6042,15 +6202,23 @@ export default function VendingCenterLoggerPage() {
                                 <span className="text-[9px] text-amber-400/90 font-sans font-medium">₹0 worker inc</span>
                               </>
                             ) : isGutted ? (
-                              <>
-                                <span className="px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 inline-flex items-center gap-1">
-                                  🐟 {e.product_type}
-                                </span>
-                                <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-[9px] text-emerald-400 font-sans font-medium inline-flex items-center gap-0.5">
-                                  <span className="material-symbols-outlined text-[10px]">payments</span>
-                                  +₹{(w * INCENTIVE_RATE_PER_KG).toFixed(0)} worker inc
-                                </span>
-                              </>
+                              (() => {
+                                const entryRate = getIncentiveRateForDate(e.entry_date, specialRules);
+                                return (
+                                  <>
+                                    <span className="px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 inline-flex items-center gap-1">
+                                      🐟 {e.product_type}
+                                    </span>
+                                    <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-[9px] text-emerald-400 font-sans font-medium inline-flex items-center gap-0.5">
+                                      <span className="material-symbols-outlined text-[10px]">payments</span>
+                                      +₹{Math.round(w * entryRate)} worker inc
+                                      {entryRate !== INCENTIVE_RATE_PER_KG && (
+                                        <span className="text-[8px] opacity-75 font-mono">(@₹{entryRate}/kg)</span>
+                                      )}
+                                    </span>
+                                  </>
+                                );
+                              })()
                             ) : (
                               <span className="px-2 py-0.5 rounded-lg text-[10.5px] font-medium bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
                                 🐟 {e.product_type}
@@ -6466,14 +6634,22 @@ export default function VendingCenterLoggerPage() {
                         <span className="text-[9px] text-amber-400 font-sans">₹0 inc</span>
                       </div>
                     ) : isGutted ? (
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="px-2 py-0.5 rounded-lg text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 inline-flex items-center gap-1">
-                          🐟 {e.product_type}
-                        </span>
-                        <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-[9px] text-emerald-400 font-sans font-medium inline-flex items-center gap-0.5">
-                          +₹{(w * INCENTIVE_RATE_PER_KG).toFixed(0)} worker inc
-                        </span>
-                      </div>
+                      (() => {
+                        const entryRate = getIncentiveRateForDate(e.entry_date, specialRules);
+                        return (
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="px-2 py-0.5 rounded-lg text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 inline-flex items-center gap-1">
+                              🐟 {e.product_type}
+                            </span>
+                            <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-[9px] text-emerald-400 font-sans font-medium inline-flex items-center gap-0.5">
+                              +₹{Math.round(w * entryRate)} worker inc
+                              {entryRate !== INCENTIVE_RATE_PER_KG && (
+                                <span className="text-[8px] opacity-75 font-mono">(@₹{entryRate}/kg)</span>
+                              )}
+                            </span>
+                          </div>
+                        );
+                      })()
                     ) : (
                       <span className="px-2 py-0.5 rounded-lg text-[11px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 inline-flex items-center gap-1">
                         ✨ {e.product_type}
@@ -7508,55 +7684,278 @@ export default function VendingCenterLoggerPage() {
                 </div>
               )}
 
-              {/* ── Customer Info for Marketing Database ──────────────── */}
-              <div className="pt-3 border-t border-slate-800/80 space-y-2.5">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="material-symbols-outlined text-sm text-cyan-400">person_add</span>
-                  <span className="text-[10px] uppercase font-bold text-cyan-400 font-mono tracking-wider">
-                    Customer Info
-                  </span>
-                  <span className="text-[9px] font-mono text-slate-500 bg-slate-800/60 px-1.5 py-0.5 rounded-full border border-slate-700">
-                    Optional · for marketing database
-                  </span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                  <div>
-                    <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">
-                      Customer Name
-                    </label>
-                    <input
-                      type="text"
-                      value={formCustomerName}
-                      onChange={(e) => setFormCustomerName(e.target.value)}
-                      placeholder="e.g. Dr. Farooq / Tariq Sb"
-                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-cyan-400 transition-colors"
-                    />
+              {/* ── Customer Info & Lifetime Loyalty Intelligence ──────────────── */}
+              <div ref={customerDropdownRef} className="pt-3 border-t border-slate-800/80 space-y-2.5 relative">
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-sm text-cyan-400">query_stats</span>
+                    <span className="text-[10px] uppercase font-bold text-cyan-400 font-mono tracking-wider">
+                      Customer Intelligence &amp; Database
+                    </span>
+                    <span className="text-[9px] font-mono text-cyan-300 bg-cyan-950/70 px-2 py-0.5 rounded-full border border-cyan-800/60">
+                      Live Search
+                    </span>
                   </div>
-                  <div>
-                    <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1">
-                      Phone (WhatsApp) <span className="text-slate-600">+91</span>
+                  {selectedCustomer && (
+                    <button
+                      type="button"
+                      onClick={handleClearCustomer}
+                      className="text-[10px] font-mono text-slate-400 hover:text-rose-400 flex items-center gap-1 transition-colors cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined text-xs">close</span>
+                      Clear Customer
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {/* Customer Name Input */}
+                  <div className="relative">
+                    <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1 flex items-center justify-between">
+                      <span>Customer Name</span>
+                      {isSearchingCustomer && (
+                        <span className="text-[9px] text-cyan-400 font-mono animate-pulse">Searching...</span>
+                      )}
                     </label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-500 font-mono select-none">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 material-symbols-outlined text-sm select-none">
+                        person
+                      </span>
+                      <input
+                        type="text"
+                        value={formCustomerName}
+                        onChange={(e) => handleCustomerSearchChange("name", e.target.value)}
+                        onFocus={() => {
+                          setCustomerDropdownOpen(true);
+                          if (customerSearchResults.length === 0) {
+                            fetchCustomerSuggestions(formCustomerName || formCustomerPhone);
+                          }
+                        }}
+                        placeholder="e.g. Dr. Farooq / Tariq Sb / Zubair"
+                        className="w-full bg-slate-950 border border-slate-700 focus:border-cyan-400 rounded-xl pl-9 pr-3 py-2 text-xs text-white font-mono focus:outline-none transition-all"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Customer Phone Input */}
+                  <div className="relative">
+                    <label className="block text-[10px] uppercase font-mono text-slate-400 mb-1 flex items-center justify-between">
+                      <span>Phone (WhatsApp) <span className="text-slate-500 font-normal">+91</span></span>
+                      {formCustomerPhone.length === 10 && (
+                        <span className="text-[9px] text-emerald-400 font-mono font-bold flex items-center gap-0.5">
+                          <span className="material-symbols-outlined text-xs">verified</span>
+                          10 Digits
+                        </span>
+                      )}
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400 font-mono font-bold select-none">
                         +91
                       </span>
                       <input
                         type="tel"
                         value={formCustomerPhone}
-                        onChange={(e) => setFormCustomerPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                        onChange={(e) => handleCustomerSearchChange("phone", e.target.value)}
+                        onFocus={() => {
+                          setCustomerDropdownOpen(true);
+                          if (customerSearchResults.length === 0) {
+                            fetchCustomerSuggestions(formCustomerPhone || formCustomerName);
+                          }
+                        }}
                         placeholder="9876543210"
                         maxLength={10}
-                        className="w-full bg-slate-950 border border-slate-700 rounded-xl pl-9 pr-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-cyan-400 transition-colors"
+                        className="w-full bg-slate-950 border border-slate-700 focus:border-cyan-400 rounded-xl pl-10 pr-3 py-2 text-xs text-white font-mono focus:outline-none transition-all"
                       />
                     </div>
                   </div>
                 </div>
-                {formCustomerName.trim() && formCustomerPhone.trim() && (
-                  <p className="text-[10px] text-cyan-400/80 font-mono flex items-center gap-1">
-                    <span className="material-symbols-outlined text-xs">check_circle</span>
-                    Will be saved to Customer Database automatically
-                  </p>
+
+                {/* Floating Autocomplete Search Dropdown */}
+                {customerDropdownOpen && (
+                  <div className="absolute left-0 right-0 top-[70px] z-50 bg-slate-950/98 backdrop-blur-xl border border-cyan-500/50 rounded-2xl shadow-2xl shadow-cyan-950/60 max-h-72 overflow-y-auto divide-y divide-slate-800/80">
+                    <div className="px-3 py-2 bg-slate-900/90 flex items-center justify-between sticky top-0 z-10 border-b border-slate-800">
+                      <span className="text-[10px] uppercase font-mono font-bold tracking-wider text-cyan-400 flex items-center gap-1.5">
+                        <span className="material-symbols-outlined text-xs">group</span>
+                        {formCustomerName.trim() || formCustomerPhone.trim()
+                          ? `Matching Customers (${customerSearchResults.length})`
+                          : "Frequent & Recent Customers"}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setCustomerDropdownOpen(false)}
+                        className="text-[10px] text-slate-400 hover:text-white font-mono px-1.5 py-0.5 rounded hover:bg-slate-800"
+                      >
+                        ✕ Close
+                      </button>
+                    </div>
+
+                    {isSearchingCustomer ? (
+                      <div className="py-6 text-center text-xs text-slate-400 font-mono flex items-center justify-center gap-2">
+                        <span className="material-symbols-outlined text-sm animate-spin text-cyan-400">sync</span>
+                        Searching customer database...
+                      </div>
+                    ) : customerSearchResults.length > 0 ? (
+                      customerSearchResults.map((cust) => {
+                        const isVip = (cust.total_spent || 0) >= 2500 || (cust.total_orders || 0) >= 3;
+                        const isSelected = selectedCustomer?.id === cust.id || selectedCustomer?.phone === cust.phone;
+                        return (
+                          <div
+                            key={cust.id || cust.phone}
+                            onClick={() => handleSelectCustomer(cust)}
+                            className={`p-2.5 flex items-center justify-between gap-3 cursor-pointer transition-colors ${
+                              isSelected
+                                ? "bg-cyan-950/50 border-l-4 border-cyan-400"
+                                : "hover:bg-slate-900/90"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              {/* Avatar circle */}
+                              <div className={`w-8 h-8 rounded-xl flex items-center justify-center font-bold text-xs font-mono shrink-0 shadow-sm ${
+                                isVip
+                                  ? "bg-gradient-to-tr from-amber-600 to-amber-400 text-slate-950 font-black"
+                                  : "bg-gradient-to-tr from-cyan-700 to-blue-600 text-white"
+                              }`}>
+                                {cust.name ? cust.name.charAt(0).toUpperCase() : "C"}
+                              </div>
+                              <div className="truncate">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-xs font-bold text-white font-mono truncate">
+                                    {cust.name}
+                                  </span>
+                                  {isVip ? (
+                                    <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-mono font-bold">
+                                      💎 VIP
+                                    </span>
+                                  ) : (cust.total_orders || 0) > 1 ? (
+                                    <span className="text-[9px] px-1.5 py-0.2 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-mono">
+                                      ⭐ Regular
+                                    </span>
+                                  ) : null}
+                                </div>
+                                <div className="text-[10px] text-slate-400 font-mono flex items-center gap-2 mt-0.5">
+                                  <span>+91 {cust.phone}</span>
+                                  {cust.locality && cust.locality !== "Srinagar (Counter)" && (
+                                    <span className="text-slate-500">· {cust.locality}</span>
+                                  )}
+                                  {cust.last_order_at && (
+                                    <span className="text-slate-500">· {formatCustomerDate(cust.last_order_at)}</span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Lifetime Purchases metric */}
+                            <div className="text-right shrink-0">
+                              <div className="text-xs font-mono font-bold text-emerald-400">
+                                ₹{Number(cust.total_spent || 0).toLocaleString("en-IN")}
+                              </div>
+                              <div className="text-[9.5px] font-mono text-slate-400">
+                                {cust.total_orders || 0} {(cust.total_orders || 0) === 1 ? "order" : "orders"}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className="p-4 text-center space-y-1">
+                        <p className="text-xs text-slate-300 font-mono font-semibold">
+                          ✨ No customer found matching &quot;{formCustomerName || formCustomerPhone}&quot;
+                        </p>
+                        <p className="text-[10px] text-slate-400 font-mono">
+                          Enter name and 10-digit phone to register this customer automatically upon saving.
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 )}
+
+                {/* Selected Customer Loyalty & Lifetime Intelligence Card */}
+                {selectedCustomer ? (
+                  <div className="mt-2 p-3 rounded-2xl bg-gradient-to-r from-slate-950 via-slate-900 to-cyan-950/40 border border-cyan-500/40 shadow-lg space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-300">
+                          <span className="material-symbols-outlined text-sm">verified_user</span>
+                        </div>
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-bold text-white font-mono">
+                              {selectedCustomer.name}
+                            </span>
+                            <span className="text-[9px] font-mono px-1.5 py-0.2 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold">
+                              {(selectedCustomer.total_spent || 0) >= 2500 ? "💎 VIP Patron" : "⭐ Returning Patron"}
+                            </span>
+                          </div>
+                          <span className="text-[10px] text-slate-400 font-mono">
+                            +91 {selectedCustomer.phone} {selectedCustomer.locality ? `· ${selectedCustomer.locality}` : ""}
+                          </span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleClearCustomer}
+                        className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-[10px] font-mono border border-slate-700 transition-colors"
+                      >
+                        Change
+                      </button>
+                    </div>
+
+                    {/* Metric Cards Row */}
+                    <div className="grid grid-cols-3 gap-2 pt-1">
+                      <div className="p-2 rounded-xl bg-slate-950/80 border border-emerald-500/30">
+                        <span className="block text-[9px] uppercase tracking-wider font-mono text-slate-400">
+                          Total Purchases
+                        </span>
+                        <span className="text-sm font-black font-mono text-emerald-400">
+                          ₹{Number(selectedCustomer.total_spent || 0).toLocaleString("en-IN")}
+                        </span>
+                        <span className="block text-[8.5px] font-mono text-slate-500 mt-0.5">
+                          Lifetime spend
+                        </span>
+                      </div>
+
+                      <div className="p-2 rounded-xl bg-slate-950/80 border border-cyan-500/30">
+                        <span className="block text-[9px] uppercase tracking-wider font-mono text-slate-400">
+                          Total Visits
+                        </span>
+                        <span className="text-sm font-black font-mono text-cyan-300">
+                          {selectedCustomer.total_orders || 0} visits
+                        </span>
+                        <span className="block text-[8.5px] font-mono text-slate-500 mt-0.5">
+                          Visit #{(selectedCustomer.total_orders || 0) + 1} today
+                        </span>
+                      </div>
+
+                      <div className="p-2 rounded-xl bg-slate-950/80 border border-slate-800">
+                        <span className="block text-[9px] uppercase tracking-wider font-mono text-slate-400">
+                          Last Purchase
+                        </span>
+                        <span className="text-xs font-bold font-mono text-slate-200">
+                          {formatCustomerDate(selectedCustomer.last_order_at)}
+                        </span>
+                        <span className="block text-[8.5px] font-mono text-slate-500 mt-0.5">
+                          Counter history
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ) : formCustomerName.trim() && formCustomerPhone.trim().length === 10 ? (
+                  /* New Customer Auto-Registration Alert */
+                  <div className="mt-2 p-2.5 rounded-xl bg-emerald-950/30 border border-emerald-500/40 text-emerald-300 text-xs font-mono flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-base text-emerald-400">person_add</span>
+                      <div>
+                        <span className="font-bold text-[11px] block">New Customer Auto-Enrollment</span>
+                        <span className="text-[9.5px] text-slate-400 block">
+                          Will create profile for &quot;{formCustomerName}&quot; (+91 {formCustomerPhone}) &amp; record this ₹{formAmount || 0} purchase.
+                        </span>
+                      </div>
+                    </div>
+                    <span className="text-[9px] uppercase font-bold bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-500/30 shrink-0">
+                      Auto-Save
+                    </span>
+                  </div>
+                ) : null}
               </div>
 
               {/* Row 6: Notes & Staff */}

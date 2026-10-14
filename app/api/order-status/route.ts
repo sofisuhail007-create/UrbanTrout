@@ -84,6 +84,8 @@ export async function POST(request: Request) {
     if (body.total !== undefined) updatePayload.total = body.total;
     if (body.subtotal !== undefined) updatePayload.subtotal = body.subtotal;
     if (body.notes !== undefined) updatePayload.notes = body.notes;
+    if (body.paid_amount !== undefined) updatePayload.paid_amount = body.paid_amount;
+    if (body.payment_status !== undefined) updatePayload.payment_status = body.payment_status;
 
     let query = client
       .from("orders")
@@ -102,6 +104,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: error?.message || "Order not found" }, { status: 404 });
     }
 
+    const customerEmail = extractEmail(updatedOrder);
+
     // Restore biomass to aquarium if order is cancelled
     if (status === "cancelled") {
       try {
@@ -113,33 +117,40 @@ export async function POST(request: Request) {
     }
 
     // 2. Trigger Customer Email if email exists
-    const customerEmail = extractEmail(updatedOrder);
-    if (customerEmail) {
-      await sendOrderStatusUpdateEmail({
-        orderNumber: String(updatedOrder.order_number),
-        customerName: updatedOrder.customer_name,
-        email: customerEmail,
-        phone: updatedOrder.customer_phone,
-        total: updatedOrder.total,
-      }, status);
+    try {
+      if (customerEmail) {
+        await sendOrderStatusUpdateEmail({
+          orderNumber: String(updatedOrder.order_number),
+          customerName: updatedOrder.customer_name,
+          email: customerEmail,
+          phone: updatedOrder.customer_phone,
+          total: updatedOrder.total,
+        }, status);
+      }
+    } catch (emailErr) {
+      console.warn("[order-status] Email notification failed (non-blocking):", emailErr);
     }
 
     // 3. Log status change in Telegram group with WhatsApp customer update button
-    const statusLabels: Record<string, string> = {
-      processing: "✅ Payment Verified (Order Confirmed & Harvesting)",
-      out_for_delivery: "🚚 Out for Delivery (Rider Dispatched)",
-      delivered: "✨ Delivered to Customer",
-      cancelled: "❌ Order Cancelled",
-    };
+    try {
+      const statusLabels: Record<string, string> = {
+        processing: "✅ Payment Verified (Order Confirmed & Harvesting)",
+        out_for_delivery: "🚚 Out for Delivery (Rider Dispatched)",
+        delivered: "✨ Delivered to Customer",
+        cancelled: "❌ Order Cancelled",
+      };
 
-    if (statusLabels[status]) {
-      const cleanPhone = String(updatedOrder.customer_phone || "").replace(/\D/g, "").slice(-10);
-      const kb = getOrderKeyboard(updatedOrder.order_number, status, cleanPhone, updatedOrder.customer_name);
-      await sendTelegramMessage(
-        `📋 <b>ORDER STATUS UPDATED VIA ADMIN PANEL</b>\n━━━━━━━━━━━━━━━━━━━━\n<b>Order ID:</b> <code>#${updatedOrder.order_number}</code>\n<b>Customer:</b> ${updatedOrder.customer_name} (<a href="tel:+91${cleanPhone}">+91 ${cleanPhone}</a>)\n<b>New Status:</b> <b>${statusLabels[status]}</b>`,
-        "HTML",
-        kb
-      );
+      if (statusLabels[status]) {
+        const cleanPhone = String(updatedOrder.customer_phone || "").replace(/\D/g, "").slice(-10);
+        const kb = getOrderKeyboard(updatedOrder.order_number, status, cleanPhone, updatedOrder.customer_name);
+        await sendTelegramMessage(
+          `📋 <b>ORDER STATUS UPDATED VIA ADMIN PANEL</b>\n━━━━━━━━━━━━━━━━━━━━\n<b>Order ID:</b> <code>#${updatedOrder.order_number}</code>\n<b>Customer:</b> ${updatedOrder.customer_name} (<a href="tel:+91${cleanPhone}">+91 ${cleanPhone}</a>)\n<b>New Status:</b> <b>${statusLabels[status]}</b>`,
+          "HTML",
+          kb
+        );
+      }
+    } catch (tgErr) {
+      console.warn("[order-status] Telegram notification failed (non-blocking):", tgErr);
     }
 
     // 4. Trigger Instant Web Push Notification to customer's phone/desktop

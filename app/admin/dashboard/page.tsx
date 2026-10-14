@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import type { Order, WaterParameter, Lead } from "@/lib/supabase";
 import { adminFetch } from "@/lib/adminClient";
@@ -124,8 +124,7 @@ export default function DashboardPage() {
     } catch (_) {}
   };
 
-  useEffect(() => {
-    async function load() {
+  const loadData = useCallback(async () => {
       const cutoff = new Date(Date.now() - 48 * 3600 * 1000).toISOString();
       
       // Fetch orders, customer count, water params, and deduplicated leads
@@ -195,9 +194,10 @@ export default function DashboardPage() {
         const stockRes = await fetch("/api/aquarium-stock");
         if (stockRes.ok) {
           const stockJson = await stockRes.json();
-          if (stockJson?.summary) {
-            setAquariumStockKg(Number(stockJson.summary.remainingKg || 0));
-            setIsAquariumOutOfStock(Boolean(stockJson.summary.isOutOfStock));
+          const live = stockJson?.liveSummary || stockJson?.summary;
+          if (live) {
+            setAquariumStockKg(Number(live.remainingKg || 0));
+            setIsAquariumOutOfStock(Boolean(live.isOutOfStock));
           }
         }
       } catch (_) {}
@@ -223,9 +223,28 @@ export default function DashboardPage() {
       } catch (_) {}
 
       setLoading(false);
-    }
-    load();
   }, []);
+
+  useEffect(() => {
+    loadData();
+
+    // Re-fetch automatically when window gains focus or device wakes up (crucial for iPhone/mobile Safari tabs)
+    const handleRefresh = () => {
+      loadData();
+    };
+
+    window.addEventListener("focus", handleRefresh);
+    document.addEventListener("visibilitychange", handleRefresh);
+
+    // Background interval refresh every 45 seconds
+    const interval = setInterval(handleRefresh, 45000);
+
+    return () => {
+      window.removeEventListener("focus", handleRefresh);
+      document.removeEventListener("visibilitychange", handleRefresh);
+      clearInterval(interval);
+    };
+  }, [loadData]);
 
   const today = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Kolkata",
