@@ -1,5 +1,6 @@
 import { NextRequest } from "next/server";
 import { ImageResponse } from "next/og";
+import QRCode from "qrcode";
 
 export const dynamic = "force-dynamic";
 
@@ -18,8 +19,12 @@ export async function GET(req: NextRequest) {
     const upiId = "JKBMERC00828895@jkb";
     const upiUri = `upi://pay?pa=${upiId}&pn=Urban%20Trout%20Aquaculture&am=${numAmount > 0 ? numAmount.toFixed(2) : "0"}&cu=INR&tn=Urban%20Trout%20Fresh%20Fish`;
 
-    // High resolution QR code direct URL
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(upiUri)}&bgcolor=255-255-255&color=0-0-0&margin=1`;
+    // Generate crisp QR code locally with pure JavaScript (0 network calls, 100% reliable)
+    const qrDataUri = await QRCode.toDataURL(upiUri, {
+      width: 300,
+      margin: 1,
+      errorCorrectionLevel: "M",
+    });
 
     return new ImageResponse(
       (
@@ -34,7 +39,6 @@ export async function GET(req: NextRequest) {
             backgroundColor: "#ffffff",
             padding: "24px 20px",
             fontFamily: "sans-serif",
-            position: "relative",
           }}
         >
           {/* Top Brand Banner */}
@@ -50,7 +54,7 @@ export async function GET(req: NextRequest) {
               style={{
                 display: "flex",
                 alignItems: "center",
-                padding: "6px 16px",
+                padding: "6px 18px",
                 borderRadius: "999px",
                 backgroundColor: "#ecfdf5",
                 border: "1.5px solid #a7f3d0",
@@ -128,7 +132,7 @@ export async function GET(req: NextRequest) {
             {/* QR Code */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={qrUrl}
+              src={qrDataUri}
               width="270"
               height="270"
               alt="J&K Bank UPI QR Code"
