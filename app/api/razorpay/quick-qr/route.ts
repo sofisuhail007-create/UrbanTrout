@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
     }
 
     const razorpay = getRazorpayClient();
-    const desc = `Rider COD - Rs.${numAmount}`.slice(0, 30);
+    const desc = "Fresh Rainbow Trout";
 
     const qr = await razorpay.qrCode.create({
       type: "upi_qr",
