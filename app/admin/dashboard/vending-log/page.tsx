@@ -3820,15 +3820,36 @@ export default function VendingCenterLoggerPage() {
               </div>
             </div>
 
-            <div className="flex items-baseline gap-2 bg-slate-950/90 px-5 py-3 rounded-2xl border border-blue-500/30 self-start sm:self-auto shadow-inner">
-              <span
-                className={`text-3xl sm:text-4xl font-black font-['Space_Grotesk'] ${
-                  aquariumStock.isOutOfStock ? "text-amber-300" : "text-white"
-                }`}
-              >
-                {stockLoading && stockEntries.length === 0 ? "..." : formatKg(aquariumStock.remainingKg)}
-              </span>
-              <span className="text-blue-400 font-bold font-mono text-base">Kg</span>
+            <div className="flex items-center flex-wrap gap-3 self-start sm:self-auto">
+              {/* CURRENT LIVE STOCK */}
+              <div className="flex items-baseline gap-2 bg-slate-950/90 px-4 py-2.5 rounded-2xl border border-blue-500/30 shadow-inner">
+                <div className="text-right">
+                  <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400 font-mono">Live Stock</div>
+                  <div className="flex items-baseline gap-1">
+                    <span
+                      className={`text-2xl sm:text-3xl font-black font-['Space_Grotesk'] ${
+                        aquariumStock.isOutOfStock ? "text-amber-300" : "text-white"
+                      }`}
+                    >
+                      {stockLoading && stockEntries.length === 0 ? "..." : formatKg(aquariumStock.remainingKg)}
+                    </span>
+                    <span className="text-blue-400 font-bold font-mono text-sm">Kg</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* TOTAL NUMBER OF ENTRIES FOR THE DAY */}
+              <div className="flex items-baseline gap-2 bg-slate-950/90 px-4 py-2.5 rounded-2xl border border-emerald-500/30 shadow-inner">
+                <div className="text-right">
+                  <div className="text-[10px] uppercase font-bold tracking-wider text-emerald-400 font-mono">Today's Entries</div>
+                  <div className="flex items-baseline gap-1 justify-end">
+                    <span className="text-2xl sm:text-3xl font-black font-['Space_Grotesk'] text-emerald-400">
+                      {entries.filter((e) => e.entry_date === getTodayDate()).length}
+                    </span>
+                    <span className="text-emerald-300/80 font-bold font-mono text-xs">entries</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

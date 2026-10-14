@@ -103,6 +103,7 @@ export default function DashboardPage() {
   const [isAdmin, setIsAdmin] = useState<boolean>(true);
   const [aquariumStockKg, setAquariumStockKg] = useState<number>(0);
   const [isAquariumOutOfStock, setIsAquariumOutOfStock] = useState<boolean>(false);
+  const [todayEntriesCount, setTodayEntriesCount] = useState<number>(0);
 
   const fetchBalancesData = async () => {
     try {
@@ -197,6 +198,26 @@ export default function DashboardPage() {
           if (stockJson?.summary) {
             setAquariumStockKg(Number(stockJson.summary.remainingKg || 0));
             setIsAquariumOutOfStock(Boolean(stockJson.summary.isOutOfStock));
+          }
+        }
+      } catch (_) {}
+
+      // Fetch today's vending sales entries count
+      try {
+        const todayStr = new Intl.DateTimeFormat("en-CA", {
+          timeZone: "Asia/Kolkata",
+          year: "numeric",
+          month: "2-digit",
+          day: "2-digit",
+        }).format(new Date());
+
+        const vendingRes = await adminFetch(`/api/vending-log?startDate=${todayStr}&endDate=${todayStr}`);
+        if (vendingRes.ok) {
+          const vendingJson = await vendingRes.json();
+          if (Array.isArray(vendingJson?.entries)) {
+            setTodayEntriesCount(vendingJson.entries.length);
+          } else if (vendingJson?.kpis?.today?.count !== undefined) {
+            setTodayEntriesCount(Number(vendingJson.kpis.today.count) || 0);
           }
         }
       } catch (_) {}
@@ -381,20 +402,41 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+            <div className="flex items-center flex-wrap sm:flex-nowrap gap-4 sm:gap-6 w-full sm:w-auto justify-between sm:justify-end">
               <div className="text-right">
                 <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Current Stock</div>
                 <div className="text-2xl font-black text-cyan-400 font-mono tracking-tight">
                   {aquariumStockKg.toFixed(3)} <span className="text-xs text-cyan-300/80 font-normal">Kg</span>
                 </div>
               </div>
-              <Link
-                href="/admin/dashboard/billing"
-                className="px-3.5 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
-              >
-                <span className="material-symbols-outlined text-sm">point_of_sale</span>
-                <span>Open POS</span>
-              </Link>
+
+              <div className="text-right border-l border-slate-800 pl-4 sm:pl-6">
+                <div className="text-[10px] uppercase font-bold tracking-wider text-emerald-400 flex items-center justify-end gap-1">
+                  <span className="material-symbols-outlined text-[13px]">receipt_long</span>
+                  <span>Today's Entries</span>
+                </div>
+                <div className="text-2xl font-black text-emerald-400 font-mono tracking-tight flex items-baseline justify-end gap-1">
+                  <span>{todayEntriesCount}</span>
+                  <span className="text-xs text-emerald-300/80 font-normal">{todayEntriesCount === 1 ? 'entry' : 'entries'}</span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Link
+                  href="/admin/dashboard/billing"
+                  className="px-3.5 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
+                >
+                  <span className="material-symbols-outlined text-sm">point_of_sale</span>
+                  <span>Open POS</span>
+                </Link>
+                <Link
+                  href="/admin/dashboard/vending-log"
+                  className="px-3.5 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
+                >
+                  <span className="material-symbols-outlined text-sm">receipt_long</span>
+                  <span>Vending Log</span>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
@@ -417,8 +459,13 @@ export default function DashboardPage() {
         </div>
       ) : (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-          <StatCard icon="today" label="Today's Orders" value={todayOrders.length} color="bg-cyan-500/15 text-cyan-400" />
-          <StatCard icon="pending" label="Pending Orders" value={pending} color="bg-amber-500/15 text-amber-400" sub="Needs action" />
+          <StatCard
+            icon="receipt_long"
+            label="Today's Entries"
+            value={`${todayEntriesCount} ${todayEntriesCount === 1 ? 'Entry' : 'Entries'}`}
+            color="bg-emerald-500/15 text-emerald-400"
+            sub="Counter Sales Logged"
+          />
           <StatCard
             icon="water_ph"
             label="Aquarium Stock"
@@ -426,7 +473,8 @@ export default function DashboardPage() {
             color="bg-cyan-500/15 text-cyan-400"
             sub={isAquariumOutOfStock ? "Needs Restock" : "Available in Tank"}
           />
-          <StatCard icon="group" label="Total Customers" value={customers} color="bg-purple-500/15 text-purple-400" />
+          <StatCard icon="today" label="Today's Orders" value={todayOrders.length} color="bg-blue-500/15 text-blue-400" sub="Online Checkout" />
+          <StatCard icon="pending" label="Pending Orders" value={pending} color="bg-amber-500/15 text-amber-400" sub="Needs action" />
         </div>
       )}
 
