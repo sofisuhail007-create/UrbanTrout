@@ -20,7 +20,19 @@ export interface StaffIncentivePayout {
   created_at: string;
 }
 
+export interface SpecialIncentiveRule {
+  date: string; // YYYY-MM-DD
+  rate_per_kg: number; // e.g. 20 (instead of default 5)
+  label: string; // e.g. "Friday Catch Deal" or "Special Catch Boost"
+  deduct_daily_salary?: boolean; // if true, indicates Friday pact applies (0 salary for this day)
+  salary_deduction_amount?: number; // e.g. 350
+  enabled: boolean;
+  notes?: string;
+  updated_at?: string;
+}
+
 const SETTINGS_KEY = "staff_incentive_payouts";
+const SPECIAL_RULES_KEY = "staff_special_incentive_rules";
 
 // Fetch payouts from app_settings
 async function getStoredPayouts(): Promise<StaffIncentivePayout[]> {
@@ -66,10 +78,54 @@ async function saveStoredPayouts(payouts: StaffIncentivePayout[]): Promise<boole
   }
 }
 
-// ─── GET: List all recorded payouts ──────────────────────────────────────────
+// Fetch special daily incentive rules from app_settings
+async function getStoredSpecialRules(): Promise<Record<string, SpecialIncentiveRule>> {
+  try {
+    const { data } = await supabase
+      .from("app_settings")
+      .select("value")
+      .eq("key", SPECIAL_RULES_KEY)
+      .maybeSingle();
+
+    if (data?.value) {
+      const parsed = JSON.parse(data.value);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        return parsed;
+      }
+    }
+  } catch (err) {
+    console.warn("Error reading special incentive rules:", err);
+  }
+  return {};
+}
+
+// Save special daily incentive rules to app_settings
+async function saveStoredSpecialRules(rules: Record<string, SpecialIncentiveRule>): Promise<boolean> {
+  try {
+    const { error } = await supabase.from("app_settings").upsert(
+      {
+        key: SPECIAL_RULES_KEY,
+        value: JSON.stringify(rules),
+        description: "Special daily gutted trout incentive rates (e.g. Friday ₹20/Kg deal)",
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "key" }
+    );
+    return !error;
+  } catch (err) {
+    console.warn("Exception saving special rules:", err);
+    return false;
+  }
+}
+
+// ─── GET: List all recorded payouts + special rules ──────────────────────────
 export async function GET(request: Request) {
   try {
-    const payouts = await getStoredPayouts();
+    const [payouts, specialRules] = await Promise.all([
+      getStoredPayouts(),
+      getStoredSpecialRules(),
+    ]);
+
     // Sort descending by date, then created_at
     payouts.sort((a, b) => {
       const d = (b.payout_date || "").localeCompare(a.payout_date || "");
@@ -82,6 +138,8 @@ export async function GET(request: Request) {
         success: true,
         payouts,
         totalPaid: payouts.reduce((sum, p) => sum + (Number(p.amount) || 0), 0),
+        defaultRatePerKg: 5,
+        specialRules,
       },
       {
         headers: {
@@ -95,13 +153,60 @@ export async function GET(request: Request) {
   }
 }
 
-// ─── POST: Record a new payout disbursement ──────────────────────────────────
+// ─── POST: Record a new payout disbursement OR toggle/save special rule ──────
 export async function POST(request: Request) {
   const authError = await requireAdminAuth(request);
   if (authError) return authError;
 
   try {
     const body = await request.json();
+
+    // 1. Action: Save or Toggle Special Incentive Rule (e.g. Friday ₹20/Kg deal)
+    if (body.action === "save_special_rule" || body.action === "toggle_friday_deal") {
+      const {
+        date,
+        rate_per_kg,
+        label,
+        deduct_daily_salary,
+        salary_deduction_amount,
+        enabled,
+        notes,
+      } = body;
+
+      if (!date || typeof date !== "string") {
+        return NextResponse.json(
+          { success: false, error: "A valid date (YYYY-MM-DD) is required for special incentive rule." },
+          { status: 400 }
+        );
+      }
+
+      const numRate = parseFloat(rate_per_kg);
+      const targetRate = isNaN(numRate) || numRate <= 0 ? 20 : numRate;
+      const isEnabled = enabled !== undefined ? Boolean(enabled) : true;
+
+      const currentRules = await getStoredSpecialRules();
+      const updatedRule: SpecialIncentiveRule = {
+        date,
+        rate_per_kg: targetRate,
+        label: label || (targetRate >= 20 ? "Friday Special Catch Deal" : "Custom Day Incentive"),
+        deduct_daily_salary: Boolean(deduct_daily_salary),
+        salary_deduction_amount: deduct_daily_salary ? (Number(salary_deduction_amount) || 350) : 0,
+        enabled: isEnabled,
+        notes: (notes || "").trim(),
+        updated_at: new Date().toISOString(),
+      };
+
+      currentRules[date] = updatedRule;
+      await saveStoredSpecialRules(currentRules);
+
+      return NextResponse.json({
+        success: true,
+        rule: updatedRule,
+        specialRules: currentRules,
+      });
+    }
+
+    // 2. Action: Standard Payout Disbursement Recording
     const { payout_date, payout_time, amount, payment_mode, recipient_name, notes } = body;
 
     const numAmount = parseFloat(amount);
@@ -122,10 +227,11 @@ export async function POST(request: Request) {
           hour: "2-digit",
           minute: "2-digit",
           hour12: true,
+          timeZone: "Asia/Kolkata",
         }),
       amount: Math.round(numAmount * 100) / 100,
       payment_mode: payment_mode || "Cash",
-      recipient_name: (recipient_name || "Counter Staff").trim(),
+      recipient_name: (recipient_name || "Mohd Amin").trim(),
       notes: (notes || "").trim(),
       created_at: now.toISOString(),
     };
@@ -145,15 +251,27 @@ export async function POST(request: Request) {
   }
 }
 
-// ─── DELETE: Remove/Void a payout entry ──────────────────────────────────────
+// ─── DELETE: Remove/Void a payout entry OR special rule ──────────────────────
 export async function DELETE(request: Request) {
   const authError = await requireAdminAuth(request);
   if (authError) return authError;
 
   try {
     const { searchParams } = new URL(request.url);
-    const id = searchParams.get("id");
+    const type = searchParams.get("type");
 
+    if (type === "special_rule") {
+      const date = searchParams.get("date");
+      if (!date) {
+        return NextResponse.json({ success: false, error: "Missing rule date" }, { status: 400 });
+      }
+      const currentRules = await getStoredSpecialRules();
+      delete currentRules[date];
+      await saveStoredSpecialRules(currentRules);
+      return NextResponse.json({ success: true, specialRules: currentRules });
+    }
+
+    const id = searchParams.get("id");
     if (!id) {
       return NextResponse.json({ success: false, error: "Missing payout id" }, { status: 400 });
     }

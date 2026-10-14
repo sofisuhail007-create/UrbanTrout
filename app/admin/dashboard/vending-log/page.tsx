@@ -5,10 +5,10 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { adminFetch } from "@/lib/adminClient";
 import { CustomColumnDef, VendingSalesEntry } from "@/app/api/vending-log/route";
-import { StaffIncentivePayout } from "@/app/api/vending-log/incentive/route";
+import { StaffIncentivePayout, SpecialIncentiveRule } from "@/app/api/vending-log/incentive/route";
 import { AquariumStockEntry } from "@/app/api/aquarium-stock/route";
 import { AquariumMortalityEntry } from "@/app/api/aquarium-mortality/route";
-import { WorkerSalaryPayment, WorkerSalarySettings } from "@/app/api/vending-log/salary/route";
+import { WorkerSalaryPayment, WorkerSalarySettings, WorkerSalaryDeduction } from "@/app/api/vending-log/salary/route";
 import { VendingExpenseEntry } from "@/app/api/vending-log/expenses/route";
 import * as XLSX from "xlsx";
 import BalanceReminderModal from "../billing/BalanceReminderModal";
@@ -19,10 +19,24 @@ import StaffAuditModal from "./StaffAuditModal";
 import EntryHistoryModal from "./EntryHistoryModal";
 import DailySalesHistogram from "./DailySalesHistogram";
 import SupplierRebateTracker from "@/components/SupplierRebateTracker";
+import StaffIncentiveCard from "./StaffIncentiveCard";
+import StaffLeaveModal from "./StaffLeaveModal";
 
 const DEFAULT_GUTTED_PRICE = 580;
 const DEFAULT_NON_GUTTED_PRICE = 540;
-const INCENTIVE_RATE_PER_KG = 5; // RS 5 per kg for gutted trout only
+export const INCENTIVE_RATE_PER_KG = 5; // RS 5 per kg for gutted trout only
+
+export const getIncentiveRateForDate = (
+  dateStr?: string | null,
+  rules?: Record<string, SpecialIncentiveRule> | null
+): number => {
+  if (!dateStr || !rules) return INCENTIVE_RATE_PER_KG;
+  const rule = rules[dateStr];
+  if (rule && rule.enabled && Number(rule.rate_per_kg) > 0) {
+    return Number(rule.rate_per_kg);
+  }
+  return INCENTIVE_RATE_PER_KG;
+};
 
 const EXPENSE_CATEGORIES = [
   "Polybags & Packaging",
@@ -452,7 +466,9 @@ export default function VendingCenterLoggerPage() {
 
   // Staff Incentive Payouts State
   const [payouts, setPayouts] = useState<StaffIncentivePayout[]>([]);
+  const [specialRules, setSpecialRules] = useState<Record<string, SpecialIncentiveRule>>({});
   const [payoutModalOpen, setPayoutModalOpen] = useState(false);
+  const [leaveModalOpen, setLeaveModalOpen] = useState(false);
   const [savingPayout, setSavingPayout] = useState(false);
   const [payoutFormAmount, setPayoutFormAmount] = useState("");
   const [payoutFormDate, setPayoutFormDate] = useState(getTodayDate());
@@ -464,6 +480,7 @@ export default function VendingCenterLoggerPage() {
 
   // ─── Worker Salary Management State (Mohd Amin) ───
   const [salaryPayments, setSalaryPayments] = useState<WorkerSalaryPayment[]>([]);
+  const [deductions, setDeductions] = useState<WorkerSalaryDeduction[]>([]);
   const [salaryConfig, setSalaryConfig] = useState<WorkerSalarySettings>({
     worker_name: "Mohd Amin",
     base_monthly_salary: 10500,
@@ -789,14 +806,19 @@ export default function VendingCenterLoggerPage() {
     fetchKhataSummary();
   }, [fetchKhataSummary]);
 
-  // ─── Fetch Staff Incentive Payouts (Admin Only) ───
+  // ─── Fetch Staff Incentive Payouts & Special Rules (Admin & Staff) ───
   const fetchPayouts = useCallback(async () => {
     try {
       const res = await adminFetch("/api/vending-log/incentive");
       if (res.ok) {
         const data = await res.json();
-        if (data.success && Array.isArray(data.payouts)) {
-          setPayouts(data.payouts);
+        if (data.success) {
+          if (Array.isArray(data.payouts)) {
+            setPayouts(data.payouts);
+          }
+          if (data.specialRules && typeof data.specialRules === "object") {
+            setSpecialRules(data.specialRules);
+          }
         }
       }
     } catch (err) {
@@ -805,10 +827,8 @@ export default function VendingCenterLoggerPage() {
   }, []);
 
   useEffect(() => {
-    if (isAdmin) {
-      fetchPayouts();
-    }
-  }, [isAdmin, fetchPayouts]);
+    fetchPayouts();
+  }, [fetchPayouts]);
 
   // Read stored staff identity for formLoggedBy & load configured workers from settings
   useEffect(() => {
@@ -964,7 +984,7 @@ export default function VendingCenterLoggerPage() {
     fetchSupplierRebates();
   }, [fetchSupplierRebates]);
 
-  // ─── Fetch Worker Salary Payments (Mohd Amin) ───
+  // ─── Fetch Worker Salary Payments & Deductions (Mohd Amin) ───
   const fetchSalaryPayments = useCallback(async () => {
     try {
       const res = await adminFetch("/api/vending-log/salary");
@@ -972,9 +992,12 @@ export default function VendingCenterLoggerPage() {
         const data = await res.json();
         if (data.success) {
           setSalaryPayments(data.payments || []);
+          if (Array.isArray(data.deductions)) {
+            setDeductions(data.deductions);
+          }
           if (data.config) {
             setSalaryConfig(data.config);
-            setBaseSalaryInput(String(data.config.base_monthly_salary || 15000));
+            setBaseSalaryInput(String(data.config.base_monthly_salary || 10500));
           }
         }
       }
@@ -988,6 +1011,55 @@ export default function VendingCenterLoggerPage() {
       fetchSalaryPayments();
     }
   }, [isAdmin, fetchSalaryPayments]);
+
+  // ─── Special Incentive Deal Toggle (e.g. Friday Boost ₹20/Kg) ───
+  const handleToggleSpecialDeal = useCallback(
+    async (enabled: boolean, rate: number = 20, targetDate?: string) => {
+      const dealDate = targetDate || getTodayDate();
+      try {
+        const res = await adminFetch("/api/vending-log/incentive", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            action: "toggle_friday_deal",
+            date: dealDate,
+            enabled,
+            rate_per_kg: rate,
+            deduct_daily_salary: enabled,
+          }),
+        });
+        if (res.ok) {
+          await Promise.all([fetchPayouts(), fetchSalaryPayments()]);
+        } else {
+          const err = await res.json();
+          alert(err.error || "Failed to update special incentive rate");
+        }
+      } catch (err: any) {
+        alert("Error toggling special deal: " + err.message);
+      }
+    },
+    [fetchPayouts, fetchSalaryPayments, getTodayDate]
+  );
+
+  // ─── Delete Salary Deduction (Leave Reversal) ───
+  const handleDeleteDeduction = useCallback(
+    async (id: string) => {
+      try {
+        const res = await adminFetch(`/api/vending-log/salary?type=deduction&id=${encodeURIComponent(id)}`, {
+          method: "DELETE",
+        });
+        if (res.ok) {
+          await fetchSalaryPayments();
+        } else {
+          const err = await res.json();
+          alert(err.error || "Failed to delete salary deduction");
+        }
+      } catch (err: any) {
+        alert("Error deleting deduction: " + err.message);
+      }
+    },
+    [fetchSalaryPayments]
+  );
 
   // ─── Fetch Aquarium Mortality Logs ───
   const fetchMortalityEntries = useCallback(async () => {
@@ -1556,21 +1628,44 @@ export default function VendingCenterLoggerPage() {
     return kpis.totalRevenue > 0 ? ((finalProfit / kpis.totalRevenue) * 100).toFixed(1) : "0.0";
   }, [finalProfit, kpis.totalRevenue]);
 
-  // ─── Staff Gutted Trout Incentive Tracker (₹5/Kg Gutted Only - Excludes Self-Cleaned) ───
+  // ─── Staff Gutted Trout Incentive Tracker (₹5/Kg Gutted Only, or ₹20/Kg on Friday Deals) ───
   const incentiveStats = useMemo(() => {
-    // 1. All-time Gutted Trout Weight across all entries
+    const todayDate = getTodayDate();
+    const thisMonthKey = getIstTodayDate().slice(0, 7);
+
+    // 1. All-time Gutted Trout Weight & Earnings across all entries
     let allTimeGuttedKg = 0;
     let allTimeSelfCleanedKg = 0;
+    let allTimeEarned = 0;
+    let todayGuttedKg = 0;
+    let todayEarned = 0;
+    let thisMonthGuttedKg = 0;
+    let thisMonthEarned = 0;
+
     entries.forEach((e) => {
       const isGutted =
         (e.product_type || "").toLowerCase().includes("gutted") &&
         !(e.product_type || "").toLowerCase().includes("non");
       const isSelf = Boolean(e.custom_fields?.self_cleaned || (e as any).self_cleaned);
       if (isGutted) {
+        const kg = Number(e.weight_kg) || 0;
         if (isSelf) {
-          allTimeSelfCleanedKg = Math.round((allTimeSelfCleanedKg + (Number(e.weight_kg) || 0)) * 1000) / 1000;
+          allTimeSelfCleanedKg = Math.round((allTimeSelfCleanedKg + kg) * 1000) / 1000;
         } else {
-          allTimeGuttedKg = Math.round((allTimeGuttedKg + (Number(e.weight_kg) || 0)) * 1000) / 1000;
+          allTimeGuttedKg = Math.round((allTimeGuttedKg + kg) * 1000) / 1000;
+          const rate = getIncentiveRateForDate(e.entry_date, specialRules);
+          const earned = Math.round(kg * rate);
+          allTimeEarned += earned;
+
+          if (e.entry_date === todayDate) {
+            todayGuttedKg = Math.round((todayGuttedKg + kg) * 1000) / 1000;
+            todayEarned += earned;
+          }
+
+          if (e.entry_date && e.entry_date.startsWith(thisMonthKey)) {
+            thisMonthGuttedKg = Math.round((thisMonthGuttedKg + kg) * 1000) / 1000;
+            thisMonthEarned += earned;
+          }
         }
       }
     });
@@ -1578,29 +1673,34 @@ export default function VendingCenterLoggerPage() {
     // 2. Current period gutted trout weight (Worker Gutted only vs Self-Cleaned)
     let periodGuttedKg = 0;
     let periodSelfCleanedKg = 0;
+    let periodEarned = 0;
     filteredEntriesByPeriod.forEach((e) => {
       const isGutted =
         (e.product_type || "").toLowerCase().includes("gutted") &&
         !(e.product_type || "").toLowerCase().includes("non");
       const isSelf = Boolean(e.custom_fields?.self_cleaned || (e as any).self_cleaned);
       if (isGutted) {
+        const kg = Number(e.weight_kg) || 0;
         if (isSelf) {
-          periodSelfCleanedKg = Math.round((periodSelfCleanedKg + (Number(e.weight_kg) || 0)) * 1000) / 1000;
+          periodSelfCleanedKg = Math.round((periodSelfCleanedKg + kg) * 1000) / 1000;
         } else {
-          periodGuttedKg = Math.round((periodGuttedKg + (Number(e.weight_kg) || 0)) * 1000) / 1000;
+          periodGuttedKg = Math.round((periodGuttedKg + kg) * 1000) / 1000;
+          const rate = getIncentiveRateForDate(e.entry_date, specialRules);
+          periodEarned += Math.round(kg * rate);
         }
       }
     });
 
-    // 3. Incentive amounts (at ₹5/Kg for worker gutted only)
-    const allTimeEarned = Math.round(allTimeGuttedKg * INCENTIVE_RATE_PER_KG);
-    const periodEarned = Math.round(periodGuttedKg * INCENTIVE_RATE_PER_KG);
-
-    // 4. Total paid disbursements from ledger
+    // 3. Total paid disbursements from ledger
     const totalPaid = payouts.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
 
-    // 5. Remaining amount owed to staff worker
+    // 4. Remaining amount owed to staff worker
     const balanceRemaining = Math.max(0, Math.round(allTimeEarned - totalPaid));
+
+    const todayRate = getIncentiveRateForDate(todayDate, specialRules);
+    const isSpecialRateActive = Boolean(specialRules[todayDate]?.enabled);
+    const specialRateRule = specialRules[todayDate];
+    const lastPayout = payouts.length > 0 ? payouts[0] : null;
 
     return {
       allTimeGuttedKg,
@@ -1611,16 +1711,32 @@ export default function VendingCenterLoggerPage() {
       periodEarned,
       totalPaid,
       balanceRemaining,
+      todayStr: todayDate,
+      todayGuttedKg,
+      todayEarned,
+      todayRate,
+      isSpecialRateActive,
+      specialRateRule,
+      thisMonthGuttedKg,
+      thisMonthEarned,
+      lastPayout,
     };
-  }, [entries, filteredEntriesByPeriod, payouts]);
+  }, [entries, filteredEntriesByPeriod, payouts, specialRules, getTodayDate]);
 
-  // ─── Worker Salary Stats (Mohd Amin) ───
+  // ─── Worker Salary Stats (Mohd Amin - Accrual & Leave Deductions) ───
   const salaryStats = useMemo(() => {
     const activeMonthKey =
       period === "month"
         ? (selectedMonth || getIstTodayDate().slice(0, 7))
         : getIstTodayDate().slice(0, 7);
     const activeMonthLabel = formatMonthDisplay(activeMonthKey);
+
+    // Deductions accounted for this month
+    const monthDeductions = deductions.filter(
+      (d) => normalizeMonthKey(d.salary_month, d.date) === activeMonthKey
+    );
+    const monthDeductionsTotal = monthDeductions.reduce((sum, d) => sum + (Number(d.amount) || 0), 0);
+    const allTimeDeductions = deductions.reduce((sum, d) => sum + (Number(d.amount) || 0), 0);
 
     // Payments accounted for the active month (Accrual principle)
     const thisMonthPaid = salaryPayments
@@ -1629,18 +1745,22 @@ export default function VendingCenterLoggerPage() {
 
     const allTimePaid = salaryPayments.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
     const baseMonthly = salaryConfig.base_monthly_salary || 10500;
-    const monthBalanceDue = Math.max(0, baseMonthly - thisMonthPaid);
+    const effectiveBaseMonthly = Math.max(0, baseMonthly - monthDeductionsTotal);
+    const monthBalanceDue = Math.max(0, effectiveBaseMonthly - thisMonthPaid);
 
     return {
       workerName: salaryConfig.worker_name || "Mohd Amin",
       baseMonthly,
+      effectiveBaseMonthly,
+      monthDeductionsTotal,
+      allTimeDeductions,
       thisMonthPaid,
       allTimePaid,
       monthBalanceDue,
       currentMonthLabel: activeMonthLabel,
       activeMonthKey,
     };
-  }, [salaryPayments, salaryConfig, period, selectedMonth]);
+  }, [salaryPayments, deductions, salaryConfig, period, selectedMonth]);
 
   // Real-time calculations for whatever month is actively picked in the Salary Form dropdown
   const selectedFormMonthNorm = normalizeMonthKey(salaryFormMonth) || normalizeMonthKey(salaryStats.currentMonthLabel);
@@ -1649,7 +1769,13 @@ export default function VendingCenterLoggerPage() {
       .filter((p) => normalizeMonthKey(p.salary_month, p.payment_date) === selectedFormMonthNorm)
       .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
   }, [salaryPayments, selectedFormMonthNorm]);
-  const selectedFormMonthDue = Math.max(0, (salaryConfig.base_monthly_salary || 10500) - selectedFormMonthPaid);
+  const selectedFormMonthDeductions = useMemo(() => {
+    return deductions
+      .filter((d) => normalizeMonthKey(d.salary_month, d.date) === selectedFormMonthNorm)
+      .reduce((sum, d) => sum + (Number(d.amount) || 0), 0);
+  }, [deductions, selectedFormMonthNorm]);
+  const selectedFormEffectiveBase = Math.max(0, (salaryConfig.base_monthly_salary || 10500) - selectedFormMonthDeductions);
+  const selectedFormMonthDue = Math.max(0, selectedFormEffectiveBase - selectedFormMonthPaid);
   const selectedFormMonthLabel = formatMonthDisplay(salaryFormMonth) || salaryStats.currentMonthLabel;
 
   // ─── Month-Wise Historical Summary Across All Months ───
@@ -3856,6 +3982,30 @@ export default function VendingCenterLoggerPage() {
       )}
 
       {/* ══════════════════════════════════════════════════════════
+          STAFF INCENTIVE & DAILY EARNINGS FLASH CARD (MOHD AMIN)
+          ══════════════════════════════════════════════════════════ */}
+      {!isAdmin && (
+        <StaffIncentiveCard
+          isAdmin={false}
+          workerName="Mohd Amin"
+          todayStr={getTodayDate()}
+          todayGuttedKg={incentiveStats.todayGuttedKg}
+          todayEarned={incentiveStats.todayEarned}
+          todayRate={incentiveStats.todayRate}
+          isSpecialRateActive={incentiveStats.isSpecialRateActive}
+          specialRateRule={incentiveStats.specialRateRule}
+          allTimeEarned={incentiveStats.allTimeEarned}
+          allTimeGuttedKg={incentiveStats.allTimeGuttedKg}
+          allTimeSelfCleanedKg={incentiveStats.allTimeSelfCleanedKg}
+          totalPaid={incentiveStats.totalPaid}
+          balanceRemaining={incentiveStats.balanceRemaining}
+          lastPayout={incentiveStats.lastPayout}
+          thisMonthEarned={incentiveStats.thisMonthEarned}
+          thisMonthGuttedKg={incentiveStats.thisMonthGuttedKg}
+        />
+      )}
+
+      {/* ══════════════════════════════════════════════════════════
           PERIOD SWITCHER & LIVE SUMMARY RIBBON
           ══════════════════════════════════════════════════════════ */}
       <div className="space-y-3">
@@ -4739,81 +4889,51 @@ export default function VendingCenterLoggerPage() {
                 <span>Section 2: Worker Compensation &amp; Salary (Mohd Amin)</span>
               </div>
             )}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4">
-              {/* Card A: Mohd Amin Gutted Incentive */}
-              <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-purple-950/50 via-slate-900/90 to-slate-900 border border-purple-500/40 shadow-xl shadow-purple-950/20 relative overflow-hidden flex flex-col justify-between group">
-                <div>
-                  <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
-                    <span className="text-purple-300 font-bold flex items-center gap-2 tracking-wider">
-                      <span className="material-symbols-outlined text-purple-400 text-base">volunteer_activism</span>
-                      <span>MOHD AMIN · GUTTED INCENTIVE</span>
-                      <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-[10px] text-purple-200 border border-purple-500/30">
-                        ₹5.00 / Kg
-                      </span>
-                    </span>
-                    <span
-                      className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ${
-                        incentiveStats.balanceRemaining > 0
-                          ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                          : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                      }`}
-                    >
-                      {incentiveStats.balanceRemaining > 0 ? "Pending Due" : "Settled ✓"}
-                    </span>
-                  </div>
-                  <div className="mt-2.5 flex items-baseline gap-1.5 min-h-[32px]">
-                    {loading && entries.length === 0 ? (
-                      <div className="h-7 w-28 bg-purple-500/10 rounded animate-pulse" />
-                    ) : (
-                      <>
-                        <span className="text-purple-400 font-bold text-lg">₹</span>
-                        <span
-                          className="text-2xl sm:text-3xl font-black text-white"
-                          style={{ fontFamily: '"Space Grotesk", sans-serif' }}
-                        >
-                          {incentiveStats.balanceRemaining.toLocaleString("en-IN")}
-                        </span>
-                        <span className="text-xs text-slate-400 font-mono ml-1">pending disbursement</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-                <div className="mt-3.5 text-xs text-slate-400 font-mono border-t border-slate-800/80 pt-2.5 flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-2.5 text-purple-200 text-[11px] flex-wrap">
-                    <span>Earned: <strong>₹{incentiveStats.allTimeEarned.toLocaleString("en-IN")}</strong></span>
-                    <span>•</span>
-                    <span>Paid: <strong>₹{incentiveStats.totalPaid.toLocaleString("en-IN")}</strong></span>
-                    <span>•</span>
-                    <span>Worker Gutted: <strong>{formatKg(incentiveStats.allTimeGuttedKg)} Kg</strong></span>
-                    {incentiveStats.allTimeSelfCleanedKg > 0 && (
-                      <>
-                        <span>•</span>
-                        <span className="text-amber-300">Self Cleaned: <strong>{formatKg(incentiveStats.allTimeSelfCleanedKg)} Kg</strong> (₹0)</span>
-                      </>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setPayoutModalOpen(true)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-200 border border-purple-500/40 text-xs font-bold font-mono transition-all cursor-pointer shadow-sm active:scale-95"
-                  >
-                    <span className="material-symbols-outlined text-sm">payments</span>
-                    <span>Pay Incentive</span>
-                  </button>
-                </div>
-              </div>
+            {/* Full-width Hero: Mohd Amin's Incentive Structure Flash Card */}
+            <StaffIncentiveCard
+              isAdmin={true}
+              workerName={salaryConfig.worker_name || "Mohd Amin"}
+              todayStr={getTodayDate()}
+              todayGuttedKg={incentiveStats.todayGuttedKg}
+              todayEarned={incentiveStats.todayEarned}
+              todayRate={incentiveStats.todayRate}
+              isSpecialRateActive={incentiveStats.isSpecialRateActive}
+              specialRateRule={incentiveStats.specialRateRule}
+              allTimeEarned={incentiveStats.allTimeEarned}
+              allTimeGuttedKg={incentiveStats.allTimeGuttedKg}
+              allTimeSelfCleanedKg={incentiveStats.allTimeSelfCleanedKg}
+              totalPaid={incentiveStats.totalPaid}
+              balanceRemaining={incentiveStats.balanceRemaining}
+              lastPayout={incentiveStats.lastPayout}
+              thisMonthEarned={incentiveStats.thisMonthEarned}
+              thisMonthGuttedKg={incentiveStats.thisMonthGuttedKg}
+              onToggleSpecialDeal={handleToggleSpecialDeal}
+              onOpenPayoutModal={() => setPayoutModalOpen(true)}
+              onOpenLeaveModal={() => setLeaveModalOpen(true)}
+              onOpenSalaryModal={() => setSalaryModalOpen(true)}
+            />
 
-              {/* Card B: Mohd Amin Monthly Salary Management */}
-              <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-sky-950/50 via-slate-900/90 to-slate-900 border border-sky-500/40 shadow-xl shadow-sky-950/20 relative overflow-hidden flex flex-col justify-between group">
-                <div>
-                  <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
-                    <span className="text-sky-300 font-bold flex items-center gap-2 tracking-wider">
-                      <span className="material-symbols-outlined text-sky-400 text-base">badge</span>
-                      <span>MOHD AMIN · MONTHLY SALARY</span>
-                      <span className="px-2 py-0.5 rounded-full bg-sky-500/20 text-[10px] text-sky-200 border border-sky-500/30">
-                        Wage
-                      </span>
+            {/* Monthly Wage & Leave Deductions Ledger Card */}
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-sky-950/50 via-slate-900/90 to-slate-900 border border-sky-500/40 shadow-xl shadow-sky-950/20 relative overflow-hidden flex flex-col justify-between group">
+              <div>
+                <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
+                  <span className="text-sky-300 font-bold flex items-center gap-2 tracking-wider">
+                    <span className="material-symbols-outlined text-sky-400 text-base">badge</span>
+                    <span>MOHD AMIN · MONTHLY SALARY &amp; LEAVE DEDUCTIONS</span>
+                    <span className="px-2 py-0.5 rounded-full bg-sky-500/20 text-[10px] text-sky-200 border border-sky-500/30">
+                      ₹{salaryStats.baseMonthly.toLocaleString("en-IN")}/mo Base
                     </span>
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setLeaveModalOpen(true)}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-[10px] font-bold font-mono transition-all cursor-pointer"
+                      title="Record or view sick leave deductions"
+                    >
+                      <span className="material-symbols-outlined text-xs">event_busy</span>
+                      <span>Deduct Leave ({deductions.length})</span>
+                    </button>
                     <button
                       type="button"
                       onClick={() => setEditingBaseSalaryCard((p) => !p)}
@@ -4824,52 +4944,54 @@ export default function VendingCenterLoggerPage() {
                       <span>{editingBaseSalaryCard ? "Close" : "Edit Salary"}</span>
                     </button>
                   </div>
+                </div>
 
-                  {editingBaseSalaryCard ? (
-                    <form
-                      onSubmit={(e) => {
-                        handleUpdateBaseSalary(e);
-                        setEditingBaseSalaryCard(false);
-                      }}
-                      className="mt-3 p-3 rounded-xl bg-slate-950 border border-sky-500/50 flex items-center gap-2.5 animate-in fade-in"
-                    >
-                      <div className="flex-1">
-                        <label className="text-[10px] uppercase font-mono text-slate-400 block mb-1">
-                          Base Monthly Wage for Mohd Amin (₹)
-                        </label>
-                        <div className="relative">
-                          <span className="absolute left-2.5 top-1 text-sky-400 font-bold text-xs font-mono">₹</span>
-                          <input
-                            type="number"
-                            value={baseSalaryInput}
-                            onChange={(e) => setBaseSalaryInput(e.target.value)}
-                            className="w-full pl-6 pr-2 py-1 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white font-bold font-mono focus:outline-none focus:border-sky-400"
-                            placeholder="15000"
-                            autoFocus
-                            required
-                          />
-                        </div>
+                {editingBaseSalaryCard ? (
+                  <form
+                    onSubmit={(e) => {
+                      handleUpdateBaseSalary(e);
+                      setEditingBaseSalaryCard(false);
+                    }}
+                    className="mt-3 p-3 rounded-xl bg-slate-950 border border-sky-500/50 flex items-center gap-2.5 animate-in fade-in"
+                  >
+                    <div className="flex-1">
+                      <label className="text-[10px] uppercase font-mono text-slate-400 block mb-1">
+                        Base Monthly Wage for Mohd Amin (₹)
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-2.5 top-1 text-sky-400 font-bold text-xs font-mono">₹</span>
+                        <input
+                          type="number"
+                          value={baseSalaryInput}
+                          onChange={(e) => setBaseSalaryInput(e.target.value)}
+                          className="w-full pl-6 pr-2 py-1 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white font-bold font-mono focus:outline-none focus:border-sky-400"
+                          placeholder="10500"
+                          autoFocus
+                          required
+                        />
                       </div>
-                      <button
-                        type="submit"
-                        className="px-3 py-1.5 mt-3.5 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 text-xs font-bold font-mono transition-all cursor-pointer shadow"
-                      >
-                        Save
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setEditingBaseSalaryCard(false)}
-                        className="px-2.5 py-1.5 mt-3.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono transition-all cursor-pointer"
-                      >
-                        Cancel
-                      </button>
-                    </form>
-                  ) : (
-                    <div className="mt-2.5 flex items-baseline gap-1.5 min-h-[32px]">
-                      {loading && entries.length === 0 ? (
-                        <div className="h-7 w-28 bg-sky-500/10 rounded animate-pulse" />
-                      ) : (
-                        <>
+                    </div>
+                    <button
+                      type="submit"
+                      className="px-3 py-1.5 mt-3.5 rounded-lg bg-sky-500 hover:bg-sky-400 text-slate-950 text-xs font-bold font-mono transition-all cursor-pointer shadow"
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditingBaseSalaryCard(false)}
+                      className="px-2.5 py-1.5 mt-3.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono transition-all cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                  </form>
+                ) : (
+                  <div className="mt-2.5 flex items-baseline gap-2 min-h-[32px] flex-wrap">
+                    {loading && entries.length === 0 ? (
+                      <div className="h-7 w-28 bg-sky-500/10 rounded animate-pulse" />
+                    ) : (
+                      <>
+                        <div className="flex items-baseline gap-1">
                           <span className="text-sky-400 font-bold text-lg">₹</span>
                           <span
                             className="text-2xl sm:text-3xl font-black text-white"
@@ -4877,31 +4999,54 @@ export default function VendingCenterLoggerPage() {
                           >
                             {salaryStats.thisMonthPaid.toLocaleString("en-IN")}
                           </span>
-                          <span
-                            className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ml-1 ${
-                              salaryStats.monthBalanceDue > 0
-                                ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                                : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                            }`}
-                          >
-                            {salaryStats.monthBalanceDue > 0
-                              ? `₹${salaryStats.monthBalanceDue.toLocaleString("en-IN")} Due`
-                              : "Paid ✓"}
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <div className="mt-3.5 text-xs text-slate-400 font-mono border-t border-slate-800/80 pt-2.5 flex flex-wrap items-center justify-between gap-2">
-                  <div className="flex items-center gap-3 text-sky-200 text-[11px]">
-                    <span>Base: <strong className="text-white">₹{salaryStats.baseMonthly.toLocaleString("en-IN")}</strong>/mo</span>
-                    <span>•</span>
-                    <span>{salaryStats.currentMonthLabel}</span>
-                    <span>•</span>
-                    <span>All-time: <strong>₹{salaryStats.allTimePaid.toLocaleString("en-IN")}</strong></span>
+                          <span className="text-xs text-slate-400 font-mono ml-1">paid this month</span>
+                        </div>
+                        <span
+                          className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded ml-2 ${
+                            salaryStats.monthBalanceDue > 0
+                              ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                              : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                          }`}
+                        >
+                          {salaryStats.monthBalanceDue > 0
+                            ? `₹${salaryStats.monthBalanceDue.toLocaleString("en-IN")} Due`
+                            : "Paid ✓"}
+                        </span>
+                      </>
+                    )}
                   </div>
+                )}
+              </div>
+
+              <div className="mt-3.5 text-xs text-slate-400 font-mono border-t border-slate-800/80 pt-2.5 flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2.5 text-sky-200 text-[11px] flex-wrap">
+                  <span>Base: <strong className="text-white">₹{salaryStats.baseMonthly.toLocaleString("en-IN")}</strong>/mo</span>
+                  {salaryStats.monthDeductionsTotal > 0 && (
+                    <>
+                      <span>•</span>
+                      <span className="text-rose-300 font-bold">
+                        Leave Deductions: -₹{salaryStats.monthDeductionsTotal.toLocaleString("en-IN")}
+                      </span>
+                      <span>•</span>
+                      <span className="text-emerald-300 font-bold">
+                        Net Base: ₹{salaryStats.effectiveBaseMonthly.toLocaleString("en-IN")}
+                      </span>
+                    </>
+                  )}
+                  <span>•</span>
+                  <span>{salaryStats.currentMonthLabel}</span>
+                  <span>•</span>
+                  <span>All-time: <strong>₹{salaryStats.allTimePaid.toLocaleString("en-IN")}</strong></span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setLeaveModalOpen(true)}
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-xs font-bold font-mono transition-all cursor-pointer shadow-sm active:scale-95"
+                  >
+                    <span className="material-symbols-outlined text-sm">event_busy</span>
+                    <span>Deduct Leave</span>
+                  </button>
                   <button
                     type="button"
                     onClick={() => setSalaryModalOpen(true)}
@@ -8326,6 +8471,24 @@ export default function VendingCenterLoggerPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════
+          MODAL 4B: SICK LEAVE & SALARY DEDUCTION SYSTEM (MOHD AMIN)
+          ══════════════════════════════════════════════════════════ */}
+      {isAdmin && (
+        <StaffLeaveModal
+          isOpen={leaveModalOpen}
+          onClose={() => setLeaveModalOpen(false)}
+          workerName={salaryConfig.worker_name || "Mohd Amin"}
+          baseMonthlySalary={salaryConfig.base_monthly_salary || 10500}
+          deductions={deductions}
+          activeMonthLabel={salaryStats.currentMonthLabel}
+          onDeductionRecorded={() => {
+            fetchSalaryPayments();
+          }}
+          onDeleteDeduction={handleDeleteDeduction}
+        />
       )}
 
       {/* ══════════════════════════════════════════════════════════
