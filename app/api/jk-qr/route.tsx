@@ -7,8 +7,8 @@ export const dynamic = "force-dynamic";
 /**
  * GET /api/jk-qr?amount=200
  * Generates an executive, branded J&K Bank merchant standee poster (PNG)
- * with the exact locked amount, BHIM UPI branding, supported app badges,
- * and high-contrast QR code for instant iOS Shortcuts Quick Look.
+ * with a pure-vector SVG QR code, BHIM UPI branding, supported app badges,
+ * and high-contrast locked amount for instant iOS Shortcuts Quick Look.
  */
 export async function GET(req: NextRequest) {
   try {
@@ -19,12 +19,21 @@ export async function GET(req: NextRequest) {
     const upiId = "JKBMERC00828895@jkb";
     const upiUri = `upi://pay?pa=${upiId}&pn=Urban%20Trout%20Aquaculture&am=${numAmount > 0 ? numAmount.toFixed(2) : "0"}&cu=INR&tn=Urban%20Trout%20Fresh%20Fish`;
 
-    // Generate crisp QR code locally with pure JavaScript (0 network calls, 100% reliable)
-    const qrDataUri = await QRCode.toDataURL(upiUri, {
-      width: 300,
-      margin: 1,
-      errorCorrectionLevel: "M",
-    });
+    // Generate pure vector QR path (0 network calls, 100% reliable inside Satori)
+    const qrObj = QRCode.create(upiUri, { errorCorrectionLevel: "M" });
+    const modules = qrObj.modules;
+    const size = modules.size;
+    const data = modules.data;
+
+    let qrPath = "";
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        if (data[y * size + x]) {
+          qrPath += `M${x + 1} ${y + 1}h1v1h-1z `;
+        }
+      }
+    }
+    const viewBoxSize = size + 2;
 
     return new ImageResponse(
       (
@@ -129,18 +138,18 @@ export async function GET(req: NextRequest) {
               </span>
             </div>
 
-            {/* QR Code */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={qrDataUri}
+            {/* Pure Vector QR Code (Zero Network, 100% Reliable) */}
+            <svg
+              viewBox={`0 0 ${viewBoxSize} ${viewBoxSize}`}
               width="270"
               height="270"
-              alt="J&K Bank UPI QR Code"
               style={{
+                display: "flex",
                 marginTop: "12px",
-                borderRadius: "8px",
               }}
-            />
+            >
+              <path fill="#000000" d={qrPath} />
+            </svg>
 
             {/* Scan with Any App label */}
             <span
