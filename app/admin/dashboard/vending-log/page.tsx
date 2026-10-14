@@ -827,8 +827,10 @@ export default function VendingCenterLoggerPage() {
   }, []);
 
   useEffect(() => {
-    fetchPayouts();
-  }, [fetchPayouts]);
+    if (isAdmin) {
+      fetchPayouts();
+    }
+  }, [isAdmin, fetchPayouts]);
 
   // Read stored staff identity for formLoggedBy & load configured workers from settings
   useEffect(() => {
@@ -3979,30 +3981,6 @@ export default function VendingCenterLoggerPage() {
             </div>
           </div>
         </div>
-      )}
-
-      {/* ══════════════════════════════════════════════════════════
-          STAFF INCENTIVE & DAILY EARNINGS FLASH CARD (MOHD AMIN)
-          ══════════════════════════════════════════════════════════ */}
-      {!isAdmin && (
-        <StaffIncentiveCard
-          isAdmin={false}
-          workerName="Mohd Amin"
-          todayStr={getTodayDate()}
-          todayGuttedKg={incentiveStats.todayGuttedKg}
-          todayEarned={incentiveStats.todayEarned}
-          todayRate={incentiveStats.todayRate}
-          isSpecialRateActive={incentiveStats.isSpecialRateActive}
-          specialRateRule={incentiveStats.specialRateRule}
-          allTimeEarned={incentiveStats.allTimeEarned}
-          allTimeGuttedKg={incentiveStats.allTimeGuttedKg}
-          allTimeSelfCleanedKg={incentiveStats.allTimeSelfCleanedKg}
-          totalPaid={incentiveStats.totalPaid}
-          balanceRemaining={incentiveStats.balanceRemaining}
-          lastPayout={incentiveStats.lastPayout}
-          thisMonthEarned={incentiveStats.thisMonthEarned}
-          thisMonthGuttedKg={incentiveStats.thisMonthGuttedKg}
-        />
       )}
 
       {/* ══════════════════════════════════════════════════════════

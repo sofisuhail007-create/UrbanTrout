@@ -14,9 +14,6 @@ import {
   getNitriteStatus,
   getNitrateStatus,
 } from "@/lib/do-saturation";
-import StaffIncentiveCard from "./vending-log/StaffIncentiveCard";
-import type { StaffIncentivePayout, SpecialIncentiveRule } from "@/app/api/vending-log/incentive/route";
-import { getIncentiveRateForDate } from "./vending-log/page";
 
 const STATUS_COLOR: Record<string, string> = {
   pending: "bg-amber-500/15 text-amber-400",
@@ -107,34 +104,6 @@ export default function DashboardPage() {
   const [aquariumStockKg, setAquariumStockKg] = useState<number>(0);
   const [isAquariumOutOfStock, setIsAquariumOutOfStock] = useState<boolean>(false);
   const [todayEntriesCount, setTodayEntriesCount] = useState<number>(0);
-  const [incentiveData, setIncentiveData] = useState<{
-    todayGuttedKg: number;
-    todayEarned: number;
-    todayRate: number;
-    isSpecialRateActive: boolean;
-    specialRateRule?: SpecialIncentiveRule;
-    allTimeEarned: number;
-    allTimeGuttedKg: number;
-    allTimeSelfCleanedKg: number;
-    totalPaid: number;
-    balanceRemaining: number;
-    lastPayout: StaffIncentivePayout | null;
-    thisMonthEarned: number;
-    thisMonthGuttedKg: number;
-  }>({
-    todayGuttedKg: 0,
-    todayEarned: 0,
-    todayRate: 5,
-    isSpecialRateActive: false,
-    allTimeEarned: 0,
-    allTimeGuttedKg: 0,
-    allTimeSelfCleanedKg: 0,
-    totalPaid: 0,
-    balanceRemaining: 0,
-    lastPayout: null,
-    thisMonthEarned: 0,
-    thisMonthGuttedKg: 0,
-  });
 
   const fetchBalancesData = async () => {
     try {
@@ -233,7 +202,7 @@ export default function DashboardPage() {
         }
       } catch (_) {}
 
-      // Fetch today's vending sales entries count and all entries for Mohd Amin incentive
+      // Fetch today's vending sales entries count
       try {
         const todayStr = new Intl.DateTimeFormat("en-CA", {
           timeZone: "Asia/Kolkata",
@@ -242,90 +211,16 @@ export default function DashboardPage() {
           day: "2-digit",
         }).format(new Date());
 
-        const [vendingRes, incentiveRes] = await Promise.all([
-          adminFetch("/api/vending-log"),
-          adminFetch("/api/vending-log/incentive"),
-        ]);
-
-        let payouts: StaffIncentivePayout[] = [];
-        let specialRules: Record<string, SpecialIncentiveRule> = {};
-        if (incentiveRes.ok) {
-          const incJson = await incentiveRes.json();
-          if (incJson?.success) {
-            if (Array.isArray(incJson.payouts)) payouts = incJson.payouts;
-            if (incJson.specialRules) specialRules = incJson.specialRules;
-          }
-        }
-
+        const vendingRes = await adminFetch(`/api/vending-log?startDate=${todayStr}&endDate=${todayStr}`);
         if (vendingRes.ok) {
           const vendingJson = await vendingRes.json();
-          const entries: any[] = Array.isArray(vendingJson?.entries) ? vendingJson.entries : [];
-          
-          setTodayEntriesCount(entries.filter((e) => e.entry_date === todayStr).length);
-
-          const thisMonthKey = todayStr.slice(0, 7);
-          let allTimeGuttedKg = 0;
-          let allTimeSelfCleanedKg = 0;
-          let allTimeEarned = 0;
-          let todayGuttedKg = 0;
-          let todayEarned = 0;
-          let thisMonthGuttedKg = 0;
-          let thisMonthEarned = 0;
-
-          entries.forEach((e) => {
-            const isGutted =
-              (e.product_type || "").toLowerCase().includes("gutted") &&
-              !(e.product_type || "").toLowerCase().includes("non");
-            const isSelf = Boolean(e.custom_fields?.self_cleaned || e.self_cleaned);
-            if (isGutted) {
-              const kg = Number(e.weight_kg) || 0;
-              if (isSelf) {
-                allTimeSelfCleanedKg = Math.round((allTimeSelfCleanedKg + kg) * 1000) / 1000;
-              } else {
-                allTimeGuttedKg = Math.round((allTimeGuttedKg + kg) * 1000) / 1000;
-                const rate = getIncentiveRateForDate(e.entry_date, specialRules);
-                const earned = Math.round(kg * rate);
-                allTimeEarned += earned;
-
-                if (e.entry_date === todayStr) {
-                  todayGuttedKg = Math.round((todayGuttedKg + kg) * 1000) / 1000;
-                  todayEarned += earned;
-                }
-
-                if (e.entry_date && e.entry_date.startsWith(thisMonthKey)) {
-                  thisMonthGuttedKg = Math.round((thisMonthGuttedKg + kg) * 1000) / 1000;
-                  thisMonthEarned += earned;
-                }
-              }
-            }
-          });
-
-          const totalPaid = payouts.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
-          const balanceRemaining = Math.max(0, Math.round(allTimeEarned - totalPaid));
-          const todayRate = getIncentiveRateForDate(todayStr, specialRules);
-          const isSpecialRateActive = Boolean(specialRules[todayStr]?.enabled);
-          const specialRateRule = specialRules[todayStr];
-          const lastPayout = payouts.length > 0 ? payouts[0] : null;
-
-          setIncentiveData({
-            todayGuttedKg,
-            todayEarned,
-            todayRate,
-            isSpecialRateActive,
-            specialRateRule,
-            allTimeEarned,
-            allTimeGuttedKg,
-            allTimeSelfCleanedKg,
-            totalPaid,
-            balanceRemaining,
-            lastPayout,
-            thisMonthEarned,
-            thisMonthGuttedKg,
-          });
+          if (Array.isArray(vendingJson?.entries)) {
+            setTodayEntriesCount(vendingJson.entries.length);
+          } else if (vendingJson?.kpis?.today?.count !== undefined) {
+            setTodayEntriesCount(Number(vendingJson.kpis.today.count) || 0);
+          }
         }
-      } catch (err) {
-        console.warn("Could not fetch incentive stats for dashboard:", err);
-      }
+      } catch (_) {}
 
       setLoading(false);
     }
@@ -545,28 +440,6 @@ export default function DashboardPage() {
             </div>
           </div>
         </div>
-      )}
-
-      {/* ─── MOHD AMIN INCENTIVE & DAILY EARNINGS FLASH CARD ─── */}
-      {!isAdmin && (
-        <StaffIncentiveCard
-          isAdmin={false}
-          workerName="Mohd Amin"
-          todayStr={today}
-          todayGuttedKg={incentiveData.todayGuttedKg}
-          todayEarned={incentiveData.todayEarned}
-          todayRate={incentiveData.todayRate}
-          isSpecialRateActive={incentiveData.isSpecialRateActive}
-          specialRateRule={incentiveData.specialRateRule}
-          allTimeEarned={incentiveData.allTimeEarned}
-          allTimeGuttedKg={incentiveData.allTimeGuttedKg}
-          allTimeSelfCleanedKg={incentiveData.allTimeSelfCleanedKg}
-          totalPaid={incentiveData.totalPaid}
-          balanceRemaining={incentiveData.balanceRemaining}
-          lastPayout={incentiveData.lastPayout}
-          thisMonthEarned={incentiveData.thisMonthEarned}
-          thisMonthGuttedKg={incentiveData.thisMonthGuttedKg}
-        />
       )}
 
       {/* Stats */}
