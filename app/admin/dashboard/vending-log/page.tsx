@@ -1638,11 +1638,11 @@ export default function VendingCenterLoggerPage() {
     // 1. All-time Gutted Trout Weight & Earnings across all entries
     let allTimeGuttedKg = 0;
     let allTimeSelfCleanedKg = 0;
-    let allTimeEarned = 0;
+    let allTimeEarnedFloat = 0;
     let todayGuttedKg = 0;
-    let todayEarned = 0;
+    let todayEarnedFloat = 0;
     let thisMonthGuttedKg = 0;
-    let thisMonthEarned = 0;
+    let thisMonthEarnedFloat = 0;
 
     entries.forEach((e) => {
       const isGutted =
@@ -1656,17 +1656,17 @@ export default function VendingCenterLoggerPage() {
         } else {
           allTimeGuttedKg = Math.round((allTimeGuttedKg + kg) * 1000) / 1000;
           const rate = getIncentiveRateForDate(e.entry_date, specialRules);
-          const earned = Math.round(kg * rate);
-          allTimeEarned += earned;
+          const earnedFloat = kg * rate;
+          allTimeEarnedFloat += earnedFloat;
 
           if (e.entry_date === todayDate) {
             todayGuttedKg = Math.round((todayGuttedKg + kg) * 1000) / 1000;
-            todayEarned += earned;
+            todayEarnedFloat += earnedFloat;
           }
 
           if (e.entry_date && e.entry_date.startsWith(thisMonthKey)) {
             thisMonthGuttedKg = Math.round((thisMonthGuttedKg + kg) * 1000) / 1000;
-            thisMonthEarned += earned;
+            thisMonthEarnedFloat += earnedFloat;
           }
         }
       }
@@ -1675,7 +1675,7 @@ export default function VendingCenterLoggerPage() {
     // 2. Current period gutted trout weight (Worker Gutted only vs Self-Cleaned)
     let periodGuttedKg = 0;
     let periodSelfCleanedKg = 0;
-    let periodEarned = 0;
+    let periodEarnedFloat = 0;
     filteredEntriesByPeriod.forEach((e) => {
       const isGutted =
         (e.product_type || "").toLowerCase().includes("gutted") &&
@@ -1688,10 +1688,15 @@ export default function VendingCenterLoggerPage() {
         } else {
           periodGuttedKg = Math.round((periodGuttedKg + kg) * 1000) / 1000;
           const rate = getIncentiveRateForDate(e.entry_date, specialRules);
-          periodEarned += Math.round(kg * rate);
+          periodEarnedFloat += kg * rate;
         }
       }
     });
+
+    const allTimeEarned = Math.round(allTimeEarnedFloat);
+    const periodEarned = Math.round(periodEarnedFloat);
+    const todayEarned = Math.round(todayEarnedFloat);
+    const thisMonthEarned = Math.round(thisMonthEarnedFloat);
 
     // 3. Total paid disbursements from ledger
     const totalPaid = payouts.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
