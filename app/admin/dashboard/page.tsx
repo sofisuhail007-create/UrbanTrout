@@ -124,6 +124,23 @@ export default function DashboardPage() {
     } catch (_) {}
   };
 
+  const handleMarkLeadContacted = async (leadId: string, phone?: string) => {
+    setRecentLeads((prev) =>
+      prev.filter(
+        (l) =>
+          l.id !== leadId &&
+          (phone ? (l.customer_phone || "").replace(/\D/g, "").slice(-10) !== phone : true)
+      )
+    );
+    try {
+      await adminFetch("/api/lead", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: leadId, phone, status: "contacted" }),
+      });
+    } catch (_) {}
+  };
+
   const loadData = useCallback(async () => {
       const cutoff = new Date(Date.now() - 48 * 3600 * 1000).toISOString();
       
@@ -655,7 +672,7 @@ export default function DashboardPage() {
                       <>
                         <a
                           href={`tel:+91${cleanPhone}`}
-                          className="px-2.5 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 text-xs font-bold flex items-center gap-1"
+                          className="px-2.5 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 text-xs font-bold flex items-center gap-1 transition-all"
                           title="Call Customer"
                         >
                           <span className="material-symbols-outlined text-[13px]">call</span>
@@ -665,13 +682,22 @@ export default function DashboardPage() {
                           href={`https://wa.me/91${cleanPhone}?text=${waText}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="px-2.5 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 text-xs font-bold flex items-center gap-1"
+                          className="px-2.5 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 text-xs font-bold flex items-center gap-1 transition-all"
                           title="WhatsApp Customer"
                         >
                           WhatsApp
                         </a>
                       </>
                     )}
+                    <button
+                      type="button"
+                      onClick={() => handleMarkLeadContacted(lead.id, cleanPhone)}
+                      className="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700 hover:border-emerald-500/50 text-xs font-bold flex items-center gap-1 transition-all cursor-pointer active:scale-95 shadow-sm"
+                      title="Mark as Contacted (Remove from Hot Leads widget)"
+                    >
+                      <span className="material-symbols-outlined text-[13px] text-emerald-400">check_circle</span>
+                      <span>Done</span>
+                    </button>
                   </div>
                 </div>
               );

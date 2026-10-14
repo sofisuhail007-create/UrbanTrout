@@ -165,3 +165,52 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
 }
+
+export async function PATCH(request: Request) {
+  const authError = await requireAdminAuth(request);
+  if (authError) return authError;
+
+  try {
+    const body = await request.json();
+    const { id, phone, status, notes } = body;
+
+    if (!id && !phone) {
+      return NextResponse.json({ success: false, error: "Missing lead id or phone" }, { status: 400 });
+    }
+
+    const updatePayload: any = {
+      updated_at: new Date().toISOString(),
+    };
+    if (status !== undefined) updatePayload.status = status;
+    if (notes !== undefined) updatePayload.notes = notes;
+
+    let query = supabase.from("leads").update(updatePayload);
+
+    if (id) {
+      query = query.eq("id", id);
+    } else if (phone) {
+      const clean = String(phone).replace(/\D/g, "").slice(-10);
+      query = query.eq("customer_phone", clean);
+    }
+
+    const { error } = await query;
+    if (error) throw error;
+
+    // If phone is provided or available, also update any duplicate rows with that same phone
+    if (phone) {
+      const clean = String(phone).replace(/\D/g, "").slice(-10);
+      await supabase.from("leads").update(updatePayload).eq("customer_phone", clean);
+      try {
+        await supabase
+          .from("customers")
+          .update({ notes: `Lead Status: ${status || "updated"}`, last_order_at: new Date().toISOString() })
+          .eq("phone", clean);
+      } catch (_) {}
+    }
+
+    return NextResponse.json({ success: true, updated: updatePayload });
+  } catch (err: any) {
+    console.error("API Lead PATCH error:", err);
+    return NextResponse.json({ success: false, error: err.message }, { status: 500 });
+  }
+}

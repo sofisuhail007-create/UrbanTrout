@@ -88,19 +88,19 @@ export default function AdminLeadsPage() {
     setUpdatingId(leadId);
     setLeads(prev => prev.map(l => l.id === leadId ? { ...l, status: newStatus } : l));
     try {
-      await supabase
-        .from("leads")
-        .update({ status: newStatus, updated_at: new Date().toISOString() })
-        .eq("id", leadId);
-    } catch (e) {}
-
-    if (phone) {
+      await adminFetch("/api/lead", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: leadId, phone, status: newStatus }),
+      });
+    } catch (e) {
+      console.warn("Notice updating lead status via API:", e);
       try {
         await supabase
-          .from("customers")
-          .update({ notes: `Status: ${newStatus}`, last_order_at: new Date().toISOString() })
-          .eq("phone", phone);
-      } catch (e) {}
+          .from("leads")
+          .update({ status: newStatus, updated_at: new Date().toISOString() })
+          .eq("id", leadId);
+      } catch (_) {}
     }
     setUpdatingId(null);
   };

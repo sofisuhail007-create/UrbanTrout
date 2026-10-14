@@ -137,6 +137,25 @@ function getScheduledInfo(order: any): { isScheduled: boolean; date?: string; sl
   return { isScheduled: false };
 }
 
+function playSuccessChime() {
+  if (typeof window === "undefined") return;
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+    osc.frequency.setValueAtTime(880, ctx.currentTime + 0.15);
+    gain.gain.setValueAtTime(0.2, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.45);
+  } catch (_) {}
+}
+
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -153,6 +172,18 @@ export default function OrdersPage() {
   const [scaleAdvancePaid, setScaleAdvancePaid] = useState<string>("0");
   const [scalePaymentMode, setScalePaymentMode] = useState<"prepaid" | "cod">("prepaid");
   const [scaleSaving, setScaleSaving] = useState(false);
+
+  // Instant Locked QR Modal State
+  const [qrModalOrder, setQrModalOrder] = useState<Order | null>(null);
+  const [qrAmount, setQrAmount] = useState<string>("0");
+  const [qrMode, setQrMode] = useState<"razorpay" | "direct_upi">("razorpay");
+  const [qrLoading, setQrLoading] = useState<boolean>(false);
+  const [posQrData, setPosQrData] = useState<{ qr_id: string; image_url: string; amount: number } | null>(null);
+  const [posQrPaid, setPosQrPaid] = useState<boolean>(false);
+  const [posQrPayment, setPosQrPayment] = useState<any>(null);
+  const [qrError, setQrError] = useState<string | null>(null);
+  const [copiedLink, setCopiedLink] = useState<boolean>(false);
+  const [markingPaid, setMarkingPaid] = useState<boolean>(false);
 
   useEffect(() => {
     fetchOrders();
@@ -261,6 +292,182 @@ export default function OrdersPage() {
     } finally {
       setScaleSaving(false);
     }
+  };
+
+  const handleOpenOrderQr = (order: Order, overrideAmount?: number) => {
+    const isPaid = order.status === "processing" || order.status === "out_for_delivery" || order.status === "delivered";
+    const primaryItem = (order.items?.[0] as any) || {};
+    const paidAmt = (order as any).paid_amount !== undefined
+      ? Number((order as any).paid_amount)
+      : (primaryItem.paidAmount !== undefined
+      ? Number(primaryItem.paidAmount)
+      : (isPaid ? Number(order.total) || 0 : 0));
+    const grandTotal = Number(order.total) || 0;
+    const balanceDue = overrideAmount !== undefined ? overrideAmount : Math.max(0, grandTotal - paidAmt);
+    const initialAmount = balanceDue > 0 ? balanceDue : grandTotal;
+
+    setQrModalOrder(order);
+    setQrAmount(String(initialAmount));
+    setQrMode("razorpay");
+    setQrError(null);
+    setPosQrData(null);
+    setPosQrPaid(false);
+    setPosQrPayment(null);
+    setCopiedLink(false);
+
+    generateRazorpayQr(initialAmount, order);
+  };
+
+  const generateRazorpayQr = async (amt: number, ord: Order) => {
+    if (amt <= 0) {
+      setQrError("Amount must be greater than ₹0");
+      return;
+    }
+    setQrLoading(true);
+    setQrError(null);
+    try {
+      const res = await fetch("/api/razorpay/pos-qr", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: amt,
+          customerName: ord.customer_name || "Customer",
+          customerPhone: ord.customer_phone || "",
+          billNumber: ord.order_number,
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.qr_id && data.image_url) {
+        setPosQrData({
+          qr_id: data.qr_id,
+          image_url: data.image_url,
+          amount: data.amount,
+        });
+      } else {
+        setQrMode("direct_upi");
+        setQrError(data.error || "Razorpay Dynamic QR not available. Switched to Direct J&K Bank UPI.");
+      }
+    } catch (err: any) {
+      setQrMode("direct_upi");
+      setQrError("Connection issue. Switched to Direct J&K Bank UPI.");
+    } finally {
+      setQrLoading(false);
+    }
+  };
+
+  const handleCloseQrModal = () => {
+    if (posQrData?.qr_id && !posQrPaid) {
+      fetch(`/api/razorpay/pos-qr?qr_id=${encodeURIComponent(posQrData.qr_id)}`, { method: "DELETE" }).catch(() => {});
+    }
+    setQrModalOrder(null);
+    setPosQrData(null);
+    setPosQrPaid(false);
+    setPosQrPayment(null);
+    setQrError(null);
+  };
+
+  // Polling for Razorpay POS QR payment
+  useEffect(() => {
+    if (!qrModalOrder || !posQrData?.qr_id || posQrPaid || qrMode !== "razorpay") {
+      return;
+    }
+
+    let isSubscribed = true;
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/razorpay/pos-qr?qr_id=${encodeURIComponent(posQrData.qr_id)}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.success && data.paid && isSubscribed) {
+          setPosQrPaid(true);
+          setPosQrPayment(data.payment);
+          playSuccessChime();
+
+          try {
+            const newStatus = qrModalOrder.status === "pending" ? "processing" : qrModalOrder.status;
+            await adminFetch("/api/order-status", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                orderId: qrModalOrder.id,
+                status: newStatus,
+                paid_amount: posQrData.amount,
+                payment_status: "PAID",
+                notes: `Paid ₹${posQrData.amount} via Razorpay Dynamic QR (${data.payment?.id || ""})`,
+              }),
+            });
+            setOrders((prev) =>
+              prev.map((o) =>
+                o.id === qrModalOrder.id
+                  ? ({ ...o, status: newStatus as OrderStatus, paid_amount: posQrData.amount } as any)
+                  : o
+              )
+            );
+          } catch (updateErr) {
+            console.error("Failed to update order status on QR payment:", updateErr);
+          }
+        }
+      } catch (err) {
+        console.warn("Error polling POS QR:", err);
+      }
+    }, 2500);
+
+    return () => {
+      isSubscribed = false;
+      clearInterval(interval);
+    };
+  }, [qrModalOrder, posQrData?.qr_id, posQrPaid, qrMode]);
+
+  const handleConfirmDirectUpiPaid = async () => {
+    if (!qrModalOrder) return;
+    setMarkingPaid(true);
+    const amt = parseFloat(qrAmount) || Number(qrModalOrder.total) || 0;
+    const newStatus = qrModalOrder.status === "pending" ? "processing" : qrModalOrder.status;
+    try {
+      await adminFetch("/api/order-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId: qrModalOrder.id,
+          status: newStatus,
+          paid_amount: amt,
+          payment_status: "PAID",
+          notes: `Paid ₹${amt} via Direct J&K Bank UPI (${upiId})`,
+        }),
+      });
+      playSuccessChime();
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === qrModalOrder.id
+            ? ({ ...o, status: newStatus as OrderStatus, paid_amount: amt } as any)
+            : o
+        )
+      );
+      setPosQrPaid(true);
+    } catch (err: any) {
+      alert(`Could not mark order as paid: ${err?.message || err}`);
+    } finally {
+      setMarkingPaid(false);
+    }
+  };
+
+  const parsedQrAmount = parseFloat(qrAmount) || (qrModalOrder ? Number(qrModalOrder.total) : 0);
+  const directUpiUri = qrModalOrder
+    ? `upi://pay?pa=${upiId}&pn=Urban%20Trout%20Aquaculture&tr=TERM${String(qrModalOrder.order_number)}&am=${parsedQrAmount.toFixed(2)}&cu=INR&tn=Order%20${qrModalOrder.order_number}`
+    : "";
+  const directUpiQrUrl = directUpiUri
+    ? `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(directUpiUri)}&bgcolor=255-255-255&color=0-0-0&margin=2`
+    : "";
+
+  const handleShareQrOnWhatsApp = () => {
+    if (!qrModalOrder) return;
+    const cleanPhone = String(qrModalOrder.customer_phone || "").replace(/\D/g, "").slice(-10);
+    const amountStr = `₹${parsedQrAmount.toLocaleString("en-IN")}`;
+    const msg = `Hi ${qrModalOrder.customer_name}! 🐟\n\nYour Urban Trout Order #${qrModalOrder.order_number} is ready.\n\n*Amount Due: ${amountStr}* (Amount is locked)\n\nTap to pay with any UPI App (GPay / PhonePe / Paytm / mPay):\n${directUpiUri}\n\nOur UPI ID: ${upiId}\n\nThank you for choosing Urban Trout!`;
+    const waUrl = cleanPhone.length === 10
+      ? `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(msg)}`
+      : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+    window.open(waUrl, "_blank");
   };
 
   const toggleSelectOrder = (id: string, e?: React.MouseEvent) => {
@@ -532,6 +739,20 @@ export default function OrdersPage() {
                 </span>
                 <span className="text-sm font-bold text-cyan-400 font-mono">₹{order.total?.toLocaleString("en-IN")}</span>
 
+                {/* 1-Tap Instant Locked QR Button right on every row */}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleOpenOrderQr(order);
+                  }}
+                  className="px-2.5 py-1 rounded-lg bg-emerald-500/25 hover:bg-emerald-500/40 text-emerald-300 border border-emerald-500/50 text-xs font-bold transition-all flex items-center gap-1 shrink-0 cursor-pointer shadow-md hover:scale-105 active:scale-95"
+                  title="⚡ Instant Locked QR: Lock exact rupee amount in GPay / PhonePe / mPay for doorstep COD collection"
+                >
+                  <span className="material-symbols-outlined text-xs">qr_code_2</span>
+                  <span>⚡ QR</span>
+                </button>
+
                 {/* 1-Tap Weigh Button right on every row */}
                 <button
                   type="button"
@@ -659,6 +880,16 @@ export default function OrdersPage() {
                   {/* Actions (Weigh/Scale + Print 4-Up + Navigate + WhatsApp + Delete) */}
                   <div className="flex items-center justify-between pt-2 border-t border-slate-800/80 flex-wrap gap-2">
                     <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenOrderQr(order)}
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded-lg text-xs font-bold hover:bg-emerald-500/30 transition-colors shadow-sm cursor-pointer"
+                        title="Generate instant amount-locked UPI QR (Razorpay dynamic or Direct J&K Bank) for doorstep collection"
+                      >
+                        <span className="material-symbols-outlined text-base">qr_code_scanner</span>
+                        <span>⚡ Instant Locked QR</span>
+                      </button>
+
                       <button
                         type="button"
                         onClick={() => openScaleModal(order)}
@@ -1023,6 +1254,18 @@ export default function OrdersPage() {
                           <p className="text-[11px] text-amber-200/90 leading-tight">
                             Order is unpaid. 4-Up delivery bill will feature a <strong>Locked J&K Bank Dynamic UPI QR</strong> pre-filled with ₹{balanceAmount}.
                           </p>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const ord = scaleModalOrder;
+                              setScaleModalOrder(null);
+                              handleOpenOrderQr(ord, balanceAmount);
+                            }}
+                            className="w-full mt-2.5 py-1.5 px-3 rounded-lg bg-emerald-500/25 hover:bg-emerald-500/40 text-emerald-300 border border-emerald-500/40 text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm hover:scale-[1.01]"
+                          >
+                            <span className="material-symbols-outlined text-sm">qr_code_scanner</span>
+                            <span>⚡ Collect ₹{balanceAmount} via Instant Locked QR</span>
+                          </button>
                         </div>
                       )}
                     </div>
@@ -1078,6 +1321,248 @@ export default function OrdersPage() {
               onClose={() => setPrintModalOrders(null)}
               showControls={true}
             />
+          </div>
+        </div>
+      )}
+
+      {/* ─── INSTANT LOCKED UPI QR MODAL ─── */}
+      {qrModalOrder && (
+        <div
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !qrLoading) handleCloseQrModal();
+          }}
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto"
+        >
+          <div className="relative w-full max-w-md bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl p-5 sm:p-6 text-white my-6">
+            {/* Header */}
+            <div className="flex items-start justify-between pb-3 border-b border-slate-800">
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xl">⚡</span>
+                  <h3 className="text-lg font-bold text-white">Instant Locked UPI QR</h3>
+                </div>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Order <span className="font-mono font-bold text-cyan-400">#{qrModalOrder.order_number}</span> · {qrModalOrder.customer_name}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleCloseQrModal}
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition-colors cursor-pointer"
+                title="Close"
+              >
+                <span className="material-symbols-outlined text-xl">close</span>
+              </button>
+            </div>
+
+            {/* Mode Tabs */}
+            <div className="flex gap-2 mt-4 p-1 bg-slate-950/70 border border-slate-800 rounded-xl">
+              <button
+                type="button"
+                onClick={() => {
+                  setQrMode("razorpay");
+                  if (!posQrData && !qrLoading) {
+                    generateRazorpayQr(parsedQrAmount, qrModalOrder);
+                  }
+                }}
+                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                  qrMode === "razorpay"
+                    ? "bg-cyan-500 text-slate-950 shadow-md font-black"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                <span>⚡ Auto-Verify POS QR</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setQrMode("direct_upi")}
+                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                  qrMode === "direct_upi"
+                    ? "bg-emerald-500 text-slate-950 shadow-md font-black"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                <span>🏦 Direct J&K Bank (0% Fee)</span>
+              </button>
+            </div>
+
+            {/* Amount Banner */}
+            <div className="mt-3.5 p-3 rounded-xl bg-slate-950/90 border border-slate-800 flex items-center justify-between">
+              <div>
+                <span className="text-[11px] text-slate-400 block font-medium uppercase tracking-wider">Locked Pay Amount</span>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                  <span className="text-xl font-black text-cyan-400 font-mono">
+                    ₹{parsedQrAmount.toLocaleString("en-IN")}
+                  </span>
+                  <span className="text-[10px] bg-cyan-950/80 text-cyan-300 border border-cyan-800/60 px-1.5 py-0.5 rounded-full font-bold">
+                    🔒 Locked
+                  </span>
+                </div>
+              </div>
+              <div className="flex items-center gap-1">
+                <input
+                  type="number"
+                  step="1"
+                  min="1"
+                  value={qrAmount}
+                  onChange={(e) => setQrAmount(e.target.value)}
+                  className="w-20 px-2 py-1 bg-slate-800 border border-slate-700 rounded-lg text-xs font-mono font-bold text-white text-right focus:outline-none focus:border-cyan-500"
+                  placeholder="Amount"
+                  title="Override collection amount if customer gives partial cash"
+                />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newAmt = parseFloat(qrAmount);
+                    if (newAmt > 0 && qrModalOrder) {
+                      if (qrMode === "razorpay") {
+                        generateRazorpayQr(newAmt, qrModalOrder);
+                      }
+                    }
+                  }}
+                  className="px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold cursor-pointer"
+                  title="Update QR amount"
+                >
+                  Update
+                </button>
+              </div>
+            </div>
+
+            {/* QR Code Presentation Box */}
+            <div className="mt-4 flex flex-col items-center justify-center p-4 bg-slate-950 rounded-2xl border border-slate-800">
+              {posQrPaid ? (
+                <div className="py-8 flex flex-col items-center justify-center text-center animate-fadeIn space-y-3">
+                  <div className="w-16 h-16 rounded-full bg-emerald-500/20 border-2 border-emerald-400 flex items-center justify-center text-3xl text-emerald-400 shadow-lg shadow-emerald-500/20">
+                    ✓
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-black text-emerald-400">Payment Received & Verified!</h4>
+                    <p className="text-xs text-slate-300 mt-1 font-mono">
+                      ₹{parsedQrAmount.toLocaleString("en-IN")} Captured Successfully
+                    </p>
+                    {posQrPayment?.id && (
+                      <p className="text-[10px] text-slate-500 font-mono mt-0.5">Ref: {posQrPayment.id}</p>
+                    )}
+                  </div>
+                  <div className="p-2.5 bg-emerald-950/40 border border-emerald-500/30 rounded-xl text-xs text-emerald-200">
+                    Order #{qrModalOrder.order_number} marked as Paid & Verified in database.
+                  </div>
+                </div>
+              ) : qrLoading ? (
+                <div className="py-12 flex flex-col items-center justify-center gap-3">
+                  <div className="w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
+                  <span className="text-xs text-slate-400">Generating dynamic locked QR...</span>
+                </div>
+              ) : (
+                <>
+                  <div className="p-2 bg-white rounded-xl shadow-lg shadow-black/40">
+                    <img
+                      src={
+                        qrMode === "razorpay" && posQrData?.image_url
+                          ? posQrData.image_url
+                          : directUpiQrUrl
+                      }
+                      alt="Locked UPI QR"
+                      className="w-56 h-56 object-contain block rounded"
+                    />
+                  </div>
+
+                  {/* Mode-specific status indicator */}
+                  {qrMode === "razorpay" ? (
+                    <div className="mt-3 flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyan-950/70 border border-cyan-500/30 text-xs text-cyan-300">
+                      <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+                      <span>Waiting for customer scan... (Auto-detects)</span>
+                    </div>
+                  ) : (
+                    <div className="mt-3 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-950/60 border border-emerald-500/30 text-xs text-emerald-300">
+                      <span className="material-symbols-outlined text-sm">lock</span>
+                      <span>Direct J&K Bank · ₹{parsedQrAmount} locked in app</span>
+                    </div>
+                  )}
+
+                  {/* Supported Apps */}
+                  <div className="mt-3 flex items-center justify-center gap-2 text-[10px] text-slate-400">
+                    <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800">Google Pay</span>
+                    <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800">PhonePe</span>
+                    <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800">Paytm</span>
+                    <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800">mPay</span>
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Error banner if any */}
+            {qrError && (
+              <p className="mt-2 text-xs text-amber-400 bg-amber-500/10 border border-amber-500/30 rounded-lg p-2 leading-relaxed">
+                ℹ️ {qrError}
+              </p>
+            )}
+
+            {/* Action Buttons */}
+            <div className="mt-4 pt-3 border-t border-slate-800 flex flex-col gap-2">
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={handleShareQrOnWhatsApp}
+                  className="py-2.5 px-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md hover:scale-[1.02] active:scale-95"
+                >
+                  <span className="material-symbols-outlined text-sm">send</span>
+                  <span>WhatsApp Link</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(directUpiUri);
+                    setCopiedLink(true);
+                    setTimeout(() => setCopiedLink(false), 2000);
+                  }}
+                  className="py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold rounded-xl text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-sm">
+                    {copiedLink ? "check" : "content_copy"}
+                  </span>
+                  <span>{copiedLink ? "Copied!" : "Copy UPI Link"}</span>
+                </button>
+              </div>
+
+              {/* Direct UPI manual confirmation button */}
+              {qrMode === "direct_upi" && !posQrPaid && (
+                <button
+                  type="button"
+                  onClick={handleConfirmDirectUpiPaid}
+                  disabled={markingPaid}
+                  className="w-full py-2.5 px-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-500/20 active:scale-95 cursor-pointer disabled:opacity-50"
+                >
+                  <span>✓</span>
+                  <span>{markingPaid ? "Updating Order..." : `Customer Paid ₹${parsedQrAmount} (Confirm & Mark Paid)`}</span>
+                </button>
+              )}
+
+              {posQrPaid && (
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const ord = qrModalOrder;
+                      handleCloseQrModal();
+                      if (ord) setPrintModalOrders([ord]);
+                    }}
+                    className="py-2.5 px-3 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <span>🖨️</span>
+                    <span>Print 4-Up Slip</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCloseQrModal}
+                    className="py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl text-xs transition-all flex items-center justify-center cursor-pointer"
+                  >
+                    Done / Close
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
