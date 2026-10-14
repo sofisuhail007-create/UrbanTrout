@@ -19,8 +19,8 @@ const LEAVE_REASONS = [
   "Sick Leave",
   "Casual Leave",
   "Personal Emergency",
-  "Friday Deal Pact (Incentive-Only)",
   "Unannounced Absence",
+  "Shop Closed / Non-Working Day",
   "Other",
 ];
 
@@ -233,7 +233,7 @@ export default function StaffLeaveModal({
               <label className="text-[10px] uppercase font-bold text-slate-400 block mb-1">Notes / Circumstance (Optional)</label>
               <input
                 type="text"
-                placeholder="e.g. Rest day due to fever / Friday shop opened on incentive pact"
+                placeholder="e.g. Rest day due to fever / personal emergency"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-rose-400"

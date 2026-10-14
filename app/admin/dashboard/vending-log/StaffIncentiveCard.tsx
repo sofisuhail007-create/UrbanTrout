@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
-import { StaffIncentivePayout, SpecialIncentiveRule } from "@/app/api/vending-log/incentive/route";
+import React from "react";
+import { StaffIncentivePayout } from "@/app/api/vending-log/incentive/route";
 import { formatIstDateDisplay, formatKg } from "./page";
 
 interface StaffIncentiveCardProps {
@@ -10,9 +10,7 @@ interface StaffIncentiveCardProps {
   todayStr: string; // YYYY-MM-DD
   todayGuttedKg: number;
   todayEarned: number;
-  todayRate: number; // e.g. 5 or 20
-  isSpecialRateActive: boolean;
-  specialRateRule?: SpecialIncentiveRule;
+  todayRate?: number; // ₹5/Kg standard
   allTimeEarned: number;
   allTimeGuttedKg: number;
   allTimeSelfCleanedKg?: number;
@@ -21,7 +19,6 @@ interface StaffIncentiveCardProps {
   lastPayout?: StaffIncentivePayout | null;
   thisMonthEarned?: number;
   thisMonthGuttedKg?: number;
-  onToggleSpecialDeal?: (enabled: boolean, rate?: number) => Promise<void>;
   onOpenPayoutModal?: () => void;
   onOpenLeaveModal?: () => void;
   onOpenSalaryModal?: () => void;
@@ -33,9 +30,7 @@ export default function StaffIncentiveCard({
   todayStr,
   todayGuttedKg,
   todayEarned,
-  todayRate,
-  isSpecialRateActive,
-  specialRateRule,
+  todayRate = 5,
   allTimeEarned,
   allTimeGuttedKg,
   allTimeSelfCleanedKg = 0,
@@ -44,43 +39,14 @@ export default function StaffIncentiveCard({
   lastPayout,
   thisMonthEarned = 0,
   thisMonthGuttedKg = 0,
-  onToggleSpecialDeal,
   onOpenPayoutModal,
   onOpenLeaveModal,
   onOpenSalaryModal,
 }: StaffIncentiveCardProps) {
-  const [toggling, setToggling] = useState(false);
-
-  // Check if today is Friday in IST
-  const isFridayToday = (() => {
-    try {
-      const parts = todayStr.split("-").map(Number);
-      if (parts.length === 3 && parts[0] && parts[1] && parts[2]) {
-        const d = new Date(parts[0], parts[1] - 1, parts[2]);
-        return d.getDay() === 5; // 5 is Friday
-      }
-    } catch (_) {}
-    return false;
-  })();
-
-  const handleToggleFriday = async () => {
-    if (!onToggleSpecialDeal) return;
-    setToggling(true);
-    try {
-      const targetState = !isSpecialRateActive;
-      await onToggleSpecialDeal(targetState, 20);
-    } finally {
-      setToggling(false);
-    }
-  };
-
   return (
     <div className="p-4 sm:p-5 rounded-3xl bg-gradient-to-br from-purple-950/40 via-slate-900/90 to-slate-950 border border-purple-500/40 shadow-2xl relative overflow-hidden animate-fadeIn">
       {/* Background Ambient Glow */}
       <div className="absolute top-0 right-0 w-48 h-48 bg-purple-500/10 rounded-full blur-3xl pointer-events-none" />
-      {isSpecialRateActive && (
-        <div className="absolute -top-10 -left-10 w-40 h-40 bg-amber-500/15 rounded-full blur-2xl pointer-events-none animate-pulse" />
-      )}
 
       {/* ─── Header & Status ─── */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3.5 border-b border-slate-800/80">
@@ -96,16 +62,9 @@ export default function StaffIncentiveCard({
               <span className="px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-200 border border-purple-500/30 text-[10.5px] font-bold font-mono">
                 {workerName}
               </span>
-              {isSpecialRateActive ? (
-                <span className="px-2.5 py-0.5 rounded-full bg-gradient-to-r from-amber-500/20 to-emerald-500/20 text-amber-300 border border-amber-500/50 text-[10.5px] font-bold font-mono flex items-center gap-1 shadow-sm animate-pulse">
-                  <span className="material-symbols-outlined text-[12px] text-amber-400">stars</span>
-                  <span>Special Deal Active · ₹{todayRate}.00/Kg</span>
-                </span>
-              ) : (
-                <span className="px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 text-[10.5px] font-mono">
-                  Standard Rate · ₹{todayRate}.00/Kg
-                </span>
-              )}
+              <span className="px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 text-[10.5px] font-mono">
+                Standard Rate · ₹{todayRate}.00/Kg
+              </span>
             </div>
             <h2 className="text-base sm:text-lg font-bold text-white mt-0.5" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
               {workerName}&apos;s Daily Incentive &amp; Earnings Overview
@@ -133,11 +92,7 @@ export default function StaffIncentiveCard({
       {/* ─── 4-Column Structured Flash Cards ─── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5 my-4">
         {/* CARD 1: EARNED TODAY (THE BIG QUESTION HE ASKS!) */}
-        <div className={`p-4 rounded-2xl border shadow-lg relative overflow-hidden flex flex-col justify-between ${
-          isSpecialRateActive
-            ? "bg-gradient-to-br from-amber-950/40 via-slate-900 to-slate-950 border-amber-500/50"
-            : "bg-gradient-to-br from-purple-950/40 via-slate-900 to-slate-950 border-purple-500/30"
-        }`}>
+        <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-950/40 via-slate-900 to-slate-950 border border-purple-500/30 shadow-lg relative overflow-hidden flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
               <span className="text-[10px] uppercase font-bold tracking-wider text-purple-300 flex items-center gap-1">
@@ -157,9 +112,7 @@ export default function StaffIncentiveCard({
           </div>
           <div className="mt-3 pt-2 border-t border-slate-800/80 text-[11px] text-slate-400 font-mono flex items-center justify-between">
             <span>Gutted: <strong className="text-white">{formatKg(todayGuttedKg)} Kg</strong></span>
-            <span className="text-purple-300 font-bold">
-              {isSpecialRateActive ? "🌟 Boosted" : "Live Today"}
-            </span>
+            <span className="text-purple-300 font-bold">Live Today</span>
           </div>
         </div>
 
@@ -260,51 +213,15 @@ export default function StaffIncentiveCard({
         <div className="text-slate-400 flex items-center flex-wrap gap-2 text-[11px]">
           <span className="flex items-center gap-1 text-slate-300">
             <span className="material-symbols-outlined text-[13px] text-purple-400">info</span>
-            <span>Policy: ₹5.00/Kg for counter gutted trout</span>
+            <span>Policy: ₹{todayRate}.00/Kg for counter gutted trout</span>
           </span>
           <span>•</span>
-          <span>Owner self-cleaned stock ({formatKg(allTimeSelfCleanedKg)} Kg) is excluded</span>
-          {isSpecialRateActive && (
-            <>
-              <span>•</span>
-              <span className="text-amber-300 font-bold">
-                🌟 Friday Deal active: ₹{todayRate}/Kg incentive applied to today&apos;s catch
-              </span>
-            </>
-          )}
+          <span>Owner self-cleaned stock ({formatKg(allTimeSelfCleanedKg)} Kg) is excluded (₹0)</span>
         </div>
 
         {/* Admin Action Buttons */}
         {isAdmin && (
           <div className="flex items-center flex-wrap gap-2 self-stretch sm:self-auto justify-end">
-            {/* 🌟 Quick Friday / Special Deal Toggle */}
-            <button
-              type="button"
-              onClick={handleToggleFriday}
-              disabled={toggling}
-              className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95 border ${
-                isSpecialRateActive
-                  ? "bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 border-amber-400 shadow-amber-500/20 font-black"
-                  : "bg-slate-900 hover:bg-slate-800 text-amber-300 border-amber-500/40 hover:border-amber-400"
-              }`}
-              title={
-                isSpecialRateActive
-                  ? "Friday Special Deal is currently ON (₹20/Kg). Click to turn OFF."
-                  : isFridayToday
-                  ? "It's Friday! Click to activate the Friday Deal (₹20/Kg incentive)."
-                  : "Toggle Special Day Boost (₹20/Kg incentive)."
-              }
-            >
-              <span className="material-symbols-outlined text-sm">stars</span>
-              <span>
-                {toggling
-                  ? "Updating..."
-                  : isSpecialRateActive
-                  ? "🌟 Friday Deal: Active (₹20/Kg)"
-                  : "🌟 Enable Friday Deal (₹20/Kg)"}
-              </span>
-            </button>
-
             {/* Record Sick Leave / Deduction */}
             {onOpenLeaveModal && (
               <button

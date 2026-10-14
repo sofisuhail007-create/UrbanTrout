@@ -43,14 +43,9 @@ export const formatCustomerDate = (dateStr?: string | null): string => {
 };
 
 export const getIncentiveRateForDate = (
-  dateStr?: string | null,
-  rules?: Record<string, SpecialIncentiveRule> | null
+  _dateStr?: string | null,
+  _rules?: any
 ): number => {
-  if (!dateStr || !rules) return INCENTIVE_RATE_PER_KG;
-  const rule = rules[dateStr];
-  if (rule && rule.enabled && Number(rule.rate_per_kg) > 0) {
-    return Number(rule.rate_per_kg);
-  }
   return INCENTIVE_RATE_PER_KG;
 };
 
@@ -1142,34 +1137,6 @@ export default function VendingCenterLoggerPage() {
     }
   }, [isAdmin, fetchSalaryPayments]);
 
-  // ─── Special Incentive Deal Toggle (e.g. Friday Boost ₹20/Kg) ───
-  const handleToggleSpecialDeal = useCallback(
-    async (enabled: boolean, rate: number = 20, targetDate?: string) => {
-      const dealDate = targetDate || getTodayDate();
-      try {
-        const res = await adminFetch("/api/vending-log/incentive", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            action: "toggle_friday_deal",
-            date: dealDate,
-            enabled,
-            rate_per_kg: rate,
-            deduct_daily_salary: enabled,
-          }),
-        });
-        if (res.ok) {
-          await Promise.all([fetchPayouts(), fetchSalaryPayments()]);
-        } else {
-          const err = await res.json();
-          alert(err.error || "Failed to update special incentive rate");
-        }
-      } catch (err: any) {
-        alert("Error toggling special deal: " + err.message);
-      }
-    },
-    [fetchPayouts, fetchSalaryPayments, getTodayDate]
-  );
 
   // ─── Delete Salary Deduction (Leave Reversal) ───
   const handleDeleteDeduction = useCallback(
@@ -1836,9 +1803,7 @@ export default function VendingCenterLoggerPage() {
     // 4. Remaining amount owed to staff worker
     const balanceRemaining = Math.max(0, Math.round(allTimeEarned - totalPaid));
 
-    const todayRate = getIncentiveRateForDate(todayDate, specialRules);
-    const isSpecialRateActive = Boolean(specialRules[todayDate]?.enabled);
-    const specialRateRule = specialRules[todayDate];
+    const todayRate = INCENTIVE_RATE_PER_KG;
     const lastPayout = payouts.length > 0 ? payouts[0] : null;
 
     return {
@@ -1854,13 +1819,11 @@ export default function VendingCenterLoggerPage() {
       todayGuttedKg,
       todayEarned,
       todayRate,
-      isSpecialRateActive,
-      specialRateRule,
       thisMonthGuttedKg,
       thisMonthEarned,
       lastPayout,
     };
-  }, [entries, filteredEntriesByPeriod, payouts, specialRules, getTodayDate]);
+  }, [entries, filteredEntriesByPeriod, payouts, getTodayDate]);
 
   // ─── Worker Salary Stats (Mohd Amin - Accrual & Leave Deductions) ───
   const salaryStats = useMemo(() => {
@@ -5047,9 +5010,7 @@ export default function VendingCenterLoggerPage() {
               todayStr={getTodayDate()}
               todayGuttedKg={incentiveStats.todayGuttedKg}
               todayEarned={incentiveStats.todayEarned}
-              todayRate={incentiveStats.todayRate}
-              isSpecialRateActive={incentiveStats.isSpecialRateActive}
-              specialRateRule={incentiveStats.specialRateRule}
+              todayRate={INCENTIVE_RATE_PER_KG}
               allTimeEarned={incentiveStats.allTimeEarned}
               allTimeGuttedKg={incentiveStats.allTimeGuttedKg}
               allTimeSelfCleanedKg={incentiveStats.allTimeSelfCleanedKg}
@@ -5058,7 +5019,6 @@ export default function VendingCenterLoggerPage() {
               lastPayout={incentiveStats.lastPayout}
               thisMonthEarned={incentiveStats.thisMonthEarned}
               thisMonthGuttedKg={incentiveStats.thisMonthGuttedKg}
-              onToggleSpecialDeal={handleToggleSpecialDeal}
               onOpenPayoutModal={() => setPayoutModalOpen(true)}
               onOpenLeaveModal={() => setLeaveModalOpen(true)}
               onOpenSalaryModal={() => setSalaryModalOpen(true)}
@@ -6210,23 +6170,15 @@ export default function VendingCenterLoggerPage() {
                                 <span className="text-[9px] text-amber-400/90 font-sans font-medium">₹0 worker inc</span>
                               </>
                             ) : isGutted ? (
-                              (() => {
-                                const entryRate = getIncentiveRateForDate(e.entry_date, specialRules);
-                                return (
-                                  <>
-                                    <span className="px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 inline-flex items-center gap-1">
-                                      🐟 {e.product_type}
-                                    </span>
-                                    <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-[9px] text-emerald-400 font-sans font-medium inline-flex items-center gap-0.5">
-                                      <span className="material-symbols-outlined text-[10px]">payments</span>
-                                      +₹{Math.round(w * entryRate)} worker inc
-                                      {entryRate !== INCENTIVE_RATE_PER_KG && (
-                                        <span className="text-[8px] opacity-75 font-mono">(@₹{entryRate}/kg)</span>
-                                      )}
-                                    </span>
-                                  </>
-                                );
-                              })()
+                              <>
+                                <span className="px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 inline-flex items-center gap-1">
+                                  🐟 {e.product_type}
+                                </span>
+                                <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-[9px] text-emerald-400 font-sans font-medium inline-flex items-center gap-0.5">
+                                  <span className="material-symbols-outlined text-[10px]">payments</span>
+                                  +₹{Math.round(w * INCENTIVE_RATE_PER_KG)} worker inc
+                                </span>
+                              </>
                             ) : (
                               <span className="px-2 py-0.5 rounded-lg text-[10.5px] font-medium bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
                                 🐟 {e.product_type}
@@ -6642,22 +6594,14 @@ export default function VendingCenterLoggerPage() {
                         <span className="text-[9px] text-amber-400 font-sans">₹0 inc</span>
                       </div>
                     ) : isGutted ? (
-                      (() => {
-                        const entryRate = getIncentiveRateForDate(e.entry_date, specialRules);
-                        return (
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="px-2 py-0.5 rounded-lg text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 inline-flex items-center gap-1">
-                              🐟 {e.product_type}
-                            </span>
-                            <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-[9px] text-emerald-400 font-sans font-medium inline-flex items-center gap-0.5">
-                              +₹{Math.round(w * entryRate)} worker inc
-                              {entryRate !== INCENTIVE_RATE_PER_KG && (
-                                <span className="text-[8px] opacity-75 font-mono">(@₹{entryRate}/kg)</span>
-                              )}
-                            </span>
-                          </div>
-                        );
-                      })()
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="px-2 py-0.5 rounded-lg text-[11px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 inline-flex items-center gap-1">
+                          🐟 {e.product_type}
+                        </span>
+                        <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-[9px] text-emerald-400 font-sans font-medium inline-flex items-center gap-0.5">
+                          +₹{Math.round(w * INCENTIVE_RATE_PER_KG)} worker inc
+                        </span>
+                      </div>
                     ) : (
                       <span className="px-2 py-0.5 rounded-lg text-[11px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 inline-flex items-center gap-1">
                         ✨ {e.product_type}

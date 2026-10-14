@@ -15,24 +15,23 @@ export interface StaffIncentivePayout {
   payout_time?: string; // e.g. "04:30 PM"
   amount: number;
   payment_mode: string; // "Cash" | "UPI" | "Bank Transfer" | string
-  recipient_name: string; // e.g. "Counter Staff"
+  recipient_name: string; // e.g. "Mohd Amin"
   notes?: string;
   created_at: string;
 }
 
 export interface SpecialIncentiveRule {
-  date: string; // YYYY-MM-DD
-  rate_per_kg: number; // e.g. 20 (instead of default 5)
-  label: string; // e.g. "Friday Catch Deal" or "Special Catch Boost"
-  deduct_daily_salary?: boolean; // if true, indicates Friday pact applies (0 salary for this day)
-  salary_deduction_amount?: number; // e.g. 350
+  date: string;
+  rate_per_kg: number;
+  label: string;
+  deduct_daily_salary?: boolean;
+  salary_deduction_amount?: number;
   enabled: boolean;
   notes?: string;
   updated_at?: string;
 }
 
 const SETTINGS_KEY = "staff_incentive_payouts";
-const SPECIAL_RULES_KEY = "staff_special_incentive_rules";
 
 // Fetch payouts from app_settings
 async function getStoredPayouts(): Promise<StaffIncentivePayout[]> {
@@ -73,73 +72,34 @@ async function saveStoredPayouts(payouts: StaffIncentivePayout[]): Promise<boole
     }
     return true;
   } catch (err) {
-    console.warn("Exception saving staff payouts:", err);
+    console.error("Failed to save payouts:", err);
     return false;
   }
 }
 
-// Fetch special daily incentive rules from app_settings
-async function getStoredSpecialRules(): Promise<Record<string, SpecialIncentiveRule>> {
-  try {
-    const { data } = await supabase
-      .from("app_settings")
-      .select("value")
-      .eq("key", SPECIAL_RULES_KEY)
-      .maybeSingle();
-
-    if (data?.value) {
-      const parsed = JSON.parse(data.value);
-      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-        return parsed;
-      }
-    }
-  } catch (err) {
-    console.warn("Error reading special incentive rules:", err);
-  }
-  return {};
-}
-
-// Save special daily incentive rules to app_settings
-async function saveStoredSpecialRules(rules: Record<string, SpecialIncentiveRule>): Promise<boolean> {
-  try {
-    const { error } = await supabase.from("app_settings").upsert(
-      {
-        key: SPECIAL_RULES_KEY,
-        value: JSON.stringify(rules),
-        description: "Special daily gutted trout incentive rates (e.g. Friday ₹20/Kg deal)",
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "key" }
-    );
-    return !error;
-  } catch (err) {
-    console.warn("Exception saving special rules:", err);
-    return false;
-  }
-}
-
-// ─── GET: List all recorded payouts + special rules ──────────────────────────
+// ─── GET: Fetch all payouts ───────────────────────────────────────────
 export async function GET(request: Request) {
-  try {
-    const [payouts, specialRules] = await Promise.all([
-      getStoredPayouts(),
-      getStoredSpecialRules(),
-    ]);
+  const authError = await requireAdminAuth(request);
+  if (authError) return authError;
 
-    // Sort descending by date, then created_at
+  try {
+    const payouts = await getStoredPayouts();
+
+    // Sort payouts descending by date & created_at
     payouts.sort((a, b) => {
-      const d = (b.payout_date || "").localeCompare(a.payout_date || "");
-      if (d !== 0) return d;
+      const cmp = (b.payout_date || "").localeCompare(a.payout_date || "");
+      if (cmp !== 0) return cmp;
       return (b.created_at || "").localeCompare(a.created_at || "");
     });
+
+    const totalPaid = payouts.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
 
     return NextResponse.json(
       {
         success: true,
         payouts,
-        totalPaid: payouts.reduce((sum, p) => sum + (Number(p.amount) || 0), 0),
-        defaultRatePerKg: 5,
-        specialRules,
+        totalPaid,
+        specialRules: {},
       },
       {
         headers: {
@@ -153,141 +113,13 @@ export async function GET(request: Request) {
   }
 }
 
-// ─── POST: Record a new payout disbursement OR toggle/save special rule ──────
+// ─── POST: Record a new payout disbursement ────────────────────────────
 export async function POST(request: Request) {
   const authError = await requireAdminAuth(request);
   if (authError) return authError;
 
   try {
     const body = await request.json();
-
-    // 1. Action: Save or Toggle Special Incentive Rule (e.g. Friday ₹20/Kg deal)
-    if (body.action === "save_special_rule" || body.action === "toggle_friday_deal") {
-      const {
-        date,
-        rate_per_kg,
-        label,
-        deduct_daily_salary,
-        salary_deduction_amount,
-        enabled,
-        notes,
-      } = body;
-
-      if (!date || typeof date !== "string") {
-        return NextResponse.json(
-          { success: false, error: "A valid date (YYYY-MM-DD) is required for special incentive rule." },
-          { status: 400 }
-        );
-      }
-
-      const numRate = parseFloat(rate_per_kg);
-      const targetRate = isNaN(numRate) || numRate <= 0 ? 20 : numRate;
-      const isEnabled = enabled !== undefined ? Boolean(enabled) : true;
-
-      const currentRules = await getStoredSpecialRules();
-      const updatedRule: SpecialIncentiveRule = {
-        date,
-        rate_per_kg: targetRate,
-        label: label || (targetRate >= 20 ? "Friday Special Catch Deal" : "Custom Day Incentive"),
-        deduct_daily_salary: Boolean(deduct_daily_salary),
-        salary_deduction_amount: deduct_daily_salary ? (Number(salary_deduction_amount) || 350) : 0,
-        enabled: isEnabled,
-        notes: (notes || "").trim(),
-        updated_at: new Date().toISOString(),
-      };
-
-      currentRules[date] = updatedRule;
-      await saveStoredSpecialRules(currentRules);
-
-      // Auto-synchronize daily salary deduction with worker salary deductions ledger
-      try {
-        const DEDUCTIONS_KEY = "worker_salary_deductions";
-        const { data: dData } = await supabase
-          .from("app_settings")
-          .select("value")
-          .eq("key", DEDUCTIONS_KEY)
-          .maybeSingle();
-
-        let currentDeductions: any[] = [];
-        if (dData?.value) {
-          try {
-            const parsed = JSON.parse(dData.value);
-            if (Array.isArray(parsed)) currentDeductions = parsed;
-          } catch (_) {}
-        }
-
-        const isFridayDeduction = (d: any) =>
-          d.date === date &&
-          (String(d.reason || "").toLowerCase().includes("friday deal") ||
-            String(d.notes || "").toLowerCase().includes("friday deal"));
-
-        if (updatedRule.enabled && updatedRule.deduct_daily_salary) {
-          const deductionAmount = Number(updatedRule.salary_deduction_amount) || 350;
-          const dParts = date.split("-").map(Number);
-          const dt =
-            dParts.length === 3 && dParts[0] && dParts[1] && dParts[2]
-              ? new Date(dParts[0], dParts[1] - 1, dParts[2])
-              : new Date();
-          const monthLabel = dt.toLocaleDateString("en-IN", {
-            month: "long",
-            year: "numeric",
-            timeZone: "Asia/Kolkata",
-          });
-
-          const existingIdx = currentDeductions.findIndex(isFridayDeduction);
-          if (existingIdx >= 0) {
-            currentDeductions[existingIdx].amount = deductionAmount;
-            currentDeductions[existingIdx].daily_rate = deductionAmount;
-            currentDeductions[existingIdx].salary_month = monthLabel;
-          } else {
-            currentDeductions.unshift({
-              id: crypto.randomUUID(),
-              worker_name: "Mohd Amin",
-              salary_month: monthLabel,
-              date,
-              reason: "Friday Deal Pact (Incentive Only)",
-              days_count: 1,
-              daily_rate: deductionAmount,
-              amount: deductionAmount,
-              notes: "Auto-synced with Friday Deal toggle",
-              created_at: new Date().toISOString(),
-            });
-          }
-          await supabase.from("app_settings").upsert(
-            {
-              key: DEDUCTIONS_KEY,
-              value: JSON.stringify(currentDeductions),
-              description: "Vending center worker salary deductions ledger (Mohd Amin sick/leave days)",
-              updated_at: new Date().toISOString(),
-            },
-            { onConflict: "key" }
-          );
-        } else if (!updatedRule.enabled || !updatedRule.deduct_daily_salary) {
-          const filtered = currentDeductions.filter((d: any) => !isFridayDeduction(d));
-          if (filtered.length !== currentDeductions.length) {
-            await supabase.from("app_settings").upsert(
-              {
-                key: DEDUCTIONS_KEY,
-                value: JSON.stringify(filtered),
-                description: "Vending center worker salary deductions ledger (Mohd Amin sick/leave days)",
-                updated_at: new Date().toISOString(),
-              },
-              { onConflict: "key" }
-            );
-          }
-        }
-      } catch (deductErr) {
-        console.warn("Notice syncing Friday deal deduction:", deductErr);
-      }
-
-      return NextResponse.json({
-        success: true,
-        rule: updatedRule,
-        specialRules: currentRules,
-      });
-    }
-
-    // 2. Action: Standard Payout Disbursement Recording
     const { payout_date, payout_time, amount, payment_mode, recipient_name, notes } = body;
 
     const numAmount = parseFloat(amount);
@@ -332,57 +164,13 @@ export async function POST(request: Request) {
   }
 }
 
-// ─── DELETE: Remove/Void a payout entry OR special rule ──────────────────────
+// ─── DELETE: Remove/Void a payout disbursement entry ───────────────────
 export async function DELETE(request: Request) {
   const authError = await requireAdminAuth(request);
   if (authError) return authError;
 
   try {
     const { searchParams } = new URL(request.url);
-    const type = searchParams.get("type");
-
-    if (type === "special_rule") {
-      const date = searchParams.get("date");
-      if (!date) {
-        return NextResponse.json({ success: false, error: "Missing rule date" }, { status: 400 });
-      }
-      const currentRules = await getStoredSpecialRules();
-      delete currentRules[date];
-      await saveStoredSpecialRules(currentRules);
-
-      try {
-        const DEDUCTIONS_KEY = "worker_salary_deductions";
-        const { data: dData } = await supabase
-          .from("app_settings")
-          .select("value")
-          .eq("key", DEDUCTIONS_KEY)
-          .maybeSingle();
-
-        if (dData?.value) {
-          const currentDeductions = JSON.parse(dData.value);
-          if (Array.isArray(currentDeductions)) {
-            const filtered = currentDeductions.filter(
-              (d: any) =>
-                !(d.date === date && String(d.reason || "").toLowerCase().includes("friday deal"))
-            );
-            if (filtered.length !== currentDeductions.length) {
-              await supabase.from("app_settings").upsert(
-                {
-                  key: DEDUCTIONS_KEY,
-                  value: JSON.stringify(filtered),
-                  description: "Vending center worker salary deductions ledger (Mohd Amin sick/leave days)",
-                  updated_at: new Date().toISOString(),
-                },
-                { onConflict: "key" }
-              );
-            }
-          }
-        }
-      } catch (_) {}
-
-      return NextResponse.json({ success: true, specialRules: currentRules });
-    }
-
     const id = searchParams.get("id");
     if (!id) {
       return NextResponse.json({ success: false, error: "Missing payout id" }, { status: 400 });
