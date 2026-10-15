@@ -284,9 +284,28 @@ CREATE POLICY "Allow full access to vending_sales_log" ON public.vending_sales_l
 
 export default function VendingCenterLoggerPage() {
   // ─── State ───
-  const [entries, setEntries] = useState<VendingSalesEntry[]>([]);
+  const [entries, setEntries] = useState<VendingSalesEntry[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const cached = localStorage.getItem("ut_vending_sales_log_cache");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch (_) {}
+    return [];
+  });
+  const entriesRef = useRef(entries);
+  entriesRef.current = entries;
   const [customColumns, setCustomColumns] = useState<CustomColumnDef[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => {
+    if (typeof window === "undefined") return true;
+    try {
+      const cached = localStorage.getItem("ut_vending_sales_log_cache");
+      if (cached && JSON.parse(cached)?.length > 0) return false;
+    } catch (_) {}
+    return true;
+  });
   const [saving, setSaving] = useState(false);
   const [isTableAvailable, setIsTableAvailable] = useState(true);
   const [bannerDismissed, setBannerDismissed] = useState(false);
@@ -854,17 +873,12 @@ export default function VendingCenterLoggerPage() {
   };
 
   // ─── Fetch Data ───
-  const fetchData = useCallback(async () => {
-    setLoading(true);
+  const fetchData = useCallback(async (isSilent = false) => {
+    // Only trigger full-screen loading spinner if there is no cached/existing data and silent mode is false
+    if (!isSilent && entriesRef.current.length === 0) {
+      setLoading(true);
+    }
     try {
-      // Purge any stale legacy localStorage caches
-      if (typeof window !== "undefined") {
-        try {
-          localStorage.removeItem("ut_vending_sales_log_cache");
-          localStorage.removeItem("ut_vending_server_date");
-        } catch (_) {}
-      }
-
       // Fetch fresh real-time data from API
       let url = "/api/vending-log";
       const params = new URLSearchParams();
@@ -886,7 +900,11 @@ export default function VendingCenterLoggerPage() {
               setServerDateFormatted(formatIstDateDisplay(data.serverDate));
             }
           }
-          setEntries(data.entries || []);
+          const list = data.entries || [];
+          setEntries(list);
+          try {
+            localStorage.setItem("ut_vending_sales_log_cache", JSON.stringify(list));
+          } catch (_) {}
           setCustomColumns(data.customColumns || []);
           setIsTableAvailable(data.isTableAvailable ?? true);
         }
@@ -1060,26 +1078,52 @@ export default function VendingCenterLoggerPage() {
   }, [fetchStockEntries]);
 
   // Re-fetch automatically when window gains focus, device wakes up (crucial for iPhone/Mobile Safari), or every 60s
+  const lastRefreshTimeRef = useRef<number>(Date.now());
+  const isRefreshingRef = useRef<boolean>(false);
+
+  const handleActiveRefresh = useCallback(() => {
+    // Only refresh if tab is currently visible
+    if (typeof document !== "undefined" && document.visibilityState === "hidden") {
+      return;
+    }
+    const now = Date.now();
+    // Throttle: don't refresh if refreshed less than 30 seconds ago, or if refresh is already in-flight
+    if (now - lastRefreshTimeRef.current < 30000 || isRefreshingRef.current) {
+      return;
+    }
+    lastRefreshTimeRef.current = now;
+    isRefreshingRef.current = true;
+
+    Promise.all([
+      fetchData(true),
+      fetchStockEntries(),
+      isAdmin ? fetchPayouts() : Promise.resolve(),
+    ]).finally(() => {
+      isRefreshingRef.current = false;
+    });
+  }, [fetchData, fetchStockEntries, fetchPayouts, isAdmin]);
+
   useEffect(() => {
-    const handleActiveRefresh = () => {
-      fetchData();
-      fetchStockEntries();
-      if (isAdmin) {
-        fetchPayouts();
+    const onFocus = () => handleActiveRefresh();
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        handleActiveRefresh();
       }
     };
 
-    window.addEventListener("focus", handleActiveRefresh);
-    document.addEventListener("visibilitychange", handleActiveRefresh);
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibilityChange);
 
-    const timer = setInterval(handleActiveRefresh, 60000);
+    const timer = setInterval(() => {
+      handleActiveRefresh();
+    }, 60000);
 
     return () => {
-      window.removeEventListener("focus", handleActiveRefresh);
-      document.removeEventListener("visibilitychange", handleActiveRefresh);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
       clearInterval(timer);
     };
-  }, [fetchData, fetchStockEntries, fetchPayouts, isAdmin]);
+  }, [handleActiveRefresh]);
 
   // ─── Fetch Supplier Volume Rebates (Khyber Aquaculture) ───
   const fetchSupplierRebates = useCallback(async () => {
@@ -1365,6 +1409,17 @@ export default function VendingCenterLoggerPage() {
 
     const netAvailable = Math.max(0, Math.round((totalProcuredKg - totalMortalityKg) * 1000) / 1000);
 
+    // If stock procurements exist but sales entries haven't finished loading from the server,
+    // do NOT calculate running stock without sales (which erroneously defaults to the latest raw ~62kg procurement batch).
+    if (stockEntries.length > 0 && entries.length === 0 && loading) {
+      return {
+        surplusInfoMap: new Map<string, { regularKg: number; surplusKg: number; isSurplus: boolean; isPureSurplus: boolean }>(),
+        allTimeSurplusKg: 0,
+        netProcuredAvailableKg: netAvailable,
+        liveRemainingKg: 0,
+      };
+    }
+
     // Build unified chronological timeline of procurements, mortality, and sales
     interface TimelineItem {
       type: "procurement" | "mortality" | "sale";
@@ -1461,7 +1516,7 @@ export default function VendingCenterLoggerPage() {
       netProcuredAvailableKg: netAvailable,
       liveRemainingKg: Math.max(0, Math.round(runningStock * 1000) / 1000),
     };
-  }, [entries, stockEntries, mortalityEntries]);
+  }, [entries, stockEntries, mortalityEntries, loading]);
 
   // ─── KPI Metrics (Computed on period filtered entries) ───
   const kpis = useMemo(() => {
@@ -2388,11 +2443,15 @@ export default function VendingCenterLoggerPage() {
         });
 
         if (res.ok) {
-          setEntries((prev) =>
-            prev.map((item) =>
+          setEntries((prev) => {
+            const updated = prev.map((item) =>
               item.id === editingEntry.id ? { ...item, ...updates } : item
-            )
-          );
+            );
+            try {
+              localStorage.setItem("ut_vending_sales_log_cache", JSON.stringify(updated));
+            } catch (_) {}
+            return updated;
+          });
           setNewEntryModalOpen(false);
           resetForm();
           playLogChime();
@@ -2431,7 +2490,13 @@ export default function VendingCenterLoggerPage() {
         if (res.ok) {
           const json = await res.json();
           if (json.success && json.entry) {
-            setEntries((prev) => [json.entry, ...prev]);
+            setEntries((prev) => {
+              const updated = [json.entry, ...prev];
+              try {
+                localStorage.setItem("ut_vending_sales_log_cache", JSON.stringify(updated));
+              } catch (_) {}
+              return updated;
+            });
             setNewEntryModalOpen(false);
             resetForm();
             playLogChime();
@@ -2481,7 +2546,13 @@ export default function VendingCenterLoggerPage() {
         method: "DELETE",
       });
       if (res.ok) {
-        setEntries((prev) => prev.filter((e) => e.id !== id));
+        setEntries((prev) => {
+          const updated = prev.filter((e) => e.id !== id);
+          try {
+            localStorage.setItem("ut_vending_sales_log_cache", JSON.stringify(updated));
+          } catch (_) {}
+          return updated;
+        });
         setDeleteConfirmId(null);
         fetchKhataSummary();
       }
@@ -4091,7 +4162,9 @@ export default function VendingCenterLoggerPage() {
                         aquariumStock.isOutOfStock ? "text-amber-300" : "text-white"
                       }`}
                     >
-                      {stockLoading && stockEntries.length === 0 ? "..." : formatKg(aquariumStock.remainingKg)}
+                      {(stockLoading && stockEntries.length === 0) || (loading && entries.length === 0)
+                        ? "..."
+                        : formatKg(aquariumStock.remainingKg)}
                     </span>
                     <span className="text-blue-400 font-bold font-mono text-sm">Kg</span>
                   </div>
@@ -4104,7 +4177,9 @@ export default function VendingCenterLoggerPage() {
                   <div className="text-[10px] uppercase font-bold tracking-wider text-emerald-400 font-mono">Today's Entries</div>
                   <div className="flex items-baseline gap-1 justify-end">
                     <span className="text-2xl sm:text-3xl font-black font-['Space_Grotesk'] text-emerald-400">
-                      {entries.filter((e) => e.entry_date === getTodayDate()).length}
+                      {loading && entries.length === 0
+                        ? "..."
+                        : entries.filter((e) => e.entry_date === getTodayDate()).length}
                     </span>
                     <span className="text-emerald-300/80 font-bold font-mono text-xs">entries</span>
                   </div>
@@ -4436,7 +4511,7 @@ export default function VendingCenterLoggerPage() {
                 <span className="material-symbols-outlined text-sm text-blue-400">set_meal</span>
                 <span>Aquarium Stock</span>
                 <span className="px-1.5 py-0.2 rounded bg-blue-500/20 text-[10px] text-blue-300 font-mono">
-                  {stockLoading && stockEntries.length === 0 ? "..." : `${formatKg(aquariumStock.remainingKg)} Kg`}
+                  {(stockLoading && stockEntries.length === 0) || (loading && entries.length === 0) ? "..." : `${formatKg(aquariumStock.remainingKg)} Kg`}
                 </span>
               </button>
 
@@ -5303,7 +5378,7 @@ export default function VendingCenterLoggerPage() {
                   </span>
                 </div>
                 <div className="mt-2 flex items-baseline gap-2 min-h-[32px]">
-                  {stockLoading && stockEntries.length === 0 ? (
+                  {(stockLoading && stockEntries.length === 0) || (loading && entries.length === 0) ? (
                     <div className="h-7 w-28 bg-blue-500/10 rounded animate-pulse" />
                   ) : (
                     <>
@@ -6037,7 +6112,11 @@ export default function VendingCenterLoggerPage() {
 
         <button
           type="button"
-          onClick={fetchData}
+          onClick={() => {
+            fetchData();
+            fetchStockEntries();
+            if (isAdmin) fetchPayouts();
+          }}
           className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-all cursor-pointer"
           title="Refresh Data"
         >
@@ -6048,7 +6127,7 @@ export default function VendingCenterLoggerPage() {
       {/* ══════════════════════════════════════════════════════════
           SALES ENTRIES — MODERN LEDGER TABLE OR CARD GRID
           ══════════════════════════════════════════════════════════ */}
-      {loading ? (
+      {loading && entries.length === 0 ? (
         <div className="py-16 flex flex-col items-center gap-3 text-slate-400 bg-slate-900/40 rounded-3xl border border-slate-800/70">
           <div className="w-9 h-9 border-2 border-emerald-400 border-t-transparent animate-spin rounded-full" />
           <span className="text-sm font-mono">Loading sales entries…</span>
