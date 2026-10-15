@@ -424,13 +424,16 @@ export default function ContactPage() {
                   <strong className="text-slate-300">Proprietor / Operating Entity:</strong> Skindar Mohd Sideeq
                 </p>
                 <p>
-                  <strong className="text-slate-300">Grievance Officer:</strong> Skindar Mohd Sideeq<br />
+                  <strong className="text-slate-300">Grievance Officer:</strong> Suhail Skindar Sofi<br />
                   <strong className="text-slate-300">Direct Email:</strong>{" "}
                   <a href="mailto:founder@urbantrout.in" className="text-cyan-400 hover:underline">
                     founder@urbantrout.in
                   </a>
                   <br />
-                  <strong className="text-slate-300">Contact Number:</strong> +91 84910 06127
+                  <strong className="text-slate-300">Contact Number:</strong>{" "}
+                  <a href="tel:+917006604148" className="text-cyan-400 hover:underline">
+                    +91 70066 04148
+                  </a>
                 </p>
                 <p style={{ fontSize: "0.78rem", color: C.outline, margin: 0 }}>
                   Designated in compliance with the Consumer Protection (E-Commerce) Rules and RBI Digital Payment guidelines.
