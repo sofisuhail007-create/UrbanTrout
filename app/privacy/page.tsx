@@ -46,11 +46,11 @@ const sections = [
   },
   {
     title: "6. User Rights & Data Protection (DPDP Act)",
-    body: "In accordance with Indian data protection laws, you have the right to review, update, or request the deletion of your personal data stored with us. To exercise these rights, please email our Grievance Officer at info.urbantrout@gmail.com.",
+    body: "In accordance with Indian data protection laws, you have the right to review, update, or request the deletion of your personal data stored with us. To exercise these rights, please email our Grievance Officer at founder@urbantrout.in.",
   },
   {
     title: "7. Grievance Redressal & Contact Details",
-    body: "If you have questions regarding this Privacy Policy or wish to raise a privacy concern, please contact our Grievance Redressal Officer:\n• Operating Business: Urban Trout\n• Authorized Signatory / Grievance Officer: Skindar Mohd Sideeq\n• Office Address: Malabagh, Naseem Bagh, Srinagar, Jammu & Kashmir — 190006\n• Phone / WhatsApp: +91 84910 06127 (Alt: +91 70066 04148)\n• Email: info.urbantrout@gmail.com",
+    body: "If you have questions regarding this Privacy Policy or wish to raise a privacy concern, please contact our Grievance Redressal Officer:\n• Operating Business: Urban Trout\n• Authorized Signatory / Grievance Officer: Skindar Mohd Sideeq\n• Office Address: Malabagh, Naseem Bagh, Srinagar, Jammu & Kashmir — 190006\n• Phone / WhatsApp: +91 84910 06127 (Alt: +91 70066 04148)\n• Email: founder@urbantrout.in",
   },
 ];
 

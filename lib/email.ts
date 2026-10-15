@@ -7,7 +7,7 @@ function getResend() {
 }
 
 const FROM_EMAIL = process.env.RESEND_FROM_EMAIL || "Urban Trout <orders@urbantrout.in>";
-const ADMIN_EMAIL = "info.urbantrout@gmail.com";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "founder@urbantrout.in";
 
 export async function sendOrderConfirmationEmail(order: {
   orderNumber: string;
@@ -176,7 +176,7 @@ export async function sendOrderConfirmationEmail(order: {
       <!-- Footer -->
       <div style="background: #06151e; padding: 20px; text-align: center; border-top: 1px solid #152834; font-size: 11px; color: #6a7782;">
         <p style="margin: 0 0 4px;">Urban Trout Aquaculture • Malabagh, Srinagar — 190006</p>
-        <p style="margin: 0;">Farm Direct Helpline: +91 84910 06127 | Email: info.urbantrout@gmail.com</p>
+        <p style="margin: 0;">Farm Direct Helpline: +91 84910 06127 | Email: founder@urbantrout.in</p>
       </div>
 
     </div>
@@ -762,7 +762,7 @@ export async function sendPaymentLinkConfirmationEmail(params: {
 
         <div style="text-align: center; font-size: 11px; color: #6a7782; line-height: 1.6;">
           <p style="margin: 0 0 4px;">Urban Trout Aquaculture Farm • Malabagh, Srinagar — 190006</p>
-          <p style="margin: 0;">Helpline: +91 84910 06127 | info.urbantrout@gmail.com</p>
+          <p style="margin: 0;">Helpline: +91 84910 06127 | founder@urbantrout.in</p>
         </div>
       </div>
     </div>

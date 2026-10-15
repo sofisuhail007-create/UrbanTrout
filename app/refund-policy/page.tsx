@@ -34,7 +34,7 @@ const sections = [
   },
   {
     title: "3. Perishable Goods & Quality Guarantee",
-    body: "• We take extreme care to pack our trout with food-grade ice and bio-thermal insulation to ensure peak freshness upon arrival.\n• We strongly advise customers or their representatives to inspect the order package at the time of delivery.\n• In the unlikely event that your delivery arrives damaged, compromised in temperature, spoiled, or if the wrong item/quantity was delivered, please notify us within 2 hours of delivery with photographic evidence via WhatsApp (+91 84910 06127) or email (info.urbantrout@gmail.com).",
+    body: "• We take extreme care to pack our trout with food-grade crushed ice and insulated packaging (0°C–2°C) to ensure peak freshness upon arrival.\n• We strongly advise customers or their representatives to inspect the order package at the time of delivery.\n• In the unlikely event that your delivery arrives damaged, compromised in temperature, spoiled, or if the wrong item/quantity was delivered, please notify us within 2 hours of delivery with photographic evidence via WhatsApp (+91 84910 06127) or email (founder@urbantrout.in).",
   },
   {
     title: "4. Refund Eligibility & Resolution",
@@ -50,7 +50,7 @@ const sections = [
   },
   {
     title: "7. Contact for Refund & Cancellation Support",
-    body: "If you have any questions, wish to cancel an order, or need assistance with a refund, please contact us:\n• Business Name: Urban Trout (Proprietorship: Skindar Mohd Sideeq)\n• Helpline / WhatsApp: +91 84910 06127 (Alt: +91 70066 04148)\n• Email: info.urbantrout@gmail.com\n• Operating Address: Malabagh, Naseem Bagh, Srinagar, Jammu & Kashmir — 190006\n• Support Hours: Saturday to Thursday, 8:00 AM – 9:00 PM IST (Closed on Fridays for Farm Maintenance. For urgent inquiries, message us on WhatsApp).",
+    body: "If you have any questions, wish to cancel an order, or need assistance with a refund, please contact us:\n• Business Name: Urban Trout (Proprietorship: Skindar Mohd Sideeq)\n• Helpline / WhatsApp: +91 84910 06127 (Alt: +91 70066 04148)\n• Email: founder@urbantrout.in\n• Operating Address: Malabagh, Naseem Bagh, Srinagar, Jammu & Kashmir — 190006\n• Support Hours: Saturday to Thursday, 8:00 AM – 9:00 PM IST (Closed on Fridays for Farm Maintenance. For urgent inquiries, message us on WhatsApp).",
   },
 ];
 

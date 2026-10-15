@@ -58,7 +58,7 @@ const sections = [
   },
   {
     title: "9. Grievance Officer & Contact Information",
-    body: "For inquiries, disputes, or regulatory concerns, please reach out to our Grievance Officer:\n• Legal Entity: Urban Trout (Operated by Skindar Mohd Sideeq)\n• Office: Malabagh, Naseem Bagh, Srinagar, Jammu & Kashmir — 190006\n• Phone: +91 84910 06127 (Alt: +91 70066 04148)\n• Email: info.urbantrout@gmail.com",
+    body: "For inquiries, disputes, or regulatory concerns, please reach out to our Grievance Officer:\n• Legal Entity: Urban Trout (Operated by Skindar Mohd Sideeq)\n• Office: Malabagh, Naseem Bagh, Srinagar, Jammu & Kashmir — 190006\n• Phone: +91 84910 06127 (Alt: +91 70066 04148)\n• Email: founder@urbantrout.in",
   },
 ];
 

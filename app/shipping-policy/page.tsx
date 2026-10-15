@@ -39,7 +39,7 @@ const sections = [
   },
   {
     title: "4. Cold-Chain Packaging & Temperature Control",
-    body: "• Freshness is our top priority. Every fish is packed immediately following harvest in food-grade bio-thermal insulated packaging with crushed food-grade ice.\n• This maintains an unbroken sub-4°C chill chain from our farm tanks directly to your kitchen, ensuring maximum taste, texture, and nutritional value.",
+    body: "• Freshness is our top priority. Every fish is packed immediately following harvest in food-grade insulated packaging with fresh crushed ice (0°C–2°C).\n• This maintains an unbroken sub-4°C chill chain from our farm tanks directly to your kitchen, ensuring maximum taste, texture, and nutritional value.",
   },
   {
     title: "5. Order Tracking & WhatsApp Notifications",
@@ -51,7 +51,7 @@ const sections = [
   },
   {
     title: "7. Delivery Support & Inquiries",
-    body: "For questions regarding delivery areas, scheduled orders, or tracking an active delivery:\n• Helpline & WhatsApp: +91 84910 06127\n• Alternate Line: +91 70066 04148\n• Email: info.urbantrout@gmail.com\n• Farm Location: Malabagh, Naseem Bagh, Srinagar — 190006 (Near R P School Girls Wing)",
+    body: "For questions regarding delivery areas, scheduled orders, or tracking an active delivery:\n• Helpline & WhatsApp: +91 84910 06127\n• Alternate Line: +91 70066 04148\n• Email: founder@urbantrout.in\n• Farm Location: Malabagh, Naseem Bagh, Srinagar — 190006 (Near R P School Girls Wing)",
   },
 ];
 

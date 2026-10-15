@@ -355,7 +355,7 @@ export default function ContactPage() {
                     Official Email
                   </span>
                   <a
-                    href="mailto:info.urbantrout@gmail.com"
+                    href="mailto:founder@urbantrout.in"
                     style={{
                       fontFamily: '"Manrope", sans-serif',
                       fontSize: "0.95rem",
@@ -366,7 +366,7 @@ export default function ContactPage() {
                       marginTop: "2px",
                     }}
                   >
-                    info.urbantrout@gmail.com
+                    founder@urbantrout.in
                   </a>
                 </div>
 
@@ -426,8 +426,8 @@ export default function ContactPage() {
                 <p>
                   <strong className="text-slate-300">Grievance Officer:</strong> Skindar Mohd Sideeq<br />
                   <strong className="text-slate-300">Direct Email:</strong>{" "}
-                  <a href="mailto:info.urbantrout@gmail.com" className="text-cyan-400 hover:underline">
-                    info.urbantrout@gmail.com
+                  <a href="mailto:founder@urbantrout.in" className="text-cyan-400 hover:underline">
+                    founder@urbantrout.in
                   </a>
                   <br />
                   <strong className="text-slate-300">Contact Number:</strong> +91 84910 06127

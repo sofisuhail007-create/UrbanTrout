@@ -14,7 +14,7 @@ export default function AdminLoginPage() {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user?.email) {
         const email = session.user.email.toLowerCase().trim();
-        const isOwner = email === "sofisuhail007@gmail.com" || email === "info.urbantrout@gmail.com";
+        const isOwner = email === "sofisuhail007@gmail.com" || email === "founder@urbantrout.in" || email === "admin@urbantrout.in" || email === "info.urbantrout@gmail.com";
         localStorage.setItem("ut_admin_auth", "1");
         localStorage.setItem("ut_admin_email", email);
         if (isOwner) {

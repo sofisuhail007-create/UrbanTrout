@@ -239,7 +239,7 @@ export default function Footer() {
               style={{ marginTop: "4px" }}
               dangerouslySetInnerHTML={{
                 __html:
-                  '<!--email_off--><a href="mailto:info.urbantrout@gmail.com" style="font-family:\'Manrope\',sans-serif;font-size:0.82rem;color:#9fadb8;text-decoration:none;" class="hover:text-primary transition-colors">info.urbantrout@gmail.com</a><!--/email_off-->',
+                  '<!--email_off--><a href="mailto:founder@urbantrout.in" style="font-family:\'Manrope\',sans-serif;font-size:0.82rem;color:#9fadb8;text-decoration:none;" class="hover:text-primary transition-colors">founder@urbantrout.in</a><!--/email_off-->',
               }}
             />
 
@@ -298,7 +298,7 @@ export default function Footer() {
             <div
               dangerouslySetInnerHTML={{
                 __html:
-                  '<!--email_off--><a href="mailto:info.urbantrout@gmail.com" class="flex items-center justify-center rounded-xl transition-all" style="width:38px;height:38px;border:1px solid rgba(61,74,83,0.5);color:#9fadb8;" aria-label="Email"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></a><!--/email_off-->',
+                  '<!--email_off--><a href="mailto:founder@urbantrout.in" class="flex items-center justify-center rounded-xl transition-all" style="width:38px;height:38px;border:1px solid rgba(61,74,83,0.5);color:#9fadb8;" aria-label="Email"><svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></a><!--/email_off-->',
               }}
             />
           </div>
