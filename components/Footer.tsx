@@ -59,7 +59,7 @@ export default function Footer() {
               alt="Urban Trout"
               width={160}
               height={40}
-              unoptimized
+              sizes="160px"
               className="h-9 md:h-10 w-auto object-contain"
             />
           </div>
@@ -102,19 +102,19 @@ export default function Footer() {
 
         {/* 2. Explore & Guides */}
         <div>
-          <h5
+          <p
+            className="font-bold"
             style={{
               fontFamily: '"Inter", sans-serif',
               fontSize: "10px",
               letterSpacing: "0.2em",
               textTransform: "uppercase",
               color: C.onSurfVar,
-              fontWeight: 700,
               marginBottom: "1.25rem",
             }}
           >
             Explore &amp; Guides
-          </h5>
+          </p>
           <nav aria-label="Explore navigation">
           <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "10px" }}>
             {[
@@ -151,19 +151,19 @@ export default function Footer() {
 
         {/* 3. Customer Policies & Compliance (Mandatory for Razorpay) */}
         <div>
-          <h5
+          <p
+            className="font-bold"
             style={{
               fontFamily: '"Inter", sans-serif',
               fontSize: "10px",
               letterSpacing: "0.2em",
               textTransform: "uppercase",
               color: C.onSurfVar,
-              fontWeight: 700,
               marginBottom: "1.25rem",
             }}
           >
             Policies &amp; Support
-          </h5>
+          </p>
           <nav aria-label="Policies navigation">
           <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "12px" }}>
             {[
@@ -195,19 +195,19 @@ export default function Footer() {
 
         {/* 4. Contact & Farm Location */}
         <div>
-          <h5
+          <p
+            className="font-bold"
             style={{
               fontFamily: '"Inter", sans-serif',
               fontSize: "10px",
               letterSpacing: "0.2em",
               textTransform: "uppercase",
               color: C.onSurfVar,
-              fontWeight: 700,
               marginBottom: "1.25rem",
             }}
           >
             Contact &amp; Farm Location
-          </h5>
+          </p>
           <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "1.25rem" }}>
             <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.84rem", color: C.onSurfVar }}>Malla Bagh Naseem Bagh, Srinagar — 190006, J&amp;K</p>
             <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.78rem", color: C.onSurfVar }}>Near R P School Girls Wing</p>

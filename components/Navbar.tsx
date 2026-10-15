@@ -42,7 +42,6 @@ export default function Navbar() {
               width={160}
               height={40}
               priority
-              unoptimized
               sizes="160px"
               className="h-8 sm:h-9 w-auto object-contain transition-transform group-hover:scale-105"
             />

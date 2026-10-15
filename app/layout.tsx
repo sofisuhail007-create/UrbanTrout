@@ -9,7 +9,7 @@ import { CustomerAuthProvider } from "@/context/CustomerAuthContext";
 import { Toaster } from "react-hot-toast";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import Script from "next/script";
+import AnalyticsDeferred from "@/components/AnalyticsDeferred";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -386,16 +386,8 @@ const jsonLd = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`dark ${spaceGrotesk.variable} ${manrope.variable} ${inter.variable}`}>
+    <html lang="en" suppressHydrationWarning className={`dark ${spaceGrotesk.variable} ${manrope.variable} ${inter.variable}`}>
       <head>
-        {/* ─── Preconnect & Load Font Stylesheets for Instant Webfont Rendering ─── */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          rel="stylesheet"
-          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@400;500;600;700;800&display=swap"
-        />
-
         <link
           rel="preload"
           href="/images/hero-trout-bg.webp"
@@ -408,11 +400,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
 
-        {/* ─── Preconnect to 3rd party origins ─────────────────────── */}
-        <link rel="preconnect" href="https://connect.facebook.net" crossOrigin="anonymous" />
-        <link rel="preconnect" href="https://www.googletagmanager.com" crossOrigin="anonymous" />
+        {/* ─── Non-blocking DNS prefetch for deferred analytics ────── */}
+        <link rel="dns-prefetch" href="https://connect.facebook.net" />
+        <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
       </head>
-      <body className={`${manrope.className} ${spaceGrotesk.variable} ${manrope.variable} ${inter.variable} bg-[#031018] text-[#dfedf9] antialiased selection:bg-cyan-500/20 selection:text-cyan-300`}>
+      <body suppressHydrationWarning className={`${manrope.className} ${spaceGrotesk.variable} ${manrope.variable} ${inter.variable} bg-[#031018] text-[#dfedf9] antialiased selection:bg-cyan-500/20 selection:text-cyan-300`}>
         <CustomerAuthProvider>
           <CartProvider>
             <Toaster 
@@ -434,39 +426,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Analytics />
           <SpeedInsights />
 
-          {/* ─── Facebook Pixel (Deferred via lazyOnload for optimal Core Web Vitals) ─── */}
-          {process.env.NEXT_PUBLIC_FB_PIXEL_ID && (
-            <Script id="fb-pixel" strategy="lazyOnload">
-              {`
-                !function(f,b,e,v,n,t,s)
-                {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-                n.callMethod.apply(n,arguments):n.queue.push(arguments)};
-                if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
-                n.queue=[];t=b.createElement(e);t.async=!0;
-                t.src=v;s=b.getElementsByTagName(e)[0];
-                s.parentNode.insertBefore(t,s)}(window, document,'script',
-                'https://connect.facebook.net/en_US/fbevents.js');
-                fbq('init', '${process.env.NEXT_PUBLIC_FB_PIXEL_ID}');
-                fbq('track', 'PageView');
-              `}
-            </Script>
-          )}
-
-          {/* ─── Google Analytics 4 (GA4 - Deferred via lazyOnload) ───── */}
-          <Script
-            src={`https://www.googletagmanager.com/gtag/js?id=${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? "G-VF8E6RTTKM"}`}
-            strategy="lazyOnload"
+          {/* ─── Zero-TBT Analytics (Deferred to user interaction / idle window) ─── */}
+          <AnalyticsDeferred
+            fbPixelId={process.env.NEXT_PUBLIC_FB_PIXEL_ID}
+            gaMeasurementId={process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? "G-VF8E6RTTKM"}
           />
-          <Script id="ga4-init" strategy="lazyOnload">
-            {`
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
-              gtag('config', '${process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID ?? "G-VF8E6RTTKM"}', {
-                page_path: window.location.pathname,
-              });
-            `}
-          </Script>
         </CartProvider>
       </CustomerAuthProvider>
     </body>
