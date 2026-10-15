@@ -3,7 +3,7 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Terms of Service",
-  description: "Urban Trout terms and conditions of service, ordering, 100% free delivery within 5km farm radius, and payment processing.",
+  description: "Urban Trout terms and conditions of service, ordering, 100% free delivery within 8km perimeter, and payment processing.",
   alternates: {
     canonical: "https://urbantrout.in/terms",
   },
@@ -30,7 +30,7 @@ const sections = [
   },
   {
     title: "2. Service Area & Eligibility",
-    body: "Urban Trout operates a modern cold-water aquaculture farm in Malabagh, Srinagar and fulfills fresh doorstep deliveries within an authorized 5km radius zone from our farm. Orders outside this 5km zone are eligible for live harvest pickup from our Malabagh farm vending center.",
+    body: "Urban Trout operates a modern cold-water aquaculture farm in Malabagh, Srinagar and fulfills fresh doorstep deliveries within an authorized 8km perimeter across 3 designated delivery zones from our farm. Orders outside this 8km zone are eligible for live harvest pickup from our Malabagh farm vending center.",
   },
   {
     title: "3. Fresh Harvest Order Process & Weight Verification",
@@ -42,7 +42,7 @@ const sections = [
   },
   {
     title: "5. Shipping, Delivery & Packaging",
-    body: "• Doorstep deliveries are fulfilled using food-grade bio-thermal insulation and crushed ice to maintain temperature control.\n• Deliveries within our authorized 5km farm delivery zone are 100% free of charge on all orders.\n• Detailed terms regarding delivery timelines and zones are governed by our Shipping & Delivery Policy.",
+    body: "• Doorstep deliveries are fulfilled using food-grade bio-thermal insulation and crushed ice to maintain temperature control.\n• Deliveries within our authorized 8km farm delivery zones are 100% free of charge when meeting minimum quantity thresholds (2 kg for Zone 1, 3 kg for Zone 2, and 4 kg for Zone 3).\n• Detailed terms regarding delivery timelines and zones are governed by our Shipping & Delivery Policy.",
   },
   {
     title: "6. Cancellation, Return & Refund Policy",

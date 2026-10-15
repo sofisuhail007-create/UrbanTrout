@@ -449,132 +449,165 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: true, connectedChatId: chatId });
       }
 
-      // ── Handle Live Chat Replies (Swipe reply to website chat in Telegram) ──
-      if (msg.reply_to_message) {
-        const replyTo = msg.reply_to_message;
-        const replyText = replyTo.text || replyTo.caption || "";
-        const replyMsgId = replyTo.message_id;
+      // ── UNIFIED LIVE CHAT REPLY HANDLER ──
+      // Handles:
+      // 1. Swipe-reply to any live chat alert (via #chat_ ID, telegram_message_id, or active thread fallback)
+      // 2. Direct commands: "/r <message>", "/r <name/id> <message>", "/reply <...>"
+      // 3. Direct tag: "#chat_<threadId> <message>"
+      const isSwipeReply = !!msg.reply_to_message;
+      const isReplyCommand = text.startsWith("/r ") || text.startsWith("/reply ") || text === "/r" || text === "/reply";
+      const hasChatTag = text.includes("#chat_");
 
+      if (isSwipeReply || isReplyCommand || hasChatTag) {
         let targetThreadId: string | null = null;
+        let replyContent = text;
+        let customerLabel = "Visitor";
 
-        // 1. Try extracting thread ID from hashtag #chat_<threadId>
-        const tagMatch = replyText.match(/#chat_([a-zA-Z0-9_\-]+)/);
-        if (tagMatch) {
-          targetThreadId = tagMatch[1];
-        }
+        // Fetch recent active threads
+        const { data: activeThreads } = await supabase
+          .from("live_chat_threads")
+          .select("*")
+          .eq("status", "active")
+          .order("last_message_at", { ascending: false })
+          .limit(10);
 
-        // 2. Try looking up in live_chat_threads table by telegram_message_id
-        if (!targetThreadId) {
-          try {
-            const { data: threadRow } = await supabase
-              .from("live_chat_threads")
-              .select("id")
-              .eq("telegram_message_id", replyMsgId)
-              .maybeSingle();
+        if (isSwipeReply) {
+          const replyTo = msg.reply_to_message;
+          const replyText = replyTo.text || replyTo.caption || "";
+          const replyMsgId = replyTo.message_id;
 
-            if (threadRow?.id) {
-              targetThreadId = threadRow.id;
+          // 1. Try extracting thread ID from hashtag #chat_<threadId>
+          const tagMatch = replyText.match(/#chat_([a-zA-Z0-9_\-]+)/);
+          if (tagMatch) {
+            targetThreadId = tagMatch[1];
+          }
+
+          // 2. Try looking up in live_chat_threads by telegram_message_id
+          if (!targetThreadId && activeThreads) {
+            const threadByMsg = activeThreads.find((t: any) => Number(t.telegram_message_id) === replyMsgId);
+            if (threadByMsg) {
+              targetThreadId = threadByMsg.id;
+              customerLabel = threadByMsg.customer_name || "Visitor";
             }
-          } catch (_) {}
+          }
+
+          // 3. Fallback: If swipe-replying in the group without an explicit tag, route to the latest active chat
+          if (!targetThreadId && activeThreads && activeThreads.length > 0) {
+            targetThreadId = activeThreads[0].id;
+            customerLabel = activeThreads[0].customer_name || "Visitor";
+          }
+
+          replyContent = text;
+        } else if (isReplyCommand || hasChatTag) {
+          // Remove command prefix
+          let cleanBody = text.replace(/^\/(?:r|reply)\s*/i, "").trim();
+
+          // Check if explicit #chat_<id> was provided
+          const tagMatch = cleanBody.match(/^#chat_([a-zA-Z0-9_\-]+)\s*([\s\S]*)$/);
+          if (tagMatch) {
+            targetThreadId = tagMatch[1];
+            replyContent = tagMatch[2].trim();
+          } else {
+            // Check if first word matches a customer name or thread id
+            const parts = cleanBody.split(/\s+/);
+            if (parts.length >= 2 && activeThreads && activeThreads.length > 0) {
+              const query = parts[0].toLowerCase().replace("#chat_", "");
+              const matched = activeThreads.find((t: any) =>
+                t.id.toLowerCase().includes(query) ||
+                (t.customer_name && t.customer_name.toLowerCase().includes(query)) ||
+                (t.customer_phone && t.customer_phone.includes(query))
+              );
+
+              if (matched) {
+                targetThreadId = matched.id;
+                customerLabel = matched.customer_name || "Visitor";
+                replyContent = cleanBody.slice(parts[0].length).trim();
+              }
+            }
+
+            // Fallback: If no specific customer matched, use the entire text as reply to the most recent active chat
+            if (!targetThreadId && activeThreads && activeThreads.length > 0) {
+              targetThreadId = activeThreads[0].id;
+              customerLabel = activeThreads[0].customer_name || "Visitor";
+              replyContent = cleanBody;
+            }
+          }
         }
 
-        if (targetThreadId) {
+        // If targetThreadId was found and we have content to send:
+        if (targetThreadId && replyContent && replyContent.trim().length > 0) {
           const staffName = [msg.from?.first_name, msg.from?.last_name].filter(Boolean).join(" ") || "Farm Team";
           const nowIso = new Date().toISOString();
           const newMsgId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
           try {
-            // Ensure thread exists in live_chat_threads before inserting staff message
+            // Ensure thread exists and is set to active
             await supabase.from("live_chat_threads").upsert({
               id: targetThreadId,
               status: "active",
-              last_message: text,
+              last_message: replyContent,
               last_message_at: nowIso,
               updated_at: nowIso,
             }, { onConflict: "id" });
 
+            // Insert staff message into live_chat_messages table
             await supabase.from("live_chat_messages").insert({
               id: newMsgId,
               thread_id: targetThreadId,
               sender: "staff",
               sender_name: `${staffName} (Urban Trout)`,
-              text: text,
+              text: replyContent,
               created_at: nowIso,
             });
 
+            // Update thread metadata
             await supabase.from("live_chat_threads").update({
-              last_message: text,
+              last_message: replyContent,
               last_message_at: nowIso,
               updated_at: nowIso,
             }).eq("id", targetThreadId);
 
+            // Fetch visitor details for confirmation text
+            const { data: currentThread } = await supabase
+              .from("live_chat_threads")
+              .select("customer_name, customer_phone")
+              .eq("id", targetThreadId)
+              .maybeSingle();
+
+            const finalName = currentThread?.customer_name || customerLabel || "Visitor";
+            const phoneInfo = currentThread?.customer_phone ? ` (+91 ${currentThread.customer_phone})` : "";
+
+            // Send confirmation in Telegram
             await sendTelegramMessage(
-              `⚡ <b>REPLY DELIVERED LIVE TO VISITOR!</b>\n━━━━━━━━━━━━━━━━━━━━\n<b>Visitor:</b> <code>#chat_${targetThreadId}</code>\n<b>Your Message:</b> <i>"${escapeHtml(text)}"</i>`,
+              `⚡ <b>REPLY DELIVERED LIVE TO ${escapeHtml(finalName.toUpperCase())}!</b>\n━━━━━━━━━━━━━━━━━━━━\n<b>Visitor:</b> ${escapeHtml(finalName)}${phoneInfo}\n<b>Thread:</b> <code>#chat_${targetThreadId}</code>\n<b>Your Message:</b> <i>"${escapeHtml(replyContent)}"</i>`,
               "HTML",
               undefined,
               chatId,
               msg.message_id
             );
 
-            return NextResponse.json({ success: true, repliedToThread: targetThreadId });
+            return NextResponse.json({ success: true, deliveredTo: targetThreadId });
           } catch (replyErr) {
             console.error("Failed to route Telegram reply to live chat:", replyErr);
-          }
-        }
-      }
-
-      // ── Handle Direct Reply without Swiping: "/reply <threadId> <text>" or "#chat_<threadId> <text>" ──
-      if (!msg.reply_to_message && (text.startsWith("/reply") || text.includes("#chat_"))) {
-        let directThreadId: string | null = null;
-        let directReplyContent = "";
-
-        const hashMatch = text.match(/#chat_([a-zA-Z0-9_\-]+)\s+([\s\S]+)/);
-        if (hashMatch) {
-          directThreadId = hashMatch[1];
-          directReplyContent = hashMatch[2].trim();
-        } else if (text.startsWith("/reply")) {
-          const parts = text.split(/\s+/);
-          if (parts.length >= 3) {
-            directThreadId = parts[1].replace("#chat_", "").trim();
-            directReplyContent = text.slice(text.indexOf(parts[2])).trim();
-          }
-        }
-
-        if (directThreadId && directReplyContent) {
-          const staffName = [msg.from?.first_name, msg.from?.last_name].filter(Boolean).join(" ") || "Farm Team";
-          const nowIso = new Date().toISOString();
-          const newMsgId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-
-          try {
-            await supabase.from("live_chat_threads").upsert({
-              id: directThreadId,
-              status: "active",
-              last_message: directReplyContent,
-              last_message_at: nowIso,
-              updated_at: nowIso,
-            }, { onConflict: "id" });
-
-            await supabase.from("live_chat_messages").insert({
-              id: newMsgId,
-              thread_id: directThreadId,
-              sender: "staff",
-              sender_name: `${staffName} (Urban Trout)`,
-              text: directReplyContent,
-              created_at: nowIso,
-            });
-
             await sendTelegramMessage(
-              `⚡ <b>REPLY DELIVERED LIVE TO VISITOR!</b>\n━━━━━━━━━━━━━━━━━━━━\n<b>Visitor:</b> <code>#chat_${directThreadId}</code>\n<b>Your Message:</b> <i>"${escapeHtml(directReplyContent)}"</i>`,
+              `⚠️ <b>Failed to deliver reply:</b> Database error. Please check server logs.`,
               "HTML",
               undefined,
               chatId,
               msg.message_id
             );
-
-            return NextResponse.json({ success: true, repliedToThread: directThreadId });
-          } catch (replyErr) {
-            console.error("Failed to route direct Telegram reply to live chat:", replyErr);
+            return NextResponse.json({ success: false, error: String(replyErr) }, { status: 500 });
           }
+        } else if (isReplyCommand) {
+          // If staff typed /r or /reply but no active chat exists
+          await sendTelegramMessage(
+            `⚠️ <b>Could not deliver live chat reply:</b> No active website customer conversation found.\nType <code>/chats</code> to view active threads or wait for a visitor to message.`,
+            "HTML",
+            undefined,
+            chatId,
+            msg.message_id
+          );
+          return NextResponse.json({ success: false, reason: "no_active_chat" });
         }
       }
 
@@ -616,72 +649,12 @@ export async function POST(request: Request) {
             buttons.push(row);
           });
 
-          report += `👉 <i>To reply to any visitor, swipe reply to their message, or type:</i>\n<code>/r &lt;name/id&gt; &lt;your reply&gt;</code>`;
+          report += `👉 <i>To reply to any visitor, swipe reply to their message, or type:</i>\n<code>/r &lt;your reply&gt;</code>`;
 
           await sendTelegramMessage(report, "HTML", { inline_keyboard: buttons }, chatId);
           return NextResponse.json({ success: true });
         } catch (err: any) {
           console.error("Error listing chats:", err);
-        }
-      }
-
-      // ── Command: /r <threadId or customerName> <reply text> ──
-      if (text.startsWith("/r ") || text.startsWith("/reply ")) {
-        const parts = text.split(" ");
-        if (parts.length >= 3) {
-          const targetQuery = parts[1].toLowerCase().replace("#chat_", "").trim();
-          const replyBody = parts.slice(2).join(" ").trim();
-
-          const { data: matchingThreads } = await supabase
-            .from("live_chat_threads")
-            .select("*")
-            .eq("status", "active")
-            .order("last_message_at", { ascending: false });
-
-          const found = matchingThreads?.find((t: any) => 
-            t.id.toLowerCase().includes(targetQuery) || 
-            (t.customer_name && t.customer_name.toLowerCase().includes(targetQuery)) ||
-            (t.customer_phone && t.customer_phone.includes(targetQuery))
-          );
-
-          if (found) {
-            const staffName = [msg.from?.first_name, msg.from?.last_name].filter(Boolean).join(" ") || "Farm Team";
-            const nowIso = new Date().toISOString();
-            const newMsgId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-
-            await supabase.from("live_chat_messages").insert({
-              id: newMsgId,
-              thread_id: found.id,
-              sender: "staff",
-              sender_name: `${staffName} (Urban Trout)`,
-              text: replyBody,
-              created_at: nowIso,
-            });
-
-            await supabase.from("live_chat_threads").update({
-              last_message: replyBody,
-              last_message_at: nowIso,
-              updated_at: nowIso,
-            }).eq("id", found.id);
-
-            await sendTelegramMessage(
-              `⚡ <b>REPLY DELIVERED LIVE TO ${found.customer_name || "VISITOR"}!</b>\n━━━━━━━━━━━━━━━━━━━━\n<b>Sent:</b> <i>"${replyBody}"</i>`,
-              "HTML",
-              undefined,
-              chatId,
-              found.telegram_message_id ? Number(found.telegram_message_id) : undefined
-            );
-
-            return NextResponse.json({ success: true });
-          } else {
-            await sendTelegramMessage(
-              `❌ No active chat found matching "<b>${targetQuery}</b>".\nType <code>/chats</code> to see open conversations.`,
-              "HTML",
-              undefined,
-              chatId
-            );
-            return NextResponse.json({ success: true });
-          }
         }
       }
 

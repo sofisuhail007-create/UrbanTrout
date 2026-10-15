@@ -52,11 +52,22 @@ export const metadata: Metadata = {
     template: "%s | Urban Trout",
   },
   description:
-    "Live-harvested Rainbow Trout in Srinagar. Fresh from ₹540/kg, delivered chilled in 2 hrs. Free doorstep delivery within 5km. Order now.",
+    "Live-harvested Rainbow Trout in Srinagar. Fresh from ₹540/kg, delivered chilled in 2 hrs. Free doorstep delivery across Srinagar 8km express zone. Order now.",
+  keywords: [
+    "Rainbow Trout Srinagar",
+    "Buy fresh trout Srinagar",
+    "Trout delivery Srinagar",
+    "Live trout online Srinagar",
+    "Urban Trout",
+    "Fresh fish Srinagar",
+    "Trout price Srinagar",
+    "Freshwater trout Kashmir",
+    "Cleaned trout Srinagar",
+  ],
   openGraph: {
     title: "Fresh Rainbow Trout in Srinagar from ₹540/kg | Urban Trout",
     description:
-      "Live-harvested Rainbow Trout in Srinagar. Fresh from ₹540/kg, delivered chilled in 2 hrs. Free doorstep delivery within 5km. Order now.",
+      "Live-harvested Rainbow Trout in Srinagar. Fresh from ₹540/kg, delivered chilled in 2 hrs. Free doorstep delivery across Srinagar 8km express zone. Order now.",
     url: "https://urbantrout.in",
     siteName: "Urban Trout",
     images: [
@@ -75,7 +86,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Buy Fresh Rainbow Trout in Srinagar | Urban Trout",
-    description: "Farm-fresh Rainbow Trout harvested to order in Srinagar. Chilled 2-hour doorstep delivery within our 5km farm zone.",
+    description: "Farm-fresh Rainbow Trout harvested to order in Srinagar. Chilled 2-hour doorstep delivery within our 8km express farm zone.",
     images: ["https://urbantrout.in/og-image.jpg"],
   },
   robots: {
@@ -126,7 +137,7 @@ const jsonLd = {
       "alternateName": ["Urban Trout Srinagar", "Urban Trout Aquaculture", "ٹراؤٹ مچھلی سرینگر", "ट्राउट मछली श्रीनगर"],
       "image": "https://urbantrout.in/images/og-image.png",
       "logo": "https://urbantrout.in/sitelogo.png",
-      "description": "Srinagar's premier cold-water aquaculture farm located in Malabagh. Producing fresh whole and cleaned Rainbow Trout (Oncorhynchus mykiss) harvested live to order with rapid chilled delivery within 2 hours within our 5km farm radius.",
+      "description": "Srinagar's premier cold-water aquaculture farm located in Malabagh. Producing fresh whole and cleaned Rainbow Trout (Oncorhynchus mykiss) harvested live to order with rapid chilled delivery within 2 hours across our 8km express farm radius in Srinagar.",
       "url": "https://urbantrout.in",
       "hasMap": "https://maps.app.goo.gl/4N8A8ywhJpys9EaDA",
       "sameAs": [
@@ -158,7 +169,7 @@ const jsonLd = {
       },
       "priceRange": "₹540 - ₹580 per Kg",
       "currenciesAccepted": "INR",
-      "paymentAccepted": "Cash on Delivery, UPI, Debit Card, Credit Card, Net Banking",
+      "paymentAccepted": "Prepaid Online (UPI, Cards, Net Banking) & Direct Farm Pickup",
       "address": {
         "@type": "PostalAddress",
         "streetAddress": "Malla Bagh Naseem Bagh Hazratbal, Zone-III, Near R P School (Girls Wing)",
@@ -169,8 +180,8 @@ const jsonLd = {
       },
       "geo": {
         "@type": "GeoCoordinates",
-        "latitude": 34.1445563,
-        "longitude": 74.8245018
+        "latitude": 34.144709,
+        "longitude": 74.824525
       },
       "openingHoursSpecification": [
         {
@@ -183,8 +194,8 @@ const jsonLd = {
             "Saturday",
             "Sunday"
           ],
-          "opens": "07:00",
-          "closes": "22:00"
+          "opens": "08:00",
+          "closes": "21:00"
         }
       ],
       "servesCuisine": "Freshwater Trout, Himalayan Fish, Seafood",

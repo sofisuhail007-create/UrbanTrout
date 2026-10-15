@@ -378,7 +378,7 @@ export default function ContactPage() {
                     Harvest & Delivery Hours
                   </span>
                   <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.9rem", color: C.onSurface, margin: "2px 0 0", fontWeight: 600 }}>
-                    Saturday – Thursday: 7:00 AM – 10:00 PM
+                    Saturday – Thursday: 8:00 AM – 9:00 PM
                   </p>
                   <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.82rem", color: "#f87171", margin: "3px 0 0", fontWeight: 600 }}>
                     Closed on Fridays for Farm Maintenance
@@ -575,7 +575,7 @@ export default function ContactPage() {
                           borderRadius: "10px", padding: "12px 16px", color: C.onSurface, fontFamily: '"Manrope", sans-serif', fontSize: "0.9rem",
                         }}
                       >
-                        <option value="Home Delivery Inquiry">Home Delivery (5km Farm Radius)</option>
+                        <option value="Home Delivery Inquiry">Home Delivery (8km Express Perimeter)</option>
                         <option value="Bulk / Event Order">Bulk Order / Special Event</option>
                         <option value="Restaurant Supply">Hotel & Restaurant Supply</option>
                         <option value="Vending Center Pickup">Vending Center Pickup Inquiry</option>

@@ -43,7 +43,6 @@ export interface InlineKeyboardMarkup {
   inline_keyboard: InlineKeyboardButton[][];
 }
 
-const TG_DEDUP_SETTINGS_KEY = "telegram_dedup_processed";
 const TG_DEDUP_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
 const inMemoryTgDedup = new Map<string, number>();
 
@@ -60,7 +59,7 @@ export async function isTelegramDuplicate(keys: (string | null | undefined)[]): 
 
   const now = Date.now();
 
-  // 1. In-memory fast check
+  // 1. In-memory fast check (survives within the same node process)
   for (const k of validKeys) {
     const ts = inMemoryTgDedup.get(k);
     if (ts && now - ts < TG_DEDUP_TTL_MS) {
@@ -69,51 +68,76 @@ export async function isTelegramDuplicate(keys: (string | null | undefined)[]): 
     }
   }
 
-  // 2. Persistent Supabase check
+  // 2. Persistent Atomic Lock Check via PostgreSQL Primary Key Constraint
+  // In serverless environments, multiple concurrent webhook invocations (e.g. payment_link.paid
+  // and payment.captured) arrive at the exact same millisecond. Non-atomic SELECT-then-UPSERT
+  // suffers from race conditions. Atomic INSERT on primary key (app_settings.key) guarantees
+  // that only ONE concurrent invocation succeeds; all other concurrent invocations receive
+  // Postgres error 23505 (unique_violation) and are immediately rejected as duplicates.
   try {
-    const { data: row } = await supabase
-      .from("app_settings")
-      .select("value")
-      .eq("key", TG_DEDUP_SETTINGS_KEY)
-      .maybeSingle();
+    const dbKeys = validKeys.map((k) => `tg_lock_${k}`);
 
-    let processed: Array<{ id: string; ts: number }> = [];
-    if (row?.value) {
+    // Fast check: Did any of these keys exist previously within TTL?
+    const { data: existingRows } = await supabase
+      .from("app_settings")
+      .select("key, updated_at")
+      .in("key", dbKeys);
+
+    if (existingRows && existingRows.length > 0) {
+      const activeLock = existingRows.find((r) => {
+        const rowTime = r.updated_at ? new Date(r.updated_at).getTime() : 0;
+        return now - rowTime < TG_DEDUP_TTL_MS;
+      });
+
+      if (activeLock) {
+        console.log(`[Telegram Dedup] Active DB lock detected: ${activeLock.key}`);
+        validKeys.forEach((k) => inMemoryTgDedup.set(k, now));
+        return true;
+      }
+    }
+
+    // Atomic insert of the primary lock key
+    const primaryKey = validKeys[0];
+    const primaryDbKey = `tg_lock_${primaryKey}`;
+
+    const { error: insertError } = await supabase.from("app_settings").insert({
+      key: primaryDbKey,
+      value: JSON.stringify({ ts: now, keys: validKeys }),
+      description: "Atomic Telegram Dedup Lock (2hr TTL)",
+      updated_at: new Date().toISOString(),
+    });
+
+    if (insertError) {
+      // 23505 = unique_violation in PostgreSQL
+      if (
+        insertError.code === "23505" ||
+        insertError.message?.toLowerCase().includes("duplicate key") ||
+        insertError.message?.toLowerCase().includes("unique constraint")
+      ) {
+        console.log(`[Telegram Dedup] Atomic lock collision on ${primaryDbKey} — duplicate caught!`);
+        validKeys.forEach((k) => inMemoryTgDedup.set(k, now));
+        return true;
+      }
+      console.warn("[Telegram Dedup] Lock insert notice:", insertError);
+    }
+
+    // Also register secondary keys so future queries on any alternate key match immediately
+    if (validKeys.length > 1) {
+      const secondaryRows = validKeys.slice(1).map((k) => ({
+        key: `tg_lock_${k}`,
+        value: JSON.stringify({ ts: now, primary: primaryKey }),
+        description: "Atomic Telegram Dedup Lock Secondary",
+        updated_at: new Date().toISOString(),
+      }));
       try {
-        processed = JSON.parse(row.value);
+        await supabase.from("app_settings").upsert(secondaryRows, { onConflict: "key" });
       } catch (_) {}
     }
 
-    // Prune stale entries
-    const pruned = processed.filter((p) => now - p.ts < TG_DEDUP_TTL_MS);
-
-    // Check if any key exists in processed list
-    const isDup = pruned.some((p) => validKeys.includes(p.id));
-    if (isDup) {
-      console.log(`[Telegram Dedup] Persistent duplicate detected for keys: ${validKeys.join(", ")}`);
-      validKeys.forEach((k) => inMemoryTgDedup.set(k, now));
-      return true;
-    }
-
-    // Register all keys
-    validKeys.forEach((k) => {
-      pruned.push({ id: k, ts: now });
-      inMemoryTgDedup.set(k, now);
-    });
-
-    await supabase.from("app_settings").upsert(
-      {
-        key: TG_DEDUP_SETTINGS_KEY,
-        value: JSON.stringify(pruned.slice(-400)),
-        description: "Persistent Telegram notification deduplication store (2hr TTL)",
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "key" }
-    );
-
+    validKeys.forEach((k) => inMemoryTgDedup.set(k, now));
     return false;
   } catch (err) {
-    console.warn("[Telegram Dedup] Supabase check error, falling back to memory:", err);
+    console.warn("[Telegram Dedup] Supabase atomic lock error, falling back to memory:", err);
     validKeys.forEach((k) => inMemoryTgDedup.set(k, now));
     return false;
   }
@@ -634,6 +658,102 @@ export async function notifyLiveChatMessage(params: {
   return sendTelegramMessage(msg, "HTML", keyboard, undefined, params.parentTelegramMsgId);
 }
 
+export const BANK_NAME_MAP: Record<string, string> = {
+  JAKA: "J&K Bank (Jammu & Kashmir Bank)",
+  HDFC: "HDFC Bank",
+  SBIN: "State Bank of India (SBI)",
+  ICIC: "ICICI Bank",
+  UTIB: "Axis Bank",
+  AXIS: "Axis Bank",
+  PUNB: "Punjab National Bank (PNB)",
+  KKBK: "Kotak Mahindra Bank",
+  BARB: "Bank of Baroda",
+  CNRB: "Canara Bank",
+  UBIN: "Union Bank of India",
+  YESB: "Yes Bank",
+  IDFB: "IDFC First Bank",
+  INDB: "IndusInd Bank",
+  CBIN: "Central Bank of India",
+  IOBA: "Indian Overseas Bank",
+  BKID: "Bank of India",
+  MAHB: "Bank of Maharashtra",
+  PSIB: "Punjab & Sind Bank",
+  UCOB: "UCO Bank",
+  FDRL: "Federal Bank",
+  KVBL: "Karur Vysya Bank",
+  JSFB: "Jana Small Finance Bank",
+  ESFB: "Equitas Small Finance Bank",
+};
+
+export function formatPaymentSource(params: {
+  method?: string | null;
+  vpa?: string | null;
+  bank?: string | null;
+  wallet?: string | null;
+  card?: {
+    last4?: string;
+    network?: string;
+    type?: string;
+    issuer?: string;
+  } | null;
+  fee?: number | null;
+  tax?: number | null;
+  amount?: number;
+}): { sourceText: string; feeText: string; netText: string } {
+  const methodRaw = (params.method || "UPI").toLowerCase();
+  let sourceText = "";
+
+  if (methodRaw.includes("upi")) {
+    sourceText = params.vpa
+      ? `🔵 <b>UPI</b> (<code>${escapeHtml(params.vpa)}</code>)`
+      : "🔵 <b>UPI Direct</b>";
+  } else if (methodRaw.includes("netbanking") || methodRaw === "nb") {
+    const bankCode = (params.bank || "").toUpperCase();
+    const bankName = BANK_NAME_MAP[bankCode] || bankCode || "Net Banking";
+    sourceText = `🟢 <b>Net Banking</b> — ${escapeHtml(bankName)}${bankCode ? ` (<code>${escapeHtml(bankCode)}</code>)` : ""}`;
+  } else if (methodRaw.includes("card")) {
+    const network = (params.card?.network || "").toUpperCase();
+    const type = (params.card?.type || "Card").toUpperCase();
+    const last4 = params.card?.last4 ? ` ending in •••• ${params.card.last4}` : "";
+    const issuer = params.card?.issuer ? ` (${params.card.issuer})` : "";
+    sourceText = `💳 <b>${escapeHtml(network || "Bank")} ${escapeHtml(type)}</b>${last4}${issuer}`;
+  } else if (methodRaw.includes("wallet")) {
+    const walletName = (params.wallet || "Wallet").toUpperCase();
+    sourceText = `📱 <b>Wallet</b> — ${escapeHtml(walletName)}`;
+  } else {
+    sourceText = `💳 <b>${escapeHtml(methodRaw.toUpperCase())}</b>`;
+  }
+
+  // Calculate Fee & Tax Breakdown
+  // Razorpay returns fee and tax in paise (e.g. 2552 paise = Rs 25.52, 460 paise = Rs 4.60)
+  let feeRupees = 0;
+  let taxRupees = 0;
+
+  if (typeof params.fee === "number" && params.fee > 0) {
+    feeRupees = params.fee > 100 ? params.fee / 100 : params.fee;
+  }
+  if (typeof params.tax === "number" && params.tax > 0) {
+    taxRupees = params.tax > 100 ? params.tax / 100 : params.tax;
+  }
+
+  const totalFeeDeducted = feeRupees + taxRupees;
+  const grossAmount = params.amount || 0;
+  const netSettled = grossAmount > totalFeeDeducted ? grossAmount - totalFeeDeducted : grossAmount;
+
+  let feeText = "";
+  let netText = "";
+
+  if (totalFeeDeducted > 0) {
+    feeText = `⚠️ <b>-₹${totalFeeDeducted.toFixed(2)}</b> (₹${feeRupees.toFixed(2)} fee + ₹${taxRupees.toFixed(2)} GST)`;
+    netText = `<b>₹${netSettled.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>`;
+  } else {
+    feeText = `✨ <b>₹0.00 (Zero Fee / 100% Payout)</b>`;
+    netText = `<b>₹${grossAmount.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b>`;
+  }
+
+  return { sourceText, feeText, netText };
+}
+
 export async function notifyRazorpayPayment(params: {
   paymentId: string;
   orderId?: string | null;
@@ -641,6 +761,16 @@ export async function notifyRazorpayPayment(params: {
   status: string;
   method?: string;
   vpa?: string | null;
+  bank?: string | null;
+  wallet?: string | null;
+  card?: {
+    last4?: string;
+    network?: string;
+    type?: string;
+    issuer?: string;
+  } | null;
+  fee?: number | null;
+  tax?: number | null;
   customerName?: string | null;
   customerPhone?: string | null;
   customerEmail?: string | null;
@@ -654,9 +784,8 @@ export async function notifyRazorpayPayment(params: {
   const cleanPhone = params.customerPhone ? String(params.customerPhone).replace(/\D/g, "").slice(-10) : "";
   const name = params.customerName || "Customer";
   const channel = params.channel || (params.description?.includes("POS") ? "Counter POS QR" : "Website Checkout");
-  const method = (params.method || "UPI").toUpperCase() + (params.vpa ? ` (${params.vpa})` : "");
 
-  // Centralized Telegram Deduplication: prevent duplicate payment alerts across webhooks/lambdas
+  // Centralized Atomic Telegram Deduplication: prevent duplicate payment alerts across webhooks/lambdas
   const amtPhoneKey = cleanPhone && params.amount ? `amt_ph_${cleanPhone}_${Math.round(params.amount)}` : null;
   const isDup = await isTelegramDuplicate([
     params.paymentId,
@@ -667,6 +796,17 @@ export async function notifyRazorpayPayment(params: {
     console.log(`[Telegram Dedup] Skipping duplicate payment notification for ${params.paymentId} / ${params.orderId}`);
     return { ok: true, duplicate: true };
   }
+
+  const { sourceText, feeText, netText } = formatPaymentSource({
+    method: params.method,
+    vpa: params.vpa,
+    bank: params.bank,
+    wallet: params.wallet,
+    card: params.card,
+    fee: params.fee,
+    tax: params.tax,
+    amount: params.amount,
+  });
 
   let resolvedMapsUrl = params.googleMapsUrl || null;
   if (!resolvedMapsUrl && params.latitude && params.longitude) {
@@ -703,7 +843,10 @@ export async function notifyRazorpayPayment(params: {
 🗓️ <b>Date & Time:</b> <b>${istDateTime} IST</b>
 🛒 <b>Items / Summary:</b> <b>${escapeHtml(params.description || "Fresh Rainbow Trout Harvest")}</b>
 💰 <b>Amount Paid:</b> <b>₹${Number(params.amount || 0).toLocaleString("en-IN")}</b> (PAID ✓)
-💳 <b>Payment ID:</b> <code>${params.paymentId}</code> (${escapeHtml(method)})
+💳 <b>Payment Source:</b> ${sourceText}
+💸 <b>Gateway Fee:</b> ${feeText}
+💵 <b>Net Settled:</b> ${netText}
+💳 <b>Payment ID:</b> <code>${params.paymentId}</code>
 🤖 <b>Channel:</b> WhatsApp AI Sales Agent
 📍 <b>Delivery Location:</b>
 ${resolvedMapsUrl ? `🗺️ <a href="${resolvedMapsUrl}"><b>Click here for 1-Tap Google Maps Navigation</b> ↗</a>${distanceInfo}` : `<i>Customer confirmed in-zone via WhatsApp (no GPS pin shared)</i>`}
@@ -716,9 +859,11 @@ ${resolvedMapsUrl ? `🗺️ <a href="${resolvedMapsUrl}"><b>Click here for 1-Ta
 
     msg = `💰 <b>RAZORPAY PAYMENT RECEIVED!</b> ⚡
 ━━━━━━━━━━━━━━━━━━━━
-<b>Amount:</b> <b>₹${Number(params.amount || 0).toLocaleString("en-IN")}</b> (PAID ✓)
+<b>Amount Paid:</b> <b>₹${Number(params.amount || 0).toLocaleString("en-IN")}</b> (PAID ✓)
 <b>Customer:</b> ${escapeHtml(name)}
-${cleanPhone ? `<b>Phone:</b> <a href="tel:+91${cleanPhone}">+91 ${cleanPhone}</a>\n` : ""}${params.customerEmail ? `<b>Email:</b> ${escapeHtml(params.customerEmail)}\n` : ""}<b>Method:</b> ${escapeHtml(method)}
+${cleanPhone ? `<b>Phone:</b> <a href="tel:+91${cleanPhone}">+91 ${cleanPhone}</a>\n` : ""}${params.customerEmail ? `<b>Email:</b> ${escapeHtml(params.customerEmail)}\n` : ""}💳 <b>Payment Source:</b> ${sourceText}
+💸 <b>Gateway Fee:</b> ${feeText}
+💵 <b>Net Settled:</b> ${netText}
 <b>Txn Ref:</b> <code>${params.paymentId}</code>
 ${params.orderId ? `<b>Order ID:</b> <code>${params.orderId}</code>\n` : ""}${params.description ? `<b>Desc:</b> ${escapeHtml(params.description)}\n` : ""}<b>Channel:</b> <b>${escapeHtml(channel)}</b>${gpsLine}
 <b>Time:</b> ${istDateTime} IST
@@ -727,9 +872,6 @@ ${params.orderId ? `<b>Order ID:</b> <code>${params.orderId}</code>\n` : ""}${pa
   }
 
   const buttons: InlineKeyboardButton[][] = [];
-
-  // User Request: Remove "Mark Harvested", "Out for Delivery", "Delivered", and "WhatsApp Receipt" badges.
-  // ONLY keep 1-tap Google Maps Navigation button if a maps URL is present.
   if (resolvedMapsUrl) {
     buttons.push([
       {

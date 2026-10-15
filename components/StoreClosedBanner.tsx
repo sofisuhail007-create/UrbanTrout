@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 
 interface Props {
   nextOpenISO: string;   // ISO string of next open time (UTC)
-  nextOpenLabel: string; // e.g. "tomorrow at 7:00 AM" or "tomorrow (Saturday) at 7:00 AM"
+  nextOpenLabel: string; // e.g. "tomorrow at 8:00 AM" or "tomorrow (Saturday) at 8:00 AM"
   primaryPhone: string;
   isFridayMaintenance?: boolean;
   closedReason?: "friday_maintenance" | "farm_maintenance" | "outside_hours" | "manual";
@@ -354,11 +354,9 @@ export default function StoreClosedBanner({
               </>
             ) : isFridayNow ? (
               <>
-                Our physical Vending Center &amp; Store in Malabagh is closed on Fridays for counter walk-ins.
+                Our Vending Center and doorstep delivery operations are completely closed on Fridays for scheduled RAS maintenance, filtration backwashing, and biosecurity sanitation.
                 <br />
-                However, online doorstep delivery within our 5 km delivery zone is actively accepted!
-                <br />
-                <strong style={{ color: C.onSurface }}>Live harvest doorstep delivery ordering opens {nextOpenLabel}.</strong>
+                <strong style={{ color: C.onSurface }}>Fresh live harvest &amp; doorstep delivery resume {nextOpenLabel || "tomorrow (Saturday) at 8:00 AM"}.</strong>
               </>
             ) : (
               <>
@@ -597,7 +595,7 @@ export default function StoreClosedBanner({
             </svg>
             <div style={{ textAlign: "left" }}>
               <p style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", letterSpacing: "0.2em", textTransform: "uppercase", color: C.onSurfVar, margin: "0 0 2px" }}>Farm Operating Schedule</p>
-              <p style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "0.88rem", fontWeight: 700, color: C.onSurface, margin: 0 }}>Sat – Thu: 7:00 AM – 10:00 PM</p>
+              <p style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "0.88rem", fontWeight: 700, color: C.onSurface, margin: 0 }}>Sat – Thu: 8:00 AM – 9:00 PM</p>
               <p style={{ fontFamily: '"Inter", sans-serif', fontSize: "10px", fontWeight: 600, color: "#f87171", margin: "2px 0 0" }}>Closed Fridays (Farm Maintenance)</p>
             </div>
           </div>

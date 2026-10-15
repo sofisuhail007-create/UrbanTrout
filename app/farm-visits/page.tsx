@@ -793,7 +793,7 @@ export default function FarmVisitsPage() {
                 <p className="text-slate-500 text-[11px]">Landmark: Near R P School Girls Wing</p>
                 <div className="pt-2 flex items-center gap-2 text-cyan-400 font-mono text-xs">
                   <span className="material-symbols-outlined text-sm">schedule</span>
-                  <span>Operational Hours: 08:00 AM – 07:00 PM</span>
+                  <span>Operational Hours: 08:00 AM – 09:00 PM</span>
                 </div>
               </div>
 
@@ -887,7 +887,7 @@ export default function FarmVisitsPage() {
             Need Same-Day Fresh Trout Delivered to Your Door?
           </h3>
           <p style={{ fontFamily: '"Manrope", sans-serif' }} className="text-xs sm:text-sm text-slate-300 max-w-lg mx-auto mb-6">
-            Skip the visit and order fresh chilled Rainbow Trout harvested to order with 100% Free Doorstep Delivery within our 5km farm radius within 2 hours.
+            Skip the visit and order fresh chilled Rainbow Trout harvested to order with 100% Free Doorstep Delivery across our 8km express zone within 2 hours.
           </p>
           <Link
             href="/shop"

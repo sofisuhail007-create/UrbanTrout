@@ -105,8 +105,8 @@ export async function POST(req: NextRequest) {
         : hoursInfo.closedReason === "farm_maintenance"
         ? "Our farm is currently in scheduled maintenance. You can schedule an order for when operations resume!"
         : hoursInfo.closedReason === "friday_maintenance"
-        ? `Our farm is closed on Fridays for scheduled Farm Maintenance. You can schedule your order for ${hoursInfo.nextOpenLabel || "Saturday at 7:00 AM"}!`
-        : `Our store is currently closed outside operating hours (7:00 AM – 10:00 PM). You can schedule your order for ${hoursInfo.nextOpenLabel || "tomorrow at 7:00 AM"}!`;
+        ? `Our farm is closed on Fridays for scheduled Farm Maintenance. You can schedule your order for ${hoursInfo.nextOpenLabel || "Saturday at 8:00 AM"}!`
+        : `Our store is currently closed outside operating hours (8:00 AM – 9:00 PM). You can schedule your order for ${hoursInfo.nextOpenLabel || "tomorrow at 8:00 AM"}!`;
 
       return NextResponse.json(
         {
@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
       const remainingDisplay = liveStock.remainingKg > 0 ? `${liveStock.remainingKg.toFixed(1)} kg available` : "All sold out";
       return NextResponse.json(
         {
-          error: `Sorry, we are out of stock for today! All available live aquarium trout has been sold out (${remainingDisplay}, but ${totalRequestedKg.toFixed(1)} kg requested). Fresh harvest resumes ${hoursInfo.nextOpenLabel || "tomorrow at 7:00 AM"}.`,
+          error: `Sorry, we are out of stock for today! All available live aquarium trout has been sold out (${remainingDisplay}, but ${totalRequestedKg.toFixed(1)} kg requested). Fresh harvest resumes ${hoursInfo.nextOpenLabel || "tomorrow at 8:00 AM"}.`,
           outOfStock: true,
           remainingKg: liveStock.remainingKg,
         },
@@ -172,8 +172,13 @@ export async function POST(req: NextRequest) {
       if (deliveryMode === "farm_pickup") {
         calculatedDeliveryFee = 0;
       } else {
-        // Standard delivery is free within 5km, or ₹40 outside
-        calculatedDeliveryFee = clientDeliveryFee === 40 ? 40 : 0;
+        // Support tiered delivery fees: ₹0, ₹100, ₹250, ₹300 (or any valid client delivery fee up to ₹500)
+        const parsedFee = Number(clientDeliveryFee);
+        if (!isNaN(parsedFee) && parsedFee >= 0 && parsedFee <= 500) {
+          calculatedDeliveryFee = Math.round(parsedFee);
+        } else {
+          calculatedDeliveryFee = 0;
+        }
       }
 
       const calculatedGrandTotal = calculatedSubtotal + calculatedDeliveryFee;

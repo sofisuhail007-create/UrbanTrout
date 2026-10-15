@@ -133,7 +133,7 @@ export default function BulkSupplyPage() {
                 <tr>
                   <td className="p-4 font-bold text-white">Daily Restaurant Supply</td>
                   <td className="p-4">5 Kg – 15 Kg (Sat – Thu)</td>
-                  <td className="p-4">7:00 AM – 9:30 AM <span className="block text-[11px] text-amber-400/90 font-mono">Closed Fridays (Maintenance)</span></td>
+                  <td className="p-4">8:00 AM – 10:00 AM <span className="block text-[11px] text-amber-400/90 font-mono">Closed Fridays (Maintenance)</span></td>
                   <td className="p-4 font-bold text-emerald-400">Competitive Contract Rates</td>
                 </tr>
                 <tr>

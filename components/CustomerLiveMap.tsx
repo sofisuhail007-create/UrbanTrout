@@ -67,7 +67,7 @@ export default function CustomerLiveMap({
         attribution: "Google Maps",
       }).addTo(map);
 
-      // 1. Delivery Zone Circle around Farm (5 km)
+      // 1. Delivery Zone Circle around Farm
       L.circle([farmLat, farmLng], {
         radius: deliveryRadiusKm * 1000,
         color: isInZone ? "#22c55e" : "#ef4444",
@@ -253,7 +253,7 @@ export default function CustomerLiveMap({
           🐟 Urban Trout Aquaculture Farm (Malabagh)
         </div>
         <div className="px-2 py-1 rounded bg-slate-950/85 border border-slate-800 text-slate-300 backdrop-blur-sm">
-          🟢 5km Live Catch Zone
+          🟢 {deliveryRadiusKm || 8}km Express Catch Zone
         </div>
       </div>
     </div>

@@ -4,14 +4,23 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "Rainbow Trout Price Per Kg in Srinagar (2026 Live Rates)",
   description:
-    "Official 2026 Rainbow Trout rates in Srinagar. Whole trout at ₹540/kg, cleaned & gutted at ₹580/kg with 100% Free Doorstep Delivery. Compare direct producer vs market rates.",
+    "Official 2026 Rainbow Trout rates in Srinagar. Whole trout at ₹540/kg, cleaned & gutted at ₹580/kg with express doorstep delivery. Compare direct farm rates vs retail markets.",
+  keywords: [
+    "Rainbow Trout Price Srinagar",
+    "Trout Price in Srinagar",
+    "Rainbow Trout Price Srinagar 2026",
+    "Buy Trout Online Srinagar",
+    "Trout Fish Price Per Kg Srinagar",
+    "Fresh Trout Delivery Srinagar",
+    "Cleaned Gutted Trout Srinagar",
+  ],
   alternates: {
     canonical: "https://urbantrout.in/trout-price-srinagar",
   },
   openGraph: {
     title: "Rainbow Trout Price Per Kg in Srinagar (2026 Rates) | Urban Trout",
     description:
-      "Farm-direct live harvest rates for Rainbow Trout in Srinagar: ₹540/kg whole, ₹580/kg gutted with free chilled delivery within our 5km farm radius within 2 hours.",
+      "Farm-direct live harvest rates for Rainbow Trout in Srinagar: ₹540/kg whole, ₹580/kg gutted with free chilled delivery across our 8km express zone within 2 hours.",
     url: "https://urbantrout.in/trout-price-srinagar",
     siteName: "Urban Trout",
     images: [
@@ -19,7 +28,7 @@ export const metadata: Metadata = {
         url: "https://urbantrout.in/og-image.jpg",
         width: 1200,
         height: 630,
-        alt: "Rainbow Trout Price in Srinagar - Urban Trout",
+        alt: "Rainbow Trout Price in Srinagar - Urban Trout 2026 Live Rates",
       },
     ],
     locale: "en_IN",
@@ -40,7 +49,7 @@ const C = {
 const priceFaqs = [
   {
     q: "What is the current rate of Rainbow Trout per kg in Srinagar for 2026?",
-    a: "At Urban Trout farm in Malabagh, Srinagar, fresh Whole Rainbow Trout is priced at ₹540 per kg, and Premium Cleaned & Gutted Trout is ₹580 per kg. Both include 100% Free chilled doorstep delivery within our 5km farm radius within 2 hours of harvest.",
+    a: "At Urban Trout farm in Malabagh, Srinagar, fresh Whole Rainbow Trout is priced at ₹540 per kg, and Premium Cleaned & Gutted Trout is ₹580 per kg. Both include 100% Free chilled doorstep delivery across our 8km farm perimeter (free from 2 kg in Zone 1, 3 kg in Zone 2, and 4 kg in Zone 3) within 90–120 minutes of harvest.",
   },
   {
     q: "Why are market fish and IndiaMART rates higher than Urban Trout?",
@@ -48,11 +57,15 @@ const priceFaqs = [
   },
   {
     q: "What is the minimum order quantity for free delivery?",
-    a: "Our minimum order is 2 kg for free doorstep delivery within our 5km farm perimeter. This ensures efficient live harvesting and allows our bio-thermal ice packing to maintain strict 0°C–2°C temperatures throughout transit to your kitchen.",
+    a: "Free doorstep delivery starts from 2 kg in Zone 1 (0–4 km), 3 kg in Zone 2 (4–6 km), and 4 kg in Zone 3 (6–8 km). This ensures efficient live harvesting and allows our bio-thermal ice packing to maintain strict 0°C–2°C temperatures throughout transit to your kitchen.",
   },
   {
     q: "Is there any extra charge for descaling, gutting, or doorstep delivery?",
-    a: "No hidden charges whatsoever. Doorstep delivery within our 5km farm delivery zone is 100% Free. Our Cleaned & Gutted option (₹580/kg) arrives 100% pan-ready with scales and viscera removed.",
+    a: "No hidden charges whatsoever. Doorstep delivery across our 8km farm delivery zones is 100% Free when meeting the zone's minimum order quantity. Our Cleaned & Gutted option (₹580/kg) arrives 100% pan-ready with scales and viscera removed.",
+  },
+  {
+    q: "Why choose hyper-local Srinagar farm trout over fish transported from outer districts?",
+    a: "Trout sourced from distant outer districts travels 4 to 8 hours over highway traffic on melting ice, causing flesh to soften and lose its natural resilience. Urban Trout is farmed right here in Malabagh, Srinagar. Your fish swims in cold deep borewell groundwater until your order is confirmed, arriving at your doorstep in 90–120 minutes on thermal crushed ice with peak freshness intact.",
   },
 ];
 
@@ -139,7 +152,7 @@ export default function TroutPriceSrinagarPage() {
             <ul className="text-xs text-slate-300 space-y-2 mb-6 font-sans">
               <li>✓ 100% natural weight (gills, scales, and head intact)</li>
               <li>✓ Netted live from Malabagh tanks upon order confirmation</li>
-              <li>✓ 100% Free chilled doorstep delivery within 5km farm radius</li>
+              <li>✓ 100% Free chilled doorstep delivery across 8km farm perimeter (Tiered)</li>
               <li>✓ Minimum order: 2 Kg</li>
             </ul>
             <Link
@@ -160,7 +173,7 @@ export default function TroutPriceSrinagarPage() {
             <ul className="text-xs text-slate-300 space-y-2 mb-6 font-sans">
               <li>✓ Descaled, cleaned, and gutted by farm specialists</li>
               <li>✓ Washed in cold borewell water, zero kitchen mess</li>
-              <li>✓ 100% Free chilled doorstep delivery within 5km farm radius</li>
+              <li>✓ 100% Free chilled doorstep delivery across 8km farm perimeter (Tiered)</li>
               <li>✓ Single central spine, effortless to debone (child-friendly)</li>
             </ul>
             <Link
@@ -196,7 +209,7 @@ export default function TroutPriceSrinagarPage() {
                   <td className="p-4 font-bold text-white">Urban Trout (Farm Direct)</td>
                   <td className="p-4 font-bold text-emerald-400">₹540 – ₹580</td>
                   <td className="p-4 text-emerald-400 font-bold">FREE (Chilled)</td>
-                  <td className="p-4 text-slate-300">Live harvested to order from RAS tanks</td>
+                  <td className="p-4 text-slate-300">Live harvested to order from Malabagh RAS tanks</td>
                 </tr>
                 <tr>
                   <td className="p-4 font-medium text-slate-300">Srinagar Wet Fish Markets</td>
@@ -218,6 +231,34 @@ export default function TroutPriceSrinagarPage() {
                 </tr>
               </tbody>
             </table>
+          </div>
+
+          {/* Farm-Direct Freshness Excellence Section */}
+          <div className="p-8 rounded-2xl bg-slate-900/80 border border-cyan-500/30 mb-10">
+            <h3 className="text-xl font-bold text-white font-['Space_Grotesk'] mb-3">
+              Why Farm-Direct RAS Aquaculture Delivers Superior Freshness in Srinagar
+            </h3>
+            <p className="text-sm leading-relaxed text-slate-300 font-sans mb-4">
+              Rainbow Trout (<em className="text-cyan-300 font-serif">Oncorhynchus mykiss</em>) is one of the most delicate freshwater cold-water fish in the world. Its meat quality depends entirely on water purity, harvest timing, and unbroken cold-chain speed. Here is how Urban Trout guarantees premier freshness:
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-sans text-slate-300 mt-4">
+              <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800">
+                <span className="text-cyan-300 font-bold text-sm block mb-1">⏱️ Harvested Live to Order (90–120 Min Delivery)</span>
+                We do not maintain dead storage inventory. Your trout is netted from our Malabagh tanks only after your order is confirmed, immediately packed on fresh crushed ice, and delivered to your doorstep within 90–120 minutes.
+              </div>
+              <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800">
+                <span className="text-emerald-300 font-bold text-sm block mb-1">💧 Deep Borewell Himalayan Groundwater</span>
+                Our Recirculating Aquaculture Systems (RAS) draw pristine, naturally cold groundwater (10°C–12°C) from deep aquifers, completely insulated from open river mud, lake silt, or agricultural runoff.
+              </div>
+              <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800">
+                <span className="text-cyan-300 font-bold text-sm block mb-1">💰 Transparent Producer Pricing</span>
+                By ordering directly from the farm, there are zero middleman commissions or third-party handling markups. You get premium whole trout at ₹540/kg and cleaned &amp; gutted trout at ₹580/kg with tiered free delivery up to 8 km.
+              </div>
+              <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800">
+                <span className="text-emerald-300 font-bold text-sm block mb-1">🛡️ FSSAI Food Safety &amp; Clean Cold-Chain</span>
+                Every fish is processed under strict food-hygiene standards (FSSAI Reg. No. 21026414000392) in food-grade bio-thermal insulation that maintains a strict 0°C–2°C chill throughout transit to your kitchen.
+              </div>
+            </div>
           </div>
 
           <h3 className="text-xl font-bold text-white font-['Space_Grotesk'] mt-8 mb-3">

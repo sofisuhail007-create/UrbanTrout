@@ -23,6 +23,14 @@ import { supabase } from "@/lib/supabase";
 import { getBusinessHoursInfo } from "@/lib/businessHours";
 import { getDeliveryScheduleInfo, DeliveryScheduleInfo } from "@/lib/deliverySchedule";
 import { calculateTroutNutrition } from "@/lib/nutrition";
+import {
+  SRINAGAR_LOCALITY_CATALOG,
+  DELIVERY_ZONES,
+  MAX_DELIVERY_RADIUS_KM,
+  LocalityData,
+  ZoneConfig,
+  evaluateDeliveryZone,
+} from "@/lib/deliveryZones";
 
 // ─── Razorpay global type ───────────────────────────────────────
 declare global {
@@ -55,219 +63,13 @@ const C = {
 };
 
 // ─── Farm Coordinates (Malabagh / Naseem Bagh, Srinagar) ────────
-const FARM_LAT = 34.1445563;
-const FARM_LNG = 74.8245018;
-const DELIVERY_RADIUS_KM = 5.0;
+const FARM_LAT = 34.144709;
+const FARM_LNG = 74.824525;
+const DELIVERY_RADIUS_KM = 8.0;
 
 // ─── Srinagar Landmark Coordinates for Distance Lookup & GPS Fallback ───
-interface SrinagarLandmark {
-  name: string;
-  lat: number;
-  lng: number;
-  pincode: string;
-  aliases?: string[];
-}
-
-const SRINAGAR_LANDMARKS: SrinagarLandmark[] = [
-  {
-    name: "Malabagh",
-    lat: 34.145,
-    lng: 74.825,
-    pincode: "190006",
-    aliases: ["malabagh", "mala bagh", "mallabagh", "malla bagh", "malabagh srinagar", "elahi bagh road malabagh"],
-  },
-  {
-    name: "Illahibagh",
-    lat: 34.14,
-    lng: 74.812,
-    pincode: "190011",
-    aliases: [
-      "illahibagh",
-      "illahi bagh",
-      "ellahi bagh",
-      "ellahibagh",
-      "elahi bagh",
-      "elahibagh",
-      "ilahi bagh",
-      "ilahibagh",
-      "ellahi",
-      "illahi",
-      "elahi",
-      "ilahi",
-      "illahi bagh srinagar",
-      "ellahi bagh srinagar",
-      "elahibagh srinagar",
-    ],
-  },
-  {
-    name: "Naseem Bagh",
-    lat: 34.1378,
-    lng: 74.8385,
-    pincode: "190006",
-    aliases: ["naseem bagh", "naseembagh", "nasim bagh", "nasimbagh", "kashmir university", "ku", "hazratbal road"],
-  },
-  {
-    name: "Hazratbal",
-    lat: 34.125,
-    lng: 74.843,
-    pincode: "190006",
-    aliases: ["hazratbal", "hazrat bal", "hazratbal shrine", "dargah", "dargah hazratbal", "hazratbal srinagar"],
-  },
-  {
-    name: "Habak",
-    lat: 34.148,
-    lng: 74.841,
-    pincode: "190006",
-    aliases: ["habak", "habbak", "habak crossing", "habbak crossing", "habak naseembagh", "habak srinagar"],
-  },
-  {
-    name: "Zakura",
-    lat: 34.159,
-    lng: 74.819,
-    pincode: "190024",
-    aliases: ["zakura", "zakoora", "zakura crossing", "zakoora crossing", "zakura industrial area", "zakura srinagar"],
-  },
-  {
-    name: "Soura / SKIMS",
-    lat: 34.133,
-    lng: 74.808,
-    pincode: "190011",
-    aliases: ["soura", "skims", "skims soura", "sowra", "90 feet soura", "90 feet", "90ft", "90ft road", "soura srinagar"],
-  },
-  {
-    name: "Bachpora",
-    lat: 34.152,
-    lng: 74.805,
-    pincode: "190020",
-    aliases: ["bachpora", "buchpora", "batpora", "bhatpora", "bach pora", "buch pora", "bachpora srinagar", "buchpora srinagar"],
-  },
-  {
-    name: "Lal Bazar",
-    lat: 34.116,
-    lng: 74.818,
-    pincode: "190011",
-    aliases: ["lal bazar", "lalbazar", "lal bazaar", "lalbazaar", "molvi stop", "bota kadal", "lal bazar srinagar"],
-  },
-  {
-    name: "Umar Colony",
-    lat: 34.136,
-    lng: 74.821,
-    pincode: "190011",
-    aliases: ["umar colony", "umer colony", "umar colony a", "umar colony b", "umer colony a", "umer colony b"],
-  },
-  {
-    name: "Gulab Bagh",
-    lat: 34.161,
-    lng: 74.832,
-    pincode: "190006",
-    aliases: ["gulab bagh", "gulabbagh", "gulab bagh srinagar"],
-  },
-  {
-    name: "Nowshera",
-    lat: 34.122,
-    lng: 74.812,
-    pincode: "190011",
-    aliases: ["nowshera", "nowshehra", "nowshera srinagar"],
-  },
-  {
-    name: "Hawal",
-    lat: 34.11,
-    lng: 74.813,
-    pincode: "190002",
-    aliases: ["hawal", "hawal chowk", "hawal srinagar"],
-  },
-  {
-    name: "Alamgiri Bazar",
-    lat: 34.108,
-    lng: 74.817,
-    pincode: "190002",
-    aliases: ["alamgiri bazar", "alamgiri bazaar", "alamgiribazar"],
-  },
-  {
-    name: "Khanyar",
-    lat: 34.095,
-    lng: 74.82,
-    pincode: "190003",
-    aliases: ["khanyar", "dastgeer sahib", "khanyar srinagar"],
-  },
-  {
-    name: "Rainawari",
-    lat: 34.095,
-    lng: 74.831,
-    pincode: "190003",
-    aliases: ["rainawari", "raina wari", "rainawari srinagar", "jlnm hospital"],
-  },
-  {
-    name: "Dalgate",
-    lat: 34.078,
-    lng: 74.834,
-    pincode: "190001",
-    aliases: ["dalgate", "dal gate", "boulevard", "boulevard road", "dalgate srinagar", "nehru park"],
-  },
-  {
-    name: "Rajbagh",
-    lat: 34.062,
-    lng: 74.825,
-    pincode: "190008",
-    aliases: ["rajbagh", "raj bagh", "rajbagh srinagar", "zero bridge", "kursoo rajbagh", "rajbagh extension"],
-  },
-  {
-    name: "Lal Chowk",
-    lat: 34.071,
-    lng: 74.811,
-    pincode: "190001",
-    aliases: ["lal chowk", "lalchowk", "clock tower", "ghanta ghar", "residency road", "maisuma", "regal chowk", "lal chowk srinagar"],
-  },
-  {
-    name: "Sanat Nagar",
-    lat: 34.032,
-    lng: 74.801,
-    pincode: "190005",
-    aliases: ["sanat nagar", "sanatnagar", "sanat nagar srinagar"],
-  },
-  {
-    name: "Hyderpora",
-    lat: 34.037,
-    lng: 74.789,
-    pincode: "190014",
-    aliases: ["hyderpora", "hyder pora", "hyderpora flyover", "hyderpora chowk", "hyderpora srinagar"],
-  },
-  {
-    name: "Bemina",
-    lat: 34.088,
-    lng: 74.779,
-    pincode: "190018",
-    aliases: ["bemina", "sd colony", "hamdania colony", "bemina byepass", "bemina chowk", "bemina srinagar"],
-  },
-  {
-    name: "Batamaloo",
-    lat: 34.074,
-    lng: 74.792,
-    pincode: "190009",
-    aliases: ["batamaloo", "batamalo", "batmaloo", "batamaloo srinagar"],
-  },
-  {
-    name: "Jawahar Nagar",
-    lat: 34.058,
-    lng: 74.818,
-    pincode: "190008",
-    aliases: ["jawahar nagar", "jawaharnagar", "jawahar nagar srinagar"],
-  },
-  {
-    name: "Chanapora",
-    lat: 34.035,
-    lng: 74.808,
-    pincode: "190015",
-    aliases: ["chanapora", "channapora", "chanapora srinagar", "chanapora bypass"],
-  },
-  {
-    name: "Nishat",
-    lat: 34.12,
-    lng: 74.88,
-    pincode: "190019",
-    aliases: ["nishat", "nishat garden", "brein", "brein nishat", "nishat srinagar"],
-  },
-];
+export type SrinagarLandmark = LocalityData;
+const SRINAGAR_LANDMARKS: SrinagarLandmark[] = SRINAGAR_LOCALITY_CATALOG;
 
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371; // Earth's radius in km
@@ -560,7 +362,7 @@ export default function CheckoutPage() {
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
 
   // ─── Location Check State ───
-  const [deliveryMode, setDeliveryMode] = useState<"under5" | "unavailable" | null>(null);
+  const [deliveryMode, setDeliveryMode] = useState<"under5" | "unavailable" | "farm_pickup" | null>(null);
   const [isLocating, setIsLocating] = useState(false);
   const [locatingStep, setLocatingStep] = useState<"idle" | "requesting" | "scanning" | "verifying" | "locked" | "denied" | "error">("idle");
   const [locationMsg, setLocationMsg] = useState("");
@@ -568,9 +370,9 @@ export default function CheckoutPage() {
   const [detectedCoords, setDetectedCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [calculatedDistance, setCalculatedDistance] = useState<number | null>(null);
   const [selectedZoneName, setSelectedZoneName] = useState<string>("");
-  const [deliveryRadiusKm, setDeliveryRadiusKm] = useState<number>(5.0);
-  const [farmLat, setFarmLat] = useState<number>(34.1445563);
-  const [farmLng, setFarmLng] = useState<number>(74.8245018);
+  const [deliveryRadiusKm, setDeliveryRadiusKm] = useState<number>(8.0);
+  const [farmLat, setFarmLat] = useState<number>(34.144709);
+  const [farmLng, setFarmLng] = useState<number>(74.824525);
   const [allowOutsideRadius, setAllowOutsideRadius] = useState<boolean>(false);
 
   // ─── Payment & Settings State ───
@@ -682,9 +484,25 @@ export default function CheckoutPage() {
 
   const leadIdRef = useRef<string | null>(null);
   const telegramSentPhonesRef = useRef<Set<string>>(new Set());
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const totalWeightKg = useMemo(() => {
+    return items.reduce((sum, item) => sum + (Number(item.quantity) || 0), 0);
+  }, [items]);
 
-  const deliveryFee = 0;
+  const currentZoneEvaluation = useMemo(() => {
+    return evaluateDeliveryZone({
+      coords: detectedCoords,
+      localityInput: formData.locality,
+      weightKg: totalWeightKg,
+    });
+  }, [detectedCoords, formData.locality, totalWeightKg]);
+
+  const deliveryFee = useMemo(() => {
+    if (deliveryMode === "farm_pickup") return 0;
+    if (deliveryMode !== "under5") return 0;
+    if (!calculatedDistance || calculatedDistance > deliveryRadiusKm) return 0;
+    return currentZoneEvaluation.deliveryFee;
+  }, [deliveryMode, calculatedDistance, deliveryRadiusKm, currentZoneEvaluation.deliveryFee]);
+
   const grandTotal = total + deliveryFee;
 
   useEffect(() => {
@@ -697,7 +515,7 @@ export default function CheckoutPage() {
           if (map.upi_id) setUpiId(map.upi_id);
           if (map.delivery_radius_km) {
             const r = parseFloat(map.delivery_radius_km);
-            if (!isNaN(r) && r > 0) setDeliveryRadiusKm(r);
+            if (!isNaN(r) && r > 0) setDeliveryRadiusKm(Math.max(r, 8.0));
           }
           if (map.farm_latitude) {
             const lat = parseFloat(map.farm_latitude);
@@ -722,7 +540,7 @@ export default function CheckoutPage() {
           if (map.upi_id) setUpiId(map.upi_id);
           if (map.delivery_radius_km) {
             const r = parseFloat(map.delivery_radius_km);
-            if (!isNaN(r) && r > 0) setDeliveryRadiusKm(r);
+            if (!isNaN(r) && r > 0) setDeliveryRadiusKm(Math.max(r, 8.0));
           }
           if (map.farm_latitude) {
             const lat = parseFloat(map.farm_latitude);
@@ -968,7 +786,17 @@ export default function CheckoutPage() {
         if (dist <= deliveryRadiusKm) {
           setDeliveryMode("under5");
           setLocatingStep("locked");
-          setLocationMsg(`${dist.toFixed(1)} km from Urban Trout Hub, Malabagh • Free Express Delivery within 2 Hours ✓`);
+          const evalRes = evaluateDeliveryZone({
+            coords: { lat: latitude, lng: longitude },
+            weightKg: totalWeightKg,
+          });
+          setLocationMsg(
+            `${dist.toFixed(1)} km from Urban Trout Hub • ${evalRes.zoneConfig.title} • ${
+              evalRes.deliveryFee === 0
+                ? "100% Free Doorstep Delivery ✓"
+                : `₹${evalRes.deliveryFee} Special Delivery (Free from ${evalRes.zoneConfig.minKgFree} kg)`
+            }`
+          );
         } else {
           setDeliveryMode("unavailable");
           setLocatingStep("locked");
@@ -1066,7 +894,17 @@ export default function CheckoutPage() {
         setLocatingStep("locked");
         if (dist <= deliveryRadiusKm) {
           setDeliveryMode("under5");
-          setLocationMsg(`${dist.toFixed(1)} km from Urban Trout Hub, Malabagh • Free Express Delivery within 2 Hours ✓`);
+          const evalRes = evaluateDeliveryZone({
+            coords: { lat: matched.lat, lng: matched.lng },
+            weightKg: totalWeightKg,
+          });
+          setLocationMsg(
+            `${dist.toFixed(1)} km from Urban Trout Hub • ${evalRes.zoneConfig.title} • ${
+              evalRes.deliveryFee === 0
+                ? "100% Free Doorstep Delivery ✓"
+                : `₹${evalRes.deliveryFee} Special Delivery (Free from ${evalRes.zoneConfig.minKgFree} kg)`
+            }`
+          );
         } else {
           setDeliveryMode("unavailable");
           setLocationMsg(`${dist.toFixed(1)} km from Urban Trout Hub • Outside our ${deliveryRadiusKm}km live harvest delivery perimeter.`);
@@ -1078,7 +916,17 @@ export default function CheckoutPage() {
         setLocatingStep("locked");
         if (dist <= deliveryRadiusKm) {
           setDeliveryMode("under5");
-          setLocationMsg(`${dist.toFixed(1)} km from Urban Trout Hub, Malabagh • Free Express Delivery within 2 Hours ✓`);
+          const evalRes = evaluateDeliveryZone({
+            coords: detectedCoords,
+            weightKg: totalWeightKg,
+          });
+          setLocationMsg(
+            `${dist.toFixed(1)} km from Urban Trout Hub • ${evalRes.zoneConfig.title} • ${
+              evalRes.deliveryFee === 0
+                ? "100% Free Doorstep Delivery ✓"
+                : `₹${evalRes.deliveryFee} Special Delivery (Free from ${evalRes.zoneConfig.minKgFree} kg)`
+            }`
+          );
         } else {
           setDeliveryMode("unavailable");
           setLocationMsg(`${dist.toFixed(1)} km from Urban Trout Hub • Outside our ${deliveryRadiusKm}km live harvest delivery perimeter.`);
@@ -1111,7 +959,17 @@ export default function CheckoutPage() {
 
     if (dist <= deliveryRadiusKm) {
       setDeliveryMode("under5");
-      setLocationMsg(`${dist.toFixed(1)} km from Urban Trout Hub, Malabagh • Free Express Delivery within 2 Hours ✓`);
+      const evalRes = evaluateDeliveryZone({
+        coords: { lat: landmark.lat, lng: landmark.lng },
+        weightKg: totalWeightKg,
+      });
+      setLocationMsg(
+        `${dist.toFixed(1)} km from Urban Trout Hub • ${evalRes.zoneConfig.title} • ${
+          evalRes.deliveryFee === 0
+            ? "100% Free Doorstep Delivery ✓"
+            : `₹${evalRes.deliveryFee} Special Delivery (Free from ${evalRes.zoneConfig.minKgFree} kg)`
+        }`
+      );
     } else {
       setDeliveryMode("unavailable");
       setLocationMsg(`${dist.toFixed(1)} km from Urban Trout Hub • Outside our ${deliveryRadiusKm}km live harvest delivery perimeter.`);
@@ -1712,7 +1570,9 @@ export default function CheckoutPage() {
                 </div>
                 <div className="flex justify-between text-slate-400">
                   <span>Farm-Fresh Delivery:</span>
-                  <span className="font-semibold text-emerald-400">FREE (Under 5km Zone)</span>
+                  <span className={`font-semibold ${orderSuccess.deliveryFee > 0 ? "text-amber-400" : "text-emerald-400"}`}>
+                    {orderSuccess.deliveryFee > 0 ? `₹${orderSuccess.deliveryFee} Express Delivery` : "FREE (8km Farm Zone)"}
+                  </span>
                 </div>
                 <div className="flex justify-between text-sm font-extrabold text-white pt-2 border-t border-slate-800">
                   <span style={{ fontFamily: '"Space Grotesk", sans-serif' }}>Total Paid:</span>
@@ -2028,7 +1888,7 @@ export default function CheckoutPage() {
                   className="hidden sm:block"
                   style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", color: C.onSurfVar }}
                 >
-                  5km Zone &amp; GPS
+                  8km Zone &amp; GPS
                 </span>
               </div>
             </button>
@@ -2395,7 +2255,7 @@ export default function CheckoutPage() {
                           2. Srinagar Delivery Address
                         </h3>
                       </div>
-                      <span className="text-[10px] text-emerald-400 font-semibold">5km Free Delivery Radius</span>
+                      <span className="text-[10px] text-emerald-400 font-semibold">8km Tiered Delivery Perimeter</span>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2516,14 +2376,14 @@ export default function CheckoutPage() {
                     </button>
                   </div>
                   <p className="text-[11px] text-center text-slate-400 font-mono">
-                    🔒 Instant lead recovery • 100% Free Doorstep Delivery inside 5km • Live Catch Harvested to Order • Instant UPI &amp; Cards
+                    🔒 Instant lead recovery • 100% Free Doorstep Delivery inside 8km (Tiered) • Live Catch Harvested to Order • Instant UPI &amp; Cards
                   </p>
                 </form>
               </div>
             )}
 
             {/* ══════════════════════════════════════════════════════
-                STAGE 2: CONFIRM DELIVERY LOCATION & 5KM RADIUS
+                STAGE 2: CONFIRM DELIVERY LOCATION & 8KM RADIUS
                 ══════════════════════════════════════════════════════ */}
             {currentStep === 2 && (
               <div
@@ -2895,7 +2755,7 @@ export default function CheckoutPage() {
                     {/* Status Header */}
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-4 rounded-2xl bg-slate-950/70 border border-slate-800">
                       <div className="flex-1 min-w-0 pr-2">
-                        <div className="flex items-center gap-2 mb-1">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <span
                             className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider ${
                               deliveryMode === "under5"
@@ -2908,8 +2768,13 @@ export default function CheckoutPage() {
                                 deliveryMode === "under5" ? "bg-emerald-400 animate-pulse" : "bg-red-400"
                               }`}
                             />
-                            {deliveryMode === "under5" ? "Delivery Zone Verified" : "Outside Delivery Zone"}
+                            {deliveryMode === "under5" ? currentZoneEvaluation.zoneConfig.title : "Outside Delivery Zone"}
                           </span>
+                          {deliveryMode === "under5" && (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold bg-cyan-950/70 border border-cyan-800 text-cyan-300">
+                              {currentZoneEvaluation.zoneConfig.rangeKm}
+                            </span>
+                          )}
                         </div>
                         <h3 className="text-lg sm:text-xl font-extrabold text-white truncate" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
                           {selectedZoneName || "GPS Location Confirmed"}
@@ -2921,7 +2786,7 @@ export default function CheckoutPage() {
                         >
                           {locationMsg ||
                             (deliveryMode === "under5"
-                              ? `${calculatedDistance?.toFixed(1)} km from Urban Trout Hub, Malabagh • Free Express Delivery within 2 Hours ✓`
+                              ? `${calculatedDistance?.toFixed(1)} km from Urban Trout Hub • ${currentZoneEvaluation.zoneConfig.title}`
                               : `${calculatedDistance?.toFixed(1)} km from Urban Trout Hub • Outside our ${deliveryRadiusKm}km live harvest delivery perimeter.`)}
                         </p>
                       </div>
@@ -2980,9 +2845,42 @@ export default function CheckoutPage() {
                       </a>
                     </div>
 
-                    {/* CASE 1: IN-ZONE -> PROCEED TO STEP 3: PAYMENT */}
+                    {/* CASE 1: IN-ZONE -> DELIVERY STATUS & PROCEED TO STEP 3 */}
                     {deliveryMode === "under5" && (
-                      <div className="space-y-3 pt-2">
+                      <div className="space-y-4 pt-2">
+                        {/* Dynamic Delivery Fee / Free Delivery Card */}
+                        {deliveryFee === 0 ? (
+                          <div className="p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 flex items-center justify-between gap-3 text-xs">
+                            <div className="flex items-center gap-2 text-emerald-300">
+                              <span className="text-base">✓</span>
+                              <span>
+                                <strong>100% FREE Doorstep Delivery Applied:</strong> Your order ({totalWeightKg} kg) qualifies for free express delivery in {currentZoneEvaluation.zoneConfig.title}!
+                              </span>
+                            </div>
+                            <span className="font-mono font-bold text-emerald-400 bg-emerald-950 px-2.5 py-1 rounded-md border border-emerald-500/30 flex-shrink-0">
+                              FREE DELIVERY
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="p-3.5 rounded-xl bg-cyan-950/50 border border-cyan-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-2 text-cyan-300 font-bold">
+                                <span>⚡ Special Express Delivery: ₹{deliveryFee}</span>
+                                <span className="text-[10px] text-slate-400 font-normal">({currentZoneEvaluation.zoneConfig.rangeKm})</span>
+                              </div>
+                              <p className="text-slate-300 text-[11px] m-0">
+                                💡 <strong>Free Delivery Tip:</strong> Add <strong>+{Math.max(1, currentZoneEvaluation.minKgFree - totalWeightKg)} kg</strong> more trout to your cart to unlock <strong>100% FREE Doorstep Delivery</strong> and save ₹{deliveryFee}!
+                              </p>
+                            </div>
+                            <Link
+                              href="/shop"
+                              className="px-3.5 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-[11px] uppercase tracking-wider transition-all flex items-center gap-1 flex-shrink-0 shadow-md"
+                            >
+                              + Add Trout
+                            </Link>
+                          </div>
+                        )}
+
                         <div className="flex flex-col sm:flex-row gap-3">
                           <button
                             type="button"
@@ -3037,7 +2935,7 @@ export default function CheckoutPage() {
                         {/* Quick 1-tap in-zone selector if customer wants delivery to a friend/office in-zone */}
                         <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 text-left space-y-2">
                           <div className="text-[11px] font-semibold text-slate-300 flex items-center justify-between">
-                            <span>Delivering to an office, friend, or relative within 5km?</span>
+                            <span>Delivering to an office, friend, or relative within 8km?</span>
                             <span className="text-[10px] text-emerald-400 font-mono">1-Tap Select</span>
                           </div>
                           <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
@@ -3214,16 +3112,16 @@ export default function CheckoutPage() {
                       style={{
                         fontFamily: '"Space Grotesk", sans-serif',
                         fontWeight: 700,
-                        color: "#4ade80",
+                        color: deliveryFee === 0 ? "#4ade80" : C.primary,
                         margin: 0,
                         fontSize: "0.9rem",
                       }}
                     >
-                      Within {deliveryRadiusKm}km — Free Delivery ✓
+                      {currentZoneEvaluation.zoneConfig.title} ({currentZoneEvaluation.zoneConfig.rangeKm}) — {deliveryFee === 0 ? "Free Delivery ✓" : `₹${deliveryFee} Special Delivery`}
                     </p>
                     {calculatedDistance !== null && (
                       <p className="text-[11px] font-mono text-cyan-300/80 m-0">
-                        ~{calculatedDistance.toFixed(1)} km from Malabagh Farm
+                        ~{calculatedDistance.toFixed(1)} km from Malabagh Farm {deliveryFee > 0 && `• Free on ${currentZoneEvaluation.zoneConfig.minKgFree}+ kg`}
                       </p>
                     )}
                   </div>
@@ -3743,10 +3641,12 @@ export default function CheckoutPage() {
                     </div>
                   )}
                   <div className="flex justify-between items-center">
-                    <span style={{ color: C.onSurfVar }}>{deliveryRadiusKm}km Fresh Delivery</span>
+                    <span style={{ color: C.onSurfVar }}>
+                      {currentZoneEvaluation.zoneConfig ? `${currentZoneEvaluation.zoneConfig.shortLabel} Express Delivery` : `${deliveryRadiusKm}km Delivery`}
+                    </span>
                     <span
                       style={{
-                        color: deliveryMode === "under5" ? "#4ade80" : C.primary,
+                        color: deliveryMode === "under5" && deliveryFee === 0 ? "#4ade80" : deliveryFee > 0 ? "#fbbf24" : C.primary,
                         fontWeight: 700,
                         fontSize: "0.82rem",
                       }}
@@ -3755,7 +3655,9 @@ export default function CheckoutPage() {
                         ? "Check zone (Step 2)"
                         : deliveryMode === "unavailable"
                         ? `Outside ${deliveryRadiusKm}km`
-                        : "FREE ✓"}
+                        : deliveryFee === 0
+                        ? "FREE ✓"
+                        : `+₹${deliveryFee}`}
                     </span>
                   </div>
                 </div>

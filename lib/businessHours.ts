@@ -1,6 +1,6 @@
 /**
  * Business Hours Utility — Urban Trout
- * Operating schedule: Saturday to Thursday, 7:00 AM – 10:00 PM IST (Asia/Kolkata, UTC+5:30)
+ * Operating schedule: Saturday to Thursday, 8:00 AM – 9:00 PM IST (Asia/Kolkata, UTC+5:30)
  * Closed on Fridays for scheduled Farm Maintenance & Bio-Security protocols,
  * unless overridden via Admin Panel settings (e.g. allow_friday_orders).
  */
@@ -10,7 +10,7 @@ export interface StoreSettingsOverrides {
   storeManuallyClosed?: boolean;
   /** If true, the farm/vending center is put into active maintenance mode on any day */
   farmMaintenanceActive?: boolean;
-  /** If true, bypasses the automatic Friday closure and allows online orders on Friday (7 AM - 10 PM IST) */
+  /** If true, bypasses the automatic Friday closure and allows online orders on Friday (8 AM - 9 PM IST) */
   allowFridayOrders?: boolean;
   /** If true, forces the store to appear open 24/7 (for testing or emergency override) */
   forceStoreOpen?: boolean;
@@ -26,7 +26,7 @@ export interface BusinessHoursInfo {
   allowFridayOrders?: boolean;
   /** Reason for closure: friday_maintenance | farm_maintenance | outside_hours | manual | undefined */
   closedReason?: "friday_maintenance" | "farm_maintenance" | "outside_hours" | "manual";
-  /** Human-readable next open time, e.g. "today at 7:00 AM", "tomorrow at 7:00 AM", or "Saturday at 7:00 AM" */
+  /** Human-readable next open time, e.g. "today at 8:00 AM", "tomorrow at 8:00 AM", or "Saturday at 8:00 AM" */
   nextOpenLabel: string;
   /** ISO string of exact next open timestamp */
   nextOpenISO: string;
@@ -38,8 +38,8 @@ export interface BusinessHoursInfo {
   currentISTDay: number;
 }
 
-const OPEN_HOUR = 7;   // 7:00 AM
-const CLOSE_HOUR = 22; // 10:00 PM
+const OPEN_HOUR = 8;   // 8:00 AM
+const CLOSE_HOUR = 21; // 9:00 PM
 
 /**
  * Returns current IST date (UTC + 5h30m) info.
@@ -100,41 +100,41 @@ export function getBusinessHoursInfo(
     nextOpen.setUTCDate(nextOpen.getUTCDate() + 1); // Saturday
     nextOpen.setUTCHours(OPEN_HOUR, 0, 0, 0);
     nextOpenISO = new Date(nextOpen.getTime() - istOffsetMs).toISOString();
-    nextOpenLabel = "tomorrow (Saturday) at 7:00 AM";
+    nextOpenLabel = "tomorrow (Saturday) at 8:00 AM";
   } else if (!isWithinOperatingHours) {
     isOpen = false;
     closedReason = "outside_hours";
 
     if (currentISTDay === 4 && currentISTHour >= CLOSE_HOUR) {
-      // Thursday after 10 PM IST
+      // Thursday after 9 PM IST
       if (allowFridayOrders) {
-        // Friday is open! Opens tomorrow at 7:00 AM IST (+1 day)
+        // Friday is open! Opens tomorrow at 8:00 AM IST (+1 day)
         const nextOpen = new Date(istMs);
         nextOpen.setUTCDate(nextOpen.getUTCDate() + 1); // Friday
         nextOpen.setUTCHours(OPEN_HOUR, 0, 0, 0);
         nextOpenISO = new Date(nextOpen.getTime() - istOffsetMs).toISOString();
-        nextOpenLabel = "tomorrow (Friday) at 7:00 AM";
+        nextOpenLabel = "tomorrow (Friday) at 8:00 AM";
       } else {
-        // Friday is maintenance -> opens Saturday at 7:00 AM IST (+2 days)
+        // Friday is maintenance -> opens Saturday at 8:00 AM IST (+2 days)
         const nextOpen = new Date(istMs);
         nextOpen.setUTCDate(nextOpen.getUTCDate() + 2); // Saturday
         nextOpen.setUTCHours(OPEN_HOUR, 0, 0, 0);
         nextOpenISO = new Date(nextOpen.getTime() - istOffsetMs).toISOString();
-        nextOpenLabel = "Saturday at 7:00 AM";
+        nextOpenLabel = "Saturday at 8:00 AM";
       }
     } else if (currentISTHour < OPEN_HOUR) {
-      // Before 7 AM on an operating day -> opens today at 7:00 AM IST
+      // Before 8 AM on an operating day -> opens today at 8:00 AM IST
       const nextOpen = new Date(istMs);
       nextOpen.setUTCHours(OPEN_HOUR, 0, 0, 0);
       nextOpenISO = new Date(nextOpen.getTime() - istOffsetMs).toISOString();
-      nextOpenLabel = "today at 7:00 AM";
+      nextOpenLabel = "today at 8:00 AM";
     } else {
-      // After 10 PM on operating day
+      // After 9 PM on operating day
       const nextOpen = new Date(istMs);
       nextOpen.setUTCDate(nextOpen.getUTCDate() + 1);
       nextOpen.setUTCHours(OPEN_HOUR, 0, 0, 0);
       nextOpenISO = new Date(nextOpen.getTime() - istOffsetMs).toISOString();
-      nextOpenLabel = "tomorrow at 7:00 AM";
+      nextOpenLabel = "tomorrow at 8:00 AM";
     }
   } else {
     // Within operating hours, not Friday maintenance, not farm maintenance, not manually closed

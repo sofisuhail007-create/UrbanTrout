@@ -1,6 +1,6 @@
 /**
  * Delivery Schedule Utility — Urban Trout
- * Operating schedule: Saturday to Thursday, 7:00 AM – 10:00 PM IST (Asia/Kolkata, UTC+5:30)
+ * Operating schedule: Saturday to Thursday, 8:00 AM – 9:00 PM IST (Asia/Kolkata, UTC+5:30)
  * Closed on Fridays for Farm Maintenance.
  *
  * When store operations are paused (outside operating hours, Friday maintenance,
@@ -55,7 +55,7 @@ export const STANDARD_DELIVERY_SLOTS: DeliverySlotOption[] = [
   { id: "slot-14-16", timeWindow: "02:00 PM – 04:00 PM", label: "Afternoon Delivery Slot", icon: "🕒" },
   { id: "slot-16-18", timeWindow: "04:00 PM – 06:00 PM", label: "Evening Fresh Harvest & Dispatch", icon: "🌆", isPopular: true },
   { id: "slot-18-20", timeWindow: "06:00 PM – 08:00 PM", label: "Dinner Delivery Slot", icon: "🌙" },
-  { id: "slot-20-22", timeWindow: "08:00 PM – 10:00 PM", label: "Late Evening Delivery Slot", icon: "🌌" },
+  { id: "slot-20-21", timeWindow: "08:00 PM – 09:00 PM", label: "Night Fresh Harvest Slot", icon: "🌌" },
 ];
 
 const MONTH_NAMES = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -134,11 +134,11 @@ export function getDeliveryScheduleInfo(
     message = "Store operations are temporarily paused. Choose your delivery slot and checkout securely.";
     nextOperatingDayName = "Next Available";
   } else if (hoursInfo.closedReason === "outside_hours") {
-    closedReasonLabel = "Non-Operating Hours (Opens 7:00 AM IST)";
-    badgeLabel = "Opens 7:00 AM IST";
+    closedReasonLabel = "Non-Operating Hours (Opens 8:00 AM IST)";
+    badgeLabel = "Opens 8:00 AM IST";
     headline = "Night Hours · Pre-Order for Fresh Morning Catch";
-    message = "We deliver live harvest daily between 7:00 AM – 10:00 PM IST. Pre-order now to secure your live morning catch.";
-    nextOperatingDayName = currentISTHour < 7 ? "Today" : "Tomorrow";
+    message = "We deliver live harvest daily between 8:00 AM – 9:00 PM IST. Pre-order now to secure your live morning catch.";
+    nextOperatingDayName = currentISTHour < 8 ? "Today" : "Tomorrow";
   }
 
   // Calculate Available Next Operating Delivery Dates
@@ -154,8 +154,8 @@ export function getDeliveryScheduleInfo(
     // Today is Friday (maintenance). Next operating day is Saturday (+1 day) & Sunday (+2 days)
     availableDates.push(buildDateOption(addDays(1), "Tomorrow", true));
     availableDates.push(buildDateOption(addDays(2), "", false));
-  } else if (currentISTDay === 4 && currentISTHour >= 22) {
-    // Thursday after 10 PM. Tomorrow is Friday (maintenance unless allowed).
+  } else if (currentISTDay === 4 && currentISTHour >= 21) {
+    // Thursday after 9 PM. Tomorrow is Friday (maintenance unless allowed).
     if (allowFridayOrders) {
       availableDates.push(buildDateOption(addDays(1), "Tomorrow", true));
       availableDates.push(buildDateOption(addDays(2), "", false));
@@ -163,13 +163,13 @@ export function getDeliveryScheduleInfo(
       availableDates.push(buildDateOption(addDays(2), "Saturday", true));
       availableDates.push(buildDateOption(addDays(3), "Sunday", false));
     }
-  } else if (currentISTHour < 7) {
-    // Early morning before 7 AM on an operating day (Sat-Thu)
+  } else if (currentISTHour < 8) {
+    // Early morning before 8 AM on an operating day (Sat-Thu)
     // Customer can order for today (starting 8 AM slot) or tomorrow!
     availableDates.push(buildDateOption(addDays(0), "Today", true));
     availableDates.push(buildDateOption(addDays(1), "Tomorrow", false));
   } else {
-    // Night after 10 PM (or middle of day if paused)
+    // Night after 9 PM (or middle of day if paused)
     // Next day is Tomorrow (+1 day)
     const tomorrowDate = addDays(1);
     const tomorrowDay = tomorrowDate.getUTCDay();

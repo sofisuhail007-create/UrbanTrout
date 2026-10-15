@@ -18,13 +18,12 @@ const supabase = createClient(
 // messages and double DB inserts when Razorpay retries webhooks.
 // We use Supabase app_settings as a persistent store with a 2-hour TTL per paymentId.
 
-const DEDUP_SETTINGS_KEY = "processed_webhook_payments";
+const DEDUP_TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
 // In-process L1 cache (still useful within the same function instance)
 const inMemoryDedup = new Map<string, number>();
 
 async function isDuplicatePayment(keys: string | (string | null | undefined)[]): Promise<boolean> {
   const now = Date.now();
-  const TTL_MS = 2 * 60 * 60 * 1000; // 2 hours
 
   const keyList = (Array.isArray(keys) ? keys : [keys])
     .filter((k): k is string => Boolean(k && typeof k === "string" && k.trim().length > 0))
@@ -34,61 +33,77 @@ async function isDuplicatePayment(keys: string | (string | null | undefined)[]):
 
   // L1: In-memory check (fast path within same instance)
   for (const k of keyList) {
-    if (inMemoryDedup.has(k)) {
+    if (inMemoryDedup.has(k) && now - (inMemoryDedup.get(k) || 0) < DEDUP_TTL_MS) {
+      console.log("[webhook dedup] In-memory duplicate detected for key:", k);
       return true;
     }
   }
 
-  // L2: Persistent Supabase check (survives cold starts and multi-instance deploys)
+  // L2: Persistent Supabase Atomic Lock Check via PostgreSQL Primary Key Constraint
+  // When Razorpay pushes concurrent webhook events (payment_link.paid, payment.captured, order.paid)
+  // at the exact same millisecond across distributed serverless instances, atomic INSERT guarantees
+  // that only ONE request succeeds in inserting pay_lock_<key>. All concurrent requests receive
+  // Postgres error code 23505 (unique_violation) and are immediately rejected as duplicates.
   try {
-    const { data: row } = await supabase
-      .from("app_settings")
-      .select("value")
-      .eq("key", DEDUP_SETTINGS_KEY)
-      .maybeSingle();
+    const dbKeys = keyList.map((k) => `pay_lock_${k}`);
 
-    let processed: { id: string; ts: number }[] = [];
-    if (row?.value) {
+    const { data: existingRows } = await supabase
+      .from("app_settings")
+      .select("key, updated_at")
+      .in("key", dbKeys);
+
+    if (existingRows && existingRows.length > 0) {
+      const activeLock = existingRows.find((r) => {
+        const rowTime = r.updated_at ? new Date(r.updated_at).getTime() : 0;
+        return now - rowTime < DEDUP_TTL_MS;
+      });
+
+      if (activeLock) {
+        console.log(`[webhook dedup] Active DB lock detected: ${activeLock.key}`);
+        keyList.forEach((k) => inMemoryDedup.set(k, now));
+        return true;
+      }
+    }
+
+    const primaryKey = keyList[0];
+    const primaryDbKey = `pay_lock_${primaryKey}`;
+
+    const { error: insertError } = await supabase.from("app_settings").insert({
+      key: primaryDbKey,
+      value: JSON.stringify({ ts: now, keys: keyList }),
+      description: "Atomic Webhook Payment Lock (2hr TTL)",
+      updated_at: new Date().toISOString(),
+    });
+
+    if (insertError) {
+      if (
+        insertError.code === "23505" ||
+        insertError.message?.toLowerCase().includes("duplicate key") ||
+        insertError.message?.toLowerCase().includes("unique constraint")
+      ) {
+        console.log(`[webhook dedup] Atomic lock collision on ${primaryDbKey} — duplicate caught!`);
+        keyList.forEach((k) => inMemoryDedup.set(k, now));
+        return true;
+      }
+      console.warn("[webhook dedup] Lock insert notice:", insertError);
+    }
+
+    if (keyList.length > 1) {
+      const secondaryRows = keyList.slice(1).map((k) => ({
+        key: `pay_lock_${k}`,
+        value: JSON.stringify({ ts: now, primary: primaryKey }),
+        description: "Atomic Webhook Payment Lock Secondary",
+        updated_at: new Date().toISOString(),
+      }));
       try {
-        processed = JSON.parse(row.value);
+        await supabase.from("app_settings").upsert(secondaryRows, { onConflict: "key" });
       } catch (_) {}
     }
 
-    // Prune stale entries (older than TTL)
-    const pruned = processed.filter((p) => now - p.ts < TTL_MS);
-
-    // Check if any key in keyList is in the processed list
-    const isDup = pruned.some((p) => keyList.includes(p.id));
-    if (isDup) {
-      console.log('[webhook dedup] Duplicate detected for keys:', keyList.join(', '));
-      keyList.forEach((k) => inMemoryDedup.set(k, now));
-      return true;
-    }
-
-    // Not a duplicate — register all keys
-    keyList.forEach((k) => {
-      pruned.push({ id: k, ts: now });
-      inMemoryDedup.set(k, now);
-    });
-
-    // Await persistence so serverless functions don't drop the write!
-    try {
-      await supabase.from("app_settings").upsert(
-        {
-          key: DEDUP_SETTINGS_KEY,
-          value: JSON.stringify(pruned.slice(-300)), // cap at 300 entries
-          description: "Persistent payment dedup store for Razorpay webhook (2hr TTL)",
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "key" }
-      );
-    } catch (saveErr) {
-      console.warn("[webhook dedup] Error saving to Supabase dedup cache:", saveErr);
-    }
-
+    keyList.forEach((k) => inMemoryDedup.set(k, now));
     return false;
   } catch (err) {
-    console.warn("[webhook dedup] Supabase check failed, using in-memory only:", err);
+    console.warn("[webhook dedup] Supabase atomic lock error, falling back to memory:", err);
     keyList.forEach((k) => inMemoryDedup.set(k, now));
     return false;
   }
@@ -172,6 +187,12 @@ export async function POST(req: NextRequest) {
         ? "📱 Razorpay Mobile App"
         : "🛵 Home Delivery (Razorpay Link)";
 
+      const bank = payment?.bank || null;
+      const wallet = payment?.wallet || null;
+      const card = payment?.card || null;
+      const fee = payment?.fee || null;
+      const tax = payment?.tax || null;
+
       if (!isDuplicate) {
         // 1. Instant Telegram Alert
         try {
@@ -182,6 +203,11 @@ export async function POST(req: NextRequest) {
             status: "captured",
             method,
             vpa,
+            bank,
+            wallet,
+            card,
+            fee,
+            tax,
             customerName,
             customerPhone,
             customerEmail,
@@ -365,6 +391,12 @@ export async function POST(req: NextRequest) {
       const longitude = notes.longitude ? Number(notes.longitude) : null;
       const distanceKm = notes.distance_km ? Number(notes.distance_km) : null;
 
+      const bank = payment.bank || null;
+      const wallet = payment.wallet || null;
+      const card = payment.card || null;
+      const fee = payment.fee || null;
+      const tax = payment.tax || null;
+
       // 1. Send Instant Telegram Alert ONLY ONCE per payment ID
       if (!isDuplicate) {
         await notifyRazorpayPayment({
@@ -374,6 +406,11 @@ export async function POST(req: NextRequest) {
           status: "captured",
           method,
           vpa,
+          bank,
+          wallet,
+          card,
+          fee,
+          tax,
           customerName,
           customerPhone: cleanPhone || customerPhone,
           customerEmail: email,

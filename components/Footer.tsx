@@ -73,7 +73,7 @@ export default function Footer() {
               marginBottom: "0.75rem",
             }}
           >
-            Fresh, locally farmed Rainbow Trout in Srinagar. Freshly harvested to order and delivered chilled within our 5km farm zone.
+            Fresh, locally farmed Rainbow Trout in Srinagar. Freshly harvested to order and delivered chilled across our 8km express zone.
           </p>
           <span
             style={{
@@ -247,7 +247,7 @@ export default function Footer() {
             <div style={{ marginTop: "6px", display: "flex", flexDirection: "column", gap: "2px" }}>
               <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", letterSpacing: "0.15em", textTransform: "uppercase", color: C.onSurfVar }}>Operating Schedule</span>
               <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.82rem", color: C.onSurfVar }}>
-                Sat – Thu: <strong style={{ color: "#c4ebff" }}>7:00 AM – 10:00 PM</strong>
+                Sat – Thu: <strong style={{ color: "#c4ebff" }}>8:00 AM – 9:00 PM</strong>
               </span>
               <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "11px", color: "#f87171", fontWeight: 600 }}>
                 Closed Fridays (Farm Maintenance)

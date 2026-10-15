@@ -69,7 +69,7 @@ export default function AdminSettingsPage() {
   const [alternatePhone, setAlternatePhone] = useState("+917006604148");
   const [email, setEmail] = useState("info.urbantrout@gmail.com");
   const [deliveryFee, setDeliveryFee] = useState("40");
-  const [deliveryRadius, setDeliveryRadius] = useState("5.0");
+  const [deliveryRadius, setDeliveryRadius] = useState("8.0");
   const [farmLat, setFarmLat] = useState("34.1445563");
   const [farmLng, setFarmLng] = useState("74.8245018");
   const [staffList, setStaffList] = useState<StaffMember[]>(DEFAULT_STAFF);
@@ -550,7 +550,7 @@ export default function AdminSettingsPage() {
       const item = {
         key: "allow_friday_orders",
         value: String(newVal),
-        description: "Allow online orders on Fridays (7:00 AM – 10:00 PM IST) when farm/vending center is open",
+        description: "Allow online orders on Fridays (8:00 AM – 9:00 PM IST) when farm/vending center is open",
       };
       await adminFetch("/api/settings", {
         method: "POST",
@@ -826,7 +826,7 @@ export default function AdminSettingsPage() {
                             ? "⚠️ Closed for regular Friday maintenance. Toggle 'Friday Store Operations' below if your farm is open today!"
                             : liveStatus.closedReason === "manual"
                             ? "⚠️ Store manually closed by administrator. Toggle Emergency Pause below to resume."
-                            : `⏰ Standard schedule: 7:00 AM – 10:00 PM IST. Next opening: ${liveStatus.nextOpenLabel}.`}
+                            : `⏰ Standard schedule: 8:00 AM – 9:00 PM IST. Next opening: ${liveStatus.nextOpenLabel}.`}
                         </p>
                       </div>
                     </div>
@@ -1018,7 +1018,7 @@ export default function AdminSettingsPage() {
                   <div className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-sm text-cyan-400">info</span>
                     <span>
-                      Standard Operating Schedule: <strong>Sat – Thu: 7:00 AM – 10:00 PM IST</strong> (Closed Fridays unless toggled above).
+                      Standard Operating Schedule: <strong>Sat – Thu: 8:00 AM – 9:00 PM IST</strong> (Closed Fridays unless toggled above).
                     </span>
                   </div>
 

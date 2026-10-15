@@ -37,7 +37,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const title = data?.product_name || (slug === "gutted-trout" ? "Cleaned & Gutted Rainbow Trout" : "Whole Fresh Rainbow Trout");
   const price = data?.price_per_kg ? `₹${data.price_per_kg}/Kg` : (slug === "gutted-trout" ? "₹580/Kg" : "₹540/Kg");
-  const desc = `Order fresh ${title} (${price}) harvested live to order in Malabagh, Srinagar. 100% Free chilled doorstep delivery within 2 hours within our 5km farm zone.`;
+  const desc = `Order fresh ${title} (${price}) harvested live to order in Malabagh, Srinagar. Chilled 2-hour doorstep delivery across Srinagar 8km express farm zone.`;
   const canonicalUrl = `https://urbantrout.in/shop/${slug}`;
 
   return {
@@ -489,7 +489,7 @@ export default async function DynamicProductPage({ params }: Props) {
               >
                 <span style={{ fontSize: "18px" }}>🛵</span>
                 <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.82rem", color: "#a7f3d0", margin: 0, fontWeight: 600 }}>
-                  <strong style={{ color: "#34d399" }}>100% Free Doorstep Delivery</strong> within 5km of our farm. Harvested live to order &amp; delivered ice-chilled within 2 hours.
+                  <strong style={{ color: "#34d399" }}>Express Doorstep Delivery</strong> across Srinagar (8km Zone). Harvested live to order &amp; delivered ice-chilled within 2 hours. Free delivery tiers available!
                 </p>
               </div>
 

@@ -96,8 +96,8 @@ export default function LiveChatWidget() {
     }
   }, [isOpen]);
 
-  // Inactivity Timeout: 10 minutes (600,000 ms)
-  const INACTIVITY_TIMEOUT_MS = 10 * 60 * 1000;
+  // Inactivity Timeout: 24 hours (86,400,000 ms) - keeps session alive for real-world staff reply times
+  const INACTIVITY_TIMEOUT_MS = 24 * 60 * 60 * 1000;
 
   // Do not render on admin dashboard
   if (pathname?.startsWith("/admin")) return null;
@@ -106,7 +106,7 @@ export default function LiveChatWidget() {
     localStorage.setItem("ut_live_chat_last_active", String(Date.now()));
   };
 
-  // Initialize or restore session with 10-minute timeout check
+  // Initialize or restore session with 24-hour timeout check
   const initSession = (forceNew = false) => {
     const lastActiveStr = typeof window !== "undefined" ? localStorage.getItem("ut_live_chat_last_active") : null;
     const isTimedOut = lastActiveStr ? Date.now() - Number(lastActiveStr) > INACTIVITY_TIMEOUT_MS : false;
@@ -129,7 +129,7 @@ export default function LiveChatWidget() {
       setIsLeadCaptured(false);
 
       if (isTimedOut && !forceNew) {
-        setLeadError("⏳ Chat timed out after 10 minutes of inactivity. Please re-enter your details to start fresh.");
+        setLeadError("⏳ Chat session expired after 24 hours of inactivity. Please enter your details to start fresh.");
       }
       return;
     }
@@ -162,19 +162,19 @@ export default function LiveChatWidget() {
     initSession();
   }, []);
 
-  // Background 10-minute inactivity check interval
+  // Background 24-hour inactivity check interval (never times out while visitor has the chat open)
   useEffect(() => {
-    if (!isLeadCaptured) return;
+    if (!isLeadCaptured || isOpen) return;
     const timeoutInterval = setInterval(() => {
       const lastActiveStr = localStorage.getItem("ut_live_chat_last_active");
       if (lastActiveStr && Date.now() - Number(lastActiveStr) > INACTIVITY_TIMEOUT_MS) {
         initSession(true);
-        setLeadError("⏳ Chat timed out after 10 minutes of inactivity. Please re-enter your details to start fresh.");
+        setLeadError("⏳ Chat session expired after 24 hours of inactivity. Please enter your details to start fresh.");
       }
-    }, 10000);
+    }, 60000);
 
     return () => clearInterval(timeoutInterval);
-  }, [isLeadCaptured]);
+  }, [isLeadCaptured, isOpen]);
 
   const triggerStaffReplyAlert = (msg: ChatMessage) => {
     if (knownStaffMsgIds.current.has(msg.id)) return;
@@ -203,7 +203,9 @@ export default function LiveChatWidget() {
   const fetchHistory = async (id: string) => {
     if (!id) return;
     try {
-      const res = await fetch(`/api/live-chat/history?threadId=${encodeURIComponent(id)}`);
+      const res = await fetch(`/api/live-chat/history?threadId=${encodeURIComponent(id)}&_t=${Date.now()}`, {
+        cache: "no-store",
+      });
       if (res.ok) {
         const data = await res.json();
         if (data?.success && Array.isArray(data.messages)) {

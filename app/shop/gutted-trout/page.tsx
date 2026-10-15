@@ -10,7 +10,7 @@ import { getGoogleReviewsData } from "@/lib/reviews";
 export const metadata: Metadata = {
   title: "Premium Cleaned & Gutted Rainbow Trout (₹580/Kg)",
   description:
-    "Expertly cleaned, scaled, gutted, and prepared for immediate cooking. Farmed in Malabagh, Srinagar. 100% Free delivery within 2 hours within our 5km farm zone.",
+    "Expertly cleaned, scaled, gutted, and prepared for immediate cooking. Farmed in Malabagh, Srinagar. Express chilled 2-hour doorstep delivery across Srinagar 8km farm zone.",
   alternates: {
     canonical: "https://urbantrout.in/shop/gutted-trout",
   },
@@ -432,7 +432,7 @@ export default async function GuttedTroutPage() {
                         : "Store Closed"}
                     </p>
                     <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.8rem", color: C.onSurfVar, margin: 0 }}>
-                      Opens {isManuallyClosedFlag ? "when we reopen" : effectiveHoursInfo.nextOpenLabel} · Sat – Thu: 7:00 AM – 10:00 PM
+                      Opens {isManuallyClosedFlag ? "when we reopen" : effectiveHoursInfo.nextOpenLabel} · Sat – Thu: 8:00 AM – 9:00 PM
                     </p>
                   </div>
                 </div>
@@ -456,7 +456,7 @@ export default async function GuttedTroutPage() {
                       Out of Stock for Today
                     </p>
                     <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.8rem", color: C.onSurfVar, margin: 0 }}>
-                      All available live aquarium stock has been sold out for today. Fresh harvest opens again {effectiveHoursInfo.nextOpenLabel || "tomorrow at 7:00 AM"}!
+                      All available live aquarium stock has been sold out for today. Fresh harvest opens again {effectiveHoursInfo.nextOpenLabel || "tomorrow at 8:00 AM"}!
                     </p>
                   </div>
                 </div>
@@ -667,7 +667,7 @@ export default async function GuttedTroutPage() {
                 </h3>
               </div>
               <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "1rem", color: C.onSurfVar, lineHeight: 1.75, maxWidth: "640px", marginBottom: "2rem" }}>
-                Raised in clean, continuously filtered cold water right here in Srinagar. Harvested only when you order, immediately chilled in ice, and delivered to your doorstep within our 5km farm zone.
+                Raised in clean, continuously filtered cold water right here in Srinagar. Harvested only when you order, immediately chilled in ice, and delivered to your doorstep across our 8km Srinagar express zone.
               </p>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "1.5rem" }}>
                 {[

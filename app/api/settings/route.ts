@@ -10,7 +10,7 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PU
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 const DEFAULT_SETTINGS: Record<string, string> = {
-  delivery_radius_km: "5",
+  delivery_radius_km: "8",
   farm_latitude: "34.144709",
   farm_longitude: "74.824525",
   farm_address_label: "Urban Trout Aquaculture Farm (Malabagh, Srinagar)",

@@ -333,7 +333,7 @@ export default function CartDrawer() {
               </div>
             )}
 
-            {/* 100% Free Delivery Assurance */}
+            {/* Delivery Assurance */}
             <div
               className="flex items-center justify-between px-3.5 py-2 rounded-xl text-xs font-semibold"
               style={{
@@ -344,10 +344,10 @@ export default function CartDrawer() {
               }}
             >
               <span className="flex items-center gap-1.5">
-                <span>🛵</span> Delivery (5km Farm Radius):
+                <span>🛵</span> Delivery (8km Srinagar Zone):
               </span>
               <span className="text-[11px] font-black uppercase tracking-wider bg-emerald-500/25 px-2 py-0.5 rounded-full text-emerald-300">
-                100% FREE
+                FREE TIERS AVAILABLE
               </span>
             </div>
 
@@ -355,7 +355,7 @@ export default function CartDrawer() {
             <div className="flex justify-between items-center pt-0.5">
               <div>
                 <p style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", letterSpacing: "0.2em", textTransform: "uppercase", color: C.outline, marginBottom: "2px" }}>
-                  Total Amount (Free Delivery)
+                  Product Total
                 </p>
                 <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.65rem", fontWeight: 800, color: C.primary, letterSpacing: "-0.04em", lineHeight: 1 }}>
                   ₹{total.toLocaleString("en-IN")}

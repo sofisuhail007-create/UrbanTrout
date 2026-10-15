@@ -3,13 +3,13 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Shipping & Delivery Policy",
-  description: "Official delivery coverage, 100% Free doorstep delivery within 5km radius of Malabagh farm, cold-chain packaging, and operating hours.",
+  description: "Official delivery coverage, tiered 100% Free doorstep delivery within 8km perimeter of Malabagh farm, cold-chain packaging, and operating hours.",
   alternates: {
     canonical: "https://urbantrout.in/shipping-policy",
   },
   openGraph: {
     title: "Shipping & Delivery Policy | Urban Trout Srinagar",
-    description: "100% Free doorstep delivery within 5km radius of our Malabagh farm within 2 hours of harvest. Food-grade ice packaging.",
+    description: "Tiered 100% Free doorstep delivery within 8km perimeter of our Malabagh farm within 2 hours of harvest. Food-grade ice packaging.",
     url: "https://urbantrout.in/shipping-policy",
     siteName: "Urban Trout",
   },
@@ -26,16 +26,16 @@ const C = {
 
 const sections = [
   {
-    title: "1. Service Area & Delivery Coverage (Strict 5km Farm Radius)",
-    body: "• Strict 5km Delivery Perimeter: To guarantee peak live-harvest freshness and an unbroken cold chain within 90–120 minutes, Urban Trout delivers exclusively within a 5km radius zone from our aquaculture farm base in Malabagh, Srinagar.\n• Localities Served Within 5km: Malabagh, Hazratbal, Habak, Naseem Bagh, Zakura, Lal Bazar, Soura (SKIMS), Bachpora, Illahibagh, and Nowshera.\n• Outer Municipal Srinagar & Beyond: We DO NOT provide doorstep delivery to outer municipal zones or locations beyond our 5km perimeter (such as Dalgate, Rajbagh, Lal Chowk, Jawahar Nagar, Bemina, Hyderpora, Sanat Nagar, etc.).\n• Farm Vending Center Pickup: Customers located outside our 5km delivery radius are warmly invited to place an order for live harvest pickup directly from our dedicated Live Trout Vending Center at our Malabagh farm.",
+    title: "1. Service Area & Delivery Coverage (8km Farm Perimeter & 3 Express Delivery Zones)",
+    body: "• 8km Express Delivery Perimeter: To guarantee peak live-harvest freshness and an unbroken cold chain within 90–120 minutes, Urban Trout delivers across an 8.0 km perimeter from our aquaculture farm base in Malabagh, Srinagar.\n• Zone 1 (0 to 4.0 km — Core Farm Zone): Malabagh, Hazratbal, Habak, Naseem Bagh, Zakura, Lal Bazar, Soura (SKIMS), Bachpora, Illahibagh, Nowshera, Ahmad Nagar, Zadibal, etc. 100% FREE Doorstep Delivery on min 2 kg (or ₹100 special fee for 1 kg).\n• Zone 2 (4.0 to 6.0 km — Mid-Perimeter Zone): Hawal, Khanyar, Rainawari, Badamwari, Alamgari Bazar, Saida Kadal, Eidgah, Safakadal, Shalimar, Nagbal, etc. 100% FREE Doorstep Delivery on min 3 kg (or ₹250 special fee for 1–2 kg).\n• Zone 3 (6.0 to 8.0 km — Extended City Zone): Lal Chowk, Rajbagh, Dalgate, Boulevard, Jawahar Nagar, Sonwar, Qamarwari, Batamaloo, etc. 100% FREE Doorstep Delivery on min 4 kg (or ₹300 special fee for 1–3 kg).\n• Beyond 8.0 km (Outer Municipal Srinagar): Outside our doorstep express delivery perimeter. Customers located beyond 8 km (e.g. Sanat Nagar, Hyderpora, Peerbagh, Budgam, Pampore) are warmly invited to place an order for live harvest pickup directly from our dedicated Live Trout Vending Center at our Malabagh farm.",
   },
   {
     title: "2. Harvest-to-Order & Delivery Timelines",
-    body: "• Farm-Fresh Quality: Every order is freshly harvested live from our cold-water aquaculture tanks upon order confirmation to ensure maximum freshness and taste.\n• Rapid Delivery Timeframe: Orders within our 5km radius are freshly harvested to order, cleaned/gutted if requested, chilled in food-grade ice, and delivered to your doorstep within 2 hours.\n• Operating Delivery Hours: Saturday to Thursday between 7:00 AM and 10:00 PM IST (Closed on Fridays for scheduled Farm Maintenance).",
+    body: "• Farm-Fresh Quality: Every order is freshly harvested live from our cold-water aquaculture tanks upon order confirmation to ensure maximum freshness and taste.\n• Rapid Delivery Timeframe: Orders within our 8km perimeter are freshly harvested to order, cleaned/gutted if requested, chilled in food-grade ice, and delivered to your doorstep within 90–120 minutes.\n• Operating Delivery Hours: Saturday to Thursday between 8:00 AM and 9:00 PM IST (Closed on Fridays for scheduled Farm Maintenance).",
   },
   {
-    title: "3. 100% Free Shipping & Delivery Policy (Within 5km)",
-    body: "• 100% FREE Doorstep Delivery within our 5km farm delivery zone on every order.\n• Product pricing includes free bio-thermal cold-chain insulated packaging and food-grade crushed ice. There are zero hidden delivery fees, packing charges, or surprise shipping costs at checkout within our deliverable zone.",
+    title: "3. 100% Free Shipping & Tiered Delivery Policy",
+    body: "• 100% FREE Doorstep Delivery across all 3 zones when meeting the minimum quantity threshold: 2 kg for Zone 1 (0–4 km), 3 kg for Zone 2 (4–6 km), and 4 kg for Zone 3 (6–8 km).\n• Product pricing includes free bio-thermal cold-chain insulated packaging and food-grade crushed ice. There are zero hidden delivery fees, packing charges, or surprise shipping costs at checkout within our deliverable zone.",
   },
   {
     title: "4. Cold-Chain Packaging & Temperature Control",

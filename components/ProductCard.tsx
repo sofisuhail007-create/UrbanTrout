@@ -131,9 +131,9 @@ export default function ProductCard({ p }: { p: Product }) {
               color: "#9fadb8",
               fontFamily: '"Inter", sans-serif',
             }}
-            aria-hidden="true"
           >
-            Details →
+            <span>Details →</span>
+            <span className="sr-only"> for {p.name}</span>
           </span>
         </div>
       </Link>
@@ -168,7 +168,7 @@ export default function ProductCard({ p }: { p: Product }) {
             </span>
             <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.8rem", color: "#9fadb8" }}>/ {p.unit}</span>
 
-            {/* Strikethrough Original Price */}
+            {/* Strikethrough Market Benchmark Price */}
             {hasDiscount && (
               <span
                 className="line-through ml-1 text-xs md:text-sm font-semibold"
@@ -177,6 +177,7 @@ export default function ProductCard({ p }: { p: Product }) {
                   fontFamily: '"Space Grotesk", sans-serif',
                   textDecorationColor: "#ef4444",
                 }}
+                title="Srinagar Retail Market Benchmark"
               >
                 ₹{p.originalPrice?.toLocaleString("en-IN")}
               </span>
@@ -192,8 +193,9 @@ export default function ProductCard({ p }: { p: Product }) {
                   border: "1px solid rgba(34,197,94,0.3)",
                   fontFamily: '"Space Grotesk", sans-serif',
                 }}
+                title="Savings compared to Srinagar wet fish retail markets"
               >
-                Save ₹{discountAmount}
+                Save ₹{discountAmount} vs Market
               </span>
             )}
           </div>
@@ -216,7 +218,7 @@ export default function ProductCard({ p }: { p: Product }) {
         {/* Free Delivery Reassurance */}
         <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-400">
           <span>🛵</span>
-          <span>FREE Chilled Delivery (Within 5km Radius)</span>
+          <span>Express Chilled Delivery (Srinagar 8km Zone)</span>
         </div>
 
         {/* Divider */}
@@ -321,7 +323,7 @@ export default function ProductCard({ p }: { p: Product }) {
                 Out of Stock for Today
               </p>
               <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.72rem", color: "#9fadb8", margin: 0 }}>
-                All live aquarium harvest sold out. Please come back tomorrow at 7:00 AM!
+                All live aquarium harvest sold out. Please come back tomorrow at 8:00 AM!
               </p>
             </div>
           </div>
