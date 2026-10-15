@@ -878,7 +878,7 @@ export default function CustomerAccountPage() {
                   </li>
                   <li className="flex items-center gap-2">
                     <span>🛵</span>
-                    <span><strong>Live Dispatch:</strong> Alerts when your order leaves Malabagh on ice.</span>
+                    <span><strong>Live Dispatch:</strong> Alerts when your order leaves Malabagh chilled.</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <span>⚡</span>

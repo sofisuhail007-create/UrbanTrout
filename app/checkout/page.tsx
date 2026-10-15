@@ -3162,7 +3162,7 @@ export default function CheckoutPage() {
                   </div>
 
                   <p className="text-xs text-slate-300 leading-relaxed" style={{ fontFamily: '"Manrope", sans-serif' }}>
-                    Unlike supermarkets selling pre-slaughtered frozen fish, <strong>every Rainbow Trout is swimming alive in our cold-water Recirculating Aquaculture System (RAS) tanks in Malabagh right now</strong>. We only net, humanely harvest, descale, and pack it on ice <em>after</em> your order is confirmed and paid.
+                    Unlike supermarkets selling pre-slaughtered frozen fish, <strong>every Rainbow Trout is swimming alive in our cold-water Recirculating Aquaculture System (RAS) tanks in Malabagh right now</strong>. We only net, humanely harvest, descale, and pack it with non-toxic cold gel packs <em>after</em> your order is confirmed and paid.
                   </p>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -3182,7 +3182,7 @@ export default function CheckoutPage() {
                       <span className="text-emerald-400 text-base mt-0.5">⚡</span>
                       <div>
                         <strong className="text-xs text-white block" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
-                          Guaranteed &lt; 2-Hour Delivery on Ice
+                          Guaranteed &lt; 2-Hour Chilled Delivery
                         </strong>
                         <span className="text-[11px] text-slate-400 leading-normal block mt-0.5">
                           Prepaid orders trigger instant priority harvest and chilled dispatch directly to your doorstep with zero cash delays, OTP friction, or loose change hassles.

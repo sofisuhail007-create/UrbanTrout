@@ -10,14 +10,14 @@ import { getGoogleReviewsData } from "@/lib/reviews";
 export const metadata: Metadata = {
   title: "Fresh Trout Fish in Srinagar from ₹540/kg | Urban Trout",
   description:
-    "Order live-harvested fresh Rainbow Trout in Srinagar from ₹540/kg. Pan-ready cleaned & gutted, chilled on crushed ice & delivered to your doorstep in 2 hrs.",
+    "Order live-harvested fresh Rainbow Trout in Srinagar from ₹540/kg. Pan-ready cleaned & gutted, chilled with non-toxic ice gel packs & delivered to your doorstep in 2 hrs.",
   alternates: {
     canonical: "https://urbantrout.in",
   },
   openGraph: {
     title: "Fresh Trout Fish in Srinagar from ₹540/kg | Urban Trout",
     description:
-      "Order live-harvested fresh Rainbow Trout in Srinagar from ₹540/kg. Pan-ready cleaned & gutted, chilled on crushed ice & delivered to your doorstep in 2 hrs.",
+      "Order live-harvested fresh Rainbow Trout in Srinagar from ₹540/kg. Pan-ready cleaned & gutted, chilled with non-toxic ice gel packs & delivered to your doorstep in 2 hrs.",
     url: "https://urbantrout.in",
     siteName: "Urban Trout",
     images: [
@@ -64,11 +64,11 @@ const faqs = [
   },
   {
     q: "What is the price of Rainbow Trout per Kg in Srinagar?",
-    a: "Our fresh Whole Rainbow Trout is ₹540 per Kg, and our Premium Cleaned & Gutted Trout is ₹580 per Kg. Unlike marketplace suppliers who charge extra for packing and delivery, our prices include 100% Free insulated doorstep delivery on crushed ice (0°C–2°C) within our delivery zones (up to 8km) in Srinagar based on order tier.",
+    a: "Our fresh Whole Rainbow Trout is ₹540 per Kg, and our Premium Cleaned & Gutted Trout is ₹580 per Kg. Unlike marketplace suppliers who charge extra for packing and delivery, our prices include 100% Free insulated doorstep delivery with non-toxic, leak-proof ice gel packs (0°C–4°C) within our delivery zones (up to 8km) in Srinagar based on order tier.",
   },
   {
     q: "Do you clean and gut the trout before delivery?",
-    a: "Yes! When you select our Cleaned & Gutted Rainbow Trout (₹580/kg), the fish is weighed whole at live harvest (gross weight) and then our farm team expertly descales, cleans, and guts it. Because inedible viscera and gills (~15%–18%) are removed during cleaning, you receive ~820g–850g of 100% pan-ready edible fish per kg ordered, thoroughly washed with cold groundwater and packed on food-grade ice with zero kitchen mess.",
+    a: "Yes! When you select our Cleaned & Gutted Rainbow Trout (₹580/kg), the fish is weighed whole at live harvest (gross weight) and then our farm team expertly descales, cleans, and guts it. Because inedible viscera and gills (~15%–18%) are removed during cleaning, you receive ~820g–850g of 100% pan-ready edible fish per kg ordered, thoroughly washed with cold groundwater and packed with non-toxic reusable ice gel packs in insulated packaging with zero kitchen mess.",
   },
   {
     q: "Which areas in Srinagar do you deliver to?",
@@ -76,7 +76,7 @@ const faqs = [
   },
   {
     q: "How fresh is Urban Trout compared to market fish?",
-    a: "Market fish is often caught days in advance and transported on melting ice. At Urban Trout, your fish (Oncorhynchus mykiss) is alive and swimming in pure cold-water tanks when you place your order. We net it live, prepare it to your specifications, pack it in insulated food-grade containers with fresh crushed ice (0°C–2°C), and deliver it within 2 hours. The flesh is firm, bouncy, and completely free of fishy odor.",
+    a: "Market fish is often caught days in advance and transported on melting ice. At Urban Trout, your fish (Oncorhynchus mykiss) is alive and swimming in pure cold-water tanks when you place your order. We net it live, prepare it to your specifications, pack it in insulated food-grade containers with non-toxic, leak-proof ice gel packs (0°C–4°C), and deliver it within 2 hours. The flesh is firm, bouncy, and completely free of fishy odor.",
   },
   {
     q: "What is the minimum order quantity for home delivery?",
@@ -88,7 +88,7 @@ const faqs = [
   },
   {
     q: "How should I store fresh trout and how long does it last?",
-    a: "If cooking within 48 hours, keep the trout chilled in its ice pack inside your refrigerator chiller (0°C–4°C). For longer storage, wrap the trout in airtight freezer film or vacuum bags and freeze at -18°C for up to 3 months without compromising moisture or texture.",
+    a: "If cooking within 48 hours, keep the trout in its chilled packaging inside your refrigerator chiller (0°C–4°C). For longer storage, wrap the trout in airtight freezer film or vacuum bags and freeze at -18°C for up to 3 months without compromising moisture or texture.",
   },
   {
     q: "What are your operating hours and are you open every day?",
@@ -113,7 +113,7 @@ const customerReviews = [
     name: "Dr. Farooq Mir",
     locality: "Hazratbal, Srinagar",
     rating: 5,
-    text: "Ordered 3 kg gutted trout for a family dinner. The fish was delivered within 90 minutes packed on crushed ice. The meat was remarkably firm and sweet—lightyears ahead of what you find in local markets.",
+    text: "Ordered 3 kg gutted trout for a family dinner. The fish was delivered within 90 minutes chilled with leak-proof cold gel packs. The meat was remarkably firm and sweet—lightyears ahead of what you find in local markets.",
   },
   {
     name: "Aabid Hussain",
@@ -202,7 +202,7 @@ export default async function HomePage() {
         "name": "Fresh Whole Rainbow Trout (Srinagar)",
         "image": "https://urbantrout.in/images/hero-trout-bg.webp",
         "description":
-          "Live whole Rainbow Trout (Oncorhynchus mykiss) harvested live to order from pure cold borewell water in Malabagh, Srinagar. Delivered chilled on food-grade ice within 2 hours.",
+          "Live whole Rainbow Trout (Oncorhynchus mykiss) harvested live to order from pure cold borewell water in Malabagh, Srinagar. Delivered chilled with reusable non-toxic ice gel packs within 2 hours.",
         "sku": "UT-WHOLE-TROUT",
         "mpn": "UT-WHOLE-TROUT",
         "brand": {
@@ -310,7 +310,7 @@ export default async function HomePage() {
               "name": "Bilal M.",
             },
             "datePublished": "2026-07-10",
-            "reviewBody": "100% pan-ready and completely fresh. Scaled and gutted thoroughly, delivered chilled in ice within Srinagar.",
+            "reviewBody": "100% pan-ready and completely fresh. Scaled and gutted thoroughly, delivered chilled in leak-proof cold gel packaging within Srinagar.",
             "reviewRating": {
               "@type": "Rating",
               "ratingValue": "5",
@@ -467,7 +467,7 @@ export default async function HomePage() {
               lineHeight: 1.75,
             }}
           >
-            Urban Trout delivers fresh cold-water Rainbow Trout (<em>Oncorhynchus mykiss</em>) directly from our Malabagh farm tanks to your kitchen in under 2 hours. Swimming in pure 10°C subterranean borewell water until you order, expertly cleaned, packed on crushed ice, and delivered chilled across Srinagar up to 8 km. Whole from <strong style={{ color: "#72ddfd" }}>₹540/kg</strong>, pan-ready cleaned &amp; gutted from <strong style={{ color: "#72ddfd" }}>₹580/kg</strong>, or available for direct farm counter pickup.
+            Urban Trout delivers fresh cold-water Rainbow Trout (<em>Oncorhynchus mykiss</em>) directly from our Malabagh farm tanks to your kitchen in under 2 hours. Swimming in pure 10°C subterranean borewell water until you order, expertly cleaned, packed with non-toxic leak-proof ice gel packs, and delivered chilled across Srinagar up to 8 km. Whole from <strong style={{ color: "#72ddfd" }}>₹540/kg</strong>, pan-ready cleaned &amp; gutted from <strong style={{ color: "#72ddfd" }}>₹580/kg</strong>, or available for direct farm counter pickup.
           </p>
 
           {/* CTAs */}
@@ -565,7 +565,7 @@ export default async function HomePage() {
               Today&apos;s Fresh Rainbow Trout Rates
             </h2>
             <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfaceVariant, fontSize: "0.95rem", marginTop: "0.5rem", maxWidth: "680px", margin: "0.5rem auto 0" }}>
-              Harvested live from cold 10°C borewell water in Malabagh. 100% Free insulated doorstep delivery on crushed ice (0°C–2°C) across Srinagar up to 8 km based on order tier, or direct farm counter pickup.
+              Harvested live from cold 10°C borewell water in Malabagh. 100% Free insulated doorstep delivery with non-toxic, leak-proof ice gel packs (0°C–4°C) across Srinagar up to 8 km based on order tier, or direct farm counter pickup.
             </p>
           </div>
 
@@ -677,7 +677,7 @@ export default async function HomePage() {
                 <tr className="hover:bg-slate-900/30 transition-colors">
                   <td className="p-4 md:p-5 font-medium text-white">Doorstep Delivery (Up to 8km Zone)</td>
                   <td className="p-4 md:p-5 text-cyan-200 bg-cyan-950/30 border-x border-cyan-500/20 font-semibold text-emerald-400">
-                    100% FREE within 2 Hours (Chilled on ice)
+                    100% FREE within 2 Hours (Chilled with non-toxic cold gel packs)
                   </td>
                   <td className="p-4 md:p-5 text-slate-400">Self-pickup required or ₹100+ local courier.</td>
                   <td className="p-4 md:p-5 text-slate-400">₹200–₹400 extra thermocol box &amp; shipping; frozen delays.</td>
@@ -714,7 +714,7 @@ export default async function HomePage() {
 
           <div className="mt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs text-slate-400">
             <span className="max-w-2xl leading-relaxed">
-              Rates verified across Srinagar retail channels (March 2026). Urban Trout rates include 100% free insulated doorstep delivery on crushed ice across Srinagar delivery zones (up to 8km). Sourced via direct market surveys (Batamaloo &amp; Maharaj Gunj stalls), verified B2B listings, and restaurant menus.
+              Rates verified across Srinagar retail channels (March 2026). Urban Trout rates include 100% free insulated doorstep delivery with reusable non-toxic ice gel packs (0°C–4°C, zero melting mess) across Srinagar delivery zones (up to 8km). Sourced via direct market surveys (Batamaloo &amp; Maharaj Gunj stalls), verified B2B listings, and restaurant menus.
             </span>
             <Link href="/trout-price-srinagar" className="inline-flex items-center gap-1.5 text-cyan-400 font-bold hover:underline whitespace-nowrap">
               <span>Read Full Srinagar Trout Price Guide</span>
@@ -791,10 +791,10 @@ export default async function HomePage() {
               <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-mono font-bold text-cyan-300 bg-cyan-950/80 px-2 py-0.5 rounded border border-cyan-500/30">00:25 MIN</span>
-                  <span className="text-base">🧊</span>
+                  <span className="text-base">❄️</span>
                 </div>
-                <h4 className="font-bold text-sm text-white">Insulated Crushed-Ice Pack</h4>
-                <p className="text-xs text-slate-400 leading-relaxed">Packed in food-grade insulated containers on fresh crushed ice at 0°C–2°C.</p>
+                <h4 className="font-bold text-sm text-white">Leak-Proof Cold-Gel Packaging</h4>
+                <p className="text-xs text-slate-400 leading-relaxed">Packed in food-grade insulated containers with non-toxic, leak-proof reusable ice gel packs at 0°C–4°C with zero melting mess.</p>
               </div>
               <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col gap-2">
                 <div className="flex items-center justify-between">
@@ -924,7 +924,7 @@ export default async function HomePage() {
                 </svg>
                 <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.35rem", fontWeight: 700, color: C.onSurface, margin: "0 0 0.75rem" }}>Harvested Live to Order</h3>
                 <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfaceVariant, fontSize: "0.9rem", lineHeight: 1.75, margin: 0 }}>
-                  Never pre-harvested or kept in stagnant cold storage. Fish swim in clean, continuous cold-water currents until your order is confirmed, then hand-harvested live, cleaned, and packed on food-grade ice for delivery within 2 hours.
+                  Never pre-harvested or kept in stagnant cold storage. Fish swim in clean, continuous cold-water currents until your order is confirmed, then hand-harvested live, cleaned, and packed with non-toxic leak-proof ice gel packs for delivery within 2 hours.
                 </p>
               </div>
             </div>
@@ -1350,7 +1350,7 @@ export default async function HomePage() {
                 FSSAI Reg. No: <span className="text-emerald-400">21026414000392</span> • J&amp;K Fisheries Compliant
               </span>
               <span className="text-[11px] text-slate-400 font-sans">
-                Dept. of Health &amp; Medical Education, J&amp;K • 0°C–2°C food-grade ice insulation.
+                Dept. of Health &amp; Medical Education, J&amp;K • 0°C–4°C non-toxic gel-pack cold chain.
               </span>
             </div>
           </div>

@@ -104,10 +104,10 @@ export default function BulkSupplyPage() {
             </p>
           </div>
           <div className="p-6 rounded-2xl bg-slate-900/80 border border-slate-800">
-            <span className="text-2xl">🧊</span>
-            <h2 className="text-base font-bold text-white font-['Space_Grotesk'] mt-3 mb-1">Sub-2°C Cold Chain</h2>
+            <span className="text-2xl">❄️</span>
+            <h2 className="text-base font-bold text-white font-['Space_Grotesk'] mt-3 mb-1">0°C–4°C Dry Cold Chain</h2>
             <p className="text-xs text-slate-400 font-sans leading-relaxed">
-              Packed in food-grade insulated tubs with hygienic crushed ice. Zero drip-loss or flesh degradation.
+              Packed in food-grade insulated tubs with non-toxic, leak-proof reusable ice gel packs. Zero messy water pooling or flesh degradation.
             </p>
           </div>
         </div>

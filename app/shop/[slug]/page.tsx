@@ -116,7 +116,7 @@ export default async function DynamicProductPage({ params }: Props) {
     savedMeta.description ||
     (invItem as any)?.description ||
     staticFallback?.desc ||
-    "Sustainably farmed in the cold waters of Srinagar. Harvested live to order and delivered chilled in ice for peak freshness and flavor.";
+    "Sustainably farmed in the cold waters of Srinagar. Harvested live to order and delivered chilled with leak-proof cold gel packs for peak freshness and flavor.";
 
   const hasDiscount = originalPrice > price;
   const discountPercent = hasDiscount ? Math.round(((originalPrice - price) / originalPrice) * 100) : 0;
@@ -152,7 +152,7 @@ export default async function DynamicProductPage({ params }: Props) {
         reviewBody:
           slug === "whole-trout"
             ? "Exceptionally fresh trout harvested directly to order in Srinagar. Perfect texture and delicate clean taste."
-            : "100% pan-ready and completely fresh. Scaled and gutted thoroughly, delivered chilled in ice within Srinagar.",
+            : "100% pan-ready and completely fresh. Scaled and gutted thoroughly, delivered chilled with leak-proof cold gel packs within Srinagar.",
         reviewRating: {
           "@type": "Rating",
           ratingValue: "5",
@@ -449,7 +449,7 @@ export default async function DynamicProductPage({ params }: Props) {
                 {[
                   { icon: "🌿", label: "Zero Antibiotics" },
                   { icon: "💧", label: "Himalayan Spring" },
-                  { icon: "🧊", label: "Ice-Chilled" },
+                  { icon: "❄️", label: "Cold Gel Chilled" },
                 ].map((tag) => (
                   <div key={tag.label} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                     <span style={{ fontSize: "14px" }}>{tag.icon}</span>
@@ -489,7 +489,7 @@ export default async function DynamicProductPage({ params }: Props) {
               >
                 <span style={{ fontSize: "18px" }}>🛵</span>
                 <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.82rem", color: "#a7f3d0", margin: 0, fontWeight: 600 }}>
-                  <strong style={{ color: "#34d399" }}>Express Doorstep Delivery</strong> across Srinagar (8km Zone). Harvested live to order &amp; delivered ice-chilled within 2 hours. Free delivery tiers available!
+                  <strong style={{ color: "#34d399" }}>Express Doorstep Delivery</strong> across Srinagar (8km Zone). Harvested live to order &amp; delivered cold-gel chilled (0°C–4°C) within 2 hours. Free delivery tiers available!
                 </p>
               </div>
 

@@ -42,7 +42,7 @@ const sections = [
   },
   {
     title: "5. Shipping, Delivery & Packaging",
-    body: "• Doorstep deliveries are fulfilled using food-grade bio-thermal insulation and crushed ice to maintain temperature control.\n• Deliveries within our authorized 8km farm delivery zones are 100% free of charge when meeting minimum quantity thresholds (2 kg for Zone 1, 3 kg for Zone 2, and 4 kg for Zone 3).\n• Detailed terms regarding delivery timelines and zones are governed by our Shipping & Delivery Policy.",
+    body: "• Doorstep deliveries are fulfilled using food-grade bio-thermal insulation and non-toxic, leak-proof reusable ice gel packs to maintain 0°C–4°C temperature control without melting mess.\n• Deliveries within our authorized 8km farm delivery zones are 100% free of charge when meeting minimum quantity thresholds (2 kg for Zone 1, 3 kg for Zone 2, and 4 kg for Zone 3).\n• Detailed terms regarding delivery timelines and zones are governed by our Shipping & Delivery Policy.",
   },
   {
     title: "6. Cancellation, Return & Refund Policy",

@@ -57,7 +57,7 @@ const priceFaqs = [
   },
   {
     q: "What is the minimum order quantity for free delivery?",
-    a: "Free doorstep delivery starts from 2 kg in Zone 1 (0–4 km), 3 kg in Zone 2 (4–6 km), and 4 kg in Zone 3 (6–8 km). This ensures efficient live harvesting and allows our bio-thermal ice packing to maintain strict 0°C–2°C temperatures throughout transit to your kitchen.",
+    a: "Free doorstep delivery starts from 2 kg in Zone 1 (0–4 km), 3 kg in Zone 2 (4–6 km), and 4 kg in Zone 3 (6–8 km). This ensures efficient live harvesting and allows our non-toxic cold gel pack insulation to maintain strict 0°C–4°C temperatures throughout transit to your kitchen.",
   },
   {
     q: "Is there any extra charge for descaling, gutting, or doorstep delivery?",
@@ -65,7 +65,7 @@ const priceFaqs = [
   },
   {
     q: "Why choose hyper-local Srinagar farm trout over fish transported from outer districts?",
-    a: "Trout sourced from distant outer districts travels 4 to 8 hours over highway traffic on melting ice, causing flesh to soften and lose its natural resilience. Urban Trout is farmed right here in Malabagh, Srinagar. Your fish swims in cold deep borewell groundwater until your order is confirmed, arriving at your doorstep in 90–120 minutes on thermal crushed ice with peak freshness intact.",
+    a: "Trout sourced from distant outer districts travels 4 to 8 hours over highway traffic on melting ice, causing flesh to soften and lose its natural resilience. Urban Trout is farmed right here in Malabagh, Srinagar. Your fish swims in cold deep borewell groundwater until your order is confirmed, arriving at your doorstep in 90–120 minutes chilled with non-toxic, leak-proof ice gel packs with peak freshness intact.",
   },
 ];
 
@@ -244,7 +244,7 @@ export default function TroutPriceSrinagarPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-sans text-slate-300 mt-4">
               <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800">
                 <span className="text-cyan-300 font-bold text-sm block mb-1">⏱️ Harvested Live to Order (90–120 Min Delivery)</span>
-                We do not maintain dead storage inventory. Your trout is netted from our Malabagh tanks only after your order is confirmed, immediately packed on fresh crushed ice, and delivered to your doorstep within 90–120 minutes.
+                We do not maintain dead storage inventory. Your trout is netted from our Malabagh tanks only after your order is confirmed, immediately chilled with non-toxic, leak-proof reusable ice gel packs, and delivered to your doorstep within 90–120 minutes.
               </div>
               <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800">
                 <span className="text-emerald-300 font-bold text-sm block mb-1">💧 Deep Borewell Himalayan Groundwater</span>

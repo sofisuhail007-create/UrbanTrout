@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "Shipping & Delivery Policy | Urban Trout Srinagar",
-    description: "Tiered 100% Free doorstep delivery within 8km perimeter of our Malabagh farm within 2 hours of harvest. Food-grade ice packaging.",
+    description: "Tiered 100% Free doorstep delivery within 8km perimeter of our Malabagh farm within 2 hours of harvest. Non-toxic cold gel-pack packaging.",
     url: "https://urbantrout.in/shipping-policy",
     siteName: "Urban Trout",
   },
@@ -31,15 +31,15 @@ const sections = [
   },
   {
     title: "2. Harvest-to-Order & Delivery Timelines",
-    body: "• Farm-Fresh Quality: Every order is freshly harvested live from our cold-water aquaculture tanks upon order confirmation to ensure maximum freshness and taste.\n• Rapid Delivery Timeframe: Orders within our 8km perimeter are freshly harvested to order, cleaned/gutted if requested, chilled in food-grade ice, and delivered to your doorstep within 90–120 minutes.\n• Operating Delivery Hours: Saturday to Thursday between 8:00 AM and 9:00 PM IST (Closed on Fridays for scheduled Farm Maintenance).",
+    body: "• Farm-Fresh Quality: Every order is freshly harvested live from our cold-water aquaculture tanks upon order confirmation to ensure maximum freshness and taste.\n• Rapid Delivery Timeframe: Orders within our 8km perimeter are freshly harvested to order, cleaned/gutted if requested, chilled with non-toxic leak-proof ice gel packs, and delivered to your doorstep within 90–120 minutes.\n• Operating Delivery Hours: Saturday to Thursday between 8:00 AM and 9:00 PM IST (Closed on Fridays for scheduled Farm Maintenance).",
   },
   {
     title: "3. 100% Free Shipping & Tiered Delivery Policy",
-    body: "• 100% FREE Doorstep Delivery across all 3 zones when meeting the minimum quantity threshold: 2 kg for Zone 1 (0–4 km), 3 kg for Zone 2 (4–6 km), and 4 kg for Zone 3 (6–8 km).\n• Product pricing includes free bio-thermal cold-chain insulated packaging and food-grade crushed ice. There are zero hidden delivery fees, packing charges, or surprise shipping costs at checkout within our deliverable zone.",
+    body: "• 100% FREE Doorstep Delivery across all 3 zones when meeting the minimum quantity threshold: 2 kg for Zone 1 (0–4 km), 3 kg for Zone 2 (4–6 km), and 4 kg for Zone 3 (6–8 km).\n• Product pricing includes free cold-chain insulated packaging and reusable non-toxic ice gel packs (0°C–4°C). There are zero hidden delivery fees, packing charges, or surprise shipping costs at checkout within our deliverable zone.",
   },
   {
     title: "4. Cold-Chain Packaging & Temperature Control",
-    body: "• Freshness is our top priority. Every fish is packed immediately following harvest in food-grade insulated packaging with fresh crushed ice (0°C–2°C).\n• This maintains an unbroken sub-4°C chill chain from our farm tanks directly to your kitchen, ensuring maximum taste, texture, and nutritional value.",
+    body: "• Freshness is our top priority. Every fish is packed immediately following harvest in food-grade insulated packaging with non-toxic, leak-proof reusable ice gel packs (0°C–4°C).\n• This maintains an unbroken dry sub-4°C chill chain from our farm tanks directly to your kitchen without soggy bags or melting ice water, ensuring maximum taste, texture, and nutritional value.",
   },
   {
     title: "5. Order Tracking & WhatsApp Notifications",

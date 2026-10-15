@@ -299,7 +299,7 @@ export function evaluateDeliveryZone(params: {
 
   if (tierId === "zone1") {
     statusHeadline = `✓ 100% Free Doorstep Delivery from 2 kg (~${dist.toFixed(1)} km)`;
-    deliveryMessage = `Deliverable within 90–120 minutes in food-grade bio-thermal crushed ice. Free on 2+ kg, or ₹${fee} special fee for smaller orders.`;
+    deliveryMessage = `Deliverable within 90–120 minutes with non-toxic, leak-proof reusable ice gel packs (0°C–4°C). Free on 2+ kg, or ₹${fee} special fee for smaller orders.`;
   } else if (tierId === "zone2") {
     statusHeadline = `✓ Doorstep Delivery Available — Free from 3 kg (~${dist.toFixed(1)} km)`;
     deliveryMessage = `Deliverable within 2 hours. Free delivery on family pack (3+ kg), or ₹${fee} special delivery fee for smaller orders.`;

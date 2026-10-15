@@ -330,7 +330,7 @@ const jsonLd = {
                     "name": "Bilal M."
                   },
                   "datePublished": "2026-07-10",
-                  "reviewBody": "100% pan-ready and completely fresh. Scaled and gutted thoroughly, delivered chilled in ice within Srinagar.",
+                  "reviewBody": "100% pan-ready and completely fresh. Scaled and gutted thoroughly, delivered chilled with leak-proof cold gel packs within Srinagar.",
                   "reviewRating": {
                     "@type": "Rating",
                     "ratingValue": "5",
