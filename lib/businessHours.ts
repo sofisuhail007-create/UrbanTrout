@@ -64,13 +64,15 @@ export function getBusinessHoursInfo(
   const isFriday = currentISTDay === 5;
   const allowFridayOrders = overrides?.allowFridayOrders !== undefined
     ? Boolean(overrides?.allowFridayOrders)
-    : true;
+    : false;
   const farmMaintenanceActive = Boolean(overrides?.farmMaintenanceActive);
   const storeManuallyClosed = Boolean(overrides?.storeManuallyClosed);
   const forceStoreOpen = Boolean(overrides?.forceStoreOpen);
 
   // Friday is closed for maintenance by default, UNLESS allowFridayOrders is enabled or forceStoreOpen is active
-  const isFridayMaintenance = isFriday && !allowFridayOrders && !forceStoreOpen;
+  // On Thursday night after 9 PM IST, the store closes for the night and enters Friday Maintenance mode
+  const isThursdayNightBeforeFriday = currentISTDay === 4 && currentISTHour >= CLOSE_HOUR && !allowFridayOrders && !forceStoreOpen;
+  const isFridayMaintenance = (isFriday || isThursdayNightBeforeFriday) && !allowFridayOrders && !forceStoreOpen;
   const isWithinOperatingHours = currentISTHour >= OPEN_HOUR && currentISTHour < CLOSE_HOUR;
 
   let isOpen = false;
@@ -96,32 +98,32 @@ export function getBusinessHoursInfo(
   } else if (isFridayMaintenance) {
     isOpen = false;
     closedReason = "friday_maintenance";
-    const nextOpen = new Date(istMs);
-    nextOpen.setUTCDate(nextOpen.getUTCDate() + 1); // Saturday
-    nextOpen.setUTCHours(OPEN_HOUR, 0, 0, 0);
-    nextOpenISO = new Date(nextOpen.getTime() - istOffsetMs).toISOString();
-    nextOpenLabel = "tomorrow (Saturday) at 8:00 AM";
+    if (isFriday) {
+      // During Friday (12 AM - 11:59 PM)
+      const nextOpen = new Date(istMs);
+      nextOpen.setUTCDate(nextOpen.getUTCDate() + 1); // Saturday
+      nextOpen.setUTCHours(OPEN_HOUR, 0, 0, 0);
+      nextOpenISO = new Date(nextOpen.getTime() - istOffsetMs).toISOString();
+      nextOpenLabel = "tomorrow (Saturday) at 8:00 AM";
+    } else {
+      // Thursday night after 9 PM
+      const nextOpen = new Date(istMs);
+      nextOpen.setUTCDate(nextOpen.getUTCDate() + 2); // Saturday
+      nextOpen.setUTCHours(OPEN_HOUR, 0, 0, 0);
+      nextOpenISO = new Date(nextOpen.getTime() - istOffsetMs).toISOString();
+      nextOpenLabel = "Saturday at 8:00 AM";
+    }
   } else if (!isWithinOperatingHours) {
     isOpen = false;
     closedReason = "outside_hours";
 
     if (currentISTDay === 4 && currentISTHour >= CLOSE_HOUR) {
-      // Thursday after 9 PM IST
-      if (allowFridayOrders) {
-        // Friday is open! Opens tomorrow at 8:00 AM IST (+1 day)
-        const nextOpen = new Date(istMs);
-        nextOpen.setUTCDate(nextOpen.getUTCDate() + 1); // Friday
-        nextOpen.setUTCHours(OPEN_HOUR, 0, 0, 0);
-        nextOpenISO = new Date(nextOpen.getTime() - istOffsetMs).toISOString();
-        nextOpenLabel = "tomorrow (Friday) at 8:00 AM";
-      } else {
-        // Friday is maintenance -> opens Saturday at 8:00 AM IST (+2 days)
-        const nextOpen = new Date(istMs);
-        nextOpen.setUTCDate(nextOpen.getUTCDate() + 2); // Saturday
-        nextOpen.setUTCHours(OPEN_HOUR, 0, 0, 0);
-        nextOpenISO = new Date(nextOpen.getTime() - istOffsetMs).toISOString();
-        nextOpenLabel = "Saturday at 8:00 AM";
-      }
+      // Thursday after 9 PM IST when Friday is OPEN
+      const nextOpen = new Date(istMs);
+      nextOpen.setUTCDate(nextOpen.getUTCDate() + 1); // Friday
+      nextOpen.setUTCHours(OPEN_HOUR, 0, 0, 0);
+      nextOpenISO = new Date(nextOpen.getTime() - istOffsetMs).toISOString();
+      nextOpenLabel = "tomorrow (Friday) at 8:00 AM";
     } else if (currentISTHour < OPEN_HOUR) {
       // Before 8 AM on an operating day -> opens today at 8:00 AM IST
       const nextOpen = new Date(istMs);

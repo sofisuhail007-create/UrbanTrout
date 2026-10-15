@@ -159,6 +159,18 @@ export default function StoreClosedBanner({
     };
   }, [nextOpenISO, isManualClose, triggerReload]);
 
+  useEffect(() => {
+    if (typeof window !== "undefined" && window.location.hash === "#scheduled-catalog") {
+      const timer = setTimeout(() => {
+        const el = document.getElementById("scheduled-catalog");
+        if (el) {
+          el.scrollIntoView({ behavior: "smooth" });
+        }
+      }, 150);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
   const whatsappUrl = `https://wa.me/${primaryPhone.replace(/\D/g, "")}?text=${encodeURIComponent("Hi Urban Trout, I'd like to place an order. When will you be available?")}`;
 
   return (
@@ -670,12 +682,15 @@ export default function StoreClosedBanner({
             </p>
 
             <a
-              href="#scheduled-catalog"
+              href="/shop#scheduled-catalog"
               onClick={(e) => {
                 const el = document.getElementById("scheduled-catalog");
                 if (el) {
                   e.preventDefault();
                   el.scrollIntoView({ behavior: "smooth" });
+                } else {
+                  e.preventDefault();
+                  window.location.href = "/shop#scheduled-catalog";
                 }
               }}
               style={{

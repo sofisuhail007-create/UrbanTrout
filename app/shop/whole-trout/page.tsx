@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import AddToCartButton from "@/components/AddToCartButton";
 import StoreClosedBanner from "@/components/StoreClosedBanner";
+import ScheduledCatalog from "@/components/ScheduledCatalog";
 import { supabase } from "@/lib/supabase";
+import { getCatalogProducts } from "@/lib/catalog";
 import { getBusinessHoursInfo } from "@/lib/businessHours";
 import { getLiveAquariumStock } from "@/lib/aquariumStock";
 import { getGoogleReviewsData } from "@/lib/reviews";
@@ -182,8 +184,9 @@ export default async function WholeTroutPage() {
 
   // ── Render closed banner if outside hours ─────────────────────────────
   if (!effectiveHoursInfo.isOpen) {
+    const productList = await getCatalogProducts(aquariumStockKg, false);
     return (
-      <>
+      <div style={{ background: C.bg, minHeight: "100vh" }}>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
@@ -195,7 +198,11 @@ export default async function WholeTroutPage() {
           isFridayMaintenance={effectiveHoursInfo.isFridayMaintenance}
           closedReason={effectiveHoursInfo.closedReason}
         />
-      </>
+        <ScheduledCatalog
+          productList={productList}
+          nextOpenLabel={effectiveHoursInfo.nextOpenLabel}
+        />
+      </div>
     );
   }
 

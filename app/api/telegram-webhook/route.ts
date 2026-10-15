@@ -10,6 +10,7 @@ import {
   getOrderKeyboard,
   sendTelegramMessage,
   type InlineKeyboardButton,
+  type InlineKeyboardMarkup,
 } from "@/lib/telegram";
 import { sendOrderStatusUpdateEmail } from "@/lib/email";
 
@@ -417,6 +418,46 @@ export async function POST(request: Request) {
           return NextResponse.json({ success: true, closedThread: targetThreadId });
         } catch (closeErr: any) {
           await answerCallbackQuery(cq.id, "❌ Error closing chat", true);
+        }
+      }
+
+      // ── Handle Friday Store Toggle Callback: "friday:toggle:<open|close>" ──
+      if (dataStr.startsWith("friday:toggle:")) {
+        const action = dataStr.replace("friday:toggle:", "");
+        const shouldAllow = action === "open";
+        const valStr = String(shouldAllow);
+
+        try {
+          await supabase.from("app_settings").upsert({
+            key: "allow_friday_orders",
+            value: valStr,
+            description: "Allow customer online orders on Fridays",
+            updated_at: new Date().toISOString(),
+          }, { onConflict: "key" });
+
+          await answerCallbackQuery(cq.id, shouldAllow ? "🟢 Friday is now OPEN for orders!" : "🔒 Friday is now CLOSED (Maintenance Mode)!");
+
+          if (chatId && messageId) {
+            const statusMsg = shouldAllow
+              ? `📅 <b>FRIDAY STORE STATUS: 🟢 OPEN</b> ⚡\n━━━━━━━━━━━━━━━━━━━━\nCustomers CAN place online orders on Fridays (8:00 AM – 9:00 PM IST).\n\n👇 <b>Quick Actions:</b>`
+              : `📅 <b>FRIDAY STORE STATUS: 🔒 CLOSED (Default)</b> 🐟\n━━━━━━━━━━━━━━━━━━━━\nFridays are reserved for weekly farm maintenance & bio-security. Reopens Saturday at 8:00 AM.\n\n👇 <b>Quick Actions:</b>`;
+
+            const kb: InlineKeyboardMarkup = {
+              inline_keyboard: [
+                [
+                  shouldAllow
+                    ? { text: "🔒 Close Friday (Restore Maintenance)", callback_data: "friday:toggle:close" }
+                    : { text: "🟢 Open Friday for Orders", callback_data: "friday:toggle:open" },
+                ],
+              ],
+            };
+
+            await editTelegramMessageText(chatId, messageId, statusMsg, kb);
+          }
+
+          return NextResponse.json({ success: true, fridayOpen: shouldAllow });
+        } catch (err: any) {
+          await answerCallbackQuery(cq.id, `❌ Error: ${err.message}`, true);
         }
       }
     }
@@ -885,10 +926,74 @@ export async function POST(request: Request) {
         return NextResponse.json({ success: true });
       }
 
+      // ── Command: /friday [open|close|on|off] (Toggle Friday Operations) ──
+      if (text.startsWith("/friday")) {
+        const parts = text.split(/\s+/);
+        const action = parts[1]?.toLowerCase();
+
+        if (action === "open" || action === "on" || action === "enable") {
+          await supabase.from("app_settings").upsert({
+            key: "allow_friday_orders",
+            value: "true",
+            description: "Allow customer online orders on Fridays",
+            updated_at: new Date().toISOString(),
+          }, { onConflict: "key" });
+
+          await sendTelegramMessage(
+            `🟢 <b>FRIDAY ORDERING ENABLED!</b> ⚡\n━━━━━━━━━━━━━━━━━━━━\nThe website is now set to accept orders on Friday (8:00 AM – 9:00 PM IST).\n\nTo restore default Friday maintenance closure, type <code>/friday close</code>.`,
+            "HTML",
+            undefined,
+            chatId
+          );
+          return NextResponse.json({ success: true });
+        } else if (action === "close" || action === "off" || action === "disable") {
+          await supabase.from("app_settings").upsert({
+            key: "allow_friday_orders",
+            value: "false",
+            description: "Allow customer online orders on Fridays",
+            updated_at: new Date().toISOString(),
+          }, { onConflict: "key" });
+
+          await sendTelegramMessage(
+            `🔒 <b>FRIDAY STORE CLOSED (MAINTENANCE MODE RESTORED)!</b> 🐟\n━━━━━━━━━━━━━━━━━━━━\nFridays are reserved for weekly RAS farm maintenance & bio-security protocols.\nCustomers will see Friday closure and next open on Saturday at 8:00 AM.\n\nTo open Friday anytime, type <code>/friday open</code>.`,
+            "HTML",
+            undefined,
+            chatId
+          );
+          return NextResponse.json({ success: true });
+        } else {
+          // Show current Friday status with 1-tap toggle button
+          const { data: row } = await supabase
+            .from("app_settings")
+            .select("value")
+            .eq("key", "allow_friday_orders")
+            .maybeSingle();
+
+          const isOpen = row?.value === "true";
+
+          const statusMsg = isOpen
+            ? `📅 <b>FRIDAY STORE STATUS: 🟢 OPEN</b> ⚡\n━━━━━━━━━━━━━━━━━━━━\nCustomers CAN place online orders on Fridays (8:00 AM – 9:00 PM IST).\n\n👇 <b>Quick Actions:</b>`
+            : `📅 <b>FRIDAY STORE STATUS: 🔒 CLOSED (Default)</b> 🐟\n━━━━━━━━━━━━━━━━━━━━\nFridays are reserved for weekly farm maintenance & bio-security. Reopens Saturday at 8:00 AM.\n\n👇 <b>Quick Actions:</b>`;
+
+          const kb: InlineKeyboardMarkup = {
+            inline_keyboard: [
+              [
+                isOpen
+                  ? { text: "🔒 Close Friday (Restore Maintenance)", callback_data: "friday:toggle:close" }
+                  : { text: "🟢 Open Friday for Orders", callback_data: "friday:toggle:open" },
+              ],
+            ],
+          };
+
+          await sendTelegramMessage(statusMsg, "HTML", kb, chatId);
+          return NextResponse.json({ success: true });
+        }
+      }
+
       // ── Command: /help or /start ──
       if (text.startsWith("/help") || text.startsWith("/start")) {
         await sendTelegramMessage(
-          `🐟 <b>URBAN TROUT ADMIN BOT</b> ⚡\n━━━━━━━━━━━━━━━━━━━━\nHere are all available management commands:\n\n📦 <b>INVENTORY MANAGEMENT:</b>\n• <b>/stock</b> or <b>/inventory</b> - Interactive stock dashboard with 1-tap toggles\n• <b>/setstock [whole|gutted] [kg]</b> - Set exact stock quantity (e.g. <code>/setstock whole 50</code>)\n• <b>/addstock [whole|gutted] [kg]</b> - Add quantity to stock (e.g. <code>/addstock gutted 20</code>)\n• <b>/price [whole|gutted] [price]</b> - Update live website price (e.g. <code>/price whole 520</code>)\n\n🛒 <b>ORDER MANAGEMENT:</b>\n• <b>/orders</b> - View recent orders with 1-tap action buttons\n• <b>/order [number]</b> - Lookup a specific order\n• <b>/stats</b> - View today's sales and order stats\n• <b>/help</b> - Show this help menu`,
+          `🐟 <b>URBAN TROUT ADMIN BOT</b> ⚡\n━━━━━━━━━━━━━━━━━━━━\nHere are all available management commands:\n\n📦 <b>INVENTORY MANAGEMENT:</b>\n• <b>/stock</b> or <b>/inventory</b> - Interactive stock dashboard with 1-tap toggles\n• <b>/setstock [whole|gutted] [kg]</b> - Set exact stock quantity (e.g. <code>/setstock whole 50</code>)\n• <b>/addstock [whole|gutted] [kg]</b> - Add quantity to stock (e.g. <code>/addstock gutted 20</code>)\n• <b>/price [whole|gutted] [price]</b> - Update live website price (e.g. <code>/price whole 520</code>)\n\n📅 <b>STORE OPERATIONS:</b>\n• <b>/friday</b> - View Friday store status & 1-tap toggle button\n• <b>/friday open</b> - Keep farm & website OPEN on Friday\n• <b>/friday close</b> - Restore default Friday maintenance closure\n\n🛒 <b>ORDER MANAGEMENT:</b>\n• <b>/orders</b> - View recent orders with 1-tap action buttons\n• <b>/order [number]</b> - Lookup a specific order\n• <b>/stats</b> - View today's sales and order stats\n• <b>/chats</b> - View active website live chats\n• <b>/r [message]</b> - Quick reply to active live chat visitor\n• <b>/help</b> - Show this help menu`,
           "HTML",
           undefined,
           chatId
