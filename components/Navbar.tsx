@@ -85,6 +85,7 @@ export default function Navbar() {
             {/* Account / My Orders */}
             <Link
               href="/account"
+              suppressHydrationWarning
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl transition-all duration-300 text-xs"
               style={{
                 background: user ? "rgba(114,221,253,0.12)" : "transparent",
@@ -125,6 +126,7 @@ export default function Navbar() {
             {/* Cart */}
             <button
               onClick={openCart}
+              suppressHydrationWarning
               className="relative flex items-center justify-center w-10 h-10 rounded-xl transition-all duration-300"
               style={{ color: "#72ddfd" }}
               onMouseEnter={(e) => {
