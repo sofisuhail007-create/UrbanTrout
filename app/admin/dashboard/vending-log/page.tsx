@@ -567,6 +567,9 @@ export default function VendingCenterLoggerPage() {
   const [formAmount, setFormAmount] = useState<string>("");
   const [formAmountOverridden, setFormAmountOverridden] = useState(false);
   const [formPayment, setFormPayment] = useState<string>("Cash");
+  const [formSplitCash, setFormSplitCash] = useState<string>("");
+  const [formSplitOnline, setFormSplitOnline] = useState<string>("");
+  const [formOnlineChannel, setFormOnlineChannel] = useState<"JK Bank" | "Razorpay">("JK Bank");
   const [formCustomFields, setFormCustomFields] = useState<Record<string, any>>({});
   const [formNotes, setFormNotes] = useState("");
   const [formLoggedBy, setFormLoggedBy] = useState("Mohd Amin");
@@ -596,6 +599,7 @@ export default function VendingCenterLoggerPage() {
   const [formBalanceAction, setFormBalanceAction] = useState<"balance" | "final_settlement" | "none">("final_settlement");
   const [selectedBalanceRecord, setSelectedBalanceRecord] = useState<CustomerBalanceRecord | null>(null);
   const [balanceModalOpen, setBalanceModalOpen] = useState(false);
+  const [balanceModalTab, setBalanceModalTab] = useState<"remind" | "settle">("settle");
 
   // ─── Customer Search & Loyalty Intelligence State ───
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerRecord | null>(null);
@@ -1542,6 +1546,7 @@ export default function VendingCenterLoggerPage() {
     let cashCount = 0;
     let cashKg = 0;
     let payingCount = 0;
+    let totalExtraCollected = 0;
     const byMode: Record<string, { count: number; revenue: number; kg: number }> = {};
 
     filteredEntriesByPeriod.forEach((e) => {
@@ -1615,12 +1620,28 @@ export default function VendingCenterLoggerPage() {
         totalLoss += loss;
       }
 
-      const isCash = modeStr === "cash";
-      if (isCash && rev > 0) {
+      // Track extra amount paid above standard rate / tips
+      const extraAmt = Number(e.custom_fields?.extra_amount) || 0;
+      if (extraAmt > 0 && rev > 0) {
+        totalExtraCollected += extraAmt;
+      }
+
+      // Split vs Cash vs Online accounting
+      const isSplit = modeStr.includes("split") || Boolean(e.custom_fields?.is_split);
+      if (isSplit && rev > 0) {
+        const cashPart = Number(e.custom_fields?.cash_portion) || 0;
+        const onlinePart = Number(e.custom_fields?.online_portion) || Math.max(0, rev - cashPart);
+        cashRevenue += cashPart;
+        onlineRevenue += onlinePart;
+        if (cashPart > 0) cashCount += 1;
+        if (onlinePart > 0) onlineCount += 1;
+        cashKg = Math.round((cashKg + (rev > 0 ? (cashPart / rev) * w : 0)) * 1000) / 1000;
+        onlineKg = Math.round((onlineKg + (rev > 0 ? (onlinePart / rev) * w : 0)) * 1000) / 1000;
+      } else if (modeStr === "cash" && rev > 0) {
         cashRevenue += rev;
         cashCount += 1;
         cashKg = Math.round((cashKg + w) * 1000) / 1000;
-      } else if (!isCash && rev > 0) {
+      } else if (rev > 0) {
         onlineRevenue += rev;
         onlineCount += 1;
         onlineKg = Math.round((onlineKg + w) * 1000) / 1000;
@@ -1752,6 +1773,7 @@ export default function VendingCenterLoggerPage() {
       periodTotalSurplusKg,
       periodTotalRegularKg,
       surplusProfitBonus,
+      totalExtraCollected,
     };
   }, [filteredEntriesByPeriod, procurementAvgCost, surplusInfoMap, specialRules]);
 
@@ -2285,6 +2307,9 @@ export default function VendingCenterLoggerPage() {
     setFormAmount("");
     setFormAmountOverridden(false);
     setFormPayment("Cash");
+    setFormSplitCash("");
+    setFormSplitOnline("");
+    setFormOnlineChannel("JK Bank");
     setFormCustomFields({});
     setFormNotes("");
     setFormCustomerName("");
@@ -2318,6 +2343,10 @@ export default function VendingCenterLoggerPage() {
     const unpaidAmount = Math.max(0, agreedBill - amt);
     const difference = unpaidAmount;
 
+    // Extra amount customer paid beyond standard base rate (e.g. rate > ₹580 or tip/rounding)
+    const extraAmount = Math.max(0, amt - standardExpected);
+    const extraPerKg = w > 0 && extraAmount > 0 ? Number(((amt - standardExpected) / w).toFixed(1)) : 0;
+
     if (formBalanceAction === "balance" && difference > 0) {
       if (!formCustomerPhone.trim()) {
         alert("Please enter Customer Phone Number (WhatsApp) so balance reminders & Razorpay QR can be sent.");
@@ -2348,10 +2377,27 @@ export default function VendingCenterLoggerPage() {
     }
 
     const calculatedEffectiveRate = w > 0 ? (amt > 0 ? Math.round((amt / w) * 10) / 10 : formRate) : formRate;
-    const resolvedPaymentMode =
-      formPayment === "Credit (Khata)" || (balanceStatus === "pending" && amt === 0)
-        ? "Credit (Khata)"
-        : formPayment;
+
+    // Payment Mode & Split Payment breakdown
+    let resolvedPaymentMode = formPayment;
+    let cashPortion = 0;
+    let onlinePortion = 0;
+    let isSplit = false;
+
+    if (formPayment === "Split (Cash + Online)") {
+      isSplit = true;
+      cashPortion = parseFloat(formSplitCash) || (amt > 0 ? Math.round(amt / 2) : 0);
+      onlinePortion = parseFloat(formSplitOnline) || Math.max(0, amt - cashPortion);
+      resolvedPaymentMode = `Split (Cash + ${formOnlineChannel})`;
+    } else if (formPayment === "Credit (Khata)" || (balanceStatus === "pending" && amt === 0)) {
+      resolvedPaymentMode = "Credit (Khata)";
+    } else if (formPayment === "JK Bank Online") {
+      resolvedPaymentMode = "JK Bank Online";
+    } else if (formPayment === "Razorpay Online") {
+      resolvedPaymentMode = "Razorpay Online";
+    } else if (formPayment === "Cash") {
+      resolvedPaymentMode = "Cash";
+    }
 
     const updatedCustomFields = {
       ...(formCustomFields || {}),
@@ -2363,6 +2409,17 @@ export default function VendingCenterLoggerPage() {
       customer_phone: formCustomerPhone.trim() || undefined,
       effective_rate: calculatedEffectiveRate,
       standard_expected: standardExpected,
+      standard_base_rate: defaultStandardRate,
+      extra_amount: extraAmount,
+      extra_per_kg: extraPerKg,
+      ...(isSplit ? {
+        is_split: true,
+        cash_portion: cashPortion,
+        online_portion: onlinePortion,
+        online_channel: formOnlineChannel,
+      } : {}),
+      ...(formPayment === "JK Bank Online" ? { online_channel: "JK Bank" } : {}),
+      ...(formPayment === "Razorpay Online" ? { online_channel: "Razorpay" } : {}),
     };
 
     setSaving(true);
@@ -2870,8 +2927,15 @@ export default function VendingCenterLoggerPage() {
         negotiationLoss += loss;
       }
 
-      const isCash = modeStr === "cash";
-      if (isCash && rev > 0) {
+      const isSplit = modeStr.includes("split") || Boolean(e.custom_fields?.is_split);
+      if (isSplit && rev > 0) {
+        const cashPart = Number(e.custom_fields?.cash_portion) || 0;
+        const onlinePart = Number(e.custom_fields?.online_portion) || Math.max(0, rev - cashPart);
+        cashRevenue += cashPart;
+        onlineRevenue += onlinePart;
+        if (cashPart > 0) cashCount += 1;
+        if (onlinePart > 0) onlineCount += 1;
+      } else if (modeStr === "cash" && rev > 0) {
         cashRevenue += rev;
         cashCount += 1;
       } else if (rev > 0) {
@@ -3029,8 +3093,15 @@ export default function VendingCenterLoggerPage() {
         negotiationLoss += loss;
       }
 
-      const isCash = modeStr === "cash";
-      if (isCash && rev > 0) {
+      const isSplit = modeStr.includes("split") || Boolean(e.custom_fields?.is_split);
+      if (isSplit && rev > 0) {
+        const cashPart = Number(e.custom_fields?.cash_portion) || 0;
+        const onlinePart = Number(e.custom_fields?.online_portion) || Math.max(0, rev - cashPart);
+        cashRevenue += cashPart;
+        onlineRevenue += onlinePart;
+        if (cashPart > 0) cashCount += 1;
+        if (onlinePart > 0) onlineCount += 1;
+      } else if (modeStr === "cash" && rev > 0) {
         cashRevenue += rev;
         cashCount += 1;
       } else if (rev > 0) {
@@ -3444,6 +3515,7 @@ export default function VendingCenterLoggerPage() {
         { "Vending Center Metric": "Period Credit / Khata Dispatched (Rs)", "Value / Amount": kpis.periodCreditTotal },
         { "Vending Center Metric": "Period Credit Weight (Kg)", "Value / Amount": kpis.periodCreditKg },
         { "Vending Center Metric": "All Customers Total Khata Due (Rs)", "Value / Amount": khataSummary.totalPendingAmount },
+        { "Vending Center Metric": "Customer Extra / Tips Collected (Rs)", "Value / Amount": kpis.totalExtraCollected },
         { "Vending Center Metric": "Negotiation Discount Loss (Rs)", "Value / Amount": kpis.totalLoss },
         { "Vending Center Metric": "Total Live Fish Stock Procured (Kg)", "Value / Amount": Number(aquariumStock.totalProcuredKg.toFixed(3)) },
         { "Vending Center Metric": "Live Fish Dispatched / Sold (Kg)", "Value / Amount": Number(aquariumStock.soldKg.toFixed(3)) },
@@ -3510,7 +3582,11 @@ export default function VendingCenterLoggerPage() {
           "Net Profit on Sale (Rs)": netProfitRs,
           "Effective Rate (Rs/Kg)": Number((Number(e.weight_kg) > 0 && taken > 0 ? taken / Number(e.weight_kg) : Number(e.rate_per_kg)).toFixed(1)),
           "Negotiation Loss (Rs)": loss,
+          "Extra / Tip (Rs)": Number(e.custom_fields?.extra_amount) || 0,
           "Payment Mode": e.payment_mode,
+          "Split Cash Portion (Rs)": e.custom_fields?.cash_portion ?? "",
+          "Split Online Portion (Rs)": e.custom_fields?.online_portion ?? "",
+          "Online Channel": e.custom_fields?.online_channel ?? "",
           "Notes": e.notes || "",
           "Logged By": formatStaffDisplayName(e.logged_by),
         };
@@ -3781,13 +3857,39 @@ export default function VendingCenterLoggerPage() {
     setFormRate(entry.rate_per_kg);
     setFormAmount(entry.amount_paid.toString());
     setFormAmountOverridden(true);
-    const isCash = (entry.payment_mode || "").toLowerCase().trim() === "cash";
-    setFormPayment(isCash ? "Cash" : "Online Payment");
+    const cf = entry.custom_fields || {};
+    const mode = entry.payment_mode || "Cash";
+    const isSplit = mode.toLowerCase().includes("split") || Boolean(cf.is_split);
+    if (isSplit) {
+      setFormPayment("Split (Cash + Online)");
+      setFormSplitCash((cf.cash_portion ?? "").toString());
+      setFormSplitOnline((cf.online_portion ?? "").toString());
+      setFormOnlineChannel(cf.online_channel || (mode.includes("Razorpay") ? "Razorpay" : "JK Bank"));
+    } else if (mode.includes("JK Bank")) {
+      setFormPayment("JK Bank Online");
+      setFormSplitCash("");
+      setFormSplitOnline("");
+    } else if (mode.includes("Razorpay")) {
+      setFormPayment("Razorpay Online");
+      setFormSplitCash("");
+      setFormSplitOnline("");
+    } else if (mode.toLowerCase().includes("credit") || mode.toLowerCase().includes("khata")) {
+      setFormPayment("Credit (Khata)");
+      setFormSplitCash("");
+      setFormSplitOnline("");
+    } else if (mode.toLowerCase().trim() === "cash") {
+      setFormPayment("Cash");
+      setFormSplitCash("");
+      setFormSplitOnline("");
+    } else {
+      setFormPayment("JK Bank Online");
+      setFormSplitCash("");
+      setFormSplitOnline("");
+    }
     setFormCustomFields(entry.custom_fields || {});
     setFormNotes(entry.notes || "");
     setFormLoggedBy(formatStaffDisplayName(entry.logged_by));
 
-    const cf = entry.custom_fields || {};
     const existingName = cf.customer_name || "";
     const existingPhone = cf.customer_phone || "";
     setFormCustomerName(existingName);
@@ -3827,7 +3929,7 @@ export default function VendingCenterLoggerPage() {
   };
 
   // Open Balance Reminder Modal from sales table row
-  const handleOpenBalanceModalForEntry = (entry: VendingSalesEntry) => {
+  const handleOpenBalanceModalForEntry = (entry: VendingSalesEntry, tab: "remind" | "settle" = "settle") => {
     const cf = entry.custom_fields || {};
     const refId = cf.balance_ref_id || `VL-${entry.entry_date.replace(/\D/g, "")}-${entry.id.slice(-4)}`;
     const balAmt = Number(cf.balance_amount) || Math.max(0, Number(entry.expected_amount) - Number(entry.amount_paid));
@@ -3847,6 +3949,7 @@ export default function VendingCenterLoggerPage() {
       updated_at: new Date().toISOString(),
     };
     setSelectedBalanceRecord(rec);
+    setBalanceModalTab(tab);
     setBalanceModalOpen(true);
   };
 
@@ -3856,23 +3959,40 @@ export default function VendingCenterLoggerPage() {
       const refId = selectedBalanceRecord.invoice_id || selectedBalanceRecord.id;
       setEntries((prev) =>
         prev.map((item) => {
-          if (item.custom_fields?.balance_ref_id === refId) {
+          if (item.custom_fields?.balance_ref_id === refId || item.id === refId) {
+            const exp = Number(item.expected_amount) || Math.round((Number(item.weight_kg) || 0) * (Number(item.rate_per_kg) || 0));
             const updatedCf = {
               ...item.custom_fields,
               balance_status: "settled",
               balance_amount: 0,
+              is_full_payment: true,
+              settled_at: new Date().toISOString(),
             };
+            const updatedMode =
+              (item.payment_mode || "").toLowerCase().includes("credit") ||
+              (item.payment_mode || "").toLowerCase().includes("khata")
+                ? "Cash"
+                : item.payment_mode;
+
             adminFetch("/api/vending-log", {
               method: "PUT",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
                 id: item.id,
-                updates: { custom_fields: updatedCf },
+                updates: {
+                  amount_paid: exp,
+                  discount_amount: 0,
+                  payment_mode: updatedMode,
+                  custom_fields: updatedCf,
+                },
               }),
             }).catch((err) => console.warn("Could not sync settled vending entry:", err));
 
             return {
               ...item,
+              amount_paid: exp,
+              discount_amount: 0,
+              payment_mode: updatedMode,
               custom_fields: updatedCf,
             };
           }
@@ -3880,6 +4000,9 @@ export default function VendingCenterLoggerPage() {
         })
       );
       fetchKhataSummary();
+      setTimeout(() => {
+        fetchData(true);
+      }, 600);
     }
   };
 
@@ -4949,6 +5072,40 @@ export default function VendingCenterLoggerPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Card 8b: Extra / Tips Collected over Base Rate */}
+              {kpis.totalExtraCollected > 0 && (
+                <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-amber-950/40 via-yellow-950/20 to-slate-900 border border-amber-500/40 shadow-xl shadow-amber-950/25 relative overflow-hidden flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
+                      <span className="text-amber-300 font-bold tracking-wider flex items-center gap-1.5">
+                        <span>EXTRA / TIPS</span>
+                        <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-[9px] text-amber-200 border border-amber-500/30 font-bold">
+                          Bonus
+                        </span>
+                      </span>
+                      <span className="text-base">⭐</span>
+                    </div>
+                    <div className="mt-2 flex items-baseline gap-1 min-h-[32px]">
+                      <span className="text-amber-400 font-bold text-lg">+₹</span>
+                      <span
+                        className="text-2xl sm:text-3xl font-black text-amber-300"
+                        style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                      >
+                        {kpis.totalExtraCollected.toLocaleString("en-IN")}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2.5 space-y-0.5">
+                    <div className="text-amber-200 font-bold">
+                      Paid Above ₹580/kg Base Rate
+                    </div>
+                    <div className="text-[10.5px] text-slate-500 truncate">
+                      Customer rounding / tips / premium rate
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Card 9: Vending Center Operational Expenses */}
               <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-rose-950/50 via-slate-900/90 to-slate-900 border border-rose-500/40 shadow-xl shadow-rose-950/20 relative overflow-hidden flex flex-col justify-between">
@@ -6371,6 +6528,23 @@ export default function VendingCenterLoggerPage() {
                               </div>
                             );
                           })()}
+
+                          {/* Extra Amount Collected Badge (Customer Paid Extra / Tip) */}
+                          {(() => {
+                            const extraVal = Number(e.custom_fields?.extra_amount) || (!isCreditSale && taken > exp && exp > 0 ? taken - exp : 0);
+                            if (extraVal > 0) {
+                              return (
+                                <span
+                                  className="mt-1 px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[9px] font-black font-mono inline-flex items-center gap-0.5 shadow-sm"
+                                  title={`Customer paid ₹${extraVal} extra over standard bill (Tip / Premium)`}
+                                >
+                                  <span>⭐</span>
+                                  <span>+₹{extraVal} Extra</span>
+                                </span>
+                              );
+                            }
+                            return null;
+                          })()}
                         </div>
                       </td>
 
@@ -6389,6 +6563,18 @@ export default function VendingCenterLoggerPage() {
                           ) : (e.payment_mode || "").toLowerCase().includes("credit") ? (
                             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-purple-500/20 border border-purple-500/40 text-purple-200 text-[10px] font-bold font-sans">
                               📒 Credit (Khata)
+                            </span>
+                          ) : (e.payment_mode || "").toLowerCase().includes("split") || Boolean(e.custom_fields?.is_split) ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-cyan-500/15 border border-cyan-500/30 text-cyan-200 text-[9.5px] font-bold font-mono">
+                              💵 ₹{e.custom_fields?.cash_portion ?? Math.round(taken / 2)} + {(e.payment_mode?.includes("Razorpay") || e.custom_fields?.online_channel === "Razorpay") ? "⚡ Rzp" : "🏛️ JK"} ₹{e.custom_fields?.online_portion ?? (taken - Math.round(taken / 2))}
+                            </span>
+                          ) : (e.payment_mode || "").includes("JK Bank") || e.custom_fields?.online_channel === "JK Bank" ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-blue-500/15 border border-blue-500/30 text-blue-300 text-[10px] font-bold font-sans">
+                              🏛️ JK Bank
+                            </span>
+                          ) : (e.payment_mode || "").includes("Razorpay Online") || e.payment_mode === "Razorpay" ? (
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-[10px] font-bold font-sans">
+                              ⚡ Razorpay
                             </span>
                           ) : e.payment_mode === "Cash + Online QR" || (e.custom_fields?.settled_at && (e.payment_mode || "").toLowerCase().includes("qr")) ? (
                             <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold font-sans">
@@ -6416,12 +6602,12 @@ export default function VendingCenterLoggerPage() {
                           {isCreditSale && e.custom_fields?.balance_status !== "waived_final" && e.custom_fields?.balance_status !== "settled" ? (
                             <button
                               type="button"
-                              onClick={() => handleOpenBalanceModalForEntry(e)}
-                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9.5px] font-bold bg-purple-500/25 text-purple-200 border border-purple-500/50 hover:bg-purple-500/35 transition-all cursor-pointer shadow-sm active:scale-95 font-mono"
-                              title="Click to open Khata & WhatsApp Reminder"
+                              onClick={() => handleOpenBalanceModalForEntry(e, "settle")}
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-gradient-to-r from-purple-500/30 to-indigo-500/30 text-purple-200 border border-purple-400/60 hover:from-purple-500/45 hover:to-indigo-500/45 transition-all cursor-pointer shadow-sm active:scale-95 font-mono"
+                              title="1-Click Settle Khata or Send WhatsApp Reminder"
                             >
-                              <span className="material-symbols-outlined text-[11px]">hourglass_top</span>
-                              Bal: ₹{Number(e.custom_fields?.balance_amount || exp).toLocaleString("en-IN")}
+                              <span className="material-symbols-outlined text-[12px] text-amber-300">payments</span>
+                              <span>Settle Khata: ₹{Number(e.custom_fields?.balance_amount || exp).toLocaleString("en-IN")}</span>
                             </button>
                           ) : e.custom_fields?.balance_status === "waived_final" ? (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9.5px] font-medium text-slate-300 bg-slate-800/90 border border-slate-700">
@@ -6753,40 +6939,54 @@ export default function VendingCenterLoggerPage() {
                     const rateDiff = standardBenchmarkRate - effRate;
                     const isLoss = !isCreditSale && rateDiff > 0.5;
                     const isGain = !isCreditSale && rateDiff < -0.5;
+                    const extraVal = Number(e.custom_fields?.extra_amount) || (!isCreditSale && taken > exp && exp > 0 ? taken - exp : 0);
 
                     return (
-                      <div className="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-slate-950/80 border border-slate-800/90 text-[10.5px] font-mono mt-1.5">
-                        <span className="text-slate-400 flex items-center gap-1">
-                          <span className="material-symbols-outlined text-[12px] text-teal-400">price_change</span>
-                          Eff. Rate:
-                        </span>
-                        <div className="flex items-center gap-1.5">
-                          <span
-                            className={`font-black ${
-                              isCreditSale ? "text-purple-300" : isLoss ? "text-amber-300" : isGain ? "text-cyan-300" : "text-emerald-400"
-                            }`}
-                          >
-                            ₹{effRate.toFixed(1)}/Kg
+                      <>
+                        <div className="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-slate-950/80 border border-slate-800/90 text-[10.5px] font-mono mt-1.5">
+                          <span className="text-slate-400 flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[12px] text-teal-400">price_change</span>
+                            Eff. Rate:
                           </span>
-                          {isCreditSale ? (
-                            <span className="text-[9.5px] text-purple-400 font-medium">
-                              (Credit)
+                          <div className="flex items-center gap-1.5">
+                            <span
+                              className={`font-black ${
+                                isCreditSale ? "text-purple-300" : isLoss ? "text-amber-300" : isGain ? "text-cyan-300" : "text-emerald-400"
+                              }`}
+                            >
+                              ₹{effRate.toFixed(1)}/Kg
                             </span>
-                          ) : isLoss ? (
-                            <span className="text-[9.5px] text-rose-400 font-medium">
-                              (-₹{rateDiff.toFixed(1)}/Kg)
-                            </span>
-                          ) : isGain ? (
-                            <span className="text-[9.5px] text-cyan-400 font-medium">
-                              (+₹{Math.abs(rateDiff).toFixed(1)}/Kg)
-                            </span>
-                          ) : (
-                            <span className="text-[9px] text-slate-500">
-                              (Std)
-                            </span>
-                          )}
+                            {isCreditSale ? (
+                              <span className="text-[9.5px] text-purple-400 font-medium">
+                                (Credit)
+                              </span>
+                            ) : isLoss ? (
+                              <span className="text-[9.5px] text-rose-400 font-medium">
+                                (-₹{rateDiff.toFixed(1)}/Kg)
+                              </span>
+                            ) : isGain ? (
+                              <span className="text-[9.5px] text-cyan-400 font-medium">
+                                (+₹{Math.abs(rateDiff).toFixed(1)}/Kg)
+                              </span>
+                            ) : (
+                              <span className="text-[9px] text-slate-500">
+                                (Std)
+                              </span>
+                            )}
+                          </div>
                         </div>
-                      </div>
+
+                        {/* Mobile Extra Amount Badge */}
+                        {extraVal > 0 && (
+                          <div className="flex items-center justify-between text-xs font-mono pt-1 text-amber-300">
+                            <span className="text-[10px] text-amber-400 font-bold uppercase">Customer Paid Extra:</span>
+                            <span className="font-bold bg-amber-500/20 px-2 py-0.5 rounded-lg border border-amber-500/40 text-[10px] inline-flex items-center gap-1">
+                              <span>⭐</span>
+                              <span>+₹{extraVal} Extra</span>
+                            </span>
+                          </div>
+                        )}
+                      </>
                     );
                   })()}
                 </div>
@@ -6801,6 +7001,18 @@ export default function VendingCenterLoggerPage() {
                     ) : isCreditSale && taken > 0 ? (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-purple-500/20 border border-purple-500/40 text-purple-200 text-[10px] font-bold font-sans">
                         💵 ₹{taken} + 📒 Credit
+                      </span>
+                    ) : (e.payment_mode || "").toLowerCase().includes("split") || Boolean(e.custom_fields?.is_split) ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-200 text-[9.5px] font-bold font-mono">
+                        💵 ₹{e.custom_fields?.cash_portion ?? Math.round(taken / 2)} + {(e.payment_mode?.includes("Razorpay") || e.custom_fields?.online_channel === "Razorpay") ? "⚡ Rzp" : "🏛️ JK"} ₹{e.custom_fields?.online_portion ?? (taken - Math.round(taken / 2))}
+                      </span>
+                    ) : (e.payment_mode || "").includes("JK Bank") || e.custom_fields?.online_channel === "JK Bank" ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-blue-500/15 border border-blue-500/30 text-blue-300 text-[10px] font-bold font-sans">
+                        🏛️ JK Bank
+                      </span>
+                    ) : (e.payment_mode || "").includes("Razorpay Online") || e.payment_mode === "Razorpay" ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-[10px] font-bold font-sans">
+                        ⚡ Razorpay
                       </span>
                     ) : e.payment_mode === "Cash + Online QR" || (e.custom_fields?.settled_at && (e.payment_mode || "").toLowerCase().includes("qr")) ? (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold font-sans">
@@ -6821,20 +7033,20 @@ export default function VendingCenterLoggerPage() {
                     {Number(e.custom_fields?.balance_amount) > 0 && e.custom_fields?.balance_status === "pending" ? (
                       <button
                         type="button"
-                        onClick={() => handleOpenBalanceModalForEntry(e)}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/50 hover:bg-purple-500/30 transition-all cursor-pointer shadow-sm active:scale-95"
+                        onClick={() => handleOpenBalanceModalForEntry(e, "settle")}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-bold bg-gradient-to-r from-purple-500/30 to-indigo-500/30 text-purple-200 border border-purple-400/60 hover:from-purple-500/40 hover:to-indigo-500/40 transition-all cursor-pointer shadow-sm active:scale-95"
                       >
-                        <span className="material-symbols-outlined text-[12px]">hourglass_top</span>
-                        Khata: ₹{Number(e.custom_fields.balance_amount).toLocaleString("en-IN")}
+                        <span className="material-symbols-outlined text-[12px] text-amber-300">payments</span>
+                        Settle: ₹{Number(e.custom_fields.balance_amount).toLocaleString("en-IN")}
                       </button>
                     ) : isCreditSale && (Number(e.custom_fields?.balance_amount) > 0 || taken === 0) ? (
                       <button
                         type="button"
-                        onClick={() => handleOpenBalanceModalForEntry(e)}
-                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-bold bg-purple-500/20 text-purple-300 border border-purple-500/50 hover:bg-purple-500/30 transition-all cursor-pointer shadow-sm active:scale-95"
+                        onClick={() => handleOpenBalanceModalForEntry(e, "settle")}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-bold bg-gradient-to-r from-purple-500/30 to-indigo-500/30 text-purple-200 border border-purple-400/60 hover:from-purple-500/40 hover:to-indigo-500/40 transition-all cursor-pointer shadow-sm active:scale-95"
                       >
-                        <span className="material-symbols-outlined text-[12px]">hourglass_top</span>
-                        Khata: ₹{Number(e.custom_fields?.balance_amount || exp).toLocaleString("en-IN")}
+                        <span className="material-symbols-outlined text-[12px] text-amber-300">payments</span>
+                        Settle: ₹{Number(e.custom_fields?.balance_amount || exp).toLocaleString("en-IN")}
                       </button>
                     ) : e.custom_fields?.balance_status === "waived_final" ? (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-medium text-slate-300 bg-slate-800/90 border border-slate-700">
@@ -7396,6 +7608,25 @@ export default function VendingCenterLoggerPage() {
                       </div>
                     </div>
 
+                    {/* Extra Amount Collected Highlight Card (When customer pays > base rate) */}
+                    {wNum > 0 && actualPaid > standardExpectedTotal && (
+                      <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-950/80 via-teal-950/60 to-amber-950/40 border-2 border-emerald-400 text-emerald-200 shadow-lg shadow-emerald-950/50 space-y-1 animate-fadeIn">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-black uppercase tracking-wider text-emerald-300 flex items-center gap-1.5 font-mono">
+                            <span className="material-symbols-outlined text-base text-amber-300">stars</span>
+                            ⭐ Customer Paid Extra (+₹{(actualPaid - standardExpectedTotal).toLocaleString("en-IN")})
+                          </span>
+                          <span className="text-[11px] font-black px-2.5 py-0.5 rounded-full bg-emerald-500/30 text-emerald-200 border border-emerald-400 font-mono">
+                            +₹{((actualPaid - standardExpectedTotal) / (wNum || 1)).toFixed(1)}/Kg above ₹{defaultStandardRate} Base
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-300 font-mono leading-relaxed">
+                          Base Rate Bill: ₹{standardExpectedTotal.toLocaleString("en-IN")} ({wNum} Kg × ₹{defaultStandardRate}/Kg) → Customer Gave: <span className="text-white font-bold">₹{actualPaid.toLocaleString("en-IN")}</span>.
+                          <strong className="text-emerald-300 ml-1.5">Extra Amount Logged: +₹{(actualPaid - standardExpectedTotal).toLocaleString("en-IN")}</strong>
+                        </p>
+                      </div>
+                    )}
+
                     {/* Dynamic Realized Effective Rate & Loss Calculator */}
                     {wNum > 0 && (actualPaid > 0 || formAmount === "0") && (
                       <div
@@ -7624,20 +7855,21 @@ export default function VendingCenterLoggerPage() {
               })()}
 
               {/* Row 5: Mode of Payment */}
-              <div>
-                <label className="block text-[10px] uppercase font-bold text-slate-400 font-mono mb-1.5">
+              <div className="space-y-2.5">
+                <label className="block text-[10px] uppercase font-bold text-slate-400 font-mono">
                   Mode of Payment <span className="text-emerald-400">*</span>
                 </label>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
                   {[
                     { id: "Cash", label: "💵 Cash", sub: "Counter Drawer" },
-                    { id: "Online Payment", label: "⚡ Online", sub: "Soundbox / UPI" },
+                    { id: "JK Bank Online", label: "🏛️ JK Bank", sub: "mPay / Transfer" },
+                    { id: "Razorpay Online", label: "⚡ Razorpay", sub: "QR / POS" },
+                    { id: "Split (Cash + Online)", label: "🔀 Split", sub: "Cash + Online" },
                     { id: "Credit (Khata)", label: "📒 Credit", sub: "Khata Ledger" },
                   ].map((m) => {
                     const isSel =
                       formPayment === m.id ||
-                      (m.id === "Credit (Khata)" && formPayment === "Credit (Khata)") ||
-                      (m.id === "Online Payment" && formPayment !== "Cash" && formPayment !== "Credit (Khata)");
+                      (m.id === "JK Bank Online" && formPayment === "Online Payment");
                     return (
                       <button
                         key={m.id}
@@ -7651,12 +7883,23 @@ export default function VendingCenterLoggerPage() {
                               setFormAmount("0");
                               setFormAmountOverridden(true);
                             }
+                          } else if (m.id === "Split (Cash + Online)") {
+                            const tot = parseFloat(formAmount) || 0;
+                            if (tot > 0 && !formSplitCash && !formSplitOnline) {
+                              const half = Math.round(tot / 2);
+                              setFormSplitCash(half.toString());
+                              setFormSplitOnline((tot - half).toString());
+                            }
                           }
                         }}
-                        className={`py-2.5 px-2 rounded-2xl font-bold text-xs transition-all cursor-pointer text-center ${
+                        className={`py-2 px-1.5 rounded-2xl font-bold text-xs transition-all cursor-pointer text-center ${
                           isSel
                             ? m.id === "Credit (Khata)"
                               ? "bg-purple-500/25 text-purple-200 border-2 border-purple-400 shadow-md shadow-purple-950/40"
+                              : m.id === "Split (Cash + Online)"
+                              ? "bg-cyan-500/25 text-cyan-200 border-2 border-cyan-400 shadow-md shadow-cyan-950/40"
+                              : m.id.includes("JK Bank")
+                              ? "bg-blue-500/25 text-blue-200 border-2 border-blue-400 shadow-md shadow-blue-950/40"
                               : "bg-emerald-500/20 text-emerald-300 border-2 border-emerald-500 shadow-md shadow-emerald-950/40"
                             : "bg-slate-950/80 text-slate-400 border border-slate-700 hover:text-white"
                         }`}
@@ -7667,6 +7910,137 @@ export default function VendingCenterLoggerPage() {
                     );
                   })}
                 </div>
+
+                {/* Split Payment Controls (Cash + Online) */}
+                {formPayment === "Split (Cash + Online)" && (
+                  <div className="p-3.5 rounded-2xl bg-slate-950 border-2 border-cyan-500/40 space-y-3 font-mono animate-fadeIn">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-base">🔀</span>
+                        <span className="text-xs font-bold text-cyan-300">Split Payment Breakdown</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const tot = parseFloat(formAmount) || 0;
+                          const half = Math.round(tot / 2);
+                          setFormSplitCash(half.toString());
+                          setFormSplitOnline((tot - half).toString());
+                        }}
+                        className="px-2.5 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-300 text-[10.5px] font-bold transition-all cursor-pointer"
+                      >
+                        ⚖️ 50 / 50 Split (Half &amp; Half)
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <div>
+                        <label className="text-[10px] text-slate-400 font-bold uppercase block mb-1">
+                          💵 Cash Portion (Drawer)
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-2.5 top-2.5 text-slate-500 text-xs font-bold">₹</span>
+                          <input
+                            type="number"
+                            value={formSplitCash}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setFormSplitCash(val);
+                              const tot = parseFloat(formAmount) || 0;
+                              if (tot > 0 && val !== "") {
+                                const diff = Math.max(0, tot - (parseFloat(val) || 0));
+                                setFormSplitOnline(diff.toString());
+                              }
+                            }}
+                            placeholder="0"
+                            className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-6 pr-2 py-2 text-sm text-white font-mono font-bold focus:outline-none focus:border-cyan-400"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="text-[10px] text-slate-400 font-bold uppercase block mb-1">
+                          ⚡ Online Portion
+                        </label>
+                        <div className="relative">
+                          <span className="absolute left-2.5 top-2.5 text-slate-500 text-xs font-bold">₹</span>
+                          <input
+                            type="number"
+                            value={formSplitOnline}
+                            onChange={(e) => {
+                              const val = e.target.value;
+                              setFormSplitOnline(val);
+                              const tot = parseFloat(formAmount) || 0;
+                              if (tot > 0 && val !== "") {
+                                const diff = Math.max(0, tot - (parseFloat(val) || 0));
+                                setFormSplitCash(diff.toString());
+                              }
+                            }}
+                            placeholder="0"
+                            className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-6 pr-2 py-2 text-sm text-white font-mono font-bold focus:outline-none focus:border-cyan-400"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Online Channel Selector for the online portion */}
+                    <div>
+                      <label className="text-[10px] text-slate-400 font-bold uppercase block mb-1">
+                        Online Portion Channel:
+                      </label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {[
+                          { id: "JK Bank", label: "🏛️ JK Bank Online", sub: "mPay / Transfer / QR" },
+                          { id: "Razorpay", label: "⚡ Razorpay Online", sub: "Razorpay QR / Soundbox" },
+                        ].map((ch) => (
+                          <button
+                            key={ch.id}
+                            type="button"
+                            onClick={() => setFormOnlineChannel(ch.id as "JK Bank" | "Razorpay")}
+                            className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer text-left ${
+                              formOnlineChannel === ch.id
+                                ? "bg-cyan-500/25 text-cyan-200 border-2 border-cyan-400 shadow-sm"
+                                : "bg-slate-900 text-slate-400 border border-slate-700 hover:text-white"
+                            }`}
+                          >
+                            <span className="block leading-tight font-bold">{ch.label}</span>
+                            <span className="text-[9.5px] opacity-70 font-mono block mt-0.5">{ch.sub}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Live Validation Pill */}
+                    {(() => {
+                      const cVal = parseFloat(formSplitCash) || 0;
+                      const oVal = parseFloat(formSplitOnline) || 0;
+                      const splitTot = cVal + oVal;
+                      const billTot = parseFloat(formAmount) || 0;
+                      const match = billTot > 0 && Math.abs(splitTot - billTot) < 0.01;
+
+                      return (
+                        <div
+                          className={`p-2 rounded-xl text-xs flex items-center justify-between ${
+                            match
+                              ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"
+                              : "bg-amber-500/15 text-amber-300 border border-amber-500/30"
+                          }`}
+                        >
+                          <span>
+                            Total: 💵 ₹{cVal} + {formOnlineChannel === "Razorpay" ? "⚡ Razorpay" : "🏛️ JK Bank"} ₹{oVal} = <strong>₹{splitTot}</strong>
+                          </span>
+                          {match ? (
+                            <span className="font-bold text-[10px] text-emerald-400">✓ Matches Total</span>
+                          ) : (
+                            <span className="font-bold text-[10px] text-amber-400">
+                              {billTot > splitTot ? `₹${billTot - splitTot} remaining` : `₹${splitTot - billTot} over total`}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                )}
               </div>
 
               {/* Dynamic Custom Columns Fields */}
@@ -9826,6 +10200,7 @@ export default function VendingCenterLoggerPage() {
         }}
         record={selectedBalanceRecord}
         onBalanceUpdated={handleBalanceUpdated}
+        initialTab={balanceModalTab}
       />
 
       {/* ══════════════════════════════════════════════════════════

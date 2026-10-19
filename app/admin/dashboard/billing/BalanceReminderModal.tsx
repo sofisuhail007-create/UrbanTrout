@@ -10,6 +10,7 @@ interface BalanceReminderModalProps {
   record: CustomerBalanceRecord | null;
   upiId?: string;
   onBalanceUpdated?: () => void;
+  initialTab?: "remind" | "settle";
 }
 
 function playSuccessChime() {
@@ -62,9 +63,10 @@ export default function BalanceReminderModal({
   onClose,
   record,
   onBalanceUpdated,
+  initialTab,
 }: BalanceReminderModalProps) {
   // Tabs: "remind" (WhatsApp link) | "settle" (Cash / Waiver)
-  const [activeTab, setActiveTab] = useState<"remind" | "settle">("remind");
+  const [activeTab, setActiveTab] = useState<"remind" | "settle">("settle");
 
   // Razorpay Payment Link State
   const [paymentLink, setPaymentLink] = useState<string>("");
@@ -95,7 +97,8 @@ export default function BalanceReminderModal({
       setSettlementNote("");
       setRzpPaid(record.status === "settled");
       setErrorMessage(null);
-      setActiveTab("remind");
+      setActiveTab(initialTab || (record.balance_amount > 0 ? "settle" : "remind"));
+      setPaymentMode("Cash at Counter");
       setPartialPaidSuccess(null);
 
       if (record.razorpay_payment_link_url) {
@@ -108,7 +111,7 @@ export default function BalanceReminderModal({
         setRzpStatus("pending");
       }
     }
-  }, [record, isOpen]);
+  }, [record, isOpen, initialTab]);
 
   // Poll Razorpay Payment Link status while modal is open (HOOK MUST REMAIN UNCONDITIONAL AT COMPONENT ROOT)
   useEffect(() => {
@@ -346,7 +349,48 @@ Helpline: +91 84910 06127`;
     }
   };
 
-  // 5. Record Cash Payment at Counter
+  // 5. Quick Settle Full Balance (1-Click)
+  const handleQuickSettleFull = async (fullAmount: number) => {
+    if (!record || fullAmount <= 0) return;
+    setSettling(true);
+    setErrorMessage(null);
+    try {
+      const res = await adminFetch("/api/customer-balance", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: record.id,
+          action: "RECORD_PAYMENT",
+          amountReceived: fullAmount,
+          paymentMethod: paymentMode,
+          settlementNote: `Paid in full (₹${fullAmount}) via ${paymentMode}`,
+        }),
+      });
+
+      const data = await res.json();
+      if (data?.success) {
+        playSuccessChime();
+        if (paymentLinkId) {
+          try {
+            await fetch(`/api/razorpay/payment-link?link_id=${encodeURIComponent(paymentLinkId)}`, {
+              method: "DELETE",
+            });
+          } catch (_) {}
+        }
+        if (onBalanceUpdated) onBalanceUpdated();
+        alert(`🎉 Full Khata Settled! Received ₹${fullAmount.toLocaleString("en-IN")} from ${record.customer_name} via ${paymentMode}. Ledger updated.`);
+        onClose();
+      } else {
+        alert(data?.error || "Failed to settle payment");
+      }
+    } catch (e: any) {
+      alert(e?.message || "Failed to settle payment");
+    } finally {
+      setSettling(false);
+    }
+  };
+
+  // 6. Record Partial Cash/Online Repayment
   const handleRecordRepayment = async () => {
     const amount = Number(paymentAmount);
     if (isNaN(amount) || amount <= 0) {
@@ -370,6 +414,7 @@ Helpline: +91 84910 06127`;
 
       const data = await res.json();
       if (data?.success) {
+        playSuccessChime();
         // If paid in full, expire the online payment link so customer cannot pay online too
         if (amount >= record.balance_amount && paymentLinkId) {
           try {
@@ -385,7 +430,7 @@ Helpline: +91 84910 06127`;
         const newRemainingBalance = Math.max(0, record.balance_amount - amount);
         if (newRemainingBalance > 0) {
           setPartialPaidSuccess({ remainingBalance: newRemainingBalance });
-          setPaymentAmount("");
+          setPaymentAmount(newRemainingBalance.toString());
           setSettlementNote("");
         } else {
           onClose();
@@ -400,11 +445,16 @@ Helpline: +91 84910 06127`;
     }
   };
 
-  // 6. Settle as Final Waiver / Concession
+  // 7. Forgive as Courtesy Loss / Bad Debt Waiver (Customer Paid ₹0)
   const handleSettleFinalWaiver = async () => {
+    const confirmed = window.confirm(
+      `⚠️ WARNING: Marking as Courtesy Loss Waiver records that the customer paid ₹0 and forgives the remaining ₹${record.balance_amount} as an uncollectible loss.\n\nOnly use this if customer is NOT paying money.\n\nAre you sure you want to forgive ₹${record.balance_amount} as a loss?`
+    );
+    if (!confirmed) return;
+
     const reason = window.prompt(
-      `Mark remaining balance of ₹${record.balance_amount} as settled/waived? Enter settlement reason:`,
-      "Agreed final settlement / courtesy discount"
+      `Enter reason for forgiving ₹${record.balance_amount} loss:`,
+      "Uncollectible debt / Courtesy concession loss"
     );
 
     if (reason === null) return;
@@ -417,7 +467,7 @@ Helpline: +91 84910 06127`;
         body: JSON.stringify({
           id: record.id,
           action: "SETTLE_FINAL_WAIVER",
-          settlementNote: reason.trim() || "Agreed settlement as final payment",
+          settlementNote: reason.trim() || "Courtesy concession loss (Paid ₹0)",
         }),
       });
 
@@ -433,6 +483,7 @@ Helpline: +91 84910 06127`;
         }
 
         if (onBalanceUpdated) onBalanceUpdated();
+        alert(`Recorded ₹${record.balance_amount} as forgiven loss.`);
         onClose();
       } else {
         alert(data?.error || "Failed to settle balance");
@@ -745,12 +796,78 @@ Helpline: +91 84910 06127`;
                 </div>
               )}
 
-              {/* Option 1: Record Cash Repayment */}
+              {/* Option 1: 1-Click Full Settlement (Prominent & Foolproof) */}
+              {!partialPaidSuccess && (
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-950/70 via-slate-900 to-slate-950 border-2 border-emerald-500/60 shadow-xl space-y-3 animate-fadeIn">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center font-bold text-lg">
+                        ⚡
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-black text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                          1-Click Full Settlement
+                        </h4>
+                        <p className="text-[11px] text-slate-400 font-mono">
+                          Customer cleared the outstanding balance
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block font-mono">Full Amount Due</span>
+                      <span className="text-xl font-black text-emerald-300 font-mono">
+                        ₹{(Number(record.balance_amount) || 0).toLocaleString("en-IN")}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[10px] uppercase font-bold text-slate-300 font-mono block mb-1.5">
+                      Payment Received Via:
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { id: "Cash at Counter", label: "💵 Cash", sub: "Counter Drawer" },
+                        { id: "JK Bank Online", label: "🏛️ JK Bank", sub: "mPay / Transfer" },
+                        { id: "Razorpay Online", label: "⚡ Razorpay", sub: "QR / Soundbox" },
+                      ].map((m) => (
+                        <button
+                          key={m.id}
+                          type="button"
+                          onClick={() => setPaymentMode(m.id)}
+                          className={`py-2 px-2 rounded-xl text-center transition-all cursor-pointer ${
+                            paymentMode === m.id
+                              ? "bg-emerald-500/30 text-emerald-200 border-2 border-emerald-400 shadow-md font-bold"
+                              : "bg-slate-950/80 text-slate-400 border border-slate-800 hover:text-white"
+                          }`}
+                        >
+                          <span className="block text-xs font-bold leading-tight">{m.label}</span>
+                          <span className="text-[9.5px] opacity-75 font-mono block mt-0.5">{m.sub}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => handleQuickSettleFull(record.balance_amount)}
+                    disabled={settling}
+                    className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-400 hover:from-emerald-400 hover:to-teal-300 disabled:opacity-50 text-slate-950 font-black text-sm shadow-lg shadow-emerald-950/60 transition-all cursor-pointer flex items-center justify-center gap-2 active:scale-[0.99]"
+                  >
+                    <span className="material-symbols-outlined text-lg">check_circle</span>
+                    {settling
+                      ? "Recording Full Settlement..."
+                      : `✓ Mark ₹${(Number(record.balance_amount) || 0).toLocaleString("en-IN")} Paid in Full (${paymentMode})`}
+                  </button>
+                </div>
+              )}
+
+              {/* Option 2: Record Partial Payment (Custom Amount) */}
               {!partialPaidSuccess && (
                 <div className="p-3.5 bg-slate-950 border border-slate-800 rounded-xl space-y-3">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-xs font-bold text-white uppercase tracking-wider">
-                      Record Counter Cash Payment
+                    <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider font-mono">
+                      Or Record Partial Payment (Customer Paid Part)
                     </h4>
                     <span className="text-[11px] text-amber-400 font-mono font-bold">
                       Balance: ₹{(Number(record.balance_amount) || 0).toLocaleString("en-IN")}
@@ -776,8 +893,8 @@ Helpline: +91 84910 06127`;
                         className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-xs focus:border-amber-400 focus:outline-none"
                       >
                         <option value="Cash at Counter">Cash at Counter</option>
-                        <option value="Online Bank Transfer">Online Bank Transfer</option>
-                        <option value="Direct Razorpay Link">Direct Razorpay Link</option>
+                        <option value="JK Bank Online">JK Bank Online (mPay)</option>
+                        <option value="Razorpay Online">Razorpay Online (QR)</option>
                       </select>
                     </div>
                   </div>
@@ -788,15 +905,14 @@ Helpline: +91 84910 06127`;
                       type="text"
                       value={settlementNote}
                       onChange={(e) => setSettlementNote(e.target.value)}
-                      placeholder="e.g. Handed over cash at shop"
+                      placeholder="e.g. Part cash handed over at counter"
                       className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-1.5 text-white text-xs focus:border-amber-400 focus:outline-none"
                     />
                   </div>
 
-                  {/* Show remaining balance preview if partial */}
                   {paymentAmount && parseFloat(paymentAmount) > 0 && parseFloat(paymentAmount) < record.balance_amount && (
                     <div className="p-2 rounded-lg bg-amber-950/30 border border-amber-500/30 text-[11px] text-amber-300 font-mono">
-                      Remaining after this payment: ₹{(record.balance_amount - parseFloat(paymentAmount)).toLocaleString("en-IN")} — you'll get quick options to collect it via Razorpay/WhatsApp.
+                      Remaining after this payment: ₹{(record.balance_amount - parseFloat(paymentAmount)).toLocaleString("en-IN")} — you'll be able to send a Razorpay link for the rest.
                     </div>
                   )}
 
@@ -804,35 +920,37 @@ Helpline: +91 84910 06127`;
                     type="button"
                     onClick={handleRecordRepayment}
                     disabled={settling}
-                    className="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-bold text-xs shadow-lg shadow-amber-950/40 transition-all cursor-pointer"
+                    className="w-full py-2.5 rounded-xl bg-amber-500/90 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-bold text-xs shadow-lg shadow-amber-950/40 transition-all cursor-pointer"
                   >
-                    {settling ? "Recording..." : `Record ₹${paymentAmount || 0} Cash Payment`}
+                    {settling ? "Recording..." : `Record ₹${paymentAmount || 0} Partial Payment (${paymentMode})`}
                   </button>
                 </div>
               )}
 
-              {/* Option 2: Settle as Final Amount / Discount Waiver */}
+              {/* Option 3: Collapsible Courtesy Loss Waiver (Customer Paid ₹0) */}
               {!partialPaidSuccess && (
-                <div className="p-3.5 bg-blue-950/20 border border-blue-500/30 rounded-xl space-y-2">
-                  <div className="flex items-center gap-2">
-                    <span className="material-symbols-outlined text-blue-400 text-base">handshake</span>
-                    <h4 className="text-xs font-bold text-blue-300">
-                      Settle as Final Payment (Discount Waiver)
-                    </h4>
+                <details className="p-3 bg-rose-950/20 border border-rose-500/30 rounded-xl group transition-all">
+                  <summary className="flex items-center justify-between text-xs font-bold text-rose-300 cursor-pointer select-none">
+                    <div className="flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-sm text-rose-400">warning</span>
+                      <span>Courtesy Loss / Bad Debt Waiver (Customer Paid ₹0)</span>
+                    </div>
+                    <span className="text-[10px] text-slate-400 group-open:rotate-180 transition-transform">▼</span>
+                  </summary>
+                  <div className="mt-3 space-y-2 pt-2 border-t border-rose-500/20 text-xs">
+                    <p className="text-[11px] text-slate-300 leading-relaxed font-mono">
+                      ⚠️ <strong>Warning:</strong> Use this ONLY if you are forgiving the remaining balance of ₹{(Number(record.balance_amount) || 0).toLocaleString("en-IN")} as a courtesy concession or uncollectible bad debt. This will record in the system that the customer paid <strong>₹0</strong> and you absorbed the loss.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleSettleFinalWaiver}
+                      disabled={settling}
+                      className="w-full py-2 px-3 rounded-lg bg-rose-600/30 hover:bg-rose-600/50 border border-rose-500/40 text-rose-200 text-xs font-bold transition-all cursor-pointer font-mono"
+                    >
+                      Forgive Remaining ₹{(Number(record.balance_amount) || 0).toLocaleString("en-IN")} as Loss (Customer Paid ₹0)
+                    </button>
                   </div>
-                  <p className="text-[11px] text-slate-300 leading-relaxed">
-                    If the customer paid partial cash and both agreed that it was the final amount, mark it settled here. This zeroes the balance and cancels any pending Razorpay link so the customer cannot pay again.
-                  </p>
-
-                  <button
-                    type="button"
-                    onClick={handleSettleFinalWaiver}
-                    disabled={settling}
-                    className="w-full py-2 px-3 rounded-lg bg-blue-600/30 hover:bg-blue-600/50 border border-blue-500/40 text-blue-200 text-xs font-bold transition-all cursor-pointer"
-                  >
-                    Mark as Agreed Final Payment (Zero Balance)
-                  </button>
-                </div>
+                </details>
               )}
             </div>
           )}

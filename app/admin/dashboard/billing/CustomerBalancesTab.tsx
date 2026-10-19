@@ -118,8 +118,11 @@ export default function CustomerBalancesTab({
     fetchBalances();
   }, [statusFilter, searchTerm, onRefreshTrigger]);
 
-  const handleOpenAction = (record: CustomerBalanceRecord) => {
+  const [modalTab, setModalTab] = useState<"remind" | "settle">("settle");
+
+  const handleOpenAction = (record: CustomerBalanceRecord, tab: "remind" | "settle" = "settle") => {
     setSelectedRecord(record);
+    setModalTab(tab);
     setIsModalOpen(true);
   };
 
@@ -395,7 +398,7 @@ export default function CustomerBalancesTab({
                         {/* 1. Quick Remind / Razorpay Link */}
                         <button
                           type="button"
-                          onClick={() => handleOpenAction(r)}
+                          onClick={() => handleOpenAction(r, "remind")}
                           className="px-2.5 py-1.5 rounded-lg bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-500/30 text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer"
                           title="Send WhatsApp Razorpay Payment Link"
                         >
@@ -419,16 +422,16 @@ export default function CustomerBalancesTab({
                           </button>
                         )}
 
-                        {/* 3. Quick Settle */}
+                        {/* 3. Quick Settle Full / Partial */}
                         {isPending && (
                           <button
                             type="button"
-                            onClick={() => handleOpenAction(r)}
-                            className="px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer"
-                            title="Record Counter Cash Payment or Final Waiver"
+                            onClick={() => handleOpenAction(r, "settle")}
+                            className="px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-emerald-600/25 to-teal-600/25 hover:from-emerald-600/40 hover:to-teal-600/40 text-emerald-300 border border-emerald-500/50 text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer shadow-sm active:scale-95"
+                            title="1-Click Settle Khata: Record Cash / Online payment"
                           >
-                            <span className="material-symbols-outlined text-xs">payments</span>
-                            Settle
+                            <span className="material-symbols-outlined text-xs">check_circle</span>
+                            ⚡ Settle Khata
                           </button>
                         )}
 
@@ -469,6 +472,7 @@ export default function CustomerBalancesTab({
         record={selectedRecord}
         upiId={upiId}
         onBalanceUpdated={fetchBalances}
+        initialTab={modalTab}
       />
     </div>
   );

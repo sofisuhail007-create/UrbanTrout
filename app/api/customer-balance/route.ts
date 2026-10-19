@@ -723,12 +723,33 @@ export async function PATCH(request: Request) {
         const expAmt = Number(cf.expected_amount) || Number(vslMatch.expected_amount) || (Number(vslMatch.weight_kg) * Number(vslMatch.rate_per_kg));
         const updatedDiscount = Math.max(0, expAmt - updatedAmountPaid);
 
-        // Payment mode update (e.g. Cash + Online QR)
+        // Payment mode update (e.g. Cash, JK Bank Online, Razorpay Online, Split)
         let updatedMode = vslMatch.payment_mode || "Cash";
-        if (current.payment_method?.includes("QR") || current.payment_method?.includes("Online") || current.payment_method?.includes("Razorpay")) {
-          if (updatedMode.toLowerCase().includes("cash") && isSettled) {
-            updatedMode = "Cash + Online QR";
-          } else {
+        const wasCredit = updatedMode.toLowerCase().includes("credit") || updatedMode.toLowerCase().includes("khata");
+        const hadCash = updatedMode.toLowerCase().includes("cash") && !wasCredit;
+        const methodStr = (current.payment_method || "").toLowerCase();
+        const isOnlinePay = methodStr.includes("qr") || methodStr.includes("online") || methodStr.includes("razorpay") || methodStr.includes("jk bank") || methodStr.includes("mpay");
+        const isCashPay = methodStr.includes("cash");
+
+        if (isSettled) {
+          if (wasCredit) {
+            // Customer settled their Khata in full!
+            if (isCashPay) {
+              updatedMode = "Cash";
+            } else if (current.payment_method?.includes("JK Bank")) {
+              updatedMode = "JK Bank Online";
+            } else if (current.payment_method?.includes("Razorpay")) {
+              updatedMode = "Razorpay Online";
+            } else if (isOnlinePay) {
+              updatedMode = current.payment_method || "Online Payment";
+            } else {
+              updatedMode = current.payment_method || "Cash";
+            }
+          } else if (hadCash && isOnlinePay) {
+            updatedMode = current.payment_method?.includes("Razorpay")
+              ? "Split (Cash + Razorpay)"
+              : "Split (Cash + JK Bank)";
+          } else if (current.payment_method) {
             updatedMode = current.payment_method;
           }
         }
