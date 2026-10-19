@@ -358,6 +358,7 @@ export default function VendingCenterLoggerPage() {
 
   // View mode: "table" (compact ledger table) vs "cards" (visual card grid)
   const [viewMode, setViewMode] = useState<"table" | "cards">("table");
+  const [tableDensity, setTableDensity] = useState<"compact" | "normal">("compact");
 
   useEffect(() => {
     try {
@@ -365,8 +366,19 @@ export default function VendingCenterLoggerPage() {
       if (savedMode === "table" || savedMode === "cards") {
         setViewMode(savedMode);
       }
+      const savedDensity = localStorage.getItem("ut_vending_table_density");
+      if (savedDensity === "compact" || savedDensity === "normal") {
+        setTableDensity(savedDensity);
+      }
     } catch (_) {}
   }, []);
+
+  const handleSetTableDensity = (density: "compact" | "normal") => {
+    setTableDensity(density);
+    try {
+      localStorage.setItem("ut_vending_table_density", density);
+    } catch (_) {}
+  };
 
   const handleSetViewMode = (mode: "table" | "cards") => {
     setViewMode(mode);
@@ -6267,6 +6279,57 @@ export default function VendingCenterLoggerPage() {
           </button>
         </div>
 
+        {/* Table Density Quick Toggle (Ultra-Compact vs Comfortable) */}
+        {viewMode === "table" && (
+          <div className="flex items-center p-0.5 rounded-xl bg-slate-950 border border-slate-800">
+            <button
+              type="button"
+              onClick={() => handleSetTableDensity("compact")}
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-mono transition-all cursor-pointer ${
+                tableDensity === "compact"
+                  ? "bg-slate-800 text-emerald-300 border border-slate-700 font-bold shadow-sm"
+                  : "text-slate-400 hover:text-white"
+              }`}
+              title="Compact View (Fits 12–18 entries on screen without scrolling)"
+            >
+              <span className="material-symbols-outlined text-[14px]">density_small</span>
+              <span>Compact</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSetTableDensity("normal")}
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-mono transition-all cursor-pointer ${
+                tableDensity === "normal"
+                  ? "bg-slate-800 text-emerald-300 border border-slate-700 font-bold shadow-sm"
+                  : "text-slate-400 hover:text-white"
+              }`}
+              title="Comfortable Row Spacing"
+            >
+              <span className="material-symbols-outlined text-[14px]">density_medium</span>
+              <span>Comfort</span>
+            </button>
+          </div>
+        )}
+
+        {/* Quick KPI Stats Visibility Pill (Collapse stats to maximize table rows) */}
+        {isAdmin && (
+          <button
+            type="button"
+            onClick={() => setShowAdminCards((prev) => !prev)}
+            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-xs font-mono transition-all cursor-pointer ${
+              !showAdminCards
+                ? "bg-amber-500/15 text-amber-300 border-amber-500/30 font-bold shadow-sm"
+                : "bg-slate-900/90 hover:bg-slate-800 text-slate-400 border-slate-800 hover:text-white"
+            }`}
+            title={showAdminCards ? "Minimize KPI Stats cards to view more sales entries" : "Show KPI Stats cards"}
+          >
+            <span className="material-symbols-outlined text-[14px]">
+              {showAdminCards ? "visibility_off" : "visibility"}
+            </span>
+            <span className="hidden sm:inline">{showAdminCards ? "Hide Stats" : "Show Stats"}</span>
+          </button>
+        )}
+
         <button
           type="button"
           onClick={() => {
@@ -6302,14 +6365,14 @@ export default function VendingCenterLoggerPage() {
             <table className="w-full text-left border-collapse font-mono text-xs">
               <thead>
                 <tr className="bg-slate-950/90 border-b border-slate-800 text-[10.5px] font-semibold text-slate-400 uppercase tracking-wider select-none">
-                  <th className="py-3.5 px-2.5 text-center w-10 text-slate-500">#</th>
-                  <th className="py-3.5 px-3 text-left w-32">
+                  <th className={`${tableDensity === "compact" ? "py-2 px-2" : "py-3 px-2.5"} text-center w-9 text-slate-500`}>#</th>
+                  <th className={`${tableDensity === "compact" ? "py-2 px-2.5" : "py-3 px-3"} text-left w-32`}>
                     <button
                       type="button"
                       onClick={() => toggleSort("time")}
                       className="flex items-center gap-1 hover:text-white transition-colors cursor-pointer"
                     >
-                      Date &amp; Staff
+                      Time &amp; Staff
                       {sortField === "time" && (
                         <span className="material-symbols-outlined text-[13px] text-emerald-400">
                           {sortDirection === "desc" ? "arrow_downward" : "arrow_upward"}
@@ -6317,11 +6380,11 @@ export default function VendingCenterLoggerPage() {
                       )}
                     </button>
                   </th>
-                  <th className="py-3.5 px-3.5 text-left">Product &amp; Destination</th>
-                  <th className="py-3.5 px-3 text-right w-24">Weight / Rate</th>
-                  <th className="py-3.5 px-3 text-right w-32 text-cyan-400">Collected / Exp.</th>
-                  <th className="py-3.5 px-3 text-left w-36">Payment &amp; Status</th>
-                  <th className="py-3.5 px-3 text-right w-24">Actions</th>
+                  <th className={`${tableDensity === "compact" ? "py-2 px-3" : "py-3 px-3.5"} text-left`}>Product &amp; Details</th>
+                  <th className={`${tableDensity === "compact" ? "py-2 px-2.5" : "py-3 px-3"} text-right w-24`}>Weight / Rate</th>
+                  <th className={`${tableDensity === "compact" ? "py-2 px-2.5" : "py-3 px-3"} text-right w-28 text-cyan-400`}>Collected</th>
+                  <th className={`${tableDensity === "compact" ? "py-2 px-3" : "py-3 px-3"} text-left w-36`}>Payment &amp; Status</th>
+                  <th className={`${tableDensity === "compact" ? "py-2 px-2.5" : "py-3 px-3"} text-right w-24`}>Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60">
@@ -6356,6 +6419,13 @@ export default function VendingCenterLoggerPage() {
                   const isSelfCleaned = Boolean(e.custom_fields?.self_cleaned || (e as any).self_cleaned);
                   const isCash = (e.payment_mode || "").toLowerCase().trim() === "cash";
 
+                  const extraVal = Number(e.custom_fields?.extra_amount) || (!isCreditSale && taken > exp && exp > 0 ? taken - exp : 0);
+                  const effRate = w > 0 && taken > 0 ? taken / w : rate;
+                  const standardBenchmarkRate = isGutted ? (guttedPrice || DEFAULT_GUTTED_PRICE) : rate;
+                  const rateDiff = standardBenchmarkRate - effRate;
+
+                  const cellPad = tableDensity === "compact" ? "py-1.5 px-2.5" : "py-2.5 px-3";
+
                   return (
                     <tr
                       key={e.id}
@@ -6370,88 +6440,89 @@ export default function VendingCenterLoggerPage() {
                       }`}
                     >
                       {/* 1. # */}
-                      <td className="py-3.5 px-2.5 text-center text-slate-500 font-bold text-[11px] align-top">
+                      <td className={`${cellPad} text-center text-slate-500 font-bold text-xs align-middle w-9`}>
                         {(salesPage - 1) * 50 + index + 1}
                       </td>
 
-                      {/* 2. Date & Staff */}
-                      <td className="py-3.5 px-3 whitespace-nowrap align-top">
-                        <div className="flex flex-col gap-1">
-                          <span className="text-slate-200 font-bold text-xs">
-                            {formatIstDateDisplay(e.entry_date) || e.entry_date}
-                          </span>
-                          <span className="text-slate-400 text-[10.5px] flex items-center gap-1 font-mono">
-                            <span className="material-symbols-outlined text-[12px] text-slate-500">schedule</span>
-                            {e.entry_time}
-                          </span>
-                          <div className="mt-0.5">
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-800/90 border border-slate-700/60 text-slate-300 text-[10px] font-sans font-medium">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span>
-                              <span className="truncate max-w-[90px]">{formatStaffDisplayName(e.logged_by)}</span>
+                      {/* 2. Time & Staff */}
+                      <td className={`${cellPad} whitespace-nowrap align-middle w-32`}>
+                        <div className="flex flex-col gap-0.5 leading-tight">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-white font-bold text-xs font-mono">{e.entry_time}</span>
+                            <span className="text-slate-400 text-[10px] font-sans">
+                              {formatIstDateDisplay(e.entry_date) || e.entry_date}
                             </span>
+                          </div>
+                          <div className="flex items-center gap-1 text-[10px] text-slate-400 font-sans">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 flex-shrink-0"></span>
+                            <span className="truncate max-w-[105px] font-medium">{formatStaffDisplayName(e.logged_by)}</span>
                           </div>
                         </div>
                       </td>
 
-                      {/* 3. Product & Destination */}
-                      <td className="py-3.5 px-3.5 align-top">
-                        <div className="flex flex-col gap-1.5 min-w-0">
+                      {/* 3. Product & Customer / Destination */}
+                      <td className={`${cellPad} align-middle`}>
+                        <div className="flex flex-col gap-1 min-w-0 leading-tight">
                           <div className="flex items-center gap-1.5 flex-wrap">
                             {isGutted && isSelfCleaned ? (
-                              <>
-                                <span className="px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-amber-500/20 text-amber-200 border border-amber-500/40 inline-flex items-center gap-1">
-                                  🐟 Gutted
-                                  <span className="text-[8.5px] px-1 rounded bg-amber-500/30 text-amber-100 font-bold">Self Cleaned</span>
-                                </span>
-                                <span className="text-[9px] text-amber-400/90 font-sans font-medium">₹0 worker inc</span>
-                              </>
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/20 text-amber-200 border border-amber-500/40 inline-flex items-center gap-1">
+                                🐟 Gutted
+                                <span className="text-[8px] px-1 rounded bg-amber-500/30 text-amber-100 font-bold">Self</span>
+                              </span>
                             ) : isGutted ? (
-                              <>
-                                <span className="px-2 py-0.5 rounded-lg text-[10.5px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 inline-flex items-center gap-1">
-                                  🐟 {e.product_type}
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 inline-flex items-center gap-1">
+                                🐟 Gutted
+                                <span className="text-[9px] text-emerald-400 font-mono font-medium">
+                                  (+₹{Math.round(w * INCENTIVE_RATE_PER_KG)} inc)
                                 </span>
-                                <span className="px-1.5 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-[9px] text-emerald-400 font-sans font-medium inline-flex items-center gap-0.5">
-                                  <span className="material-symbols-outlined text-[10px]">payments</span>
-                                  +₹{Math.round(w * INCENTIVE_RATE_PER_KG)} worker inc
-                                </span>
-                              </>
+                              </span>
                             ) : (
-                              <span className="px-2 py-0.5 rounded-lg text-[10.5px] font-medium bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
                                 🐟 {e.product_type}
                               </span>
                             )}
 
-                            {/* Credit Badge */}
-                            {isCreditSale && (
-                              <span className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-purple-500/25 text-purple-200 border border-purple-500/50 inline-flex items-center gap-1 shadow-sm">
-                                <span className="material-symbols-outlined text-[11px] text-purple-300">account_balance_wallet</span>
-                                <span>Credit (Khata)</span>
+                            {/* Fish Count if recorded */}
+                            {e.custom_fields?.fish_count && (
+                              <span className="text-[10px] text-slate-400 font-mono">
+                                {e.custom_fields.fish_count} fish
+                              </span>
+                            )}
+
+                            {/* Surplus Stock Tag */}
+                            {isAdmin && sInfo?.isSurplus && (
+                              <span
+                                className="px-1.5 py-0.2 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-[9px] font-bold font-mono inline-flex items-center gap-0.5"
+                                title={sInfo.isPureSurplus ? "100% Surplus (Pure Profit)" : `+${formatKg(sInfo.surplusKg)} Kg Surplus`}
+                              >
+                                🎁 Surplus
                               </span>
                             )}
                           </div>
 
-                          {/* Customer contact info */}
-                          {e.custom_fields?.customer_name && (
-                            <div className="flex items-center gap-1 text-[11.5px] text-purple-200 font-medium">
-                              <span className="material-symbols-outlined text-[13px] text-purple-400 flex-shrink-0">person</span>
-                              <span>{e.custom_fields.customer_name}</span>
-                              {e.custom_fields.customer_phone && (
-                                <span className="text-slate-400 text-[10.5px] font-mono">({e.custom_fields.customer_phone})</span>
+                          {/* Destination / Customer / Notes row (renders only if present) */}
+                          {(e.notes || e.custom_fields?.customer_name) && (
+                            <div className="flex items-center gap-1.5 text-[10.5px] truncate max-w-sm sm:max-w-md">
+                              {e.custom_fields?.customer_name && (
+                                <span className="text-purple-300 font-semibold inline-flex items-center gap-0.5 flex-shrink-0">
+                                  <span className="material-symbols-outlined text-[12px] text-purple-400">person</span>
+                                  <span>{e.custom_fields.customer_name}</span>
+                                  {e.custom_fields.customer_phone && <span className="text-slate-400 text-[9px] font-mono">({e.custom_fields.customer_phone})</span>}
+                                  {e.notes && <span className="text-slate-600 mx-0.5">•</span>}
+                                </span>
+                              )}
+                              {e.notes && (
+                                <span className="text-slate-300/95 inline-flex items-center gap-0.5 truncate" title={e.notes}>
+                                  <span className="material-symbols-outlined text-[12px] text-emerald-400 flex-shrink-0">location_on</span>
+                                  <span className="truncate">{e.notes}</span>
+                                </span>
                               )}
                             </div>
                           )}
 
-                          {/* Notes / Destination */}
-                          {e.notes && (
-                            <div className="text-[11px] text-slate-300/90 flex items-start gap-1 leading-snug break-words">
-                              <span className="material-symbols-outlined text-[12px] text-emerald-400 flex-shrink-0 mt-0.5">location_on</span>
-                              <span className="break-words">{e.notes}</span>
-                            </div>
-                          )}
-
-                          {/* Custom Columns */}
+                          {/* Custom Columns if any */}
                           {customColumns.filter((c) => c.visible && e.custom_fields?.[c.id]).map((c) => (
-                            <span key={c.id} className="text-[9.5px] text-cyan-400/90 font-mono">
+                            <span key={c.id} className="text-[9px] text-cyan-400/90 font-mono">
                               <span className="text-slate-500">{c.name}:</span> {e.custom_fields?.[c.id]}
                             </span>
                           ))}
@@ -6459,174 +6530,120 @@ export default function VendingCenterLoggerPage() {
                       </td>
 
                       {/* 4. Weight / Rate */}
-                      <td className="py-3.5 px-3 text-right whitespace-nowrap align-top font-mono">
-                        <div className="flex flex-col items-end">
+                      <td className={`${cellPad} text-right whitespace-nowrap align-middle font-mono w-24`}>
+                        <div className="flex flex-col items-end gap-0.5 leading-tight">
                           <div>
                             <span className="text-emerald-400 font-black text-sm tracking-tight">{formatKg(e.weight_kg)}</span>
                             <span className="text-slate-500 text-[10px] ml-1 font-sans">Kg</span>
                           </div>
-                          <span className="text-slate-400 text-[10.5px] mt-0.5 font-sans">
+                          <span className="text-slate-400 text-[10px] font-sans">
                             @ ₹{e.rate_per_kg}/Kg
                           </span>
-                          {isAdmin && sInfo?.isSurplus && (
-                            <span
-                              className="mt-1 px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[9.5px] font-bold font-mono inline-flex items-center gap-1 shadow-sm"
-                              title={
-                                sInfo.isPureSurplus
-                                  ? "100% Procurement Surplus Stock (Pure Profit, ₹0 procurement cost deducted)"
-                                  : `Partial Surplus: ${formatKg(sInfo.surplusKg)} Kg pure profit`
-                              }
-                            >
-                              <span>🎁</span>
-                              <span>{sInfo.isPureSurplus ? "Surplus (100% Profit)" : `+${formatKg(sInfo.surplusKg)} Kg Surplus`}</span>
-                            </span>
-                          )}
                         </div>
                       </td>
 
                       {/* 5. Collected / Expected */}
-                      <td className="py-3.5 px-3 text-right whitespace-nowrap align-top font-mono">
-                        <div className="flex flex-col items-end gap-0.5">
-                          {taken === 0 && isCreditSale ? (
-                            <div className="flex flex-col items-end">
-                              <span className="text-rose-400 font-black text-sm tracking-tight font-mono">₹0</span>
-                              <span className="text-purple-400 text-[9px] font-mono">On Credit</span>
-                            </div>
-                          ) : (
-                            <span className="text-cyan-300 font-black text-sm tracking-tight">₹{taken.toLocaleString("en-IN")}</span>
-                          )}
+                      <td className={`${cellPad} text-right whitespace-nowrap align-middle font-mono w-28`}>
+                        <div className="flex flex-col items-end gap-0.5 leading-tight">
+                          <div className="flex items-center justify-end gap-1">
+                            {taken === 0 && isCreditSale ? (
+                              <span className="text-rose-400 font-black text-sm">₹0</span>
+                            ) : (
+                              <span className="text-cyan-300 font-black text-sm">₹{taken.toLocaleString("en-IN")}</span>
+                            )}
+                            {extraVal > 0 && (
+                              <span
+                                className="text-[9px] font-bold text-amber-300 bg-amber-500/20 px-1 py-0.2 rounded border border-amber-500/40"
+                                title={`Customer paid ₹${extraVal} extra over standard bill (Tip / Premium)`}
+                              >
+                                ⭐+₹{extraVal}
+                              </span>
+                            )}
+                            {loss > 0 && !isCreditSale && (
+                              <span className="text-[9px] font-medium text-rose-400/90" title={`Negotiation Loss: -₹${loss}`}>
+                                (-₹{loss})
+                              </span>
+                            )}
+                          </div>
 
-                          <span className="text-slate-400 text-[10px] font-sans">
-                            Exp: ₹{exp.toLocaleString("en-IN")}
-                          </span>
-
-                          {(() => {
-                            const effRate = w > 0 && taken > 0 ? taken / w : rate;
-                            const standardBenchmarkRate = isGutted ? (guttedPrice || DEFAULT_GUTTED_PRICE) : rate;
-                            const rateDiff = standardBenchmarkRate - effRate;
-                            const isLoss = !isCreditSale && rateDiff > 0.5;
-                            const isGain = rateDiff < -0.5;
-
-                            return (
-                              <div className="flex items-center gap-1 mt-0.5">
-                                <span
-                                  className={`font-mono text-[10.5px] font-bold ${
-                                    isCreditSale ? "text-purple-300" : isLoss ? "text-amber-300" : isGain ? "text-cyan-300" : "text-emerald-400"
-                                  }`}
-                                >
-                                  ₹{effRate.toFixed(1)}/Kg
-                                </span>
-                                {isLoss ? (
-                                  <span className="text-[9.5px] font-mono text-rose-400/90 font-medium">
-                                    (-₹{rateDiff.toFixed(0)})
-                                  </span>
-                                ) : isGain ? (
-                                  <span className="text-[9.5px] font-mono text-cyan-400/90 font-medium">
-                                    (+₹{Math.abs(rateDiff).toFixed(0)})
-                                  </span>
-                                ) : null}
-                              </div>
-                            );
-                          })()}
-
-                          {/* Extra Amount Collected Badge (Customer Paid Extra / Tip) */}
-                          {(() => {
-                            const extraVal = Number(e.custom_fields?.extra_amount) || (!isCreditSale && taken > exp && exp > 0 ? taken - exp : 0);
-                            if (extraVal > 0) {
-                              return (
-                                <span
-                                  className="mt-1 px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[9px] font-black font-mono inline-flex items-center gap-0.5 shadow-sm"
-                                  title={`Customer paid ₹${extraVal} extra over standard bill (Tip / Premium)`}
-                                >
-                                  <span>⭐</span>
-                                  <span>+₹{extraVal} Extra</span>
-                                </span>
-                              );
-                            }
-                            return null;
-                          })()}
+                          <div className="text-[10px] text-slate-400 flex items-center justify-end gap-1 font-sans">
+                            <span>Exp: ₹{exp.toLocaleString("en-IN")}</span>
+                            {isCreditSale ? (
+                              <span className="text-purple-400 text-[9px] font-mono">(Credit)</span>
+                            ) : Math.abs(rateDiff) > 0.5 ? (
+                              <span className={`font-mono text-[9px] ${rateDiff > 0 ? "text-amber-400/90" : "text-emerald-400"}`}>
+                                · ₹{effRate.toFixed(0)}/Kg
+                              </span>
+                            ) : null}
+                          </div>
                         </div>
                       </td>
 
                       {/* 6. Payment & Status */}
-                      <td className="py-3.5 px-3 whitespace-nowrap align-top">
-                        <div className="flex flex-col items-start gap-1.5">
-                          {/* Payment Mode */}
-                          {isCreditSale && taken === 0 ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-purple-500/20 border border-purple-500/40 text-purple-200 text-[10px] font-bold font-sans">
-                              📒 Credit (Khata)
-                            </span>
-                          ) : isCreditSale && taken > 0 ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-purple-500/20 border border-purple-500/40 text-purple-200 text-[10px] font-bold font-sans">
-                              💵 ₹{taken} + 📒 Credit
-                            </span>
-                          ) : (e.payment_mode || "").toLowerCase().includes("credit") ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-purple-500/20 border border-purple-500/40 text-purple-200 text-[10px] font-bold font-sans">
-                              📒 Credit (Khata)
-                            </span>
-                          ) : (e.payment_mode || "").toLowerCase().includes("split") || Boolean(e.custom_fields?.is_split) ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-cyan-500/15 border border-cyan-500/30 text-cyan-200 text-[9.5px] font-bold font-mono">
-                              💵 ₹{e.custom_fields?.cash_portion ?? Math.round(taken / 2)} + {(e.payment_mode?.includes("Razorpay") || e.custom_fields?.online_channel === "Razorpay") ? "⚡ Rzp" : "🏛️ JK"} ₹{e.custom_fields?.online_portion ?? (taken - Math.round(taken / 2))}
-                            </span>
-                          ) : (e.payment_mode || "").includes("JK Bank") || e.custom_fields?.online_channel === "JK Bank" ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-blue-500/15 border border-blue-500/30 text-blue-300 text-[10px] font-bold font-sans">
-                              🏛️ JK Bank
-                            </span>
-                          ) : (e.payment_mode || "").includes("Razorpay Online") || e.payment_mode === "Razorpay" ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-[10px] font-bold font-sans">
-                              ⚡ Razorpay
-                            </span>
-                          ) : e.payment_mode === "Cash + Online QR" || (e.custom_fields?.settled_at && (e.payment_mode || "").toLowerCase().includes("qr")) ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold font-sans">
-                              💵 Cash + ⚡ QR
-                            </span>
-                          ) : isCash ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-teal-500/15 border border-teal-500/30 text-teal-300 text-[10px] font-bold font-sans">
-                              💵 Cash
-                            </span>
-                          ) : e.payment_mode === "Razorpay Link" && (e.custom_fields?.payment_status === "PENDING_LINK" || Number(e.amount_paid) === 0) ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-bold font-sans">
-                              ⏳ Link Sent
-                            </span>
-                          ) : e.payment_mode === "Razorpay Link" ? (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold font-sans">
-                              🔒 Razorpay
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-[10px] font-bold font-sans">
-                              ⚡ Online
-                            </span>
-                          )}
+                      <td className={`${cellPad} whitespace-nowrap align-middle w-36`}>
+                        <div className="flex flex-col items-start gap-1 leading-tight">
+                          {/* Line 1: Payment Mode */}
+                          <div className="flex items-center gap-1">
+                            {isCreditSale && taken === 0 ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-500/20 border border-purple-500/40 text-purple-200 text-[9.5px] font-bold">
+                                📒 Credit (Khata)
+                              </span>
+                            ) : isCreditSale && taken > 0 ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-500/20 border border-purple-500/40 text-purple-200 text-[9.5px] font-bold">
+                                💵 ₹{taken} + 📒 Khata
+                              </span>
+                            ) : (e.payment_mode || "").toLowerCase().includes("credit") ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-500/20 border border-purple-500/40 text-purple-200 text-[9.5px] font-bold">
+                                📒 Credit (Khata)
+                              </span>
+                            ) : (e.payment_mode || "").toLowerCase().includes("split") || Boolean(e.custom_fields?.is_split) ? (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-cyan-500/15 border border-cyan-500/30 text-cyan-200 text-[9px] font-bold font-mono">
+                                💵 ₹{e.custom_fields?.cash_portion ?? Math.round(taken / 2)} + {(e.payment_mode?.includes("Razorpay") || e.custom_fields?.online_channel === "Razorpay") ? "⚡ Rzp" : "🏛️ JK"} ₹{e.custom_fields?.online_portion ?? (taken - Math.round(taken / 2))}
+                              </span>
+                            ) : (e.payment_mode || "").includes("JK Bank") || e.custom_fields?.online_channel === "JK Bank" ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-500/15 border border-blue-500/30 text-blue-300 text-[9.5px] font-bold">
+                                🏛️ JK Bank
+                              </span>
+                            ) : (e.payment_mode || "").includes("Razorpay Online") || e.payment_mode === "Razorpay" ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-[9.5px] font-bold">
+                                ⚡ Razorpay
+                              </span>
+                            ) : isCash ? (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-teal-500/15 border border-teal-500/30 text-teal-300 text-[9.5px] font-bold">
+                                💵 Cash
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-[9.5px] font-bold">
+                                ⚡ Online
+                              </span>
+                            )}
+                          </div>
 
-                          {/* Status / Concession / Balance */}
+                          {/* Line 2: Status / 1-Click Settle button */}
                           {isCreditSale && e.custom_fields?.balance_status !== "waived_final" && e.custom_fields?.balance_status !== "settled" ? (
                             <button
                               type="button"
                               onClick={() => handleOpenBalanceModalForEntry(e, "settle")}
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-gradient-to-r from-purple-500/30 to-indigo-500/30 text-purple-200 border border-purple-400/60 hover:from-purple-500/45 hover:to-indigo-500/45 transition-all cursor-pointer shadow-sm active:scale-95 font-mono"
-                              title="1-Click Settle Khata or Send WhatsApp Reminder"
+                              className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-[9px] font-bold bg-gradient-to-r from-purple-500/30 to-indigo-500/30 text-purple-200 border border-purple-400/60 hover:from-purple-500/50 hover:to-indigo-500/50 transition-all cursor-pointer shadow-sm active:scale-95 font-mono"
+                              title="1-Click Settle Khata"
                             >
-                              <span className="material-symbols-outlined text-[12px] text-amber-300">payments</span>
-                              <span>Settle Khata: ₹{Number(e.custom_fields?.balance_amount || exp).toLocaleString("en-IN")}</span>
+                              <span className="material-symbols-outlined text-[10px] text-amber-300">payments</span>
+                              <span>Settle: ₹{Number(e.custom_fields?.balance_amount || exp).toLocaleString("en-IN")}</span>
                             </button>
                           ) : e.custom_fields?.balance_status === "waived_final" ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9.5px] font-medium text-slate-300 bg-slate-800/90 border border-slate-700">
+                            <span className="text-[9px] text-slate-400 font-medium">
                               🤝 Waived (-₹{loss})
                             </span>
                           ) : e.custom_fields?.balance_status === "settled" || e.custom_fields?.settled_at || (e.custom_fields?.is_full_payment && !isCreditSale) ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9.5px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/40">
-                              ✓ Full Paid
+                            <span className="text-[9px] font-bold text-emerald-400 flex items-center gap-0.5">
+                              <span>✓</span> Full Paid
                             </span>
                           ) : loss > 0 ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9.5px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30">
-                              -₹{loss.toLocaleString("en-IN")}
-                            </span>
-                          ) : loss < 0 ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9.5px] font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30">
-                              +₹{Math.abs(loss)}
+                            <span className="text-[9px] font-medium text-amber-300/90">
+                              Waived (-₹{loss})
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg text-[9.5px] font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20">
+                            <span className="text-[9px] font-medium text-slate-500">
                               ✓ Exact
                             </span>
                           )}
@@ -6634,24 +6651,13 @@ export default function VendingCenterLoggerPage() {
                       </td>
 
                       {/* 7. Actions */}
-                      <td className="py-3.5 px-3 text-right whitespace-nowrap align-top">
-                        <div className="flex items-center justify-end gap-1.5 pt-0.5">
-                          {Number(e.custom_fields?.balance_amount) > 0 && e.custom_fields?.balance_status === "pending" && (
-                            <button
-                              type="button"
-                              onClick={() => handleOpenBalanceModalForEntry(e)}
-                              className="px-2 py-1 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 text-purple-200 border border-purple-500/40 text-[10px] font-bold font-mono transition-all cursor-pointer flex items-center gap-1 shadow-sm active:scale-95"
-                              title="Send WhatsApp Payment Reminder / Generate Razorpay QR"
-                            >
-                              <span className="material-symbols-outlined text-[12px]">qr_code_2</span>
-                              Khata
-                            </button>
-                          )}
+                      <td className={`${cellPad} text-right whitespace-nowrap align-middle w-24`}>
+                        <div className="flex items-center justify-end gap-1">
                           {/* Audit History Button */}
                           <button
                             type="button"
                             onClick={() => setSelectedHistoryEntry(e)}
-                            className={`w-7 h-7 rounded-lg transition-all flex items-center justify-center cursor-pointer shadow-sm active:scale-95 border ${
+                            className={`w-6 h-6 rounded-md transition-all flex items-center justify-center cursor-pointer shadow-sm active:scale-95 border ${
                               Array.isArray(e.custom_fields?.edit_history) && e.custom_fields.edit_history.length > 0
                                 ? "bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30"
                                 : "bg-slate-800/90 text-slate-400 hover:text-sky-300 border-slate-700/80 hover:border-sky-500/40"
@@ -6662,39 +6668,40 @@ export default function VendingCenterLoggerPage() {
                                 : "View provenance & creation history"
                             }
                           >
-                            <span className="material-symbols-outlined text-[13px]">history</span>
+                            <span className="material-symbols-outlined text-[12px]">history</span>
                           </button>
 
                           {canEditEntry(e) ? (
                             <button
                               type="button"
                               onClick={() => openEditModal(e)}
-                              className="w-7 h-7 rounded-lg bg-slate-800/90 hover:bg-emerald-500/25 text-slate-400 hover:text-emerald-300 border border-slate-700/80 hover:border-emerald-500/40 transition-all flex items-center justify-center cursor-pointer shadow-sm active:scale-95"
+                              className="w-6 h-6 rounded-md bg-slate-800/90 hover:bg-emerald-500/25 text-slate-400 hover:text-emerald-300 border border-slate-700/80 hover:border-emerald-500/40 transition-all flex items-center justify-center cursor-pointer shadow-sm active:scale-95"
                               title="Edit entry"
                             >
-                              <span className="material-symbols-outlined text-sm">edit</span>
+                              <span className="material-symbols-outlined text-[12px]">edit</span>
                             </button>
                           ) : (
                             <span
-                              className="w-7 h-7 rounded-lg bg-slate-900/60 text-slate-600 border border-slate-800/60 flex items-center justify-center cursor-not-allowed"
+                              className="w-6 h-6 rounded-md bg-slate-900/60 text-slate-600 border border-slate-800/60 flex items-center justify-center cursor-not-allowed"
                               title="Locked: Past entries can only be edited by Super Admin"
                             >
-                              <span className="material-symbols-outlined text-[13px]">lock</span>
+                              <span className="material-symbols-outlined text-[11px]">lock</span>
                             </span>
                           )}
+
                           {deleteConfirmId === e.id ? (
                             <div className="flex items-center gap-1">
                               <button
                                 type="button"
                                 onClick={() => handleDeleteEntry(e.id)}
-                                className="px-2 py-1 rounded-lg bg-rose-600 hover:bg-rose-500 text-white text-[10px] font-bold font-mono shadow-md cursor-pointer active:scale-95"
+                                className="px-1.5 py-0.5 rounded bg-rose-600 hover:bg-rose-500 text-white text-[9.5px] font-bold font-mono shadow-md cursor-pointer active:scale-95"
                               >
-                                Delete
+                                Del
                               </button>
                               <button
                                 type="button"
                                 onClick={() => setDeleteConfirmId(null)}
-                                className="px-2 py-1 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 text-[10px] cursor-pointer active:scale-95"
+                                className="px-1.5 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-300 text-[9.5px] cursor-pointer active:scale-95"
                               >
                                 ✕
                               </button>
@@ -6704,10 +6711,10 @@ export default function VendingCenterLoggerPage() {
                               <button
                                 type="button"
                                 onClick={() => setDeleteConfirmId(e.id)}
-                                className="w-7 h-7 rounded-lg bg-slate-800/90 hover:bg-rose-500/25 text-slate-500 hover:text-rose-300 border border-slate-700/80 hover:border-rose-500/40 transition-all flex items-center justify-center cursor-pointer shadow-sm active:scale-95"
+                                className="w-6 h-6 rounded-md bg-slate-800/90 hover:bg-rose-500/25 text-slate-500 hover:text-rose-300 border border-slate-700/80 hover:border-rose-500/40 transition-all flex items-center justify-center cursor-pointer shadow-sm active:scale-95"
                                 title="Delete entry"
                               >
-                                <span className="material-symbols-outlined text-sm">delete</span>
+                                <span className="material-symbols-outlined text-[12px]">delete</span>
                               </button>
                             )
                           )}
