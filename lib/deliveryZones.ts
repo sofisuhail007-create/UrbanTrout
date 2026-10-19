@@ -1,5 +1,6 @@
 // Srinagar Locality Intelligence & Tiered Delivery Zones
 // Synchronized with Urban Trout Sales Agent (OSM-verified coordinates from Malabagh Farm Hub)
+import { resolveLocationFromText, resolveLocationFromCoords } from "./geolocationEngine";
 
 export interface LocalityData {
   name: string;
@@ -122,7 +123,9 @@ export const SRINAGAR_LOCALITY_CATALOG: LocalityData[] = [
   { name: "Ahmad Nagar", aliases: ["ahmad nagar", "ahmed nagar", "ahmadnagar"], lat: 34.1550, lng: 74.8110, pincode: "190020", distKm: 2.0, tier: "zone1", minKgFree: 2 },
   { name: "Kashmir University", aliases: ["kashmir university", "ku campus", "university campus"], lat: 34.1300, lng: 74.8370, pincode: "190006", distKm: 2.0, tier: "zone1", minKgFree: 2 },
   { name: "Buchpora", aliases: ["buchpora", "bachpora", "buch pora", "bach pora"], lat: 34.1460, lng: 74.7950, pincode: "190020", distKm: 2.1, tier: "zone1", minKgFree: 2 },
-  { name: "Hazratbal", aliases: ["hazratbal", "hazrat bal", "dargah", "dargah hazratbal"], lat: 34.1265, lng: 74.8425, pincode: "190006", distKm: 2.2, tier: "zone1", minKgFree: 2 },
+  { name: "Hazratbal", aliases: ["hazratbal", "hazrat bal", "dargah", "dargah hazratbal"], lat: 34.1303, lng: 74.8428, pincode: "190006", distKm: 2.2, tier: "zone1", minKgFree: 2 },
+  { name: "Batpora", aliases: ["batpora", "batapora", "fazalhaq colony", "chinar lane"], lat: 34.1592, lng: 74.8449, pincode: "190006", distKm: 2.5, tier: "zone1", minKgFree: 2 },
+  { name: "NIT Srinagar", aliases: ["nit srinagar", "nit", "national institute of technology"], lat: 34.1265, lng: 74.8425, pincode: "190006", distKm: 2.6, tier: "zone1", minKgFree: 2 },
   { name: "Soura / SKIMS", aliases: ["soura", "skims", "skims soura", "soura hospital"], lat: 34.1350, lng: 74.8010, pincode: "190011", distKm: 2.2, tier: "zone1", minKgFree: 2 },
   { name: "Umer Colony", aliases: ["umer colony", "omar colony", "umar colony a", "umar colony b"], lat: 34.1360, lng: 74.8210, pincode: "190011", distKm: 2.2, tier: "zone1", minKgFree: 2 },
   { name: "Nowshera", aliases: ["nowshera", "nowshehra", "now shera"], lat: 34.1180, lng: 74.8090, pincode: "190011", distKm: 2.4, tier: "zone1", minKgFree: 2 },
@@ -213,50 +216,27 @@ export function evaluateDeliveryZone(params: {
   const { localityInput = "", coords, weightKg = 2 } = params;
   let dist = 0;
   let matchedLoc: LocalityData | undefined;
+  let isDeliverable = false;
   let displayName = "";
 
   // 1. If GPS coordinates provided, use exact distance
   if (coords && coords.lat && coords.lng) {
-    dist = calculateDistance(FARM_COORDS.lat, FARM_COORDS.lng, coords.lat, coords.lng);
-    // Find closest landmark for a nice name
-    let closestDist = Infinity;
-    for (const loc of SRINAGAR_LOCALITY_CATALOG) {
-      const d = calculateDistance(coords.lat, coords.lng, loc.lat, loc.lng);
-      if (d < closestDist) {
-        closestDist = d;
-        matchedLoc = loc;
-      }
-    }
-    displayName = matchedLoc ? `Near ${matchedLoc.name}` : "Your GPS Location";
+    const geo = resolveLocationFromCoords(coords.lat, coords.lng, weightKg);
+    dist = geo.dist;
+    displayName = geo.name;
+    isDeliverable = geo.isDeliverable;
   } else if (localityInput.trim()) {
-    // 2. Intelligent search across names and aliases
-    const q = localityInput.toLowerCase().trim().replace(/[^a-z0-9\s]/g, "");
-
-    // Exact name match
-    matchedLoc = SRINAGAR_LOCALITY_CATALOG.find(
-      (loc) => loc.name.toLowerCase() === q || loc.aliases.some((a) => a === q)
-    );
-
-    // Substring / word match
-    if (!matchedLoc) {
-      matchedLoc = SRINAGAR_LOCALITY_CATALOG.find((loc) =>
-        loc.aliases.some((a) => q.includes(a) || a.includes(q))
-      );
-    }
-
-    if (matchedLoc) {
-      dist = matchedLoc.distKm;
-      displayName = matchedLoc.name;
-    } else {
-      // Unrecognized locality fallback: assume inside Srinagar city zone 3 (~6.5km)
-      dist = 6.5;
-      displayName = localityInput.trim();
-    }
+    // 2. Intelligent multi-tier search across 75+ core and 451 local database
+    const geo = resolveLocationFromText(localityInput, weightKg);
+    dist = geo.dist;
+    displayName = geo.name;
+    isDeliverable = geo.isDeliverable;
   } else {
     // Default fallback
     dist = 2.0;
     matchedLoc = SRINAGAR_LOCALITY_CATALOG[0];
     displayName = "Malabagh & Nearby";
+    isDeliverable = true;
   }
 
   // Determine tier based on exact distance
@@ -272,7 +252,9 @@ export function evaluateDeliveryZone(params: {
   }
 
   const zoneConfig = DELIVERY_ZONES[tierId];
-  const isDeliverable = tierId !== "out_of_zone";
+  if (tierId === "out_of_zone") {
+    isDeliverable = false;
+  }
   const minKg = zoneConfig.minKgFree;
 
   // Calculate delivery fee

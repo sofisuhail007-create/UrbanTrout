@@ -31,6 +31,7 @@ import {
   ZoneConfig,
   evaluateDeliveryZone,
 } from "@/lib/deliveryZones";
+import { resolveLocationFromText } from "@/lib/geolocationEngine";
 
 // ─── Razorpay global type ───────────────────────────────────────
 declare global {
@@ -97,48 +98,24 @@ function findNearestLandmark(lat: number, lng: number): { name: string; pincode:
 function findMatchingLandmark(localityInput: string): SrinagarLandmark | null {
   if (!localityInput || !localityInput.trim()) return null;
 
-  const raw = localityInput.toLowerCase().trim();
-  const normalized = raw.replace(/[^a-z0-9]/g, "");
-  if (!normalized) return null;
+  // Use multi-tier Geolocation Intelligence Engine (Core 75+ and 451 local database)
+  const res = resolveLocationFromText(localityInput);
+  if (res && res.source !== "unknown") {
+    const existing = SRINAGAR_LANDMARKS.find(
+      (lm) => lm.name.toLowerCase() === res.name.toLowerCase()
+    );
+    if (existing) return existing;
 
-  // 1. Exact match with primary name or any alias
-  for (const lm of SRINAGAR_LANDMARKS) {
-    const normPrimary = lm.name.toLowerCase().replace(/[^a-z0-9]/g, "");
-    if (normalized === normPrimary) return lm;
-    if (lm.aliases) {
-      for (const alias of lm.aliases) {
-        const normAlias = alias.toLowerCase().replace(/[^a-z0-9]/g, "");
-        if (normalized === normAlias) return lm;
-      }
-    }
-  }
-
-  // 2. Contains match: if user's input contains landmark name or alias (e.g. "Ellahi Bagh near masjid")
-  const sortedLandmarks = [...SRINAGAR_LANDMARKS].sort((a, b) => b.name.length - a.name.length);
-  for (const lm of sortedLandmarks) {
-    const normPrimary = lm.name.toLowerCase().replace(/[^a-z0-9]/g, "");
-    if (normPrimary.length >= 4 && normalized.includes(normPrimary)) return lm;
-    if (lm.aliases) {
-      const sortedAliases = [...lm.aliases].sort((a, b) => b.length - a.length);
-      for (const alias of sortedAliases) {
-        const normAlias = alias.toLowerCase().replace(/[^a-z0-9]/g, "");
-        if (normAlias.length >= 4 && normalized.includes(normAlias)) return lm;
-      }
-    }
-  }
-
-  // 3. Reverse contains: if landmark name or alias contains input (min length 4)
-  if (normalized.length >= 4) {
-    for (const lm of SRINAGAR_LANDMARKS) {
-      const normPrimary = lm.name.toLowerCase().replace(/[^a-z0-9]/g, "");
-      if (normPrimary.includes(normalized)) return lm;
-      if (lm.aliases) {
-        for (const alias of lm.aliases) {
-          const normAlias = alias.toLowerCase().replace(/[^a-z0-9]/g, "");
-          if (normAlias.includes(normalized)) return lm;
-        }
-      }
-    }
+    return {
+      name: res.name,
+      aliases: [localityInput.toLowerCase()],
+      lat: res.lat || (res.tier === "0-4km" ? 34.1485 : 34.1200),
+      lng: res.lng || 74.8210,
+      pincode: "190006",
+      distKm: res.dist,
+      tier: res.tier === "0-4km" ? "zone1" : res.tier === "4-6km" ? "zone2" : res.tier === "Extended-4kg" ? "zone3" : "out_of_zone",
+      minKgFree: res.minKg
+    };
   }
 
   return null;
@@ -883,59 +860,34 @@ export default function CheckoutPage() {
     // Capture lead immediately upon proceeding
     captureLead(formData, grandTotal, items);
 
-    // Match customer-entered locality against Srinagar landmarks and calculate distance
-    if (formData.locality) {
-      const matched = findMatchingLandmark(formData.locality);
-      if (matched) {
-        setSelectedZoneName(matched.name);
-        setDetectedCoords({ lat: matched.lat, lng: matched.lng });
-        const dist = calculateDistance(farmLat, farmLng, matched.lat, matched.lng);
-        setCalculatedDistance(dist);
+    // If customer already locked true GPS coordinates, re-verify with latest cart weight
+    if (detectedCoords) {
+      const dist = calculateDistance(farmLat, farmLng, detectedCoords.lat, detectedCoords.lng);
+      setCalculatedDistance(dist);
+      const evalRes = evaluateDeliveryZone({
+        coords: detectedCoords,
+        weightKg: totalWeightKg,
+      });
+      if (dist <= deliveryRadiusKm && evalRes.isDeliverable) {
+        setDeliveryMode("under5");
         setLocatingStep("locked");
-        if (dist <= deliveryRadiusKm) {
-          setDeliveryMode("under5");
-          const evalRes = evaluateDeliveryZone({
-            coords: { lat: matched.lat, lng: matched.lng },
-            weightKg: totalWeightKg,
-          });
-          setLocationMsg(
-            `${dist.toFixed(1)} km from Urban Trout Hub • ${evalRes.zoneConfig.title} • ${
-              evalRes.deliveryFee === 0
-                ? "100% Free Doorstep Delivery ✓"
-                : `₹${evalRes.deliveryFee} Special Delivery (Free from ${evalRes.zoneConfig.minKgFree} kg)`
-            }`
-          );
-        } else {
-          setDeliveryMode("unavailable");
-          setLocationMsg(`${dist.toFixed(1)} km from Urban Trout Hub • Outside our ${deliveryRadiusKm}km live harvest delivery perimeter.`);
-        }
-      } else if (detectedCoords) {
-        // Fallback: If customer had previous device GPS coordinates locked
-        const dist = calculateDistance(farmLat, farmLng, detectedCoords.lat, detectedCoords.lng);
-        setCalculatedDistance(dist);
-        setLocatingStep("locked");
-        if (dist <= deliveryRadiusKm) {
-          setDeliveryMode("under5");
-          const evalRes = evaluateDeliveryZone({
-            coords: detectedCoords,
-            weightKg: totalWeightKg,
-          });
-          setLocationMsg(
-            `${dist.toFixed(1)} km from Urban Trout Hub • ${evalRes.zoneConfig.title} • ${
-              evalRes.deliveryFee === 0
-                ? "100% Free Doorstep Delivery ✓"
-                : `₹${evalRes.deliveryFee} Special Delivery (Free from ${evalRes.zoneConfig.minKgFree} kg)`
-            }`
-          );
-        } else {
-          setDeliveryMode("unavailable");
-          setLocationMsg(`${dist.toFixed(1)} km from Urban Trout Hub • Outside our ${deliveryRadiusKm}km live harvest delivery perimeter.`);
-        }
+        setLocationMsg(
+          `${dist.toFixed(1)} km from Urban Trout Hub • ${evalRes.zoneConfig.title} • ${
+            evalRes.deliveryFee === 0
+              ? "100% Free Doorstep Delivery ✓"
+              : `₹${evalRes.deliveryFee} Special Delivery (Free from ${evalRes.zoneConfig.minKgFree} kg)`
+          }`
+        );
       } else {
-        // Locality not recognized in landmark list and no device GPS locked yet
-        setDeliveryMode(null);
-        setLocatingStep("idle");
+        setDeliveryMode("unavailable");
+        setLocatingStep("locked");
+        setLocationMsg(`${dist.toFixed(1)} km from Urban Trout Hub • Outside our ${deliveryRadiusKm}km live harvest delivery perimeter.`);
       }
+    } else {
+      // Prompt user to detect live GPS or choose verified hub on Step 2
+      setDeliveryMode(null);
+      setLocatingStep("idle");
+      setLocationMsg("");
     }
 
     setCurrentStep(2);
