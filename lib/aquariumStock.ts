@@ -156,6 +156,12 @@ export async function getLiveAquariumStock(customClient?: any): Promise<Aquarium
       notes?: string;
     }
 
+    const sortedProcurements = [...(stockRes.data || [])].sort((a: any, b: any) => {
+      if (a.stock_date !== b.stock_date) return (a.stock_date || "").localeCompare(b.stock_date || "");
+      return parseTimeToMinutes(a.stock_time) - parseTimeToMinutes(b.stock_time);
+    });
+    const latestBatchId = sortedProcurements[sortedProcurements.length - 1]?.id;
+
     const timeline: TimelineEvent[] = [];
     (stockRes.data || []).forEach((b: any) => {
       const m = stockMeta[b.id];
@@ -211,8 +217,11 @@ export async function getLiveAquariumStock(customClient?: any): Promise<Aquarium
     for (const item of timeline) {
       if (item.type === "procurement") {
         // True physical biomass flow:
-        // When manager explicitly verified the tank was completely empty before intake (e.g. initial setup or 80kg batch):
-        if (item.stock_before_kg === 0) {
+        // 1. If this is the active latest batch and has a verified stock_after_kg baseline, anchor directly to it
+        if (item.id === latestBatchId && item.stock_after_kg !== undefined && !isNaN(item.stock_after_kg)) {
+          runningStock = Math.round(item.stock_after_kg * 1000) / 1000;
+        } else if (item.stock_before_kg === 0) {
+          // When tank was verified empty before intake (e.g. initial setup or 80kg batch on Oct 10):
           runningStock = item.weight;
         } else {
           // Normal physical addition of fresh biomass to existing live fish in aquarium

@@ -1449,6 +1449,12 @@ export default function VendingCenterLoggerPage() {
       notes?: string;
     }
 
+    const sortedProcurements = [...stockEntries].sort((a: any, b: any) => {
+      if (a.stock_date !== b.stock_date) return (a.stock_date || "").localeCompare(b.stock_date || "");
+      return parseTimeToMinutes(a.stock_time) - parseTimeToMinutes(b.stock_time);
+    });
+    const latestBatchId = sortedProcurements[sortedProcurements.length - 1]?.id;
+
     const timeline: TimelineItem[] = [];
 
     stockEntries.forEach((s) => {
@@ -1503,7 +1509,9 @@ export default function VendingCenterLoggerPage() {
 
     for (const item of timeline) {
       if (item.type === "procurement") {
-        if (item.stock_before_kg === 0) {
+        if (item.id === latestBatchId && item.stock_after_kg !== undefined && !isNaN(item.stock_after_kg)) {
+          runningStock = Math.round(item.stock_after_kg * 1000) / 1000;
+        } else if (item.stock_before_kg === 0) {
           runningStock = item.weight;
         } else {
           runningStock = Math.round((runningStock + item.weight) * 1000) / 1000;
