@@ -341,7 +341,7 @@ export default function InventoryPage() {
                 </span>
               </div>
               <p className="text-xs text-slate-400 mt-0.5" style={{ fontFamily: '"Manrope", sans-serif' }}>
-                Both Whole and Gutted Trout draw from this same live aquarium pool ({aquariumLiveStock.totalProcuredKg} kg procured − {aquariumLiveStock.allTimeSoldKg} kg sold − {aquariumLiveStock.totalMortalityKg} kg mortality).
+                Both Whole and Gutted Trout draw from this live aquarium pool ({aquariumLiveStock.remainingKg} kg currently swimming in counter tanks).
               </p>
             </div>
           </div>

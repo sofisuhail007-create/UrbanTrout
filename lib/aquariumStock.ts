@@ -130,9 +130,10 @@ export async function getLiveAquariumStock(customClient?: any): Promise<Aquarium
 
     let totalMortalityKg = 0;
     let mortalityEntries: any[] = [];
-    if (mortRow?.value) {
+    const mortJsonStr = mortRow?.data?.value ?? mortRow?.value;
+    if (mortJsonStr) {
       try {
-        const parsed = JSON.parse(mortRow.value);
+        const parsed = JSON.parse(mortJsonStr);
         if (Array.isArray(parsed)) {
           mortalityEntries = parsed;
           parsed.forEach((m: any) => {
