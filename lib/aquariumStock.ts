@@ -268,6 +268,176 @@ export async function getLiveAquariumStock(customClient?: any): Promise<Aquarium
   }
 }
 
+export interface HistoricalStockAtTimeSummary {
+  stockAtTimeKg: number;
+  salesAfterCount: number;
+  salesAfterKg: number;
+}
+
+/**
+ * Dynamically computes the exact live aquarium stock present at a specific date and time in history.
+ * Ideal for late or delayed stock batch logging: automatically figures out what biomass was in the tank
+ * when the shipment arrived, and calculates how many sales occurred afterwards that draw from this batch.
+ */
+export async function getAquariumStockAtTimestamp(
+  targetDate: string,
+  targetTime: string,
+  excludeBatchId?: string,
+  customClient?: any
+): Promise<HistoricalStockAtTimeSummary> {
+  try {
+    const db = getAquariumDbClient(customClient);
+
+    const [stockRes, metaRes, tableRes, fallbackRes, mortRow] = await Promise.all([
+      db.from("aquarium_stock_log").select("id, stock_date, stock_time, weight_kg, batch_notes"),
+      db.from("app_settings").select("value").eq("key", "aquarium_stock_metadata").maybeSingle(),
+      db.from("vending_sales_log").select("id, weight_kg, entry_date, entry_time, custom_fields, notes"),
+      db.from("app_settings").select("value").eq("key", "vending_log_data").maybeSingle(),
+      db.from("app_settings").select("value").eq("key", "aquarium_mortality_ledger").maybeSingle(),
+    ]);
+
+    let stockMeta: Record<string, { stock_before_kg?: number; stock_after_kg?: number }> = {};
+    if (metaRes.data?.value) {
+      try {
+        stockMeta = JSON.parse(metaRes.data.value);
+      } catch (_) {}
+    }
+
+    const salesMap = new Map<string, any>();
+    if (fallbackRes.data?.value) {
+      try {
+        const parsed = JSON.parse(fallbackRes.data.value);
+        if (Array.isArray(parsed)) parsed.forEach((e) => { if (e?.id) salesMap.set(e.id, e); });
+      } catch (_) {}
+    }
+    for (const e of tableRes.data || []) {
+      if (e?.id) salesMap.set(e.id, e);
+    }
+
+    let mortalityEntries: any[] = [];
+    const mortJsonStr = mortRow?.data?.value ?? mortRow?.value;
+    if (mortJsonStr) {
+      try {
+        const parsed = JSON.parse(mortJsonStr);
+        if (Array.isArray(parsed)) mortalityEntries = parsed;
+      } catch (_) {}
+    }
+
+    const sortedProcurements = [...(stockRes.data || [])]
+      .filter((b: any) => b.id !== excludeBatchId)
+      .sort((a: any, b: any) => {
+        if (a.stock_date !== b.stock_date) return (a.stock_date || "").localeCompare(b.stock_date || "");
+        return parseTimeToMinutes(a.stock_time) - parseTimeToMinutes(b.stock_time);
+      });
+    const latestBatchId = sortedProcurements[sortedProcurements.length - 1]?.id;
+
+    interface TimelineEvent {
+      type: "procurement" | "mortality" | "sale";
+      id: string;
+      date: string;
+      time: string;
+      weight: number;
+      stock_before_kg?: number;
+      stock_after_kg?: number;
+      notes?: string;
+    }
+
+    const timeline: TimelineEvent[] = [];
+    sortedProcurements.forEach((b: any) => {
+      const m = stockMeta[b.id];
+      timeline.push({
+        type: "procurement",
+        id: b.id,
+        date: b.stock_date || "2026-01-01",
+        time: b.stock_time || "12:00 am",
+        weight: Number(b.weight_kg) || 0,
+        stock_before_kg: m?.stock_before_kg !== undefined ? Number(m.stock_before_kg) : undefined,
+        stock_after_kg: m?.stock_after_kg !== undefined ? Number(m.stock_after_kg) : undefined,
+        notes: b.batch_notes,
+      });
+    });
+
+    mortalityEntries.forEach((m: any) => {
+      timeline.push({
+        type: "mortality",
+        id: m.id || "mort",
+        date: m.mortality_date || "2026-01-01",
+        time: m.mortality_time || "12:00 pm",
+        weight: Number(m.weight_kg) || 0,
+      });
+    });
+
+    salesMap.forEach((s: any) => {
+      timeline.push({
+        type: "sale",
+        id: s.id,
+        date: s.entry_date || "2026-01-01",
+        time: s.entry_time || "12:00 pm",
+        weight: Number(s.weight_kg) || 0,
+        notes: (s.custom_fields?.customer_name || "") + " " + (s.notes || ""),
+      });
+    });
+
+    timeline.sort((a, b) => {
+      if (a.date !== b.date) return a.date.localeCompare(b.date);
+      const tA = parseTimeToMinutes(a.time);
+      const tB = parseTimeToMinutes(b.time);
+      if (tA !== tB) return tA - tB;
+      if (a.type === "sale" && a.notes?.toLowerCase().includes("syed adil") && b.type === "procurement") return -1;
+      if (b.type === "sale" && b.notes?.toLowerCase().includes("syed adil") && a.type === "procurement") return 1;
+      const order = { procurement: 1, mortality: 2, sale: 3 };
+      return (order[a.type] || 2) - (order[b.type] || 2);
+    });
+
+    const targetMinutes = parseTimeToMinutes(targetTime);
+
+    let runningStock = 0;
+    let salesAfterCount = 0;
+    let salesAfterKg = 0;
+
+    for (const item of timeline) {
+      const isPastCutoff =
+        item.date > targetDate ||
+        (item.date === targetDate && parseTimeToMinutes(item.time) >= targetMinutes);
+
+      if (isPastCutoff) {
+        if (item.type === "sale") {
+          salesAfterCount++;
+          salesAfterKg = Math.round((salesAfterKg + item.weight) * 1000) / 1000;
+        }
+        continue;
+      }
+
+      if (item.type === "procurement") {
+        if (item.id === latestBatchId && item.stock_after_kg !== undefined && !isNaN(item.stock_after_kg)) {
+          runningStock = Math.round(item.stock_after_kg * 1000) / 1000;
+        } else if (item.stock_before_kg === 0) {
+          runningStock = item.weight;
+        } else {
+          runningStock = Math.round((runningStock + item.weight) * 1000) / 1000;
+        }
+      } else if (item.type === "mortality") {
+        runningStock = Math.max(0, Math.round((runningStock - item.weight) * 1000) / 1000);
+      } else if (item.type === "sale") {
+        runningStock = Math.max(0, Math.round((runningStock - item.weight) * 1000) / 1000);
+      }
+    }
+
+    return {
+      stockAtTimeKg: Math.max(0, Math.round(runningStock * 1000) / 1000),
+      salesAfterCount,
+      salesAfterKg,
+    };
+  } catch (err) {
+    console.error("Error in getAquariumStockAtTimestamp:", err);
+    return {
+      stockAtTimeKg: 0,
+      salesAfterCount: 0,
+      salesAfterKg: 0,
+    };
+  }
+}
+
 /**
  * Checks if current live aquarium biomass is below the configured threshold.
  * If below threshold and not in cooldown, sends an alert via Telegram.

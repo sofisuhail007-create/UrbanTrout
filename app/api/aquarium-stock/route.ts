@@ -60,6 +60,22 @@ async function saveStockMetadata(metadata: Record<string, { stock_before_kg: num
 // ─── GET: Fetch all stock procurement entries ───
 export async function GET(req: NextRequest) {
   try {
+    const atDate = req.nextUrl.searchParams.get("at_date");
+    const atTime = req.nextUrl.searchParams.get("at_time");
+    const excludeId = req.nextUrl.searchParams.get("exclude_id") || undefined;
+
+    // ⚡ Dynamic stock lookup at a specific historical date & time
+    if (atDate && atTime) {
+      const { getAquariumStockAtTimestamp } = await import("@/lib/aquariumStock");
+      const atTimeRes = await getAquariumStockAtTimestamp(atDate, atTime, excludeId, supabaseAdmin);
+      return NextResponse.json({
+        success: true,
+        at_date: atDate,
+        at_time: atTime,
+        ...atTimeRes,
+      });
+    }
+
     const { data, error } = await supabaseAdmin
       .from("aquarium_stock_log")
       .select("*")
@@ -185,14 +201,32 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Determine present stock before adding this batch
+    const intakeDate =
+      stock_date ||
+      new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Kolkata",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(new Date());
+
+    const intakeTime =
+      stock_time ||
+      new Date().toLocaleTimeString("en-IN", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+        timeZone: "Asia/Kolkata",
+      });
+
+    // ⚡ Dynamically determine present stock in aquarium at the EXACT moment of intake
     let beforeKg: number;
     if (stock_before_kg !== undefined && stock_before_kg !== null && !isNaN(Number(stock_before_kg))) {
       beforeKg = Math.round(Number(stock_before_kg) * 1000) / 1000;
     } else {
-      const { getLiveAquariumStock } = await import("@/lib/aquariumStock");
-      const live = await getLiveAquariumStock();
-      beforeKg = live.remainingKg;
+      const { getAquariumStockAtTimestamp } = await import("@/lib/aquariumStock");
+      const atTime = await getAquariumStockAtTimestamp(intakeDate, intakeTime, undefined, supabaseAdmin);
+      beforeKg = atTime.stockAtTimeKg;
     }
 
     const afterKg =
@@ -204,22 +238,8 @@ export async function POST(req: NextRequest) {
       .from("aquarium_stock_log")
       .insert([
         {
-          stock_date:
-            stock_date ||
-            new Intl.DateTimeFormat("en-CA", {
-              timeZone: "Asia/Kolkata",
-              year: "numeric",
-              month: "2-digit",
-              day: "2-digit",
-            }).format(new Date()),
-          stock_time:
-            stock_time ||
-            new Date().toLocaleTimeString("en-IN", {
-              hour: "2-digit",
-              minute: "2-digit",
-              hour12: true,
-              timeZone: "Asia/Kolkata",
-            }),
+          stock_date: intakeDate,
+          stock_time: intakeTime,
           supplier_name: supplier_name || "Khyber Aquaculture",
           product_type: product_type || "Live Fish",
           weight_kg: Number(weight_kg),

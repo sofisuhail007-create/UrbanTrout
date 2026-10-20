@@ -460,7 +460,6 @@ export default function VendingCenterLoggerPage() {
   const [stockModalOpen, setStockModalOpen] = useState(false);
   const [savingStock, setSavingStock] = useState(false);
   const [deleteStockConfirmId, setDeleteStockConfirmId] = useState<string | null>(null);
-
   // ─── Supplier Volume Rebates (Khyber Aquaculture) State ───
   const [supplierRebatesOpen, setSupplierRebatesOpen] = useState(true);
   const [supplierRebatesMap, setSupplierRebatesMap] = useState<Record<string, number>>(() => {
@@ -501,6 +500,45 @@ export default function VendingCenterLoggerPage() {
   const [stockFormCost, setStockFormCost] = useState("435");
   const [stockFormNotes, setStockFormNotes] = useState("");
   const [stockFormPresentStock, setStockFormPresentStock] = useState<string>("");
+
+  const [stockAtTimeInfo, setStockAtTimeInfo] = useState<{
+    stockAtTimeKg: number;
+    salesAfterCount: number;
+    salesAfterKg: number;
+    loading: boolean;
+  } | null>(null);
+
+  // ⚡ Dynamically compute aquarium stock present at the selected intake date & time
+  useEffect(() => {
+    if (!stockModalOpen) return;
+    let active = true;
+    setStockAtTimeInfo((prev) => (prev ? { ...prev, loading: true } : { stockAtTimeKg: 0, salesAfterCount: 0, salesAfterKg: 0, loading: true }));
+
+    const timer = setTimeout(async () => {
+      try {
+        const res = await adminFetch(`/api/aquarium-stock?at_date=${encodeURIComponent(stockFormDate)}&at_time=${encodeURIComponent(stockFormTime)}`);
+        if (res.ok && active) {
+          const data = await res.json();
+          if (data.success) {
+            setStockAtTimeInfo({
+              stockAtTimeKg: data.stockAtTimeKg ?? 0,
+              salesAfterCount: data.salesAfterCount ?? 0,
+              salesAfterKg: data.salesAfterKg ?? 0,
+              loading: false,
+            });
+            setStockFormPresentStock(String(data.stockAtTimeKg ?? 0));
+          }
+        }
+      } catch (_) {
+        if (active) setStockAtTimeInfo((prev) => (prev ? { ...prev, loading: false } : null));
+      }
+    }, 200);
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [stockModalOpen, stockFormDate, stockFormTime]);
 
   // Entry Form State
   const [formDate, setFormDate] = useState(() => getIstTodayDate());
@@ -5501,7 +5539,8 @@ export default function VendingCenterLoggerPage() {
               <button
                 type="button"
                 onClick={() => {
-                  setStockFormPresentStock(String(aquariumStock.remainingKg > 0 ? aquariumStock.remainingKg : "0"));
+                  setStockFormDate(getTodayDate());
+                  setStockFormTime(getCurrentTime());
                   setStockModalOpen(true);
                 }}
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white text-[11px] font-black uppercase tracking-wider transition-all shadow-lg shadow-blue-500/20 cursor-pointer active:scale-95"
@@ -9534,10 +9573,27 @@ export default function VendingCenterLoggerPage() {
                     <span className="material-symbols-outlined text-sm text-cyan-400">water</span>
                     Stock Present in Aquarium at Intake
                   </span>
-                  <span className="text-[9.5px] font-mono px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-500/30">
-                    Live Biomass Tracker
+                  <span className="text-[9.5px] font-mono px-2 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-500/30 flex items-center gap-1">
+                    {stockAtTimeInfo?.loading ? (
+                      <span className="animate-spin text-[10px]">⟳</span>
+                    ) : (
+                      <span>⚡ Dynamic Live Flow</span>
+                    )}
                   </span>
                 </div>
+
+                {/* Delayed Logging Information Alert */}
+                {stockAtTimeInfo && stockAtTimeInfo.salesAfterCount > 0 && !stockAtTimeInfo.loading && (
+                  <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-[11px] text-amber-200 font-mono space-y-1">
+                    <div className="flex items-center gap-1.5 font-bold text-amber-300">
+                      <span className="material-symbols-outlined text-sm">schedule</span>
+                      Delayed Batch Entry Auto-Reconciliation:
+                    </div>
+                    <p className="text-[10.5px] leading-relaxed text-amber-200/90 font-sans">
+                      <strong>{stockAtTimeInfo.salesAfterCount} customer orders ({formatKg(stockAtTimeInfo.salesAfterKg)} Kg)</strong> were logged after {stockFormTime}. They will automatically draw from both the previous baseline and this batch pool—zero artificial surplus or double deductions!
+                    </p>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   <div className="space-y-1">
@@ -9545,14 +9601,16 @@ export default function VendingCenterLoggerPage() {
                       <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">
                         Present in Aquarium (Kg)
                       </label>
-                      <button
-                        type="button"
-                        onClick={() => setStockFormPresentStock(String(aquariumStock.remainingKg))}
-                        className="text-[9.5px] text-cyan-400 hover:text-cyan-300 underline font-mono cursor-pointer"
-                        title="Reset to current remaining stock"
-                      >
-                        Live: {formatKg(aquariumStock.remainingKg)} Kg
-                      </button>
+                      {stockAtTimeInfo && !stockAtTimeInfo.loading && (
+                        <button
+                          type="button"
+                          onClick={() => setStockFormPresentStock(String(stockAtTimeInfo.stockAtTimeKg))}
+                          className="text-[9.5px] text-cyan-400 hover:text-cyan-300 underline font-mono cursor-pointer"
+                          title="Reset to dynamic stock calculated at selected intake time"
+                        >
+                          Auto: {formatKg(stockAtTimeInfo.stockAtTimeKg)} Kg
+                        </button>
+                      )}
                     </div>
                     <input
                       type="number"
@@ -9560,7 +9618,7 @@ export default function VendingCenterLoggerPage() {
                       min="0"
                       value={stockFormPresentStock}
                       onChange={(e) => setStockFormPresentStock(e.target.value)}
-                      placeholder={String(aquariumStock.remainingKg)}
+                      placeholder={stockAtTimeInfo ? String(stockAtTimeInfo.stockAtTimeKg) : "0"}
                       className="w-full px-3 py-2 bg-slate-950 border border-cyan-500/40 rounded-xl text-xs text-cyan-200 font-mono font-bold focus:outline-none focus:border-cyan-300"
                       required
                     />
