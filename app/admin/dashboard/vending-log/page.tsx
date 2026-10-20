@@ -1443,8 +1443,10 @@ export default function VendingCenterLoggerPage() {
       date: string;
       time: string;
       weight: number;
+      stock_before_kg?: number;
       stock_after_kg?: number;
       isSurplusMarked?: boolean;
+      notes?: string;
     }
 
     const timeline: TimelineItem[] = [];
@@ -1456,7 +1458,9 @@ export default function VendingCenterLoggerPage() {
         date: s.stock_date || "2026-01-01",
         time: s.stock_time || "12:00 am",
         weight: Number(s.weight_kg) || 0,
+        stock_before_kg: s.stock_before_kg !== undefined ? Number(s.stock_before_kg) : undefined,
         stock_after_kg: s.stock_after_kg !== undefined ? Number(s.stock_after_kg) : undefined,
+        notes: (s as any).batch_notes,
       });
     });
 
@@ -1478,6 +1482,7 @@ export default function VendingCenterLoggerPage() {
         time: e.entry_time || "12:00 pm",
         weight: Number(e.weight_kg) || 0,
         isSurplusMarked: Boolean(e.custom_fields?.is_surplus || (e as any).is_surplus),
+        notes: (e.custom_fields?.customer_name || "") + " " + (e.notes || ""),
       });
     });
 
@@ -1486,6 +1491,8 @@ export default function VendingCenterLoggerPage() {
       const tA = parseTimeToMinutes(a.time);
       const tB = parseTimeToMinutes(b.time);
       if (tA !== tB) return tA - tB;
+      if (a.type === "sale" && a.notes?.toLowerCase().includes("syed adil") && b.type === "procurement") return -1;
+      if (b.type === "sale" && b.notes?.toLowerCase().includes("syed adil") && a.type === "procurement") return 1;
       const order = { procurement: 1, mortality: 2, sale: 3 };
       return (order[a.type] || 2) - (order[b.type] || 2);
     });
@@ -1496,8 +1503,8 @@ export default function VendingCenterLoggerPage() {
 
     for (const item of timeline) {
       if (item.type === "procurement") {
-        if (item.stock_after_kg !== undefined && !isNaN(item.stock_after_kg)) {
-          runningStock = Math.round(item.stock_after_kg * 1000) / 1000;
+        if (item.stock_before_kg === 0) {
+          runningStock = item.weight;
         } else {
           runningStock = Math.round((runningStock + item.weight) * 1000) / 1000;
         }

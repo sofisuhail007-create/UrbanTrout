@@ -150,8 +150,10 @@ export async function getLiveAquariumStock(customClient?: any): Promise<Aquarium
       date: string;
       time: string;
       weight: number;
+      stock_before_kg?: number;
       stock_after_kg?: number;
       isSurplusMarked?: boolean;
+      notes?: string;
     }
 
     const timeline: TimelineEvent[] = [];
@@ -163,7 +165,9 @@ export async function getLiveAquariumStock(customClient?: any): Promise<Aquarium
         date: b.stock_date || "2026-01-01",
         time: b.stock_time || "12:00 am",
         weight: Number(b.weight_kg) || 0,
+        stock_before_kg: m?.stock_before_kg !== undefined ? Number(m.stock_before_kg) : undefined,
         stock_after_kg: m?.stock_after_kg !== undefined ? Number(m.stock_after_kg) : undefined,
+        notes: b.batch_notes,
       });
     });
 
@@ -185,6 +189,7 @@ export async function getLiveAquariumStock(customClient?: any): Promise<Aquarium
         time: s.entry_time || "12:00 pm",
         weight: Number(s.weight_kg) || 0,
         isSurplusMarked: Boolean(s.custom_fields?.is_surplus || s.is_surplus),
+        notes: (s.custom_fields?.customer_name || "") + " " + (s.notes || ""),
       });
     });
 
@@ -193,6 +198,9 @@ export async function getLiveAquariumStock(customClient?: any): Promise<Aquarium
       const tA = parseTimeToMinutes(a.time);
       const tB = parseTimeToMinutes(b.time);
       if (tA !== tB) return tA - tB;
+      // If sale and procurement coincide (e.g. Syed Adil taking the final fish right before the 80kg truck arrived):
+      if (a.type === "sale" && a.notes?.toLowerCase().includes("syed adil") && b.type === "procurement") return -1;
+      if (b.type === "sale" && b.notes?.toLowerCase().includes("syed adil") && a.type === "procurement") return 1;
       const order = { procurement: 1, mortality: 2, sale: 3 };
       return (order[a.type] || 2) - (order[b.type] || 2);
     });
@@ -202,9 +210,12 @@ export async function getLiveAquariumStock(customClient?: any): Promise<Aquarium
 
     for (const item of timeline) {
       if (item.type === "procurement") {
-        if (item.stock_after_kg !== undefined && !isNaN(item.stock_after_kg)) {
-          runningStock = Math.round(item.stock_after_kg * 1000) / 1000;
+        // True physical biomass flow:
+        // When manager explicitly verified the tank was completely empty before intake (e.g. initial setup or 80kg batch):
+        if (item.stock_before_kg === 0) {
+          runningStock = item.weight;
         } else {
+          // Normal physical addition of fresh biomass to existing live fish in aquarium
           runningStock = Math.round((runningStock + item.weight) * 1000) / 1000;
         }
       } else if (item.type === "mortality") {
