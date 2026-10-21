@@ -1349,10 +1349,7 @@ ${itemLines.trimEnd()}
 - *Total Harvest Weight:* ${wtText}
 - *Total Amount Payable:* *Rs. ${generatedInvoice.grandTotal.toLocaleString("en-IN")}*
 
-${statusLine}📄 *Official A4 Tax Invoice PDF:*
-${generatedInvoice.invoicePublicUrl}?format=a4
-
-📱 *View & Pay Online via UPI / QR:*
+${statusLine}*View & Download Invoice:*
 ${generatedInvoice.invoicePublicUrl}
 
 *Urban Trout Farm Helpline:* +91 84910 06127
@@ -1909,10 +1906,10 @@ _Warm regards,_
       paySection = `*Payment Details (J&K Bank):*
 • *UPI ID:* ${orderUpi}
 • *A/C No:* ${accNum} (IFSC: ${ifsc})
-${cleanBillUrl ? `• *Official A4 Tax Invoice PDF:* ${cleanBillUrl}?format=a4\n• *View Bill & QR:* ${cleanBillUrl}\n` : ""}`;
+${cleanBillUrl ? `• *View Bill & QR:* ${cleanBillUrl}\n` : ""}`;
     } else if (payUrl) {
       const cleanBillUrl = payUrl.split("?")[0];
-      paySection = `*Pay Securely Online:*\n${cleanBillUrl}\n${cleanBillUrl.includes("/invoice/") ? `• *Official A4 Tax Invoice PDF:* ${cleanBillUrl}?format=a4\n` : ""}`;
+      paySection = `*Pay Securely Online:*\n${cleanBillUrl}\n`;
     }
 
     const msg = `*URBAN TROUT AQUACULTURE*

@@ -228,7 +228,7 @@ This is an automated system-generated billing update regarding your recent order
 *Statement Details:*
 • *Order / Invoice Ref:* #${record.invoice_id}
 • *Date:* ${formatSafeDate(record.created_at)}
-• *Official A4 Tax Invoice PDF:* https://urbantrout.in/invoice/${record.invoice_id}?format=a4
+• *View Statement / Invoice:* https://urbantrout.in/invoice/${record.invoice_id}
 • *Order Items:* ${record.items_summary || "Fresh Rainbow Trout"}
 
 *Payment Breakdown:*

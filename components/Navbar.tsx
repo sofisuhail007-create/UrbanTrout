@@ -18,7 +18,7 @@ export default function Navbar() {
   const { openCart, itemCount } = useCart();
   const { user } = useCustomerAuth();
   const [mobileOpen, setMobileOpen] = useState(false);
-  if (pathname.startsWith("/admin")) return null;
+  if (pathname?.startsWith("/admin") || pathname?.startsWith("/invoice")) return null;
 
   return (
     <>

@@ -205,7 +205,6 @@ export default function CatchWeightWorkspaceTab({
 
     const origin = typeof window !== "undefined" ? window.location.origin : "https://urbantrout.in";
     const invoiceUrl = `${origin}/invoice/${slip.invoiceNumber}`;
-    const invoicePdfUrl = `${invoiceUrl}?format=a4`;
 
     const text = `*URBAN TROUT AQUACULTURE* — Harvest & Delivery Bill\n` +
       `Invoice: *#${slip.invoiceNumber}*\n` +
@@ -215,10 +214,7 @@ export default function CatchWeightWorkspaceTab({
       `Rate: ₹${numRate}/Kg\n` +
       `Net Bill Amount: *₹${slip.grandTotal.toLocaleString("en-IN")}*\n\n` +
       `${outcomeText}\n\n` +
-      `📄 *Official A4 Tax Invoice PDF:*\n` +
-      `${invoicePdfUrl}\n\n` +
-      `📱 *View Digital Bill & Pay QR:*\n` +
-      `${invoiceUrl}`;
+      `*View & Download Invoice:* ${invoiceUrl}`;
 
     return {
       encodedUrl: cleanPhone

@@ -294,7 +294,6 @@ export default function PublicInvoicePage() {
     const cleanPhone = invoice.customerPhone.replace(/\D/g, "").slice(-10);
     const origin = typeof window !== "undefined" ? window.location.origin : "https://urbantrout.in";
     const invoiceUrl = `${origin}/invoice/${invoice.invoiceNumber}`;
-    const invoicePdfUrl = `${invoiceUrl}?format=a4`;
 
     const text = `*URBAN TROUT AQUACULTURE* — Official Tax Invoice\n` +
       `Invoice No: *#${invoice.invoiceNumber}*\n` +
@@ -302,8 +301,7 @@ export default function PublicInvoicePage() {
       `Total Weight: ${invoice.totalWeight.toFixed(2)} Kg\n` +
       `Total Bill: *₹${invoice.grandTotal.toLocaleString("en-IN")}*\n` +
       `Status: *${invoice.paymentStatus || "PAYMENT DUE"}*\n\n` +
-      `📄 *Download Official A4 Tax Invoice PDF:*\n${invoicePdfUrl}\n\n` +
-      `📱 *View & Pay Online via UPI / QR:*\n${invoiceUrl}\n\n` +
+      `*View & Download Invoice:* ${invoiceUrl}\n\n` +
       `Urban Trout Farm Helpline: +91 84910 06127`;
 
     const url = cleanPhone.length === 10
@@ -472,7 +470,7 @@ export default function PublicInvoicePage() {
               type="button"
               onClick={handleShareWhatsApp}
               className="py-2 px-3 rounded-xl bg-green-500/20 hover:bg-green-500/30 text-green-300 border border-green-500/40 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
-              title="Share A4 PDF Invoice Link on WhatsApp"
+              title="Share Invoice Link on WhatsApp"
             >
               <span className="material-symbols-outlined text-sm">chat</span>
               <span>WhatsApp</span>
@@ -490,22 +488,12 @@ export default function PublicInvoicePage() {
 
             <button
               type="button"
-              onClick={() => setViewMode("4up")}
-              title="Print 4 slips on a single A4 sheet using Canon MF244dw laser printer"
-              className="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 cursor-pointer transition-colors"
-            >
-              <span>🖨️</span>
-              <span className="hidden sm:inline">4-in-1 Sheet</span>
-            </button>
-
-            <button
-              type="button"
               onClick={() => window.print()}
               className="py-2 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-teal-400 hover:from-cyan-400 hover:to-teal-300 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-cyan-500/25 cursor-pointer active:scale-95 transition-all"
-              title="Download or Save as A4 PDF document"
+              title="Download or Print Invoice PDF"
             >
               <span className="material-symbols-outlined text-base">picture_as_pdf</span>
-              <span>Download / Save as A4 PDF</span>
+              <span>Download Invoice PDF</span>
             </button>
           </div>
         </div>
