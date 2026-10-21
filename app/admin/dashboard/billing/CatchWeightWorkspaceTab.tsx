@@ -76,10 +76,10 @@ export default function CatchWeightWorkspaceTab({
     setGeneratedSlip(null);
   };
 
-  const handleGenerateAndSave = async (printDirectly: boolean = false) => {
+  const handleGenerateAndSave = async (printDirectly: boolean = false): Promise<InvoiceSlipData | null> => {
     if (numActual <= 0) {
       alert("Please enter a valid harvest scale weight greater than 0 kg.");
-      return;
+      return null;
     }
 
     const shortDigits = Math.floor(1000 + Math.random() * 9000).toString();
@@ -170,11 +170,22 @@ export default function CatchWeightWorkspaceTab({
       if (printDirectly) {
         onOpenFourUpPrint(slipData);
       }
+
+      return slipData;
     } catch (err: any) {
       console.error("Catch-weight invoice save error:", err);
       alert(`Could not save invoice: ${err?.message || err}`);
+      return null;
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleGenerateAndOpenPdf = async () => {
+    const slip = await handleGenerateAndSave(false);
+    if (slip) {
+      const origin = typeof window !== "undefined" ? window.location.origin : "https://urbantrout.in";
+      window.open(`${origin}/invoice/${slip.invoiceNumber}?format=a4&autoprint=true`, "_blank");
     }
   };
 
@@ -192,6 +203,10 @@ export default function CatchWeightWorkspaceTab({
       outcomeText = `✓ *VERIFIED PAID IN FULL (₹${slip.grandTotal})*\n(Do not pay any cash to delivery rider)`;
     }
 
+    const origin = typeof window !== "undefined" ? window.location.origin : "https://urbantrout.in";
+    const invoiceUrl = `${origin}/invoice/${slip.invoiceNumber}`;
+    const invoicePdfUrl = `${invoiceUrl}?format=a4`;
+
     const text = `*URBAN TROUT AQUACULTURE* — Harvest & Delivery Bill\n` +
       `Invoice: *#${slip.invoiceNumber}*\n` +
       `Customer: ${slip.customerName}\n\n` +
@@ -200,8 +215,10 @@ export default function CatchWeightWorkspaceTab({
       `Rate: ₹${numRate}/Kg\n` +
       `Net Bill Amount: *₹${slip.grandTotal.toLocaleString("en-IN")}*\n\n` +
       `${outcomeText}\n\n` +
-      `View digital bill & receipt:\n` +
-      `https://urbantrout.in/invoice/${slip.invoiceNumber}`;
+      `📄 *Official A4 Tax Invoice PDF:*\n` +
+      `${invoicePdfUrl}\n\n` +
+      `📱 *View Digital Bill & Pay QR:*\n` +
+      `${invoiceUrl}`;
 
     return {
       encodedUrl: cleanPhone
@@ -692,11 +709,11 @@ export default function CatchWeightWorkspaceTab({
               <button
                 type="button"
                 disabled={isGenerating || numActual <= 0}
-                onClick={() => handleGenerateAndSave(false)}
-                className="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer border border-slate-700 disabled:opacity-50"
+                onClick={handleGenerateAndOpenPdf}
+                className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-cyan-500/25 to-teal-500/25 hover:from-cyan-500/35 hover:to-teal-500/35 text-cyan-200 border border-cyan-500/40 font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-95 disabled:opacity-50"
               >
-                <span>💾</span>
-                <span>Save Invoice Record Only</span>
+                <span className="material-symbols-outlined text-sm">picture_as_pdf</span>
+                <span>{isGenerating ? "Generating..." : "Generate & Open A4 Invoice PDF"}</span>
               </button>
 
               {/* Generated Success Links */}
@@ -715,6 +732,16 @@ export default function CatchWeightWorkspaceTab({
                       Open Web Invoice ↗
                     </a>
                   </div>
+
+                  <a
+                    href={`/invoice/${generatedSlip.invoiceNumber}?format=a4&autoprint=true`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full py-2 px-3 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-200 border border-cyan-500/40 text-xs font-bold font-mono transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-sm">picture_as_pdf</span>
+                    <span>Open / Download A4 Invoice PDF</span>
+                  </a>
 
                   {(() => {
                     const wa = getWhatsAppMessage(generatedSlip);
@@ -776,6 +803,16 @@ export default function CatchWeightWorkspaceTab({
                   </div>
 
                   <div className="flex items-center gap-1.5 shrink-0">
+                    <a
+                      href={`/invoice/${s.invoiceNumber}?format=a4&autoprint=true`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="px-2.5 py-1 rounded-lg bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 border border-teal-500/40 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                      title="Open & Download A4 Tax Invoice PDF"
+                    >
+                      <span className="material-symbols-outlined text-xs">picture_as_pdf</span>
+                      <span>PDF</span>
+                    </a>
                     <button
                       type="button"
                       onClick={() => onOpenFourUpPrint(s)}

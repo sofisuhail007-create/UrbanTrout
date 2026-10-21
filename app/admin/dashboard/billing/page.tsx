@@ -1349,7 +1349,10 @@ ${itemLines.trimEnd()}
 - *Total Harvest Weight:* ${wtText}
 - *Total Amount Payable:* *Rs. ${generatedInvoice.grandTotal.toLocaleString("en-IN")}*
 
-${statusLine}*View & Download Official Invoice PDF:*
+${statusLine}📄 *Official A4 Tax Invoice PDF:*
+${generatedInvoice.invoicePublicUrl}?format=a4
+
+📱 *View & Pay Online via UPI / QR:*
 ${generatedInvoice.invoicePublicUrl}
 
 *Urban Trout Farm Helpline:* +91 84910 06127
@@ -1906,10 +1909,10 @@ _Warm regards,_
       paySection = `*Payment Details (J&K Bank):*
 • *UPI ID:* ${orderUpi}
 • *A/C No:* ${accNum} (IFSC: ${ifsc})
-${cleanBillUrl ? `• *View Bill & QR:* ${cleanBillUrl}\n` : ""}`;
+${cleanBillUrl ? `• *Official A4 Tax Invoice PDF:* ${cleanBillUrl}?format=a4\n• *View Bill & QR:* ${cleanBillUrl}\n` : ""}`;
     } else if (payUrl) {
       const cleanBillUrl = payUrl.split("?")[0];
-      paySection = `*Pay Securely Online:*\n${cleanBillUrl}\n`;
+      paySection = `*Pay Securely Online:*\n${cleanBillUrl}\n${cleanBillUrl.includes("/invoice/") ? `• *Official A4 Tax Invoice PDF:* ${cleanBillUrl}?format=a4\n` : ""}`;
     }
 
     const msg = `*URBAN TROUT AQUACULTURE*
@@ -4086,6 +4089,16 @@ Helpline: +91 84910 06127`;
                               <span className="material-symbols-outlined text-xs">verified</span>
                               Payment Confirmed ✓
                             </div>
+                            <a
+                              href={`/invoice/${order.data?.num || invNum || order.id}?format=a4&autoprint=true`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-2 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer"
+                              title="Open & Download Official A4 Tax Invoice PDF"
+                            >
+                              <span className="material-symbols-outlined text-xs">picture_as_pdf</span>
+                              <span>A4 PDF</span>
+                            </a>
                             <button
                               type="button"
                               onClick={() => handleDeleteRemoteOrder(order)}
@@ -4128,26 +4141,38 @@ Helpline: +91 84910 06127`;
                           const hasReminded = reminderSentIds.has(order.id);
                           return (
                             <div className="space-y-1.5">
-                              <div className="grid grid-cols-2 gap-1.5">
+                              <div className="grid grid-cols-3 gap-1.5">
                                 {/* Check Status Now */}
                                 <button
                                   type="button"
                                   onClick={() => handleCheckRemoteOrderStatus(order)}
                                   disabled={isChecking}
-                                  className="py-1.5 px-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[10.5px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
+                                  className="py-1.5 px-1 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
                                   title="Poll Razorpay status directly"
                                 >
                                   <span className={`material-symbols-outlined text-xs ${isChecking ? "animate-spin" : ""}`}>
                                     sync
                                   </span>
-                                  {isChecking ? "Checking..." : "Check Status"}
+                                  {isChecking ? "..." : "Status"}
                                 </button>
+
+                                {/* Official A4 PDF */}
+                                <a
+                                  href={`/invoice/${order.data?.num || invNum || order.id}?format=a4&autoprint=true`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="py-1.5 px-1 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer"
+                                  title="Open & Download Official A4 Tax Invoice PDF"
+                                >
+                                  <span className="material-symbols-outlined text-xs">picture_as_pdf</span>
+                                  <span>A4 PDF</span>
+                                </a>
 
                                 {/* WhatsApp Reminder — pulsing if 2hr+ overdue */}
                                 <button
                                   type="button"
                                   onClick={() => handleSendReminder(order)}
-                                  className={`py-1.5 px-2 rounded-xl text-[10.5px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer relative ${
+                                  className={`py-1.5 px-1 rounded-xl text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer relative ${
                                     hasReminded
                                       ? "bg-slate-800 border border-slate-700 text-slate-400"
                                       : needsReminder
@@ -4162,7 +4187,7 @@ Helpline: +91 84910 06127`;
                                   <span className="material-symbols-outlined text-xs">
                                     {hasReminded ? "check" : "send"}
                                   </span>
-                                  {hasReminded ? "Reminded ✓" : needsReminder ? "⏰ Remind Now!" : "WhatsApp"}
+                                  {hasReminded ? "Reminded" : needsReminder ? "Remind!" : "WhatsApp"}
                                 </button>
                               </div>
 
@@ -4411,6 +4436,20 @@ Helpline: +91 84910 06127`;
                 >
                   <span className="material-symbols-outlined text-base">share</span>
                   <span className="truncate">WhatsApp</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const origin = typeof window !== "undefined" ? window.location.origin : "https://urbantrout.in";
+                    const url = `${origin}/invoice/${generatedInvoice.invoiceNumber}?format=a4&autoprint=true`;
+                    window.open(url, "_blank");
+                  }}
+                  className="flex-1 sm:flex-initial py-2 px-2.5 sm:px-3.5 rounded-xl bg-gradient-to-r from-cyan-500/25 to-teal-500/25 hover:from-cyan-500/35 hover:to-teal-500/35 active:scale-95 text-cyan-200 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1 border border-cyan-500/40 transition-all cursor-pointer shadow-sm"
+                  title="Open & Download Official A4 Tax Invoice PDF"
+                >
+                  <span className="material-symbols-outlined text-base">picture_as_pdf</span>
+                  <span className="truncate">A4 PDF</span>
                 </button>
 
                 <button
@@ -5840,6 +5879,17 @@ Helpline: +91 84910 06127`;
                     <span>{newRemoteCopied ? "✓ Message Copied!" : "Copy Full Message"}</span>
                   </button>
                 </div>
+
+                {/* 📄 Open / Download Official A4 Invoice PDF */}
+                <a
+                  href={`${newRemoteGeneratedData.invoiceUrl}?format=a4&autoprint=true`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-cyan-500/25 to-teal-500/25 hover:from-cyan-500/35 hover:to-teal-500/35 text-cyan-200 font-mono text-xs font-bold border border-cyan-500/40 flex items-center justify-center gap-1.5 cursor-pointer transition-all shadow-sm"
+                >
+                  <span className="material-symbols-outlined text-base">picture_as_pdf</span>
+                  <span>Open / Download A4 Invoice PDF</span>
+                </a>
 
                 {/* Secondary Actions: Copy Link Only & UPI ID / Email */}
                 <div className="grid grid-cols-2 gap-2">

@@ -339,7 +339,16 @@ export default function CustomerBalancesTab({
                     </td>
 
                     <td className="py-3 px-3 font-mono">
-                      <div className="text-slate-300 font-semibold">#{r.invoice_id}</div>
+                      <a
+                        href={`/invoice/${r.invoice_id}?format=a4&autoprint=true`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-cyan-400 hover:text-cyan-300 hover:underline font-semibold inline-flex items-center gap-0.5"
+                        title="Open A4 Tax Invoice PDF"
+                      >
+                        <span>#{r.invoice_id}</span>
+                        <span className="material-symbols-outlined text-[11px]">open_in_new</span>
+                      </a>
                       <div className="text-slate-500 text-[10px]">
                         {formatShortDate(r.created_at)}
                       </div>
@@ -395,6 +404,18 @@ export default function CustomerBalancesTab({
 
                     <td className="py-3 px-4">
                       <div className="flex items-center justify-center gap-1.5">
+                        {/* 📄 View A4 Tax Invoice PDF */}
+                        <a
+                          href={`/invoice/${r.invoice_id}?format=a4&autoprint=true`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-cyan-300 border border-slate-700 text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer"
+                          title="Open & Download Official A4 Tax Invoice PDF"
+                        >
+                          <span className="material-symbols-outlined text-xs">picture_as_pdf</span>
+                          <span>PDF</span>
+                        </a>
+
                         {/* 1. Quick Remind / Razorpay Link */}
                         <button
                           type="button"

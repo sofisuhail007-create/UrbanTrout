@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
@@ -9,10 +9,24 @@ interface DecodedInvoice {
   invoiceNumber: string;
   customerName: string;
   customerPhone: string;
-  items: Array<{ name: string; weightKg: number; orderedWeightKg?: number; pricePerKg: number; total: number }>;
+  customerAddress?: string;
+  items: Array<{
+    name: string;
+    weightKg: number;
+    orderedWeightKg?: number;
+    pricePerKg: number;
+    total: number;
+    standardRate?: number;
+    standardTotal?: number;
+    discountAmount?: number;
+  }>;
   orderedWeight?: number;
   totalWeight: number;
+  subtotal?: number;
+  deliveryFee?: number;
   grandTotal: number;
+  standardTotal?: number;
+  discountAmount?: number;
   paidAmount?: number;
   balanceAmount?: number;
   refundAmount?: number;
@@ -25,6 +39,68 @@ interface DecodedInvoice {
   paymentMethod?: string;
   paymentId?: string;
   qrImageUrl?: string;
+  upiId?: string;
+}
+
+function mapInvoiceData(parsed: any, fallbackNum: string): DecodedInvoice {
+  const createdTimestamp = parsed.ts || parsed.createdAt || Date.now();
+  const elapsedMs = Date.now() - createdTimestamp;
+  const isPaidOrSettled =
+    parsed.paymentStatus === "PAID" ||
+    parsed.balanceStatus === "settled" ||
+    parsed.balanceStatus === "waived_final" ||
+    (parsed.balanceAmount !== undefined && parsed.balanceAmount <= 0);
+  const maxAgeMs = 48 * 60 * 60 * 1000;
+  const isExpired = !isPaidOrSettled && elapsedMs > maxAgeMs;
+  const remainingHours = Math.max(0, Math.ceil((maxAgeMs - elapsedMs) / (1000 * 60 * 60)));
+
+  const grandTot = parsed.tot ?? parsed.grandTotal ?? 0;
+  const paid = parsed.paidAmount !== undefined
+    ? parsed.paidAmount
+    : (parsed.balanceAmount !== undefined ? Math.max(0, grandTot - parsed.balanceAmount) : (isPaidOrSettled ? grandTot : undefined));
+  const refund = parsed.refundAmount !== undefined
+    ? parsed.refundAmount
+    : (paid !== undefined && paid > grandTot ? paid - grandTot : 0);
+  const balance = parsed.balanceAmount !== undefined
+    ? parsed.balanceAmount
+    : (paid !== undefined && grandTot > paid ? grandTot - paid : (isPaidOrSettled ? 0 : grandTot));
+
+  return {
+    invoiceNumber: parsed.num || parsed.invoiceNumber || fallbackNum,
+    customerName: parsed.name || parsed.customerName || "Valued Customer",
+    customerPhone: parsed.phone || parsed.customerPhone || "N/A",
+    customerAddress: parsed.address || parsed.customerAddress || "",
+    items: (parsed.items || []).map((i: any) => ({
+      name: i.n || i.name || "Himalayan Rainbow Trout",
+      weightKg: i.w ?? i.weightKg ?? 1,
+      orderedWeightKg: i.ow ?? i.orderedWeightKg ?? (i.w ?? i.weightKg ?? 1),
+      pricePerKg: i.r ?? i.pricePerKg ?? 550,
+      total: i.t ?? i.total ?? 550,
+      standardRate: i.standardRate,
+      standardTotal: i.standardTotal,
+      discountAmount: i.discountAmount,
+    })),
+    orderedWeight: parsed.ow ?? parsed.orderedWeight,
+    totalWeight: parsed.tw ?? parsed.totalWeight ?? 0,
+    subtotal: parsed.subtotal ?? (grandTot - (parsed.deliveryFee || 0)),
+    deliveryFee: parsed.deliveryFee ?? 0,
+    grandTotal: grandTot,
+    standardTotal: parsed.standardTotal,
+    discountAmount: parsed.discountAmount,
+    paidAmount: paid,
+    balanceAmount: balance,
+    refundAmount: refund,
+    balanceStatus: parsed.balanceStatus || (balance > 0 ? "pending" : undefined),
+    notes: parsed.notes || "",
+    createdAt: createdTimestamp,
+    isExpired,
+    expiresInHours: remainingHours,
+    paymentStatus: parsed.paymentStatus || (refund > 0 ? "REFUND DUE" : (isPaidOrSettled ? "PAID" : "PAYMENT DUE")),
+    paymentMethod: parsed.paymentMethod || "UPI",
+    paymentId: parsed.paymentId || undefined,
+    qrImageUrl: parsed.qrImageUrl || undefined,
+    upiId: parsed.upiId || parsed.jkBankDetails?.upiId,
+  };
 }
 
 export default function PublicInvoicePage() {
@@ -34,7 +110,9 @@ export default function PublicInvoicePage() {
   const [loading, setLoading] = useState(true);
   const [upiId, setUpiId] = useState("JKBMERC00828895@jkb");
   const [copiedUpi, setCopiedUpi] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
   const [viewMode, setViewMode] = useState<"standard" | "4up">("standard");
+  const autoPrintedRef = useRef(false);
 
   useEffect(() => {
     async function loadInvoice() {
@@ -58,55 +136,7 @@ export default function PublicInvoicePage() {
         if (encodedData) {
           try {
             const parsed = JSON.parse(decodeURIComponent(atob(encodedData)));
-            const createdTimestamp = parsed.ts || Date.now();
-            const elapsedMs = Date.now() - createdTimestamp;
-            const isPaidOrSettled =
-              parsed.paymentStatus === "PAID" ||
-              parsed.balanceStatus === "settled" ||
-              parsed.balanceStatus === "waived_final" ||
-              (parsed.balanceAmount !== undefined && parsed.balanceAmount <= 0);
-            const maxAgeMs = 48 * 60 * 60 * 1000;
-            const isExpired = !isPaidOrSettled && elapsedMs > maxAgeMs;
-            const remainingHours = Math.max(0, Math.ceil((maxAgeMs - elapsedMs) / (1000 * 60 * 60)));
-
-            const grandTot = parsed.tot ?? parsed.grandTotal ?? 0;
-            const paid = parsed.paidAmount !== undefined
-              ? parsed.paidAmount
-              : (parsed.balanceAmount !== undefined ? Math.max(0, grandTot - parsed.balanceAmount) : (isPaidOrSettled ? grandTot : undefined));
-            const refund = parsed.refundAmount !== undefined
-              ? parsed.refundAmount
-              : (paid !== undefined && paid > grandTot ? paid - grandTot : 0);
-            const balance = parsed.balanceAmount !== undefined
-              ? parsed.balanceAmount
-              : (paid !== undefined && grandTot > paid ? grandTot - paid : (isPaidOrSettled ? 0 : grandTot));
-
-            setInvoice({
-              invoiceNumber: parsed.num || rawParam,
-              customerName: parsed.name || "Valued Customer",
-              customerPhone: parsed.phone || "N/A",
-              items: (parsed.items || []).map((i: any) => ({
-                name: i.n || i.name,
-                weightKg: i.w ?? i.weightKg ?? 1,
-                orderedWeightKg: i.ow ?? i.orderedWeightKg ?? (i.w ?? i.weightKg ?? 1),
-                pricePerKg: i.r ?? i.pricePerKg ?? 550,
-                total: i.t ?? i.total ?? 550,
-              })),
-              orderedWeight: parsed.ow ?? parsed.orderedWeight,
-              totalWeight: parsed.tw ?? parsed.totalWeight ?? 0,
-              grandTotal: grandTot,
-              paidAmount: paid,
-              balanceAmount: balance,
-              refundAmount: refund,
-              balanceStatus: parsed.balanceStatus || (balance > 0 ? "pending" : undefined),
-              notes: parsed.notes || "",
-              createdAt: createdTimestamp,
-              isExpired,
-              expiresInHours: remainingHours,
-              paymentStatus: parsed.paymentStatus || (refund > 0 ? "REFUND DUE" : (isPaidOrSettled ? "PAID" : "PAYMENT DUE")),
-              paymentMethod: parsed.paymentMethod || "UPI",
-              paymentId: parsed.paymentId || undefined,
-              qrImageUrl: parsed.qrImageUrl || undefined,
-            });
+            setInvoice(mapInvoiceData(parsed, rawParam));
             setLoading(false);
             return;
           } catch (e) {
@@ -121,56 +151,7 @@ export default function PublicInvoicePage() {
         if (res.ok) {
           const json = await res.json();
           if (json?.success && json.invoice) {
-            const parsed = json.invoice;
-            const createdTimestamp = parsed.ts || Date.now();
-            const elapsedMs = Date.now() - createdTimestamp;
-            const isPaidOrSettled =
-              parsed.paymentStatus === "PAID" ||
-              parsed.balanceStatus === "settled" ||
-              parsed.balanceStatus === "waived_final" ||
-              (parsed.balanceAmount !== undefined && parsed.balanceAmount <= 0);
-            const maxAgeMs = 48 * 60 * 60 * 1000;
-            const isExpired = !isPaidOrSettled && elapsedMs > maxAgeMs;
-            const remainingHours = Math.max(0, Math.ceil((maxAgeMs - elapsedMs) / (1000 * 60 * 60)));
-
-            const grandTot = parsed.tot ?? parsed.grandTotal ?? 0;
-            const paid = parsed.paidAmount !== undefined
-              ? parsed.paidAmount
-              : (parsed.balanceAmount !== undefined ? Math.max(0, grandTot - parsed.balanceAmount) : (isPaidOrSettled ? grandTot : undefined));
-            const refund = parsed.refundAmount !== undefined
-              ? parsed.refundAmount
-              : (paid !== undefined && paid > grandTot ? paid - grandTot : 0);
-            const balance = parsed.balanceAmount !== undefined
-              ? parsed.balanceAmount
-              : (paid !== undefined && grandTot > paid ? grandTot - paid : (isPaidOrSettled ? 0 : grandTot));
-
-            setInvoice({
-              invoiceNumber: parsed.num || `UT-INV-${cleanDigits || rawParam}`,
-              customerName: parsed.name || "Valued Customer",
-              customerPhone: parsed.phone || "N/A",
-              items: (parsed.items || []).map((i: any) => ({
-                name: i.n || i.name,
-                weightKg: i.w ?? i.weightKg ?? 1,
-                orderedWeightKg: i.ow ?? i.orderedWeightKg ?? (i.w ?? i.weightKg ?? 1),
-                pricePerKg: i.r ?? i.pricePerKg ?? 550,
-                total: i.t ?? i.total ?? 550,
-              })),
-              orderedWeight: parsed.ow ?? parsed.orderedWeight,
-              totalWeight: parsed.tw ?? parsed.totalWeight ?? 0,
-              grandTotal: grandTot,
-              paidAmount: paid,
-              balanceAmount: balance,
-              refundAmount: refund,
-              balanceStatus: parsed.balanceStatus || (balance > 0 ? "pending" : undefined),
-              notes: parsed.notes || "",
-              createdAt: createdTimestamp,
-              isExpired,
-              expiresInHours: remainingHours,
-              paymentStatus: parsed.paymentStatus || (refund > 0 ? "REFUND DUE" : (isPaidOrSettled ? "PAID" : "PAYMENT DUE")),
-              paymentMethod: parsed.paymentMethod || "UPI",
-              paymentId: parsed.paymentId || undefined,
-              qrImageUrl: parsed.qrImageUrl || undefined,
-            });
+            setInvoice(mapInvoiceData(json.invoice, `UT-INV-${cleanDigits || rawParam}`));
             setLoading(false);
             return;
           }
@@ -186,55 +167,7 @@ export default function PublicInvoicePage() {
 
           if (dbRow?.data) {
             const parsed = typeof dbRow.data === "object" ? dbRow.data : JSON.parse(dbRow.data);
-            const createdTimestamp = parsed.ts || Date.now();
-            const elapsedMs = Date.now() - createdTimestamp;
-            const isPaidOrSettled =
-              parsed.paymentStatus === "PAID" ||
-              parsed.balanceStatus === "settled" ||
-              parsed.balanceStatus === "waived_final" ||
-              (parsed.balanceAmount !== undefined && parsed.balanceAmount <= 0);
-            const maxAgeMs = 48 * 60 * 60 * 1000;
-            const isExpired = !isPaidOrSettled && elapsedMs > maxAgeMs;
-            const remainingHours = Math.max(0, Math.ceil((maxAgeMs - elapsedMs) / (1000 * 60 * 60)));
-
-            const grandTot = parsed.tot ?? parsed.grandTotal ?? 0;
-            const paid = parsed.paidAmount !== undefined
-              ? parsed.paidAmount
-              : (parsed.balanceAmount !== undefined ? Math.max(0, grandTot - parsed.balanceAmount) : (isPaidOrSettled ? grandTot : undefined));
-            const refund = parsed.refundAmount !== undefined
-              ? parsed.refundAmount
-              : (paid !== undefined && paid > grandTot ? paid - grandTot : 0);
-            const balance = parsed.balanceAmount !== undefined
-              ? parsed.balanceAmount
-              : (paid !== undefined && grandTot > paid ? grandTot - paid : (isPaidOrSettled ? 0 : grandTot));
-
-            setInvoice({
-              invoiceNumber: parsed.num || `UT-INV-${cleanDigits || rawParam}`,
-              customerName: parsed.name || "Valued Customer",
-              customerPhone: parsed.phone || "N/A",
-              items: (parsed.items || []).map((i: any) => ({
-                name: i.n || i.name,
-                weightKg: i.w ?? i.weightKg ?? 1,
-                orderedWeightKg: i.ow ?? i.orderedWeightKg ?? (i.w ?? i.weightKg ?? 1),
-                pricePerKg: i.r ?? i.pricePerKg ?? 550,
-                total: i.t ?? i.total ?? 550,
-              })),
-              orderedWeight: parsed.ow ?? parsed.orderedWeight,
-              totalWeight: parsed.tw ?? parsed.totalWeight ?? 0,
-              grandTotal: grandTot,
-              paidAmount: paid,
-              balanceAmount: balance,
-              refundAmount: refund,
-              balanceStatus: parsed.balanceStatus || (balance > 0 ? "pending" : undefined),
-              notes: parsed.notes || "",
-              createdAt: createdTimestamp,
-              isExpired,
-              expiresInHours: remainingHours,
-              paymentStatus: parsed.paymentStatus || (refund > 0 ? "REFUND DUE" : (isPaidOrSettled ? "PAID" : "PAYMENT DUE")),
-              paymentMethod: parsed.paymentMethod || "UPI",
-              paymentId: parsed.paymentId || undefined,
-              qrImageUrl: parsed.qrImageUrl || undefined,
-            });
+            setInvoice(mapInvoiceData(parsed, `UT-INV-${cleanDigits || rawParam}`));
             setLoading(false);
             return;
           }
@@ -250,29 +183,7 @@ export default function PublicInvoicePage() {
         } catch {}
 
         if (decodedObj && (decodedObj.ts || decodedObj.tot)) {
-          const createdTimestamp = decodedObj.ts || Date.now();
-          const elapsedMs = Date.now() - createdTimestamp;
-          const maxAgeMs = 48 * 60 * 60 * 1000;
-          const isExpired = elapsedMs > maxAgeMs;
-          const remainingHours = Math.max(0, Math.ceil((maxAgeMs - elapsedMs) / (1000 * 60 * 60)));
-
-          setInvoice({
-            invoiceNumber: decodedObj.num || "UT-INV-LIVE",
-            customerName: decodedObj.name || "Valued Customer",
-            customerPhone: decodedObj.phone || "N/A",
-            items: (decodedObj.items || []).map((i: any) => ({
-              name: i.n || i.name,
-              weightKg: i.w ?? i.weightKg ?? 1,
-              pricePerKg: i.r ?? i.pricePerKg ?? 550,
-              total: i.t ?? i.total ?? 550,
-            })),
-            totalWeight: decodedObj.tw ?? decodedObj.totalWeight ?? 0,
-            grandTotal: decodedObj.tot ?? decodedObj.grandTotal ?? 0,
-            notes: decodedObj.notes || "",
-            createdAt: createdTimestamp,
-            isExpired,
-            expiresInHours: remainingHours,
-          });
+          setInvoice(mapInvoiceData(decodedObj, "UT-INV-LIVE"));
           setLoading(false);
           return;
         }
@@ -323,9 +234,12 @@ export default function PublicInvoicePage() {
             invoiceNumber: `UT-INV-${dbOrder.order_number || dbOrder.id.slice(0, 6)}`,
             customerName: dbOrder.customer_name || "Valued Customer",
             customerPhone: dbOrder.customer_phone || "N/A",
+            customerAddress: dbOrder.shipping_address || dbOrder.address || "",
             items: mappedItems,
             orderedWeight: totalOrdWeight > 0 ? totalOrdWeight : totalActWeight,
             totalWeight: totalActWeight,
+            subtotal: grandTotal,
+            deliveryFee: 0,
             grandTotal,
             paidAmount,
             balanceAmount,
@@ -346,10 +260,56 @@ export default function PublicInvoicePage() {
     if (rawParam) loadInvoice();
   }, [rawParam]);
 
+  // Handle auto-print if ?autoprint=true or ?pdf=true in URL
+  useEffect(() => {
+    if (!loading && invoice && !autoPrintedRef.current) {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get("autoprint") === "true" || urlParams.get("pdf") === "true") {
+        autoPrintedRef.current = true;
+        const timer = setTimeout(() => {
+          window.print();
+        }, 600);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [loading, invoice]);
+
   const copyUpi = () => {
-    navigator.clipboard.writeText(upiId);
+    const activeUpi = invoice?.upiId || upiId;
+    navigator.clipboard.writeText(activeUpi);
     setCopiedUpi(true);
     setTimeout(() => setCopiedUpi(false), 2500);
+  };
+
+  const copyInvoiceLink = () => {
+    if (typeof window !== "undefined") {
+      navigator.clipboard.writeText(window.location.href);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2500);
+    }
+  };
+
+  const handleShareWhatsApp = () => {
+    if (!invoice) return;
+    const cleanPhone = invoice.customerPhone.replace(/\D/g, "").slice(-10);
+    const origin = typeof window !== "undefined" ? window.location.origin : "https://urbantrout.in";
+    const invoiceUrl = `${origin}/invoice/${invoice.invoiceNumber}`;
+    const invoicePdfUrl = `${invoiceUrl}?format=a4`;
+
+    const text = `*URBAN TROUT AQUACULTURE* — Official Tax Invoice\n` +
+      `Invoice No: *#${invoice.invoiceNumber}*\n` +
+      `Customer: ${invoice.customerName}\n` +
+      `Total Weight: ${invoice.totalWeight.toFixed(2)} Kg\n` +
+      `Total Bill: *₹${invoice.grandTotal.toLocaleString("en-IN")}*\n` +
+      `Status: *${invoice.paymentStatus || "PAYMENT DUE"}*\n\n` +
+      `📄 *Download Official A4 Tax Invoice PDF:*\n${invoicePdfUrl}\n\n` +
+      `📱 *View & Pay Online via UPI / QR:*\n${invoiceUrl}\n\n` +
+      `Urban Trout Farm Helpline: +91 84910 06127`;
+
+    const url = cleanPhone.length === 10
+      ? `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(text)}`
+      : `https://wa.me/?text=${encodeURIComponent(text)}`;
+    window.open(url, "_blank");
   };
 
   if (loading) {
@@ -357,7 +317,7 @@ export default function PublicInvoicePage() {
       <div className="min-h-screen bg-[#020d12] flex items-center justify-center p-4 text-center">
         <div className="space-y-3">
           <div className="w-10 h-10 border-2 border-cyan-400 border-t-transparent animate-spin rounded-full mx-auto" />
-          <p className="text-cyan-400 text-sm font-semibold">Loading Invoice…</p>
+          <p className="text-cyan-400 text-sm font-semibold">Loading Tax Invoice…</p>
         </div>
       </div>
     );
@@ -424,11 +384,12 @@ export default function PublicInvoicePage() {
     ? invoice.balanceAmount
     : (invoice.paidAmount !== undefined ? Math.max(0, grandTotal - invoice.paidAmount) : grandTotal);
 
-  const terminalId = upiId.includes("@")
-    ? `TERM${upiId.split("@")[0].replace(/^JKBMERC/, "")}`
+  const activeUpiId = invoice.upiId || upiId;
+  const terminalId = activeUpiId.includes("@")
+    ? `TERM${activeUpiId.split("@")[0].replace(/^JKBMERC/, "")}`
     : "TERM00828895";
-  const upiPayUri = `upi://pay?pa=${upiId}&pn=Urban%20Trout%20Aquaculture&tr=${terminalId}&am=${remainingAmount}&cu=INR&tn=Invoice-${invoice.invoiceNumber}`;
-  const upiQrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=280x280&data=${encodeURIComponent(
+  const upiPayUri = `upi://pay?pa=${activeUpiId}&pn=Urban%20Trout%20Aquaculture&tr=${terminalId}&am=${remainingAmount}&cu=INR&tn=Invoice-${invoice.invoiceNumber}`;
+  const upiQrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(
     upiPayUri
   )}&bgcolor=255-255-255&color=2-13-18&margin=2`;
 
@@ -448,7 +409,7 @@ export default function PublicInvoicePage() {
                 onClick={() => setViewMode("standard")}
                 className="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-xs transition-colors cursor-pointer"
               >
-                ← Full Page View
+                ← Full Page A4 View
               </button>
               <button
                 type="button"
@@ -467,10 +428,13 @@ export default function PublicInvoicePage() {
                 invoiceNumber: invoice.invoiceNumber,
                 customerName: invoice.customerName,
                 customerPhone: invoice.customerPhone,
+                customerAddress: invoice.customerAddress,
                 createdAt: invoice.createdAt,
                 items: invoice.items,
                 orderedWeight: invoice.orderedWeight,
                 totalWeight: invoice.totalWeight,
+                subtotal: invoice.subtotal,
+                deliveryFee: invoice.deliveryFee,
                 grandTotal: invoice.grandTotal,
                 paidAmount: invoice.paidAmount,
                 balanceAmount: invoice.balanceAmount,
@@ -479,7 +443,7 @@ export default function PublicInvoicePage() {
                 paymentMethod: invoice.paymentMethod,
                 paymentId: invoice.paymentId,
                 notes: invoice.notes,
-                upiId,
+                upiId: activeUpiId,
                 qrImageUrl: invoice.qrImageUrl,
               },
             ]}
@@ -492,44 +456,66 @@ export default function PublicInvoicePage() {
     );
   }
 
+  // ─── STANDARD EXECUTIVE A4 TAX INVOICE VIEW ───
   return (
-    <div className="min-h-screen bg-[#020d12] py-8 px-4 sm:px-6">
-      <div className="max-w-xl mx-auto space-y-5">
-        {/* Top Controls (Hidden in Print) */}
-        <div className="flex items-center justify-between print:hidden gap-2 flex-wrap">
+    <div className="invoice-page-wrapper min-h-screen bg-[#020d12] py-6 px-3 sm:px-6">
+      <div className="invoice-max-width max-w-3xl mx-auto space-y-4">
+        {/* Top Controls Toolbar (Hidden in Print) */}
+        <div className="flex items-center justify-between print:hidden gap-2 flex-wrap bg-slate-900/90 border border-slate-800 p-3 rounded-2xl shadow-xl">
           <Link href="/" className="flex items-center gap-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/headerfooterlogo.png" alt="Urban Trout" className="h-6 w-auto object-contain" />
+            <img src="/headerfooterlogo.png" alt="Urban Trout" className="h-7 w-auto object-contain" />
           </Link>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={handleShareWhatsApp}
+              className="py-2 px-3 rounded-xl bg-green-500/20 hover:bg-green-500/30 text-green-300 border border-green-500/40 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
+              title="Share A4 PDF Invoice Link on WhatsApp"
+            >
+              <span className="material-symbols-outlined text-sm">chat</span>
+              <span>WhatsApp</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={copyInvoiceLink}
+              className="py-2 px-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase tracking-wider flex items-center gap-1 border border-slate-700 transition-all cursor-pointer"
+              title="Copy Invoice Link"
+            >
+              <span className="material-symbols-outlined text-sm">link</span>
+              <span>{copiedLink ? "Copied! ✓" : "Copy Link"}</span>
+            </button>
+
             <button
               type="button"
               onClick={() => setViewMode("4up")}
-              title="Print 4 slips on a single A4 sheet using your Canon MF244dw laser printer"
-              className="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 cursor-pointer transition-colors"
+              title="Print 4 slips on a single A4 sheet using Canon MF244dw laser printer"
+              className="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 cursor-pointer transition-colors"
             >
               <span>🖨️</span>
-              <span>4-in-1 Sheet (Canon MF244dw)</span>
+              <span className="hidden sm:inline">4-in-1 Sheet</span>
             </button>
 
             <button
               type="button"
               onClick={() => window.print()}
-              className="py-2.5 px-4 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-cyan-500/20 cursor-pointer active:scale-95"
+              className="py-2 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-teal-400 hover:from-cyan-400 hover:to-teal-300 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-cyan-500/25 cursor-pointer active:scale-95 transition-all"
+              title="Download or Save as A4 PDF document"
             >
-              <span className="material-symbols-outlined text-base">print</span>
-              Print Full A4
+              <span className="material-symbols-outlined text-base">picture_as_pdf</span>
+              <span>Download / Save as A4 PDF</span>
             </button>
           </div>
         </div>
 
-        {/* 48-Hour Timer Badge */}
+        {/* 48-Hour Timer Badge (Hidden in Print) */}
         {invoice.expiresInHours !== undefined && (
           <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-between text-amber-400 text-xs font-semibold print:hidden">
             <div className="flex items-center gap-2">
               <span className="material-symbols-outlined text-base">timer</span>
-              <span>48-Hour Live Invoice</span>
+              <span>Live Tax Invoice &amp; Payment Desk</span>
             </div>
             <span className="font-mono bg-amber-500/20 px-2 py-0.5 rounded text-[11px]">
               Expires in ~{invoice.expiresInHours} Hours
@@ -537,308 +523,421 @@ export default function PublicInvoicePage() {
           </div>
         )}
 
-        {/* ─── PRINTABLE INVOICE CARD ─── */}
+        {/* ─── PRINTABLE A4 INVOICE SHEET ─── */}
         <div
           id="printable-invoice"
-          className="bg-white text-slate-900 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-5 border border-slate-200"
+          className="bg-white text-slate-950 rounded-2xl p-6 sm:p-9 shadow-2xl border border-slate-200 font-sans space-y-5"
         >
-          {/* Header */}
-          <div className="text-center pb-4 border-b border-dashed border-slate-300">
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
-              URBAN TROUT AQUACULTURE
-            </h1>
-            <p className="text-xs text-slate-500 font-medium mt-0.5">Malabagh, Srinagar, J&amp;K — 190006</p>
-            <p className="text-xs text-slate-500 font-medium">Helpline: +91 84910 06127 | info.urbantrout@gmail.com</p>
-            <div className="inline-block mt-2 px-3 py-1 rounded bg-slate-100 text-slate-800 text-[10px] font-black uppercase tracking-widest">
-              TAX INVOICE &amp; PAYMENT REQUEST
+          {/* 1. Official Header */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b-2 border-slate-900">
+            <div className="flex items-center gap-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/headerfooterlogo.png"
+                alt="Urban Trout Aquaculture"
+                className="h-10 w-auto object-contain shrink-0"
+              />
+              <div>
+                <h1 className="text-xl sm:text-2xl font-black text-slate-950 tracking-tight leading-none" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                  URBAN TROUT AQUACULTURE
+                </h1>
+                <p className="text-[11px] text-slate-600 font-semibold tracking-wide uppercase mt-1">
+                  High-Altitude Mountain Spring RAS Facility · Srinagar, Kashmir
+                </p>
+                <p className="text-[10.5px] text-slate-500 font-mono mt-0.5">
+                  Malabagh / Naseem Bagh, Srinagar, J&amp;K — 190006 · Helpline: +91 84910 06127
+                </p>
+              </div>
+            </div>
+
+            <div className="text-left sm:text-right shrink-0">
+              <div className="inline-block px-3 py-1 rounded-md bg-slate-900 text-white text-[11px] font-black uppercase tracking-widest">
+                TAX INVOICE
+              </div>
+              <p className="text-[11px] font-mono font-bold text-slate-700 mt-1">
+                GSTIN: <span className="font-normal text-slate-600">Exempt (Live Aquaculture)</span>
+              </p>
+              <p className="text-[10px] text-slate-500 font-mono">Original for Recipient</p>
             </div>
           </div>
 
-          {/* Metadata */}
-          <div className="flex justify-between text-xs text-slate-600 font-mono">
-            <div>
-              <p><strong>Invoice No:</strong> {invoice.invoiceNumber}</p>
-              <p><strong>Customer:</strong> {invoice.customerName}</p>
-              <p><strong>Phone:</strong> {invoice.customerPhone}</p>
-            </div>
-            <div className="text-right">
-              <p>
-                <strong>Date:</strong>{" "}
-                {new Date(invoice.createdAt).toLocaleDateString("en-IN", {
-                  day: "2-digit",
-                  month: "short",
-                  year: "numeric",
-                })}
+          {/* 2. Metadata Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs font-mono print-avoid-break">
+            {/* Customer Details Box */}
+            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block font-sans">
+                BILLED TO / CUSTOMER
+              </span>
+              <p className="text-sm font-bold text-slate-900 font-sans">
+                {invoice.customerName}
               </p>
-              <p>
-                <strong>Status:</strong>{" "}
-                <span className={invoice.paymentStatus === "PAID" ? "text-emerald-700 font-black uppercase" : "text-amber-700 font-bold uppercase"}>
+              <p className="text-slate-700">
+                <strong>Phone:</strong> {invoice.customerPhone ? `+91 ${invoice.customerPhone}` : "N/A"}
+              </p>
+              {invoice.customerAddress && (
+                <p className="text-slate-600 leading-snug pt-0.5">
+                  <strong>Delivery:</strong> {invoice.customerAddress}
+                </p>
+              )}
+            </div>
+
+            {/* Invoice & Status Box */}
+            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block font-sans">
+                INVOICE &amp; PAYMENT DETAILS
+              </span>
+              <div className="flex justify-between">
+                <span className="text-slate-600">Invoice Number:</span>
+                <span className="font-bold text-slate-900">{invoice.invoiceNumber}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-600">Date &amp; Time:</span>
+                <span className="font-semibold text-slate-800">
+                  {new Date(invoice.createdAt).toLocaleDateString("en-IN", {
+                    day: "2-digit",
+                    month: "short",
+                    year: "numeric",
+                  })}
+                </span>
+              </div>
+              <div className="flex justify-between items-center pt-0.5">
+                <span className="text-slate-600">Status:</span>
+                <span
+                  className={`px-2 py-0.5 rounded font-black text-[10.5px] uppercase tracking-wide ${
+                    invoice.paymentStatus === "PAID"
+                      ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                      : invoice.refundAmount && invoice.refundAmount > 0
+                      ? "bg-blue-100 text-blue-800 border border-blue-300"
+                      : "bg-amber-100 text-amber-900 border border-amber-300"
+                  }`}
+                >
                   {invoice.paymentStatus || "PAYMENT DUE"}
                 </span>
-              </p>
+              </div>
+              {invoice.paymentMethod && (
+                <div className="flex justify-between text-[11px] text-slate-600">
+                  <span>Method:</span>
+                  <span className="font-semibold">{invoice.paymentMethod}</span>
+                </div>
+              )}
               {invoice.paymentId && (
-                <p className="text-[10px] text-slate-500 font-mono">Ref: {invoice.paymentId}</p>
+                <div className="flex justify-between text-[10px] text-slate-500">
+                  <span>Txn Ref:</span>
+                  <span className="font-mono truncate max-w-[150px]">{invoice.paymentId}</span>
+                </div>
               )}
             </div>
           </div>
 
-          {/* Itemized Table */}
-          <div className="border-t border-b border-dashed border-slate-300 py-3">
+          {/* 3. Itemized Harvest Table */}
+          <div className="border border-slate-300 rounded-xl overflow-hidden print-avoid-break">
             <table className="w-full text-xs text-left">
               <thead>
-                <tr className="border-b font-bold text-slate-700">
-                  <th className="py-1">Item Description</th>
-                  <th className="py-1 text-center">Weight</th>
-                  <th className="py-1 text-right">Rate</th>
-                  <th className="py-1 text-right">Amount</th>
+                <tr className="bg-slate-100 border-b border-slate-300 font-bold text-slate-800 text-[11px] uppercase tracking-wider">
+                  <th className="py-2.5 px-3">#</th>
+                  <th className="py-2.5 px-3">Item Description</th>
+                  <th className="py-2.5 px-3 text-center">Harvest Weight</th>
+                  <th className="py-2.5 px-3 text-right">Rate / Kg</th>
+                  <th className="py-2.5 px-3 text-right">Amount (₹)</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 font-mono">
+              <tbody className="divide-y divide-slate-200 font-mono">
                 {invoice.items.map((item, idx) => (
-                  <tr key={idx}>
-                    <td className="py-2 pr-2 font-sans font-medium text-slate-800">{item.name}</td>
-                    <td className="py-2 text-center font-bold">{item.weightKg} Kg</td>
-                    <td className="py-2 text-right">₹{item.pricePerKg}</td>
-                    <td className="py-2 text-right font-bold">₹{item.total.toLocaleString("en-IN")}</td>
+                  <tr key={idx} className="hover:bg-slate-50/50">
+                    <td className="py-2.5 px-3 text-slate-500 font-sans">{idx + 1}</td>
+                    <td className="py-2.5 px-3 font-sans">
+                      <div className="font-bold text-slate-900">{item.name}</div>
+                      {item.orderedWeightKg && Math.abs(item.orderedWeightKg - item.weightKg) > 0.02 && (
+                        <div className="text-[10.5px] text-slate-500 font-mono">
+                          Ordered on WhatsApp: {item.orderedWeightKg.toFixed(2)} Kg
+                        </div>
+                      )}
+                    </td>
+                    <td className="py-2.5 px-3 text-center font-bold text-slate-900">
+                      {item.weightKg.toFixed(2)} Kg
+                    </td>
+                    <td className="py-2.5 px-3 text-right text-slate-800">
+                      ₹{item.pricePerKg.toLocaleString("en-IN")}
+                    </td>
+                    <td className="py-2.5 px-3 text-right font-black text-slate-950">
+                      ₹{item.total.toLocaleString("en-IN")}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
 
-          {/* Total Payable Summary */}
-          <div className="space-y-1 text-right">
-            {invoice.totalWeight > 0 && (
-              <div className="flex justify-between text-xs text-slate-600 font-mono">
-                <span>Total Harvest Weight:</span>
-                <span className="font-bold">{invoice.totalWeight.toFixed(2)} Kg</span>
-              </div>
-            )}
-            <div className="flex justify-between text-base font-black text-slate-900 font-mono pt-2 border-t">
-              <span>TOTAL BILL AMOUNT:</span>
-              <span className="text-xl text-slate-950">₹{grandTotal.toLocaleString("en-IN")}</span>
+          {/* 4. Accounting & Financial Reconciliation Summary */}
+          <div className="flex flex-col sm:flex-row justify-between gap-4 pt-1 print-avoid-break">
+            {/* Left: Notes / Delivery Instructions */}
+            <div className="text-xs text-slate-600 max-w-sm space-y-1">
+              {invoice.notes && (
+                <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200">
+                  <span className="font-bold text-slate-800 font-sans block text-[11px]">Note / Memo:</span>
+                  <p className="font-mono text-slate-700 mt-0.5">{invoice.notes}</p>
+                </div>
+              )}
+              <p className="text-[11px] text-slate-500 leading-tight">
+                * Live harvest pricing is calculated strictly against actual calibrated precision scale weight.
+              </p>
             </div>
 
-            {invoice.refundAmount !== undefined && invoice.refundAmount > 0 ? (
-              <div className="space-y-1.5 pt-1.5 text-left">
-                <div className="flex justify-between text-xs text-slate-600 font-mono">
-                  <span>Advance Received:</span>
-                  <span>₹{invoice.paidAmount?.toLocaleString("en-IN")}</span>
+            {/* Right: Numbers Summary */}
+            <div className="w-full sm:w-72 space-y-1.5 font-mono text-xs text-right">
+              {invoice.totalWeight > 0 && (
+                <div className="flex justify-between text-slate-600">
+                  <span>Total Harvest Weight:</span>
+                  <span className="font-bold text-slate-900">{invoice.totalWeight.toFixed(2)} Kg</span>
                 </div>
-                <div className="flex justify-between text-sm sm:text-base text-emerald-900 font-black font-mono bg-emerald-50 p-2.5 rounded-2xl border-2 border-emerald-500">
-                  <span className="flex items-center gap-1.5">
-                    <span>💵</span>
-                    <span>CASH REFUND DUE TO YOU:</span>
-                  </span>
-                  <span>₹{invoice.refundAmount.toLocaleString("en-IN")}</span>
-                </div>
-                <p className="text-[11px] text-emerald-700 font-medium leading-tight">
-                  🛵 <strong>Delivery Note:</strong> Our delivery rider will hand you <strong>₹{invoice.refundAmount}</strong> in cash or direct UPI at handover.
-                </p>
-              </div>
-            ) : invoice.paidAmount !== undefined && invoice.paidAmount < grandTotal && (
-              <div className="space-y-1.5 pt-1.5 text-left">
-                <div className="flex justify-between text-xs text-emerald-800 font-mono font-semibold">
-                  <span>Amount Paid / Advance:</span>
-                  <span>₹{invoice.paidAmount.toLocaleString("en-IN")}</span>
-                </div>
+              )}
 
-                {invoice.balanceAmount && invoice.balanceAmount > 0 ? (
-                  <div className="flex justify-between text-sm sm:text-base text-amber-900 font-black font-mono bg-amber-50 p-2.5 rounded-2xl border border-amber-200">
-                    <span>REMAINING BALANCE DUE:</span>
-                    <span>₹{invoice.balanceAmount.toLocaleString("en-IN")}</span>
-                  </div>
-                ) : (
-                  <div className="text-xs text-emerald-800 font-bold bg-emerald-50 p-2 rounded-xl border border-emerald-200 text-center">
-                    ✓ Settled as Agreed Final Payment (Discount/Waiver Applied - Nil Balance)
-                  </div>
-                )}
+              {invoice.subtotal !== undefined && invoice.deliveryFee !== undefined && invoice.deliveryFee > 0 && (
+                <div className="flex justify-between text-slate-600">
+                  <span>Harvest Subtotal:</span>
+                  <span>₹{invoice.subtotal.toLocaleString("en-IN")}</span>
+                </div>
+              )}
+
+              {invoice.deliveryFee !== undefined && invoice.deliveryFee > 0 && (
+                <div className="flex justify-between text-slate-600">
+                  <span>Delivery Charges:</span>
+                  <span>₹{invoice.deliveryFee.toLocaleString("en-IN")}</span>
+                </div>
+              )}
+
+              {invoice.discountAmount !== undefined && invoice.discountAmount > 0 && (
+                <div className="flex justify-between text-emerald-700 font-semibold">
+                  <span>Special Deal Discount:</span>
+                  <span>-₹{invoice.discountAmount.toLocaleString("en-IN")}</span>
+                </div>
+              )}
+
+              <div className="flex justify-between text-base font-black text-slate-950 pt-2 border-t-2 border-slate-900">
+                <span>TOTAL PAYABLE:</span>
+                <span className="text-xl">₹{grandTotal.toLocaleString("en-IN")}</span>
               </div>
-            )}
+
+              {/* Advance & Balance / Refund Outcome */}
+              {invoice.refundAmount !== undefined && invoice.refundAmount > 0 ? (
+                <div className="space-y-1 pt-2 text-left">
+                  <div className="flex justify-between text-xs text-slate-600 font-mono">
+                    <span>Advance Received:</span>
+                    <span>₹{invoice.paidAmount?.toLocaleString("en-IN")}</span>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-emerald-50 border-2 border-emerald-500 text-emerald-950 font-black">
+                    <div className="flex justify-between text-sm">
+                      <span>💵 CASH REFUND DUE:</span>
+                      <span>₹{invoice.refundAmount.toLocaleString("en-IN")}</span>
+                    </div>
+                    <p className="text-[10.5px] font-sans font-medium text-emerald-800 mt-1 leading-tight">
+                      Rider Handover Note: Delivery executive will return ₹{invoice.refundAmount} in cash or UPI at your doorstep.
+                    </p>
+                  </div>
+                </div>
+              ) : invoice.paidAmount !== undefined && invoice.paidAmount < grandTotal ? (
+                <div className="space-y-1 pt-2 text-left">
+                  <div className="flex justify-between text-xs text-slate-600 font-mono">
+                    <span>Amount Paid / Advance:</span>
+                    <span>₹{invoice.paidAmount.toLocaleString("en-IN")}</span>
+                  </div>
+                  {invoice.balanceAmount && invoice.balanceAmount > 0 ? (
+                    <div className="p-2.5 rounded-xl bg-amber-50 border-2 border-amber-400 text-amber-950 font-black">
+                      <div className="flex justify-between text-sm">
+                        <span>⚠️ REMAINING BALANCE:</span>
+                        <span>₹{invoice.balanceAmount.toLocaleString("en-IN")}</span>
+                      </div>
+                      <p className="text-[10.5px] font-sans font-medium text-amber-800 mt-1 leading-tight">
+                        Please scan the UPI QR code below or pay cash upon handover.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900 text-center font-bold text-xs">
+                      ✓ Settled as Agreed Final Payment (Nil Balance)
+                    </div>
+                  )}
+                </div>
+              ) : invoice.paymentStatus === "PAID" ? (
+                <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-900 text-center font-black text-xs pt-1">
+                  ✓ VERIFIED PAID IN FULL (₹{grandTotal.toLocaleString("en-IN")})
+                </div>
+              ) : null}
+            </div>
           </div>
 
-          {/* ─── PAYMENT STATUS / EMBEDDED UPI QR CODE ─── */}
-          {invoice.refundAmount && invoice.refundAmount > 0 ? (
-            <div className="p-6 rounded-2xl bg-emerald-50 border-2 border-emerald-500 text-center space-y-2">
-              <div className="w-12 h-12 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto text-2xl font-bold shadow-sm">
-                💵
-              </div>
-              <h3 className="text-base font-extrabold text-emerald-900 tracking-wide uppercase">
-                Prepaid • Cash Refund Due: ₹{invoice.refundAmount}
-              </h3>
-              <p className="text-xs text-emerald-800 font-mono font-medium">
-                Advance Paid: ₹{invoice.paidAmount?.toLocaleString("en-IN")} • Actual Harvest: ₹{grandTotal.toLocaleString("en-IN")}
-              </p>
-              <p className="text-[11px] text-emerald-700">
-                You were charged for estimated weight. Delivery executive will return the difference of ₹{invoice.refundAmount} at your doorstep.
-              </p>
-            </div>
-          ) : invoice.paymentStatus === "PAID" ? (
-            <div className="p-6 rounded-2xl bg-emerald-50 border border-emerald-200 text-center space-y-2">
-              <div className="w-12 h-12 rounded-full bg-emerald-500 text-white flex items-center justify-center mx-auto text-2xl font-bold shadow-sm">
-                ✓
-              </div>
-              <h3 className="text-base font-extrabold text-emerald-900 tracking-wide uppercase">
-                Payment Completed &amp; Verified
-              </h3>
-              <p className="text-xs text-emerald-800 font-mono font-medium">
-                Method: {invoice.paymentMethod || "Razorpay UPI"} {invoice.paymentId ? `• Ref: ${invoice.paymentId}` : ""}
-              </p>
-              <p className="text-[11px] text-emerald-600">
-                Payment verified and recorded for invoice #{invoice.invoiceNumber}.
-              </p>
-            </div>
-          ) : (
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-4">
-              <div className="flex justify-center">
-                <div className="w-48 h-48 sm:w-56 sm:h-56 bg-white border border-slate-300 rounded-2xl shadow-sm overflow-hidden inline-flex items-center justify-center">
+          {/* 5. Payment QR Code & Settlement (Print-Friendly) */}
+          {invoice.paymentStatus !== "PAID" && (!invoice.refundAmount || invoice.refundAmount === 0) && remainingAmount > 0 && (
+            <div className="p-4 rounded-xl bg-slate-50 border border-slate-300 print-avoid-break flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-32 h-32 sm:w-36 sm:h-36 bg-white border border-slate-300 rounded-xl p-1 shrink-0 flex items-center justify-center shadow-sm">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={invoice.qrImageUrl || upiQrCodeUrl}
-                    alt="Scan & Pay"
-                    className={`w-full h-full ${invoice.qrImageUrl ? "object-cover" : "object-contain p-2"}`}
-                    style={
-                      invoice.qrImageUrl
-                        ? { objectPosition: "center 51.5%", transform: "scale(1.28)" }
-                        : undefined
-                    }
+                    alt="Scan UPI QR to Pay"
+                    className="w-full h-full object-contain"
                   />
                 </div>
-              </div>
-              <div>
-                <p className="text-xs font-bold text-slate-800 uppercase tracking-wide">
-                  {invoice.balanceAmount && invoice.balanceAmount > 0
-                    ? `Scan to Pay Remaining Balance: ₹${remainingAmount.toLocaleString("en-IN")}`
-                    : "Scan QR or Tap an App to Pay"}
-                </p>
-                <div className="flex items-center justify-center gap-2 mt-1">
-                  <span className="text-xs text-slate-600 font-mono font-bold">
-                    {invoice.qrImageUrl ? "Razorpay Dynamic Merchant QR" : `UPI ID: ${upiId}`}
-                  </span>
-                  {!invoice.qrImageUrl && (
+                <div className="space-y-1">
+                  <div className="inline-block px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 text-[10px] font-bold uppercase tracking-wider">
+                    Instant Bank Settlement
+                  </div>
+                  <h3 className="text-sm font-black text-slate-900">
+                    Scan with any UPI App to Pay
+                  </h3>
+                  <p className="text-xs font-mono font-bold text-slate-700">
+                    Amount: ₹{remainingAmount.toLocaleString("en-IN")}
+                  </p>
+                  <p className="text-[11px] font-mono text-slate-600 flex items-center gap-1.5">
+                    <span>UPI ID: {activeUpiId}</span>
                     <button
                       type="button"
                       onClick={copyUpi}
-                      className="px-2 py-0.5 rounded bg-slate-200 hover:bg-slate-300 text-slate-800 text-[10px] font-bold uppercase print:hidden cursor-pointer"
+                      className="px-1.5 py-0.5 rounded bg-slate-200 hover:bg-slate-300 text-slate-800 text-[10px] font-bold print:hidden cursor-pointer"
                     >
                       {copiedUpi ? "Copied! ✓" : "Copy"}
                     </button>
-                  )}
+                  </p>
+                  <p className="text-[10px] text-slate-500 font-sans">
+                    Supports Google Pay, PhonePe, Paytm, BHIM, and J&amp;K Bank mPay.
+                  </p>
                 </div>
               </div>
 
-              {/* ─── ONE-TAP UPI APP BUTTONS ─── */}
-              <div className="print:hidden space-y-2">
-                <p className="text-[10px] uppercase tracking-widest font-bold text-slate-400">
-                  Tap to Open &amp; Pay Directly
-                </p>
-                <div className="grid grid-cols-2 gap-2">
-                  {/* PhonePe */}
+              {/* 1-Tap UPI App Buttons (Hidden in Print) */}
+              <div className="print:hidden w-full sm:w-auto shrink-0 space-y-1.5">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block text-center sm:text-left">
+                  1-Tap Pay on Phone:
+                </span>
+                <div className="grid grid-cols-2 gap-1.5">
                   <a
-                    href={`phonepe://pay?pa=${upiId}&pn=Urban%20Trout&am=${remainingAmount.toFixed(2)}&cu=INR&tn=Invoice%20${invoice.invoiceNumber}`}
-                    className="flex items-center gap-2.5 p-3 rounded-xl border transition-all active:scale-95 cursor-pointer"
-                    style={{ background: "#5f259f", borderColor: "#4a1a7a" }}
+                    href={`phonepe://pay?pa=${activeUpiId}&pn=Urban%20Trout&am=${remainingAmount.toFixed(2)}&cu=INR&tn=Invoice%20${invoice.invoiceNumber}`}
+                    className="px-2.5 py-1.5 rounded-lg bg-[#5f259f] hover:bg-[#4d1e82] text-white text-[11px] font-bold flex items-center justify-center gap-1 transition-all active:scale-95"
                   >
-                    <img src="/icons8-phone-pe-480.svg" alt="PhonePe" style={{ width: 28, height: 28, borderRadius: 6, flexShrink: 0 }} />
-                    <div className="text-left">
-                      <p className="text-white font-bold text-xs">PhonePe</p>
-                      <p className="text-purple-200 text-[10px]">₹{remainingAmount.toLocaleString("en-IN")}</p>
-                    </div>
+                    <span>PhonePe</span>
                   </a>
-
-                  {/* Google Pay */}
                   <a
-                    href={`tez://upi/pay?pa=${upiId}&pn=Urban%20Trout&am=${remainingAmount.toFixed(2)}&cu=INR&tn=Invoice%20${invoice.invoiceNumber}`}
-                    className="flex items-center gap-2.5 p-3 rounded-xl border transition-all active:scale-95 cursor-pointer"
-                    style={{ background: "#1a73e8", borderColor: "#1558b0" }}
+                    href={`tez://upi/pay?pa=${activeUpiId}&pn=Urban%20Trout&am=${remainingAmount.toFixed(2)}&cu=INR&tn=Invoice%20${invoice.invoiceNumber}`}
+                    className="px-2.5 py-1.5 rounded-lg bg-[#1a73e8] hover:bg-[#1558b0] text-white text-[11px] font-bold flex items-center justify-center gap-1 transition-all active:scale-95"
                   >
-                    <img src="/icons8-google-pay-480.svg" alt="Google Pay" style={{ width: 28, height: 28, borderRadius: 6, flexShrink: 0, background: "white", padding: 2 }} />
-                    <div className="text-left">
-                      <p className="text-white font-bold text-xs">Google Pay</p>
-                      <p className="text-blue-200 text-[10px]">₹{remainingAmount.toLocaleString("en-IN")}</p>
-                    </div>
+                    <span>Google Pay</span>
                   </a>
-
-                  {/* Paytm */}
                   <a
-                    href={`paytmmp://pay?pa=${upiId}&pn=Urban%20Trout&am=${remainingAmount.toFixed(2)}&cu=INR&tn=Invoice%20${invoice.invoiceNumber}`}
-                    className="flex items-center gap-2.5 p-3 rounded-xl border transition-all active:scale-95 cursor-pointer"
-                    style={{ background: "#00BAF2", borderColor: "#0096c4" }}
+                    href={`paytmmp://pay?pa=${activeUpiId}&pn=Urban%20Trout&am=${remainingAmount.toFixed(2)}&cu=INR&tn=Invoice%20${invoice.invoiceNumber}`}
+                    className="px-2.5 py-1.5 rounded-lg bg-[#00BAF2] hover:bg-[#0096c4] text-white text-[11px] font-bold flex items-center justify-center gap-1 transition-all active:scale-95"
                   >
-                    <img src="/icons8-paytm-480.svg" alt="Paytm" style={{ width: 28, height: 28, borderRadius: 6, flexShrink: 0, background: "white", padding: 2 }} />
-                    <div className="text-left">
-                      <p className="text-white font-bold text-xs">Paytm</p>
-                      <p className="text-blue-100 text-[10px]">₹{remainingAmount.toLocaleString("en-IN")}</p>
-                    </div>
+                    <span>Paytm</span>
                   </a>
-
-                  {/* BHIM UPI */}
                   <a
-                    href={`upi://pay?pa=${upiId}&pn=Urban%20Trout&am=${remainingAmount.toFixed(2)}&cu=INR&tn=Invoice%20${invoice.invoiceNumber}`}
-                    className="flex items-center gap-2.5 p-3 rounded-xl border transition-all active:scale-95 cursor-pointer"
-                    style={{ background: "#FF6600", borderColor: "#cc5200" }}
+                    href={`upi://pay?pa=${activeUpiId}&pn=Urban%20Trout&am=${remainingAmount.toFixed(2)}&cu=INR&tn=Invoice%20${invoice.invoiceNumber}`}
+                    className="px-2.5 py-1.5 rounded-lg bg-[#FF6600] hover:bg-[#cc5200] text-white text-[11px] font-bold flex items-center justify-center gap-1 transition-all active:scale-95"
                   >
-                    <img src="/icons8-bhim-480.svg" alt="BHIM UPI" style={{ width: 28, height: 28, borderRadius: 6, flexShrink: 0 }} />
-                    <div className="text-left">
-                      <p className="text-white font-bold text-xs">BHIM / Any App</p>
-                      <p className="text-orange-100 text-[10px]">₹{remainingAmount.toLocaleString("en-IN")}</p>
-                    </div>
+                    <span>BHIM / All</span>
                   </a>
                 </div>
-
-                <p className="text-[10px] text-slate-400 text-center leading-tight mt-1">
-                  Tap a button above → your UPI app opens with the amount pre-filled
-                </p>
               </div>
             </div>
           )}
 
-          {/* ─── VISCERAL LOSS EDUCATION NOTICE (USER MANDATE) ─── */}
-          <div className="bg-slate-50 border border-slate-300 rounded-2xl p-4 text-xs text-slate-800 leading-relaxed space-y-1">
-            <div className="flex items-center gap-1.5 font-bold text-slate-900 text-sm">
-              <span>⚖️</span>
-              <span>Net Weight &amp; Visceral Loss Notice (Cleaned &amp; Gutted Trout)</span>
+          {/* 6. Regulatory Disclosures: Visceral Loss Notice & Care Tips */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px] leading-relaxed print-avoid-break">
+            {/* Visceral Loss Notice */}
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+              <div className="font-bold text-slate-900 text-xs flex items-center gap-1">
+                <span>⚖️</span>
+                <span>Net Weight &amp; Visceral Loss Disclosure</span>
+              </div>
+              <p className="text-slate-600 text-[10.5px]">
+                Live trout is weighed whole at harvest. During hygienic gutting, gills and entrails are carefully removed, resulting in a standard natural loss of <strong>12% to 18%</strong> in weight. You receive 100% wholesome, clean, ready-to-cook mountain trout!
+              </p>
             </div>
-            <p className="text-slate-600 text-[11px] leading-relaxed">
-              Fresh Himalayan Rainbow Trout is weighed whole at live harvest. During professional hygienic cleaning &amp; gutting, the entrails, gills, and internal viscera are thoroughly removed and washed. This results in a natural, standard visceral loss of <strong>12% to 18%</strong> in total weight. You receive 100% wholesome, clean, ready-to-cook meat with zero kitchen waste!
-            </p>
-          </div>
 
-          {/* ─── FRESH TROUT CULINARY TIPS & CARE ─── */}
-          <div className="border border-slate-300 rounded-2xl p-4 text-xs text-slate-800 space-y-2">
-            <div className="font-bold text-slate-900 text-sm flex items-center gap-1.5">
-              <span>🐟</span>
-              <span>Fresh Trout Culinary Tips &amp; Care</span>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px] leading-relaxed">
-              <div className="bg-emerald-50/70 p-3 rounded-xl border border-emerald-200/80">
-                <p className="font-bold text-emerald-900 mb-1">✅ DO&apos;S (Gourmet Tips):</p>
-                <ul className="text-slate-700 list-disc pl-4 space-y-1">
-                  <li>Store in refrigerator (0°C–4°C) until ready to cook to lock in natural mountain sweetness.</li>
-                  <li>Best cooked fresh within 24–48 hours for prime mountain spring flavour.</li>
-                  <li>Rinse gently under cold running water before seasoning.</li>
-                  <li>Trout cooks quickly (6–8 mins gentle heat)—cook lightly to preserve tenderness &amp; rich omega-3 oils.</li>
-                </ul>
+            {/* Culinary Care */}
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
+              <div className="font-bold text-slate-900 text-xs flex items-center gap-1">
+                <span>🐟</span>
+                <span>Culinary &amp; Freshness Care</span>
               </div>
-              <div className="bg-rose-50/70 p-3 rounded-xl border border-rose-200/80">
-                <p className="font-bold text-rose-900 mb-1">❌ DON&apos;TS:</p>
-                <ul className="text-slate-700 list-disc pl-4 space-y-1">
-                  <li>Do NOT wash with warm or hot water (preserves delicate flaky texture).</li>
-                  <li>Do NOT leave fish standing at room temperature.</li>
-                  <li>Do NOT refreeze once thawed.</li>
-                  <li>Do NOT overcook—gentle pan-fry, bake, or steam yields the juiciest results!</li>
-                </ul>
-              </div>
+              <p className="text-slate-600 text-[10.5px]">
+                Keep refrigerated (0°C–4°C) and best cooked fresh within 24–48 hours. Rinse gently in cold water. Trout cooks quickly (6–8 mins gentle heat) to preserve natural mountain sweetness and rich omega-3 oils.
+              </p>
             </div>
           </div>
 
-          {/* Footer Note */}
-          <div className="text-center pt-2 text-xs text-slate-500 leading-tight">
-            <p className="font-semibold text-slate-700">Fresh Live RAS Tank Harvested Trout</p>
-            <p className="mt-0.5">Live mountain spring harvest • Best enjoyed fresh within 48 hours.</p>
-            <p className="font-mono text-[10px] text-slate-400 mt-1">Thank you for supporting sustainable Kashmiri aquaculture!</p>
+          {/* 7. Sign-off & Support Footer */}
+          <div className="pt-3 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-left text-[10.5px] text-slate-500 font-mono print-avoid-break">
+            <div>
+              <p className="font-bold text-slate-700 font-sans">Thank you for supporting sustainable Kashmiri aquaculture!</p>
+              <p>For inquiries, bulk orders, or chef support: +91 84910 06127 · info.urbantrout@gmail.com</p>
+            </div>
+            <div className="text-right shrink-0">
+              <p className="font-bold text-slate-800">Urban Trout Aquaculture</p>
+              <p className="text-[10px] text-slate-400">Computer Generated Official Tax Invoice</p>
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Global Print Media CSS injection for Executive A4 Portrait Output */}
+      <style jsx global>{`
+        @media print {
+          html,
+          body {
+            background-color: #ffffff !important;
+            color: #000000 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+
+          @page {
+            size: A4 portrait !important;
+            margin: 8mm 10mm !important;
+          }
+
+          /* Hide all chrome and navigational elements */
+          header,
+          footer,
+          nav,
+          aside,
+          .print\\:hidden,
+          #header,
+          #footer {
+            display: none !important;
+          }
+
+          .invoice-page-wrapper {
+            background-color: #ffffff !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            min-height: auto !important;
+            width: 100% !important;
+          }
+
+          .invoice-max-width {
+            max-width: 100% !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+
+          #printable-invoice {
+            max-width: 100% !important;
+            width: 100% !important;
+            margin: 0 !important;
+            padding: 4mm !important;
+            border: none !important;
+            box-shadow: none !important;
+            border-radius: 0 !important;
+            color: #000000 !important;
+          }
+
+          .print-avoid-break {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+          }
+        }
+      `}</style>
     </div>
   );
 }

@@ -228,6 +228,7 @@ This is an automated system-generated billing update regarding your recent order
 *Statement Details:*
 • *Order / Invoice Ref:* #${record.invoice_id}
 • *Date:* ${formatSafeDate(record.created_at)}
+• *Official A4 Tax Invoice PDF:* https://urbantrout.in/invoice/${record.invoice_id}?format=a4
 • *Order Items:* ${record.items_summary || "Fresh Rainbow Trout"}
 
 *Payment Breakdown:*
@@ -508,9 +509,21 @@ Helpline: +91 84910 06127`;
               <h3 className="font-bold text-white text-base" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
                 Razorpay Payment Link &amp; Balance Reminder
               </h3>
-              <p className="text-slate-400 text-xs font-mono">
-                Invoice #{record.invoice_id} · {record.customer_name}
-              </p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-slate-400 text-xs font-mono">
+                  Invoice #{record.invoice_id} · {record.customer_name}
+                </span>
+                <a
+                  href={`/invoice/${record.invoice_id}?format=a4&autoprint=true`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-2 py-0.5 rounded-md bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-[10px] font-bold font-mono transition-all inline-flex items-center gap-1 cursor-pointer"
+                  title="Open & Download Official A4 Tax Invoice PDF"
+                >
+                  <span className="material-symbols-outlined text-xs">picture_as_pdf</span>
+                  <span>A4 PDF</span>
+                </a>
+              </div>
             </div>
           </div>
           <button

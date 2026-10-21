@@ -971,6 +971,9 @@ ${detailsSection}
 *TAP TO PAY SECURELY*
 ${payUrl || "Scan our J&K Bank Soundbox Counter QR upon collection"}
 
+📄 *Official A4 Tax Invoice PDF:*
+https://urbantrout.in/invoice/${dealNum}?format=a4
+
 > *Amount Locked:* Rs. ${combinedDealTotal.toLocaleString("en-IN")} (Exact billing)
 > *Instant Confirmation:* Payment verifies automatically via UPI, Google Pay, PhonePe, Paytm, or Card. No screenshot required.
 
