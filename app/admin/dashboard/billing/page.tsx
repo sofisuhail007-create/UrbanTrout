@@ -3254,31 +3254,18 @@ Helpline: +91 84910 06127`;
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-1.5 w-full">
+                    <div className="w-full">
                       <button
                         type="button"
                         onClick={() => {
                           setLastSoundboxAmount(grandTotal);
                           setEnlargeQrModal(true);
                         }}
-                        className="py-2.5 px-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-[10.5px] uppercase tracking-wider shadow-md shadow-emerald-500/20 transition-all flex items-center justify-center gap-1 cursor-pointer"
+                        className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-md shadow-emerald-500/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                         style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                       >
-                        <span className="material-symbols-outlined text-sm">fullscreen</span>
+                        <span className="material-symbols-outlined text-base">fullscreen</span>
                         {grandTotal !== lastSoundboxAmount ? "Update & Open QR" : "Open QR Popup"}
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSoundboxPaid(true);
-                          playSuccessChime();
-                          speakPaymentAnnouncement(grandTotal, "Soundbox", customerName);
-                        }}
-                        className="py-2.5 px-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 font-black text-[10.5px] uppercase tracking-wider transition-all flex items-center justify-center gap-1 cursor-pointer shadow-sm"
-                        style={{ fontFamily: '"Space Grotesk", sans-serif' }}
-                      >
-                        <span>🔊</span>
-                        Soundbox Heard ✓
                       </button>
                     </div>
 
@@ -4876,7 +4863,7 @@ Helpline: +91 84910 06127`;
                       URBAN TROUT
                     </span>
                     <span className="text-[9px] uppercase font-mono font-bold tracking-widest px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                      {paymentMethod === "JkBankSoundbox" ? `Soundbox • ${terminalId}` : "BharatQR"}
+                      {paymentMethod === "JkBankSoundbox" ? `Instant UPI QR • ${terminalId}` : "BharatQR"}
                     </span>
                   </div>
                   <p className="text-[10px] text-slate-400 font-mono">
@@ -5135,27 +5122,12 @@ Helpline: +91 84910 06127`;
                     </div>
                   )}
 
-                  {/* Cashier In-Modal Actions */}
-                  <div className="space-y-1.5 pt-1">
-                    {paymentMethod === "JkBankSoundbox" && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSoundboxPaid(true);
-                          playSuccessChime();
-                          speakPaymentAnnouncement(grandTotal, "Soundbox", customerName);
-                        }}
-                        className="w-full py-2.5 sm:py-3 px-3 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs uppercase tracking-wider transition-all shadow-md shadow-emerald-500/25 flex items-center justify-center gap-1.5 cursor-pointer"
-                        style={{ fontFamily: '"Space Grotesk", sans-serif' }}
-                      >
-                        <span className="text-sm">🔊</span>
-                        <span>Soundbox Heard (Mark Paid ✓)</span>
-                      </button>
-                    )}
+                  {/* Modal Actions */}
+                  <div className="pt-2">
                     <button
                       type="button"
                       onClick={() => setEnlargeQrModal(false)}
-                      className="w-full py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer"
+                      className="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer"
                     >
                       Back to POS Bill (Esc)
                     </button>
@@ -5248,10 +5220,6 @@ Helpline: +91 84910 06127`;
                       >
                         {copiedUpi ? "✓ Copied" : "Copy"}
                       </button>
-                    </div>
-
-                    <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-[10px] text-emerald-300 font-mono text-center leading-snug">
-                      🔊 <strong>Soundbox Voice Alert Active:</strong> Counter speaker announces receipt immediately when customer completes payment.
                     </div>
                   </div>
                 </div>

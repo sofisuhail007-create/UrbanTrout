@@ -1806,38 +1806,19 @@ Naseem Bagh / Malabagh, Srinagar`;
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-1.5 w-full">
+                <div className="w-full">
                   <button
                     type="button"
                     onClick={() => {
                       setLastGeneratedDealAmount(combinedDealTotal);
                       setCustomerDisplayOpen(true);
                     }}
-                    className="py-2.5 px-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-[10.5px] uppercase tracking-wider shadow-md shadow-emerald-500/20 transition-all flex items-center justify-center gap-1 cursor-pointer"
+                    className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-md shadow-emerald-500/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
                     style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                   >
-                    <span className="material-symbols-outlined text-sm">fullscreen</span>
+                    <span className="material-symbols-outlined text-base">fullscreen</span>
                     {combinedDealTotal !== lastGeneratedDealAmount ? "Update & Open QR" : "Open Customer QR"}
                   </button>
-                  {qrEngine === "soundbox" ? (
-                    <button
-                      type="button"
-                      onClick={handleConfirmSoundboxPaid}
-                      className="py-2.5 px-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 font-black text-[10.5px] uppercase tracking-wider transition-all flex items-center justify-center gap-1 cursor-pointer shadow-sm"
-                      style={{ fontFamily: '"Space Grotesk", sans-serif' }}
-                    >
-                      <span>🔊</span>
-                      Soundbox Paid ✓
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => handleGenerateLockedQr(true)}
-                      className="py-2.5 px-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-[10.5px] uppercase tracking-wider transition-all cursor-pointer"
-                    >
-                      ↻ Refresh QR
-                    </button>
-                  )}
                 </div>
 
                 {/* Optional Collapsible Inline View */}
@@ -1920,7 +1901,7 @@ Naseem Bagh / Malabagh, Srinagar`;
                       URBAN TROUT
                     </span>
                     <span className="text-[9px] uppercase font-mono font-bold tracking-widest px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                      {qrEngine === "soundbox" ? `Soundbox • ${terminalId}` : "BharatQR Auto"}
+                      Instant UPI QR • Counter
                     </span>
                   </div>
                   <p className="text-[10px] text-slate-400 font-mono">
@@ -1963,25 +1944,13 @@ Naseem Bagh / Malabagh, Srinagar`;
                   </div>
                 )}
 
-                <div className="flex flex-col sm:flex-row gap-2.5 pt-2 max-w-md mx-auto">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setCustomerDisplayOpen(false);
-                      handlePushToBillAction();
-                    }}
-                    className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs uppercase tracking-wider transition-all shadow-md shadow-emerald-500/25 cursor-pointer flex items-center justify-center gap-1.5"
-                    style={{ fontFamily: '"Space Grotesk", sans-serif' }}
-                  >
-                    <span className="material-symbols-outlined text-base">shopping_cart_checkout</span>
-                    Push to Counter Bill
-                  </button>
+                <div className="pt-2 max-w-xs mx-auto">
                   <button
                     type="button"
                     onClick={() => setCustomerDisplayOpen(false)}
-                    className="py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer"
+                    className="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer"
                   >
-                    Close View
+                    Close View (Esc)
                   </button>
                 </div>
               </div>
@@ -2193,34 +2162,12 @@ Naseem Bagh / Malabagh, Srinagar`;
                     </div>
                   )}
 
-                  {/* Cashier In-Modal Actions */}
-                  <div className="space-y-1.5 pt-1">
-                    {qrEngine === "soundbox" && (
-                      <button
-                        type="button"
-                        onClick={handleConfirmSoundboxPaid}
-                        className="w-full py-2.5 sm:py-3 px-3 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs uppercase tracking-wider transition-all shadow-md shadow-emerald-500/25 flex items-center justify-center gap-1.5 cursor-pointer"
-                        style={{ fontFamily: '"Space Grotesk", sans-serif' }}
-                      >
-                        <span className="text-sm">🔊</span>
-                        <span>Soundbox Heard (Mark Paid ✓)</span>
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCustomerDisplayOpen(false);
-                        handlePushToBillAction();
-                      }}
-                      className="w-full py-2.5 px-3 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1.5"
-                    >
-                      <span className="material-symbols-outlined text-sm">shopping_cart_checkout</span>
-                      <span>Push to Counter Bill</span>
-                    </button>
+                  {/* Customer Modal Actions */}
+                  <div className="pt-2">
                     <button
                       type="button"
                       onClick={() => setCustomerDisplayOpen(false)}
-                      className="w-full py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer"
+                      className="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer"
                     >
                       Close Customer View (Esc)
                     </button>
@@ -2265,10 +2212,6 @@ Naseem Bagh / Malabagh, Srinagar`;
                       >
                         {copiedUpi ? "✓ Copied" : "Copy"}
                       </button>
-                    </div>
-
-                    <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-[10px] text-emerald-300 font-mono text-center leading-snug">
-                      🔊 <strong>Soundbox Voice Alert Active:</strong> Counter speaker announces receipt immediately when customer completes payment.
                     </div>
                   </div>
                 </div>
