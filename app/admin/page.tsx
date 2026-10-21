@@ -11,7 +11,19 @@ export default function AdminLoginPage() {
 
   // ─── Auto-Redirect if Real Supabase Session is Active ─────────────
   useEffect(() => {
+    let isMounted = true;
+
+    // Safety timeout: Never leave user stuck on "Restoring admin session" for more than 1.8 seconds
+    const safetyTimer = setTimeout(() => {
+      if (isMounted) {
+        setCheckingSession(false);
+      }
+    }, 1800);
+
     supabase.auth.getSession().then(({ data: { session } }) => {
+      clearTimeout(safetyTimer);
+      if (!isMounted) return;
+
       if (session?.user?.email) {
         const email = session.user.email.toLowerCase().trim();
         const isOwner = email === "sofisuhail007@gmail.com" || email === "founder@urbantrout.in" || email === "admin@urbantrout.in" || email === "info.urbantrout@gmail.com";
@@ -20,17 +32,27 @@ export default function AdminLoginPage() {
         if (isOwner) {
           localStorage.setItem("ut_admin_role", "super_admin");
         }
-        router.replace("/admin/dashboard");
+        // Force full page navigation to prevent stale Next.js router chunk caching across deployments
+        window.location.replace("/admin/dashboard");
         return;
       }
       // No active session — clear any stale fake localStorage tokens
       localStorage.removeItem("ut_admin_auth");
       sessionStorage.removeItem("ut_admin_auth");
       setCheckingSession(false);
-    }).catch(() => {
-      setCheckingSession(false);
+    }).catch((err) => {
+      clearTimeout(safetyTimer);
+      if (isMounted) {
+        console.warn("Session check error:", err);
+        setCheckingSession(false);
+      }
     });
-  }, [router]);
+
+    return () => {
+      isMounted = false;
+      clearTimeout(safetyTimer);
+    };
+  }, []);
 
   // ─── Google OAuth Sign-In (Exclusive Auth Method) ─────────────
   const handleGoogleLogin = async () => {
@@ -73,9 +95,18 @@ export default function AdminLoginPage() {
   if (checkingSession) {
     return (
       <div className="min-h-screen bg-[#020d12] flex items-center justify-center px-4">
-        <div className="text-center space-y-4">
+        <div className="text-center space-y-4 max-w-xs">
           <div className="w-10 h-10 rounded-full border-2 border-cyan-500 border-t-transparent animate-spin mx-auto" />
           <p className="text-xs text-slate-400 font-mono">Restoring admin session…</p>
+          <div>
+            <button
+              type="button"
+              onClick={() => setCheckingSession(false)}
+              className="text-[11px] text-cyan-400 hover:text-cyan-300 font-mono cursor-pointer underline underline-offset-2 transition-colors"
+            >
+              Skip to Sign In →
+            </button>
+          </div>
         </div>
       </div>
     );
