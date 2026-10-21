@@ -4297,13 +4297,13 @@ Helpline: +91 84910 06127`;
                               <span>{copiedInvoiceId === order.id ? "Copied!" : "Copy Link"}</span>
                             </button>
                             <a
-                              href={`/invoice/${order.data?.num || invNum || order.id}?autoprint=true`}
+                              href={`/invoice/${order.data?.num || invNum || order.id}?download=true`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 hover:border-slate-500 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer"
-                              title="Open & Download Official A4 Tax Invoice PDF"
+                              title="Direct Download Official 1-Page A4 Tax Invoice PDF"
                             >
-                              <span>📄</span>
+                              <span>📥</span>
                               <span>PDF</span>
                             </a>
                             <button
@@ -4386,13 +4386,13 @@ Helpline: +91 84910 06127`;
                               <span>Paid</span>
                             </button>
                             <a
-                              href={`/invoice/${order.data?.num || invNum || order.id}?autoprint=true`}
+                              href={`/invoice/${order.data?.num || invNum || order.id}?download=true`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="py-1.5 px-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer"
-                              title="Open & Download Official A4 Tax Invoice PDF"
+                              title="Direct Download Official 1-Page A4 Tax Invoice PDF"
                             >
-                              <span>📄</span>
+                              <span>📥</span>
                               <span>PDF</span>
                             </a>
                             <button
@@ -4453,14 +4453,14 @@ Helpline: +91 84910 06127`;
                                 </button>
 
                                 <a
-                                  href={`/invoice/${order.data?.num || invNum || order.id}?autoprint=true`}
+                                  href={`/invoice/${order.data?.num || invNum || order.id}?download=true`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="py-1.5 px-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer"
-                                  title="Open & Download Official A4 Tax Invoice PDF"
+                                  title="Direct Download Official 1-Page A4 Tax Invoice PDF"
                                 >
-                                  <span>📄</span>
-                                  <span>A4 PDF</span>
+                                  <span>📥</span>
+                                  <span>PDF</span>
                                 </a>
                               </div>
 
@@ -4752,14 +4752,14 @@ Helpline: +91 84910 06127`;
                   type="button"
                   onClick={() => {
                     const origin = typeof window !== "undefined" ? window.location.origin : "https://urbantrout.in";
-                    const url = `${origin}/invoice/${generatedInvoice.invoiceNumber}?format=a4&autoprint=true`;
+                    const url = `${origin}/invoice/${generatedInvoice.invoiceNumber}?download=true`;
                     window.open(url, "_blank");
                   }}
                   className="flex-1 sm:flex-initial py-2 px-2.5 sm:px-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1 border border-slate-700 transition-all cursor-pointer shadow-sm"
-                  title="Open & Download Official A4 Tax Invoice PDF"
+                  title="Direct Download Official 1-Page A4 Tax Invoice PDF"
                 >
-                  <span>📄</span>
-                  <span className="truncate">A4 PDF</span>
+                  <span>📥</span>
+                  <span className="truncate">Download PDF</span>
                 </button>
 
                 <button
@@ -6252,15 +6252,15 @@ Helpline: +91 84910 06127`;
                   </button>
                 </div>
 
-                {/* 📄 Open / Download Official A4 Invoice PDF */}
+                {/* 📄 Direct Download Official 1-Page A4 Invoice PDF */}
                 <a
-                  href={`${newRemoteGeneratedData.invoiceUrl}?format=a4&autoprint=true`}
+                  href={`${newRemoteGeneratedData.invoiceUrl}?download=true`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-cyan-500/25 to-teal-500/25 hover:from-cyan-500/35 hover:to-teal-500/35 text-cyan-200 font-mono text-xs font-bold border border-cyan-500/40 flex items-center justify-center gap-1.5 cursor-pointer transition-all shadow-sm"
+                  className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-600/25 to-teal-600/25 hover:from-emerald-600/35 hover:to-teal-600/35 text-emerald-200 font-mono text-xs font-bold border border-emerald-500/40 flex items-center justify-center gap-1.5 cursor-pointer transition-all shadow-sm"
                 >
-                  <span>📄</span>
-                  <span>Open / Download A4 Invoice PDF</span>
+                  <span>📥</span>
+                  <span>Direct Download 1-Page A4 Invoice PDF</span>
                 </a>
 
                 {/* Secondary Actions: Copy Link Only & UPI ID / Email */}

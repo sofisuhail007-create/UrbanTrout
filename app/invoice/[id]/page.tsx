@@ -5,6 +5,7 @@ import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import FourUpInvoiceSheet, { InvoiceSlipData } from "@/components/FourUpInvoiceSheet";
 import { numberToIndianWords } from "@/lib/numberWords";
+import { downloadElementAsSinglePagePdf } from "@/lib/pdfGenerator";
 
 interface DecodedInvoice {
   invoiceNumber: string;
@@ -261,11 +262,30 @@ export default function PublicInvoicePage() {
     if (rawParam) loadInvoice();
   }, [rawParam]);
 
-  // Handle auto-print if ?autoprint=true or ?pdf=true in URL
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+
+  const handleDirectDownloadPdf = async () => {
+    if (!invoice) return;
+    setDownloadingPdf(true);
+    try {
+      const filename = `UrbanTrout-Invoice-${invoice.invoiceNumber || rawParam}.pdf`;
+      await downloadElementAsSinglePagePdf("printable-invoice", filename);
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
+
+  // Handle auto-download or auto-print if ?download=true, ?pdf=true, or ?autoprint=true in URL
   useEffect(() => {
     if (!loading && invoice && !autoPrintedRef.current) {
       const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get("autoprint") === "true" || urlParams.get("pdf") === "true") {
+      if (urlParams.get("download") === "true" || urlParams.get("pdf") === "true") {
+        autoPrintedRef.current = true;
+        const timer = setTimeout(() => {
+          handleDirectDownloadPdf();
+        }, 800);
+        return () => clearTimeout(timer);
+      } else if (urlParams.get("autoprint") === "true") {
         autoPrintedRef.current = true;
         const timer = setTimeout(() => {
           window.print();
@@ -475,7 +495,7 @@ export default function PublicInvoicePage() {
         {/* ─── PRINTABLE A4 INVOICE SHEET ─── */}
         <div
           id="printable-invoice"
-          className="bg-white text-slate-950 rounded-2xl p-6 sm:p-9 shadow-2xl border border-slate-200 font-sans space-y-5"
+          className="bg-white text-slate-950 rounded-2xl p-5 sm:p-7 shadow-2xl border border-slate-200 font-sans space-y-4"
         >
           {/* 1. Official Header */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b-2 border-slate-900">
@@ -506,12 +526,22 @@ export default function PublicInvoicePage() {
                 </span>
                 <button
                   type="button"
+                  onClick={handleDirectDownloadPdf}
+                  disabled={downloadingPdf}
+                  className="print:hidden py-1 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-bold text-[11px] font-mono flex items-center gap-1.5 cursor-pointer transition-all shadow-sm disabled:opacity-50"
+                  title="Direct Download Official 1-Page A4 PDF"
+                >
+                  <span>{downloadingPdf ? "⏳" : "📥"}</span>
+                  <span>{downloadingPdf ? "Saving PDF..." : "DOWNLOAD INVOICE PDF"}</span>
+                </button>
+                <button
+                  type="button"
                   onClick={() => window.print()}
                   className="print:hidden py-1 px-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 font-bold text-[11px] font-mono flex items-center gap-1 cursor-pointer transition-all shadow-sm active:scale-95"
-                  title="Download or Print Invoice PDF"
+                  title="Print Invoice"
                 >
-                  <span>📄</span>
-                  <span>Print / PDF</span>
+                  <span>🖨️</span>
+                  <span>Print</span>
                 </button>
               </div>
               <p className="text-[11px] font-mono font-bold text-slate-700 mt-1">
