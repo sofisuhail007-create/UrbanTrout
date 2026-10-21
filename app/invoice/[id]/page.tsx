@@ -459,51 +459,11 @@ export default function PublicInvoicePage() {
   return (
     <div className="invoice-page-wrapper min-h-screen bg-[#020d12] py-6 px-3 sm:px-6">
       <div className="invoice-max-width max-w-3xl mx-auto space-y-4">
-        {/* Top Controls Toolbar (Hidden in Print) */}
-        <div className="flex items-center justify-between print:hidden gap-2 flex-wrap bg-slate-900/90 border border-slate-800 p-3 rounded-2xl shadow-xl">
-          <Link href="/" className="flex items-center gap-2">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/headerfooterlogo.png" alt="Urban Trout" className="h-7 w-auto object-contain" />
-          </Link>
-
-          <div className="flex items-center gap-2 flex-wrap">
-            <button
-              type="button"
-              onClick={handleShareWhatsApp}
-              className="py-2 px-3 rounded-xl bg-green-500/20 hover:bg-green-500/30 text-green-300 border border-green-500/40 font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
-              title="Share Invoice Link on WhatsApp"
-            >
-              <span className="material-symbols-outlined text-sm">chat</span>
-              <span>WhatsApp</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={copyInvoiceLink}
-              className="py-2 px-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase tracking-wider flex items-center gap-1 border border-slate-700 transition-all cursor-pointer"
-              title="Copy Invoice Link"
-            >
-              <span className="material-symbols-outlined text-sm">link</span>
-              <span>{copiedLink ? "Copied! ✓" : "Copy Link"}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => window.print()}
-              className="py-2 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-teal-400 hover:from-cyan-400 hover:to-teal-300 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-cyan-500/25 cursor-pointer active:scale-95 transition-all"
-              title="Download or Print Invoice PDF"
-            >
-              <span className="material-symbols-outlined text-base">picture_as_pdf</span>
-              <span>Download Invoice PDF</span>
-            </button>
-          </div>
-        </div>
-
         {/* 48-Hour Timer Badge (Hidden in Print) */}
         {invoice.expiresInHours !== undefined && (
           <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-between text-amber-400 text-xs font-semibold print:hidden">
             <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-base">timer</span>
+              <span>⏱️</span>
               <span>Live Tax Invoice &amp; Payment Desk</span>
             </div>
             <span className="font-mono bg-amber-500/20 px-2 py-0.5 rounded text-[11px]">
@@ -540,8 +500,19 @@ export default function PublicInvoicePage() {
             </div>
 
             <div className="text-left sm:text-right shrink-0">
-              <div className="inline-block px-3 py-1 rounded-md bg-slate-900 text-white text-[11px] font-black uppercase tracking-widest">
-                TAX INVOICE
+              <div className="flex items-center sm:justify-end gap-2 flex-wrap">
+                <span className="inline-block px-3 py-1 rounded-md bg-slate-900 text-white text-[11px] font-black uppercase tracking-widest font-mono">
+                  TAX INVOICE
+                </span>
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="print:hidden py-1 px-2.5 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 font-bold text-[11px] font-mono flex items-center gap-1 cursor-pointer transition-all shadow-sm active:scale-95"
+                  title="Download or Print Invoice PDF"
+                >
+                  <span>📄</span>
+                  <span>Print / PDF</span>
+                </button>
               </div>
               <p className="text-[11px] font-mono font-bold text-slate-700 mt-1">
                 GSTIN: <span className="font-normal text-slate-600">Exempt (0% Farm Produce)</span>
