@@ -406,8 +406,9 @@ export default function POSBillingPage() {
       const tab = params.get("tab");
       if (tab === "customer_balances" || tab === "balances" || tab === "khata") {
         setActiveTab("customer_balances");
-      } else if (tab === "remote_orders") {
+      } else if (tab === "remote_orders" || tab === "invoices" || tab === "invoice" || tab === "all_invoices") {
         setActiveTab("remote_orders");
+        fetchRemoteOrders();
       } else if (tab === "deal_calculator") {
         setActiveTab("deal_calculator");
       }
@@ -2638,7 +2639,7 @@ Helpline: +91 84910 06127`;
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-1">
               <span className={`text-xs sm:text-sm font-bold truncate ${activeTab === "remote_orders" ? "text-emerald-200" : "text-white"}`}>
-                Invoices &amp; Remote
+                All Invoices
               </span>
               {pendingRemoteCount > 0 && (
                 <span className="px-1.5 py-0.5 rounded-full bg-amber-500/25 border border-amber-500/50 text-amber-300 text-[10px] font-mono font-bold animate-pulse shrink-0">
@@ -2647,7 +2648,7 @@ Helpline: +91 84910 06127`;
               )}
             </div>
             <p className="text-[10px] sm:text-[11px] text-slate-400 truncate mt-0.5">
-              All Invoices, 48h Links &amp; Expiry
+              Live Bills, 48h Links &amp; Expiry
             </p>
           </div>
         </button>

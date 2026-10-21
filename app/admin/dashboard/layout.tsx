@@ -39,11 +39,20 @@ const NAV_GROUPS: NavGroup[] = [
       {
         href: "/admin/dashboard/billing",
         icon: "point_of_sale",
-        label: "POS Billing / Invoices",
+        label: "POS Counter Billing",
         permKey: "billing",
         badge: "Live",
         badgeType: "live",
         activeTheme: "emerald",
+      },
+      {
+        href: "/admin/dashboard/billing?tab=invoices",
+        icon: "receipt_long",
+        label: "All Invoices Desk",
+        permKey: "billing",
+        badge: "New",
+        badgeType: "new",
+        activeTheme: "cyan",
       },
       {
         href: "/admin/dashboard/vending-log",
