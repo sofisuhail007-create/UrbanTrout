@@ -109,7 +109,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [adminEmail, setAdminEmail] = useState<string>("");
   const [adminRole, setAdminRole] = useState<string>("staff");
   const [adminName, setAdminName] = useState<string>("Suhail");
-  const [uiZoom, setUiZoom] = useState<string>("100");
   const [permissions, setPermissions] = useState<StaffPermissions>({
     billing: true,
     orders: true,
@@ -123,17 +122,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   });
 
   useEffect(() => {
+    // Force default 100% scale
     try {
-      const saved = localStorage.getItem("ut_admin_ui_zoom");
-      if (saved === "100" || saved === "90" || saved === "85") {
-        setUiZoom(saved);
-      }
+      localStorage.removeItem("ut_admin_ui_zoom");
     } catch {}
-
-    const handleZoomEvent = (e: any) => {
-      if (e.detail) setUiZoom(e.detail);
-    };
-    window.addEventListener("ut_admin_ui_zoom_change", handleZoomEvent);
 
     // Prevent mouse wheel from incrementing/decrementing number inputs across the entire admin panel
     const handleWheel = (e: WheelEvent) => {
@@ -154,18 +146,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     window.addEventListener("wheel", handleWheel, { passive: false });
 
     return () => {
-      window.removeEventListener("ut_admin_ui_zoom_change", handleZoomEvent);
       window.removeEventListener("wheel", handleWheel);
     };
   }, []);
-
-  const handleSetUiZoom = (val: string) => {
-    setUiZoom(val);
-    try {
-      localStorage.setItem("ut_admin_ui_zoom", val);
-    } catch {}
-    window.dispatchEvent(new CustomEvent("ut_admin_ui_zoom_change", { detail: val }));
-  };
 
   // ─── 5-MINUTE INACTIVITY AUTO-HOMEPAGE TO POS BILLING ───
   useEffect(() => {
@@ -604,37 +587,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           ))}
         </nav>
 
-        {/* Admin UI Zoom / Display Scale */}
-        {(!collapsed || mobileMenuOpen) && (
-          <div className="px-2.5 py-2 flex items-center justify-between text-slate-400 text-[11px] font-mono border-t border-slate-800/80">
-            <span className="flex items-center gap-1 text-slate-400 font-bold">
-              <span className="material-symbols-outlined text-[13px] text-cyan-400">fit_screen</span>
-              <span>UI Scale</span>
-            </span>
-            <div className="flex items-center gap-1 bg-slate-950/80 p-0.5 rounded-lg border border-slate-800">
-              {[
-                { id: "100", label: "100%" },
-                { id: "90", label: "90%" },
-                { id: "85", label: "85%" },
-              ].map((z) => (
-                <button
-                  key={z.id}
-                  type="button"
-                  onClick={() => handleSetUiZoom(z.id)}
-                  className={`px-1.5 py-0.5 rounded text-[10px] font-bold transition-all cursor-pointer ${
-                    uiZoom === z.id
-                      ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 shadow-sm"
-                      : "text-slate-500 hover:text-slate-300"
-                  }`}
-                  title={z.id === "90" ? "90% Compact (Recommended for laptops)" : `${z.label} Scale`}
-                >
-                  {z.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Admin Profile & Logout */}
         <div className="px-2.5 pb-3 border-t border-slate-800/80 pt-3 space-y-2 flex-shrink-0">
           {(!collapsed || mobileMenuOpen) && adminEmail && (
@@ -674,12 +626,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </aside>
 
       {/* ─── MAIN CONTENT AREA (Full Mobile Responsive) ─── */}
-      <main
-        style={{
-          zoom: uiZoom === "90" ? 0.9 : uiZoom === "85" ? 0.85 : undefined,
-        }}
-        className="flex-1 min-w-0 overflow-y-auto relative pb-24 md:pb-6 overscroll-contain"
-      >
+      <main className="flex-1 min-w-0 overflow-y-auto relative pb-24 md:pb-6 overscroll-contain">
 
         {isRouteBlocked ? (
           <div className="flex items-center justify-center min-h-[80vh] p-4 text-center">

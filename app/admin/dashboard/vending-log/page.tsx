@@ -4636,34 +4636,6 @@ export default function VendingCenterLoggerPage() {
               </button>
             )}
 
-            {/* Display Scale (Zoom) Quick Control */}
-            {isAdmin && (
-              <div className="hidden sm:flex items-center bg-slate-900/90 p-0.5 rounded-xl border border-slate-800 text-xs font-mono">
-                <span className="text-[10px] text-slate-500 px-2 flex items-center gap-1">
-                  <span className="material-symbols-outlined text-[12px] text-cyan-400">fit_screen</span>
-                  Scale:
-                </span>
-                {[
-                  { id: "100", label: "100%" },
-                  { id: "90", label: "90%" },
-                  { id: "85", label: "85%" },
-                ].map((z) => (
-                  <button
-                    key={z.id}
-                    type="button"
-                    onClick={() => handleSetUiZoom(z.id)}
-                    className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
-                      uiZoom === z.id
-                        ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm"
-                        : "text-slate-400 hover:text-white"
-                    }`}
-                    title={z.id === "90" ? "90% Compact (Recommended for laptops)" : `${z.label} UI Scale`}
-                  >
-                    {z.label}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
         </div>
 

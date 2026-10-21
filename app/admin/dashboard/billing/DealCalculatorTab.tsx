@@ -156,8 +156,8 @@ export default function DealCalculatorTab({
   );
 
   // Negotiation input states & mode (default: "rate" per kg rate as first option)
-  const [activeInputMode, setActiveInputMode] = useState<"total" | "rate" | "percent" | "flat">(
-    initialDraft?.activeInputMode || "rate"
+  const [activeInputMode, setActiveInputMode] = useState<"total" | "rate">(
+    initialDraft?.activeInputMode === "total" ? "total" : "rate"
   );
   const [dealTotalStr, setDealTotalStr] = useState<string>(
     initialDraft?.dealTotalStr !== undefined
@@ -531,23 +531,11 @@ export default function DealCalculatorTab({
     discountAmount = Math.max(0, standardTotal - dealTotal);
     discountPercent = standardTotal > 0 ? (discountAmount / standardTotal) * 100 : 0;
     lossPerKg = Math.max(0, standardRate - dealRate);
-  } else if (activeInputMode === "rate") {
+  } else {
     dealRate = Math.max(0, parseFloat(dealRateStr) || 0);
     dealTotal = Math.round(weight * dealRate);
     discountAmount = Math.max(0, standardTotal - dealTotal);
     discountPercent = standardTotal > 0 ? (discountAmount / standardTotal) * 100 : 0;
-    lossPerKg = Math.max(0, standardRate - dealRate);
-  } else if (activeInputMode === "percent") {
-    discountPercent = Math.max(0, Math.min(100, parseFloat(discountPercentStr) || 0));
-    discountAmount = Math.round(standardTotal * (discountPercent / 100));
-    dealTotal = Math.max(0, standardTotal - discountAmount);
-    dealRate = weight > 0 ? dealTotal / weight : 0;
-    lossPerKg = Math.max(0, standardRate - dealRate);
-  } else if (activeInputMode === "flat") {
-    discountAmount = Math.max(0, parseFloat(flatDiscountStr) || 0);
-    dealTotal = Math.max(0, standardTotal - discountAmount);
-    discountPercent = standardTotal > 0 ? (discountAmount / standardTotal) * 100 : 0;
-    dealRate = weight > 0 ? dealTotal / weight : 0;
     lossPerKg = Math.max(0, standardRate - dealRate);
   }
 
@@ -628,7 +616,7 @@ export default function DealCalculatorTab({
   };
 
   const applyDiscountPercent = (pct: number) => {
-    setActiveInputMode("percent");
+    setActiveInputMode("total");
     setDiscountPercentStr(String(pct));
     const disc = Math.round(standardTotal * (pct / 100));
     const tot = Math.max(0, standardTotal - disc);
@@ -650,7 +638,7 @@ export default function DealCalculatorTab({
   };
 
   const applyFlatDiscount = (cashOff: number) => {
-    setActiveInputMode("flat");
+    setActiveInputMode("total");
     setFlatDiscountStr(String(cashOff));
     const tot = Math.max(0, standardTotal - cashOff);
     const dRate = weight > 0 ? Math.round((tot / weight) * 10) / 10 : 0;
@@ -1304,21 +1292,19 @@ Naseem Bagh / Malabagh, Srinagar`;
               </div>
             </div>
 
-            {/* 4 Interactive Input Mode Tabs */}
-            <div className="grid grid-cols-4 gap-1 p-1 bg-slate-950 rounded-xl border border-slate-800 text-[10px] font-mono font-bold">
+            {/* 2 Interactive Negotiation Input Mode Tabs */}
+            <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-950 rounded-xl border border-slate-800 text-xs font-mono font-bold">
               {[
                 { id: "rate", label: "₹ / Kg Rate" },
                 { id: "total", label: "₹ Deal Total" },
-                { id: "percent", label: "% Discount" },
-                { id: "flat", label: "₹ Flat Off" },
               ].map((m) => (
                 <button
                   key={m.id}
                   type="button"
-                  onClick={() => setActiveInputMode(m.id as any)}
-                  className={`py-1.5 rounded-lg text-center transition-all cursor-pointer ${
+                  onClick={() => setActiveInputMode(m.id as "rate" | "total")}
+                  className={`py-2 rounded-lg text-center transition-all cursor-pointer ${
                     activeInputMode === m.id
-                      ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 shadow-sm"
+                      ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 shadow-sm font-black"
                       : "text-slate-400 hover:text-slate-200"
                   }`}
                 >
@@ -1390,62 +1376,6 @@ Naseem Bagh / Malabagh, Srinagar`;
                 <p className="text-[10px] text-slate-400 font-mono">
                   Standard is ₹{standardRate}/Kg. Enter the discounted rate per kg.
                 </p>
-              </div>
-            )}
-
-            {activeInputMode === "percent" && (
-              <div className="space-y-1">
-                <label className="text-xs text-slate-300 font-bold block">
-                  Discount Percentage (% Off for Item #{dealItems.findIndex((i) => i.id === (activeDealItem?.id || activeDealItemId)) + 1 || 1}):
-                </label>
-                <div className="relative">
-                  <input
-                    type="number"
-                    value={discountPercentStr}
-                    onFocus={(e) => e.target.select()}
-                    onWheel={(e) => (e.target as HTMLElement).blur()}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setDiscountPercentStr(val);
-                      if (val === "") return;
-                      const num = parseFloat(val);
-                      if (!isNaN(num)) applyDiscountPercent(num);
-                    }}
-                    placeholder="e.g. 10"
-                    className="w-full bg-slate-950 border-2 border-cyan-500/50 rounded-xl px-4 py-2 text-xl font-mono text-white font-black focus:outline-none focus:border-cyan-400"
-                  />
-                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-cyan-400 font-bold font-mono text-lg">
-                    %
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {activeInputMode === "flat" && (
-              <div className="space-y-1">
-                <label className="text-xs text-slate-300 font-bold block">
-                  Flat Cash Off Discount (₹ Less for Item #{dealItems.findIndex((i) => i.id === (activeDealItem?.id || activeDealItemId)) + 1 || 1}):
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-rose-400 font-bold font-mono text-lg">
-                    -₹
-                  </span>
-                  <input
-                    type="number"
-                    value={flatDiscountStr}
-                    onFocus={(e) => e.target.select()}
-                    onWheel={(e) => (e.target as HTMLElement).blur()}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setFlatDiscountStr(val);
-                      if (val === "") return;
-                      const num = parseFloat(val);
-                      if (!isNaN(num)) applyFlatDiscount(num);
-                    }}
-                    placeholder="e.g. 100"
-                    className="w-full bg-slate-950 border-2 border-cyan-500/50 rounded-xl pl-10 pr-4 py-2 text-xl font-mono text-white font-black focus:outline-none focus:border-cyan-400"
-                  />
-                </div>
               </div>
             )}
 

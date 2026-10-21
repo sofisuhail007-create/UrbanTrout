@@ -56,33 +56,12 @@ function getInitialProducts() {
   return DEFAULT_PRODUCTS;
 }
 
-const POS_DRAFT_CACHE_KEY = "ut_pos_billing_active_draft_v1";
-
-function getInitialPosDraft() {
-  if (typeof window !== "undefined") {
-    try {
-      const saved = localStorage.getItem(POS_DRAFT_CACHE_KEY);
-      if (saved) return JSON.parse(saved);
-    } catch (_) {}
-  }
-  return null;
-}
-
 export default function POSBillingPage() {
-  const initialPosDraft = useMemo(() => getInitialPosDraft(), []);
-
   const [products, setProducts] = useState<typeof DEFAULT_PRODUCTS>(() => getInitialProducts());
-  const [selectedProductId, setSelectedProductId] = useState<string>(
-    initialPosDraft?.selectedProductId || "gutted-trout"
-  );
-  const [currentWeight, setCurrentWeight] = useState<string>(
-    initialPosDraft?.currentWeight || "1.0"
-  );
+  const [selectedProductId, setSelectedProductId] = useState<string>("gutted-trout");
+  const [currentWeight, setCurrentWeight] = useState<string>("");
 
   const [billItems, setBillItems] = useState<BillItem[]>(() => {
-    if (initialPosDraft?.billItems && Array.isArray(initialPosDraft.billItems) && initialPosDraft.billItems.length > 0) {
-      return initialPosDraft.billItems;
-    }
     const prods = getInitialProducts();
     const defaultProd = prods.find((p) => p.id === "gutted-trout") || prods[0] || DEFAULT_PRODUCTS[0];
     return [
@@ -90,37 +69,23 @@ export default function POSBillingPage() {
         id: defaultProd.id,
         name: defaultProd.name,
         pricePerKg: defaultProd.pricePerKg,
-        weightKg: 1.0,
-        total: defaultProd.pricePerKg,
+        weightKg: 0,
+        total: 0,
         unit: "Kg",
       },
     ];
   });
 
   // POS Input Mode: "scale" (default fish weight calculator) or "custom_amount" (direct ₹ without kg)
-  const [posInputMode, setPosInputMode] = useState<"scale" | "custom_amount">(
-    initialPosDraft?.posInputMode || "scale"
-  );
-  const [customAmount, setCustomAmount] = useState<string>(
-    initialPosDraft?.customAmount || "500"
-  );
-  const [customNote, setCustomNote] = useState<string>(
-    initialPosDraft?.customNote || ""
-  );
+  const [posInputMode, setPosInputMode] = useState<"scale" | "custom_amount">("scale");
+  const [customAmount, setCustomAmount] = useState<string>("");
+  const [customNote, setCustomNote] = useState<string>("");
 
   // Customer Details
-  const [customerName, setCustomerName] = useState(
-    initialPosDraft?.customerName || ""
-  );
-  const [customerPhone, setCustomerPhone] = useState(
-    initialPosDraft?.customerPhone || ""
-  );
-  const [customerNotes, setCustomerNotes] = useState(
-    initialPosDraft?.customerNotes || ""
-  );
-  const [paymentMethod, setPaymentMethod] = useState<"JkBankSoundbox" | "RazorpayQR" | "WhatsAppLink" | "Cash">(
-    initialPosDraft?.paymentMethod || "JkBankSoundbox"
-  );
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [customerNotes, setCustomerNotes] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<"JkBankSoundbox" | "RazorpayQR" | "WhatsAppLink" | "Cash">("JkBankSoundbox");
   const [upiId, setUpiId] = useState("JKBMERC00828895@jkb");
   const [soundboxPaid, setSoundboxPaid] = useState(false);
   const [soundboxQrGenerated, setSoundboxQrGenerated] = useState(false);
@@ -241,37 +206,14 @@ export default function POSBillingPage() {
     );
   }, [remoteBillItems, activeRemoteItemId]);
 
-  // Auto-save active POS billing draft to localStorage
+  // Clean initial state on fresh load / refresh
   useEffect(() => {
     if (typeof window !== "undefined") {
       try {
-        const draft = {
-          billItems,
-          posInputMode,
-          customAmount,
-          customNote,
-          currentWeight,
-          selectedProductId,
-          customerName,
-          customerPhone,
-          customerNotes,
-          paymentMethod,
-        };
-        localStorage.setItem(POS_DRAFT_CACHE_KEY, JSON.stringify(draft));
+        localStorage.removeItem("ut_pos_billing_active_draft_v1");
       } catch (_) {}
     }
-  }, [
-    billItems,
-    posInputMode,
-    customAmount,
-    customNote,
-    currentWeight,
-    selectedProductId,
-    customerName,
-    customerPhone,
-    customerNotes,
-    paymentMethod,
-  ]);
+  }, []);
 
   const handleOpenNewRemoteModal = () => {
     const defProd = products.find((p) => p.id === "gutted-trout") || products[0];
@@ -783,9 +725,9 @@ export default function POSBillingPage() {
     setBillItems(remaining);
     if (remaining.length > 0) {
       setSelectedProductId(remaining[0].id);
-      setCurrentWeight(remaining[0].weightKg.toString());
+      setCurrentWeight(remaining[0].weightKg > 0 ? remaining[0].weightKg.toString() : "");
     } else {
-      setCurrentWeight("0");
+      setCurrentWeight("");
     }
   };
 
@@ -1545,8 +1487,8 @@ Naseem Bagh / Malabagh, Srinagar`;
     setCustomerName("");
     setCustomerPhone("");
     setCustomerNotes("");
-    setCurrentWeight("1.0");
-    setCustomAmount("500");
+    setCurrentWeight("");
+    setCustomAmount("");
     setCustomNote("");
     setPosInputMode("scale");
     setRzpQrId(null);
@@ -1572,13 +1514,13 @@ Naseem Bagh / Malabagh, Srinagar`;
         id: defaultProd.id,
         name: defaultProd.name,
         pricePerKg: defaultProd.pricePerKg,
-        weightKg: 1.0,
-        total: defaultProd.pricePerKg,
+        weightKg: 0,
+        total: 0,
         unit: "Kg",
       },
     ]);
     try {
-      localStorage.removeItem(POS_DRAFT_CACHE_KEY);
+      localStorage.removeItem("ut_pos_billing_active_draft_v1");
     } catch (_) {}
   };
 
@@ -2376,24 +2318,6 @@ Helpline: +91 84910 06127`;
         </div>
 
         <div className="flex items-center gap-1.5 ml-auto flex-shrink-0">
-          {/* Voice Announcements Soundbox Button */}
-          <button
-            type="button"
-            onClick={() => setVoiceModalOpen(true)}
-            className={`px-2 sm:px-3 py-1 rounded-xl border text-[11px] sm:text-xs font-bold uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer ${
-              voiceEnabled
-                ? "bg-emerald-500/15 hover:bg-emerald-500/25 border-emerald-500/40 text-emerald-300 shadow-sm shadow-emerald-500/10"
-                : "bg-slate-900 hover:bg-slate-800 border-slate-800 text-slate-500"
-            }`}
-            title="Counter Voice Announcements (Click to Test & Configure)"
-          >
-            <span className="material-symbols-outlined text-sm">
-              {voiceEnabled ? "volume_up" : "volume_off"}
-            </span>
-            <span className="hidden sm:inline">Voice:</span>
-            <span>{voiceEnabled ? "ON" : "OFF"}</span>
-          </button>
-
           <Link
             href="/admin/dashboard/vending-log"
             className="px-2 sm:px-3 py-1 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 transition-all text-[11px] sm:text-xs font-bold uppercase tracking-wider flex items-center gap-1"
@@ -2797,7 +2721,7 @@ Helpline: +91 84910 06127`;
                       onFocus={(e) => e.target.select()}
                       onWheel={(e) => (e.target as HTMLElement).blur()}
                       onChange={(e) => updateActiveWeight(e.target.value)}
-                      placeholder="e.g. 1.0"
+                      placeholder="0.00"
                       className="w-full bg-slate-950/90 border border-slate-700 rounded-xl px-4 py-2 sm:py-2.5 text-xl sm:text-2xl font-mono text-cyan-300 font-bold focus:outline-none focus:border-cyan-400 shadow-inner"
                     />
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-xs sm:text-sm">
@@ -2887,7 +2811,7 @@ Helpline: +91 84910 06127`;
                       onFocus={(e) => e.target.select()}
                       onWheel={(e) => (e.target as HTMLElement).blur()}
                       onChange={(e) => setCustomAmount(e.target.value)}
-                      placeholder="e.g. 500"
+                      placeholder="0.00"
                       className="w-full bg-transparent pl-10 pr-4 py-2 text-2xl sm:text-3xl font-black text-white font-mono focus:outline-none placeholder:text-slate-600"
                       autoFocus
                     />
