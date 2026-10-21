@@ -185,7 +185,7 @@ export default function CatchWeightWorkspaceTab({
     const slip = await handleGenerateAndSave(false);
     if (slip) {
       const origin = typeof window !== "undefined" ? window.location.origin : "https://urbantrout.in";
-      window.open(`${origin}/invoice/${slip.invoiceNumber}?format=a4&autoprint=true`, "_blank");
+      window.open(`${origin}/invoice/${slip.invoiceNumber}?download=true`, "_blank");
     }
   };
 
@@ -730,7 +730,7 @@ export default function CatchWeightWorkspaceTab({
                   </div>
 
                   <a
-                    href={`/invoice/${generatedSlip.invoiceNumber}?format=a4&autoprint=true`}
+                    href={`/invoice/${generatedSlip.invoiceNumber}?download=true`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="w-full py-2 px-3 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-200 border border-cyan-500/40 text-xs font-bold font-mono transition-all flex items-center justify-center gap-1.5 cursor-pointer"
@@ -800,11 +800,11 @@ export default function CatchWeightWorkspaceTab({
 
                   <div className="flex items-center gap-1.5 shrink-0">
                     <a
-                      href={`/invoice/${s.invoiceNumber}?format=a4&autoprint=true`}
+                      href={`/invoice/${s.invoiceNumber}?download=true`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="px-2.5 py-1 rounded-lg bg-teal-500/20 hover:bg-teal-500/30 text-teal-300 border border-teal-500/40 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
-                      title="Open & Download A4 Tax Invoice PDF"
+                      title="Direct Download A4 Tax Invoice PDF"
                     >
                       <span className="material-symbols-outlined text-xs">picture_as_pdf</span>
                       <span>PDF</span>

@@ -275,21 +275,25 @@ export default function PublicInvoicePage() {
     }
   };
 
-  // Handle auto-download or auto-print if ?download=true, ?pdf=true, or ?autoprint=true in URL
+  // Handle auto-download if ?download=true, ?pdf=true, or ?autoprint=true in URL
   useEffect(() => {
     if (!loading && invoice && !autoPrintedRef.current) {
       const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get("download") === "true" || urlParams.get("pdf") === "true") {
+      if (
+        urlParams.get("download") === "true" ||
+        urlParams.get("pdf") === "true" ||
+        urlParams.get("autoprint") === "true"
+      ) {
         autoPrintedRef.current = true;
         const timer = setTimeout(() => {
           handleDirectDownloadPdf();
-        }, 800);
+        }, 500);
         return () => clearTimeout(timer);
-      } else if (urlParams.get("autoprint") === "true") {
+      } else if (urlParams.get("print") === "true") {
         autoPrintedRef.current = true;
         const timer = setTimeout(() => {
           window.print();
-        }, 600);
+        }, 500);
         return () => clearTimeout(timer);
       }
     }
@@ -479,23 +483,29 @@ export default function PublicInvoicePage() {
   return (
     <div className="invoice-page-wrapper min-h-screen bg-[#020d12] py-6 px-3 sm:px-6">
       <div className="invoice-max-width max-w-3xl mx-auto space-y-4">
-        {/* 48-Hour Timer Badge (Hidden in Print) */}
-        {invoice.expiresInHours !== undefined && (
-          <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/25 flex items-center justify-between text-amber-400 text-xs font-semibold print:hidden">
-            <div className="flex items-center gap-2">
-              <span>⏱️</span>
-              <span>Live Tax Invoice &amp; Payment Desk</span>
-            </div>
-            <span className="font-mono bg-amber-500/20 px-2 py-0.5 rounded text-[11px]">
-              Expires in ~{invoice.expiresInHours} Hours
-            </span>
+        {/* Top Customer Action Bar (Hidden in Print) */}
+        <div className="flex items-center justify-between gap-2 flex-wrap print:hidden">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-400 text-xs font-semibold">
+            <span>⏱️</span>
+            <span>Live Tax Invoice &bull; Expires in ~{invoice.expiresInHours || 48} Hours</span>
           </div>
-        )}
+
+          <button
+            type="button"
+            onClick={handleDirectDownloadPdf}
+            disabled={downloadingPdf}
+            className="py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-emerald-500/25 cursor-pointer active:scale-95 transition-all disabled:opacity-50"
+            title="Direct Download Official 1-Page A4 PDF to Device"
+          >
+            <span className="text-base">{downloadingPdf ? "⏳" : "📥"}</span>
+            <span>{downloadingPdf ? "Saving 1-Page PDF..." : "DOWNLOAD INVOICE PDF (1-PAGE A4)"}</span>
+          </button>
+        </div>
 
         {/* ─── PRINTABLE A4 INVOICE SHEET ─── */}
         <div
           id="printable-invoice"
-          className="bg-white text-slate-950 rounded-2xl p-5 sm:p-7 shadow-2xl border border-slate-200 font-sans space-y-4"
+          className="bg-white text-slate-950 rounded-2xl p-4 sm:p-6 shadow-2xl border border-slate-200 font-sans space-y-3.5"
         >
           {/* 1. Official Header */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b-2 border-slate-900">
@@ -888,35 +898,35 @@ export default function PublicInvoicePage() {
           )}
 
           {/* 6. Regulatory Disclosures: Visceral Loss Notice & Care Tips */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-[11px] leading-relaxed print-avoid-break">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-[10.5px] leading-snug print-avoid-break">
             {/* Visceral Loss Notice */}
-            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
-              <div className="font-bold text-slate-900 text-xs flex items-center gap-1">
+            <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 space-y-0.5">
+              <div className="font-bold text-slate-900 text-[11px] flex items-center gap-1">
                 <span>⚖️</span>
                 <span>Net Weight &amp; Visceral Loss Disclosure</span>
               </div>
-              <p className="text-slate-600 text-[10.5px]">
+              <p className="text-slate-600 text-[10px] leading-relaxed">
                 Live trout is weighed whole at harvest. During hygienic gutting, gills and entrails are carefully removed, resulting in a standard natural loss of <strong>12% to 18%</strong> in weight. You receive 100% wholesome, clean, ready-to-cook mountain trout!
               </p>
             </div>
 
             {/* Culinary Care */}
-            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
-              <div className="font-bold text-slate-900 text-xs flex items-center gap-1">
+            <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 space-y-0.5">
+              <div className="font-bold text-slate-900 text-[11px] flex items-center gap-1">
                 <span>🐟</span>
                 <span>Culinary &amp; Freshness Care</span>
               </div>
-              <p className="text-slate-600 text-[10.5px]">
+              <p className="text-slate-600 text-[10px] leading-relaxed">
                 Keep refrigerated (0°C–4°C) and best cooked fresh within 24–48 hours. Rinse gently in cold water. Trout cooks quickly (6–8 mins gentle heat) to preserve natural mountain sweetness and rich omega-3 oils.
               </p>
             </div>
           </div>
 
           {/* 6b. Statutory Declaration & Authorized Signatory Block (Commercial Standard) */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 print-avoid-break">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-0.5 print-avoid-break">
             {/* Left: Bank Account Details */}
-            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-[11px] font-mono space-y-1">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block font-sans">
+            <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-[10.5px] font-mono space-y-0.5">
+              <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-wider block font-sans">
                 BANK DETAILS (FOR RTGS / NEFT / IMPS)
               </span>
               <div className="flex justify-between text-slate-700">
@@ -942,29 +952,29 @@ export default function PublicInvoicePage() {
             </div>
 
             {/* Right: Statutory Declaration & Signatory Seal */}
-            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex flex-col justify-between text-[11px] font-mono space-y-2">
+            <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col justify-between text-[10.5px] font-mono space-y-1">
               <div>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block font-sans">
+                <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-wider block font-sans">
                   DECLARATION
                 </span>
-                <p className="text-slate-600 text-[10px] italic leading-tight mt-1 font-sans">
+                <p className="text-slate-600 text-[9.5px] italic leading-tight mt-0.5 font-sans">
                   &ldquo;We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.&rdquo;
                 </p>
               </div>
 
-              <div className="text-right pt-2 border-t border-slate-200 flex flex-col items-end">
-                <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block font-sans">
+              <div className="text-right pt-1 border-t border-slate-200 flex flex-col items-end">
+                <span className="text-[9.5px] font-bold text-slate-700 uppercase tracking-wider block font-sans">
                   for URBAN TROUT AQUACULTURE
                 </span>
-                <div className="relative my-0.5 flex justify-end">
+                <div className="relative my-0 flex justify-end">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src="/urban-trout-seal.png"
                     alt="Urban Trout Aquaculture Authorized Signatory Seal"
-                    className="w-24 h-24 sm:w-28 sm:h-28 object-contain -my-3 opacity-95 mix-blend-multiply pointer-events-none select-none"
+                    className="w-20 h-20 object-contain -my-2.5 opacity-95 mix-blend-multiply pointer-events-none select-none"
                   />
                 </div>
-                <span className="text-[10px] text-slate-500 font-mono border-t border-slate-400 pt-0.5 inline-block">
+                <span className="text-[9.5px] text-slate-500 font-mono border-t border-slate-400 pt-0.5 inline-block">
                   Authorized Signatory
                 </span>
               </div>
@@ -972,14 +982,14 @@ export default function PublicInvoicePage() {
           </div>
 
           {/* 7. Sign-off & Support Footer */}
-          <div className="pt-3 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-left text-[10.5px] text-slate-500 font-mono print-avoid-break">
+          <div className="pt-2.5 border-t border-slate-200 flex flex-col sm:flex-row items-center justify-between gap-2 text-center sm:text-left text-[10px] text-slate-500 font-mono print-avoid-break">
             <div>
               <p className="font-bold text-slate-700 font-sans">Thank you for supporting sustainable Kashmiri aquaculture!</p>
               <p>For inquiries, bulk orders, or chef support: +91 84910 06127 · info.urbantrout@gmail.com</p>
             </div>
             <div className="text-right shrink-0">
               <p className="font-bold text-slate-800">Urban Trout Aquaculture</p>
-              <p className="text-[10px] text-slate-400">Computer Generated Official Tax Invoice</p>
+              <p className="text-[9.5px] text-slate-400">Computer Generated Official Tax Invoice</p>
             </div>
           </div>
         </div>
@@ -1000,7 +1010,7 @@ export default function PublicInvoicePage() {
 
           @page {
             size: A4 portrait !important;
-            margin: 8mm 10mm !important;
+            margin: 4mm 6mm !important;
           }
 
           /* Hide all chrome and navigational elements */
@@ -1033,11 +1043,15 @@ export default function PublicInvoicePage() {
             max-width: 100% !important;
             width: 100% !important;
             margin: 0 !important;
-            padding: 4mm !important;
+            padding: 3mm 4mm !important;
             border: none !important;
             box-shadow: none !important;
             border-radius: 0 !important;
             color: #000000 !important;
+            page-break-after: avoid !important;
+            break-after: avoid !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
           }
 
           .print-avoid-break {
