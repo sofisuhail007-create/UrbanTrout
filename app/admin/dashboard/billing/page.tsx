@@ -123,7 +123,6 @@ export default function POSBillingPage() {
   );
   const [upiId, setUpiId] = useState("JKBMERC00828895@jkb");
   const [soundboxPaid, setSoundboxPaid] = useState(false);
-  const [soundboxQrView, setSoundboxQrView] = useState<"dynamic" | "standee">("dynamic");
   const [soundboxQrGenerated, setSoundboxQrGenerated] = useState(false);
   const [lastSoundboxAmount, setLastSoundboxAmount] = useState<number>(0);
   const [showInlineQr, setShowInlineQr] = useState(false);
@@ -3281,50 +3280,16 @@ Helpline: +91 84910 06127`;
 
                       {showInlineQr && (
                         <div className="pt-2 space-y-2 animate-fadeIn flex flex-col items-center">
-                          {/* View Switcher: Dynamic Bill QR vs Official Standee Card */}
-                          <div className="flex items-center bg-slate-900/90 p-0.5 rounded-lg border border-slate-800 text-[10px] font-mono w-full">
-                            <button
-                              type="button"
-                              onClick={() => setSoundboxQrView("dynamic")}
-                              className={`flex-1 py-1 rounded-md transition-all font-bold cursor-pointer ${
-                                soundboxQrView === "dynamic"
-                                  ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm"
-                                  : "text-slate-400 hover:text-slate-200"
-                              }`}
-                            >
-                              ⚡ Dynamic Bill (₹{grandTotal})
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setSoundboxQrView("standee")}
-                              className={`flex-1 py-1 rounded-md transition-all font-bold cursor-pointer ${
-                                soundboxQrView === "standee"
-                                  ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm"
-                                  : "text-slate-400 hover:text-slate-200"
-                              }`}
-                            >
-                              🏷️ Standee Card
-                            </button>
-                          </div>
-
                           <div
                             onClick={() => setEnlargeQrModal(true)}
                             className="p-2 bg-white border-2 border-emerald-500/30 rounded-xl shadow-xl shadow-emerald-950/30 cursor-pointer hover:border-emerald-400 transition-all group relative overflow-hidden"
                             title="Click to open popup for customer"
                           >
-                            {soundboxQrView === "standee" ? (
-                              <img
-                                src="/images/jkbank_standee_card.jpg"
-                                alt="Official J&K Bank Standee Card"
-                                className="w-32 h-36 rounded-lg object-contain"
-                              />
-                            ) : (
-                              <img
-                                src={upiQrCodeUrl}
-                                alt="J&K Bank Soundbox QR"
-                                className="w-32 h-32 rounded-lg object-contain"
-                              />
-                            )}
+                            <img
+                              src={upiQrCodeUrl}
+                              alt="Counter UPI QR"
+                              className="w-32 h-32 rounded-lg object-contain"
+                            />
                             <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex flex-col items-center justify-center text-white text-[11px] font-bold gap-1">
                               <span>🔍 Open Popup</span>
                             </div>
@@ -5134,36 +5099,8 @@ Helpline: +91 84910 06127`;
                   </div>
                 </div>
 
-                {/* ─── RIGHT COLUMN: CRISP UPI QR CODE & APPS ─── */}
+                {/* ─── RIGHT COLUMN: CRISP SMART UPI QR CODE & APPS ─── */}
                 <div className="flex flex-col items-center space-y-2.5">
-                  {/* If Soundbox, toggle switcher inside modal too */}
-                  {paymentMethod === "JkBankSoundbox" && (
-                    <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 text-[10.5px] font-mono w-full">
-                      <button
-                        type="button"
-                        onClick={() => setSoundboxQrView("dynamic")}
-                        className={`flex-1 py-1.5 rounded-lg transition-all font-bold cursor-pointer ${
-                          soundboxQrView === "dynamic"
-                            ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm"
-                            : "text-slate-400 hover:text-slate-200"
-                        }`}
-                      >
-                        ⚡ Dynamic Bill QR (₹{grandTotal.toLocaleString("en-IN")})
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setSoundboxQrView("standee")}
-                        className={`flex-1 py-1.5 rounded-lg transition-all font-bold cursor-pointer ${
-                          soundboxQrView === "standee"
-                            ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm"
-                            : "text-slate-400 hover:text-slate-200"
-                        }`}
-                      >
-                        🏷️ Official Standee Card
-                      </button>
-                    </div>
-                  )}
-
                   {/* Giant QR Box */}
                   <div className="w-56 h-56 sm:w-64 sm:h-64 bg-white border-2 border-emerald-400 rounded-3xl shadow-2xl overflow-hidden relative flex items-center justify-center p-3">
                     {paymentMethod === "RazorpayQR" && rzpQrImageUrl ? (
@@ -5176,16 +5113,10 @@ Helpline: +91 84910 06127`;
                           transform: "scale(1.28)",
                         }}
                       />
-                    ) : paymentMethod === "JkBankSoundbox" && soundboxQrView === "standee" ? (
-                      <img
-                        src="/images/jkbank_standee_card.jpg"
-                        alt="Official J&K Bank Standee Card"
-                        className="w-full h-full object-contain select-none pointer-events-none rounded-2xl"
-                      />
                     ) : (
                       <img
                         src={upiQrCodeUrl}
-                        alt="J&K Bank Soundbox QR"
+                        alt="Counter UPI QR"
                         className="w-full h-full object-contain select-none pointer-events-none rounded-2xl"
                       />
                     )}

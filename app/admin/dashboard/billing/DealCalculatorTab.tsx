@@ -1877,7 +1877,7 @@ Naseem Bagh / Malabagh, Srinagar`;
       </div>
 
 
-      {/* ─── CUSTOMER FACING FULLSCREEN / STANDEE DISPLAY MODAL ─── */}
+      {/* ─── CUSTOMER FACING FULLSCREEN DISPLAY MODAL ─── */}
       {customerDisplayOpen && (
         <div
           onClick={(e) => {
