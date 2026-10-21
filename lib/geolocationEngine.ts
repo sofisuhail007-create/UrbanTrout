@@ -95,7 +95,8 @@ export const CORE_IN_ZONE_AREAS: Array<{ pattern: RegExp; name: string; dist: nu
   // ── Zone 3: Extended (6–12 km, MOQ 4 kg + ₹250 Special Delivery) ──
   { pattern: /\b(?:lal\s*chowk|lalchowk)\b/i, name: "Lal Chowk", dist: 8.0, minKg: 4 },
   { pattern: /\b(?:dalgate|dal\s*gate)\b/i, name: "Dalgate", dist: 7.5, minKg: 4 },
-  { pattern: /\b(?:khayam|khayam\s*chowk|khayam\s*road)\b/i, name: "Khayam", dist: 7.2, minKg: 4 },
+  { pattern: /\b(?:khay+am|khyam|khaiam)(?:\s*(?:chowk|road|cinema))?\b/i, name: "Khayam", dist: 7.2, minKg: 4 },
+  { pattern: /\b(?:khyber\s*hospital|khyber)\b/i, name: "Khayam (Khyber Hospital)", dist: 7.2, minKg: 4 },
   { pattern: /\b(?:sonwar|sonawar|sona\s*war)\b/i, name: "Sonwar", dist: 8.0, minKg: 4 },
   { pattern: /\b(?:qamarwari|qamar\s*wari|kamarwari)\b/i, name: "Qamarwari", dist: 7.5, minKg: 4 },
   { pattern: /\b(?:raj\s*bagh|rajbagh)\b/i, name: "Rajbagh", dist: 9.0, minKg: 4 },

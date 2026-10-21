@@ -148,6 +148,11 @@ export async function PATCH(request: Request) {
       phone,
       customerPhone,
       address,
+      isExpired,
+      paidAmount,
+      balanceAmount,
+      refundAmount,
+      reactivate,
     } = body;
     if (!invoiceId) {
       return NextResponse.json({ success: false, error: "Missing invoiceId" }, { status: 400 });
@@ -171,6 +176,21 @@ export async function PATCH(request: Request) {
     const existingData = typeof row.data === "object" ? row.data : JSON.parse(row.data || "{}");
     const newName = name || customerName || existingData.name || existingData.customerName;
     const newPhone = phone || customerPhone || existingData.phone || existingData.customerPhone;
+    const grandTot = existingData.tot ?? existingData.grandTotal ?? 0;
+
+    let updatedPaid = paidAmount !== undefined ? paidAmount : existingData.paidAmount;
+    let updatedBalance = balanceAmount !== undefined ? balanceAmount : existingData.balanceAmount;
+    let updatedRefund = refundAmount !== undefined ? refundAmount : existingData.refundAmount;
+
+    if (paymentStatus === "PAID") {
+      updatedPaid = grandTot;
+      updatedBalance = 0;
+      updatedRefund = 0;
+    } else if (paymentStatus === "PAYMENT DUE") {
+      updatedPaid = 0;
+      updatedBalance = grandTot;
+      updatedRefund = 0;
+    }
 
     const updatedData = {
       ...existingData,
@@ -182,18 +202,52 @@ export async function PATCH(request: Request) {
       paymentStatus: paymentStatus || existingData.paymentStatus,
       paymentId: paymentId !== undefined ? paymentId : existingData.paymentId,
       paymentMethod: paymentMethod || existingData.paymentMethod,
+      paidAmount: updatedPaid,
+      balanceAmount: updatedBalance,
+      refundAmount: updatedRefund,
       notes: notes !== undefined ? notes : existingData.notes,
       paidAt: paymentStatus === "PAID" ? (existingData.paidAt || new Date().toISOString()) : existingData.paidAt,
+      isExpired: reactivate ? false : (isExpired !== undefined ? isExpired : existingData.isExpired),
+      ts: reactivate ? Date.now() : existingData.ts,
     };
 
     const { error: updateErr } = await supabase
       .from("invoices")
-      .update({ data: updatedData })
+      .update({
+        data: updatedData,
+        expires_at: updatedData.isExpired
+          ? new Date().toISOString()
+          : new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+      })
       .eq("id", row.id);
 
     if (updateErr) {
       return NextResponse.json({ success: false, error: updateErr.message }, { status: 500 });
     }
+
+    // Sync remote_invoices_cache in app_settings
+    try {
+      const { data: cacheRow } = await supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "remote_invoices_cache")
+        .single();
+      if (cacheRow?.value) {
+        const cachedList = JSON.parse(cacheRow.value);
+        const updatedCache = cachedList.map((item: any) => {
+          const itemClean = String(item.id || "").replace(/\D/g, "");
+          if (item.id === invoiceId || itemClean === cleanDigits || item.num === invoiceId) {
+            return { ...item, data: updatedData, ...updatedData };
+          }
+          return item;
+        });
+        await supabase.from("app_settings").upsert({
+          key: "remote_invoices_cache",
+          value: JSON.stringify(updatedCache),
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "key" });
+      }
+    } catch (_) {}
 
     return NextResponse.json({ success: true, invoice: updatedData });
   } catch (err: any) {

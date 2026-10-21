@@ -4,6 +4,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import FourUpInvoiceSheet, { InvoiceSlipData } from "@/components/FourUpInvoiceSheet";
+import { numberToIndianWords } from "@/lib/numberWords";
 
 interface DecodedInvoice {
   invoiceNumber: string;
@@ -543,7 +544,10 @@ export default function PublicInvoicePage() {
                 TAX INVOICE
               </div>
               <p className="text-[11px] font-mono font-bold text-slate-700 mt-1">
-                GSTIN: <span className="font-normal text-slate-600">Exempt (Live Aquaculture)</span>
+                GSTIN: <span className="font-normal text-slate-600">Exempt (0% Farm Produce)</span>
+              </p>
+              <p className="text-[10px] text-slate-600 font-mono">
+                State: <strong>Jammu &amp; Kashmir (Code: 01)</strong>
               </p>
               <p className="text-[10px] text-slate-500 font-mono">Original for Recipient</p>
             </div>
@@ -588,6 +592,10 @@ export default function PublicInvoicePage() {
                   })}
                 </span>
               </div>
+              <div className="flex justify-between">
+                <span className="text-slate-600">Place of Supply:</span>
+                <span className="font-semibold text-slate-800">Jammu &amp; Kashmir (01)</span>
+              </div>
               <div className="flex justify-between items-center pt-0.5">
                 <span className="text-slate-600">Status:</span>
                 <span
@@ -624,6 +632,7 @@ export default function PublicInvoicePage() {
                 <tr className="bg-slate-100 border-b border-slate-300 font-bold text-slate-800 text-[11px] uppercase tracking-wider">
                   <th className="py-2.5 px-3">#</th>
                   <th className="py-2.5 px-3">Item Description</th>
+                  <th className="py-2.5 px-2.5 text-center">HSN/SAC</th>
                   <th className="py-2.5 px-3 text-center">Harvest Weight</th>
                   <th className="py-2.5 px-3 text-right">Rate / Kg</th>
                   <th className="py-2.5 px-3 text-right">Amount (₹)</th>
@@ -640,6 +649,9 @@ export default function PublicInvoicePage() {
                           Ordered on WhatsApp: {item.orderedWeightKg.toFixed(2)} Kg
                         </div>
                       )}
+                    </td>
+                    <td className="py-2.5 px-2.5 text-center text-slate-600 font-mono text-[11px]">
+                      03021100
                     </td>
                     <td className="py-2.5 px-3 text-center font-bold text-slate-900">
                       {item.weightKg.toFixed(2)} Kg
@@ -753,6 +765,54 @@ export default function PublicInvoicePage() {
             </div>
           </div>
 
+          {/* 4b. Amount Chargeable in Words & Statutory GST Schedule Analysis */}
+          <div className="space-y-2.5 print-avoid-break">
+            <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-xs font-mono">
+              <span className="text-slate-500 uppercase tracking-wider text-[10px] block font-sans font-bold">
+                Amount Chargeable (in words):
+              </span>
+              <span className="font-bold text-slate-900 text-xs">
+                INR {numberToIndianWords(grandTotal)}
+              </span>
+            </div>
+
+            {/* GST Tax Breakdown Table (Standard Aquaculture Exemption Box) */}
+            <div className="border border-slate-300 rounded-xl overflow-hidden text-xs">
+              <div className="bg-slate-100 px-3 py-1.5 border-b border-slate-300 flex flex-wrap items-center justify-between gap-1 font-bold text-slate-800 text-[10.5px] uppercase tracking-wider">
+                <span>Tax Breakdown &amp; GST Exemption (Chapter 3)</span>
+                <span className="text-[10px] text-slate-600 font-mono normal-case">
+                  Place of Supply: <strong>Jammu &amp; Kashmir (State Code: 01)</strong>
+                </span>
+              </div>
+              <table className="w-full text-left font-mono text-[11px]">
+                <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 text-[10px] uppercase">
+                  <tr>
+                    <th className="py-1.5 px-3">HSN/SAC</th>
+                    <th className="py-1.5 px-3 text-right">Taxable Value</th>
+                    <th className="py-1.5 px-3 text-center">CGST (0%)</th>
+                    <th className="py-1.5 px-3 text-center">SGST (0%)</th>
+                    <th className="py-1.5 px-3 text-right">Total Tax Amount</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  <tr>
+                    <td className="py-2 px-3 font-bold text-slate-900">03021100</td>
+                    <td className="py-2 px-3 text-right">₹{grandTotal.toLocaleString("en-IN")}</td>
+                    <td className="py-2 px-3 text-center">₹0.00</td>
+                    <td className="py-2 px-3 text-center">₹0.00</td>
+                    <td className="py-2 px-3 text-right font-black text-emerald-800">NIL</td>
+                  </tr>
+                </tbody>
+              </table>
+              <div className="bg-slate-50/90 px-3 py-1.5 border-t border-slate-200 text-[10px] text-slate-600 font-mono flex flex-wrap items-center justify-between gap-2">
+                <span>Tax Amount (in words): <strong>INR NIL</strong></span>
+                <span className="italic text-slate-500">
+                  * Exempt commodity under GST Notification No. 2/2017-Central Tax (Rate), Chapter 3 (Live, fresh, or chilled fish).
+                </span>
+              </div>
+            </div>
+          </div>
+
           {/* 5. Payment QR Code & Settlement (Print-Friendly) */}
           {invoice.paymentStatus !== "PAID" && (!invoice.refundAmount || invoice.refundAmount === 0) && remainingAmount > 0 && (
             <div className="p-4 rounded-xl bg-slate-50 border border-slate-300 print-avoid-break flex flex-col sm:flex-row items-center justify-between gap-4">
@@ -848,6 +908,58 @@ export default function PublicInvoicePage() {
               <p className="text-slate-600 text-[10.5px]">
                 Keep refrigerated (0°C–4°C) and best cooked fresh within 24–48 hours. Rinse gently in cold water. Trout cooks quickly (6–8 mins gentle heat) to preserve natural mountain sweetness and rich omega-3 oils.
               </p>
+            </div>
+          </div>
+
+          {/* 6b. Statutory Declaration & Authorized Signatory Block (Commercial Standard) */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1 print-avoid-break">
+            {/* Left: Bank Account Details */}
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-[11px] font-mono space-y-1">
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block font-sans">
+                BANK DETAILS (FOR RTGS / NEFT / IMPS)
+              </span>
+              <div className="flex justify-between text-slate-700">
+                <span>Bank:</span>
+                <strong className="text-slate-900">The Jammu &amp; Kashmir Bank Ltd</strong>
+              </div>
+              <div className="flex justify-between text-slate-700">
+                <span>Branch:</span>
+                <span className="text-slate-900">Malabagh, Srinagar</span>
+              </div>
+              <div className="flex justify-between text-slate-700">
+                <span>A/C Name:</span>
+                <span className="text-slate-900">Urban Trout Aquaculture</span>
+              </div>
+              <div className="flex justify-between text-slate-700">
+                <span>IFSC Code:</span>
+                <strong className="font-bold text-slate-900">JAKA0MALBAG</strong>
+              </div>
+              <div className="flex justify-between text-slate-700">
+                <span>UPI ID:</span>
+                <strong className="text-cyan-700 font-bold">{activeUpiId}</strong>
+              </div>
+            </div>
+
+            {/* Right: Statutory Declaration & Signatory Seal */}
+            <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 flex flex-col justify-between text-[11px] font-mono space-y-2">
+              <div>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block font-sans">
+                  DECLARATION
+                </span>
+                <p className="text-slate-600 text-[10px] italic leading-tight mt-1 font-sans">
+                  &ldquo;We declare that this invoice shows the actual price of the goods described and that all particulars are true and correct.&rdquo;
+                </p>
+              </div>
+
+              <div className="text-right pt-2 border-t border-slate-200">
+                <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block font-sans">
+                  for URBAN TROUT AQUACULTURE
+                </span>
+                <div className="h-6" />
+                <span className="text-[10px] text-slate-500 font-mono border-t border-slate-400 pt-0.5 inline-block">
+                  Authorized Signatory
+                </span>
+              </div>
             </div>
           </div>
 

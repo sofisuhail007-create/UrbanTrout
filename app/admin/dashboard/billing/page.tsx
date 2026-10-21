@@ -128,7 +128,7 @@ export default function POSBillingPage() {
   const [catchWeightPrintOpen, setCatchWeightPrintOpen] = useState<boolean>(false);
   const [remoteOrders, setRemoteOrders] = useState<any[]>([]);
   const [remoteLoading, setRemoteLoading] = useState(false);
-  const [remoteFilter, setRemoteFilter] = useState<"all" | "pending" | "paid">("all");
+  const [remoteFilter, setRemoteFilter] = useState<"all" | "pending" | "paid" | "expired" | "catch_weight" | "whatsapp">("all");
   const [remoteSearch, setRemoteSearch] = useState("");
   const [checkingOrderId, setCheckingOrderId] = useState<string | null>(null);
   const [copiedTicketId, setCopiedTicketId] = useState<string | null>(null);
@@ -139,6 +139,7 @@ export default function POSBillingPage() {
 
   // ─── NEW REMOTE WHATSAPP BILL & EDIT CUSTOMER MODALS ───
   const [newRemoteModalOpen, setNewRemoteModalOpen] = useState(false);
+  const [newRemoteInitialStatus, setNewRemoteInitialStatus] = useState<"PAYMENT DUE" | "PAID">("PAYMENT DUE");
   const [newRemoteCustomerName, setNewRemoteCustomerName] = useState("");
   const [newRemotePhone, setNewRemotePhone] = useState("");
   const [newRemoteEmail, setNewRemoteEmail] = useState("");
@@ -1627,14 +1628,14 @@ Naseem Bagh / Malabagh, Srinagar`;
     );
   };
 
-  // ─── FETCH & SYNC ALL REMOTE / WHATSAPP ORDERS ───
+  // ─── FETCH & SYNC ALL INVOICES & REMOTE ORDERS ───
   const fetchRemoteOrders = async () => {
     setRemoteLoading(true);
     try {
       const res = await adminFetch("/api/invoice");
       const data = await res.json();
       if (data?.success && Array.isArray(data.invoices)) {
-        setRemoteOrders(data.invoices.filter(isWhatsAppOrder));
+        setRemoteOrders(data.invoices);
       }
     } catch (e) {
       console.warn("Error fetching remote orders:", e);
@@ -1648,7 +1649,7 @@ Naseem Bagh / Malabagh, Srinagar`;
     fetchRemoteOrders();
   }, []);
 
-  // Background auto-poller when viewing Remote Orders tab (every 12s)
+  // Background auto-poller when viewing Invoices & Remote Orders tab (every 12s)
   useEffect(() => {
     if (activeTab !== "remote_orders") return;
 
@@ -1657,10 +1658,9 @@ Naseem Bagh / Malabagh, Srinagar`;
         const res = await adminFetch("/api/invoice");
         const data = await res.json();
         if (data?.success && Array.isArray(data.invoices)) {
-          const whatsappOnly = data.invoices.filter(isWhatsAppOrder);
           setRemoteOrders((prevOrders) => {
-            const newOrders: any[] = whatsappOnly;
-            newOrders.forEach((newOrd) => {
+            const newOrders = data.invoices;
+            newOrders.forEach((newOrd: any) => {
               const oldOrd = prevOrders.find((p) => p.id === newOrd.id);
               if (
                 oldOrd &&
@@ -1669,7 +1669,7 @@ Naseem Bagh / Malabagh, Srinagar`;
               ) {
                 // Customer paid remotely! Sound announcement
                 playSuccessChime();
-                speakPaymentAnnouncement(newOrd.data.tot, "WhatsApp Link", newOrd.data.name);
+                speakPaymentAnnouncement(newOrd.data?.tot || newOrd.tot, "Invoice Link", newOrd.data?.name || newOrd.name);
               }
             });
             return newOrders;
@@ -1797,6 +1797,105 @@ Naseem Bagh / Malabagh, Srinagar`;
       await fetchRemoteOrders();
     } finally {
       setDeletingOrderId(null);
+    }
+  };
+
+  // ─── EXPIRE INVOICE LINK EARLY (BEFORE 48 HOURS) ───
+  const handleExpireInvoiceEarly = async (order: any) => {
+    const invNum = getOrderNum(order);
+    const cName = getOrderName(order);
+    if (!confirm(`Expire invoice link #${invNum} (${cName}) early?\n\nCustomers attempting to view or pay via this link will immediately see the 'Invoice Link Expired' notice.`)) {
+      return;
+    }
+
+    try {
+      await adminFetch("/api/invoice", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          invoiceId: order.id,
+          isExpired: true,
+        }),
+      });
+
+      setRemoteOrders((prev) =>
+        prev.map((o) =>
+          o.id === order.id ? { ...o, isExpired: true, data: { ...o.data, isExpired: true } } : o
+        )
+      );
+      await fetchRemoteOrders();
+    } catch (err: any) {
+      alert(`Failed to expire invoice: ${err.message || err}`);
+    }
+  };
+
+  // ─── REACTIVATE / UNEXPIRE INVOICE LINK (RESETS 48-HOUR TIMER) ───
+  const handleReactivateInvoice = async (order: any) => {
+    const invNum = getOrderNum(order);
+    try {
+      await adminFetch("/api/invoice", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          invoiceId: order.id,
+          reactivate: true,
+        }),
+      });
+
+      setRemoteOrders((prev) =>
+        prev.map((o) =>
+          o.id === order.id
+            ? { ...o, isExpired: false, data: { ...o.data, isExpired: false, ts: Date.now() } }
+            : o
+        )
+      );
+      await fetchRemoteOrders();
+      alert(`Invoice #${invNum} reactivated! The 48-hour validity timer has been reset.`);
+    } catch (err: any) {
+      alert(`Failed to reactivate invoice: ${err.message || err}`);
+    }
+  };
+
+  // ─── 1-CLICK QUICK STATUS UPDATE (PAID / PAYMENT DUE / REFUND DUE) ───
+  const handleQuickUpdateStatus = async (order: any, newStatus: "PAID" | "PAYMENT DUE" | "REFUND DUE") => {
+    try {
+      const isPaid = newStatus === "PAID";
+      await adminFetch("/api/invoice", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          invoiceId: order.id,
+          paymentStatus: newStatus,
+          paymentMethod: isPaid ? (order.data?.paymentMethod || "Direct Settlement / Verified") : order.data?.paymentMethod,
+        }),
+      });
+
+      if (isPaid) {
+        playSuccessChime();
+        speakPaymentAnnouncement(order.data?.tot || order.tot, "Verified", order.data?.name || order.name);
+      }
+
+      setRemoteOrders((prev) =>
+        prev.map((o) => {
+          if (o.id === order.id) {
+            const tot = getOrderTotal(o);
+            return {
+              ...o,
+              paymentStatus: newStatus,
+              data: {
+                ...o.data,
+                paymentStatus: newStatus,
+                paidAmount: isPaid ? tot : 0,
+                balanceAmount: isPaid ? 0 : tot,
+              },
+            };
+          }
+          return o;
+        })
+      );
+      await fetchRemoteOrders();
+    } catch (err: any) {
+      alert(`Failed to update status: ${err.message || err}`);
     }
   };
 
@@ -2059,8 +2158,10 @@ Helpline: +91 84910 06127`;
         discountAmount: remoteDiscountAmount,
         notes: newRemoteNotes || `Items: ${itemsSummary}`,
         paymentMethod: pMethodLabel,
-        paymentStatus: "PAYMENT DUE",
-        paymentId: null,
+        paymentStatus: newRemoteInitialStatus,
+        paidAmount: newRemoteInitialStatus === "PAID" ? remoteDealTotal : 0,
+        balanceAmount: newRemoteInitialStatus === "PAID" ? 0 : remoteDealTotal,
+        paymentId: newRemoteInitialStatus === "PAID" ? `MANUAL-${Date.now().toString().slice(-6)}` : null,
         paymentLinkId: plId,
         paymentLinkUrl: payUrl || undefined,
         paymentMode: newRemotePaymentMode,
@@ -2266,27 +2367,47 @@ Helpline: +91 84910 06127`;
   };
 
 
-  // KPI calculations for Remote Orders
-  const pendingRemoteOrders = remoteOrders.filter((o) => getOrderStatus(o) !== "PAID");
+  // ─── EXPIRY CHECKER & KPI CALCULATIONS FOR INVOICES & REMOTE ORDERS ───
+  const isOrderExpired = (o: any) => {
+    if (o?.data?.isExpired || o?.isExpired) return true;
+    const status = getOrderStatus(o);
+    if (status === "PAID") return false;
+    const ts = o?.data?.ts || (o?.created_at ? new Date(o.created_at).getTime() : 0);
+    if (!ts) return false;
+    return (Date.now() - ts) > 48 * 60 * 60 * 1000;
+  };
+
+  const pendingRemoteOrders = remoteOrders.filter((o) => getOrderStatus(o) !== "PAID" && !isOrderExpired(o));
   const paidRemoteOrders = remoteOrders.filter((o) => getOrderStatus(o) === "PAID");
+  const expiredRemoteOrders = remoteOrders.filter((o) => isOrderExpired(o));
   const pendingRemoteCount = pendingRemoteOrders.length;
   const pendingRemoteAmount = pendingRemoteOrders.reduce((sum, o) => sum + getOrderTotal(o), 0);
   const paidRemoteAmount = paidRemoteOrders.reduce((sum, o) => sum + getOrderTotal(o), 0);
+  const expiredRemoteCount = expiredRemoteOrders.length;
 
-  const filteredRemoteOrders = remoteOrders.filter((o) => {
-    if (!isWhatsAppOrder(o)) return false;
-    const status = getOrderStatus(o);
-    if (remoteFilter === "pending" && status === "PAID") return false;
-    if (remoteFilter === "paid" && status !== "PAID") return false;
-    if (remoteSearch.trim()) {
-      const q = remoteSearch.toLowerCase();
-      const name = getOrderName(o).toLowerCase();
-      const phone = getOrderPhone(o).toLowerCase();
-      const invNum = getOrderNum(o).toLowerCase();
-      if (!name.includes(q) && !phone.includes(q) && !invNum.includes(q)) return false;
-    }
-    return true;
-  });
+  const filteredRemoteOrders = useMemo(() => {
+    return remoteOrders.filter((o) => {
+      const status = getOrderStatus(o);
+      const isExp = isOrderExpired(o);
+      const isWa = isWhatsAppOrder(o);
+      const isCw = !isWa;
+
+      if (remoteFilter === "pending" && (status === "PAID" || isExp)) return false;
+      if (remoteFilter === "paid" && status !== "PAID") return false;
+      if (remoteFilter === "expired" && !isExp) return false;
+      if (remoteFilter === "whatsapp" && !isWa) return false;
+      if (remoteFilter === "catch_weight" && !isCw) return false;
+
+      if (remoteSearch.trim()) {
+        const q = remoteSearch.toLowerCase();
+        const name = getOrderName(o).toLowerCase();
+        const phone = getOrderPhone(o).toLowerCase();
+        const invNum = getOrderNum(o).toLowerCase();
+        if (!name.includes(q) && !phone.includes(q) && !invNum.includes(q)) return false;
+      }
+      return true;
+    });
+  }, [remoteOrders, remoteFilter, remoteSearch]);
 
   const [remoteOrdersPage, setRemoteOrdersPage] = useState(1);
 
@@ -2512,12 +2633,12 @@ Helpline: +91 84910 06127`;
                 : "bg-slate-800/70 text-slate-400 group-hover:text-emerald-400 group-hover:bg-emerald-500/10"
             }`}
           >
-            <span className="material-symbols-outlined text-lg sm:text-xl">local_shipping</span>
+            <span className="material-symbols-outlined text-lg sm:text-xl">receipt_long</span>
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-1">
               <span className={`text-xs sm:text-sm font-bold truncate ${activeTab === "remote_orders" ? "text-emerald-200" : "text-white"}`}>
-                Remote Orders
+                Invoices &amp; Remote
               </span>
               {pendingRemoteCount > 0 && (
                 <span className="px-1.5 py-0.5 rounded-full bg-amber-500/25 border border-amber-500/50 text-amber-300 text-[10px] font-mono font-bold animate-pulse shrink-0">
@@ -2526,7 +2647,7 @@ Helpline: +91 84910 06127`;
               )}
             </div>
             <p className="text-[10px] sm:text-[11px] text-slate-400 truncate mt-0.5">
-              WhatsApp Links &amp; Dispatch
+              All Invoices, 48h Links &amp; Expiry
             </p>
           </div>
         </button>
@@ -3779,11 +3900,11 @@ Helpline: +91 84910 06127`;
           {/* Filter, Search & Actions Bar */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 p-2 bg-slate-900/70 border border-slate-800 rounded-2xl">
             {/* Filter Tabs */}
-            <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800/80 text-xs font-mono">
+            <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800/80 text-xs font-mono overflow-x-auto">
               <button
                 type="button"
                 onClick={() => setRemoteFilter("all")}
-                className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer ${
+                className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap ${
                   remoteFilter === "all"
                     ? "bg-slate-800 text-white shadow-sm"
                     : "text-slate-400 hover:text-slate-200"
@@ -3794,24 +3915,57 @@ Helpline: +91 84910 06127`;
               <button
                 type="button"
                 onClick={() => setRemoteFilter("pending")}
-                className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
                   remoteFilter === "pending"
                     ? "bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm"
                     : "text-slate-400 hover:text-amber-300"
                 }`}
               >
-                <span>⏳ Payment Due ({pendingRemoteCount})</span>
+                <span>⏳ Due ({pendingRemoteCount})</span>
               </button>
               <button
                 type="button"
                 onClick={() => setRemoteFilter("paid")}
-                className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
                   remoteFilter === "paid"
                     ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm"
                     : "text-slate-400 hover:text-emerald-300"
                 }`}
               >
                 <span>✅ Paid ({paidRemoteOrders.length})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setRemoteFilter("expired")}
+                className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                  remoteFilter === "expired"
+                    ? "bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-sm"
+                    : "text-slate-400 hover:text-rose-300"
+                }`}
+              >
+                <span>⏱️ Expired ({expiredRemoteCount})</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setRemoteFilter("whatsapp")}
+                className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                  remoteFilter === "whatsapp"
+                    ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm"
+                    : "text-slate-400 hover:text-cyan-300"
+                }`}
+              >
+                <span>💬 WhatsApp</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setRemoteFilter("catch_weight")}
+                className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                  remoteFilter === "catch_weight"
+                    ? "bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-sm"
+                    : "text-slate-400 hover:text-purple-300"
+                }`}
+              >
+                <span>🐟 POS / Weight</span>
               </button>
             </div>
 
@@ -3858,7 +4012,7 @@ Helpline: +91 84910 06127`;
                 className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer shadow-sm shrink-0"
               >
                 <span className="material-symbols-outlined text-sm">add</span>
-                <span>New Bill</span>
+                <span>Create Manual Invoice</span>
               </button>
 
               <button
@@ -3903,6 +4057,7 @@ Helpline: +91 84910 06127`;
               <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
                 {paginatedRemoteOrders.map((order) => {
                 const isPaid = getOrderStatus(order) === "PAID";
+                const isExp = isOrderExpired(order);
                 const invNum = getOrderNum(order);
                 const cleanPhone = String(getOrderPhone(order)).replace(/\D/g, "").slice(-10);
                 const totalAmt = getOrderTotal(order);
@@ -3923,6 +4078,8 @@ Helpline: +91 84910 06127`;
                     className={`rounded-2xl p-4 space-y-3 transition-all relative overflow-hidden flex flex-col justify-between ${
                       isPaid
                         ? "bg-slate-900/85 border border-emerald-500/40 shadow-lg shadow-emerald-950/20"
+                        : isExp
+                        ? "bg-slate-900/85 border border-rose-500/40 shadow-lg shadow-rose-950/20"
                         : "bg-slate-900/85 border border-amber-500/40 shadow-lg shadow-amber-950/20"
                     }`}
                   >
@@ -3982,6 +4139,11 @@ Helpline: +91 84910 06127`;
                             <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 font-bold text-[10px] uppercase tracking-wider flex items-center gap-1 shadow-sm">
                               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                               PAID ✓
+                            </span>
+                          ) : isExp ? (
+                            <span className="px-2.5 py-0.5 rounded-full bg-rose-500/20 border border-rose-500/50 text-rose-300 font-bold text-[10px] uppercase tracking-wider flex items-center gap-1 shadow-sm">
+                              <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
+                              EXPIRED ⏱️
                             </span>
                           ) : (
                             <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/50 text-amber-300 font-bold text-[10px] uppercase tracking-wider flex items-center gap-1 shadow-sm animate-pulse">
@@ -4084,10 +4246,18 @@ Helpline: +91 84910 06127`;
                           <div className="flex items-center justify-between gap-1.5">
                             <div className="flex-1 p-1 rounded-lg bg-emerald-950/30 border border-emerald-500/30 text-[9.5px] text-emerald-300 font-mono text-center flex items-center justify-center gap-1">
                               <span className="material-symbols-outlined text-xs">verified</span>
-                              Payment Confirmed ✓
+                              Paid in Full ✓
                             </div>
+                            <button
+                              type="button"
+                              onClick={() => handleQuickUpdateStatus(order, "PAYMENT DUE")}
+                              className="px-2 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer"
+                              title="Mark back to Payment Due"
+                            >
+                              <span>⏳ Mark Due</span>
+                            </button>
                             <a
-                              href={`/invoice/${order.data?.num || invNum || order.id}?format=a4&autoprint=true`}
+                              href={`/invoice/${order.data?.num || invNum || order.id}?autoprint=true`}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="px-2 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer"
@@ -4128,6 +4298,55 @@ Helpline: +91 84910 06127`;
                             );
                           })()}
                         </div>
+                      ) : isExp ? (
+                        /* EXPIRED ACTIONS */
+                        <div className="space-y-1.5">
+                          <div className="p-1.5 rounded-xl bg-rose-950/30 border border-rose-500/30 text-[10px] text-rose-300 font-mono text-center flex items-center justify-center gap-1">
+                            <span className="material-symbols-outlined text-xs">timer_off</span>
+                            <span>Invoice Link Expired (Customer cannot pay)</span>
+                          </div>
+                          <div className="grid grid-cols-4 gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handleReactivateInvoice(order)}
+                              className="py-1.5 px-1 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer"
+                              title="Reactivate link and reset 48-hour timer"
+                            >
+                              <span className="material-symbols-outlined text-xs">restart_alt</span>
+                              <span>Reactivate</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleQuickUpdateStatus(order, "PAID")}
+                              className="py-1.5 px-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer"
+                              title="Mark paid"
+                            >
+                              <span>💵 Paid</span>
+                            </button>
+                            <a
+                              href={`/invoice/${order.data?.num || invNum || order.id}?autoprint=true`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="py-1.5 px-1 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer"
+                              title="Open & Download Official A4 Tax Invoice PDF"
+                            >
+                              <span className="material-symbols-outlined text-xs">picture_as_pdf</span>
+                              <span>A4 PDF</span>
+                            </a>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteRemoteOrder(order)}
+                              disabled={isDeleting}
+                              className="py-1.5 px-1 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 hover:text-rose-200 border border-rose-500/40 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
+                              title="Delete invoice record"
+                            >
+                              <span className={`material-symbols-outlined text-xs ${isDeleting ? "animate-spin" : ""}`}>
+                                {isDeleting ? "sync" : "delete"}
+                              </span>
+                              <span>{isDeleting ? "..." : "Delete"}</span>
+                            </button>
+                          </div>
+                        </div>
                       ) : (
                         /* PENDING ACTIONS */
                         (() => {
@@ -4155,7 +4374,7 @@ Helpline: +91 84910 06127`;
 
                                 {/* Official A4 PDF */}
                                 <a
-                                  href={`/invoice/${order.data?.num || invNum || order.id}?format=a4&autoprint=true`}
+                                  href={`/invoice/${order.data?.num || invNum || order.id}?autoprint=true`}
                                   target="_blank"
                                   rel="noopener noreferrer"
                                   className="py-1.5 px-1 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer"
@@ -4205,19 +4424,26 @@ Helpline: +91 84910 06127`;
                                 </button>
                               )}
 
-                              <div className="grid grid-cols-2 gap-1.5">
-                                {/* Mark Paid Manually */}
+                              <div className="grid grid-cols-3 gap-1.5">
+                                {/* Mark Paid in 1-Click */}
                                 <button
                                   type="button"
-                                  onClick={() => {
-                                    setManualPayModal(order);
-                                    setManualPayMode("Cash on Delivery (Driver)");
-                                    setManualPayNote("");
-                                  }}
-                                  className="py-1.5 px-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer"
-                                  title="Mark paid via Cash on Delivery or offline transfer"
+                                  onClick={() => handleQuickUpdateStatus(order, "PAID")}
+                                  className="py-1.5 px-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer"
+                                  title="Mark paid in 1 click"
                                 >
                                   <span>💵</span> Mark Paid
+                                </button>
+
+                                {/* Expire Link Early */}
+                                <button
+                                  type="button"
+                                  onClick={() => handleExpireInvoiceEarly(order)}
+                                  className="py-1.5 px-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer"
+                                  title="Expire invoice link immediately before 48 hours"
+                                >
+                                  <span className="material-symbols-outlined text-xs">timer_off</span>
+                                  <span>Expire Early</span>
                                 </button>
 
                                 {/* Delete / Cancel & Expire */}
@@ -4225,13 +4451,13 @@ Helpline: +91 84910 06127`;
                                   type="button"
                                   onClick={() => handleDeleteRemoteOrder(order)}
                                   disabled={isDeleting}
-                                  className="py-1.5 px-2 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 hover:text-rose-200 border border-rose-500/40 hover:border-rose-400 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
+                                  className="py-1.5 px-1.5 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 hover:text-rose-200 border border-rose-500/40 hover:border-rose-400 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
                                   title="Cancel this order and expire the Razorpay payment link so customer cannot pay"
                                 >
                                   <span className={`material-symbols-outlined text-xs ${isDeleting ? "animate-spin" : ""}`}>
                                     {isDeleting ? "sync" : "delete_forever"}
                                   </span>
-                                  {isDeleting ? "Expiring..." : "Cancel & Expire"}
+                                  {isDeleting ? "..." : "Delete"}
                                 </button>
                               </div>
                             </div>
@@ -5273,14 +5499,14 @@ Helpline: +91 84910 06127`;
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center text-lg shadow-md shadow-emerald-500/10">
-                  <span className="material-symbols-outlined text-xl">send_to_mobile</span>
+                  <span className="material-symbols-outlined text-xl">receipt_long</span>
                 </div>
                 <div>
                   <h3 className="text-base sm:text-lg font-black text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
-                    New Remote / WhatsApp Bill
+                    Create Invoice / Remote Bill
                   </h3>
                   <p className="text-[10.5px] text-slate-400 font-mono">
-                    Instant J&amp;K Bank transfer &amp; Razorpay payment bill for WhatsApp / Telegram
+                    Official A4 Tax Invoice, WhatsApp link &amp; instant bank settlement desk
                   </p>
                 </div>
               </div>
@@ -5296,6 +5522,44 @@ Helpline: +91 84910 06127`;
             {!newRemoteGeneratedData ? (
               /* FORM STEP */
               <div className="space-y-3.5">
+                {/* Initial Payment Status Selector */}
+                <div className="space-y-1.5 p-3 rounded-2xl bg-slate-900/90 border border-slate-800">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10.5px] font-black text-slate-300 uppercase tracking-wider font-mono flex items-center gap-1.5">
+                      <span>📋</span> Invoice Payment Status:
+                    </label>
+                    <span className="text-[10px] font-mono font-bold text-slate-400">
+                      {newRemoteInitialStatus === "PAID" ? "Marked as Paid ✓" : "Awaiting Customer Pay ⏳"}
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setNewRemoteInitialStatus("PAYMENT DUE")}
+                      className={`p-2 rounded-xl text-center border transition-all cursor-pointer ${
+                        newRemoteInitialStatus === "PAYMENT DUE"
+                          ? "bg-amber-500/20 border-amber-400 text-amber-200 font-bold shadow-md shadow-amber-500/10"
+                          : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700"
+                      }`}
+                    >
+                      <div className="text-xs">⏳ Payment Due</div>
+                      <div className="text-[9px] text-amber-300/80 font-mono mt-0.5">Send Link / Collect Later</div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setNewRemoteInitialStatus("PAID")}
+                      className={`p-2 rounded-xl text-center border transition-all cursor-pointer ${
+                        newRemoteInitialStatus === "PAID"
+                          ? "bg-emerald-500/25 border-emerald-400 text-emerald-200 font-bold shadow-md shadow-emerald-500/10"
+                          : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700"
+                      }`}
+                    >
+                      <div className="text-xs">✅ Mark Already Paid</div>
+                      <div className="text-[9px] text-emerald-300/80 font-mono mt-0.5">Cash / Transfer Received</div>
+                    </button>
+                  </div>
+                </div>
+
                 {/* Payment Mode Selector */}
                 <div className="space-y-2 p-3 rounded-2xl bg-slate-900/90 border border-slate-800">
                   <div className="flex items-center justify-between">
