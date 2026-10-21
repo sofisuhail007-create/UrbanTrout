@@ -321,7 +321,25 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     router.push("/admin");
   };
 
-  if (!mounted) return null;
+  if (!mounted) {
+    return (
+      <div className="flex flex-col md:flex-row min-h-screen h-[100dvh] bg-[#020d12] text-slate-200">
+        <div className="flex-1 flex items-center justify-center p-4">
+          <div className="text-center space-y-4 max-w-xs">
+            <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center mx-auto text-cyan-400 shadow-lg shadow-cyan-500/10">
+              <span className="material-symbols-outlined text-2xl animate-spin">sync</span>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-white tracking-wide" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                URBAN TROUT ADMIN
+              </p>
+              <p className="text-xs text-slate-400 font-mono mt-1">Loading dashboard interface…</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Filter Nav Groups according to staff permissions
   const visibleGroups = NAV_GROUPS.map((group) => ({
