@@ -4994,6 +4994,30 @@ Helpline: +91 84910 06127`;
                 </div>
               </div>
 
+              {/* Authorized Signatory Block */}
+              <div className="pt-2 border-t border-slate-200 flex justify-between items-end">
+                <div className="text-[10px] text-slate-500 font-mono">
+                  <p className="font-semibold text-slate-700">Official Tax Invoice</p>
+                  <p className="text-[9px] text-slate-400">Urban Trout RAS Aquaculture Farm</p>
+                </div>
+                <div className="text-right flex flex-col items-end">
+                  <span className="text-[9px] font-bold text-slate-700 uppercase tracking-wider font-sans">
+                    for URBAN TROUT AQUACULTURE
+                  </span>
+                  <div className="relative my-0.5 flex justify-end">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="/urban-trout-seal.png"
+                      alt="Authorized Signatory Seal"
+                      className="w-16 h-16 sm:w-20 sm:h-20 object-contain -my-1 opacity-95 mix-blend-multiply pointer-events-none select-none"
+                    />
+                  </div>
+                  <span className="text-[9px] text-slate-500 font-mono border-t border-slate-400 pt-0.5 inline-block">
+                    Authorized Signatory
+                  </span>
+                </div>
+              </div>
+
               {/* Footer Note */}
               <div className="text-center pt-2 text-[10px] sm:text-[11px] text-slate-500 leading-tight">
                 <p className="font-semibold text-slate-700">Fresh Live RAS Tank Harvested Trout</p>

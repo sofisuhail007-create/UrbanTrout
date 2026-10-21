@@ -333,16 +333,24 @@ function SingleInvoiceSlip({
             </div>
           </div>
         ) : (
-          <div className="border border-black px-2 py-0.5 rounded text-center bg-slate-100">
-            <span className="text-[7.5px] font-black uppercase tracking-wider block">
-              ✓ VERIFIED PREPAID
-            </span>
-            <span className="text-[6px] font-mono text-slate-600 block">
-              {data.paymentMethod || "Online / UPI"}
-            </span>
-            <span className="text-[5.5px] font-mono text-slate-500 block">
-              Do Not Collect Payment
-            </span>
+          <div className="border border-black px-1.5 py-0.5 rounded text-center bg-slate-100 flex items-center justify-between gap-1">
+            <div className="text-left">
+              <span className="text-[7px] font-black uppercase tracking-wider block">
+                ✓ VERIFIED PREPAID
+              </span>
+              <span className="text-[5.5px] font-mono text-slate-600 block">
+                {data.paymentMethod || "Online / UPI"}
+              </span>
+              <span className="text-[5px] font-mono text-slate-500 block">
+                Do Not Collect Payment
+              </span>
+            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/urban-trout-seal.png"
+              alt="Seal"
+              className="w-7 h-7 object-contain mix-blend-multiply opacity-90 shrink-0"
+            />
           </div>
         )}
       </div>

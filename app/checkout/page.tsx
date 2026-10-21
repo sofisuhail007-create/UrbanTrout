@@ -883,6 +883,77 @@ export default function CheckoutPage() {
         setLocatingStep("locked");
         setLocationMsg(`${dist.toFixed(1)} km from Urban Trout Hub • Outside our ${deliveryRadiusKm}km live harvest delivery perimeter.`);
       }
+    } else if (formData.locality && formData.locality.trim()) {
+      // Intelligently verify address using our Geolocation Engine / Google Maps API
+      const matching = findMatchingLandmark(formData.locality);
+      if (matching) {
+        setSelectedZoneName(matching.name);
+        setDetectedCoords({ lat: matching.lat, lng: matching.lng });
+        const dist = calculateDistance(farmLat, farmLng, matching.lat, matching.lng);
+        setCalculatedDistance(dist);
+        const evalRes = evaluateDeliveryZone({
+          coords: { lat: matching.lat, lng: matching.lng },
+          weightKg: totalWeightKg,
+        });
+        if (dist <= deliveryRadiusKm && evalRes.isDeliverable) {
+          setDeliveryMode("under5");
+          setLocatingStep("locked");
+          setLocationMsg(
+            `${dist.toFixed(1)} km from Urban Trout Hub • ${evalRes.zoneConfig.title} • ${
+              evalRes.deliveryFee === 0
+                ? "100% Free Doorstep Delivery ✓"
+                : `₹${evalRes.deliveryFee} Special Delivery (Free from ${evalRes.zoneConfig.minKgFree} kg)`
+            }`
+          );
+        } else {
+          setDeliveryMode("unavailable");
+          setLocatingStep("locked");
+          setLocationMsg(`${dist.toFixed(1)} km from Urban Trout Hub • Outside our ${deliveryRadiusKm}km live harvest delivery perimeter.`);
+        }
+      } else {
+        // Asynchronously geocode via /api/geocode (Google Maps API + Nominatim)
+        setDeliveryMode(null);
+        setLocatingStep("verifying");
+        setLocationMsg(`Verifying "${formData.locality}" with Google Maps API…`);
+        fetch("/api/geocode", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ address: formData.locality, weightKg: totalWeightKg }),
+        })
+          .then((res) => res.json())
+          .then((geo) => {
+            if (geo && typeof geo.lat === "number" && typeof geo.lng === "number") {
+              setSelectedZoneName(geo.name);
+              setDetectedCoords({ lat: geo.lat, lng: geo.lng });
+              const dist = calculateDistance(farmLat, farmLng, geo.lat, geo.lng);
+              setCalculatedDistance(dist);
+              if (dist <= deliveryRadiusKm && geo.isDeliverable) {
+                setDeliveryMode("under5");
+                setLocatingStep("locked");
+                setLocationMsg(
+                  `${dist.toFixed(1)} km from Urban Trout Hub • ${geo.tier} • ${
+                    geo.deliveryFee === 0
+                      ? "100% Free Doorstep Delivery ✓"
+                      : `₹${geo.deliveryFee} Special Delivery`
+                  }`
+                );
+              } else {
+                setDeliveryMode("unavailable");
+                setLocatingStep("locked");
+                setLocationMsg(`${dist.toFixed(1)} km from Urban Trout Hub • Outside our ${deliveryRadiusKm}km live harvest delivery perimeter.`);
+              }
+            } else {
+              setDeliveryMode(null);
+              setLocatingStep("idle");
+              setLocationMsg("");
+            }
+          })
+          .catch(() => {
+            setDeliveryMode(null);
+            setLocatingStep("idle");
+            setLocationMsg("");
+          });
+      }
     } else {
       // Prompt user to detect live GPS or choose verified hub on Step 2
       setDeliveryMode(null);

@@ -951,11 +951,18 @@ export default function PublicInvoicePage() {
                 </p>
               </div>
 
-              <div className="text-right pt-2 border-t border-slate-200">
+              <div className="text-right pt-2 border-t border-slate-200 flex flex-col items-end">
                 <span className="text-[10px] font-bold text-slate-700 uppercase tracking-wider block font-sans">
                   for URBAN TROUT AQUACULTURE
                 </span>
-                <div className="h-6" />
+                <div className="relative my-0.5 flex justify-end">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/urban-trout-seal.png"
+                    alt="Urban Trout Aquaculture Authorized Signatory Seal"
+                    className="w-24 h-24 sm:w-28 sm:h-28 object-contain -my-3 opacity-95 mix-blend-multiply pointer-events-none select-none"
+                  />
+                </div>
                 <span className="text-[10px] text-slate-500 font-mono border-t border-slate-400 pt-0.5 inline-block">
                   Authorized Signatory
                 </span>

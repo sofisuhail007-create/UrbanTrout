@@ -32,7 +32,58 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(localResult);
     }
 
-    // 3. Dynamic OpenStreetMap Nominatim Fallback
+    // 3. Google Maps Geocoding API Resolution (Same as AI Agent)
+    const googleApiKey = process.env.GOOGLE_MAPS_API_KEY;
+    if (googleApiKey) {
+      try {
+        const gUrl = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(address.trim() + ", Srinagar, Kashmir")}&key=${googleApiKey}`;
+        const gRes = await fetch(gUrl, { signal: AbortSignal.timeout(4000) });
+        if (gRes.ok) {
+          const gData = await gRes.json();
+          if (gData.status === "OK" && Array.isArray(gData.results) && gData.results.length > 0) {
+            const loc = gData.results[0].geometry.location;
+            const lat = loc.lat;
+            const lng = loc.lng;
+            const dist = parseFloat(calculateHaversineDistance(FARM_LAT, FARM_LNG, lat, lng).toFixed(1));
+            const name = gData.results[0].formatted_address.split(",")[0] || address;
+
+            let tier: GeocodeResult["tier"] = "Out-of-Zone";
+            let fee = 0;
+            let minKg = 2;
+
+            if (dist <= 4.0) {
+              tier = "0-4km";
+              minKg = 2;
+              fee = Number(weightKg) >= 2 ? 0 : 100;
+            } else if (dist <= 6.0) {
+              tier = "4-6km";
+              minKg = 3;
+              fee = Number(weightKg) >= 3 ? 0 : 250;
+            } else if (dist <= 12.0) {
+              tier = "Extended-4kg";
+              minKg = 4;
+              fee = 250;
+            }
+
+            return NextResponse.json({
+              status: dist <= 12.0 ? "IN_ZONE" : "OUT_ZONE",
+              name,
+              dist,
+              minKg,
+              tier,
+              lat,
+              lng,
+              source: "google_maps",
+              isDeliverable: dist <= 12.0,
+              deliveryFee: fee,
+              message: `~${dist} km from Malabagh Farm Hub • ${tier}`
+            });
+          }
+        }
+      } catch (_) {}
+    }
+
+    // 4. Dynamic OpenStreetMap Nominatim Fallback
     try {
       const osmQuery = encodeURIComponent(`${address.trim()}, Srinagar, Jammu and Kashmir`);
       const osmUrl = `https://nominatim.openstreetmap.org/search?q=${osmQuery}&format=json&limit=1`;
@@ -52,7 +103,6 @@ export async function POST(req: NextRequest) {
           const dist = parseFloat(calculateHaversineDistance(FARM_LAT, FARM_LNG, lat, lng).toFixed(1));
           const name = osmData[0].display_name ? osmData[0].display_name.split(",")[0] : address;
 
-          const isDeliverable = dist <= 12.0 && Number(weightKg) >= (dist <= 4.0 ? 2 : dist <= 6.0 ? 3 : 4);
           let tier: GeocodeResult["tier"] = "Out-of-Zone";
           let fee = 0;
           let minKg = 2;
