@@ -414,6 +414,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* ─── Non-blocking DNS prefetch for deferred analytics ────── */}
         <link rel="dns-prefetch" href="https://connect.facebook.net" />
         <link rel="dns-prefetch" href="https://www.googletagmanager.com" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          rel="stylesheet"
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
+        />
       </head>
       <body suppressHydrationWarning className={`${manrope.className} ${spaceGrotesk.variable} ${manrope.variable} ${inter.variable} bg-[#031018] text-[#dfedf9] antialiased selection:bg-cyan-500/20 selection:text-cyan-300`}>
         <CustomerAuthProvider>

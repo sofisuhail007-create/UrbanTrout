@@ -578,7 +578,7 @@ export default function ContactPage() {
                           borderRadius: "10px", padding: "12px 16px", color: C.onSurface, fontFamily: '"Manrope", sans-serif', fontSize: "0.9rem",
                         }}
                       >
-                        <option value="Home Delivery Inquiry">Home Delivery (8km Express Perimeter)</option>
+                        <option value="Home Delivery Inquiry">Home Delivery (12km Express Perimeter)</option>
                         <option value="Bulk / Event Order">Bulk Order / Special Event</option>
                         <option value="Restaurant Supply">Hotel & Restaurant Supply</option>
                         <option value="Vending Center Pickup">Vending Center Pickup Inquiry</option>

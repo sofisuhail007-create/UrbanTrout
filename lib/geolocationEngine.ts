@@ -99,15 +99,22 @@ export const CORE_IN_ZONE_AREAS: Array<{ pattern: RegExp; name: string; dist: nu
   { pattern: /\b(?:khyber\s*hospital|khyber)\b/i, name: "Khayam (Khyber Hospital)", dist: 7.2, minKg: 4 },
   { pattern: /\b(?:sonwar|sonawar|sona\s*war)\b/i, name: "Sonwar", dist: 8.0, minKg: 4 },
   { pattern: /\b(?:qamarwari|qamar\s*wari|kamarwari)\b/i, name: "Qamarwari", dist: 7.5, minKg: 4 },
+  { pattern: /\b(?:wazir\s*bagh|wazirbagh)\b/i, name: "Wazir Bagh", dist: 7.5, minKg: 4 },
+  { pattern: /\b(?:habba\s*kadal|habbakadal)\b/i, name: "Habba Kadal", dist: 7.1, minKg: 4 },
   { pattern: /\b(?:raj\s*bagh|rajbagh)\b/i, name: "Rajbagh", dist: 9.0, minKg: 4 },
   { pattern: /\b(?:jawahar\s*nagar|jawaharnagar)\b/i, name: "Jawahar Nagar", dist: 9.5, minKg: 4 },
-  { pattern: /\b(?:hyderpora|hyder\s*pora)\b/i, name: "Hyderpora", dist: 11.5, minKg: 4 },
-  { pattern: /\b(?:sanat\s*nagar|sanatnagar)\b/i, name: "Sanat Nagar", dist: 11.0, minKg: 4 },
-  { pattern: /\b(?:ganderbal|beehama|beehama\s*ganderbal)\b/i, name: "Ganderbal Town", dist: 12.0, minKg: 4 },
-  { pattern: /\b(?:batamaloo|batmaloo)\b/i, name: "Batamaloo", dist: 8.0, minKg: 4 },
   { pattern: /\b(?:bemina)\b/i, name: "Bemina", dist: 8.5, minKg: 4 },
+  { pattern: /\b(?:batamaloo|batmaloo)\b/i, name: "Batamaloo", dist: 8.0, minKg: 4 },
   { pattern: /\b(?:nishat)\b/i, name: "Nishat", dist: 7.5, minKg: 4 },
-  { pattern: /\b(?:brein|brain)\b/i, name: "Brein/Nishat", dist: 8.0, minKg: 4 }
+  { pattern: /\b(?:brein|brain)\b/i, name: "Brein/Nishat", dist: 8.0, minKg: 4 },
+  { pattern: /\b(?:harwan|harwan\s*garden)\b/i, name: "Harwan", dist: 9.5, minKg: 4 },
+  { pattern: /\b(?:natipora|nati\s*pora)\b/i, name: "Natipora", dist: 10.5, minKg: 4 },
+  { pattern: /\b(?:baghat|barzulla|baghat\s*barzulla)\b/i, name: "Baghat / Barzulla", dist: 11.5, minKg: 4 },
+  { pattern: /\b(?:sanat\s*nagar|sanatnagar)\b/i, name: "Sanat Nagar", dist: 11.0, minKg: 4 },
+  { pattern: /\b(?:chanapora|chanpora)\b/i, name: "Chanapora", dist: 11.0, minKg: 4 },
+  { pattern: /\b(?:hyderpora|hyder\s*pora)\b/i, name: "Hyderpora", dist: 11.5, minKg: 4 },
+  { pattern: /\b(?:rawalpora|rawapora)\b/i, name: "Rawalpora", dist: 12.0, minKg: 4 },
+  { pattern: /\b(?:ganderbal|beehama|beehama\s*ganderbal)\b/i, name: "Ganderbal Town", dist: 12.0, minKg: 4 }
 ];
 
 // Strict Out-of-Zone Localities (> 12–25 km)
@@ -128,12 +135,8 @@ export const CORE_OUT_ZONE_AREAS: Array<{ pattern: RegExp; name: string }> = [
   { pattern: /\b(?:pohru|pohroo)\b/i, name: "Pohru" },
   { pattern: /\b(?:peerbagh|peer\s*bagh|pirbagh)\b/i, name: "Peerbagh" },
   { pattern: /\b(?:airport\s*road|humhama)\b/i, name: "Airport Road / Humhama" },
-  { pattern: /\b(?:chanapora|chanpora)\b/i, name: "Chanapora" },
-  { pattern: /\b(?:rawalpora|rawapora)\b/i, name: "Rawalpora" },
-  { pattern: /\b(?:natipora)\b/i, name: "Natipora" },
   { pattern: /\b(?:lawaypora|lawapora)\b/i, name: "Lawaypora" },
   { pattern: /\b(?:hmt|zainakote|mustafabad)\b/i, name: "HMT" },
-  { pattern: /\b(?:harwan)\b/i, name: "Harwan" },
   { pattern: /\b(?:budgam|ompora)\b/i, name: "Budgam" },
   { pattern: /\b(?:baramulla|anantnag|sopore|kupwara)\b/i, name: "Outside District" }
 ];
@@ -204,17 +207,17 @@ export function resolveLocationFromText(inputText: string, weightKg: number = 2)
     }
   }
 
-  // 4. Default: If truly unrecognized, NEVER assume 6.5km! Prompt user to use GPS
+  // 4. Default: If truly unrecognized, prompt user to use GPS
   return {
     status: "OUT_ZONE",
     name: cleanText,
-    dist: 12.0,
+    dist: 13.0,
     minKg: 4,
-    tier: "Extended-4kg",
+    tier: "Out-of-Zone",
     source: "unknown",
     isDeliverable: false,
     deliveryFee: 0,
-    message: `We could not verify "${cleanText}" within our standard Srinagar delivery perimeter. Please tap "Auto-Detect My GPS" for exact pin-point delivery verification.`
+    message: `We could not verify "${cleanText}" within our standard 12 km Srinagar delivery perimeter. Please tap "Auto-Detect My GPS" for exact pin-point delivery verification.`
   };
 }
 
@@ -261,8 +264,7 @@ function buildResult(name: string, dist: number, source: GeocodeResult["source"]
     };
   } else if (dist <= 12.0) {
     const minKg = 4;
-    const fee = 250; // Zone 3 bulk delivery fee
-    const isDeliverable = weightKg >= minKg;
+    const fee = 250; // Zone 3 flat delivery fee
     return {
       status: "IN_ZONE",
       name,
@@ -272,11 +274,11 @@ function buildResult(name: string, dist: number, source: GeocodeResult["source"]
       lat,
       lng,
       source,
-      isDeliverable,
+      isDeliverable: true,
       deliveryFee: fee,
-      message: isDeliverable
-        ? `Zone 3 Extended (~${dist} km) • 4 Kg Bulk Delivery (+₹250 delivery fee) ✓`
-        : `Zone 3 Extended (~${dist} km) requires a minimum 4 Kg bulk order. Please adjust quantity to 4 Kg.`
+      message: weightKg >= minKg
+        ? `Zone 3 Extended (~${dist} km) • 4 Kg Family Pack (+₹250 express delivery) ✓`
+        : `Zone 3 Extended (~${dist} km) • Express Doorstep Delivery (+₹250 flat fee) ✓`
     };
   } else {
     return {
@@ -290,7 +292,7 @@ function buildResult(name: string, dist: number, source: GeocodeResult["source"]
       source,
       isDeliverable: false,
       deliveryFee: 0,
-      message: `~${dist} km from Malabagh Farm Hub • Outside live doorstep delivery perimeter. Available for farm pickup.`
+      message: `~${dist} km from Malabagh Farm Hub • Outside 12 km live doorstep delivery perimeter. Available for farm pickup.`
     };
   }
 }

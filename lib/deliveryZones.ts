@@ -21,7 +21,7 @@ export const FARM_COORDS = {
   mapsUrl: "https://maps.app.goo.gl/6FT5iLk5n8mbKSRU9",
 };
 
-export const MAX_DELIVERY_RADIUS_KM = 8.0;
+export const MAX_DELIVERY_RADIUS_KM = 12.0;
 
 export interface ZoneConfig {
   id: "zone1" | "zone2" | "zone3" | "out_of_zone";
@@ -73,23 +73,23 @@ export const DELIVERY_ZONES: Record<string, ZoneConfig> = {
   zone3: {
     id: "zone3",
     title: "Zone 3: Extended City Zone",
-    shortLabel: "6 – 8 km",
-    rangeKm: "6.0 – 8.0 km",
+    shortLabel: "6 – 12 km",
+    rangeKm: "6.0 – 12.0 km",
     minKgFree: 4,
     minOrderFreeText: "4 kg",
-    specialDeliveryFee: 300,
+    specialDeliveryFee: 250,
     deliveryTime: "Within 2 hours",
     color: "#a855f7",
     badgeBg: "rgba(168, 85, 247, 0.15)",
     badgeBorder: "rgba(168, 85, 247, 0.35)",
     badgeText: "#c084fc",
-    description: "100% FREE doorstep delivery on min 4 kg (or ₹300 special delivery for 1–3 kg).",
+    description: "Doorstep delivery available up to 12 km (Flat ₹250 express delivery fee; 4 kg family pack or 1–3 kg).",
   },
   out_of_zone: {
     id: "out_of_zone",
-    title: "Beyond 8 km Perimeter",
-    shortLabel: "> 8 km",
-    rangeKm: "Beyond 8.0 km",
+    title: "Beyond 12 km Perimeter",
+    shortLabel: "> 12 km",
+    rangeKm: "Beyond 12.0 km",
     minKgFree: 0,
     minOrderFreeText: "Counter Pickup",
     specialDeliveryFee: 0,
@@ -98,7 +98,7 @@ export const DELIVERY_ZONES: Record<string, ZoneConfig> = {
     badgeBg: "rgba(245, 158, 11, 0.15)",
     badgeBorder: "rgba(245, 158, 11, 0.35)",
     badgeText: "#fbbf24",
-    description: "Outside doorstep express perimeter. 100% free live harvest pickup at our Malabagh Farm.",
+    description: "Outside 12 km doorstep express perimeter. 100% free live harvest pickup at our Malabagh Farm.",
   },
 };
 
@@ -156,29 +156,36 @@ export const SRINAGAR_LOCALITY_CATALOG: LocalityData[] = [
   { name: "Shalimar", aliases: ["shalimar", "shalimar bagh", "shalimar garden"], lat: 34.1480, lng: 74.8720, pincode: "190025", distKm: 5.5, tier: "zone2", minKgFree: 3 },
   { name: "Ali Kadal", aliases: ["ali kadal", "alikadal", "ali kadel"], lat: 34.0920, lng: 74.8050, pincode: "190002", distKm: 5.8, tier: "zone2", minKgFree: 3 },
 
-  // ─── ZONE 3 (6.0 to 8.0 km — Free from 4 kg) ───
+  // ─── ZONE 3 (6.0 to 12.0 km — Extended Zone, Flat ₹250 Delivery Fee) ───
   { name: "Khayam", aliases: ["khayam", "khayyam", "khyam", "khaiam", "khayam chowk", "khayyam chowk", "khyber hospital"], lat: 34.0810, lng: 74.8180, pincode: "190001", distKm: 7.2, tier: "zone3", minKgFree: 4 },
   { name: "Dalgate & Boulevard", aliases: ["dalgate", "dal gate", "boulevard", "nehru park", "boulevard road", "gate 1"], lat: 34.0840, lng: 74.8320, pincode: "190001", distKm: 7.0, tier: "zone3", minKgFree: 4 },
   { name: "Lal Chowk", aliases: ["lal chowk", "lalchowk", "clock tower", "ghanta ghar", "residency road", "regal chowk", "maisuma"], lat: 34.0725, lng: 74.8090, pincode: "190001", distKm: 7.2, tier: "zone3", minKgFree: 4 },
   { name: "Qamarwari", aliases: ["qamarwari", "qamar wari", "kamarwari", "qamarwari chowk"], lat: 34.0880, lng: 74.7780, pincode: "190010", distKm: 7.4, tier: "zone3", minKgFree: 4 },
+  { name: "Wazir Bagh", aliases: ["wazir bagh", "wazirbagh"], lat: 34.0670, lng: 74.8150, pincode: "190008", distKm: 7.5, tier: "zone3", minKgFree: 4 },
   { name: "Batamaloo", aliases: ["batamaloo", "batamalo", "batmaloo"], lat: 34.0740, lng: 74.7920, pincode: "190009", distKm: 7.5, tier: "zone3", minKgFree: 4 },
   { name: "Rajbagh", aliases: ["rajbagh", "raj bagh", "zero bridge", "kursoo rajbagh"], lat: 34.0680, lng: 74.8240, pincode: "190008", distKm: 7.6, tier: "zone3", minKgFree: 4 },
   { name: "Jawahar Nagar", aliases: ["jawahar nagar", "jawaharnagar"], lat: 34.0580, lng: 74.8170, pincode: "190008", distKm: 7.8, tier: "zone3", minKgFree: 4 },
   { name: "Sonwar", aliases: ["sonwar", "sonawar", "sona war", "sonwar bazar"], lat: 34.0700, lng: 74.8390, pincode: "190004", distKm: 7.8, tier: "zone3", minKgFree: 4 },
+  { name: "Bemina", aliases: ["bemina", "sd colony", "hamdania colony", "bemina byepass"], lat: 34.0850, lng: 74.7680, pincode: "190018", distKm: 8.8, tier: "zone3", minKgFree: 4 },
+  { name: "Nishat", aliases: ["nishat", "nishat bagh", "brein", "brain"], lat: 34.1230, lng: 74.8780, pincode: "190019", distKm: 9.0, tier: "zone3", minKgFree: 4 },
+  { name: "Harwan", aliases: ["harwan", "harwan garden", "dara"], lat: 34.1650, lng: 74.8980, pincode: "190023", distKm: 9.5, tier: "zone3", minKgFree: 4 },
+  { name: "Natipora", aliases: ["natipora", "nati pora"], lat: 34.0450, lng: 74.8080, pincode: "190015", distKm: 10.5, tier: "zone3", minKgFree: 4 },
+  { name: "Barzulla / Baghat", aliases: ["barzulla", "baghat", "baghat barzulla"], lat: 34.0420, lng: 74.7920, pincode: "190005", distKm: 10.5, tier: "zone3", minKgFree: 4 },
+  { name: "Sanat Nagar", aliases: ["sanat nagar", "sanatnagar"], lat: 34.0320, lng: 74.7950, pincode: "190005", distKm: 11.0, tier: "zone3", minKgFree: 4 },
+  { name: "Chanapora", aliases: ["chanapora", "chanpora"], lat: 34.0400, lng: 74.8050, pincode: "190015", distKm: 11.0, tier: "zone3", minKgFree: 4 },
+  { name: "Hyderpora", aliases: ["hyderpora", "hyder pora", "hyderpora flyover"], lat: 34.0370, lng: 74.7820, pincode: "190014", distKm: 11.5, tier: "zone3", minKgFree: 4 },
+  { name: "Rawalpora", aliases: ["rawalpora", "rawapora"], lat: 34.0290, lng: 74.7880, pincode: "190005", distKm: 12.0, tier: "zone3", minKgFree: 4 },
+  { name: "Ganderbal Town", aliases: ["ganderbal", "ganderbal town", "beehama"], lat: 34.2160, lng: 74.7780, pincode: "191201", distKm: 12.0, tier: "zone3", minKgFree: 4 },
 
-  // ─── OUT OF ZONE (> 8.0 km — Counter Pickup) ───
-  { name: "Bemina", aliases: ["bemina", "sd colony", "hamdania colony", "bemina byepass"], lat: 34.0850, lng: 74.7680, pincode: "190018", distKm: 8.8, tier: "out_of_zone", minKgFree: 0 },
-  { name: "Nishat", aliases: ["nishat", "nishat bagh", "brein", "brain"], lat: 34.1230, lng: 74.8780, pincode: "190019", distKm: 9.0, tier: "out_of_zone", minKgFree: 0 },
-  { name: "Harwan", aliases: ["harwan", "harwan garden", "dara"], lat: 34.1650, lng: 74.8980, pincode: "190023", distKm: 9.5, tier: "out_of_zone", minKgFree: 0 },
-  { name: "Sanat Nagar", aliases: ["sanat nagar", "sanatnagar"], lat: 34.0320, lng: 74.7950, pincode: "190005", distKm: 11.0, tier: "out_of_zone", minKgFree: 0 },
-  { name: "Hyderpora", aliases: ["hyderpora", "hyder pora", "hyderpora flyover"], lat: 34.0370, lng: 74.7820, pincode: "190014", distKm: 12.0, tier: "out_of_zone", minKgFree: 0 },
+  // ─── OUT OF ZONE (> 12.0 km — Counter Pickup) ───
   { name: "Peerbagh", aliases: ["peerbagh", "peer bagh", "pirbagh"], lat: 34.0250, lng: 74.7800, pincode: "190014", distKm: 13.0, tier: "out_of_zone", minKgFree: 0 },
   { name: "Airport Road / Humhama", aliases: ["airport road", "humhama", "srinagar airport"], lat: 34.0150, lng: 74.7750, pincode: "190014", distKm: 14.0, tier: "out_of_zone", minKgFree: 0 },
-  { name: "Rawalpora", aliases: ["rawalpora", "rawapora"], lat: 34.0290, lng: 74.7880, pincode: "190005", distKm: 12.0, tier: "out_of_zone", minKgFree: 0 },
-  { name: "Chanapora", aliases: ["chanapora", "chanpora"], lat: 34.0400, lng: 74.8050, pincode: "190015", distKm: 11.0, tier: "out_of_zone", minKgFree: 0 },
-  { name: "Ganderbal Town", aliases: ["ganderbal", "ganderbal town", "beehama"], lat: 34.2160, lng: 74.7780, pincode: "191201", distKm: 12.0, tier: "out_of_zone", minKgFree: 0 },
+  { name: "Lasjan", aliases: ["lasjan", "lassjan"], lat: 34.0200, lng: 74.8450, pincode: "190015", distKm: 14.5, tier: "out_of_zone", minKgFree: 0 },
+  { name: "Nowgam", aliases: ["nowgam", "naugaon"], lat: 34.0100, lng: 74.8250, pincode: "190015", distKm: 15.0, tier: "out_of_zone", minKgFree: 0 },
+  { name: "Pantha Chowk", aliases: ["pantha chowk", "panthachowk"], lat: 34.0280, lng: 74.8850, pincode: "191101", distKm: 15.0, tier: "out_of_zone", minKgFree: 0 },
   { name: "Budgam", aliases: ["budgam", "ompora"], lat: 34.0180, lng: 74.7250, pincode: "191111", distKm: 16.0, tier: "out_of_zone", minKgFree: 0 },
-  { name: "Pampore", aliases: ["pampore", "pantha chowk"], lat: 34.0200, lng: 74.9100, pincode: "192121", distKm: 16.0, tier: "out_of_zone", minKgFree: 0 },
+  { name: "Pampore", aliases: ["pampore"], lat: 34.0200, lng: 74.9100, pincode: "192121", distKm: 16.0, tier: "out_of_zone", minKgFree: 0 },
+  { name: "Chadoora", aliases: ["chadoora", "chadure"], lat: 33.9500, lng: 74.8000, pincode: "191113", distKm: 19.0, tier: "out_of_zone", minKgFree: 0 },
 ];
 
 // Haversine distance formula in km
@@ -246,7 +253,7 @@ export function evaluateDeliveryZone(params: {
     tierId = "zone1";
   } else if (dist <= 6.0) {
     tierId = "zone2";
-  } else if (dist <= 8.0) {
+  } else if (dist <= 12.0) {
     tierId = "zone3";
   } else {
     tierId = "out_of_zone";
@@ -255,6 +262,8 @@ export function evaluateDeliveryZone(params: {
   const zoneConfig = DELIVERY_ZONES[tierId];
   if (tierId === "out_of_zone") {
     isDeliverable = false;
+  } else {
+    isDeliverable = true;
   }
   const minKg = zoneConfig.minKgFree;
 
@@ -265,6 +274,12 @@ export function evaluateDeliveryZone(params: {
 
   if (!isDeliverable) {
     fee = 0;
+  } else if (tierId === "zone3") {
+    fee = 250;
+    if (weightKg < 4) {
+      const neededKg = 4 - weightKg;
+      upgradeAdvice = `Add +${neededKg} kg more trout to upgrade to our 4 kg Family Pack! (Flat ₹250 express delivery to extended zone)`;
+    }
   } else if (weightKg >= minKg) {
     fee = 0;
   } else {
@@ -282,16 +297,16 @@ export function evaluateDeliveryZone(params: {
 
   if (tierId === "zone1") {
     statusHeadline = `✓ 100% Free Doorstep Delivery from 2 kg (~${dist.toFixed(1)} km)`;
-    deliveryMessage = `Deliverable within 90–120 minutes with non-toxic, leak-proof reusable ice gel packs (0°C–4°C). Free on 2+ kg, or ₹${fee} special fee for smaller orders.`;
+    deliveryMessage = `Deliverable within 90–120 minutes with non-toxic, leak-proof reusable ice gel packs (0°C–4°C). Free on 2+ kg, or ₹${fee} special fee for 1 kg.`;
   } else if (tierId === "zone2") {
     statusHeadline = `✓ Doorstep Delivery Available — Free from 3 kg (~${dist.toFixed(1)} km)`;
-    deliveryMessage = `Deliverable within 2 hours. Free delivery on family pack (3+ kg), or ₹${fee} special delivery fee for smaller orders.`;
+    deliveryMessage = `Deliverable within 2 hours. Free delivery on family pack (3+ kg), or ₹${fee} special delivery fee for smaller orders (1–2 kg).`;
   } else if (tierId === "zone3") {
-    statusHeadline = `✓ Extended City Delivery — Free from 4 kg (~${dist.toFixed(1)} km)`;
-    deliveryMessage = `Deliverable within 2 hours. Free delivery on 4+ kg, or ₹${fee} special delivery fee for 1–3 kg.`;
+    statusHeadline = `✓ Extended City Delivery (~${dist.toFixed(1)} km)`;
+    deliveryMessage = `Deliverable within 2 hours with cold-chain packaging. Flat ₹250 express delivery fee (Standard 4 kg family pack, or 1–3 kg starter available).`;
   } else {
-    statusHeadline = `📍 Outside 8 km Express Delivery Perimeter (~${dist.toFixed(1)} km)`;
-    deliveryMessage = `To ensure live-harvest cold chain integrity within 2 hours, doorstep delivery is restricted to 8 km. You are warmly welcome to pick up fresh live catch directly from our Live Vending Center in Malabagh with ZERO delivery fee!`;
+    statusHeadline = `📍 Outside 12 km Express Delivery Perimeter (~${dist.toFixed(1)} km)`;
+    deliveryMessage = `To ensure live-harvest cold chain integrity within 2 hours, doorstep delivery is restricted to 12 km. You are warmly welcome to pick up fresh live catch directly from our Live Vending Center in Malabagh with ZERO delivery fee!`;
   }
 
   return {

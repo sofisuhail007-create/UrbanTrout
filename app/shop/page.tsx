@@ -11,14 +11,14 @@ import { getLiveAquariumStock } from "@/lib/aquariumStock";
 export const metadata: Metadata = {
   title: "Shop Fresh Rainbow Trout Online in Srinagar",
   description:
-    "Order live-harvested whole (₹540/kg) and cleaned & gutted (₹580/kg) Rainbow Trout online in Srinagar. 100% Free bio-thermal doorstep delivery within 2 hours across our 8km farm perimeter.",
+    "Order live-harvested whole (₹540/kg) and cleaned & gutted (₹580/kg) Rainbow Trout online in Srinagar. Bio-thermal doorstep delivery within 2 hours across our 12km farm perimeter.",
   alternates: {
     canonical: "https://urbantrout.in/shop",
   },
   openGraph: {
     title: "Shop Fresh Rainbow Trout Online in Srinagar | Urban Trout",
     description:
-      "Buy fresh Rainbow Trout from our Malabagh farm. Whole from ₹540/kg, gutted from ₹580/kg. Free delivery within 8km farm perimeter.",
+      "Buy fresh Rainbow Trout from our Malabagh farm. Whole from ₹540/kg, gutted from ₹580/kg. Express delivery within 12km farm perimeter.",
     url: "https://urbantrout.in/shop",
     siteName: "Urban Trout",
     images: [
@@ -215,7 +215,7 @@ export default async function ShopPage() {
               }}>
                 <span className="text-xs">🛵</span>
                 <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "11px", fontWeight: 700, letterSpacing: "0.05em", color: "#34d399", textTransform: "uppercase" }}>
-                  Free Delivery (8km Farm Perimeter)
+                  Doorstep Delivery (12km Farm Perimeter)
                 </span>
               </div>
               <div style={{
@@ -280,7 +280,7 @@ export default async function ShopPage() {
               </svg>
             </div>
             <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: "0.95rem", color: C.onSurface }}>Direct to Your Door</span>
-            <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.82rem", color: C.onSurfVar, lineHeight: 1.65 }}>Delivered chilled within 2 hours of harvest across our 8km express zone.</span>
+            <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.82rem", color: C.onSurfVar, lineHeight: 1.65 }}>Delivered chilled within 2 hours of harvest across our 12km express zone.</span>
           </div>
         </div>
       </section>

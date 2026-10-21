@@ -66,7 +66,7 @@ const C = {
 // ─── Farm Coordinates (Malabagh / Naseem Bagh, Srinagar) ────────
 const FARM_LAT = 34.144709;
 const FARM_LNG = 74.824525;
-const DELIVERY_RADIUS_KM = 8.0;
+const DELIVERY_RADIUS_KM = 12.0;
 
 // ─── Srinagar Landmark Coordinates for Distance Lookup & GPS Fallback ───
 export type SrinagarLandmark = LocalityData;
@@ -347,7 +347,7 @@ export default function CheckoutPage() {
   const [detectedCoords, setDetectedCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [calculatedDistance, setCalculatedDistance] = useState<number | null>(null);
   const [selectedZoneName, setSelectedZoneName] = useState<string>("");
-  const [deliveryRadiusKm, setDeliveryRadiusKm] = useState<number>(8.0);
+  const [deliveryRadiusKm, setDeliveryRadiusKm] = useState<number>(12.0);
   const [farmLat, setFarmLat] = useState<number>(34.144709);
   const [farmLng, setFarmLng] = useState<number>(74.824525);
   const [allowOutsideRadius, setAllowOutsideRadius] = useState<boolean>(false);
@@ -492,7 +492,7 @@ export default function CheckoutPage() {
           if (map.upi_id) setUpiId(map.upi_id);
           if (map.delivery_radius_km) {
             const r = parseFloat(map.delivery_radius_km);
-            if (!isNaN(r) && r > 0) setDeliveryRadiusKm(Math.max(r, 8.0));
+            if (!isNaN(r) && r > 0) setDeliveryRadiusKm(Math.max(r, 12.0));
           }
           if (map.farm_latitude) {
             const lat = parseFloat(map.farm_latitude);
@@ -517,7 +517,7 @@ export default function CheckoutPage() {
           if (map.upi_id) setUpiId(map.upi_id);
           if (map.delivery_radius_km) {
             const r = parseFloat(map.delivery_radius_km);
-            if (!isNaN(r) && r > 0) setDeliveryRadiusKm(Math.max(r, 8.0));
+            if (!isNaN(r) && r > 0) setDeliveryRadiusKm(Math.max(r, 12.0));
           }
           if (map.farm_latitude) {
             const lat = parseFloat(map.farm_latitude);
@@ -1523,7 +1523,7 @@ export default function CheckoutPage() {
                 <div className="flex justify-between text-slate-400">
                   <span>Farm-Fresh Delivery:</span>
                   <span className={`font-semibold ${orderSuccess.deliveryFee > 0 ? "text-amber-400" : "text-emerald-400"}`}>
-                    {orderSuccess.deliveryFee > 0 ? `₹${orderSuccess.deliveryFee} Express Delivery` : "FREE (8km Farm Zone)"}
+                    {orderSuccess.deliveryFee > 0 ? `₹${orderSuccess.deliveryFee} Express Delivery` : "FREE (Farm Delivery Zone)"}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm font-extrabold text-white pt-2 border-t border-slate-800">
@@ -1840,7 +1840,7 @@ export default function CheckoutPage() {
                   className="hidden sm:block"
                   style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", color: C.onSurfVar }}
                 >
-                  8km Zone &amp; GPS
+                  12km Zone &amp; GPS
                 </span>
               </div>
             </button>
@@ -2207,7 +2207,7 @@ export default function CheckoutPage() {
                           2. Srinagar Delivery Address
                         </h3>
                       </div>
-                      <span className="text-[10px] text-emerald-400 font-semibold">8km Tiered Delivery Perimeter</span>
+                      <span className="text-[10px] text-emerald-400 font-semibold">12km Tiered Delivery Perimeter</span>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2328,14 +2328,14 @@ export default function CheckoutPage() {
                     </button>
                   </div>
                   <p className="text-[11px] text-center text-slate-400 font-mono">
-                    🔒 Instant lead recovery • 100% Free Doorstep Delivery inside 8km (Tiered) • Live Catch Harvested to Order • Instant UPI &amp; Cards
+                    🔒 Instant lead recovery • 100% Free Doorstep Delivery inside 12km (Tiered) • Live Catch Harvested to Order • Instant UPI &amp; Cards
                   </p>
                 </form>
               </div>
             )}
 
             {/* ══════════════════════════════════════════════════════
-                STAGE 2: CONFIRM DELIVERY LOCATION & 8KM RADIUS
+                STAGE 2: CONFIRM DELIVERY LOCATION & 12KM RADIUS
                 ══════════════════════════════════════════════════════ */}
             {currentStep === 2 && (
               <div
@@ -2821,7 +2821,11 @@ export default function CheckoutPage() {
                                 <span className="text-[10px] text-slate-400 font-normal">({currentZoneEvaluation.zoneConfig.rangeKm})</span>
                               </div>
                               <p className="text-slate-300 text-[11px] m-0">
-                                💡 <strong>Free Delivery Tip:</strong> Add <strong>+{Math.max(1, currentZoneEvaluation.minKgFree - totalWeightKg)} kg</strong> more trout to your cart to unlock <strong>100% FREE Doorstep Delivery</strong> and save ₹{deliveryFee}!
+                                {currentZoneEvaluation.tier === "zone3" ? (
+                                  <>💡 <strong>Family Pack Recommendation:</strong> Order our standard <strong>4 kg</strong> pack for family meals or freezing fresh! Flat ₹{deliveryFee} express delivery to extended zone.</>
+                                ) : (
+                                  <>💡 <strong>Free Delivery Tip:</strong> Add <strong>+{Math.max(1, currentZoneEvaluation.minKgFree - totalWeightKg)} kg</strong> more trout to your cart to unlock <strong>100% FREE Doorstep Delivery</strong> and save ₹{deliveryFee}!</>
+                                )}
                               </p>
                             </div>
                             <Link
@@ -2887,7 +2891,7 @@ export default function CheckoutPage() {
                         {/* Quick 1-tap in-zone selector if customer wants delivery to a friend/office in-zone */}
                         <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 text-left space-y-2">
                           <div className="text-[11px] font-semibold text-slate-300 flex items-center justify-between">
-                            <span>Delivering to an office, friend, or relative within 8km?</span>
+                            <span>Delivering to an office, friend, or relative within 12km?</span>
                             <span className="text-[10px] text-emerald-400 font-mono">1-Tap Select</span>
                           </div>
                           <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">

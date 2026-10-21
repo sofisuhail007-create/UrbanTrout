@@ -138,11 +138,6 @@ body {
   font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
   user-select: none;
   vertical-align: middle;
-  width: 1em;
-  height: 1em;
-  max-width: 1em;
-  max-height: 1em;
-  overflow: hidden;
   flex-shrink: 0;
   text-rendering: optimizeLegibility;
 }

@@ -132,6 +132,7 @@ export default function POSBillingPage() {
   const [remoteSearch, setRemoteSearch] = useState("");
   const [checkingOrderId, setCheckingOrderId] = useState<string | null>(null);
   const [copiedTicketId, setCopiedTicketId] = useState<string | null>(null);
+  const [copiedInvoiceId, setCopiedInvoiceId] = useState<string | null>(null);
   const [manualPayModal, setManualPayModal] = useState<any | null>(null);
   const [manualPayMode, setManualPayMode] = useState<string>("Cash on Delivery (Driver)");
   const [manualPayNote, setManualPayNote] = useState<string>("");
@@ -1799,6 +1800,20 @@ Naseem Bagh / Malabagh, Srinagar`;
     } finally {
       setDeletingOrderId(null);
     }
+  };
+
+  // ─── COPY CLEAN PUBLIC INVOICE LINK (e.g. https://urbantrout.in/invoice/UT-INV-XXXX) ───
+  const handleCopyInvoiceLink = (order: any) => {
+    const invNum = getOrderNum(order);
+    const origin = typeof window !== "undefined" && window.location.origin
+      ? window.location.origin
+      : "https://urbantrout.in";
+    const invoiceUrl = `${origin}/invoice/${invNum}`;
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(invoiceUrl);
+    }
+    setCopiedInvoiceId(order.id);
+    setTimeout(() => setCopiedInvoiceId(null), 2500);
   };
 
   // ─── EXPIRE INVOICE LINK EARLY (BEFORE 48 HOURS) ───
@@ -4244,38 +4259,50 @@ Helpline: +91 84910 06127`;
                       {isPaid ? (
                         /* PAID ACTIONS */
                         <div className="space-y-1.5">
-                          <div className="flex items-center justify-between gap-1.5">
-                            <div className="flex-1 p-1 rounded-lg bg-emerald-950/30 border border-emerald-500/30 text-[9.5px] text-emerald-300 font-mono text-center flex items-center justify-center gap-1">
-                              <span className="material-symbols-outlined text-xs">verified</span>
-                              Paid in Full ✓
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <div className="flex-1 min-w-[100px] p-1.5 rounded-lg bg-emerald-950/40 border border-emerald-500/40 text-[10px] text-emerald-300 font-mono text-center flex items-center justify-center gap-1 font-bold">
+                              <span>✓</span> Paid in Full
                             </div>
                             <button
                               type="button"
-                              onClick={() => handleQuickUpdateStatus(order, "PAYMENT DUE")}
-                              className="px-2 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer"
-                              title="Mark back to Payment Due"
+                              onClick={() => handleCopyInvoiceLink(order)}
+                              className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                                copiedInvoiceId === order.id
+                                  ? "bg-emerald-500/30 text-emerald-200 border border-emerald-400 shadow-sm"
+                                  : "bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-200 border border-cyan-500/40"
+                              }`}
+                              title="Copy clean public invoice link"
                             >
-                              <span>⏳ Mark Due</span>
+                              <span>{copiedInvoiceId === order.id ? "✓" : "🔗"}</span>
+                              <span>{copiedInvoiceId === order.id ? "Copied!" : "Copy Link"}</span>
                             </button>
                             <a
                               href={`/invoice/${order.data?.num || invNum || order.id}?autoprint=true`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="px-2 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer"
+                              className="px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 hover:border-slate-500 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer"
                               title="Open & Download Official A4 Tax Invoice PDF"
                             >
-                              <span className="material-symbols-outlined text-xs">picture_as_pdf</span>
-                              <span>A4 PDF</span>
+                              <span>📄</span>
+                              <span>PDF</span>
                             </a>
+                            <button
+                              type="button"
+                              onClick={() => handleQuickUpdateStatus(order, "PAYMENT DUE")}
+                              className="px-2 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer"
+                              title="Mark back to Payment Due"
+                            >
+                              <span>⏳ Mark Due</span>
+                            </button>
                             <button
                               type="button"
                               onClick={() => handleDeleteRemoteOrder(order)}
                               disabled={isDeleting}
-                              className="px-2 py-1 rounded-lg bg-slate-800/80 hover:bg-red-950/40 text-slate-400 hover:text-red-300 border border-slate-700 hover:border-red-500/30 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
+                              className="px-2 py-1.5 rounded-lg bg-slate-800/80 hover:bg-red-950/40 text-slate-400 hover:text-red-300 border border-slate-700 hover:border-red-500/30 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
                               title="Delete this order record"
                             >
-                              <span className="material-symbols-outlined text-xs">delete</span>
-                              {isDeleting ? "..." : "Delete"}
+                              <span>🗑️</span>
+                              <span>{isDeleting ? "..." : "Delete"}</span>
                             </button>
                           </div>
 
@@ -4294,7 +4321,7 @@ Helpline: +91 84910 06127`;
                                 title="Send customer a WhatsApp message asking for a Google review"
                               >
                                 <span>⭐</span>
-                                {hasSentReview ? "✓ Review Requested" : "Request Google Review"}
+                                <span>{hasSentReview ? "✓ Review Requested" : "Request Google Review"}</span>
                               </button>
                             );
                           })()}
@@ -4302,19 +4329,32 @@ Helpline: +91 84910 06127`;
                       ) : isExp ? (
                         /* EXPIRED ACTIONS */
                         <div className="space-y-1.5">
-                          <div className="p-1.5 rounded-xl bg-rose-950/30 border border-rose-500/30 text-[10px] text-rose-300 font-mono text-center flex items-center justify-center gap-1">
-                            <span className="material-symbols-outlined text-xs">timer_off</span>
+                          <div className="p-1.5 rounded-xl bg-rose-950/30 border border-rose-500/30 text-[10px] text-rose-300 font-mono text-center flex items-center justify-center gap-1 font-semibold">
+                            <span>⏳</span>
                             <span>Invoice Link Expired (Customer cannot pay)</span>
                           </div>
-                          <div className="grid grid-cols-4 gap-1.5">
+                          <div className="grid grid-cols-5 gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handleCopyInvoiceLink(order)}
+                              className={`py-1.5 px-1 rounded-xl text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer ${
+                                copiedInvoiceId === order.id
+                                  ? "bg-emerald-500/30 text-emerald-200 border border-emerald-400"
+                                  : "bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-200 border border-cyan-500/40"
+                              }`}
+                              title="Copy clean public invoice link"
+                            >
+                              <span>{copiedInvoiceId === order.id ? "✓" : "🔗"}</span>
+                              <span>{copiedInvoiceId === order.id ? "Copied" : "Copy"}</span>
+                            </button>
                             <button
                               type="button"
                               onClick={() => handleReactivateInvoice(order)}
                               className="py-1.5 px-1 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer"
                               title="Reactivate link and reset 48-hour timer"
                             >
-                              <span className="material-symbols-outlined text-xs">restart_alt</span>
-                              <span>Reactivate</span>
+                              <span>🔄</span>
+                              <span>Reset</span>
                             </button>
                             <button
                               type="button"
@@ -4322,17 +4362,18 @@ Helpline: +91 84910 06127`;
                               className="py-1.5 px-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer"
                               title="Mark paid"
                             >
-                              <span>💵 Paid</span>
+                              <span>💵</span>
+                              <span>Paid</span>
                             </button>
                             <a
                               href={`/invoice/${order.data?.num || invNum || order.id}?autoprint=true`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="py-1.5 px-1 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer"
+                              className="py-1.5 px-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer"
                               title="Open & Download Official A4 Tax Invoice PDF"
                             >
-                              <span className="material-symbols-outlined text-xs">picture_as_pdf</span>
-                              <span>A4 PDF</span>
+                              <span>📄</span>
+                              <span>PDF</span>
                             </a>
                             <button
                               type="button"
@@ -4341,10 +4382,8 @@ Helpline: +91 84910 06127`;
                               className="py-1.5 px-1 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 hover:text-rose-200 border border-rose-500/40 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
                               title="Delete invoice record"
                             >
-                              <span className={`material-symbols-outlined text-xs ${isDeleting ? "animate-spin" : ""}`}>
-                                {isDeleting ? "sync" : "delete"}
-                              </span>
-                              <span>{isDeleting ? "..." : "Delete"}</span>
+                              <span>🗑️</span>
+                              <span>{isDeleting ? "..." : "Del"}</span>
                             </button>
                           </div>
                         </div>
@@ -4358,34 +4397,22 @@ Helpline: +91 84910 06127`;
                           const hasReminded = reminderSentIds.has(order.id);
                           return (
                             <div className="space-y-1.5">
+                              {/* Primary Row: Copy Link, WhatsApp Reminder, PDF */}
                               <div className="grid grid-cols-3 gap-1.5">
-                                {/* Check Status Now */}
                                 <button
                                   type="button"
-                                  onClick={() => handleCheckRemoteOrderStatus(order)}
-                                  disabled={isChecking}
-                                  className="py-1.5 px-1 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
-                                  title="Poll Razorpay status directly"
+                                  onClick={() => handleCopyInvoiceLink(order)}
+                                  className={`py-1.5 px-2 rounded-xl text-[10.5px] font-bold font-mono transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm ${
+                                    copiedInvoiceId === order.id
+                                      ? "bg-emerald-500/30 text-emerald-200 border border-emerald-400"
+                                      : "bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-200 border border-cyan-500/40"
+                                  }`}
+                                  title="Copy clean public customer invoice link"
                                 >
-                                  <span className={`material-symbols-outlined text-xs ${isChecking ? "animate-spin" : ""}`}>
-                                    sync
-                                  </span>
-                                  {isChecking ? "..." : "Status"}
+                                  <span>{copiedInvoiceId === order.id ? "✓" : "🔗"}</span>
+                                  <span>{copiedInvoiceId === order.id ? "Link Copied!" : "Copy Link"}</span>
                                 </button>
 
-                                {/* Official A4 PDF */}
-                                <a
-                                  href={`/invoice/${order.data?.num || invNum || order.id}?autoprint=true`}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="py-1.5 px-1 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer"
-                                  title="Open & Download Official A4 Tax Invoice PDF"
-                                >
-                                  <span className="material-symbols-outlined text-xs">picture_as_pdf</span>
-                                  <span>A4 PDF</span>
-                                </a>
-
-                                {/* WhatsApp Reminder — pulsing if 2hr+ overdue */}
                                 <button
                                   type="button"
                                   onClick={() => handleSendReminder(order)}
@@ -4401,11 +4428,20 @@ Helpline: +91 84910 06127`;
                                   {needsReminder && !hasReminded && (
                                     <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-green-400 border border-slate-900" />
                                   )}
-                                  <span className="material-symbols-outlined text-xs">
-                                    {hasReminded ? "check" : "send"}
-                                  </span>
-                                  {hasReminded ? "Reminded" : needsReminder ? "Remind!" : "WhatsApp"}
+                                  <span>💬</span>
+                                  <span>{hasReminded ? "Reminded" : needsReminder ? "Remind!" : "WhatsApp"}</span>
                                 </button>
+
+                                <a
+                                  href={`/invoice/${order.data?.num || invNum || order.id}?autoprint=true`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="py-1.5 px-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer"
+                                  title="Open & Download Official A4 Tax Invoice PDF"
+                                >
+                                  <span>📄</span>
+                                  <span>A4 PDF</span>
+                                </a>
                               </div>
 
                               {/* Quick J&K Bank Confirmation Button for J&K / Dual orders */}
@@ -4425,40 +4461,48 @@ Helpline: +91 84910 06127`;
                                 </button>
                               )}
 
-                              <div className="grid grid-cols-3 gap-1.5">
-                                {/* Mark Paid in 1-Click */}
+                              {/* Secondary Row: Status, Mark Paid, Expire Early, Delete */}
+                              <div className="grid grid-cols-4 gap-1.5">
+                                <button
+                                  type="button"
+                                  onClick={() => handleCheckRemoteOrderStatus(order)}
+                                  disabled={isChecking}
+                                  className="py-1.5 px-1 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
+                                  title="Poll Razorpay status directly"
+                                >
+                                  <span className={isChecking ? "animate-spin" : ""}>🔄</span>
+                                  <span>{isChecking ? "..." : "Status"}</span>
+                                </button>
+
                                 <button
                                   type="button"
                                   onClick={() => handleQuickUpdateStatus(order, "PAID")}
-                                  className="py-1.5 px-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer"
+                                  className="py-1.5 px-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer"
                                   title="Mark paid in 1 click"
                                 >
-                                  <span>💵</span> Mark Paid
+                                  <span>💵</span>
+                                  <span>Paid</span>
                                 </button>
 
-                                {/* Expire Link Early */}
                                 <button
                                   type="button"
                                   onClick={() => handleExpireInvoiceEarly(order)}
-                                  className="py-1.5 px-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer"
+                                  className="py-1.5 px-1 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer"
                                   title="Expire invoice link immediately before 48 hours"
                                 >
-                                  <span className="material-symbols-outlined text-xs">timer_off</span>
-                                  <span>Expire Early</span>
+                                  <span>⏳</span>
+                                  <span>Expire</span>
                                 </button>
 
-                                {/* Delete / Cancel & Expire */}
                                 <button
                                   type="button"
                                   onClick={() => handleDeleteRemoteOrder(order)}
                                   disabled={isDeleting}
-                                  className="py-1.5 px-1.5 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 hover:text-rose-200 border border-rose-500/40 hover:border-rose-400 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
+                                  className="py-1.5 px-1 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 hover:text-rose-200 border border-rose-500/40 hover:border-rose-400 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
                                   title="Cancel this order and expire the Razorpay payment link so customer cannot pay"
                                 >
-                                  <span className={`material-symbols-outlined text-xs ${isDeleting ? "animate-spin" : ""}`}>
-                                    {isDeleting ? "sync" : "delete_forever"}
-                                  </span>
-                                  {isDeleting ? "..." : "Delete"}
+                                  <span className={isDeleting ? "animate-spin" : ""}>🗑️</span>
+                                  <span>{isDeleting ? "..." : "Delete"}</span>
                                 </button>
                               </div>
                             </div>
@@ -4652,14 +4696,36 @@ Helpline: +91 84910 06127`;
               </div>
 
               {/* Floating Quick Action Buttons */}
-              <div className="flex items-center gap-1.5 sm:gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                 <button
                   type="button"
                   onClick={handleShareWhatsApp}
                   className="flex-1 sm:flex-initial py-2 px-2.5 sm:px-3.5 rounded-xl bg-[#25D366] hover:bg-[#20bd5a] active:scale-95 text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1 shadow-md transition-all cursor-pointer"
                 >
-                  <span className="material-symbols-outlined text-base">share</span>
+                  <span>💬</span>
                   <span className="truncate">WhatsApp</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const origin = typeof window !== "undefined" ? window.location.origin : "https://urbantrout.in";
+                    const url = `${origin}/invoice/${generatedInvoice.invoiceNumber}`;
+                    if (typeof navigator !== "undefined" && navigator.clipboard) {
+                      navigator.clipboard.writeText(url);
+                    }
+                    setCopiedInvoiceId(generatedInvoice.invoiceNumber);
+                    setTimeout(() => setCopiedInvoiceId(null), 2500);
+                  }}
+                  className={`flex-1 sm:flex-initial py-2 px-2.5 sm:px-3.5 rounded-xl active:scale-95 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1 transition-all cursor-pointer shadow-sm ${
+                    copiedInvoiceId === generatedInvoice.invoiceNumber
+                      ? "bg-emerald-500/30 text-emerald-200 border border-emerald-400"
+                      : "bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-200 border border-cyan-500/40"
+                  }`}
+                  title="Copy clean public invoice link"
+                >
+                  <span>{copiedInvoiceId === generatedInvoice.invoiceNumber ? "✓" : "🔗"}</span>
+                  <span className="truncate">{copiedInvoiceId === generatedInvoice.invoiceNumber ? "Copied!" : "Copy Link"}</span>
                 </button>
 
                 <button
@@ -4669,10 +4735,10 @@ Helpline: +91 84910 06127`;
                     const url = `${origin}/invoice/${generatedInvoice.invoiceNumber}?format=a4&autoprint=true`;
                     window.open(url, "_blank");
                   }}
-                  className="flex-1 sm:flex-initial py-2 px-2.5 sm:px-3.5 rounded-xl bg-gradient-to-r from-cyan-500/25 to-teal-500/25 hover:from-cyan-500/35 hover:to-teal-500/35 active:scale-95 text-cyan-200 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1 border border-cyan-500/40 transition-all cursor-pointer shadow-sm"
+                  className="flex-1 sm:flex-initial py-2 px-2.5 sm:px-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1 border border-slate-700 transition-all cursor-pointer shadow-sm"
                   title="Open & Download Official A4 Tax Invoice PDF"
                 >
-                  <span className="material-symbols-outlined text-base">picture_as_pdf</span>
+                  <span>📄</span>
                   <span className="truncate">A4 PDF</span>
                 </button>
 
@@ -4691,7 +4757,7 @@ Helpline: +91 84910 06127`;
                   onClick={() => window.print()}
                   className="flex-1 sm:flex-initial py-2 px-2.5 sm:px-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1 border border-slate-700 transition-all cursor-pointer"
                 >
-                  <span className="material-symbols-outlined text-base">print</span>
+                  <span>🖨️</span>
                   <span className="truncate">Print Full</span>
                 </button>
 
@@ -6149,7 +6215,7 @@ Helpline: +91 84910 06127`;
                   rel="noopener noreferrer"
                   className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-cyan-500/25 to-teal-500/25 hover:from-cyan-500/35 hover:to-teal-500/35 text-cyan-200 font-mono text-xs font-bold border border-cyan-500/40 flex items-center justify-center gap-1.5 cursor-pointer transition-all shadow-sm"
                 >
-                  <span className="material-symbols-outlined text-base">picture_as_pdf</span>
+                  <span>📄</span>
                   <span>Open / Download A4 Invoice PDF</span>
                 </a>
 
