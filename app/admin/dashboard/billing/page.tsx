@@ -124,6 +124,9 @@ export default function POSBillingPage() {
   const [upiId, setUpiId] = useState("JKBMERC00828895@jkb");
   const [soundboxPaid, setSoundboxPaid] = useState(false);
   const [soundboxQrView, setSoundboxQrView] = useState<"dynamic" | "standee">("dynamic");
+  const [soundboxQrGenerated, setSoundboxQrGenerated] = useState(false);
+  const [lastSoundboxAmount, setLastSoundboxAmount] = useState<number>(0);
+  const [showInlineQr, setShowInlineQr] = useState(false);
 
   // Razorpay Dynamic QR State (Counter)
   const [rzpQrId, setRzpQrId] = useState<string | null>(null);
@@ -615,7 +618,10 @@ export default function POSBillingPage() {
   // Listen for Escape key to close modal
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setInvoiceModalOpen(false);
+      if (e.key === "Escape") {
+        setInvoiceModalOpen(false);
+        setEnlargeQrModal(false);
+      }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
@@ -803,7 +809,7 @@ export default function POSBillingPage() {
   const upiPayUri = grandTotal > 0
     ? `upi://pay?pa=${upiId}&pn=Urban%20Trout%20Aquaculture&tr=${terminalId}&am=${grandTotal}&cu=INR&tn=Urban%20Trout%20POS`
     : `upi://pay?pa=${upiId}&pn=JKBANK%20MERCHANT&mc=&tr=${terminalId}&tn=&am=&mam=&cu=INR&refUrl=https://jkbank.com/`;
-  const upiQrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(
+  const upiQrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(
     upiPayUri
   )}&bgcolor=255-255-255&color=2-13-18&margin=2`;
 
@@ -951,6 +957,7 @@ export default function POSBillingPage() {
       setRzpQrId(data.qr_id);
       setRzpQrImageUrl(data.image_url);
       setLastGeneratedAmount(targetAmount);
+      setEnlargeQrModal(true);
     } catch (err: any) {
       console.error("Razorpay QR generation failed:", err);
       setRzpQrError(err.message || "Failed to generate Razorpay QR code");
@@ -1554,6 +1561,10 @@ Naseem Bagh / Malabagh, Srinagar`;
     setRzpLinkMsgCopied(false);
     setRzpLinkError(null);
     setSoundboxPaid(false);
+    setSoundboxQrGenerated(false);
+    setLastSoundboxAmount(0);
+    setShowInlineQr(false);
+    setEnlargeQrModal(false);
     const prods = getInitialProducts();
     const defaultProd = prods.find((p) => p.id === "gutted-trout") || prods[0] || DEFAULT_PRODUCTS[0];
     setSelectedProductId(defaultProd.id);
@@ -3159,95 +3170,102 @@ Helpline: +91 84910 06127`;
                     </div>
                     <button
                       type="button"
-                      onClick={() => setSoundboxPaid(false)}
+                      onClick={() => {
+                        setSoundboxPaid(false);
+                        setSoundboxQrGenerated(true);
+                        setEnlargeQrModal(true);
+                      }}
                       className="text-[10px] text-slate-400 hover:text-white underline cursor-pointer pt-1"
                     >
                       Show QR Again
                     </button>
                   </div>
-                ) : (
-                  <>
-                    <div className="flex items-center justify-between w-full pb-1 border-b border-slate-800/80 text-[10px] font-mono">
+                ) : !soundboxQrGenerated ? (
+                  /* ─── READY STATE: ON-DEMAND BUTTON TO GENERATE QR (POS PRIVACY MODE) ─── */
+                  <div className="w-full py-3 px-2 text-center space-y-3 animate-fadeIn">
+                    <div className="flex items-center justify-between w-full pb-1.5 border-b border-slate-800/80 text-[10px] font-mono">
                       <span className="flex items-center gap-1.5 text-emerald-400 font-bold uppercase">
                         <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse inline-block"></span>
-                        J&amp;K Bank Soundbox QR
+                        J&amp;K Bank Soundbox
                       </span>
                       <span className="text-slate-400">🎙️ {terminalId} Active</span>
                     </div>
 
-                    {/* View Switcher: Dynamic Bill QR vs Official Standee Card */}
-                    <div className="flex items-center bg-slate-900/90 p-0.5 rounded-lg border border-slate-800 text-[10px] font-mono w-full">
-                      <button
-                        type="button"
-                        onClick={() => setSoundboxQrView("dynamic")}
-                        className={`flex-1 py-1 rounded-md transition-all font-bold cursor-pointer ${
-                          soundboxQrView === "dynamic"
-                            ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm"
-                            : "text-slate-400 hover:text-slate-200"
-                        }`}
-                      >
-                        ⚡ Dynamic Bill (₹{grandTotal})
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setSoundboxQrView("standee")}
-                        className={`flex-1 py-1 rounded-md transition-all font-bold cursor-pointer ${
-                          soundboxQrView === "standee"
-                            ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm"
-                            : "text-slate-400 hover:text-slate-200"
-                        }`}
-                      >
-                        🏷️ Standee Card
-                      </button>
+                    <div className="w-11 h-11 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center mx-auto text-xl shadow-inner">
+                      <span className="material-symbols-outlined text-2xl">qr_code_2</span>
                     </div>
 
-                    <div
-                      onClick={() => setEnlargeQrModal(true)}
-                      className="p-2 bg-white border-2 border-emerald-500/30 rounded-xl shadow-xl shadow-emerald-950/30 cursor-pointer hover:border-emerald-400 transition-all group relative overflow-hidden"
-                      title="Click to enlarge for customer"
-                    >
-                      {soundboxQrView === "standee" ? (
-                        <img
-                          src="/images/jkbank_standee_card.jpg"
-                          alt="Official J&K Bank Standee Card"
-                          className="w-36 h-40 sm:w-40 sm:h-44 rounded-lg object-contain"
-                        />
-                      ) : (
-                        <img
-                          src={upiQrCodeUrl}
-                          alt="J&K Bank Soundbox QR"
-                          className="w-36 h-36 sm:w-40 sm:h-40 rounded-lg object-contain"
-                        />
-                      )}
-                      <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex flex-col items-center justify-center text-white text-[11px] font-bold gap-1">
-                        <span>🔍 Tap to Enlarge</span>
+                    <div className="space-y-0.5">
+                      <span className="text-[10px] uppercase font-mono tracking-wider text-slate-400 block">
+                        Counter UPI Payment Ready
+                      </span>
+                      <div className="text-xl sm:text-2xl font-black text-white font-mono">
+                        ₹{grandTotal.toLocaleString("en-IN")}.00
                       </div>
-                    </div>
-
-                    <div>
-                      <p className="text-xs font-bold text-white font-mono">
-                        {soundboxQrView === "standee" ? "Scan J&K Standee" : "Scan to Pay"}:{" "}
-                        <span className="text-emerald-400 font-black">₹{grandTotal.toLocaleString("en-IN")}</span>
+                      <p className="text-[11px] text-slate-300 font-mono">
+                        {isCustomAmountMode
+                          ? (customNote || "Catch-Weight Direct Payment")
+                          : billItems.length === 1
+                          ? `${billItems[0].name.toLowerCase().includes("gutted") ? "Gutted Trout" : billItems[0].name.toLowerCase().includes("whole") ? "Whole Trout" : billItems[0].name} (${billItems[0].weightKg.toFixed(2)} Kg @ ₹${billItems[0].pricePerKg}/Kg)`
+                          : `${billItems.length} Fish Catch Items • ${totalWeight.toFixed(2)} Kg`}
                       </p>
-                      <div className="flex items-center justify-center gap-1.5 text-[10px] text-slate-400 font-mono mt-0.5">
-                        <span>{upiId}</span>
-                        <button
-                          type="button"
-                          onClick={copyUpi}
-                          className="text-[9px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 hover:text-emerald-400 cursor-pointer border border-slate-700"
-                        >
-                          {copiedUpi ? "✓ Copied" : "Copy"}
-                        </button>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSoundboxQrGenerated(true);
+                        setLastSoundboxAmount(grandTotal);
+                        setEnlargeQrModal(true);
+                      }}
+                      className="w-full py-3 px-3 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 active:scale-[0.98] text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                      style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                    >
+                      <span className="material-symbols-outlined text-base">qr_code_scanner</span>
+                      Generate QR Code (₹{grandTotal.toLocaleString("en-IN")})
+                    </button>
+
+                    <div className="p-2 rounded-lg bg-slate-900/80 border border-slate-800 text-[10px] text-slate-400 leading-relaxed text-left flex items-start gap-1.5 w-full">
+                      <span className="text-emerald-400 text-xs mt-0.5">🛡️</span>
+                      <span>
+                        <strong className="text-slate-200">Customer Privacy Protected:</strong> Clicking opens the clean customer-facing QR popup. Internal POS controls, margin calculations &amp; customer database stay safely hidden.
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  /* ─── ACTIVE STATE: QR HAS BEEN GENERATED (POPUP RE-OPEN & QUICK ACTIONS) ─── */
+                  <div className="w-full space-y-2.5 animate-fadeIn">
+                    <div className="flex items-center justify-between w-full pb-1 border-b border-slate-800/80 text-[10px] font-mono">
+                      <span className="flex items-center gap-1.5 text-emerald-400 font-bold uppercase">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span>
+                        J&amp;K Bank Soundbox QR Ready
+                      </span>
+                      <span className="text-slate-400">🎙️ {terminalId}</span>
+                    </div>
+
+                    <div className="space-y-0.5">
+                      <span className="text-[10px] uppercase font-mono tracking-wider text-slate-400">Locked Amount</span>
+                      <div className="text-xl font-black text-white font-mono">
+                        ₹{grandTotal.toLocaleString("en-IN")}
+                      </div>
+                      <div className="text-[10px] text-emerald-400 font-mono flex items-center justify-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
+                        <span>Listening for customer UPI payment</span>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 pt-0.5 w-full">
+                    <div className="grid grid-cols-2 gap-1.5 w-full">
                       <button
                         type="button"
-                        onClick={() => setEnlargeQrModal(true)}
-                        className="flex-1 py-1.5 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1"
+                        onClick={() => {
+                          setLastSoundboxAmount(grandTotal);
+                          setEnlargeQrModal(true);
+                        }}
+                        className="py-2.5 px-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-[10.5px] uppercase tracking-wider shadow-md shadow-emerald-500/20 transition-all flex items-center justify-center gap-1 cursor-pointer"
+                        style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                       >
-                        🔍 Enlarge QR
+                        <span className="material-symbols-outlined text-sm">fullscreen</span>
+                        {grandTotal !== lastSoundboxAmount ? "Update & Open QR" : "Open QR Popup"}
                       </button>
                       <button
                         type="button"
@@ -3256,12 +3274,89 @@ Helpline: +91 84910 06127`;
                           playSuccessChime();
                           speakPaymentAnnouncement(grandTotal, "Soundbox", customerName);
                         }}
-                        className="flex-1 py-1.5 px-2 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1 shadow-sm"
+                        className="py-2.5 px-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 font-black text-[10.5px] uppercase tracking-wider transition-all flex items-center justify-center gap-1 cursor-pointer shadow-sm"
+                        style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                       >
-                        🔊 Soundbox Heard ✓
+                        <span>🔊</span>
+                        Soundbox Heard ✓
                       </button>
                     </div>
-                  </>
+
+                    {/* Optional Collapsible Inline QR for Cashier Internal View */}
+                    <div className="w-full pt-1 border-t border-slate-900">
+                      <button
+                        type="button"
+                        onClick={() => setShowInlineQr(!showInlineQr)}
+                        className="text-[10px] text-slate-400 hover:text-slate-200 font-mono flex items-center justify-center gap-1 w-full py-1 cursor-pointer"
+                      >
+                        <span>{showInlineQr ? "▲ Hide" : "▼ Show"} inline QR on POS screen</span>
+                      </button>
+
+                      {showInlineQr && (
+                        <div className="pt-2 space-y-2 animate-fadeIn flex flex-col items-center">
+                          {/* View Switcher: Dynamic Bill QR vs Official Standee Card */}
+                          <div className="flex items-center bg-slate-900/90 p-0.5 rounded-lg border border-slate-800 text-[10px] font-mono w-full">
+                            <button
+                              type="button"
+                              onClick={() => setSoundboxQrView("dynamic")}
+                              className={`flex-1 py-1 rounded-md transition-all font-bold cursor-pointer ${
+                                soundboxQrView === "dynamic"
+                                  ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm"
+                                  : "text-slate-400 hover:text-slate-200"
+                              }`}
+                            >
+                              ⚡ Dynamic Bill (₹{grandTotal})
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setSoundboxQrView("standee")}
+                              className={`flex-1 py-1 rounded-md transition-all font-bold cursor-pointer ${
+                                soundboxQrView === "standee"
+                                  ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm"
+                                  : "text-slate-400 hover:text-slate-200"
+                              }`}
+                            >
+                              🏷️ Standee Card
+                            </button>
+                          </div>
+
+                          <div
+                            onClick={() => setEnlargeQrModal(true)}
+                            className="p-2 bg-white border-2 border-emerald-500/30 rounded-xl shadow-xl shadow-emerald-950/30 cursor-pointer hover:border-emerald-400 transition-all group relative overflow-hidden"
+                            title="Click to open popup for customer"
+                          >
+                            {soundboxQrView === "standee" ? (
+                              <img
+                                src="/images/jkbank_standee_card.jpg"
+                                alt="Official J&K Bank Standee Card"
+                                className="w-32 h-36 rounded-lg object-contain"
+                              />
+                            ) : (
+                              <img
+                                src={upiQrCodeUrl}
+                                alt="J&K Bank Soundbox QR"
+                                className="w-32 h-32 rounded-lg object-contain"
+                              />
+                            )}
+                            <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex flex-col items-center justify-center text-white text-[11px] font-bold gap-1">
+                              <span>🔍 Open Popup</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-center gap-1.5 text-[10px] text-slate-400 font-mono">
+                            <span>{upiId}</span>
+                            <button
+                              type="button"
+                              onClick={copyUpi}
+                              className="text-[9px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 hover:text-emerald-400 cursor-pointer border border-slate-700"
+                            >
+                              {copiedUpi ? "✓ Copied" : "Copy"}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 )}
               </div>
             )}
@@ -4759,113 +4854,409 @@ Helpline: +91 84910 06127`;
         </div>
       )}
 
-      {/* ─── FULLSCREEN / GIANT QR MODAL ─── */}
+      {/* ─── FULLSCREEN / GIANT CUSTOMER QR MODAL ─── */}
       {enlargeQrModal && (
         <div
           onClick={() => setEnlargeQrModal(false)}
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md cursor-pointer"
+          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 bg-black/90 backdrop-blur-md cursor-pointer animate-fadeIn"
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="bg-slate-900 border border-emerald-500/40 rounded-3xl p-5 sm:p-7 max-w-sm sm:max-w-md w-full text-center space-y-4 shadow-2xl shadow-emerald-950/60 cursor-default"
+            className="bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border-2 border-emerald-500/40 rounded-3xl p-4 sm:p-6 max-w-2xl w-full text-center space-y-4 shadow-2xl shadow-emerald-950/80 cursor-default max-h-[95vh] overflow-y-auto"
           >
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="text-left">
-                <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-400 font-mono block">
-                  {paymentMethod === "JkBankSoundbox" ? `J&K Bank Soundbox Screen (${terminalId})` : "Customer Scan Screen"}
-                </span>
-                <h3 className="text-lg sm:text-xl font-black text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
-                  Pay ₹{grandTotal.toLocaleString("en-IN")} via UPI
-                </h3>
+            {/* Modal Header */}
+            <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
+              <div className="flex items-center gap-2.5 text-left">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center text-xl shadow-inner">
+                  🐟
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm sm:text-base font-black text-white tracking-wide" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                      URBAN TROUT
+                    </span>
+                    <span className="text-[9px] uppercase font-mono font-bold tracking-widest px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                      {paymentMethod === "JkBankSoundbox" ? `Soundbox • ${terminalId}` : "BharatQR"}
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 font-mono">
+                    Fresh Himalayan Rainbow Trout • Customer Scan Screen
+                  </p>
+                </div>
               </div>
+
               <button
                 type="button"
                 onClick={() => setEnlargeQrModal(false)}
-                className="p-1.5 rounded-xl bg-slate-800 text-slate-400 hover:text-white transition-all cursor-pointer"
+                title="Close (Esc)"
+                className="w-8 h-8 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all flex items-center justify-center cursor-pointer"
               >
-                <span className="material-symbols-outlined text-lg">close</span>
+                <span className="material-symbols-outlined text-base">close</span>
               </button>
             </div>
 
-            {/* If Soundbox, toggle switcher inside modal too */}
-            {paymentMethod === "JkBankSoundbox" && (
-              <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs font-mono">
-                <button
-                  type="button"
-                  onClick={() => setSoundboxQrView("dynamic")}
-                  className={`flex-1 py-1.5 rounded-lg transition-all font-bold cursor-pointer ${
-                    soundboxQrView === "dynamic"
-                      ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm"
-                      : "text-slate-400 hover:text-slate-200"
-                  }`}
-                >
-                  ⚡ Dynamic Bill QR (₹{grandTotal.toLocaleString("en-IN")})
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSoundboxQrView("standee")}
-                  className={`flex-1 py-1.5 rounded-lg transition-all font-bold cursor-pointer ${
-                    soundboxQrView === "standee"
-                      ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm"
-                      : "text-slate-400 hover:text-slate-200"
-                  }`}
-                >
-                  🏷️ Official Standee Card
-                </button>
+            {(soundboxPaid || rzpPaid) ? (
+              /* ─── PAYMENT CONFIRMED CELEBRATION VIEW INSIDE MODAL ─── */
+              <div className="w-full py-6 px-4 rounded-3xl bg-gradient-to-b from-emerald-950/60 to-slate-950 border-2 border-emerald-500/50 text-center space-y-4 animate-fadeIn">
+                <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 border-2 border-emerald-400 text-emerald-400 flex items-center justify-center mx-auto text-3xl font-black shadow-lg shadow-emerald-500/30">
+                  ✓
+                </div>
+                <div className="space-y-1">
+                  <span className="text-[11px] uppercase font-mono font-bold tracking-widest text-emerald-400 block">
+                    {rzpPaid ? "Razorpay UPI Payment Confirmed" : "Soundbox Payment Confirmed"}
+                  </span>
+                  <h3 className="text-2xl sm:text-3xl font-black text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                    ₹{(rzpPaymentDetails?.amount || grandTotal).toLocaleString("en-IN")}.00 PAID
+                  </h3>
+                  <p className="text-xs text-emerald-300 font-mono">
+                    {rzpPaid
+                      ? `⚡ Verified via Razorpay • Ref: ${rzpPaymentDetails?.id || "pay_verified"}`
+                      : `🔊 Voice announcement confirmed on counter soundbox (${terminalId})`}
+                  </p>
+                </div>
+
+                <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 text-left max-w-md mx-auto space-y-2 font-mono text-xs">
+                  <div className="flex justify-between text-slate-300">
+                    <span>Catch Item:</span>
+                    <span className="font-bold text-white">
+                      {!isCustomAmountMode && billItems.length === 1
+                        ? (billItems[0].name.toLowerCase().includes("gutted")
+                            ? "Premium Gutted Rainbow Trout"
+                            : billItems[0].name.toLowerCase().includes("whole")
+                            ? "Whole Rainbow Trout"
+                            : billItems[0].name)
+                        : `${billItems.length} Fish Catch Items`}
+                    </span>
+                  </div>
+                  {!isCustomAmountMode && (
+                    <>
+                      <div className="flex justify-between text-slate-300">
+                        <span>Harvest Weight:</span>
+                        <span className="font-bold text-white">{totalWeight.toFixed(2)} Kg</span>
+                      </div>
+                      {billItems.length === 1 && (
+                        <div className="flex justify-between text-slate-300">
+                          <span>Rate Given:</span>
+                          <span className="font-bold text-emerald-400">₹{billItems[0].pricePerKg} / Kg</span>
+                        </div>
+                      )}
+                    </>
+                  )}
+                  {customerName && (
+                    <div className="flex justify-between text-slate-300 pt-1.5 border-t border-slate-800">
+                      <span>Billed To:</span>
+                      <span className="font-bold text-white">{customerName} {customerPhone ? `(${customerPhone})` : ""}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-2.5 pt-2 max-w-md mx-auto">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEnlargeQrModal(false);
+                      handleGenerateInvoice();
+                    }}
+                    className="flex-1 py-3 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs uppercase tracking-wider transition-all shadow-md shadow-emerald-500/25 cursor-pointer flex items-center justify-center gap-1.5"
+                    style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                  >
+                    <span className="material-symbols-outlined text-base">receipt_long</span>
+                    Generate Invoice
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEnlargeQrModal(false)}
+                    className="py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer"
+                  >
+                    Back to POS
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* ─── ACTIVE PAYMENT PRESENTATION (TWO COLUMN ON DESKTOP) ─── */
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left items-start">
+                {/* ─── LEFT COLUMN: TOTAL AMOUNT & FISH DETAILS ─── */}
+                <div className="space-y-3">
+                  {/* Hero Amount Banner */}
+                  <div className="rounded-2xl bg-gradient-to-b from-slate-950 to-slate-900 border border-emerald-500/40 p-4 text-center space-y-1 shadow-lg shadow-emerald-950/40">
+                    <span className="text-[10px] uppercase font-mono font-bold tracking-widest text-slate-400 block">
+                      Total Payable Amount
+                    </span>
+                    <div className="text-3xl sm:text-4xl font-black text-emerald-400 font-mono tracking-tight">
+                      ₹{grandTotal.toLocaleString("en-IN")}.00
+                    </div>
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-[10px] text-emerald-300 font-mono">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                      <span>Locked directly to counter scale</span>
+                    </div>
+                  </div>
+
+                  {/* Fish Item Breakdown Card */}
+                  {!isCustomAmountMode && billItems.length > 0 ? (
+                    billItems.length === 1 ? (
+                      (() => {
+                        const singleItem = billItems[0];
+                        const nameLower = (singleItem.name || "").toLowerCase();
+                        const idLower = (singleItem.id || "").toLowerCase();
+                        const isGutted = nameLower.includes("gutted") || idLower.includes("gutted");
+                        const isWhole = nameLower.includes("whole") || idLower.includes("whole");
+                        const fishTypeName = isGutted
+                          ? "Premium Gutted Rainbow Trout"
+                          : isWhole
+                          ? "Whole Rainbow Trout"
+                          : singleItem.name;
+
+                        return (
+                          <div className="rounded-2xl bg-slate-950/80 border border-emerald-500/30 p-3.5 space-y-3">
+                            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                              <div>
+                                <h4 className="text-sm font-bold text-white leading-tight" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                                  {fishTypeName}
+                                </h4>
+                                <p className="text-[10px] text-slate-400 font-mono mt-0.5">
+                                  {isGutted
+                                    ? "Hygienically gutted • Gills & entrails cleaned"
+                                    : isWhole
+                                    ? "Live harvested whole fresh trout"
+                                    : "Farm-fresh aquaculture trout"}
+                                </p>
+                              </div>
+                              {isGutted ? (
+                                <span className="px-2.5 py-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[9.5px] font-extrabold uppercase font-mono tracking-wider">
+                                  ✨ Gutted
+                                </span>
+                              ) : isWhole ? (
+                                <span className="px-2.5 py-1 rounded-lg bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-[9.5px] font-extrabold uppercase font-mono tracking-wider">
+                                  🌊 Whole
+                                </span>
+                              ) : (
+                                <span className="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 text-[9.5px] font-bold">
+                                  Fresh
+                                </span>
+                              )}
+                            </div>
+
+                            {/* 3 Metric Pillars */}
+                            <div className="grid grid-cols-3 gap-1.5 text-center">
+                              <div className="p-2 rounded-xl bg-slate-900 border border-slate-800">
+                                <span className="text-[8.5px] uppercase font-mono text-slate-400 block">Type</span>
+                                <span className="text-xs sm:text-sm font-black text-slate-100 block truncate mt-0.5">
+                                  {isGutted ? "Gutted" : isWhole ? "Whole" : "Trout"}
+                                </span>
+                                <span className="text-[8px] text-slate-400 font-mono block mt-0.5">
+                                  {isGutted ? "100% Meat" : "Harvested"}
+                                </span>
+                              </div>
+
+                              <div className="p-2 rounded-xl bg-slate-900 border border-slate-800">
+                                <span className="text-[8.5px] uppercase font-mono text-slate-400 block">Weight</span>
+                                <span className="text-xs sm:text-sm font-black text-white font-mono block mt-0.5">
+                                  {singleItem.weightKg.toFixed(2)} Kg
+                                </span>
+                                <span className="text-[8px] text-slate-400 font-mono block mt-0.5">Scale Net</span>
+                              </div>
+
+                              <div className="p-2 rounded-xl bg-emerald-950/30 border border-emerald-500/30">
+                                <span className="text-[8.5px] uppercase font-mono text-emerald-300 block">Rate Given</span>
+                                <span className="text-xs sm:text-sm font-black text-emerald-400 font-mono block mt-0.5">
+                                  ₹{singleItem.pricePerKg} <span className="text-[9px] font-normal text-slate-400">/Kg</span>
+                                </span>
+                                <span className="text-[8px] text-emerald-300/80 font-mono block mt-0.5">Rate / Kg</span>
+                              </div>
+                            </div>
+
+                            {/* Equation calculation */}
+                            <div className="px-3 py-2 rounded-xl bg-slate-900/60 border border-slate-800/80 flex items-center justify-between text-xs font-mono">
+                              <span className="text-slate-400 text-[11px]">Breakdown:</span>
+                              <span className="text-slate-200">
+                                {singleItem.weightKg.toFixed(2)} Kg × ₹{singleItem.pricePerKg}/Kg ={" "}
+                                <strong className="text-emerald-400 font-black">₹{singleItem.total.toLocaleString("en-IN")}</strong>
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })()
+                    ) : (
+                      /* Multi-item bill breakdown */
+                      <div className="rounded-2xl bg-slate-950/80 border border-emerald-500/30 p-3 space-y-2">
+                        <div className="flex items-center justify-between pb-1.5 border-b border-slate-800">
+                          <span className="text-[10.5px] font-bold uppercase tracking-wider text-slate-300 font-mono">
+                            Catch Items Breakdown ({billItems.length})
+                          </span>
+                          <span className="text-[10.5px] text-emerald-400 font-mono font-bold">
+                            Total: {totalWeight.toFixed(2)} Kg
+                          </span>
+                        </div>
+                        <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                          {billItems.map((item, idx) => {
+                            const nameLower = (item.name || "").toLowerCase();
+                            const isGutted = nameLower.includes("gutted");
+                            const isWhole = nameLower.includes("whole");
+                            return (
+                              <div
+                                key={item.id || idx}
+                                className="p-2 rounded-xl bg-slate-900/80 border border-slate-800/80 flex items-center justify-between text-xs font-mono"
+                              >
+                                <div>
+                                  <div className="font-bold text-slate-200 flex items-center gap-1">
+                                    <span>{isGutted ? "✨" : isWhole ? "🐟" : "📦"}</span>
+                                    <span>{isGutted ? "Gutted Trout" : isWhole ? "Whole Trout" : item.name}</span>
+                                  </div>
+                                  <div className="text-[9.5px] text-slate-400">
+                                    {item.weightKg.toFixed(2)} Kg @ ₹{item.pricePerKg}/Kg
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <div className="font-black text-emerald-400">₹{item.total.toLocaleString("en-IN")}</div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )
+                  ) : (
+                    /* Direct Amount Mode */
+                    <div className="rounded-2xl bg-slate-950/80 border border-emerald-500/30 p-3.5 space-y-1">
+                      <span className="text-[10px] uppercase font-mono text-slate-400 block">Direct Payment Bill</span>
+                      <div className="text-sm font-bold text-white font-mono">{customNote || "Catch-Weight Counter Payment"}</div>
+                      <p className="text-[11px] text-slate-400">Amount verified on live counter checkout.</p>
+                    </div>
+                  )}
+
+                  {/* Customer information chip if available */}
+                  {customerName && (
+                    <div className="px-3 py-2 rounded-xl bg-slate-950/60 border border-slate-800 text-[11px] font-mono text-slate-300 flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <span>👤</span>
+                        <span>Billed to: <strong className="text-white">{customerName}</strong></span>
+                      </span>
+                      {customerPhone && <span className="text-slate-400">📞 {customerPhone}</span>}
+                    </div>
+                  )}
+
+                  {/* Cashier In-Modal Actions */}
+                  <div className="space-y-1.5 pt-1">
+                    {paymentMethod === "JkBankSoundbox" && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSoundboxPaid(true);
+                          playSuccessChime();
+                          speakPaymentAnnouncement(grandTotal, "Soundbox", customerName);
+                        }}
+                        className="w-full py-2.5 sm:py-3 px-3 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs uppercase tracking-wider transition-all shadow-md shadow-emerald-500/25 flex items-center justify-center gap-1.5 cursor-pointer"
+                        style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                      >
+                        <span className="text-sm">🔊</span>
+                        <span>Soundbox Heard (Mark Paid ✓)</span>
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setEnlargeQrModal(false)}
+                      className="w-full py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer"
+                    >
+                      Back to POS Bill (Esc)
+                    </button>
+                  </div>
+                </div>
+
+                {/* ─── RIGHT COLUMN: CRISP UPI QR CODE & APPS ─── */}
+                <div className="flex flex-col items-center space-y-2.5">
+                  {/* If Soundbox, toggle switcher inside modal too */}
+                  {paymentMethod === "JkBankSoundbox" && (
+                    <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 text-[10.5px] font-mono w-full">
+                      <button
+                        type="button"
+                        onClick={() => setSoundboxQrView("dynamic")}
+                        className={`flex-1 py-1.5 rounded-lg transition-all font-bold cursor-pointer ${
+                          soundboxQrView === "dynamic"
+                            ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm"
+                            : "text-slate-400 hover:text-slate-200"
+                        }`}
+                      >
+                        ⚡ Dynamic Bill QR (₹{grandTotal.toLocaleString("en-IN")})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSoundboxQrView("standee")}
+                        className={`flex-1 py-1.5 rounded-lg transition-all font-bold cursor-pointer ${
+                          soundboxQrView === "standee"
+                            ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm"
+                            : "text-slate-400 hover:text-slate-200"
+                        }`}
+                      >
+                        🏷️ Official Standee Card
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Giant QR Box */}
+                  <div className="w-56 h-56 sm:w-64 sm:h-64 bg-white border-2 border-emerald-400 rounded-3xl shadow-2xl overflow-hidden relative flex items-center justify-center p-3">
+                    {paymentMethod === "RazorpayQR" && rzpQrImageUrl ? (
+                      <img
+                        src={rzpQrImageUrl}
+                        alt="Razorpay Dynamic QR"
+                        className="w-full h-full object-cover select-none pointer-events-none rounded-2xl"
+                        style={{
+                          objectPosition: "center 51.5%",
+                          transform: "scale(1.28)",
+                        }}
+                      />
+                    ) : paymentMethod === "JkBankSoundbox" && soundboxQrView === "standee" ? (
+                      <img
+                        src="/images/jkbank_standee_card.jpg"
+                        alt="Official J&K Bank Standee Card"
+                        className="w-full h-full object-contain select-none pointer-events-none rounded-2xl"
+                      />
+                    ) : (
+                      <img
+                        src={upiQrCodeUrl}
+                        alt="J&K Bank Soundbox QR"
+                        className="w-full h-full object-contain select-none pointer-events-none rounded-2xl"
+                      />
+                    )}
+                  </div>
+
+                  <div className="space-y-1.5 w-full text-center">
+                    <p className="text-xs font-bold text-white">
+                      {paymentMethod === "JkBankSoundbox"
+                        ? "Scan with J&K mPay Delight, Google Pay, PhonePe, or Paytm"
+                        : "Scan with Google Pay, PhonePe, Paytm, CRED, or BHIM"}
+                    </p>
+
+                    {/* Supported Apps Chips */}
+                    <div className="flex flex-wrap items-center justify-center gap-1 pt-0.5">
+                      {["Google Pay", "PhonePe", "Paytm", "J&K mPay", "BHIM UPI"].map((app) => (
+                        <span
+                          key={app}
+                          className="px-2 py-0.5 rounded-md bg-slate-800/90 text-slate-300 border border-slate-700/80 text-[9px] font-mono font-semibold"
+                        >
+                          {app}
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* UPI ID + Copy */}
+                    <div className="flex items-center justify-center gap-1.5 text-[10px] text-slate-400 font-mono pt-1">
+                      <span>{upiId}</span>
+                      <button
+                        type="button"
+                        onClick={copyUpi}
+                        className="text-[9px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 hover:text-emerald-400 cursor-pointer border border-slate-700 transition-colors"
+                      >
+                        {copiedUpi ? "✓ Copied" : "Copy"}
+                      </button>
+                    </div>
+
+                    <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-[10px] text-emerald-300 font-mono text-center leading-snug">
+                      🔊 <strong>Soundbox Voice Alert Active:</strong> Counter speaker announces receipt immediately when customer completes payment.
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
-
-            {/* Giant QR Box */}
-            <div className="flex justify-center py-2">
-              <div className="w-72 h-72 sm:w-80 sm:h-80 bg-white border-2 border-emerald-400 rounded-3xl shadow-2xl overflow-hidden relative flex items-center justify-center p-3">
-                {paymentMethod === "RazorpayQR" && rzpQrImageUrl ? (
-                  <img
-                    src={rzpQrImageUrl}
-                    alt="Razorpay Dynamic QR"
-                    className="w-full h-full object-cover select-none pointer-events-none rounded-2xl"
-                    style={{
-                      objectPosition: "center 51.5%",
-                      transform: "scale(1.28)",
-                    }}
-                  />
-                ) : paymentMethod === "JkBankSoundbox" && soundboxQrView === "standee" ? (
-                  <img
-                    src="/images/jkbank_standee_card.jpg"
-                    alt="Official J&K Bank Standee Card"
-                    className="w-full h-full object-contain select-none pointer-events-none rounded-2xl"
-                  />
-                ) : (
-                  <img
-                    src={upiQrCodeUrl}
-                    alt="J&K Bank Soundbox QR"
-                    className="w-full h-full object-contain select-none pointer-events-none rounded-2xl"
-                  />
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <p className="text-sm font-bold text-white">
-                {paymentMethod === "JkBankSoundbox"
-                  ? "Scan with J&K mPay Delight, Google Pay, PhonePe, or Paytm"
-                  : "Scan with Google Pay, PhonePe, Paytm, CRED, or BHIM"}
-              </p>
-              <p className="text-xs text-slate-400 font-mono">
-                {paymentMethod === "JkBankSoundbox"
-                  ? soundboxQrView === "standee"
-                    ? `J&K Bank Merchant: ${upiId} • Terminal: ${terminalId}`
-                    : `Amount locked to ₹${grandTotal.toLocaleString("en-IN")} • Soundbox Voice Alert Active`
-                  : `Amount locked to ₹${grandTotal.toLocaleString("en-IN")} • Instant Auto-Confirmation`}
-              </p>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setEnlargeQrModal(false)}
-              className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer"
-            >
-              Back to POS Bill
-            </button>
           </div>
         </div>
       )}
