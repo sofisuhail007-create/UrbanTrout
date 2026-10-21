@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { adminFetch } from "@/lib/adminClient";
@@ -450,7 +450,11 @@ export default function POSBillingPage() {
       setIsBalanceModalOpen(false);
     }, INACTIVITY_MS);
 
+    let lastActive = Date.now();
     const onActivity = () => {
+      const now = Date.now();
+      if (now - lastActive < 10000) return; // Throttle to 10s to avoid high-frequency main thread churn
+      lastActive = now;
       clearTimeout(timer);
       timer = setTimeout(() => {
         setActiveTab("pos");
@@ -462,7 +466,7 @@ export default function POSBillingPage() {
       }, INACTIVITY_MS);
     };
 
-    const events = ["mousedown", "mousemove", "keydown", "touchstart", "scroll", "click"] as const;
+    const events = ["mousedown", "keydown", "touchstart", "click"] as const;
     events.forEach((ev) => window.addEventListener(ev, onActivity, { passive: true }));
 
     return () => {
@@ -1651,11 +1655,12 @@ Naseem Bagh / Malabagh, Srinagar`;
     fetchRemoteOrders();
   }, []);
 
-  // Background auto-poller when viewing Invoices & Remote Orders tab (every 12s)
+  // Background auto-poller when viewing Invoices & Remote Orders tab (every 12s, active & visible tab only)
   useEffect(() => {
     if (activeTab !== "remote_orders") return;
 
     const interval = setInterval(async () => {
+      if (typeof document !== "undefined" && document.visibilityState !== "visible") return;
       try {
         const res = await adminFetch("/api/invoice");
         const data = await res.json();
@@ -2384,22 +2389,37 @@ Helpline: +91 84910 06127`;
 
 
   // ─── EXPIRY CHECKER & KPI CALCULATIONS FOR INVOICES & REMOTE ORDERS ───
-  const isOrderExpired = (o: any) => {
+  const isOrderExpired = useCallback((o: any) => {
     if (o?.data?.isExpired || o?.isExpired) return true;
     const status = getOrderStatus(o);
     if (status === "PAID") return false;
     const ts = o?.data?.ts || (o?.created_at ? new Date(o.created_at).getTime() : 0);
     if (!ts) return false;
     return (Date.now() - ts) > 48 * 60 * 60 * 1000;
-  };
+  }, []);
 
-  const pendingRemoteOrders = remoteOrders.filter((o) => getOrderStatus(o) !== "PAID" && !isOrderExpired(o));
-  const paidRemoteOrders = remoteOrders.filter((o) => getOrderStatus(o) === "PAID");
-  const expiredRemoteOrders = remoteOrders.filter((o) => isOrderExpired(o));
-  const pendingRemoteCount = pendingRemoteOrders.length;
-  const pendingRemoteAmount = pendingRemoteOrders.reduce((sum, o) => sum + getOrderTotal(o), 0);
-  const paidRemoteAmount = paidRemoteOrders.reduce((sum, o) => sum + getOrderTotal(o), 0);
-  const expiredRemoteCount = expiredRemoteOrders.length;
+  const {
+    pendingRemoteOrders,
+    paidRemoteOrders,
+    expiredRemoteOrders,
+    pendingRemoteCount,
+    pendingRemoteAmount,
+    paidRemoteAmount,
+    expiredRemoteCount,
+  } = useMemo(() => {
+    const pending = remoteOrders.filter((o) => getOrderStatus(o) !== "PAID" && !isOrderExpired(o));
+    const paid = remoteOrders.filter((o) => getOrderStatus(o) === "PAID");
+    const expired = remoteOrders.filter((o) => isOrderExpired(o));
+    return {
+      pendingRemoteOrders: pending,
+      paidRemoteOrders: paid,
+      expiredRemoteOrders: expired,
+      pendingRemoteCount: pending.length,
+      pendingRemoteAmount: pending.reduce((sum, o) => sum + getOrderTotal(o), 0),
+      paidRemoteAmount: paid.reduce((sum, o) => sum + getOrderTotal(o), 0),
+      expiredRemoteCount: expired.length,
+    };
+  }, [remoteOrders, isOrderExpired]);
 
   const filteredRemoteOrders = useMemo(() => {
     return remoteOrders.filter((o) => {
@@ -4543,7 +4563,7 @@ Helpline: +91 84910 06127`;
       )}
 
       {/* ─── DEDICATED DEAL DESK & LOCKED-IN QR WORKSPACE ─── */}
-      <div className={activeTab === "deal_calculator" ? "block" : "hidden"}>
+      {activeTab === "deal_calculator" && (
         <DealCalculatorTab
           products={products}
           activeScaleWeight={currentWeight}
@@ -4555,7 +4575,7 @@ Helpline: +91 84910 06127`;
           customers={dbCustomers}
           loadingCustomers={loadingDbCustomers}
         />
-      </div>
+      )}
 
       {/* ─── DEDICATED CUSTOMER KHATA & BALANCES LEDGER ─── */}
       {activeTab === "customer_balances" && (

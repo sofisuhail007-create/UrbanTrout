@@ -39,20 +39,11 @@ const NAV_GROUPS: NavGroup[] = [
       {
         href: "/admin/dashboard/billing",
         icon: "point_of_sale",
-        label: "POS Counter Billing",
+        label: "POS Billing / Invoices",
         permKey: "billing",
         badge: "Live",
         badgeType: "live",
         activeTheme: "emerald",
-      },
-      {
-        href: "/admin/dashboard/billing?tab=invoices",
-        icon: "receipt_long",
-        label: "All Invoices Desk",
-        permKey: "billing",
-        badge: "New",
-        badgeType: "new",
-        activeTheme: "cyan",
       },
       {
         href: "/admin/dashboard/vending-log",
@@ -136,26 +127,29 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       localStorage.removeItem("ut_admin_ui_zoom");
     } catch {}
 
-    // Prevent mouse wheel from incrementing/decrementing number inputs across the entire admin panel
-    const handleWheel = (e: WheelEvent) => {
-      const activeEl = document.activeElement;
-      const target = e.target as HTMLElement | null;
-      const isTargetNumber = target instanceof HTMLInputElement && target.type === "number";
-      const isActiveNumber = activeEl instanceof HTMLInputElement && activeEl.type === "number";
-
-      if (isTargetNumber || isActiveNumber) {
-        if (target instanceof HTMLInputElement && target.type === "number") {
+    // Prevent mouse wheel from accidentally incrementing/decrementing focused number inputs
+    // Attaching directly on focus ensures window scrolling is 100% passive & hardware-accelerated
+    const handleFocusIn = (e: FocusEvent) => {
+      const target = e.target;
+      if (target instanceof HTMLInputElement && target.type === "number") {
+        const onWheel = (we: WheelEvent) => {
           target.blur();
-        } else if (activeEl instanceof HTMLInputElement && activeEl.type === "number") {
-          activeEl.blur();
-        }
-        e.preventDefault();
+          we.preventDefault();
+        };
+        target.addEventListener("wheel", onWheel, { passive: false });
+        target.addEventListener(
+          "blur",
+          () => {
+            target.removeEventListener("wheel", onWheel);
+          },
+          { once: true }
+        );
       }
     };
-    window.addEventListener("wheel", handleWheel, { passive: false });
+    document.addEventListener("focusin", handleFocusIn);
 
     return () => {
-      window.removeEventListener("wheel", handleWheel);
+      document.removeEventListener("focusin", handleFocusIn);
     };
   }, []);
 
@@ -186,8 +180,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
     const handleUserActivity = () => {
       const now = Date.now();
-      // Throttle activity checks to once every 2 seconds
-      if (now - lastActivityTime > 2000) {
+      // Throttle activity checks to once every 10 seconds
+      if (now - lastActivityTime > 10000) {
         resetTimer();
       }
     };
@@ -199,7 +193,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       }
     };
 
-    const activityEvents = ["mousedown", "mousemove", "keydown", "touchstart", "scroll", "click"] as const;
+    // Use direct user interaction events (click, key, touch) to avoid high-frequency mousemove thread flooding
+    const activityEvents = ["mousedown", "keydown", "touchstart", "click"] as const;
     activityEvents.forEach((ev) => window.addEventListener(ev, handleUserActivity, { passive: true }));
     window.addEventListener("focus", checkInactivityOnFocus);
     document.addEventListener("visibilitychange", checkInactivityOnFocus);
