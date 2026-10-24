@@ -339,7 +339,7 @@ export default function DashboardPage() {
               </div>
               <p className="text-xs text-slate-400 mt-0.5 font-['Manrope']">
                 {storeStatus.isOpen
-                  ? "Standard schedule: 8:00 AM – 9:00 PM IST. Delivery radius: 8km."
+                  ? "Standard schedule: 8:00 AM – 9:00 PM IST. Delivery radius: 16km."
                   : storeStatus.closedReason === "farm_maintenance"
                   ? "Farm & Vending Center maintenance active. Online checkout is temporarily paused."
                   : storeStatus.closedReason === "friday_maintenance"

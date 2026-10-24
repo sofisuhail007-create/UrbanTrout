@@ -344,7 +344,7 @@ export default function CartDrawer() {
               }}
             >
               <span className="flex items-center gap-1.5">
-                <span>🛵</span> Delivery (8km Srinagar Zone):
+                <span>🛵</span> Delivery (16km Srinagar Zone):
               </span>
               <span className="text-[11px] font-black uppercase tracking-wider bg-emerald-500/25 px-2 py-0.5 rounded-full text-emerald-300">
                 FREE TIERS AVAILABLE

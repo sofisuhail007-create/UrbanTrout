@@ -27,7 +27,7 @@ export const products: Product[] = [
     label: "CLEANED & GUTTED",
     desc: "Expertly cleaned, gutted, and ready to cook. Harvested fresh to order and chilled for delivery.",
     img: "/images/gutted_trout_premium.webp",
-    minQuantity: 2,
+    minQuantity: 1,
   },
   {
     id: "whole-trout",
@@ -38,6 +38,6 @@ export const products: Product[] = [
     label: "WHOLE FRESH FISH",
     desc: "Fresh whole trout straight from our farm. Ideal for pan-frying, roasting, grilling, or curries.",
     img: "/images/whole_trout.jpg",
-    minQuantity: 2,
+    minQuantity: 1,
   },
 ];

@@ -759,7 +759,7 @@ export default function CustomerAccountPage() {
                     ))}
                   </select>
                   <p className="text-[10px] text-cyan-400/90 mt-1.5 font-medium">
-                    📍 Express Doorstep Delivery is available within 12km of our Malabagh farm across 3 zones. Vending center pickup is available for all areas.
+                    📍 Express Doorstep Delivery is available within 16km of our Malabagh farm across 4 zones. Vending center pickup is available for all areas.
                   </p>
                 </div>
 

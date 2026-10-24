@@ -60,11 +60,11 @@ const farmConditions = [
 const faqs = [
   {
     q: "Where can I buy fresh trout fish in Srinagar?",
-    a: "You can order fresh Rainbow Trout online directly through urbantrout.in or via WhatsApp (+91 84910 06127) for doorstep delivery within 2 hours across our 8km radius delivery zone from our Malabagh farm. Customers across all of Srinagar are also warmly welcome to pick up orders directly from our dedicated Live Trout Vending Center in Malabagh.",
+    a: "You can order fresh Rainbow Trout online directly through urbantrout.in or via WhatsApp (+91 84910 06127) for doorstep delivery within 2 hours across our 16km radius delivery zone from our Malabagh farm. Customers across all of Srinagar are also warmly welcome to pick up orders directly from our dedicated Live Trout Vending Center in Malabagh.",
   },
   {
     q: "What is the price of Rainbow Trout per Kg in Srinagar?",
-    a: "Our fresh Whole Rainbow Trout is ₹540 per Kg, and our Premium Cleaned & Gutted Trout is ₹580 per Kg. Unlike marketplace suppliers who charge extra for packing and delivery, our prices include 100% Free insulated doorstep delivery with non-toxic, leak-proof ice gel packs (0°C–4°C) within our delivery zones (up to 8km) in Srinagar based on order tier.",
+    a: "Our fresh Whole Rainbow Trout is ₹540 per Kg, and our Premium Cleaned & Gutted Trout is ₹580 per Kg. Unlike marketplace suppliers who charge extra for packing and delivery, our prices include 100% Free insulated doorstep delivery with non-toxic, leak-proof ice gel packs (0°C–4°C) within our delivery zones (up to 16km) in Srinagar based on order tier.",
   },
   {
     q: "Do you clean and gut the trout before delivery?",
@@ -72,7 +72,7 @@ const faqs = [
   },
   {
     q: "Which areas in Srinagar do you deliver to?",
-    a: "To ensure peak freshness and cold-chain integrity, we deliver across Srinagar up to 8 km from our Malabagh farm across 3 transparent tiers: Zone 1 (0–4 km: Malabagh, Soura, Hazratbal, Zakura, Lal Bazar, Habak — Free from 2 kg), Zone 2 (4–6 km: Hawal, Gojwara, Eidgah, Khanyar, Rainawari, Shalimar — Free from 3 kg), and Zone 3 (6–8 km: Lal Chowk, Dalgate, Sonwar, Qamarwari, Rajbagh — Free from 4 kg). For locations beyond 8 km, fresh live-harvest counter pickup is available 6 days a week (Sat–Thu, 8:00 AM – 9:00 PM) at our Live Vending Center in Malabagh.",
+    a: "To ensure peak freshness and cold-chain integrity, we deliver across Srinagar up to 16 km from our Malabagh farm across 4 transparent tiers: Zone 1 (0–4 km: Malabagh, Soura, Hazratbal, Zakura, Lal Bazar — Free from 2 kg), Zone 2 (4–7 km: Hawal, Eidgah, Khanyar, Rainawari, Shalimar — Free from 3 kg), Zone 3 (7–11.5 km: Lal Chowk, Dalgate, Sonwar, Bemina, Rajbagh, Sanat Nagar — Free from 3 kg), and Zone 4 (11.5–16 km: Rawalpora, Peerbagh, Airport Road, Lasjan, Nowgam, Pantha Chowk — Free on 4 kg Family Pack). Subsidized express courier on ice is available for smaller orders. For locations beyond 16 km, fresh live-harvest counter pickup is available at our Live Vending Center in Malabagh.",
   },
   {
     q: "How fresh is Urban Trout compared to market fish?",
@@ -80,7 +80,7 @@ const faqs = [
   },
   {
     q: "What is the minimum order quantity for home delivery?",
-    a: "Doorstep delivery is 100% Free based on distance from our Malabagh farm: minimum 2 kg for Zone 1 (0–4 km), 3 kg for Zone 2 (4–6 km), and 4 kg for Zone 3 (6–8 km). Single-kilogram starter orders can also be dispatched with a nominal special delivery fee, or picked up directly from our farm counter with zero delivery charges.",
+    a: "Doorstep delivery is 100% Free based on distance from our Malabagh farm: minimum 2 kg for Zone 1 (0–4 km), 3 kg for Zone 2 (4–7 km), 3 kg for Zone 3 (7–11.5 km), and 4 kg for Zone 4 (11.5–16 km). Smaller orders are dispatched with a heavily subsidized express courier fee on ice, or picked up directly from our farm counter with zero delivery charges.",
   },
   {
     q: "What payment methods do you accept?",
@@ -158,7 +158,7 @@ export default async function HomePage() {
         "name": "Urban Trout",
         "alternateName": ["Urban Trout Srinagar", "Urban Trout Aquaculture"],
         "description":
-          "Srinagar's premier cold-water trout aquaculture farm and co-located Live Trout Vending Center on Hazratbal Road, Malabagh. Harvested live to order from pure groundwater-fed RAS tanks with rapid chilled doorstep delivery within 2 hours across our 8km Srinagar zone and direct farm counter pickup.",
+          "Srinagar's premier cold-water trout aquaculture farm and co-located Live Trout Vending Center on Hazratbal Road, Malabagh. Harvested live to order from pure groundwater-fed RAS tanks with rapid chilled doorstep delivery within 2 hours across our 16km Srinagar zone and direct farm counter pickup.",
         "url": "https://urbantrout.in",
         "telephone": "+918491006127",
         "priceRange": "₹₹",
@@ -467,7 +467,7 @@ export default async function HomePage() {
               lineHeight: 1.75,
             }}
           >
-            Urban Trout delivers fresh cold-water Rainbow Trout (<em>Oncorhynchus mykiss</em>) directly from our Malabagh farm tanks to your kitchen in under 2 hours. Swimming in pure 10°C subterranean borewell water until you order, expertly cleaned, packed with non-toxic leak-proof ice gel packs, and delivered chilled across Srinagar up to 8 km. Whole from <strong style={{ color: "#72ddfd" }}>₹540/kg</strong>, pan-ready cleaned &amp; gutted from <strong style={{ color: "#72ddfd" }}>₹580/kg</strong>, or available for direct farm counter pickup.
+            Urban Trout delivers fresh cold-water Rainbow Trout (<em>Oncorhynchus mykiss</em>) directly from our Malabagh farm tanks to your kitchen in under 2 hours. Swimming in pure 10°C subterranean borewell water until you order, expertly cleaned, packed with non-toxic leak-proof ice gel packs, and delivered chilled across Srinagar up to 16 km. Whole from <strong style={{ color: "#72ddfd" }}>₹540/kg</strong>, pan-ready cleaned &amp; gutted from <strong style={{ color: "#72ddfd" }}>₹580/kg</strong>, or available for direct farm counter pickup.
           </p>
 
           {/* CTAs */}
@@ -565,7 +565,7 @@ export default async function HomePage() {
               Today&apos;s Fresh Rainbow Trout Rates
             </h2>
             <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfaceVariant, fontSize: "0.95rem", marginTop: "0.5rem", maxWidth: "680px", margin: "0.5rem auto 0" }}>
-              Harvested live from cold 10°C borewell water in Malabagh. 100% Free insulated doorstep delivery with non-toxic, leak-proof ice gel packs (0°C–4°C) across Srinagar up to 8 km based on order tier, or direct farm counter pickup.
+              Harvested live from cold 10°C borewell water in Malabagh. 100% Free insulated doorstep delivery with non-toxic, leak-proof ice gel packs (0°C–4°C) across Srinagar up to 16 km based on order tier, or direct farm counter pickup.
             </p>
           </div>
 
@@ -675,7 +675,7 @@ export default async function HomePage() {
                   <td className="p-4 md:p-5 text-slate-400">Prepared from refrigerated or frozen inventory.</td>
                 </tr>
                 <tr className="hover:bg-slate-900/30 transition-colors">
-                  <td className="p-4 md:p-5 font-medium text-white">Doorstep Delivery (Up to 8km Zone)</td>
+                  <td className="p-4 md:p-5 font-medium text-white">Doorstep Delivery (Up to 16km Zone)</td>
                   <td className="p-4 md:p-5 text-cyan-200 bg-cyan-950/30 border-x border-cyan-500/20 font-semibold text-emerald-400">
                     100% FREE within 2 Hours (Chilled with non-toxic cold gel packs)
                   </td>
@@ -714,7 +714,7 @@ export default async function HomePage() {
 
           <div className="mt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs text-slate-400">
             <span className="max-w-2xl leading-relaxed">
-              Rates verified across Srinagar retail channels (March 2026). Urban Trout rates include 100% free insulated doorstep delivery with reusable non-toxic ice gel packs (0°C–4°C, zero melting mess) across Srinagar delivery zones (up to 8km). Sourced via direct market surveys (Batamaloo &amp; Maharaj Gunj stalls), verified B2B listings, and restaurant menus.
+              Rates verified across Srinagar retail channels (March 2026). Urban Trout rates include 100% free insulated doorstep delivery with reusable non-toxic ice gel packs (0°C–4°C, zero melting mess) across Srinagar delivery zones (up to 16km). Sourced via direct market surveys (Batamaloo &amp; Maharaj Gunj stalls), verified B2B listings, and restaurant menus.
             </span>
             <Link href="/trout-price-srinagar" className="inline-flex items-center gap-1.5 text-cyan-400 font-bold hover:underline whitespace-nowrap">
               <span>Read Full Srinagar Trout Price Guide</span>
@@ -728,7 +728,7 @@ export default async function HomePage() {
               <span className="text-[10px] uppercase font-mono font-bold tracking-widest text-amber-400">Srinagar Trout Buying Channels</span>
               <h3 className="text-sm font-bold text-white font-['Space_Grotesk']">Farm-Direct Doorstep Delivery &amp; J&amp;K Fisheries Department Outlets</h3>
               <p className="text-xs text-slate-300 leading-relaxed font-sans max-w-3xl">
-                The J&amp;K Department of Fisheries has pioneered cold-water trout aquaculture across Kashmir, operating reputable public breeding centers and counters at <strong>Gagribal (Boulevard)</strong>, <strong>Laribal Hatchery</strong>, and <strong>Kokernag</strong>. While official government counters provide valuable subsidized public fish during limited morning windows (typically 8:00 AM – 11:00 AM, subject to daily supply quotas and in-person walk-ins), Urban Trout provides a complementary on-demand hyper-local service. We harvest live to order from our private groundwater-fed RAS facility in Malabagh, offer custom kitchen descaling &amp; cleaning, and deliver in food-grade chilled boxes directly to your home within 2 hours across our 8km Srinagar zone (or direct pickup at our Malabagh farm vending counter).
+                The J&amp;K Department of Fisheries has pioneered cold-water trout aquaculture across Kashmir, operating reputable public breeding centers and counters at <strong>Gagribal (Boulevard)</strong>, <strong>Laribal Hatchery</strong>, and <strong>Kokernag</strong>. While official government counters provide valuable subsidized public fish during limited morning windows (typically 8:00 AM – 11:00 AM, subject to daily supply quotas and in-person walk-ins), Urban Trout provides a complementary on-demand hyper-local service. We harvest live to order from our private groundwater-fed RAS facility in Malabagh, offer custom kitchen descaling &amp; cleaning, and deliver in food-grade chilled boxes directly to your home within 2 hours across our 16km Srinagar zone (or direct pickup at our Malabagh farm vending counter).
               </p>
             </div>
             <div className="flex-shrink-0">
@@ -845,7 +845,7 @@ export default async function HomePage() {
               </h2>
             </div>
             <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfaceVariant, maxWidth: "420px", lineHeight: 1.7, borderLeft: "2px solid rgba(114,221,253,0.3)", paddingLeft: "1.25rem", fontSize: "0.95rem" }}>
-              Clean borewell water, zero preventive antibiotics, live netting, and 100% free doorstep delivery across Srinagar (up to 8km) in 2 hours.
+              Clean borewell water, zero preventive antibiotics, live netting, and 100% free doorstep delivery across Srinagar (up to 16km) in 2 hours.
             </p>
           </div>
 
@@ -1323,7 +1323,7 @@ export default async function HomePage() {
               </svg>
             </div>
             <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: "0.95rem", color: C.onSurface }}>100% Free Doorstep Delivery</span>
-            <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.8rem", color: C.onSurfaceVariant }}>Delivered chilled across Srinagar (up to 8km)</span>
+            <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.8rem", color: C.onSurfaceVariant }}>Delivered chilled across Srinagar (up to 16km)</span>
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", textAlign: "center", gap: "10px" }}>

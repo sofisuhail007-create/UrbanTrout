@@ -12,7 +12,7 @@ import { getGoogleReviewsData } from "@/lib/reviews";
 export const metadata: Metadata = {
   title: "Whole Fresh Rainbow Trout (₹540/Kg)",
   description:
-    "Fresh whole cold-water Rainbow Trout from our Srinagar farm in Malabagh. Express chilled 2-hour doorstep delivery across Srinagar 8km farm zone.",
+    "Fresh whole cold-water Rainbow Trout from our Srinagar farm in Malabagh. Express chilled 2-hour doorstep delivery across Srinagar 16km farm zone.",
   alternates: {
     canonical: "https://urbantrout.in/shop/whole-trout",
   },
@@ -650,7 +650,7 @@ export default async function WholeTroutPage() {
                 </h3>
               </div>
               <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "1rem", color: C.onSurfVar, lineHeight: 1.75, maxWidth: "640px", marginBottom: "2rem" }}>
-                Raised in clean, continuously filtered cold water right here in Srinagar. Harvested only when you order, immediately chilled with non-toxic ice gel packs, and delivered to your doorstep across our 8km Srinagar express zone.
+                Raised in clean, continuously filtered cold water right here in Srinagar. Harvested only when you order, immediately chilled with non-toxic ice gel packs, and delivered to your doorstep across our 16km Srinagar express zone.
               </p>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "1.5rem" }}>
                 {[

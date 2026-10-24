@@ -3,13 +3,13 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Shipping & Delivery Policy",
-  description: "Official delivery coverage, tiered 100% Free doorstep delivery within 8km perimeter of Malabagh farm, cold-chain packaging, and operating hours.",
+  description: "Official delivery coverage, tiered 100% Free doorstep delivery within 16km perimeter of Malabagh farm, cold-chain packaging, and operating hours.",
   alternates: {
     canonical: "https://urbantrout.in/shipping-policy",
   },
   openGraph: {
     title: "Shipping & Delivery Policy | Urban Trout Srinagar",
-    description: "Tiered 100% Free doorstep delivery within 8km perimeter of our Malabagh farm within 2 hours of harvest. Non-toxic cold gel-pack packaging.",
+    description: "Tiered 100% Free doorstep delivery within 16km perimeter of our Malabagh farm within 2 hours of harvest. Non-toxic cold gel-pack packaging.",
     url: "https://urbantrout.in/shipping-policy",
     siteName: "Urban Trout",
   },
@@ -26,16 +26,16 @@ const C = {
 
 const sections = [
   {
-    title: "1. Service Area & Delivery Coverage (12km Farm Perimeter & 3 Express Delivery Zones)",
-    body: "• 12km Express Delivery Perimeter: To guarantee peak live-harvest freshness and an unbroken cold chain within 90–120 minutes, Urban Trout delivers across a 12.0 km perimeter from our aquaculture farm base in Malabagh, Srinagar.\n• Zone 1 (0 to 4.0 km — Core Farm Zone): Malabagh, Hazratbal, Habak, Naseem Bagh, Zakura, Lal Bazar, Soura (SKIMS), Bachpora, Illahibagh, Nowshera, Ahmad Nagar, Zadibal, etc. 100% FREE Doorstep Delivery on min 2 kg (or ₹100 special fee for 1 kg).\n• Zone 2 (4.0 to 6.0 km — Mid-Perimeter Zone): Hawal, Khanyar, Rainawari, Badamwari, Alamgari Bazar, Saida Kadal, Eidgah, Safakadal, Shalimar, Nagbal, etc. 100% FREE Doorstep Delivery on min 3 kg (or ₹250 special fee for 1–2 kg).\n• Zone 3 (6.0 to 12.0 km — Extended City Zone): Lal Chowk, Rajbagh, Dalgate, Boulevard, Jawahar Nagar, Sonwar, Qamarwari, Batamaloo, Khayyam, Bemina, Nishat, Sanat Nagar, Chanapora, Hyderpora, Rawalpora, Ganderbal, etc. Express Doorstep Delivery with flat ₹250 delivery fee (4 kg family pack or 1–3 kg).\n• Beyond 12.0 km (Outer Municipal Srinagar): Outside our doorstep express delivery perimeter. Customers located beyond 12 km (e.g. Peerbagh, Airport Road / Humhama, Budgam, Pampore, Pantha Chowk, Lasjan, Chadoora) are warmly invited to place an order for live harvest pickup directly from our dedicated Live Trout Vending Center at our Malabagh farm.",
+    title: "1. Service Area & Delivery Coverage (16km Farm Perimeter & 4 Subsidized Zones)",
+    body: "• 16km Express Delivery Perimeter: To guarantee peak live-harvest freshness and an unbroken cold chain within 90–120 minutes, Urban Trout delivers across a 16.0 km perimeter from our aquaculture farm base in Malabagh, Srinagar.\n• Zone 1 (0 to 4.0 km — Core Farm Zone): Malabagh, Hazratbal, Habak, Naseem Bagh, Zakura, Lal Bazar, Soura (SKIMS), Bachpora, Illahibagh, Nowshera, Ahmad Nagar, Zadibal, etc. 100% FREE Doorstep Delivery on min 2 kg (or ₹29 subsidized courier fee for 1 kg).\n• Zone 2 (4.0 to 7.0 km — Mid-City Zone): Hawal, Khanyar, Rainawari, Badamwari, Alamgari Bazar, Saida Kadal, Eidgah, Safakadal, Shalimar, Nagbal, etc. 100% FREE Doorstep Delivery on min 3 kg (or ₹39 on 2 kg / ₹49 on 1 kg).\n• Zone 3 (7.0 to 11.5 km — Greater Srinagar Zone): Lal Chowk, Rajbagh, Dalgate, Boulevard, Jawahar Nagar, Sonwar, Qamarwari, Batamaloo, Khayyam, Bemina, Nishat, Sanat Nagar, Chanapora, Hyderpora, etc. 100% FREE Doorstep Delivery on min 3 kg (or ₹69 on 2 kg / ₹79 on 1 kg).\n• Zone 4 (11.5 to 16.0 km — South Corridor & Outskirts): Rawalpora, Peerbagh, Airport Road, Lasjan, Nowgam, Pantha Chowk, Athwajan, Rangreth, Ganderbal, etc. 100% FREE Doorstep Delivery on our 4 kg Family Pack (or ₹49 on 3 kg / ₹89 on 2 kg / ₹119 on 1 kg).\n• Beyond 16.0 km: Outside our doorstep express delivery perimeter. Customers located beyond 16 km (e.g. Pampore, Chadoora, Budgam town, Baramulla) are warmly invited to place an order for live harvest pickup directly from our dedicated Live Trout Vending Center at our Malabagh farm.",
   },
   {
     title: "2. Harvest-to-Order & Delivery Timelines",
-    body: "• Farm-Fresh Quality: Every order is freshly harvested live from our cold-water aquaculture tanks upon order confirmation to ensure maximum freshness and taste.\n• Rapid Delivery Timeframe: Orders within our 12km perimeter are freshly harvested to order, cleaned/gutted if requested, chilled with non-toxic leak-proof ice gel packs, and delivered to your doorstep within 90–120 minutes.\n• Operating Delivery Hours: Saturday to Thursday between 8:00 AM and 9:00 PM IST (Closed on Fridays for scheduled Farm Maintenance).",
+    body: "• Farm-Fresh Quality: Every order is freshly harvested live from our cold-water aquaculture tanks upon order confirmation to ensure maximum freshness and taste.\n• Rapid Delivery Timeframe: Orders within our 16km perimeter are freshly harvested to order, cleaned/gutted if requested, chilled with non-toxic leak-proof ice gel packs, and delivered to your doorstep within 90–120 minutes.\n• Operating Delivery Hours: Saturday to Thursday between 8:00 AM and 9:00 PM IST (Closed on Fridays for scheduled Farm Maintenance).",
   },
   {
-    title: "3. 100% Free Shipping & Tiered Delivery Policy",
-    body: "• 100% FREE Doorstep Delivery for Zone 1 (min 2 kg) and Zone 2 (min 3 kg). Zone 3 doorstep delivery is fulfilled with a flat ₹250 express delivery fee across all order quantities (1–4+ kg).\n• Product pricing includes free cold-chain insulated packaging and reusable non-toxic ice gel packs (0°C–4°C). There are zero hidden delivery fees, packing charges, or surprise shipping costs at checkout within our deliverable zone.",
+    title: "3. 100% Free Shipping & Subsidized Delivery Policy",
+    body: "• 100% FREE Doorstep Delivery for Zone 1 (min 2 kg), Zone 2 (min 3 kg), Zone 3 (min 3 kg), and Zone 4 (min 4 kg Family Pack).\n• Urban Trout directly absorbs the majority of courier costs on all sub-minimum orders, ensuring you pay only a nominal fee (as low as ₹29) on ice-chilled door delivery.\n• Product pricing includes free cold-chain insulated packaging and reusable non-toxic ice gel packs (0°C–4°C). There are zero hidden packing charges or surprise fees at checkout.",
   },
   {
     title: "4. Cold-Chain Packaging & Temperature Control",

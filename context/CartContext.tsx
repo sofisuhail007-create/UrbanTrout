@@ -87,7 +87,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         loadedItems = loadedItems.map((item) => {
           const inv = invList.find((i) => i.product_id === item.id);
           if (inv) {
-            const liveMin = Math.max(1, Number(inv.min_order_kg) || 2);
+            const liveMin = Math.max(1, Number(inv.min_order_kg) || 1);
             const liveOrigPrice = inv.original_price_per_kg
               ? Number(inv.original_price_per_kg)
               : item.originalPrice || (item.id === "gutted-trout" ? 650 : 600);

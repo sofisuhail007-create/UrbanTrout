@@ -15,7 +15,7 @@ export default function DeliveryZoneChecker() {
   const [query, setQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
-  const [activeZoneTab, setActiveZoneTab] = useState<"all" | "zone1" | "zone2" | "zone3" | "out_of_zone">("all");
+  const [activeZoneTab, setActiveZoneTab] = useState<"all" | "zone1" | "zone2" | "zone3" | "zone4" | "out_of_zone">("all");
   const [checkResult, setCheckResult] = useState<DeliveryCheckResult | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -111,7 +111,7 @@ export default function DeliveryZoneChecker() {
                 </span>
                 <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-400">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                  Active Delivery Radius: Up to 8 km
+                  Active Delivery Radius: Up to 16 km
                 </span>
               </div>
               <h3 className="text-base sm:text-lg font-extrabold text-white mt-1 tracking-tight" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
@@ -316,7 +316,7 @@ export default function DeliveryZoneChecker() {
             <span className="text-[11px] text-cyan-400">Click a tier to see sample localities</span>
           </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2">
             {/* Zone 1 Pill */}
             <button
               type="button"
@@ -332,7 +332,7 @@ export default function DeliveryZoneChecker() {
                 <span className="text-xs">🟢</span>
               </div>
               <div className="font-extrabold text-white text-xs mt-1">FREE from 2 kg</div>
-              <div className="text-[10px] text-slate-400 mt-0.5">₹100 fee for 1 kg</div>
+              <div className="text-[10px] text-slate-400 mt-0.5">₹29 fee for 1 kg</div>
             </button>
 
             {/* Zone 2 Pill */}
@@ -346,11 +346,11 @@ export default function DeliveryZoneChecker() {
               }`}
             >
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono font-bold text-sky-400 uppercase">Zone 2 (4–6 km)</span>
+                <span className="text-[10px] font-mono font-bold text-sky-400 uppercase">Zone 2 (4–7 km)</span>
                 <span className="text-xs">🔵</span>
               </div>
               <div className="font-extrabold text-white text-xs mt-1">FREE from 3 kg</div>
-              <div className="text-[10px] text-slate-400 mt-0.5">₹250 fee for 1–2 kg</div>
+              <div className="text-[10px] text-slate-400 mt-0.5">₹39 on 2kg / ₹49 on 1kg</div>
             </button>
 
             {/* Zone 3 Pill */}
@@ -359,16 +359,34 @@ export default function DeliveryZoneChecker() {
               onClick={() => setActiveZoneTab(activeZoneTab === "zone3" ? "all" : "zone3")}
               className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                 activeZoneTab === "zone3"
-                  ? "bg-purple-950/80 border-purple-400 ring-2 ring-purple-500/30"
-                  : "bg-slate-950/60 border-slate-800 hover:border-purple-500/40"
+                  ? "bg-indigo-950/80 border-indigo-400 ring-2 ring-indigo-500/30"
+                  : "bg-slate-950/60 border-slate-800 hover:border-indigo-500/40"
               }`}
             >
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono font-bold text-purple-400 uppercase">Zone 3 (6–8 km)</span>
+                <span className="text-[10px] font-mono font-bold text-indigo-400 uppercase">Zone 3 (7–11.5 km)</span>
                 <span className="text-xs">🟣</span>
               </div>
+              <div className="font-extrabold text-white text-xs mt-1">FREE from 3 kg</div>
+              <div className="text-[10px] text-slate-400 mt-0.5">₹69 on 2kg / ₹79 on 1kg</div>
+            </button>
+
+            {/* Zone 4 Pill */}
+            <button
+              type="button"
+              onClick={() => setActiveZoneTab(activeZoneTab === "zone4" ? "all" : "zone4")}
+              className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                activeZoneTab === "zone4"
+                  ? "bg-amber-950/80 border-amber-400 ring-2 ring-amber-500/30"
+                  : "bg-slate-950/60 border-slate-800 hover:border-amber-500/40"
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono font-bold text-amber-400 uppercase">Zone 4 (11.5–16 km)</span>
+                <span className="text-xs">🟡</span>
+              </div>
               <div className="font-extrabold text-white text-xs mt-1">FREE from 4 kg</div>
-              <div className="text-[10px] text-slate-400 mt-0.5">₹300 fee for 1–3 kg</div>
+              <div className="text-[10px] text-slate-400 mt-0.5">₹49 on 3kg / ₹89 on 2kg</div>
             </button>
 
             {/* Counter Pickup Pill */}
@@ -377,16 +395,16 @@ export default function DeliveryZoneChecker() {
               onClick={() => setActiveZoneTab(activeZoneTab === "out_of_zone" ? "all" : "out_of_zone")}
               className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
                 activeZoneTab === "out_of_zone"
-                  ? "bg-amber-950/80 border-amber-400 ring-2 ring-amber-500/30"
-                  : "bg-slate-950/60 border-slate-800 hover:border-amber-500/40"
+                  ? "bg-rose-950/80 border-rose-400 ring-2 ring-rose-500/30"
+                  : "bg-slate-950/60 border-slate-800 hover:border-rose-500/40"
               }`}
             >
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono font-bold text-amber-400 uppercase">Beyond 8 km</span>
+                <span className="text-[10px] font-mono font-bold text-rose-400 uppercase">Beyond 16 km</span>
                 <span className="text-xs">🏪</span>
               </div>
               <div className="font-extrabold text-white text-xs mt-1">Counter Pickup</div>
-              <div className="text-[10px] text-slate-400 mt-0.5">All Srinagar welcome</div>
+              <div className="text-[10px] text-slate-400 mt-0.5">Malabagh Live Tank (₹0)</div>
             </button>
           </div>
 
@@ -399,10 +417,12 @@ export default function DeliveryZoneChecker() {
                   : activeZoneTab === "zone1"
                   ? "Zone 1 Localities (0–4 km — 100% Free on 2 kg+)"
                   : activeZoneTab === "zone2"
-                  ? "Zone 2 Localities (4–6 km — 100% Free on 3 kg+)"
+                  ? "Zone 2 Localities (4–7 km — 100% Free on 3 kg+)"
                   : activeZoneTab === "zone3"
-                  ? "Zone 3 Extended Localities (6–8 km — 100% Free on 4 kg+)"
-                  : "Beyond 8 km Localities (Counter Pickup at Malabagh Farm Hub)"}
+                  ? "Zone 3 Localities (7–11.5 km — 100% Free on 3 kg+)"
+                  : activeZoneTab === "zone4"
+                  ? "Zone 4 South Corridor (11.5–16 km — 100% Free on 4 kg+)"
+                  : "Beyond 16 km Localities (Counter Pickup at Malabagh Farm Hub)"}
               </span>
               {activeZoneTab !== "all" && (
                 <button

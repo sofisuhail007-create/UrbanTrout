@@ -54,19 +54,23 @@ export async function POST(req: NextRequest) {
             if (dist <= 4.0) {
               tier = "0-4km";
               minKg = 2;
-              fee = Number(weightKg) >= 2 ? 0 : 100;
-            } else if (dist <= 6.0) {
-              tier = "4-6km";
+              fee = Number(weightKg) >= 2 ? 0 : 29;
+            } else if (dist <= 7.0) {
+              tier = "4-7km";
               minKg = 3;
-              fee = Number(weightKg) >= 3 ? 0 : 250;
-            } else if (dist <= 12.0) {
-              tier = "Extended-4kg";
+              fee = Number(weightKg) >= 3 ? 0 : (Number(weightKg) === 2 ? 39 : 49);
+            } else if (dist <= 11.5) {
+              tier = "7-11.5km";
+              minKg = 3;
+              fee = Number(weightKg) >= 3 ? 0 : (Number(weightKg) === 2 ? 69 : 79);
+            } else if (dist <= 16.0) {
+              tier = "11.5-16km";
               minKg = 4;
-              fee = 250;
+              fee = Number(weightKg) >= 4 ? 0 : (Number(weightKg) === 3 ? 49 : (Number(weightKg) === 2 ? 89 : 119));
             }
 
             return NextResponse.json({
-              status: dist <= 12.0 ? "IN_ZONE" : "OUT_ZONE",
+              status: dist <= 16.0 ? "IN_ZONE" : "OUT_ZONE",
               name,
               dist,
               minKg,
@@ -74,7 +78,7 @@ export async function POST(req: NextRequest) {
               lat,
               lng,
               source: "google_maps",
-              isDeliverable: dist <= 12.0,
+              isDeliverable: dist <= 16.0,
               deliveryFee: fee,
               message: `~${dist} km from Malabagh Farm Hub • ${tier}`
             });
@@ -110,19 +114,23 @@ export async function POST(req: NextRequest) {
           if (dist <= 4.0) {
             tier = "0-4km";
             minKg = 2;
-            fee = Number(weightKg) >= 2 ? 0 : 100;
-          } else if (dist <= 6.0) {
-            tier = "4-6km";
+            fee = Number(weightKg) >= 2 ? 0 : 29;
+          } else if (dist <= 7.0) {
+            tier = "4-7km";
             minKg = 3;
-            fee = Number(weightKg) >= 3 ? 0 : 250;
-          } else if (dist <= 12.0) {
-            tier = "Extended-4kg";
+            fee = Number(weightKg) >= 3 ? 0 : (Number(weightKg) === 2 ? 39 : 49);
+          } else if (dist <= 11.5) {
+            tier = "7-11.5km";
+            minKg = 3;
+            fee = Number(weightKg) >= 3 ? 0 : (Number(weightKg) === 2 ? 69 : 79);
+          } else if (dist <= 16.0) {
+            tier = "11.5-16km";
             minKg = 4;
-            fee = 250;
+            fee = Number(weightKg) >= 4 ? 0 : (Number(weightKg) === 3 ? 49 : (Number(weightKg) === 2 ? 89 : 119));
           }
 
           return NextResponse.json({
-            status: dist <= 12.0 ? "IN_ZONE" : "OUT_ZONE",
+            status: dist <= 16.0 ? "IN_ZONE" : "OUT_ZONE",
             name,
             dist,
             minKg,
@@ -130,7 +138,7 @@ export async function POST(req: NextRequest) {
             lat,
             lng,
             source: "nominatim",
-            isDeliverable: dist <= 12.0,
+            isDeliverable: dist <= 16.0,
             deliveryFee: fee,
             message: `~${dist} km from Malabagh Farm Hub • ${tier}`
           });

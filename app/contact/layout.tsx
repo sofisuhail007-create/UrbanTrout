@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Contact Urban Trout | Farm Location & Support in Srinagar",
     description:
-      "Get in touch with Urban Trout. Live trout vending center in Srinagar. Express doorstep delivery within 12km perimeter.",
+      "Get in touch with Urban Trout. Live trout vending center in Srinagar. Express doorstep delivery within 16km perimeter.",
     url: "https://urbantrout.in/contact",
     siteName: "Urban Trout",
     images: [

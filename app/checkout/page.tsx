@@ -66,7 +66,7 @@ const C = {
 // ─── Farm Coordinates (Malabagh / Naseem Bagh, Srinagar) ────────
 const FARM_LAT = 34.144709;
 const FARM_LNG = 74.824525;
-const DELIVERY_RADIUS_KM = 12.0;
+const DELIVERY_RADIUS_KM = 16.0;
 
 // ─── Srinagar Landmark Coordinates for Distance Lookup & GPS Fallback ───
 export type SrinagarLandmark = LocalityData;
@@ -113,7 +113,7 @@ function findMatchingLandmark(localityInput: string): SrinagarLandmark | null {
       lng: res.lng || 74.8210,
       pincode: "190006",
       distKm: res.dist,
-      tier: res.tier === "0-4km" ? "zone1" : res.tier === "4-6km" ? "zone2" : res.tier === "Extended-4kg" ? "zone3" : "out_of_zone",
+      tier: res.tier === "0-4km" ? "zone1" : res.tier === "4-7km" ? "zone2" : res.tier === "7-11.5km" ? "zone3" : res.tier === "11.5-16km" ? "zone4" : "out_of_zone",
       minKgFree: res.minKg
     };
   }
@@ -347,7 +347,7 @@ export default function CheckoutPage() {
   const [detectedCoords, setDetectedCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [calculatedDistance, setCalculatedDistance] = useState<number | null>(null);
   const [selectedZoneName, setSelectedZoneName] = useState<string>("");
-  const [deliveryRadiusKm, setDeliveryRadiusKm] = useState<number>(12.0);
+  const [deliveryRadiusKm, setDeliveryRadiusKm] = useState<number>(16.0);
   const [farmLat, setFarmLat] = useState<number>(34.144709);
   const [farmLng, setFarmLng] = useState<number>(74.824525);
   const [allowOutsideRadius, setAllowOutsideRadius] = useState<boolean>(false);
@@ -492,7 +492,7 @@ export default function CheckoutPage() {
           if (map.upi_id) setUpiId(map.upi_id);
           if (map.delivery_radius_km) {
             const r = parseFloat(map.delivery_radius_km);
-            if (!isNaN(r) && r > 0) setDeliveryRadiusKm(Math.max(r, 12.0));
+            if (!isNaN(r) && r > 0) setDeliveryRadiusKm(Math.max(r, 16.0));
           }
           if (map.farm_latitude) {
             const lat = parseFloat(map.farm_latitude);
@@ -517,7 +517,7 @@ export default function CheckoutPage() {
           if (map.upi_id) setUpiId(map.upi_id);
           if (map.delivery_radius_km) {
             const r = parseFloat(map.delivery_radius_km);
-            if (!isNaN(r) && r > 0) setDeliveryRadiusKm(Math.max(r, 12.0));
+            if (!isNaN(r) && r > 0) setDeliveryRadiusKm(Math.max(r, 16.0));
           }
           if (map.farm_latitude) {
             const lat = parseFloat(map.farm_latitude);
@@ -1911,7 +1911,7 @@ export default function CheckoutPage() {
                   className="hidden sm:block"
                   style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", color: C.onSurfVar }}
                 >
-                  12km Zone &amp; GPS
+                  16km Zone &amp; GPS
                 </span>
               </div>
             </button>
@@ -2278,7 +2278,7 @@ export default function CheckoutPage() {
                           2. Srinagar Delivery Address
                         </h3>
                       </div>
-                      <span className="text-[10px] text-emerald-400 font-semibold">12km Tiered Delivery Perimeter</span>
+                      <span className="text-[10px] text-emerald-400 font-semibold">16km Tiered Delivery Perimeter</span>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -2399,14 +2399,14 @@ export default function CheckoutPage() {
                     </button>
                   </div>
                   <p className="text-[11px] text-center text-slate-400 font-mono">
-                    🔒 Instant lead recovery • 100% Free Doorstep Delivery inside 12km (Tiered) • Live Catch Harvested to Order • Instant UPI &amp; Cards
+                    🔒 Instant lead recovery • 100% Free Doorstep Delivery inside 16km (Tiered) • Live Catch Harvested to Order • Instant UPI &amp; Cards
                   </p>
                 </form>
               </div>
             )}
 
             {/* ══════════════════════════════════════════════════════
-                STAGE 2: CONFIRM DELIVERY LOCATION & 12KM RADIUS
+                STAGE 2: CONFIRM DELIVERY LOCATION & 16KM RADIUS
                 ══════════════════════════════════════════════════════ */}
             {currentStep === 2 && (
               <div
@@ -2962,7 +2962,7 @@ export default function CheckoutPage() {
                         {/* Quick 1-tap in-zone selector if customer wants delivery to a friend/office in-zone */}
                         <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 text-left space-y-2">
                           <div className="text-[11px] font-semibold text-slate-300 flex items-center justify-between">
-                            <span>Delivering to an office, friend, or relative within 12km?</span>
+                            <span>Delivering to an office, friend, or relative within 16km?</span>
                             <span className="text-[10px] text-emerald-400 font-mono">1-Tap Select</span>
                           </div>
                           <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
