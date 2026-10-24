@@ -135,7 +135,7 @@ export default async function OurFarmPage() {
               </div>
               <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.2rem", fontWeight: 700, color: C.onSurface, margin: 0 }}>Harvested to Order</h3>
               <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfVar, lineHeight: 1.7, fontSize: "0.88rem", margin: 0 }}>
-                We don&apos;t keep fish sitting in cold storage. Once you confirm your order, we harvest, clean, chill with non-toxic ice gel packs, and deliver directly.
+                We don&apos;t keep fish sitting in cold storage. Once you confirm your order, we harvest, clean, pack in clean food-grade packs, and deliver directly.
               </p>
             </div>
           </div>

@@ -9,7 +9,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "Shipping & Delivery Policy | Urban Trout Srinagar",
-    description: "Tiered 100% Free doorstep delivery within 16km perimeter of our Malabagh farm within 2 hours of harvest. Non-toxic cold gel-pack packaging.",
+    description: "Tiered 100% Free doorstep delivery within 16km perimeter of our Malabagh farm within 2 hours of harvest. Food-grade packaging.",
     url: "https://urbantrout.in/shipping-policy",
     siteName: "Urban Trout",
   },
@@ -31,15 +31,15 @@ const sections = [
   },
   {
     title: "2. Harvest-to-Order & Delivery Timelines",
-    body: "• Farm-Fresh Quality: Every order is freshly harvested live from our cold-water aquaculture tanks upon order confirmation to ensure maximum freshness and taste.\n• Rapid Delivery Timeframe: Orders within our 16km perimeter are freshly harvested to order, cleaned/gutted if requested, chilled with non-toxic leak-proof ice gel packs, and delivered to your doorstep within 90–120 minutes.\n• Operating Delivery Hours: Saturday to Thursday between 8:00 AM and 9:00 PM IST (Closed on Fridays for scheduled Farm Maintenance).",
+    body: "• Farm-Fresh Quality: Every order is freshly harvested live from our cold-water aquaculture tanks upon order confirmation to ensure maximum freshness and taste.\n• Rapid Delivery Timeframe: Orders within our 16km perimeter are freshly harvested to order, cleaned/gutted if requested, packed in clean food-grade packaging (double polythene), and delivered to your doorstep within 90–120 minutes.\n• Operating Delivery Hours: Saturday to Thursday between 8:00 AM and 9:00 PM IST (Closed on Fridays for scheduled Farm Maintenance).",
   },
   {
     title: "3. 100% Free Shipping & Subsidized Delivery Policy",
-    body: "• 100% FREE Doorstep Delivery for Zone 1 (min 2 kg), Zone 2 (min 3 kg), Zone 3 (min 3 kg), and Zone 4 (min 4 kg Family Pack).\n• Urban Trout directly absorbs the majority of courier costs on all sub-minimum orders, ensuring you pay only a nominal fee (as low as ₹29) on ice-chilled door delivery.\n• Product pricing includes free cold-chain insulated packaging and reusable non-toxic ice gel packs (0°C–4°C). There are zero hidden packing charges or surprise fees at checkout.",
+    body: "• 100% FREE Doorstep Delivery for Zone 1 (min 2 kg), Zone 2 (min 3 kg), Zone 3 (min 3 kg), and Zone 4 (min 4 kg Family Pack).\n• Urban Trout directly absorbs the majority of courier costs on all sub-minimum orders, ensuring you pay only a nominal fee (as low as ₹29) on doorstep delivery.\n• Product pricing includes clean food-grade packaging (two polythenes). There are zero hidden packing charges or surprise fees at checkout.",
   },
   {
-    title: "4. Cold-Chain Packaging & Temperature Control",
-    body: "• Freshness is our top priority. Every fish is packed immediately following harvest in food-grade insulated packaging with non-toxic, leak-proof reusable ice gel packs (0°C–4°C).\n• This maintains an unbroken dry sub-4°C chill chain from our farm tanks directly to your kitchen without soggy bags or melting ice water, ensuring maximum taste, texture, and nutritional value.",
+    title: "4. Fresh Food-Grade Packaging & Hygiene",
+    body: "• Freshness is our top priority. Every fish is packed immediately following harvest in clean, food-grade double packaging (two polythenes).\n• Delivered straight to your kitchen within 90–120 minutes of live harvest, ensuring peak natural taste, firmness, and freshness without messy melting ice water.",
   },
   {
     title: "5. Order Tracking & WhatsApp Notifications",

@@ -30,11 +30,11 @@ const sections = [
   },
   {
     title: "2. Order Cancellation Policy",
-    body: "• Pre-Harvest Cancellation: You may cancel your order free of charge at any time before the farm harvest and packing process begins for your order slot.\n• Post-Harvest Cancellation: Once the fish has been freshly harvested and prepared (cleaned/gutted/cold gel-packed), cancellations cannot be accepted as perishable food products cannot be restocked.\n• To cancel an order before harvest, please contact our helpline immediately via call or WhatsApp at +91 84910 06127.",
+    body: "• Pre-Harvest Cancellation: You may cancel your order free of charge at any time before the farm harvest and packing process begins for your order slot.\n• Post-Harvest Cancellation: Once the fish has been freshly harvested and prepared (cleaned/gutted/double-packed), cancellations cannot be accepted as perishable food products cannot be restocked.\n• To cancel an order before harvest, please contact our helpline immediately via call or WhatsApp at +91 84910 06127.",
   },
   {
     title: "3. Perishable Goods & Quality Guarantee",
-    body: "• We take extreme care to pack our trout with non-toxic, leak-proof reusable ice gel packs and insulated packaging (0°C–4°C) to ensure peak freshness upon arrival with zero melting mess.\n• We strongly advise customers or their representatives to inspect the order package at the time of delivery.\n• In the unlikely event that your delivery arrives damaged, compromised in temperature, spoiled, or if the wrong item/quantity was delivered, please notify us within 2 hours of delivery with photographic evidence via WhatsApp (+91 84910 06127) or email (founder@urbantrout.in).",
+    body: "• We take extreme care to pack our trout securely in clean food-grade double packaging (two polythenes) to ensure peak freshness upon arrival with zero melting mess.\n• We strongly advise customers or their representatives to inspect the order package at the time of delivery.\n• In the unlikely event that your delivery arrives damaged, compromised in temperature, spoiled, or if the wrong item/quantity was delivered, please notify us within 2 hours of delivery with photographic evidence via WhatsApp (+91 84910 06127) or email (founder@urbantrout.in).",
   },
   {
     title: "4. Refund Eligibility & Resolution",

@@ -65,7 +65,7 @@ const FAQS = [
   },
   {
     q: "Can I buy fresh trout on the spot during an approved visit?",
-    a: "Yes! During your approved slot, our farm team will harvest your selected fresh trout directly, weigh it, and expertly gut/clean and pack it chilled in food-grade ice for you.",
+    a: "Yes! During your approved slot, our farm team will harvest your selected fresh trout directly, weigh it, and expertly gut/clean and pack it securely in clean food-grade packs for you.",
   },
   {
     q: "What happens if I arrive without an approved email pass?",

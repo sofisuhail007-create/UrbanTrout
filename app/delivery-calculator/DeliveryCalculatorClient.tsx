@@ -512,10 +512,10 @@ function CalculatorInner() {
       `📍 Location: ${selectedPlace?.name || searchQuery} (~${distance} km from Malabagh Farm Hub)\n` +
       `📦 Order: ${weightKg} kg × ${cutName}\n` +
       `💵 Fish Price: ₹${fishCost} (@ ₹${ratePerKg}/kg)\n` +
-      `🚚 Express Courier on Ice: ${deliveryFee === 0 ? "100% FREE DOORSTEP DELIVERY ✓" : `₹${deliveryFee} only`}\n` +
+      `🚚 Express Doorstep Courier: ${deliveryFee === 0 ? "100% FREE DOORSTEP DELIVERY ✓" : `₹${deliveryFee} only`}\n` +
       (subsidyAmount > 0 ? `🤝 Urban Trout Contribution: −₹${subsidyAmount} (Subsidized for you)\n` : "") +
       `✅ Total Payable at Doorstep: ₹${totalAmount} (Cash or UPI)\n\n` +
-      `⚡ Farm-Harvested Guarantee: Fish is swimming in cold water until you order, prepped fresh and dispatched on ice within 90–120 minutes.\n\n` +
+      `⚡ Farm-Harvested Guarantee: Fish is swimming in cold water until you order, prepped fresh and dispatched in food-grade packs within 90–120 minutes.\n\n` +
       `🔗 View quote or modify order:\n${link}`
     );
   };
@@ -564,7 +564,7 @@ function CalculatorInner() {
             Srinagar Delivery Calculator
           </h1>
           <p className="text-sm sm:text-base text-[#9fadb8] max-w-2xl mx-auto">
-            Instant transparent delivery rates, distance calculation from our Malabagh Farm Hub, and subsidized courier on ice across Srinagar.
+            Instant transparent delivery rates, distance calculation from our Malabagh Farm Hub, and subsidized doorstep courier across Srinagar.
           </p>
         </div>
 
@@ -830,9 +830,9 @@ function CalculatorInner() {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-[#9fadb8] block">Express Courier on Ice:</span>
+                  <span className="text-[#9fadb8] block">Express Doorstep Courier:</span>
                   <span className="text-[11px] text-[#5a6b77]">
-                    Reusable gel chillers (0°C–4°C) & food-grade insulation
+                    Food-grade packaging (double polythene sealed)
                   </span>
                 </div>
                 <div className="text-right">
@@ -859,7 +859,7 @@ function CalculatorInner() {
                   <span className="font-semibold flex items-center gap-1.5">
                     <span>🤝</span> Urban Trout Contribution:
                   </span>
-                  <span className="font-bold">−₹{subsidyAmount} (Subsidized on ice)</span>
+                  <span className="font-bold">−₹{subsidyAmount} (Subsidized by Urban Trout)</span>
                 </div>
               )}
             </div>
@@ -1017,7 +1017,7 @@ function CalculatorInner() {
           </h2>
           <p className="text-sm text-[#9fadb8] mb-6 leading-relaxed">
             Unlike retail supermarket fish that sits dead in frozen displays,{" "}
-            <strong className="text-white">Urban Trout is 100% farm-live harvested</strong>. Every order is swimming in fresh flowing spring water at Malabagh until you confirm your order. It is immediately prepped, sealed with non-toxic reusable ice chillers (0°C–4°C), and dispatched directly to your kitchen in 90–120 minutes.
+            <strong className="text-white">Urban Trout is 100% farm-live harvested</strong>. Every order is swimming in fresh flowing spring water at Malabagh until you confirm your order. It is immediately prepped, packed in clean food-grade packaging (double polythene), and dispatched directly to your kitchen in 90–120 minutes.
           </p>
 
           {/* 4-Tier Breakdown Cards */}
@@ -1050,7 +1050,7 @@ function CalculatorInner() {
               </p>
               <div className="text-xs text-white font-medium bg-black/30 p-2 rounded-lg">
                 • <strong className="text-sky-300">100% Free Delivery</strong> on 3+ kg<br />
-                • ₹39 on 2 kg | ₹49 on 1 kg (Subsidized on ice)
+                • ₹39 on 2 kg | ₹49 on 1 kg (Subsidized by Urban Trout)
               </div>
             </div>
 
@@ -1066,7 +1066,7 @@ function CalculatorInner() {
               </p>
               <div className="text-xs text-white font-medium bg-black/30 p-2 rounded-lg">
                 • <strong className="text-indigo-300">100% Free Delivery</strong> on 3+ kg<br />
-                • ₹69 on 2 kg | ₹79 on 1 kg (Subsidized on ice)
+                • ₹69 on 2 kg | ₹79 on 1 kg (Subsidized by Urban Trout)
               </div>
             </div>
 

@@ -353,16 +353,16 @@ export function evaluateDeliveryZone(params: {
 
   if (tierId === "zone1") {
     statusHeadline = `✓ 100% Free Doorstep Delivery from 2 kg (~${dist.toFixed(1)} km)`;
-    deliveryMessage = `Deliverable within 90–120 minutes with non-toxic reusable ice chillers (0°C–4°C). Free on 2+ kg, or ₹${fee} subsidized courier for 1 kg.`;
+    deliveryMessage = `Deliverable within 90–120 minutes in clean food-grade packaging. Free on 2+ kg, or ₹${fee} subsidized courier for 1 kg.`;
   } else if (tierId === "zone2") {
     statusHeadline = `✓ Mid-City Delivery — Free from 3 kg (~${dist.toFixed(1)} km)`;
-    deliveryMessage = `Deliverable within 2 hours. Free on 3+ kg, or nominal express courier on ice (₹39 for 2 kg / ₹49 for 1 kg).`;
+    deliveryMessage = `Deliverable within 2 hours. Free on 3+ kg, or nominal express courier (₹39 for 2 kg / ₹49 for 1 kg).`;
   } else if (tierId === "zone3") {
     statusHeadline = `✓ Greater Srinagar Delivery — Free from 3 kg (~${dist.toFixed(1)} km)`;
-    deliveryMessage = `Deliverable within 2 hours with cold-chain packaging. Free on 3+ kg, or nominal express courier on ice (₹69 for 2 kg / ₹79 for 1 kg).`;
+    deliveryMessage = `Deliverable within 2 hours with cold-chain packaging. Free on 3+ kg, or nominal express courier (₹69 for 2 kg / ₹79 for 1 kg).`;
   } else if (tierId === "zone4") {
     statusHeadline = `✓ South Corridor Delivery — Free on 4 kg (~${dist.toFixed(1)} km)`;
-    deliveryMessage = `Deliverable within 2 hours with thermal insulation. 100% Free on 4 kg family pack, or nominal express courier on ice (₹89 for 2 kg / ₹49 for 3 kg).`;
+    deliveryMessage = `Deliverable within 2 hours with thermal insulation. 100% Free on 4 kg family pack, or nominal express courier (₹89 for 2 kg / ₹49 for 3 kg).`;
   } else {
     statusHeadline = `📍 Outside 16 km Express Delivery Perimeter (~${dist.toFixed(1)} km)`;
     deliveryMessage = `To ensure live-harvest cold chain integrity within 2 hours, doorstep delivery is restricted to 16 km. You are warmly welcome to pick up fresh live catch directly from our Live Vending Center in Malabagh with ZERO delivery fee!`;

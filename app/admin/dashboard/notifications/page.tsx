@@ -78,7 +78,7 @@ const PRESET_TEMPLATES: MarketingTemplate[] = [
     category: "wit",
     tag: "Witty Hook",
     title: "Commitment issues? No pressure. 🐟",
-    body: "Don't commit to forever, just commit to dinner tonight. Cleaned & gutted Rainbow Trout delivered chilled with cold gel packs in 90 mins.",
+    body: "Don't commit to forever, just commit to dinner tonight. Cleaned & gutted Rainbow Trout delivered fresh in food-grade packs in 90 mins.",
     url: "/shop",
   },
   {
@@ -140,7 +140,7 @@ const PRESET_TEMPLATES: MarketingTemplate[] = [
     category: "weather",
     tag: "Winter Comfort",
     title: "Sham ki sardi + Garama-garam Trout ❄️🔥",
-    body: "When temperatures drop, nothing warms the soul like spicy pan-seared trout. Cold-gel packed, delivered to your door.",
+    body: "When temperatures drop, nothing warms the soul like spicy pan-seared trout. Packed in clean food-grade packs, delivered to your door.",
     url: "/shop",
   },
 
@@ -278,7 +278,7 @@ const PRESET_TEMPLATES: MarketingTemplate[] = [
     category: "weekend",
     tag: "Family Feast",
     title: "Sunday Family Lunch sorted in style 👨‍👩‍👧‍👦",
-    body: "Gather everyone around a sizzling platter of fresh Rainbow Trout. Cleaned, gutted, cold-gel chilled—zero kitchen hassle.",
+    body: "Gather everyone around a sizzling platter of fresh Rainbow Trout. Cleaned, gutted, double-packed fresh—zero kitchen hassle.",
     url: "/shop",
   },
   {
@@ -288,7 +288,7 @@ const PRESET_TEMPLATES: MarketingTemplate[] = [
     category: "weekend",
     tag: "Guest Hosting",
     title: "Mehmon aa rahe hain? Impress them! 🍽️✨",
-    body: "Nothing impresses guests like fresh Himalayan Rainbow Trout. Delivered chilled in sealed ice packs in 90 mins.",
+    body: "Nothing impresses guests like fresh Himalayan Rainbow Trout. Delivered fresh in clean food-grade packs in 90 mins.",
     url: "/shop/whole-trout",
   },
   {

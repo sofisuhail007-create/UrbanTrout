@@ -1508,10 +1508,10 @@ export default function CheckoutPage() {
               <div className="p-4 rounded-2xl bg-slate-950/40 border border-slate-800 relative">
                 <div className="flex items-center gap-2 mb-1.5">
                   <span className="w-5 h-5 rounded-full bg-slate-800 text-slate-400 text-xs font-bold flex items-center justify-center">3</span>
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">3. Ice-Packing</span>
+                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">3. Double-Packing</span>
                 </div>
-                <p className="text-xs text-slate-400 font-semibold">Cold-Chain Prep</p>
-                <p className="text-[11px] text-slate-500 mt-0.5">Gutted/cleaned &amp; sealed in food-grade ice.</p>
+                <p className="text-xs text-slate-400 font-semibold">Freshness Prep</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">Gutted/cleaned &amp; sealed in food-grade double packaging.</p>
               </div>
 
               {/* Step 4: Out for delivery */}
@@ -2348,7 +2348,7 @@ export default function CheckoutPage() {
                     <textarea
                       value={formData.notes}
                       onChange={(e) => setFormData((prev) => ({ ...prev, notes: e.target.value }))}
-                      placeholder="e.g. Clean extra thoroughly, ring the bell upon arrival, or pack with extra ice."
+                      placeholder="e.g. Clean extra thoroughly, ring the bell upon arrival, or cut into curry pieces."
                       rows={2}
                       style={{
                         width: "100%",
@@ -3189,7 +3189,7 @@ export default function CheckoutPage() {
                   </div>
 
                   <p className="text-xs text-slate-300 leading-relaxed" style={{ fontFamily: '"Manrope", sans-serif' }}>
-                    Unlike supermarkets selling pre-slaughtered frozen fish, <strong>every Rainbow Trout is swimming alive in our cold-water Recirculating Aquaculture System (RAS) tanks in Malabagh right now</strong>. We only net, humanely harvest, descale, and pack it with non-toxic cold gel packs <em>after</em> your order is confirmed and paid.
+                    Unlike supermarkets selling pre-slaughtered frozen fish, <strong>every Rainbow Trout is swimming alive in our cold-water Recirculating Aquaculture System (RAS) tanks in Malabagh right now</strong>. We only net, humanely harvest, descale, and pack it securely in food-grade packaging <em>after</em> your order is confirmed and paid.
                   </p>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">

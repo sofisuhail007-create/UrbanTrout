@@ -141,7 +141,7 @@ export async function sendOrderConfirmationEmail(order: {
             🚚 Delivery Window: Within 2 Hours (Rapid Fresh Delivery)
           </div>
           <p style="margin: 0; font-size: 13px; color: #9fadb8; line-height: 1.5;">
-            Harvested to order from clean groundwater RAS tanks at Urban Trout Aquaculture Farm in Malabagh, Srinagar and chilled with reusable non-toxic ice gel packs (0°C–4°C).
+            Harvested to order from clean groundwater RAS tanks at Urban Trout Aquaculture Farm in Malabagh, Srinagar and packed in clean food-grade packaging.
           </p>
         </div>
 
@@ -231,7 +231,7 @@ export async function sendOrderStatusUpdateEmail(order: {
   const STATUS_DETAILS: Record<string, { title: string; subtitle: string; icon: string; color: string; subject: string }> = {
     harvested: {
       title: "Live Harvest Complete & Order Locked! 🐟✨",
-      subtitle: "Your fresh Rainbow Trout has been harvested live from our deep borewell tanks in Malabagh, cleaned, and packed with non-toxic leak-proof ice gel packs! Because your fish was harvested live specifically for you, this order is now locked and non-refundable. Our dispatch rider will be on the way shortly.",
+      subtitle: "Your fresh Rainbow Trout has been harvested live from our deep borewell tanks in Malabagh, cleaned, and packed in clean food-grade packaging! Because your fish was harvested live specifically for you, this order is now locked and non-refundable. Our dispatch rider will be on the way shortly.",
       icon: "🐟",
       color: "#0284c7",
       subject: `🐟 Harvest Complete (Order Locked): Order #${order.orderNumber} - Urban Trout`,
@@ -245,7 +245,7 @@ export async function sendOrderStatusUpdateEmail(order: {
     },
     out_for_delivery: {
       title: "Your Fresh Catch is Out for Delivery! 🚚",
-      subtitle: "Your trout has been harvested fresh from our farm tanks, packed with reusable non-toxic ice gel packs, and handed over to our delivery rider for express delivery to your doorstep.",
+      subtitle: "Your trout has been harvested fresh from our farm tanks, packed in clean food-grade packaging, and handed over to our delivery rider for express delivery to your doorstep.",
       icon: "🛵",
       color: "#38bdf8",
       subject: `🚚 Out for Delivery: Order #${order.orderNumber} is on its way! - Urban Trout`,

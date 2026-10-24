@@ -650,7 +650,7 @@ export default async function WholeTroutPage() {
                 </h3>
               </div>
               <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "1rem", color: C.onSurfVar, lineHeight: 1.75, maxWidth: "640px", marginBottom: "2rem" }}>
-                Raised in clean, continuously filtered cold water right here in Srinagar. Harvested only when you order, immediately chilled with non-toxic ice gel packs, and delivered to your doorstep across our 16km Srinagar express zone.
+                Raised in clean, continuously filtered cold water right here in Srinagar. Harvested only when you order, immediately packed in clean food-grade packs, and delivered to your doorstep across our 16km Srinagar express zone.
               </p>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "1.5rem" }}>
                 {[

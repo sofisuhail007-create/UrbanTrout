@@ -42,7 +42,7 @@ const sections = [
   },
   {
     title: "5. Shipping, Delivery & Packaging",
-    body: "• Doorstep deliveries are fulfilled using food-grade bio-thermal insulation and non-toxic, leak-proof reusable ice gel packs to maintain 0°C–4°C temperature control without melting mess.\n• Deliveries within our authorized 16km farm delivery zones are fulfilled with free delivery on minimum thresholds (2 kg for Zone 1, 3 kg for Zone 2 and Zone 3, 4 kg Family Pack for Zone 4), with heavily subsidized courier rates on smaller orders.\n• Detailed terms regarding delivery timelines and zones are governed by our Shipping & Delivery Policy.",
+    body: "• Doorstep deliveries are packed in clean, food-grade packaging (two polythenes) and dispatched straight to your kitchen within 90–120 minutes.\n• Deliveries within our authorized 16km farm delivery zones are fulfilled with free delivery on minimum thresholds (2 kg for Zone 1, 3 kg for Zone 2 and Zone 3, 4 kg Family Pack for Zone 4), with heavily subsidized courier rates on smaller orders.\n• Detailed terms regarding delivery timelines and zones are governed by our Shipping & Delivery Policy.",
   },
   {
     title: "6. Cancellation, Return & Refund Policy",

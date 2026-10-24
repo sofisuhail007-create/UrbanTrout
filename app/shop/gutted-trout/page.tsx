@@ -18,7 +18,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "Cleaned & Gutted Fresh Rainbow Trout | Urban Trout Srinagar",
-    description: "Pan-ready, 100% fresh cleaned Rainbow Trout farmed in Srinagar. Delivered within 2 hours with leak-proof cold gel packs.",
+    description: "Pan-ready, 100% fresh cleaned Rainbow Trout farmed in Srinagar. Delivered within 2 hours in clean food-grade packaging.",
     url: "https://urbantrout.in/shop/gutted-trout",
     siteName: "Urban Trout",
     images: [
@@ -124,7 +124,7 @@ export default async function GuttedTroutPage() {
           "name": "Bilal M."
         },
         "datePublished": "2026-07-10",
-        "reviewBody": "100% pan-ready and completely fresh. Scaled and gutted thoroughly, delivered chilled with leak-proof cold gel packs within Srinagar.",
+        "reviewBody": "100% pan-ready and completely fresh. Scaled and gutted thoroughly, delivered packed in clean food-grade packs within Srinagar.",
         "reviewRating": {
           "@type": "Rating",
           "ratingValue": "5"
@@ -357,7 +357,7 @@ export default async function GuttedTroutPage() {
             >
               <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.9rem", color: C.onSurfVar, lineHeight: 1.75, margin: 0 }}>
                 Expertly scaled, cleaned, and gutted so it is pan-ready the moment it arrives.
-                Harvested from our fresh water tanks and chilled with reusable non-toxic ice gel packs to retain peak firmness
+                Harvested from our fresh water tanks and packed in clean food-grade packs to retain peak firmness
                 and delicate, mild flavor.
               </p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem", marginTop: "1rem" }}>
@@ -674,7 +674,7 @@ export default async function GuttedTroutPage() {
                 </h3>
               </div>
               <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "1rem", color: C.onSurfVar, lineHeight: 1.75, maxWidth: "640px", marginBottom: "2rem" }}>
-                Raised in clean, continuously filtered cold water right here in Srinagar. Harvested only when you order, immediately chilled with non-toxic ice gel packs, and delivered to your doorstep across our 16km Srinagar express zone.
+                Raised in clean, continuously filtered cold water right here in Srinagar. Harvested only when you order, immediately packed in clean food-grade packs, and delivered to your doorstep across our 16km Srinagar express zone.
               </p>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "1.5rem" }}>
                 {[

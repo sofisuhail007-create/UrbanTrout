@@ -675,7 +675,7 @@ export default function DeliveryRadiusPage() {
               </div>
               <p className="text-slate-400 leading-relaxed">
                 Rainbow Trout are sensitive cold-water fish. Restricting delivery to a{" "}
-                <strong className="text-cyan-300">{radiusKm} KM radius</strong> guarantees fish arrive with zero ice-melt degradation and maximum live freshness.
+                <strong className="text-cyan-300">{radiusKm} KM radius</strong> guarantees fish arrive with zero transit delay and maximum live freshness.
               </p>
             </div>
 
