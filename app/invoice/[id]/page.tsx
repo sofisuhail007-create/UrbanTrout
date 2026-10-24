@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 import FourUpInvoiceSheet, { InvoiceSlipData } from "@/components/FourUpInvoiceSheet";
 import { numberToIndianWords } from "@/lib/numberWords";
 import { downloadElementAsSinglePagePdf } from "@/lib/pdfGenerator";
+import { findKhataInvoice } from "@/lib/khataInvoice";
 
 interface DecodedInvoice {
   invoiceNumber: string;
@@ -35,6 +36,7 @@ interface DecodedInvoice {
   balanceStatus?: string;
   notes?: string;
   createdAt: number;
+  isKhata?: boolean;
   isExpired: boolean;
   expiresInHours?: number;
   paymentStatus?: string;
@@ -52,9 +54,17 @@ function mapInvoiceData(parsed: any, fallbackNum: string): DecodedInvoice {
     parsed.balanceStatus === "settled" ||
     parsed.balanceStatus === "waived_final" ||
     (parsed.balanceAmount !== undefined && parsed.balanceAmount <= 0);
+
+  const isKhata =
+    Boolean(parsed.isKhata) ||
+    String(parsed.num || parsed.invoiceNumber || fallbackNum || "").toUpperCase().startsWith("VL-") ||
+    String(parsed.notes || "").toLowerCase().includes("khata") ||
+    String(parsed.notes || "").toLowerCase().includes("vending center");
+
   const maxAgeMs = 48 * 60 * 60 * 1000;
-  const isExpired = !isPaidOrSettled && elapsedMs > maxAgeMs;
-  const remainingHours = Math.max(0, Math.ceil((maxAgeMs - elapsedMs) / (1000 * 60 * 60)));
+  // Khata credit ledger bills do NOT expire after 48h; they stay active until settled
+  const isExpired = !isKhata && !isPaidOrSettled && elapsedMs > maxAgeMs;
+  const remainingHours = isKhata ? 720 : Math.max(0, Math.ceil((maxAgeMs - elapsedMs) / (1000 * 60 * 60)));
 
   const grandTot = parsed.tot ?? parsed.grandTotal ?? 0;
   const paid = parsed.paidAmount !== undefined
@@ -95,6 +105,7 @@ function mapInvoiceData(parsed: any, fallbackNum: string): DecodedInvoice {
     balanceStatus: parsed.balanceStatus || (balance > 0 ? "pending" : undefined),
     notes: parsed.notes || "",
     createdAt: createdTimestamp,
+    isKhata: Boolean(isKhata),
     isExpired,
     expiresInHours: remainingHours,
     paymentStatus: parsed.paymentStatus || (refund > 0 ? "REFUND DUE" : (isPaidOrSettled ? "PAID" : "PAYMENT DUE")),
@@ -119,6 +130,8 @@ export default function PublicInvoicePage() {
   useEffect(() => {
     async function loadInvoice() {
       try {
+        const cleanDigits = rawParam.replace(/\D/g, "");
+
         // 1. Fetch Store UPI ID
         const { data: upiData } = await supabase
           .from("app_settings")
@@ -146,20 +159,34 @@ export default function PublicInvoicePage() {
           }
         }
 
-        // 3. FALLBACK: Fetch from /api/invoice server endpoint
-        const cleanDigits = rawParam.replace(/\D/g, "");
-        const res = await fetch(`/api/invoice?id=${encodeURIComponent(cleanDigits || rawParam)}`);
+        // 3. Primary Lookup: Fetch from /api/invoice server endpoint
+        let res = await fetch(`/api/invoice?id=${encodeURIComponent(rawParam)}`);
+        if (!res.ok && cleanDigits && cleanDigits !== rawParam) {
+          res = await fetch(`/api/invoice?id=${encodeURIComponent(cleanDigits)}`);
+        }
         
         if (res.ok) {
           const json = await res.json();
           if (json?.success && json.invoice) {
-            setInvoice(mapInvoiceData(json.invoice, `UT-INV-${cleanDigits || rawParam}`));
+            setInvoice(mapInvoiceData(json.invoice, json.invoice.invoiceNumber || rawParam));
             setLoading(false);
             return;
           }
         }
 
-        // 3b. Direct Supabase invoices table query fallback
+        // 3b. Direct Supabase customer_balances / vending_sales_log query fallback (Khata Invoices)
+        try {
+          const khataInv = await findKhataInvoice(rawParam, supabase);
+          if (khataInv) {
+            setInvoice(mapInvoiceData(khataInv, rawParam));
+            setLoading(false);
+            return;
+          }
+        } catch (khataErr) {
+          console.warn("Direct Khata invoice lookup error:", khataErr);
+        }
+
+        // 3c. Direct Supabase invoices table query fallback
         try {
           const { data: dbRow } = await supabase
             .from("invoices")
@@ -485,10 +512,19 @@ export default function PublicInvoicePage() {
       <div className="invoice-max-width max-w-3xl mx-auto space-y-4">
         {/* Top Customer Action Bar (Hidden in Print) */}
         <div className="flex items-center justify-between gap-2 flex-wrap print:hidden">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-400 text-xs font-semibold">
-            <span>⏱️</span>
-            <span>Live Tax Invoice &bull; Expires in ~{invoice.expiresInHours || 48} Hours</span>
-          </div>
+          {invoice.isKhata ? (
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-cyan-500/10 border border-cyan-500/25 text-cyan-400 text-xs font-semibold">
+              <span>📖</span>
+              <span>
+                Customer Khata Ledger Bill &bull; {invoice.balanceAmount && invoice.balanceAmount > 0 ? `Balance Due: ₹${invoice.balanceAmount.toLocaleString("en-IN")}` : "Settled / Paid in Full"}
+              </span>
+            </div>
+          ) : (
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-amber-400 text-xs font-semibold">
+              <span>⏱️</span>
+              <span>Live Tax Invoice &bull; Expires in ~{invoice.expiresInHours || 48} Hours</span>
+            </div>
+          )}
 
           <button
             type="button"
@@ -532,7 +568,7 @@ export default function PublicInvoicePage() {
             <div className="text-left sm:text-right shrink-0">
               <div className="flex items-center sm:justify-end gap-2 flex-wrap">
                 <span className="inline-block px-3 py-1 rounded-md bg-slate-900 text-white text-[11px] font-black uppercase tracking-widest font-mono">
-                  TAX INVOICE
+                  {invoice.isKhata ? "TAX INVOICE · KHATA BILL" : "TAX INVOICE"}
                 </span>
                 <button
                   type="button"
@@ -575,7 +611,7 @@ export default function PublicInvoicePage() {
                 {invoice.customerName}
               </p>
               <p className="text-slate-700">
-                <strong>Phone:</strong> {invoice.customerPhone ? `+91 ${invoice.customerPhone}` : "N/A"}
+                <strong>Phone:</strong> {invoice.customerPhone ? (invoice.customerPhone.startsWith("+91") ? invoice.customerPhone : `+91 ${invoice.customerPhone}`) : "N/A"}
               </p>
               {invoice.customerAddress && (
                 <p className="text-slate-600 leading-snug pt-0.5">
