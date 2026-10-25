@@ -622,8 +622,16 @@ export default function VendingCenterLoggerPage() {
   const [formOnlineChannel, setFormOnlineChannel] = useState<"JK Bank" | "Razorpay">("JK Bank");
   const [formCustomFields, setFormCustomFields] = useState<Record<string, any>>({});
   const [formNotes, setFormNotes] = useState("");
-  const [formLoggedBy, setFormLoggedBy] = useState("Mohd Amin");
+    const [formLoggedBy, setFormLoggedBy] = useState("Mohd Amin");
   const [staffListNames, setStaffListNames] = useState<string[]>(["Mohd Amin", "Suhail"]);
+
+  // ─── Delivery Order & Logistics State (Home Delivery Dispatches) ───
+  const [formOrderChannel, setFormOrderChannel] = useState<"counter" | "delivery">("counter");
+  const [formDeliveryArea, setFormDeliveryArea] = useState<string>("");
+  const [formDeliveryCostTotal, setFormDeliveryCostTotal] = useState<string>(""); // Total delivery cost incurred
+  const [formDeliveryCustomerShare, setFormDeliveryCustomerShare] = useState<string>(""); // Customer's share charged/collected
+  const [formDeliveryRiderPayout, setFormDeliveryRiderPayout] = useState<string>(""); // Final amount given to rider
+  const [formDeliveryRiderNotes, setFormDeliveryRiderNotes] = useState<string>(""); // Rider name / contact / notes
 
   // ─── Vending Center Operational Expenses State (Ice, Packaging, Sanitation, etc.) ───
   const [expenses, setExpenses] = useState<VendingExpenseEntry[]>([]);
@@ -1768,6 +1776,32 @@ export default function VendingCenterLoggerPage() {
     const periodTotalSurplusKg = Math.round((periodSurplusGuttedKg + periodSurplusNonGuttedKg) * 1000) / 1000;
     const periodTotalRegularKg = Math.round((periodRegularGuttedKg + periodRegularNonGuttedKg) * 1000) / 1000;
 
+    // Delivery logistics aggregates
+    let totalDeliveryOrdersCount = 0;
+    let totalDeliveryCostIncurred = 0;
+    let totalCustomerDeliveryCollected = 0;
+    let totalFarmDeliverySubsidy = 0;
+    let totalDeliveryRiderPayout = 0;
+
+    filteredEntriesByPeriod.forEach((e) => {
+      const cf = e.custom_fields || {};
+      const isDel = Boolean(cf.is_delivery || cf.order_channel === "delivery");
+      if (isDel) {
+        totalDeliveryOrdersCount += 1;
+        const cost = Number(cf.delivery_cost_total) || 0;
+        const custShare = Number(cf.delivery_customer_share) || 0;
+        const farmShare = Number(cf.delivery_farm_share) !== undefined && cf.delivery_farm_share !== null
+          ? Number(cf.delivery_farm_share)
+          : Math.max(0, cost - custShare);
+        const payout = Number(cf.delivery_rider_payout) || cost;
+
+        totalDeliveryCostIncurred += cost;
+        totalCustomerDeliveryCollected += custShare;
+        totalFarmDeliverySubsidy += farmShare;
+        totalDeliveryRiderPayout += payout;
+      }
+    });
+
     // Realized Profit on sold fishes (deducting procurement cost ONLY on regular stock; surplus has ₹0 procurement cost!)
     const guttedProcurementCost = Math.round(periodRegularGuttedKg * procurementAvgCost);
     const nonGuttedCost = Math.round(periodRegularNonGuttedKg * procurementAvgCost);
@@ -1839,6 +1873,11 @@ export default function VendingCenterLoggerPage() {
       periodTotalRegularKg,
       surplusProfitBonus,
       totalExtraCollected,
+      totalDeliveryOrdersCount,
+      totalDeliveryCostIncurred,
+      totalCustomerDeliveryCollected,
+      totalFarmDeliverySubsidy,
+      totalDeliveryRiderPayout,
     };
   }, [filteredEntriesByPeriod, procurementAvgCost, surplusInfoMap, specialRules]);
 
@@ -1864,12 +1903,78 @@ export default function VendingCenterLoggerPage() {
 
   // ─── Final Operating Net Profit (Realized Sold Profit + Supplier Rebate minus Operational Expenses & Worker Salary) ───
   const finalProfit = useMemo(() => {
-    return Math.round(kpis.totalSoldProfit + periodSupplierRebate - periodExpensesTotal - periodSalaryTotal);
-  }, [kpis.totalSoldProfit, periodSupplierRebate, periodExpensesTotal, periodSalaryTotal]);
+    return Math.round(kpis.totalSoldProfit + periodSupplierRebate - periodExpensesTotal - periodSalaryTotal - (kpis.totalFarmDeliverySubsidy || 0));
+  }, [kpis.totalSoldProfit, periodSupplierRebate, periodExpensesTotal, periodSalaryTotal, kpis.totalFarmDeliverySubsidy]);
 
   const finalProfitMargin = useMemo(() => {
     return kpis.totalRevenue > 0 ? ((finalProfit / kpis.totalRevenue) * 100).toFixed(1) : "0.0";
   }, [finalProfit, kpis.totalRevenue]);
+
+  // ─── Staff Sales & Realization Metrics for Mohd Amin (Standard ₹580 / ₹540 Benchmark) ───
+  // Mohd Amin strictly sees sales performance based on retail base rates ₹580 and ₹540.
+  // ZERO procurement costs, zero supplier rebate, and zero business net profit margins shown.
+  const staffMetrics = useMemo(() => {
+    const gStd = guttedPrice || DEFAULT_GUTTED_PRICE; // 580
+    const ngStd = nonGuttedPrice || DEFAULT_NON_GUTTED_PRICE; // 540
+
+    let standardTargetRevenue = 0;
+    let actualCollectedRevenue = 0;
+    let guttedSoldKg = 0;
+    let nonGuttedSoldKg = 0;
+    let deliveryCount = 0;
+    let deliveryCustCollected = 0;
+    let deliveryRiderPaid = 0;
+    let totalWorkerIncentiveEarned = 0;
+
+    filteredEntriesByPeriod.forEach((e) => {
+      const w = Number(e.weight_kg) || 0;
+      const rev = Number(e.amount_paid) || 0;
+      const isGut = (e.product_type || "").toLowerCase().includes("gutted") && !(e.product_type || "").toLowerCase().includes("non");
+      const isSelf = Boolean(e.custom_fields?.self_cleaned || (e as any).self_cleaned);
+      const cf = e.custom_fields || {};
+      const isDel = Boolean(cf.is_delivery || cf.order_channel === "delivery");
+      const custDelShare = Number(cf.delivery_customer_share) || 0;
+      const riderPaid = Number(cf.delivery_rider_payout) || Number(cf.delivery_cost_total) || 0;
+
+      if (isGut) {
+        guttedSoldKg += w;
+        standardTargetRevenue += Math.round(w * gStd);
+        if (!isSelf) {
+          totalWorkerIncentiveEarned += Math.round(w * INCENTIVE_RATE_PER_KG);
+        }
+      } else {
+        nonGuttedSoldKg += w;
+        standardTargetRevenue += Math.round(w * ngStd);
+      }
+
+      if (isDel) {
+        deliveryCount += 1;
+        deliveryCustCollected += custDelShare;
+        deliveryRiderPaid += riderPaid;
+        standardTargetRevenue += custDelShare;
+      }
+
+      actualCollectedRevenue += rev;
+    });
+
+    const netVariance = actualCollectedRevenue - standardTargetRevenue;
+    const totalSoldKg = Math.round((guttedSoldKg + nonGuttedSoldKg) * 1000) / 1000;
+
+    return {
+      standardTargetRevenue,
+      actualCollectedRevenue,
+      netVariance,
+      totalSoldKg,
+      guttedSoldKg: Math.round(guttedSoldKg * 1000) / 1000,
+      nonGuttedSoldKg: Math.round(nonGuttedSoldKg * 1000) / 1000,
+      deliveryCount,
+      deliveryCustCollected,
+      deliveryRiderPaid,
+      totalWorkerIncentiveEarned,
+      gStd,
+      ngStd,
+    };
+  }, [filteredEntriesByPeriod, guttedPrice, nonGuttedPrice]);
 
   // ─── Staff Gutted Trout Incentive Tracker (₹5/Kg Gutted Only, or ₹20/Kg on Friday Deals) ───
   const incentiveStats = useMemo(() => {
@@ -2375,6 +2480,12 @@ export default function VendingCenterLoggerPage() {
     setFormSplitCash("");
     setFormSplitOnline("");
     setFormOnlineChannel("JK Bank");
+    setFormOrderChannel("counter");
+    setFormDeliveryArea("");
+    setFormDeliveryCostTotal("");
+    setFormDeliveryCustomerShare("");
+    setFormDeliveryRiderPayout("");
+    setFormDeliveryRiderNotes("");
     setFormCustomFields({});
     setFormNotes("");
     setFormCustomerName("");
@@ -2402,8 +2513,11 @@ export default function VendingCenterLoggerPage() {
     }
 
     const defaultStandardRate = formType === "Gutted" ? (guttedPrice || DEFAULT_GUTTED_PRICE) : (nonGuttedPrice || DEFAULT_NON_GUTTED_PRICE);
-    const standardExpected = Math.round(w * defaultStandardRate);
-    const agreedBill = Math.round(w * formRate);
+    const fishStandardExpected = Math.round(w * defaultStandardRate);
+    const fishAgreedBill = Math.round(w * formRate);
+    const custDelShare = formOrderChannel === "delivery" ? (parseFloat(formDeliveryCustomerShare) || 0) : 0;
+    const standardExpected = fishStandardExpected + custDelShare;
+    const agreedBill = fishAgreedBill + custDelShare;
     const rateDiscount = Math.max(0, standardExpected - agreedBill);
     const unpaidAmount = Math.max(0, agreedBill - amt);
     const difference = unpaidAmount;
@@ -2467,6 +2581,14 @@ export default function VendingCenterLoggerPage() {
     const updatedCustomFields = {
       ...(formCustomFields || {}),
       self_cleaned: formType === "Gutted" ? formSelfCleaned : false,
+      is_delivery: formOrderChannel === "delivery",
+      order_channel: formOrderChannel,
+      delivery_area: formOrderChannel === "delivery" ? formDeliveryArea.trim() || undefined : undefined,
+      delivery_cost_total: formOrderChannel === "delivery" ? (parseFloat(formDeliveryCostTotal) || 0) : 0,
+      delivery_customer_share: formOrderChannel === "delivery" ? (parseFloat(formDeliveryCustomerShare) || 0) : 0,
+      delivery_farm_share: formOrderChannel === "delivery" ? Math.max(0, (parseFloat(formDeliveryCostTotal) || 0) - (parseFloat(formDeliveryCustomerShare) || 0)) : 0,
+      delivery_rider_payout: formOrderChannel === "delivery" ? (parseFloat(formDeliveryRiderPayout) || (parseFloat(formDeliveryCostTotal) || 0)) : 0,
+      delivery_rider_notes: formOrderChannel === "delivery" ? formDeliveryRiderNotes.trim() || undefined : undefined,
       balance_amount: balanceAmount,
       balance_status: balanceStatus,
       balance_ref_id: balanceRefId || null,
@@ -3923,6 +4045,13 @@ export default function VendingCenterLoggerPage() {
     setFormAmount(entry.amount_paid.toString());
     setFormAmountOverridden(true);
     const cf = entry.custom_fields || {};
+    const isDel = Boolean(cf.is_delivery || cf.order_channel === "delivery");
+    setFormOrderChannel(isDel ? "delivery" : "counter");
+    setFormDeliveryArea(cf.delivery_area || "");
+    setFormDeliveryCostTotal(cf.delivery_cost_total !== undefined && cf.delivery_cost_total !== null ? cf.delivery_cost_total.toString() : "");
+    setFormDeliveryCustomerShare(cf.delivery_customer_share !== undefined && cf.delivery_customer_share !== null ? cf.delivery_customer_share.toString() : "");
+    setFormDeliveryRiderPayout(cf.delivery_rider_payout !== undefined && cf.delivery_rider_payout !== null ? cf.delivery_rider_payout.toString() : "");
+    setFormDeliveryRiderNotes(cf.delivery_rider_notes || "");
     const mode = entry.payment_mode || "Cash";
     const isSplit = mode.toLowerCase().includes("split") || Boolean(cf.is_split);
     if (isSplit) {
@@ -4372,6 +4501,107 @@ export default function VendingCenterLoggerPage() {
                     <span className="text-emerald-300/80 font-bold font-mono text-xs">entries</span>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════
+          STAFF SALES & REALIZATION DASHBOARD (MOHD AMIN - STANDARD ₹580 & ₹540 RATES)
+          Strictly NO procurement costs, farm margins, or overall business profit shown
+          ══════════════════════════════════════════════════════════ */}
+      {!isAdmin && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4 animate-fadeIn">
+          {/* Card 1: Total Sold Biomass */}
+          <div className="p-3.5 rounded-2xl bg-gradient-to-br from-emerald-950/40 via-slate-900/80 to-slate-900 border border-emerald-500/30 shadow-xl flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
+                <span className="font-bold tracking-wider">TODAY'S SOLD BIOMASS</span>
+                <span className="material-symbols-outlined text-emerald-400 text-lg">scale</span>
+              </div>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-2xl sm:text-3xl font-black text-white font-['Space_Grotesk']">
+                  {formatKg(staffMetrics.totalSoldKg)}
+                </span>
+                <span className="text-emerald-400 font-bold font-mono text-sm">Kg</span>
+              </div>
+            </div>
+            <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2 space-y-0.5">
+              <div className="flex items-center justify-between">
+                <span className="text-emerald-300 font-bold">Gutted: {formatKg(staffMetrics.guttedSoldKg)} Kg</span>
+                <span className="text-cyan-300">Whole: {formatKg(staffMetrics.nonGuttedSoldKg)} Kg</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 2: Expected vs Realized Revenue (Standard ₹580 / ₹540 Rates) */}
+          <div className="p-3.5 rounded-2xl bg-gradient-to-br from-cyan-950/40 via-slate-900/80 to-slate-900 border border-cyan-500/30 shadow-xl flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
+                <span className="font-bold tracking-wider">COLLECTIONS REALIZED</span>
+                <span className="material-symbols-outlined text-cyan-400 text-lg">payments</span>
+              </div>
+              <div className="mt-2 flex items-baseline gap-1">
+                <span className="text-cyan-400 font-bold text-lg">₹</span>
+                <span className="text-2xl sm:text-3xl font-black text-white font-['Space_Grotesk']">
+                  {staffMetrics.actualCollectedRevenue.toLocaleString("en-IN")}
+                </span>
+              </div>
+            </div>
+            <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2 space-y-0.5">
+              <div className="flex items-center justify-between">
+                <span>Std Target: ₹{staffMetrics.standardTargetRevenue.toLocaleString("en-IN")}</span>
+                <span className={`font-bold ${staffMetrics.netVariance >= 0 ? "text-emerald-300" : "text-amber-300"}`}>
+                  {staffMetrics.netVariance >= 0 ? "Full Rate [OK]" : `-₹${Math.abs(staffMetrics.netVariance)} disc`}
+                </span>
+              </div>
+              <div className="text-[10px] text-slate-500">
+                Based on std ₹{staffMetrics.gStd}/Kg Gutted & ₹{staffMetrics.ngStd}/Kg Whole
+              </div>
+            </div>
+          </div>
+
+          {/* Card 3: Mohd Amin Gutting Incentive Earned */}
+          <div className="p-3.5 rounded-2xl bg-gradient-to-br from-amber-950/40 via-slate-900/80 to-slate-900 border border-amber-500/30 shadow-xl flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
+                <span className="font-bold tracking-wider text-amber-300">GUTTING INCENTIVE</span>
+                <span className="material-symbols-outlined text-amber-400 text-lg">savings</span>
+              </div>
+              <div className="mt-2 flex items-baseline gap-1">
+                <span className="text-amber-400 font-bold text-lg">₹</span>
+                <span className="text-2xl sm:text-3xl font-black text-amber-300 font-['Space_Grotesk']">
+                  {staffMetrics.totalWorkerIncentiveEarned.toLocaleString("en-IN")}
+                </span>
+              </div>
+            </div>
+            <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2 space-y-0.5">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-300">Rate: ₹5 per Kg</span>
+                <span className="text-emerald-400 font-bold">{formatKg(staffMetrics.guttedSoldKg)} Kg Cleaned</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 4: Delivery Dispatches */}
+          <div className="p-3.5 rounded-2xl bg-gradient-to-br from-blue-950/40 via-slate-900/80 to-slate-900 border border-blue-500/30 shadow-xl flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
+                <span className="font-bold tracking-wider text-blue-300">DELIVERY DISPATCHES</span>
+                <span className="material-symbols-outlined text-blue-400 text-lg">local_shipping</span>
+              </div>
+              <div className="mt-2 flex items-baseline gap-2">
+                <span className="text-2xl sm:text-3xl font-black text-white font-['Space_Grotesk']">
+                  {staffMetrics.deliveryCount}
+                </span>
+                <span className="text-blue-400 font-bold font-mono text-sm">orders</span>
+              </div>
+            </div>
+            <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2 space-y-0.5">
+              <div className="flex items-center justify-between">
+                <span>Cust Delivery: ₹{staffMetrics.deliveryCustCollected}</span>
+                <span className="text-slate-300">Riders Paid: ₹{staffMetrics.deliveryRiderPaid}</span>
               </div>
             </div>
           </div>
@@ -4928,6 +5158,42 @@ export default function VendingCenterLoggerPage() {
                     >
                       Worker: -₹{kpis.periodWorkerLaborCost.toLocaleString("en-IN")} (₹5/Kg)
                     </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 4.5: Delivery Logistics & Farm Subsidies (Admin Only) */}
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-blue-950/50 via-slate-900/90 to-slate-900 border border-blue-500/40 shadow-xl shadow-blue-950/25 relative overflow-hidden flex flex-col justify-between group hover:border-blue-400/70 transition-all">
+                <div>
+                  <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
+                    <span className="text-blue-300 font-bold tracking-wider flex items-center gap-1.5">
+                      <span>DELIVERY LOGISTICS</span>
+                      <span className="px-1.5 py-0.2 rounded bg-blue-500/20 text-[9px] text-blue-200 border border-blue-500/30 font-bold">
+                        {kpis.totalDeliveryOrdersCount} Orders
+                      </span>
+                    </span>
+                    <span className="material-symbols-outlined text-blue-400 text-lg">local_shipping</span>
+                  </div>
+                  <div className="mt-2 flex items-baseline gap-1 min-h-[32px]">
+                    <span className="text-rose-400 font-bold text-lg">-₹</span>
+                    <span
+                      className="text-2xl sm:text-3xl font-black text-rose-300"
+                      style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                    >
+                      {kpis.totalFarmDeliverySubsidy.toLocaleString("en-IN")}
+                    </span>
+                    <span className="text-[11px] font-bold text-slate-400 font-mono ml-1">
+                      Farm Subsidy
+                    </span>
+                  </div>
+                </div>
+                <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2.5 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-300">Riders Paid: ₹{kpis.totalDeliveryRiderPayout.toLocaleString("en-IN")}</span>
+                    <span className="text-emerald-300 font-bold">Cust Paid: ₹{kpis.totalCustomerDeliveryCollected.toLocaleString("en-IN")}</span>
+                  </div>
+                  <div className="text-[10px] text-slate-500">
+                    Net delivery cost subsidized by Urban Trout
                   </div>
                 </div>
               </div>
@@ -6515,6 +6781,19 @@ export default function VendingCenterLoggerPage() {
                               </span>
                             )}
 
+                            {/* Delivery Order Badge */}
+                            {Boolean(e.custom_fields?.is_delivery || e.custom_fields?.order_channel === "delivery") && (
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30 inline-flex items-center gap-1">
+                                <span className="material-symbols-outlined text-[12px]">local_shipping</span>
+                                <span>Delivery {e.custom_fields?.delivery_area ? `(${e.custom_fields?.delivery_area})` : ""}</span>
+                                {Number(e.custom_fields?.delivery_customer_share) > 0 ? (
+                                  <span className="text-[9px] text-emerald-300 font-mono font-bold">+₹{e.custom_fields?.delivery_customer_share}</span>
+                                ) : (
+                                  <span className="text-[9px] text-emerald-400 font-mono font-bold">Free</span>
+                                )}
+                              </span>
+                            )}
+
                             {/* Surplus Stock Tag */}
                             {isAdmin && sInfo?.isSurplus && (
                               <span
@@ -6525,6 +6804,26 @@ export default function VendingCenterLoggerPage() {
                               </span>
                             )}
                           </div>
+
+                          {/* Delivery Financial Triad (Rider Cost, Cust Share, Farm Subsidy) */}
+                          {Boolean(e.custom_fields?.is_delivery || e.custom_fields?.order_channel === "delivery") && (
+                            <div className="flex items-center gap-2 text-[10px] font-mono flex-wrap bg-blue-950/30 px-2 py-0.5 rounded-md border border-blue-500/20 text-blue-300">
+                              <span>🚚 Rider: ₹{e.custom_fields?.delivery_cost_total || 0}</span>
+                              <span className="text-slate-500">•</span>
+                              <span className="text-emerald-300">Cust: ₹{e.custom_fields?.delivery_customer_share || 0}</span>
+                              <span className="text-slate-500">•</span>
+                              <span>Paid: ₹{e.custom_fields?.delivery_rider_payout || 0}</span>
+                              {isAdmin && Number(e.custom_fields?.delivery_farm_share) > 0 && (
+                                <>
+                                  <span className="text-slate-500">•</span>
+                                  <span className="text-rose-400 font-bold">Farm: -₹{e.custom_fields?.delivery_farm_share}</span>
+                                </>
+                              )}
+                              {e.custom_fields?.delivery_rider_notes && (
+                                <span className="text-slate-400 italic">({e.custom_fields?.delivery_rider_notes})</span>
+                              )}
+                            </div>
+                          )}
 
                           {/* Destination / Customer / Notes row (renders only if present) */}
                           {(e.notes || e.custom_fields?.customer_name) && (
@@ -7358,6 +7657,240 @@ export default function VendingCenterLoggerPage() {
                   required
                 />
               </div>
+
+              {/* Row 1.5: Order Channel (Counter Walk-In vs Home Delivery) */}
+              <div className="p-3 bg-slate-950/80 border border-slate-800 rounded-2xl space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                    <span className="material-symbols-outlined text-sm text-emerald-400">local_shipping</span>
+                    Order Channel
+                  </span>
+                  <span className="text-[10px] font-mono font-bold text-slate-300">
+                    {formOrderChannel === "delivery" ? "🚚 Home Delivery Dispatch" : "📍 Counter Walk-In (Vending Center)"}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormOrderChannel("counter");
+                      const wNum = parseFloat(formWeight) || 0;
+                      if (wNum > 0 && !formAmountOverridden) {
+                        setFormAmount(Math.round(wNum * formRate).toString());
+                      }
+                    }}
+                    className={`py-2 px-3 rounded-xl font-bold text-xs font-mono transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                      formOrderChannel === "counter"
+                        ? "bg-emerald-500/20 text-emerald-300 border-2 border-emerald-500 shadow-md shadow-emerald-950/40"
+                        : "bg-slate-900 border border-slate-700 text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    <span>📍 Counter Walk-In</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setFormOrderChannel("delivery");
+                      const wNum = parseFloat(formWeight) || 0;
+                      const custShare = parseFloat(formDeliveryCustomerShare) || 0;
+                      if (wNum > 0 && !formAmountOverridden) {
+                        setFormAmount((Math.round(wNum * formRate) + custShare).toString());
+                      }
+                    }}
+                    className={`py-2 px-3 rounded-xl font-bold text-xs font-mono transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                      formOrderChannel === "delivery"
+                        ? "bg-blue-500/20 text-blue-300 border-2 border-blue-500 shadow-md shadow-blue-950/40"
+                        : "bg-slate-900 border border-slate-700 text-slate-400 hover:text-white"
+                    }`}
+                  >
+                    <span>🚚 Home Delivery</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Home Delivery Logistics & Cost Triad Card */}
+              {formOrderChannel === "delivery" && (
+                <div className="p-3.5 rounded-2xl bg-gradient-to-br from-blue-950/40 via-slate-950 to-slate-950 border border-blue-500/40 space-y-3 animate-fadeIn">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold font-mono text-blue-300 flex items-center gap-1.5">
+                      <span className="material-symbols-outlined text-sm text-blue-400">moped</span>
+                      Delivery Dispatch & Cost Breakdown
+                    </span>
+                    <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-200 border border-blue-500/40">
+                      Active Delivery
+                    </span>
+                  </div>
+
+                  {/* Delivery Locality with Quick Presets */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[10px] uppercase font-bold text-slate-400 font-mono">
+                        Delivery Locality / Area
+                      </label>
+                      <span className="text-[9px] text-slate-500 font-mono">Select or type</span>
+                    </div>
+                    <input
+                      type="text"
+                      value={formDeliveryArea}
+                      onChange={(e) => setFormDeliveryArea(e.target.value)}
+                      placeholder="e.g. Malabagh, Lal Bazar, Soura, Rajbagh..."
+                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-blue-400"
+                    />
+                    <div className="flex items-center gap-1 mt-1.5 flex-wrap">
+                      {["Malabagh", "Lal Bazar", "Soura", "Hazratbal", "Hawal", "Lal Chowk", "Rajbagh", "Sanat Nagar"].map((loc) => (
+                        <button
+                          key={loc}
+                          type="button"
+                          onClick={() => setFormDeliveryArea(loc)}
+                          className={`px-2 py-0.5 rounded-md text-[9.5px] font-mono font-bold transition-all cursor-pointer ${
+                            formDeliveryArea.toLowerCase() === loc.toLowerCase()
+                              ? "bg-blue-500/30 border border-blue-400 text-blue-200"
+                              : "bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200"
+                          }`}
+                        >
+                          {loc}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Financial Triad: Customer Share, Total Cost Incurred, Rider Payout */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    {/* 1. Customer's Share (Collected) */}
+                    <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+                      <label className="text-[9.5px] uppercase font-bold text-emerald-400 font-mono block">
+                        Customer Share (₹)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={formDeliveryCustomerShare}
+                        placeholder="0"
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setFormDeliveryCustomerShare(val);
+                          const wNum = parseFloat(formWeight) || 0;
+                          const fishExpected = Math.round(wNum * formRate);
+                          const cShare = parseFloat(val) || 0;
+                          if (wNum > 0 && !formAmountOverridden) {
+                            setFormAmount((fishExpected + cShare).toString());
+                          }
+                        }}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-black font-mono text-emerald-300 focus:outline-none focus:border-emerald-400"
+                      />
+                      {/* Quick fee presets based on delivery zones */}
+                      <div className="flex items-center gap-1 pt-1 flex-wrap">
+                        {[
+                          { label: "Free ₹0", v: "0" },
+                          { label: "+₹29 (Z1)", v: "29" },
+                          { label: "+₹39 (Z2)", v: "39" },
+                          { label: "+₹69 (Z3)", v: "69" },
+                          { label: "+₹89 (Z4)", v: "89" },
+                        ].map((chip) => (
+                          <button
+                            key={chip.v}
+                            type="button"
+                            onClick={() => {
+                              setFormDeliveryCustomerShare(chip.v);
+                              const wNum = parseFloat(formWeight) || 0;
+                              const fishExpected = Math.round(wNum * formRate);
+                              const cShare = parseFloat(chip.v) || 0;
+                              if (wNum > 0 && !formAmountOverridden) {
+                                setFormAmount((fishExpected + cShare).toString());
+                              }
+                            }}
+                            className={`px-1.5 py-0.5 rounded text-[8.5px] font-mono font-bold transition-all cursor-pointer ${
+                              formDeliveryCustomerShare === chip.v
+                                ? "bg-emerald-500/30 text-emerald-200 border border-emerald-400"
+                                : "bg-slate-900 text-slate-400 hover:text-white"
+                            }`}
+                          >
+                            {chip.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* 2. Total Delivery Cost Incurred (Charged by Rider/Courier) */}
+                    <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+                      <label className="text-[9.5px] uppercase font-bold text-amber-400 font-mono block">
+                        Total Cost Incurred (₹)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={formDeliveryCostTotal}
+                        placeholder="e.g. 150"
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setFormDeliveryCostTotal(val);
+                          if (!formDeliveryRiderPayout || formDeliveryRiderPayout === formDeliveryCostTotal) {
+                            setFormDeliveryRiderPayout(val);
+                          }
+                        }}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-black font-mono text-amber-300 focus:outline-none focus:border-amber-400"
+                      />
+                      <span className="text-[8.5px] text-slate-500 font-mono block">
+                        Actual courier/rider rate
+                      </span>
+                    </div>
+
+                    {/* 3. Final Amount Given to Rider (Payout) */}
+                    <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
+                      <label className="text-[9.5px] uppercase font-bold text-blue-400 font-mono block">
+                        Final Paid to Rider (₹)
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={formDeliveryRiderPayout}
+                        placeholder="e.g. 150"
+                        onFocus={(e) => e.target.select()}
+                        onChange={(e) => setFormDeliveryRiderPayout(e.target.value)}
+                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-black font-mono text-blue-300 focus:outline-none focus:border-blue-400"
+                      />
+                      <span className="text-[8.5px] text-slate-500 font-mono block">
+                        Cash/online paid to courier
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Farm Subsidy & Net Settlement Banner */}
+                  {(() => {
+                    const totCost = parseFloat(formDeliveryCostTotal) || 0;
+                    const custShare = parseFloat(formDeliveryCustomerShare) || 0;
+                    const farmCost = Math.max(0, totCost - custShare);
+
+                    return (
+                      <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between text-xs font-mono">
+                        <div className="flex items-center gap-2">
+                          <span className="text-slate-400">Our Cost Put In (Farm Subsidy):</span>
+                          <span className={`font-black ${farmCost > 0 ? "text-rose-400" : "text-emerald-400"}`}>
+                            {farmCost > 0 ? `-₹${farmCost}` : "₹0 (100% Covered)"}
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-slate-400">
+                          Rider: <span className="text-white font-bold">₹{totCost}</span> | Cust: <span className="text-emerald-300 font-bold">₹{custShare}</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+
+                  {/* Rider Name / Contact */}
+                  <div>
+                    <input
+                      type="text"
+                      value={formDeliveryRiderNotes}
+                      onChange={(e) => setFormDeliveryRiderNotes(e.target.value)}
+                      placeholder="Rider / Courier details (e.g. Farooq - Auto / Rapido - Ph: 98765...)"
+                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-[11px] font-mono text-slate-300 focus:outline-none focus:border-blue-400"
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* Row 2: Product Type Quick Selector */}
               <div>
