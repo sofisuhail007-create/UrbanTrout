@@ -2573,7 +2573,8 @@ export default function VendingCenterLoggerPage() {
       finalDiscount = rateDiscount + Math.max(0, agreedBill - amt);
     }
 
-    const calculatedEffectiveRate = w > 0 ? (amt > 0 ? Math.round((amt / w) * 10) / 10 : formRate) : formRate;
+    const fishPaid = formOrderChannel === "delivery" ? Math.max(0, amt - custDelShare) : amt;
+    const calculatedEffectiveRate = w > 0 ? (fishPaid > 0 ? Math.round((fishPaid / w) * 10) / 10 : formRate) : formRate;
 
     // Payment Mode & Split Payment breakdown
     let resolvedPaymentMode = formPayment;
@@ -3600,7 +3601,10 @@ export default function VendingCenterLoggerPage() {
           : Math.round(Number(e.weight_kg) * Number(e.rate_per_kg));
       const taken = Number(e.amount_paid) || 0;
       const w = Number(e.weight_kg) || 0;
-      const effRate = w > 0 && taken > 0 ? Math.round((taken / w) * 10) / 10 : Number(e.rate_per_kg);
+      const isDel = Boolean(e.custom_fields?.is_delivery || e.custom_fields?.order_channel === "delivery");
+      const custDel = isDel ? (Number(e.custom_fields?.delivery_customer_share) || 0) : 0;
+      const fishTaken = isDel ? Math.max(0, taken - custDel) : taken;
+      const effRate = w > 0 && fishTaken > 0 ? Math.round((fishTaken / w) * 10) / 10 : Number(e.rate_per_kg);
       const loss =
         e.discount_amount !== undefined && e.discount_amount !== null
           ? Number(e.discount_amount)
@@ -6675,8 +6679,11 @@ export default function VendingCenterLoggerPage() {
                   const isSelfCleaned = Boolean(e.custom_fields?.self_cleaned || (e as any).self_cleaned);
                   const isCash = (e.payment_mode || "").toLowerCase().trim() === "cash";
 
+                  const isDelivery = Boolean(e.custom_fields?.is_delivery || e.custom_fields?.order_channel === "delivery");
+                  const custDelShare = isDelivery ? (Number(e.custom_fields?.delivery_customer_share) || 0) : 0;
+                  const fishAmountPaid = isDelivery ? Math.max(0, taken - custDelShare) : taken;
                   const extraVal = Number(e.custom_fields?.extra_amount) || (!isCreditSale && taken > exp && exp > 0 ? taken - exp : 0);
-                  const effRate = w > 0 && taken > 0 ? taken / w : rate;
+                  const effRate = isCreditSale ? rate : (w > 0 && fishAmountPaid > 0 ? fishAmountPaid / w : rate);
                   const standardBenchmarkRate = isGutted ? (guttedPrice || DEFAULT_GUTTED_PRICE) : rate;
                   const rateDiff = standardBenchmarkRate - effRate;
 
@@ -6783,6 +6790,8 @@ export default function VendingCenterLoggerPage() {
                                   <span className="text-rose-400 font-bold">Farm: -₹{e.custom_fields?.delivery_farm_share}</span>
                                 </>
                               )}
+                              <span className="text-slate-500">•</span>
+                              <span className="text-cyan-300 font-bold" title="Actual fish buying rate without delivery fee">Trout: ₹{effRate.toFixed(0)}/Kg</span>
                               {e.custom_fields?.delivery_rider_notes && (
                                 <span className="text-slate-400 italic">({e.custom_fields?.delivery_rider_notes})</span>
                               )}
@@ -6828,6 +6837,11 @@ export default function VendingCenterLoggerPage() {
                           <span className="text-slate-400 text-[10px] font-sans">
                             @ ₹{e.rate_per_kg}/Kg
                           </span>
+                          {isDelivery && Math.abs(effRate - rate) > 0.5 && (
+                            <span className="text-[9px] font-mono text-cyan-300 font-bold" title="Actual fish buying rate without delivery fee">
+                              Act: ₹{effRate.toFixed(0)}/Kg
+                            </span>
+                          )}
                         </div>
                       </td>
 
@@ -6854,6 +6868,14 @@ export default function VendingCenterLoggerPage() {
                               </span>
                             )}
                           </div>
+
+                          {isDelivery && custDelShare > 0 && (
+                            <div className="text-[9px] font-mono text-slate-400 flex items-center justify-end gap-1">
+                              <span className="text-slate-300">Fish: ₹{fishAmountPaid.toLocaleString("en-IN")}</span>
+                              <span className="text-slate-500">+</span>
+                              <span className="text-emerald-300 font-bold">🚚 ₹{custDelShare}</span>
+                            </div>
+                          )}
 
                           <div className="text-[10px] text-slate-400 flex items-center justify-end gap-1 font-sans">
                             <span>Exp: ₹{exp.toLocaleString("en-IN")}</span>
@@ -7224,13 +7246,21 @@ export default function VendingCenterLoggerPage() {
                       ) : (
                         <span className="text-cyan-300 font-black text-lg tracking-tight block mt-0.5">₹{taken.toLocaleString("en-IN")}</span>
                       )}
+                      {Boolean(e.custom_fields?.is_delivery || e.custom_fields?.order_channel === "delivery") && Number(e.custom_fields?.delivery_customer_share) > 0 && (
+                        <span className="text-[9.5px] font-mono text-slate-400 block mt-0.5">
+                          Fish: ₹{Math.max(0, taken - (Number(e.custom_fields?.delivery_customer_share) || 0)).toLocaleString("en-IN")} + <span className="text-emerald-300 font-bold">🚚 ₹{e.custom_fields?.delivery_customer_share}</span>
+                        </span>
+                      )}
                       <span className="text-[10.5px] text-slate-400 block mt-0.5">Exp: ₹{exp.toLocaleString("en-IN")}</span>
                     </div>
                   </div>
 
                   {/* Effective Rate Strip */}
                   {(() => {
-                    const effRate = isCreditSale ? rate : (w > 0 && taken > 0 ? taken / w : rate);
+                    const isDelivery = Boolean(e.custom_fields?.is_delivery || e.custom_fields?.order_channel === "delivery");
+                    const custDelShare = isDelivery ? (Number(e.custom_fields?.delivery_customer_share) || 0) : 0;
+                    const fishAmountPaid = isDelivery ? Math.max(0, taken - custDelShare) : taken;
+                    const effRate = isCreditSale ? rate : (w > 0 && fishAmountPaid > 0 ? fishAmountPaid / w : rate);
                     const standardBenchmarkRate = isGutted ? (guttedPrice || DEFAULT_GUTTED_PRICE) : rate;
                     const rateDiff = standardBenchmarkRate - effRate;
                     const isLoss = !isCreditSale && rateDiff > 0.5;
@@ -7242,7 +7272,7 @@ export default function VendingCenterLoggerPage() {
                         <div className="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-slate-950/80 border border-slate-800/90 text-[10.5px] font-mono mt-1.5">
                           <span className="text-slate-400 flex items-center gap-1">
                             <span className="material-symbols-outlined text-[12px] text-teal-400">price_change</span>
-                            Eff. Rate:
+                            {isDelivery ? "Actual Fish Rate:" : "Eff. Rate:"}
                           </span>
                           <div className="flex items-center gap-1.5">
                             <span
@@ -7255,6 +7285,10 @@ export default function VendingCenterLoggerPage() {
                             {isCreditSale ? (
                               <span className="text-[9.5px] text-purple-400 font-medium">
                                 (Credit)
+                              </span>
+                            ) : isDelivery ? (
+                              <span className="text-[9px] px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-300 font-bold border border-blue-500/30">
+                                Deliv Excl.
                               </span>
                             ) : isLoss ? (
                               <span className="text-[9.5px] text-rose-400 font-medium">
@@ -7719,129 +7753,212 @@ export default function VendingCenterLoggerPage() {
                     </div>
                   </div>
 
-                  {/* Financial Triad: Customer Share, Total Cost Incurred, Rider Payout */}
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                    {/* 1. Customer's Share (Collected) */}
-                    <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
-                      <label className="text-[9.5px] uppercase font-bold text-emerald-400 font-mono block">
-                        Customer Share (₹)
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={formDeliveryCustomerShare}
-                        placeholder="0"
-                        onFocus={(e) => e.target.select()}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setFormDeliveryCustomerShare(val);
-                          const wNum = parseFloat(formWeight) || 0;
-                          const fishExpected = Math.round(wNum * formRate);
-                          const cShare = parseFloat(val) || 0;
-                          if (wNum > 0 && !formAmountOverridden) {
-                            setFormAmount((fishExpected + cShare).toString());
-                          }
-                        }}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-black font-mono text-emerald-300 focus:outline-none focus:border-emerald-400"
-                      />
-                      {/* Quick fee presets based on delivery zones */}
-                      <div className="flex items-center gap-1 pt-1 flex-wrap">
-                        {[
-                          { label: "Free ₹0", v: "0" },
-                          { label: "+₹29 (Z1)", v: "29" },
-                          { label: "+₹39 (Z2)", v: "39" },
-                          { label: "+₹69 (Z3)", v: "69" },
-                          { label: "+₹89 (Z4)", v: "89" },
-                        ].map((chip) => (
-                          <button
-                            key={chip.v}
-                            type="button"
-                            onClick={() => {
-                              setFormDeliveryCustomerShare(chip.v);
-                              const wNum = parseFloat(formWeight) || 0;
-                              const fishExpected = Math.round(wNum * formRate);
-                              const cShare = parseFloat(chip.v) || 0;
-                              if (wNum > 0 && !formAmountOverridden) {
-                                setFormAmount((fishExpected + cShare).toString());
-                              }
-                            }}
-                            className={`px-1.5 py-0.5 rounded text-[8.5px] font-mono font-bold transition-all cursor-pointer ${
-                              formDeliveryCustomerShare === chip.v
-                                ? "bg-emerald-500/30 text-emerald-200 border border-emerald-400"
-                                : "bg-slate-900 text-slate-400 hover:text-white"
-                            }`}
-                          >
-                            {chip.label}
-                          </button>
-                        ))}
+                  {/* Financial Triad & Dynamic Delivery Split */}
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                      {/* 1. Total Delivery Cost Incurred (Charged by Courier / Rider) */}
+                      <div className="p-3 rounded-xl bg-slate-950 border border-amber-500/30 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[10px] uppercase font-bold text-amber-400 font-mono flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[13px]">two_wheeler</span>
+                            Total Rider Fare (₹)
+                          </label>
+                          <span className="text-[9px] text-slate-500 font-mono">Rapido / Auto</span>
+                        </div>
+                        <input
+                          type="number"
+                          min="0"
+                          value={formDeliveryCostTotal}
+                          placeholder="e.g. 100"
+                          onFocus={(e) => e.target.select()}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setFormDeliveryCostTotal(val);
+                            setFormDeliveryRiderPayout(val);
+                          }}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-black font-mono text-amber-300 focus:outline-none focus:border-amber-400"
+                        />
+                        {/* Quick fare chips */}
+                        <div className="flex items-center gap-1 pt-0.5 flex-wrap">
+                          {["60", "80", "100", "120", "150", "180", "190"].map((fare) => (
+                            <button
+                              key={fare}
+                              type="button"
+                              onClick={() => {
+                                setFormDeliveryCostTotal(fare);
+                                setFormDeliveryRiderPayout(fare);
+                              }}
+                              className={`px-1.5 py-0.5 rounded text-[8.5px] font-mono font-bold transition-all cursor-pointer ${
+                                formDeliveryCostTotal === fare
+                                  ? "bg-amber-500/30 text-amber-200 border border-amber-400"
+                                  : "bg-slate-900 text-slate-400 hover:text-white"
+                              }`}
+                            >
+                              ₹{fare}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* 2. Customer's Delivery Share */}
+                      <div className="p-3 rounded-xl bg-slate-950 border border-emerald-500/30 space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[10px] uppercase font-bold text-emerald-400 font-mono flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[13px]">person_check</span>
+                            Customer Share (₹)
+                          </label>
+                          <span className="text-[9px] text-slate-500 font-mono">Charged to Customer</span>
+                        </div>
+                        <input
+                          type="number"
+                          min="0"
+                          value={formDeliveryCustomerShare}
+                          placeholder="0"
+                          onFocus={(e) => e.target.select()}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setFormDeliveryCustomerShare(val);
+                            const wNum = parseFloat(formWeight) || 0;
+                            const fishExpected = Math.round(wNum * formRate);
+                            const cShare = parseFloat(val) || 0;
+                            if (wNum > 0 && !formAmountOverridden) {
+                              setFormAmount((fishExpected + cShare).toString());
+                            }
+                          }}
+                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-black font-mono text-emerald-300 focus:outline-none focus:border-emerald-400"
+                        />
+                        {/* Quick fee presets based on delivery zones */}
+                        <div className="flex items-center gap-1 pt-0.5 flex-wrap">
+                          {[
+                            { label: "Free ₹0", v: "0" },
+                            { label: "+₹20", v: "20" },
+                            { label: "+₹29", v: "29" },
+                            { label: "+₹39", v: "39" },
+                            { label: "+₹69", v: "69" },
+                            { label: "+₹89", v: "89" },
+                          ].map((chip) => (
+                            <button
+                              key={chip.v}
+                              type="button"
+                              onClick={() => {
+                                setFormDeliveryCustomerShare(chip.v);
+                                const wNum = parseFloat(formWeight) || 0;
+                                const fishExpected = Math.round(wNum * formRate);
+                                const cShare = parseFloat(chip.v) || 0;
+                                if (wNum > 0 && !formAmountOverridden) {
+                                  setFormAmount((fishExpected + cShare).toString());
+                                }
+                              }}
+                              className={`px-1.5 py-0.5 rounded text-[8.5px] font-mono font-bold transition-all cursor-pointer ${
+                                formDeliveryCustomerShare === chip.v
+                                  ? "bg-emerald-500/30 text-emerald-200 border border-emerald-400"
+                                  : "bg-slate-900 text-slate-400 hover:text-white"
+                              }`}
+                            >
+                              {chip.label}
+                            </button>
+                          ))}
+                        </div>
                       </div>
                     </div>
 
-                    {/* 2. Total Delivery Cost Incurred (Charged by Rider/Courier) */}
-                    <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
-                      <label className="text-[9.5px] uppercase font-bold text-amber-400 font-mono block">
-                        Total Cost Incurred (₹)
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={formDeliveryCostTotal}
-                        placeholder="e.g. 150"
-                        onFocus={(e) => e.target.select()}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setFormDeliveryCostTotal(val);
-                          if (!formDeliveryRiderPayout || formDeliveryRiderPayout === formDeliveryCostTotal) {
-                            setFormDeliveryRiderPayout(val);
-                          }
-                        }}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-black font-mono text-amber-300 focus:outline-none focus:border-amber-400"
-                      />
-                      <span className="text-[8.5px] text-slate-500 font-mono block">
-                        Actual courier/rider rate
-                      </span>
-                    </div>
+                    {/* DYNAMIC LIVE DELIVERY CONTRIBUTION & TROUT RATE CARD */}
+                    {(() => {
+                      const totCost = parseFloat(formDeliveryCostTotal) || 0;
+                      const custShare = parseFloat(formDeliveryCustomerShare) || 0;
+                      const farmCost = Math.max(0, totCost - custShare);
+                      const custPct = totCost > 0 ? Math.round((custShare / totCost) * 100) : 0;
+                      const farmPct = totCost > 0 ? Math.round((farmCost / totCost) * 100) : 0;
 
-                    {/* 3. Final Amount Given to Rider (Payout) */}
-                    <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
-                      <label className="text-[9.5px] uppercase font-bold text-blue-400 font-mono block">
-                        Final Paid to Rider (₹)
-                      </label>
-                      <input
-                        type="number"
-                        min="0"
-                        value={formDeliveryRiderPayout}
-                        placeholder="e.g. 150"
-                        onFocus={(e) => e.target.select()}
-                        onChange={(e) => setFormDeliveryRiderPayout(e.target.value)}
-                        className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-black font-mono text-blue-300 focus:outline-none focus:border-blue-400"
-                      />
-                      <span className="text-[8.5px] text-slate-500 font-mono block">
-                        Cash/online paid to courier
-                      </span>
+                      const wNum = parseFloat(formWeight) || 0;
+                      const fishExpected = Math.round(wNum * formRate);
+                      const totalBill = fishExpected + custShare;
+
+                      return (
+                        <div className="p-3 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900/95 to-blue-950/40 border-2 border-blue-500/40 space-y-2.5 font-mono shadow-lg">
+                          <div className="flex items-center justify-between text-xs pb-2 border-b border-slate-800">
+                            <div className="flex items-center gap-1.5 font-bold text-cyan-300">
+                              <span className="material-symbols-outlined text-sm text-cyan-400">price_split</span>
+                              <span>DYNAMIC DELIVERY CONTRIBUTION</span>
+                            </div>
+                            <div className="text-[11.5px] text-slate-300">
+                              Total Ride Fare: <span className="text-white font-black text-sm">₹{totCost}</span>
+                            </div>
+                          </div>
+
+                          {/* 2 Big Live Contribution Split Pills */}
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="p-2.5 rounded-xl bg-emerald-950/40 border border-emerald-500/40">
+                              <div className="text-[10px] uppercase font-bold text-emerald-400 flex items-center justify-between">
+                                <span>Customer Paid</span>
+                                <span className="text-[9px] px-1 rounded bg-emerald-500/20 text-emerald-300 font-bold font-mono">
+                                  {totCost > 0 ? `${custPct}%` : "0%"}
+                                </span>
+                              </div>
+                              <div className="text-xl font-black text-emerald-300 mt-1">₹{custShare}</div>
+                              <div className="text-[9px] text-emerald-400/80 mt-0.5">
+                                {totCost > 0 ? `${custPct}% of ride cost paid by customer` : "Free Delivery"}
+                              </div>
+                            </div>
+
+                            <div className="p-2.5 rounded-xl bg-rose-950/40 border border-rose-500/40">
+                              <div className="text-[10px] uppercase font-bold text-rose-400 flex items-center justify-between">
+                                <span>Farm Contribution</span>
+                                <span className="text-[9px] px-1 rounded bg-rose-500/20 text-rose-300 font-bold font-mono">
+                                  {totCost > 0 ? `${farmPct}%` : "0%"}
+                                </span>
+                              </div>
+                              <div className="text-xl font-black text-rose-300 mt-1">
+                                {farmCost > 0 ? `-₹${farmCost}` : "₹0"}
+                              </div>
+                              <div className="text-[9px] text-rose-400/80 mt-0.5">
+                                {farmCost > 0 ? `${farmPct}% absorbed by farm subsidy` : "100% covered by customer"}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Live Trout Buying Rate & Customer Bill Preview */}
+                          {wNum > 0 && (
+                            <div className="p-2.5 rounded-xl bg-slate-950/90 border border-slate-800 space-y-1.5 text-xs">
+                              <div className="flex items-center justify-between">
+                                <span className="text-slate-400">Actual Trout Buying Rate:</span>
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-cyan-300 font-black text-sm">₹{formRate}/Kg</span>
+                                  <span className="text-[9px] px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 font-bold">Pure Fish Price</span>
+                                </div>
+                              </div>
+                              <div className="flex items-center justify-between pt-1.5 border-t border-slate-800/80">
+                                <span className="text-slate-400">Total Bill for Customer:</span>
+                                <div className="text-right">
+                                  <span className="text-white font-black text-base">₹{totalBill}</span>
+                                  <span className="text-[9.5px] text-slate-400 block font-sans">
+                                    (Fish: ₹{fishExpected} + Deliv: ₹{custShare})
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })()}
+
+                    {/* Optional: Final Rider Payout (defaults to total cost) */}
+                    <div className="flex items-center justify-between p-2 rounded-xl bg-slate-950 border border-slate-800/90 text-[10.5px] font-mono">
+                      <span className="text-slate-400">Final Paid to Rider:</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-slate-500">₹</span>
+                        <input
+                          type="number"
+                          min="0"
+                          value={formDeliveryRiderPayout}
+                          placeholder={formDeliveryCostTotal || "0"}
+                          onFocus={(e) => e.target.select()}
+                          onChange={(e) => setFormDeliveryRiderPayout(e.target.value)}
+                          className="w-20 bg-slate-900 border border-slate-700 rounded-lg px-2 py-0.5 text-xs font-black font-mono text-blue-300 focus:outline-none focus:border-blue-400 text-right"
+                        />
+                      </div>
                     </div>
                   </div>
-
-                  {/* Farm Subsidy & Net Settlement Banner */}
-                  {(() => {
-                    const totCost = parseFloat(formDeliveryCostTotal) || 0;
-                    const custShare = parseFloat(formDeliveryCustomerShare) || 0;
-                    const farmCost = Math.max(0, totCost - custShare);
-
-                    return (
-                      <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 flex items-center justify-between text-xs font-mono">
-                        <div className="flex items-center gap-2">
-                          <span className="text-slate-400">Our Cost Put In (Farm Subsidy):</span>
-                          <span className={`font-black ${farmCost > 0 ? "text-rose-400" : "text-emerald-400"}`}>
-                            {farmCost > 0 ? `-₹${farmCost}` : "₹0 (100% Covered)"}
-                          </span>
-                        </div>
-                        <div className="text-[11px] text-slate-400">
-                          Rider: <span className="text-white font-bold">₹{totCost}</span> | Cust: <span className="text-emerald-300 font-bold">₹{custShare}</span>
-                        </div>
-                      </div>
-                    );
-                  })()}
 
                   {/* Rider Name / Contact */}
                   <div>
