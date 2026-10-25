@@ -4454,6 +4454,80 @@ export default function VendingCenterLoggerPage() {
       )}
 
       {/* ══════════════════════════════════════════════════════════
+          STAFF FLASH CARD: CURRENT AQUARIUM STOCK & TODAY'S ENTRIES ONLY (MOHD AMIN)
+          Pure operational metrics only: biomass in tank and number of entries made today.
+          Strictly NO procurement costs, delivery profits, or financial revenue margins shown.
+          ══════════════════════════════════════════════════════════ */}
+      {!isAdmin && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-blue-950/60 via-slate-900 to-slate-950 border border-blue-500/40 shadow-xl relative overflow-hidden animate-fadeIn">
+          <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/5 rounded-full blur-2xl pointer-events-none" />
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-blue-500/20 border border-blue-500/40 flex items-center justify-center text-blue-400 shrink-0">
+                <span className="material-symbols-outlined text-2xl">water</span>
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs font-mono font-bold uppercase tracking-wider text-blue-300">
+                    Current Stock in Aquarium
+                  </span>
+                  {aquariumStock.isOutOfStock ? (
+                    <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-mono text-[10.5px] font-bold">
+                      Tank Out of Stock
+                    </span>
+                  ) : (
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-mono text-[10.5px] font-bold flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                      Live in Tank
+                    </span>
+                  )}
+                </div>
+                <p className="text-xs text-slate-400 font-['Manrope'] mt-0.5">
+                  Live trout biomass currently available in the counter aquarium
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center flex-wrap gap-3 self-start sm:self-auto">
+              {/* CURRENT LIVE STOCK */}
+              <div className="flex items-baseline gap-2 bg-slate-950/90 px-4 py-2.5 rounded-2xl border border-blue-500/30 shadow-inner">
+                <div className="text-right">
+                  <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400 font-mono">Live Stock</div>
+                  <div className="flex items-baseline gap-1">
+                    <span
+                      className={`text-2xl sm:text-3xl font-black font-['Space_Grotesk'] ${
+                        aquariumStock.isOutOfStock ? "text-amber-300" : "text-white"
+                      }`}
+                    >
+                      {(stockLoading && stockEntries.length === 0) || (loading && entries.length === 0)
+                        ? "..."
+                        : formatKg(aquariumStock.remainingKg)}
+                    </span>
+                    <span className="text-blue-400 font-bold font-mono text-sm">Kg</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* TOTAL NUMBER OF ENTRIES FOR THE DAY */}
+              <div className="flex items-baseline gap-2 bg-slate-950/90 px-4 py-2.5 rounded-2xl border border-emerald-500/30 shadow-inner">
+                <div className="text-right">
+                  <div className="text-[10px] uppercase font-bold tracking-wider text-emerald-400 font-mono">Today's Entries</div>
+                  <div className="flex items-baseline gap-1 justify-end">
+                    <span className="text-2xl sm:text-3xl font-black font-['Space_Grotesk'] text-emerald-400">
+                      {loading && entries.length === 0
+                        ? "..."
+                        : entries.filter((e) => e.entry_date === getTodayDate()).length}
+                    </span>
+                    <span className="text-emerald-300/80 font-bold font-mono text-xs">entries</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════
           PERIOD SWITCHER & LIVE SUMMARY RIBBON
           ══════════════════════════════════════════════════════════ */}
       <div className="space-y-3">
