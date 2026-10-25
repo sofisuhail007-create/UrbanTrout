@@ -55,6 +55,15 @@ const NAV_GROUPS: NavGroup[] = [
         activeTheme: "cyan",
       },
       {
+        href: "/admin/dashboard/delivery-calculator",
+        icon: "calculate",
+        label: "Delivery Profit Calc",
+        permKey: "billing",
+        badge: "PRO",
+        badgeType: "live",
+        activeTheme: "emerald",
+      },
+      {
         href: "/admin/dashboard/billing?tab=customer_balances",
         icon: "account_balance_wallet",
         label: "Customer Khata & Balances",
@@ -485,7 +494,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               {/* Group Items */}
               {group.items.map((item) => {
                 const active = isItemActive(item.href);
-                const isBilling = item.href === "/admin/dashboard/billing";
+                const isBilling = item.href === "/admin/dashboard/billing" || item.href === "/admin/dashboard/delivery-calculator";
                 const isVending = item.href === "/admin/dashboard/vending-log";
 
                 // Active & Inactive Styling

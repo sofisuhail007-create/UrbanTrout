@@ -1776,12 +1776,15 @@ export default function VendingCenterLoggerPage() {
     const periodTotalSurplusKg = Math.round((periodSurplusGuttedKg + periodSurplusNonGuttedKg) * 1000) / 1000;
     const periodTotalRegularKg = Math.round((periodRegularGuttedKg + periodRegularNonGuttedKg) * 1000) / 1000;
 
-    // Delivery logistics aggregates
+    // Delivery logistics aggregates & Delivery Net Profit
     let totalDeliveryOrdersCount = 0;
     let totalDeliveryCostIncurred = 0;
     let totalCustomerDeliveryCollected = 0;
     let totalFarmDeliverySubsidy = 0;
     let totalDeliveryRiderPayout = 0;
+    let totalDeliveryBiomassKg = 0;
+    let totalDeliveryRevenueCollected = 0;
+    let totalDeliveryNetProfit = 0;
 
     filteredEntriesByPeriod.forEach((e) => {
       const cf = e.custom_fields || {};
@@ -1799,8 +1802,32 @@ export default function VendingCenterLoggerPage() {
         totalCustomerDeliveryCollected += custShare;
         totalFarmDeliverySubsidy += farmShare;
         totalDeliveryRiderPayout += payout;
+
+        const w = Number(e.weight_kg) || 0;
+        const rev = Number(e.amount_paid) || 0;
+        const isGut =
+          (e.product_type || "").toLowerCase().includes("gutted") &&
+          !(e.product_type || "").toLowerCase().includes("non");
+        const isSelf = Boolean(cf.self_cleaned || (e as any).self_cleaned);
+        const sInfo = surplusInfoMap.get(e.id) || { regularKg: w, surplusKg: 0, isSurplus: false };
+        const procCost = sInfo.regularKg * procurementAvgCost;
+        const laborCost = (isGut && !isSelf) ? w * getIncentiveRateForDate(e.entry_date, specialRules) : 0;
+
+        totalDeliveryBiomassKg = Math.round((totalDeliveryBiomassKg + w) * 1000) / 1000;
+        totalDeliveryRevenueCollected += rev;
+        // Clean Delivery Net Profit: Total customer collected (fish + delivery share) minus (fish procurement + gutting labor + rider payout)
+        totalDeliveryNetProfit += (rev - procCost - laborCost - payout);
       }
     });
+
+    const deliveryProfitMarginPercent =
+      totalDeliveryRevenueCollected > 0
+        ? ((totalDeliveryNetProfit / totalDeliveryRevenueCollected) * 100).toFixed(1)
+        : "0.0";
+    const avgDeliveryProfitPerKg =
+      totalDeliveryBiomassKg > 0
+        ? Math.round(totalDeliveryNetProfit / totalDeliveryBiomassKg)
+        : 0;
 
     // Realized Profit on sold fishes (deducting procurement cost ONLY on regular stock; surplus has ₹0 procurement cost!)
     const guttedProcurementCost = Math.round(periodRegularGuttedKg * procurementAvgCost);
@@ -1878,6 +1905,11 @@ export default function VendingCenterLoggerPage() {
       totalCustomerDeliveryCollected,
       totalFarmDeliverySubsidy,
       totalDeliveryRiderPayout,
+      totalDeliveryBiomassKg,
+      totalDeliveryRevenueCollected,
+      totalDeliveryNetProfit,
+      deliveryProfitMarginPercent,
+      avgDeliveryProfitPerKg,
     };
   }, [filteredEntriesByPeriod, procurementAvgCost, surplusInfoMap, specialRules]);
 
@@ -5194,6 +5226,51 @@ export default function VendingCenterLoggerPage() {
                   </div>
                   <div className="text-[10px] text-slate-500">
                     Net delivery cost subsidized by Urban Trout
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 4.6: Delivery Net Profit (Admin Only) */}
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-emerald-950/60 via-slate-900/90 to-slate-900 border border-emerald-500/40 shadow-xl shadow-emerald-950/30 relative overflow-hidden flex flex-col justify-between group hover:border-emerald-400/70 transition-all">
+                <div>
+                  <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
+                    <span className="text-emerald-300 font-bold tracking-wider flex items-center gap-1.5">
+                      <span>DELIVERY NET PROFIT</span>
+                      <span className={`px-1.5 py-0.2 rounded text-[9px] font-bold border ${
+                        kpis.totalDeliveryNetProfit >= 0
+                          ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
+                          : "bg-rose-500/20 text-rose-300 border-rose-500/30"
+                      }`}>
+                        {kpis.deliveryProfitMarginPercent}% Margin
+                      </span>
+                    </span>
+                    <span className="material-symbols-outlined text-emerald-400 text-lg">paid</span>
+                  </div>
+                  <div className="mt-2 flex items-baseline gap-1 min-h-[32px]">
+                    <span className={`font-bold text-lg ${kpis.totalDeliveryNetProfit >= 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                      {kpis.totalDeliveryNetProfit >= 0 ? "+₹" : "-₹"}
+                    </span>
+                    <span
+                      className={`text-2xl sm:text-3xl font-black ${
+                        kpis.totalDeliveryNetProfit >= 0 ? "text-emerald-300" : "text-rose-300"
+                      }`}
+                      style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                    >
+                      {Math.abs(Math.round(kpis.totalDeliveryNetProfit)).toLocaleString("en-IN")}
+                    </span>
+                    <span className="text-[11px] font-bold text-slate-400 font-mono ml-1">
+                      In-Hand Net
+                    </span>
+                  </div>
+                </div>
+                <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2.5 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-300">{formatKg(kpis.totalDeliveryBiomassKg)} Kg Delivered</span>
+                    <span className="text-emerald-300 font-semibold">Rev: ₹{kpis.totalDeliveryRevenueCollected.toLocaleString("en-IN")}</span>
+                  </div>
+                  <div className="text-[10px] text-slate-400 flex items-center justify-between">
+                    <span>After all procurement & riders</span>
+                    <span className="text-emerald-400 font-medium">₹{kpis.avgDeliveryProfitPerKg}/Kg clean</span>
                   </div>
                 </div>
               </div>
