@@ -25,6 +25,7 @@ interface NavItem {
   badge?: string;
   badgeType?: "live" | "new" | "map";
   activeTheme?: "emerald" | "cyan";
+  ownerOnly?: boolean;
 }
 
 interface NavGroup {
@@ -62,6 +63,7 @@ const NAV_GROUPS: NavGroup[] = [
         badge: "PRO",
         badgeType: "live",
         activeTheme: "emerald",
+        ownerOnly: true,
       },
       {
         href: "/admin/dashboard/billing?tab=customer_balances",
@@ -337,10 +339,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     );
   }
 
-  // Filter Nav Groups according to staff permissions
+  const isOwnerUser = adminEmail === "sofisuhail007@gmail.com" || adminEmail === "info.urbantrout@gmail.com";
+
+  // Filter Nav Groups according to staff permissions & owner-only access
   const visibleGroups = NAV_GROUPS.map((group) => ({
     ...group,
     items: group.items.filter((item) => {
+      if (item.ownerOnly && !isOwnerUser) return false;
       if (!item.permKey) return true;
       return permissions[item.permKey as keyof StaffPermissions] !== false;
     }),
@@ -351,7 +356,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const currentNav = allItems.find(
     (item) => pathname === item.href || (item.href !== "/admin/dashboard" && pathname.startsWith(item.href + "/"))
   );
-  const isRouteBlocked = currentNav?.permKey && permissions[currentNav.permKey as keyof StaffPermissions] === false;
+  const isRouteBlocked =
+    Boolean(currentNav?.ownerOnly && !isOwnerUser) ||
+    Boolean(currentNav?.permKey && permissions[currentNav.permKey as keyof StaffPermissions] === false);
 
   const isItemActive = (href: string) => {
     if (href === "/admin/dashboard") {

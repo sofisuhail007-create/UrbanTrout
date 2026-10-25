@@ -63,22 +63,11 @@ const EXPENSE_CATEGORIES = [
 const ROOT_OWNER_EMAILS = ["sofisuhail007@gmail.com", "info.urbantrout@gmail.com"];
 
 export const isOwnerOrSuperAdmin = (email?: string | null, role?: string | null): boolean => {
-  if (!email && !role) return false;
-  const cleanEmail = (email || "").trim().toLowerCase();
-  const cleanRole = (role || "").trim().toLowerCase();
-  // Mohd Amin or worker staff is strictly NEVER an admin
-  if (
-    cleanEmail === "worksuhail007" ||
-    cleanEmail === "work.suhail007" ||
-    cleanEmail === "work.suhail007@gmail.com" ||
-    cleanEmail === "worksuhail007@gmail.com" ||
-    cleanEmail === "mohd amin" ||
-    cleanEmail === "amin" ||
-    cleanEmail.includes("amin")
-  ) {
-    return false;
-  }
-  return ROOT_OWNER_EMAILS.includes(cleanEmail) || cleanRole === "super_admin";
+  if (!email) return false;
+  const cleanEmail = email.trim().toLowerCase();
+  // Absolute restriction: ONLY Suhail's verified root owner emails can EVER be Admin
+  // Zero role-based fallback to prevent localStorage tampering or shared-browser escalation
+  return ROOT_OWNER_EMAILS.includes(cleanEmail);
 };
 
 const isEmailAdmin = (email?: string | null): boolean => {
@@ -1069,26 +1058,23 @@ export default function VendingCenterLoggerPage() {
       try {
         // 1. Immediate local/session storage check for fast rendering without flashing
         const storedEmail = (localStorage.getItem("ut_admin_email") || sessionStorage.getItem("ut_admin_email") || "").toLowerCase().trim();
-        const storedRole = (localStorage.getItem("ut_admin_role") || sessionStorage.getItem("ut_admin_role") || "").toLowerCase().trim();
-
-        // Mohd Amin is strictly NEVER admin
-        const locallyAdmin = isOwnerOrSuperAdmin(storedEmail, storedRole);
+        const locallyAdmin = isOwnerOrSuperAdmin(storedEmail);
 
         if (active) {
           setIsAdmin(locallyAdmin);
         }
 
-        // 2. Validate against live Supabase Auth session & app_settings to prevent tampering
+        // 2. Validate against live Supabase Auth session to strictly enforce owner identity
         const { data: { user } } = await supabase.auth.getUser();
         if (!active) return;
 
         if (user?.email) {
           const userEmail = user.email.toLowerCase().trim();
-          const liveAdmin = isOwnerOrSuperAdmin(userEmail, storedRole);
+          const liveAdmin = isOwnerOrSuperAdmin(userEmail);
           setIsAdmin(liveAdmin);
           setCanDelete(liveAdmin);
-        } else if (!locallyAdmin) {
-          setIsAdmin(false);
+        } else {
+          setIsAdmin(locallyAdmin);
         }
       } catch (err) {
         console.warn("Could not verify admin status:", err);
@@ -4463,179 +4449,6 @@ export default function VendingCenterLoggerPage() {
                 <span className="text-[10px] text-slate-500 block">Whole Profit</span>
               </div>
             )}
-          </div>
-        </div>
-      )}
-
-      {/* ══════════════════════════════════════════════════════════
-          STAFF FLASH CARD: CURRENT AQUARIUM STOCK ONLY (MOHD AMIN)
-          ══════════════════════════════════════════════════════════ */}
-      {!isAdmin && (
-        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-blue-950/60 via-slate-900 to-slate-950 border border-blue-500/40 shadow-xl relative overflow-hidden animate-fadeIn">
-          <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/5 rounded-full blur-2xl pointer-events-none" />
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-2xl bg-blue-500/20 border border-blue-500/40 flex items-center justify-center text-blue-400 shrink-0">
-                <span className="material-symbols-outlined text-2xl">water</span>
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-mono font-bold uppercase tracking-wider text-blue-300">
-                    Current Stock in Aquarium
-                  </span>
-                  {aquariumStock.isOutOfStock ? (
-                    <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 font-mono text-[10.5px] font-bold">
-                      Tank Out of Stock
-                    </span>
-                  ) : (
-                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-mono text-[10.5px] font-bold flex items-center gap-1.5">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                      Live in Tank
-                    </span>
-                  )}
-                </div>
-                <p className="text-xs text-slate-400 font-['Manrope'] mt-0.5">
-                  Live trout biomass currently available in the counter aquarium
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center flex-wrap gap-3 self-start sm:self-auto">
-              {/* CURRENT LIVE STOCK */}
-              <div className="flex items-baseline gap-2 bg-slate-950/90 px-4 py-2.5 rounded-2xl border border-blue-500/30 shadow-inner">
-                <div className="text-right">
-                  <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400 font-mono">Live Stock</div>
-                  <div className="flex items-baseline gap-1">
-                    <span
-                      className={`text-2xl sm:text-3xl font-black font-['Space_Grotesk'] ${
-                        aquariumStock.isOutOfStock ? "text-amber-300" : "text-white"
-                      }`}
-                    >
-                      {(stockLoading && stockEntries.length === 0) || (loading && entries.length === 0)
-                        ? "..."
-                        : formatKg(aquariumStock.remainingKg)}
-                    </span>
-                    <span className="text-blue-400 font-bold font-mono text-sm">Kg</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* TOTAL NUMBER OF ENTRIES FOR THE DAY */}
-              <div className="flex items-baseline gap-2 bg-slate-950/90 px-4 py-2.5 rounded-2xl border border-emerald-500/30 shadow-inner">
-                <div className="text-right">
-                  <div className="text-[10px] uppercase font-bold tracking-wider text-emerald-400 font-mono">Today's Entries</div>
-                  <div className="flex items-baseline gap-1 justify-end">
-                    <span className="text-2xl sm:text-3xl font-black font-['Space_Grotesk'] text-emerald-400">
-                      {loading && entries.length === 0
-                        ? "..."
-                        : entries.filter((e) => e.entry_date === getTodayDate()).length}
-                    </span>
-                    <span className="text-emerald-300/80 font-bold font-mono text-xs">entries</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* ══════════════════════════════════════════════════════════
-          STAFF SALES & REALIZATION DASHBOARD (MOHD AMIN - STANDARD ₹580 & ₹540 RATES)
-          Strictly NO procurement costs, farm margins, or overall business profit shown
-          ══════════════════════════════════════════════════════════ */}
-      {!isAdmin && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4 animate-fadeIn">
-          {/* Card 1: Total Sold Biomass */}
-          <div className="p-3.5 rounded-2xl bg-gradient-to-br from-emerald-950/40 via-slate-900/80 to-slate-900 border border-emerald-500/30 shadow-xl flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
-                <span className="font-bold tracking-wider">TODAY'S SOLD BIOMASS</span>
-                <span className="material-symbols-outlined text-emerald-400 text-lg">scale</span>
-              </div>
-              <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-2xl sm:text-3xl font-black text-white font-['Space_Grotesk']">
-                  {formatKg(staffMetrics.totalSoldKg)}
-                </span>
-                <span className="text-emerald-400 font-bold font-mono text-sm">Kg</span>
-              </div>
-            </div>
-            <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2 space-y-0.5">
-              <div className="flex items-center justify-between">
-                <span className="text-emerald-300 font-bold">Gutted: {formatKg(staffMetrics.guttedSoldKg)} Kg</span>
-                <span className="text-cyan-300">Whole: {formatKg(staffMetrics.nonGuttedSoldKg)} Kg</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 2: Expected vs Realized Revenue (Standard ₹580 / ₹540 Rates) */}
-          <div className="p-3.5 rounded-2xl bg-gradient-to-br from-cyan-950/40 via-slate-900/80 to-slate-900 border border-cyan-500/30 shadow-xl flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
-                <span className="font-bold tracking-wider">COLLECTIONS REALIZED</span>
-                <span className="material-symbols-outlined text-cyan-400 text-lg">payments</span>
-              </div>
-              <div className="mt-2 flex items-baseline gap-1">
-                <span className="text-cyan-400 font-bold text-lg">₹</span>
-                <span className="text-2xl sm:text-3xl font-black text-white font-['Space_Grotesk']">
-                  {staffMetrics.actualCollectedRevenue.toLocaleString("en-IN")}
-                </span>
-              </div>
-            </div>
-            <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2 space-y-0.5">
-              <div className="flex items-center justify-between">
-                <span>Std Target: ₹{staffMetrics.standardTargetRevenue.toLocaleString("en-IN")}</span>
-                <span className={`font-bold ${staffMetrics.netVariance >= 0 ? "text-emerald-300" : "text-amber-300"}`}>
-                  {staffMetrics.netVariance >= 0 ? "Full Rate [OK]" : `-₹${Math.abs(staffMetrics.netVariance)} disc`}
-                </span>
-              </div>
-              <div className="text-[10px] text-slate-500">
-                Based on std ₹{staffMetrics.gStd}/Kg Gutted & ₹{staffMetrics.ngStd}/Kg Whole
-              </div>
-            </div>
-          </div>
-
-          {/* Card 3: Mohd Amin Gutting Incentive Earned */}
-          <div className="p-3.5 rounded-2xl bg-gradient-to-br from-amber-950/40 via-slate-900/80 to-slate-900 border border-amber-500/30 shadow-xl flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
-                <span className="font-bold tracking-wider text-amber-300">GUTTING INCENTIVE</span>
-                <span className="material-symbols-outlined text-amber-400 text-lg">savings</span>
-              </div>
-              <div className="mt-2 flex items-baseline gap-1">
-                <span className="text-amber-400 font-bold text-lg">₹</span>
-                <span className="text-2xl sm:text-3xl font-black text-amber-300 font-['Space_Grotesk']">
-                  {staffMetrics.totalWorkerIncentiveEarned.toLocaleString("en-IN")}
-                </span>
-              </div>
-            </div>
-            <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2 space-y-0.5">
-              <div className="flex items-center justify-between">
-                <span className="text-slate-300">Rate: ₹5 per Kg</span>
-                <span className="text-emerald-400 font-bold">{formatKg(staffMetrics.guttedSoldKg)} Kg Cleaned</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Card 4: Delivery Dispatches */}
-          <div className="p-3.5 rounded-2xl bg-gradient-to-br from-blue-950/40 via-slate-900/80 to-slate-900 border border-blue-500/30 shadow-xl flex flex-col justify-between">
-            <div>
-              <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
-                <span className="font-bold tracking-wider text-blue-300">DELIVERY DISPATCHES</span>
-                <span className="material-symbols-outlined text-blue-400 text-lg">local_shipping</span>
-              </div>
-              <div className="mt-2 flex items-baseline gap-2">
-                <span className="text-2xl sm:text-3xl font-black text-white font-['Space_Grotesk']">
-                  {staffMetrics.deliveryCount}
-                </span>
-                <span className="text-blue-400 font-bold font-mono text-sm">orders</span>
-              </div>
-            </div>
-            <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2 space-y-0.5">
-              <div className="flex items-center justify-between">
-                <span>Cust Delivery: ₹{staffMetrics.deliveryCustCollected}</span>
-                <span className="text-slate-300">Riders Paid: ₹{staffMetrics.deliveryRiderPaid}</span>
-              </div>
-            </div>
           </div>
         </div>
       )}

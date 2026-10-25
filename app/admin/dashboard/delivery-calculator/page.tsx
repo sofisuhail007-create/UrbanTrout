@@ -13,6 +13,8 @@ interface LocalityPreset {
   customerShareRec: number;
 }
 
+const ROOT_OWNER_EMAILS = ["sofisuhail007@gmail.com", "info.urbantrout@gmail.com"];
+
 const SRINAGAR_LOCALITY_PRESETS: LocalityPreset[] = [
   { name: "Lal Bazar / Hazratbal / Nigeen", zone: "Zone 1 (0-4 km)", distanceKm: "2-4 km", rapidoAvg: 60, customerShareRec: 29 },
   { name: "Soura / Buchpora / Zakura", zone: "Zone 1 (3-6 km)", distanceKm: "4-6 km", rapidoAvg: 80, customerShareRec: 39 },
@@ -26,12 +28,9 @@ const SRINAGAR_LOCALITY_PRESETS: LocalityPreset[] = [
 ];
 
 export default function DeliveryProfitCalculatorPage() {
-  // Authentication & Role
+  // Authentication & Access Control (Owner Only)
   const [isAdmin, setIsAdmin] = useState(false);
-  const [isUnlocked, setIsUnlocked] = useState(false);
-  const [pinInput, setPinInput] = useState("");
-  const [pinError, setPinError] = useState(false);
-  const [showPinModal, setShowPinModal] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
 
   // Core Calculator Inputs
   const [weight, setWeight] = useState<number>(2.0);
@@ -51,30 +50,22 @@ export default function DeliveryProfitCalculatorPage() {
   const [customerPhone, setCustomerPhone] = useState<string>("");
   const [copyToast, setCopyToast] = useState<string | null>(null);
 
-  // Verify Supabase Auth
+  // Strictly verify owner authentication on mount
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       const email = (session?.user?.email || localStorage.getItem("ut_admin_email") || "").toLowerCase().trim();
-      const role = localStorage.getItem("ut_admin_role") || "";
-      const isOwner = email === "sofisuhail007@gmail.com" || email === "info.urbantrout@gmail.com";
-      if (isOwner || role === "super_admin") {
-        setIsAdmin(true);
-        setIsUnlocked(true);
+      const isOwner = ROOT_OWNER_EMAILS.includes(email);
+      if (!isOwner) {
+        // Staff or unauthenticated users are kicked back to vending log
+        window.location.replace("/admin/dashboard/vending-log");
+        return;
       }
-    }).catch(() => {});
+      setIsAdmin(true);
+      setCheckingAuth(false);
+    }).catch(() => {
+      window.location.replace("/admin/dashboard/vending-log");
+    });
   }, []);
-
-  const handlePinUnlock = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (pinInput.trim() === "4148") {
-      setIsUnlocked(true);
-      setShowPinModal(false);
-      setPinError(false);
-      setPinInput("");
-    } else {
-      setPinError(true);
-    }
-  };
 
   // Active retail rate per kg
   const activeRate = useMemo(() => {
@@ -197,6 +188,17 @@ ${customerPhone ? `📞 *Customer Phone:* ${customerPhone}\n` : ""}
     setCustomerShare(preset.customerShareRec);
   };
 
+  if (checkingAuth || !isAdmin) {
+    return (
+      <div className="min-h-screen bg-[#020d12] flex items-center justify-center p-4">
+        <div className="text-center space-y-3">
+          <div className="w-10 h-10 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin mx-auto" />
+          <p className="text-xs text-slate-400 font-mono">Verifying owner access…</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-[#020d12] text-slate-100 p-3 sm:p-5 md:p-6 pb-28 max-w-4xl mx-auto space-y-4 sm:space-y-6 font-['Manrope']">
       {/* ─── TOAST NOTIFICATION ─── */}
@@ -223,41 +225,26 @@ ${customerPhone ? `📞 *Customer Phone:* ${customerPhone}\n` : ""}
                 Delivery Profit Calculator
               </h1>
               <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                Live Engine
+                Admin Exclusive
               </span>
             </div>
             <p className="text-xs text-slate-400 mt-0.5">
-              Instant mobile profitability checker @ ₹{cogsPerKg}/Kg vs Rapido fare & customer share
+              Instant mobile delivery profitability checker &amp; customer quote engine
             </p>
           </div>
         </div>
 
-        {/* Lock / Role Status */}
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          {isUnlocked ? (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-mono font-bold">
-              <span className="material-symbols-outlined text-sm">lock_open</span>
-              <span>Admin Mode (Suhail)</span>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setShowPinModal(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 text-xs font-mono font-bold transition-all cursor-pointer"
-            >
-              <span className="material-symbols-outlined text-sm">lock</span>
-              <span>Unlock Farm Profit (PIN)</span>
-            </button>
-          )}
+        {/* Admin Verified Status */}
+        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-mono font-bold self-start sm:self-auto">
+          <span className="material-symbols-outlined text-sm">verified_user</span>
+          <span>Admin (Suhail)</span>
         </div>
       </div>
 
       {/* ─── LIVE FINANCIAL FLASHCARD (HERO) ─── */}
       <div
         className={`p-4 sm:p-6 rounded-3xl border shadow-2xl relative overflow-hidden transition-all duration-300 ${
-          !isUnlocked
-            ? "bg-slate-900/90 border-slate-800"
-            : financials.health === "high"
+          financials.health === "high"
             ? "bg-gradient-to-br from-emerald-950/80 via-slate-900/95 to-slate-900 border-emerald-500/50 shadow-emerald-950/40"
             : financials.health === "healthy"
             ? "bg-gradient-to-br from-teal-950/80 via-slate-900/95 to-slate-900 border-teal-500/50 shadow-teal-950/40"
@@ -272,61 +259,48 @@ ${customerPhone ? `📞 *Customer Phone:* ${customerPhone}\n` : ""}
               Deal Profitability Engine
             </span>
             <div className="flex items-baseline gap-2 mt-1">
-              {isUnlocked ? (
-                <>
-                  <span
-                    className={`text-3xl sm:text-5xl font-black tracking-tight font-['Space_Grotesk'] ${
-                      financials.netProfit >= 0 ? "text-emerald-400" : "text-rose-400"
-                    }`}
-                  >
-                    {financials.netProfit >= 0 ? "+" : "-"}₹{Math.abs(financials.netProfit).toLocaleString("en-IN")}
-                  </span>
-                  <div className="flex flex-col">
-                    <span
-                      className={`text-xs sm:text-sm font-bold font-mono ${
-                        financials.netProfit >= 0 ? "text-emerald-300" : "text-rose-300"
-                      }`}
-                    >
-                      {financials.marginPercent}% Net Margin
-                    </span>
-                    <span className="text-[11px] text-slate-400 font-mono">
-                      +₹{financials.profitPerKg}/Kg in-hand
-                    </span>
-                  </div>
-                </>
-              ) : (
-                <div className="flex items-center gap-2">
-                  <span className="text-3xl sm:text-4xl font-black text-slate-300 font-['Space_Grotesk']">
-                    ₹{financials.totalCustomerBill.toLocaleString("en-IN")}
-                  </span>
-                  <span className="text-xs text-slate-400 font-mono">Customer Bill</span>
-                </div>
-              )}
+              <span
+                className={`text-3xl sm:text-5xl font-black tracking-tight font-['Space_Grotesk'] ${
+                  financials.netProfit >= 0 ? "text-emerald-400" : "text-rose-400"
+                }`}
+              >
+                {financials.netProfit >= 0 ? "+" : "-"}₹{Math.abs(financials.netProfit).toLocaleString("en-IN")}
+              </span>
+              <div className="flex flex-col">
+                <span
+                  className={`text-xs sm:text-sm font-bold font-mono ${
+                    financials.netProfit >= 0 ? "text-emerald-300" : "text-rose-300"
+                  }`}
+                >
+                  {financials.marginPercent}% Net Margin
+                </span>
+                <span className="text-[11px] text-slate-400 font-mono">
+                  +₹{financials.profitPerKg}/Kg clean
+                </span>
+              </div>
             </div>
           </div>
 
           {/* Deal Health Badge */}
-          {isUnlocked && (
-            <div
-              className={`px-3 py-1.5 rounded-xl border text-xs font-bold font-mono flex items-center gap-2 self-start sm:self-auto ${
-                financials.health === "high"
-                  ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
-                  : financials.health === "healthy"
-                  ? "bg-teal-500/20 text-teal-300 border-teal-500/40"
-                  : financials.health === "thin"
-                  ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
-                  : "bg-rose-500/20 text-rose-300 border-rose-500/40"
-              }`}
-            >
-              <span className="w-2.5 h-2.5 rounded-full animate-ping bg-current" />
-              <span>
-                {financials.health === "high" && "🟢 HIGH PROFIT DEAL (Safe to dispatch)"}
-                {financials.health === "healthy" && "🟢 VIABLE PROFIT (Good delivery)"}
-                {financials.health === "thin" && "🟡 THIN MARGIN (+₹20 Deliv suggested)"}
-                {financials.health === "loss" && "🔴 LOSS DEAL (Rider fare too high)"}
-              </span>
-            </div>
-          )}
+          <div
+            className={`px-3 py-1.5 rounded-xl border text-xs font-bold font-mono flex items-center gap-2 self-start sm:self-auto ${
+              financials.health === "high"
+                ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                : financials.health === "healthy"
+                ? "bg-teal-500/20 text-teal-300 border-teal-500/40"
+                : financials.health === "thin"
+                ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
+                : "bg-rose-500/20 text-rose-300 border-rose-500/40"
+            }`}
+          >
+            <span className="w-2.5 h-2.5 rounded-full animate-ping bg-current" />
+            <span>
+              {financials.health === "high" && "🟢 HIGH PROFIT DEAL (Safe to dispatch)"}
+              {financials.health === "healthy" && "🟢 VIABLE PROFIT (Good delivery)"}
+              {financials.health === "thin" && "🟡 THIN MARGIN (+₹20 Deliv suggested)"}
+              {financials.health === "loss" && "🔴 LOSS DEAL (Rider fare too high)"}
+            </span>
+          </div>
         </div>
 
         {/* Breakdown Grid */}
@@ -349,48 +323,29 @@ ${customerPhone ? `📞 *Customer Phone:* ${customerPhone}\n` : ""}
             <span className="text-[10px] text-slate-500 block truncate">Rapido / Courier fare</span>
           </div>
 
-          {isUnlocked ? (
-            <>
-              <div className="bg-slate-900/70 p-3 rounded-xl border border-slate-800">
-                <span className="text-slate-400 block text-[10px] uppercase">Farm Subsidy</span>
-                <span
-                  className={`text-base font-bold block mt-0.5 font-['Space_Grotesk'] ${
-                    financials.farmDeliverySubsidy > 0 ? "text-rose-400" : "text-emerald-400"
-                  }`}
-                >
-                  {financials.farmDeliverySubsidy > 0 ? `-₹${financials.farmDeliverySubsidy}` : "₹0 (100% Paid)"}
-                </span>
-                <span className="text-[10px] text-slate-500 block truncate">
-                  {financials.farmDeliverySubsidy > 0 ? "Borne by Urban Trout" : "Customer covered 100%"}
-                </span>
-              </div>
+          <div className="bg-slate-900/70 p-3 rounded-xl border border-slate-800">
+            <span className="text-slate-400 block text-[10px] uppercase">Farm Subsidy</span>
+            <span
+              className={`text-base font-bold block mt-0.5 font-['Space_Grotesk'] ${
+                financials.farmDeliverySubsidy > 0 ? "text-rose-400" : "text-emerald-400"
+              }`}
+            >
+              {financials.farmDeliverySubsidy > 0 ? `-₹${financials.farmDeliverySubsidy}` : "₹0 (100% Paid)"}
+            </span>
+            <span className="text-[10px] text-slate-500 block truncate">
+              {financials.farmDeliverySubsidy > 0 ? "Borne by Urban Trout" : "Customer covered 100%"}
+            </span>
+          </div>
 
-              <div className="bg-slate-900/70 p-3 rounded-xl border border-slate-800">
-                <span className="text-slate-400 block text-[10px] uppercase">Direct Farm COGS</span>
-                <span className="text-base font-bold text-amber-300 block mt-0.5 font-['Space_Grotesk']">
-                  ₹{financials.totalDirectCost}
-                </span>
-                <span className="text-[10px] text-slate-500 block truncate">
-                  Fish ₹{financials.fishProcurementCost} + Labor ₹{financials.workerLaborCost} + Deliv
-                </span>
-              </div>
-            </>
-          ) : (
-            <div className="col-span-2 bg-slate-900/50 p-3 rounded-xl border border-slate-800 flex items-center justify-between">
-              <div className="text-slate-400 text-xs">
-                <span>Enter PIN </span>
-                <span className="text-amber-300 font-bold">4148</span>
-                <span> to reveal Farm Net Profit &amp; COGS</span>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowPinModal(true)}
-                className="px-2.5 py-1 rounded bg-amber-500/20 text-amber-300 font-bold text-xs hover:bg-amber-500/30"
-              >
-                Unlock
-              </button>
-            </div>
-          )}
+          <div className="bg-slate-900/70 p-3 rounded-xl border border-slate-800">
+            <span className="text-slate-400 block text-[10px] uppercase">Direct Farm COGS</span>
+            <span className="text-base font-bold text-amber-300 block mt-0.5 font-['Space_Grotesk']">
+              ₹{financials.totalDirectCost}
+            </span>
+            <span className="text-[10px] text-slate-500 block truncate">
+              Fish ₹{financials.fishProcurementCost} + Labor ₹{financials.workerLaborCost} + Deliv
+            </span>
+          </div>
         </div>
       </div>
 
@@ -756,115 +711,54 @@ ${customerPhone ? `📞 *Customer Phone:* ${customerPhone}\n` : ""}
         </div>
       </div>
 
-      {/* ─── COGS & COST CONFIGURATION (ADMIN ONLY / PIN UNLOCKED) ─── */}
-      {isUnlocked && (
-        <div className="bg-slate-900/40 border border-slate-800/70 rounded-2xl p-4 text-xs font-mono space-y-3">
-          <div className="flex items-center justify-between text-slate-400">
-            <span className="font-bold flex items-center gap-1.5 text-slate-300">
-              <span className="material-symbols-outlined text-sm text-cyan-400">tune</span>
-              <span>Farm Procurement &amp; Labor Parameters (Admin Settings)</span>
-            </span>
-            <span className="text-[10px] text-slate-500">Live for this session</span>
+      {/* ─── COGS & COST CONFIGURATION (ADMIN ONLY) ─── */}
+      <div className="bg-slate-900/40 border border-slate-800/70 rounded-2xl p-4 text-xs font-mono space-y-3">
+        <div className="flex items-center justify-between text-slate-400">
+          <span className="font-bold flex items-center gap-1.5 text-slate-300">
+            <span className="material-symbols-outlined text-sm text-cyan-400">tune</span>
+            <span>Farm Procurement &amp; Labor Parameters (Admin Settings)</span>
+          </span>
+          <span className="text-[10px] text-slate-500">Live for this session</span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <div>
+            <label className="text-[10px] text-slate-400 block mb-1">
+              Farm Procurement Cost (₹/Kg)
+            </label>
+            <input
+              type="number"
+              value={cogsPerKg}
+              onChange={(e) => setCogsPerKg(Number(e.target.value) || 0)}
+              className="w-full h-8 bg-slate-950 border border-slate-700 rounded-lg px-2.5 text-xs text-white"
+            />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div>
-              <label className="text-[10px] text-slate-400 block mb-1">
-                Farm Procurement Cost (₹/Kg)
-              </label>
-              <input
-                type="number"
-                value={cogsPerKg}
-                onChange={(e) => setCogsPerKg(Number(e.target.value) || 0)}
-                className="w-full h-8 bg-slate-950 border border-slate-700 rounded-lg px-2.5 text-xs text-white"
-              />
-            </div>
+          <div>
+            <label className="text-[10px] text-slate-400 block mb-1">
+              Mohd Amin Gutting Labor (₹/Kg)
+            </label>
+            <input
+              type="number"
+              value={laborPerKg}
+              onChange={(e) => setLaborPerKg(Number(e.target.value) || 0)}
+              className="w-full h-8 bg-slate-950 border border-slate-700 rounded-lg px-2.5 text-xs text-white"
+            />
+          </div>
 
-            <div>
-              <label className="text-[10px] text-slate-400 block mb-1">
-                Mohd Amin Gutting Labor (₹/Kg)
-              </label>
-              <input
-                type="number"
-                value={laborPerKg}
-                onChange={(e) => setLaborPerKg(Number(e.target.value) || 0)}
-                className="w-full h-8 bg-slate-950 border border-slate-700 rounded-lg px-2.5 text-xs text-white"
-              />
-            </div>
-
-            <div>
-              <label className="text-[10px] text-slate-400 block mb-1">
-                Standard Gutted Retail (₹/Kg)
-              </label>
-              <input
-                type="number"
-                value={guttedRate}
-                onChange={(e) => setGuttedRate(Number(e.target.value) || 0)}
-                className="w-full h-8 bg-slate-950 border border-slate-700 rounded-lg px-2.5 text-xs text-white"
-              />
-            </div>
+          <div>
+            <label className="text-[10px] text-slate-400 block mb-1">
+              Standard Gutted Retail (₹/Kg)
+            </label>
+            <input
+              type="number"
+              value={guttedRate}
+              onChange={(e) => setGuttedRate(Number(e.target.value) || 0)}
+              className="w-full h-8 bg-slate-950 border border-slate-700 rounded-lg px-2.5 text-xs text-white"
+            />
           </div>
         </div>
-      )}
-
-      {/* ─── PIN UNLOCK MODAL ─── */}
-      {showPinModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-xs w-full shadow-2xl space-y-4">
-            <div className="text-center space-y-1">
-              <div className="w-11 h-11 rounded-full bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center mx-auto mb-2">
-                <span className="material-symbols-outlined text-xl">lock</span>
-              </div>
-              <h4 className="text-sm font-bold text-white font-['Space_Grotesk']">
-                Enter Founder PIN
-              </h4>
-              <p className="text-[11px] text-slate-400">
-                Unlock confidential farm COGS &amp; net profitability metrics
-              </p>
-            </div>
-
-            <form onSubmit={handlePinUnlock} className="space-y-3">
-              <input
-                type="password"
-                maxLength={4}
-                autoFocus
-                value={pinInput}
-                onChange={(e) => {
-                  setPinInput(e.target.value);
-                  setPinError(false);
-                }}
-                placeholder="4-digit PIN"
-                className="w-full h-11 text-center font-mono text-xl tracking-widest bg-slate-950 border border-slate-700 rounded-xl text-white focus:outline-none focus:border-amber-400"
-              />
-
-              {pinError && (
-                <p className="text-[11px] text-rose-400 text-center font-mono">
-                  Incorrect PIN. Try official last 4 digits.
-                </p>
-              )}
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowPinModal(false);
-                    setPinError(false);
-                  }}
-                  className="flex-1 h-9 rounded-lg bg-slate-800 text-slate-300 text-xs font-bold hover:bg-slate-700"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 h-9 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold shadow-md shadow-amber-500/20"
-                >
-                  Unlock
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      </div>
     </div>
   );
 }
