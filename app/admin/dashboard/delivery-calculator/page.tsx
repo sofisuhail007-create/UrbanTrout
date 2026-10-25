@@ -17,6 +17,7 @@ export default function DeliveryProfitCalculatorPage() {
   const [rateStr, setRateStr] = useState<string>("");
   const [riderFareStr, setRiderFareStr] = useState<string>("");
   const [customerShareStr, setCustomerShareStr] = useState<string>("");
+  const [actualPaidStr, setActualPaidStr] = useState<string>(""); // Optional override (e.g. ₹1,249 for 2kg link)
   const [productCut, setProductCut] = useState<"gutted" | "whole">("gutted");
 
   // Procurement & Labor Parameters
@@ -45,6 +46,7 @@ export default function DeliveryProfitCalculatorPage() {
   const rate = parseFloat(rateStr) || 0;
   const riderFare = parseFloat(riderFareStr) || 0;
   const customerShare = parseFloat(customerShareStr) || 0;
+  const actualPaid = parseFloat(actualPaidStr) || 0;
 
   // Clear all inputs back to blank
   const handleClear = () => {
@@ -52,6 +54,7 @@ export default function DeliveryProfitCalculatorPage() {
     setRateStr("");
     setRiderFareStr("");
     setCustomerShareStr("");
+    setActualPaidStr("");
   };
 
   const hasInputs = weight > 0 && rate > 0;
@@ -61,7 +64,9 @@ export default function DeliveryProfitCalculatorPage() {
     if (!hasInputs) return null;
 
     const fishBill = Math.round(weight * rate);
-    const totalCollected = fishBill + customerShare;
+    const theoreticalCollected = fishBill + customerShare;
+    const totalCollected = actualPaid > 0 ? actualPaid : theoreticalCollected;
+    const surplusOrDifference = actualPaid > 0 ? actualPaid - theoreticalCollected : 0;
 
     // Direct farm out-of-pocket costs
     const procurementCost = Math.round(weight * cogsPerKg);
@@ -89,7 +94,9 @@ export default function DeliveryProfitCalculatorPage() {
 
     return {
       fishBill,
+      theoreticalCollected,
       totalCollected,
+      surplusOrDifference,
       procurementCost,
       laborCost,
       fishDirectCost,
@@ -102,7 +109,7 @@ export default function DeliveryProfitCalculatorPage() {
       profitPerKg,
       verdict,
     };
-  }, [hasInputs, weight, rate, riderFare, customerShare, productCut, cogsPerKg, laborPerKg]);
+  }, [hasInputs, weight, rate, riderFare, customerShare, actualPaid, productCut, cogsPerKg, laborPerKg]);
 
   if (checkingAuth || !isAdmin) {
     return (
@@ -215,12 +222,16 @@ export default function DeliveryProfitCalculatorPage() {
           {/* 4-Box Clean Breakdown */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
             <div className="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800">
-              <span className="text-[9.5px] uppercase font-bold text-slate-400 block">Customer Bill</span>
+              <span className="text-[9.5px] uppercase font-bold text-slate-400 block">
+                {actualPaid > 0 ? "Actual Collected" : "Customer Bill"}
+              </span>
               <span className="text-sm font-black text-white block mt-0.5">
                 ₹{math.totalCollected.toLocaleString("en-IN")}
               </span>
               <span className="text-[9px] text-slate-500 block truncate">
-                Fish ₹{math.fishBill} + Del ₹{customerShare}
+                {actualPaid > 0
+                  ? `Actual (Bill: ₹${math.theoreticalCollected})`
+                  : `Fish ₹${math.fishBill} + Del ₹${customerShare}`}
               </span>
             </div>
 
@@ -259,7 +270,7 @@ export default function DeliveryProfitCalculatorPage() {
             </div>
           </div>
 
-          {/* Simple 2-Line Math Step-by-Step */}
+          {/* Simple Math Step-by-Step */}
           <div className="bg-slate-950/90 p-2.5 rounded-xl border border-slate-800/80 text-[11px] space-y-0.5">
             <div className="flex items-center justify-between text-slate-300">
               <span>🐟 Fish Margin (₹{math.fishBill} bill - ₹{math.fishDirectCost} cost):</span>
@@ -271,6 +282,14 @@ export default function DeliveryProfitCalculatorPage() {
                 {math.farmSubsidy > 0 ? `-₹${math.farmSubsidy}` : `+₹${math.riderSurplus}`}
               </span>
             </div>
+            {math.surplusOrDifference !== 0 && (
+              <div className="flex items-center justify-between text-slate-300">
+                <span>⚖️ Link / Weight Surplus (₹{actualPaid} paid vs ₹{math.theoreticalCollected} bill):</span>
+                <span className={`font-bold ${math.surplusOrDifference > 0 ? "text-emerald-400" : "text-rose-400"}`}>
+                  {math.surplusOrDifference > 0 ? `+₹${math.surplusOrDifference}` : `-₹${Math.abs(math.surplusOrDifference)}`}
+                </span>
+              </div>
+            )}
             <div className="flex items-center justify-between pt-1 border-t border-slate-800 font-bold text-xs text-white">
               <span>Net In-Hand Profit:</span>
               <span className={math.netProfit >= 0 ? "text-emerald-400" : "text-rose-400"}>
@@ -495,6 +514,48 @@ export default function DeliveryProfitCalculatorPage() {
               ))}
             </div>
           </div>
+        </div>
+
+        {/* Section 5: Actual Total Collected Override (Optional) */}
+        <div className="pt-2.5 border-t border-slate-800 space-y-1.5">
+          <div className="flex items-center justify-between">
+            <label className="text-[11px] uppercase font-bold text-violet-400 flex items-center gap-1">
+              <span className="material-symbols-outlined text-[13px]">receipt_long</span>
+              <span>5. Actual Collected Override (₹) — Optional</span>
+            </label>
+            <span className="text-[9.5px] text-slate-500">
+              {math ? `Calculated: ₹${math.theoreticalCollected}` : "Leave blank to use calculated"}
+            </span>
+          </div>
+
+          <div className="relative">
+            <input
+              type="number"
+              step="any"
+              inputMode="numeric"
+              value={actualPaidStr}
+              placeholder={
+                math
+                  ? `Leave blank for ₹${math.theoreticalCollected} (or enter e.g. 1249 if preset link)`
+                  : "Leave blank for calculated bill"
+              }
+              onFocus={(e) => e.target.select()}
+              onChange={(e) => setActualPaidStr(e.target.value)}
+              className="w-full h-10 bg-slate-950 border border-slate-700 rounded-xl px-3 text-xs font-black text-violet-300 focus:outline-none focus:border-violet-400"
+            />
+            {actualPaid > 0 && (
+              <button
+                type="button"
+                onClick={() => setActualPaidStr("")}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] bg-slate-800 hover:bg-slate-700 text-slate-300 px-2 py-0.5 rounded cursor-pointer"
+              >
+                Reset
+              </button>
+            )}
+          </div>
+          <p className="text-[10px] text-slate-500">
+            Use when a customer paid for a preset link (e.g. 2 kg preset link @ ₹1,249) but actual delivered weight was slightly different (e.g. 1.94 kg).
+          </p>
         </div>
       </div>
 
