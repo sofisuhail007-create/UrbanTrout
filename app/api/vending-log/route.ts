@@ -532,7 +532,10 @@ export async function POST(request: Request) {
       : body.discount_amount !== undefined && body.discount_amount !== null
       ? parseFloat(body.discount_amount)
       : Math.max(0, expected - parsedPaid);
-    const effectiveRate = parsedWeight > 0 ? (parsedPaid > 0 ? Math.round((parsedPaid / parsedWeight) * 10) / 10 : parsedRate) : parsedRate;
+    const isDeliv = Boolean(custom_fields?.is_delivery || custom_fields?.order_channel === "delivery" || body.order_channel === "delivery");
+    const riderCost = isDeliv ? (Number(custom_fields?.delivery_rider_payout) || Number(custom_fields?.delivery_cost_total) || 0) : 0;
+    const netFishForRate = isDeliv ? Math.max(0, parsedPaid - riderCost) : parsedPaid;
+    const effectiveRate = parsedWeight > 0 ? (netFishForRate > 0 ? Math.round((netFishForRate / parsedWeight) * 10) / 10 : parsedRate) : parsedRate;
 
     const now = new Date();
     const entry: VendingSalesEntry = {

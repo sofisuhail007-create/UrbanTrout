@@ -2573,8 +2573,9 @@ export default function VendingCenterLoggerPage() {
       finalDiscount = rateDiscount + Math.max(0, agreedBill - amt);
     }
 
-    const fishPaid = formOrderChannel === "delivery" ? Math.max(0, amt - custDelShare) : amt;
-    const calculatedEffectiveRate = w > 0 ? (fishPaid > 0 ? Math.round((fishPaid / w) * 10) / 10 : formRate) : formRate;
+    const riderCost = formOrderChannel === "delivery" ? (parseFloat(formDeliveryRiderPayout) || (parseFloat(formDeliveryCostTotal) || 0)) : 0;
+    const netFishPaid = formOrderChannel === "delivery" ? Math.max(0, amt - riderCost) : amt;
+    const calculatedEffectiveRate = w > 0 ? (netFishPaid > 0 ? Math.round((netFishPaid / w) * 10) / 10 : formRate) : formRate;
 
     // Payment Mode & Split Payment breakdown
     let resolvedPaymentMode = formPayment;
@@ -3603,8 +3604,9 @@ export default function VendingCenterLoggerPage() {
       const w = Number(e.weight_kg) || 0;
       const isDel = Boolean(e.custom_fields?.is_delivery || e.custom_fields?.order_channel === "delivery");
       const custDel = isDel ? (Number(e.custom_fields?.delivery_customer_share) || 0) : 0;
-      const fishTaken = isDel ? Math.max(0, taken - custDel) : taken;
-      const effRate = w > 0 && fishTaken > 0 ? Math.round((fishTaken / w) * 10) / 10 : Number(e.rate_per_kg);
+      const riderPaid = isDel ? (Number(e.custom_fields?.delivery_rider_payout) || Number(e.custom_fields?.delivery_cost_total) || 0) : 0;
+      const netFish = isDel ? Math.max(0, taken - riderPaid) : taken;
+      const effRate = w > 0 && netFish > 0 ? Math.round((netFish / w) * 10) / 10 : Number(e.rate_per_kg);
       const loss =
         e.discount_amount !== undefined && e.discount_amount !== null
           ? Number(e.discount_amount)
@@ -6681,9 +6683,14 @@ export default function VendingCenterLoggerPage() {
 
                   const isDelivery = Boolean(e.custom_fields?.is_delivery || e.custom_fields?.order_channel === "delivery");
                   const custDelShare = isDelivery ? (Number(e.custom_fields?.delivery_customer_share) || 0) : 0;
+                  const riderPayout = isDelivery ? (Number(e.custom_fields?.delivery_rider_payout) || Number(e.custom_fields?.delivery_cost_total) || 0) : 0;
+                  const farmDelSubsidy = isDelivery ? Math.max(0, riderPayout - custDelShare) : 0;
                   const fishAmountPaid = isDelivery ? Math.max(0, taken - custDelShare) : taken;
+                  // Net fish money realized in-hand by farm after paying delivery out-of-pocket
+                  const netFishRealized = isDelivery ? Math.max(0, taken - riderPayout) : taken;
                   const extraVal = Number(e.custom_fields?.extra_amount) || (!isCreditSale && taken > exp && exp > 0 ? taken - exp : 0);
-                  const effRate = isCreditSale ? rate : (w > 0 && fishAmountPaid > 0 ? fishAmountPaid / w : rate);
+                  // Effective in-hand trout rate realized per kg by farm (deducts farm-subsidized delivery)
+                  const effRate = isCreditSale ? rate : (w > 0 && netFishRealized > 0 ? netFishRealized / w : rate);
                   const standardBenchmarkRate = isGutted ? (guttedPrice || DEFAULT_GUTTED_PRICE) : rate;
                   const rateDiff = standardBenchmarkRate - effRate;
 
@@ -6791,7 +6798,7 @@ export default function VendingCenterLoggerPage() {
                                 </>
                               )}
                               <span className="text-slate-500">•</span>
-                              <span className="text-cyan-300 font-bold" title="Actual fish buying rate without delivery fee">Trout: ₹{effRate.toFixed(0)}/Kg</span>
+                              <span className="text-cyan-300 font-bold" title={`Net in-hand trout rate after farm delivery subsidy (-₹${farmDelSubsidy})`}>Trout: ₹{effRate.toFixed(0)}/Kg</span>
                               {e.custom_fields?.delivery_rider_notes && (
                                 <span className="text-slate-400 italic">({e.custom_fields?.delivery_rider_notes})</span>
                               )}
@@ -6838,8 +6845,8 @@ export default function VendingCenterLoggerPage() {
                             @ ₹{e.rate_per_kg}/Kg
                           </span>
                           {isDelivery && Math.abs(effRate - rate) > 0.5 && (
-                            <span className="text-[9px] font-mono text-cyan-300 font-bold" title="Actual fish buying rate without delivery fee">
-                              Act: ₹{effRate.toFixed(0)}/Kg
+                            <span className="text-[9px] font-mono text-cyan-300 font-bold" title={`Net in-hand trout rate after farm delivery subsidy (-₹${farmDelSubsidy}): ₹${netFishRealized.toLocaleString("en-IN")} / ${w} Kg`}>
+                              Net: ₹{effRate.toFixed(0)}/Kg
                             </span>
                           )}
                         </div>
@@ -7259,8 +7266,11 @@ export default function VendingCenterLoggerPage() {
                   {(() => {
                     const isDelivery = Boolean(e.custom_fields?.is_delivery || e.custom_fields?.order_channel === "delivery");
                     const custDelShare = isDelivery ? (Number(e.custom_fields?.delivery_customer_share) || 0) : 0;
+                    const riderPayout = isDelivery ? (Number(e.custom_fields?.delivery_rider_payout) || Number(e.custom_fields?.delivery_cost_total) || 0) : 0;
+                    const farmDelSubsidy = isDelivery ? Math.max(0, riderPayout - custDelShare) : 0;
                     const fishAmountPaid = isDelivery ? Math.max(0, taken - custDelShare) : taken;
-                    const effRate = isCreditSale ? rate : (w > 0 && fishAmountPaid > 0 ? fishAmountPaid / w : rate);
+                    const netFishRealized = isDelivery ? Math.max(0, taken - riderPayout) : taken;
+                    const effRate = isCreditSale ? rate : (w > 0 && netFishRealized > 0 ? netFishRealized / w : rate);
                     const standardBenchmarkRate = isGutted ? (guttedPrice || DEFAULT_GUTTED_PRICE) : rate;
                     const rateDiff = standardBenchmarkRate - effRate;
                     const isLoss = !isCreditSale && rateDiff > 0.5;
@@ -7272,7 +7282,7 @@ export default function VendingCenterLoggerPage() {
                         <div className="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-slate-950/80 border border-slate-800/90 text-[10.5px] font-mono mt-1.5">
                           <span className="text-slate-400 flex items-center gap-1">
                             <span className="material-symbols-outlined text-[12px] text-teal-400">price_change</span>
-                            {isDelivery ? "Actual Fish Rate:" : "Eff. Rate:"}
+                            {isDelivery ? "Net Realized Rate:" : "Eff. Rate:"}
                           </span>
                           <div className="flex items-center gap-1.5">
                             <span
@@ -8129,11 +8139,14 @@ export default function VendingCenterLoggerPage() {
                 const expectedTotal = Math.round(wNum * formRate);
                 const standardExpectedTotal = Math.round(wNum * defaultStandardRate);
                 const actualPaid = parseFloat(formAmount) || 0;
+                const isDel = formOrderChannel === "delivery";
+                const riderCost = isDel ? (parseFloat(formDeliveryRiderPayout) || (parseFloat(formDeliveryCostTotal) || 0)) : 0;
+                const netFishPaid = isDel ? Math.max(0, actualPaid - riderCost) : actualPaid;
                 const rateConcession = Math.max(0, standardExpectedTotal - expectedTotal);
                 const customerRemainingDue = Math.max(0, expectedTotal - actualPaid);
                 const loss = wNum > 0 ? expectedTotal - actualPaid : 0;
                 const benchmarkLoss = wNum > 0 ? standardExpectedTotal - actualPaid : 0;
-                const effectiveRate = wNum > 0 && actualPaid > 0 ? (actualPaid / wNum) : formRate;
+                const effectiveRate = wNum > 0 && netFishPaid > 0 ? (netFishPaid / wNum) : formRate;
                 const rateLossPerKg = defaultStandardRate - effectiveRate;
                 const displayLoss = customerRemainingDue;
 
