@@ -76,12 +76,26 @@ function parseTimeToMinutes(timeStr?: string | null): number {
   return hours24 * 60 + m;
 }
 
+let cachedLiveStock: { data: AquariumStockSummary; timestamp: number } | null = null;
+const LIVE_STOCK_CACHE_TTL_MS = 20 * 1000; // 20s server cache to prevent redundant DB hammers
+
+/**
+ * Invalidate live stock cache (e.g. after new procurement, sale, or mortality)
+ */
+export function invalidateLiveStockCache() {
+  cachedLiveStock = null;
+}
+
 /**
  * Calculates real-time live trout biomass remaining in the aquarium.
  * Tracks true chronological inventory flow: procurement batches, verified intake baselines,
  * mortality losses, and vending sales without penalizing new batches for past surplus bonus fish.
  */
 export async function getLiveAquariumStock(customClient?: any): Promise<AquariumStockSummary> {
+  const now = Date.now();
+  if (!customClient && cachedLiveStock && (now - cachedLiveStock.timestamp) < LIVE_STOCK_CACHE_TTL_MS) {
+    return cachedLiveStock.data;
+  }
   try {
     const db = getAquariumDbClient(customClient);
 
@@ -247,7 +261,7 @@ export async function getLiveAquariumStock(customClient?: any): Promise<Aquarium
     const isOutOfStock = remainingKg === 0;
     const surplusKg = totalSurplusKg;
 
-    return {
+    const result: AquariumStockSummary = {
       remainingKg,
       totalProcuredKg,
       allTimeSoldKg,
@@ -255,6 +269,10 @@ export async function getLiveAquariumStock(customClient?: any): Promise<Aquarium
       surplusKg,
       isOutOfStock,
     };
+    if (!customClient) {
+      cachedLiveStock = { data: result, timestamp: Date.now() };
+    }
+    return result;
   } catch (err) {
     console.error("Error calculating live aquarium stock:", err);
     return {

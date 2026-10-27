@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import * as XLSX from "xlsx";
 import { adminFetch } from "@/lib/adminClient";
 import { KHYBER_SLABS, RebateSlab, MonthRebateSummary, CreditDeduction } from "@/app/api/supplier-rebates/route";
 
@@ -220,8 +219,9 @@ export default function SupplierRebateTracker({
   const octKgNeeded = octData?.kgToNext ?? 190;
 
   // ══════════ EXCEL EXPORT ══════════
-  const generateKhyberExcel = useCallback(() => {
+  const generateKhyberExcel = useCallback(async () => {
     if (!rebatesData) return;
+    const XLSX = await import("xlsx");
     const monthData = currentMonthData;
     const monthLabel = monthData?.monthLabel ?? selectedMonth;
     const generatedAt = new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });

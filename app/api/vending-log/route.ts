@@ -62,7 +62,14 @@ export function normalizeStaffName(name?: string | null): string {
 }
 
 // Fallback helper to store/retrieve from app_settings if table not created yet
+let fallbackCache: { data: VendingSalesEntry[]; timestamp: number } | null = null;
+const CACHE_TTL_MS = 60 * 1000; // 60s in-memory cache to eliminate heavy 270KB DB round-trips
+
 async function getFallbackEntries(): Promise<VendingSalesEntry[]> {
+  const now = Date.now();
+  if (fallbackCache && (now - fallbackCache.timestamp) < CACHE_TTL_MS) {
+    return fallbackCache.data;
+  }
   try {
     const { data } = await supabase
       .from("app_settings")
@@ -70,14 +77,17 @@ async function getFallbackEntries(): Promise<VendingSalesEntry[]> {
       .eq("key", "vending_log_data")
       .single();
     if (data?.value) {
-      return JSON.parse(data.value);
+      const parsed = JSON.parse(data.value);
+      fallbackCache = { data: parsed, timestamp: now };
+      return parsed;
     }
   } catch (_) {}
-  return [];
+  return fallbackCache ? fallbackCache.data : [];
 }
 
 async function saveFallbackEntries(entries: VendingSalesEntry[]) {
   try {
+    fallbackCache = { data: entries, timestamp: Date.now() };
     await supabase.from("app_settings").upsert(
       {
         key: "vending_log_data",
