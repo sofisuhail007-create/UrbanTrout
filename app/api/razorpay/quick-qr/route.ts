@@ -109,15 +109,15 @@ export async function GET(req: NextRequest) {
     const rupeeSvg = React.createElement(
       "svg",
       {
-        width: 44,
-        height: 50,
+        width: 36,
+        height: 42,
         viewBox: "0 0 24 24",
         fill: "none",
         stroke: "#38bdf8",
         strokeWidth: 2.5,
         strokeLinecap: "round",
         strokeLinejoin: "round",
-        style: { marginRight: 4, display: "flex" },
+        style: { marginRight: 6, display: "flex" },
       },
       [
         React.createElement("path", {
@@ -133,58 +133,71 @@ export async function GET(req: NextRequest) {
           style: {
             display: "flex",
             flexDirection: "column",
-            width: 674,
-            height: 1880,
+            width: 720,
+            height: 1280,
             backgroundColor: "#020d12",
             alignItems: "center",
-            padding: "16px 14px",
+            padding: "16px 20px",
+            justifyContent: "space-between",
           },
         },
         [
-          // Top Header Banner with Locked Amount
+          // Top Header Banner with Locked Amount & Brand
           React.createElement(
             "div",
             {
-              key: "header",
+              key: "top-card",
               style: {
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
-                backgroundColor: "#061a24",
+                width: "100%",
+                backgroundColor: "#061d28",
                 border: "2px solid #38bdf8",
                 borderRadius: "22px",
-                padding: "16px 20px",
-                marginBottom: "14px",
-                width: "100%",
-                boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
+                padding: "12px 20px",
+                boxShadow: "0 8px 30px rgba(0,0,0,0.6)",
               },
             },
             [
               React.createElement(
                 "div",
                 {
-                  key: "subtitle",
+                  key: "title",
                   style: {
                     display: "flex",
-                    fontSize: 15,
-                    fontWeight: 700,
-                    color: "#94a3b8",
+                    fontSize: 16,
+                    fontWeight: 800,
+                    color: "#38bdf8",
                     textTransform: "uppercase",
                     letterSpacing: "2px",
-                    marginBottom: "4px",
                   },
                 },
-                "Urban Trout Aquaculture • Doorstep COD"
+                "URBAN TROUT AQUACULTURE"
               ),
               React.createElement(
                 "div",
                 {
-                  key: "amt-row",
+                  key: "tagline",
+                  style: {
+                    display: "flex",
+                    fontSize: 11,
+                    color: "#94a3b8",
+                    marginTop: 1,
+                    fontWeight: 500,
+                  },
+                },
+                "Pioneering Cold-Water RAS Aquaculture • Harvested Live to Order"
+              ),
+              React.createElement(
+                "div",
+                {
+                  key: "amount-row",
                   style: {
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    marginTop: "2px",
+                    marginTop: 4,
                   },
                 },
                 [
@@ -193,7 +206,7 @@ export async function GET(req: NextRequest) {
                     "span",
                     {
                       style: {
-                        fontSize: 62,
+                        fontSize: 48,
                         fontWeight: 900,
                         color: "#ffffff",
                         letterSpacing: "-1px",
@@ -211,10 +224,10 @@ export async function GET(req: NextRequest) {
                     display: "flex",
                     alignItems: "center",
                     backgroundColor: "#064e3b",
-                    border: "1px solid #10b981",
+                    border: "1.5px solid #10b981",
                     borderRadius: "999px",
-                    padding: "4px 14px",
-                    marginTop: "6px",
+                    padding: "3px 14px",
+                    marginTop: 4,
                   },
                 },
                 [
@@ -222,43 +235,69 @@ export async function GET(req: NextRequest) {
                     "span",
                     {
                       style: {
-                        fontSize: 13,
-                        fontWeight: 700,
+                        fontSize: 11,
+                        fontWeight: 800,
                         color: "#a7f3d0",
+                        letterSpacing: "0.5px",
                       },
                     },
                     "EXACT AMOUNT LOCKED IN QR"
                   ),
                 ]
               ),
-              React.createElement(
-                "div",
-                {
-                  key: "subtext",
-                  style: {
-                    display: "flex",
-                    fontSize: 12,
-                    color: "#64748b",
-                    marginTop: "6px",
-                  },
-                },
-                "Scan with any UPI app (GPay, PhonePe, Paytm, BHIM)"
-              ),
             ]
           ),
-          // Razorpay Official QR Code Image
-          React.createElement("img", {
-            key: "rzp-card",
-            src: rzpDataUri,
-            width: 646,
-            height: 1575,
-            style: { borderRadius: "18px" },
-          }),
+          // Razorpay Official QR Code Frame (500x1020 viewport, perfect fit without extra blank bottom)
+          React.createElement(
+            "div",
+            {
+              key: "qr-frame",
+              style: {
+                display: "flex",
+                width: 500,
+                height: 1020,
+                overflow: "hidden",
+                borderRadius: "22px",
+                border: "2px solid rgba(56, 189, 248, 0.4)",
+                backgroundColor: "#ffffff",
+                alignItems: "center",
+                justifyContent: "center",
+              },
+            },
+            [
+              React.createElement("img", {
+                src: rzpDataUri,
+                width: 500,
+                height: 1219,
+                style: { marginTop: -10 },
+              }),
+            ]
+          ),
+          // Footer
+          React.createElement(
+            "div",
+            {
+              key: "footer",
+              style: {
+                display: "flex",
+                justifyContent: "space-between",
+                width: "100%",
+                padding: "0 8px",
+                fontSize: 11,
+                color: "#64748b",
+                fontWeight: 600,
+              },
+            },
+            [
+              React.createElement("span", null, "Malabagh, Srinagar • Instant Delivery"),
+              React.createElement("span", null, "Google Pay • PhonePe • Paytm • BHIM"),
+            ]
+          ),
         ]
       ),
       {
-        width: 674,
-        height: 1880,
+        width: 720,
+        height: 1280,
         headers: {
           "Cache-Control": "no-store, no-cache, must-revalidate",
           "X-Razorpay-QR-ID": qr.id,
