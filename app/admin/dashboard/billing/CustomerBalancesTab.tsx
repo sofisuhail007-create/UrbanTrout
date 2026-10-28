@@ -291,6 +291,33 @@ export default function CustomerBalancesTab({
         </div>
       </div>
 
+      {/* Search results banner */}
+      {searchTerm && (
+        <div className="flex items-center justify-between px-3 py-2 bg-cyan-950/40 border border-cyan-500/30 rounded-xl text-xs font-mono">
+          <span className="text-cyan-300">
+            Results for &quot;{searchTerm}&quot;: {summary.pendingRecordsCount} pending, {summary.settledCount} settled ({summary.totalRecordsCount} total)
+          </span>
+          <div className="flex items-center gap-2">
+            {statusFilter !== "all" && (
+              <button
+                type="button"
+                onClick={() => setStatusFilter("all")}
+                className="px-2 py-0.5 rounded bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-200 text-[11px] font-bold transition-all cursor-pointer"
+              >
+                View All ({summary.totalRecordsCount})
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={() => setSearchTerm("")}
+              className="text-slate-400 hover:text-rose-300 text-[11px] cursor-pointer"
+            >
+              Clear Search
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Ledger Table / List */}
       {loading ? (
         <div className="p-12 text-center text-slate-500 text-xs font-mono">
@@ -298,17 +325,38 @@ export default function CustomerBalancesTab({
           Loading customer khata ledger...
         </div>
       ) : records.length === 0 ? (
-        <div className="p-12 text-center bg-slate-900/40 border border-slate-800/80 rounded-2xl space-y-2">
-          <span className="material-symbols-outlined text-4xl text-slate-600">check_circle</span>
-          <h4 className="text-sm font-bold text-slate-300">
-            {statusFilter === "pending" ? "No Pending Balances Found!" : "No Records Found"}
-          </h4>
-          <p className="text-xs text-slate-500 max-w-sm mx-auto">
-            {statusFilter === "pending"
-              ? "All customer accounts are clear, settled, or waived. When you record a partial payment at the counter, it will appear here."
-              : "No customer records matching the current filter."}
-          </p>
-        </div>
+        statusFilter === "pending" && summary.settledCount > 0 ? (
+          <div className="p-12 text-center bg-slate-900/40 border border-slate-800/80 rounded-2xl space-y-3">
+            <span className="material-symbols-outlined text-4xl text-emerald-400">task_alt</span>
+            <h4 className="text-sm font-bold text-slate-200">
+              No Pending Balances {searchTerm ? `for "${searchTerm}"` : ""}
+            </h4>
+            <p className="text-xs text-slate-400 max-w-sm mx-auto">
+              {searchTerm
+                ? `There are ${summary.settledCount} settled / cleared bill(s) matching "${searchTerm}".`
+                : "All current balances are settled or cleared."}
+            </p>
+            <button
+              type="button"
+              onClick={() => setStatusFilter("settled")}
+              className="px-4 py-2 rounded-xl bg-emerald-600/30 border border-emerald-500/50 text-emerald-200 text-xs font-bold hover:bg-emerald-600/40 transition-all cursor-pointer"
+            >
+              View Settled / Waived Bills ({summary.settledCount})
+            </button>
+          </div>
+        ) : (
+          <div className="p-12 text-center bg-slate-900/40 border border-slate-800/80 rounded-2xl space-y-2">
+            <span className="material-symbols-outlined text-4xl text-slate-600">check_circle</span>
+            <h4 className="text-sm font-bold text-slate-300">
+              {statusFilter === "pending" ? "No Pending Balances Found!" : "No Records Found"}
+            </h4>
+            <p className="text-xs text-slate-500 max-w-sm mx-auto">
+              {statusFilter === "pending"
+                ? "All customer accounts are clear, settled, or waived. When you record a partial payment at the counter, it will appear here."
+                : "No customer records matching the current filter."}
+            </p>
+          </div>
+        )
       ) : (
         <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950/40">
           <table className="w-full text-left text-xs">

@@ -164,23 +164,57 @@ export async function GET(request: Request) {
       const { data: vslRows } = await supabase
         .from("vending_sales_log")
         .select("*")
-        .not("custom_fields->balance_amount", "is", null)
+        .or("payment_mode.ilike.%credit%,payment_mode.ilike.%khata%,custom_fields->>balance_amount.not.is.null,custom_fields->>balance_ref_id.not.is.null")
         .order("entry_date", { ascending: false });
 
       if (Array.isArray(vslRows)) {
         vslRows.forEach((r) => {
           const cf = r.custom_fields || {};
+          const mode = (r.payment_mode || "").toLowerCase();
+          const isCredit = mode.includes("credit") || mode.includes("khata") || Boolean(cf.balance_ref_id);
           const bal = Number(cf.balance_amount || 0);
-          const status = (cf.balance_status as any) || (bal > 0 ? "pending" : "settled");
+          const paid = Number(r.amount_paid || 0);
+          const w = Number(r.weight_kg) || 0;
+          const rate = Number(r.rate_per_kg) || 0;
+          const exp = Number(cf.expected_amount) || Number(r.expected_amount) || Math.round(w * rate);
           const refId = cf.balance_ref_id || `VL-${(r.entry_date || "").replace(/\D/g, "")}-${r.id.slice(-4)}`;
 
-          const existing = records.find((b) => b.invoice_id === refId || b.id === r.id);
-          if (!existing && (bal > 0 || status === "waived_final" || status === "settled")) {
-            const w = Number(r.weight_kg) || 0;
-            const rate = Number(r.rate_per_kg) || 0;
-            const exp = Number(cf.expected_amount) || Math.round(w * rate);
-            const paid = Number(r.amount_paid) || 0;
+          // Exclude anonymous counter sales with ₹5 roundoffs that were never on Khata
+          const isCounterOnly = (!cf.customer_name || cf.customer_name === "Counter" || cf.customer_name === "Counter Customer") && !isCredit && !cf.balance_ref_id;
+          if (isCounterOnly) return;
 
+          // Resolve status
+          let status: "pending" | "settled" | "waived_final" = "pending";
+          if (cf.balance_status === "waived_final" || cf.is_waived) {
+            status = "waived_final";
+          } else if (bal <= 0 && (cf.settled_at || isCredit || cf.is_full_payment || cf.balance_status === "settled" || cf.balance_status === "none")) {
+            status = "settled";
+          } else if (bal > 0) {
+            status = "pending";
+          } else {
+            status = (cf.balance_status as any) || "settled";
+          }
+
+          const existingIdx = records.findIndex((b) => b.invoice_id === refId || b.id === r.id);
+          if (existingIdx >= 0) {
+            // Merge & enrich with live VSL entry (VSL has the ground-truth paid_amount and settlement)
+            const ex = records[existingIdx];
+            const resolvedPaid = Math.max(ex.paid_amount, paid);
+            const resolvedBal = bal <= 0 || resolvedPaid >= exp ? 0 : bal;
+            const resolvedStatus = resolvedBal <= 0 ? (ex.status === "waived_final" ? "waived_final" : "settled") : "pending";
+
+            records[existingIdx] = {
+              ...ex,
+              paid_amount: resolvedPaid,
+              total_amount: ex.total_amount || exp,
+              balance_amount: resolvedBal,
+              status: resolvedStatus,
+              payment_method: r.payment_mode || ex.payment_method,
+              customer_name: ex.customer_name && ex.customer_name !== "Counter Customer" ? ex.customer_name : (cf.customer_name || "Counter Customer"),
+              customer_phone: ex.customer_phone && ex.customer_phone !== "N/A" ? ex.customer_phone : (cf.customer_phone || "N/A"),
+              settlement_note: ex.settlement_note || (r.notes ? `Vending: ${r.notes}` : `Vending Center Sale: ${w} Kg ${r.product_type}`),
+            };
+          } else if (bal > 0 || isCredit || status === "settled" || status === "waived_final") {
             records.push({
               id: r.id,
               invoice_id: refId,
@@ -302,20 +336,38 @@ export async function GET(request: Request) {
     }
 
     // Calculate executive KPIs
+    const matchesSearch = (r: CustomerBalanceRecord) => {
+      if (!search) return true;
+      const name = (r.customer_name || "").toLowerCase();
+      const phone = (r.customer_phone || "").replace(/\D/g, "");
+      const inv = (r.invoice_id || "").toLowerCase();
+      return name.includes(search) || phone.includes(search) || inv.includes(search);
+    };
+
+    const searchScopedRecords = search ? records.filter(matchesSearch) : records;
     const pendingRecords = records.filter((r) => r.status === "pending" && r.balance_amount > 0);
     const totalPendingAmount = pendingRecords.reduce((sum, r) => sum + r.balance_amount, 0);
     const pendingCustomersCount = new Set(pendingRecords.map((r) => (r.customer_phone || "").replace(/\D/g, ""))).size;
-    const settledCount = records.filter((r) => r.status === "settled" || r.status === "waived_final").length;
+    const settledCount = records.filter((r) => r.status === "settled" || r.status === "waived_final" || r.balance_amount <= 0).length;
+
+    const matchingPendingCount = searchScopedRecords.filter((r) => r.status === "pending" && r.balance_amount > 0).length;
+    const matchingSettledCount = searchScopedRecords.filter((r) => r.status === "settled" || r.status === "waived_final" || r.balance_amount <= 0).length;
 
     return NextResponse.json({
       success: true,
       records: filtered,
       summary: {
         totalPendingAmount,
-        pendingRecordsCount: pendingRecords.length,
+        pendingRecordsCount: search ? matchingPendingCount : pendingRecords.length,
         pendingCustomersCount,
-        settledCount,
-        totalRecordsCount: records.length,
+        settledCount: search ? matchingSettledCount : settledCount,
+        totalRecordsCount: search ? searchScopedRecords.length : records.length,
+        globalPendingCount: pendingRecords.length,
+        globalSettledCount: settledCount,
+        globalTotalCount: records.length,
+        matchingPendingCount,
+        matchingSettledCount,
+        matchingTotalCount: searchScopedRecords.length,
       },
       fallbackMode: usedFallback,
     });
@@ -567,16 +619,25 @@ export async function PATCH(request: Request) {
     // Handle different actions
     if (action === "RECORD_PAYMENT") {
       const payment = Number(amountReceived || 0);
-      if (payment > 0) {
+      const isFinal = Boolean(body.isFinalSettlement);
+      const concession = Number(body.concessionAmount || 0);
+
+      if (payment > 0 || isFinal) {
         current.paid_amount = Number((current.paid_amount + payment).toFixed(2));
-        current.balance_amount = Number(Math.max(0, current.balance_amount - payment).toFixed(2));
-        current.status = current.balance_amount <= 0 ? "settled" : "pending";
-        current.payment_method = paymentMethod || current.payment_method || "Razorpay Link (Verified)";
-        if (settlementNote) {
-          current.settlement_note = current.settlement_note
-            ? `${current.settlement_note} | Repayment ₹${payment}: ${settlementNote}`
-            : `Repayment ₹${payment}: ${settlementNote}`;
+        if (isFinal || concession > 0) {
+          current.balance_amount = 0;
+          current.status = "settled";
+          current.settlement_note = settlementNote || `Final settlement: Received ₹${payment}, waived ₹${concession} courtesy concession`;
+        } else {
+          current.balance_amount = Number(Math.max(0, current.balance_amount - payment).toFixed(2));
+          current.status = current.balance_amount <= 0 ? "settled" : "pending";
+          if (settlementNote) {
+            current.settlement_note = current.settlement_note
+              ? `${current.settlement_note} | Repayment ₹${payment}: ${settlementNote}`
+              : `Repayment ₹${payment}: ${settlementNote}`;
+          }
         }
+        current.payment_method = paymentMethod || current.payment_method || "Razorpay Link (Verified)";
       }
     } else if (action === "SETTLE_FINAL_WAIVER") {
       current.status = "waived_final";
@@ -698,24 +759,36 @@ export async function PATCH(request: Request) {
         if (!Array.isArray(cf.payment_history)) {
           cf.payment_history = [];
         }
+        const isFinal = Boolean(body.isFinalSettlement);
+        const concession = Number(body.concessionAmount || 0);
+
         if (action === "RECORD_PAYMENT") {
           cf.payment_history.push({
             amount: Number(amountReceived || current.paid_amount),
+            concession: concession > 0 ? concession : undefined,
+            is_final_settlement: isFinal,
             method: current.payment_method || "Razorpay QR (Verified)",
             timestamp: nowIso,
-            note: settlementNote || "Balance payment cleared",
+            note: settlementNote || (isFinal ? `Final settlement: Received ₹${amountReceived}, waived ₹${concession} concession` : "Balance payment cleared"),
           });
         }
 
         // Check if fully settled
-        const isSettled = current.status === "settled" || current.balance_amount <= 0;
+        const isSettled = current.status === "settled" || current.balance_amount <= 0 || isFinal;
         if (isSettled) {
           cf.settled_at = nowIso;
           cf.is_full_payment = true;
-          cf.settled_payment_method = current.payment_method || "Razorpay QR (Verified)";
+          cf.balance_amount = 0;
+          cf.balance_status = "settled";
+          cf.settled_payment_method = current.payment_method || "Cash at Counter";
+          if (concession > 0) {
+            cf.concession_amount = Number(cf.concession_amount || 0) + concession;
+          }
         } else if (current.status === "waived_final") {
           cf.settled_at = nowIso;
           cf.is_waived = true;
+          cf.balance_amount = 0;
+          cf.balance_status = "waived_final";
         }
 
         // Amount paid should be the full updated paid_amount (e.g. 500 + 179 = 679)
@@ -756,8 +829,10 @@ export async function PATCH(request: Request) {
 
         // Timestamped audit note
         let updatedNotes = vslMatch.notes || "";
-        if (action === "RECORD_PAYMENT" && Number(amountReceived || 0) > 0) {
-          const noteText = isSettled
+        if (action === "RECORD_PAYMENT" && (Number(amountReceived || 0) > 0 || isFinal)) {
+          const noteText = isFinal && concession > 0
+            ? `[FINAL SETTLEMENT ✓: ₹${amountReceived} paid via ${current.payment_method || "Cash"} on ${nowFormatted} (₹${concession} conceded as round-off discount)]`
+            : isSettled
             ? `[FULL PAYMENT ✓: ₹${amountReceived} paid via ${current.payment_method || "QR"} on ${nowFormatted}]`
             : `[PARTIAL PAYMENT: ₹${amountReceived} paid via ${current.payment_method || "QR"} on ${nowFormatted} - Remaining: ₹${current.balance_amount}]`;
           updatedNotes = updatedNotes ? `${updatedNotes} | ${noteText}` : noteText;

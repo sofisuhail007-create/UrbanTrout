@@ -2553,7 +2553,7 @@ export default function VendingCenterLoggerPage() {
 
     let finalDiscount = 0;
     let balanceAmount = 0;
-    let balanceStatus: "pending" | "waived_final" | "none" = "none";
+    let balanceStatus: "pending" | "waived_final" | "settled" | "none" = "none";
     let balanceRefId = editingEntry?.custom_fields?.balance_ref_id;
 
     if (formBalanceAction === "balance" && difference > 0) {
@@ -2565,11 +2565,11 @@ export default function VendingCenterLoggerPage() {
       }
     } else if (formBalanceAction === "final_settlement" && difference > 0) {
       balanceAmount = 0;
-      balanceStatus = "waived_final";
+      balanceStatus = amt > 0 ? "settled" : "waived_final";
       finalDiscount = rateDiscount + difference; // Full difference conceded as courtesy discount + rate concession
     } else {
       balanceAmount = 0;
-      balanceStatus = "none";
+      balanceStatus = (editingEntry?.custom_fields?.balance_ref_id || formPayment === "Credit (Khata)") ? "settled" : "none";
       finalDiscount = rateDiscount + Math.max(0, agreedBill - amt);
     }
 
@@ -2653,11 +2653,25 @@ export default function VendingCenterLoggerPage() {
         } catch (e) {
           console.warn("Failed to sync customer balance record:", e);
         }
-      } else if (balanceRefId && (balanceStatus === "waived_final" || balanceStatus === "none" || formBalanceAction === "none")) {
+      } else if (balanceRefId && (balanceStatus === "settled" || balanceStatus === "waived_final" || balanceStatus === "none" || formBalanceAction === "final_settlement" || formBalanceAction === "none")) {
         try {
           if (formBalanceAction === "none") {
             await adminFetch(`/api/customer-balance?id=${encodeURIComponent(balanceRefId)}`, {
               method: "DELETE",
+            });
+          } else if (amt > 0) {
+            await adminFetch("/api/customer-balance", {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                id: balanceRefId,
+                action: "RECORD_PAYMENT",
+                amountReceived: amt,
+                isFinalSettlement: true,
+                concessionAmount: difference,
+                paymentMethod: resolvedPaymentMode,
+                settlementNote: `Final settlement: Received ₹${amt}, conceded ₹${difference} round-off discount`,
+              }),
             });
           } else {
             await adminFetch("/api/customer-balance", {
@@ -7379,7 +7393,7 @@ export default function VendingCenterLoggerPage() {
                         <span className="material-symbols-outlined text-[12px] text-amber-300">payments</span>
                         Settle: ₹{Number(e.custom_fields.balance_amount).toLocaleString("en-IN")}
                       </button>
-                    ) : isCreditSale && (Number(e.custom_fields?.balance_amount) > 0 || taken === 0) ? (
+                    ) : isCreditSale && (Number(e.custom_fields?.balance_amount) > 0 || taken === 0) && e.custom_fields?.balance_status !== "settled" ? (
                       <button
                         type="button"
                         onClick={() => handleOpenBalanceModalForEntry(e, "settle")}
@@ -7388,6 +7402,10 @@ export default function VendingCenterLoggerPage() {
                         <span className="material-symbols-outlined text-[12px] text-amber-300">payments</span>
                         Settle: ₹{Number(e.custom_fields?.balance_amount || exp).toLocaleString("en-IN")}
                       </button>
+                    ) : e.custom_fields?.balance_status === "settled" || e.custom_fields?.settled_at || e.custom_fields?.is_full_payment ? (
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/40">
+                        ✓ Full Paid
+                      </span>
                     ) : e.custom_fields?.balance_status === "waived_final" ? (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-medium text-slate-300 bg-slate-800/90 border border-slate-700">
                         🤝 Waived (-₹{loss})
