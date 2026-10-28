@@ -2,184 +2,169 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import {
   answerCallbackQuery,
-  editTelegramMessageText,
   escapeHtml,
-  formatInventoryItemText,
-  formatOrderTelegramText,
-  getInventoryKeyboard,
-  getOrderKeyboard,
   sendTelegramMessage,
-  type InlineKeyboardButton,
-  type InlineKeyboardMarkup,
 } from "@/lib/telegram";
-import { sendOrderStatusUpdateEmail } from "@/lib/email";
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 );
 
-function extractEmail(order: any): string | undefined {
-  if (!order) return undefined;
-  if (order.customer_email && typeof order.customer_email === "string" && order.customer_email.includes("@")) {
-    return order.customer_email.trim();
-  }
-  if (order.customer_address && typeof order.customer_address === "string") {
-    const match = order.customer_address.match(/Email:\s*([^\s)]+@[^\s)]+)/i);
-    if (match) return match[1].trim();
-  }
-  return undefined;
-}
+/**
+ * Compiles the complete Daily Status & Operations Report (Live Aquarium Stock, Today's Sales Entries, Cash Collected, Online Orders)
+ */
+async function generateStatusReport(): Promise<string> {
+  const istDateStr = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Kolkata",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
 
-async function findAndUpdateOrder(rawIdOrNum: string, newStatus: string) {
-  const cleanDigits = rawIdOrNum.replace(/\D/g, "");
-  const cleanNum = cleanDigits ? parseInt(cleanDigits, 10) : NaN;
-  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(rawIdOrNum);
+  const formattedDate = new Intl.DateTimeFormat("en-IN", {
+    timeZone: "Asia/Kolkata",
+    weekday: "long",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(new Date());
 
-  // 1. Try by numeric order_number (e.g. 8, 9, UT-8, #8)
-  if (!isNaN(cleanNum) && cleanNum > 0) {
-    const { data } = await supabase
-      .from("orders")
-      .update({ status: newStatus })
-      .eq("order_number", cleanNum)
-      .select("*")
-      .maybeSingle();
+  const timeStr = new Intl.DateTimeFormat("en-IN", {
+    timeZone: "Asia/Kolkata",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  }).format(new Date());
 
-    if (data) return data;
-  }
-
-  // 2. Try by UUID if it matches UUID format
-  if (isUUID) {
-    const { data } = await supabase
-      .from("orders")
-      .update({ status: newStatus })
-      .eq("id", rawIdOrNum)
-      .select("*")
-      .maybeSingle();
-
-    if (data) return data;
-  }
-
-  // 3. Try lookup in invoices table if generated via POS billing
+  // 1. Fetch live aquarium stock availability
+  let liveStockRemainingKg = 0;
+  let isOutOfStock = false;
   try {
-    const invoiceLookup = cleanDigits || rawIdOrNum;
-    const { data: invRow } = await supabase
-      .from("invoices")
-      .select("*")
-      .eq("id", invoiceLookup)
-      .maybeSingle();
-
-    if (invRow && invRow.data) {
-      const updatedInvData = { ...invRow.data, deliveryStatus: newStatus };
-      if (newStatus === "cancelled") updatedInvData.paymentStatus = "CANCELLED";
-      await supabase
-        .from("invoices")
-        .update({ data: updatedInvData })
-        .eq("id", invoiceLookup);
-
-      return {
-        order_number: invRow.id,
-        customer_name: invRow.data.customerName || "Customer",
-        customer_phone: invRow.data.customerPhone || "",
-        total: invRow.data.grandTotal || 0,
-        status: newStatus,
-        items: (invRow.data.items || []).map((it: any) => ({
-          name: it.name,
-          quantity: it.weightKg || 1,
-          price: it.pricePerKg || it.total,
-          unit: "Kg",
-        })),
-      };
-    }
-  } catch (_) {}
-
-  // 4. Vending log is manually maintained by farm staff — never modify vending_sales_log from telegram status clicks.
-
-  return null;
-}
-
-// Helper to enqueue WhatsApp dispatches for the local WhatsApp agent to transmit
-async function queueWhatsAppDispatch(dispatch: {
-  phone: string;
-  customerName: string;
-  orderRef: string;
-  status: string;
-  messageText: string;
-}) {
-  if (!dispatch.phone) return;
-  const cleanPhone = String(dispatch.phone).replace(/\D/g, "").slice(-10);
-  if (cleanPhone.length !== 10) return;
-
-  try {
-    const { data: row } = await supabase
-      .from("app_settings")
-      .select("value")
-      .eq("key", "whatsapp_dispatch_queue")
-      .maybeSingle();
-
-    let queue: any[] = [];
-    if (row?.value) {
-      try {
-        queue = JSON.parse(row.value);
-      } catch (_) {}
-    }
-
-    const newEntry = {
-      id: `disp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-      orderRef: dispatch.orderRef,
-      phone: cleanPhone,
-      customerName: dispatch.customerName,
-      status: dispatch.status,
-      messageText: dispatch.messageText,
-      dispatched: false,
-      queuedAt: new Date().toISOString(),
-    };
-
-    queue.push(newEntry);
-    if (queue.length > 50) queue = queue.slice(-50);
-
-    await supabase.from("app_settings").upsert({
-      key: "whatsapp_dispatch_queue",
-      value: JSON.stringify(queue),
-      description: "Pending WhatsApp customer notifications from Telegram status updates",
-      updated_at: new Date().toISOString(),
-    }, { onConflict: "key" });
-
-    console.log(`[WhatsApp Dispatch Queue] Enqueued ${dispatch.status} message for +91 ${cleanPhone}`);
+    const { getLiveAquariumStock } = await import("@/lib/aquariumStock");
+    const stockSummary = await getLiveAquariumStock(supabase);
+    liveStockRemainingKg = Number(stockSummary.remainingKg || 0);
+    isOutOfStock = Boolean(stockSummary.isOutOfStock || liveStockRemainingKg <= 0);
   } catch (err) {
-    console.error("[WhatsApp Dispatch Queue] Error enqueuing message:", err);
+    console.warn("Could not calculate live aquarium stock directly, trying API fallback:", err);
+    try {
+      const res = await fetch("https://urbantrout.in/api/aquarium-stock", { next: { revalidate: 0 } });
+      const json = await res.json();
+      if (json?.liveSummary) {
+        liveStockRemainingKg = Number(json.liveSummary.remainingKg || 0);
+        isOutOfStock = Boolean(json.liveSummary.isOutOfStock || liveStockRemainingKg <= 0);
+      }
+    } catch (_) {}
   }
+
+  // 2. Fetch today's farm vending sales log entries
+  const { data: salesEntries } = await supabase
+    .from("vending_sales_log")
+    .select("*")
+    .eq("entry_date", istDateStr)
+    .order("created_at", { ascending: true });
+
+  let storeKg = 0;
+  let storeRevenue = 0;
+  let storeCash = 0;
+  let storeCashCount = 0;
+  let storeOnline = 0;
+  let storeOnlineCount = 0;
+
+  const entriesList = (salesEntries || []).map((e: any, i: number) => {
+    const w = Number(e.weight_kg || 0);
+    const p = Number(e.amount_paid || 0);
+    storeKg += w;
+    storeRevenue += p;
+    const isCash = (e.payment_mode || "").toLowerCase().includes("cash");
+    if (isCash) {
+      storeCash += p;
+      storeCashCount++;
+    } else {
+      storeOnline += p;
+      storeOnlineCount++;
+    }
+
+    const t = e.entry_time || (e.created_at ? new Date(e.created_at).toLocaleTimeString("en-IN", {
+      timeZone: "Asia/Kolkata",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    }) : "");
+    const payIcon = isCash ? "💵 Cash" : "📱 Online";
+    const cust = e.custom_fields?.customer_name ? ` (${escapeHtml(String(e.custom_fields.customer_name))})` : "";
+    const prod = e.product_type || "Gutted";
+    return `  ${i + 1}. <i>${t}</i> — <b>${w.toFixed(2)} Kg</b> ${escapeHtml(prod)}${cust} • <b>₹${p.toLocaleString("en-IN")}</b> [${payIcon}]`;
+  });
+
+  // 3. Fetch today's website / delivery orders
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+  const { data: ordersToday } = await supabase
+    .from("orders")
+    .select("*")
+    .gte("created_at", startOfDay.toISOString())
+    .order("created_at", { ascending: false });
+
+  const paidOrders = (ordersToday || []).filter((o: any) =>
+    ["delivered", "processing", "confirmed", "out_for_delivery"].includes(o.status)
+  );
+  const pendingOrders = (ordersToday || []).filter((o: any) => o.status === "pending");
+  const onlineOrderRevenue = paidOrders.reduce((sum: number, o: any) => sum + (Number(o.total) || 0), 0);
+  const onlineOrderKg = paidOrders.reduce((sum: number, o: any) => {
+    const it = o.items || [];
+    return sum + (Array.isArray(it) ? it.reduce((s: number, item: any) => s + (Number(item.quantity) || 1), 0) : 1);
+  }, 0);
+
+  const totalCombinedRevenue = storeRevenue + onlineOrderRevenue;
+  const totalCombinedKg = storeKg + onlineOrderKg;
+
+  // 4. Construct Telegram HTML message
+  let msg = `🐟 <b>URBAN TROUT AQUACULTURE</b>\n`;
+  msg += `📊 <b>LIVE OPERATIONS &amp; BUSINESS STATUS</b>\n`;
+  msg += `📅 <b>Date:</b> ${formattedDate} | <i>${timeStr} IST</i>\n`;
+  msg += `━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+
+  msg += `🐠 <b>AQUARIUM LIVE STOCK AVAILABILITY</b>\n`;
+  msg += `• <b>Live Biomass in Tanks:</b> <b>${liveStockRemainingKg.toFixed(2)} Kg</b> ${isOutOfStock ? "(🔴 OUT OF STOCK)" : "(🟢 Active Stock)"}\n`;
+  msg += `• <b>Status:</b> ${isOutOfStock ? "Zero biomass remaining in tanks" : "Ready for live harvest &amp; express dispatch"}\n\n`;
+
+  msg += `💰 <b>TODAY'S REVENUE &amp; SALES SNAPSHOT</b>\n`;
+  msg += `• <b>Total Combined Revenue:</b> <b>₹${totalCombinedRevenue.toLocaleString("en-IN")}</b>\n`;
+  msg += `• <b>Total Volume Sold / Prepped:</b> <b>${totalCombinedKg.toFixed(2)} Kg</b>\n\n`;
+
+  msg += `🏪 <b>FARM VENDING CENTRE (MALABAGH)</b>\n`;
+  msg += `• <b>Counter Sales:</b> ${salesEntries?.length || 0} Entries (${storeKg.toFixed(2)} Kg)\n`;
+  msg += `• <b>Counter Revenue:</b> ₹${storeRevenue.toLocaleString("en-IN")}\n`;
+  msg += `  💵 <b>Cash in Drawer:</b> <b>₹${storeCash.toLocaleString("en-IN")}</b> (${storeCashCount} sales)\n`;
+  msg += `  📱 <b>UPI / Online Payments:</b> <b>₹${storeOnline.toLocaleString("en-IN")}</b> (${storeOnlineCount} payments)\n\n`;
+
+  if (entriesList.length > 0) {
+    msg += `📋 <b>TODAY'S COUNTER ENTRIES LOG:</b>\n`;
+    msg += entriesList.join("\n") + "\n\n";
+  } else {
+    msg += `📋 <i>(No counter sales logged yet today)</i>\n\n`;
+  }
+
+  msg += `🛵 <b>ONLINE DELIVERIES &amp; ORDERS</b>\n`;
+  msg += `• <b>Confirmed &amp; Paid:</b> ${paidOrders.length} Orders (${onlineOrderKg.toFixed(1)} Kg) • ₹${onlineOrderRevenue.toLocaleString("en-IN")}\n`;
+  if (paidOrders.length > 0) {
+    paidOrders.forEach((o: any, idx: number) => {
+      const custName = o.customer_name || "Customer";
+      const locality = o.customer_locality ? ` (${o.customer_locality})` : "";
+      msg += `  ${idx + 1}. <b>${escapeHtml(custName)}</b>${escapeHtml(locality)} — ₹${Number(o.total || 0).toLocaleString("en-IN")} [${o.status}]\n`;
+    });
+  }
+  if (pendingOrders.length > 0) {
+    msg += `• <b>Pending Payment Links:</b> ${pendingOrders.length} Orders\n`;
+  }
+  msg += `\n`;
+
+  msg += `━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
+  msg += `⚡ <i>Type <code>/status</code> anytime in this group to refresh live report.</i>`;
+
+  return msg;
 }
-
-async function findOrder(queryNum: string) {
-  const cleanDigits = queryNum.replace(/\D/g, "");
-  const cleanNum = cleanDigits ? parseInt(cleanDigits, 10) : NaN;
-  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(queryNum);
-
-  if (!isNaN(cleanNum) && cleanNum > 0) {
-    const { data } = await supabase.from("orders").select("*").eq("order_number", cleanNum).maybeSingle();
-    if (data) return data;
-  }
-
-  if (isUUID) {
-    const { data } = await supabase.from("orders").select("*").eq("id", queryNum).maybeSingle();
-    if (data) return data;
-  }
-
-  return null;
-}
-
-// Helper to determine status display name
-const STATUS_NAMES: Record<string, string> = {
-  pending: "Awaiting Verification",
-  processing: "Harvested & Non-Refundable",
-  harvested: "Harvested & Non-Refundable",
-  confirmed: "Confirmed & In Queue",
-  out_for_delivery: "Out for Delivery",
-  delivered: "Delivered",
-  out_of_stock: "Out of Stock (Refund Due)",
-  cancelled: "Cancelled",
-};
 
 export async function POST(request: Request) {
   // ─── Security: Verify request is genuinely from Telegram ───
@@ -193,279 +178,20 @@ export async function POST(request: Request) {
   try {
     const update = await request.json();
 
-    // ─── 1. Handle Inline Button Callback Queries (1-Tap Status Updates) ───
+    // ─── 1. Reject ALL callback queries (No editing products, stock, or orders via Telegram) ───
     if (update.callback_query) {
-      const cq = update.callback_query;
-      const dataStr: string = cq.data || "";
-      const message = cq.message;
-      const chatId = message?.chat?.id;
-      const messageId = message?.message_id;
-
-      // ── Handle Order Status Callbacks: "ord:<status>:<orderNumber>" ──
-      if (dataStr.startsWith("ord:")) {
-        const parts = dataStr.split(":");
-        const newStatus = parts[1] as "pending" | "processing" | "harvested" | "confirmed" | "out_for_delivery" | "delivered" | "cancelled" | "out_of_stock";
-        const orderNumberOrId = parts[2];
-
-        // 1. Fetch & Update order in Supabase
-        const updatedOrder = await findAndUpdateOrder(orderNumberOrId, newStatus);
-        const statusName = STATUS_NAMES[newStatus] || newStatus;
-
-        // 2. Answer Telegram with a top toast notification
-        await answerCallbackQuery(cq.id, `✅ Order #${orderNumberOrId} marked as ${statusName}!`);
-
-        const existingText = message?.text || "";
-        const phoneMatch = existingText.match(/(?:\+91|Phone:)\s*(\d{10})/i) || existingText.match(/\b([6-9]\d{9})\b/);
-        const nameMatch = existingText.match(/(?:Customer|Name):\s*([^\n\r<]+)/i);
-        const totalMatch = existingText.match(/(?:Amount|Total):\s*[₹Rs.]*\s*([0-9,]+)/i);
-        const emailMatch = (updatedOrder?.customer_address || existingText).match(/Email:\s*([^\s)\n<]+@[^\s)\n<]+)/i);
-
-        const customerPhone = updatedOrder?.customer_phone || (phoneMatch ? phoneMatch[1] : "");
-        const customerName = updatedOrder?.customer_name || (nameMatch ? nameMatch[1].trim() : "Valued Customer");
-        const totalAmount = updatedOrder?.total || (totalMatch ? parseInt(totalMatch[1].replace(/\D/g, ""), 10) : 0);
-        const customerEmail = extractEmail(updatedOrder) || (emailMatch ? emailMatch[1].trim() : undefined);
-
-        // 3. Send email update to customer if email is recorded
-        if (customerEmail) {
-          try {
-            await sendOrderStatusUpdateEmail(
-              {
-                orderNumber: String(updatedOrder?.order_number || orderNumberOrId),
-                customerName: customerName,
-                email: customerEmail,
-                phone: customerPhone,
-                total: totalAmount,
-              },
-              newStatus === "confirmed" ? "processing" : newStatus
-            );
-          } catch (mailErr) {
-            console.error("Failed to send order status update email:", mailErr);
-          }
-        }
-
-        // 4. Send automated WhatsApp message to Customer via Agent Dispatch Queue
-        if (customerPhone) {
-          const cleanCustomerName = customerName.replace(/Janab\s*/i, "").trim() || "Customer";
-          let waText = "";
-
-          if (newStatus === "harvested" || newStatus === "processing") {
-            waText = `Assalam-o-Alaikum ${cleanCustomerName}! 🐟✨\n\n*ORDER UPDATE (#${orderNumberOrId}): LIVE HARVEST COMPLETE!*\n\nYour fresh Rainbow Trout has just been live-harvested from our pure groundwater tanks in Malabagh, cleaned, and packed securely in clean food-grade packaging (double polythene)!\n\n⚠️ *Important Notice:* Because your fish has been harvested live specifically for you, this order is now locked and cannot be cancelled or refunded.\n\nOur dispatch team is prepping your parcel. Your delivery rider will be on the way shortly! 🛵`;
-          } else if (newStatus === "out_for_delivery") {
-            waText = `Assalam-o-Alaikum ${cleanCustomerName}! 🛵\n\nGood news — your fresh live-harvested Rainbow Trout order (#${orderNumberOrId}) is packed in clean food-grade packaging and is *OUT FOR DELIVERY*!\n\nOur delivery rider is on the way to your address. Please keep your phone reachable. Thank you for choosing Urban Trout, Malabagh! 🐟`;
-          } else if (newStatus === "delivered") {
-            waText = `Assalam-o-Alaikum ${cleanCustomerName}! ✅\n\nYour live-harvested Rainbow Trout order (#${orderNumberOrId}) has been successfully *DELIVERED*!\n\nWe hope you enjoy the pure Himalayan spring-water freshness. Cook it fresh, and feel free to reach back anytime for your next fresh catch. Khuda Hafiz! 🐟✨`;
-          } else if (newStatus === "cancelled") {
-            waText = `Assalam-o-Alaikum ${cleanCustomerName}. Your order (#${orderNumberOrId}) has been cancelled. As the fish was not yet harvested, your full refund is being processed to your original payment method.`;
-          }
-
-          if (waText) {
-            await queueWhatsAppDispatch({
-              phone: customerPhone,
-              customerName: cleanCustomerName,
-              orderRef: String(orderNumberOrId),
-              status: newStatus,
-              messageText: waText,
-            });
-          }
-        }
-
-        // 5. Update the Telegram message text and inline buttons in-place
-        if (chatId && messageId) {
-          try {
-            const newText = formatOrderTelegramText({
-              orderNumber: updatedOrder?.order_number || orderNumberOrId,
-              status: newStatus,
-              total: totalAmount,
-              paymentMethod: "Razorpay / UPI",
-              customerName: customerName,
-              phone: customerPhone,
-              locality: updatedOrder?.customer_locality,
-              address: updatedOrder?.customer_address,
-              pincode: updatedOrder?.customer_pincode,
-              items: updatedOrder?.items,
-            });
-
-            const newKeyboard = getOrderKeyboard(
-              updatedOrder?.order_number || orderNumberOrId,
-              newStatus,
-              customerPhone,
-              customerName
-            );
-
-            await editTelegramMessageText(chatId, messageId, newText, newKeyboard);
-          } catch (editErr) {
-            console.warn("[telegram-webhook] Edit message notice:", editErr);
-          }
-        }
-
-        return NextResponse.json({ success: true, updated: orderNumberOrId, status: newStatus });
-      }
-
-      // ── Handle Inventory Availability Toggle: "inv:toggle:<productId>" ──
-      if (dataStr.startsWith("inv:toggle:")) {
-        const productId = dataStr.replace("inv:toggle:", "").trim();
-
-        const { data: currentItem, error: fetchErr } = await supabase
-          .from("inventory")
-          .select("*")
-          .eq("product_id", productId)
-          .single();
-
-        if (fetchErr || !currentItem) {
-          await answerCallbackQuery(cq.id, `❌ Product "${productId}" not found.`, true);
-          return NextResponse.json({ success: false });
-        }
-
-        const newAvailable = !currentItem.available;
-        const { data: updatedItem, error: updateErr } = await supabase
-          .from("inventory")
-          .update({ available: newAvailable, updated_at: new Date().toISOString() })
-          .eq("product_id", productId)
-          .select("*")
-          .single();
-
-        if (updateErr || !updatedItem) {
-          await answerCallbackQuery(cq.id, `❌ Failed to update availability.`, true);
-          return NextResponse.json({ success: false });
-        }
-
-        const stateText = newAvailable ? "🟢 IN STOCK (Available on site)" : "🔴 OUT OF STOCK (Disabled)";
-        await answerCallbackQuery(cq.id, `✅ ${updatedItem.product_name} is now ${stateText}!`);
-
-        if (chatId && messageId) {
-          const newText = formatInventoryItemText(updatedItem);
-          const newKb = getInventoryKeyboard(updatedItem.product_id, updatedItem.available, updatedItem.stock_kg);
-          await editTelegramMessageText(chatId, messageId, newText, newKb);
-        }
-
-        return NextResponse.json({ success: true });
-      }
-
-      // ── Handle Inventory Stock Add: "inv:add:<productId>:<amount>" ──
-      if (dataStr.startsWith("inv:add:")) {
-        const parts = dataStr.split(":");
-        const productId = parts[2];
-        const addAmount = parseFloat(parts[3]) || 0;
-
-        const { data: currentItem, error: fetchErr } = await supabase
-          .from("inventory")
-          .select("*")
-          .eq("product_id", productId)
-          .single();
-
-        if (fetchErr || !currentItem) {
-          await answerCallbackQuery(cq.id, `❌ Product "${productId}" not found.`, true);
-          return NextResponse.json({ success: false });
-        }
-
-        const newStock = Math.max(0, (Number(currentItem.stock_kg) || 0) + addAmount);
-        const { data: updatedItem, error: updateErr } = await supabase
-          .from("inventory")
-          .update({ stock_kg: newStock, updated_at: new Date().toISOString() })
-          .eq("product_id", productId)
-          .select("*")
-          .single();
-
-        if (updateErr || !updatedItem) {
-          await answerCallbackQuery(cq.id, `❌ Failed to update stock.`, true);
-          return NextResponse.json({ success: false });
-        }
-
-        await answerCallbackQuery(cq.id, `✅ +${addAmount} Kg added! Total Stock: ${newStock} Kg`);
-
-        if (chatId && messageId) {
-          const newText = formatInventoryItemText(updatedItem);
-          const newKb = getInventoryKeyboard(updatedItem.product_id, updatedItem.available, updatedItem.stock_kg);
-          await editTelegramMessageText(chatId, messageId, newText, newKb);
-        }
-
-        return NextResponse.json({ success: true });
-      }
-
-      // ── Handle Live Chat Close Callback: "chat:close:<threadId>" ──
-      if (dataStr.startsWith("chat:close:")) {
-        const targetThreadId = dataStr.replace("chat:close:", "");
-        const nowIso = new Date().toISOString();
-
-        try {
-          // Update thread in Supabase
-          await supabase.from("live_chat_threads").update({
-            status: "closed",
-            updated_at: nowIso,
-          }).eq("id", targetThreadId);
-
-          // Insert closing message into chat history
-          await supabase.from("live_chat_messages").insert({
-            id: `msg_${Date.now()}_close`,
-            thread_id: targetThreadId,
-            sender: "staff",
-            sender_name: "Urban Trout Support",
-            text: "This chat conversation has been ended by the farm team. Feel free to start a new chat anytime! 🐟",
-            created_at: nowIso,
-          });
-
-          await answerCallbackQuery(cq.id, "🔴 Chat session ended and visitor notified!");
-
-          if (chatId && messageId) {
-            const originalText = message?.text || "";
-            await editTelegramMessageText(
-              chatId,
-              messageId,
-              `${originalText}\n\n<i>[🔴 Conversation Closed by Staff]</i>`
-            );
-          }
-
-          return NextResponse.json({ success: true, closedThread: targetThreadId });
-        } catch (closeErr: any) {
-          await answerCallbackQuery(cq.id, "❌ Error closing chat", true);
-        }
-      }
-
-      // ── Handle Friday Store Toggle Callback: "friday:toggle:<open|close>" ──
-      if (dataStr.startsWith("friday:toggle:")) {
-        const action = dataStr.replace("friday:toggle:", "");
-        const shouldAllow = action === "open";
-        const valStr = String(shouldAllow);
-
-        try {
-          await supabase.from("app_settings").upsert({
-            key: "allow_friday_orders",
-            value: valStr,
-            description: "Allow customer online orders on Fridays",
-            updated_at: new Date().toISOString(),
-          }, { onConflict: "key" });
-
-          await answerCallbackQuery(cq.id, shouldAllow ? "🟢 Friday is now OPEN for orders!" : "🔒 Friday is now CLOSED (Maintenance Mode)!");
-
-          if (chatId && messageId) {
-            const statusMsg = shouldAllow
-              ? `📅 <b>FRIDAY STORE STATUS: 🟢 OPEN</b> ⚡\n━━━━━━━━━━━━━━━━━━━━\nCustomers CAN place online orders on Fridays (8:00 AM – 9:00 PM IST).\n\n👇 <b>Quick Actions:</b>`
-              : `📅 <b>FRIDAY STORE STATUS: 🔒 CLOSED (Default)</b> 🐟\n━━━━━━━━━━━━━━━━━━━━\nFridays are reserved for weekly farm maintenance & bio-security. Reopens Saturday at 8:00 AM.\n\n👇 <b>Quick Actions:</b>`;
-
-            const kb: InlineKeyboardMarkup = {
-              inline_keyboard: [
-                [
-                  shouldAllow
-                    ? { text: "🔒 Close Friday (Restore Maintenance)", callback_data: "friday:toggle:close" }
-                    : { text: "🟢 Open Friday for Orders", callback_data: "friday:toggle:open" },
-                ],
-              ],
-            };
-
-            await editTelegramMessageText(chatId, messageId, statusMsg, kb);
-          }
-
-          return NextResponse.json({ success: true, fridayOpen: shouldAllow });
-        } catch (err: any) {
-          await answerCallbackQuery(cq.id, `❌ Error: ${err.message}`, true);
-        }
-      }
+      await answerCallbackQuery(
+        update.callback_query.id,
+        "🔒 Management via Telegram is disabled. Please use the admin dashboard at urbantrout.in",
+        true
+      );
+      return NextResponse.json({ ok: true, note: "Callback query rejected per security policy" });
     }
 
-    // ─── 2. Handle Slash Commands & Text Messages ───
+    // ─── 2. Handle Text Messages & Slash Commands ───
     if (update.message && (update.message.text || update.message.caption)) {
       const msg = update.message;
-      const text: string = (msg.text || msg.caption || "").trim();
+      const rawText: string = (msg.text || msg.caption || "").trim();
       const chatId = msg.chat.id;
 
       // Automatically store/update active group Chat ID whenever any message is sent in group
@@ -479,533 +205,67 @@ export async function POST(request: Request) {
         } catch (_) {}
       }
 
-      // ── Command: /connect or /start or /id (Bind Group & Verify) ──
-      if (text === "/connect" || text === "/start" || text === "/id" || text.startsWith("/start") || text.startsWith("/connect")) {
-        await sendTelegramMessage(
-          `✅ <b>URBAN TROUT BOT CONNECTED TO THIS GROUP!</b> 🐟⚡\n━━━━━━━━━━━━━━━━━━━━\n<b>Group:</b> ${msg.chat?.title || "Urban Trout Alerts"}\n<b>Chat ID:</b> <code>${chatId}</code>\n\nAll website live chat messages, customer orders, and farm alerts will now be sent directly to this group in real time!`,
-          "HTML",
-          undefined,
-          chatId
-        );
-        return NextResponse.json({ success: true, connectedChatId: chatId });
-      }
+      const lowerText = rawText.toLowerCase();
 
-      // ── UNIFIED LIVE CHAT REPLY HANDLER ──
-      // Handles:
-      // 1. Swipe-reply to any live chat alert (via #chat_ ID, telegram_message_id, or active thread fallback)
-      // 2. Direct commands: "/r <message>", "/r <name/id> <message>", "/reply <...>"
-      // 3. Direct tag: "#chat_<threadId> <message>"
-      const isSwipeReply = !!msg.reply_to_message;
-      const isReplyCommand = text.startsWith("/r ") || text.startsWith("/reply ") || text === "/r" || text === "/reply";
-      const hasChatTag = text.includes("#chat_");
+      // Normalize command (strip bot mention like /status@UrbanTroutBot)
+      const command = lowerText.split("@")[0].split(/\s+/)[0];
 
-      if (isSwipeReply || isReplyCommand || hasChatTag) {
-        let targetThreadId: string | null = null;
-        let replyContent = text;
-        let customerLabel = "Visitor";
-
-        // Fetch recent active threads
-        const { data: activeThreads } = await supabase
-          .from("live_chat_threads")
-          .select("*")
-          .eq("status", "active")
-          .order("last_message_at", { ascending: false })
-          .limit(10);
-
-        if (isSwipeReply) {
-          const replyTo = msg.reply_to_message;
-          const replyText = replyTo.text || replyTo.caption || "";
-          const replyMsgId = replyTo.message_id;
-
-          // 1. Try extracting thread ID from hashtag #chat_<threadId>
-          const tagMatch = replyText.match(/#chat_([a-zA-Z0-9_\-]+)/);
-          if (tagMatch) {
-            targetThreadId = tagMatch[1];
-          }
-
-          // 2. Try looking up in live_chat_threads by telegram_message_id
-          if (!targetThreadId && activeThreads) {
-            const threadByMsg = activeThreads.find((t: any) => Number(t.telegram_message_id) === replyMsgId);
-            if (threadByMsg) {
-              targetThreadId = threadByMsg.id;
-              customerLabel = threadByMsg.customer_name || "Visitor";
-            }
-          }
-
-          // 3. Fallback: If swipe-replying in the group without an explicit tag, route to the latest active chat
-          if (!targetThreadId && activeThreads && activeThreads.length > 0) {
-            targetThreadId = activeThreads[0].id;
-            customerLabel = activeThreads[0].customer_name || "Visitor";
-          }
-
-          replyContent = text;
-        } else if (isReplyCommand || hasChatTag) {
-          // Remove command prefix
-          let cleanBody = text.replace(/^\/(?:r|reply)\s*/i, "").trim();
-
-          // Check if explicit #chat_<id> was provided
-          const tagMatch = cleanBody.match(/^#chat_([a-zA-Z0-9_\-]+)\s*([\s\S]*)$/);
-          if (tagMatch) {
-            targetThreadId = tagMatch[1];
-            replyContent = tagMatch[2].trim();
-          } else {
-            // Check if first word matches a customer name or thread id
-            const parts = cleanBody.split(/\s+/);
-            if (parts.length >= 2 && activeThreads && activeThreads.length > 0) {
-              const query = parts[0].toLowerCase().replace("#chat_", "");
-              const matched = activeThreads.find((t: any) =>
-                t.id.toLowerCase().includes(query) ||
-                (t.customer_name && t.customer_name.toLowerCase().includes(query)) ||
-                (t.customer_phone && t.customer_phone.includes(query))
-              );
-
-              if (matched) {
-                targetThreadId = matched.id;
-                customerLabel = matched.customer_name || "Visitor";
-                replyContent = cleanBody.slice(parts[0].length).trim();
-              }
-            }
-
-            // Fallback: If no specific customer matched, use the entire text as reply to the most recent active chat
-            if (!targetThreadId && activeThreads && activeThreads.length > 0) {
-              targetThreadId = activeThreads[0].id;
-              customerLabel = activeThreads[0].customer_name || "Visitor";
-              replyContent = cleanBody;
-            }
-          }
-        }
-
-        // If targetThreadId was found and we have content to send:
-        if (targetThreadId && replyContent && replyContent.trim().length > 0) {
-          const staffName = [msg.from?.first_name, msg.from?.last_name].filter(Boolean).join(" ") || "Farm Team";
-          const nowIso = new Date().toISOString();
-          const newMsgId = `msg_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-
-          try {
-            // Ensure thread exists and is set to active
-            await supabase.from("live_chat_threads").upsert({
-              id: targetThreadId,
-              status: "active",
-              last_message: replyContent,
-              last_message_at: nowIso,
-              updated_at: nowIso,
-            }, { onConflict: "id" });
-
-            // Insert staff message into live_chat_messages table
-            await supabase.from("live_chat_messages").insert({
-              id: newMsgId,
-              thread_id: targetThreadId,
-              sender: "staff",
-              sender_name: `${staffName} (Urban Trout)`,
-              text: replyContent,
-              created_at: nowIso,
-            });
-
-            // Update thread metadata
-            await supabase.from("live_chat_threads").update({
-              last_message: replyContent,
-              last_message_at: nowIso,
-              updated_at: nowIso,
-            }).eq("id", targetThreadId);
-
-            // Fetch visitor details for confirmation text
-            const { data: currentThread } = await supabase
-              .from("live_chat_threads")
-              .select("customer_name, customer_phone")
-              .eq("id", targetThreadId)
-              .maybeSingle();
-
-            const finalName = currentThread?.customer_name || customerLabel || "Visitor";
-            const phoneInfo = currentThread?.customer_phone ? ` (+91 ${currentThread.customer_phone})` : "";
-
-            // Send confirmation in Telegram
-            await sendTelegramMessage(
-              `⚡ <b>REPLY DELIVERED LIVE TO ${escapeHtml(finalName.toUpperCase())}!</b>\n━━━━━━━━━━━━━━━━━━━━\n<b>Visitor:</b> ${escapeHtml(finalName)}${phoneInfo}\n<b>Thread:</b> <code>#chat_${targetThreadId}</code>\n<b>Your Message:</b> <i>"${escapeHtml(replyContent)}"</i>`,
-              "HTML",
-              undefined,
-              chatId,
-              msg.message_id
-            );
-
-            return NextResponse.json({ success: true, deliveredTo: targetThreadId });
-          } catch (replyErr) {
-            console.error("Failed to route Telegram reply to live chat:", replyErr);
-            await sendTelegramMessage(
-              `⚠️ <b>Failed to deliver reply:</b> Database error. Please check server logs.`,
-              "HTML",
-              undefined,
-              chatId,
-              msg.message_id
-            );
-            return NextResponse.json({ success: false, error: String(replyErr) }, { status: 500 });
-          }
-        } else if (isReplyCommand) {
-          // If staff typed /r or /reply but no active chat exists
-          await sendTelegramMessage(
-            `⚠️ <b>Could not deliver live chat reply:</b> No active website customer conversation found.\nType <code>/chats</code> to view active threads or wait for a visitor to message.`,
-            "HTML",
-            undefined,
-            chatId,
-            msg.message_id
-          );
-          return NextResponse.json({ success: false, reason: "no_active_chat" });
-        }
-      }
-
-      // ── Command: /chats or /active (View Active Live Chats) ──
-      if (text === "/chats" || text === "/active") {
+      // ── Main Allowed Command: /status (or /today, /report, /briefing) ──
+      if (command === "/status" || command === "/today" || command === "/report" || command === "/briefing") {
         try {
-          const { data: activeThreads, error } = await supabase
-            .from("live_chat_threads")
-            .select("*")
-            .eq("status", "active")
-            .order("last_message_at", { ascending: false })
-            .limit(10);
-
-          if (error || !activeThreads || activeThreads.length === 0) {
-            await sendTelegramMessage(
-              "💬 <b>ACTIVE LIVE CHATS:</b>\n━━━━━━━━━━━━━━━━━━━━\n<i>No active customer conversations right now.</i>",
-              "HTML",
-              undefined,
-              chatId
-            );
-            return NextResponse.json({ success: true });
-          }
-
-          let report = `💬 <b>ACTIVE WEBSITE LIVE CHATS (${activeThreads.length})</b> ⚡\n━━━━━━━━━━━━━━━━━━━━\n`;
-          const buttons: InlineKeyboardButton[][] = [];
-
-          activeThreads.forEach((th: any, idx: number) => {
-            const timeAgo = th.last_message_at ? new Date(th.last_message_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "Recently";
-            report += `<b>${idx + 1}. ${th.customer_name || "Visitor"}</b> (${th.customer_locality || "Srinagar"})\n`;
-            if (th.customer_phone) report += `   📞 +91 ${th.customer_phone}\n`;
-            report += `   💬 <i>"${(th.last_message || "").substring(0, 60)}"</i> (${timeAgo})\n`;
-            report += `   ID: <code>#chat_${th.id}</code>\n\n`;
-
-            const row: InlineKeyboardButton[] = [];
-            if (th.customer_phone) {
-              row.push({ text: "💬 WhatsApp", url: `https://wa.me/91${th.customer_phone}` });
-            }
-            row.push({ text: `🔴 End #${idx + 1}`, callback_data: `chat:close:${th.id}` });
-            buttons.push(row);
-          });
-
-          report += `👉 <i>To reply to any visitor, swipe reply to their message, or type:</i>\n<code>/r &lt;your reply&gt;</code>`;
-
-          await sendTelegramMessage(report, "HTML", { inline_keyboard: buttons }, chatId);
-          return NextResponse.json({ success: true });
+          const reportHtml = await generateStatusReport();
+          await sendTelegramMessage(reportHtml, "HTML", undefined, chatId);
         } catch (err: any) {
-          console.error("Error listing chats:", err);
-        }
-      }
-
-      // ── Command: /stock or /inventory (Interactive Inventory Dashboard) ──
-      if (text === "/stock" || text === "/inventory") {
-        const { data: invItems, error } = await supabase
-          .from("inventory")
-          .select("*")
-          .order("product_name");
-
-        if (error || !invItems || invItems.length === 0) {
-          await sendTelegramMessage("📦 No inventory records found in database.", "HTML", undefined, chatId);
-          return NextResponse.json({ success: true });
-        }
-
-        await sendTelegramMessage(
-          `🐟 <b>LIVE FARM INVENTORY DASHBOARD</b> 📊\n━━━━━━━━━━━━━━━━━━━━\nManage stock levels and availability below:`,
-          "HTML",
-          undefined,
-          chatId
-        );
-
-        for (const item of invItems) {
-          const itemText = formatInventoryItemText(item);
-          const kb = getInventoryKeyboard(item.product_id, item.available, item.stock_kg);
-          await sendTelegramMessage(itemText, "HTML", kb, chatId);
-        }
-
-        return NextResponse.json({ success: true });
-      }
-
-      // ── Command: /setstock <whole|gutted> <amount> ──
-      if (text.startsWith("/setstock")) {
-        const parts = text.split(/\s+/);
-        if (parts.length >= 3) {
-          const productKey = parts[1].toLowerCase().includes("gut") ? "gutted-trout" : "whole-trout";
-          const newStock = parseFloat(parts[2]);
-
-          if (isNaN(newStock) || newStock < 0) {
-            await sendTelegramMessage("⚠️ Please provide a valid stock number, e.g. <code>/setstock whole 50</code>", "HTML", undefined, chatId);
-            return NextResponse.json({ success: true });
-          }
-
-          const { data: updated, error } = await supabase
-            .from("inventory")
-            .update({ stock_kg: newStock, updated_at: new Date().toISOString() })
-            .eq("product_id", productKey)
-            .select("*")
-            .single();
-
-          if (error || !updated) {
-            await sendTelegramMessage(`❌ Failed to update stock: ${error?.message}`, "HTML", undefined, chatId);
-          } else {
-            const kb = getInventoryKeyboard(updated.product_id, updated.available, updated.stock_kg);
-            await sendTelegramMessage(
-              `✅ <b>STOCK LEVEL UPDATED!</b>\n━━━━━━━━━━━━━━━━━━━━\n<b>${updated.product_name}</b> stock is now set to <b>${newStock} Kg</b>.`,
-              "HTML",
-              kb,
-              chatId
-            );
-          }
-          return NextResponse.json({ success: true });
-        } else {
-          await sendTelegramMessage("ℹ️ <b>Usage:</b> <code>/setstock whole 50</code> or <code>/setstock gutted 35</code>", "HTML", undefined, chatId);
-          return NextResponse.json({ success: true });
-        }
-      }
-
-      // ── Command: /addstock <whole|gutted> <amount> ──
-      if (text.startsWith("/addstock")) {
-        const parts = text.split(/\s+/);
-        if (parts.length >= 3) {
-          const productKey = parts[1].toLowerCase().includes("gut") ? "gutted-trout" : "whole-trout";
-          const addQty = parseFloat(parts[2]);
-
-          if (isNaN(addQty)) {
-            await sendTelegramMessage("⚠️ Please provide a valid number, e.g. <code>/addstock whole 20</code>", "HTML", undefined, chatId);
-            return NextResponse.json({ success: true });
-          }
-
-          const { data: curr } = await supabase.from("inventory").select("*").eq("product_id", productKey).single();
-          const newStock = Math.max(0, (Number(curr?.stock_kg) || 0) + addQty);
-
-          const { data: updated, error } = await supabase
-            .from("inventory")
-            .update({ stock_kg: newStock, updated_at: new Date().toISOString() })
-            .eq("product_id", productKey)
-            .select("*")
-            .single();
-
-          if (error || !updated) {
-            await sendTelegramMessage(`❌ Failed to add stock: ${error?.message}`, "HTML", undefined, chatId);
-          } else {
-            const kb = getInventoryKeyboard(updated.product_id, updated.available, updated.stock_kg);
-            await sendTelegramMessage(
-              `✅ <b>STOCK RESTOCKED!</b>\n━━━━━━━━━━━━━━━━━━━━\nAdded <b>+${addQty} Kg</b> to <b>${updated.product_name}</b>.\n<b>Total Stock:</b> ${newStock} Kg`,
-              "HTML",
-              kb,
-              chatId
-            );
-          }
-          return NextResponse.json({ success: true });
-        } else {
-          await sendTelegramMessage("ℹ️ <b>Usage:</b> <code>/addstock whole 20</code> or <code>/addstock gutted 15</code>", "HTML", undefined, chatId);
-          return NextResponse.json({ success: true });
-        }
-      }
-
-      // ── Command: /orders or /pending (List recent active orders) ──
-      if (text.startsWith("/orders") || text.startsWith("/pending")) {
-        const { data: recentOrders } = await supabase
-          .from("orders")
-          .select("*")
-          .order("created_at", { ascending: false })
-          .limit(5);
-
-        if (!recentOrders || recentOrders.length === 0) {
-          await sendTelegramMessage("📦 No orders found in the database.", "HTML", undefined, chatId);
-          return NextResponse.json({ success: true });
-        }
-
-        await sendTelegramMessage(
-          `📦 <b>LATEST ${recentOrders.length} ORDERS:</b>\n━━━━━━━━━━━━━━━━━━━━`,
-          "HTML",
-          undefined,
-          chatId
-        );
-
-        for (const ord of recentOrders) {
-          const ordText = formatOrderTelegramText({
-            orderNumber: ord.order_number,
-            status: ord.status,
-            total: ord.total,
-            paymentMethod: "UPI",
-            customerName: ord.customer_name,
-            phone: ord.customer_phone,
-            locality: ord.customer_locality,
-            address: ord.customer_address,
-            pincode: ord.customer_pincode,
-            items: ord.items,
-          });
-          const kb = getOrderKeyboard(ord.order_number, ord.status, ord.customer_phone, ord.customer_name);
-          await sendTelegramMessage(ordText, "HTML", kb, chatId);
-        }
-
-        return NextResponse.json({ success: true });
-      }
-
-      // ── Command: /order <orderNumber> (Lookup single order) ──
-      if (text.startsWith("/order ")) {
-        const queryNum = text.replace("/order", "").trim();
-        const ord = await findOrder(queryNum);
-
-        if (!ord) {
-          await sendTelegramMessage(`❌ Order <code>#${queryNum}</code> not found.`, "HTML", undefined, chatId);
-          return NextResponse.json({ success: true });
-        }
-
-        const ordText = formatOrderTelegramText({
-          orderNumber: ord.order_number,
-          status: ord.status,
-          total: ord.total,
-          paymentMethod: "UPI",
-          customerName: ord.customer_name,
-          phone: ord.customer_phone,
-          locality: ord.customer_locality,
-          address: ord.customer_address,
-          pincode: ord.customer_pincode,
-          items: ord.items,
-        });
-        const kb = getOrderKeyboard(ord.order_number, ord.status, ord.customer_phone, ord.customer_name);
-        await sendTelegramMessage(ordText, "HTML", kb, chatId);
-        return NextResponse.json({ success: true });
-      }
-
-      // ── Command: /price <whole|gutted> <amount> (Update live price) ──
-      if (text.startsWith("/price")) {
-        const parts = text.split(/\s+/);
-        if (parts.length >= 3) {
-          const productKey = parts[1].toLowerCase().includes("gut") ? "gutted-trout" : "whole-trout";
-          const newPrice = parseFloat(parts[2]);
-
-          if (isNaN(newPrice) || newPrice <= 0) {
-            await sendTelegramMessage("⚠️ Please provide a valid price number, e.g. <code>/price whole 520</code>", "HTML", undefined, chatId);
-            return NextResponse.json({ success: true });
-          }
-
-          const { error } = await supabase
-            .from("inventory")
-            .update({ price_per_kg: newPrice, updated_at: new Date().toISOString() })
-            .eq("product_id", productKey);
-
-          if (error) {
-            await sendTelegramMessage(`❌ Failed to update price: ${error.message}`, "HTML", undefined, chatId);
-          } else {
-            const prodName = productKey === "gutted-trout" ? "Premium Gutted Trout" : "Whole Rainbow Trout";
-            await sendTelegramMessage(`💰 <b>PRICE UPDATED!</b>\n━━━━━━━━━━━━━━━━━━━━\n<b>${prodName}</b> is now <b>₹${newPrice} / Kg</b> on <a href="https://urbantrout.in">urbantrout.in</a>`, "HTML", undefined, chatId);
-          }
-          return NextResponse.json({ success: true });
-        } else {
-          // Show current prices
-          const { data: inv } = await supabase.from("inventory").select("*");
-          const invList = inv?.map(i => `• <b>${i.product_name || i.product_id}:</b> ₹${i.price_per_kg} / Kg (Stock: ${i.stock_kg || 0} Kg)`).join("\n") || "No inventory records.";
-          await sendTelegramMessage(`💰 <b>CURRENT LIVE PRICES:</b>\n━━━━━━━━━━━━━━━━━━━━\n${invList}\n\n<i>To change price:</i> <code>/price whole 520</code> or <code>/price gutted 580</code>`, "HTML", undefined, chatId);
-          return NextResponse.json({ success: true });
-        }
-      }
-
-      // ── Command: /stats or /today (Sales stats) ──
-      if (text.startsWith("/stats") || text.startsWith("/today")) {
-        const todayStart = new Date();
-        todayStart.setHours(0, 0, 0, 0);
-
-        const { data: todayOrders } = await supabase
-          .from("orders")
-          .select("*")
-          .gte("created_at", todayStart.toISOString());
-
-        const totalRevenue = todayOrders?.reduce((acc, o) => acc + (Number(o.total) || 0), 0) || 0;
-        const totalCount = todayOrders?.length || 0;
-
-        await sendTelegramMessage(
-          `📊 <b>TODAY'S SUMMARY (${new Date().toLocaleDateString("en-IN")})</b>\n━━━━━━━━━━━━━━━━━━━━\n• <b>Total Orders:</b> ${totalCount}\n• <b>Total Revenue:</b> ₹${totalRevenue.toLocaleString("en-IN")}\n• <b>Status Breakdown:</b>\n  - Confirmed/Harvesting: ${todayOrders?.filter(o => o.status === "processing").length || 0}\n  - Out for Delivery: ${todayOrders?.filter(o => o.status === "out_for_delivery").length || 0}\n  - Delivered: ${todayOrders?.filter(o => o.status === "delivered").length || 0}\n  - Pending: ${todayOrders?.filter(o => o.status === "pending").length || 0}`,
-          "HTML",
-          undefined,
-          chatId
-        );
-        return NextResponse.json({ success: true });
-      }
-
-      // ── Command: /friday [open|close|on|off] (Toggle Friday Operations) ──
-      if (text.startsWith("/friday")) {
-        const parts = text.split(/\s+/);
-        const action = parts[1]?.toLowerCase();
-
-        if (action === "open" || action === "on" || action === "enable") {
-          await supabase.from("app_settings").upsert({
-            key: "allow_friday_orders",
-            value: "true",
-            description: "Allow customer online orders on Fridays",
-            updated_at: new Date().toISOString(),
-          }, { onConflict: "key" });
-
+          console.error("Error generating status report for Telegram:", err);
           await sendTelegramMessage(
-            `🟢 <b>FRIDAY ORDERING ENABLED!</b> ⚡\n━━━━━━━━━━━━━━━━━━━━\nThe website is now set to accept orders on Friday (8:00 AM – 9:00 PM IST).\n\nTo restore default Friday maintenance closure, type <code>/friday close</code>.`,
+            `⚠️ <b>Failed to generate status report:</b> ${escapeHtml(err?.message || "Unknown error")}`,
             "HTML",
             undefined,
             chatId
           );
-          return NextResponse.json({ success: true });
-        } else if (action === "close" || action === "off" || action === "disable") {
-          await supabase.from("app_settings").upsert({
-            key: "allow_friday_orders",
-            value: "false",
-            description: "Allow customer online orders on Fridays",
-            updated_at: new Date().toISOString(),
-          }, { onConflict: "key" });
-
-          await sendTelegramMessage(
-            `🔒 <b>FRIDAY STORE CLOSED (MAINTENANCE MODE RESTORED)!</b> 🐟\n━━━━━━━━━━━━━━━━━━━━\nFridays are reserved for weekly RAS farm maintenance & bio-security protocols.\nCustomers will see Friday closure and next open on Saturday at 8:00 AM.\n\nTo open Friday anytime, type <code>/friday open</code>.`,
-            "HTML",
-            undefined,
-            chatId
-          );
-          return NextResponse.json({ success: true });
-        } else {
-          // Show current Friday status with 1-tap toggle button
-          const { data: row } = await supabase
-            .from("app_settings")
-            .select("value")
-            .eq("key", "allow_friday_orders")
-            .maybeSingle();
-
-          const isOpen = row?.value === "true";
-
-          const statusMsg = isOpen
-            ? `📅 <b>FRIDAY STORE STATUS: 🟢 OPEN</b> ⚡\n━━━━━━━━━━━━━━━━━━━━\nCustomers CAN place online orders on Fridays (8:00 AM – 9:00 PM IST).\n\n👇 <b>Quick Actions:</b>`
-            : `📅 <b>FRIDAY STORE STATUS: 🔒 CLOSED (Default)</b> 🐟\n━━━━━━━━━━━━━━━━━━━━\nFridays are reserved for weekly farm maintenance & bio-security. Reopens Saturday at 8:00 AM.\n\n👇 <b>Quick Actions:</b>`;
-
-          const kb: InlineKeyboardMarkup = {
-            inline_keyboard: [
-              [
-                isOpen
-                  ? { text: "🔒 Close Friday (Restore Maintenance)", callback_data: "friday:toggle:close" }
-                  : { text: "🟢 Open Friday for Orders", callback_data: "friday:toggle:open" },
-              ],
-            ],
-          };
-
-          await sendTelegramMessage(statusMsg, "HTML", kb, chatId);
-          return NextResponse.json({ success: true });
         }
+        return NextResponse.json({ success: true, command: "/status" });
       }
 
-      // ── Command: /help or /start ──
-      if (text.startsWith("/help") || text.startsWith("/start")) {
+      // ── Information & Connection Commands: /start, /help, /connect, /id ──
+      if (command === "/start" || command === "/help" || command === "/connect" || command === "/id") {
         await sendTelegramMessage(
-          `🐟 <b>URBAN TROUT ADMIN BOT</b> ⚡\n━━━━━━━━━━━━━━━━━━━━\nHere are all available management commands:\n\n📦 <b>INVENTORY MANAGEMENT:</b>\n• <b>/stock</b> or <b>/inventory</b> - Interactive stock dashboard with 1-tap toggles\n• <b>/setstock [whole|gutted] [kg]</b> - Set exact stock quantity (e.g. <code>/setstock whole 50</code>)\n• <b>/addstock [whole|gutted] [kg]</b> - Add quantity to stock (e.g. <code>/addstock gutted 20</code>)\n• <b>/price [whole|gutted] [price]</b> - Update live website price (e.g. <code>/price whole 520</code>)\n\n📅 <b>STORE OPERATIONS:</b>\n• <b>/friday</b> - View Friday store status & 1-tap toggle button\n• <b>/friday open</b> - Keep farm & website OPEN on Friday\n• <b>/friday close</b> - Restore default Friday maintenance closure\n\n🛒 <b>ORDER MANAGEMENT:</b>\n• <b>/orders</b> - View recent orders with 1-tap action buttons\n• <b>/order [number]</b> - Lookup a specific order\n• <b>/stats</b> - View today's sales and order stats\n• <b>/chats</b> - View active website live chats\n• <b>/r [message]</b> - Quick reply to active live chat visitor\n• <b>/help</b> - Show this help menu`,
+          `🐟 <b>URBAN TROUT STATUS BOT</b> ⚡\n━━━━━━━━━━━━━━━━━━━━\nThis bot provides real-time operational briefings directly in this group.\n\n🔒 <b>Notice:</b> All management functions (editing products, updating stock, changing prices, and toggling store settings) via Telegram have been disabled for system security.\n\n📊 <b>Available Command:</b>\n• <b>/status</b> — Sends live aquarium stock, today's entries, cash collected, online payments, and delivery orders.`,
           "HTML",
           undefined,
           chatId
         );
-        return NextResponse.json({ success: true });
+        return NextResponse.json({ success: true, command: "/help" });
+      }
+
+      // ── Explicit Block Notice for Disabled Management Commands ──
+      if (
+        command.startsWith("/stock") ||
+        command.startsWith("/inventory") ||
+        command.startsWith("/setstock") ||
+        command.startsWith("/addstock") ||
+        command.startsWith("/price") ||
+        command.startsWith("/friday") ||
+        command.startsWith("/order") ||
+        command.startsWith("/pending") ||
+        command.startsWith("/chats") ||
+        command.startsWith("/r") ||
+        command.startsWith("/reply")
+      ) {
+        await sendTelegramMessage(
+          `🔒 <b>Management via Telegram is Disabled</b>\n━━━━━━━━━━━━━━━━━━━━\nProduct editing, stock modifications, pricing, and order changes cannot be made via Telegram.\n\nPlease manage inventory and store settings securely via the admin dashboard at <a href="https://urbantrout.in">urbantrout.in</a>.\n\n👉 <i>Type <code>/status</code> to get today's live business report.</i>`,
+          "HTML",
+          undefined,
+          chatId
+        );
+        return NextResponse.json({ success: true, blocked: command });
       }
     }
 
     return NextResponse.json({ ok: true });
   } catch (error: any) {
     console.error("Telegram webhook error:", error);
-    return NextResponse.json({ ok: false, error: error?.message || "Internal server error", stack: error?.stack }, { status: 500 });
+    return NextResponse.json({ ok: false, error: error?.message || "Internal server error" }, { status: 500 });
   }
 }
 
@@ -1018,9 +278,9 @@ export async function GET() {
   const setWebhookApi = `https://api.telegram.org/bot${token}/setWebhook?url=${encodeURIComponent(webhookUrl)}`;
 
   return NextResponse.json({
-    status: "Telegram Webhook Handler Active",
+    status: "Telegram Status Bot Active (Management Actions Locked)",
     webhookUrl,
     setWebhookApi,
-    instructions: "Open setWebhookApi URL in browser or make a GET request to link Telegram Bot to this webhook endpoint.",
+    instructions: "Send /status in your Telegram group to receive real-time operations, aquarium stock, and sales briefing.",
   });
 }

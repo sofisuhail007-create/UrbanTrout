@@ -256,18 +256,8 @@ export function getInventoryKeyboard(productId: string, isAvailable: boolean, st
     inline_keyboard: [
       [
         {
-          text: isAvailable ? "🔴 Mark Out of Stock" : "🟢 Mark In Stock",
-          callback_data: `inv:toggle:${productId}`,
-        },
-      ],
-      [
-        {
-          text: "➕ Add 10 Kg",
-          callback_data: `inv:add:${productId}:10`,
-        },
-        {
-          text: "➕ Add 25 Kg",
-          callback_data: `inv:add:${productId}:25`,
+          text: "📊 View in Admin Dashboard",
+          url: "https://urbantrout.in/admin",
         },
       ],
     ],
