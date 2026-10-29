@@ -1440,6 +1440,52 @@ export default function VendingCenterLoggerPage() {
     return totalProcuredKg > 0 ? Math.round(totalProcuredCost / totalProcuredKg) : 435;
   }, [stockEntries]);
 
+  // ─── Filtered Aquarium Mortality Entries by Active Period ───
+  const filteredMortalityByPeriod = useMemo(() => {
+    const todayStr = getTodayDate();
+    const yesterdayStr = getIstYesterdayDate();
+    const parts = todayStr.split("-").map(Number);
+    const currDate = parts.length === 3 && parts[0] && parts[1] && parts[2]
+      ? new Date(parts[0], parts[1] - 1, parts[2])
+      : new Date();
+    const sevenDaysAgo = new Date(currDate.getFullYear(), currDate.getMonth(), currDate.getDate() - 6);
+    sevenDaysAgo.setHours(0, 0, 0, 0);
+
+    return (mortalityEntries || [])
+      .filter((m): m is AquariumMortalityEntry => Boolean(m && typeof m.mortality_date === "string"))
+      .filter((m) => {
+        const p = m.mortality_date.split("-").map(Number);
+        if (p.length !== 3 || !p[0] || !p[1] || !p[2]) return false;
+        const mDate = new Date(p[0], p[1] - 1, p[2]);
+        if (period === "today") return m.mortality_date === todayStr;
+        if (period === "yesterday") return m.mortality_date === yesterdayStr;
+        if (period === "date") return m.mortality_date === selectedDate;
+        if (period === "week") return mDate >= sevenDaysAgo;
+        if (period === "month") {
+          const targetMonth = selectedMonth || todayStr.slice(0, 7);
+          return m.mortality_date.startsWith(targetMonth);
+        }
+        if (period === "custom") {
+          if (customStartDate && m.mortality_date < customStartDate) return false;
+          if (customEndDate && m.mortality_date > customEndDate) return false;
+          return true;
+        }
+        return true; // "all"
+      });
+  }, [mortalityEntries, period, selectedMonth, customStartDate, customEndDate, selectedDate, getTodayDate]);
+
+  const periodMortalityKg = useMemo(() => {
+    return Math.round((filteredMortalityByPeriod || []).reduce((sum, m) => sum + (Number(m?.weight_kg) || 0), 0) * 1000) / 1000;
+  }, [filteredMortalityByPeriod]);
+
+  const periodMortalityCount = useMemo(() => {
+    return (filteredMortalityByPeriod || []).reduce((sum, m) => sum + (Number(m?.fish_count) || 1), 0);
+  }, [filteredMortalityByPeriod]);
+
+  const periodMortalityCost = useMemo(() => {
+    return Math.round(periodMortalityKg * procurementAvgCost);
+  }, [periodMortalityKg, procurementAvgCost]);
+
   // ─── Procurement Stock Surplus Mapping & Whole Profit Calculation ───
   // Automatically detects when physical aquarium stock was exhausted on 10th Oct 2026.
   // Any sale beyond total procured biomass (net of mortality) or marked as surplus has ₹0 procurement cost,
@@ -1919,10 +1965,17 @@ export default function VendingCenterLoggerPage() {
     return 0;
   }, [period, selectedMonth, customStartDate, customEndDate, supplierRebatesMap]);
 
-  // ─── Final Operating Net Profit (Realized Sold Profit + Supplier Rebate minus Operational Expenses & Worker Salary) ───
+  // ─── Final Operating Net Profit (Realized Sold Profit + Supplier Rebate minus Operational Expenses, Worker Salary & Mortality Loss) ───
   const finalProfit = useMemo(() => {
-    return Math.round(kpis.totalSoldProfit + periodSupplierRebate - periodExpensesTotal - periodSalaryTotal - (kpis.totalFarmDeliverySubsidy || 0));
-  }, [kpis.totalSoldProfit, periodSupplierRebate, periodExpensesTotal, periodSalaryTotal, kpis.totalFarmDeliverySubsidy]);
+    return Math.round(
+      kpis.totalSoldProfit +
+      periodSupplierRebate -
+      periodExpensesTotal -
+      periodSalaryTotal -
+      (kpis.totalFarmDeliverySubsidy || 0) -
+      periodMortalityCost
+    );
+  }, [kpis.totalSoldProfit, periodSupplierRebate, periodExpensesTotal, periodSalaryTotal, kpis.totalFarmDeliverySubsidy, periodMortalityCost]);
 
   const finalProfitMargin = useMemo(() => {
     return kpis.totalRevenue > 0 ? ((finalProfit / kpis.totalRevenue) * 100).toFixed(1) : "0.0";
@@ -2164,6 +2217,8 @@ export default function VendingCenterLoggerPage() {
         guttingLaborCost: number;
         expenses: number;
         salaryPaid: number;
+        mortalityKg: number;
+        mortalityCost: number;
       }
     > = {};
 
@@ -2201,6 +2256,8 @@ export default function VendingCenterLoggerPage() {
         guttingLaborCost: 0,
         expenses: 0,
         salaryPaid: 0,
+        mortalityKg: 0,
+        mortalityCost: 0,
       };
     });
 
@@ -2250,6 +2307,16 @@ export default function VendingCenterLoggerPage() {
       }
     });
 
+    mortalityEntries.forEach((m) => {
+      if (!m.mortality_date || m.mortality_date.length < 7) return;
+      const mKey = m.mortality_date.slice(0, 7);
+      if (monthMap[mKey]) {
+        const mw = Number(m.weight_kg) || 0;
+        monthMap[mKey].mortalityKg = Math.round((monthMap[mKey].mortalityKg + mw) * 1000) / 1000;
+        monthMap[mKey].mortalityCost += Math.round(mw * procurementAvgCost);
+      }
+    });
+
     const currMonthKey = getIstTodayDate().slice(0, 7);
     const prevMonthKey = getPreviousMonthKey(currMonthKey);
 
@@ -2261,7 +2328,8 @@ export default function VendingCenterLoggerPage() {
       const supplierRebate = supplierRebatesMap[m.monthKey] ?? (m.monthKey === "2026-09" ? 3020 : 0);
       const operationalGrossProfit = Math.round(m.revenue - totalFishCost);
       const fishGrossProfit = Math.round(operationalGrossProfit + supplierRebate);
-      const finalNetProfit = Math.round(fishGrossProfit - m.expenses - m.salaryPaid);
+      const mortalityCost = m.mortalityCost || 0;
+      const finalNetProfit = Math.round(fishGrossProfit - m.expenses - m.salaryPaid - mortalityCost);
       const marginPercent = m.revenue > 0 ? ((finalNetProfit / m.revenue) * 100).toFixed(1) : "0.0";
 
       return {
@@ -2281,7 +2349,7 @@ export default function VendingCenterLoggerPage() {
     });
 
     return rows.sort((a, b) => b.monthKey.localeCompare(a.monthKey));
-  }, [entries, expenses, salaryPayments, procurementAvgCost, supplierRebatesMap, surplusInfoMap, specialRules]);
+  }, [entries, expenses, salaryPayments, mortalityEntries, procurementAvgCost, supplierRebatesMap, surplusInfoMap, specialRules]);
 
   // ─── Aquarium Live Stock Calculations ───
   // All stock procured is LIVE FISH. We track what's left in the aquarium.
@@ -3672,6 +3740,7 @@ export default function VendingCenterLoggerPage() {
       "Fish Gross Profit (Rs)",
       "Vending Expenses (Rs)",
       "Worker Wages (Rs)",
+      "Mortality Loss (Rs)",
       "Final Net Operating Profit (Rs)",
       "Net Margin (%)",
     ];
@@ -3688,6 +3757,7 @@ export default function VendingCenterLoggerPage() {
       m.fishGrossProfit,
       m.expenses,
       m.salaryPaid,
+      (m as any).mortalityCost || 0,
       m.finalNetProfit,
       `"${m.marginPercent}%"`,
     ]);
@@ -3722,7 +3792,10 @@ export default function VendingCenterLoggerPage() {
         { "Vending Center Metric": "Realized Net Profit on Sold Fish (Rs)", "Value / Amount": kpis.totalSoldProfit },
         { "Vending Center Metric": "Vending Center Operational Expenses (Rs)", "Value / Amount": periodExpensesTotal },
         { "Vending Center Metric": "Worker Salary / Wages Accounted (Mohd Amin) (Rs)", "Value / Amount": periodSalaryTotal },
-        { "Vending Center Metric": "Final Net Operating Profit After Expenses & Wages (Rs)", "Value / Amount": finalProfit },
+        { "Vending Center Metric": "Period Aquarium Mortality Loss (Rs)", "Value / Amount": periodMortalityCost },
+        { "Vending Center Metric": "Period Aquarium Mortality Biomass (Kg)", "Value / Amount": periodMortalityKg },
+        { "Vending Center Metric": "Period Aquarium Mortality Fish Count", "Value / Amount": periodMortalityCount },
+        { "Vending Center Metric": "Final Net Operating Profit After Expenses, Wages & Mortality (Rs)", "Value / Amount": finalProfit },
         { "Vending Center Metric": "Final Net Operating Profit Margin (%)", "Value / Amount": `${finalProfitMargin}%` },
         { "Vending Center Metric": "Gutted Trout Sold Net Profit (Rs)", "Value / Amount": kpis.guttedProfit },
         { "Vending Center Metric": "Mohd Amin Gutting Labor Incentive Deducted (Rs)", "Value / Amount": kpis.periodWorkerLaborCost },
@@ -5445,7 +5518,84 @@ export default function VendingCenterLoggerPage() {
                 </div>
               </div>
 
-              {/* Card 10: Final Profit (Realized Sold Profit minus Operational Expenses) */}
+              {/* Card 9b: Aquarium Mortality Loss (Dead Loss / Scrap Biomass) */}
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-rose-950/60 via-red-950/30 to-slate-900 border border-rose-500/50 shadow-xl shadow-rose-950/30 relative overflow-hidden flex flex-col justify-between group hover:border-rose-400/80 transition-all">
+                <div>
+                  <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
+                    <span className="text-rose-300 font-bold tracking-wider flex items-center gap-1.5">
+                      <span>MORTALITY LOSS</span>
+                      <span className="px-1.5 py-0.2 rounded bg-rose-500/20 text-[9px] text-rose-200 border border-rose-500/30 font-bold uppercase">
+                        Dead Loss
+                      </span>
+                    </span>
+                    <span className="material-symbols-outlined text-rose-400 text-lg">skull</span>
+                  </div>
+                  <div className="mt-2 flex items-baseline gap-1 min-h-[32px]">
+                    {periodMortalityCost > 0 ? (
+                      <>
+                        <span className="text-rose-400 font-bold text-lg">-₹</span>
+                        <span
+                          className="text-2xl sm:text-3xl font-black text-rose-300"
+                          style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                        >
+                          {periodMortalityCost.toLocaleString("en-IN")}
+                        </span>
+                        <span className="text-[11px] font-bold text-rose-400 font-mono ml-1">
+                          ({formatKg(periodMortalityKg)} Kg)
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span className="text-emerald-400 font-bold text-lg">₹</span>
+                        <span
+                          className="text-2xl sm:text-3xl font-black text-emerald-400"
+                          style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                        >
+                          0
+                        </span>
+                        <span className="text-[11px] font-mono text-emerald-400 font-bold ml-1">
+                          Zero Loss ✓
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2.5 space-y-1">
+                  <div className="flex items-center justify-between text-rose-300">
+                    <span>
+                      {periodMortalityCount > 0
+                        ? `${periodMortalityCount} ${periodMortalityCount === 1 ? "fish" : "fishes"} lost`
+                        : "No fish lost"}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setKpiCategory("aquarium");
+                        setShowMortalityTable(true);
+                      }}
+                      className="text-[10px] text-rose-400 hover:text-rose-300 underline font-bold cursor-pointer"
+                    >
+                      View Ledger
+                    </button>
+                  </div>
+                  <div className="text-[10px] text-slate-500 flex items-center justify-between">
+                    <span>Procurement @ ₹{procurementAvgCost}/Kg</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMortalityFormDate(getTodayDate());
+                        setMortalityFormTime(getCurrentTime());
+                        setMortalityModalOpen(true);
+                      }}
+                      className="text-[10px] text-amber-400 hover:text-amber-300 font-bold cursor-pointer"
+                    >
+                      + Log Mortality
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 10: Final Profit (Realized Sold Profit minus Operational Expenses, Worker Salary & Mortality Loss) */}
               <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-emerald-950/60 via-slate-900/95 to-teal-950/50 border-2 border-emerald-400/70 shadow-2xl shadow-emerald-950/30 relative overflow-hidden flex flex-col justify-between ring-1 ring-emerald-500/20">
                 <div>
                   <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
@@ -5502,8 +5652,17 @@ export default function VendingCenterLoggerPage() {
                       <span>+₹{periodSupplierRebate.toLocaleString("en-IN")}</span>
                     </div>
                   )}
+                  {periodMortalityCost > 0 && (
+                    <div className="flex items-center justify-between text-rose-400 font-bold text-[10.5px] bg-rose-950/30 px-1.5 py-0.5 rounded border border-rose-500/30">
+                      <span className="flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[12px]">skull</span>
+                        Mortality Loss:
+                      </span>
+                      <span>-₹{periodMortalityCost.toLocaleString("en-IN")}</span>
+                    </div>
+                  )}
                   <div className="text-[10px] text-slate-500 truncate">
-                    Sold Profit minus Overheads {periodSalaryTotal > 0 ? "& Worker Salary" : ""}
+                    Sold Profit minus Overheads {periodSalaryTotal > 0 ? ", Wages" : ""} {periodMortalityCost > 0 ? "& Mortality" : ""}
                   </div>
                 </div>
               </div>
@@ -5980,14 +6139,14 @@ export default function VendingCenterLoggerPage() {
               </div>
             </div>
 
-            {/* Card 6: Mortality & Scrap Wastage (NEW) */}
+            {/* Card 6: Mortality & Scrap Wastage */}
             <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-rose-950/50 via-slate-900/90 to-slate-900 border border-rose-500/40 shadow-xl shadow-rose-950/20 relative overflow-hidden flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
                   <span className="text-rose-300 font-bold flex items-center gap-1.5">
                     <span>MORTALITY &amp; SCRAP</span>
-                    <span className="px-1.5 py-0.2 rounded bg-rose-500/20 text-[9px] text-rose-200 border border-rose-500/30">
-                      Loss
+                    <span className="px-1.5 py-0.2 rounded bg-rose-500/20 text-[9px] text-rose-200 border border-rose-500/30 font-bold">
+                      {period.toUpperCase()} LOSS
                     </span>
                   </span>
                   <span className="material-symbols-outlined text-rose-400 text-lg">emergency</span>
@@ -5997,23 +6156,23 @@ export default function VendingCenterLoggerPage() {
                     className="text-2xl sm:text-3xl font-black text-rose-300"
                     style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                   >
-                    {formatKg(aquariumStock.totalMortalityKg)}
+                    {formatKg(periodMortalityKg)}
                   </span>
                   <span className="text-rose-400 font-bold font-mono text-sm">Kg</span>
                   <span className="text-[10px] font-mono text-slate-400 ml-auto">
-                    {aquariumStock.totalMortalityCount} fish
+                    {periodMortalityCount} fish
                   </span>
                 </div>
               </div>
               <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2 space-y-0.5">
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-400">Total Loss:</span>
+                  <span className="text-slate-400">Period Loss:</span>
                   <span className="text-rose-300 font-bold">
-                    ₹{aquariumStock.totalMortalityCost.toLocaleString("en-IN")}
+                    ₹{periodMortalityCost.toLocaleString("en-IN")}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-[10.5px] text-slate-500">
-                  <span>Today: {formatKg(aquariumStock.todayMortalityKg)} Kg</span>
+                  <span>All-Time: {formatKg(aquariumStock.totalMortalityKg)} Kg (₹{aquariumStock.totalMortalityCost.toLocaleString("en-IN")})</span>
                   <span>{aquariumStock.mortalityRatePercent}% loss rate</span>
                 </div>
               </div>
@@ -9909,6 +10068,7 @@ export default function VendingCenterLoggerPage() {
                         <th className="py-2.5 px-3 text-right">Fish Gross Profit</th>
                         <th className="py-2.5 px-3 text-right">Expenses</th>
                         <th className="py-2.5 px-3 text-right">Mohd Amin Wages</th>
+                        <th className="py-2.5 px-3 text-right text-rose-400">Mortality Loss</th>
                         <th className="py-2.5 px-3.5 text-right font-black text-emerald-400">Final Net Profit</th>
                         <th className="py-2.5 px-3 text-center">Margin</th>
                         <th className="py-2.5 px-3.5 text-center">Action</th>
@@ -9992,6 +10152,17 @@ export default function VendingCenterLoggerPage() {
 
                             <td className="py-3 px-3 text-right text-sky-300 whitespace-nowrap">
                               {row.salaryPaid > 0 ? `-₹${row.salaryPaid.toLocaleString("en-IN")}` : "₹0"}
+                            </td>
+
+                            <td className="py-3 px-3 text-right text-rose-300 whitespace-nowrap">
+                              {(row as any).mortalityCost > 0 ? (
+                                <div className="flex flex-col items-end">
+                                  <span className="font-bold">-₹{((row as any).mortalityCost).toLocaleString("en-IN")}</span>
+                                  <span className="text-[10px] text-rose-400/80">({formatKg((row as any).mortalityKg || 0)} Kg)</span>
+                                </div>
+                              ) : (
+                                <span className="text-slate-600">₹0</span>
+                              )}
                             </td>
 
                             <td className="py-3 px-3.5 text-right whitespace-nowrap">
