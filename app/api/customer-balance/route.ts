@@ -255,7 +255,19 @@ export async function GET(request: Request) {
           const invNum = d.num || r.id;
           const existing = records.find((b) => b.invoice_id === invNum || b.id === r.id);
 
-          if (bal > 0 && !existing) {
+          const pStatus = String(d.paymentStatus || d.status || "").toUpperCase();
+          const isPaid = pStatus === "PAID" || pStatus === "CONFIRMED";
+          const resolvedBal = isPaid ? 0 : bal;
+
+          // Only harvest if there is an ACTUAL pending balance AND invoice is NOT already paid or dismissed
+          if (
+            resolvedBal > 0 &&
+            !isPaid &&
+            d.balanceStatus !== "settled" &&
+            d.balanceStatus !== "waived_final" &&
+            d.balanceStatus !== "dismissed_khata" &&
+            !existing
+          ) {
             records.push({
               id: r.id,
               invoice_id: invNum,
@@ -929,20 +941,28 @@ export async function DELETE(request: Request) {
       }
     } catch (_) {}
 
-    // 2. Delete / clear from invoices table so it is never re-harvested
+    // 2. Clear balance metadata from invoices table so it is dismissed from Khata, BUT PRESERVE THE INVOICE RECORD ITSELF!
     try {
-      if (cleanDigits) {
-        await supabase
-          .from("invoices")
-          .delete()
-          .or(`id.eq.${cleanDigits},id.eq.${id}`);
-      } else {
-        await supabase
-          .from("invoices")
-          .delete()
-          .eq("id", id);
+      const { data: invRows } = await supabase
+        .from("invoices")
+        .select("id, data")
+        .or(cleanDigits ? `id.eq.${cleanDigits},id.eq.${id}` : `id.eq.${id}`)
+        .limit(5);
+
+      if (invRows && invRows.length > 0) {
+        for (const row of invRows) {
+          const invData = typeof row.data === "object" ? row.data : JSON.parse(row.data || "{}");
+          invData.balanceAmount = 0;
+          invData.balanceStatus = "dismissed_khata";
+          await supabase
+            .from("invoices")
+            .update({ data: invData })
+            .eq("id", row.id);
+        }
       }
-    } catch (_) {}
+    } catch (invErr) {
+      console.warn("Could not clear balance in invoices table:", invErr);
+    }
 
     // 3. Delete from app_settings fallback
     const cached = await getFallbackBalances();

@@ -273,6 +273,7 @@ export async function POST(req: NextRequest) {
           for (const inv of matchedInvoices) {
             if (inv && inv.data) {
               const prev = typeof inv.data === "object" ? inv.data : JSON.parse(inv.data || "{}");
+              const paidAmt = Number(prev.tot || prev.grandTotal || amount);
               await supabase
                 .from("invoices")
                 .update({
@@ -282,6 +283,9 @@ export async function POST(req: NextRequest) {
                     paymentMethod: "Razorpay Link (Verified)",
                     paymentId,
                     paidAt: new Date().toISOString(),
+                    paidAmount: paidAmt,
+                    balanceAmount: 0,
+                    balanceStatus: "settled",
                   },
                 })
                 .eq("id", inv.id);
@@ -475,6 +479,9 @@ export async function POST(req: NextRequest) {
                 paymentMethod: "Razorpay QR",
                 paymentId,
                 paidAt: new Date().toISOString(),
+                paidAmount: Number(invRow.data.tot || invRow.data.grandTotal || amount),
+                balanceAmount: 0,
+                balanceStatus: "settled",
               };
               await supabase
                 .from("invoices")

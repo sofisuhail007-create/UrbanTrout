@@ -168,7 +168,7 @@ export default function CustomerBalancesTab({
   };
 
   const handleDeleteRecord = async (record: CustomerBalanceRecord) => {
-    if (!window.confirm(`Delete balance record for ${record.customer_name} (Invoice #${record.invoice_id})?`)) {
+    if (!window.confirm(`Remove balance record for ${record.customer_name} (Invoice #${record.invoice_id}) from Khata ledger?\n\nNote: The customer order / invoice in Remote Orders will remain preserved.`)) {
       return;
     }
 
