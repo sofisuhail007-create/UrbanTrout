@@ -22,6 +22,7 @@ import DailySalesHistogram from "./DailySalesHistogram";
 import SupplierRebateTracker from "@/components/SupplierRebateTracker";
 import StaffIncentiveCard from "./StaffIncentiveCard";
 import StaffLeaveModal from "./StaffLeaveModal";
+import OwnerPersonalWallet from "./OwnerPersonalWallet";
 
 const DEFAULT_GUTTED_PRICE = 580;
 const DEFAULT_NON_GUTTED_PRICE = 540;
@@ -773,7 +774,26 @@ export default function VendingCenterLoggerPage() {
   }, []);
 
   // ─── Organized Executive KPI Cards Category State ───
-  const [kpiCategory, setKpiCategory] = useState<"sales" | "aquarium" | "staff" | "expenses" | "all">("sales");
+  const [kpiCategory, setKpiCategory] = useState<"sales" | "aquarium" | "staff" | "expenses" | "wallet" | "all">("sales");
+
+  // Owner Personal Wallet Month Spent Tracker
+  useEffect(() => {
+    let isMounted = true;
+    const loadPersonalSpent = async () => {
+      try {
+        const res = await fetch(`/api/vending-log/personal-expenses?month=${selectedMonth || "all"}&t=${Date.now()}`);
+        if (res.ok) {
+          const d = await res.json();
+          if (d.success && isMounted) {
+            setOwnerPersonalSpentMonth(d.totalSpent || 0);
+          }
+        }
+      } catch (_) {}
+    };
+    loadPersonalSpent();
+    return () => { isMounted = false; };
+  }, [selectedMonth]);
+  const [ownerPersonalSpentMonth, setOwnerPersonalSpentMonth] = useState<number>(0);
 
   // ─── Aquarium Mortality & Scrap Wastage State ───
   const [mortalityEntries, setMortalityEntries] = useState<AquariumMortalityEntry[]>(() => {
@@ -4953,7 +4973,25 @@ export default function VendingCenterLoggerPage() {
                 )}
               </button>
 
-              <button
+                            <button
+                type="button"
+                onClick={() => setKpiCategory("wallet")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
+                  kpiCategory === "wallet"
+                    ? "bg-purple-500/25 text-purple-200 border border-purple-500/50 shadow-sm"
+                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
+                }`}
+              >
+                <span className="material-symbols-outlined text-sm text-purple-400">account_balance_wallet</span>
+                <span>Owner Wallet</span>
+                {ownerPersonalSpentMonth > 0 && (
+                  <span className="px-1.5 py-0.2 rounded bg-purple-500/20 text-[10px] text-purple-300 font-mono border border-purple-500/30">
+                    ₹{ownerPersonalSpentMonth.toLocaleString("en-IN")}
+                  </span>
+                )}
+              </button>
+
+<button
                 type="button"
                 onClick={() => setKpiCategory("all")}
                 className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
@@ -5659,6 +5697,21 @@ export default function VendingCenterLoggerPage() {
                         Mortality Loss:
                       </span>
                       <span>-₹{periodMortalityCost.toLocaleString("en-IN")}</span>
+                    </div>
+                  )}
+                  {ownerPersonalSpentMonth > 0 && (
+                    <div
+                      onClick={() => setKpiCategory("wallet")}
+                      className="flex items-center justify-between text-purple-300 font-bold text-[10.5px] bg-purple-950/40 hover:bg-purple-900/50 px-2 py-1 rounded-lg border border-purple-500/30 cursor-pointer transition-all mt-1 mb-1"
+                      title="Click to open Owner Personal Wallet & Drawings"
+                    >
+                      <span className="flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[13px] text-purple-400">account_balance_wallet</span>
+                        <span>In-Pocket Retained:</span>
+                      </span>
+                      <span className="text-white font-mono">
+                        ₹{(finalProfit - ownerPersonalSpentMonth).toLocaleString("en-IN")}
+                      </span>
                     </div>
                   )}
                   <div className="text-[10px] text-slate-500 truncate">
@@ -6614,6 +6667,27 @@ export default function VendingCenterLoggerPage() {
               </table>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════
+          SECTION 5: OWNER PERSONAL WALLET & PROFIT DRAWINGS (PEACE-OF-MIND TRACKER)
+          Visible to Super Admin only. Deducted only from Final Profit.
+          ══════════════════════════════════════════════════════════ */}
+      {isAdmin && showAdminCards && (kpiCategory === "wallet" || kpiCategory === "all") && (
+        <div className="space-y-3 animate-in fade-in duration-200 mb-6">
+          {kpiCategory === "all" && (
+            <div className="flex items-center gap-2 text-xs font-mono font-bold text-purple-400 uppercase tracking-wider pt-1">
+              <span className="material-symbols-outlined text-sm">account_balance_wallet</span>
+              <span>Section 5: Owner Personal Wallet &amp; Profit Drawings</span>
+            </div>
+          )}
+          <OwnerPersonalWallet
+            finalProfit={finalProfit}
+            activeMonth={selectedMonth}
+            isAdmin={isAdmin}
+            onSpentChange={(val) => setOwnerPersonalSpentMonth(val)}
+          />
         </div>
       )}
 

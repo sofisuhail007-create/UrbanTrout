@@ -4,41 +4,56 @@ import { getBusinessHoursInfo, StoreSettingsOverrides } from "@/lib/businessHour
 
 export const dynamic = "force-dynamic";
 
+// In-memory 15-second cache to prevent hammering Supabase egress quota during multi-visitor store closed polling
+let cachedOverrides: StoreSettingsOverrides | null = null;
+let lastOverridesFetchTime = 0;
+const CACHE_TTL_MS = 15000; // 15 seconds
+
 export async function GET() {
   try {
-    const overrides: StoreSettingsOverrides = {
+    const nowMs = Date.now();
+    let overrides: StoreSettingsOverrides = {
       storeManuallyClosed: false,
       farmMaintenanceActive: false,
       allowFridayOrders: false,
       forceStoreOpen: false,
     };
 
-    try {
-      const { data: rows } = await supabase
-        .from("app_settings")
-        .select("key, value")
-        .in("key", [
-          "store_manually_closed",
-          "farm_maintenance_active",
-          "allow_friday_orders",
-          "force_store_open",
-        ]);
+    if (cachedOverrides && nowMs - lastOverridesFetchTime < CACHE_TTL_MS) {
+      overrides = { ...cachedOverrides };
+    } else {
+      try {
+        const { data: rows } = await supabase
+          .from("app_settings")
+          .select("key, value")
+          .in("key", [
+            "store_manually_closed",
+            "farm_maintenance_active",
+            "allow_friday_orders",
+            "force_store_open",
+          ]);
 
-      if (rows && rows.length > 0) {
-        for (const row of rows) {
-          if (row.key === "store_manually_closed") {
-            overrides.storeManuallyClosed = row.value === "true";
-          } else if (row.key === "farm_maintenance_active") {
-            overrides.farmMaintenanceActive = row.value === "true";
-          } else if (row.key === "allow_friday_orders") {
-            overrides.allowFridayOrders = row.value === "true";
-          } else if (row.key === "force_store_open") {
-            overrides.forceStoreOpen = row.value === "true";
+        if (rows && rows.length > 0) {
+          for (const row of rows) {
+            if (row.key === "store_manually_closed") {
+              overrides.storeManuallyClosed = row.value === "true";
+            } else if (row.key === "farm_maintenance_active") {
+              overrides.farmMaintenanceActive = row.value === "true";
+            } else if (row.key === "allow_friday_orders") {
+              overrides.allowFridayOrders = row.value === "true";
+            } else if (row.key === "force_store_open") {
+              overrides.forceStoreOpen = row.value === "true";
+            }
           }
         }
+        cachedOverrides = { ...overrides };
+        lastOverridesFetchTime = nowMs;
+      } catch {
+        // fallback to defaults or previous cache if database read fails
+        if (cachedOverrides) {
+          overrides = { ...cachedOverrides };
+        }
       }
-    } catch {
-      // fallback to defaults if database read fails
     }
 
     const hoursInfo = getBusinessHoursInfo(new Date(), overrides);
