@@ -41,6 +41,9 @@ interface DecodedInvoice {
   expiresInHours?: number;
   paymentStatus?: string;
   paymentMethod?: string;
+  paymentMode?: string;
+  paymentLinkUrl?: string;
+  paymentLinkId?: string;
   paymentId?: string;
   qrImageUrl?: string;
   upiId?: string;
@@ -49,11 +52,14 @@ interface DecodedInvoice {
 function mapInvoiceData(parsed: any, fallbackNum: string): DecodedInvoice {
   const createdTimestamp = parsed.ts || parsed.createdAt || Date.now();
   const elapsedMs = Date.now() - createdTimestamp;
+  const grandTot = parsed.tot ?? parsed.grandTotal ?? 0;
+
   const isPaidOrSettled =
     parsed.paymentStatus === "PAID" ||
     parsed.balanceStatus === "settled" ||
     parsed.balanceStatus === "waived_final" ||
-    (parsed.balanceAmount !== undefined && parsed.balanceAmount <= 0);
+    (parsed.balanceAmount !== undefined && Number(parsed.balanceAmount) <= 0) ||
+    (parsed.paidAmount !== undefined && grandTot > 0 && Number(parsed.paidAmount) >= grandTot);
 
   const isKhata =
     Boolean(parsed.isKhata) ||
@@ -66,16 +72,36 @@ function mapInvoiceData(parsed: any, fallbackNum: string): DecodedInvoice {
   const isExpired = !isKhata && !isPaidOrSettled && elapsedMs > maxAgeMs;
   const remainingHours = isKhata ? 720 : Math.max(0, Math.ceil((maxAgeMs - elapsedMs) / (1000 * 60 * 60)));
 
-  const grandTot = parsed.tot ?? parsed.grandTotal ?? 0;
-  const paid = parsed.paidAmount !== undefined
-    ? parsed.paidAmount
-    : (parsed.balanceAmount !== undefined ? Math.max(0, grandTot - parsed.balanceAmount) : (isPaidOrSettled ? grandTot : undefined));
+  // If paid or settled, balance MUST be 0 and paidAmount defaults to grandTot
+  let paid = parsed.paidAmount !== undefined ? Number(parsed.paidAmount) : undefined;
+  let balance = parsed.balanceAmount !== undefined ? Number(parsed.balanceAmount) : undefined;
+
+  if (isPaidOrSettled) {
+    balance = 0;
+    if (paid === undefined || paid < grandTot) {
+      paid = grandTot;
+    }
+  } else {
+    if (paid === undefined && balance !== undefined) {
+      paid = Math.max(0, grandTot - balance);
+    }
+    if (balance === undefined) {
+      balance = (paid !== undefined && grandTot > paid) ? grandTot - paid : grandTot;
+    }
+  }
+
   const refund = parsed.refundAmount !== undefined
-    ? parsed.refundAmount
+    ? Number(parsed.refundAmount)
     : (paid !== undefined && paid > grandTot ? paid - grandTot : 0);
-  const balance = parsed.balanceAmount !== undefined
-    ? parsed.balanceAmount
-    : (paid !== undefined && grandTot > paid ? grandTot - paid : (isPaidOrSettled ? 0 : grandTot));
+
+  const rawMethod = String(parsed.paymentMethod || "");
+  const pLinkUrl = parsed.paymentLinkUrl || parsed.payUrl || parsed.payment_link_url || undefined;
+  const pLinkId = parsed.paymentLinkId || parsed.payment_link_id || undefined;
+  const pMode = parsed.paymentMode || (
+    rawMethod.toLowerCase().includes("razorpay") || (pLinkUrl && String(pLinkUrl).includes("rzp"))
+      ? "razorpay"
+      : undefined
+  );
 
   return {
     invoiceNumber: parsed.num || parsed.invoiceNumber || fallbackNum,
@@ -102,14 +128,17 @@ function mapInvoiceData(parsed: any, fallbackNum: string): DecodedInvoice {
     paidAmount: paid,
     balanceAmount: balance,
     refundAmount: refund,
-    balanceStatus: parsed.balanceStatus || (balance > 0 ? "pending" : undefined),
+    balanceStatus: parsed.balanceStatus || ((balance !== undefined && balance > 0) ? "pending" : (isPaidOrSettled ? "settled" : undefined)),
     notes: parsed.notes || "",
     createdAt: createdTimestamp,
     isKhata: Boolean(isKhata),
     isExpired,
     expiresInHours: remainingHours,
     paymentStatus: parsed.paymentStatus || (refund > 0 ? "REFUND DUE" : (isPaidOrSettled ? "PAID" : "PAYMENT DUE")),
-    paymentMethod: parsed.paymentMethod || "UPI",
+    paymentMethod: parsed.paymentMethod || (pMode === "razorpay" ? "Razorpay Link (WhatsApp)" : "UPI"),
+    paymentMode: pMode,
+    paymentLinkUrl: pLinkUrl,
+    paymentLinkId: pLinkId,
     paymentId: parsed.paymentId || undefined,
     qrImageUrl: parsed.qrImageUrl || undefined,
     upiId: parsed.upiId || parsed.jkBankDetails?.upiId,
@@ -430,9 +459,20 @@ export default function PublicInvoicePage() {
   }
 
   const grandTotal = invoice.grandTotal;
-  const remainingAmount = (invoice.balanceAmount !== undefined && invoice.balanceAmount > 0)
-    ? invoice.balanceAmount
-    : (invoice.paidAmount !== undefined ? Math.max(0, grandTotal - invoice.paidAmount) : grandTotal);
+  const isPaidInvoice =
+    invoice.paymentStatus === "PAID" ||
+    (invoice.balanceAmount !== undefined && invoice.balanceAmount <= 0 && (!invoice.refundAmount || invoice.refundAmount === 0));
+
+  const remainingAmount = isPaidInvoice
+    ? 0
+    : ((invoice.balanceAmount !== undefined && invoice.balanceAmount > 0)
+        ? invoice.balanceAmount
+        : (invoice.paidAmount !== undefined ? Math.max(0, grandTotal - invoice.paidAmount) : grandTotal));
+
+  const isRazorpay =
+    invoice.paymentMode === "razorpay" ||
+    String(invoice.paymentMethod || "").toLowerCase().includes("razorpay") ||
+    (Boolean(invoice.paymentLinkUrl) && (String(invoice.paymentLinkUrl).includes("rzp") || String(invoice.paymentLinkUrl).includes("razorpay")));
 
   const activeUpiId = invoice.upiId || upiId;
   const terminalId = activeUpiId.includes("@")
@@ -621,10 +661,23 @@ export default function PublicInvoicePage() {
             </div>
 
             {/* Invoice & Status Box */}
-            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1">
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block font-sans">
-                INVOICE &amp; PAYMENT DETAILS
-              </span>
+            <div className="p-3.5 rounded-xl bg-slate-50 border border-slate-200 space-y-1.5 relative overflow-hidden">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-wider block font-sans">
+                  INVOICE &amp; PAYMENT DETAILS
+                </span>
+                <span
+                  className={`px-2 py-0.5 rounded font-black text-[10px] uppercase tracking-wide font-mono ${
+                    isPaidInvoice
+                      ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                      : invoice.refundAmount && invoice.refundAmount > 0
+                      ? "bg-blue-100 text-blue-800 border border-blue-300"
+                      : "bg-amber-100 text-amber-900 border border-amber-300"
+                  }`}
+                >
+                  {isPaidInvoice ? "PAID" : (invoice.paymentStatus || "PAYMENT DUE")}
+                </span>
+              </div>
               <div className="flex justify-between">
                 <span className="text-slate-600">Invoice Number:</span>
                 <span className="font-bold text-slate-900">{invoice.invoiceNumber}</span>
@@ -643,20 +696,6 @@ export default function PublicInvoicePage() {
                 <span className="text-slate-600">Place of Supply:</span>
                 <span className="font-semibold text-slate-800">Jammu &amp; Kashmir (01)</span>
               </div>
-              <div className="flex justify-between items-center pt-0.5">
-                <span className="text-slate-600">Status:</span>
-                <span
-                  className={`px-2 py-0.5 rounded font-black text-[10.5px] uppercase tracking-wide ${
-                    invoice.paymentStatus === "PAID"
-                      ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
-                      : invoice.refundAmount && invoice.refundAmount > 0
-                      ? "bg-blue-100 text-blue-800 border border-blue-300"
-                      : "bg-amber-100 text-amber-900 border border-amber-300"
-                  }`}
-                >
-                  {invoice.paymentStatus || "PAYMENT DUE"}
-                </span>
-              </div>
               {invoice.paymentMethod && (
                 <div className="flex justify-between text-[11px] text-slate-600">
                   <span>Method:</span>
@@ -669,6 +708,47 @@ export default function PublicInvoicePage() {
                   <span className="font-mono truncate max-w-[150px]">{invoice.paymentId}</span>
                 </div>
               )}
+              {isRazorpay && invoice.paymentLinkId && (
+                <div className="flex justify-between text-[10px] text-slate-500">
+                  <span>Razorpay Link Ref:</span>
+                  <span className="font-mono text-cyan-800 font-semibold">{invoice.paymentLinkId}</span>
+                </div>
+              )}
+
+              {/* ─── PROMINENT OFFICIAL INVOICE PAYMENT STAMP ─── */}
+              <div className="pt-2 border-t border-slate-200/90 flex items-center justify-center">
+                {isPaidInvoice ? (
+                  <div className="w-full py-2 px-3 border-2 border-dashed border-emerald-600 bg-emerald-50 rounded-xl text-center transform rotate-[-1deg] shadow-sm">
+                    <div className="text-sm sm:text-base font-black text-emerald-800 tracking-wider flex items-center justify-center gap-1.5 font-mono">
+                      <span className="text-lg text-emerald-600">✓</span>
+                      <span>PAID IN FULL</span>
+                    </div>
+                    <p className="text-[9.5px] uppercase tracking-wider font-bold text-emerald-700 font-sans mt-0.5">
+                      Urban Trout Aquaculture · Zero Balance
+                    </p>
+                  </div>
+                ) : invoice.refundAmount && invoice.refundAmount > 0 ? (
+                  <div className="w-full py-2 px-3 border-2 border-dashed border-blue-600 bg-blue-50 rounded-xl text-center transform rotate-[-1deg] shadow-sm">
+                    <div className="text-sm sm:text-base font-black text-blue-800 tracking-wider flex items-center justify-center gap-1.5 font-mono">
+                      <span className="text-lg text-blue-600">💵</span>
+                      <span>REFUND DUE TO CUSTOMER</span>
+                    </div>
+                    <p className="text-[9.5px] uppercase tracking-wider font-bold text-blue-700 font-sans mt-0.5">
+                      Amount: ₹{invoice.refundAmount.toLocaleString("en-IN")} via Cash/UPI Handover
+                    </p>
+                  </div>
+                ) : (
+                  <div className="w-full py-2 px-3 border-2 border-dashed border-amber-500 bg-amber-50 rounded-xl text-center transform rotate-[-1deg] shadow-sm">
+                    <div className="text-sm sm:text-base font-black text-amber-900 tracking-wider flex items-center justify-center gap-1.5 font-mono">
+                      <span className="text-lg text-amber-600">⚠️</span>
+                      <span>PAYMENT PENDING</span>
+                    </div>
+                    <p className="text-[9.5px] uppercase tracking-wider font-bold text-amber-800 font-sans mt-0.5">
+                      Payable Amount: ₹{remainingAmount.toLocaleString("en-IN")}
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -766,7 +846,18 @@ export default function PublicInvoicePage() {
               </div>
 
               {/* Advance & Balance / Refund Outcome */}
-              {invoice.refundAmount !== undefined && invoice.refundAmount > 0 ? (
+              {isPaidInvoice ? (
+                <div className="space-y-1.5 pt-2 text-left">
+                  <div className="flex justify-between text-xs text-slate-600 font-mono">
+                    <span>Amount Paid:</span>
+                    <span className="font-bold text-slate-900">₹{(invoice.paidAmount ?? grandTotal).toLocaleString("en-IN")}</span>
+                  </div>
+                  <div className="p-2.5 rounded-xl bg-emerald-50 border-2 border-emerald-500 text-emerald-950 font-black text-center text-xs flex items-center justify-center gap-1.5 shadow-sm">
+                    <span className="text-emerald-700 text-sm">✓</span>
+                    <span>OFFICIALLY PAID IN FULL · ZERO BALANCE</span>
+                  </div>
+                </div>
+              ) : invoice.refundAmount !== undefined && invoice.refundAmount > 0 ? (
                 <div className="space-y-1 pt-2 text-left">
                   <div className="flex justify-between text-xs text-slate-600 font-mono">
                     <span>Advance Received:</span>
@@ -782,33 +873,31 @@ export default function PublicInvoicePage() {
                     </p>
                   </div>
                 </div>
-              ) : invoice.paidAmount !== undefined && invoice.paidAmount < grandTotal ? (
+              ) : remainingAmount > 0 ? (
                 <div className="space-y-1 pt-2 text-left">
-                  <div className="flex justify-between text-xs text-slate-600 font-mono">
-                    <span>Amount Paid / Advance:</span>
-                    <span>₹{invoice.paidAmount.toLocaleString("en-IN")}</span>
-                  </div>
-                  {invoice.balanceAmount && invoice.balanceAmount > 0 ? (
-                    <div className="p-2.5 rounded-xl bg-amber-50 border-2 border-amber-400 text-amber-950 font-black">
-                      <div className="flex justify-between text-sm">
-                        <span>⚠️ REMAINING BALANCE:</span>
-                        <span>₹{invoice.balanceAmount.toLocaleString("en-IN")}</span>
-                      </div>
-                      <p className="text-[10.5px] font-sans font-medium text-amber-800 mt-1 leading-tight">
-                        Please scan the UPI QR code below or pay cash upon handover.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900 text-center font-bold text-xs">
-                      ✓ Settled as Agreed Final Payment (Nil Balance)
+                  {invoice.paidAmount !== undefined && invoice.paidAmount > 0 && (
+                    <div className="flex justify-between text-xs text-slate-600 font-mono">
+                      <span>Amount Paid / Advance:</span>
+                      <span>₹{invoice.paidAmount.toLocaleString("en-IN")}</span>
                     </div>
                   )}
+                  <div className="p-2.5 rounded-xl bg-amber-50 border-2 border-amber-400 text-amber-950 font-black">
+                    <div className="flex justify-between text-sm">
+                      <span>⚠️ REMAINING BALANCE:</span>
+                      <span>₹{remainingAmount.toLocaleString("en-IN")}</span>
+                    </div>
+                    <p className="text-[10.5px] font-sans font-medium text-amber-800 mt-1 leading-tight">
+                      {isRazorpay
+                        ? "Please complete payment using the secure Razorpay payment link below."
+                        : "Please scan the UPI QR code below or pay cash upon handover."}
+                    </p>
+                  </div>
                 </div>
-              ) : invoice.paymentStatus === "PAID" ? (
-                <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-900 text-center font-black text-xs pt-1">
-                  ✓ VERIFIED PAID IN FULL (₹{grandTotal.toLocaleString("en-IN")})
+              ) : (
+                <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-900 text-center font-bold text-xs">
+                  ✓ Settled as Agreed Final Payment (Nil Balance)
                 </div>
-              ) : null}
+              )}
             </div>
           </div>
 
@@ -861,76 +950,143 @@ export default function PublicInvoicePage() {
           </div>
 
           {/* 5. Payment QR Code & Settlement (Print-Friendly) */}
-          {invoice.paymentStatus !== "PAID" && (!invoice.refundAmount || invoice.refundAmount === 0) && remainingAmount > 0 && (
-            <div className="p-4 rounded-xl bg-slate-50 border border-slate-300 print-avoid-break flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="flex items-center gap-4">
-                <div className="w-32 h-32 sm:w-36 sm:h-36 bg-white border border-slate-300 rounded-xl p-1 shrink-0 flex items-center justify-center shadow-sm">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={invoice.qrImageUrl || upiQrCodeUrl}
-                    alt="Scan UPI QR to Pay"
-                    className="w-full h-full object-contain"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <div className="inline-block px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 text-[10px] font-bold uppercase tracking-wider">
-                    Instant Bank Settlement
+          {!isPaidInvoice && (!invoice.refundAmount || invoice.refundAmount === 0) && remainingAmount > 0 && (
+            isRazorpay ? (
+              <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-cyan-50/40 border-2 border-cyan-500/40 print-avoid-break flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+                <div className="flex items-center gap-4">
+                  <div className="w-32 h-32 sm:w-36 sm:h-36 bg-white border border-slate-300 rounded-xl p-1.5 shrink-0 flex items-center justify-center shadow-sm">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={
+                        invoice.qrImageUrl ||
+                        (invoice.paymentLinkUrl
+                          ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(invoice.paymentLinkUrl)}`
+                          : upiQrCodeUrl)
+                      }
+                      alt="Scan to Pay via Razorpay"
+                      className="w-full h-full object-contain"
+                    />
                   </div>
-                  <h3 className="text-sm font-black text-slate-900">
-                    Scan with any UPI App to Pay
-                  </h3>
-                  <p className="text-xs font-mono font-bold text-slate-700">
-                    Amount: ₹{remainingAmount.toLocaleString("en-IN")}
-                  </p>
-                  <p className="text-[11px] font-mono text-slate-600 flex items-center gap-1.5">
-                    <span>UPI ID: {activeUpiId}</span>
+                  <div className="space-y-1">
+                    <div className="inline-block px-2 py-0.5 rounded bg-cyan-100 text-cyan-900 text-[10px] font-bold uppercase tracking-wider">
+                      Razorpay Verified Checkout
+                    </div>
+                    <h3 className="text-sm font-black text-slate-900">
+                      Pay Online via Razorpay Gateway
+                    </h3>
+                    <p className="text-xs font-mono font-bold text-slate-800">
+                      Amount Due: ₹{remainingAmount.toLocaleString("en-IN")}
+                    </p>
+                    <p className="text-[10.5px] text-slate-600 font-sans leading-tight">
+                      Accepts <strong>Google Pay, PhonePe, Paytm, BHIM</strong>, plus all Debit/Credit Cards &amp; NetBanking.
+                    </p>
+                    <p className="text-[10px] text-emerald-700 font-medium font-sans flex items-center gap-1">
+                      <span>🔒</span>
+                      <span>100% Secure 256-Bit SSL Encrypted · Instant Auto-Receipt</span>
+                    </p>
+                  </div>
+                </div>
+
+                {/* 1-Tap Pay Online Button */}
+                <div className="print:hidden w-full sm:w-auto shrink-0 flex flex-col items-center sm:items-end gap-2">
+                  <a
+                    href={invoice.paymentLinkUrl || "#"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="w-full sm:w-auto px-5 py-3 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-cyan-600/30 transition-all active:scale-95 cursor-pointer"
+                  >
+                    <span>💳</span>
+                    <span>PAY NOW VIA RAZORPAY (₹{remainingAmount.toLocaleString("en-IN")})</span>
+                    <span>→</span>
+                  </a>
+                  {invoice.paymentLinkUrl && (
                     <button
                       type="button"
-                      onClick={copyUpi}
-                      className="px-1.5 py-0.5 rounded bg-slate-200 hover:bg-slate-300 text-slate-800 text-[10px] font-bold print:hidden cursor-pointer"
+                      onClick={() => {
+                        if (invoice.paymentLinkUrl) {
+                          navigator.clipboard.writeText(invoice.paymentLinkUrl);
+                          setCopiedLink(true);
+                          setTimeout(() => setCopiedLink(false), 2000);
+                        }
+                      }}
+                      className="px-2.5 py-1 rounded bg-slate-200 hover:bg-slate-300 text-slate-800 text-[10px] font-bold cursor-pointer transition-colors"
                     >
-                      {copiedUpi ? "Copied! ✓" : "Copy"}
+                      {copiedLink ? "Payment Link Copied! ✓" : "Copy Payment Link"}
                     </button>
-                  </p>
-                  <p className="text-[10px] text-slate-500 font-sans">
-                    Supports Google Pay, PhonePe, Paytm, BHIM, and J&amp;K Bank mPay.
-                  </p>
+                  )}
                 </div>
               </div>
+            ) : (
+              <div className="p-4 rounded-xl bg-slate-50 border border-slate-300 print-avoid-break flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-32 h-32 sm:w-36 sm:h-36 bg-white border border-slate-300 rounded-xl p-1 shrink-0 flex items-center justify-center shadow-sm">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={invoice.qrImageUrl || upiQrCodeUrl}
+                      alt="Scan UPI QR to Pay"
+                      className="w-full h-full object-contain"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="inline-block px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 text-[10px] font-bold uppercase tracking-wider">
+                      Instant Bank Settlement
+                    </div>
+                    <h3 className="text-sm font-black text-slate-900">
+                      Scan with any UPI App to Pay
+                    </h3>
+                    <p className="text-xs font-mono font-bold text-slate-700">
+                      Amount: ₹{remainingAmount.toLocaleString("en-IN")}
+                    </p>
+                    <p className="text-[11px] font-mono text-slate-600 flex items-center gap-1.5">
+                      <span>UPI ID: {activeUpiId}</span>
+                      <button
+                        type="button"
+                        onClick={copyUpi}
+                        className="px-1.5 py-0.5 rounded bg-slate-200 hover:bg-slate-300 text-slate-800 text-[10px] font-bold print:hidden cursor-pointer"
+                      >
+                        {copiedUpi ? "Copied! ✓" : "Copy"}
+                      </button>
+                    </p>
+                    <p className="text-[10px] text-slate-500 font-sans">
+                      Supports Google Pay, PhonePe, Paytm, BHIM, and J&amp;K Bank mPay.
+                    </p>
+                  </div>
+                </div>
 
-              {/* 1-Tap UPI App Buttons (Hidden in Print) */}
-              <div className="print:hidden w-full sm:w-auto shrink-0 space-y-1.5">
-                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block text-center sm:text-left">
-                  1-Tap Pay on Phone:
-                </span>
-                <div className="grid grid-cols-2 gap-1.5">
-                  <a
-                    href={`phonepe://pay?pa=${activeUpiId}&pn=Urban%20Trout&am=${remainingAmount.toFixed(2)}&cu=INR&tn=Invoice%20${invoice.invoiceNumber}`}
-                    className="px-2.5 py-1.5 rounded-lg bg-[#5f259f] hover:bg-[#4d1e82] text-white text-[11px] font-bold flex items-center justify-center gap-1 transition-all active:scale-95"
-                  >
-                    <span>PhonePe</span>
-                  </a>
-                  <a
-                    href={`tez://upi/pay?pa=${activeUpiId}&pn=Urban%20Trout&am=${remainingAmount.toFixed(2)}&cu=INR&tn=Invoice%20${invoice.invoiceNumber}`}
-                    className="px-2.5 py-1.5 rounded-lg bg-[#1a73e8] hover:bg-[#1558b0] text-white text-[11px] font-bold flex items-center justify-center gap-1 transition-all active:scale-95"
-                  >
-                    <span>Google Pay</span>
-                  </a>
-                  <a
-                    href={`paytmmp://pay?pa=${activeUpiId}&pn=Urban%20Trout&am=${remainingAmount.toFixed(2)}&cu=INR&tn=Invoice%20${invoice.invoiceNumber}`}
-                    className="px-2.5 py-1.5 rounded-lg bg-[#00BAF2] hover:bg-[#0096c4] text-white text-[11px] font-bold flex items-center justify-center gap-1 transition-all active:scale-95"
-                  >
-                    <span>Paytm</span>
-                  </a>
-                  <a
-                    href={`upi://pay?pa=${activeUpiId}&pn=Urban%20Trout&am=${remainingAmount.toFixed(2)}&cu=INR&tn=Invoice%20${invoice.invoiceNumber}`}
-                    className="px-2.5 py-1.5 rounded-lg bg-[#FF6600] hover:bg-[#cc5200] text-white text-[11px] font-bold flex items-center justify-center gap-1 transition-all active:scale-95"
-                  >
-                    <span>BHIM / All</span>
-                  </a>
+                {/* 1-Tap UPI App Buttons (Hidden in Print) */}
+                <div className="print:hidden w-full sm:w-auto shrink-0 space-y-1.5">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block text-center sm:text-left">
+                    1-Tap Pay on Phone:
+                  </span>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    <a
+                      href={`phonepe://pay?pa=${activeUpiId}&pn=Urban%20Trout&am=${remainingAmount.toFixed(2)}&cu=INR&tn=Invoice%20${invoice.invoiceNumber}`}
+                      className="px-2.5 py-1.5 rounded-lg bg-[#5f259f] hover:bg-[#4d1e82] text-white text-[11px] font-bold flex items-center justify-center gap-1 transition-all active:scale-95"
+                    >
+                      <span>PhonePe</span>
+                    </a>
+                    <a
+                      href={`tez://upi/pay?pa=${activeUpiId}&pn=Urban%20Trout&am=${remainingAmount.toFixed(2)}&cu=INR&tn=Invoice%20${invoice.invoiceNumber}`}
+                      className="px-2.5 py-1.5 rounded-lg bg-[#1a73e8] hover:bg-[#1558b0] text-white text-[11px] font-bold flex items-center justify-center gap-1 transition-all active:scale-95"
+                    >
+                      <span>Google Pay</span>
+                    </a>
+                    <a
+                      href={`paytmmp://pay?pa=${activeUpiId}&pn=Urban%20Trout&am=${remainingAmount.toFixed(2)}&cu=INR&tn=Invoice%20${invoice.invoiceNumber}`}
+                      className="px-2.5 py-1.5 rounded-lg bg-[#00BAF2] hover:bg-[#0096c4] text-white text-[11px] font-bold flex items-center justify-center gap-1 transition-all active:scale-95"
+                    >
+                      <span>Paytm</span>
+                    </a>
+                    <a
+                      href={`upi://pay?pa=${activeUpiId}&pn=Urban%20Trout&am=${remainingAmount.toFixed(2)}&cu=INR&tn=Invoice%20${invoice.invoiceNumber}`}
+                      className="px-2.5 py-1.5 rounded-lg bg-[#FF6600] hover:bg-[#cc5200] text-white text-[11px] font-bold flex items-center justify-center gap-1 transition-all active:scale-95"
+                    >
+                      <span>BHIM / All</span>
+                    </a>
+                  </div>
                 </div>
               </div>
-            </div>
+            )
           )}
 
           {/* 6. Regulatory Disclosures: Visceral Loss Notice & Care Tips */}
@@ -960,32 +1116,62 @@ export default function PublicInvoicePage() {
 
           {/* 6b. Statutory Declaration & Authorized Signatory Block (Commercial Standard) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-0.5 print-avoid-break">
-            {/* Left: Bank Account Details */}
-            <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-[10.5px] font-mono space-y-0.5">
-              <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-wider block font-sans">
-                BANK DETAILS (FOR RTGS / NEFT / IMPS)
-              </span>
-              <div className="flex justify-between text-slate-700">
-                <span>Bank:</span>
-                <strong className="text-slate-900">The Jammu &amp; Kashmir Bank Ltd</strong>
+            {/* Left: Bank Account / Gateway Details */}
+            {isRazorpay ? (
+              <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-[10.5px] font-mono space-y-0.5">
+                <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-wider block font-sans">
+                  PAYMENT GATEWAY (RAZORPAY SECURE)
+                </span>
+                <div className="flex justify-between text-slate-700">
+                  <span>Platform:</span>
+                  <strong className="text-slate-900">Razorpay Software Ltd</strong>
+                </div>
+                <div className="flex justify-between text-slate-700">
+                  <span>Supported Modes:</span>
+                  <span className="text-slate-900">UPI, Cards, NetBanking</span>
+                </div>
+                <div className="flex justify-between text-slate-700">
+                  <span>Security Standard:</span>
+                  <strong className="text-emerald-700 font-bold">PCI-DSS Level 1 · 256-Bit SSL</strong>
+                </div>
+                <div className="flex justify-between text-slate-700">
+                  <span>Auto-Settlement:</span>
+                  <span className="text-slate-900">Instant Verification &amp; Receipt</span>
+                </div>
+                {invoice.paymentLinkId && (
+                  <div className="flex justify-between text-slate-700">
+                    <span>Link ID:</span>
+                    <strong className="text-cyan-800 font-bold font-mono">{invoice.paymentLinkId}</strong>
+                  </div>
+                )}
               </div>
-              <div className="flex justify-between text-slate-700">
-                <span>Branch:</span>
-                <span className="text-slate-900">Malabagh, Srinagar</span>
+            ) : (
+              <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-[10.5px] font-mono space-y-0.5">
+                <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-wider block font-sans">
+                  BANK DETAILS (FOR RTGS / NEFT / IMPS)
+                </span>
+                <div className="flex justify-between text-slate-700">
+                  <span>Bank:</span>
+                  <strong className="text-slate-900">The Jammu &amp; Kashmir Bank Ltd</strong>
+                </div>
+                <div className="flex justify-between text-slate-700">
+                  <span>Branch:</span>
+                  <span className="text-slate-900">Malabagh, Srinagar</span>
+                </div>
+                <div className="flex justify-between text-slate-700">
+                  <span>A/C Name:</span>
+                  <span className="text-slate-900">Urban Trout Aquaculture</span>
+                </div>
+                <div className="flex justify-between text-slate-700">
+                  <span>IFSC Code:</span>
+                  <strong className="font-bold text-slate-900">JAKA0MALBAG</strong>
+                </div>
+                <div className="flex justify-between text-slate-700">
+                  <span>UPI ID:</span>
+                  <strong className="text-cyan-700 font-bold">{activeUpiId}</strong>
+                </div>
               </div>
-              <div className="flex justify-between text-slate-700">
-                <span>A/C Name:</span>
-                <span className="text-slate-900">Urban Trout Aquaculture</span>
-              </div>
-              <div className="flex justify-between text-slate-700">
-                <span>IFSC Code:</span>
-                <strong className="font-bold text-slate-900">JAKA0MALBAG</strong>
-              </div>
-              <div className="flex justify-between text-slate-700">
-                <span>UPI ID:</span>
-                <strong className="text-cyan-700 font-bold">{activeUpiId}</strong>
-              </div>
-            </div>
+            )}
 
             {/* Right: Statutory Declaration & Signatory Seal */}
             <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 flex flex-col justify-between text-[10.5px] font-mono space-y-1">
