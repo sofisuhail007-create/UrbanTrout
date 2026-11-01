@@ -72,7 +72,7 @@ export async function POST(req: NextRequest) {
         email: customerEmail || undefined,
       },
       notify: {
-        sms: Boolean(cleanPhone && cleanPhone.length === 10), // Automatically send official SMS with payment link to customer phone
+        sms: false,
         email: Boolean(customerEmail && customerEmail.includes("@")),
         whatsapp: false, // We dispatch our own branded WhatsApp message with the exact link!
       },

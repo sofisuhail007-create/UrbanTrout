@@ -613,6 +613,7 @@ function cleanFollowUpGreeting(text, customerName) {
 const humanOverrides = new Map();
 const botSentMessageIds = new Set();
 const chatDebounceBuffers = new Map();
+const activeChatGenerations = new Map(); // remoteJid -> { turnId: number, startTime: number, promptText: string }
 const processedIncomingMessageIds = new Set();
 const recentUserMessages = new Map(); // remoteJid -> { text: string, timestamp: number }
 
@@ -691,7 +692,7 @@ async function createRazorpayPaymentLink({ amount, customerPhone, customerName, 
       accept_partial: false,
       description: rzpTitle,
       expire_by: Math.floor(Date.now() / 1000) + (4 * 60 * 60), // Automatically expires in 4 hours
-      notify: { sms: Boolean(isValidContact), email: false, whatsapp: false }, // Dispatch official Razorpay transactional SMS
+      notify: { sms: false, email: false, whatsapp: false },
       reminder_enable: true,
       notes: {
         order_ref: ref,
@@ -930,7 +931,6 @@ ${deliveryLine}
 🔗 *Tap to Pay Online (UPI / GPay / PhonePe / Card):*
 ${payUrl}
 
-📱 _Payment link has also been sent via SMS to your phone._
 📷 _Need a QR Code scanner instead? Reply *"Send Scanner"* to receive your locked QR code image._
 
 ⚡ *Live-Harvest Guarantee:* Net-harvested live from pure cold-water tanks upon payment confirmation.
@@ -4227,11 +4227,95 @@ async function startBot() {
     }
     saveChatMetadata();
 
+    // ─── 0. DIRECT SCANNER / QR INTERCEPT (ZERO DUPLICATE MESSAGES) ───
+    const isAskingForQr = /\b(?:scanner|qr|qr\s*code|barcode|scan|scanner\s*bhejo|bhejo\s*scanner|send\s*scanner|send\s*qr|scanner\s*hai|qr\s*send)\b/i.test(text);
+    if (isAskingForQr) {
+      try {
+        const ordersFilePath = path.join(__dirname, "customer_orders.json");
+        let orders = {};
+        if (fs.existsSync(ordersFilePath)) {
+          try { orders = JSON.parse(fs.readFileSync(ordersFilePath, "utf8")); } catch (_) {}
+        }
+        const targetOrder = orders[raw10] || orders[cleanPhone] || Object.values(orders).find(o => o.chatId === remoteJid);
+        if (targetOrder && targetOrder.orderRef) {
+          const numMatch = String(targetOrder.amount || "").match(/(\d+)/);
+          const amt = numMatch ? parseFloat(numMatch[1]) : null;
+          if (amt && amt > 0) {
+            let qrBuffer = null;
+            let isRazorpayQr = false;
+            try {
+              const rzpQr = await createRazorpayQrCode({
+                amount: amt,
+                customerPhone: cleanPhone,
+                customerName: targetOrder.name,
+                orderRef: targetOrder.orderRef,
+                description: targetOrder.items
+              });
+              qrBuffer = rzpQr.imageBuffer;
+              isRazorpayQr = true;
+              targetOrder.razorpayQrId = rzpQr.qrId;
+              targetOrder.razorpayQrUrl = rzpQr.imageUrl;
+              recordNewCustomerOrder(cleanPhone || raw10, targetOrder);
+            } catch (rzpQrErr) {
+              console.warn("Could not create Razorpay QR, falling back to local UPI QR:", rzpQrErr.message);
+              const upiPayUri = `upi://pay?pa=JKBMERC00828895@jkb&pn=Urban%20Trout%20Aquaculture&am=${amt.toFixed(2)}&cu=INR&tn=Order-${targetOrder.orderRef}`;
+              qrBuffer = await QRCode.toBuffer(upiPayUri, {
+                width: 600,
+                margin: 2,
+                color: { dark: "#000000", light: "#ffffff" }
+              });
+            }
+
+            if (qrBuffer) {
+              const qrMsg = await sock.sendMessage(remoteJid, {
+                image: qrBuffer,
+                caption: `🐟 *URBAN TROUT AQUACULTURE*\n\n🔒 *LOCKED ${isRazorpayQr ? "RAZORPAY " : ""}UPI SCANNER (₹${amt})*\nOrder Reference: *#${targetOrder.orderRef}*\nItems: *${targetOrder.items || "Fresh Rainbow Trout"}*\n\n👉 *Scan with any UPI App:* Google Pay, PhonePe, Paytm, BHIM, or J&K Bank mPay.\n• Amount *₹${amt}* is already pre-filled & locked.\n• Instant auto-reconciliation & Telegram alert.\n\nOnce paid, your live-harvest slot is confirmed immediately! 🚀\n\n*(Or tap your online payment link if you prefer paying on this phone: ${targetOrder.payUrl || "https://urbantrout.in"})*`
+              });
+              if (qrMsg && qrMsg.key && qrMsg.key.id) {
+                botSentMessageIds.add(qrMsg.key.id);
+                setTimeout(() => botSentMessageIds.delete(qrMsg.key.id), 10 * 60 * 1000);
+              }
+              await sock.sendPresenceUpdate("available", remoteJid);
+              console.log(`📷 [${isRazorpayQr ? "Razorpay" : "UPI"} Locked QR Dispatched Directly] Sent ₹${amt} locked QR image to ${formatPhoneDisplay(cleanPhone)} for #${targetOrder.orderRef}`);
+
+              // Track bot response in metadata
+              chatMetadata[remoteJid].lastBotMsgTime = Date.now();
+              chatMetadata[remoteJid].lastMsgRole = "model";
+              chatMetadata[remoteJid].lastBotReply = `[Locked QR Code Dispatched ₹${amt}]`;
+              if (raw10) {
+                chatMetadata[raw10].lastBotMsgTime = Date.now();
+                chatMetadata[raw10].lastMsgRole = "model";
+                chatMetadata[raw10].lastBotReply = `[Locked QR Code Dispatched ₹${amt}]`;
+              }
+              saveChatMetadata();
+              return; // STOP! Direct QR sent, no Gemini call, zero duplicate text message!
+            }
+          }
+        }
+      } catch (qrPreErr) {
+        console.error("Direct QR dispatch error:", qrPreErr.message);
+      }
+    }
+
+    // Register active generation turn for abort guard
+    const currentTurnId = Date.now() + Math.random();
+    activeChatGenerations.set(remoteJid, { turnId: currentTurnId, startTime: Date.now(), promptText: text });
+
     // Maintain typing presence while Gemini prepares the response (non-blocking)
     sock.sendPresenceUpdate("composing", remoteJid).catch(() => {});
 
     try {
       const aiReply = await generateGeminiReply(remoteJid, text, cleanPhone, customerName);
+
+      // IN-FLIGHT GENERATION ABORT CHECK:
+      // If customer sent another message while AI was generating, discard this reply!
+      const currentGen = activeChatGenerations.get(remoteJid);
+      if (!currentGen || currentGen.turnId !== currentTurnId) {
+        console.log(`🛑 [In-Flight Reply Discarded] Generation aborted for ${formatPhoneDisplay(cleanPhone)} because customer sent a newer message.`);
+        return;
+      }
+      activeChatGenerations.delete(remoteJid);
+
       const responseTimeMs = Date.now() - msgStartTime;
       const responseTimeSec = (responseTimeMs / 1000).toFixed(1);
 
@@ -4250,16 +4334,8 @@ async function startBot() {
       console.log(`│ 📤 Reply: "${aiReply.replace(/\n+/g, ' ')}"`);
       console.log(`└──────────────────────────────────────────────────────────────────────────\n`);
 
-      // Send reply immediately without artificial delays
-      const sentMsg = await sock.sendMessage(remoteJid, { text: aiReply });
-      if (sentMsg && sentMsg.key && sentMsg.key.id) {
-        botSentMessageIds.add(sentMsg.key.id);
-        setTimeout(() => botSentMessageIds.delete(sentMsg.key.id), 10 * 60 * 1000);
-      }
-      await sock.sendPresenceUpdate("available", remoteJid);
-
-      // ─── DYNAMIC LOCKED RAZORPAY QR DISPATCH WHEN CUSTOMER ASKS FOR SCANNER / QR ───
-      const isAskingForQr = /\b(?:scanner|qr|qr\s*code|barcode|scan|scanner\s*bhejo|bhejo\s*scanner|send\s*scanner|send\s*qr|scanner\s*hai|qr\s*send)\b/i.test(text);
+      // ─── DYNAMIC LOCKED RAZORPAY QR DISPATCH WHEN CUSTOMER ASKS FOR SCANNER / QR IN THIS TURN ───
+      let sentQrOnly = false;
       if (isAskingForQr) {
         try {
           const ordersFilePath = path.join(__dirname, "customer_orders.json");
@@ -4275,7 +4351,7 @@ async function startBot() {
               let qrBuffer = null;
               let isRazorpayQr = false;
 
-              // 1. Generate official Razorpay UPI QR Code (triggers automated Telegram notification & instant webhook reconciliation)
+              // 1. Generate official Razorpay UPI QR Code
               try {
                 const rzpQr = await createRazorpayQrCode({
                   amount: amt,
@@ -4308,6 +4384,7 @@ async function startBot() {
                   botSentMessageIds.add(qrMsg.key.id);
                   setTimeout(() => botSentMessageIds.delete(qrMsg.key.id), 10 * 60 * 1000);
                 }
+                sentQrOnly = true;
                 console.log(`📷 [${isRazorpayQr ? "Razorpay" : "UPI"} Locked QR Dispatched] Sent ₹${amt} locked QR image to ${formatPhoneDisplay(cleanPhone)} for #${targetOrder.orderRef}`);
               }
             }
@@ -4316,6 +4393,16 @@ async function startBot() {
           console.error("Error generating/dispatching locked QR code:", qrErr.message);
         }
       }
+
+      // Send text reply only if QR wasn't already sent (guarantees exactly ONE message)
+      if (!sentQrOnly) {
+        const sentMsg = await sock.sendMessage(remoteJid, { text: aiReply });
+        if (sentMsg && sentMsg.key && sentMsg.key.id) {
+          botSentMessageIds.add(sentMsg.key.id);
+          setTimeout(() => botSentMessageIds.delete(sentMsg.key.id), 10 * 60 * 1000);
+        }
+      }
+      await sock.sendPresenceUpdate("available", remoteJid);
 
       // Track bot response in metadata
       chatMetadata[remoteJid].lastBotMsgTime = Date.now();
@@ -4347,9 +4434,9 @@ async function startBot() {
     const batch = chatDebounceBuffers.get(remoteJid);
     if (!batch) return;
 
-    // If customer is actively typing and has been buffered for less than 15s safety cap, hold reply!
+    // If customer is actively typing and has been buffered for less than 25s safety cap, hold reply!
     const elapsed = Date.now() - batch.firstMsgTime;
-    if (batch.isTyping && elapsed < 15000) {
+    if (batch.isTyping && elapsed < 25000) {
       console.log(`✍️ [Typing Hold] Customer ${formatPhoneDisplay(resolveCustomerPhone(remoteJid))} is still typing. Holding reply...`);
       clearTimeout(batch.timer);
       batch.timer = setTimeout(() => flushDebounce(remoteJid), 3000);
@@ -4378,15 +4465,15 @@ async function startBot() {
         existing.isTyping = true;
         clearTimeout(existing.timer);
         const elapsed = Date.now() - existing.firstMsgTime;
-        const holdTime = elapsed > 15000 ? 1500 : 4000;
+        const holdTime = elapsed > 25000 ? 1500 : 5000;
         existing.timer = setTimeout(() => flushDebounce(id), holdTime);
         console.log(`✍️ [Customer Typing Detected] ${formatPhoneDisplay(clean)} is typing... Holding AI reply.`);
       } else if (state === "paused" || state === "available") {
         if (existing.isTyping) {
           existing.isTyping = false;
           clearTimeout(existing.timer);
-          existing.timer = setTimeout(() => flushDebounce(id), 2000);
-          console.log(`✍️ [Customer Stopped Typing] ${formatPhoneDisplay(clean)} paused. Flushing in 2.0s.`);
+          existing.timer = setTimeout(() => flushDebounce(id), 2500);
+          console.log(`✍️ [Customer Stopped Typing] ${formatPhoneDisplay(clean)} paused. Flushing in 2.5s.`);
         }
       }
     }
@@ -4506,12 +4593,24 @@ async function startBot() {
         continue;
       }
 
+      // 4b. In-Flight Turn Intercept: If AI is actively generating a reply for an earlier message from this customer,
+      // invalidate the in-flight reply and prepend the earlier message so customer gets ONE combined response.
+      const activeGen = activeChatGenerations.get(remoteJid);
+      if (activeGen) {
+        console.log(`🛑 [In-Flight Intercept] Customer ${formatPhoneDisplay(cleanPhone)} sent a new message while AI was generating reply for earlier message. Aborting in-flight reply and merging!`);
+        activeChatGenerations.delete(remoteJid);
+        if (activeGen.promptText && !rawText.includes(activeGen.promptText)) {
+          rawText = `${activeGen.promptText}\n${rawText}`;
+        }
+      }
+
       // Subscribe to presence updates for this customer so we know when they are typing
       try {
         sock.presenceSubscribe(remoteJid).catch(() => {});
       } catch (_) {}
 
-      // 5. Smart Adaptive Multi-Message Buffer (waits 3500ms, holds while customer is typing)
+      // 5. Smart Adaptive Multi-Message Buffer (waits 5000ms, holds while customer is typing)
+      const DEBOUNCE_DELAY_MS = 5000;
       if (chatDebounceBuffers.has(remoteJid)) {
         const existing = chatDebounceBuffers.get(remoteJid);
         clearTimeout(existing.timer);
@@ -4519,7 +4618,7 @@ async function startBot() {
         existing.msg = msg;
         existing.lastMsgTime = Date.now();
         const elapsed = Date.now() - existing.firstMsgTime;
-        const delay = elapsed > 15000 ? 1000 : 3500;
+        const delay = elapsed > 25000 ? 1500 : DEBOUNCE_DELAY_MS;
         console.log(`⏳ [Smart Debounce] Buffered rapid message #${existing.text.split('\n').length} from ${formatPhoneDisplay(cleanPhone)} (Elapsed: ${Math.round(elapsed / 1000)}s): "${rawText.replace(/\n+/g, ' ')}"`);
         existing.timer = setTimeout(() => flushDebounce(remoteJid), delay);
       } else {
@@ -4531,9 +4630,9 @@ async function startBot() {
           isTyping: false,
           timer: null
         };
-        entry.timer = setTimeout(() => flushDebounce(remoteJid), 3500);
+        entry.timer = setTimeout(() => flushDebounce(remoteJid), DEBOUNCE_DELAY_MS);
         chatDebounceBuffers.set(remoteJid, entry);
-        console.log(`⏳ [Smart Debounce] New customer message buffer started for ${formatPhoneDisplay(cleanPhone)} (3.5s window): "${rawText.replace(/\n+/g, ' ')}"`);
+        console.log(`⏳ [Smart Debounce] New customer message buffer started for ${formatPhoneDisplay(cleanPhone)} (5.0s window): "${rawText.replace(/\n+/g, ' ')}"`);
       }
     }
   });
