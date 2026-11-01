@@ -1395,6 +1395,27 @@ export default function VendingCenterLoggerPage() {
     return (filteredExpensesByPeriod || []).reduce((sum, ex) => sum + (Number(ex?.amount) || 0), 0);
   }, [filteredExpensesByPeriod]);
 
+  // ─── Month-Wise Summaries for Vending Center Expenses ───
+  const expenseMonths = useMemo(() => {
+    const map: Record<string, { monthKey: string; monthLabel: string; totalAmount: number; count: number }> = {};
+    const currKey = getIstTodayDate().slice(0, 7);
+    const prevKey = getPreviousMonthKey(currKey);
+    map[currKey] = { monthKey: currKey, monthLabel: formatMonthDisplay(currKey), totalAmount: 0, count: 0 };
+    map[prevKey] = { monthKey: prevKey, monthLabel: formatMonthDisplay(prevKey), totalAmount: 0, count: 0 };
+
+    (expenses || []).forEach((ex) => {
+      if (!ex || !ex.expense_date || ex.expense_date.length < 7) return;
+      const mk = ex.expense_date.slice(0, 7);
+      if (!map[mk]) {
+        map[mk] = { monthKey: mk, monthLabel: formatMonthDisplay(mk), totalAmount: 0, count: 0 };
+      }
+      map[mk].totalAmount += Number(ex.amount) || 0;
+      map[mk].count += 1;
+    });
+
+    return Object.values(map).sort((a, b) => b.monthKey.localeCompare(a.monthKey));
+  }, [expenses]);
+
   // ─── Filtered Worker Salary Payments by Active Period (Mohd Amin) ───
   // Accrual Accounting: When viewing a month (e.g. September 2026), any salary payment
   // that accounts for that month is counted, even if disbursed on 1st of the next month!
@@ -2073,6 +2094,9 @@ export default function VendingCenterLoggerPage() {
   const incentiveStats = useMemo(() => {
     const todayDate = getTodayDate();
     const thisMonthKey = getIstTodayDate().slice(0, 7);
+    const thisMonthLabel = formatMonthDisplay(thisMonthKey);
+    const prevMonthKey = getPreviousMonthKey(thisMonthKey);
+    const prevMonthLabel = formatMonthDisplay(prevMonthKey);
 
     // 1. All-time Gutted Trout Weight & Earnings across all entries
     let allTimeGuttedKg = 0;
@@ -2082,6 +2106,47 @@ export default function VendingCenterLoggerPage() {
     let todayEarnedFloat = 0;
     let thisMonthGuttedKg = 0;
     let thisMonthEarnedFloat = 0;
+    let prevMonthGuttedKg = 0;
+    let prevMonthEarnedFloat = 0;
+
+    // Monthly aggregation map for complete breakdown
+    const monthMap: Record<string, {
+      monthKey: string;
+      monthLabel: string;
+      guttedKg: number;
+      earned: number;
+      paid: number;
+      balance: number;
+      payoutCount: number;
+      payouts: StaffIncentivePayout[];
+      isCurrent: boolean;
+      isPrevious: boolean;
+    }> = {};
+
+    monthMap[thisMonthKey] = {
+      monthKey: thisMonthKey,
+      monthLabel: thisMonthLabel,
+      guttedKg: 0,
+      earned: 0,
+      paid: 0,
+      balance: 0,
+      payoutCount: 0,
+      payouts: [],
+      isCurrent: true,
+      isPrevious: false,
+    };
+    monthMap[prevMonthKey] = {
+      monthKey: prevMonthKey,
+      monthLabel: prevMonthLabel,
+      guttedKg: 0,
+      earned: 0,
+      paid: 0,
+      balance: 0,
+      payoutCount: 0,
+      payouts: [],
+      isCurrent: false,
+      isPrevious: true,
+    };
 
     entries.forEach((e) => {
       const isGutted =
@@ -2107,9 +2172,76 @@ export default function VendingCenterLoggerPage() {
             thisMonthGuttedKg = Math.round((thisMonthGuttedKg + kg) * 1000) / 1000;
             thisMonthEarnedFloat += earnedFloat;
           }
+
+          if (e.entry_date && e.entry_date.startsWith(prevMonthKey)) {
+            prevMonthGuttedKg = Math.round((prevMonthGuttedKg + kg) * 1000) / 1000;
+            prevMonthEarnedFloat += earnedFloat;
+          }
+
+          const mKey = (e.entry_date || "").slice(0, 7);
+          if (mKey) {
+            if (!monthMap[mKey]) {
+              monthMap[mKey] = {
+                monthKey: mKey,
+                monthLabel: formatMonthDisplay(mKey),
+                guttedKg: 0,
+                earned: 0,
+                paid: 0,
+                balance: 0,
+                payoutCount: 0,
+                payouts: [],
+                isCurrent: mKey === thisMonthKey,
+                isPrevious: mKey === prevMonthKey,
+              };
+            }
+            monthMap[mKey].guttedKg = Math.round((monthMap[mKey].guttedKg + kg) * 1000) / 1000;
+            monthMap[mKey].earned += earnedFloat;
+          }
         }
       }
     });
+
+    let thisMonthPaid = 0;
+    let prevMonthPaid = 0;
+
+    payouts.forEach((p) => {
+      const amt = Number(p.amount) || 0;
+      const mKey = (p.payout_date || "").slice(0, 7);
+      if (mKey === thisMonthKey) {
+        thisMonthPaid += amt;
+      }
+      if (mKey === prevMonthKey) {
+        prevMonthPaid += amt;
+      }
+      if (mKey) {
+        if (!monthMap[mKey]) {
+          monthMap[mKey] = {
+            monthKey: mKey,
+            monthLabel: formatMonthDisplay(mKey),
+            guttedKg: 0,
+            earned: 0,
+            paid: 0,
+            balance: 0,
+            payoutCount: 0,
+            payouts: [],
+            isCurrent: mKey === thisMonthKey,
+            isPrevious: mKey === prevMonthKey,
+          };
+        }
+        monthMap[mKey].paid += amt;
+        monthMap[mKey].payoutCount += 1;
+        monthMap[mKey].payouts.push(p);
+      }
+    });
+
+    // Finalize rounded earned & balance per month
+    const monthWiseIncentives = Object.values(monthMap)
+      .map((m) => ({
+        ...m,
+        earned: Math.round(m.earned),
+        balance: Math.max(0, Math.round(m.earned - m.paid)),
+      }))
+      .sort((a, b) => b.monthKey.localeCompare(a.monthKey));
 
     // 2. Current period gutted trout weight (Worker Gutted only vs Self-Cleaned)
     let periodGuttedKg = 0;
@@ -2136,6 +2268,7 @@ export default function VendingCenterLoggerPage() {
     const periodEarned = Math.round(periodEarnedFloat);
     const todayEarned = Math.round(todayEarnedFloat);
     const thisMonthEarned = Math.round(thisMonthEarnedFloat);
+    const prevMonthEarned = Math.round(prevMonthEarnedFloat);
 
     // 3. Total paid disbursements from ledger
     const totalPaid = payouts.reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
@@ -2159,11 +2292,20 @@ export default function VendingCenterLoggerPage() {
       todayGuttedKg,
       todayEarned,
       todayRate,
+      thisMonthKey,
+      thisMonthLabel,
       thisMonthGuttedKg,
       thisMonthEarned,
+      thisMonthPaid,
+      prevMonthKey,
+      prevMonthLabel,
+      prevMonthGuttedKg,
+      prevMonthEarned,
+      prevMonthPaid,
+      monthWiseIncentives,
       lastPayout,
     };
-  }, [entries, filteredEntriesByPeriod, payouts, getTodayDate]);
+  }, [entries, filteredEntriesByPeriod, payouts, specialRules, getTodayDate]);
 
   // ─── Worker Salary Stats (Mohd Amin - Accrual & Leave Deductions) ───
   const salaryStats = useMemo(() => {
@@ -4049,9 +4191,23 @@ export default function VendingCenterLoggerPage() {
   );
 
   // ─── Vending Expenses Handlers ───
-  const resetExpenseForm = () => {
+  const resetExpenseForm = (targetMonthKey?: string) => {
     setEditingExpense(null);
-    setExpenseFormDate(getTodayDate());
+    const activeM = targetMonthKey || (period === "month" ? selectedMonth : null);
+    const today = getTodayDate();
+    let defaultDate = today;
+
+    if (activeM && activeM !== today.slice(0, 7)) {
+      try {
+        const [y, m] = activeM.split("-").map(Number);
+        const lastDay = new Date(y, m, 0).getDate();
+        defaultDate = `${activeM}-${String(lastDay).padStart(2, "0")}`;
+      } catch {
+        defaultDate = today;
+      }
+    }
+
+    setExpenseFormDate(defaultDate);
     setExpenseFormTime(getCurrentTime());
     setExpenseFormCategory("Polybags & Packaging");
     setExpenseFormTitle("");
@@ -4127,7 +4283,13 @@ export default function VendingCenterLoggerPage() {
         }
         await fetchExpenses();
         setExpenseModalOpen(false);
-        resetExpenseForm();
+        // Auto-switch to the month of the newly saved expense so it reflects immediately!
+        const savedMonth = (payload.expense_date || "").slice(0, 7);
+        if (savedMonth) {
+          setPeriod("month");
+          setSelectedMonth(savedMonth);
+        }
+        resetExpenseForm(savedMonth);
       } else {
         alert(`Error saving expense: ${data.error || "Unknown error"}`);
       }
@@ -5750,8 +5912,20 @@ export default function VendingCenterLoggerPage() {
               totalPaid={incentiveStats.totalPaid}
               balanceRemaining={incentiveStats.balanceRemaining}
               lastPayout={incentiveStats.lastPayout}
+              thisMonthKey={incentiveStats.thisMonthKey}
+              thisMonthLabel={incentiveStats.thisMonthLabel}
               thisMonthEarned={incentiveStats.thisMonthEarned}
               thisMonthGuttedKg={incentiveStats.thisMonthGuttedKg}
+              thisMonthPaid={incentiveStats.thisMonthPaid}
+              prevMonthKey={incentiveStats.prevMonthKey}
+              prevMonthLabel={incentiveStats.prevMonthLabel}
+              prevMonthEarned={incentiveStats.prevMonthEarned}
+              prevMonthGuttedKg={incentiveStats.prevMonthGuttedKg}
+              prevMonthPaid={incentiveStats.prevMonthPaid}
+              monthWiseIncentives={incentiveStats.monthWiseIncentives}
+              payoutsList={payouts}
+              salaryPaymentsList={salaryPayments}
+              salaryStats={salaryStats}
               onOpenPayoutModal={() => setPayoutModalOpen(true)}
               onOpenLeaveModal={() => setLeaveModalOpen(true)}
               onOpenSalaryModal={() => setSalaryModalOpen(true)}
@@ -6483,39 +6657,128 @@ export default function VendingCenterLoggerPage() {
             </div>
           )}
 
-          {/* Section Header Toolbar */}
-          <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-slate-900/90 border border-rose-500/30 rounded-2xl shadow-md">
-            <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400">
-                <span className="material-symbols-outlined text-base">receipt_long</span>
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h4 className="text-sm font-black text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
-                    Center Operating Expenses Ledger
-                  </h4>
-                  <span className="px-2 py-0.5 rounded-full bg-rose-500/20 text-[10px] font-mono font-bold text-rose-300 border border-rose-500/30">
-                    {period.toUpperCase()}: ₹{periodExpensesTotal.toLocaleString("en-IN")}
-                  </span>
+          {/* Section Header Toolbar with Month Switcher */}
+          <div className="p-3 bg-slate-900/90 border border-rose-500/30 rounded-2xl shadow-md space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400">
+                  <span className="material-symbols-outlined text-base">receipt_long</span>
                 </div>
-                <p className="text-[11px] text-slate-400 font-mono">
-                  Ice, Polybags, Packaging, Sanitation, Transport &amp; Utilities
-                </p>
+                <div>
+                  <div className="flex items-center flex-wrap gap-2">
+                    <h4 className="text-sm font-black text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                      Center Operating Expenses Ledger
+                    </h4>
+                    <span className="px-2 py-0.5 rounded-full bg-rose-500/20 text-[10px] font-mono font-bold text-rose-300 border border-rose-500/30">
+                      {period === "month" ? formatMonthDisplay(selectedMonth).toUpperCase() : period.toUpperCase()}: ₹{periodExpensesTotal.toLocaleString("en-IN")}
+                    </span>
+                    <span className="text-[10px] text-slate-400 font-mono">
+                      ({filteredExpensesByPeriod.length} {filteredExpensesByPeriod.length === 1 ? "bill" : "bills"})
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 font-mono">
+                    Ice, Polybags, Packaging, Sanitation, Transport &amp; Utilities
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    resetExpenseForm(selectedMonth);
+                    setExpenseModalOpen(true);
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white text-[11px] font-black uppercase tracking-wider transition-all shadow-lg shadow-rose-600/20 cursor-pointer active:scale-95"
+                >
+                  <span className="material-symbols-outlined text-sm">add</span>
+                  <span>Log Expense</span>
+                </button>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  resetExpenseForm();
-                  setExpenseModalOpen(true);
-                }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white text-[11px] font-black uppercase tracking-wider transition-all shadow-lg shadow-rose-600/20 cursor-pointer active:scale-95"
-              >
-                <span className="material-symbols-outlined text-sm">add</span>
-                <span>Log Expense</span>
-              </button>
+            {/* Month-Wise Tabs Quick Switcher */}
+            <div className="pt-2 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[10.5px] text-slate-500 uppercase font-bold tracking-wider mr-1">
+                  Filter Month:
+                </span>
+                {expenseMonths.map((em) => {
+                  const isCurrentLive = em.monthKey === getIstTodayDate().slice(0, 7);
+                  const isSelected = period === "month" && selectedMonth === em.monthKey;
+                  return (
+                    <button
+                      key={em.monthKey}
+                      type="button"
+                      onClick={() => {
+                        setPeriod("month");
+                        setSelectedMonth(em.monthKey);
+                      }}
+                      className={`px-2.5 py-1 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                        isSelected
+                          ? "bg-rose-600 text-white shadow-md shadow-rose-600/30 border border-rose-500"
+                          : "bg-slate-950/80 text-slate-400 hover:text-white border border-slate-800 hover:border-slate-700"
+                      }`}
+                    >
+                      {isCurrentLive && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping" />
+                      )}
+                      <span>{em.monthLabel}</span>
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded ${
+                        isSelected ? "bg-rose-950/80 text-rose-200" : "bg-slate-900 text-slate-400"
+                      }`}>
+                        ₹{em.totalAmount.toLocaleString("en-IN")}
+                      </span>
+                    </button>
+                  );
+                })}
+                <button
+                  type="button"
+                  onClick={() => setPeriod("all")}
+                  className={`px-2.5 py-1 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
+                    period === "all"
+                      ? "bg-rose-600 text-white shadow-md shadow-rose-600/30 border border-rose-500"
+                      : "bg-slate-950/80 text-slate-400 hover:text-white border border-slate-800 hover:border-slate-700"
+                  }`}
+                >
+                  All Time
+                </button>
+              </div>
+
+              {/* Month Steppers */}
+              {period === "month" && (
+                <div className="flex items-center gap-1 bg-slate-950/80 p-0.5 rounded-xl border border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedMonth(getPreviousMonthKey(selectedMonth))}
+                    className="p-1 text-slate-400 hover:text-white transition-all cursor-pointer"
+                    title="Previous Month"
+                  >
+                    <span className="material-symbols-outlined text-xs">chevron_left</span>
+                  </button>
+                  <span className="px-2 text-[11px] font-bold text-white">
+                    {formatMonthDisplay(selectedMonth)}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedMonth(getNextMonthKey(selectedMonth))}
+                    className="p-1 text-slate-400 hover:text-white transition-all cursor-pointer"
+                    title="Next Month"
+                  >
+                    <span className="material-symbols-outlined text-xs">chevron_right</span>
+                  </button>
+                  {selectedMonth !== getIstTodayDate().slice(0, 7) && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedMonth(getIstTodayDate().slice(0, 7))}
+                      className="ml-1 px-1.5 py-0.5 rounded text-[9.5px] bg-rose-500/20 text-rose-300 border border-rose-500/30 hover:bg-rose-500/30 transition-all cursor-pointer"
+                      title="Jump to Current Month"
+                    >
+                      Current
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
@@ -10937,24 +11200,43 @@ export default function VendingCenterLoggerPage() {
                       <span className="material-symbols-outlined text-[13px] text-rose-400">calendar_today</span>
                       Date
                     </span>
-                    {expenseFormDate === getTodayDate() ? (
-                      <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-rose-950/80 text-rose-400 border border-rose-500/30">
-                        Today ✓
-                      </span>
-                    ) : (
-                      isAdmin && (
+                    <div className="flex items-center gap-1">
+                      {expenseFormDate === getTodayDate() ? (
+                        <span className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-rose-950/80 text-rose-400 border border-rose-500/30">
+                          Today ✓
+                        </span>
+                      ) : (
+                        isAdmin && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setExpenseFormDate(getTodayDate());
+                            }}
+                            className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-all cursor-pointer"
+                          >
+                            Today
+                          </button>
+                        )
+                      )}
+                      {selectedMonth && selectedMonth !== getIstTodayDate().slice(0, 7) && (
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            setExpenseFormDate(getTodayDate());
+                            try {
+                              const [y, m] = selectedMonth.split("-").map(Number);
+                              const lastDay = new Date(y, m, 0).getDate();
+                              setExpenseFormDate(`${selectedMonth}-${String(lastDay).padStart(2, "0")}`);
+                            } catch (_) {}
                           }}
-                          className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-all cursor-pointer"
+                          className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-300 border border-rose-500/30 hover:bg-rose-500/30 transition-all cursor-pointer"
+                          title="Set to Active Filter Month"
                         >
-                          Today
+                          {formatMonthDisplay(selectedMonth).slice(0, 3)}
                         </button>
-                      )
-                    )}
+                      )}
+                    </div>
                   </div>
                   <div className="flex items-center justify-between">
                     <span className="font-mono text-sm sm:text-base font-bold text-white tracking-wide">
