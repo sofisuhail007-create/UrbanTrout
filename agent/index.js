@@ -2677,6 +2677,11 @@ CRITICAL READABILITY & MAXIMUM BREVITY MANDATE (ANSWER ONLY WHAT IS REQUIRED):
    • If customer asks: "Will it be 1kg meat only?", "Saaf karke kitna bachega?", "Net weight kya hoga?":
      Always answer with 100% transparency: Live harvest is weighed whole (1.0 kg); expert gutting/descaling has a natural 15-20% visceral loss (yielding ~800-850g net steaks). If they want 1 kg of net meat on their scale, offer a 1.25 kg live harvest (₹725).
 
+11. PRICE-LOCK & NO BAIT-AND-SWITCH GUARANTEE:
+   • Once an order price or courier fee has been quoted to a customer for their area (e.g. "2 kg Batamaloo = ₹1,249"), that quote is 100% LOCKED IN for that order!
+   • When the customer shares their WhatsApp location pin or exact colony name, NEVER recalculate or increase the courier fee! The GPS pin is solely for our delivery rider's navigation.
+   • If a customer inquired before 4:00 PM and confirms during evening rush hours (4:00 PM – 9:00 PM), ALWAYS honor the original daytime quote without adding rush surcharges. Bait-and-switch pricing destroys customer trust.
+
 CONVERSATION FLOW & GREETING RULE:
 ${stageInstruction}
 
@@ -4072,8 +4077,8 @@ async function startBot() {
       const istGps = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
       const isNightGps = istGps.getHours() >= 21 || istGps.getHours() < 7;
 
-      if (distNum <= 4.0) {
-        // Tier 1: 0 to 4 km (Min order 2 kg)
+      if (distNum <= 16.0) {
+        // Within 16 km delivery perimeter
         const mapsUrl = `https://maps.google.com/?q=${detectedLat},${detectedLng}`;
         if (!chatMetadata[remoteJid]) chatMetadata[remoteJid] = {};
         chatMetadata[remoteJid].latitude = detectedLat;
@@ -4092,136 +4097,47 @@ async function startBot() {
         saveChatMetadata();
 
         const hasExistingPaymentLink = chatHist.some(m => m.text && (m.text.includes("rzp.io") || m.text.includes("Official Razorpay Payment Link")));
-        const hasAgreedOrder = chatHist.some(m => m.text && (/\b(?:2\s*kg|3\s*kg|4\s*kg|5\s*kg|gutted|whole)\b/i.test(m.text)));
+        const hasAgreedOrder = chatHist.some(m => m.text && (/\b(?:2\s*kg|3\s*kg|4\s*kg|5\s*kg|1\s*kg|gutted|whole|starter\s*pack|family\s*pack)\b/i.test(m.text)));
 
         const istGps = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
         const isNightGps = istGps.getHours() >= 21 || istGps.getHours() < 7;
+        const isEveningGps = istGps.getHours() >= 16 && istGps.getHours() < 21;
+        const surgeGps = isEveningGps ? 40 : 0;
 
         if (hasExistingPaymentLink) {
           locReply = isNightGps
-            ? `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n🛵 *FREE Doorstep Delivery Confirmed!* We have saved your exact location coordinates.\n\nDeliveries for tonight closed at 9:00 PM. Please complete payment using the official Razorpay link above so our team can schedule your morning harvest in our 7:00 AM – 11:00 AM slot tomorrow! 🐟`
-            : `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n🛵 *FREE Doorstep Delivery Confirmed!* We have saved your exact location coordinates for our delivery rider.\n\nPlease complete payment using the official Razorpay link above so our team can harvest your trout live from the tanks and dispatch immediately! 🐟`;
-          historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. Payment link already provided, awaiting payment completion.]`;
+            ? `📍 *Location Received & Saved!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n🛵 We have saved your exact location coordinates for our delivery rider.\n\nDeliveries for tonight closed at 9:00 PM. Please complete payment using the official Razorpay link above so our team can schedule your morning harvest in our 7:00 AM – 11:00 AM slot tomorrow! 🐟`
+            : `📍 *Location Received & Saved!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n🛵 We have saved your exact location coordinates for our delivery rider.\n\nPlease complete payment using the official Razorpay link above so our team can harvest your trout live from the tanks and dispatch immediately! 🐟`;
+          historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. IN RANGE (<=16 km). Payment link already provided, awaiting payment completion.]`;
         } else if (hasAgreedOrder) {
-          locReply = `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n🛵 *100% FREE Doorstep Delivery Confirmed!* (min order 2 kg).\n\nLet me generate your official payment link right away.`;
-          historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. Minimum order for delivery is 2 kg. Quantity/cut chosen, ready for payment link.]`;
+          // PRICE LOCK: Customer already requested/discussed an order. Lock in coordinates and generate payment link without re-pitching or price jumping!
+          locReply = `📍 *Location Received & Saved!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n🛵 *Coordinates locked for our delivery rider!*\n\nLet me generate your official payment link for your order right away. 🐟`;
+          historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. IN RANGE (<=16 km). Order already discussed/requested. Price locked in - generate payment link immediately for agreed amount without changing price.]`;
         } else {
-          locReply = isNightGps
-            ? `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep delivery is 100% FREE* (min order 2 kg, zero delivery or packing fees)!\nDeliveries for tonight closed at 9:00 PM. We can schedule your express live-harvest delivery for tomorrow (Morning 7–11 AM, Afternoon 12–3 PM, or Evening 4–7 PM).\n\nWhich cut, quantity, and slot tomorrow would you prefer? 🐟`
-            : `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep delivery is 100% FREE* within 2 Hours of payment confirmation (min order 2 kg, zero extra delivery or packing fees)!\n\nWhich cut and quantity would you like to order? 🐟`;
-          historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. Minimum order for free delivery is 2 kg.]`;
+          // First time inquiry via location pin (no order discussed yet) - show tier pricing for their distance
+          if (distNum <= 4.0) {
+            locReply = isNightGps
+              ? `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep delivery is 100% FREE* (min order 2 kg, zero delivery or packing fees)!\nDeliveries for tonight closed at 9:00 PM. We can schedule your express live-harvest delivery for tomorrow (Morning 7–11 AM, Afternoon 12–3 PM, or Evening 4–7 PM).\n\nWhich cut, quantity, and slot tomorrow would you prefer? 🐟`
+              : `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep delivery is 100% FREE* within 2 Hours of payment confirmation (min order 2 kg, zero extra delivery or packing fees)!\n\nWhich cut and quantity would you like to order? 🐟`;
+            historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. Minimum order for free delivery is 2 kg.]`;
+          } else if (distNum <= 7.0) {
+            locReply = isNightGps
+              ? `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on 3 kg (₹1,740 total)! We can also send 2 kg for just a ₹39 express courier fee (₹1,199 total).\nDeliveries for tonight closed at 9:00 PM. We can schedule your express live-harvest delivery for tomorrow morning!\n\nWould you like 3 kg free delivery or 2 kg scheduled for tomorrow? 🐟`
+              : `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on 3 kg (₹1,740 total)! We can also send 2 kg for just a ₹39 express courier fee (₹1,199 total).\n\nWould you like 3 kg free delivery or 2 kg delivered fresh to your door? 🐟`;
+            historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. Free delivery on 3 kg+ (₹1740); 2 kg has ₹39 courier fee (₹1199); 1 kg has ₹49 fee (₹629).]`;
+          } else if (distNum <= 11.5) {
+            locReply = isNightGps
+              ? `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on 3 kg (₹1,740 total)! We can also send 2 kg for just a subsidized ₹${69 + surgeGps} courier fee (₹${1229 + surgeGps} total).\nDeliveries for tonight closed at 9:00 PM. We can schedule your express live-harvest delivery for tomorrow morning!\n\nWould you like 3 kg free delivery or 2 kg scheduled for tomorrow? 🐟`
+              : `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on 3 kg (₹1,740 total)! We can also send 2 kg for just a subsidized ₹${69 + surgeGps} courier fee (₹${1229 + surgeGps} total)${isEveningGps ? " (includes ₹40 evening rush surcharge)" : ""}.\n\nWould you like 3 kg free delivery or 2 kg delivered fresh to your door? 🐟`;
+            historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. Free delivery on 3 kg+ (₹1740); 2 kg has ₹${69 + surgeGps} courier fee (₹${1229 + surgeGps}); 1 kg has ₹${79 + surgeGps} fee (₹${659 + surgeGps}).]`;
+          } else {
+            locReply = isNightGps
+              ? `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on our 4 kg family pack (₹2,320 total)! We can also send 2 kg for just ₹${89 + surgeGps} express courier fee (₹${1249 + surgeGps} total) or 3 kg for ₹${49 + surgeGps} courier fee (₹${1789 + surgeGps} total).\nDeliveries for tonight closed at 9:00 PM. We can schedule your express live-harvest delivery for tomorrow morning!\n\nWould you like 4 kg free delivery or 2 kg scheduled for tomorrow? 🐟`
+              : `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on our 4 kg family pack (₹2,320 total)! We can also send 2 kg for just ₹${89 + surgeGps} express courier fee (₹${1249 + surgeGps} total) or 3 kg for ₹${49 + surgeGps} courier fee (₹${1789 + surgeGps} total)${isEveningGps ? " (includes ₹40 evening rush courier surcharge)" : ""}.\n\nWould you like to confirm 4 kg free delivery or 2 kg for doorstep delivery? 🐟`;
+            historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. Free delivery on 4 kg family pack (₹2320); 3 kg has ₹${49 + surgeGps} fee (₹${1789 + surgeGps}); 2 kg has ₹${89 + surgeGps} fee (₹${1249 + surgeGps}); 1 kg has ₹${119 + surgeGps} fee (₹${699 + surgeGps}).]`;
+          }
         }
-        console.log(`│ ✅ IN RANGE (0-4km, ${distRounded} km) — Min order 2 kg (Saved: ${mapsUrl})`);
-      } else if (distNum <= 7.0) {
-        // Tier 2: 4 to 7 km (Free delivery on 3 kg+, 2 kg has ₹39 fee, 1 kg has ₹49 fee)
-        const mapsUrl = `https://maps.google.com/?q=${detectedLat},${detectedLng}`;
-        if (!chatMetadata[remoteJid]) chatMetadata[remoteJid] = {};
-        chatMetadata[remoteJid].latitude = detectedLat;
-        chatMetadata[remoteJid].longitude = detectedLng;
-        chatMetadata[remoteJid].distanceKm = distNum;
-        chatMetadata[remoteJid].googleMapsUrl = mapsUrl;
-        chatMetadata[remoteJid].locationUpdatedAt = new Date().toISOString();
-        if (cleanPhone) {
-          if (!chatMetadata[cleanPhone]) chatMetadata[cleanPhone] = {};
-          chatMetadata[cleanPhone].latitude = detectedLat;
-          chatMetadata[cleanPhone].longitude = detectedLng;
-          chatMetadata[cleanPhone].distanceKm = distNum;
-          chatMetadata[cleanPhone].googleMapsUrl = mapsUrl;
-          chatMetadata[cleanPhone].locationUpdatedAt = new Date().toISOString();
-        }
-        saveChatMetadata();
-
-        const hasExistingPaymentLink = chatHist.some(m => m.text && (m.text.includes("rzp.io") || m.text.includes("Official Razorpay Payment Link")));
-        const istGps = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
-        const isNightGps = istGps.getHours() >= 21 || istGps.getHours() < 7;
-
-        if (hasExistingPaymentLink) {
-          locReply = isNightGps
-            ? `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n🛵 We have saved your exact location coordinates.\n\nDeliveries for tonight closed at 9:00 PM. Please complete payment using the official Razorpay link above so our team can schedule your fresh morning harvest tomorrow! 🐟`
-            : `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n🛵 We have saved your exact location coordinates for our delivery rider.\n\nPlease complete payment using the official Razorpay link above so our team can harvest your trout live from the tanks and dispatch! 🐟`;
-          historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. Free delivery on 3 kg+ (₹1740); 2 kg has ₹39 courier fee (₹1199); 1 kg has ₹49 fee (₹629). Payment link already provided.]`;
-        } else {
-          locReply = isNightGps
-            ? `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on 3 kg (₹1,740 total)! We can also send 2 kg for just a ₹39 express courier fee (₹1,199 total).\nDeliveries for tonight closed at 9:00 PM. We can schedule your express live-harvest delivery for tomorrow morning!\n\nWould you like 3 kg free delivery or 2 kg scheduled for tomorrow? 🐟`
-            : `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on 3 kg (₹1,740 total)! We can also send 2 kg for just a ₹39 express courier fee (₹1,199 total).\n\nWould you like 3 kg free delivery or 2 kg delivered fresh to your door? 🐟`;
-          historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. Free delivery on 3 kg+ (₹1740); 2 kg has ₹39 courier fee (₹1199); 1 kg has ₹49 fee (₹629).]`;
-        }
-        console.log(`│ ✅ IN RANGE (4-7km, ${distRounded} km) — Free on 3kg, 2kg has ₹39 fee (Saved: ${mapsUrl})`);
-      } else if (distNum <= 11.5) {
-        // Tier 3: 7 to 11.5 km (Free delivery on 3 kg+, 2 kg has ₹69 fee, 1 kg has ₹79 fee)
-        const mapsUrl = `https://maps.google.com/?q=${detectedLat},${detectedLng}`;
-        if (!chatMetadata[remoteJid]) chatMetadata[remoteJid] = {};
-        chatMetadata[remoteJid].latitude = detectedLat;
-        chatMetadata[remoteJid].longitude = detectedLng;
-        chatMetadata[remoteJid].distanceKm = distNum;
-        chatMetadata[remoteJid].googleMapsUrl = mapsUrl;
-        chatMetadata[remoteJid].locationUpdatedAt = new Date().toISOString();
-        if (cleanPhone) {
-          if (!chatMetadata[cleanPhone]) chatMetadata[cleanPhone] = {};
-          chatMetadata[cleanPhone].latitude = detectedLat;
-          chatMetadata[cleanPhone].longitude = detectedLng;
-          chatMetadata[cleanPhone].distanceKm = distNum;
-          chatMetadata[cleanPhone].googleMapsUrl = mapsUrl;
-          chatMetadata[cleanPhone].locationUpdatedAt = new Date().toISOString();
-        }
-        saveChatMetadata();
-
-        const hasExistingPaymentLink = chatHist.some(m => m.text && (m.text.includes("rzp.io") || m.text.includes("Official Razorpay Payment Link")));
-        const istGps = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
-        const isNightGps = istGps.getHours() >= 21 || istGps.getHours() < 7;
-        const isEveningGps = istGps.getHours() >= 16 && istGps.getHours() < 21;
-        const surgeGps = isEveningGps ? 40 : 0;
-
-        if (hasExistingPaymentLink) {
-          locReply = isNightGps
-            ? `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n🛵 We have saved your exact location coordinates.\n\nDeliveries for tonight closed at 9:00 PM. Please complete payment using the official Razorpay link above so our team can schedule your fresh morning harvest tomorrow! 🐟`
-            : `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n🛵 We have saved your exact location coordinates for our delivery rider.\n\nPlease complete payment using the official Razorpay link above so our team can harvest your trout live from the tanks and dispatch! 🐟`;
-          historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. Free delivery on 3 kg+ (₹1740); 2 kg has ₹${69 + surgeGps} courier fee (₹${1229 + surgeGps}); 1 kg has ₹${79 + surgeGps} fee (₹${659 + surgeGps}). Payment link already provided.]`;
-        } else {
-          locReply = isNightGps
-            ? `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on 3 kg (₹1,740 total)! We can also send 2 kg for just a subsidized ₹${69 + surgeGps} courier fee (₹${1229 + surgeGps} total).\nDeliveries for tonight closed at 9:00 PM. We can schedule your express live-harvest delivery for tomorrow morning!\n\nWould you like 3 kg free delivery or 2 kg scheduled for tomorrow? 🐟`
-            : `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on 3 kg (₹1,740 total)! We can also send 2 kg for just a subsidized ₹${69 + surgeGps} courier fee (₹${1229 + surgeGps} total)${isEveningGps ? " (includes ₹40 evening rush surcharge)" : ""}.\n\nWould you like 3 kg free delivery or 2 kg delivered fresh to your door? 🐟`;
-          historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. Free delivery on 3 kg+ (₹1740); 2 kg has ₹${69 + surgeGps} courier fee (₹${1229 + surgeGps}); 1 kg has ₹${79 + surgeGps} fee (₹${659 + surgeGps}).]`;
-        }
-        console.log(`│ ✅ IN RANGE (7-11.5km, ${distRounded} km) — Free on 3kg, 2kg has ₹${69 + surgeGps} fee (Saved: ${mapsUrl})`);
-      } else if (distNum <= 16.0) {
-        // Tier 4: 11.5 to 16 km (Free delivery on 4 kg+, 3 kg has ₹49 fee, 2 kg has ₹89 fee, 1 kg has ₹119 fee)
-        const mapsUrl = `https://maps.google.com/?q=${detectedLat},${detectedLng}`;
-        if (!chatMetadata[remoteJid]) chatMetadata[remoteJid] = {};
-        chatMetadata[remoteJid].latitude = detectedLat;
-        chatMetadata[remoteJid].longitude = detectedLng;
-        chatMetadata[remoteJid].distanceKm = distNum;
-        chatMetadata[remoteJid].googleMapsUrl = mapsUrl;
-        chatMetadata[remoteJid].locationUpdatedAt = new Date().toISOString();
-        if (cleanPhone) {
-          if (!chatMetadata[cleanPhone]) chatMetadata[cleanPhone] = {};
-          chatMetadata[cleanPhone].latitude = detectedLat;
-          chatMetadata[cleanPhone].longitude = detectedLng;
-          chatMetadata[cleanPhone].distanceKm = distNum;
-          chatMetadata[cleanPhone].googleMapsUrl = mapsUrl;
-          chatMetadata[cleanPhone].locationUpdatedAt = new Date().toISOString();
-        }
-        saveChatMetadata();
-
-        const hasExistingPaymentLink = chatHist.some(m => m.text && (m.text.includes("rzp.io") || m.text.includes("Official Razorpay Payment Link")));
-        const istGps = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
-        const isNightGps = istGps.getHours() >= 21 || istGps.getHours() < 7;
-        const isEveningGps = istGps.getHours() >= 16 && istGps.getHours() < 21;
-        const surgeGps = isEveningGps ? 40 : 0;
-
-        if (hasExistingPaymentLink) {
-          locReply = isNightGps
-            ? `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n🛵 We have saved your exact location coordinates.\n\nDeliveries for tonight closed at 9:00 PM. Please complete payment using the official Razorpay link above so our team can schedule your fresh morning harvest tomorrow! 🐟`
-            : `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n🛵 We have saved your exact location coordinates for our delivery rider.\n\nPlease complete payment using the official Razorpay link above so our team can harvest your trout live from the tanks and dispatch! 🐟`;
-          historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. Free delivery on 4 kg family pack (₹2320); 3 kg has ₹${49 + surgeGps} fee (₹${1789 + surgeGps}); 2 kg has ₹${89 + surgeGps} fee (₹${1249 + surgeGps}); 1 kg has ₹${119 + surgeGps} fee (₹${699 + surgeGps}). Payment link already provided.]`;
-        } else {
-          locReply = isNightGps
-            ? `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on our 4 kg family pack (₹2,320 total)! We can also send 2 kg for just ₹${89 + surgeGps} express courier fee (₹${1249 + surgeGps} total) or 3 kg for ₹${49 + surgeGps} courier fee (₹${1789 + surgeGps} total).\nDeliveries for tonight closed at 9:00 PM. We can schedule your express live-harvest delivery for tomorrow morning!\n\nWould you like 4 kg free delivery or 2 kg scheduled for tomorrow? 🐟`
-            : `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on our 4 kg family pack (₹2,320 total)! We can also send 2 kg for just ₹${89 + surgeGps} express courier fee (₹${1249 + surgeGps} total) or 3 kg for ₹${49 + surgeGps} courier fee (₹${1789 + surgeGps} total)${isEveningGps ? " (includes ₹40 evening rush courier surcharge)" : ""}.\n\nWould you like to confirm 4 kg free delivery or 2 kg for doorstep delivery? 🐟`;
-          historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. Free delivery on 4 kg family pack (₹2320); 3 kg has ₹${49 + surgeGps} fee (₹${1789 + surgeGps}); 2 kg has ₹${89 + surgeGps} fee (₹${1249 + surgeGps}); 1 kg has ₹${119 + surgeGps} fee (₹${699 + surgeGps}).]`;
-        }
-        console.log(`│ ✅ IN RANGE (11.5-16km, ${distRounded} km) — Free on 4kg, 2kg has ₹${89 + surgeGps} fee (Saved: ${mapsUrl})`);
-        console.log(`│ ✅ IN RANGE (11.5-16km, ${distRounded} km) — Free on 4kg, 2kg has ₹${89 + surgeGps} fee (Saved: ${mapsUrl})`);
+        console.log(`│ ✅ IN RANGE (<=16km, ${distRounded} km) — Saved: ${mapsUrl}`);
       } else {
         locReply = `📍 *Location Check: Outside Delivery Perimeter* ⚠️\n\nYour location is *${distRounded} km* from our Malabagh farm. To guarantee live-harvest freshness without ice or chemicals, doorstep delivery is limited to 16 km across Srinagar.\n\nHowever, you are warmly welcome to visit our Live Vending Center in Malabagh (Near R. P. School Girls Wing, open Saturday to Thursday) where you can pick live trout and get it cleaned on the spot! 🐟\n📍 Maps: https://maps.app.goo.gl/6FT5iLk5n8mbKSRU9`;
         historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. OUTSIDE 16km perimeter. Doorstep delivery not possible. Direct them to visit Live Vending Center in Malabagh.]`;
