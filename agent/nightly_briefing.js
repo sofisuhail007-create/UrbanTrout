@@ -527,7 +527,8 @@ async function sendNightlyBriefing(targetDateStr = null) {
 module.exports = {
   getISTDate,
   generateExecutiveBriefing,
-  sendNightlyBriefing
+  sendNightlyBriefing,
+  sendTelegramMessage
 };
 
 if (require.main === module) {

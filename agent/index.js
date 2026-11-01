@@ -12,7 +12,7 @@ const pino = require("pino");
 const path = require("path");
 const fs = require("fs");
 require("dotenv").config();
-const { sendNightlyBriefing } = require("./nightly_briefing.js");
+const { sendNightlyBriefing, sendTelegramMessage } = require("./nightly_briefing.js");
 
 // ============================================================================
 // STRICT VVIP MANUAL-ONLY LIST (AI MUST NEVER TEXT UNDER ANY CIRCUMSTANCE)
@@ -398,6 +398,62 @@ function detectSrinagarLocality(text) {
     }
   }
   return null;
+}
+
+// ─── COLONY-LEVEL REAL-TIME LEARNING ENGINE ───
+// Automatically indexes new colonies, gated communities, and landmarks from WhatsApp pins and chats
+function autoLearnColonyFromLocation({ lat, lng, distKm, locName, locAddress, recentUserText }) {
+  try {
+    if (!distKm || isNaN(distKm) || distKm > 18.0) return null; // Restrict learning to Srinagar perimeter
+
+    // 1. Extract colony/place candidate
+    let candidate = null;
+    if (locName && typeof locName === "string") {
+      const trimmed = locName.trim();
+      // Ignore generic names
+      if (!/^(?:location|dropped\s*pin|my\s*location|whatsapp|srinagar|kashmir|pin|current\s*location)$/i.test(trimmed) && trimmed.length >= 4 && trimmed.length <= 40) {
+        candidate = trimmed;
+      }
+    }
+
+    if (!candidate && recentUserText) {
+      const colonyMatch = recentUserText.match(/\b([A-Za-z]+(?:\s+[A-Za-z]+)?\s+(?:colony|enclave|avenue|sector|phase|nagar|estate|mohalla|bagh|chowk|vihar|layout|stop|stand|lane|road))\b/i);
+      if (colonyMatch) {
+        candidate = colonyMatch[1].trim();
+      }
+    }
+
+    if (!candidate) return null;
+
+    // Normalize candidate name (Title Case)
+    const normName = candidate.replace(/\b\w/g, l => l.toUpperCase()).trim();
+
+    // Skip if already hardcoded in KNOWN_IN_ZONE_AREAS or customAreas
+    const alreadyKnown = KNOWN_IN_ZONE_AREAS.some(k => k.pattern.test(normName));
+    if (alreadyKnown || customAreas[normName]) return null;
+
+    const minKg = distKm <= 4.0 ? 2 : distKm <= 11.5 ? 3 : 4;
+    const tier = distKm <= 4.0 ? "0-4km" : distKm <= 7.0 ? "4-7km" : distKm <= 11.5 ? "7-11.5km" : "11.5-16km";
+    const status = distKm <= 16.0 ? "IN_ZONE" : "OUT_ZONE";
+
+    customAreas[normName] = {
+      dist: Number(distKm.toFixed(1)),
+      minKg,
+      tier,
+      status,
+      lat,
+      lng,
+      source: "colony_learning_engine",
+      learnedAt: new Date().toISOString()
+    };
+    saveCustomAreas();
+
+    console.log(`🧠 [COLONY LEARNED] Added "${normName}" (~${distKm.toFixed(1)} km, ${tier}) to custom_areas.json!`);
+    return normName;
+  } catch (err) {
+    console.error("Colony learning error:", err.message);
+    return null;
+  }
 }
 
 // Asynchronous Geocoding Engine (Google Maps API + OpenStreetMap Nominatim Fallback)
@@ -1037,6 +1093,50 @@ function formatPhoneDisplay(phone) {
     return `+91 ${digits.slice(2, 7)} ${digits.slice(7)}`;
   }
   return digits ? `+${digits}` : "Customer";
+}
+
+// ─── CUSTOMER SENTIMENT & DISSATISFACTION ESCALATION DETECTOR ───
+function detectCustomerEscalation(text) {
+  if (!text || typeof text !== "string") return null;
+  const t = text.toLowerCase().trim();
+
+  // 1. Bot confrontation / Automation criticism / Demanding human
+  if (/\b(?:automated\s*(?:reply|response|bot|msg|message|system)|bot\s*(?:hai|reply|response|baat)|land\s*(?:you|u)\s*in\s*(?:serious\s*)?trouble|serious\s*trouble|trouble\s*someday|talk\s*to\s*(?:a\s*)?(?:human|person|manager|owner|founder)|robot\s*hai|insan\s*se\s*baat|asli\s*insan|real\s*person|human\s*agent|call\s*karo\s*mujhe|call\s*me\s*now)\b/i.test(t)) {
+    return {
+      severity: "HIGH",
+      category: "Bot Confrontation / Demanding Human",
+      reason: "Customer confronted automated replies or demanded a human manager"
+    };
+  }
+
+  // 2. Legal, Regulatory, Police, Fraud, Scam, Cheating threats
+  if (/\b(?:fraud|scam|cheating|cheat|chor|chori|loot|loot\s*rahe|dhokha|420|police|consumer\s*court|consumer\s*forum|fssai|legal\s*action|police\s*complaint|fir\s*karega|report\s*(?:you|karoonga|karenge|krunga)|court|lawyer|advocate)\b/i.test(t)) {
+    return {
+      severity: "CRITICAL",
+      category: "Legal / Fraud / Regulatory Threat",
+      reason: "Customer alleged fraud, scam, or threatened legal/police/consumer court action"
+    };
+  }
+
+  // 3. Product quality / Rotten / Spoiled / Sickness / Food safety
+  if (/\b(?:spoiled|stale|kharab|sadi\s*hui|sada\s*hua|bad\s*smell|smelling|stinking|rotten|vomit|vomiting|food\s*poisoning|poison|sick|bimar|hospital|hospitalized|pet\s*kharab|loose\s*motion|unhygienic|gandi\s*fish|insects|worm)\b/i.test(t)) {
+    return {
+      severity: "CRITICAL",
+      category: "Food Safety / Quality Escalation",
+      reason: "Customer reported bad smell, stale fish, rotten quality, or food sickness"
+    };
+  }
+
+  // 4. Extreme dissatisfaction / Abuse
+  if (/\b(?:bakwas|worst\s*service|pathetic|third\s*class|disgusting|chutiya|harami|kamine|bewakoof|bloody|nonsense|rubbish|mental|ganda\s*service|fraud\s*company)\b/i.test(t)) {
+    return {
+      severity: "HIGH",
+      category: "Severe Dissatisfaction / Anger",
+      reason: "Customer expressed severe anger, abusive language, or extreme discontent"
+    };
+  }
+
+  return null;
 }
 
 // Save or update customer order in local persistent store
@@ -4058,6 +4158,45 @@ async function startBot() {
     const displayPhone = formatPhoneDisplay(cleanPhone);
     const customerName = cleanPushName || resolveCustomerDisplayName(msg.pushName, null) || "Customer";
 
+    // 3b. Customer Sentiment & Dissatisfaction Escalation Check
+    if (!isSelfChat && !isOwner && text) {
+      const escalation = detectCustomerEscalation(text);
+      if (escalation) {
+        console.log(`\n🚨 [CUSTOMER ESCALATION DETECTED] Category: ${escalation.category} | Customer: ${customerName} (${displayPhone})`);
+        console.log(`💬 Message: "${text}"`);
+
+        // 1. Lock 60-minute human override immediately
+        const expiry = Date.now() + 60 * 60 * 1000;
+        humanOverrides.set(remoteJid, expiry);
+        if (cleanPhone) humanOverrides.set(cleanPhone, expiry);
+        const resolved = resolveCustomerPhone(remoteJid);
+        if (resolved) humanOverrides.set(resolved, expiry);
+
+        // 2. Dispatch High-Priority Telegram Alert to owner
+        try {
+          const alertPhone = cleanPhone || resolved || "";
+          const alertHtml = `🚨 <b>URGENT CUSTOMER ESCALATION ALERT</b> 🚨\n━━━━━━━━━━━━━━━━━━━━━\n👤 <b>Customer:</b> ${customerName || "Customer"} (<code>${displayPhone}</code>)\n⚠️ <b>Category:</b> ${escalation.category}\n🚩 <b>Severity:</b> ${escalation.severity}\n\n💬 <b>Customer Said:</b>\n<i>"${text.slice(0, 350)}"</i>\n\n🛡️ <b>Action Taken:</b> AI Bot has been <b>PAUSED for 60 mins</b> on this chat.\n👉 <a href="https://wa.me/${alertPhone}"><b>Tap here to Open WhatsApp & Reply Personally</b></a>`;
+          await sendTelegramMessage(alertHtml);
+          console.log(`📢 [Telegram Alert Sent] Escalation alert dispatched to owner.`);
+        } catch (tgErr) {
+          console.error("Failed to send escalation alert to Telegram:", tgErr.message);
+        }
+
+        // 3. Send professional, disarming, empathetic WhatsApp message
+        const disarmReply = `We completely understand your concern and sincerely apologize for any confusion or frustration. 🙏\n\nI have directly notified our founder and senior Malabagh team with your message. Someone from our core team will personally connect with you right away to assist you directly.`;
+
+        const chatHist = chatHistories.get(remoteJid) || [];
+        chatHist.push({ role: "user", text });
+        chatHist.push({ role: "model", text: disarmReply });
+        if (chatHist.length > 8) chatHist.splice(0, chatHist.length - 8);
+        chatHistories.set(remoteJid, chatHist);
+        saveChatHistories();
+
+        await sock.sendMessage(remoteJid, { text: disarmReply });
+        return;
+      }
+    }
+
     if (isGpsCheck && detectedLat !== null && detectedLng !== null) {
       const dist = calculateDistance(FARM_LAT, FARM_LNG, detectedLat, detectedLng);
       const distRounded = dist.toFixed(1);
@@ -4068,6 +4207,16 @@ async function startBot() {
       console.log(`│ 📍 [LOCATION PIN RECEIVED] 📅 ${istDate} • ⏰ ${istTime}`);
       console.log(`│ 👤 Name: ${customerName}${msg.pushName ? ` (WA: "${msg.pushName}")` : ""} | 📞 Phone: ${displayPhone}`);
       console.log(`│ 🌐 Coords: ${detectedLat}, ${detectedLng} | 📏 Distance to Farm: ${distRounded} km`);
+
+      // Auto-learn colony or landmark from WhatsApp location pin name/address or recent chat
+      autoLearnColonyFromLocation({
+        lat: detectedLat,
+        lng: detectedLng,
+        distKm: Number(distRounded),
+        locName: locMsg?.name || locMsg?.address,
+        locAddress: locMsg?.address,
+        recentUserText: text
+      });
 
       let locReply = "";
       let historyNote = "";

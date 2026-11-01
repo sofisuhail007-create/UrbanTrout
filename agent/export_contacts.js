@@ -301,6 +301,88 @@ function exportContacts() {
     } catch (_) {}
   }
 
+  // Helper to resolve real mobile number from Baileys auth reverse LID mappings
+  function resolvePhoneFromJid(jid) {
+    if (!jid) return '';
+    if (jid.endsWith('@s.whatsapp.net')) return jid.replace('@s.whatsapp.net', '').replace(/\D/g, '');
+    const cleanId = jid.replace('@lid', '').replace('@s.whatsapp.net', '');
+    try {
+      const revPath = path.join(__dirname, 'auth_info_baileys', `lid-mapping-${cleanId}_reverse.json`);
+      if (fs.existsSync(revPath)) {
+        const mapped = JSON.parse(fs.readFileSync(revPath, 'utf8'));
+        if (mapped) return String(mapped).replace(/\D/g, '');
+      }
+    } catch (_) {}
+    return cleanId;
+  }
+
+  // Pre-build index of all customers who have shared location/GPS across metadata, orders, and chats
+  const phoneToLocation = new Map();
+
+  // 1. Index from chatMetadata (handles both phone entries and reverse LID mapped entries)
+  for (const [k, v] of Object.entries(chatMetadata)) {
+    if (!v) continue;
+    let phone = v.phone || resolvePhoneFromJid(k);
+    if (!phone || phone.length < 10) continue;
+    const last10 = phone.replace(/\D/g, '').slice(-10);
+    if (v.latitude && v.longitude) {
+      phoneToLocation.set(last10, {
+        lat: v.latitude,
+        lng: v.longitude,
+        mapsUrl: v.googleMapsUrl || `https://maps.google.com/?q=${v.latitude},${v.longitude}`,
+        dist: v.distanceKm != null ? Number(v.distanceKm).toFixed(1) : null
+      });
+    }
+  }
+
+  // 2. Index from customer_orders
+  for (const [k, o] of Object.entries(orders)) {
+    if (!o) continue;
+    const p = (o.customerPhone || o.phone || '').replace(/\D/g, '').slice(-10);
+    if (!p) continue;
+    if (o.latitude && o.longitude) {
+      phoneToLocation.set(p, {
+        lat: o.latitude,
+        lng: o.longitude,
+        mapsUrl: o.googleMapsUrl || `https://maps.google.com/?q=${o.latitude},${o.longitude}`,
+        dist: o.distanceKm != null ? Number(o.distanceKm).toFixed(1) : null
+      });
+    }
+  }
+
+  // 3. Index from chat histories (extract coordinates or Google Maps links from raw messages)
+  for (const [jid, msgs] of Object.entries(chats)) {
+    if (!Array.isArray(msgs)) continue;
+    const p = resolvePhoneFromJid(jid);
+    if (!p || p.length < 10) continue;
+    const last10 = p.replace(/\D/g, '').slice(-10);
+
+    for (const m of msgs) {
+      if (!m || !m.text) continue;
+      const urlMatch = m.text.match(/(https?:\/\/(?:maps\.google\.com|goo\.gl\/maps|maps\.app\.goo\.gl)[^\s]*)/i);
+      const coordMatch = m.text.match(/(-?\d{1,2}\.\d{4,10})[,\s]+(-?\d{1,3}\.\d{4,10})/);
+      const distMatch = m.text.match(/(\d+(?:\.\d+)?)\s*km\s*from\s*(?:our\s*)?Malabagh/i);
+
+      if (urlMatch || coordMatch) {
+        // Exclude the farm's own Malabagh Live Vending Center map link
+        if (urlMatch && (urlMatch[1].includes('6FT5iLk5n8mbKSRU9') || urlMatch[1].includes('6ft5ilk5n8mbksru9'))) {
+          continue;
+        }
+        const existing = phoneToLocation.get(last10) || {};
+        if (urlMatch && !existing.mapsUrl && !urlMatch[1].includes('6FT5iLk5n8mbKSRU9')) existing.mapsUrl = urlMatch[1];
+        if (coordMatch && !existing.lat) {
+          existing.lat = coordMatch[1];
+          existing.lng = coordMatch[2];
+          if (!existing.mapsUrl) existing.mapsUrl = `https://maps.google.com/?q=${existing.lat},${existing.lng}`;
+        }
+        if (distMatch && !existing.dist) existing.dist = Number(distMatch[1]).toFixed(1);
+        phoneToLocation.set(last10, existing);
+      }
+    }
+  }
+
+  console.log(`📍 [Location Intelligence] Loaded verified Google Maps navigation links for ${phoneToLocation.size} customer contacts.`);
+
   const contacts = [];
   const seenPhones = new Set();
 
@@ -471,6 +553,13 @@ function exportContacts() {
       ? userMsgs[userMsgs.length - 1].text.replace(/[\r\n",]/g, ' ').slice(0, 120).trim()
       : 'Inquiry';
 
+    const locInfo = phoneToLocation.get(raw10) || null;
+    let contactNotes = `Urban Trout Customer | Name: ${customerName || 'Inquirer'} | Locality: ${area || 'Srinagar'}`;
+    if (locInfo && locInfo.mapsUrl) {
+      contactNotes = `📍 Google Maps: ${locInfo.mapsUrl}${locInfo.dist ? ` (~${locInfo.dist} km from farm)` : ''}\n${contactNotes}`;
+    }
+    contactNotes += ` | Last: ${lastUserText}`;
+
     contacts.push({
       fullName,
       givenName,
@@ -480,7 +569,13 @@ function exportContacts() {
       customerName: customerName || '',
       area: area || 'Srinagar',
       createdAt: createdAt.getTime(),
-      notes: `Urban Trout Customer | Name: ${customerName || 'Inquirer'} | Locality: ${area || 'Srinagar'} | Last: ${lastUserText}`
+      notes: contactNotes,
+      ...(locInfo && locInfo.mapsUrl ? {
+        mapsUrl: locInfo.mapsUrl,
+        lat: locInfo.lat,
+        lng: locInfo.lng,
+        distanceKm: locInfo.dist
+      } : {})
     });
 
     if (matchedOrder && matchedOrder.notes) {
@@ -557,6 +652,12 @@ function exportContacts() {
       const givenName = parts[0] || 'UT';
       const familyName = parts.slice(1).join(' • ') || fullName;
 
+      const locInfo = phoneToLocation.get(raw10) || null;
+      let contactNotes = `Urban Trout Customer | Name: ${customerName || 'Inquirer'} | Locality: ${area || 'Srinagar'} | Order: ${order.orderRef || orderKey} (${order.amount || ''})`;
+      if (locInfo && locInfo.mapsUrl) {
+        contactNotes = `📍 Google Maps: ${locInfo.mapsUrl}${locInfo.dist ? ` (~${locInfo.dist} km from farm)` : ''}\n${contactNotes}`;
+      }
+
       contacts.push({
         fullName,
         givenName,
@@ -566,7 +667,13 @@ function exportContacts() {
         customerName: customerName || '',
         area: area || 'Srinagar',
         createdAt: order.paidAt ? new Date(order.paidAt).getTime() : (order.updatedAt ? new Date(order.updatedAt).getTime() : Date.now()),
-        notes: `Urban Trout Customer | Name: ${customerName || 'Inquirer'} | Locality: ${area || 'Srinagar'} | Order: ${order.orderRef || orderKey} (${order.amount || ''})`
+        notes: contactNotes,
+        ...(locInfo && locInfo.mapsUrl ? {
+          mapsUrl: locInfo.mapsUrl,
+          lat: locInfo.lat,
+          lng: locInfo.lng,
+          distanceKm: locInfo.dist
+        } : {})
       });
 
       // If delivery notes has an alternate contact number, also add it
@@ -661,6 +768,12 @@ function exportContacts() {
     const givenName = parts[0] || 'UT';
     const familyName = parts.slice(1).join(' • ') || fullName;
 
+    const locInfo = phoneToLocation.get(raw10) || null;
+    let contactNotes = `Urban Trout Customer | Name: ${customerName || 'Inquirer'} | Locality: ${area || 'Srinagar'} | Inquiry Date: ${createdAt.toISOString().slice(0, 10)}`;
+    if (locInfo && locInfo.mapsUrl) {
+      contactNotes = `📍 Google Maps: ${locInfo.mapsUrl}${locInfo.dist ? ` (~${locInfo.dist} km from farm)` : ''}\n${contactNotes}`;
+    }
+
     contacts.push({
       fullName,
       givenName,
@@ -670,26 +783,39 @@ function exportContacts() {
       customerName: customerName || '',
       area: area || 'Srinagar',
       createdAt: createdAt.getTime(),
-      notes: `Urban Trout Customer | Name: ${customerName || 'Inquirer'} | Locality: ${area || 'Srinagar'} | Inquiry Date: ${createdAt.toISOString().slice(0, 10)}`
+      notes: contactNotes,
+      ...(locInfo && locInfo.mapsUrl ? {
+        mapsUrl: locInfo.mapsUrl,
+        lat: locInfo.lat,
+        lng: locInfo.lng,
+        distanceKm: locInfo.dist
+      } : {})
     });
   }
 
   // Sort newest first
   contacts.sort((a, b) => b.createdAt - a.createdAt);
 
-  // Standard vCard 3.0 (.vcf) Format with ADR and rich NOTE
+  // Standard vCard 3.0 (.vcf) Format with ADR, URL, GEO, and rich multi-line NOTE
   const vcfContent = contacts.map(c => {
     const loc = c.area || 'Srinagar';
-    return [
+    const lines = [
       'BEGIN:VCARD',
       'VERSION:3.0',
       `FN:${c.fullName}`,
       `N:${c.familyName};${c.givenName};;;`,
       `TEL;TYPE=CELL,VOICE:${c.phone}`,
-      `ADR;TYPE=HOME:;;;${loc};Srinagar;J&K;;`,
-      `NOTE:${c.notes}`,
-      'END:VCARD'
-    ].join('\r\n');
+      `ADR;TYPE=HOME:;;;${loc};Srinagar;J&K;;`
+    ];
+    if (c.mapsUrl) {
+      lines.push(`URL;TYPE=WORK:${c.mapsUrl}`);
+    }
+    if (c.lat && c.lng) {
+      lines.push(`GEO:${c.lat};${c.lng}`);
+    }
+    lines.push(`NOTE:${c.notes.replace(/\r?\n/g, '\\n')}`);
+    lines.push('END:VCARD');
+    return lines.join('\r\n');
   }).join('\r\n') + '\r\n';
 
   const desktopDir = path.join(process.env.USERPROFILE || 'C:\\Users\\Suhail - CGIT', 'Desktop');
