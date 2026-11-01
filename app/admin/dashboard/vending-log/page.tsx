@@ -455,6 +455,7 @@ export default function VendingCenterLoggerPage() {
   const [supplierRebatesMap, setSupplierRebatesMap] = useState<Record<string, number>>(() => {
     const defaultMap: Record<string, number> = {
       "2026-09": 3020, // Finalized September 2026 volume rebate (302 Kg @ ₹10/Kg)
+      "2026-10": 10100, // Finalized October 2026 volume rebate (505 Kg @ ₹20/Kg)
     };
     if (typeof window === "undefined") return defaultMap;
     try {
@@ -1204,8 +1205,9 @@ export default function VendingCenterLoggerPage() {
           Object.keys(data.monthlySummaries).forEach((mKey) => {
             map[mKey] = data.monthlySummaries[mKey].rebateEarned || 0;
           });
-          // Ensure September 2026 has at least the confirmed ₹3,020 rebate
+          // Ensure September & October 2026 have their confirmed volume rebates
           if (!map["2026-09"]) map["2026-09"] = 3020;
+          if (!map["2026-10"]) map["2026-10"] = 10100;
           setSupplierRebatesMap(map);
           try {
             localStorage.setItem("ut_supplier_rebates_cache", JSON.stringify(map));
@@ -1968,7 +1970,7 @@ export default function VendingCenterLoggerPage() {
   // ─── Period Supplier Volume Rebate (Khyber Aquaculture Slabs) ───
   const periodSupplierRebate = useMemo(() => {
     if (period === "month" && selectedMonth) {
-      return supplierRebatesMap[selectedMonth] ?? (selectedMonth === "2026-09" ? 3020 : 0);
+      return supplierRebatesMap[selectedMonth] ?? (selectedMonth === "2026-10" ? 10100 : selectedMonth === "2026-09" ? 3020 : 0);
     }
     if (period === "all") {
       return Object.values(supplierRebatesMap).reduce((sum, v) => sum + (Number(v) || 0), 0) || 3020;
@@ -2345,7 +2347,7 @@ export default function VendingCenterLoggerPage() {
       const nonGuttedCost = Math.round(m.regularNonGuttedKg * procurementAvgCost);
       const laborCost = Math.round(m.guttingLaborCost);
       const totalFishCost = guttedCost + nonGuttedCost + laborCost;
-      const supplierRebate = supplierRebatesMap[m.monthKey] ?? (m.monthKey === "2026-09" ? 3020 : 0);
+      const supplierRebate = supplierRebatesMap[m.monthKey] ?? (m.monthKey === "2026-10" ? 10100 : m.monthKey === "2026-09" ? 3020 : 0);
       const operationalGrossProfit = Math.round(m.revenue - totalFishCost);
       const fishGrossProfit = Math.round(operationalGrossProfit + supplierRebate);
       const mortalityCost = m.mortalityCost || 0;

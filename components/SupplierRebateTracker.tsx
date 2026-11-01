@@ -4,6 +4,27 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { adminFetch } from "@/lib/adminClient";
 import { KHYBER_SLABS, RebateSlab, MonthRebateSummary, CreditDeduction } from "@/app/api/supplier-rebates/route";
 
+function getPreviousMonthKey(monthKey: string): string {
+  try {
+    const [y, m] = monthKey.slice(0, 7).split("-").map(Number);
+    const d = new Date(y, m - 2, 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  } catch {
+    return "";
+  }
+}
+
+function formatMonthDisplay(monthKey?: string): string {
+  if (!monthKey || monthKey.length < 7) return "";
+  try {
+    const [y, m] = monthKey.slice(0, 7).split("-").map(Number);
+    const date = new Date(y, m - 1, 1);
+    return date.toLocaleDateString("en-IN", { month: "long", year: "numeric" });
+  } catch {
+    return monthKey;
+  }
+}
+
 interface SupplierRebateTrackerProps {
   onRebateUpdated?: () => void;
   onFilterToMonth?: (monthKey: string) => void;
@@ -33,8 +54,28 @@ export default function SupplierRebateTracker({
     };
   } | null>(null);
 
+  // Canonical IST Current Month (e.g. "2026-11")
+  const defaultCurrentMonth = useMemo(() => {
+    try {
+      return new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Kolkata",
+        year: "numeric",
+        month: "2-digit",
+      }).format(new Date());
+    } catch {
+      return new Date().toISOString().slice(0, 7);
+    }
+  }, []);
+
   // Month selection for inspecting specific historical or current months
-  const [selectedMonth, setSelectedMonth] = useState<string>("2026-10");
+  const [selectedMonth, setSelectedMonth] = useState<string>(() => currentFilterMonth || defaultCurrentMonth);
+
+  // Synchronize when parent filter month updates
+  useEffect(() => {
+    if (currentFilterMonth && currentFilterMonth !== selectedMonth) {
+      setSelectedMonth(currentFilterMonth);
+    }
+  }, [currentFilterMonth]);
 
   // Interactive Simulator state
   const [simulatorKg, setSimulatorKg] = useState<number>(350);
@@ -60,8 +101,8 @@ export default function SupplierRebateTracker({
         const data = await res.json();
         if (data.success) {
           setRebatesData(data);
-          if (data.activeMonthKey && !selectedMonth) {
-            setSelectedMonth(data.activeMonthKey);
+          if (data.activeMonthKey && !currentFilterMonth) {
+            setSelectedMonth((prev) => prev || data.activeMonthKey);
           }
         }
       }
@@ -70,39 +111,67 @@ export default function SupplierRebateTracker({
     } finally {
       setLoading(false);
     }
-  }, [selectedMonth]);
+  }, [currentFilterMonth]);
 
   useEffect(() => {
     loadRebateData();
   }, [loadRebateData]);
 
-  // Derived active month data
+  // Active Live Month Key (e.g. "2026-11")
+  const liveMonthKey = rebatesData?.activeMonthKey || defaultCurrentMonth;
+
+  // Immediately preceding finalized milestone month key (e.g. "2026-10")
+  const prevMonthKey = useMemo(() => getPreviousMonthKey(liveMonthKey), [liveMonthKey]);
+
+  // Derived inspected/selected month summary data
   const currentMonthData = useMemo(() => {
     if (!rebatesData?.monthlySummaries) return null;
     return rebatesData.monthlySummaries[selectedMonth] || null;
   }, [rebatesData, selectedMonth]);
 
-  // September benchmark data (Finalized milestone)
-  const septData = useMemo(() => {
-    return rebatesData?.monthlySummaries?.["2026-09"] || null;
-  }, [rebatesData]);
+  // Live Month progress data (Current live cycle)
+  const liveMonthData = useMemo(() => {
+    return rebatesData?.monthlySummaries?.[liveMonthKey] || null;
+  }, [rebatesData, liveMonthKey]);
 
-  // October live data
-  const octData = useMemo(() => {
-    return rebatesData?.monthlySummaries?.["2026-10"] || null;
-  }, [rebatesData]);
+  // Preceding finalized month milestone data (Achieved milestone)
+  const prevMonthData = useMemo(() => {
+    return rebatesData?.monthlySummaries?.[prevMonthKey] || null;
+  }, [rebatesData, prevMonthKey]);
 
-  // September P&L from Vending Log
-  const septPnl = useMemo(() => {
+  // Target month key for Card 4 (Final Profit With Rebate)
+  const card4MonthKey = useMemo(() => {
+    if (selectedMonth && selectedMonth !== liveMonthKey) {
+      return selectedMonth;
+    }
+    return prevMonthKey;
+  }, [selectedMonth, liveMonthKey, prevMonthKey]);
+
+  // Card 4 P&L from Vending Log
+  const card4Pnl = useMemo(() => {
     if (!monthWiseData || monthWiseData.length === 0) return null;
-    return monthWiseData.find((m) => m.monthKey === "2026-09") || null;
-  }, [monthWiseData]);
+    return monthWiseData.find((m) => m.monthKey === card4MonthKey) || null;
+  }, [monthWiseData, card4MonthKey]);
 
   // Selected Month P&L from Vending Log
   const activePnl = useMemo(() => {
     if (!monthWiseData || monthWiseData.length === 0) return null;
     return monthWiseData.find((m) => m.monthKey === selectedMonth) || null;
   }, [monthWiseData, selectedMonth]);
+
+  // Dynamic available months list sorted descending
+  const availableMonths = useMemo(() => {
+    const set = new Set<string>();
+    if (liveMonthKey) set.add(liveMonthKey);
+    if (prevMonthKey) set.add(prevMonthKey);
+    if (rebatesData?.monthlySummaries) {
+      Object.keys(rebatesData.monthlySummaries).forEach((k) => set.add(k));
+    }
+    if (monthWiseData) {
+      monthWiseData.forEach((m) => set.add(m.monthKey));
+    }
+    return Array.from(set).sort((a, b) => b.localeCompare(a));
+  }, [liveMonthKey, prevMonthKey, rebatesData, monthWiseData]);
 
   // Simulator dynamic calculation
   const simulatorResult = useMemo(() => {
@@ -213,10 +282,11 @@ export default function SupplierRebateTracker({
     }
   };
 
-  const availableCredit = rebatesData?.creditLedger?.availableCreditBalance ?? 3020;
-  const octKg = octData?.totalKg ?? 110;
-  const octProgress = octData?.progressPercent ?? 36.7;
-  const octKgNeeded = octData?.kgToNext ?? 190;
+  const availableCredit = rebatesData?.creditLedger?.availableCreditBalance ?? (prevMonthData?.rebateEarned ?? 10100);
+  const liveKg = liveMonthData?.totalKg ?? 0;
+  const liveProgress = liveMonthData?.progressPercent ?? 0;
+  const liveKgNeeded = liveMonthData?.kgToNext ?? 300;
+  const liveTargetKg = liveMonthData?.targetNextKg ?? 300;
 
   // ══════════ EXCEL EXPORT ══════════
   const generateKhyberExcel = useCallback(async () => {
@@ -301,7 +371,7 @@ export default function SupplierRebateTracker({
     XLSX.utils.book_append_sheet(wb, wsBatches, "Batch-Wise Log");
 
     // ── Sheet 3: Tier System Explanation ──
-    const tierHeader = ["Tier", "Tier Name", "Volume Range (Kg)", "Rebate / Kg (₹)", "Effective Base Rate (₹/Kg)", "Effective Delivered Rate (₹/Kg)", "Saving vs Standard (₹/Kg)", "Total Saving @ This Tier (Sept 302 Kg)"];
+    const tierHeader = ["Tier", "Tier Name", "Volume Range (Kg)", "Rebate / Kg (₹)", "Effective Base Rate (₹/Kg)", "Effective Delivered Rate (₹/Kg)", "Saving vs Standard (₹/Kg)", `Total Saving @ This Tier (${prevMonthData?.totalKg ? `${prevMonthData.totalKg.toFixed(0)} Kg` : "300 Kg"})`];
     const tierRows: any[][] = [
       ["KHYBER AQUACULTURE — VOLUME REBATE TIER SYSTEM"],
       ["Urban Trout Procurement Intelligence | Standard Invoice Rate: ₹435/Kg"],
@@ -802,11 +872,31 @@ export default function SupplierRebateTracker({
             <span className="text-[11px] text-slate-400">Inspect Month:</span>
             <select
               value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setSelectedMonth(val);
+                if (onFilterToMonth) onFilterToMonth(val);
+              }}
               className="bg-slate-900 border border-slate-700 text-white text-xs rounded-lg px-2.5 py-1 focus:ring-1 focus:ring-blue-500 outline-none cursor-pointer"
             >
-              <option value="2026-10">October 2026 (Live Current)</option>
-              <option value="2026-09">September 2026 (Settled: ₹3,020)</option>
+              {availableMonths.map((mKey) => {
+                const summary = rebatesData?.monthlySummaries?.[mKey];
+                const isLive = mKey === liveMonthKey;
+                const label = formatMonthDisplay(mKey);
+                let badge = "";
+                if (isLive) {
+                  badge = " (Live Current)";
+                } else if (summary && summary.rebateEarned > 0) {
+                  badge = ` (Achieved: ₹${summary.rebateEarned.toLocaleString("en-IN")})`;
+                } else if (summary && summary.totalKg > 0) {
+                  badge = ` (${summary.totalKg.toFixed(1)} Kg)`;
+                }
+                return (
+                  <option key={mKey} value={mKey}>
+                    {label}{badge}
+                  </option>
+                );
+              })}
             </select>
           </div>
         </div>
@@ -836,51 +926,53 @@ export default function SupplierRebateTracker({
         <div className="space-y-3.5">
           {/* Top 4 Primary Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3.5">
-            {/* Card 1: October 2026 Live Target & Milestone */}
+            {/* Card 1: Live Current Month Progress */}
             <div className="rounded-2xl bg-gradient-to-br from-blue-950/50 via-slate-900/90 to-slate-950 border border-blue-500/40 p-4 shadow-xl relative overflow-hidden flex flex-col justify-between">
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-xs font-mono">
                   <span className="text-blue-300 font-bold flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-blue-400 animate-ping" />
-                    OCTOBER 2026 · LIVE PROGRESS
+                    {formatMonthDisplay(liveMonthKey).toUpperCase()} · LIVE PROGRESS
                   </span>
                   <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[10px] font-bold">
-                    Tier 1 (Base)
+                    {liveMonthData?.currentSlab?.name || "Tier 1 (Base)"}
                   </span>
                 </div>
 
                 <div className="pt-1 flex items-baseline justify-between">
                   <div>
-                    <span className="text-3xl font-black text-white font-mono">{octKg.toFixed(1)}</span>
-                    <span className="text-slate-400 font-mono text-xs ml-1">/ 300.0 Kg</span>
+                    <span className="text-3xl font-black text-white font-mono">{liveKg.toFixed(1)}</span>
+                    <span className="text-slate-400 font-mono text-xs ml-1">/ {liveTargetKg}.0 Kg</span>
                   </div>
-                  <span className="text-xs font-mono font-bold text-cyan-300">{octProgress}%</span>
+                  <span className="text-xs font-mono font-bold text-cyan-300">{liveProgress}%</span>
                 </div>
 
-                {/* Progress bar to 300 Kg slab */}
+                {/* Progress bar to next slab */}
                 <div className="w-full bg-slate-950 rounded-full h-2.5 overflow-hidden border border-slate-800 p-0.5">
                   <div
                     className="bg-gradient-to-r from-blue-500 to-cyan-400 h-full rounded-full transition-all duration-500"
-                    style={{ width: `${Math.min(100, octProgress)}%` }}
+                    style={{ width: `${Math.min(100, liveProgress)}%` }}
                   />
                 </div>
 
                 <div className="p-2 rounded-xl bg-slate-950/70 border border-slate-800 text-[11px] font-mono text-slate-300 space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-400">Remaining to ₹10/Kg Rebate:</span>
-                    <strong className="text-amber-400 font-bold">{octKgNeeded.toFixed(1)} Kg</strong>
+                    <span className="text-slate-400">
+                      Remaining to {liveMonthData?.nextSlab ? `₹${liveMonthData.nextSlab.rebatePerKg}/Kg` : "Max"} Rebate:
+                    </span>
+                    <strong className="text-amber-400 font-bold">{liveKgNeeded.toFixed(1)} Kg</strong>
                   </div>
                   <div className="flex items-center justify-between text-[10.5px]">
                     <span className="text-slate-400">Batches Lifted so far:</span>
-                    <span className="text-white font-bold">{octData?.batchCount ?? 2} batches</span>
+                    <span className="text-white font-bold">{liveMonthData?.batchCount ?? 0} batches</span>
                   </div>
                 </div>
               </div>
 
               <div className="mt-3 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-mono">
-                <span className="text-slate-400">Unlock at 300 Kg:</span>
+                <span className="text-slate-400">Unlock at {liveTargetKg} Kg:</span>
                 <span className="text-emerald-400 font-bold font-mono">
-                  +₹3,000+ Cashback Credit
+                  +{liveMonthData?.potentialNextRebate ? `₹${liveMonthData.potentialNextRebate.toLocaleString("en-IN")}` : "₹3,000+"} Cashback Credit
                 </span>
               </div>
             </div>
@@ -908,8 +1000,10 @@ export default function SupplierRebateTracker({
 
                 <div className="p-2 rounded-xl bg-slate-950/70 border border-slate-800 text-[11px] font-mono text-slate-300 space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-slate-400">Earned in September:</span>
-                    <strong className="text-emerald-300 font-bold">+₹3,020.00</strong>
+                    <span className="text-slate-400">Earned in {formatMonthDisplay(prevMonthKey)}:</span>
+                    <strong className="text-emerald-300 font-bold">
+                      +₹{(prevMonthData?.rebateEarned ?? 10100).toLocaleString("en-IN")}
+                    </strong>
                   </div>
                   <div className="flex items-center justify-between text-[10.5px]">
                     <span className="text-slate-400">Deducted from Invoices:</span>
@@ -932,26 +1026,30 @@ export default function SupplierRebateTracker({
               </div>
             </div>
 
-            {/* Card 3: September 2026 Milestone Finalized */}
+            {/* Card 3: Previous Month Milestone Finalized */}
             <div className="rounded-2xl bg-gradient-to-br from-violet-950/50 via-slate-900/90 to-slate-950 border border-violet-500/40 p-4 shadow-xl relative overflow-hidden flex flex-col justify-between">
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-xs font-mono">
                   <span className="text-violet-300 font-bold flex items-center gap-1.5">
                     <span className="material-symbols-outlined text-sm text-violet-400">verified</span>
-                    SEPTEMBER 2026 · ACHIEVED
+                    {formatMonthDisplay(prevMonthKey).toUpperCase()} · ACHIEVED
                   </span>
                   <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold">
-                    Slab 2 (₹10/Kg)
+                    {prevMonthData?.currentSlab?.name || "Tier 3 (Silver)"}
                   </span>
                 </div>
 
                 <div className="pt-1 flex items-baseline justify-between">
                   <div>
-                    <span className="text-3xl font-black text-white font-mono">302.0</span>
+                    <span className="text-3xl font-black text-white font-mono">
+                      {(prevMonthData?.totalKg ?? 505.0).toFixed(1)}
+                    </span>
                     <span className="text-slate-400 font-mono text-xs ml-1">Kg Lifted</span>
                   </div>
                   <div className="text-right">
-                    <span className="text-emerald-400 font-bold font-mono text-lg">+₹3,020</span>
+                    <span className="text-emerald-400 font-bold font-mono text-lg">
+                      +₹{(prevMonthData?.rebateEarned ?? 10100).toLocaleString("en-IN")}
+                    </span>
                     <div className="text-[10px] text-slate-400 font-mono">Rebate Credited</div>
                   </div>
                 </div>
@@ -959,12 +1057,18 @@ export default function SupplierRebateTracker({
                 <div className="p-2 rounded-xl bg-slate-950/70 border border-slate-800 text-[11px] font-mono text-slate-300 space-y-1">
                   <div className="flex items-center justify-between">
                     <span className="text-slate-400">Effective Base Rate:</span>
-                    <strong className="text-cyan-300 font-bold">₹400 / Kg</strong>
-                    <span className="text-[10px] text-slate-500">(Saved ₹10/Kg)</span>
+                    <strong className="text-cyan-300 font-bold">
+                      ₹{prevMonthData?.effectiveBaseRate ?? 390} / Kg
+                    </strong>
+                    <span className="text-[10px] text-slate-500">
+                      (Saved ₹{prevMonthData?.currentSlab?.rebatePerKg ?? 20}/Kg)
+                    </span>
                   </div>
                   <div className="flex items-center justify-between text-[10.5px]">
                     <span className="text-slate-400">Profit Boost:</span>
-                    <strong className="text-emerald-400">+₹3,020 in Sept P&amp;L</strong>
+                    <strong className="text-emerald-400">
+                      +₹{(prevMonthData?.rebateEarned ?? 10100).toLocaleString("en-IN")} in {formatMonthDisplay(prevMonthKey)} P&amp;L
+                    </strong>
                   </div>
                 </div>
               </div>
@@ -978,7 +1082,7 @@ export default function SupplierRebateTracker({
               </div>
             </div>
 
-            {/* Card 4: September Final Profit With Rebate (NEW) */}
+            {/* Card 4: Final Profit With Rebate */}
             <div className="rounded-2xl bg-gradient-to-br from-amber-950/50 via-slate-900/90 to-slate-950 border border-amber-500/40 p-4 shadow-xl relative overflow-hidden flex flex-col justify-between">
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-xs font-mono">
@@ -987,7 +1091,7 @@ export default function SupplierRebateTracker({
                     FINAL PROFIT · WITH REBATE
                   </span>
                   <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold">
-                    Sept Realized
+                    {formatMonthDisplay(card4MonthKey).slice(0, 3)} Realized
                   </span>
                 </div>
 
@@ -995,12 +1099,12 @@ export default function SupplierRebateTracker({
                   <div className="flex items-baseline gap-1">
                     <span className="text-emerald-400 font-bold text-lg font-mono">₹</span>
                     <span className="text-3xl font-black text-white font-mono">
-                      {septPnl ? Math.abs(septPnl.finalNetProfit).toLocaleString("en-IN") : "—"}
+                      {card4Pnl ? Math.abs(card4Pnl.finalNetProfit).toLocaleString("en-IN") : "—"}
                     </span>
                   </div>
                   <div className="text-right">
                     <span className="text-emerald-400 font-bold font-mono text-xs">
-                      {septPnl?.marginPercent ?? "0.0"}%
+                      {card4Pnl?.marginPercent ?? "0.0"}%
                     </span>
                     <div className="text-[9.5px] text-slate-400 font-mono">Net Margin</div>
                   </div>
@@ -1010,7 +1114,7 @@ export default function SupplierRebateTracker({
                   <div className="flex items-center justify-between text-[10.5px]">
                     <span className="text-slate-400">Sales Gross Profit:</span>
                     <span className="text-slate-200 font-mono font-bold">
-                      ₹{(septPnl?.operationalGrossProfit ?? (septPnl ? septPnl.fishGrossProfit - 3020 : 0)).toLocaleString("en-IN")}
+                      ₹{(card4Pnl?.operationalGrossProfit ?? 0).toLocaleString("en-IN")}
                     </span>
                   </div>
                   <div className="flex items-center justify-between text-[10.5px]">
@@ -1018,12 +1122,14 @@ export default function SupplierRebateTracker({
                       <span className="material-symbols-outlined text-[11px]">add_circle</span>
                       Khyber Slab Rebate:
                     </span>
-                    <strong className="text-emerald-300 font-bold">+₹3,020.00</strong>
+                    <strong className="text-emerald-300 font-bold">
+                      +₹{(card4Pnl?.supplierRebate ?? rebatesData?.monthlySummaries?.[card4MonthKey]?.rebateEarned ?? 0).toLocaleString("en-IN")}
+                    </strong>
                   </div>
                   <div className="flex items-center justify-between text-[10px] text-slate-500 pt-0.5 border-t border-slate-800/60">
                     <span>Expenses &amp; Wages:</span>
                     <span className="text-rose-400">
-                      -₹{((septPnl?.expenses || 0) + (septPnl?.salaryPaid || 0)).toLocaleString("en-IN")}
+                      -₹{(((card4Pnl?.expenses || 0) + (card4Pnl?.salaryPaid || 0))).toLocaleString("en-IN")}
                     </span>
                   </div>
                 </div>
@@ -1050,9 +1156,9 @@ export default function SupplierRebateTracker({
               <div className="leading-relaxed">
                 <strong className="text-white">Next Order Payment &amp; Accounting Workflow:</strong> When you place a new batch order with Khyber Aquaculture,
                 log it normally in the stock log at standard invoice cost (<strong>₹435/Kg</strong>).
-                Pay Khyber <strong>₹3,020 less</strong> (deducting your September credit from the bank transfer), then click <strong className="text-emerald-400">&quot;Deduct Credit&quot;</strong> here.
+                Pay Khyber <strong>₹{availableCredit.toLocaleString("en-IN")} less</strong> (deducting your available credit balance from the bank transfer), then click <strong className="text-emerald-400">&quot;Deduct Credit&quot;</strong> here.
                 <span className="text-slate-400 ml-1">
-                  Historical September stock entries are <strong>never modified</strong> to ₹425 — your procurement logs stay 100% clean and audit-ready!
+                  Historical stock entries are <strong>never modified</strong> to lower base rates — your procurement logs stay 100% clean and audit-ready!
                 </span>
               </div>
             </div>
@@ -1075,14 +1181,13 @@ export default function SupplierRebateTracker({
                   <span className="font-bold text-white text-sm">
                     Detailed Analysis: {currentMonthData.monthLabel}
                   </span>
-                  {selectedMonth === "2026-09" && (
-                    <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold">
-                      Settled Slab
-                    </span>
-                  )}
-                  {selectedMonth === "2026-10" && (
+                  {selectedMonth === liveMonthKey ? (
                     <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30 text-[10px] font-bold">
-                      In Progress (190 Kg to next slab)
+                      Live Current ({currentMonthData.kgToNext.toFixed(1)} Kg to next slab)
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-[10px] font-bold">
+                      Finalized Month (Slab: {currentMonthData.currentSlab.name})
                     </span>
                   )}
                 </div>
@@ -1187,28 +1292,30 @@ export default function SupplierRebateTracker({
 
           <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
             {KHYBER_SLABS.map((slab) => {
-              const isSeptAchieved = slab.tier === 2;
-              const isOctCurrent = slab.tier === 1;
+              const liveTier = liveMonthData?.currentSlab?.tier ?? 1;
+              const prevTier = prevMonthData?.currentSlab?.tier ?? 3;
+              const isPrevAchieved = slab.tier === prevTier && (prevMonthData?.totalKg || 0) > 0;
+              const isLiveCurrent = slab.tier === liveTier;
 
               return (
                 <div
                   key={slab.tier}
                   className={`p-3.5 rounded-xl border flex flex-col justify-between transition-all relative ${
-                    isSeptAchieved
+                    isPrevAchieved
                       ? "bg-violet-950/40 border-violet-500/60 shadow-lg shadow-violet-950/30"
-                      : isOctCurrent
+                      : isLiveCurrent
                       ? "bg-blue-950/40 border-blue-500/60 shadow-lg shadow-blue-950/30"
                       : "bg-slate-950/60 border-slate-800 text-slate-400"
                   }`}
                 >
-                  {isSeptAchieved && (
+                  {isPrevAchieved && (
                     <span className="absolute -top-2.5 right-3 px-2 py-0.2 rounded-full bg-violet-600 text-[9px] font-bold text-white uppercase tracking-wider shadow">
-                      Sep Unlocked (302 Kg)
+                      {formatMonthDisplay(prevMonthKey).slice(0, 3)} Unlocked ({(prevMonthData?.totalKg ?? 0).toFixed(0)} Kg)
                     </span>
                   )}
-                  {isOctCurrent && (
+                  {isLiveCurrent && (
                     <span className="absolute -top-2.5 right-3 px-2 py-0.2 rounded-full bg-blue-600 text-[9px] font-bold text-white uppercase tracking-wider shadow">
-                      Oct Current (110 Kg)
+                      {formatMonthDisplay(liveMonthKey).slice(0, 3)} Current ({(liveMonthData?.totalKg ?? 0).toFixed(0)} Kg)
                     </span>
                   )}
 
@@ -1252,7 +1359,7 @@ export default function SupplierRebateTracker({
             <span className="material-symbols-outlined text-amber-400 text-sm mt-0.5">info</span>
             <div>
               <strong>Important Rule from Khyber Aquaculture:</strong> Daily and weekly deliveries are invoiced at the standard ₹435/Kg rate.
-              Rebates are computed retroactively at month-end based on total cumulative volume and credited into your supplier account (e.g., ₹3,020 credited for September),
+              Rebates are computed retroactively at month-end based on total cumulative volume and credited into your supplier account (e.g., +₹{(prevMonthData?.rebateEarned ?? 10100).toLocaleString("en-IN")} earned for {formatMonthDisplay(prevMonthKey)}),
               which you can deduct directly against subsequent stock delivery payments.
             </div>
           </div>
@@ -1504,7 +1611,7 @@ export default function SupplierRebateTracker({
                 <span>Accounting &amp; History Protection Guarantee</span>
               </div>
               <p className="text-slate-300 leading-normal">
-                Recording this deduction only reconciles your supplier ledger balance. It does <strong>NOT</strong> change, edit, or rewrite any past September or upcoming stock batch entries in your database (all logs remain strictly at ₹435/Kg).
+                Recording this deduction only reconciles your supplier ledger balance. It does <strong>NOT</strong> change, edit, or rewrite any past historical or upcoming stock batch entries in your database (all logs remain strictly at ₹435/Kg).
               </p>
             </div>
 
