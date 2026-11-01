@@ -30,6 +30,75 @@ const VVIP_MANUAL_ONLY_JIDS = new Set([
   "208486419951677@lid" // Verified WhatsApp Baileys LID for 9419153353
 ]);
 
+// ─── PRIMARY CONTACTS SHIELD (Protects all 1,294 Personal Friends, Family, & VIPs) ───
+const primaryContactsShield = new Map(); // phoneLast10 -> { name, rawFn }
+function loadPrimaryContactsShield() {
+  const desktopDir = path.join(process.env.USERPROFILE || 'C:\\Users\\Suhail - CGIT', 'Desktop');
+  const possiblePaths = [
+    path.join(desktopDir, 'My Primary Contacts.vcf'),
+    path.join(__dirname, 'My Primary Contacts.vcf')
+  ];
+
+  for (const vcfPath of possiblePaths) {
+    if (fs.existsSync(vcfPath)) {
+      try {
+        const content = fs.readFileSync(vcfPath, 'utf8');
+        const cards = content.split('END:VCARD');
+        for (const card of cards) {
+          const fnMatch = card.match(/FN:(.+)/i);
+          const fn = fnMatch ? fnMatch[1].trim() : '';
+          // Skip contacts that are specifically tagged as Urban Trout contacts (e.g. "UTA ...")
+          if (/\b(?:UTA|Urban Trout)\b/i.test(fn)) continue;
+
+          const lines = card.split(/\r?\n/);
+          for (const line of lines) {
+            if (line.startsWith('TEL')) {
+              const rawVal = line.substring(line.indexOf(':') + 1);
+              const digits = rawVal.replace(/\D/g, '');
+              if (digits.length >= 10) {
+                const last10 = digits.slice(-10);
+                primaryContactsShield.set(last10, { name: fn, rawFn: fn });
+                primaryContactsShield.set(`91${last10}`, { name: fn, rawFn: fn });
+              }
+            }
+          }
+        }
+        console.log(`🛡️ [Primary Contacts Protection] Loaded ${primaryContactsShield.size / 2} unique personal primary contacts from "${path.basename(vcfPath)}".`);
+        break;
+      } catch (err) {
+        console.warn(`Error reading primary contacts shield from ${vcfPath}:`, err.message);
+      }
+    }
+  }
+}
+loadPrimaryContactsShield();
+
+function getPrimaryContactProfile(chatId, phone) {
+  if (isVvipManualOnly(chatId, phone)) {
+    return { name: "VVIP IAS Officer", isVvip: true };
+  }
+  if (!primaryContactsShield || primaryContactsShield.size === 0) return null;
+
+  let raw10 = "";
+  if (phone) {
+    const digits = String(phone).replace(/\D/g, "");
+    if (digits.length >= 10) raw10 = digits.slice(-10);
+  }
+  if (!raw10 && chatId) {
+    const resolved = resolveCustomerPhone(chatId);
+    if (resolved && resolved.length >= 10) raw10 = resolved.slice(-10);
+  }
+
+  if (raw10 && primaryContactsShield.has(raw10)) {
+    return primaryContactsShield.get(raw10);
+  }
+  return null;
+}
+
+function isPrimaryPersonalContact(chatId, phone) {
+  return Boolean(getPrimaryContactProfile(chatId, phone));
+}
+
 function isVvipManualOnly(chatId, phone) {
   if (chatId) {
     const cleanJid = String(chatId).toLowerCase().trim();
@@ -3471,7 +3540,7 @@ async function checkInactiveLeadsFollowUp(sock) {
     }
 
     for (const [chatId, meta] of Object.entries(chatMetadata)) {
-      if (isVvipManualOnly(chatId, resolveCustomerPhone(chatId))) continue;
+      if (isVvipManualOnly(chatId, resolveCustomerPhone(chatId)) || isPrimaryPersonalContact(chatId, resolveCustomerPhone(chatId))) continue;
       if (!meta || meta.followUpSent) continue;
       if (meta.lastMsgRole !== "model") continue; // Only nudge if bot spoke last and customer went silent
       if (!meta.lastBotMsgTime) continue;
@@ -4622,6 +4691,20 @@ async function startBot() {
         // Lock permanent human override for 1 year
         humanOverrides.set(remoteJid, Date.now() + (365 * 24 * 60 * 60 * 1000));
         continue;
+      }
+
+      // STRICT PRIMARY CONTACTS SHIELD: If sender is in Suhail's personal Primary Contacts (1,294 friends, family, personal VIPs)
+      const primaryContact = getPrimaryContactProfile(remoteJid, resolveCustomerPhone(remoteJid));
+      if (primaryContact) {
+        // If message is casual personal chat (not a trout purchase order), AI stays 100% silent for manual chat by Suhail!
+        const innerCheck = getInnerMessage(msg);
+        const checkText = innerCheck ? (innerCheck.conversation || innerCheck.extendedTextMessage?.text || innerCheck.imageMessage?.caption || "").trim() : "";
+        const isTroutInquiry = /\b(?:trout|fish|order|rate|580|kg|kilo|cleaned|gutted|delivery|harvest|vending)\b/i.test(checkText);
+        if (!isTroutInquiry) {
+          console.log(`🛡️ [PRIMARY CONTACT SHIELD] Received message from personal contact "${primaryContact.name}" (${remoteJid}). Silently ignored by AI for 100% manual handling by Suhail.`);
+          humanOverrides.set(remoteJid, Date.now() + (365 * 24 * 60 * 60 * 1000));
+          continue;
+        }
       }
 
       const inner = getInnerMessage(msg);
