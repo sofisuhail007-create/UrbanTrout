@@ -80,7 +80,12 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
   const a =
     Math.sin(dLat / 2) ** 2 +
     Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * Math.sin(dLon / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const aerial = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+  // Srinagar Road Winding Calibration (converts straight-line aerial distance into actual driving road distance):
+  // Direct local routes <=4km have ~1.10x factor; routes >4km across Dal Lake / Jhelum bridges have ~1.32x road winding factor.
+  const roadFactor = aerial <= 4.0 ? 1.10 : 1.32;
+  return aerial * roadFactor;
 }
 
 // Unwrap WhatsApp message container across ephemeral, viewOnce, and nested wrappers
@@ -253,31 +258,31 @@ const KNOWN_IN_ZONE_AREAS = [
   { pattern: /\b(?:ali\s*kadal|ali\s*kadel|alikadal)\b/i, name: "Ali Kadal", dist: 5.8 },
   { pattern: /\b(?:khalamul)\b/i, name: "Khalamul", dist: 5.9 },
   // ── Zone 3: Greater Srinagar (7.0 to 11.5 km, Free Delivery on 3 kg+, 2 kg +₹69 fee) ──
-  { pattern: /\b(?:karan\s*nagar|karannagar)\b/i, name: "Karan Nagar", dist: 8.0, minKg: 3 },
-  { pattern: /\b(?:lal\s*chowk|lalchowk)\b/i, name: "Lal Chowk", dist: 9.5, minKg: 3 },
-  { pattern: /\b(?:dalgate|dal\s*gate)\b/i, name: "Dalgate", dist: 7.5, minKg: 3 },
-  { pattern: /\b(?:khay+am|khyam|khaiam)(?:\s*(?:chowk|road|cinema))?\b/i, name: "Khayam", dist: 7.2, minKg: 3 },
-  { pattern: /\b(?:khyber\s*hospital|khyber)\b/i, name: "Khayam (Khyber Hospital)", dist: 7.2, minKg: 3 },
-  { pattern: /\b(?:sonwar|sonawar|sona\s*war)\b/i, name: "Sonwar", dist: 10.5, minKg: 3 },
-  { pattern: /\b(?:qamarwari|qamar\s*wari|kamarwari)\b/i, name: "Qamarwari", dist: 7.5, minKg: 3 },
-  { pattern: /\b(?:raj\s*bagh|rajbagh)\b/i, name: "Rajbagh", dist: 11.0, minKg: 3 },
-  { pattern: /\b(?:jawahar\s*nagar|jawaharnagar)\b/i, name: "Jawahar Nagar", dist: 9.5, minKg: 3 },
-  { pattern: /\b(?:al[ol]+chi\s*bagh|al[ol]+chi|alochi|allochi|aloochi|elachi\s*bagh)\b/i, name: "Alochi Bagh", dist: 9.6, minKg: 3 },
-  { pattern: /\b(?:magarmal\s*bagh|magarmal)\b/i, name: "Magarmal Bagh", dist: 8.8, minKg: 3 },
-  { pattern: /\b(?:balgarden|bal\s*garden)\b/i, name: "Balgarden", dist: 8.5, minKg: 3 },
-  { pattern: /\b(?:gogji\s*bagh|gogjibagh)\b/i, name: "Gogji Bagh", dist: 9.5, minKg: 3 },
-  { pattern: /\b(?:wazir\s*bagh|wazirbagh)\b/i, name: "Wazir Bagh", dist: 9.0, minKg: 3 },
-  { pattern: /\b(?:tulsi\s*bagh|tulsibagh)\b/i, name: "Tulsi Bagh", dist: 9.2, minKg: 3 },
-  { pattern: /\b(?:hazuri\s*bagh|hazuribagh)\b/i, name: "Hazuri Bagh", dist: 8.3, minKg: 3 },
-  { pattern: /\b(?:iqbal\s*park)\b/i, name: "Iqbal Park", dist: 8.8, minKg: 3 },
-  { pattern: /\b(?:solina|rambagh|ram\s*bagh)\b/i, name: "Rambagh/Solina", dist: 10.2, minKg: 3 },
-  { pattern: /\b(?:barzulla|barzulla\s*baghat|baghat\s*barzulla|baghat)\b/i, name: "Barzulla", dist: 10.5, minKg: 3 },
-  { pattern: /\b(?:batamaloo|batmaloo)\b/i, name: "Batamaloo", dist: 8.0, minKg: 3 },
-  { pattern: /\b(?:bemina)\b/i, name: "Bemina", dist: 11.5, minKg: 3 },
-  { pattern: /\b(?:nishat)\b/i, name: "Nishat", dist: 7.5, minKg: 3 },
-  { pattern: /\b(?:brein|brain)\b/i, name: "Brein/Nishat", dist: 8.0, minKg: 3 },
+  { pattern: /\b(?:karan\s*nagar|karannagar)\b/i, name: "Karan Nagar", dist: 9.5, minKg: 3 },
+  { pattern: /\b(?:lal\s*chowk|lalchowk)\b/i, name: "Lal Chowk", dist: 11.0, minKg: 3 },
+  { pattern: /\b(?:dalgate|dal\s*gate)\b/i, name: "Dalgate", dist: 9.5, minKg: 3 },
+  { pattern: /\b(?:khay+am|khyam|khaiam)(?:\s*(?:chowk|road|cinema))?\b/i, name: "Khayam", dist: 8.5, minKg: 3 },
+  { pattern: /\b(?:khyber\s*hospital|khyber)\b/i, name: "Khayam (Khyber Hospital)", dist: 8.5, minKg: 3 },
+  { pattern: /\b(?:sonwar|sonawar|sona\s*war)\b/i, name: "Sonwar", dist: 11.0, minKg: 3 },
+  { pattern: /\b(?:qamarwari|qamar\s*wari|kamarwari)\b/i, name: "Qamarwari", dist: 9.5, minKg: 3 },
+  { pattern: /\b(?:balgarden|bal\s*garden)\b/i, name: "Balgarden", dist: 9.8, minKg: 3 },
+  { pattern: /\b(?:gogji\s*bagh|gogjibagh)\b/i, name: "Gogji Bagh", dist: 10.5, minKg: 3 },
+  { pattern: /\b(?:wazir\s*bagh|wazirbagh)\b/i, name: "Wazir Bagh", dist: 10.0, minKg: 3 },
+  { pattern: /\b(?:tulsi\s*bagh|tulsibagh)\b/i, name: "Tulsi Bagh", dist: 10.2, minKg: 3 },
+  { pattern: /\b(?:hazuri\s*bagh|hazuribagh)\b/i, name: "Hazuri Bagh", dist: 9.5, minKg: 3 },
+  { pattern: /\b(?:iqbal\s*park)\b/i, name: "Iqbal Park", dist: 10.0, minKg: 3 },
+  { pattern: /\b(?:solina|rambagh|ram\s*bagh)\b/i, name: "Rambagh/Solina", dist: 10.8, minKg: 3 },
+  { pattern: /\b(?:barzulla|barzulla\s*baghat|baghat\s*barzulla|baghat)\b/i, name: "Barzulla", dist: 11.2, minKg: 3 },
+  { pattern: /\b(?:brein|brain)\b/i, name: "Brein (Nishat)", dist: 11.0, minKg: 3 },
+  { pattern: /\b(?:nishat)\b/i, name: "Nishat", dist: 8.0, minKg: 3 },
 
   // ── Zone 4: South Srinagar & Outer Corridor (11.5 to 16.0 km, Free Delivery on 4 kg+, 2 kg +₹89 fee) ──
+  { pattern: /\b(?:batamaloo|batmaloo)\b/i, name: "Batamaloo", dist: 11.8, minKg: 4 },
+  { pattern: /\b(?:bemina)\b/i, name: "Bemina", dist: 12.5, minKg: 4 },
+  { pattern: /\b(?:raj\s*bagh|rajbagh)\b/i, name: "Rajbagh", dist: 12.0, minKg: 4 },
+  { pattern: /\b(?:jawahar\s*nagar|jawaharnagar)\b/i, name: "Jawahar Nagar", dist: 11.8, minKg: 4 },
+  { pattern: /\b(?:al[ol]+chi\s*bagh|al[ol]+chi|alochi|allochi|aloochi|elachi\s*bagh)\b/i, name: "Alochi Bagh", dist: 11.8, minKg: 4 },
+  { pattern: /\b(?:magarmal\s*bagh|magarmal)\b/i, name: "Magarmal Bagh", dist: 11.6, minKg: 4 },
   { pattern: /\b(?:sanat\s*nagar|sanatnagar)\b/i, name: "Sanat Nagar", dist: 13.5, minKg: 4 },
   { pattern: /\b(?:rawalpora|rawapora)\b/i, name: "Rawalpora", dist: 14.0, minKg: 4 },
   { pattern: /\b(?:hyder|haider|huder|hadir|heydar)\s*pora\b/i, name: "Hyderpora", dist: 14.5, minKg: 4 },
@@ -2364,6 +2369,24 @@ Ask which cut they would prefer!
 ======================================================`;
   }
 
+  // ─── VISCERAL WEIGHT LOSS & NET MEAT WEIGHT INTENT DECODER ───
+  const isWeightLossIntent = /\b(?:(?:1\s*kg|one\s*kg|kitna|full)\s*(?:of\s*)?meat|meat\s*only|net\s*meat|net\s*weight|final\s*weight|after\s*clean(?:ing)?|after\s*gut(?:ting)?|saaf\s*karne\s*ke\s*baad|cleaning\s*ke\s*baad|cleaning\s*loss|visceral|weight\s*loss|weight\s*kam|kitna\s*(?:meat|weight)\s*(?:milega|bachega|hoga)|cutting\s*loss|sirf\s*meat|meat\s*weight)\b/i.test(trimmedLower);
+  if (isWeightLossIntent) {
+    intentContext += `\n======================================================
+💡 QUERY INTENT DECODED: Customer is asking about NET MEAT WEIGHT / VISCERAL CLEANING LOSS ("${userMessage.trim()}").
+⚠️ CRITICAL HONESTY & TRANSPARENCY LAW (ZERO MISREPRESENTATION):
+• NEVER tell the customer that they get 1 kg of pure meat for ₹580! That is FALSE and illegal!
+• All our trout are swimming live in spring-fed tanks and harvested live upon order.
+• Directly & transparently explain:
+  1. Live fish is weighed whole on certified digital scales at harvest (1.0 kg live harvest weight).
+  2. Expert gutting and descaling removes gills, scales, and entrails, which naturally results in a standard 15% to 20% visceral weight loss.
+  3. A 1 kg live trout yields approximately 800g to 850g of 100% clean, ready-to-cook, pan-ready steaks with zero kitchen mess.
+  4. We bill strictly against the certified live harvest weight at ₹580/kg.
+  5. If they specifically require a full 1.0 kg of net cleaned meat on their kitchen scale, we can harvest a ~1.25 kg live trout for them (₹725).
+• Ask if they would like a 1 kg live harvest (~800–850g net steaks) or a 1.25 kg live harvest (1 kg net steaks)!
+======================================================`;
+  }
+
   // ─── TOMORROW / ADVANCE BOOKING INTENT DECODER ───
   const isAskingTomorrow = /\b(?:tomorrow|kal|planning\s*for\s*tomorrow|tomorrow\s*(?:morning|afternoon|evening)|kal\s*(?:ko|ka|bhej)|advance\s*booking)\b/i.test(trimmedLower);
   if (isAskingTomorrow && !isThursdayToday && !isFridayToday) {
@@ -2638,6 +2661,15 @@ CRITICAL READABILITY & MAXIMUM BREVITY MANDATE (ANSWER ONLY WHAT IS REQUIRED):
      - Step 1: Explain that the Area MOQ gives 100% free delivery.
      - Step 2: Gladly accommodate them with our nominal subsidized express courier (+₹29 for nearby areas, +₹49 to +₹89 for other areas) or free counter pickup at our Live Vending Center in Malabagh.
      - Step 3: When customer confirms, generate the payment link immediately.
+
+10. MANDATORY LIVE-HARVEST WEIGHING & VISCERAL LOSS DISCLOSURE LAW:
+   • Live trout are swimming in pure cold-water tanks and harvested live upon order.
+   • Every order is scooped live from the tanks and weighed WHOLE on certified digital scales at harvest.
+   • During hygienic gutting & descaling, gills, scales, and viscera are removed, naturally resulting in a standard 15% to 20% visceral weight loss.
+   • A 1 kg live trout yields approximately 800g to 850g of clean, pan-ready steaks (zero kitchen mess).
+   • ABSOLUTELY NEVER say or imply that 1 kg Cleaned & Gutted gives 1 kg of net meat!
+   • If customer asks: "Will it be 1kg meat only?", "Saaf karke kitna bachega?", "Net weight kya hoga?":
+     Always answer with 100% transparency: Live harvest is weighed whole (1.0 kg); expert gutting/descaling has a natural 15-20% visceral loss (yielding ~800-850g net steaks). If they want 1 kg of net meat on their scale, offer a 1.25 kg live harvest (₹725).
 
 CONVERSATION FLOW & GREETING RULE:
 ${stageInstruction}
