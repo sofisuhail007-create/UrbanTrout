@@ -14,6 +14,37 @@ const fs = require("fs");
 require("dotenv").config();
 const { sendNightlyBriefing } = require("./nightly_briefing.js");
 
+// Single-instance lockfile to prevent 2 agent processes from running simultaneously and kicking each other off WhatsApp
+const lockFilePath = path.join(__dirname, "agent.lock");
+try {
+  if (fs.existsSync(lockFilePath)) {
+    const existingPid = parseInt(fs.readFileSync(lockFilePath, "utf8").trim(), 10);
+    if (!isNaN(existingPid)) {
+      try {
+        process.kill(existingPid, 0); // Check if process with PID exists
+        console.warn(`⚠️ Another instance of Urban Trout Sales Agent is already running (PID: ${existingPid}). Exiting this duplicate process to prevent WhatsApp socket collision.`);
+        process.exit(0);
+      } catch (e) {
+        // Process does not exist; stale lockfile
+      }
+    }
+  }
+  fs.writeFileSync(lockFilePath, String(process.pid), "utf8");
+} catch (_) {}
+
+process.on("exit", () => {
+  try {
+    if (fs.existsSync(lockFilePath)) {
+      const pidInFile = fs.readFileSync(lockFilePath, "utf8").trim();
+      if (pidInFile === String(process.pid)) {
+        fs.unlinkSync(lockFilePath);
+      }
+    }
+  } catch (_) {}
+});
+process.on("SIGINT", () => process.exit(0));
+process.on("SIGTERM", () => process.exit(0));
+
 // ============================================================================
 // STRICT VVIP MANUAL-ONLY LIST (AI MUST NEVER TEXT UNDER ANY CIRCUMSTANCE)
 // IAS Officer / Executive contacts managed 100% manually by owner Suhail.
@@ -3540,19 +3571,23 @@ async function startBot() {
     }
 
     if (connection === "close") {
-      const isLoggedOut = (lastDisconnect?.error)?.output?.statusCode === DisconnectReason.loggedOut;
+      const statusCode = (lastDisconnect?.error)?.output?.statusCode;
+      const errorMsg = lastDisconnect?.error?.message || "Unknown error";
+      const isLoggedOut = statusCode === DisconnectReason.loggedOut;
       const shouldReconnect = !isLoggedOut;
-      console.log(`⚠️ Connection closed. Automatically reconnecting: ${shouldReconnect}`);
+      console.log(`⚠️ Connection closed (Status: ${statusCode || "N/A"} - ${errorMsg}). Automatically reconnecting: ${shouldReconnect}`);
       if (isLoggedOut) {
-        console.log("🔴 Logged out from WhatsApp. Resetting session credentials so a fresh QR code is generated...");
+        console.log("🔴 Logged out from WhatsApp. Resetting session credentials so a fresh QR code is generated on restart...");
         try {
           fs.rmSync(authDir, { recursive: true, force: true });
         } catch (e) {
           console.error("Error clearing auth directory:", e.message);
         }
-        setTimeout(startBot, 2000);
+        process.exit(1);
       } else if (shouldReconnect) {
-        setTimeout(startBot, 3000);
+        console.log("🔄 Triggering clean process exit for watchdog auto-restart...");
+        try { sock.end(undefined); } catch (_) {}
+        process.exit(0);
       }
     } else if (connection === "open") {
       console.log("\n✅ URBAN TROUT SALES AGENT IS LIVE & CONNECTED TO WHATSAPP!");
