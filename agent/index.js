@@ -3713,7 +3713,6 @@ async function startBot() {
     } else if (connection === "open") {
       console.log("\n✅ URBAN TROUT SALES AGENT IS LIVE & CONNECTED TO WHATSAPP!");
       console.log("🤖 10 Strict Directives Active | 16km Perimeter Enforced (Tiered MOQ: 2kg/3kg/4kg) | Razorpay Link Ready.");
-      console.log("⚡ Telegram 1-Click Status Bridge Active (Transmits Harvested, Out-for-Delivery & Delivered updates)");
       console.log("📊 Telegram 9:00 PM Nightly Executive Briefing Active (Auto-reports revenue, orders, inquiries & store walk-ins)");
       console.log("📱 Phone Kill Switch Active: Send #pause / #resume from phone to control AI");
 
