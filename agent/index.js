@@ -711,7 +711,8 @@ async function createRazorpayPaymentLink({ amount, customerPhone, customerName, 
   const auth = Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString("base64");
   const cleanPhone = String(customerPhone || "").replace(/\D/g, "").slice(-10);
   const isValidContact = cleanPhone && cleanPhone.length === 10 && !/^(.)\1{7,}$/.test(cleanPhone);
-  const ref = `UT-WA-${Date.now().toString().slice(-6)}`;
+  const randSuffix = Math.floor(10 + Math.random() * 90);
+  const ref = `UT-WA-${Date.now().toString().slice(-6)}${randSuffix}`;
 
   const numAmount = Number(amount);
   const isGutted = (description || "").toLowerCase().includes("gutted") || !(description || "").toLowerCase().includes("whole");
@@ -851,7 +852,8 @@ async function createRazorpayQrCode({ amount, customerPhone, customerName, order
   const numAmount = Number(amount);
   const amountInPaise = Math.round(numAmount * 100);
   const cleanPhone = String(customerPhone || "").replace(/\D/g, "").slice(-10);
-  const ref = orderRef || `UT-DEL-${Date.now().toString().slice(-6)}`;
+  const randSuffix = Math.floor(10 + Math.random() * 90);
+  const ref = orderRef || `UT-DEL-${Date.now().toString().slice(-6)}${randSuffix}`;
 
   const payload = JSON.stringify({
     type: "upi_qr",
@@ -990,11 +992,10 @@ function formatOrderSummaryCard({
 _Ref: #${orderRef || "LIVE"}_
 ━━━━━━━━━━━━━━━━━━━━━━
 📦 *Order:* ${orderTitle}
-${weightKg ? `💵 *Fish Price:* ₹${rate}/kg (₹${fishAmount})\n` : ""}💵 *Total Payable:* *₹${amount.toLocaleString("en-IN")}*${!weightKg ? " (Direct Order Amount)" : ""}
-${deliveryLine}
+${weightKg ? `💵 *Fish Amount:* ₹${rate}/kg (₹${fishAmount.toLocaleString("en-IN")})\n` : ""}${deliveryLine}
 🛍️ *Packaging:* Clean food-grade double packaging (Zero Ice)${destText}
 ━━━━━━━━━━━━━━━━━━━━━━
-💰 *Total Payable:* *₹${amount}*
+💰 *Total Payable:* *₹${amount.toLocaleString("en-IN")}*
 ━━━━━━━━━━━━━━━━━━━━━━
 
 🔗 *Tap to Pay Online (UPI / GPay / PhonePe / Card):*
@@ -1141,7 +1142,7 @@ function detectCustomerEscalation(text) {
   return null;
 }
 
-// Save or update customer order in local persistent store
+// Save or update customer order in local persistent store (Preserves past order history)
 function recordNewCustomerOrder(phone, orderData) {
   try {
     const ordersFilePath = path.join(__dirname, "customer_orders.json");
@@ -1150,9 +1151,16 @@ function recordNewCustomerOrder(phone, orderData) {
       orders = JSON.parse(fs.readFileSync(ordersFilePath, "utf-8"));
     }
     const cleanPhone = String(phone).replace(/\D/g, "").slice(-10);
+    const existing = orders[cleanPhone];
+    const pastOrders = Array.isArray(existing?.pastOrders) ? [...existing.pastOrders] : [];
+    if (existing && existing.orderRef && existing.orderRef !== orderData.orderRef) {
+      const { pastOrders: _, ...oldSnapshot } = existing;
+      pastOrders.push(oldSnapshot);
+    }
     orders[cleanPhone] = {
       phone: cleanPhone,
       ...orderData,
+      pastOrders,
       updatedAt: new Date().toISOString()
     };
     fs.writeFileSync(ordersFilePath, JSON.stringify(orders, null, 2), "utf-8");
@@ -1652,7 +1660,7 @@ function getSystemPrompt() {
   } catch (e) {
     console.error("Error reading KNOWLEDGE_BASE.md:", e);
   }
-  return "You are Suhail, sales manager at Urban Trout Aquaculture, Malabagh, Srinagar. Strictly 8km radius delivery.";
+  return "You are Suhail, sales manager at Urban Trout Aquaculture, Malabagh, Srinagar. Strictly 16km radius delivery across Srinagar (Tiered MOQ: 2kg/3kg/4kg).";
 }
 
 // Extract clean, human customer name (ignoring internal CRM tags, numbers, and localities)
@@ -1688,27 +1696,28 @@ function calculateReorderPricing(weightKg, cutType, distKm, isSurgeOverride) {
   const dist = (distKm != null && !isNaN(distKm)) ? distKm : 2.0;
   const isSurge = isSurgeOverride !== undefined ? Boolean(isSurgeOverride) : isCurrentEveningSurge();
   const surgeAdd = isSurge ? 40 : 0;
+  const fishCost = Math.round(weightKg * baseRate);
 
   if (dist <= 4.0) {
-    // Tier 1 (0-4 km): Free on 2kg+, 1kg has +₹29 (or +₹69 evening) subsidized courier fee
-    if (weightKg === 1) return { amount: baseRate + 29 + surgeAdd, tagDesc: `1 kg ${cutType} (+Express Delivery)` };
-    return { amount: Math.round(weightKg * baseRate), tagDesc: `${weightKg} kg ${cutType}` };
+    // Tier 1 (0-4 km): Free on 2kg+, <2kg has +₹29 (or +₹69 evening) subsidized courier fee
+    if (weightKg >= 2) return { amount: fishCost, tagDesc: `${weightKg} kg ${cutType}` };
+    return { amount: fishCost + 29 + surgeAdd, tagDesc: `${weightKg} kg ${cutType} (+Express Delivery)` };
   } else if (dist <= 7.0) {
-    // Tier 2 (4-7 km): Free on 3kg+, 2kg has +₹39 (or +₹79 evening), 1kg has +₹49 (or +₹89 evening) fee
-    if (weightKg >= 3) return { amount: Math.round(weightKg * baseRate), tagDesc: `${weightKg} kg ${cutType}` };
-    if (weightKg === 2) return { amount: Math.round(2 * baseRate) + 39 + surgeAdd, tagDesc: `2 kg ${cutType} (+Express Delivery)` };
-    return { amount: baseRate + 49 + surgeAdd, tagDesc: `1 kg ${cutType} (+Express Delivery)` };
+    // Tier 2 (4-7 km): Free on 3kg+, 2 to <3kg has +₹39 (or +₹79 evening), <2kg has +₹49 (or +₹89 evening) fee
+    if (weightKg >= 3) return { amount: fishCost, tagDesc: `${weightKg} kg ${cutType}` };
+    if (weightKg >= 2) return { amount: fishCost + 39 + surgeAdd, tagDesc: `${weightKg} kg ${cutType} (+Express Delivery)` };
+    return { amount: fishCost + 49 + surgeAdd, tagDesc: `${weightKg} kg ${cutType} (+Express Delivery)` };
   } else if (dist <= 11.5) {
-    // Tier 3 (7-11.5 km): Free on 3kg+, 2kg has +₹69 (or +₹109 evening), 1kg has +₹79 (or +₹119 evening) fee
-    if (weightKg >= 3) return { amount: Math.round(weightKg * baseRate), tagDesc: `${weightKg} kg ${cutType}` };
-    if (weightKg === 2) return { amount: Math.round(2 * baseRate) + 69 + surgeAdd, tagDesc: `2 kg ${cutType} (+Express Delivery)` };
-    return { amount: baseRate + 79 + surgeAdd, tagDesc: `1 kg ${cutType} (+Express Delivery)` };
+    // Tier 3 (7-11.5 km): Free on 3kg+, 2 to <3kg has +₹69 (or +₹109 evening), <2kg has +₹79 (or +₹119 evening) fee
+    if (weightKg >= 3) return { amount: fishCost, tagDesc: `${weightKg} kg ${cutType}` };
+    if (weightKg >= 2) return { amount: fishCost + 69 + surgeAdd, tagDesc: `${weightKg} kg ${cutType} (+Express Delivery)` };
+    return { amount: fishCost + 79 + surgeAdd, tagDesc: `${weightKg} kg ${cutType} (+Express Delivery)` };
   } else {
-    // Tier 4 (11.5-16 km): Free on 4kg+, 3kg has +₹79 (or +₹119 evening), 2kg has +₹99 (or +₹139 evening), 1kg has +₹139 (or +₹179 evening) fee
-    if (weightKg >= 4) return { amount: Math.round(weightKg * baseRate), tagDesc: `${weightKg} kg ${cutType}` };
-    if (weightKg === 3) return { amount: Math.round(3 * baseRate) + 79 + surgeAdd, tagDesc: `3 kg ${cutType} (+Express Delivery)` };
-    if (weightKg === 2) return { amount: Math.round(2 * baseRate) + 99 + surgeAdd, tagDesc: `2 kg ${cutType} (+Express Delivery)` };
-    return { amount: baseRate + 139 + surgeAdd, tagDesc: `1 kg ${cutType} (+Express Delivery)` };
+    // Tier 4 (11.5-16 km): Free on 4kg+, 3 to <4kg has +₹79 (or +₹119 evening), 2 to <3kg has +₹99 (or +₹139 evening), <2kg has +₹139 (or +₹179 evening) fee
+    if (weightKg >= 4) return { amount: fishCost, tagDesc: `${weightKg} kg ${cutType}` };
+    if (weightKg >= 3) return { amount: fishCost + 79 + surgeAdd, tagDesc: `${weightKg} kg ${cutType} (+Express Delivery)` };
+    if (weightKg >= 2) return { amount: fishCost + 99 + surgeAdd, tagDesc: `${weightKg} kg ${cutType} (+Express Delivery)` };
+    return { amount: fishCost + 139 + surgeAdd, tagDesc: `${weightKg} kg ${cutType} (+Express Delivery)` };
   }
 }
 
@@ -1904,6 +1913,13 @@ function lookupCustomerVipProfile(chatId, customerPhone) {
         if (matchesPhone || matchesChat) {
           if (isOrderConfirmedPaid(ord)) {
             confirmedPaidOrders.push(ord);
+          }
+          if (Array.isArray(ord.pastOrders)) {
+            for (const pastOrd of ord.pastOrders) {
+              if (isOrderConfirmedPaid(pastOrd)) {
+                confirmedPaidOrders.push(pastOrd);
+              }
+            }
           }
         }
       }
@@ -2804,7 +2820,7 @@ SPECIAL SYSTEM CAPABILITY (RAZORPAY PAYMENT LINK GENERATOR):
      [PAY_LINK: ${629 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
    - Confirmed 3 kg: [PAY_LINK: 1740 : 3 kg Cleaned & Gutted]
 
-3. GREATER SRINAGAR (7.0 to 11.5 km from Malabagh — Lal Chowk, Rajbagh, Dalgate, Jawahar Nagar, Bemina):
+3. GREATER SRINAGAR (7.0 to 11.5 km from Malabagh — Lal Chowk, Karan Nagar, Dalgate, Khayam, Qamarwari, Nishat, Balgarden):
    - Free Delivery MOQ: 3 KG or more (3 kg Gutted = ₹1,740 total)
    - 2 KG Order: Subsidized express courier fee of only ₹${69 + surgeAdd} (₹1,160 + ₹${69 + surgeAdd} = ₹${1229 + surgeAdd} total):
      [PAY_LINK: ${1229 + surgeAdd} : 2 kg Cleaned & Gutted (+Express Delivery)]
@@ -3504,10 +3520,14 @@ async function checkInactiveLeadsFollowUp(sock) {
           continue;
         }
 
-        // Skip if customer conversation was an explicit outside-zone refusal
+        // Skip if customer conversation was an explicit outside-zone refusal (>16km or outside perimeter)
         const history = chatHistories.get(chatId) || [];
         const historyText = history.map(h => h.text).join(" ");
-        if (/outside\s+(?:our\s+)?(?:5|6|8)\s*km/i.test(historyText)) {
+        const isRefusedOutside =
+          (meta.distanceKm !== null && meta.distanceKm !== undefined && meta.distanceKm > 16.0) ||
+          /(?:outside\s+(?:our\s+)?(?:5|6|8|16)\s*km|outside\s+delivery\s+perimeter|outside\s+delivery\s+zone|not\s+available\s+for\s+your\s+location|limited\s+to\s+16\s*km)/i.test(historyText);
+
+        if (isRefusedOutside) {
           meta.followUpSent = true;
           saveChatMetadata();
           continue;
@@ -3517,6 +3537,12 @@ async function checkInactiveLeadsFollowUp(sock) {
         const istDate = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
         const istHour = istDate.getHours();
         const istMin = istDate.getMinutes();
+
+        // Friday bio-security closure: Farm & deliveries are strictly closed on Fridays.
+        // Skip automated follow-ups on Friday so they get followed up on Saturday morning instead!
+        if (istDate.getDay() === 5) {
+          continue;
+        }
 
         // Sleep protection: DO NOT send automated follow-up pings late at night (between 11:00 PM and 7:30 AM)!
         // Do NOT mark as sent — simply skip this tick so the customer gets a morning follow-up once awake!
@@ -4279,9 +4305,9 @@ async function startBot() {
             historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. Minimum order for free delivery is 2 kg.]`;
           } else if (distNum <= 7.0) {
             locReply = isNightGps
-              ? `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on 3 kg (₹1,740 total)! We can also send 2 kg for just a ₹39 express courier fee (₹1,199 total).\nDeliveries for tonight closed at 9:00 PM. We can schedule your express live-harvest delivery for tomorrow morning!\n\nWould you like 3 kg free delivery or 2 kg scheduled for tomorrow? 🐟`
-              : `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on 3 kg (₹1,740 total)! We can also send 2 kg for just a ₹39 express courier fee (₹1,199 total).\n\nWould you like 3 kg free delivery or 2 kg delivered fresh to your door? 🐟`;
-            historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. Free delivery on 3 kg+ (₹1740); 2 kg has ₹39 courier fee (₹1199); 1 kg has ₹49 fee (₹629).]`;
+              ? `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on 3 kg (₹1,740 total)! We can also send 2 kg for just a subsidized ₹${39 + surgeGps} courier fee (₹${1199 + surgeGps} total).\nDeliveries for tonight closed at 9:00 PM. We can schedule your express live-harvest delivery for tomorrow morning!\n\nWould you like 3 kg free delivery or 2 kg scheduled for tomorrow? 🐟`
+              : `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on 3 kg (₹1,740 total)! We can also send 2 kg for just a subsidized ₹${39 + surgeGps} courier fee (₹${1199 + surgeGps} total)${isEveningGps ? " (includes ₹40 evening rush surcharge)" : ""}.\n\nWould you like 3 kg free delivery or 2 kg delivered fresh to your door? 🐟`;
+            historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. Free delivery on 3 kg+ (₹1740); 2 kg has ₹${39 + surgeGps} courier fee (₹${1199 + surgeGps}); 1 kg has ₹${49 + surgeGps} fee (₹${629 + surgeGps}).]`;
           } else if (distNum <= 11.5) {
             locReply = isNightGps
               ? `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on 3 kg (₹1,740 total)! We can also send 2 kg for just a subsidized ₹${69 + surgeGps} courier fee (₹${1229 + surgeGps} total).\nDeliveries for tonight closed at 9:00 PM. We can schedule your express live-harvest delivery for tomorrow morning!\n\nWould you like 3 kg free delivery or 2 kg scheduled for tomorrow? 🐟`
@@ -4313,7 +4339,24 @@ async function startBot() {
       return;
     }
 
-    if (!text || text.trim().length === 0) return;
+    if (!text || text.trim().length === 0) {
+      // Check if customer sent an audio / voice note
+      const isVoiceNote = Boolean(innerMessage.audioMessage);
+      if (isVoiceNote && !isOwner) {
+        console.log(`🎙️ [Voice Note Received] Customer sent an audio note (${remoteJid}). Sending friendly text prompt.`);
+        const voiceReply = `Hello! Thank you for reaching out to Urban Trout Aquaculture! 🐟\n\nWe received your voice note. Our automated system cannot listen to voice notes just yet. Could you kindly reply with a short text message with your delivery locality or order quantity (1 kg / 2 kg / 3 kg)?\n\nOur team in Malabagh will assist you immediately! 😊`;
+        try {
+          await sock.sendMessage(remoteJid, { text: voiceReply });
+          let chatHist = chatHistories.get(remoteJid) || [];
+          chatHist.push({ role: "user", text: "[Customer sent an audio / voice note]" });
+          chatHist.push({ role: "model", text: voiceReply });
+          if (chatHist.length > 8) chatHist.splice(0, chatHist.length - 8);
+          chatHistories.set(remoteJid, chatHist);
+          saveChatHistories();
+        } catch (_) {}
+      }
+      return;
+    }
 
     // Detect locality from user message
     const locDetected = detectSrinagarLocality(text);

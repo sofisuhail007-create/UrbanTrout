@@ -284,10 +284,11 @@ async function generateExecutiveBriefing(targetDateStr = null) {
 
   let totalActiveChats = 0;
   const zoneStats = {
-    zone1: 0, // 0 - 4km
-    zone2: 0, // 4 - 6km
-    zone3: 0, // 6 - 12km
-    outOfZone: 0, // > 12km
+    zone1: 0, // 0 - 4km (Nearby)
+    zone2: 0, // 4 - 7km (Mid-Srinagar)
+    zone3: 0, // 7 - 11.5km (Greater Srinagar)
+    zone4: 0, // 11.5 - 16km (Outer Corridor)
+    outOfZone: 0, // > 16km (Outer Districts)
     unspecified: 0
   };
   const localityFrequency = {};
@@ -301,8 +302,9 @@ async function generateExecutiveBriefing(targetDateStr = null) {
       const dist = m.distanceKm;
       if (dist !== undefined && dist !== null) {
         if (dist <= 4.0) zoneStats.zone1++;
-        else if (dist <= 6.0) zoneStats.zone2++;
-        else if (dist <= 12.0) zoneStats.zone3++;
+        else if (dist <= 7.0) zoneStats.zone2++;
+        else if (dist <= 11.5) zoneStats.zone3++;
+        else if (dist <= 16.0) zoneStats.zone4++;
         else zoneStats.outOfZone++;
       } else {
         zoneStats.unspecified++;
@@ -371,10 +373,11 @@ async function generateExecutiveBriefing(targetDateStr = null) {
   msg += `• <b>Active WhatsApp Conversations:</b> ${totalActiveChats}\n`;
   msg += `• <b>Geographic Distribution:</b>\n`;
   msg += `  - Zone 1 (0–4 km): ${zoneStats.zone1} inquiries\n`;
-  msg += `  - Zone 2 (4–6 km): ${zoneStats.zone2} inquiries\n`;
-  msg += `  - Zone 3 (6–12 km): ${zoneStats.zone3} inquiries\n`;
+  msg += `  - Zone 2 (4–7 km): ${zoneStats.zone2} inquiries\n`;
+  msg += `  - Zone 3 (7–11.5 km): ${zoneStats.zone3} inquiries\n`;
+  msg += `  - Zone 4 (11.5–16 km): ${zoneStats.zone4} inquiries\n`;
   if (zoneStats.outOfZone > 0) {
-    msg += `  - Out of Zone (&gt;12 km): ${zoneStats.outOfZone} inquiries (Store Visit)\n`;
+    msg += `  - Out of Zone (&gt;16 km): ${zoneStats.outOfZone} inquiries (Store Visit)\n`;
   }
   msg += `  - General / Location Pending: ${zoneStats.unspecified}\n`;
   msg += `• <b>Top Localities:</b> ${topLocalities}\n\n`;
