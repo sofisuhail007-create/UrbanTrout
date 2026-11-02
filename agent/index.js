@@ -274,11 +274,12 @@ const KNOWN_IN_ZONE_AREAS = [
   { pattern: /\b(?:hazuri\s*bagh|hazuribagh)\b/i, name: "Hazuri Bagh", dist: 9.5, minKg: 3 },
   { pattern: /\b(?:iqbal\s*park)\b/i, name: "Iqbal Park", dist: 10.0, minKg: 3 },
   { pattern: /\b(?:solina|rambagh|ram\s*bagh)\b/i, name: "Rambagh/Solina", dist: 10.8, minKg: 3 },
-  { pattern: /\b(?:barzulla|barzulla\s*baghat|baghat\s*barzulla|baghat)\b/i, name: "Barzulla", dist: 11.2, minKg: 3 },
   { pattern: /\b(?:brein|brain)\b/i, name: "Brein (Nishat)", dist: 11.0, minKg: 3 },
   { pattern: /\b(?:nishat)\b/i, name: "Nishat", dist: 8.0, minKg: 3 },
 
   // ── Zone 4: South Srinagar & Outer Corridor (11.5 to 16.0 km, Free Delivery on 4 kg+, 2 kg +₹89 fee) ──
+  { pattern: /\b(?:baghat\s*barzulla|baghat)\b/i, name: "Baghat Barzulla", dist: 15.0, minKg: 4 },
+  { pattern: /\b(?:barzulla|old\s*barzulla)\b/i, name: "Barzulla", dist: 14.2, minKg: 4 },
   { pattern: /\b(?:batamaloo|batmaloo)\b/i, name: "Batamaloo", dist: 11.8, minKg: 4 },
   { pattern: /\b(?:bemina)\b/i, name: "Bemina", dist: 12.5, minKg: 4 },
   { pattern: /\b(?:raj\s*bagh|rajbagh)\b/i, name: "Rajbagh", dist: 12.0, minKg: 4 },
@@ -2884,9 +2885,9 @@ ${fridayOperatingNote}
    - TIER 2 (4.0 to 7.0 km): 100% FREE on 3 kg+ (Cleaned & Gutted ₹1,740). 2 kg = ₹1,199 (only ₹39 courier fee). 1 kg = ₹629 (₹49 fee).
      Confirmed areas: Hawal, Badamwari, Madin Sahib, Alamgari Bazar, Saida Kadal, Nagbal, Kathi Darwaza, Mirak Shah Colony, Tailbal, Rainawari, Khanyar, Nowhatta, Gojwara, Shalimar, Eidgah, Safakadal, Ali Kadal, Bakura, Shuhama, Sangam.
    - TIER 3 (7.0 to 11.5 km): 100% FREE on 3 kg+ (Cleaned & Gutted ₹1,740). 2 kg = ₹1,229 (only ₹69 courier fee). 1 kg = ₹659 (₹79 fee).
-     Confirmed areas: Karan Nagar, Lal Chowk, Jawahar Nagar, Khayam, Dalgate, Rajbagh, Sonwar, Qamarwari, Batamaloo, Bemina, Nishat, Brein, Alochi Bagh, Magarmal Bagh, Balgarden, Gogji Bagh, Wazir Bagh, Tulsi Bagh, Hazuri Bagh, Iqbal Park, Rambagh/Solina, Barzulla.
+     Confirmed areas: Karan Nagar, Lal Chowk, Khayam, Dalgate, Sonwar, Qamarwari, Nishat, Brein, Balgarden, Gogji Bagh, Wazir Bagh, Tulsi Bagh, Hazuri Bagh, Iqbal Park, Rambagh/Solina.
    - TIER 4 (11.5 to 16.0 km): 100% FREE on 4 kg family pack (Cleaned & Gutted ₹2,320). 3 kg = ₹1,789 (₹49 fee). 2 kg = ₹1,249 (₹89 fee). 1 kg = ₹699 (₹119 fee).
-     Confirmed areas: Sanat Nagar, Rawalpora, Hyderpora, Chanapora, Natipora, Peerbagh, Airport Road / Humhama, Ganderbal, Bagh-e-Mehtab, Kralpora, Rangreth, Lasjan, Nowgam, Padshahi Bagh, Pantha Chowk, Soiteng, Pandrathan, Athwajan, Pohru, Mochu.
+     Confirmed areas: Barzulla, Baghat Barzulla, Batamaloo, Bemina, Rajbagh, Jawahar Nagar, Alochi Bagh, Magarmal Bagh, Sanat Nagar, Rawalpora, Hyderpora, Chanapora, Natipora, Peerbagh, Airport Road / Humhama, Ganderbal, Bagh-e-Mehtab, Kralpora, Rangreth, Lasjan, Nowgam, Padshahi Bagh, Pantha Chowk, Soiteng, Pandrathan, Athwajan, Pohru, Mochu.
    - CONFIRMED OUT-ZONE AREAS (> 16 km): Pampore, Chadoora, Lawaypora, HMT, Harwan, Budgam, Ompora, Baramulla, Anantnag, Jammu.
      No delivery beyond 16 km to maintain cold chain. Direct them to visit Live Vending Center in Malabagh.
    - CRITICAL REVENUE PROTECTION RULE (NEVER BLINDLY DISCARD LEADS):
