@@ -217,7 +217,6 @@ const KNOWN_IN_ZONE_AREAS = [
   { pattern: /\b(?:baghwanpora|baghwan\s*pora)\b/i, name: "Baghwanpora", dist: 2.7 },
   { pattern: /\b(?:nigeen|nagin|nagin\s*lake)\b/i, name: "Nigeen", dist: 2.8 },
   { pattern: /\b(?:kanitar)\b/i, name: "Kanitar", dist: 2.8 },
-  { pattern: /\b(?:karanagar|karan\s*nagar)\b/i, name: "Karanagar", dist: 2.8 },
   { pattern: /\b(?:gousia\s*colony|gousha\s*colony)\b/i, name: "Gousia Colony", dist: 2.8 },
   { pattern: /\b(?:nalabal|nala\s*bal)\b/i, name: "Nalabal", dist: 2.8 },
   { pattern: /\b(?:bagh\s*ali\s*mardan(?:\s*khan)?|ali\s*mardan\s*khan)\b/i, name: "Bagh Ali Mardan Khan", dist: 2.9 },
