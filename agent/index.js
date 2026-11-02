@@ -3473,6 +3473,8 @@ async function checkInactiveLeadsFollowUp(sock) {
     }
 
     for (const [chatId, meta] of Object.entries(chatMetadata)) {
+      // Baileys requires a valid WhatsApp JID (ending in @s.whatsapp.net or @lid); skip plain phone number keys
+      if (!chatId || !chatId.includes("@")) continue;
       if (isVvipManualOnly(chatId, resolveCustomerPhone(chatId))) continue;
       if (!meta || meta.followUpSent) continue;
       if (meta.lastMsgRole !== "model") continue; // Only nudge if bot spoke last and customer went silent
@@ -3525,6 +3527,11 @@ async function checkInactiveLeadsFollowUp(sock) {
         // STRICT SAFETY CONSTRAINT: Mark followUpSent = true BEFORE sending so it can NEVER double-send!
         meta.followUpSent = true;
         meta.followUpSentAt = new Date().toISOString();
+        const pKey = resolveCustomerPhone(chatId);
+        if (pKey && chatMetadata[pKey]) {
+          chatMetadata[pKey].followUpSent = true;
+          chatMetadata[pKey].followUpSentAt = meta.followUpSentAt;
+        }
         saveChatMetadata();
 
         // Active daytime delivery window: 7:00 AM to 9:00 PM
