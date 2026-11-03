@@ -5060,6 +5060,7 @@ async function startBot() {
     saveChatMetadata();
 
     // ─── 0. BULLETPROOF DIRECT SCANNER / QR INTERCEPT (ZERO DUPLICATE MESSAGES) ───
+    const chatHist = chatHistories.get(remoteJid) || [];
     if (isCustomerRequestingQr(text, chatHist)) {
       const qrSent = await dispatchLockedQrImage(sock, remoteJid, {
         cleanPhone,
