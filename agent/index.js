@@ -1473,7 +1473,13 @@ async function checkPendingRazorpayPayments(sock) {
           const targetJid = order.chatId || `91${order.phone}@s.whatsapp.net`;
           const displayAmt = order.amount ? order.amount.split(" ")[0] : `₹${(linkData.amount_paid || 0) / 100}`;
           
-          const receiptMsg = `✅ *Payment Received & Order Confirmed!* 🐟\n\nThank you! Your payment of *${displayAmt}* has been verified successfully.\n\n📋 *Order Summary:*\n• *Order Ref:* #${order.orderRef}\n• *Items:* ${order.items || "Fresh Rainbow Trout"}\n• *Status:* Confirmed (Live Harvest Scheduled)\n\nOur farm team at Malabagh is now preparing your fresh live harvest from our crystal-clear oxygen-saturated cold water tanks. We will deliver it fresh to your doorstep within 2 hours!`;
+          const hasGps = Boolean(order.latitude || (chatMetadata[targetJid] && chatMetadata[targetJid].latitude));
+          let pinPrompt = "";
+          if (!hasGps) {
+            pinPrompt = `\n\n📍 *Quick Dispatch Note:*\nPlease share your WhatsApp location pin (tap 📎 ➔ Location ➔ Send current location) or Google Maps link so our delivery rider can navigate directly to your gate without calling for directions! 🛵`;
+          }
+
+          const receiptMsg = `✅ *Payment Received & Order Confirmed!* 🐟\n\nThank you! Your payment of *${displayAmt}* has been verified successfully.\n\n📋 *Order Summary:*\n• *Order Ref:* #${order.orderRef}\n• *Items:* ${order.items || "Fresh Rainbow Trout"}\n• *Status:* Confirmed (Live Harvest Scheduled)\n\nOur farm team at Malabagh is now preparing your fresh live harvest from our crystal-clear oxygen-saturated cold water tanks. We will deliver it fresh to your doorstep within 2 hours!${pinPrompt}`;
 
           await sock.sendMessage(targetJid, { text: receiptMsg });
           console.log(`✅ [Instant WhatsApp Confirmation Sent] Delivered directly to ${targetJid}!`);
@@ -2918,8 +2924,8 @@ ${fridayOperatingNote}
    - CRITICAL REVENUE PROTECTION RULE (NEVER BLINDLY DISCARD LEADS):
      If a customer mentions a locality, colony, or address that is NOT on the confirmed lists, NEVER ASSUME OR GUESS IT IS OUTSIDE ZONE!
      DO NOT reject them or send the outside-zone message!
-     Instead, politely ask for their WhatsApp location pin so our automated system can verify their distance:
-     "Could you kindly share your WhatsApp location pin (tap 📎 ➔ Location ➔ Send current location) or nearest landmark? Our system will verify your exact distance right away to confirm express doorstep delivery!"
+     Instead, politely ask for their area name, landmark, or WhatsApp location pin / Google Maps link so our automated system can verify their distance:
+     "Could you kindly share your area name, nearest landmark, or drop a quick WhatsApp location pin / Google Maps link? Our system will verify your exact distance right away to confirm express doorstep delivery! 🐟"
    - For customers confirmed OUTSIDE our delivery zone (>16 km or confirmed out-zone list), you MUST include this exact welcoming phrase:
      "However, you are warmly welcome to visit our Live Vending Center in Malabagh (Near R. P. School Girls Wing, open Saturday to Thursday) where you can pick live trout and get it cleaned on the spot!"
 5. LIVE VENDING CENTER vs. FARM (RAS PRODUCTION FACILITY):
@@ -2935,10 +2941,20 @@ However, all of our farm-raised trout is sold fresh at our Live Vending Center i
 • Counter Hours: 8:00 AM to 9:00 PM (Saturday to Thursday, closed Fridays)
 • Live Counter: You can pick live swimming trout from our holding tanks and get it cleaned on the spot!
 • Maps: https://maps.app.goo.gl/6FT5iLk5n8mbKSRU9"
-6. LOCATION PIN & GPS VERIFICATION FLOW:
-   - If the customer has already named an in-zone area (e.g. Buchpora, Soura, Hazratbal, Lal Bazar, Zakura, etc.), DO NOT ASK FOR A LOCATION PIN! Confirm delivery right away.
-   - If the conversation history indicates that the customer already shared their location pin or Google Maps link and was verified [IN RANGE (<=16km)], DO NOT ask for their address or location pin again! Immediately proceed with confirming quantity, cut, delivery slot, and generating the payment link.
-   - Only if you are unsure of the customer's exact location, invite them to share their WhatsApp location pin (tap 📎 -> Location -> Send your current location) or paste a Google Maps link for instant automated verification.
+6. 4-TIER LOCATION STRATEGY & PIN VERIFICATION RULES:
+   - RULE 1: ZERO FRICTION FOR KNOWN SRINAGAR LOCALITIES (e.g. Lal Chowk, Jawahar Nagar, Rajbagh, Soura, Sanat Nagar, Hazratbal, Bemina, Batamaloo, Khanyar, etc.):
+     * The system recognizes over 450+ Srinagar localities. If the customer mentions any known area, DO NOT ASK FOR A WHATSAPP LOCATION PIN OR GOOGLE MAPS LINK UPFRONT!
+     * Immediately confirm doorstep delivery, state the free delivery MOQ / pricing, and ask for their house/landmark details to prepare the order.
+   - RULE 2: UNKNOWN AREAS, UNNAMED LOCALITIES OR AMBIGUOUS NAMES ("Near Masjid", "Main Chowk"):
+     * Ask flexibly without friction: "Which area or landmark in Srinagar should we deliver to (e.g. Jawahar Nagar, Lal Chowk)? Or you can share your WhatsApp location pin / Google Maps link so our system can verify your delivery terms right away! 🐟"
+   - RULE 3: OUTER BOUNDARY & FRINGE LOCALITIES (13 km to 18 km — e.g. Wadwan, Budgam outskirts, Pampore, Narbal, Harwan):
+     * Because 1–2 km decides whether the address is within our strict 16 km cold-chain radius, politely request verification:
+       "To make sure our express live-harvest rider can reach your doorstep within our 16 km cold-chain delivery zone, could you share your WhatsApp location pin (tap 📎 ➔ Location) or Google Maps link?"
+   - RULE 4: POST-PAYMENT LOCATION PIN COLLECTION:
+     * Never create upfront friction by forcing pin sharing before the customer has paid.
+     * Once payment is confirmed, the automated receipt invites the customer to share their pin for rider navigation.
+   - RULE 5: PREVIOUSLY VERIFIED SESSIONS:
+     * If chat history shows the customer already shared a pin or address verified [IN RANGE (<=16km)], NEVER ask for it again. Proceed directly with confirming quantity and payment.
 7. HARVEST LOCK & NO-REFUND POLICY:
    - Orders can ONLY be cancelled BEFORE the fish is harvested from tanks.
    - Once fish is HARVESTED (status: "Harvested Live & Packed"), the order is locked and CANNOT be cancelled, returned, or refunded under any circumstances, because live swimming trout is slaughtered specifically upon confirmed payment and cannot be returned to tanks.
@@ -3257,10 +3273,10 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
               const isFarOutZone = /(?:pampore|chadoora|lawaypora|hmt|harwan|budgam|ompora|baramulla|anantnag|jammu|kanipora|bk\s*pora|bagati\s*kanipora|narbal|magam|pulwama)/i.test(recentContextForOutZone);
 
               if (custDist === null) {
-                console.log(`[Link Guard] Blocked payment link for ${chatId} - location is UNVERIFIED. Demanding WhatsApp GPS pin.`);
+                console.log(`[Link Guard] Blocked payment link for ${chatId} - location is UNVERIFIED. Asking for area name or pin.`);
                 rawReply = rawReply.replace(
                   payMatch[0],
-                  `📍 *To confirm express doorstep delivery and prepare your order:*\nCould you please share your WhatsApp location pin (tap 📎 ➔ Location ➔ Send your current location)?\n\nOur system will instantly verify your distance from our Malabagh farm and provide your official payment link! 🐟`
+                  `📍 *To confirm your doorstep delivery:* Which area or landmark in Srinagar should we deliver to (e.g. Jawahar Nagar, Lal Chowk, Rajbagh)? Or you can drop a WhatsApp location pin / Google Maps link so our system can verify your delivery terms and send your official payment link right away! 🐟`
                 );
               } else if ((custDist !== null && custDist > 16.0) || isFarOutZone) {
                 console.log(`[Link Guard] Blocked payment link for ${chatId} - location ${custDist}km is OUTSIDE delivery perimeter (>16km).`);
