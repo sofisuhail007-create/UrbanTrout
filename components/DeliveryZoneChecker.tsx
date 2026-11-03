@@ -466,7 +466,7 @@ export default function DeliveryZoneChecker() {
           <div className="flex items-center gap-1.5">
             <span className="text-cyan-400">📍</span>
             <span>
-              <strong>Live Vending Center:</strong> Malabagh (Near R.P. School Girls Wing) • Open <strong>8:00 AM – 9:00 PM</strong>, Sat–Thu (Closed Fridays).
+              <strong>Live Vending Center:</strong> Malabagh (Near R.P. School Girls Wing) • Open <strong>8:00 AM – 8:00 PM</strong>, Sat–Thu (Closed Fridays).
             </span>
           </div>
           <a

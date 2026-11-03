@@ -550,7 +550,7 @@ export default function AdminSettingsPage() {
       const item = {
         key: "allow_friday_orders",
         value: String(newVal),
-        description: "Allow online orders on Fridays (8:00 AM – 9:00 PM IST) when farm/vending center is open",
+        description: "Allow online orders on Fridays (8:00 AM – 8:00 PM IST) when farm/vending center is open",
       };
       await adminFetch("/api/settings", {
         method: "POST",
@@ -826,7 +826,7 @@ export default function AdminSettingsPage() {
                             ? "⚠️ Closed for regular Friday maintenance. Toggle 'Friday Store Operations' below if your farm is open today!"
                             : liveStatus.closedReason === "manual"
                             ? "⚠️ Store manually closed by administrator. Toggle Emergency Pause below to resume."
-                            : `⏰ Standard schedule: 8:00 AM – 9:00 PM IST. Next opening: ${liveStatus.nextOpenLabel}.`}
+                            : `⏰ Standard schedule: 8:00 AM – 8:00 PM IST. Next opening: ${liveStatus.nextOpenLabel}.`}
                         </p>
                       </div>
                     </div>
@@ -1018,7 +1018,7 @@ export default function AdminSettingsPage() {
                   <div className="flex items-center gap-2">
                     <span className="material-symbols-outlined text-sm text-cyan-400">info</span>
                     <span>
-                      Standard Operating Schedule: <strong>Sat – Thu: 8:00 AM – 9:00 PM IST</strong> (Closed Fridays unless toggled above).
+                      Standard Operating Schedule: <strong>Sat – Thu: 8:00 AM – 8:00 PM IST</strong> (Closed Fridays unless toggled above).
                     </span>
                   </div>
 

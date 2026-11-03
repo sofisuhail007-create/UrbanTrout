@@ -330,7 +330,7 @@ async function generateExecutiveBriefing(targetDateStr = null) {
 
   // Format Telegram HTML Message (Clean, single-message executive close)
   let msg = `🐟 <b>URBAN TROUT AQUACULTURE</b>\n`;
-  msg += `📊 <b>DAILY EXECUTIVE CLOSE — ${formattedDate.toUpperCase()} (9:00 PM)</b>\n`;
+  msg += `📊 <b>DAILY EXECUTIVE CLOSE — ${formattedDate.toUpperCase()} (8:00 PM)</b>\n`;
   msg += `━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
 
   msg += `🐠 <b>LIVE AQUARIUM STOCK</b>\n`;
@@ -356,8 +356,8 @@ async function generateExecutiveBriefing(targetDateStr = null) {
   msg += `• <b>Top Active Areas:</b> ${topLocalities}\n\n`;
 
   msg += `━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
-  msg += `🌙 <i>Evening Service Closed (9:00 PM)</i>\n`;
-  msg += `⚡ <i>Next Morning Live Harvest resumes tomorrow at 9:00 AM</i>`;
+  msg += `🌙 <i>Evening Service Closed (8:00 PM)</i>\n`;
+  msg += `⚡ <i>Next Morning Live Harvest resumes tomorrow at 8:00 AM</i>`;
 
   // WhatsApp plain text format (uses *bold* instead of <b>)
   const waText = msg

@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
         ? "Our farm is currently in scheduled maintenance. You can schedule an order for when operations resume!"
         : hoursInfo.closedReason === "friday_maintenance"
         ? `Our farm is closed on Fridays for scheduled Farm Maintenance. You can schedule your order for ${hoursInfo.nextOpenLabel || "Saturday at 8:00 AM"}!`
-        : `Our store is currently closed outside operating hours (8:00 AM – 9:00 PM). You can schedule your order for ${hoursInfo.nextOpenLabel || "tomorrow at 8:00 AM"}!`;
+        : `Our store is currently closed outside operating hours (8:00 AM – 8:00 PM). You can schedule your order for ${hoursInfo.nextOpenLabel || "tomorrow at 8:00 AM"}!`;
 
       return NextResponse.json(
         {

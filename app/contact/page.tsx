@@ -378,7 +378,7 @@ export default function ContactPage() {
                     Harvest & Delivery Hours
                   </span>
                   <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.9rem", color: C.onSurface, margin: "2px 0 0", fontWeight: 600 }}>
-                    Saturday – Thursday: 8:00 AM – 9:00 PM
+                    Saturday – Thursday: 8:00 AM – 8:00 PM
                   </p>
                   <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.82rem", color: "#f87171", margin: "3px 0 0", fontWeight: 600 }}>
                     Closed on Fridays for Farm Maintenance

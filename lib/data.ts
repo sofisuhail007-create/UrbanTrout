@@ -13,7 +13,7 @@ export type Product = {
   description?: string;
   /** Total aquarium biomass available (shared pool for all products) */
   stockKg?: number;
-  /** Whether the shop is currently within operating hours (7 AM–10 PM IST) */
+  /** Whether the shop is currently within operating hours (8 AM–8 PM IST) */
   isOpen?: boolean;
 };
 

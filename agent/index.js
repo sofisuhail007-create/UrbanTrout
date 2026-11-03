@@ -1885,11 +1885,11 @@ function extractCleanCustomerName(rawName) {
   return n;
 }
 
-// Helper to detect if current IST time is evening rush surge window (4:00 PM – 8:59 PM)
+// Helper to detect if current IST time is evening rush surge window (4:00 PM – 7:59 PM)
 function isCurrentEveningSurge() {
   const istDate = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
   const hour = istDate.getHours();
-  return hour >= 16 && hour < 21;
+  return hour >= 16 && hour < 20;
 }
 
 // Calculate exact reorder pricing and description based on distance and past cut (4-Tier Model)
@@ -2253,15 +2253,15 @@ async function generateGeminiReply(chatId, userMessage, customerPhone, customerN
   else if (istHour >= 20 || istHour < 5) timeOfDayDesc = "Night";
   else if (istHour >= 5 && istHour < 12) timeOfDayDesc = "Morning";
 
-  // ORDER & DELIVERY OPERATING WINDOW: 7:00 AM to 9:00 PM (14 Hours Active Same-Day Delivery!)
-  const isOperatingHours = istHour >= 7 && istHour < 21; // 7:00 AM to 8:59 PM (Active Daytime Delivery)
-  const isNightAfter9PM = istHour >= 21;                 // 9:00 PM to 11:59 PM (Night After-Hours)
-  const isEarlyPreDawn = istHour < 7;                    // 12:00 AM to 6:59 AM (Pre-Dawn)
+  // ORDER & DELIVERY OPERATING WINDOW: 8:00 AM to 8:00 PM (12 Hours Active Same-Day Delivery!)
+  const isOperatingHours = istHour >= 8 && istHour < 20; // 8:00 AM to 7:59 PM (Active Daytime Delivery)
+  const isNightAfter9PM = istHour >= 20;                 // 8:00 PM to 11:59 PM (Night After-Hours / Winter Closing)
+  const isEarlyPreDawn = istHour < 8;                    // 12:00 AM to 7:59 AM (Pre-Dawn)
 
-  // EVENING RUSH SURGE WINDOW: 4:00 PM to 8:59 PM (16:00 – 20:59 IST)
+  // EVENING RUSH SURGE WINDOW: 4:00 PM to 7:59 PM (16:00 – 19:59 IST)
   // During peak rush hours, Rapido & courier costs surge. +₹40 surge is added to subsidized courier fees.
   // 4 kg family pack (and eligible 2-3 kg free deliveries) remains 100% FREE!
-  const isEveningSurge = istHour >= 16 && istHour < 21;
+  const isEveningSurge = istHour >= 16 && istHour < 20;
   const surgeAdd = isEveningSurge ? 40 : 0;
 
   let cleanPhone = String(customerPhone || "").replace(/\D/g, "").slice(-10);
@@ -2284,7 +2284,7 @@ async function generateGeminiReply(chatId, userMessage, customerPhone, customerN
   if (vipProfile && !existingOrder && !isFridayToday) {
     if (isReorderAffirmative) {
       const timeNote = (isNightAfter9PM || isEarlyPreDawn)
-        ? (isThursdayToday ? "scheduled for Saturday morning (7:00 AM – 11:00 AM)" : "scheduled for tomorrow morning (7:00 AM – 11:00 AM)")
+        ? (isThursdayToday ? "scheduled for Saturday morning (8:00 AM – 11:00 AM)" : "scheduled for tomorrow morning (8:00 AM – 11:00 AM)")
         : "delivered within 2 hours";
       fastReorderReply = `Wonderful! I've prepared your usual order for ${vipProfile.usualWeightKg} kg ${vipProfile.usualCut} to ${vipProfile.locality} (${timeNote}).\n\nPlease tap the link below to complete payment and confirm live harvest:\n${vipProfile.reorderPayTag}\n\nOur farm team in Malabagh will harvest them fresh from our cold-water tanks, pack them in clean food-grade packs, and dispatch straight to your door! 🐟`;
     } else if (parsedQuantity) {
@@ -2317,7 +2317,7 @@ async function generateGeminiReply(chatId, userMessage, customerPhone, customerN
       const pricing = calculateReorderPricing(reqWeight, reqCut, targetDist, isEveningSurge);
 
       const timeNote = (isNightAfter9PM || isEarlyPreDawn)
-        ? (isThursdayToday ? "scheduled for Saturday morning (7:00 AM – 11:00 AM)" : "scheduled for tomorrow morning (7:00 AM – 11:00 AM)")
+        ? (isThursdayToday ? "scheduled for Saturday morning (8:00 AM – 11:00 AM)" : "scheduled for tomorrow morning (8:00 AM – 11:00 AM)")
         : "delivered within 2 hours";
       fastReorderReply = `Wonderful! I've prepared your order for ${reqWeight} kg ${reqCut} to ${targetLocality} (${timeNote}).\n\nPlease tap the link below to complete payment and confirm live harvest:\n[PAY_LINK: ${pricing.amount} : ${pricing.tagDesc}]\n\nOur farm team in Malabagh will harvest them fresh from our cold-water tanks, pack them in clean food-grade packs, and dispatch straight to your door! 🐟`;
     }
@@ -2326,10 +2326,10 @@ async function generateGeminiReply(chatId, userMessage, customerPhone, customerN
   // VIP Fast Path 2: Returning Customer Greeting & 1-Tap Offer
   if (vipProfile && !existingOrder && !fastReorderReply && isPureInquiry && !isFridayToday) {
     const harvestStatus = (isNightAfter9PM || isEarlyPreDawn)
-      ? (isThursdayToday ? "Tonight's deliveries closed at 9:00 PM. Live harvest resumes Saturday morning at 7:00 AM sharp!" : "Tonight's deliveries closed at 9:00 PM. Fresh live harvest resumes tomorrow morning at 7:00 AM sharp!")
+      ? (isThursdayToday ? "Tonight's deliveries closed at 8:00 PM. Live harvest resumes Saturday morning at 8:00 AM sharp!" : "Tonight's deliveries closed at 8:00 PM. Fresh live harvest resumes tomorrow morning at 8:00 AM sharp!")
       : "We have fresh live Himalayan Rainbow Trout harvested today.";
     const slotPrompt = (isNightAfter9PM || isEarlyPreDawn)
-      ? (isThursdayToday ? "scheduled for Saturday morning (7:00 AM – 11:00 AM)" : "scheduled for tomorrow morning (7:00 AM – 11:00 AM)")
+      ? (isThursdayToday ? "scheduled for Saturday morning (8:00 AM – 11:00 AM)" : "scheduled for tomorrow morning (8:00 AM – 11:00 AM)")
       : "as usual";
 
     const fastGreeting = `Hello! Welcome back to Urban Trout. 🐟 ${harvestStatus}\n\nWould you like your usual *${vipProfile.usualWeightKg} kg ${vipProfile.usualCut}* delivered to *${vipProfile.locality}* ${slotPrompt}?\n\nJust reply *'Yes'* (or *'Repeat'*) and I'll send your instant payment link right away!`;
@@ -2423,7 +2423,7 @@ CRITICAL VIP REORDERING & GREETING INSTRUCTIONS:
         localityContext = `\n======================================================
 📍 SMART LOCALITY DETECTED: Customer mentioned "${detectedLoc.name}" (~${detectedLoc.dist} km from Malabagh).
 ⚠️ STRICT MANDATE: NEVER MENTION "Zone 1" OR ANY ZONE NUMBERS TO THE CUSTOMER! Speak naturally: "We deliver express right to your doorstep in ${detectedLoc.name}!".
-CRITICAL DELIVERY & PRICING INSTRUCTIONS:${isEveningSurge ? "\n⚡ CURRENT TIME: EVENING RUSH HOUR (4:00 PM – 9:00 PM IST) — +₹40 evening rush courier surge applies to subsidized 1 kg orders. 2 kg+ is 100% FREE!" : ""}
+CRITICAL DELIVERY & PRICING INSTRUCTIONS:${isEveningSurge ? "\n⚡ CURRENT TIME: EVENING RUSH HOUR (4:00 PM – 8:00 PM IST) — +₹40 evening rush courier surge applies to subsidized 1 kg orders. 2 kg+ is 100% FREE!" : ""}
 • Doorstep Delivery: 100% FREE on 2 kg or more (within 2 hours)!
 • Rates: Cleaned & Gutted = ₹580/kg | Whole Fresh = ₹540/kg
 • 2 kg Cleaned & Gutted = *₹1,160 total* (100% FREE delivery)
@@ -2440,7 +2440,7 @@ DO NOT ask them for a WhatsApp GPS location pin!
         localityContext = `\n======================================================
 📍 SMART LOCALITY DETECTED: Customer mentioned "${detectedLoc.name}" (~${detectedLoc.dist} km from Malabagh).
 ⚠️ STRICT MANDATE: NEVER MENTION "Zone 2" OR ANY ZONE NUMBERS TO THE CUSTOMER! Speak naturally: "We deliver express right to your doorstep in ${detectedLoc.name}!".
-CRITICAL DELIVERY & PRICING INSTRUCTIONS:${isEveningSurge ? "\n⚡ CURRENT TIME: EVENING RUSH HOUR (4:00 PM – 9:00 PM IST) — +₹40 evening rush courier surge applies to subsidized courier orders. 3 kg+ is 100% FREE!" : ""}
+CRITICAL DELIVERY & PRICING INSTRUCTIONS:${isEveningSurge ? "\n⚡ CURRENT TIME: EVENING RUSH HOUR (4:00 PM – 8:00 PM IST) — +₹40 evening rush courier surge applies to subsidized courier orders. 3 kg+ is 100% FREE!" : ""}
 • Doorstep Delivery: 100% FREE on 3 kg or more!
 • 2 kg Order: Available with a nominal subsidized express courier fee of only *₹${39 + surgeAdd}* (₹1,160 + ₹${39 + surgeAdd} = *₹${1199 + surgeAdd} total* for Cleaned & Gutted).
 • 1 kg Starter Pack: Available with subsidized courier fee of *₹${49 + surgeAdd}* (₹580 + ₹${49 + surgeAdd} = *₹${629 + surgeAdd} total*).
@@ -2460,7 +2460,7 @@ DO NOT ask them for a WhatsApp GPS location pin!
         localityContext = `\n======================================================
 📍 SMART LOCALITY DETECTED: Customer mentioned "${detectedLoc.name}" (~${detectedLoc.dist} km from Malabagh).
 ⚠️ STRICT MANDATE: NEVER MENTION "Zone 3" OR ANY ZONE NUMBERS TO THE CUSTOMER! Speak naturally: "We deliver express right to your doorstep in ${detectedLoc.name}!".
-CRITICAL DELIVERY & PRICING INSTRUCTIONS:${isEveningSurge ? "\n⚡ CURRENT TIME: EVENING RUSH HOUR (4:00 PM – 9:00 PM IST) — +₹40 evening rush courier surge applies to subsidized courier orders. 3 kg+ is 100% FREE!" : ""}
+CRITICAL DELIVERY & PRICING INSTRUCTIONS:${isEveningSurge ? "\n⚡ CURRENT TIME: EVENING RUSH HOUR (4:00 PM – 8:00 PM IST) — +₹40 evening rush courier surge applies to subsidized courier orders. 3 kg+ is 100% FREE!" : ""}
 • Doorstep Delivery: 100% FREE on 3 kg or more!
 • 2 kg Order: Available with a nominal subsidized express courier fee of only *₹${69 + surgeAdd}* (₹1,160 + ₹${69 + surgeAdd} = *₹${1229 + surgeAdd} total* for Cleaned & Gutted).
 • 1 kg Starter Pack: Available with subsidized courier fee of *₹${79 + surgeAdd}* (₹580 + ₹${79 + surgeAdd} = *₹${659 + surgeAdd} total*).
@@ -2480,7 +2480,7 @@ DO NOT ask them for a WhatsApp GPS location pin!
         localityContext = `\n======================================================
 📍 SMART LOCALITY DETECTED: Customer mentioned "${detectedLoc.name}" (~${detectedLoc.dist} km from Malabagh).
 ⚠️ STRICT MANDATE: NEVER MENTION "Zone 4", ANY ZONE NUMBERS, OR KM RANGES LIKE "(11.5–16 km)" TO THE CUSTOMER! Speak naturally: "We deliver express right to your doorstep in ${detectedLoc.name}!".
-CRITICAL DELIVERY & PRICING INSTRUCTIONS:${isEveningSurge ? "\n⚡ CURRENT TIME: EVENING RUSH HOUR (4:00 PM – 9:00 PM IST) — +₹40 evening rush courier surge applies to subsidized courier orders. 4 kg family pack remains 100% FREE!" : ""}
+CRITICAL DELIVERY & PRICING INSTRUCTIONS:${isEveningSurge ? "\n⚡ CURRENT TIME: EVENING RUSH HOUR (4:00 PM – 8:00 PM IST) — +₹40 evening rush courier surge applies to subsidized courier orders. 4 kg family pack remains 100% FREE!" : ""}
 • Doorstep Delivery: 100% FREE on 4 kg family pack (gives 8–10 fresh trout at *₹2,320 total*)!
 • 3 kg Order: Available with a nominal subsidized courier fee of *₹${79 + surgeAdd}* (₹1,740 + ₹${79 + surgeAdd} = *₹${1819 + surgeAdd} total*).
 • 2 kg Order: Available with a nominal subsidized courier fee of *₹${99 + surgeAdd}* (₹1,160 + ₹${99 + surgeAdd} = *₹${1259 + surgeAdd} total*).
@@ -2524,7 +2524,7 @@ CRITICAL INSTRUCTION: Inform them politely that doorstep delivery is restricted 
 ======================================================`;
       } else if (sDist <= 7.0) {
         localityContext = `\n======================================================
-📍 CUSTOMER DISTANCE ON FILE: ~${sDist} km (Mid Srinagar: 4–7 km).${isEveningSurge ? "\n⚡ EVENING RUSH HOUR (5–9 PM): +₹40 evening rush courier surge applies to subsidized orders. 3 kg+ is 100% FREE!" : ""}
+📍 CUSTOMER DISTANCE ON FILE: ~${sDist} km (Mid Srinagar: 4–7 km).${isEveningSurge ? "\n⚡ EVENING RUSH HOUR (5–8 PM): +₹40 evening rush courier surge applies to subsidized orders. 3 kg+ is 100% FREE!" : ""}
 ⚠️ STRICT MANDATE: NEVER SAY "ZONE 2" TO CUSTOMER!
 • Doorstep Delivery: 100% FREE on 3 kg or more (Cleaned & Gutted ₹1,740).
 • 2 kg: ₹1,160 + ₹${39 + surgeAdd} subsidized courier fee = ₹${1199 + surgeAdd} total.
@@ -2535,7 +2535,7 @@ CRITICAL INSTRUCTION: Inform them politely that doorstep delivery is restricted 
 ======================================================`;
       } else if (sDist <= 11.5) {
         localityContext = `\n======================================================
-📍 CUSTOMER DISTANCE ON FILE: ~${sDist} km (Greater Srinagar: 7–11.5 km).${isEveningSurge ? "\n⚡ EVENING RUSH HOUR (5–9 PM): +₹40 evening rush courier surge applies to subsidized orders. 3 kg+ is 100% FREE!" : ""}
+📍 CUSTOMER DISTANCE ON FILE: ~${sDist} km (Greater Srinagar: 7–11.5 km).${isEveningSurge ? "\n⚡ EVENING RUSH HOUR (5–8 PM): +₹40 evening rush courier surge applies to subsidized orders. 3 kg+ is 100% FREE!" : ""}
 ⚠️ STRICT MANDATE: NEVER SAY "ZONE 3" TO CUSTOMER!
 • Doorstep Delivery: 100% FREE on 3 kg or more (Cleaned & Gutted ₹1,740).
 • 2 kg: ₹1,160 + ₹${69 + surgeAdd} subsidized courier fee = ₹${1229 + surgeAdd} total.
@@ -2546,7 +2546,7 @@ CRITICAL INSTRUCTION: Inform them politely that doorstep delivery is restricted 
 ======================================================`;
       } else if (sDist <= 16.0) {
         localityContext = `\n======================================================
-📍 CUSTOMER DISTANCE ON FILE: ~${sDist} km (Outer Corridor: 11.5–16 km).${isEveningSurge ? "\n⚡ EVENING RUSH HOUR (5–9 PM): +₹40 evening rush courier surge applies to subsidized orders. 4 kg family pack remains 100% FREE!" : ""}
+📍 CUSTOMER DISTANCE ON FILE: ~${sDist} km (Outer Corridor: 11.5–16 km).${isEveningSurge ? "\n⚡ EVENING RUSH HOUR (5–8 PM): +₹40 evening rush courier surge applies to subsidized orders. 4 kg family pack remains 100% FREE!" : ""}
 ⚠️ STRICT MANDATE: NEVER SAY "ZONE 4" TO CUSTOMER!
 • Doorstep Delivery: 100% FREE on 4 kg family pack (Cleaned & Gutted ₹2,320).
 • 3 kg: ₹1,740 + ₹${79 + surgeAdd} subsidized courier fee = ₹${1819 + surgeAdd} total.
@@ -2721,10 +2721,10 @@ Ask which cut they would prefer!
 💡 QUERY INTENT DECODED: Customer inquired about delivery for TOMORROW (${tomorrowDayName}).
 TEMPORAL REALITY DIRECTIVE:
 • TODAY IS ${todayDayName.toUpperCase()} (${formattedDateStr}). TOMORROW IS ${tomorrowDayName.toUpperCase()}.
-• We are FULLY OPEN tomorrow (${tomorrowDayName}) from 7:00 AM to 9:00 PM!
+• We are FULLY OPEN tomorrow (${tomorrowDayName}) from 8:00 AM to 8:00 PM!
 • STRICT PROHIBITION: Under NO circumstances call tomorrow "Saturday" or mention Friday closure!
 • Confirm that we are happy to schedule their fresh live-harvest delivery for tomorrow (${tomorrowDayName}) with 3 slots:
-  • 🕗 Morning Slot: 7:00 AM – 11:00 AM (Harvest starts 7:00 AM)
+  • 🕗 Morning Slot: 8:00 AM – 11:00 AM (Harvest starts 8:00 AM)
   • 🕛 Afternoon Slot: 12:00 PM – 3:00 PM
   • 🕔 Evening Slot: 4:00 PM – 7:00 PM
 • Ask which slot works best and confirm their quantity (Cleaned & Gutted @ ₹580/kg, minimum order 2 kg for free delivery)!
@@ -2738,7 +2738,7 @@ TEMPORAL REALITY DIRECTIVE:
   if (isVisitLocationIntent) {
     const counterHoursNote = isFridayToday
       ? "Counter Hours: STRICTLY CLOSED TODAY (FRIDAY) for weekly maintenance. Re-opens Saturday at 8:00 AM!"
-      : "Counter Hours: 8:00 AM to 9:00 PM (Saturday to Thursday, strictly closed Fridays)";
+      : "Counter Hours: 8:00 AM to 8:00 PM (Saturday to Thursday, strictly closed Fridays)";
     intentContext += `\n======================================================
 💡 QUERY INTENT DECODED: Customer asked to visit or wants our exact location ("${userMessage.trim()}").
 CRITICAL DIRECTIVE: DO NOT ASK FOR THEIR DELIVERY ADDRESS! Answer directly with our store details:
@@ -2759,7 +2759,7 @@ You can choose live swimming trout from our counter tanks, watch it harvested li
       const deterministicFridayReply = `Our Live Vending Center and doorstep delivery operations are strictly closed today (Friday) for weekly RAS bio-security maintenance, filtration backwashing, and staff weekly off.
 
 However, we are actively taking advance bookings for tomorrow, Saturday!
-• 🕗 *Morning Slot:* 7:00 AM – 11:00 AM (Harvest starts 7:00 AM)
+• 🕗 *Morning Slot:* 8:00 AM – 11:00 AM (Harvest starts 8:00 AM)
 • 🕛 *Afternoon Slot:* 12:00 PM – 3:00 PM
 • 🕔 *Evening Slot:* 4:00 PM – 7:00 PM
 
@@ -2785,9 +2785,9 @@ Would you like us to schedule a fresh live-harvest delivery for you tomorrow (Sa
     const deterministicThuForFriReply = `Tomorrow is Friday, and our farm and delivery operations are strictly closed on Fridays for scheduled RAS bio-security maintenance and filtration backwashing (zero counter walk-ins and zero doorstep deliveries on Friday).
 
 We would be delighted to schedule your fresh live-harvest delivery for:
-1️⃣ *Today (Thursday):* Delivered within 2 hours to your doorstep (we are open until 9:00 PM)!
+1️⃣ *Today (Thursday):* Delivered within 2 hours to your doorstep (we are open until 8:00 PM)!
 2️⃣ *Saturday:* Advance booking with your preferred slot:
-• 🕗 *Morning:* 7:00 AM – 11:00 AM
+• 🕗 *Morning:* 8:00 AM – 11:00 AM
 • 🕛 *Afternoon:* 12:00 PM – 3:00 PM
 • 🕔 *Evening:* 4:00 PM – 7:00 PM
 
@@ -2803,7 +2803,7 @@ Would you prefer fresh delivery today (Thursday) within 2 hours, or an advance b
     return deterministicThuForFriReply;
   }
 
-  // DETERMINISTIC HARD LOCK PAST 9:00 PM IST (OR PRE-DAWN BEFORE 7:00 AM)
+  // DETERMINISTIC HARD LOCK PAST 8:00 PM IST (OR PRE-DAWN BEFORE 8:00 AM)
   // If local time is outside delivery hours and customer asks for immediate delivery / tonight / 1-2 hours:
   const mentionsTomorrow = /\b(?:tomorrow|kal|subah|morning|afternoon|evening|saturday|hafta)\b/i.test(userMessage);
   const isAskingImmediateTonight = !mentionsTomorrow && /(?:(?:any\s*)?(?:1|2|one|two)\s*hours?|tonight|right\s*now|ab\s*hi|abhi|aaj\s*hi|today\s*night|deliver\s*(?:now|tonight|today)|immediate|jaldi|urgent|asap)/i.test(userMessage);
@@ -2812,32 +2812,32 @@ Would you prefer fresh delivery today (Thursday) within 2 hours, or an advance b
     let deterministicNightReply = "";
     if (existingOrder && !existingOrder.notFound && /(?:paid|confirmed|harvest|dispatch)/i.test(existingOrder.status || "")) {
       deterministicNightReply = isThursdayToday
-        ? `Our deliveries for tonight closed at 9:00 PM. Please note our farm is strictly closed on Fridays for weekly RAS filtration and bio-security maintenance.
+        ? `Our deliveries for tonight closed at 8:00 PM. Please note our farm is strictly closed on Fridays for weekly RAS filtration and bio-security maintenance.
 
-Your order (*#${existingOrder.orderRef}* - ${existingOrder.items || "Fresh Rainbow Trout"}) is confirmed! It is scheduled for fresh morning live harvest and express dispatch on *Saturday morning between 7:00 AM and 11:00 AM*.
+Your order (*#${existingOrder.orderRef}* - ${existingOrder.items || "Fresh Rainbow Trout"}) is confirmed! It is scheduled for fresh morning live harvest and express dispatch on *Saturday morning between 8:00 AM and 11:00 AM*.
 
 We will deliver it fresh to your doorstep!`
-        : `Our deliveries for tonight closed at 9:00 PM. We start fresh orders from 7:00 AM every morning!
+        : `Our deliveries for tonight closed at 8:00 PM. We start fresh orders from 8:00 AM every morning!
 
-Your order (*#${existingOrder.orderRef}* - ${existingOrder.items || "Fresh Rainbow Trout"}) is confirmed! It is scheduled for fresh morning live harvest from our crystal-clear oxygen-saturated cold water tanks and express dispatch tomorrow morning between *7:00 AM and 11:00 AM*.
+Your order (*#${existingOrder.orderRef}* - ${existingOrder.items || "Fresh Rainbow Trout"}) is confirmed! It is scheduled for fresh morning live harvest from our crystal-clear oxygen-saturated cold water tanks and express dispatch tomorrow morning between *8:00 AM and 11:00 AM*.
 
 We will deliver it fresh to your doorstep!`;
     } else {
       deterministicNightReply = isThursdayToday
-        ? `Our deliveries for tonight closed at 9:00 PM. Please note that our farm is strictly closed on Fridays for weekly RAS filtration and bio-security maintenance (zero counter walk-ins and zero doorstep deliveries on Friday).
+        ? `Our deliveries for tonight closed at 8:00 PM. Please note that our farm is strictly closed on Fridays for weekly RAS filtration and bio-security maintenance (zero counter walk-ins and zero doorstep deliveries on Friday).
 
-We start taking fresh live-harvest orders from 7:00 AM every Saturday morning! We would be delighted to schedule your delivery for Saturday:
-• 🕗 *Morning Slot:* 7:00 AM – 11:00 AM (Harvest starts 7:00 AM)
+We start taking fresh live-harvest orders from 8:00 AM every Saturday morning! We would be delighted to schedule your delivery for Saturday:
+• 🕗 *Morning Slot:* 8:00 AM – 11:00 AM (Harvest starts 8:00 AM)
 • 🕛 *Afternoon Slot:* 12:00 PM – 3:00 PM
 • 🕔 *Evening Slot:* 4:00 PM – 7:00 PM
 
 🛵 *Doorstep delivery is 100% FREE* on eligible orders (2 kg for 0–4 km, 3 kg for 4–11.5 km, 4 kg for 11.5–16 km; subsidized courier on smaller orders)!
 
 Which slot on Saturday works best for your delivery, and how many Kgs of Cleaned & Gutted trout (₹580/kg, pan-ready) shall I book for you?`
-        : `Our deliveries for tonight closed at 9:00 PM. We start taking fresh live-harvest orders from 7:00 AM every morning!
+        : `Our deliveries for tonight closed at 8:00 PM. We start taking fresh live-harvest orders from 8:00 AM every morning!
 
 We would be delighted to schedule your fresh live-harvest delivery for tomorrow:
-• 🕗 *Morning Slot:* 7:00 AM – 11:00 AM (Harvest starts 7:00 AM)
+• 🕗 *Morning Slot:* 8:00 AM – 11:00 AM (Harvest starts 8:00 AM)
 • 🕛 *Afternoon Slot:* 12:00 PM – 3:00 PM
 • 🕔 *Evening Slot:* 4:00 PM – 7:00 PM
 
@@ -2858,18 +2858,18 @@ Which slot tomorrow works best for your delivery, and how many Kgs of Cleaned & 
     ? `CRITICAL ALERT: TODAY IS FRIDAY — WE ARE 100% CLOSED TODAY:
    - BOTH our Live Vending Center counter in Malabagh AND doorstep delivery operations are STRICTLY CLOSED today for weekly farm bio-security maintenance, RAS filtration backwashing, and staff weekly off.
    - ZERO live harvesting and ZERO dispatches today. Under NO circumstances should you promise or confirm delivery today!
-   - If a customer asks for trout today or asks if we are open today, explain politely that we are closed on Fridays, and offer advance bookings for SATURDAY (Morning 7–11 AM, Afternoon 12–3 PM, Evening 4–7 PM).
+   - If a customer asks for trout today or asks if we are open today, explain politely that we are closed on Fridays, and offer advance bookings for SATURDAY (Morning 8–11 AM, Afternoon 12–3 PM, Evening 4–7 PM).
    - Advance bookings and payment links for SATURDAY or later are warmly welcomed!`
     : isThursdayToday
     ? `CRITICAL ALERT: TODAY IS THURSDAY — TOMORROW IS FRIDAY (100% CLOSED):
-   - We are OPEN for orders and deliveries TODAY (Thursday) until 9:00 PM (delivered within 2 hours).
+   - We are OPEN for orders and deliveries TODAY (Thursday) until 8:00 PM (delivered within 2 hours).
    - ABSOLUTE LAW: TOMORROW IS FRIDAY — WE ARE 100% CLOSED TOMORROW! Both our Live Vending Center counter AND doorstep deliveries are strictly closed on Fridays for farm RAS filtration and bio-security maintenance.
    - ZERO dispatches and ZERO counter walk-ins on Friday!
    - NEVER promise, confirm, or accept orders for tomorrow (Friday).
    - If a customer asks about delivery for tomorrow or Friday, explain Friday closure and offer delivery TODAY (within 2 hours) or advance booking for SATURDAY!`
     : `STORE & DELIVERY HOURS:
-   - Doorstep Delivery: 7:00 AM to 9:00 PM, Saturday through Thursday (delivered within 2 hours). STRICTLY CLOSED ON FRIDAYS.
-   - Live Vending Center in Malabagh: Open 8:00 AM to 9:00 PM, Saturday to Thursday (strictly closed Fridays for scheduled RAS filtration and bio-security maintenance).
+   - Doorstep Delivery: 8:00 AM to 8:00 PM, Saturday through Thursday (delivered within 2 hours). STRICTLY CLOSED ON FRIDAYS.
+   - Live Vending Center in Malabagh: Open 8:00 AM to 8:00 PM, Saturday to Thursday (strictly closed Fridays for scheduled RAS filtration and bio-security maintenance).
    ⚠️ NOTE: Today is ${todayDayName}. Tomorrow is ${tomorrowDayName}. We are 100% OPEN today and tomorrow! Do NOT mention Friday or Saturday closure unless today is Thursday or Friday!`;
 
   let timeStatusDetail = "";
@@ -2877,36 +2877,36 @@ Which slot tomorrow works best for your delivery, and how many Kgs of Cleaned & 
     timeStatusDetail = `🛑 CURRENT STATUS: FRIDAY — ENTIRE FACILITY & DELIVERIES 100% CLOSED TODAY!
 - We are completely closed today (Friday) for weekly RAS filtration bio-security maintenance.
 - Zero live harvesting and zero dispatches today.
-- We resume fresh operations tomorrow, Saturday morning at 7:00 AM!
-- ALWAYS offer advance bookings for SATURDAY (Morning 7-11 AM, Afternoon 12-3 PM, Evening 4-7 PM).`;
+- We resume fresh operations tomorrow, Saturday morning at 8:00 AM!
+- ALWAYS offer advance bookings for SATURDAY (Morning 8-11 AM, Afternoon 12-3 PM, Evening 4-7 PM).`;
   } else if (isOperatingHours) {
     const thuNote = isThursdayToday 
       ? "\n⚠️ URGENT REMINDER: TODAY IS THURSDAY. TOMORROW (FRIDAY) IS 100% CLOSED! NEVER OFFER OR PROMISE DELIVERY FOR TOMORROW/FRIDAY! If customer asks about tomorrow/Friday, offer delivery TODAY or advance booking for SATURDAY!" 
-      : `\n📅 TODAY IS: ${todayDayName}. Tomorrow is ${tomorrowDayName}. We are OPEN today until 9:00 PM, and we are OPEN tomorrow (${tomorrowDayName}) from 7:00 AM! Do NOT mention Friday closure or Saturday!`;
-    timeStatusDetail = `✅ CURRENT STATUS: OPEN & ACTIVELY ACCEPTING ORDERS (7:00 AM - 9:00 PM)!
-- We start taking fresh live-harvest orders from 7:00 AM every single day (except Friday)!
+      : `\n📅 TODAY IS: ${todayDayName}. Tomorrow is ${tomorrowDayName}. We are OPEN today until 8:00 PM, and we are OPEN tomorrow (${tomorrowDayName}) from 8:00 AM! Do NOT mention Friday closure or Saturday!`;
+    timeStatusDetail = `✅ CURRENT STATUS: OPEN & ACTIVELY ACCEPTING ORDERS (8:00 AM - 8:00 PM)!
+- We start taking fresh live-harvest orders from 8:00 AM every single day (except Friday)!
 - We are currently open and actively taking orders for TODAY (${todayDayName}) right now!
-- Live-harvested Rainbow Trout delivered straight to the customer's doorstep WITHIN 2 HOURS (or at their preferred scheduled time slot today up to 9:00 PM).
+- Live-harvested Rainbow Trout delivered straight to the customer's doorstep WITHIN 2 HOURS (or at their preferred scheduled time slot today up to 8:00 PM).
 - Minimum order: 2 kg for 0–4 km, 3 kg for 4–6 km, 4 kg for 6–8 km.
-- ABSOLUTELY NEVER say "deliveries wrapped up" or "book for tomorrow" during daytime (7:00 AM - 9:00 PM)! Offer live delivery TODAY within 2 hours!${thuNote}`;
+- ABSOLUTELY NEVER say "deliveries wrapped up" or "book for tomorrow" during daytime (8:00 AM - 8:00 PM)! Offer live delivery TODAY within 2 hours!${thuNote}`;
   } else if (isNightAfter9PM) {
     if (isThursdayToday) {
       timeStatusDetail = `⚠️ CURRENT STATUS: THURSDAY NIGHT AFTER-HOURS (Current time in Srinagar is ${istTimeStr}).
-- Tonight's deliveries closed at 9:00 PM.
+- Tonight's deliveries closed at 8:00 PM.
 - ⚠️ CRITICAL: TOMORROW IS FRIDAY — WE ARE 100% CLOSED TOMORROW!
 - DO NOT OFFER DELIVERY FOR TOMORROW (FRIDAY)!
-- We start taking fresh live-harvest orders on SATURDAY morning from 7:00 AM sharp!
+- We start taking fresh live-harvest orders on SATURDAY morning from 8:00 AM sharp!
 - ALWAYS offer delivery for SATURDAY with 3 slots:
-  • 🕗 Morning: 7:00 AM – 11:00 AM (Harvest begins 7:00 AM)
+  • 🕗 Morning: 8:00 AM – 11:00 AM (Harvest begins 8:00 AM)
   • 🕛 Afternoon: 12:00 PM – 3:00 PM
   • 🕔 Evening: 4:00 PM – 7:00 PM
 - Ask the customer which time slot on SATURDAY works best for their delivery!`;
     } else {
       timeStatusDetail = `⚠️ CURRENT STATUS: NIGHT AFTER-HOURS (Current time in Srinagar is ${istTimeStr}).
-- Tonight's deliveries closed at 9:00 PM.
-- Tomorrow is ${tomorrowDayName}. We start taking fresh live-harvest orders tomorrow (${tomorrowDayName}) morning from 7:00 AM sharp!
+- Tonight's deliveries closed at 8:00 PM.
+- Tomorrow is ${tomorrowDayName}. We start taking fresh live-harvest orders tomorrow (${tomorrowDayName}) morning from 8:00 AM sharp!
 - ALWAYS offer delivery for TOMORROW (${tomorrowDayName}) with 3 slots:
-  • 🕗 Morning: 7:00 AM – 11:00 AM (Orders and live harvest begin 7:00 AM)
+  • 🕗 Morning: 8:00 AM – 11:00 AM (Orders and live harvest begin 8:00 AM)
   • 🕛 Afternoon: 12:00 PM – 3:00 PM
   • 🕔 Evening: 4:00 PM – 7:00 PM
 - Ask the customer which time slot tomorrow (${tomorrowDayName}) works best for their delivery!
@@ -2915,11 +2915,11 @@ Which slot tomorrow works best for your delivery, and how many Kgs of Cleaned & 
   } else {
     if (isThursdayToday) {
       timeStatusDetail = `🌅 CURRENT STATUS: EARLY MORNING (Pre-Dawn, current time is ${istTimeStr}).
-- Today is Thursday! We start taking fresh live-harvest orders and dispatch at 7:00 AM sharp until 9:00 PM! (Note: Tomorrow Friday is closed).`;
+- Today is Thursday! We start taking fresh live-harvest orders and dispatch at 8:00 AM sharp until 8:00 PM! (Note: Tomorrow Friday is closed).`;
     } else {
       timeStatusDetail = `🌅 CURRENT STATUS: EARLY MORNING (Pre-Dawn, current time is ${istTimeStr}).
-- Today is ${todayDayName}! We start taking fresh live-harvest orders and dispatch at 7:00 AM sharp!
-- We accept orders for TODAY (${todayDayName}) starting from the 7:00 AM morning slot! Fresh live-harvest delivered within 2 hours or at customer's preferred scheduled slot.`;
+- Today is ${todayDayName}! We start taking fresh live-harvest orders and dispatch at 8:00 AM sharp!
+- We accept orders for TODAY (${todayDayName}) starting from the 8:00 AM morning slot! Fresh live-harvest delivered within 2 hours or at customer's preferred scheduled slot.`;
     }
   }
 
@@ -3007,13 +3007,13 @@ CRITICAL READABILITY & MAXIMUM BREVITY MANDATE (ANSWER ONLY WHAT IS REQUIRED):
 11. PRICE-LOCK & NO BAIT-AND-SWITCH GUARANTEE:
    • Once an order price or courier fee has been quoted to a customer for their area (e.g. "2 kg Batamaloo = ₹1,249"), that quote is 100% LOCKED IN for that order!
    • When the customer shares their WhatsApp location pin or exact colony name, NEVER recalculate or increase the courier fee! The GPS pin is solely for our delivery rider's navigation.
-   • If a customer inquired before 4:00 PM and confirms during evening rush hours (4:00 PM – 9:00 PM), ALWAYS honor the original daytime quote without adding rush surcharges. Bait-and-switch pricing destroys customer trust.
+   • If a customer inquired before 4:00 PM and confirms during evening rush hours (4:00 PM – 8:00 PM), ALWAYS honor the original daytime quote without adding rush surcharges. Bait-and-switch pricing destroys customer trust.
 
 CONVERSATION FLOW & GREETING RULE:
 ${stageInstruction}
 
 SPECIAL SYSTEM CAPABILITY (RAZORPAY PAYMENT LINK GENERATOR):
-4-TIER DELIVERY DISTANCES & PRICING:${isEveningSurge ? "\n⚡ CURRENT TIME: EVENING RUSH HOUR ACTIVE (4:00 PM – 9:00 PM IST) — +₹40 evening rush courier surge is included in all subsidized courier tags below. 4 kg family pack (and 2-3 kg eligible free deliveries) remains 100% FREE!" : ""}
+4-TIER DELIVERY DISTANCES & PRICING:${isEveningSurge ? "\n⚡ CURRENT TIME: EVENING RUSH HOUR ACTIVE (4:00 PM – 8:00 PM IST) — +₹40 evening rush courier surge is included in all subsidized courier tags below. 4 kg family pack (and 2-3 kg eligible free deliveries) remains 100% FREE!" : ""}
 1. NEARBY AREAS (0 to 4.0 km from Malabagh — Core Area: Malabagh, Soura, Hazratbal, Lal Bazar, Zakura):
    - Free Delivery MOQ: 2 KG or more
    - Cleaned & Gutted: 2 kg = ₹1,160 | 3 kg = ₹1,740 | 4 kg = ₹2,320 (100% FREE delivery)
@@ -3088,9 +3088,9 @@ OPERATING HOURS & DELIVERY PROTOCOLS:
 1. OPERATING HOURS & STRICT FRIDAY CLOSURE POLICY:
 ${fridayOperatingNote}
 2. IMMEDIATE & SCHEDULED DELIVERIES (YES, WE DO SCHEDULED ORDERS!):
-   - We start taking fresh live-harvest orders every day from 7:00 AM to 9:00 PM!
+   - We start taking fresh live-harvest orders every day from 8:00 AM to 8:00 PM!
    - Immediate express delivery within Srinagar is delivered within 2 hours of payment confirmation.
-   - Customers CAN schedule deliveries for ANY preferred future date & time slot between 7:00 AM and 9:00 PM.
+   - Customers CAN schedule deliveries for ANY preferred future date & time slot between 8:00 AM and 8:00 PM.
    - NEVER tell a customer that we do not offer scheduled future deliveries! We happily take scheduled orders.
 3. 100% UPFRONT PAYMENT LAW & TRUST-BUILDER FOR CASH/COD INQUIRIES:
    - We harvest live swimming fish ONLY upon upfront payment confirmation via locked Razorpay link. We do NOT stock dead fish or freeze pre-harvested fish.
@@ -3131,7 +3131,7 @@ ${fridayOperatingNote}
 
 However, all of our farm-raised trout is sold fresh at our Live Vending Center in Malabagh (Near R. P. School Girls Wing)!
 
-• Counter Hours: 8:00 AM to 9:00 PM (Saturday to Thursday, closed Fridays)
+• Counter Hours: 8:00 AM to 8:00 PM (Saturday to Thursday, closed Fridays)
 • Live Counter: You can pick live swimming trout from our holding tanks and get it cleaned on the spot!
 • Maps: https://maps.app.goo.gl/6FT5iLk5n8mbKSRU9"
 6. 4-TIER LOCATION STRATEGY & PIN VERIFICATION RULES:
@@ -3207,9 +3207,9 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
 
   let activeTurnPrompt = userMessage;
   if (isNightAfter9PM) {
-    activeTurnPrompt = `[🛑 STRICT NIGHT PROTOCOL ACTIVE: Current time in Srinagar is ${istTimeStr}. Same-day deliveries CLOSED at 9:00 PM. Physical tanks and harvest are closed for the night. We start taking fresh live-harvest orders tomorrow morning from 7:00 AM sharp! ABSOLUTELY NEVER promise delivery tonight or within 1-2 hours! Offer/schedule delivery ONLY for TOMORROW (Morning 7-11 AM, Afternoon 12-3 PM, Evening 4-7 PM).]\n\n${activeTurnPrompt}`;
+    activeTurnPrompt = `[🛑 STRICT NIGHT PROTOCOL ACTIVE: Current time in Srinagar is ${istTimeStr}. Same-day deliveries CLOSED at 8:00 PM. Physical tanks and harvest are closed for the night. We start taking fresh live-harvest orders tomorrow morning from 8:00 AM sharp! ABSOLUTELY NEVER promise delivery tonight or within 1-2 hours! Offer/schedule delivery ONLY for TOMORROW (Morning 8-11 AM, Afternoon 12-3 PM, Evening 4-7 PM).]\n\n${activeTurnPrompt}`;
   } else if (isEarlyPreDawn) {
-    activeTurnPrompt = `[🌅 EARLY MORNING PRE-DAWN ACTIVE: Current time in Srinagar is ${istTimeStr}. We start taking live orders and harvesting from 7:00 AM sharp today! Schedule their delivery for TODAY starting from the 7:00 AM – 11:00 AM morning slot.]\n\n${activeTurnPrompt}`;
+    activeTurnPrompt = `[🌅 EARLY MORNING PRE-DAWN ACTIVE: Current time in Srinagar is ${istTimeStr}. We start taking live orders and harvesting from 8:00 AM sharp today! Schedule their delivery for TODAY starting from the 8:00 AM – 11:00 AM morning slot.]\n\n${activeTurnPrompt}`;
   }
   if (existingOrder && !existingOrder.notFound) {
     activeTurnPrompt = `[⭐ EXISTING ORDER ON FILE: #${existingOrder.orderRef} (${existingOrder.items}, ${existingOrder.amount}, Status: ${existingOrder.status}, Slot: ${existingOrder.deliveryTime}). Customer is asking about their order/delivery. DO NOT GENERATE A PAYMENT LINK. Provide their order status and timing directly.]\n\n${activeTurnPrompt}`;
@@ -3242,7 +3242,7 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
       if (!isStockOk) {
         rawReply = rawReply.replace(
           payMatch[0],
-          "⚠️ *Our live harvest quota for today is fully committed! Next fresh harvest opens tomorrow morning at 7:00 AM.*"
+          "⚠️ *Our live harvest quota for today is fully committed! Next fresh harvest opens tomorrow morning at 8:00 AM.*"
         );
       } else {
         const savedLoc = chatMetadata[chatId] || (customerPhone ? chatMetadata[customerPhone] : null);
@@ -3252,8 +3252,8 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
           scheduledSlot = "Saturday (Advance Scheduled)";
         } else if (isNightAfter9PM || isEarlyPreDawn) {
           scheduledSlot = isThursdayToday 
-            ? "Saturday Morning (7:00 AM – 11:00 AM)" 
-            : "Tomorrow Morning (7:00 AM – 11:00 AM)";
+            ? "Saturday Morning (8:00 AM – 11:00 AM)" 
+            : "Tomorrow Morning (8:00 AM – 11:00 AM)";
         }
         try {
           const payObj = await createRazorpayPaymentLink({
@@ -3281,7 +3281,7 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
             });
             const payUrl = payObj.url;
             const urgencyNote = (isNightAfter9PM || isEarlyPreDawn)
-              ? `\n\n⏰ *Delivery Slot:* ${scheduledSlot}\n(Live harvest commences at 7:00 AM sharp)`
+              ? `\n\n⏰ *Delivery Slot:* ${scheduledSlot}\n(Live harvest commences at 8:00 AM sharp)`
               : "\n\n🛵 *Express Delivery:* Live harvested from our cold-water tanks & dispatched within 2 hours of payment!";
             const orderCard = formatOrderSummaryCard({
               orderRef: payObj.orderRef || payObj.ref,
@@ -3411,7 +3411,7 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
             if (!isStockOk) {
               rawReply = rawReply.replace(
                 payMatch[0],
-                "⚠️ *Our live harvest quota for today is fully committed! Next fresh harvest opens tomorrow morning at 7:00 AM.*"
+                "⚠️ *Our live harvest quota for today is fully committed! Next fresh harvest opens tomorrow morning at 8:00 AM.*"
               );
             } else {
               // Retrieve saved customer location if previously shared (WhatsApp pin or Google Maps link)
@@ -3517,10 +3517,10 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
                     scheduledSlot = `${targetDay} Evening (4:00 PM – 7:00 PM)`;
                   } else if (/\b(?:afternoon|dopahar|noon|12\s*pm|1\s*pm|2\s*pm|3\s*pm|12:00|13:00|14:00|15:00)\b/i.test(combinedText)) {
                     scheduledSlot = `${targetDay} Afternoon (12:00 PM – 3:00 PM)`;
-                  } else if (/\b(?:morning|subah|early|7\s*am|8\s*am|9\s*am|10\s*am|11\s*am|7:00|8:00|9:00|10:00|11:00)\b/i.test(combinedText)) {
-                    scheduledSlot = `${targetDay} Morning (7:00 AM – 11:00 AM)`;
+                  } else if (/\b(?:morning|subah|early|8\s*am|9\s*am|10\s*am|11\s*am|8:00|9:00|10:00|11:00)\b/i.test(combinedText)) {
+                    scheduledSlot = `${targetDay} Morning (8:00 AM – 11:00 AM)`;
                   } else if (isNightAfter9PM || isEarlyPreDawn) {
-                    scheduledSlot = `${targetDay} Morning (7:00 AM – 11:00 AM)`;
+                    scheduledSlot = `${targetDay} Morning (8:00 AM – 11:00 AM)`;
                   } else if (/\b(?:saturday|advance)\b/i.test(userMessage)) {
                     scheduledSlot = "Saturday (Advance Scheduled)";
                   }
@@ -3617,7 +3617,7 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
         if (!isThursdayToday && !isFridayToday) {
           rawReply = rawReply.replace(/\btomorrow\s*\(\s*saturday\s*\)/gi, `tomorrow (${tomorrowDayName})`);
           rawReply = rawReply.replace(/\btomorrow,\s*saturday\b/gi, `tomorrow, ${tomorrowDayName}`);
-          rawReply = rawReply.replace(/\bstarting\s+Saturday\s+morning\s+at\s+7(?::00)?\s*AM\b/gi, `tomorrow (${tomorrowDayName}) morning at 7:00 AM`);
+          rawReply = rawReply.replace(/\bstarting\s+Saturday\s+morning\s+at\s+[78](?::00)?\s*AM\b/gi, `tomorrow (${tomorrowDayName}) morning at 8:00 AM`);
           rawReply = rawReply.replace(/\bdelivered\s+to\s+your\s+home\s+on\s+Saturday\b/gi, `delivered to your home tomorrow (${tomorrowDayName})`);
           rawReply = rawReply.replace(/\bharvest\s+fresh\s+for\s+you\s+on\s+Saturday\b/gi, `harvest fresh for you tomorrow (${tomorrowDayName})`);
           rawReply = rawReply.replace(/\bready\s+to\s+take\s+your\s+fresh\s+live-harvest\s+order\s+starting\s+Saturday\s+morning\b/gi, `ready to take your fresh live-harvest order tomorrow (${tomorrowDayName}) morning`);
@@ -3681,7 +3681,7 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
   // Ongoing chat fallback: Automatically pause AI for 5 minutes so human farm team can take over smoothly!
   humanOverrides.set(chatId, Date.now() + 5 * 60 * 1000);
   console.log(`⏸️ [Auto-Handoff on Fallback] Paused AI for 5m for ${chatId} so human team can take over.`);
-  return `Thank you! Our farm team in Malabagh has received your message and will assist you with your order in just a moment. 🐟\n\n(Live Vending Center in Malabagh is open 8:00 AM – 9:00 PM Saturday to Thursday)`;
+  return `Thank you! Our farm team in Malabagh has received your message and will assist you with your order in just a moment. 🐟\n\n(Live Vending Center in Malabagh is open 8:00 AM – 8:00 PM Saturday to Thursday)`;
 }
 
 // Persistent chat metadata tracking for gentle 60-90 minute follow-ups
@@ -3772,9 +3772,9 @@ async function checkInactiveLeadsFollowUp(sock) {
           continue;
         }
 
-        // Sleep protection: DO NOT send automated follow-up pings late at night (between 11:00 PM and 7:30 AM)!
+        // Sleep protection: DO NOT send automated follow-up pings late at night (between 10:00 PM and 8:00 AM)!
         // Do NOT mark as sent — simply skip this tick so the customer gets a morning follow-up once awake!
-        if (istHour >= 23 || istHour < 7 || (istHour === 7 && istMin < 30)) {
+        if (istHour >= 22 || istHour < 8) {
           continue;
         }
 
@@ -3788,8 +3788,8 @@ async function checkInactiveLeadsFollowUp(sock) {
         }
         saveChatMetadata();
 
-        // Active daytime delivery window: 7:00 AM to 9:00 PM
-        const isDaytime = istHour >= 7 && istHour < 21;
+        // Active daytime delivery window: 8:00 AM to 8:00 PM
+        const isDaytime = istHour >= 8 && istHour < 20;
 
         const followUpText = isDaytime
           ? "Hello! Just checking in to see if you would like us to reserve a fresh live-harvest slot for you today, or if you would like to visit our Live Vending Center in Malabagh. 🐟\n\n(No rush at all—we are always here whenever you crave fresh trout!)"
@@ -3837,7 +3837,7 @@ let paymentInterval = null;
 let followUpInterval = null;
 let nightlyReportInterval = null;
 
-// Nightly 9:00 PM Telegram Executive Briefing Scheduler (closing time)
+// Nightly 8:00 PM Telegram Executive Briefing Scheduler (closing time)
 async function checkNightlyReportSchedule() {
   try {
     const istOffset = 5.5 * 60 * 60 * 1000;
@@ -3846,8 +3846,8 @@ async function checkNightlyReportSchedule() {
     const minute = istDate.getUTCMinutes();
     const todayStr = istDate.toISOString().split("T")[0];
 
-    // Trigger daily briefing between 21:00 (9:00 PM) and 21:15 IST
-    if (hour === 21 && minute >= 0 && minute <= 15) {
+    // Trigger daily briefing between 20:00 (8:00 PM) and 20:15 IST
+    if (hour === 20 && minute >= 0 && minute <= 15) {
       const statePath = path.join(__dirname, "last_nightly_report.json");
       let alreadySent = false;
       if (fs.existsSync(statePath)) {
@@ -3860,7 +3860,7 @@ async function checkNightlyReportSchedule() {
       }
 
       if (!alreadySent) {
-        console.log(`\n📊 [9:00 PM NIGHTLY BRIEFING TRIGGERED] Compiling and dispatching executive briefing for ${todayStr}...`);
+        console.log(`\n📊 [8:00 PM NIGHTLY BRIEFING TRIGGERED] Compiling and dispatching executive briefing for ${todayStr}...`);
         await sendNightlyBriefing(todayStr);
       }
     }
@@ -3982,7 +3982,7 @@ async function startBot() {
     } else if (connection === "open") {
       console.log("\n✅ URBAN TROUT SALES AGENT IS LIVE & CONNECTED TO WHATSAPP!");
       console.log("🤖 10 Strict Directives Active | 16km Perimeter Enforced (Tiered MOQ: 2kg/3kg/4kg) | Razorpay Link Ready.");
-      console.log("📊 Telegram 9:00 PM Nightly Executive Briefing Active (Auto-reports revenue, orders, inquiries & store walk-ins)");
+      console.log("📊 Telegram 8:00 PM Nightly Executive Briefing Active (Auto-reports revenue, orders, inquiries & store walk-ins)");
       console.log("📱 Phone Kill Switch Active: Send #pause / #resume from phone to control AI");
 
       // Auto-sync Google Contacts on launch
@@ -3998,12 +3998,12 @@ async function startBot() {
       if (followUpInterval) clearInterval(followUpInterval);
       if (nightlyReportInterval) clearInterval(nightlyReportInterval);
 
-      // Poll order update queue: 25s during farm operating hours (8 AM - 9 PM IST), 90s at night
+      // Poll order update queue: 25s during farm operating hours (8 AM - 8 PM IST), 90s at night
       // Throttling prevents hammering Supabase egress quota (keeps total monthly egress comfortably under 1 GB out of 5 GB free limit)
       const scheduleNextQueuePoll = () => {
         const istOffset = 5.5 * 60 * 60 * 1000;
         const istHour = new Date(Date.now() + istOffset).getUTCHours();
-        const delayMs = (istHour >= 8 && istHour < 21) ? 25000 : 90000;
+        const delayMs = (istHour >= 8 && istHour < 20) ? 25000 : 90000;
         pollInterval = setTimeout(async () => {
           try {
             await pollWhatsAppDispatchQueue(sock);
@@ -4023,7 +4023,7 @@ async function startBot() {
         checkInactiveLeadsFollowUp(sock);
       }, 150000);
 
-      // Check 9:00 PM nightly report schedule every 60 seconds
+      // Check 8:00 PM nightly report schedule every 60 seconds
       nightlyReportInterval = setInterval(() => {
         checkNightlyReportSchedule();
       }, 60000);
@@ -4297,7 +4297,7 @@ async function startBot() {
           ? `⏸️ Paused (${Math.ceil((chatOverride - Date.now()) / 60000)}m remaining)`
           : "🟢 Active";
         await sock.sendMessage(remoteJid, {
-          text: `📊 *URBAN TROUT AGENT STATUS*\n\n• Global AI Status: ${statusStr}\n• This Chat AI Status: ${chatStatus}\n• Delivery Perimeter: Up to 16.0 km (Tiered MOQ: 2kg/3kg/4kg)\n• Active Conversations: ${chatHistories.size}\n• Google Contacts DB: ${contactCount} Leads Synced\n• Human Pause Window: 30 minutes per manual intervention\n• Nightly Executive Briefing: Scheduled at 9:00 PM to Telegram`
+          text: `📊 *URBAN TROUT AGENT STATUS*\n\n• Global AI Status: ${statusStr}\n• This Chat AI Status: ${chatStatus}\n• Delivery Perimeter: Up to 16.0 km (Tiered MOQ: 2kg/3kg/4kg)\n• Active Conversations: ${chatHistories.size}\n• Google Contacts DB: ${contactCount} Leads Synced\n• Human Pause Window: 30 minutes per manual intervention\n• Nightly Executive Briefing: Scheduled at 8:00 PM to Telegram`
         });
         return;
       }
@@ -4342,7 +4342,7 @@ async function startBot() {
             `• *#pause 30* (Pause for custom minutes)\n` +
             `• *#resume* or *#bot* (Reactivate AI immediately for this chat or globally)\n` +
             `• *#status* (View agent system status)\n` +
-            `• *#report* (Generate & send 9:00 PM Daily Executive Briefing now)`
+            `• *#report* (Generate & send 8:00 PM Daily Executive Briefing now)`
         });
         return;
       }
@@ -4906,8 +4906,8 @@ async function startBot() {
       const distNum = Number(distRounded);
       const mapsUrl = `https://maps.google.com/?q=${detectedLat},${detectedLng}`;
       const istGps = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
-      const isNightGps = istGps.getHours() >= 21 || istGps.getHours() < 7;
-      const isEveningGps = istGps.getHours() >= 16 && istGps.getHours() < 21;
+      const isNightGps = istGps.getHours() >= 20 || istGps.getHours() < 8;
+      const isEveningGps = istGps.getHours() >= 16 && istGps.getHours() < 20;
       const surgeGps = isEveningGps ? 40 : 0;
 
       // ALWAYS save verified coordinates and mapsUrl in chatMetadata regardless of distance!
@@ -4973,7 +4973,7 @@ async function startBot() {
 
         if (hasExistingPaymentLink) {
           locReply = isNightGps
-            ? `📍 *Location Received & Saved!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n🛵 We have saved your exact location coordinates for our delivery rider.\n\nDeliveries for tonight closed at 9:00 PM. Please complete payment using the official Razorpay link above so our team can schedule your morning harvest in our 7:00 AM – 11:00 AM slot tomorrow! 🐟`
+            ? `📍 *Location Received & Saved!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n🛵 We have saved your exact location coordinates for our delivery rider.\n\nDeliveries for tonight closed at 8:00 PM. Please complete payment using the official Razorpay link above so our team can schedule your morning harvest in our 8:00 AM – 11:00 AM slot tomorrow! 🐟`
             : `📍 *Location Received & Saved!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n🛵 We have saved your exact location coordinates for our delivery rider.\n\nPlease complete payment using the official Razorpay link above so our team can harvest your trout live from the tanks and dispatch immediately! 🐟`;
           historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. IN RANGE (<=16 km). Payment link already provided, awaiting payment completion.]`;
         } else if (hasAgreedOrder) {
@@ -5027,7 +5027,7 @@ async function startBot() {
             deliveryArea: detectedLocalityName || "Srinagar",
             distanceKm: distRounded,
             localityName: detectedLocalityName || "Srinagar",
-            scheduledSlot: isNightGps ? "Tomorrow Morning (7:00 AM – 11:00 AM)" : "Within 90–120 Minutes (Today)",
+            scheduledSlot: isNightGps ? "Tomorrow Morning (8:00 AM – 11:00 AM)" : "Within 90–120 Minutes (Today)",
             payUrl: generatedPayUrl
           });
 
@@ -5055,22 +5055,22 @@ async function startBot() {
           // First time inquiry via location pin (no order discussed yet) - show tier pricing for their distance
           if (distNum <= 4.0) {
             locReply = isNightGps
-              ? `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep delivery is 100% FREE* (min order 2 kg, zero delivery or packing fees)!\nDeliveries for tonight closed at 9:00 PM. We can schedule your express live-harvest delivery for tomorrow (Morning 7–11 AM, Afternoon 12–3 PM, or Evening 4–7 PM).\n\nWhich cut, quantity, and slot tomorrow would you prefer? 🐟`
+              ? `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep delivery is 100% FREE* (min order 2 kg, zero delivery or packing fees)!\nDeliveries for tonight closed at 8:00 PM. We can schedule your express live-harvest delivery for tomorrow (Morning 8–11 AM, Afternoon 12–3 PM, or Evening 4–7 PM).\n\nWhich cut, quantity, and slot tomorrow would you prefer? 🐟`
               : `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep delivery is 100% FREE* within 2 Hours of payment confirmation (min order 2 kg, zero extra delivery or packing fees)!\n\nWhich cut and quantity would you like to order? 🐟`;
             historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. Minimum order for free delivery is 2 kg.]`;
           } else if (distNum <= 7.0) {
             locReply = isNightGps
-              ? `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on 3 kg (₹1,740 total)! We can also send 2 kg for just a subsidized ₹${39 + surgeGps} courier fee (₹${1199 + surgeGps} total).\nDeliveries for tonight closed at 9:00 PM. We can schedule your express live-harvest delivery for tomorrow morning!\n\nWould you like 3 kg free delivery or 2 kg scheduled for tomorrow? 🐟`
+              ? `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on 3 kg (₹1,740 total)! We can also send 2 kg for just a subsidized ₹${39 + surgeGps} courier fee (₹${1199 + surgeGps} total).\nDeliveries for tonight closed at 8:00 PM. We can schedule your express live-harvest delivery for tomorrow morning!\n\nWould you like 3 kg free delivery or 2 kg scheduled for tomorrow? 🐟`
               : `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on 3 kg (₹1,740 total)! We can also send 2 kg for just a subsidized ₹${39 + surgeGps} courier fee (₹${1199 + surgeGps} total)${isEveningGps ? " (includes ₹40 evening rush surcharge)" : ""}.\n\nWould you like 3 kg free delivery or 2 kg delivered fresh to your door? 🐟`;
             historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. Free delivery on 3 kg+ (₹1740); 2 kg has ₹${39 + surgeGps} courier fee (₹${1199 + surgeGps}); 1 kg has ₹${49 + surgeGps} fee (₹${629 + surgeGps}).]`;
           } else if (distNum <= 11.5) {
             locReply = isNightGps
-              ? `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on 3 kg (₹1,740 total)! We can also send 2 kg for just a subsidized ₹${69 + surgeGps} courier fee (₹${1229 + surgeGps} total).\nDeliveries for tonight closed at 9:00 PM. We can schedule your express live-harvest delivery for tomorrow morning!\n\nWould you like 3 kg free delivery or 2 kg scheduled for tomorrow? 🐟`
+              ? `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on 3 kg (₹1,740 total)! We can also send 2 kg for just a subsidized ₹${69 + surgeGps} courier fee (₹${1229 + surgeGps} total).\nDeliveries for tonight closed at 8:00 PM. We can schedule your express live-harvest delivery for tomorrow morning!\n\nWould you like 3 kg free delivery or 2 kg scheduled for tomorrow? 🐟`
               : `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on 3 kg (₹1,740 total)! We can also send 2 kg for just a subsidized ₹${69 + surgeGps} courier fee (₹${1229 + surgeGps} total)${isEveningGps ? " (includes ₹40 evening rush surcharge)" : ""}.\n\nWould you like 3 kg free delivery or 2 kg delivered fresh to your door? 🐟`;
             historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. Free delivery on 3 kg+ (₹1740); 2 kg has ₹${69 + surgeGps} courier fee (₹${1229 + surgeGps}); 1 kg has ₹${79 + surgeGps} fee (₹${659 + surgeGps}).]`;
           } else {
             locReply = isNightGps
-              ? `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on our 4 kg family pack (₹2,320 total)! We can also send 2 kg for just ₹${99 + surgeGps} express courier fee (₹${1259 + surgeGps} total) or 3 kg for ₹${79 + surgeGps} courier fee (₹${1819 + surgeGps} total).\nDeliveries for tonight closed at 9:00 PM. We can schedule your express live-harvest delivery for tomorrow morning!\n\nWould you like 4 kg free delivery or 2 kg scheduled for tomorrow? 🐟`
+              ? `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on our 4 kg family pack (₹2,320 total)! We can also send 2 kg for just ₹${99 + surgeGps} express courier fee (₹${1259 + surgeGps} total) or 3 kg for ₹${79 + surgeGps} courier fee (₹${1819 + surgeGps} total).\nDeliveries for tonight closed at 8:00 PM. We can schedule your express live-harvest delivery for tomorrow morning!\n\nWould you like 4 kg free delivery or 2 kg scheduled for tomorrow? 🐟`
               : `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on our 4 kg family pack (₹2,320 total)! We can also send 2 kg for just ₹${99 + surgeGps} express courier fee (₹${1259 + surgeGps} total) or 3 kg for ₹${79 + surgeGps} courier fee (₹${1819 + surgeGps} total)${isEveningGps ? " (includes ₹40 evening rush courier surcharge)" : ""}.\n\nWould you like to confirm 4 kg free delivery or 2 kg for doorstep delivery? 🐟`;
             historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. Free delivery on 4 kg family pack (₹2320); 3 kg has ₹${79 + surgeGps} fee (₹${1819 + surgeGps}); 2 kg has ₹${99 + surgeGps} fee (₹${1259 + surgeGps}); 1 kg has ₹${139 + surgeGps} fee (₹${719 + surgeGps}).]`;
           }

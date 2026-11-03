@@ -240,7 +240,7 @@ export interface DeliveryCheckResult {
 }
 
 /**
- * Returns true if the current time in IST is between 5:00 PM and 8:59 PM (17:00 – 20:59).
+ * Returns true if the current time in IST is between 5:00 PM and 7:59 PM (17:00 – 19:59).
  * During this peak rush hour window, third-party riders (Rapido) charge surge pricing,
  * so a +₹40 evening rush surcharge is applied to subsidized courier deliveries to protect margins.
  * Free delivery thresholds (e.g. 4 kg in Zone 4, 3 kg in Zone 2/3, 2 kg in Zone 1) remain 100% Free!
@@ -250,7 +250,7 @@ export function isEveningRushHour(date?: Date): boolean {
   const istOffset = (5 * 60 + 30) * 60 * 1000;
   const istDate = new Date(now.getTime() + istOffset);
   const hour = istDate.getUTCHours();
-  return hour >= 17 && hour < 21;
+  return hour >= 17 && hour < 20;
 }
 
 // Evaluate delivery zone from text search or GPS coordinates and optional weight
@@ -393,28 +393,28 @@ export function evaluateDeliveryZone(params: {
       ? `✓ Free Delivery from 2 kg (~${dist.toFixed(1)} km) · ⚡ Evening Rush Courier`
       : `✓ 100% Free Doorstep Delivery from 2 kg (~${dist.toFixed(1)} km)`;
     deliveryMessage = isRush && fee > 0
-      ? `Deliverable within 90–120 minutes. Free on 2+ kg, or ₹${fee} express courier (includes ₹40 evening rush surcharge 5–9 PM).`
+      ? `Deliverable within 90–120 minutes. Free on 2+ kg, or ₹${fee} express courier (includes ₹40 evening rush surcharge 5–8 PM).`
       : `Deliverable within 90–120 minutes in clean food-grade packaging. Free on 2+ kg, or ₹${fee} subsidized courier for 1 kg.`;
   } else if (tierId === "zone2") {
     statusHeadline = isRush && fee > 0
       ? `✓ Mid-City Delivery — Free from 3 kg (~${dist.toFixed(1)} km) · ⚡ Evening Rush Courier`
       : `✓ Mid-City Delivery — Free from 3 kg (~${dist.toFixed(1)} km)`;
     deliveryMessage = isRush && fee > 0
-      ? `Deliverable within 2 hours. Free on 3+ kg, or ₹${fee} express courier for ${weightKg} kg (includes ₹40 evening rush surcharge 5–9 PM).`
+      ? `Deliverable within 2 hours. Free on 3+ kg, or ₹${fee} express courier for ${weightKg} kg (includes ₹40 evening rush surcharge 5–8 PM).`
       : `Deliverable within 2 hours. Free on 3+ kg, or nominal express courier (₹39 for 2 kg / ₹49 for 1 kg).`;
   } else if (tierId === "zone3") {
     statusHeadline = isRush && fee > 0
       ? `✓ Greater Srinagar Delivery — Free from 3 kg (~${dist.toFixed(1)} km) · ⚡ Evening Rush Courier`
       : `✓ Greater Srinagar Delivery — Free from 3 kg (~${dist.toFixed(1)} km)`;
     deliveryMessage = isRush && fee > 0
-      ? `Deliverable within 2 hours. Free on 3+ kg, or ₹${fee} express courier for ${weightKg} kg (includes ₹40 evening rush surcharge 5–9 PM).`
+      ? `Deliverable within 2 hours. Free on 3+ kg, or ₹${fee} express courier for ${weightKg} kg (includes ₹40 evening rush surcharge 5–8 PM).`
       : `Deliverable within 2 hours with cold-chain packaging. Free on 3+ kg, or nominal express courier (₹69 for 2 kg / ₹79 for 1 kg).`;
   } else if (tierId === "zone4") {
     statusHeadline = isRush && fee > 0
       ? `✓ South Corridor Delivery — Free on 4 kg (~${dist.toFixed(1)} km) · ⚡ Evening Rush Courier`
       : `✓ South Corridor Delivery — Free on 4 kg (~${dist.toFixed(1)} km)`;
     deliveryMessage = isRush && fee > 0
-      ? `Deliverable within 2 hours. 100% Free on 4 kg family pack, or ₹${fee} express courier for ${weightKg} kg (includes ₹40 evening rush surcharge 5–9 PM).`
+      ? `Deliverable within 2 hours. 100% Free on 4 kg family pack, or ₹${fee} express courier for ${weightKg} kg (includes ₹40 evening rush surcharge 5–8 PM).`
       : `Deliverable within 2 hours with thermal insulation. 100% Free on 4 kg family pack, or nominal express courier (₹89 for 2 kg / ₹49 for 3 kg).`;
   } else {
     statusHeadline = `📍 Outside 16 km Express Delivery Perimeter (~${dist.toFixed(1)} km)`;

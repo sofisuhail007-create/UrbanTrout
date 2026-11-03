@@ -231,7 +231,7 @@ export default async function ShopPage() {
                   <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
                 </svg>
                 <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "10px", fontWeight: 600, letterSpacing: "0.06em", color: C.primary }}>
-                  Open Today · 8:00 AM – 9:00 PM (Closed Fridays)
+                  Open Today · 8:00 AM – 8:00 PM (Closed Fridays)
                 </span>
               </div>
             </div>

@@ -92,7 +92,7 @@ const faqs = [
   },
   {
     q: "What are your operating hours and are you open every day?",
-    a: "We are open for fresh live harvesting, farm pickups, and doorstep delivery Saturday through Thursday from 8:00 AM to 9:00 PM IST. We are closed on Fridays for scheduled Farm Maintenance, water filtration bio-security sanitization, and RAS system upkeep (scheduled pre-orders for Saturday delivery are accepted 24/7 online).",
+    a: "We are open for fresh live harvesting, farm pickups, and doorstep delivery Saturday through Thursday from 8:00 AM to 8:00 PM IST. We are closed on Fridays for scheduled Farm Maintenance, water filtration bio-security sanitization, and RAS system upkeep (scheduled pre-orders for Saturday delivery are accepted 24/7 online).",
   },
   {
     q: "Is Rainbow Trout skin edible and how is it traditionally cooked in Kashmir?",
@@ -191,7 +191,7 @@ export default async function HomePage() {
             "@type": "OpeningHoursSpecification",
             "dayOfWeek": ["Saturday", "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday"],
             "opens": "08:00",
-            "closes": "21:00",
+            "closes": "20:00",
           },
         ],
         "sameAs": [reviewsData.mapsUrl],

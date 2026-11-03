@@ -195,7 +195,7 @@ const jsonLd = {
             "Sunday"
           ],
           "opens": "08:00",
-          "closes": "21:00"
+          "closes": "20:00"
         }
       ],
       "servesCuisine": "Freshwater Trout, Himalayan Fish, Seafood",

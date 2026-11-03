@@ -793,7 +793,7 @@ export default function FarmVisitsPage() {
                 <p className="text-slate-500 text-[11px]">Landmark: Near R P School Girls Wing</p>
                 <div className="pt-2 flex items-center gap-2 text-cyan-400 font-mono text-xs">
                   <span className="material-symbols-outlined text-sm">schedule</span>
-                  <span>Operational Hours: 08:00 AM – 09:00 PM</span>
+                  <span>Operational Hours: 08:00 AM – 08:00 PM</span>
                 </div>
               </div>
 

@@ -607,7 +607,7 @@ export default function StoreClosedBanner({
             </svg>
             <div style={{ textAlign: "left" }}>
               <p style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", letterSpacing: "0.2em", textTransform: "uppercase", color: C.onSurfVar, margin: "0 0 2px" }}>Farm Operating Schedule</p>
-              <p style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "0.88rem", fontWeight: 700, color: C.onSurface, margin: 0 }}>Sat – Thu: 8:00 AM – 9:00 PM</p>
+              <p style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "0.88rem", fontWeight: 700, color: C.onSurface, margin: 0 }}>Sat – Thu: 8:00 AM – 8:00 PM</p>
               <p style={{ fontFamily: '"Inter", sans-serif', fontSize: "10px", fontWeight: 600, color: "#f87171", margin: "2px 0 0" }}>Closed Fridays (Farm Maintenance)</p>
             </div>
           </div>

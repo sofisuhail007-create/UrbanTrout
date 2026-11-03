@@ -439,7 +439,7 @@ export default async function WholeTroutPage() {
                         : "Store Closed"}
                     </p>
                     <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.8rem", color: C.onSurfVar, margin: 0 }}>
-                      Opens {isManuallyClosedFlag ? "when we reopen" : effectiveHoursInfo.nextOpenLabel} · Sat – Thu: 8:00 AM – 9:00 PM
+                      Opens {isManuallyClosedFlag ? "when we reopen" : effectiveHoursInfo.nextOpenLabel} · Sat – Thu: 8:00 AM – 8:00 PM
                     </p>
                   </div>
                 </div>

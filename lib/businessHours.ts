@@ -1,6 +1,6 @@
 /**
  * Business Hours Utility — Urban Trout
- * Operating schedule: Saturday to Thursday, 8:00 AM – 9:00 PM IST (Asia/Kolkata, UTC+5:30)
+ * Operating schedule: Saturday to Thursday, 8:00 AM – 8:00 PM IST (Asia/Kolkata, UTC+5:30)
  * Closed on Fridays for scheduled Farm Maintenance & Bio-Security protocols,
  * unless overridden via Admin Panel settings (e.g. allow_friday_orders).
  */
@@ -10,7 +10,7 @@ export interface StoreSettingsOverrides {
   storeManuallyClosed?: boolean;
   /** If true, the farm/vending center is put into active maintenance mode on any day */
   farmMaintenanceActive?: boolean;
-  /** If true, bypasses the automatic Friday closure and allows online orders on Friday (8 AM - 9 PM IST) */
+  /** If true, bypasses the automatic Friday closure and allows online orders on Friday (8 AM - 8 PM IST) */
   allowFridayOrders?: boolean;
   /** If true, forces the store to appear open 24/7 (for testing or emergency override) */
   forceStoreOpen?: boolean;
@@ -39,7 +39,7 @@ export interface BusinessHoursInfo {
 }
 
 const OPEN_HOUR = 8;   // 8:00 AM
-const CLOSE_HOUR = 21; // 9:00 PM
+const CLOSE_HOUR = 20; // 8:00 PM (Winter Operating Hours)
 
 /**
  * Returns current IST date (UTC + 5h30m) info.
@@ -70,7 +70,7 @@ export function getBusinessHoursInfo(
   const forceStoreOpen = Boolean(overrides?.forceStoreOpen);
 
   // Friday is closed for maintenance by default, UNLESS allowFridayOrders is enabled or forceStoreOpen is active
-  // On Thursday night after 9 PM IST, the store closes for the night and enters Friday Maintenance mode
+  // On Thursday night after 8 PM IST, the store closes for the night and enters Friday Maintenance mode
   const isThursdayNightBeforeFriday = currentISTDay === 4 && currentISTHour >= CLOSE_HOUR && !allowFridayOrders && !forceStoreOpen;
   const isFridayMaintenance = (isFriday || isThursdayNightBeforeFriday) && !allowFridayOrders && !forceStoreOpen;
   const isWithinOperatingHours = currentISTHour >= OPEN_HOUR && currentISTHour < CLOSE_HOUR;
@@ -106,7 +106,7 @@ export function getBusinessHoursInfo(
       nextOpenISO = new Date(nextOpen.getTime() - istOffsetMs).toISOString();
       nextOpenLabel = "tomorrow (Saturday) at 8:00 AM";
     } else {
-      // Thursday night after 9 PM
+      // Thursday night after 8 PM
       const nextOpen = new Date(istMs);
       nextOpen.setUTCDate(nextOpen.getUTCDate() + 2); // Saturday
       nextOpen.setUTCHours(OPEN_HOUR, 0, 0, 0);
@@ -118,7 +118,7 @@ export function getBusinessHoursInfo(
     closedReason = "outside_hours";
 
     if (currentISTDay === 4 && currentISTHour >= CLOSE_HOUR) {
-      // Thursday after 9 PM IST when Friday is OPEN
+      // Thursday after 8 PM IST when Friday is OPEN
       const nextOpen = new Date(istMs);
       nextOpen.setUTCDate(nextOpen.getUTCDate() + 1); // Friday
       nextOpen.setUTCHours(OPEN_HOUR, 0, 0, 0);
@@ -131,7 +131,7 @@ export function getBusinessHoursInfo(
       nextOpenISO = new Date(nextOpen.getTime() - istOffsetMs).toISOString();
       nextOpenLabel = "today at 8:00 AM";
     } else {
-      // After 9 PM on operating day
+      // After 8 PM on operating day
       const nextOpen = new Date(istMs);
       nextOpen.setUTCDate(nextOpen.getUTCDate() + 1);
       nextOpen.setUTCHours(OPEN_HOUR, 0, 0, 0);

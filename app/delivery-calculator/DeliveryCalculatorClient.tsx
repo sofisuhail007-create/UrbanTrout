@@ -1093,7 +1093,7 @@ function CalculatorInner() {
               📍 <strong>Malabagh Farm Hub:</strong> Near RP School Girls Wing, Naseem Bagh, Srinagar — 190006
             </div>
             <div>
-              🕒 <strong>Live Catch Dispatch:</strong> Sat–Thu, 8:00 AM – 9:00 PM (Closed Fridays)
+              🕒 <strong>Live Catch Dispatch:</strong> Sat–Thu, 8:00 AM – 8:00 PM (Closed Fridays)
             </div>
           </div>
         </div>
