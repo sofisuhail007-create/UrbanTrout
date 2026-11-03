@@ -309,6 +309,7 @@ const KNOWN_IN_ZONE_AREAS = [
 
 const KNOWN_OUT_ZONE_AREAS = [
   // ── Beyond 16 km / Outer Districts (Store Walk-in Only) ──
+  { pattern: /\b(?:bagati\s*kanipora|b\.?k\.?\s*pora|bk\s*pora|kanipora\s*budgam|kanipora)\b/i, name: "Bagati Kanipora (BK Pora)" },
   { pattern: /\b(?:pampore)\b/i, name: "Pampore" },
   { pattern: /\b(?:chadoora|chadure)\b/i, name: "Chadoora" },
   { pattern: /\b(?:lawaypora|lawapora|laway\s*pora|lawa\s*pora)\b/i, name: "Lawaypora" },
@@ -316,8 +317,9 @@ const KNOWN_OUT_ZONE_AREAS = [
   { pattern: /\b(?:harwan)\b/i, name: "Harwan" },
   { pattern: /\b(?:budgam)\b/i, name: "Budgam" },
   { pattern: /\b(?:ompora)\b/i, name: "Ompora" },
+  { pattern: /\b(?:narbal|soibugh|magam|beerwah)\b/i, name: "Narbal/Magam" },
   { pattern: /\b(?:baramulla)\b/i, name: "Baramulla" },
-  { pattern: /\b(?:anantnag)\b/i, name: "Anantnag" },
+  { pattern: /\b(?:anantnag|pulwama|awantipora|sopore|kulgam|shopian)\b/i, name: "Outer Kashmir Districts" },
   { pattern: /\b(?:jammu)\b/i, name: "Jammu" }
 ];
 
@@ -1463,7 +1465,7 @@ async function checkPendingRazorpayPayments(sock) {
           const targetJid = order.chatId || `91${order.phone}@s.whatsapp.net`;
           const displayAmt = order.amount ? order.amount.split(" ")[0] : `₹${(linkData.amount_paid || 0) / 100}`;
           
-          const receiptMsg = `✅ *Payment Received & Order Confirmed!* 🐟\n\nThank you! Your payment of *${displayAmt}* has been verified successfully.\n\n📋 *Order Summary:*\n• *Order Ref:* #${order.orderRef}\n• *Items:* ${order.items || "Fresh Rainbow Trout"}\n• *Status:* Confirmed (Live Harvest Scheduled)\n\nOur farm team at Malabagh is now preparing your fresh live harvest from our high-tech oxygen-saturated RAS tanks. We will deliver it chilled to your doorstep within 2 hours!`;
+          const receiptMsg = `✅ *Payment Received & Order Confirmed!* 🐟\n\nThank you! Your payment of *${displayAmt}* has been verified successfully.\n\n📋 *Order Summary:*\n• *Order Ref:* #${order.orderRef}\n• *Items:* ${order.items || "Fresh Rainbow Trout"}\n• *Status:* Confirmed (Live Harvest Scheduled)\n\nOur farm team at Malabagh is now preparing your fresh live harvest from our crystal-clear oxygen-saturated cold water tanks. We will deliver it fresh to your doorstep within 2 hours!`;
 
           await sock.sendMessage(targetJid, { text: receiptMsg });
           console.log(`✅ [Instant WhatsApp Confirmation Sent] Delivered directly to ${targetJid}!`);
@@ -2838,7 +2840,7 @@ SPECIAL SYSTEM CAPABILITY (RAZORPAY PAYMENT LINK GENERATOR):
    - 1 KG Starter Pack: ₹580 + ₹${139 + surgeAdd} courier fee = ₹${719 + surgeAdd} total:
      [PAY_LINK: ${719 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
 
-5. BEYOND 16.0 KM (Outer Districts — Pampore, Chadoora, Harwan, HMT/Lawaypora, Budgam, Jammu):
+5. BEYOND 16.0 KM (Outer Districts — Bagati Kanipora / BK Pora, Pampore, Chadoora, Harwan, HMT/Lawaypora, Budgam, Jammu):
    - Doorstep delivery is not feasible beyond 16 km to maintain cold chain. Direct them to visit Live Vending Center in Malabagh.
 
 HOW TO HANDLE 1 KG & 2 KG INQUIRIES (VALUE-UPGRADE FIRST — ZERO STICKER SHOCK):
@@ -2903,7 +2905,7 @@ ${fridayOperatingNote}
      Confirmed areas: Karan Nagar, Lal Chowk, Khayam, Dalgate, Qamarwari, Nishat, Brein, Balgarden.
    - TIER 4 (11.5 to 16.0 km): 100% FREE on 4 kg family pack (Cleaned & Gutted ₹2,320). 3 kg = ₹1,819 (₹79 fee). 2 kg = ₹1,259 (₹99 fee). 1 kg = ₹719 (₹139 fee).
      Confirmed areas: Barzulla, Baghat Barzulla, Rambagh, Solina, Gogji Bagh, Wazir Bagh, Tulsi Bagh, Hazuri Bagh, Iqbal Park, Sonwar, Batamaloo, Bemina, Rajbagh, Jawahar Nagar, Alochi Bagh, Magarmal Bagh, Sanat Nagar, Rawalpora, Hyderpora, Chanapora, Natipora, Peerbagh, Airport Road / Humhama, Ganderbal, Bagh-e-Mehtab, Kralpora, Rangreth, Lasjan, Nowgam, Padshahi Bagh, Pantha Chowk, Soiteng, Pandrathan, Athwajan, Pohru, Mochu.
-   - CONFIRMED OUT-ZONE AREAS (> 16 km): Pampore, Chadoora, Lawaypora, HMT, Harwan, Budgam, Ompora, Baramulla, Anantnag, Jammu.
+   - CONFIRMED OUT-ZONE AREAS (> 16 km): Bagati Kanipora (BK Pora), Pampore, Chadoora, Lawaypora, HMT, Harwan, Budgam, Ompora, Baramulla, Anantnag, Jammu.
      No delivery beyond 16 km to maintain cold chain. Direct them to visit Live Vending Center in Malabagh.
    - CRITICAL REVENUE PROTECTION RULE (NEVER BLINDLY DISCARD LEADS):
      If a customer mentions a locality, colony, or address that is NOT on the confirmed lists, NEVER ASSUME OR GUESS IT IS OUTSIDE ZONE!
@@ -3228,22 +3230,31 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
                   chatMetadata[customerPhone].localityName = activeLocalityName;
                 }
                 saveChatMetadata();
+              } else if (detectedLocMatch && detectedLocMatch.status === "OUT_ZONE") {
+                custDist = 999;
+                activeLocalityName = detectedLocMatch.name;
               } else if (savedLoc && savedLoc.distanceKm != null) {
                 custDist = savedLoc.distanceKm;
                 activeLocalityName = savedLoc.localityName;
               } else {
-                custDist = 2.0; // fallback to core zone
+                custDist = null; // NEVER assume core zone 2.0km for unverified places!
               }
 
               // Parse order weight if indicated in description (e.g. "2 kg Cleaned & Gutted" -> 2)
               const weightMatch = desc.match(/(\d+(?:\.\d+)?)\s*(?:kg|kilos?)/i);
               const orderWeight = weightMatch ? parseFloat(weightMatch[1]) : (amount >= 1620 ? 3 : 2);
 
-              const isSpecialDeliveryOrder = /\(\+(?:Special|Express) Delivery\)/i.test(desc) || [609, 629, 659, 699, 719, 759, 1199, 1229, 1249, 1259, 1299, 1789, 1819, 1859, 569, 589, 619, 679, 1119, 1149, 1169, 1179, 1219, 1669, 1699, 1739, 830, 790, 880, 1410, 1460, 680].includes(amount);
+              const isSpecialDeliveryOrder = /\(\+(?:Special|Express) Delivery\)/i.test(desc) || [609, 629, 649, 659, 669, 699, 719, 759, 1199, 1229, 1239, 1249, 1259, 1269, 1299, 1789, 1819, 1859, 569, 589, 619, 679, 1119, 1149, 1159, 1169, 1179, 1189, 1219, 1669, 1699, 1739, 830, 790, 880, 1410, 1460, 680].includes(amount);
               const recentContextForOutZone = (userMessage + " " + history.filter(h => h.role === "user").map(h => h.text).slice(-2).join(" ")).toLowerCase();
-              const isFarOutZone = /(?:pampore|chadoora|lawaypora|hmt|harwan|budgam|ompora|baramulla|anantnag|jammu)/i.test(recentContextForOutZone);
+              const isFarOutZone = /(?:pampore|chadoora|lawaypora|hmt|harwan|budgam|ompora|baramulla|anantnag|jammu|kanipora|bk\s*pora|bagati\s*kanipora|narbal|magam|pulwama)/i.test(recentContextForOutZone);
 
-              if ((custDist !== null && custDist > 16.0) || isFarOutZone) {
+              if (custDist === null) {
+                console.log(`[Link Guard] Blocked payment link for ${chatId} - location is UNVERIFIED. Demanding WhatsApp GPS pin.`);
+                rawReply = rawReply.replace(
+                  payMatch[0],
+                  `📍 *To confirm express doorstep delivery and prepare your order:*\nCould you please share your WhatsApp location pin (tap 📎 ➔ Location ➔ Send your current location)?\n\nOur system will instantly verify your distance from our Malabagh farm and provide your official payment link! 🐟`
+                );
+              } else if ((custDist !== null && custDist > 16.0) || isFarOutZone) {
                 console.log(`[Link Guard] Blocked payment link for ${chatId} - location ${custDist}km is OUTSIDE delivery perimeter (>16km).`);
                 rawReply = rawReply.replace(
                   payMatch[0],
@@ -4257,35 +4268,72 @@ async function startBot() {
       let chatHist = chatHistories.get(remoteJid) || [];
 
       const distNum = Number(distRounded);
+      const mapsUrl = `https://maps.google.com/?q=${detectedLat},${detectedLng}`;
       const istGps = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
       const isNightGps = istGps.getHours() >= 21 || istGps.getHours() < 7;
+      const isEveningGps = istGps.getHours() >= 16 && istGps.getHours() < 21;
+      const surgeGps = isEveningGps ? 40 : 0;
 
-      if (distNum <= 16.0) {
-        // Within 16 km delivery perimeter
-        const mapsUrl = `https://maps.google.com/?q=${detectedLat},${detectedLng}`;
-        if (!chatMetadata[remoteJid]) chatMetadata[remoteJid] = {};
-        chatMetadata[remoteJid].latitude = detectedLat;
-        chatMetadata[remoteJid].longitude = detectedLng;
-        chatMetadata[remoteJid].distanceKm = distNum;
-        chatMetadata[remoteJid].googleMapsUrl = mapsUrl;
-        chatMetadata[remoteJid].locationUpdatedAt = new Date().toISOString();
-        if (cleanPhone) {
-          if (!chatMetadata[cleanPhone]) chatMetadata[cleanPhone] = {};
-          chatMetadata[cleanPhone].latitude = detectedLat;
-          chatMetadata[cleanPhone].longitude = detectedLng;
-          chatMetadata[cleanPhone].distanceKm = distNum;
-          chatMetadata[cleanPhone].googleMapsUrl = mapsUrl;
-          chatMetadata[cleanPhone].locationUpdatedAt = new Date().toISOString();
+      // ALWAYS save verified coordinates and mapsUrl in chatMetadata regardless of distance!
+      if (!chatMetadata[remoteJid]) chatMetadata[remoteJid] = {};
+      chatMetadata[remoteJid].latitude = detectedLat;
+      chatMetadata[remoteJid].longitude = detectedLng;
+      chatMetadata[remoteJid].distanceKm = distNum;
+      chatMetadata[remoteJid].googleMapsUrl = mapsUrl;
+      chatMetadata[remoteJid].locationUpdatedAt = new Date().toISOString();
+      if (cleanPhone) {
+        if (!chatMetadata[cleanPhone]) chatMetadata[cleanPhone] = {};
+        chatMetadata[cleanPhone].latitude = detectedLat;
+        chatMetadata[cleanPhone].longitude = detectedLng;
+        chatMetadata[cleanPhone].distanceKm = distNum;
+        chatMetadata[cleanPhone].googleMapsUrl = mapsUrl;
+        chatMetadata[cleanPhone].locationUpdatedAt = new Date().toISOString();
+      }
+      saveChatMetadata();
+
+      // Check if this customer ALREADY has an existing PAID or confirmed order!
+      let orders = {};
+      try {
+        const ordersFilePath = path.join(__dirname, "customer_orders.json");
+        if (fs.existsSync(ordersFilePath)) orders = JSON.parse(fs.readFileSync(ordersFilePath, "utf8"));
+      } catch (_) {}
+      const existingOrder = orders[raw10] || orders[cleanPhone] || Object.values(orders).find(o => o.chatId === remoteJid);
+      const isAlreadyPaid = existingOrder && isOrderConfirmedPaid(existingOrder);
+
+      // Save GPS coordinates to existing order record for delivery rider navigation
+      if (existingOrder) {
+        existingOrder.latitude = detectedLat;
+        existingOrder.longitude = detectedLng;
+        existingOrder.googleMapsUrl = mapsUrl;
+        existingOrder.distanceKm = distNum;
+        recordNewCustomerOrder(cleanPhone || raw10, existingOrder);
+      }
+
+      if (isAlreadyPaid) {
+        // ── STRICT PAID ORDER SHIELD ──
+        // Customer has ALREADY paid! NEVER reject or tell them delivery is cancelled or to visit the shop!
+        console.log(`│ 🛡️ [PAID ORDER SHIELD] Customer ${cleanPhone || customerName} already paid for #${existingOrder.orderRef}. Locking coordinates for rider!`);
+        locReply = `📍 *Delivery Location Received & Coordinates Locked!* ✅\n\nThank you! We have updated your exact delivery location coordinates for our dispatch rider.\n\nYour order (*#${existingOrder.orderRef}*) is confirmed and our Malabagh farm team has it scheduled for fresh live harvest! 🐟\n\n📍 Maps: ${mapsUrl}`;
+        historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. Order #${existingOrder.orderRef} is already PAID. Coordinates locked for delivery rider.]`;
+
+        // If distance happens to be > 16.0 km on a paid order, notify owner immediately on Telegram for personal handling
+        if (distNum > 16.0) {
+          try {
+            sendTelegramMessage(
+              `⚠️ <b>PAID ORDER OUTER-ZONE GPS PIN ALERT</b>\n` +
+              `━━━━━━━━━━━━━━━━━━━━━━\n` +
+              `👤 <b>Customer:</b> ${existingOrder.name || customerName || "Customer"} (<code>${cleanPhone || raw10}</code>)\n` +
+              `📦 <b>Order Ref:</b> #${existingOrder.orderRef} (${existingOrder.items || "Fresh Trout"})\n` +
+              `💰 <b>Amount Paid:</b> ${existingOrder.amount}\n` +
+              `📏 <b>Pin Distance:</b> <b>${distRounded} km</b> from Malabagh farm\n` +
+              `📍 <a href="${mapsUrl}"><b>Open Google Maps Pin</b></a>\n\n` +
+              `💡 <i>Action: Bot locked coordinates for rider. Dispatch rider or coordinate directly with customer!</i>`
+            ).catch(() => {});
+          } catch (_) {}
         }
-        saveChatMetadata();
-
+      } else if (distNum <= 16.0) {
         const hasExistingPaymentLink = chatHist.some(m => m.text && (m.text.includes("rzp.io") || m.text.includes("Official Razorpay Payment Link")));
         const hasAgreedOrder = chatHist.some(m => m.text && (/\b(?:2\s*kg|3\s*kg|4\s*kg|5\s*kg|1\s*kg|gutted|whole|starter\s*pack|family\s*pack)\b/i.test(m.text)));
-
-        const istGps = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
-        const isNightGps = istGps.getHours() >= 21 || istGps.getHours() < 7;
-        const isEveningGps = istGps.getHours() >= 16 && istGps.getHours() < 21;
-        const surgeGps = isEveningGps ? 40 : 0;
 
         if (hasExistingPaymentLink) {
           locReply = isNightGps

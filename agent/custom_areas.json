@@ -1,0 +1,180 @@
+{
+  "Baghat": {
+    "dist": 15,
+    "minKg": 4,
+    "tier": "Extended-4kg",
+    "status": "IN_ZONE"
+  },
+  "Baghat Barzulla": {
+    "dist": 15,
+    "minKg": 4,
+    "tier": "Extended-4kg",
+    "status": "IN_ZONE"
+  },
+  "Barzulla": {
+    "dist": 14.2,
+    "minKg": 4,
+    "tier": "Extended-4kg",
+    "status": "IN_ZONE"
+  },
+  "Wazir Bagh": {
+    "dist": 12.7,
+    "minKg": 4,
+    "tier": "Extended-4kg",
+    "status": "IN_ZONE"
+  },
+  "Habba Kadal": {
+    "dist": 7.1,
+    "minKg": 4,
+    "tier": "Extended-4kg",
+    "status": "IN_ZONE"
+  },
+  "Srinagar Bandipora Road": {
+    "dist": 10.7,
+    "minKg": 4,
+    "tier": "Extended-4kg",
+    "status": "IN_ZONE",
+    "source": "Nominatim"
+  },
+  "26 No. stop": {
+    "dist": 183.6,
+    "minKg": 4,
+    "tier": "Extended-4kg",
+    "status": "OUT_ZONE",
+    "source": "Nominatim"
+  },
+  "goStops Srinagar": {
+    "dist": 9.3,
+    "minKg": 4,
+    "tier": "Extended-4kg",
+    "status": "IN_ZONE",
+    "source": "Nominatim"
+  },
+  "Srinagar": {
+    "dist": 7.8,
+    "minKg": 4,
+    "tier": "Extended-4kg",
+    "status": "IN_ZONE",
+    "source": "Nominatim"
+  },
+  "Khayam": {
+    "dist": 7.2,
+    "minKg": 4,
+    "tier": "Extended-4kg",
+    "status": "IN_ZONE"
+  },
+  "Khayyam": {
+    "dist": 7.2,
+    "minKg": 4,
+    "tier": "Extended-4kg",
+    "status": "IN_ZONE"
+  },
+  "Khayyam Chowk": {
+    "dist": 7.2,
+    "minKg": 4,
+    "tier": "Extended-4kg",
+    "status": "IN_ZONE"
+  },
+  "Khyber Hospital": {
+    "dist": 7.2,
+    "minKg": 4,
+    "tier": "Extended-4kg",
+    "status": "IN_ZONE"
+  },
+  "Alochi Bagh": {
+    "dist": 9.6,
+    "minKg": 4,
+    "tier": "Extended-4kg",
+    "status": "IN_ZONE"
+  },
+  "Allochi Bagh": {
+    "dist": 9.6,
+    "minKg": 4,
+    "tier": "Extended-4kg",
+    "status": "IN_ZONE"
+  },
+  "Aloochi Bagh": {
+    "dist": 9.6,
+    "minKg": 4,
+    "tier": "Extended-4kg",
+    "status": "IN_ZONE"
+  },
+  "Elachi Bagh": {
+    "dist": 9.6,
+    "minKg": 4,
+    "tier": "Extended-4kg",
+    "status": "IN_ZONE"
+  },
+  "Magarmal Bagh": {
+    "dist": 8.8,
+    "minKg": 4,
+    "tier": "Extended-4kg",
+    "status": "IN_ZONE"
+  },
+  "Balgarden": {
+    "dist": 8.5,
+    "minKg": 4,
+    "tier": "Extended-4kg",
+    "status": "IN_ZONE"
+  },
+  "Gogji Bagh": {
+    "dist": 13.6,
+    "minKg": 4,
+    "tier": "Extended-4kg",
+    "status": "IN_ZONE"
+  },
+  "Tulsi Bagh": {
+    "dist": 13,
+    "minKg": 4,
+    "tier": "Extended-4kg",
+    "status": "IN_ZONE"
+  },
+  "Rambagh": {
+    "dist": 14.3,
+    "minKg": 4,
+    "tier": "Extended-4kg",
+    "status": "IN_ZONE"
+  },
+  "Sonwar": {
+    "dist": 12.9,
+    "minKg": 4,
+    "tier": "Extended-4kg",
+    "status": "IN_ZONE"
+  },
+  "Hazuri Bagh": {
+    "dist": 12,
+    "minKg": 4,
+    "tier": "Extended-4kg",
+    "status": "IN_ZONE"
+  },
+  "Iqbal Park": {
+    "dist": 12.5,
+    "minKg": 4,
+    "tier": "Extended-4kg",
+    "status": "IN_ZONE"
+  },
+  "Solina": {
+    "dist": 14,
+    "minKg": 4,
+    "tier": "Extended-4kg",
+    "status": "IN_ZONE"
+  },
+  "Bagati Kanipora": {
+    "dist": 19.7,
+    "minKg": 4,
+    "tier": "Beyond-16km",
+    "status": "OUT_ZONE"
+  },
+  "BK Pora": {
+    "dist": 19.7,
+    "minKg": 4,
+    "tier": "Beyond-16km",
+    "status": "OUT_ZONE"
+  },
+  "Kanipora": {
+    "dist": 19.7,
+    "minKg": 4,
+    "tier": "Beyond-16km",
+    "status": "OUT_ZONE"
+  }
+}

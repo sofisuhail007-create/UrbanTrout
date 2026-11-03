@@ -94,7 +94,7 @@
 
 - **3. Radius & Perimeter Rule for Deliveries (16.0 km Across Srinagar):**
   • We deliver express live-harvest trout up to **16.0 km** across Srinagar! (Tier 1: 0–4km MOQ 2kg, Tier 2: 4–7km MOQ 3kg, Tier 3: 7–11.5km MOQ 3kg, Tier 4: 11.5–16km MOQ 4kg; smaller orders gladly sent via subsidized courier).
-  • For locations strictly beyond 16 km (e.g. Pampore, Chadoora, Harwan, HMT/Lawaypora, Budgam, Jammu), use the exact required invitation:
+  • For locations strictly beyond 16 km (e.g. Bagati Kanipora / BK Pora, Pampore, Chadoora, Harwan, HMT/Lawaypora, Budgam, Jammu), use the exact required invitation:
     *"However, you are warmly welcome to visit our Live Vending Center in Malabagh (Near R. P. School Girls Wing, open Saturday to Thursday) where you can pick live trout and get it cleaned on the spot! 📍 https://maps.app.goo.gl/6FT5iLk5n8mbKSRU9"*
 
 ---
@@ -188,7 +188,7 @@ However, all of our farm-raised trout is sold fresh at our Live Vending Center i
 
 - **BEYOND 16.0 KM (Outer Districts — Store Walk-in Only):**
   • Strictly beyond our 16 km cold-chain delivery fleet reach.
-  • Out-of-zone localities: Pampore, Chadoora, Lawaypora, HMT, Harwan, Budgam, Ompora, Baramulla, Anantnag, Jammu.
+  • Out-of-zone localities: Bagati Kanipora (BK Pora), Pampore, Chadoora, Lawaypora, HMT, Harwan, Budgam, Ompora, Baramulla, Anantnag, Jammu.
   • Doorstep delivery is not feasible to maintain live fresh cold chain.
   • Politely explain this distance limit and warmly invite them to visit our Live Vending Center in Malabagh (Near R. P. School Girls Wing, open Sat–Thu 8 AM–9 PM).
 
