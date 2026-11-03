@@ -3111,8 +3111,8 @@ ${fridayOperatingNote}
    - TIER 3 (7.0 to 11.5 km): 100% FREE on 3 kg+ (Cleaned & Gutted ₹1,740). 2 kg = ₹1,229 (only ₹69 courier fee). 1 kg = ₹659 (₹79 fee).
      Confirmed areas: Karan Nagar, Lal Chowk, Khayam, Dalgate, Qamarwari, Nishat, Brein, Balgarden.
    - TIER 4 (11.5 to 16.0 km): 100% FREE on 4 kg family pack (Cleaned & Gutted ₹2,320). 3 kg = ₹1,819 (₹79 fee). 2 kg = ₹1,259 (₹99 fee). 1 kg = ₹719 (₹139 fee).
-     Confirmed areas: Barzulla, Baghat Barzulla, Rambagh, Solina, Gogji Bagh, Wazir Bagh, Tulsi Bagh, Hazuri Bagh, Iqbal Park, Sonwar, Batamaloo, Bemina, Rajbagh, Jawahar Nagar, Alochi Bagh, Magarmal Bagh, Sanat Nagar, Rawalpora, Hyderpora, Chanapora, Natipora, Peerbagh, Airport Road / Humhama, Ganderbal, Bagh-e-Mehtab, Kralpora, Rangreth, Lasjan, Nowgam, Padshahi Bagh, Pantha Chowk, Soiteng, Pandrathan, Athwajan, Pohru, Mochu.
-   - CONFIRMED OUT-ZONE AREAS (> 16 km): Bagati Kanipora (BK Pora), Pampore, Chadoora, Lawaypora, HMT, Harwan, Budgam, Ompora, Baramulla, Anantnag, Jammu.
+     Confirmed areas: Barzulla, Baghat Barzulla, Rambagh, Solina, Gogji Bagh, Wazir Bagh, Tulsi Bagh, Hazuri Bagh, Iqbal Park, Sonwar, Batamaloo, Bemina, Rajbagh, Jawahar Nagar, Alochi Bagh, Magarmal Bagh, Sanat Nagar, Rawalpora, Hyderpora, Chanapora, Natipora, Peerbagh, Airport Road / Humhama, Ganderbal, Bagh-e-Mehtab, Kralpora, Rangreth, Lasjan, Nowgam, Padshahi Bagh, Pantha Chowk, Soiteng, Pandrathan, Athwajan, Pohru, Mochu, HMT, Zainakote, Umerabad.
+   - CONFIRMED OUT-ZONE AREAS (> 16 km): Bagati Kanipora (BK Pora), Pampore, Chadoora, Lawaypora, Narbal, Harwan, Budgam, Ompora, Baramulla, Anantnag, Jammu.
      No delivery beyond 16 km to maintain cold chain. Direct them to visit Live Vending Center in Malabagh.
    - CRITICAL REVENUE PROTECTION RULE (NEVER BLINDLY DISCARD LEADS):
      If a customer mentions a locality, colony, or address that is NOT on the confirmed lists, NEVER ASSUME OR GUESS IT IS OUTSIDE ZONE!
