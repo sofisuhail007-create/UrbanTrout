@@ -14,6 +14,14 @@ const fs = require("fs");
 require("dotenv").config();
 const { sendNightlyBriefing, sendTelegramMessage } = require("./nightly_briefing.js");
 
+// Prevent uncaught exceptions from terminating the Node agent process
+process.on("uncaughtException", (err) => {
+  console.error("💥 [Process Uncaught Exception Handled]:", err?.stack || err);
+});
+process.on("unhandledRejection", (reason) => {
+  console.error("💥 [Process Unhandled Rejection Handled]:", reason);
+});
+
 // ============================================================================
 // STRICT VVIP MANUAL-ONLY LIST (AI MUST NEVER TEXT UNDER ANY CIRCUMSTANCE)
 // IAS Officer / Executive contacts managed 100% manually by owner Suhail.
@@ -4706,157 +4714,159 @@ async function startBot() {
     if (type !== "notify") return;
 
     for (const msg of messages) {
-      if (!msg.message) continue;
-      const remoteJid = msg.key.remoteJid;
-      if (!remoteJid) continue;
+      try {
+        if (!msg.message) continue;
+        const remoteJid = msg.key.remoteJid;
+        if (!remoteJid) continue;
 
-      // Ignore group chats and status broadcasts
-      if (remoteJid.endsWith("@g.us") || remoteJid.includes("broadcast")) continue;
+        // Ignore group chats and status broadcasts
+        if (remoteJid.endsWith("@g.us") || remoteJid.includes("broadcast")) continue;
 
-      // Persist sender's WhatsApp pushName immediately
-      if (msg.pushName) {
-        saveWhatsAppContact(remoteJid, msg.pushName);
-      }
+        // Persist sender's WhatsApp pushName immediately
+        if (msg.pushName) {
+          saveWhatsAppContact(remoteJid, msg.pushName);
+        }
 
-      // Ignore messages sent by the bot itself or already processed
-      const msgId = msg.key?.id;
-      if (msgId) {
-        if (botSentMessageIds.has(msgId)) continue;
-        if (processedIncomingMessageIds.has(msgId)) {
-          console.log(`🛡️ [Duplicate MsgId Dropped] ${msgId} already processed for ${remoteJid}.`);
+        // Ignore messages sent by the bot itself or already processed
+        const msgId = msg.key?.id;
+        if (msgId) {
+          if (botSentMessageIds.has(msgId)) continue;
+          if (processedIncomingMessageIds.has(msgId)) {
+            console.log(`🛡️ [Duplicate MsgId Dropped] ${msgId} already processed for ${remoteJid}.`);
+            continue;
+          }
+          processedIncomingMessageIds.add(msgId);
+          setTimeout(() => processedIncomingMessageIds.delete(msgId), 10 * 60 * 1000);
+        }
+
+        // STRICT VVIP GUARD: If sender is VVIP IAS Officer (9419153353), AI MUST NEVER REPLY!
+        if (isVvipManualOnly(remoteJid, resolveCustomerPhone(remoteJid))) {
+          console.log(`🛡️ [VVIP MANUAL-ONLY] Received message from IAS Officer (9419153353 / ${remoteJid}). Silently ignored by AI for 100% manual handling by Suhail.`);
+          // Lock permanent human override for 1 year
+          humanOverrides.set(remoteJid, Date.now() + (365 * 24 * 60 * 60 * 1000));
           continue;
         }
-        processedIncomingMessageIds.add(msgId);
-        setTimeout(() => processedIncomingMessageIds.delete(msgId), 10 * 60 * 1000);
-      }
 
-      // STRICT VVIP GUARD: If sender is VVIP IAS Officer (9419153353), AI MUST NEVER REPLY!
-      if (isVvipManualOnly(remoteJid, resolveCustomerPhone(remoteJid))) {
-        console.log(`🛡️ [VVIP MANUAL-ONLY] Received message from IAS Officer (9419153353 / ${remoteJid}). Silently ignored by AI for 100% manual handling by Suhail.`);
-        // Lock permanent human override for 1 year
-        humanOverrides.set(remoteJid, Date.now() + (365 * 24 * 60 * 60 * 1000));
-        continue;
-      }
+        const inner = getInnerMessage(msg);
+        if (!inner) continue;
 
+        let rawText = (
+          inner.conversation ||
+          inner.extendedTextMessage?.text ||
+          inner.imageMessage?.caption ||
+          ""
+        ).trim();
 
+        const cleanPhone = resolveCustomerPhone(remoteJid);
+        const isOwner = msg.key.fromMe || cleanPhone.endsWith("7006604148") || String(remoteJid).includes("174637916885151");
 
-      const inner = getInnerMessage(msg);
-      if (!inner) continue;
+        // Duplicate text debounce: If the exact same text is received from customer within 15 seconds, drop it
+        if (!isOwner && rawText) {
+          const lastMsg = recentUserMessages.get(remoteJid);
+          const now = Date.now();
+          if (lastMsg && lastMsg.text === rawText && (now - lastMsg.timestamp < 15000)) {
+            console.log(`🛡️ [Duplicate Text Dropped] Repeated message from ${remoteJid} ("${rawText.slice(0, 35)}...") ignored within 15s.`);
+            continue;
+          }
+          recentUserMessages.set(remoteJid, { text: rawText, timestamp: now });
+        }
 
-      const rawText = (
-        inner.conversation ||
-        inner.extendedTextMessage?.text ||
-        inner.imageMessage?.caption ||
-        ""
-      ).trim();
-
-      const cleanPhone = resolveCustomerPhone(remoteJid);
-      const isOwner = msg.key.fromMe || cleanPhone.endsWith("7006604148") || String(remoteJid).includes("174637916885151");
-
-      // Duplicate text debounce: If the exact same text is received from customer within 15 seconds, drop it
-      if (!isOwner && rawText) {
-        const lastMsg = recentUserMessages.get(remoteJid);
-        const now = Date.now();
-        if (lastMsg && lastMsg.text === rawText && (now - lastMsg.timestamp < 15000)) {
-          console.log(`🛡️ [Duplicate Text Dropped] Repeated message from ${remoteJid} ("${rawText.slice(0, 35)}...") ignored within 15s.`);
+        // 1. If message is from owner (either manual message or # command)
+        if (isOwner) {
+          // If owner sends a message in a customer chat, immediately cancel any pending customer debounce buffer!
+          if (chatDebounceBuffers.has(remoteJid)) {
+            clearTimeout(chatDebounceBuffers.get(remoteJid).timer);
+            chatDebounceBuffers.delete(remoteJid);
+          }
+          enqueueChatMessage(remoteJid, async () => {
+            await processSingleMessage(sock, msg, remoteJid, rawText);
+          });
           continue;
         }
-        recentUserMessages.set(remoteJid, { text: rawText, timestamp: now });
-      }
 
-      // 1. If message is from owner (either manual message or # command)
-      if (isOwner) {
-        // If owner sends a message in a customer chat, immediately cancel any pending customer debounce buffer!
-        if (chatDebounceBuffers.has(remoteJid)) {
-          clearTimeout(chatDebounceBuffers.get(remoteJid).timer);
-          chatDebounceBuffers.delete(remoteJid);
-        }
-        enqueueChatMessage(remoteJid, async () => {
-          await processSingleMessage(sock, msg, remoteJid, rawText);
-        });
-        continue;
-      }
-
-      // 2. Customer message: Check if Human Override is active for this chat
-      const resolved = resolveCustomerPhone(remoteJid);
-      const overrideExpiry =
-        humanOverrides.get(remoteJid) ||
-        (cleanPhone ? humanOverrides.get(cleanPhone) : null) ||
-        (resolved ? humanOverrides.get(resolved) : null);
-      if (overrideExpiry && Date.now() < overrideExpiry) {
-        const remainingMins = Math.ceil((overrideExpiry - Date.now()) / (60 * 1000));
-        console.log(`⏸️ [Human Intervened] AI paused (${remainingMins}m remaining) for ${formatPhoneDisplay(resolved || cleanPhone)}. Skipping.`);
-        continue;
-      }
-
-      // 3. Check if Global Kill Switch is active
-      if (isAiPausedGlobally) {
-        if (aiPauseExpiry > 0 && Date.now() >= aiPauseExpiry) {
-          isAiPausedGlobally = false;
-          aiPauseExpiry = 0;
-          console.log(`\n⏰ [AI Pause Expired] Auto-replies resumed.`);
-        } else {
-          console.log(`⏸️ [AI Paused Globally] Skipped auto-reply for ${formatPhoneDisplay(cleanPhone)}`);
+        // 2. Customer message: Check if Human Override is active for this chat
+        const resolved = resolveCustomerPhone(remoteJid);
+        const overrideExpiry =
+          humanOverrides.get(remoteJid) ||
+          (cleanPhone ? humanOverrides.get(cleanPhone) : null) ||
+          (resolved ? humanOverrides.get(resolved) : null);
+        if (overrideExpiry && Date.now() < overrideExpiry) {
+          const remainingMins = Math.ceil((overrideExpiry - Date.now()) / (60 * 1000));
+          console.log(`⏸️ [Human Intervened] AI paused (${remainingMins}m remaining) for ${formatPhoneDisplay(resolved || cleanPhone)}. Skipping.`);
           continue;
         }
-      }
 
-      // 4. WhatsApp Location Pin or Live Location: process immediately without debouncing
-      const locMsg = inner.locationMessage || inner.liveLocationMessage;
-      if (locMsg) {
-        let combinedText = rawText;
+        // 3. Check if Global Kill Switch is active
+        if (isAiPausedGlobally) {
+          if (aiPauseExpiry > 0 && Date.now() >= aiPauseExpiry) {
+            isAiPausedGlobally = false;
+            aiPauseExpiry = 0;
+            console.log(`\n⏰ [AI Pause Expired] Auto-replies resumed.`);
+          } else {
+            console.log(`⏸️ [AI Paused Globally] Skipped auto-reply for ${formatPhoneDisplay(cleanPhone)}`);
+            continue;
+          }
+        }
+
+        // 4. WhatsApp Location Pin or Live Location: process immediately without debouncing
+        const locMsg = inner.locationMessage || inner.liveLocationMessage;
+        if (locMsg) {
+          let combinedText = rawText;
+          if (chatDebounceBuffers.has(remoteJid)) {
+            const existing = chatDebounceBuffers.get(remoteJid);
+            clearTimeout(existing.timer);
+            chatDebounceBuffers.delete(remoteJid);
+            if (existing.text) combinedText = (existing.text + "\n" + rawText).trim();
+          }
+          enqueueChatMessage(remoteJid, async () => {
+            await processSingleMessage(sock, msg, remoteJid, combinedText);
+          });
+          continue;
+        }
+
+        // 4b. In-Flight Turn Intercept: If AI is actively generating a reply for an earlier message from this customer,
+        // invalidate the in-flight reply and prepend the earlier message so customer gets ONE combined response.
+        const activeGen = activeChatGenerations.get(remoteJid);
+        if (activeGen) {
+          console.log(`🛑 [In-Flight Intercept] Customer ${formatPhoneDisplay(cleanPhone)} sent a new message while AI was generating reply for earlier message. Aborting in-flight reply and merging!`);
+          activeChatGenerations.delete(remoteJid);
+          if (activeGen.promptText && !rawText.includes(activeGen.promptText)) {
+            rawText = `${activeGen.promptText}\n${rawText}`;
+          }
+        }
+
+        // Subscribe to presence updates for this customer so we know when they are typing
+        try {
+          sock.presenceSubscribe(remoteJid).catch(() => {});
+        } catch (_) {}
+
+        // 5. Smart Adaptive Multi-Message Buffer (waits 5000ms, holds while customer is typing)
+        const DEBOUNCE_DELAY_MS = 5000;
         if (chatDebounceBuffers.has(remoteJid)) {
           const existing = chatDebounceBuffers.get(remoteJid);
           clearTimeout(existing.timer);
-          chatDebounceBuffers.delete(remoteJid);
-          if (existing.text) combinedText = (existing.text + "\n" + rawText).trim();
+          existing.text = existing.text ? (existing.text + "\n" + rawText) : rawText;
+          existing.msg = msg;
+          existing.lastMsgTime = Date.now();
+          const elapsed = Date.now() - existing.firstMsgTime;
+          const delay = elapsed > 25000 ? 1500 : DEBOUNCE_DELAY_MS;
+          console.log(`⏳ [Smart Debounce] Buffered rapid message #${existing.text.split('\n').length} from ${formatPhoneDisplay(cleanPhone)} (Elapsed: ${Math.round(elapsed / 1000)}s): "${rawText.replace(/\n+/g, ' ')}"`);
+          existing.timer = setTimeout(() => flushDebounce(remoteJid), delay);
+        } else {
+          const entry = {
+            firstMsgTime: Date.now(),
+            lastMsgTime: Date.now(),
+            msg,
+            text: rawText,
+            isTyping: false,
+            timer: null
+          };
+          entry.timer = setTimeout(() => flushDebounce(remoteJid), DEBOUNCE_DELAY_MS);
+          chatDebounceBuffers.set(remoteJid, entry);
+          console.log(`⏳ [Smart Debounce] New customer message buffer started for ${formatPhoneDisplay(cleanPhone)} (5.0s window): "${rawText.replace(/\n+/g, ' ')}"`);
         }
-        enqueueChatMessage(remoteJid, async () => {
-          await processSingleMessage(sock, msg, remoteJid, combinedText);
-        });
-        continue;
-      }
-
-      // 4b. In-Flight Turn Intercept: If AI is actively generating a reply for an earlier message from this customer,
-      // invalidate the in-flight reply and prepend the earlier message so customer gets ONE combined response.
-      const activeGen = activeChatGenerations.get(remoteJid);
-      if (activeGen) {
-        console.log(`🛑 [In-Flight Intercept] Customer ${formatPhoneDisplay(cleanPhone)} sent a new message while AI was generating reply for earlier message. Aborting in-flight reply and merging!`);
-        activeChatGenerations.delete(remoteJid);
-        if (activeGen.promptText && !rawText.includes(activeGen.promptText)) {
-          rawText = `${activeGen.promptText}\n${rawText}`;
-        }
-      }
-
-      // Subscribe to presence updates for this customer so we know when they are typing
-      try {
-        sock.presenceSubscribe(remoteJid).catch(() => {});
-      } catch (_) {}
-
-      // 5. Smart Adaptive Multi-Message Buffer (waits 5000ms, holds while customer is typing)
-      const DEBOUNCE_DELAY_MS = 5000;
-      if (chatDebounceBuffers.has(remoteJid)) {
-        const existing = chatDebounceBuffers.get(remoteJid);
-        clearTimeout(existing.timer);
-        existing.text = existing.text ? (existing.text + "\n" + rawText) : rawText;
-        existing.msg = msg;
-        existing.lastMsgTime = Date.now();
-        const elapsed = Date.now() - existing.firstMsgTime;
-        const delay = elapsed > 25000 ? 1500 : DEBOUNCE_DELAY_MS;
-        console.log(`⏳ [Smart Debounce] Buffered rapid message #${existing.text.split('\n').length} from ${formatPhoneDisplay(cleanPhone)} (Elapsed: ${Math.round(elapsed / 1000)}s): "${rawText.replace(/\n+/g, ' ')}"`);
-        existing.timer = setTimeout(() => flushDebounce(remoteJid), delay);
-      } else {
-        const entry = {
-          firstMsgTime: Date.now(),
-          lastMsgTime: Date.now(),
-          msg,
-          text: rawText,
-          isTyping: false,
-          timer: null
-        };
-        entry.timer = setTimeout(() => flushDebounce(remoteJid), DEBOUNCE_DELAY_MS);
-        chatDebounceBuffers.set(remoteJid, entry);
-        console.log(`⏳ [Smart Debounce] New customer message buffer started for ${formatPhoneDisplay(cleanPhone)} (5.0s window): "${rawText.replace(/\n+/g, ' ')}"`);
+      } catch (msgErr) {
+        console.error("❌ [Message Ingress Exception Handled]:", msgErr?.stack || msgErr);
       }
     }
   });

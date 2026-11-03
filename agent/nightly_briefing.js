@@ -326,161 +326,38 @@ async function generateExecutiveBriefing(targetDateStr = null) {
   // Combined Business Totals
   const totalCombinedRevenue = onlineRevenue + storeRevenue;
   const totalCombinedKg = onlineKg + storeKg;
+  const totalOnlinePayments = storeOnline + onlineRevenue;
 
-  // Format Telegram HTML Message
+  // Format Telegram HTML Message (Clean, single-message executive close)
   let msg = `🐟 <b>URBAN TROUT AQUACULTURE</b>\n`;
-  msg += `📊 <b>DAILY EXECUTIVE BRIEFING — ${formattedDate.toUpperCase()}</b>\n`;
+  msg += `📊 <b>DAILY EXECUTIVE CLOSE — ${formattedDate.toUpperCase()} (9:00 PM)</b>\n`;
   msg += `━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n`;
 
-  msg += `🐠 <b>AQUARIUM LIVE STOCK AVAILABILITY</b>\n`;
-  msg += `• <b>Live Biomass in Tanks:</b> <b>${liveStockKg.toFixed(2)} Kg</b> ${isOutOfStock ? "(🔴 OUT OF STOCK)" : "(🟢 Active Stock)"}\n`;
-  msg += `• <b>Status:</b> ${isOutOfStock ? "Zero biomass remaining in tanks" : "Ready for live harvest &amp; express dispatch"}\n\n`;
+  msg += `🐠 <b>LIVE AQUARIUM STOCK</b>\n`;
+  msg += `• <b>Biomass in Tanks:</b> <b>${liveStockKg.toFixed(2)} Kg</b> ${isOutOfStock ? "(🔴 OUT OF STOCK)" : "(🟢 Active Stock)"}\n`;
+  msg += `• <b>Status:</b> ${isOutOfStock ? "Zero biomass remaining in tanks" : "Healthy & ready for morning harvest"}\n\n`;
 
-  msg += `💰 <b>REVENUE &amp; SALES SNAPSHOT</b>\n`;
-  msg += `• <b>Total Combined Revenue:</b> <b>₹${totalCombinedRevenue.toLocaleString("en-IN")}</b>\n`;
-  msg += `• <b>Total Volume Sold / Prepped:</b> <b>${totalCombinedKg.toFixed(2)} Kg</b>\n\n`;
+  msg += `📦 <b>VOLUME SOLD TODAY</b>\n`;
+  msg += `• <b>Total Fish Sold:</b> <b>${totalCombinedKg.toFixed(2)} Kg</b>\n`;
+  msg += `  - 🏪 <b>Farm Counter (Malabagh):</b> ${storeKg.toFixed(2)} Kg (${storeSales.length} sales)\n`;
+  msg += `  - 🛵 <b>Doorstep Deliveries:</b> ${onlineKg.toFixed(2)} Kg (${confirmedPaidOrders.length} orders)\n\n`;
 
-  msg += `🏪 <b>FARM VENDING CENTRE (MALABAGH)</b>\n`;
-  msg += `• <b>Counter Sales:</b> ${storeSales.length} Entries (${storeKg.toFixed(2)} Kg)\n`;
-  msg += `• <b>Counter Revenue:</b> ₹${storeRevenue.toLocaleString("en-IN")}\n`;
-  msg += `  💵 <b>Cash in Drawer:</b> <b>₹${storeCash.toLocaleString("en-IN")}</b> (${storeCashCount} sales)\n`;
-  msg += `  📱 <b>UPI / Online Payments:</b> <b>₹${storeOnline.toLocaleString("en-IN")}</b> (${storeOnlineCount} payments)\n\n`;
+  msg += `💰 <b>REVENUE INCURRED TODAY</b>\n`;
+  msg += `• <b>Total Revenue Collected:</b> <b>₹${totalCombinedRevenue.toLocaleString("en-IN")}</b>\n`;
+  msg += `  - 💵 <b>Cash in Drawer:</b> <b>₹${storeCash.toLocaleString("en-IN")}</b> (${storeCashCount} transactions)\n`;
+  msg += `  - 📱 <b>UPI / Online Payments:</b> <b>₹${totalOnlinePayments.toLocaleString("en-IN")}</b>\n\n`;
 
-  if (entriesList.length > 0) {
-    msg += `📋 <b>TODAY'S COUNTER ENTRIES LOG:</b>\n`;
-    msg += entriesList.join("\n") + "\n\n";
-  }
-
-  msg += `🛵 <b>ONLINE WHATSAPP DELIVERIES</b>\n`;
-  msg += `• <b>Confirmed &amp; Paid:</b> ${confirmedPaidOrders.length} Orders (${onlineKg.toFixed(1)} Kg) • ₹${onlineRevenue.toLocaleString("en-IN")}\n`;
-  if (confirmedPaidOrders.length > 0) {
-    confirmedPaidOrders.forEach((o, i) => {
-      msg += `  ${i + 1}. <b>${o.name}</b> (${o.area}): ${o.items} — ₹${o.amount} ✅\n`;
-    });
-  } else {
-    msg += `  <i>(No paid delivery orders today)</i>\n`;
-  }
-
+  msg += `🛵 <b>DISPATCH &amp; LEADS OVERVIEW</b>\n`;
+  msg += `• <b>Completed Deliveries:</b> ${confirmedPaidOrders.length} orders\n`;
   if (pendingOrders.length > 0) {
-    msg += `• <b>Pending Payment Links:</b> ${pendingOrders.length} Links • ₹${pendingRevenue.toLocaleString("en-IN")}\n`;
-    pendingOrders.forEach((o, i) => {
-      msg += `  • ${o.name} (${o.area}): ${o.items} — ₹${o.amount} ⏳\n`;
-    });
+    msg += `• <b>Pending Payment Links:</b> ${pendingOrders.length} orders (₹${pendingRevenue.toLocaleString("en-IN")})\n`;
   }
-  msg += `\n`;
+  msg += `• <b>Active WhatsApp Inquiries:</b> ${totalActiveChats} customer chats\n`;
+  msg += `• <b>Top Active Areas:</b> ${topLocalities}\n\n`;
 
-  msg += `📱 <b>LEADS &amp; INQUIRIES ENGINE</b>\n`;
-  msg += `• <b>Active WhatsApp Conversations:</b> ${totalActiveChats}\n`;
-  msg += `• <b>Geographic Distribution:</b>\n`;
-  msg += `  - Zone 1 (0–4 km): ${zoneStats.zone1} inquiries\n`;
-  msg += `  - Zone 2 (4–7 km): ${zoneStats.zone2} inquiries\n`;
-  msg += `  - Zone 3 (7–11.5 km): ${zoneStats.zone3} inquiries\n`;
-  msg += `  - Zone 4 (11.5–16 km): ${zoneStats.zone4} inquiries\n`;
-  if (zoneStats.outOfZone > 0) {
-    msg += `  - Out of Zone (&gt;16 km): ${zoneStats.outOfZone} inquiries (Store Visit)\n`;
-  }
-  msg += `  - General / Location Pending: ${zoneStats.unspecified}\n`;
-  msg += `• <b>Top Localities:</b> ${topLocalities}\n\n`;
-
-  // 4. Process Today's Detailed WhatsApp Incoming Chats & Leads Breakdown
-  const todayChatsList = [];
-  const chatsHistPath = path.join(__dirname, "chat_histories.json");
-  let chats = {};
-  if (fs.existsSync(chatsHistPath)) {
-    try { chats = JSON.parse(fs.readFileSync(chatsHistPath, "utf8")); } catch (_) {}
-  }
-
-  const contactsDbPath = path.join(__dirname, "contacts_database.json");
-  let contactsDb = [];
-  if (fs.existsSync(contactsDbPath)) {
-    try { contactsDb = JSON.parse(fs.readFileSync(contactsDbPath, "utf8")); } catch (_) {}
-  }
-  const phoneToContact = new Map();
-  for (const c of contactsDb) {
-    if (c.cleanPhone) phoneToContact.set(c.cleanPhone, c);
-  }
-
-  const authDir = path.join(__dirname, "auth_info_baileys");
-  function resolveCustomerPhoneForReport(jid) {
-    if (!jid) return "";
-    if (jid.endsWith("@s.whatsapp.net")) return jid.replace("@s.whatsapp.net", "").replace(/\D/g, "");
-    const cleanId = jid.replace("@lid", "").replace("@s.whatsapp.net", "");
-    try {
-      const revPath = path.join(authDir, `lid-mapping-${cleanId}_reverse.json`);
-      if (fs.existsSync(revPath)) {
-        return JSON.parse(fs.readFileSync(revPath, "utf8")).replace(/\D/g, "");
-      }
-    } catch (_) {}
-    return cleanId;
-  }
-
-  for (const [jid, m] of Object.entries(metadata)) {
-    const t = m.lastUserMsgTime || m.lastBotMsgTime;
-    if (!t) continue;
-    const dStr = new Date(t).toISOString();
-    if (!dStr.startsWith(dateStr)) continue;
-
-    const phone = resolveCustomerPhoneForReport(jid);
-    const raw10 = phone.slice(-10);
-    const cObj = phoneToContact.get(raw10);
-
-    const history = chats[jid] || [];
-    const userMsgs = history.filter(x => x.role === "user");
-    const lastUserMsg = userMsgs.length > 0 ? userMsgs[userMsgs.length - 1].text : (m.lastUserText || "Inquiry");
-
-    const matchedOrder = orders[raw10] || Object.values(orders).find(o => o.chatId === jid || (o.phone && o.phone.includes(raw10)));
-
-    let status = "Inquiry Active 💬";
-    if (matchedOrder) {
-      if (matchedOrder.status && (matchedOrder.status.includes("Paid") || matchedOrder.status.includes("Confirmed") || matchedOrder.status.includes("Delivered"))) {
-        status = "Order Paid ✅";
-      } else if (matchedOrder.status && matchedOrder.status.includes("Payment Link Sent")) {
-        status = "Payment Link Sent ⏳";
-      }
-    } else if (m.followUpSent) {
-      status = "Follow-Up Sent ⏳";
-    }
-
-    const timeStr = new Date(t).toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: true });
-
-    let displayName = m.pushName || (matchedOrder && matchedOrder.name) || (cObj && cObj.customerName) || "";
-    if (!displayName || /^(?:Customer|Valued Customer|No Name)/i.test(displayName)) {
-      if (m.localityName) displayName = `${m.localityName} Lead (${raw10.slice(-4)})`;
-      else displayName = `Lead (${raw10.slice(-4)})`;
-    }
-
-    const locText = m.localityName ? (m.distanceKm ? `${m.localityName} (~${m.distanceKm} km)` : m.localityName) : (m.distanceKm ? `~${m.distanceKm} km` : "Srinagar");
-    const speedText = m.lastResponseTimeMs ? `${(m.lastResponseTimeMs / 1000).toFixed(1)}s` : "1.2s";
-
-    todayChatsList.push({
-      timestamp: t,
-      timeStr,
-      name: displayName,
-      phone: raw10.length === 10 ? `+91 ${raw10.slice(0, 5)} ${raw10.slice(5)}` : phone,
-      area: locText,
-      query: lastUserMsg.replace(/[\r\n",]/g, " ").slice(0, 65).trim(),
-      speed: speedText,
-      status
-    });
-  }
-
-  todayChatsList.sort((a, b) => a.timestamp - b.timestamp);
-
-  if (todayChatsList.length > 0) {
-    msg += `📋 <b>TODAY'S INCOMING WHATSAPP CHATS &amp; LEADS LOG (${todayChatsList.length}):</b>\n`;
-    todayChatsList.forEach((c, idx) => {
-      msg += `  ${idx + 1}. <b>${c.name}</b> (<i>${c.timeStr}</i>) • 📍 ${c.area}\n`;
-      msg += `     📞 <code>${c.phone}</code> | ⚡ ${c.speed} | <b>${c.status}</b>\n`;
-      if (c.query) {
-        msg += `     💬 <i>"${c.query}"</i>\n`;
-      }
-    });
-    msg += `\n`;
-  }
-
+  msg += `━━━━━━━━━━━━━━━━━━━━━━━━━━\n`;
   msg += `🌙 <i>Evening Service Closed (9:00 PM)</i>\n`;
-  msg += `⚡ <i>Next Morning Live Harvest resumes at 9:00 AM</i>\n`;
-  msg += `━━━━━━━━━━━━━━━━━━━━━━━━━━`;
+  msg += `⚡ <i>Next Morning Live Harvest resumes tomorrow at 9:00 AM</i>`;
 
   // WhatsApp plain text format (uses *bold* instead of <b>)
   const waText = msg
