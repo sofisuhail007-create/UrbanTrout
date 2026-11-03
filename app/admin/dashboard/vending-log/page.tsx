@@ -1695,6 +1695,8 @@ export default function VendingCenterLoggerPage() {
     let cashKg = 0;
     let payingCount = 0;
     let totalExtraCollected = 0;
+    let guttedDeliveryCustCollected = 0;
+    let nonGuttedDeliveryCustCollected = 0;
     const byMode: Record<string, { count: number; revenue: number; kg: number }> = {};
 
     filteredEntriesByPeriod.forEach((e) => {
@@ -1742,17 +1744,27 @@ export default function VendingCenterLoggerPage() {
         }
       }
 
+      const isDelOrder = Boolean(e.custom_fields?.is_delivery || e.custom_fields?.order_channel === "delivery");
+      const custDelShare = isDelOrder ? (Number(e.custom_fields?.delivery_customer_share) || 0) : 0;
+      const expectedWithDel = exp + custDelShare;
+
       // Revenue: strictly realized collected cash & online
       totalRevenue += rev;
       if (rev > 0) {
         payingCount += 1;
-        totalExpected += (isCredit ? rev : exp);
+        totalExpected += (isCredit ? rev : expectedWithDel);
         if (isGutted) {
           guttedRevenue += rev;
           realizedGuttedKg = Math.round((realizedGuttedKg + w) * 1000) / 1000;
+          if (isDelOrder && custDelShare > 0) {
+            guttedDeliveryCustCollected += custDelShare;
+          }
         } else {
           nonGuttedRevenue += rev;
           realizedNonGuttedKg = Math.round((realizedNonGuttedKg + w) * 1000) / 1000;
+          if (isDelOrder && custDelShare > 0) {
+            nonGuttedDeliveryCustCollected += custDelShare;
+          }
         }
       }
 
@@ -1913,9 +1925,13 @@ export default function VendingCenterLoggerPage() {
     const nonGuttedProfit = Math.round(nonGuttedRevenue - nonGuttedCost);
     const totalSoldProfit = guttedProfit + nonGuttedProfit;
 
-    // Pure fish sold profit (strictly separates fish sales margin from delivery logistics so delivery revenue is never counted twice!)
+    // Pure fish sold profit & revenue (strictly separates fish sales margin from delivery logistics so delivery revenue is never counted twice!)
     const pureFishRevenue = Math.max(0, totalRevenue - totalCustomerDeliveryCollected);
-    const pureSoldProfit = Math.round(totalSoldProfit - totalCustomerDeliveryCollected);
+    const pureGuttedRevenue = Math.max(0, guttedRevenue - guttedDeliveryCustCollected);
+    const pureNonGuttedRevenue = Math.max(0, nonGuttedRevenue - nonGuttedDeliveryCustCollected);
+    const pureGuttedProfit = Math.round(pureGuttedRevenue - guttedCost);
+    const pureNonGuttedProfit = Math.round(pureNonGuttedRevenue - nonGuttedCost);
+    const pureSoldProfit = pureGuttedProfit + pureNonGuttedProfit;
     const pureProfitMarginPercent =
       pureFishRevenue > 0 ? ((pureSoldProfit / pureFishRevenue) * 100).toFixed(1) : "0.0";
     const profitMarginPercent =
@@ -1924,8 +1940,13 @@ export default function VendingCenterLoggerPage() {
     const avgProfitPerKg = realizedKg > 0 ? Math.round(totalSoldProfit / realizedKg) : 0;
     const pureAvgProfitPerKg = realizedKg > 0 ? Math.round(pureSoldProfit / realizedKg) : 0;
     const avgSellRate = realizedKg > 0 ? Math.round(totalRevenue / realizedKg) : 0;
+    const pureAvgSellRate = realizedKg > 0 ? Math.round(pureFishRevenue / realizedKg) : 0;
     const guttedAvgRate = realizedGuttedKg > 0 ? Math.round(guttedRevenue / realizedGuttedKg) : 0;
     const nonGuttedAvgRate = realizedNonGuttedKg > 0 ? Math.round(nonGuttedRevenue / realizedNonGuttedKg) : 0;
+    const pureGuttedAvgRate = realizedGuttedKg > 0 ? Math.round(pureGuttedRevenue / realizedGuttedKg) : 0;
+    const pureNonGuttedAvgRate = realizedNonGuttedKg > 0 ? Math.round(pureNonGuttedRevenue / realizedNonGuttedKg) : 0;
+    const netDeliveryContribution = totalCustomerDeliveryCollected - totalDeliveryRiderPayout;
+    const totalDeliveryGain = Math.max(0, totalCustomerDeliveryCollected - totalDeliveryRiderPayout);
 
     // Extra pure profit from surplus (procurement cost saved that directly becomes 100% whole profit)
     const surplusProfitBonus = Math.round(periodTotalSurplusKg * procurementAvgCost);
@@ -1955,9 +1976,18 @@ export default function VendingCenterLoggerPage() {
       nonGuttedProfit,
       totalSoldProfit,
       pureFishRevenue,
+      pureGuttedRevenue,
+      pureNonGuttedRevenue,
+      pureGuttedProfit,
+      pureNonGuttedProfit,
       pureSoldProfit,
       pureProfitMarginPercent,
       pureAvgProfitPerKg,
+      pureAvgSellRate,
+      pureGuttedAvgRate,
+      pureNonGuttedAvgRate,
+      netDeliveryContribution,
+      totalDeliveryGain,
       profitMarginPercent,
       avgProfitPerKg,
       procurementAvgCost,
@@ -2019,17 +2049,18 @@ export default function VendingCenterLoggerPage() {
     return 0;
   }, [period, selectedMonth, customStartDate, customEndDate, supplierRebatesMap]);
 
-  // ─── Final Operating Net Profit (Pure Sold Fish Profit + Supplier Rebate minus Farm Delivery Subsidy, Operational Expenses, Worker Salary & Mortality Loss) ───
+  // ─── Final Operating Net Profit (Pure Sold Fish Profit + Net Delivery Contribution + Supplier Rebate minus Operational Expenses, Worker Salary & Mortality Loss) ───
   const finalProfit = useMemo(() => {
+    const netDeliv = (kpis.totalCustomerDeliveryCollected || 0) - (kpis.totalDeliveryRiderPayout || 0);
     return Math.round(
       kpis.pureSoldProfit +
+      netDeliv +
       periodSupplierRebate -
       periodExpensesTotal -
       periodSalaryTotal -
-      (kpis.totalFarmDeliverySubsidy || 0) -
       periodMortalityCost
     );
-  }, [kpis.pureSoldProfit, periodSupplierRebate, periodExpensesTotal, periodSalaryTotal, kpis.totalFarmDeliverySubsidy, periodMortalityCost]);
+  }, [kpis.pureSoldProfit, kpis.totalCustomerDeliveryCollected, kpis.totalDeliveryRiderPayout, periodSupplierRebate, periodExpensesTotal, periodSalaryTotal, periodMortalityCost]);
 
   const finalProfitMargin = useMemo(() => {
     return kpis.totalRevenue > 0 ? ((finalProfit / kpis.totalRevenue) * 100).toFixed(1) : "0.0";
@@ -5368,11 +5399,11 @@ export default function VendingCenterLoggerPage() {
                 </div>
                 <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2.5 space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-emerald-300 font-bold" title="Net Gutted Profit after procurement and worker labor">
-                      G: ₹{kpis.guttedProfit.toLocaleString("en-IN")}
+                    <span className="text-emerald-300 font-bold" title="Pure Gutted Trout Margin after procurement and gutting labor">
+                      G: ₹{kpis.pureGuttedProfit.toLocaleString("en-IN")}
                     </span>
-                    <span className="text-cyan-300 font-bold">
-                      NG: ₹{kpis.nonGuttedProfit.toLocaleString("en-IN")}
+                    <span className="text-cyan-300 font-bold" title="Pure Whole/Non-Gutted Trout Margin">
+                      NG: ₹{kpis.pureNonGuttedProfit.toLocaleString("en-IN")}
                     </span>
                   </div>
                   {kpis.periodTotalSurplusKg > 0 && (
@@ -5563,9 +5594,9 @@ export default function VendingCenterLoggerPage() {
                           className="text-2xl sm:text-3xl font-black text-white"
                           style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                         >
-                          {kpis.avgSellRate > 0 ? kpis.avgSellRate.toLocaleString("en-IN") : "—"}
+                          {kpis.pureAvgSellRate > 0 ? kpis.pureAvgSellRate.toLocaleString("en-IN") : "—"}
                         </span>
-                        {kpis.avgSellRate > 0 && (
+                        {kpis.pureAvgSellRate > 0 && (
                           <span className="text-[11px] font-bold text-violet-400 font-mono ml-0.5">/Kg</span>
                         )}
                       </>
@@ -5575,10 +5606,10 @@ export default function VendingCenterLoggerPage() {
                 <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2.5 space-y-0.5">
                   <div className="flex items-center justify-between">
                     <span className="text-emerald-300 font-bold">
-                      G: ₹{kpis.guttedAvgRate > 0 ? kpis.guttedAvgRate.toLocaleString("en-IN") : "—"}/Kg
+                      G: ₹{kpis.pureGuttedAvgRate > 0 ? kpis.pureGuttedAvgRate.toLocaleString("en-IN") : "—"}/Kg
                     </span>
                     <span className="text-cyan-300">
-                      NG: {kpis.nonGuttedAvgRate > 0 ? `₹${kpis.nonGuttedAvgRate.toLocaleString("en-IN")}/Kg` : "—"}
+                      NG: {kpis.pureNonGuttedAvgRate > 0 ? `₹${kpis.pureNonGuttedAvgRate.toLocaleString("en-IN")}/Kg` : "—"}
                     </span>
                   </div>
                   <div className="text-[10.5px] text-slate-500 truncate">
@@ -5852,13 +5883,24 @@ export default function VendingCenterLoggerPage() {
                 </div>
                 <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2.5 space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-teal-300 font-bold" title="Gross Net Sold Profit">
-                      Sold: ₹{kpis.totalSoldProfit.toLocaleString("en-IN")}
+                    <span className="text-teal-300 font-bold" title="Pure Trout Sold Profit">
+                      Fish Sold: ₹{kpis.pureSoldProfit.toLocaleString("en-IN")}
                     </span>
                     <span className="text-rose-300 font-bold" title="Center Overheads Deducted">
                       Exp: -₹{periodExpensesTotal.toLocaleString("en-IN")}
                     </span>
                   </div>
+                  {kpis.totalFarmDeliverySubsidy > 0 ? (
+                    <div className="flex items-center justify-between text-blue-300 font-bold text-[10.5px]">
+                      <span>Delivery Farm Subsidy (Loss):</span>
+                      <span className="text-rose-400 font-mono">-₹{kpis.totalFarmDeliverySubsidy.toLocaleString("en-IN")}</span>
+                    </div>
+                  ) : kpis.totalDeliveryGain > 0 ? (
+                    <div className="flex items-center justify-between text-emerald-400 font-bold text-[10.5px]">
+                      <span>Delivery Gain:</span>
+                      <span className="text-emerald-300 font-mono">+₹{kpis.totalDeliveryGain.toLocaleString("en-IN")}</span>
+                    </div>
+                  ) : null}
                   {periodSalaryTotal > 0 && (
                     <div className="flex items-center justify-between text-sky-300 font-bold text-[10.5px]">
                       <span>Wages ({salaryConfig.worker_name}):</span>
