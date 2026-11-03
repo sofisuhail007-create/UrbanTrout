@@ -1167,9 +1167,17 @@ function recordNewCustomerOrder(phone, orderData) {
       const { pastOrders: _, ...oldSnapshot } = existing;
       pastOrders.push(oldSnapshot);
     }
+
+    // Preserve all historical payment link IDs for this customer
+    const allPaymentLinkIds = Array.isArray(existing?.allPaymentLinkIds) ? [...existing.allPaymentLinkIds] : (existing?.paymentLinkId ? [existing.paymentLinkId] : []);
+    if (orderData.paymentLinkId && !allPaymentLinkIds.includes(orderData.paymentLinkId)) {
+      allPaymentLinkIds.push(orderData.paymentLinkId);
+    }
+
     orders[cleanPhone] = {
       phone: cleanPhone,
       ...orderData,
+      allPaymentLinkIds,
       pastOrders,
       updatedAt: new Date().toISOString()
     };
@@ -1431,7 +1439,70 @@ async function pollWhatsAppDispatchQueue(sock) {
   }
 }
 
-// Instant Razorpay Payment Poller: directly checks pending payment links every 3.5 seconds
+// Persistent record of confirmed Razorpay payments to prevent duplicate confirmation receipts
+const confirmedPaymentsPath = path.join(__dirname, "confirmed_payments.json");
+let confirmedPaymentIds = new Set();
+if (fs.existsSync(confirmedPaymentsPath)) {
+  try {
+    const arr = JSON.parse(fs.readFileSync(confirmedPaymentsPath, "utf8"));
+    if (Array.isArray(arr)) confirmedPaymentIds = new Set(arr);
+  } catch (_) {}
+}
+function markPaymentProcessed(paymentId) {
+  if (!paymentId) return;
+  confirmedPaymentIds.add(paymentId);
+  try {
+    fs.writeFileSync(confirmedPaymentsPath, JSON.stringify(Array.from(confirmedPaymentIds).slice(-500), null, 2), "utf8");
+  } catch (_) {}
+}
+
+// Fetch recent captured payments directly from Razorpay API
+function fetchRecentRazorpayPayments(count = 15) {
+  if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) return Promise.resolve([]);
+  const auth = Buffer.from(`${RAZORPAY_KEY_ID}:${RAZORPAY_KEY_SECRET}`).toString("base64");
+  return new Promise((resolve) => {
+    https.get(`https://api.razorpay.com/v1/payments?count=${count}`, {
+      headers: { "Authorization": `Basic ${auth}` },
+      timeout: 5000
+    }, (res) => {
+      let data = "";
+      res.on("data", chunk => data += chunk);
+      res.on("end", () => {
+        try { resolve(JSON.parse(data).items || []); } catch { resolve([]); }
+      });
+    }).on("error", () => resolve([]));
+  });
+}
+
+// Send Instant Telegram Dispatch Card to Owner for Live Harvest & Delivery Routing
+async function sendTelegramDispatchCard(order, paymentInfo = {}) {
+  const phone = order.phone || paymentInfo.phone || "Customer";
+  const name = order.name || "Customer";
+  const amt = paymentInfo.amount || (order.amount ? String(order.amount).replace(/\D/g, "") : "");
+  const mapsLink = order.googleMapsUrl || (order.latitude && order.longitude ? `https://maps.google.com/?q=${order.latitude},${order.longitude}` : null);
+  const clean10 = String(phone).replace(/\D/g, "").slice(-10);
+
+  const html = `🚨 <b>NEW CONFIRMED ORDER TO HARVEST &amp; DISPATCH!</b> 🐟\n` +
+    `━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `📦 <b>Order Ref:</b> #${order.orderRef || "LIVE"}\n` +
+    `👤 <b>Customer:</b> ${name} (<code>+91 ${clean10}</code>)\n` +
+    `🐟 <b>Items:</b> ${order.items || "Fresh Rainbow Trout"}\n` +
+    `💰 <b>Amount Paid:</b> ₹${amt || "Paid"} [PAID ✅]\n` +
+    `📍 <b>Delivery Area:</b> ${order.deliveryArea || "Srinagar"}\n` +
+    `🕒 <b>Slot:</b> ${order.deliveryTime || "Within 90–120 Minutes"}\n` +
+    (mapsLink ? `🗺️ <a href="${mapsLink}"><b>Open Google Maps Navigation</b></a>\n` : `📍 <i>Awaiting GPS Location Pin from customer</i>\n`) +
+    `━━━━━━━━━━━━━━━━━━━━━━\n` +
+    `👉 <a href="https://wa.me/91${clean10}"><b>Open WhatsApp Chat with Customer</b></a>`;
+
+  try {
+    await sendTelegramMessage(html);
+    console.log(`📢 [Telegram Dispatch Card Sent] Dispatched order card for #${order.orderRef} to Telegram.`);
+  } catch (tgErr) {
+    console.error("Failed to send Telegram dispatch alert:", tgErr.message);
+  }
+}
+
+// Instant Razorpay Payment Poller: directly checks captured payments & links every 3.5 seconds
 let isCheckingPayments = false;
 async function checkPendingRazorpayPayments(sock) {
   if (isCheckingPayments) return;
@@ -1447,71 +1518,143 @@ async function checkPendingRazorpayPayments(sock) {
       return;
     }
 
-    const pendingKeys = Object.keys(orders).filter(k => 
-      orders[k] &&
-      orders[k].status === "Payment Link Sent — Awaiting Confirmation" && 
-      orders[k].paymentLinkId
-    );
+    // 1. Fetch captured payments directly from Razorpay API
+    const payments = await fetchRecentRazorpayPayments(15);
+    const capturedPayments = payments.filter(p => p.status === "captured");
 
-    if (pendingKeys.length === 0) return;
+    for (const p of capturedPayments) {
+      if (confirmedPaymentIds.has(p.id)) continue;
 
-    for (const key of pendingKeys) {
-      const order = orders[key];
-      const linkId = order.paymentLinkId;
-      if (!linkId) continue;
+      const pAmt = p.amount / 100;
+      const pRef = p.notes?.order_ref;
+      const pPhone = p.notes?.customer_phone || (p.contact ? p.contact.replace(/\D/g, "").slice(-10) : null);
 
-      try {
-        const linkData = await getRazorpayLinkStatus(linkId);
-        if (linkData && linkData.status === "paid") {
-          console.log(`\n🎉 [Instant Payment Confirmed via Razorpay!] Order #${order.orderRef} for ${key}`);
+      let matchedKey = null;
+      let order = null;
 
-          order.status = "Paid & Confirmed (Live Harvest Pending)";
-          order.paidAt = new Date().toISOString();
-          order.paymentId = linkData.payments?.[0]?.payment_id || "Razorpay Paid";
-          fs.writeFileSync(ordersFilePath, JSON.stringify(orders, null, 2), "utf-8");
-
-          const targetJid = order.chatId || `91${order.phone}@s.whatsapp.net`;
-          const displayAmt = order.amount ? order.amount.split(" ")[0] : `₹${(linkData.amount_paid || 0) / 100}`;
-          
-          const hasGps = Boolean(order.latitude || (chatMetadata[targetJid] && chatMetadata[targetJid].latitude));
-          let pinPrompt = "";
-          if (!hasGps) {
-            pinPrompt = `\n\n📍 *Quick Dispatch Note:*\nPlease share your WhatsApp location pin (tap 📎 ➔ Location ➔ Send current location) or Google Maps link so our delivery rider can navigate directly to your gate without calling for directions! 🛵`;
-          }
-
-          const receiptMsg = `✅ *Payment Received & Order Confirmed!* 🐟\n\nThank you! Your payment of *${displayAmt}* has been verified successfully.\n\n📋 *Order Summary:*\n• *Order Ref:* #${order.orderRef}\n• *Items:* ${order.items || "Fresh Rainbow Trout"}\n• *Status:* Confirmed (Live Harvest Scheduled)\n\nOur farm team at Malabagh is now preparing your fresh live harvest from our crystal-clear oxygen-saturated cold water tanks. We will deliver it fresh to your doorstep within 2 hours!${pinPrompt}`;
-
-          await sock.sendMessage(targetJid, { text: receiptMsg });
-          console.log(`✅ [Instant WhatsApp Confirmation Sent] Delivered directly to ${targetJid}!`);
-
-          // If this order was generated by owner for a customer, notify owner as well
-          if (order.ownerJid && order.ownerJid !== targetJid) {
-            try {
-              await sock.sendMessage(order.ownerJid, {
-                text: `🎉 *Payment Confirmed!* 🐟\n\nCustomer (+91 ${order.phone || "Customer"}) just completed payment of *${displayAmt}* for Order *#${order.orderRef}* (${order.items || "Fresh Trout"}).\nAutomated confirmation receipt delivered to customer's WhatsApp!`
-              });
-            } catch (_) {}
-          }
-
-          // Auto-settle Khata in Supabase if this was a customer with open balance
-          const paidRupees = (linkData.amount_paid || 0) / 100;
-          if (order.phone && paidRupees > 0) {
-            autoSettleKhataInSupabase(order.phone, paidRupees, order.paymentId, order.orderRef);
-          }
-
-          // Append to chat history so sales agent remembers the customer has paid
-          if (chatHistories.has(targetJid)) {
-            const h = chatHistories.get(targetJid);
-            h.push({ role: "model", text: receiptMsg });
-            saveChatHistories();
+      // Match A: by orderRef (current or pastOrders)
+      if (pRef) {
+        for (const [k, ord] of Object.entries(orders)) {
+          if (ord && (ord.orderRef === pRef || (ord.pastOrders && ord.pastOrders.some(po => po.orderRef === pRef)))) {
+            matchedKey = k;
+            order = ord;
+            break;
           }
         }
-      } catch (checkErr) {
-        // Transient error check
+      }
+
+      // Match B: by customer phone
+      if (!order && pPhone) {
+        if (orders[pPhone]) {
+          matchedKey = pPhone;
+          order = orders[pPhone];
+        } else {
+          for (const [k, ord] of Object.entries(orders)) {
+            if (ord && ord.phone && ord.phone.replace(/\D/g, "").slice(-10) === pPhone) {
+              matchedKey = k;
+              order = ord;
+              break;
+            }
+          }
+        }
+      }
+
+      // Match C: by paymentLinkId in allPaymentLinkIds or pastOrders
+      if (!order && p.notes?.payment_link_id) {
+        const linkId = p.notes.payment_link_id;
+        for (const [k, ord] of Object.entries(orders)) {
+          if (!ord) continue;
+          const allIds = ord.allPaymentLinkIds || [ord.paymentLinkId];
+          const inPast = ord.pastOrders && ord.pastOrders.some(po => po.paymentLinkId === linkId);
+          if (allIds.includes(linkId) || inPast) {
+            matchedKey = k;
+            order = ord;
+            break;
+          }
+        }
+      }
+
+      // If already processed and marked paid with THIS payment ID, skip!
+      if (order && order.paymentId === p.id) {
+        markPaymentProcessed(p.id);
+        continue;
+      }
+
+      console.log(`\n🎉 [Instant Payment Confirmed via Razorpay!] Payment ID: ${p.id} for ₹${pAmt} (${pRef || pPhone || "Customer"})`);
+
+      const targetPhone = pPhone || order?.phone || matchedKey || "Customer";
+      const targetOrderRef = pRef || order?.orderRef || `UT-WA-${Date.now().toString().slice(-8)}`;
+      const targetItems = order?.items || p.notes?.items_summary || (pAmt >= 1700 ? "3 kg Cleaned & Gutted" : "2 kg Cleaned & Gutted");
+
+      if (!order) {
+        order = {
+          orderRef: targetOrderRef,
+          phone: targetPhone,
+          name: p.notes?.customer_name || "Customer",
+          items: targetItems,
+          amount: `₹${pAmt}`,
+          status: "Paid & Confirmed (Live Harvest Pending)",
+          paymentId: p.id,
+          paidAt: new Date().toISOString(),
+          deliveryTime: "Within 90–120 Minutes (Today)"
+        };
+        matchedKey = targetPhone;
+      } else {
+        order.status = "Paid & Confirmed (Live Harvest Pending)";
+        order.paidAt = new Date().toISOString();
+        order.paymentId = p.id;
+        order.amount = `₹${pAmt} [PAID]`;
+      }
+
+      recordNewCustomerOrder(matchedKey, order);
+      markPaymentProcessed(p.id);
+
+      let targetJid = order.chatId;
+      if (!targetJid && targetPhone) {
+        for (const [jid, meta] of Object.entries(chatMetadata)) {
+          if (meta.phone && meta.phone.endsWith(targetPhone.slice(-10))) {
+            targetJid = jid;
+            break;
+          }
+        }
+      }
+      if (!targetJid && targetPhone && targetPhone.length >= 10) {
+        targetJid = `91${targetPhone.slice(-10)}@s.whatsapp.net`;
+      }
+
+      if (targetJid && sock) {
+        const hasGps = Boolean(order.latitude || (chatMetadata[targetJid] && chatMetadata[targetJid].latitude));
+        let pinPrompt = "";
+        if (!hasGps) {
+          pinPrompt = `\n\n📍 *Quick Dispatch Note:*\nPlease share your WhatsApp location pin (tap 📎 ➔ Location ➔ Send current location) or Google Maps link so our delivery rider can navigate directly to your gate without calling for directions! 🛵`;
+        }
+
+        const receiptMsg = `✅ *Payment Received & Order Confirmed!* 🐟\n\nThank you! Your payment of *₹${pAmt}* has been verified successfully.\n\n📋 *Order Summary:*\n• *Order Ref:* #${targetOrderRef}\n• *Items:* ${targetItems}\n• *Status:* Confirmed (Live Harvest Scheduled)\n\nOur farm team at Malabagh is now preparing your fresh live harvest from our crystal-clear oxygen-saturated cold water tanks. We will deliver it fresh to your doorstep within 2 hours!${pinPrompt}`;
+
+        try {
+          await sock.sendMessage(targetJid, { text: receiptMsg });
+          console.log(`✅ [Instant WhatsApp Confirmation Sent] Delivered directly to ${targetJid}!`);
+        } catch (sendErr) {
+          console.error("Failed to send WhatsApp confirmation receipt:", sendErr.message);
+        }
+
+        if (chatHistories.has(targetJid)) {
+          const h = chatHistories.get(targetJid);
+          h.push({ role: "model", text: receiptMsg });
+          saveChatHistories();
+        }
+      }
+
+      // Send instant Telegram Dispatch Card to Suhail
+      await sendTelegramDispatchCard(order, { amount: pAmt, phone: targetPhone });
+
+      // Auto-settle Khata in Supabase if customer has an open balance
+      if (targetPhone && pAmt > 0) {
+        autoSettleKhataInSupabase(targetPhone, pAmt, p.id, targetOrderRef);
       }
     }
   } catch (err) {
-    // Transient error
+    // Transient error check
   } finally {
     isCheckingPayments = false;
   }
@@ -3838,6 +3981,171 @@ async function startBot() {
     }
   });
 
+  // ─── DIRECT SCANNER / QR INTERCEPT HELPER FUNCTIONS ───
+  function isCustomerRequestingQr(userText, chatHist = []) {
+    if (!userText) return false;
+    const clean = userText.trim();
+
+    // 1. Explicit Direct Keywords
+    const directRegex = /\b(?:scanner|qr|qr\s*code|barcode|scan|scanner\s*bhejo|bhejo\s*scanner|send\s*scanner|send\s*qr|scanner\s*hai|qr\s*send|send\s*me\s*scanner|qr\s*please|plz\s*send\s*scanner|scanner\s*\?|scanner\s*chha|scanner\s*bhej|pay\s*via\s*scanner|qr\s*code\s*scanner|scanner\s*photo|scanner\s*image|m\s*pay|mpay)\b/i;
+    if (directRegex.test(clean)) return true;
+
+    // 2. Affirmative reply ("Yes", "Sure", "Bhejo", "Ok", etc.) after bot offered scanner or mPay
+    const affirmativeRegex = /^(?:yes|yep|yeah|sure|ok|okay|please|haan|han|hanji|bhejo|send|send\s*it|karo|bhej\s*do|bhej|send\s*please|plz|yes\s*please|done)\b/i;
+    if (affirmativeRegex.test(clean) && Array.isArray(chatHist) && chatHist.length > 0) {
+      const lastBotMsg = chatHist.filter(m => m.role === "model").pop();
+      if (lastBotMsg && lastBotMsg.text) {
+        const offeredScanner = /\b(?:scanner|qr|m\s*pay|mpay)\b/i.test(lastBotMsg.text);
+        if (offeredScanner) return true;
+      }
+    }
+
+    return false;
+  }
+
+  async function dispatchLockedQrImage(sock, remoteJid, { cleanPhone, raw10, customerName, forceAmount, forceRef, chatHist = [] }) {
+    try {
+      const ordersFilePath = path.join(__dirname, "customer_orders.json");
+      let orders = {};
+      if (fs.existsSync(ordersFilePath)) {
+        try { orders = JSON.parse(fs.readFileSync(ordersFilePath, "utf8")); } catch (_) {}
+      }
+
+      const targetOrder = (raw10 && orders[raw10]) || (cleanPhone && orders[cleanPhone]) || Object.values(orders).find(o => o.chatId === remoteJid);
+
+      // 1. Resolve numeric amount
+      let amt = forceAmount;
+      if (!amt && targetOrder && targetOrder.amount) {
+        const m = String(targetOrder.amount).match(/(\d+)/);
+        if (m) amt = parseFloat(m[1]);
+      }
+      if (!amt && Array.isArray(chatHist)) {
+        for (let i = chatHist.length - 1; i >= 0; i--) {
+          const t = chatHist[i].text || "";
+          const mPayable = t.match(/(?:total(?:\s*payable)?|amount|pay)[:\s*]*\*?₹?\s*(\d{3,5})\b/i);
+          if (mPayable) { amt = parseFloat(mPayable[1]); break; }
+          const mTotal = t.match(/₹\s*(\d{3,5})\s*total\b/i);
+          if (mTotal) { amt = parseFloat(mTotal[1]); break; }
+          const mFixed = t.match(/₹\s*(1[1-9]\d{2}|2\d{3}|6\d{2}|7\d{2})\b/);
+          if (mFixed) { amt = parseFloat(mFixed[1]); break; }
+        }
+      }
+      if (!amt || amt <= 0) {
+        amt = 1160; // Standard 2 kg Cleaned & Gutted
+      }
+
+      // 2. Resolve order reference
+      const orderRef = forceRef || targetOrder?.orderRef || `UT-WA-${Date.now().toString().slice(-8)}`;
+
+      // 3. Resolve items description
+      let itemsDesc = targetOrder?.items;
+      if (!itemsDesc) {
+        if (amt >= 2300) itemsDesc = "4 kg Cleaned & Gutted (Family Pack)";
+        else if (amt >= 1700) itemsDesc = "3 kg Cleaned & Gutted (Pan-Ready)";
+        else if (amt >= 1160) itemsDesc = "2 kg Cleaned & Gutted (Pan-Ready)";
+        else itemsDesc = "1 kg Cleaned & Gutted (Starter Pack)";
+      }
+
+      // 4. Generate high-resolution Razorpay QR or local UPI QR
+      let qrBuffer = null;
+      let isRazorpayQr = false;
+      let rzpQrId = targetOrder?.razorpayQrId || null;
+      let rzpQrUrl = targetOrder?.razorpayQrUrl || null;
+
+      try {
+        const rzpQr = await createRazorpayQrCode({
+          amount: amt,
+          customerPhone: cleanPhone || raw10,
+          customerName: customerName || targetOrder?.name || "Customer",
+          orderRef: orderRef,
+          description: itemsDesc
+        });
+        qrBuffer = rzpQr.imageBuffer;
+        isRazorpayQr = true;
+        rzpQrId = rzpQr.qrId;
+        rzpQrUrl = rzpQr.imageUrl;
+      } catch (rzpQrErr) {
+        console.warn("Could not create Razorpay QR, falling back to local UPI QR:", rzpQrErr.message);
+        const upiPayUri = `upi://pay?pa=JKBMERC00828895@jkb&pn=Urban%20Trout%20Aquaculture&am=${amt.toFixed(2)}&cu=INR&tn=Order-${orderRef}`;
+        qrBuffer = await QRCode.toBuffer(upiPayUri, {
+          width: 600,
+          margin: 2,
+          color: { dark: "#000000", light: "#ffffff" }
+        });
+      }
+
+      if (!qrBuffer) {
+        throw new Error("Failed to generate QR image buffer");
+      }
+
+      const payUrl = targetOrder?.payUrl || "https://rzp.io/l/urbantrout";
+      const caption = `🐟 *URBAN TROUT AQUACULTURE*\n\n` +
+        `🔒 *LOCKED ${isRazorpayQr ? "RAZORPAY " : ""}UPI SCANNER (₹${amt})*\n` +
+        `Order Reference: *#${orderRef}*\n` +
+        `Items: *${itemsDesc}*\n\n` +
+        `👉 *Scan with any UPI App:* Google Pay, PhonePe, Paytm, BHIM, or J&K Bank mPay.\n` +
+        `• Amount *₹${amt}* is already pre-filled & locked.\n` +
+        `• Instant auto-reconciliation & live-harvest confirmation.\n\n` +
+        `Once paid, your live-harvest slot is confirmed immediately! 🚀\n\n` +
+        `*(Or tap your online payment link if you prefer paying on this phone: ${payUrl})*`;
+
+      const qrMsg = await sock.sendMessage(remoteJid, {
+        image: qrBuffer,
+        caption: caption
+      });
+
+      if (qrMsg && qrMsg.key && qrMsg.key.id) {
+        botSentMessageIds.add(qrMsg.key.id);
+        setTimeout(() => botSentMessageIds.delete(qrMsg.key.id), 10 * 60 * 1000);
+      }
+      await sock.sendPresenceUpdate("available", remoteJid);
+
+      console.log(`📷 [${isRazorpayQr ? "Razorpay" : "UPI"} Locked QR Dispatched Directly] Sent ₹${amt} locked QR image to ${formatPhoneDisplay(cleanPhone || raw10)} for #${orderRef}`);
+
+      // Update orders store
+      const updatedOrder = {
+        ...(targetOrder || {}),
+        orderRef,
+        chatId: remoteJid,
+        phone: cleanPhone || raw10,
+        name: customerName || targetOrder?.name || "Customer",
+        items: itemsDesc,
+        amount: `₹${amt}`,
+        status: targetOrder?.status?.includes("Paid") ? targetOrder.status : "Payment Link & QR Sent",
+        payUrl,
+        razorpayQrId: rzpQrId,
+        razorpayQrUrl: rzpQrUrl,
+        updatedAt: new Date().toISOString()
+      };
+      recordNewCustomerOrder(cleanPhone || raw10, updatedOrder);
+
+      // Track in chat histories
+      let hist = chatHistories.get(remoteJid) || [];
+      hist.push({ role: "model", text: caption });
+      if (hist.length > 8) hist.splice(0, hist.length - 8);
+      chatHistories.set(remoteJid, hist);
+      saveChatHistories();
+
+      // Track in metadata
+      if (chatMetadata[remoteJid]) {
+        chatMetadata[remoteJid].lastBotMsgTime = Date.now();
+        chatMetadata[remoteJid].lastMsgRole = "model";
+        chatMetadata[remoteJid].lastBotReply = `[Locked QR Code Dispatched ₹${amt}]`;
+      }
+      if (raw10 && chatMetadata[raw10]) {
+        chatMetadata[raw10].lastBotMsgTime = Date.now();
+        chatMetadata[raw10].lastMsgRole = "model";
+        chatMetadata[raw10].lastBotReply = `[Locked QR Code Dispatched ₹${amt}]`;
+      }
+      saveChatMetadata();
+
+      return true;
+    } catch (qrErr) {
+      console.error("Direct QR dispatch error:", qrErr.message);
+      return false;
+    }
+  }
+
   // Independent per-message processor (Executed concurrently across different customers)
   async function processSingleMessage(sock, msg, remoteJid, explicitText = null) {
     // Safety check: Ignore messages sent by the bot itself
@@ -3953,6 +4261,14 @@ async function startBot() {
       if (lower === "#help" || lower === "#commands") {
         await sock.sendMessage(remoteJid, {
           text: `🛠️ *URBAN TROUT OWNER QUICK COMMANDS*\n\n` +
+            `🛵 *Mobile Order Dispatch (iPhone Control):*\n` +
+            `• *#orders* (View all active undelivered orders right now)\n` +
+            `• *#paid* (Confirm payment inside customer chat & auto-send official receipt)\n` +
+            `• *#paid [amount]* (e.g. *#paid 1259* inside customer chat)\n` +
+            `• *#paid 9876543210 1259* (Confirm payment for specific phone number)\n` +
+            `• *#delivered* (Mark order as delivered & remove from active queue)\n` +
+            `• *#delivered 9876543210* (Mark order delivered by phone or ref)\n` +
+            `• *#qr* or *#qr 1259* (Instantly drop locked UPI QR image in customer chat)\n\n` +
             `⚡ *Instant Payment Link Shortcuts:*\n` +
             `• *#3kg +200* (3kg Gutted + ₹200 delivery = ₹1,940)\n` +
             `• *#link 3kg +200* (3kg Gutted + ₹200 delivery)\n` +
@@ -3962,7 +4278,6 @@ async function startBot() {
             `• *#link 1940* (Direct flat amount of ₹1,940)\n` +
             `• *#3kg +200 9876543210* (With customer phone number)\n` +
             `• *#3kg +200 9876543210 Farooq Sb Lalbazar* (With phone & name/address)\n\n` +
-            `💡 *Pro-Tip:* Type *#3kg +200* directly inside a customer's WhatsApp chat to post the official order summary & payment link instantly!\n\n` +
             `⏸️ *AI Agent Controls:*\n` +
             `• *#pause* (Pause AI globally, or for 60m in customer chat)\n` +
             `• *#pause 30* (Pause for custom minutes)\n` +
@@ -3970,6 +4285,206 @@ async function startBot() {
             `• *#status* (View agent system status)\n` +
             `• *#report* (Generate & send 9:00 PM Daily Executive Briefing now)`
         });
+        return;
+      }
+
+      // Owner Command: #qr or #scanner - Send locked QR image into customer chat
+      if (lower.startsWith("#qr") || lower.startsWith("#scanner")) {
+        const amtMatch = text.match(/\b(\d{3,5})\b/);
+        const forceAmt = amtMatch ? parseInt(amtMatch[1], 10) : null;
+        const phoneMatch = text.match(/\b([6-9]\d{9})\b/);
+        const targetPhone = phoneMatch ? phoneMatch[1] : (cleanPhone || raw10);
+        let targetJid = !isSelfChat ? remoteJid : (targetPhone ? `91${targetPhone}@s.whatsapp.net` : null);
+
+        if (!targetJid) {
+          await sock.sendMessage(remoteJid, {
+            text: "⚠️ *Usage:* Reply *#qr [amount]* inside customer chat, or *#qr 9876543210 1259*"
+          });
+          return;
+        }
+
+        const chatHist = chatHistories.get(targetJid) || [];
+        const success = await dispatchLockedQrImage(sock, targetJid, {
+          cleanPhone: targetPhone,
+          raw10: targetPhone,
+          customerName: customerName || "Customer",
+          forceAmount: forceAmt,
+          chatHist
+        });
+
+        if (success && (isSelfChat || targetJid !== remoteJid)) {
+          await sock.sendMessage(remoteJid, {
+            text: `✅ *Locked QR Scanner Image Dispatched!* 🐟\nDelivered to ${formatPhoneDisplay(targetPhone)}.`
+          });
+        }
+        return;
+      }
+
+      // Owner Command: #orders or #queue or #dispatch - View all active undelivered orders on iPhone
+      if (lower === "#orders" || lower === "#queue" || lower === "#dispatch" || lower === "#active" || lower === "#pending") {
+        try {
+          const ordersFilePath = path.join(__dirname, "customer_orders.json");
+          let orders = {};
+          if (fs.existsSync(ordersFilePath)) {
+            try { orders = JSON.parse(fs.readFileSync(ordersFilePath, "utf8")); } catch (_) {}
+          }
+          const activeOrders = Object.values(orders).filter(o => 
+            o &&
+            o.orderRef &&
+            (o.status?.includes("Paid") || o.status?.includes("Confirmed") || o.status?.includes("Harvest Scheduled")) &&
+            !o.status?.includes("Delivered") &&
+            !o.status?.includes("Cancelled")
+          );
+
+          if (activeOrders.length === 0) {
+            await sock.sendMessage(remoteJid, {
+              text: "✅ *ALL CAUGHT UP!* 🐟\n\nThere are currently zero pending delivery orders in the dispatch queue today."
+            });
+            return;
+          }
+
+          let queueMsg = `🛵 *URBAN TROUT · ACTIVE DISPATCH QUEUE (${activeOrders.length})*\n━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+          activeOrders.forEach((o, idx) => {
+            const phone = o.phone || "N/A";
+            const maps = o.googleMapsUrl ? `\n   📍 Maps: ${o.googleMapsUrl}` : "";
+            queueMsg += `${idx + 1}. *#${o.orderRef}* · ${o.name || "Customer"} (+91 ${phone})\n`;
+            queueMsg += `   📦 ${o.items || "Fresh Trout"} · *${o.amount}* [PAID ✅]\n`;
+            queueMsg += `   📍 Area: ${o.deliveryArea || "Srinagar"}\n`;
+            queueMsg += `   🕒 Slot: ${o.deliveryTime || "Immediate"}${maps}\n\n`;
+          });
+          queueMsg += `━━━━━━━━━━━━━━━━━━━━━━\n💡 *Quick Dispatch Actions:*\n• Reply *#delivered [phone or ref]* to mark delivered\n• Reply *#paid [amount]* in customer chat to confirm manual payments`;
+
+          await sock.sendMessage(remoteJid, { text: queueMsg });
+        } catch (queueErr) {
+          await sock.sendMessage(remoteJid, { text: `⚠️ Error fetching orders queue: ${queueErr.message}` });
+        }
+        return;
+      }
+
+      // Owner Command: #paid or #confirm - Manually confirm payment and send official receipt
+      if (lower.startsWith("#paid") || lower.startsWith("#confirm")) {
+        try {
+          const ordersFilePath = path.join(__dirname, "customer_orders.json");
+          let orders = {};
+          if (fs.existsSync(ordersFilePath)) {
+            try { orders = JSON.parse(fs.readFileSync(ordersFilePath, "utf8")); } catch (_) {}
+          }
+
+          // Parse target phone and amount from command (e.g. #paid 9419084032 1259)
+          const phoneInCmd = text.match(/\b([6-9]\d{9})\b/);
+          const amtInCmd = text.replace(/#paid|#confirm/gi, "").match(/\b(\d{3,5})\b/);
+          
+          let targetPhone = phoneInCmd ? phoneInCmd[1] : (cleanPhone || raw10);
+          let targetJid = !isSelfChat ? remoteJid : (targetPhone ? `91${targetPhone}@s.whatsapp.net` : null);
+
+          if (!targetPhone && !targetJid) {
+            await sock.sendMessage(remoteJid, {
+              text: `⚠️ *Please specify customer phone:*\nExample: *#paid 9419084032 1259*`
+            });
+            return;
+          }
+
+          let existingOrder = orders[targetPhone] || Object.values(orders).find(o => o.chatId === targetJid);
+          const paidAmt = amtInCmd ? parseInt(amtInCmd[1], 10) : (existingOrder?.amount ? parseInt(existingOrder.amount.replace(/\D/g, ""), 10) : 1160);
+          const orderRef = existingOrder?.orderRef || `UT-WA-${Date.now().toString().slice(-8)}`;
+          const itemsDesc = existingOrder?.items || (paidAmt >= 1700 ? "3 kg Cleaned & Gutted" : "2 kg Cleaned & Gutted");
+
+          const updatedOrder = {
+            ...(existingOrder || {}),
+            orderRef,
+            chatId: targetJid,
+            phone: targetPhone,
+            name: existingOrder?.name || customerName || "Customer",
+            items: itemsDesc,
+            amount: `₹${paidAmt} (Manual Payment Verified)`,
+            status: "Paid & Confirmed (Live Harvest Pending)",
+            paymentId: `MANUAL-PAY-${Date.now()}`,
+            paidAt: new Date().toISOString(),
+            deliveryTime: existingOrder?.deliveryTime || "Within 90–120 Minutes (Today)"
+          };
+
+          recordNewCustomerOrder(targetPhone, updatedOrder);
+
+          // 1. Send official WhatsApp confirmation receipt to customer
+          const hasGps = Boolean(updatedOrder.latitude || (chatMetadata[targetJid] && chatMetadata[targetJid].latitude));
+          let pinPrompt = "";
+          if (!hasGps) {
+            pinPrompt = `\n\n📍 *Quick Dispatch Note:*\nPlease share your WhatsApp location pin (tap 📎 ➔ Location ➔ Send current location) or Google Maps link so our delivery rider can navigate directly to your gate without calling for directions! 🛵`;
+          }
+          const receiptMsg = `✅ *Payment Received & Order Confirmed!* 🐟\n\nThank you! Your payment of *₹${paidAmt}* has been verified successfully.\n\n📋 *Order Summary:*\n• *Order Ref:* #${orderRef}\n• *Items:* ${itemsDesc}\n• *Status:* Confirmed (Live Harvest Scheduled)\n\nOur farm team at Malabagh is now preparing your fresh live harvest from our crystal-clear oxygen-saturated cold water tanks. We will deliver it fresh to your doorstep within 2 hours!${pinPrompt}`;
+
+          await sock.sendMessage(targetJid, { text: receiptMsg });
+
+          // 2. Send instant Telegram dispatch card to Suhail
+          await sendTelegramDispatchCard(updatedOrder, { amount: paidAmt, phone: targetPhone });
+
+          // 3. Confirm to owner
+          if (isSelfChat || targetJid !== remoteJid) {
+            await sock.sendMessage(remoteJid, {
+              text: `✅ *Order #${orderRef} Confirmed!* 🐟\n\n• Customer: ${updatedOrder.name} (+91 ${targetPhone})\n• Amount: ₹${paidAmt} [PAID]\n• Automated WhatsApp receipt delivered to customer\n• Dispatch alert posted to Telegram!`
+            });
+          }
+        } catch (payErr) {
+          console.error("Error in #paid command:", payErr);
+          await sock.sendMessage(remoteJid, { text: `⚠️ Error recording payment: ${payErr.message}` });
+        }
+        return;
+      }
+
+      // Owner Command: #delivered or #done - Mark order delivered and remove from active dispatch
+      if (lower.startsWith("#delivered") || lower.startsWith("#done")) {
+        try {
+          const ordersFilePath = path.join(__dirname, "customer_orders.json");
+          let orders = {};
+          if (fs.existsSync(ordersFilePath)) {
+            try { orders = JSON.parse(fs.readFileSync(ordersFilePath, "utf8")); } catch (_) {}
+          }
+
+          const phoneMatch = text.match(/\b([6-9]\d{9})\b/);
+          const refMatch = text.match(/\b(UT-[A-Z0-9-]+)\b/i);
+
+          let targetPhone = phoneMatch ? phoneMatch[1] : (cleanPhone || raw10);
+          let targetRef = refMatch ? refMatch[1].toUpperCase() : null;
+
+          let targetKey = null;
+          let order = null;
+
+          if (targetRef) {
+            for (const [k, ord] of Object.entries(orders)) {
+              if (ord.orderRef && ord.orderRef.toUpperCase() === targetRef) {
+                targetKey = k;
+                order = ord;
+                break;
+              }
+            }
+          }
+          if (!order && targetPhone) {
+            order = orders[targetPhone] || Object.values(orders).find(o => o.chatId === remoteJid);
+            targetKey = targetPhone;
+          }
+
+          if (!order) {
+            await sock.sendMessage(remoteJid, {
+              text: `⚠️ *Order not found.* Reply with: *#delivered [phone or orderRef]* (e.g. *#delivered 9419084032*)`
+            });
+            return;
+          }
+
+          order.status = "Delivered & Completed ✅";
+          order.deliveredAt = new Date().toISOString();
+          recordNewCustomerOrder(targetKey, order);
+
+          await sock.sendMessage(remoteJid, {
+            text: `✅ *Order #${order.orderRef} Marked Delivered!* 🐟\n\nCustomer: ${order.name || "Customer"} (+91 ${order.phone || targetKey})\nItems: ${order.items || "Fresh Trout"}\nStatus: Delivered & Completed ✅\nRemoved from active dispatch queue.`
+          });
+
+          // Post update to Telegram
+          try {
+            await sendTelegramMessage(`✅ <b>ORDER DELIVERED &amp; COMPLETED!</b> 🐟\n━━━━━━━━━━━━━━━━━━━━━━\n📦 <b>Order Ref:</b> #${order.orderRef}\n👤 <b>Customer:</b> ${order.name || "Customer"} (+91 ${order.phone || targetKey})\n🎉 <i>Delivered fresh to doorstep!</i>`);
+          } catch (_) {}
+        } catch (delivErr) {
+          await sock.sendMessage(remoteJid, { text: `⚠️ Error marking delivered: ${delivErr.message}` });
+        }
         return;
       }
 
@@ -4380,9 +4895,80 @@ async function startBot() {
             : `📍 *Location Received & Saved!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n🛵 We have saved your exact location coordinates for our delivery rider.\n\nPlease complete payment using the official Razorpay link above so our team can harvest your trout live from the tanks and dispatch immediately! 🐟`;
           historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. IN RANGE (<=16 km). Payment link already provided, awaiting payment completion.]`;
         } else if (hasAgreedOrder) {
-          // PRICE LOCK: Customer already requested/discussed an order. Lock in coordinates and generate payment link without re-pitching or price jumping!
-          locReply = `📍 *Location Received & Saved!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n🛵 *Coordinates locked for our delivery rider!*\n\nLet me generate your official payment link for your order right away. 🐟`;
-          historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. IN RANGE (<=16 km). Order already discussed/requested. Price locked in - generate payment link immediately for agreed amount without changing price.]`;
+          // PRICE LOCK: Customer already requested/discussed an order. Lock in coordinates and generate payment link right now!
+          let orderWeight = 2;
+          let isWhole = false;
+          for (let i = chatHist.length - 1; i >= 0; i--) {
+            const m = chatHist[i];
+            if (m.text) {
+              const wMatch = m.text.match(/(\d+(?:\.\d+)?)\s*(?:kg|kilo|kgs)/i);
+              if (wMatch) { orderWeight = parseFloat(wMatch[1]); }
+              if (/\b(?:whole|sabut)\b/i.test(m.text)) { isWhole = true; }
+              if (wMatch) break;
+            }
+          }
+          const rate = isWhole ? 540 : 580;
+          const fishCost = orderWeight * rate;
+          let courierFee = 0;
+          if (distNum <= 4.0) {
+            courierFee = (orderWeight >= 2) ? 0 : 49;
+          } else if (distNum <= 7.0) {
+            courierFee = (orderWeight >= 3) ? 0 : (orderWeight >= 2 ? (39 + surgeGps) : (49 + surgeGps));
+          } else if (distNum <= 11.5) {
+            courierFee = (orderWeight >= 3) ? 0 : (orderWeight >= 2 ? (69 + surgeGps) : (79 + surgeGps));
+          } else {
+            courierFee = (orderWeight >= 4) ? 0 : (orderWeight >= 3 ? (79 + surgeGps) : (orderWeight >= 2 ? (99 + surgeGps) : (139 + surgeGps)));
+          }
+          const totalPayable = fishCost + courierFee;
+          const itemsDesc = `${orderWeight} kg × ${isWhole ? "Whole Fresh Trout" : "Cleaned & Gutted (Pan-Ready)"}`;
+          const randSuffix = Math.floor(10 + Math.random() * 90);
+          const orderRef = `UT-WA-${Date.now().toString().slice(-6)}${randSuffix}`;
+
+          let generatedPayUrl = "https://urbantrout.in";
+          try {
+            const rzpRes = await createRazorpayPaymentLink({
+              amount: totalPayable,
+              customerPhone: cleanPhone,
+              customerName: customerName,
+              orderRef: orderRef,
+              description: itemsDesc
+            });
+            generatedPayUrl = rzpRes.short_url;
+          } catch (plErr) {
+            console.error("Razorpay link generation failed on location pin:", plErr.message);
+          }
+
+          const card = formatOrderSummaryCard({
+            orderRef,
+            amount: totalPayable,
+            desc: itemsDesc,
+            deliveryArea: detectedLocalityName || "Srinagar",
+            distanceKm: distRounded,
+            localityName: detectedLocalityName || "Srinagar",
+            scheduledSlot: isNightGps ? "Tomorrow Morning (7:00 AM – 11:00 AM)" : "Within 90–120 Minutes (Today)",
+            payUrl: generatedPayUrl
+          });
+
+          locReply = `📍 *Location Received & Coordinates Locked!* ✅\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n🛵 Saved for our express delivery rider!\n\n${card}`;
+          historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. Order generated: ${itemsDesc} (₹${totalPayable}). Official payment link: ${generatedPayUrl}]`;
+
+          recordNewCustomerOrder(cleanPhone || raw10, {
+            orderRef,
+            chatId: remoteJid,
+            phone: cleanPhone || raw10,
+            name: customerName,
+            items: itemsDesc,
+            amount: `₹${totalPayable}`,
+            status: "Payment Link Sent (Awaiting Upfront Payment)",
+            payUrl: generatedPayUrl,
+            latitude: lat,
+            longitude: lon,
+            googleMapsUrl: mapsUrl,
+            deliveryArea: detectedLocalityName || "Srinagar",
+            distanceKm: distRounded,
+            deliveryFee: courierFee,
+            createdAt: new Date().toISOString()
+          });
         } else {
           // First time inquiry via location pin (no order discussed yet) - show tier pricing for their distance
           if (distNum <= 4.0) {
@@ -4473,74 +5059,15 @@ async function startBot() {
     }
     saveChatMetadata();
 
-    // ─── 0. DIRECT SCANNER / QR INTERCEPT (ZERO DUPLICATE MESSAGES) ───
-    const isAskingForQr = /\b(?:scanner|qr|qr\s*code|barcode|scan|scanner\s*bhejo|bhejo\s*scanner|send\s*scanner|send\s*qr|scanner\s*hai|qr\s*send)\b/i.test(text);
-    if (isAskingForQr) {
-      try {
-        const ordersFilePath = path.join(__dirname, "customer_orders.json");
-        let orders = {};
-        if (fs.existsSync(ordersFilePath)) {
-          try { orders = JSON.parse(fs.readFileSync(ordersFilePath, "utf8")); } catch (_) {}
-        }
-        const targetOrder = orders[raw10] || orders[cleanPhone] || Object.values(orders).find(o => o.chatId === remoteJid);
-        if (targetOrder && targetOrder.orderRef) {
-          const numMatch = String(targetOrder.amount || "").match(/(\d+)/);
-          const amt = numMatch ? parseFloat(numMatch[1]) : null;
-          if (amt && amt > 0) {
-            let qrBuffer = null;
-            let isRazorpayQr = false;
-            try {
-              const rzpQr = await createRazorpayQrCode({
-                amount: amt,
-                customerPhone: cleanPhone,
-                customerName: targetOrder.name,
-                orderRef: targetOrder.orderRef,
-                description: targetOrder.items
-              });
-              qrBuffer = rzpQr.imageBuffer;
-              isRazorpayQr = true;
-              targetOrder.razorpayQrId = rzpQr.qrId;
-              targetOrder.razorpayQrUrl = rzpQr.imageUrl;
-              recordNewCustomerOrder(cleanPhone || raw10, targetOrder);
-            } catch (rzpQrErr) {
-              console.warn("Could not create Razorpay QR, falling back to local UPI QR:", rzpQrErr.message);
-              const upiPayUri = `upi://pay?pa=JKBMERC00828895@jkb&pn=Urban%20Trout%20Aquaculture&am=${amt.toFixed(2)}&cu=INR&tn=Order-${targetOrder.orderRef}`;
-              qrBuffer = await QRCode.toBuffer(upiPayUri, {
-                width: 600,
-                margin: 2,
-                color: { dark: "#000000", light: "#ffffff" }
-              });
-            }
-
-            if (qrBuffer) {
-              const qrMsg = await sock.sendMessage(remoteJid, {
-                image: qrBuffer,
-                caption: `🐟 *URBAN TROUT AQUACULTURE*\n\n🔒 *LOCKED ${isRazorpayQr ? "RAZORPAY " : ""}UPI SCANNER (₹${amt})*\nOrder Reference: *#${targetOrder.orderRef}*\nItems: *${targetOrder.items || "Fresh Rainbow Trout"}*\n\n👉 *Scan with any UPI App:* Google Pay, PhonePe, Paytm, BHIM, or J&K Bank mPay.\n• Amount *₹${amt}* is already pre-filled & locked.\n• Instant auto-reconciliation & Telegram alert.\n\nOnce paid, your live-harvest slot is confirmed immediately! 🚀\n\n*(Or tap your online payment link if you prefer paying on this phone: ${targetOrder.payUrl || "https://urbantrout.in"})*`
-              });
-              if (qrMsg && qrMsg.key && qrMsg.key.id) {
-                botSentMessageIds.add(qrMsg.key.id);
-                setTimeout(() => botSentMessageIds.delete(qrMsg.key.id), 10 * 60 * 1000);
-              }
-              await sock.sendPresenceUpdate("available", remoteJid);
-              console.log(`📷 [${isRazorpayQr ? "Razorpay" : "UPI"} Locked QR Dispatched Directly] Sent ₹${amt} locked QR image to ${formatPhoneDisplay(cleanPhone)} for #${targetOrder.orderRef}`);
-
-              // Track bot response in metadata
-              chatMetadata[remoteJid].lastBotMsgTime = Date.now();
-              chatMetadata[remoteJid].lastMsgRole = "model";
-              chatMetadata[remoteJid].lastBotReply = `[Locked QR Code Dispatched ₹${amt}]`;
-              if (raw10) {
-                chatMetadata[raw10].lastBotMsgTime = Date.now();
-                chatMetadata[raw10].lastMsgRole = "model";
-                chatMetadata[raw10].lastBotReply = `[Locked QR Code Dispatched ₹${amt}]`;
-              }
-              saveChatMetadata();
-              return; // STOP! Direct QR sent, no Gemini call, zero duplicate text message!
-            }
-          }
-        }
-      } catch (qrPreErr) {
-        console.error("Direct QR dispatch error:", qrPreErr.message);
-      }
+    // ─── 0. BULLETPROOF DIRECT SCANNER / QR INTERCEPT (ZERO DUPLICATE MESSAGES) ───
+    if (isCustomerRequestingQr(text, chatHist)) {
+      const qrSent = await dispatchLockedQrImage(sock, remoteJid, {
+        cleanPhone,
+        raw10,
+        customerName,
+        chatHist
+      });
+      if (qrSent) return;
     }
 
     // Register active generation turn for abort guard
@@ -4580,73 +5107,11 @@ async function startBot() {
       console.log(`│ 📤 Reply: "${aiReply.replace(/\n+/g, ' ')}"`);
       console.log(`└──────────────────────────────────────────────────────────────────────────\n`);
 
-      // ─── DYNAMIC LOCKED RAZORPAY QR DISPATCH WHEN CUSTOMER ASKS FOR SCANNER / QR IN THIS TURN ───
-      let sentQrOnly = false;
-      if (isAskingForQr) {
-        try {
-          const ordersFilePath = path.join(__dirname, "customer_orders.json");
-          let orders = {};
-          if (fs.existsSync(ordersFilePath)) {
-            try { orders = JSON.parse(fs.readFileSync(ordersFilePath, "utf8")); } catch (_) {}
-          }
-          const targetOrder = orders[raw10] || orders[cleanPhone] || Object.values(orders).find(o => o.chatId === remoteJid);
-          if (targetOrder && targetOrder.orderRef) {
-            const numMatch = String(targetOrder.amount || "").match(/(\d+)/);
-            const amt = numMatch ? parseFloat(numMatch[1]) : null;
-            if (amt && amt > 0) {
-              let qrBuffer = null;
-              let isRazorpayQr = false;
-
-              // 1. Generate official Razorpay UPI QR Code
-              try {
-                const rzpQr = await createRazorpayQrCode({
-                  amount: amt,
-                  customerPhone: cleanPhone,
-                  customerName: targetOrder.name,
-                  orderRef: targetOrder.orderRef,
-                  description: targetOrder.items
-                });
-                qrBuffer = rzpQr.imageBuffer;
-                isRazorpayQr = true;
-                targetOrder.razorpayQrId = rzpQr.qrId;
-                targetOrder.razorpayQrUrl = rzpQr.imageUrl;
-                recordNewCustomerOrder(cleanPhone || raw10, targetOrder);
-              } catch (rzpQrErr) {
-                console.warn("Could not create Razorpay QR, falling back to local UPI QR:", rzpQrErr.message);
-                const upiPayUri = `upi://pay?pa=JKBMERC00828895@jkb&pn=Urban%20Trout%20Aquaculture&am=${amt.toFixed(2)}&cu=INR&tn=Order-${targetOrder.orderRef}`;
-                qrBuffer = await QRCode.toBuffer(upiPayUri, {
-                  width: 600,
-                  margin: 2,
-                  color: { dark: "#000000", light: "#ffffff" }
-                });
-              }
-
-              if (qrBuffer) {
-                const qrMsg = await sock.sendMessage(remoteJid, {
-                  image: qrBuffer,
-                  caption: `🐟 *URBAN TROUT AQUACULTURE*\n\n🔒 *LOCKED ${isRazorpayQr ? "RAZORPAY " : ""}UPI SCANNER (₹${amt})*\nOrder Reference: *#${targetOrder.orderRef}*\nItems: *${targetOrder.items || "Fresh Rainbow Trout"}*\n\n👉 *Scan with any UPI App:* Google Pay, PhonePe, Paytm, BHIM, or J&K Bank mPay.\n• Amount *₹${amt}* is already pre-filled & locked.\n• Instant auto-reconciliation & Telegram alert.\n\nOnce paid, your live-harvest slot is confirmed immediately! 🚀\n\n*(Or tap your online payment link if you prefer paying on this phone: ${targetOrder.payUrl || "https://urbantrout.in"})*`
-                });
-                if (qrMsg && qrMsg.key && qrMsg.key.id) {
-                  botSentMessageIds.add(qrMsg.key.id);
-                  setTimeout(() => botSentMessageIds.delete(qrMsg.key.id), 10 * 60 * 1000);
-                }
-                sentQrOnly = true;
-                console.log(`📷 [${isRazorpayQr ? "Razorpay" : "UPI"} Locked QR Dispatched] Sent ₹${amt} locked QR image to ${formatPhoneDisplay(cleanPhone)} for #${targetOrder.orderRef}`);
-              }
-            }
-          }
-        } catch (qrErr) {
-          console.error("Error generating/dispatching locked QR code:", qrErr.message);
-        }
-      }
-
-      // Send text reply only if QR wasn't already sent (guarantees exactly ONE message)
-      if (!sentQrOnly) {
-        const sentMsg = await sock.sendMessage(remoteJid, { text: aiReply });
-        if (sentMsg && sentMsg.key && sentMsg.key.id) {
-          botSentMessageIds.add(sentMsg.key.id);
-          setTimeout(() => botSentMessageIds.delete(sentMsg.key.id), 10 * 60 * 1000);
-        }
+      // Send verified text reply to customer
+      const sentMsg = await sock.sendMessage(remoteJid, { text: aiReply });
+      if (sentMsg && sentMsg.key && sentMsg.key.id) {
+        botSentMessageIds.add(sentMsg.key.id);
+        setTimeout(() => botSentMessageIds.delete(sentMsg.key.id), 10 * 60 * 1000);
       }
       await sock.sendPresenceUpdate("available", remoteJid);
 
