@@ -8428,7 +8428,7 @@ export default function VendingCenterLoggerPage() {
                         <div className="p-3 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900/95 to-blue-950/40 border-2 border-blue-500/40 space-y-2.5 font-mono shadow-lg">
                           <div className="flex items-center justify-between text-xs pb-2 border-b border-slate-800">
                             <div className="flex items-center gap-1.5 font-bold text-cyan-300">
-                              <span className="material-symbols-outlined text-sm text-cyan-400">price_split</span>
+                              <span className="material-symbols-outlined text-sm text-cyan-400">payments</span>
                               <span>DYNAMIC DELIVERY CONTRIBUTION</span>
                             </div>
                             <div className="text-[11.5px] text-slate-300">
