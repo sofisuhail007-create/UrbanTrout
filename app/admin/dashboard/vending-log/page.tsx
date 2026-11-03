@@ -1912,10 +1912,17 @@ export default function VendingCenterLoggerPage() {
     const guttedProfit = Math.round(guttedRevenue - guttedCost);
     const nonGuttedProfit = Math.round(nonGuttedRevenue - nonGuttedCost);
     const totalSoldProfit = guttedProfit + nonGuttedProfit;
+
+    // Pure fish sold profit (strictly separates fish sales margin from delivery logistics so delivery revenue is never counted twice!)
+    const pureFishRevenue = Math.max(0, totalRevenue - totalCustomerDeliveryCollected);
+    const pureSoldProfit = Math.round(totalSoldProfit - totalCustomerDeliveryCollected);
+    const pureProfitMarginPercent =
+      pureFishRevenue > 0 ? ((pureSoldProfit / pureFishRevenue) * 100).toFixed(1) : "0.0";
     const profitMarginPercent =
       totalRevenue > 0 ? ((totalSoldProfit / totalRevenue) * 100).toFixed(1) : "0.0";
     const realizedKg = Math.round((realizedGuttedKg + realizedNonGuttedKg) * 1000) / 1000;
     const avgProfitPerKg = realizedKg > 0 ? Math.round(totalSoldProfit / realizedKg) : 0;
+    const pureAvgProfitPerKg = realizedKg > 0 ? Math.round(pureSoldProfit / realizedKg) : 0;
     const avgSellRate = realizedKg > 0 ? Math.round(totalRevenue / realizedKg) : 0;
     const guttedAvgRate = realizedGuttedKg > 0 ? Math.round(guttedRevenue / realizedGuttedKg) : 0;
     const nonGuttedAvgRate = realizedNonGuttedKg > 0 ? Math.round(nonGuttedRevenue / realizedNonGuttedKg) : 0;
@@ -1947,6 +1954,10 @@ export default function VendingCenterLoggerPage() {
       guttedProfit,
       nonGuttedProfit,
       totalSoldProfit,
+      pureFishRevenue,
+      pureSoldProfit,
+      pureProfitMarginPercent,
+      pureAvgProfitPerKg,
       profitMarginPercent,
       avgProfitPerKg,
       procurementAvgCost,
@@ -2008,17 +2019,17 @@ export default function VendingCenterLoggerPage() {
     return 0;
   }, [period, selectedMonth, customStartDate, customEndDate, supplierRebatesMap]);
 
-  // ─── Final Operating Net Profit (Realized Sold Profit + Supplier Rebate minus Operational Expenses, Worker Salary & Mortality Loss) ───
+  // ─── Final Operating Net Profit (Pure Sold Fish Profit + Supplier Rebate minus Farm Delivery Subsidy, Operational Expenses, Worker Salary & Mortality Loss) ───
   const finalProfit = useMemo(() => {
     return Math.round(
-      kpis.totalSoldProfit +
+      kpis.pureSoldProfit +
       periodSupplierRebate -
       periodExpensesTotal -
       periodSalaryTotal -
       (kpis.totalFarmDeliverySubsidy || 0) -
       periodMortalityCost
     );
-  }, [kpis.totalSoldProfit, periodSupplierRebate, periodExpensesTotal, periodSalaryTotal, kpis.totalFarmDeliverySubsidy, periodMortalityCost]);
+  }, [kpis.pureSoldProfit, periodSupplierRebate, periodExpensesTotal, periodSalaryTotal, kpis.totalFarmDeliverySubsidy, periodMortalityCost]);
 
   const finalProfitMargin = useMemo(() => {
     return kpis.totalRevenue > 0 ? ((finalProfit / kpis.totalRevenue) * 100).toFixed(1) : "0.0";
@@ -2383,6 +2394,7 @@ export default function VendingCenterLoggerPage() {
         salaryPaid: number;
         mortalityKg: number;
         mortalityCost: number;
+        deliveryRiderPayout: number;
       }
     > = {};
 
@@ -2422,6 +2434,7 @@ export default function VendingCenterLoggerPage() {
         salaryPaid: 0,
         mortalityKg: 0,
         mortalityCost: 0,
+        deliveryRiderPayout: 0,
       };
     });
 
@@ -2442,6 +2455,13 @@ export default function VendingCenterLoggerPage() {
       monthMap[mKey].totalSoldKg = Math.round((monthMap[mKey].totalSoldKg + w) * 1000) / 1000;
       monthMap[mKey].revenue += rev;
       monthMap[mKey].surplusKg = Math.round((monthMap[mKey].surplusKg + sInfo.surplusKg) * 1000) / 1000;
+
+      const cf = e.custom_fields || {};
+      const isDel = Boolean(cf.is_delivery || cf.order_channel === "delivery");
+      if (isDel) {
+        const payout = Number(cf.delivery_rider_payout) || Number(cf.delivery_cost_total) || 0;
+        monthMap[mKey].deliveryRiderPayout += payout;
+      }
 
       if (isGutted) {
         monthMap[mKey].guttedKg = Math.round((monthMap[mKey].guttedKg + w) * 1000) / 1000;
@@ -2493,7 +2513,7 @@ export default function VendingCenterLoggerPage() {
       const operationalGrossProfit = Math.round(m.revenue - totalFishCost);
       const fishGrossProfit = Math.round(operationalGrossProfit + supplierRebate);
       const mortalityCost = m.mortalityCost || 0;
-      const finalNetProfit = Math.round(fishGrossProfit - m.expenses - m.salaryPaid - mortalityCost);
+      const finalNetProfit = Math.round(fishGrossProfit - (m.deliveryRiderPayout || 0) - m.expenses - m.salaryPaid - mortalityCost);
       const marginPercent = m.revenue > 0 ? ((finalNetProfit / m.revenue) * 100).toFixed(1) : "0.0";
 
       return {
@@ -5320,9 +5340,9 @@ export default function VendingCenterLoggerPage() {
                 <div>
                   <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
                     <span className="text-teal-300 font-bold tracking-wider flex items-center gap-1.5">
-                      <span>PROFIT ON SOLD</span>
+                      <span>PROFIT ON FISH SOLD</span>
                       <span className="px-1.5 py-0.2 rounded bg-teal-500/20 text-[9px] text-teal-200 border border-teal-500/30 font-bold">
-                        Net
+                        Pure Fish
                       </span>
                     </span>
                     <span className="material-symbols-outlined text-teal-400 text-lg">trending_up</span>
@@ -5337,10 +5357,10 @@ export default function VendingCenterLoggerPage() {
                           className="text-2xl sm:text-3xl font-black text-white"
                           style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                         >
-                          {kpis.totalSoldProfit.toLocaleString("en-IN")}
+                          {kpis.pureSoldProfit.toLocaleString("en-IN")}
                         </span>
                         <span className="text-[11px] font-bold text-teal-400 font-mono ml-1">
-                          {kpis.profitMarginPercent}%
+                          {kpis.pureProfitMarginPercent}%
                         </span>
                       </>
                     )}
@@ -7200,7 +7220,9 @@ export default function VendingCenterLoggerPage() {
                   const fishAmountPaid = isDelivery ? Math.max(0, taken - custDelShare) : taken;
                   // Net fish money realized in-hand by farm after paying delivery out-of-pocket
                   const netFishRealized = isDelivery ? Math.max(0, taken - riderPayout) : taken;
-                  const extraVal = Number(e.custom_fields?.extra_amount) || (!isCreditSale && taken > exp && exp > 0 ? taken - exp : 0);
+                  const extraVal = isDelivery
+                    ? Math.max(0, taken - (exp + custDelShare))
+                    : (Number(e.custom_fields?.extra_amount) || (!isCreditSale && taken > exp && exp > 0 ? taken - exp : 0));
                   // Effective in-hand trout rate realized per kg by farm (deducts farm-subsidized delivery)
                   const effRate = isCreditSale ? rate : (w > 0 && netFishRealized > 0 ? netFishRealized / w : rate);
                   const standardBenchmarkRate = isGutted ? (guttedPrice || DEFAULT_GUTTED_PRICE) : rate;
@@ -7787,7 +7809,9 @@ export default function VendingCenterLoggerPage() {
                     const rateDiff = standardBenchmarkRate - effRate;
                     const isLoss = !isCreditSale && rateDiff > 0.5;
                     const isGain = !isCreditSale && rateDiff < -0.5;
-                    const extraVal = Number(e.custom_fields?.extra_amount) || (!isCreditSale && taken > exp && exp > 0 ? taken - exp : 0);
+                    const extraVal = isDelivery
+                    ? Math.max(0, taken - (exp + custDelShare))
+                    : (Number(e.custom_fields?.extra_amount) || (!isCreditSale && taken > exp && exp > 0 ? taken - exp : 0));
 
                     return (
                       <>
@@ -8652,26 +8676,31 @@ export default function VendingCenterLoggerPage() {
               {(() => {
                 const defaultStandardRate = formType === "Gutted" ? (guttedPrice || DEFAULT_GUTTED_PRICE) : (nonGuttedPrice || DEFAULT_NON_GUTTED_PRICE);
                 const wNum = parseFloat(formWeight) || 0;
-                const expectedTotal = Math.round(wNum * formRate);
-                const standardExpectedTotal = Math.round(wNum * defaultStandardRate);
-                const actualPaid = parseFloat(formAmount) || 0;
                 const isDel = formOrderChannel === "delivery";
+                const custDelShare = isDel ? (parseFloat(formDeliveryCustomerShare) || 0) : 0;
                 const riderCost = isDel ? (parseFloat(formDeliveryRiderPayout) || (parseFloat(formDeliveryCostTotal) || 0)) : 0;
+                const fishExpectedTotal = Math.round(wNum * formRate);
+                const fishStandardExpectedTotal = Math.round(wNum * defaultStandardRate);
+                const expectedTotal = fishExpectedTotal + custDelShare;
+                const standardExpectedTotal = fishStandardExpectedTotal + custDelShare;
+                const actualPaid = parseFloat(formAmount) || 0;
                 const netFishPaid = isDel ? Math.max(0, actualPaid - riderCost) : actualPaid;
-                const rateConcession = Math.max(0, standardExpectedTotal - expectedTotal);
+                const rateConcession = Math.max(0, fishStandardExpectedTotal - fishExpectedTotal);
                 const customerRemainingDue = Math.max(0, expectedTotal - actualPaid);
                 const loss = wNum > 0 ? expectedTotal - actualPaid : 0;
                 const benchmarkLoss = wNum > 0 ? standardExpectedTotal - actualPaid : 0;
                 const effectiveRate = wNum > 0 && netFishPaid > 0 ? (netFishPaid / wNum) : formRate;
                 const rateLossPerKg = defaultStandardRate - effectiveRate;
                 const displayLoss = customerRemainingDue;
+                const deliveryFarmSubsidy = isDel ? Math.max(0, riderCost - custDelShare) : 0;
+                const deliveryGain = isDel ? Math.max(0, custDelShare - riderCost) : 0;
 
                 return (
                   <div className="space-y-3">
                     {/* Rate & Expected Price Info Box */}
                     <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800 space-y-2 font-mono">
                       <div className="flex items-center justify-between text-xs">
-                        <span className="text-slate-400">Standard Rate:</span>
+                        <span className="text-slate-400">Standard Base Rate:</span>
                         <span className="text-white font-bold">₹{defaultStandardRate} / Kg</span>
                       </div>
                       {formRate !== defaultStandardRate && (
@@ -8680,9 +8709,18 @@ export default function VendingCenterLoggerPage() {
                           <span className="text-amber-300 font-black">₹{formRate} / Kg</span>
                         </div>
                       )}
+                      {isDel && custDelShare > 0 && (
+                        <div className="flex items-center justify-between text-xs border-t border-slate-800/80 pt-1.5">
+                          <span className="text-blue-400 font-bold flex items-center gap-1">
+                            <span className="material-symbols-outlined text-[13px]">moped</span>
+                            Customer Delivery Share:
+                          </span>
+                          <span className="text-blue-300 font-bold">+₹{custDelShare.toLocaleString("en-IN")}</span>
+                        </div>
+                      )}
                       <div className="flex items-center justify-between text-xs border-t border-slate-800/80 pt-2">
                         <span className="text-slate-400">
-                          {formRate !== defaultStandardRate ? "Agreed Customer Bill:" : "Expected Customer Total:"}
+                          {isDel ? "Total Expected Bill (Fish + Del):" : formRate !== defaultStandardRate ? "Agreed Customer Bill:" : "Expected Customer Total:"}
                         </span>
                         <span className="text-emerald-400 font-black text-sm">
                           ₹{expectedTotal.toLocaleString("en-IN")}
@@ -8690,7 +8728,9 @@ export default function VendingCenterLoggerPage() {
                       </div>
                       {wNum > 0 && (
                         <div className="text-[10px] text-slate-500">
-                          {formRate !== defaultStandardRate
+                          {isDel && custDelShare > 0
+                            ? `Fish: ${wNum} Kg × ₹${formRate}/Kg = ₹${fishExpectedTotal} + Delivery ₹${custDelShare} = Total ₹${expectedTotal}`
+                            : formRate !== defaultStandardRate
                             ? `Agreed: ${wNum} Kg × ₹${formRate}/Kg = ₹${expectedTotal} (Std Rate ₹${defaultStandardRate} = ₹${standardExpectedTotal})`
                             : `Calculation: ${wNum} Kg × ₹${defaultStandardRate}/Kg = ₹${standardExpectedTotal}`}
                         </div>
@@ -8784,21 +8824,67 @@ export default function VendingCenterLoggerPage() {
                       </div>
                     </div>
 
-                    {/* Extra Amount Collected Highlight Card (When customer pays > base rate) */}
+                    {/* Real-time Delivery Logistics & Subsidy Breakdown (When Home Delivery is active) */}
+                    {isDel && (
+                      <div className="p-3 rounded-2xl bg-gradient-to-br from-blue-950/40 via-slate-950 to-slate-950 border border-blue-500/40 font-mono space-y-2 animate-fadeIn">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="text-blue-300 font-bold flex items-center gap-1.5">
+                            <span className="material-symbols-outlined text-sm text-blue-400">moped</span>
+                            Real-Time Delivery Economics
+                          </span>
+                          <span className={`font-bold px-2 py-0.5 rounded text-[10px] ${
+                            deliveryFarmSubsidy > 0
+                              ? "bg-rose-500/20 text-rose-300 border border-rose-500/40"
+                              : deliveryGain > 0
+                              ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                              : "bg-slate-800 text-slate-300 border border-slate-700"
+                          }`}>
+                            {deliveryFarmSubsidy > 0 ? `Farm Subsidy Loss: -₹${deliveryFarmSubsidy}` : deliveryGain > 0 ? `Delivery Gain: +₹${deliveryGain}` : "Break-Even on Rider ✓"}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-3 gap-2 text-[10.5px] pt-1.5 border-t border-slate-800/80">
+                          <div className="p-1.5 rounded-lg bg-slate-900 border border-slate-800">
+                            <span className="text-[9px] text-slate-400 block">Cust Delivery</span>
+                            <span className="text-emerald-300 font-black text-xs">+₹{custDelShare}</span>
+                          </div>
+                          <div className="p-1.5 rounded-lg bg-slate-900 border border-slate-800">
+                            <span className="text-[9px] text-slate-400 block">Rider Cost</span>
+                            <span className="text-amber-300 font-black text-xs">-₹{riderCost}</span>
+                          </div>
+                          <div className="p-1.5 rounded-lg bg-slate-900 border border-slate-800">
+                            <span className="text-[9px] text-slate-400 block">Net Fish In-Hand</span>
+                            <span className="text-cyan-300 font-black text-xs">₹{netFishPaid}</span>
+                          </div>
+                        </div>
+                        <div className="text-[9.5px] text-slate-400 leading-normal">
+                          {deliveryFarmSubsidy > 0 ? (
+                            <span className="text-rose-300/90 font-medium">
+                              ⚠️ We are losing ₹{deliveryFarmSubsidy} on rider payout for this delivery. Realized fish rate drops to ₹{effectiveRate.toFixed(1)}/Kg.
+                            </span>
+                          ) : (
+                            <span className="text-emerald-300/90 font-medium">
+                              ✓ Customer delivery share covers rider fare. Full fish value realized.
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Genuine Extra Amount / Tip Highlight Card (ONLY when payment exceeds Total Expected Bill including delivery) */}
                     {wNum > 0 && actualPaid > standardExpectedTotal && (
                       <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-950/80 via-teal-950/60 to-amber-950/40 border-2 border-emerald-400 text-emerald-200 shadow-lg shadow-emerald-950/50 space-y-1 animate-fadeIn">
                         <div className="flex items-center justify-between">
                           <span className="text-xs font-black uppercase tracking-wider text-emerald-300 flex items-center gap-1.5 font-mono">
                             <span className="material-symbols-outlined text-base text-amber-300">stars</span>
-                            ⭐ Customer Paid Extra (+₹{(actualPaid - standardExpectedTotal).toLocaleString("en-IN")})
+                            ⭐ Genuine Tip / Extra Paid (+₹{(actualPaid - standardExpectedTotal).toLocaleString("en-IN")})
                           </span>
                           <span className="text-[11px] font-black px-2.5 py-0.5 rounded-full bg-emerald-500/30 text-emerald-200 border border-emerald-400 font-mono">
-                            +₹{((actualPaid - standardExpectedTotal) / (wNum || 1)).toFixed(1)}/Kg above ₹{defaultStandardRate} Base
+                            +₹{((actualPaid - standardExpectedTotal) / (wNum || 1)).toFixed(1)}/Kg above Bill
                           </span>
                         </div>
                         <p className="text-[11px] text-slate-300 font-mono leading-relaxed">
-                          Base Rate Bill: ₹{standardExpectedTotal.toLocaleString("en-IN")} ({wNum} Kg × ₹{defaultStandardRate}/Kg) → Customer Gave: <span className="text-white font-bold">₹{actualPaid.toLocaleString("en-IN")}</span>.
-                          <strong className="text-emerald-300 ml-1.5">Extra Amount Logged: +₹{(actualPaid - standardExpectedTotal).toLocaleString("en-IN")}</strong>
+                          Total Bill (Fish + Del): ₹{standardExpectedTotal.toLocaleString("en-IN")} → Customer Paid: <span className="text-white font-bold">₹{actualPaid.toLocaleString("en-IN")}</span>.
+                          <strong className="text-emerald-300 ml-1.5">Tip / Extra Logged: +₹{(actualPaid - standardExpectedTotal).toLocaleString("en-IN")}</strong>
                         </p>
                       </div>
                     )}

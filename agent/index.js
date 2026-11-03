@@ -3675,7 +3675,22 @@ async function startBot() {
       console.log(`⛔ [VVIP MANUAL-ONLY SHIELD] Blocked outgoing automated message to ${targetJid} (IAS Officer 9419153353). Manual chat only!`);
       return null;
     }
-    const sent = await originalSendMessage(targetJid, content, ...rest);
+    // Universal JID normalization: prevent Baileys jidDecode crash if a plain phone number is passed
+    let normalizedJid = targetJid;
+    if (normalizedJid && typeof normalizedJid === "string" && !normalizedJid.includes("@")) {
+      const digits = normalizedJid.replace(/\D/g, "");
+      if (digits.length >= 10) {
+        normalizedJid = digits.length === 10 ? `91${digits}@s.whatsapp.net` : `${digits}@s.whatsapp.net`;
+      } else {
+        console.warn(`[sock.sendMessage] Skipped invalid recipient without JID suffix: "${targetJid}"`);
+        return null;
+      }
+    }
+    if (!normalizedJid || typeof normalizedJid !== "string" || !normalizedJid.includes("@")) {
+      console.warn(`[sock.sendMessage] Invalid JID skipped: "${targetJid}"`);
+      return null;
+    }
+    const sent = await originalSendMessage(normalizedJid, content, ...rest);
     if (sent && sent.key && sent.key.id) {
       botSentMessageIds.add(sent.key.id);
       setTimeout(() => botSentMessageIds.delete(sent.key.id), 10 * 60 * 1000);
