@@ -7311,19 +7311,19 @@ export default function VendingCenterLoggerPage() {
                         <div className="flex flex-col gap-1 min-w-0 leading-tight">
                           <div className="flex items-center gap-1.5 flex-wrap">
                             {isGutted && isSelfCleaned ? (
-                              <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-[#161616] text-zinc-200 border border-[#333333] inline-flex items-center gap-1">
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 inline-flex items-center gap-1">
                                 🐟 Gutted
-                                <span className="text-[8px] px-1 rounded bg-amber-500/30 text-amber-100 font-bold">Self</span>
+                                <span className="text-[8px] px-1 rounded bg-amber-500/30 text-amber-200 font-bold">Self</span>
                               </span>
                             ) : isGutted ? (
-                              <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-[#161616]/80 text-zinc-200 border border-[#333333]/80 inline-flex items-center gap-1">
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 inline-flex items-center gap-1">
                                 🐟 Gutted
-                                <span className="text-[9px] text-zinc-400 font-mono">
+                                <span className="text-[9px] text-emerald-400 font-mono font-bold">
                                   (+₹{Math.round(w * INCENTIVE_RATE_PER_KG)} inc)
                                 </span>
                               </span>
                             ) : (
-                              <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-[#161616]/60 text-zinc-300 border border-[#333333]/60">
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40">
                                 🐟 {e.product_type}
                               </span>
                             )}
@@ -7414,8 +7414,8 @@ export default function VendingCenterLoggerPage() {
                       <td className={`${cellPad} text-right whitespace-nowrap align-middle font-mono w-24`}>
                         <div className="flex flex-col items-end gap-0.5 leading-tight">
                           <div>
-                            <span className="text-white font-semibold font-mono text-xs tracking-tight tabular-nums">{formatKg(e.weight_kg)}</span>
-                            <span className="text-slate-500 text-[10px] ml-1 font-sans">Kg</span>
+                            <span className="text-emerald-400 font-bold font-mono text-xs tracking-tight tabular-nums">{formatKg(e.weight_kg)}</span>
+                            <span className="text-emerald-400/80 text-[10px] ml-1 font-sans font-medium">Kg</span>
                           </div>
                           <span className="text-slate-400 text-[10px] font-sans">
                             @ ₹{e.rate_per_kg}/Kg
@@ -7435,11 +7435,11 @@ export default function VendingCenterLoggerPage() {
                             {taken === 0 && isCreditSale ? (
                               <span className="text-rose-400 font-black text-sm">₹0</span>
                             ) : (
-                              <span className="text-white font-semibold font-mono text-xs tabular-nums">₹{taken.toLocaleString("en-IN")}</span>
+                              <span className="text-cyan-300 font-bold font-mono text-xs tabular-nums">₹{taken.toLocaleString("en-IN")}</span>
                             )}
                             {extraVal > 0 && (
                               <span
-                                className="text-[9px] font-medium text-zinc-300 bg-[#161616] px-1 py-0.2 rounded border border-[#333333]"
+                                className="text-[9px] font-bold text-amber-300 bg-amber-500/20 px-1 py-0.2 rounded border border-amber-500/40"
                                 title={`Customer paid ₹${extraVal} extra over standard bill (Tip / Premium)`}
                               >
                                 ⭐+₹{extraVal}
@@ -7479,35 +7479,35 @@ export default function VendingCenterLoggerPage() {
                           {/* Line 1: Payment Mode */}
                           <div className="flex items-center gap-1">
                             {isCreditSale && taken === 0 ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#161616]/80 border border-[#333333]/80 text-zinc-300 text-[9.5px] font-medium">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-500/20 border border-purple-500/40 text-purple-200 text-[9.5px] font-bold">
                                 📒 Credit (Khata)
                               </span>
                             ) : isCreditSale && taken > 0 ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#161616]/80 border border-[#333333]/80 text-zinc-300 text-[9.5px] font-medium">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-500/20 border border-purple-500/40 text-purple-200 text-[9.5px] font-bold">
                                 💵 ₹{taken} + 📒 Khata
                               </span>
                             ) : (e.payment_mode || "").toLowerCase().includes("credit") ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#161616]/80 border border-[#333333]/80 text-zinc-300 text-[9.5px] font-medium">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-500/20 border border-purple-500/40 text-purple-200 text-[9.5px] font-bold">
                                 📒 Credit (Khata)
                               </span>
                             ) : (e.payment_mode || "").toLowerCase().includes("split") || Boolean(e.custom_fields?.is_split) ? (
-                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-[#161616]/80 border border-[#333333]/80 text-zinc-300 text-[9px] font-medium font-mono">
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-cyan-500/20 border border-cyan-500/40 text-cyan-200 text-[9px] font-bold font-mono">
                                 💵 ₹{e.custom_fields?.cash_portion ?? Math.round(taken / 2)} + {(e.payment_mode?.includes("Razorpay") || e.custom_fields?.online_channel === "Razorpay") ? "⚡ Rzp" : "🏛️ JK"} ₹{e.custom_fields?.online_portion ?? (taken - Math.round(taken / 2))}
                               </span>
                             ) : (e.payment_mode || "").includes("JK Bank") || e.custom_fields?.online_channel === "JK Bank" ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#161616]/80 border border-[#333333]/80 text-zinc-300 text-[9.5px] font-medium">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-500/20 border border-blue-500/40 text-blue-200 text-[9.5px] font-bold">
                                 🏛️ JK Bank
                               </span>
                             ) : (e.payment_mode || "").includes("Razorpay Online") || e.payment_mode === "Razorpay" ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#161616]/80 border border-[#333333]/80 text-zinc-300 text-[9.5px] font-medium">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-500/20 border border-indigo-500/40 text-indigo-200 text-[9.5px] font-bold">
                                 ⚡ Razorpay
                               </span>
                             ) : isCash ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#161616]/80 border border-[#333333]/80 text-zinc-300 text-[9.5px] font-medium">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-teal-500/20 border border-teal-500/40 text-teal-200 text-[9.5px] font-bold">
                                 💵 Cash
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#161616]/80 border border-[#333333]/80 text-zinc-300 text-[9.5px] font-medium">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-cyan-500/20 border border-cyan-500/40 text-cyan-200 text-[9.5px] font-bold">
                                 ⚡ Online
                               </span>
                             )}
@@ -7529,7 +7529,7 @@ export default function VendingCenterLoggerPage() {
                               🤝 Waived (-₹{loss})
                             </span>
                           ) : e.custom_fields?.balance_status === "settled" || e.custom_fields?.settled_at || (e.custom_fields?.is_full_payment && !isCreditSale) ? (
-                            <span className="text-[9px] font-medium text-zinc-400 flex items-center gap-0.5">
+                            <span className="text-[9px] font-bold text-emerald-400 flex items-center gap-0.5">
                               <span>✓</span> Full Paid
                             </span>
                           ) : loss > 0 ? (

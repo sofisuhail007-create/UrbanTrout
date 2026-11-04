@@ -2584,18 +2584,18 @@ Helpline: +91 84910 06127`;
           onClick={() => setActiveTab("pos")}
           className={`group relative flex items-center gap-3 p-2.5 rounded-lg border text-left transition-colors cursor-pointer ${
             activeTab === "pos"
-              ? "bg-[#161616] text-white font-medium border-[#333333] shadow-sm"
+              ? "bg-emerald-500/10 text-emerald-200 font-medium border-emerald-500/40 shadow-sm"
               : "bg-transparent hover:bg-[#161616]/40 border-transparent text-zinc-400 hover:text-zinc-200"
           }`}
         >
           <div
             className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 border transition-colors ${
               activeTab === "pos"
-                ? "bg-[#0a0a0a] border-[#333333] text-zinc-100"
-                : "bg-[#0a0a0a]/60 border-[#222222]/60 text-zinc-400 group-hover:text-zinc-200"
+                ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400"
+                : "bg-[#0a0a0a]/60 border-[#222222]/60 text-emerald-400/70 group-hover:text-emerald-300"
             }`}
           >
-            <span className="material-symbols-outlined text-lg">point_of_sale</span>
+            <span className="material-symbols-outlined text-lg text-emerald-400">point_of_sale</span>
           </div>
           <div className="min-w-0 flex-1">
             <span className={`text-xs sm:text-sm font-semibold truncate block ${activeTab === "pos" ? "text-zinc-100" : "text-zinc-300"}`}>
@@ -2613,25 +2613,25 @@ Helpline: +91 84910 06127`;
           onClick={() => setActiveTab("catch_weight")}
           className={`group relative flex items-center gap-3 p-2.5 rounded-lg border text-left transition-colors cursor-pointer ${
             activeTab === "catch_weight"
-              ? "bg-[#161616] text-white font-medium border-[#333333] shadow-sm"
+              ? "bg-cyan-500/10 text-cyan-200 font-medium border-cyan-500/40 shadow-sm"
               : "bg-transparent hover:bg-[#161616]/40 border-transparent text-zinc-400 hover:text-zinc-200"
           }`}
         >
           <div
             className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 border transition-colors ${
               activeTab === "catch_weight"
-                ? "bg-[#0a0a0a] border-[#333333] text-zinc-100"
-                : "bg-[#0a0a0a]/60 border-[#222222]/60 text-zinc-400 group-hover:text-zinc-200"
+                ? "bg-cyan-500/20 border-cyan-500/50 text-cyan-400"
+                : "bg-[#0a0a0a]/60 border-[#222222]/60 text-cyan-400/70 group-hover:text-cyan-300"
             }`}
           >
-            <span className="material-symbols-outlined text-lg">scale</span>
+            <span className="material-symbols-outlined text-lg text-cyan-400">scale</span>
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-1">
-              <span className={`text-xs sm:text-sm font-semibold truncate ${activeTab === "catch_weight" ? "text-zinc-100" : "text-zinc-300"}`}>
+              <span className={`text-xs sm:text-sm font-semibold truncate ${activeTab === "catch_weight" ? "text-cyan-200" : "text-zinc-300"}`}>
                 Catch-Weight
               </span>
-              <span className="px-1.5 py-0.2 rounded bg-[#161616] text-zinc-400 text-[9px] font-mono border border-[#333333] shrink-0">
+              <span className="px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 text-[9px] font-mono border border-cyan-500/40 shrink-0 font-bold">
                 ADVANCE
               </span>
             </div>
@@ -2650,26 +2650,26 @@ Helpline: +91 84910 06127`;
           }}
           className={`group relative flex items-center gap-3 p-2.5 rounded-lg border text-left transition-colors cursor-pointer ${
             activeTab === "remote_orders"
-              ? "bg-[#161616] text-white font-medium border-[#333333] shadow-sm"
+              ? "bg-sky-500/10 text-sky-200 font-medium border-sky-500/40 shadow-sm"
               : "bg-transparent hover:bg-[#161616]/40 border-transparent text-zinc-400 hover:text-zinc-200"
           }`}
         >
           <div
             className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 border transition-colors ${
               activeTab === "remote_orders"
-                ? "bg-[#0a0a0a] border-[#333333] text-zinc-100"
-                : "bg-[#0a0a0a]/60 border-[#222222]/60 text-zinc-400 group-hover:text-zinc-200"
+                ? "bg-sky-500/20 border-sky-500/50 text-sky-400"
+                : "bg-[#0a0a0a]/60 border-[#222222]/60 text-sky-400/70 group-hover:text-sky-300"
             }`}
           >
-            <span className="material-symbols-outlined text-lg">receipt_long</span>
+            <span className="material-symbols-outlined text-lg text-sky-400">receipt_long</span>
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-1">
-              <span className={`text-xs sm:text-sm font-semibold truncate ${activeTab === "remote_orders" ? "text-zinc-100" : "text-zinc-300"}`}>
+              <span className={`text-xs sm:text-sm font-semibold truncate ${activeTab === "remote_orders" ? "text-sky-200" : "text-zinc-300"}`}>
                 All Invoices
               </span>
               {pendingRemoteCount > 0 && (
-                <span className="px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-300 border border-amber-500/30 text-[9px] font-mono font-medium shrink-0">
+                <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[9px] font-mono font-bold shrink-0">
                   {pendingRemoteCount} DUE
                 </span>
               )}
@@ -2686,25 +2686,25 @@ Helpline: +91 84910 06127`;
           onClick={() => setActiveTab("deal_calculator")}
           className={`group relative flex items-center gap-3 p-2.5 rounded-lg border text-left transition-colors cursor-pointer ${
             activeTab === "deal_calculator"
-              ? "bg-[#161616] text-white font-medium border-[#333333] shadow-sm"
+              ? "bg-amber-500/10 text-amber-200 font-medium border-amber-500/40 shadow-sm"
               : "bg-transparent hover:bg-[#161616]/40 border-transparent text-zinc-400 hover:text-zinc-200"
           }`}
         >
           <div
             className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 border transition-colors ${
               activeTab === "deal_calculator"
-                ? "bg-[#0a0a0a] border-[#333333] text-zinc-100"
-                : "bg-[#0a0a0a]/60 border-[#222222]/60 text-zinc-400 group-hover:text-zinc-200"
+                ? "bg-amber-500/20 border-amber-500/50 text-amber-400"
+                : "bg-[#0a0a0a]/60 border-[#222222]/60 text-amber-400/70 group-hover:text-amber-300"
             }`}
           >
-            <span className="material-symbols-outlined text-lg">handshake</span>
+            <span className="material-symbols-outlined text-lg text-amber-400">handshake</span>
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-1">
-              <span className={`text-xs sm:text-sm font-semibold truncate ${activeTab === "deal_calculator" ? "text-zinc-100" : "text-zinc-300"}`}>
+              <span className={`text-xs sm:text-sm font-semibold truncate ${activeTab === "deal_calculator" ? "text-amber-200" : "text-zinc-300"}`}>
                 Deal Desk
               </span>
-              <span className="px-1.5 py-0.2 rounded bg-[#161616] text-zinc-400 text-[9px] font-mono border border-[#333333] shrink-0">
+              <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 text-[9px] font-mono border border-amber-500/40 shrink-0 font-bold">
                 BARGAIN
               </span>
             </div>
@@ -2720,26 +2720,26 @@ Helpline: +91 84910 06127`;
           onClick={() => setActiveTab("customer_balances")}
           className={`group relative flex items-center gap-3 p-2.5 rounded-lg border text-left transition-colors cursor-pointer ${
             activeTab === "customer_balances"
-              ? "bg-[#161616] text-white font-medium border-[#333333] shadow-sm"
+              ? "bg-purple-500/10 text-purple-200 font-medium border-purple-500/40 shadow-sm"
               : "bg-transparent hover:bg-[#161616]/40 border-transparent text-zinc-400 hover:text-zinc-200"
           }`}
         >
           <div
             className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 border transition-colors ${
               activeTab === "customer_balances"
-                ? "bg-[#0a0a0a] border-[#333333] text-zinc-100"
-                : "bg-[#0a0a0a]/60 border-[#222222]/60 text-zinc-400 group-hover:text-zinc-200"
+                ? "bg-purple-500/20 border-purple-500/50 text-purple-400"
+                : "bg-[#0a0a0a]/60 border-[#222222]/60 text-purple-400/70 group-hover:text-purple-300"
             }`}
           >
-            <span className="material-symbols-outlined text-lg">account_balance_wallet</span>
+            <span className="material-symbols-outlined text-lg text-purple-400">account_balance_wallet</span>
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-1">
-              <span className={`text-xs sm:text-sm font-semibold truncate ${activeTab === "customer_balances" ? "text-zinc-100" : "text-zinc-300"}`}>
+              <span className={`text-xs sm:text-sm font-semibold truncate ${activeTab === "customer_balances" ? "text-purple-200" : "text-zinc-300"}`}>
                 Customer Khata
               </span>
               {pendingKhataCount > 0 && (
-                <span className="px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-300 border border-amber-500/30 text-[9px] font-mono font-medium shrink-0">
+                <span className="px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300 border border-purple-500/40 text-[9px] font-mono font-bold shrink-0">
                   {pendingKhataCount} PENDING
                 </span>
               )}
@@ -2810,12 +2810,14 @@ Helpline: +91 84910 06127`;
                       <div
                         key={p.id}
                         onClick={() => handleSelectProduct(p.id)}
-                        className={`p-2.5 rounded-lg text-left transition-colors cursor-pointer flex items-center justify-between gap-2 border ${
+                        className={`p-2.5 rounded-xl text-left transition-all cursor-pointer flex items-center justify-between gap-2 border ${
                           isSelected
-                            ? "bg-[#161616] border-zinc-600 text-white"
+                            ? p.name.toLowerCase().includes("gutted")
+                              ? "bg-emerald-500/15 border-emerald-400 text-white shadow-md shadow-emerald-500/10"
+                              : "bg-cyan-500/15 border-cyan-400 text-white shadow-md shadow-cyan-500/10"
                             : isInBill
-                            ? "bg-[#0a0a0a] border-[#333333] text-zinc-200"
-                            : "bg-[#0a0a0a]/60 border-[#222222] text-zinc-400 hover:border-[#333333] hover:text-zinc-200"
+                            ? "bg-[#161616] border-zinc-700 text-zinc-200"
+                            : "bg-[#0a0a0a] border-[#222222] text-zinc-400 hover:border-[#333333] hover:text-zinc-200"
                         }`}
                       >
                         <div className="min-w-0 flex-1">
@@ -2828,7 +2830,7 @@ Helpline: +91 84910 06127`;
                             </span>
                           </div>
                           <div className="flex items-center justify-between mt-1">
-                            <p className="text-zinc-200 font-semibold text-xs sm:text-sm font-mono">₹{p.pricePerKg}/Kg</p>
+                            <p className="font-bold text-xs sm:text-sm font-mono text-cyan-400">₹{p.pricePerKg}/Kg</p>
                             {itemInBill && (
                               <span className="text-[10px] text-zinc-400 font-mono font-medium">
                                 {itemInBill.weightKg} Kg
@@ -2845,7 +2847,7 @@ Helpline: +91 84910 06127`;
                             handleAddProductItem(p.id);
                           }}
                           title={`Add ${p.name.split(" ")[0]} to Bill`}
-                          className="w-6 h-6 rounded bg-[#161616] hover:bg-[#222222] border border-[#333333] text-zinc-300 flex items-center justify-center font-bold text-sm transition-colors cursor-pointer flex-shrink-0"
+                          className="w-6 h-6 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 flex items-center justify-center font-bold text-sm transition-colors cursor-pointer flex-shrink-0"
                         >
                           +
                         </button>
@@ -2873,7 +2875,7 @@ Helpline: +91 84910 06127`;
                       onWheel={(e) => (e.target as HTMLElement).blur()}
                       onChange={(e) => updateActiveWeight(e.target.value)}
                       placeholder="0.00"
-                      className="w-full bg-[#000000] border border-[#222222] rounded-lg px-4 py-2 sm:py-2.5 text-xl sm:text-2xl font-mono text-white font-semibold focus:outline-none focus:border-[#555555] tabular-nums"
+                      className="w-full bg-black border border-[#262626] rounded-xl px-4 py-2 sm:py-2.5 text-2xl sm:text-3xl font-mono text-cyan-300 font-black focus:outline-none focus:border-cyan-400 tabular-nums"
                     />
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 font-mono text-xs sm:text-sm">
                       KG
@@ -2897,7 +2899,7 @@ Helpline: +91 84910 06127`;
                       <button
                         type="button"
                         onClick={() => handleQuickWeight(0.5, true)}
-                        className="px-2.5 py-1.5 rounded-md bg-[#161616] hover:bg-[#222222] text-zinc-200 font-mono text-xs font-semibold border border-[#333333] cursor-pointer"
+                        className="px-2.5 py-1.5 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 font-mono text-xs font-bold border border-cyan-500/40 cursor-pointer"
                       >
                         +0.5
                       </button>
@@ -2906,7 +2908,7 @@ Helpline: +91 84910 06127`;
                     <button
                       type="button"
                       onClick={() => handleAddProductItem()}
-                      className="px-3 py-1.5 rounded-md bg-[#161616] hover:bg-[#222222] border border-[#333333] text-zinc-200 text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer ml-auto"
+                      className="px-3 py-1.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 text-xs font-bold font-mono transition-colors flex items-center gap-1.5 cursor-pointer ml-auto"
                       title="Add another item or trout variety to bill"
                     >
                       <span className="material-symbols-outlined text-sm">add</span>
@@ -3150,9 +3152,9 @@ Helpline: +91 84910 06127`;
                           setSelectedProductId(item.id);
                           setCurrentWeight(item.weightKg.toString());
                         }}
-                        className={`p-2 rounded-lg border transition-colors cursor-pointer flex items-center justify-between gap-2 ${
+                        className={`p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-2 ${
                           isFocused
-                            ? "bg-[#161616]/80 border-zinc-600"
+                            ? "bg-cyan-500/15 border-cyan-400/80 text-white shadow-sm"
                             : "bg-[#000000] border-[#222222] hover:border-[#333333]"
                         }`}
                       >
@@ -3160,7 +3162,7 @@ Helpline: +91 84910 06127`;
                           <div className="flex items-center gap-1.5">
                             <span className="text-xs font-medium text-white truncate">{item.name}</span>
                             {isFocused && (
-                              <span className="px-1.5 py-0.2 rounded bg-zinc-700 text-zinc-200 text-[9px] font-mono">
+                              <span className="px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-[9px] font-mono font-bold">
                                 Selected
                               </span>
                             )}
@@ -3207,10 +3209,16 @@ Helpline: +91 84910 06127`;
                     key={channel.id}
                     type="button"
                     onClick={() => setPaymentMethod(channel.id as any)}
-                    className={`py-2 px-1 rounded-lg text-center transition-colors border cursor-pointer ${
+                    className={`py-2 px-1 rounded-xl text-center transition-all border cursor-pointer ${
                       isSel
-                        ? "bg-[#161616] text-zinc-100 border-zinc-600 shadow-sm"
-                        : "bg-[#0a0a0a]/60 text-zinc-400 border-[#222222] hover:border-[#333333] hover:text-zinc-300"
+                        ? channel.id === "JkBankSoundbox"
+                          ? "bg-emerald-500/20 border-emerald-400 text-emerald-200 font-bold shadow-md shadow-emerald-500/10"
+                          : channel.id === "RazorpayQR"
+                          ? "bg-cyan-500/20 border-cyan-400 text-cyan-200 font-bold shadow-md shadow-cyan-500/10"
+                          : channel.id === "WhatsAppLink"
+                          ? "bg-sky-500/20 border-sky-400 text-sky-200 font-bold shadow-md shadow-sky-500/10"
+                          : "bg-teal-500/20 border-teal-400 text-teal-200 font-bold shadow-md shadow-teal-500/10"
+                        : "bg-black text-zinc-400 border-[#222222] hover:border-[#333333] hover:text-zinc-200"
                     }`}
                   >
                     <div className="text-[11px] font-medium leading-tight truncate">{channel.label}</div>
@@ -3290,7 +3298,7 @@ Helpline: +91 84910 06127`;
                         setLastSoundboxAmount(grandTotal);
                         setEnlargeQrModal(true);
                       }}
-                      className="w-full py-2.5 px-3 rounded-lg bg-zinc-100 hover:bg-white active:scale-[0.99] text-zinc-950 font-semibold text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm font-['Space_Grotesk']"
+                      className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 active:scale-[0.99] text-slate-950 font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-500/20 font-['Space_Grotesk']"
                     >
                       <span className="material-symbols-outlined text-base">qr_code_scanner</span>
                       Generate QR Code (₹{grandTotal.toLocaleString("en-IN")})
@@ -3503,7 +3511,7 @@ Helpline: +91 84910 06127`;
                       type="button"
                       onClick={() => generateRazorpayQr(grandTotal, true)}
                       disabled={grandTotal <= 0}
-                      className="w-full py-2.5 px-3 rounded-lg bg-zinc-100 hover:bg-white active:scale-[0.99] disabled:opacity-50 text-zinc-950 font-semibold uppercase tracking-wider text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer font-['Space_Grotesk']"
+                      className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 active:scale-[0.99] disabled:opacity-50 text-slate-950 font-black uppercase tracking-wider text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-cyan-500/20 font-['Space_Grotesk']"
                     >
                       <span className="material-symbols-outlined text-base">qr_code_scanner</span>
                       Generate Customer QR (₹{grandTotal.toLocaleString("en-IN")})
@@ -3706,7 +3714,7 @@ Helpline: +91 84910 06127`;
                           type="button"
                           onClick={handleSendWhatsAppPaymentLink}
                           disabled={grandTotal <= 0 || rzpLinkLoading}
-                          className="w-full py-2.5 px-3 rounded-lg bg-zinc-100 hover:bg-white active:scale-[0.99] disabled:opacity-50 text-zinc-950 font-semibold uppercase tracking-wider text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer font-['Space_Grotesk']"
+                          className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 active:scale-[0.99] disabled:opacity-50 text-slate-950 font-black uppercase tracking-wider text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-cyan-500/20 font-['Space_Grotesk']"
                         >
                           <span className="material-symbols-outlined text-base">send</span>
                           Send WhatsApp Payment Link (₹{grandTotal.toLocaleString("en-IN")})
@@ -3739,7 +3747,7 @@ Helpline: +91 84910 06127`;
                   type="button"
                   onClick={handleSendWhatsAppPaymentLink}
                   disabled={grandTotal <= 0 || rzpLinkLoading}
-                  className="w-full py-2.5 sm:py-3 rounded-md bg-white hover:bg-neutral-200 active:scale-[0.99] disabled:bg-[#1a1a1a] disabled:text-[#666666] disabled:border disabled:border-[#2a2a2a] disabled:cursor-not-allowed text-black font-semibold uppercase tracking-wider text-xs sm:text-sm transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer font-['Space_Grotesk']"
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 active:scale-[0.99] disabled:from-[#1a1a1a] disabled:to-[#1a1a1a] disabled:text-[#666666] disabled:border disabled:border-[#2a2a2a] disabled:cursor-not-allowed text-slate-950 font-black uppercase tracking-wider text-xs sm:text-sm transition-all shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 cursor-pointer font-['Space_Grotesk']"
                 >
                   {rzpLinkLoading ? (
                     <>
@@ -3758,7 +3766,7 @@ Helpline: +91 84910 06127`;
                   type="button"
                   onClick={handleGenerateInvoice}
                   disabled={grandTotal <= 0}
-                  className="w-full py-2.5 sm:py-3 rounded-md bg-white hover:bg-neutral-200 active:scale-[0.99] disabled:bg-[#1a1a1a] disabled:text-[#666666] disabled:border disabled:border-[#2a2a2a] disabled:cursor-not-allowed text-black font-semibold uppercase tracking-wider text-xs sm:text-sm transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer font-['Space_Grotesk']"
+                  className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 active:scale-[0.99] disabled:from-[#1a1a1a] disabled:to-[#1a1a1a] disabled:text-[#666666] disabled:border disabled:border-[#2a2a2a] disabled:cursor-not-allowed text-slate-950 font-black uppercase tracking-wider text-xs sm:text-sm transition-all shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 cursor-pointer font-['Space_Grotesk']"
                 >
                   <span className="material-symbols-outlined text-base sm:text-lg">receipt_long</span>
                   Generate Invoice (₹{grandTotal.toLocaleString("en-IN")})
@@ -3850,9 +3858,9 @@ Helpline: +91 84910 06127`;
             <div className="p-3.5 sm:p-4 rounded-xl bg-[#0a0a0a] border border-[#222222] space-y-1 shadow-sm">
               <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
                 <span>Total Remote Orders</span>
-                <span className="material-symbols-outlined text-sm text-zinc-400">local_shipping</span>
+                <span className="material-symbols-outlined text-sm text-cyan-400">local_shipping</span>
               </div>
-              <div className="text-xl sm:text-2xl font-black text-white font-mono">
+              <div className="text-xl sm:text-2xl font-black text-cyan-400 font-mono">
                 {remoteOrders.length}
               </div>
               <div className="text-[10px] text-slate-500 font-mono">
@@ -3867,7 +3875,7 @@ Helpline: +91 84910 06127`;
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
                   Payment Due
                 </span>
-                <span className="material-symbols-outlined text-sm text-zinc-400">pending</span>
+                <span className="material-symbols-outlined text-sm text-amber-400">pending</span>
               </div>
               <div className="text-xl sm:text-2xl font-semibold text-white font-mono tabular-nums">
                 ₹{pendingRemoteAmount.toLocaleString("en-IN")}
@@ -3884,7 +3892,7 @@ Helpline: +91 84910 06127`;
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
                   Collected / Paid
                 </span>
-                <span className="material-symbols-outlined text-sm text-zinc-400">check_circle</span>
+                <span className="material-symbols-outlined text-sm text-emerald-400">check_circle</span>
               </div>
               <div className="text-xl sm:text-2xl font-semibold text-white font-mono tabular-nums">
                 ₹{paidRemoteAmount.toLocaleString("en-IN")}
@@ -3898,7 +3906,7 @@ Helpline: +91 84910 06127`;
             <div className="bg-[#0a0a0a]/85 border border-cyan-500/30 rounded-2xl p-3 sm:p-4 space-y-1 shadow-lg">
               <div className="flex items-center justify-between text-cyan-300 text-xs font-mono font-bold">
                 <span>⚡ Payment Verification</span>
-                <span className="material-symbols-outlined text-sm text-zinc-400">verified</span>
+                <span className="material-symbols-outlined text-sm text-cyan-400">verified</span>
               </div>
               <div className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5 pt-1">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />

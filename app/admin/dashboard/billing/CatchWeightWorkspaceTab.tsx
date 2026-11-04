@@ -229,15 +229,15 @@ export default function CatchWeightWorkspaceTab({
       {/* ─── BANNER HEADER ─── */}
       <div className="p-4 rounded-xl bg-[#0a0a0a] border border-[#222222] flex flex-col md:flex-row items-start md:items-center justify-between gap-3 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-[#0a0a0a] border border-[#222222] text-zinc-300 flex items-center justify-center text-xl shrink-0">
-            ⚖️
+          <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center text-xl shrink-0">
+            <span className="material-symbols-outlined text-2xl text-amber-400">balance</span>
           </div>
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-sm sm:text-base font-semibold text-white font-['Space_Grotesk']">
                 WhatsApp Catch-Weight &amp; Delivery Billing
               </h2>
-              <span className="px-2 py-0.5 rounded-md bg-[#161616] text-zinc-300 border border-[#333333] text-[10px] font-mono font-medium">
+              <span className="px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-mono font-bold">
                 SEPARATE DESK
               </span>
             </div>
@@ -335,14 +335,14 @@ export default function CatchWeightWorkspaceTab({
                   const ord = parseFloat(orderedWeight) || 0;
                   if (ord > 0) setAdvancePaid(String(Math.round(ord * 580)));
                 }}
-                className={`p-2.5 rounded-lg border text-left transition-colors cursor-pointer ${
+                className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                   productType === "Gutted"
-                    ? "bg-[#161616] text-white border-zinc-600 shadow-sm"
+                    ? "bg-cyan-500/15 border-cyan-400 text-white shadow-md shadow-cyan-500/10"
                     : "bg-[#000000] border-[#222222] text-zinc-400 hover:border-[#333333] hover:text-zinc-300"
                 }`}
               >
-                <div className="font-medium text-xs">Gutted Rainbow Trout</div>
-                <div className="text-zinc-300 font-mono text-xs font-semibold tabular-nums mt-0.5">₹580 / Kg</div>
+                <div className="font-bold text-xs text-white">🐟 Gutted Rainbow Trout</div>
+                <div className="text-cyan-400 font-mono text-xs font-bold tabular-nums mt-0.5">₹580 / Kg</div>
               </button>
 
               <button
@@ -353,14 +353,14 @@ export default function CatchWeightWorkspaceTab({
                   const ord = parseFloat(orderedWeight) || 0;
                   if (ord > 0) setAdvancePaid(String(Math.round(ord * 550)));
                 }}
-                className={`p-2.5 rounded-lg border text-left transition-colors cursor-pointer ${
+                className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                   productType === "Whole"
-                    ? "bg-[#161616] text-white border-zinc-600 shadow-sm"
+                    ? "bg-teal-500/15 border-teal-400 text-white shadow-md shadow-teal-500/10"
                     : "bg-[#000000] border-[#222222] text-zinc-400 hover:border-[#333333] hover:text-zinc-300"
                 }`}
               >
-                <div className="font-medium text-xs">Whole Rainbow Trout</div>
-                <div className="text-zinc-300 font-mono text-xs font-semibold tabular-nums mt-0.5">₹550 / Kg</div>
+                <div className="font-bold text-xs text-white">🐟 Whole Rainbow Trout</div>
+                <div className="text-teal-400 font-mono text-xs font-bold tabular-nums mt-0.5">₹550 / Kg</div>
               </button>
             </div>
 
@@ -371,7 +371,7 @@ export default function CatchWeightWorkspaceTab({
                   <span>1️⃣</span> Ordered Weight (What customer requested on WhatsApp):
                 </label>
                 <span className="text-[11px] text-slate-400 font-mono">
-                  Target: <strong className="text-white">{numOrdered} Kg</strong>
+                  Target: <strong className="text-cyan-300 font-mono font-bold">{numOrdered} Kg</strong>
                 </span>
               </div>
 
@@ -390,7 +390,7 @@ export default function CatchWeightWorkspaceTab({
                     }
                   }}
                   placeholder="e.g. 2.00"
-                  className="w-full bg-[#0a0a0a] border border-[#222222] rounded-lg px-4 py-2 text-xl font-mono text-white font-semibold tabular-nums focus:outline-none focus:border-[#555555]"
+                  className="w-full bg-black border border-[#262626] rounded-xl px-4 py-2 text-2xl font-mono text-cyan-300 font-black tabular-nums focus:outline-none focus:border-cyan-400"
                 />
                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 font-mono text-xs">
                   KG
@@ -410,7 +410,7 @@ export default function CatchWeightWorkspaceTab({
                     }}
                     className={`px-2 py-0.5 rounded-lg font-mono text-[11px] font-semibold border transition-all cursor-pointer ${
                       orderedWeight === w
-                        ? "bg-[#161616] text-white border-zinc-600 font-semibold"
+                        ? "bg-cyan-500/20 text-cyan-200 border-cyan-400 font-bold shadow-sm"
                         : "bg-[#0a0a0a] hover:bg-[#161616] text-zinc-400 border-[#222222]"
                     }`}
                   >
@@ -436,7 +436,7 @@ export default function CatchWeightWorkspaceTab({
                       📥 Pull Scale ({activeScaleWeight} Kg)
                     </button>
                   )}
-                  <span className="text-[11px] text-zinc-300 font-mono font-medium tabular-nums">
+                  <span className="text-[11px] text-amber-300 font-mono font-bold tabular-nums">
                     {numActual > 0 ? `${(numActual * 1000).toFixed(0)} grams` : ""}
                   </span>
                 </div>
@@ -450,7 +450,7 @@ export default function CatchWeightWorkspaceTab({
                   value={actualWeight}
                   onChange={(e) => setActualWeight(e.target.value)}
                   placeholder="e.g. 1.80"
-                  className="w-full bg-[#0a0a0a] border border-[#333333] rounded-lg px-4 py-2.5 text-2xl font-mono text-white font-semibold tabular-nums focus:outline-none focus:border-[#555555]"
+                  className="w-full bg-black border border-[#262626] rounded-xl px-4 py-2.5 text-3xl font-mono text-amber-400 font-black tabular-nums focus:outline-none focus:border-amber-400"
                 />
                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 font-mono font-medium text-sm">
                   KG
@@ -467,7 +467,7 @@ export default function CatchWeightWorkspaceTab({
                     onClick={() => setActualWeight(w)}
                     className={`px-2 py-0.5 rounded-lg font-mono text-[11px] font-semibold border transition-all cursor-pointer ${
                       actualWeight === w
-                        ? "bg-[#161616] text-white border-zinc-600 font-semibold"
+                        ? "bg-amber-500/20 text-amber-200 border-amber-400 font-bold shadow-sm"
                         : "bg-[#0a0a0a] hover:bg-[#161616] text-zinc-400 border-[#222222]"
                     }`}
                   >
@@ -494,7 +494,7 @@ export default function CatchWeightWorkspaceTab({
                   }}
                   className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                     isPrepaid
-                      ? "bg-[#161616] border-zinc-600 text-white font-medium shadow-sm"
+                      ? "bg-emerald-500/15 border-emerald-400 text-emerald-200 font-bold shadow-md shadow-emerald-500/10"
                       : "bg-[#0a0a0a] border-[#222222] text-zinc-400 hover:border-[#333333] hover:text-zinc-300"
                   }`}
                 >
@@ -512,7 +512,7 @@ export default function CatchWeightWorkspaceTab({
                   onClick={() => setIsPrepaid(false)}
                   className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                     !isPrepaid
-                      ? "bg-[#161616] border-zinc-600 text-white font-medium shadow-sm"
+                      ? "bg-amber-500/15 border-amber-400 text-amber-200 font-bold shadow-md shadow-amber-500/10"
                       : "bg-[#0a0a0a] border-[#222222] text-zinc-400 hover:border-[#333333] hover:text-zinc-300"
                   }`}
                 >
@@ -592,7 +592,7 @@ export default function CatchWeightWorkspaceTab({
               )}
               <div className="pt-2 border-t border-[#222222] flex items-center justify-between text-sm">
                 <span className="font-bold text-slate-200">Total Harvest Bill:</span>
-                <span className="font-semibold font-mono text-white text-base tabular-nums">
+                <span className="font-black font-mono text-cyan-300 text-lg tabular-nums">
                   ₹{harvestGrandTotal.toLocaleString("en-IN")}
                 </span>
               </div>
@@ -608,25 +608,25 @@ export default function CatchWeightWorkspaceTab({
             <div className="pt-2">
               {/* CASE 1: REFUND DUE (e.g. ordered 2.00 Kg, actual 1.80 Kg) */}
               {isPrepaid && refundAmount > 0 && (
-                <div className="p-4 rounded-xl bg-[#0a0a0a] border border-[#333333] space-y-2 text-zinc-200 shadow-sm">
+                <div className="p-4 rounded-xl bg-emerald-950/40 border border-emerald-500/50 space-y-2 text-emerald-100 shadow-lg shadow-emerald-500/10">
                   <div className="flex items-center justify-between">
-                    <span className="font-medium text-xs uppercase tracking-wider text-emerald-400 flex items-center gap-1.5 font-mono">
+                    <span className="font-bold text-xs uppercase tracking-wider text-emerald-400 flex items-center gap-1.5 font-mono">
                       <span>💵</span>
                       <span>CASH REFUND / CASHBACK DUE:</span>
                     </span>
-                    <span className="text-2xl font-semibold font-mono text-white tabular-nums">
+                    <span className="text-3xl font-black font-mono text-emerald-300 tabular-nums">
                       ₹{refundAmount.toLocaleString("en-IN")}
                     </span>
                   </div>
-                  <p className="text-[11px] text-zinc-300 leading-tight">
+                  <p className="text-[11px] text-emerald-200/90 leading-tight font-sans">
                     Customer paid for {numOrdered.toFixed(2)} Kg (₹{numAdvance}), but harvest weight is {numActual.toFixed(2)} Kg (₹{harvestGrandTotal}).
                   </p>
-                  <div className="pt-2 border-t border-[#222222] text-[11px] text-zinc-300 font-medium space-y-1">
+                  <div className="pt-2 border-t border-emerald-500/30 text-[11px] text-emerald-200 font-medium space-y-1">
                     <div className="flex items-center gap-1.5">
                       <span>🛵</span>
-                      <span><strong>Rider Handover:</strong> Return ₹{refundAmount} cash/UPI to customer</span>
+                      <span><strong className="text-emerald-300">Rider Handover:</strong> Return ₹{refundAmount} cash/UPI to customer</span>
                     </div>
-                    <div className="text-[10px] text-zinc-400 font-mono">
+                    <div className="text-[10px] text-emerald-400/80 font-mono">
                       Printed on slip: Handover checkbox for rider &amp; customer sign-off.
                     </div>
                   </div>
@@ -635,25 +635,25 @@ export default function CatchWeightWorkspaceTab({
 
               {/* CASE 2: EXTRA BALANCE DUE (e.g. ordered 2.00 Kg, actual 2.10 Kg) */}
               {isPrepaid && balanceAmount > 0 && (
-                <div className="p-4 rounded-xl bg-[#0a0a0a] border border-[#333333] space-y-2 text-zinc-200 shadow-sm">
+                <div className="p-4 rounded-xl bg-amber-950/40 border border-amber-500/50 space-y-2 text-amber-100 shadow-lg shadow-amber-500/10">
                   <div className="flex items-center justify-between">
-                    <span className="font-medium text-xs uppercase tracking-wider text-amber-400 flex items-center gap-1.5 font-mono">
+                    <span className="font-bold text-xs uppercase tracking-wider text-amber-400 flex items-center gap-1.5 font-mono">
                       <span>⚠️</span>
                       <span>EXTRA BALANCE DUE FROM CUSTOMER:</span>
                     </span>
-                    <span className="text-2xl font-semibold font-mono text-white tabular-nums">
+                    <span className="text-3xl font-black font-mono text-amber-300 tabular-nums">
                       ₹{balanceAmount.toLocaleString("en-IN")}
                     </span>
                   </div>
-                  <p className="text-[11px] text-zinc-300 leading-tight">
+                  <p className="text-[11px] text-amber-200/90 leading-tight font-sans">
                     Customer paid ₹{numAdvance}, but actual harvest scale weight is {numActual.toFixed(2)} Kg (Total ₹{harvestGrandTotal}).
                   </p>
-                  <div className="pt-2 border-t border-[#222222] text-[11px] text-zinc-300 font-medium space-y-1">
+                  <div className="pt-2 border-t border-amber-500/30 text-[11px] text-amber-200 font-medium space-y-1">
                     <div className="flex items-center gap-1.5">
                       <span>📱</span>
-                      <span><strong>Locked J&amp;K Bank Dynamic UPI QR:</strong></span>
+                      <span><strong className="text-amber-300">Locked J&amp;K Bank Dynamic UPI QR:</strong></span>
                     </div>
-                    <div className="text-[10.5px] text-zinc-400 font-mono">
+                    <div className="text-[10.5px] text-amber-400/80 font-mono">
                       Slip generates QR locked to exactly <strong>₹{balanceAmount}</strong>. Customer scans to pay balance.
                     </div>
                   </div>
@@ -696,7 +696,7 @@ export default function CatchWeightWorkspaceTab({
                 type="button"
                 disabled={isGenerating || numActual <= 0}
                 onClick={() => handleGenerateAndSave(true)}
-                className="w-full py-2.5 px-4 rounded-md bg-white hover:bg-neutral-200 text-black font-semibold text-xs tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-[0.99] disabled:bg-[#1a1a1a] disabled:text-[#666666] disabled:border disabled:border-[#2a2a2a] disabled:cursor-not-allowed"
+                className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-cyan-500/25 active:scale-[0.99] disabled:from-[#1a1a1a] disabled:to-[#1a1a1a] disabled:text-[#666666] disabled:border disabled:border-[#2a2a2a] disabled:cursor-not-allowed"
               >
                 <span>🖨️</span>
                 <span>{isGenerating ? "Generating..." : "Generate & Print 4-Up Slip (Canon)"}</span>

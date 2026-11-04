@@ -191,12 +191,12 @@ export default function CustomerBalancesTab({
     <div className="space-y-4 animate-fadeIn">
       {/* KPI Flashcards Header */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="p-4 rounded-xl bg-[#0a0a0a] border border-[#222222]">
+        <div className="p-4 rounded-xl bg-[#0a0a0a] border border-[#222222] shadow-sm">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] uppercase font-mono tracking-wider text-zinc-400">Total Outstanding Khata</span>
-            <span className="material-symbols-outlined text-zinc-400 text-base">account_balance_wallet</span>
+            <span className="text-[10px] uppercase font-mono tracking-wider text-amber-400 font-bold">Total Outstanding Khata</span>
+            <span className="material-symbols-outlined text-amber-400 text-base">account_balance_wallet</span>
           </div>
-          <div className="text-2xl font-semibold text-white font-mono tabular-nums">
+          <div className="text-2xl font-black text-amber-400 font-mono tabular-nums">
             ₹{summary.totalPendingAmount.toLocaleString("en-IN")}
           </div>
           <p className="text-xs text-zinc-400 mt-1">
@@ -204,12 +204,12 @@ export default function CustomerBalancesTab({
           </p>
         </div>
 
-        <div className="p-4 rounded-xl bg-[#0a0a0a] border border-[#222222]">
+        <div className="p-4 rounded-xl bg-[#0a0a0a] border border-[#222222] shadow-sm">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] uppercase font-mono tracking-wider text-zinc-400">Settled &amp; Waived</span>
-            <span className="material-symbols-outlined text-zinc-400 text-base">verified</span>
+            <span className="text-[10px] uppercase font-mono tracking-wider text-emerald-400 font-bold">Settled &amp; Waived</span>
+            <span className="material-symbols-outlined text-emerald-400 text-base">verified</span>
           </div>
-          <div className="text-2xl font-semibold text-zinc-100 font-mono tabular-nums">
+          <div className="text-2xl font-black text-emerald-400 font-mono tabular-nums">
             {summary.settledCount}
           </div>
           <p className="text-xs text-zinc-400 mt-1">
@@ -217,13 +217,13 @@ export default function CustomerBalancesTab({
           </p>
         </div>
 
-        <div className="p-4 rounded-xl bg-[#0a0a0a] border border-[#222222] flex flex-col justify-between">
+        <div className="p-4 rounded-xl bg-[#0a0a0a] border border-[#222222] flex flex-col justify-between shadow-sm">
           <div>
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] uppercase font-mono tracking-wider text-zinc-400">Razorpay Links Sent</span>
-              <span className="material-symbols-outlined text-zinc-400 text-base">link</span>
+              <span className="text-[10px] uppercase font-mono tracking-wider text-cyan-400 font-bold">Razorpay Links Sent</span>
+              <span className="material-symbols-outlined text-cyan-400 text-base">link</span>
             </div>
-            <div className="text-2xl font-semibold text-zinc-100 font-mono tabular-nums">
+            <div className="text-2xl font-black text-cyan-400 font-mono tabular-nums">
               {records.filter((r) => !!r.razorpay_payment_link_id && r.status === "pending").length} Active
             </div>
             <p className="text-xs text-zinc-400 mt-1">
@@ -233,7 +233,7 @@ export default function CustomerBalancesTab({
           <button
             type="button"
             onClick={fetchBalances}
-            className="text-[11px] font-medium text-zinc-300 hover:text-white text-left cursor-pointer flex items-center gap-1 mt-2 pt-2 border-t border-[#222222]"
+            className="text-[11px] font-bold text-cyan-400 hover:text-cyan-300 text-left cursor-pointer flex items-center gap-1 mt-2 pt-2 border-t border-[#222222]"
           >
             <span className="material-symbols-outlined text-xs">sync</span>
             Refresh Khata Ledger
@@ -247,10 +247,10 @@ export default function CustomerBalancesTab({
           <button
             type="button"
             onClick={() => setStatusFilter("pending")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer border ${
+            className={`px-3 py-1.5 rounded-lg text-xs transition-colors cursor-pointer border ${
               statusFilter === "pending"
-                ? "bg-[#161616] text-zinc-100 border-zinc-600 shadow-sm"
-                : "text-zinc-400 hover:text-zinc-200 border-transparent"
+                ? "bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm font-bold"
+                : "text-zinc-400 hover:text-amber-300 border-transparent font-medium"
             }`}
           >
             Pending Balances ({summary.pendingRecordsCount})
@@ -258,10 +258,10 @@ export default function CustomerBalancesTab({
           <button
             type="button"
             onClick={() => setStatusFilter("settled")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer border ${
+            className={`px-3 py-1.5 rounded-lg text-xs transition-colors cursor-pointer border ${
               statusFilter === "settled"
-                ? "bg-[#161616] text-zinc-100 border-zinc-600 shadow-sm"
-                : "text-zinc-400 hover:text-zinc-200 border-transparent"
+                ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow-sm font-bold"
+                : "text-zinc-400 hover:text-emerald-300 border-transparent font-medium"
             }`}
           >
             Settled / Waived ({summary.settledCount})
@@ -269,10 +269,10 @@ export default function CustomerBalancesTab({
           <button
             type="button"
             onClick={() => setStatusFilter("all")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer border ${
+            className={`px-3 py-1.5 rounded-lg text-xs transition-colors cursor-pointer border ${
               statusFilter === "all"
-                ? "bg-[#161616] text-zinc-100 border-zinc-600 shadow-sm"
-                : "text-zinc-400 hover:text-zinc-200 border-transparent"
+                ? "bg-[#161616] text-zinc-100 border-zinc-600 shadow-sm font-bold"
+                : "text-zinc-400 hover:text-zinc-200 border-transparent font-medium"
             }`}
           >
             All ({summary.totalRecordsCount})
@@ -391,7 +391,7 @@ export default function CustomerBalancesTab({
                         href={`/invoice/${r.invoice_id}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-zinc-300 hover:text-white hover:underline font-medium inline-flex items-center gap-0.5"
+                        className="text-cyan-400 hover:text-cyan-300 hover:underline font-bold inline-flex items-center gap-0.5"
                         title="Open Web Invoice"
                       >
                         <span>#{r.invoice_id}</span>
@@ -433,12 +433,12 @@ export default function CustomerBalancesTab({
 
                     <td className="py-2.5 px-3 text-center">
                       <span
-                        className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-medium font-mono uppercase ${
+                        className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold font-mono uppercase ${
                           r.status === "settled"
-                            ? "bg-[#161616] text-zinc-300 border border-[#333333]"
+                            ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
                             : r.status === "waived_final"
-                            ? "bg-[#161616] text-zinc-400 border border-[#333333]"
-                            : "bg-amber-500/10 text-amber-300 border border-amber-500/20"
+                            ? "bg-rose-500/20 text-rose-300 border border-rose-500/40"
+                            : "bg-amber-500/20 text-amber-300 border border-amber-500/40"
                         }`}
                       >
                         {r.status === "waived_final" ? "Waived Final" : r.status}
@@ -468,7 +468,7 @@ export default function CustomerBalancesTab({
                         <button
                           type="button"
                           onClick={() => handleOpenAction(r, "remind")}
-                          className="px-2.5 py-1 rounded-md bg-[#161616] hover:bg-[#222222] text-zinc-200 border border-[#333333] text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer"
+                          className="px-2.5 py-1 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/40 text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
                           title="Send WhatsApp Razorpay Payment Link"
                         >
                           <span className="material-symbols-outlined text-xs">link</span>
@@ -496,7 +496,7 @@ export default function CustomerBalancesTab({
                           <button
                             type="button"
                             onClick={() => handleOpenAction(r, "settle")}
-                            className="px-2.5 py-1 rounded-md bg-zinc-100 hover:bg-white text-zinc-950 border border-zinc-200 text-[11px] font-semibold flex items-center gap-1 transition-colors cursor-pointer shadow-sm active:scale-95"
+                            className="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-sm active:scale-95"
                             title="1-Click Settle Khata: Record Cash / Online payment"
                           >
                             <span className="material-symbols-outlined text-xs">check_circle</span>
