@@ -2459,9 +2459,9 @@ Helpline: +91 84910 06127`;
   return (
     <div className="px-3 py-2 sm:px-5 sm:py-3 max-w-7xl mx-auto space-y-3">
       {/* ─── COMPACT HEADER BAR ─── */}
-      <div className="flex flex-wrap items-center justify-between gap-2 py-1.5 px-0.5 border-b border-zinc-800/80">
+      <div className="flex flex-wrap items-center justify-between gap-2 py-1.5 px-0.5 border-b border-[#222222]/80">
         <div className="flex items-center gap-2 min-w-0">
-          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-300 flex-shrink-0">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-[#0a0a0a] border border-[#222222] flex items-center justify-center text-zinc-300 flex-shrink-0">
             <span className="material-symbols-outlined text-base sm:text-lg">point_of_sale</span>
           </div>
           <div className="min-w-0">
@@ -2474,7 +2474,7 @@ Helpline: +91 84910 06127`;
         <div className="flex items-center gap-1.5 ml-auto flex-shrink-0">
           <Link
             href="/admin/dashboard/vending-log"
-            className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-zinc-800/80 hover:bg-zinc-700/80 border border-zinc-700/80 text-zinc-300 transition-colors text-[11px] sm:text-xs font-medium flex items-center gap-1"
+            className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-[#161616]/80 hover:bg-[#222222]/80 border border-[#333333]/80 text-zinc-300 transition-colors text-[11px] sm:text-xs font-medium flex items-center gap-1"
             title="Open Daily Sales Data Logger"
           >
             <span className="material-symbols-outlined text-sm">table_chart</span>
@@ -2484,7 +2484,7 @@ Helpline: +91 84910 06127`;
 
           <Link
             href="/admin/dashboard/orders"
-            className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-zinc-800/80 hover:bg-zinc-700/80 border border-zinc-700/80 text-zinc-300 transition-colors text-[11px] sm:text-xs font-medium flex items-center gap-1 cursor-pointer"
+            className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-[#161616]/80 hover:bg-[#222222]/80 border border-[#333333]/80 text-zinc-300 transition-colors text-[11px] sm:text-xs font-medium flex items-center gap-1 cursor-pointer"
             title="Weigh / Catch-Weight Orders"
           >
             <span className="material-symbols-outlined text-sm">scale</span>
@@ -2494,7 +2494,7 @@ Helpline: +91 84910 06127`;
           <button
             type="button"
             onClick={handleReset}
-            className="px-2 sm:px-2.5 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-zinc-200 transition-colors text-[11px] sm:text-xs font-medium flex items-center gap-1 cursor-pointer"
+            className="px-2 sm:px-2.5 py-1.5 rounded-lg bg-[#0a0a0a] hover:bg-[#161616] border border-[#222222] text-zinc-400 hover:text-zinc-200 transition-colors text-[11px] sm:text-xs font-medium flex items-center gap-1 cursor-pointer"
             title="Reset active bill"
           >
             <span className="material-symbols-outlined text-sm">refresh</span>
@@ -2504,13 +2504,13 @@ Helpline: +91 84910 06127`;
       </div>
 
       {/* ─── MOBILE COMPACT TAB BAR (< sm) ─── */}
-      <div className="grid grid-cols-5 gap-1 p-1 bg-[#131316] border border-zinc-800 rounded-xl sm:hidden text-center">
+      <div className="grid grid-cols-5 gap-1 p-1 bg-[#0a0a0a] border border-[#222222] rounded-xl sm:hidden text-center">
         <button
           type="button"
           onClick={() => setActiveTab("pos")}
           className={`py-1.5 px-1 rounded-lg text-xs transition-colors flex flex-col items-center justify-center gap-0.5 cursor-pointer ${
             activeTab === "pos"
-              ? "bg-zinc-800 text-white font-medium border border-zinc-700"
+              ? "bg-[#161616] text-white font-medium border border-[#333333]"
               : "text-zinc-400 hover:text-zinc-200"
           }`}
         >
@@ -2522,7 +2522,7 @@ Helpline: +91 84910 06127`;
           onClick={() => setActiveTab("catch_weight")}
           className={`py-1.5 px-1 rounded-lg text-xs transition-colors flex flex-col items-center justify-center gap-0.5 cursor-pointer ${
             activeTab === "catch_weight"
-              ? "bg-zinc-800 text-white font-medium border border-zinc-700"
+              ? "bg-[#161616] text-white font-medium border border-[#333333]"
               : "text-zinc-400 hover:text-zinc-200"
           }`}
         >
@@ -2537,7 +2537,7 @@ Helpline: +91 84910 06127`;
           }}
           className={`py-1.5 px-1 rounded-lg text-xs transition-colors flex flex-col items-center justify-center gap-0.5 relative cursor-pointer ${
             activeTab === "remote_orders"
-              ? "bg-zinc-800 text-white font-medium border border-zinc-700"
+              ? "bg-[#161616] text-white font-medium border border-[#333333]"
               : "text-zinc-400 hover:text-zinc-200"
           }`}
         >
@@ -2552,7 +2552,7 @@ Helpline: +91 84910 06127`;
           onClick={() => setActiveTab("deal_calculator")}
           className={`py-1.5 px-1 rounded-lg text-xs transition-colors flex flex-col items-center justify-center gap-0.5 cursor-pointer ${
             activeTab === "deal_calculator"
-              ? "bg-zinc-800 text-white font-medium border border-zinc-700"
+              ? "bg-[#161616] text-white font-medium border border-[#333333]"
               : "text-zinc-400 hover:text-zinc-200"
           }`}
         >
@@ -2564,7 +2564,7 @@ Helpline: +91 84910 06127`;
           onClick={() => setActiveTab("customer_balances")}
           className={`py-1.5 px-1 rounded-lg text-xs transition-colors flex flex-col items-center justify-center gap-0.5 relative cursor-pointer ${
             activeTab === "customer_balances"
-              ? "bg-zinc-800 text-white font-medium border border-zinc-700"
+              ? "bg-[#161616] text-white font-medium border border-[#333333]"
               : "text-zinc-400 hover:text-zinc-200"
           }`}
         >
@@ -2577,22 +2577,22 @@ Helpline: +91 84910 06127`;
       </div>
 
       {/* ─── DESKTOP / TABLET SPACIOUS 5-PILLAR HUB (Visible on sm and up) ─── */}
-      <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-5 gap-2 p-1.5 bg-[#131316] border border-zinc-800 rounded-xl">
+      <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-5 gap-2 p-1.5 bg-[#0a0a0a] border border-[#222222] rounded-xl">
         {/* Feature 1: Counter POS */}
         <button
           type="button"
           onClick={() => setActiveTab("pos")}
           className={`group relative flex items-center gap-3 p-2.5 rounded-lg border text-left transition-colors cursor-pointer ${
             activeTab === "pos"
-              ? "bg-zinc-800 text-white font-medium border-zinc-700 shadow-sm"
-              : "bg-transparent hover:bg-zinc-800/40 border-transparent text-zinc-400 hover:text-zinc-200"
+              ? "bg-[#161616] text-white font-medium border-[#333333] shadow-sm"
+              : "bg-transparent hover:bg-[#161616]/40 border-transparent text-zinc-400 hover:text-zinc-200"
           }`}
         >
           <div
             className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 border transition-colors ${
               activeTab === "pos"
-                ? "bg-zinc-900 border-zinc-700 text-zinc-100"
-                : "bg-zinc-900/60 border-zinc-800/60 text-zinc-400 group-hover:text-zinc-200"
+                ? "bg-[#0a0a0a] border-[#333333] text-zinc-100"
+                : "bg-[#0a0a0a]/60 border-[#222222]/60 text-zinc-400 group-hover:text-zinc-200"
             }`}
           >
             <span className="material-symbols-outlined text-lg">point_of_sale</span>
@@ -2613,15 +2613,15 @@ Helpline: +91 84910 06127`;
           onClick={() => setActiveTab("catch_weight")}
           className={`group relative flex items-center gap-3 p-2.5 rounded-lg border text-left transition-colors cursor-pointer ${
             activeTab === "catch_weight"
-              ? "bg-zinc-800 text-white font-medium border-zinc-700 shadow-sm"
-              : "bg-transparent hover:bg-zinc-800/40 border-transparent text-zinc-400 hover:text-zinc-200"
+              ? "bg-[#161616] text-white font-medium border-[#333333] shadow-sm"
+              : "bg-transparent hover:bg-[#161616]/40 border-transparent text-zinc-400 hover:text-zinc-200"
           }`}
         >
           <div
             className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 border transition-colors ${
               activeTab === "catch_weight"
-                ? "bg-zinc-900 border-zinc-700 text-zinc-100"
-                : "bg-zinc-900/60 border-zinc-800/60 text-zinc-400 group-hover:text-zinc-200"
+                ? "bg-[#0a0a0a] border-[#333333] text-zinc-100"
+                : "bg-[#0a0a0a]/60 border-[#222222]/60 text-zinc-400 group-hover:text-zinc-200"
             }`}
           >
             <span className="material-symbols-outlined text-lg">scale</span>
@@ -2631,7 +2631,7 @@ Helpline: +91 84910 06127`;
               <span className={`text-xs sm:text-sm font-semibold truncate ${activeTab === "catch_weight" ? "text-zinc-100" : "text-zinc-300"}`}>
                 Catch-Weight
               </span>
-              <span className="px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-400 text-[9px] font-mono border border-zinc-700 shrink-0">
+              <span className="px-1.5 py-0.2 rounded bg-[#161616] text-zinc-400 text-[9px] font-mono border border-[#333333] shrink-0">
                 ADVANCE
               </span>
             </div>
@@ -2650,15 +2650,15 @@ Helpline: +91 84910 06127`;
           }}
           className={`group relative flex items-center gap-3 p-2.5 rounded-lg border text-left transition-colors cursor-pointer ${
             activeTab === "remote_orders"
-              ? "bg-zinc-800 text-white font-medium border-zinc-700 shadow-sm"
-              : "bg-transparent hover:bg-zinc-800/40 border-transparent text-zinc-400 hover:text-zinc-200"
+              ? "bg-[#161616] text-white font-medium border-[#333333] shadow-sm"
+              : "bg-transparent hover:bg-[#161616]/40 border-transparent text-zinc-400 hover:text-zinc-200"
           }`}
         >
           <div
             className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 border transition-colors ${
               activeTab === "remote_orders"
-                ? "bg-zinc-900 border-zinc-700 text-zinc-100"
-                : "bg-zinc-900/60 border-zinc-800/60 text-zinc-400 group-hover:text-zinc-200"
+                ? "bg-[#0a0a0a] border-[#333333] text-zinc-100"
+                : "bg-[#0a0a0a]/60 border-[#222222]/60 text-zinc-400 group-hover:text-zinc-200"
             }`}
           >
             <span className="material-symbols-outlined text-lg">receipt_long</span>
@@ -2686,15 +2686,15 @@ Helpline: +91 84910 06127`;
           onClick={() => setActiveTab("deal_calculator")}
           className={`group relative flex items-center gap-3 p-2.5 rounded-lg border text-left transition-colors cursor-pointer ${
             activeTab === "deal_calculator"
-              ? "bg-zinc-800 text-white font-medium border-zinc-700 shadow-sm"
-              : "bg-transparent hover:bg-zinc-800/40 border-transparent text-zinc-400 hover:text-zinc-200"
+              ? "bg-[#161616] text-white font-medium border-[#333333] shadow-sm"
+              : "bg-transparent hover:bg-[#161616]/40 border-transparent text-zinc-400 hover:text-zinc-200"
           }`}
         >
           <div
             className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 border transition-colors ${
               activeTab === "deal_calculator"
-                ? "bg-zinc-900 border-zinc-700 text-zinc-100"
-                : "bg-zinc-900/60 border-zinc-800/60 text-zinc-400 group-hover:text-zinc-200"
+                ? "bg-[#0a0a0a] border-[#333333] text-zinc-100"
+                : "bg-[#0a0a0a]/60 border-[#222222]/60 text-zinc-400 group-hover:text-zinc-200"
             }`}
           >
             <span className="material-symbols-outlined text-lg">handshake</span>
@@ -2704,7 +2704,7 @@ Helpline: +91 84910 06127`;
               <span className={`text-xs sm:text-sm font-semibold truncate ${activeTab === "deal_calculator" ? "text-zinc-100" : "text-zinc-300"}`}>
                 Deal Desk
               </span>
-              <span className="px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-400 text-[9px] font-mono border border-zinc-700 shrink-0">
+              <span className="px-1.5 py-0.2 rounded bg-[#161616] text-zinc-400 text-[9px] font-mono border border-[#333333] shrink-0">
                 BARGAIN
               </span>
             </div>
@@ -2720,15 +2720,15 @@ Helpline: +91 84910 06127`;
           onClick={() => setActiveTab("customer_balances")}
           className={`group relative flex items-center gap-3 p-2.5 rounded-lg border text-left transition-colors cursor-pointer ${
             activeTab === "customer_balances"
-              ? "bg-zinc-800 text-white font-medium border-zinc-700 shadow-sm"
-              : "bg-transparent hover:bg-zinc-800/40 border-transparent text-zinc-400 hover:text-zinc-200"
+              ? "bg-[#161616] text-white font-medium border-[#333333] shadow-sm"
+              : "bg-transparent hover:bg-[#161616]/40 border-transparent text-zinc-400 hover:text-zinc-200"
           }`}
         >
           <div
             className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 border transition-colors ${
               activeTab === "customer_balances"
-                ? "bg-zinc-900 border-zinc-700 text-zinc-100"
-                : "bg-zinc-900/60 border-zinc-800/60 text-zinc-400 group-hover:text-zinc-200"
+                ? "bg-[#0a0a0a] border-[#333333] text-zinc-100"
+                : "bg-[#0a0a0a]/60 border-[#222222]/60 text-zinc-400 group-hover:text-zinc-200"
             }`}
           >
             <span className="material-symbols-outlined text-lg">account_balance_wallet</span>
@@ -2758,15 +2758,15 @@ Helpline: +91 84910 06127`;
         {/* LEFT COLUMN: Weight Input & Customer (7 Cols) */}
         <div className="lg:col-span-7 space-y-3">
           {/* Card 1: Product & Live Real-Time Weight Input OR Direct Amount Mode */}
-          <div className="bg-[#131316] border border-zinc-800 rounded-xl p-3 sm:p-4 space-y-3">
+          <div className="bg-[#0a0a0a] border border-[#222222] rounded-xl p-3 sm:p-4 space-y-3">
             {/* Mode Switcher: Weigh Scale vs Direct Amount QR */}
-            <div className="flex p-0.5 bg-[#0e0e11] rounded-lg border border-zinc-800 text-xs font-mono font-medium gap-1">
+            <div className="flex p-0.5 bg-[#000000] rounded-lg border border-[#222222] text-xs font-mono font-medium gap-1">
               <button
                 type="button"
                 onClick={() => setPosInputMode("scale")}
                 className={`flex-1 py-1.5 px-3 rounded-md flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
                   posInputMode === "scale"
-                    ? "bg-zinc-800 text-white border border-zinc-700 font-semibold"
+                    ? "bg-[#161616] text-white border border-[#333333] font-semibold"
                     : "text-zinc-400 hover:text-zinc-200"
                 }`}
               >
@@ -2781,7 +2781,7 @@ Helpline: +91 84910 06127`;
                 }}
                 className={`flex-1 py-1.5 px-3 rounded-md flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
                   posInputMode === "custom_amount"
-                    ? "bg-zinc-800 text-white border border-zinc-700 font-semibold"
+                    ? "bg-[#161616] text-white border border-[#333333] font-semibold"
                     : "text-zinc-400 hover:text-zinc-200"
                 }`}
               >
@@ -2812,10 +2812,10 @@ Helpline: +91 84910 06127`;
                         onClick={() => handleSelectProduct(p.id)}
                         className={`p-2.5 rounded-lg text-left transition-colors cursor-pointer flex items-center justify-between gap-2 border ${
                           isSelected
-                            ? "bg-zinc-800 border-zinc-600 text-white"
+                            ? "bg-[#161616] border-zinc-600 text-white"
                             : isInBill
-                            ? "bg-zinc-900 border-zinc-700 text-zinc-200"
-                            : "bg-zinc-900/60 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
+                            ? "bg-[#0a0a0a] border-[#333333] text-zinc-200"
+                            : "bg-[#0a0a0a]/60 border-[#222222] text-zinc-400 hover:border-[#333333] hover:text-zinc-200"
                         }`}
                       >
                         <div className="min-w-0 flex-1">
@@ -2845,7 +2845,7 @@ Helpline: +91 84910 06127`;
                             handleAddProductItem(p.id);
                           }}
                           title={`Add ${p.name.split(" ")[0]} to Bill`}
-                          className="w-6 h-6 rounded bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 flex items-center justify-center font-bold text-sm transition-colors cursor-pointer flex-shrink-0"
+                          className="w-6 h-6 rounded bg-[#161616] hover:bg-[#222222] border border-[#333333] text-zinc-300 flex items-center justify-center font-bold text-sm transition-colors cursor-pointer flex-shrink-0"
                         >
                           +
                         </button>
@@ -2873,7 +2873,7 @@ Helpline: +91 84910 06127`;
                       onWheel={(e) => (e.target as HTMLElement).blur()}
                       onChange={(e) => updateActiveWeight(e.target.value)}
                       placeholder="0.00"
-                      className="w-full bg-[#0e0e11] border border-zinc-800 rounded-lg px-4 py-2 sm:py-2.5 text-xl sm:text-2xl font-mono text-white font-semibold focus:outline-none focus:border-zinc-600 tabular-nums"
+                      className="w-full bg-[#000000] border border-[#222222] rounded-lg px-4 py-2 sm:py-2.5 text-xl sm:text-2xl font-mono text-white font-semibold focus:outline-none focus:border-[#555555] tabular-nums"
                     />
                     <span className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 font-mono text-xs sm:text-sm">
                       KG
@@ -2881,7 +2881,7 @@ Helpline: +91 84910 06127`;
                   </div>
 
                   {/* Quick Weight Adder Chips & Add Product Button */}
-                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-zinc-800/80">
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-[#222222]/80">
                     <div className="flex flex-wrap items-center gap-1.5">
                       <span className="text-[10px] text-zinc-500 font-mono">Presets:</span>
                       {[0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 4.5, 5.0].map((w) => (
@@ -2889,7 +2889,7 @@ Helpline: +91 84910 06127`;
                           key={w}
                           type="button"
                           onClick={() => handleQuickWeight(w, false)}
-                          className="px-2.5 py-1.5 rounded-md bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-600 text-zinc-300 font-mono text-xs font-medium border border-zinc-700 cursor-pointer min-w-[36px] text-center"
+                          className="px-2.5 py-1.5 rounded-md bg-[#161616] hover:bg-[#222222] active:bg-zinc-600 text-zinc-300 font-mono text-xs font-medium border border-[#333333] cursor-pointer min-w-[36px] text-center"
                         >
                           {w}k
                         </button>
@@ -2897,7 +2897,7 @@ Helpline: +91 84910 06127`;
                       <button
                         type="button"
                         onClick={() => handleQuickWeight(0.5, true)}
-                        className="px-2.5 py-1.5 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-mono text-xs font-semibold border border-zinc-700 cursor-pointer"
+                        className="px-2.5 py-1.5 rounded-md bg-[#161616] hover:bg-[#222222] text-zinc-200 font-mono text-xs font-semibold border border-[#333333] cursor-pointer"
                       >
                         +0.5
                       </button>
@@ -2906,7 +2906,7 @@ Helpline: +91 84910 06127`;
                     <button
                       type="button"
                       onClick={() => handleAddProductItem()}
-                      className="px-3 py-1.5 rounded-md bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer ml-auto"
+                      className="px-3 py-1.5 rounded-md bg-[#161616] hover:bg-[#222222] border border-[#333333] text-zinc-200 text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer ml-auto"
                       title="Add another item or trout variety to bill"
                     >
                       <span className="material-symbols-outlined text-sm">add</span>
@@ -2915,7 +2915,7 @@ Helpline: +91 84910 06127`;
                   </div>
 
                   {/* Mobile-only Live Summary Strip */}
-                  <div className="flex lg:hidden items-center justify-between p-2.5 rounded-lg bg-[#0e0e11] border border-zinc-800 font-mono mt-2">
+                  <div className="flex lg:hidden items-center justify-between p-2.5 rounded-lg bg-[#000000] border border-[#222222] font-mono mt-2">
                     <div>
                       <span className="text-[10px] text-zinc-400 uppercase tracking-wider block">Live Payable</span>
                       <span className="text-lg font-semibold text-white">₹{grandTotal.toLocaleString("en-IN")}</span>
@@ -2937,13 +2937,13 @@ Helpline: +91 84910 06127`;
                     <span className="material-symbols-outlined text-amber-400 text-base">payments</span>
                     Enter Direct Payment Amount
                   </h2>
-                  <span className="px-2 py-0.5 rounded-md bg-zinc-800 border border-zinc-700 text-zinc-300 text-[10px] font-mono">
+                  <span className="px-2 py-0.5 rounded-md bg-[#161616] border border-[#333333] text-zinc-300 text-[10px] font-mono">
                     Direct Amount QR
                   </span>
                 </div>
 
                 {/* Big Amount Input Field */}
-                <div className="p-3 bg-[#0e0e11] rounded-xl border border-zinc-800 space-y-1.5">
+                <div className="p-3 bg-[#000000] rounded-xl border border-[#222222] space-y-1.5">
                   <div className="flex items-center justify-between text-[11px]">
                     <label className="uppercase tracking-wider font-medium text-zinc-400 text-[10px] font-mono">
                       Amount Customer Needs To Pay (₹)
@@ -2983,8 +2983,8 @@ Helpline: +91 84910 06127`;
                         onClick={() => setCustomAmount(amt.toString())}
                         className={`py-2 px-1 rounded-lg text-xs font-mono tabular-nums border transition-colors cursor-pointer text-center ${
                           parseFloat(customAmount) === amt
-                            ? "bg-zinc-800 border-zinc-600 text-white font-semibold"
-                            : "bg-zinc-900/60 hover:bg-zinc-800/80 border-zinc-800 text-zinc-300"
+                            ? "bg-[#161616] border-zinc-600 text-white font-semibold"
+                            : "bg-[#0a0a0a]/60 hover:bg-[#161616]/80 border-[#222222] text-zinc-300"
                         }`}
                       >
                         ₹{amt}
@@ -2993,7 +2993,7 @@ Helpline: +91 84910 06127`;
                   </div>
 
                   {/* Increment pills + Clear */}
-                  <div className="flex flex-wrap items-center justify-between gap-1.5 pt-1 border-t border-zinc-800/80">
+                  <div className="flex flex-wrap items-center justify-between gap-1.5 pt-1 border-t border-[#222222]/80">
                     <div className="flex items-center gap-1.5">
                       <span className="text-[10px] text-zinc-500 font-mono">Add:</span>
                       {[50, 100, 500, 1000].map((add) => (
@@ -3004,7 +3004,7 @@ Helpline: +91 84910 06127`;
                             const cur = parseFloat(customAmount) || 0;
                             setCustomAmount((cur + add).toString());
                           }}
-                          className="px-2 py-1 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[11px] font-mono tabular-nums border border-zinc-700 cursor-pointer transition-colors"
+                          className="px-2 py-1 rounded-md bg-[#161616] hover:bg-[#222222] text-zinc-300 text-[11px] font-mono tabular-nums border border-[#333333] cursor-pointer transition-colors"
                         >
                           +₹{add}
                         </button>
@@ -3014,7 +3014,7 @@ Helpline: +91 84910 06127`;
                     <button
                       type="button"
                       onClick={() => setCustomAmount("")}
-                      className="px-2.5 py-1 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-rose-400 border border-zinc-700 text-[11px] font-mono cursor-pointer transition-colors"
+                      className="px-2.5 py-1 rounded-md bg-[#161616] hover:bg-[#222222] text-zinc-400 hover:text-rose-400 border border-[#333333] text-[11px] font-mono cursor-pointer transition-colors"
                     >
                       Clear
                     </button>
@@ -3031,12 +3031,12 @@ Helpline: +91 84910 06127`;
                     value={customNote}
                     onChange={(e) => setCustomNote(e.target.value)}
                     placeholder="e.g. Counter Fish Sale / Advance Payment"
-                    className="w-full bg-[#0e0e11] border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-100 focus:outline-none focus:border-zinc-600 placeholder:text-zinc-600"
+                    className="w-full bg-[#000000] border border-[#222222] rounded-lg px-3 py-2 text-xs text-zinc-100 focus:outline-none focus:border-[#555555] placeholder:text-zinc-600"
                   />
                 </div>
 
                 {/* Helper info notice */}
-                <div className="p-2.5 rounded-lg bg-zinc-900/60 border border-zinc-800 text-[11px] text-zinc-400 font-mono flex items-center gap-2">
+                <div className="p-2.5 rounded-lg bg-[#0a0a0a]/60 border border-[#222222] text-[11px] text-zinc-400 font-mono flex items-center gap-2">
                   <span className="material-symbols-outlined text-sm text-zinc-400">lock</span>
                   <span>J&amp;K Bank Soundbox &amp; Razorpay QR in right column locked to ₹{(parseFloat(customAmount) || 0).toLocaleString("en-IN")}. Customer can scan immediately.</span>
                 </div>
@@ -3045,7 +3045,7 @@ Helpline: +91 84910 06127`;
           </div>
 
           {/* Card 2: Customer Information */}
-          <div className="bg-[#131316] border border-zinc-800 rounded-xl p-3 sm:p-4 space-y-2.5">
+          <div className="bg-[#0a0a0a] border border-[#222222] rounded-xl p-3 sm:p-4 space-y-2.5">
             <h2 className="text-xs sm:text-sm font-semibold text-zinc-200 flex items-center gap-1.5 font-['Space_Grotesk']">
               <span className="material-symbols-outlined text-zinc-400 text-base">person</span>
               2. Customer Details (WhatsApp Bill &amp; Invoice)
@@ -3071,9 +3071,9 @@ Helpline: +91 84910 06127`;
 
         {/* RIGHT COLUMN: Live Bill Summary & Instant QR (5 Cols) */}
         <div className="lg:col-span-5 space-y-3">
-          <div className="bg-[#131316] border border-zinc-800 rounded-xl p-3 sm:p-4 space-y-2.5">
+          <div className="bg-[#0a0a0a] border border-[#222222] rounded-xl p-3 sm:p-4 space-y-2.5">
             {/* Header: Total Payable Bar */}
-            <div className="flex items-center justify-between pb-2 border-b border-zinc-800/80">
+            <div className="flex items-center justify-between pb-2 border-b border-[#222222]/80">
               <div>
                 <span className="text-[9px] uppercase font-mono tracking-wider text-zinc-500">Live Total</span>
                 <h3 className="text-xl sm:text-2xl font-semibold text-white leading-tight font-['Space_Grotesk']">
@@ -3084,13 +3084,13 @@ Helpline: +91 84910 06127`;
                 <button
                   type="button"
                   onClick={() => setActiveTab("deal_calculator")}
-                  className="px-2.5 py-1.5 rounded-lg bg-zinc-800/80 hover:bg-zinc-700/80 border border-zinc-700/80 text-zinc-300 text-[11px] font-medium flex items-center gap-1 cursor-pointer transition-colors"
+                  className="px-2.5 py-1.5 rounded-lg bg-[#161616]/80 hover:bg-[#222222]/80 border border-[#333333]/80 text-zinc-300 text-[11px] font-medium flex items-center gap-1 cursor-pointer transition-colors"
                   title="Customer bargaining for discount? Open Deal Desk"
                 >
                   <span className="material-symbols-outlined text-sm">handshake</span>
                   <span>Deal Desk</span>
                 </button>
-                <span className="px-2 py-1 rounded-md bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs font-mono tabular-nums">
+                <span className="px-2 py-1 rounded-md bg-[#161616] border border-[#333333] text-zinc-300 text-xs font-mono tabular-nums">
                   {isCustomAmountMode ? "Direct QR" : `${totalWeight.toFixed(2)} Kg`}
                 </span>
               </div>
@@ -3104,14 +3104,14 @@ Helpline: +91 84910 06127`;
               </div>
 
               {isCustomAmountMode ? (
-                <div className="p-2.5 rounded-lg bg-[#0e0e11] border border-zinc-800 flex items-center justify-between gap-2">
+                <div className="p-2.5 rounded-lg bg-[#000000] border border-[#222222] flex items-center justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
                       <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 shrink-0" />
                       <span className="text-xs font-medium text-white truncate">
                         {customNote.trim() || "Counter Direct QR Payment"}
                       </span>
-                      <span className="px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 text-[9px] font-mono shrink-0">
+                      <span className="px-1.5 py-0.5 rounded bg-[#161616] text-zinc-300 text-[9px] font-mono shrink-0">
                         DIRECT QR
                       </span>
                     </div>
@@ -3124,7 +3124,7 @@ Helpline: +91 84910 06127`;
                   </span>
                 </div>
               ) : billItems.length === 0 ? (
-                <div className="p-3 rounded-lg bg-[#0e0e11] border border-dashed border-zinc-800 text-center space-y-2">
+                <div className="p-3 rounded-lg bg-[#000000] border border-dashed border-[#222222] text-center space-y-2">
                   <p className="text-xs text-zinc-400">No items added to bill yet.</p>
                   <div className="flex items-center justify-center gap-2">
                     {products.map((p) => (
@@ -3132,7 +3132,7 @@ Helpline: +91 84910 06127`;
                         key={p.id}
                         type="button"
                         onClick={() => handleAddProductItem(p.id)}
-                        className="px-2.5 py-1 rounded-md bg-zinc-800 text-zinc-200 border border-zinc-700 text-xs font-medium hover:bg-zinc-700 cursor-pointer"
+                        className="px-2.5 py-1 rounded-md bg-[#161616] text-zinc-200 border border-[#333333] text-xs font-medium hover:bg-[#222222] cursor-pointer"
                       >
                         + Add {p.name.split(" ")[0]} (₹{p.pricePerKg}/kg)
                       </button>
@@ -3152,8 +3152,8 @@ Helpline: +91 84910 06127`;
                         }}
                         className={`p-2 rounded-lg border transition-colors cursor-pointer flex items-center justify-between gap-2 ${
                           isFocused
-                            ? "bg-zinc-800/80 border-zinc-600"
-                            : "bg-[#0e0e11] border-zinc-800 hover:border-zinc-700"
+                            ? "bg-[#161616]/80 border-zinc-600"
+                            : "bg-[#000000] border-[#222222] hover:border-[#333333]"
                         }`}
                       >
                         <div className="min-w-0 flex-1">
@@ -3181,7 +3181,7 @@ Helpline: +91 84910 06127`;
                               handleRemoveItem(item.id);
                             }}
                             title={`Remove ${item.name}`}
-                            className="w-6 h-6 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-rose-400 border border-zinc-700 flex items-center justify-center font-bold text-xs transition-colors cursor-pointer"
+                            className="w-6 h-6 rounded-md bg-[#161616] hover:bg-[#222222] text-zinc-400 hover:text-rose-400 border border-[#333333] flex items-center justify-center font-bold text-xs transition-colors cursor-pointer"
                           >
                             ✕
                           </button>
@@ -3209,8 +3209,8 @@ Helpline: +91 84910 06127`;
                     onClick={() => setPaymentMethod(channel.id as any)}
                     className={`py-2 px-1 rounded-lg text-center transition-colors border cursor-pointer ${
                       isSel
-                        ? "bg-zinc-800 text-zinc-100 border-zinc-600 shadow-sm"
-                        : "bg-zinc-900/60 text-zinc-400 border-zinc-800 hover:border-zinc-700 hover:text-zinc-300"
+                        ? "bg-[#161616] text-zinc-100 border-zinc-600 shadow-sm"
+                        : "bg-[#0a0a0a]/60 text-zinc-400 border-[#222222] hover:border-[#333333] hover:text-zinc-300"
                     }`}
                   >
                     <div className="text-[11px] font-medium leading-tight truncate">{channel.label}</div>
@@ -3226,10 +3226,10 @@ Helpline: +91 84910 06127`;
 
             {/* 1. J&K Bank Soundbox Panel (Default) */}
             {paymentMethod === "JkBankSoundbox" && grandTotal > 0 && (
-              <div className="p-3 rounded-xl bg-[#0e0e11] border border-zinc-800 flex flex-col items-center text-center space-y-2">
+              <div className="p-3 rounded-xl bg-[#000000] border border-[#222222] flex flex-col items-center text-center space-y-2">
                 {soundboxPaid ? (
-                  <div className="w-full py-4 px-3 rounded-lg bg-zinc-900 border border-zinc-700 text-center space-y-2 animate-fadeIn">
-                    <div className="w-9 h-9 rounded-full bg-zinc-800 border border-zinc-700 text-emerald-400 flex items-center justify-center mx-auto text-lg font-bold">
+                  <div className="w-full py-4 px-3 rounded-lg bg-[#0a0a0a] border border-[#333333] text-center space-y-2 animate-fadeIn">
+                    <div className="w-9 h-9 rounded-full bg-[#161616] border border-[#333333] text-emerald-400 flex items-center justify-center mx-auto text-lg font-bold">
                       ✓
                     </div>
                     <div>
@@ -3255,7 +3255,7 @@ Helpline: +91 84910 06127`;
                 ) : !soundboxQrGenerated ? (
                   /* ─── READY STATE: ON-DEMAND BUTTON TO GENERATE QR ─── */
                   <div className="w-full py-2.5 px-2 text-center space-y-3 animate-fadeIn">
-                    <div className="flex items-center justify-between w-full pb-1.5 border-b border-zinc-800 text-[10px] font-mono">
+                    <div className="flex items-center justify-between w-full pb-1.5 border-b border-[#222222] text-[10px] font-mono">
                       <span className="flex items-center gap-1.5 text-zinc-300 font-medium uppercase">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block"></span>
                         J&amp;K Bank Soundbox
@@ -3263,7 +3263,7 @@ Helpline: +91 84910 06127`;
                       <span className="text-zinc-500">{terminalId} Active</span>
                     </div>
 
-                    <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 flex items-center justify-center mx-auto text-xl">
+                    <div className="w-10 h-10 rounded-lg bg-[#0a0a0a] border border-[#222222] text-zinc-300 flex items-center justify-center mx-auto text-xl">
                       <span className="material-symbols-outlined text-xl">qr_code_2</span>
                     </div>
 
@@ -3296,7 +3296,7 @@ Helpline: +91 84910 06127`;
                       Generate QR Code (₹{grandTotal.toLocaleString("en-IN")})
                     </button>
 
-                    <div className="p-2 rounded-lg bg-zinc-900/60 border border-zinc-800/80 text-[10px] text-zinc-400 leading-relaxed text-left flex items-start gap-1.5 w-full">
+                    <div className="p-2 rounded-lg bg-[#0a0a0a]/60 border border-[#222222]/80 text-[10px] text-zinc-400 leading-relaxed text-left flex items-start gap-1.5 w-full">
                       <span className="material-symbols-outlined text-xs text-zinc-400 mt-0.5">lock</span>
                       <span>
                         <strong className="text-zinc-300 font-medium">Customer Privacy Protected:</strong> Clicking opens the clean customer-facing QR popup. Internal POS controls, margins &amp; customer database stay hidden.
@@ -3306,7 +3306,7 @@ Helpline: +91 84910 06127`;
                 ) : (
                   /* ─── ACTIVE STATE: QR HAS BEEN GENERATED ─── */
                   <div className="w-full space-y-2.5 animate-fadeIn">
-                    <div className="flex items-center justify-between w-full pb-1 border-b border-zinc-800 text-[10px] font-mono">
+                    <div className="flex items-center justify-between w-full pb-1 border-b border-[#222222] text-[10px] font-mono">
                       <span className="flex items-center gap-1.5 text-zinc-300 font-medium uppercase">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block"></span>
                         J&amp;K Bank Soundbox QR Ready
@@ -3340,7 +3340,7 @@ Helpline: +91 84910 06127`;
                     </div>
 
                     {/* Optional Collapsible Inline QR for Cashier Internal View */}
-                    <div className="w-full pt-1 border-t border-zinc-800">
+                    <div className="w-full pt-1 border-t border-[#222222]">
                       <button
                         type="button"
                         onClick={() => setShowInlineQr(!showInlineQr)}
@@ -3353,7 +3353,7 @@ Helpline: +91 84910 06127`;
                         <div className="pt-2 space-y-2 animate-fadeIn flex flex-col items-center">
                           <div
                             onClick={() => setEnlargeQrModal(true)}
-                            className="p-2 bg-white border border-zinc-700 rounded-xl cursor-pointer hover:border-zinc-500 transition-colors group relative overflow-hidden"
+                            className="p-2 bg-white border border-[#333333] rounded-xl cursor-pointer hover:border-zinc-500 transition-colors group relative overflow-hidden"
                             title="Click to open popup for customer"
                           >
                             <img
@@ -3371,7 +3371,7 @@ Helpline: +91 84910 06127`;
                             <button
                               type="button"
                               onClick={copyUpi}
-                              className="text-[9px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 hover:text-white cursor-pointer border border-zinc-700"
+                              className="text-[9px] px-1.5 py-0.5 rounded bg-[#161616] text-zinc-300 hover:text-white cursor-pointer border border-[#333333]"
                             >
                               {copiedUpi ? "Copied" : "Copy"}
                             </button>
@@ -3386,10 +3386,10 @@ Helpline: +91 84910 06127`;
 
             {/* 2. Razorpay Dynamic BharatQR Panel */}
             {paymentMethod === "RazorpayQR" && grandTotal > 0 && (
-              <div className="p-3 rounded-xl bg-[#0e0e11] border border-zinc-800 flex flex-col items-center text-center space-y-2">
+              <div className="p-3 rounded-xl bg-[#000000] border border-[#222222] flex flex-col items-center text-center space-y-2">
                 {rzpPaid ? (
-                  <div className="w-full py-4 px-3 rounded-lg bg-zinc-900 border border-zinc-700 text-center space-y-2 animate-fadeIn">
-                    <div className="w-9 h-9 rounded-full bg-zinc-800 border border-zinc-700 text-emerald-400 flex items-center justify-center mx-auto text-lg font-bold">
+                  <div className="w-full py-4 px-3 rounded-lg bg-[#0a0a0a] border border-[#333333] text-center space-y-2 animate-fadeIn">
+                    <div className="w-9 h-9 rounded-full bg-[#161616] border border-[#333333] text-emerald-400 flex items-center justify-center mx-auto text-lg font-bold">
                       ✓
                     </div>
                     <div>
@@ -3405,7 +3405,7 @@ Helpline: +91 84910 06127`;
                         </p>
                       )}
                     </div>
-                    <div className="p-1.5 rounded-md bg-zinc-800/80 border border-zinc-700 text-[10px] text-zinc-300 font-mono flex items-center justify-center gap-1">
+                    <div className="p-1.5 rounded-md bg-[#161616]/80 border border-[#333333] text-[10px] text-zinc-300 font-mono flex items-center justify-center gap-1">
                       <span>Verified via Razorpay. Bill marked PAID.</span>
                     </div>
                   </div>
@@ -3415,12 +3415,12 @@ Helpline: +91 84910 06127`;
                     <p className="text-xs font-mono">Generating Razorpay QR...</p>
                   </div>
                 ) : rzpQrError ? (
-                  <div className="w-full p-3 rounded-lg bg-zinc-900 border border-rose-800/50 text-center space-y-1.5">
+                  <div className="w-full p-3 rounded-lg bg-[#0a0a0a] border border-rose-800/50 text-center space-y-1.5">
                     <p className="text-xs text-rose-300">{rzpQrError}</p>
                     <button
                       type="button"
                       onClick={() => generateRazorpayQr(grandTotal, true)}
-                      className="px-3 py-1 bg-zinc-800 hover:bg-zinc-700 text-white rounded-md text-xs font-medium uppercase tracking-wider cursor-pointer border border-zinc-700"
+                      className="px-3 py-1 bg-[#161616] hover:bg-[#222222] text-white rounded-md text-xs font-medium uppercase tracking-wider cursor-pointer border border-[#333333]"
                     >
                       Retry QR
                     </button>
@@ -3429,7 +3429,7 @@ Helpline: +91 84910 06127`;
                   <>
                     <div
                       onClick={() => setEnlargeQrModal(true)}
-                      className="w-44 h-44 sm:w-48 sm:h-48 bg-white border border-zinc-700 rounded-xl overflow-hidden cursor-pointer group flex items-center justify-center p-1.5 transition-colors hover:border-zinc-500"
+                      className="w-44 h-44 sm:w-48 sm:h-48 bg-white border border-[#333333] rounded-xl overflow-hidden cursor-pointer group flex items-center justify-center p-1.5 transition-colors hover:border-zinc-500"
                       title="Click to view fullscreen"
                     >
                       <div className="w-full h-full overflow-hidden rounded-lg flex items-center justify-center bg-white">
@@ -3455,21 +3455,21 @@ Helpline: +91 84910 06127`;
                         <button
                           type="button"
                           onClick={() => setEnlargeQrModal(true)}
-                          className="px-2 py-0.5 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 text-[10px] font-medium uppercase cursor-pointer"
+                          className="px-2 py-0.5 rounded-md bg-[#161616] hover:bg-[#222222] text-zinc-300 border border-[#333333] text-[10px] font-medium uppercase cursor-pointer"
                         >
                           Enlarge
                         </button>
                         <button
                           type="button"
                           onClick={() => generateRazorpayQr(grandTotal, true)}
-                          className="px-2 py-0.5 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 text-[10px] font-medium uppercase cursor-pointer"
+                          className="px-2 py-0.5 rounded-md bg-[#161616] hover:bg-[#222222] text-zinc-300 border border-[#333333] text-[10px] font-medium uppercase cursor-pointer"
                         >
                           Refresh
                         </button>
                         <button
                           type="button"
                           onClick={handleCancelActiveQr}
-                          className="px-2 py-0.5 rounded-md bg-zinc-800 hover:bg-rose-500/20 text-zinc-400 hover:text-rose-400 border border-zinc-700 text-[10px] font-medium uppercase cursor-pointer"
+                          className="px-2 py-0.5 rounded-md bg-[#161616] hover:bg-rose-500/20 text-zinc-400 hover:text-rose-400 border border-[#333333] text-[10px] font-medium uppercase cursor-pointer"
                           title="Cancel and close this dynamic QR code"
                         >
                           ✕ Expire
@@ -3488,7 +3488,7 @@ Helpline: +91 84910 06127`;
                 ) : (
                   /* ─── READY STATE: ON-DEMAND BUTTON TO GENERATE QR ─── */
                   <div className="w-full py-4 px-3 text-center space-y-2.5">
-                    <div className="w-9 h-9 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 flex items-center justify-center mx-auto text-lg">
+                    <div className="w-9 h-9 rounded-lg bg-[#0a0a0a] border border-[#222222] text-zinc-300 flex items-center justify-center mx-auto text-lg">
                       <span className="material-symbols-outlined text-lg">qr_code_2</span>
                     </div>
                     <div>
@@ -3522,14 +3522,14 @@ Helpline: +91 84910 06127`;
 
             {/* 3. WhatsApp Payment Link Panel (Home Delivery / Remote Pay) */}
             {paymentMethod === "WhatsAppLink" && grandTotal > 0 && (
-              <div className="p-3 rounded-xl bg-[#0e0e11] border border-zinc-800 flex flex-col items-center text-center space-y-2.5">
+              <div className="p-3 rounded-xl bg-[#000000] border border-[#222222] flex flex-col items-center text-center space-y-2.5">
                 {rzpPaid ? (
-                  <div className="w-full py-4 px-3 rounded-lg bg-zinc-900 border border-zinc-700 text-center space-y-2 animate-fadeIn">
-                    <div className="w-9 h-9 rounded-full bg-zinc-800 border border-zinc-700 text-emerald-400 flex items-center justify-center mx-auto text-lg font-bold">
+                  <div className="w-full py-4 px-3 rounded-lg bg-[#0a0a0a] border border-[#333333] text-center space-y-2 animate-fadeIn">
+                    <div className="w-9 h-9 rounded-full bg-[#161616] border border-[#333333] text-emerald-400 flex items-center justify-center mx-auto text-lg font-bold">
                       ✓
                     </div>
                     <div>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-300 font-mono uppercase tracking-wider">
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#161616] text-zinc-300 font-mono uppercase tracking-wider">
                         Remote Payment Verified
                       </span>
                       <h4 className="text-base font-semibold text-white mt-1 font-['Space_Grotesk']">
@@ -3539,7 +3539,7 @@ Helpline: +91 84910 06127`;
                         Ref: <strong className="text-zinc-200">{rzpPaymentDetails?.id || "pay_verified"}</strong>
                       </p>
                     </div>
-                    <div className="p-1.5 rounded-md bg-zinc-800/80 border border-zinc-700 text-[10px] text-zinc-300 font-mono flex items-center justify-center gap-1">
+                    <div className="p-1.5 rounded-md bg-[#161616]/80 border border-[#333333] text-[10px] text-zinc-300 font-mono flex items-center justify-center gap-1">
                       <span>Auto-captured via Razorpay. Bill marked PAID.</span>
                     </div>
                     <button
@@ -3557,12 +3557,12 @@ Helpline: +91 84910 06127`;
                     <p className="text-[10px] text-zinc-500 font-mono">Locking amount ₹{grandTotal.toLocaleString("en-IN")} &amp; opening WhatsApp</p>
                   </div>
                 ) : rzpLinkError ? (
-                  <div className="w-full p-3 rounded-lg bg-zinc-900 border border-rose-800/50 text-center space-y-1.5">
+                  <div className="w-full p-3 rounded-lg bg-[#0a0a0a] border border-rose-800/50 text-center space-y-1.5">
                     <p className="text-xs text-rose-300">{rzpLinkError}</p>
                     <button
                       type="button"
                       onClick={handleSendWhatsAppPaymentLink}
-                      className="px-3 py-1 bg-zinc-800 hover:bg-zinc-700 text-white rounded-md text-xs font-medium uppercase tracking-wider cursor-pointer border border-zinc-700"
+                      className="px-3 py-1 bg-[#161616] hover:bg-[#222222] text-white rounded-md text-xs font-medium uppercase tracking-wider cursor-pointer border border-[#333333]"
                     >
                       Retry
                     </button>
@@ -3571,7 +3571,7 @@ Helpline: +91 84910 06127`;
                   <div className="w-full space-y-2.5">
                     {rzpLinkData ? (
                       <div className="w-full space-y-2">
-                        <div className="flex items-center justify-between pb-1 border-b border-zinc-800 text-[10px] font-mono">
+                        <div className="flex items-center justify-between pb-1 border-b border-[#222222] text-[10px] font-mono">
                           <span className="flex items-center gap-1.5 text-zinc-300 font-medium">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
                             Listening for Customer Payment...
@@ -3579,7 +3579,7 @@ Helpline: +91 84910 06127`;
                           <span className="text-zinc-500 font-mono">Inv #{rzpLinkData.orderRef}</span>
                         </div>
 
-                        <div className="p-2.5 rounded-lg bg-zinc-900/60 border border-zinc-800 text-left space-y-1.5">
+                        <div className="p-2.5 rounded-lg bg-[#0a0a0a]/60 border border-[#222222] text-left space-y-1.5">
                           <div className="flex items-center justify-between text-[11px]">
                             <span className="text-zinc-400">Locked Amount:</span>
                             <span className="text-white font-mono tabular-nums font-semibold text-sm">₹{rzpLinkData.amount.toLocaleString("en-IN")}</span>
@@ -3589,7 +3589,7 @@ Helpline: +91 84910 06127`;
                             <span className="text-zinc-200 font-mono">{customerPhone || "N/A"}</span>
                           </div>
 
-                          <div className="p-2 rounded-md bg-[#0e0e11] border border-zinc-800 flex items-center justify-between gap-2">
+                          <div className="p-2 rounded-md bg-[#000000] border border-[#222222] flex items-center justify-between gap-2">
                             <a
                               href={rzpLinkData.short_url}
                               target="_blank"
@@ -3605,7 +3605,7 @@ Helpline: +91 84910 06127`;
                                 setRzpLinkCopied(true);
                                 setTimeout(() => setRzpLinkCopied(false), 2000);
                               }}
-                              className="px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[10px] font-medium shrink-0 border border-zinc-700 cursor-pointer"
+                              className="px-2 py-0.5 rounded bg-[#161616] hover:bg-[#222222] text-zinc-200 text-[10px] font-medium shrink-0 border border-[#333333] cursor-pointer"
                             >
                               {rzpLinkCopied ? "Copied" : "Copy Link"}
                             </button>
@@ -3621,7 +3621,7 @@ Helpline: +91 84910 06127`;
                               const enc = encodeURIComponent(rzpLinkData.waMessage);
                               window.open(clean.length === 10 ? `https://wa.me/91${clean}?text=${enc}` : `https://wa.me/?text=${enc}`, "_blank");
                             }}
-                            className="py-1.5 px-1.5 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-[10px] font-medium transition-colors cursor-pointer flex items-center justify-center gap-1"
+                            className="py-1.5 px-1.5 rounded-md bg-[#161616] hover:bg-[#222222] text-zinc-200 border border-[#333333] text-[10px] font-medium transition-colors cursor-pointer flex items-center justify-center gap-1"
                             title="Open in WhatsApp app or default link"
                           >
                             <span>WhatsApp App</span>
@@ -3633,7 +3633,7 @@ Helpline: +91 84910 06127`;
                               const enc = encodeURIComponent(rzpLinkData.waMessage);
                               window.open(`https://web.whatsapp.com/send?phone=91${clean}&text=${enc}`, "_blank");
                             }}
-                            className="py-1.5 px-1.5 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-[10px] font-medium transition-colors cursor-pointer flex items-center justify-center gap-1"
+                            className="py-1.5 px-1.5 rounded-md bg-[#161616] hover:bg-[#222222] text-zinc-200 border border-[#333333] text-[10px] font-medium transition-colors cursor-pointer flex items-center justify-center gap-1"
                             title="Open directly in WhatsApp Web in browser"
                           >
                             <span>WhatsApp Web</span>
@@ -3645,18 +3645,18 @@ Helpline: +91 84910 06127`;
                               setRzpLinkMsgCopied(true);
                               setTimeout(() => setRzpLinkMsgCopied(false), 2000);
                             }}
-                            className="py-1.5 px-1.5 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-[10px] font-medium transition-colors cursor-pointer flex items-center justify-center gap-1"
+                            className="py-1.5 px-1.5 rounded-md bg-[#161616] hover:bg-[#222222] text-zinc-200 border border-[#333333] text-[10px] font-medium transition-colors cursor-pointer flex items-center justify-center gap-1"
                           >
                             <span>{rzpLinkMsgCopied ? "Copied" : "Copy Text"}</span>
                           </button>
                         </div>
 
-                        <div className="p-2 rounded-md bg-zinc-900/60 border border-zinc-800 text-[10px] text-zinc-400 font-mono text-center">
+                        <div className="p-2 rounded-md bg-[#0a0a0a]/60 border border-[#222222] text-[10px] text-zinc-400 font-mono text-center">
                           Polling Razorpay for payment status. Screen updates automatically.
                         </div>
 
                         {/* Fast Actions for Counter Operator */}
-                        <div className="pt-2 border-t border-zinc-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-1.5 bg-[#0e0e11] p-2 rounded-lg border border-zinc-800">
+                        <div className="pt-2 border-t border-[#222222] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-1.5 bg-[#000000] p-2 rounded-lg border border-[#222222]">
                           <div className="text-[10px] text-zinc-400 font-mono">
                             Need to bill next walk-in customer?
                           </div>
@@ -3664,7 +3664,7 @@ Helpline: +91 84910 06127`;
                             <button
                               type="button"
                               onClick={handleCancelActiveWhatsAppLink}
-                              className="flex-1 sm:flex-initial px-2.5 py-1.5 rounded-md bg-zinc-800 hover:bg-rose-500/20 text-zinc-400 hover:text-rose-400 border border-zinc-700 text-[10px] font-medium font-mono transition-colors cursor-pointer flex items-center justify-center gap-1"
+                              className="flex-1 sm:flex-initial px-2.5 py-1.5 rounded-md bg-[#161616] hover:bg-rose-500/20 text-zinc-400 hover:text-rose-400 border border-[#333333] text-[10px] font-medium font-mono transition-colors cursor-pointer flex items-center justify-center gap-1"
                               title="Cancel this order and expire payment link"
                             >
                               <span>✕</span> Cancel &amp; Expire
@@ -3674,7 +3674,7 @@ Helpline: +91 84910 06127`;
                               onClick={() => {
                                 handleReset();
                               }}
-                              className="flex-1 sm:flex-initial px-2.5 py-1.5 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-[10px] font-medium font-mono transition-colors cursor-pointer flex items-center justify-center gap-1"
+                              className="flex-1 sm:flex-initial px-2.5 py-1.5 rounded-md bg-[#161616] hover:bg-[#222222] text-zinc-200 border border-[#333333] text-[10px] font-medium font-mono transition-colors cursor-pointer flex items-center justify-center gap-1"
                               title="Reset counter register to bill next customer"
                             >
                               <span>Clear &amp; Bill Next</span>
@@ -3685,7 +3685,7 @@ Helpline: +91 84910 06127`;
                                 setActiveTab("remote_orders");
                                 fetchRemoteOrders();
                               }}
-                              className="flex-1 sm:flex-initial px-2.5 py-1.5 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-[10px] font-medium font-mono transition-colors cursor-pointer flex items-center justify-center gap-1"
+                              className="flex-1 sm:flex-initial px-2.5 py-1.5 rounded-md bg-[#161616] hover:bg-[#222222] text-zinc-200 border border-[#333333] text-[10px] font-medium font-mono transition-colors cursor-pointer flex items-center justify-center gap-1"
                               title="Open Remote Orders tab to monitor customer payments"
                             >
                               <span>View Remote Orders →</span>
@@ -3695,7 +3695,7 @@ Helpline: +91 84910 06127`;
                       </div>
                     ) : (
                       <div className="space-y-2.5">
-                        <div className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-between text-[11px]">
+                        <div className="p-2 rounded-lg bg-[#0a0a0a] border border-[#222222] flex items-center justify-between text-[11px]">
                           <span className="text-zinc-400 font-mono">WhatsApp Number:</span>
                           <span className="font-mono font-medium text-zinc-200">
                             {customerPhone.replace(/\D/g, "").slice(-10) ? `+91 ${customerPhone.replace(/\D/g, "").slice(-10)}` : "Enter phone in Section 2"}
@@ -3720,7 +3720,7 @@ Helpline: +91 84910 06127`;
 
             {/* 4. Cash Payment Panel */}
             {paymentMethod === "Cash" && (
-              <div className="p-4 rounded-xl bg-[#0e0e11] border border-zinc-800 text-center space-y-2">
+              <div className="p-4 rounded-xl bg-[#000000] border border-[#222222] text-center space-y-2">
                 <span className="material-symbols-outlined text-2xl text-zinc-400 block">payments</span>
                 <h4 className="text-sm font-semibold text-white font-['Space_Grotesk']">
                   Cash Payment Selected
@@ -3739,7 +3739,7 @@ Helpline: +91 84910 06127`;
                   type="button"
                   onClick={handleSendWhatsAppPaymentLink}
                   disabled={grandTotal <= 0 || rzpLinkLoading}
-                  className="w-full py-2.5 sm:py-3 rounded-xl bg-zinc-100 hover:bg-white active:scale-[0.99] disabled:opacity-50 text-zinc-950 font-semibold uppercase tracking-wider text-xs sm:text-sm transition-colors shadow-sm flex items-center justify-center gap-2 cursor-pointer font-['Space_Grotesk']"
+                  className="w-full py-2.5 sm:py-3 rounded-md bg-white hover:bg-neutral-200 active:scale-[0.99] disabled:bg-[#1a1a1a] disabled:text-[#666666] disabled:border disabled:border-[#2a2a2a] disabled:cursor-not-allowed text-black font-semibold uppercase tracking-wider text-xs sm:text-sm transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer font-['Space_Grotesk']"
                 >
                   {rzpLinkLoading ? (
                     <>
@@ -3758,7 +3758,7 @@ Helpline: +91 84910 06127`;
                   type="button"
                   onClick={handleGenerateInvoice}
                   disabled={grandTotal <= 0}
-                  className="w-full py-2.5 sm:py-3 rounded-xl bg-zinc-100 hover:bg-white active:scale-[0.99] disabled:opacity-50 text-zinc-950 font-semibold uppercase tracking-wider text-xs sm:text-sm transition-colors shadow-sm flex items-center justify-center gap-2 cursor-pointer font-['Space_Grotesk']"
+                  className="w-full py-2.5 sm:py-3 rounded-md bg-white hover:bg-neutral-200 active:scale-[0.99] disabled:bg-[#1a1a1a] disabled:text-[#666666] disabled:border disabled:border-[#2a2a2a] disabled:cursor-not-allowed text-black font-semibold uppercase tracking-wider text-xs sm:text-sm transition-all shadow-sm flex items-center justify-center gap-2 cursor-pointer font-['Space_Grotesk']"
                 >
                   <span className="material-symbols-outlined text-base sm:text-lg">receipt_long</span>
                   Generate Invoice (₹{grandTotal.toLocaleString("en-IN")})
@@ -3769,7 +3769,7 @@ Helpline: +91 84910 06127`;
         </div>
 
         {/* ─── STICKY MOBILE CHECKOUT BAR ─── */}
-        <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#0e0e11]/95 backdrop-blur-lg border-t border-zinc-800 px-3.5 py-2.5 lg:hidden">
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#000000]/95 backdrop-blur-lg border-t border-[#222222] px-3.5 py-2.5 lg:hidden">
           <div className="max-w-md mx-auto flex items-center justify-between gap-3">
             <div className="min-w-0 flex-1">
               <div className="text-[10px] text-zinc-400 font-mono flex items-center gap-1.5 leading-none mb-0.5">
@@ -3838,7 +3838,7 @@ Helpline: +91 84910 06127`;
             <button
               type="button"
               onClick={() => setActiveTab("customer_balances")}
-              className="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-700 text-xs font-medium font-mono transition-colors cursor-pointer flex items-center gap-1.5 shrink-0"
+              className="px-3 py-1.5 rounded-lg bg-[#0a0a0a] hover:bg-[#161616] text-zinc-200 border border-[#333333] text-xs font-medium font-mono transition-colors cursor-pointer flex items-center gap-1.5 shrink-0"
             >
               <span>📒 Open Khata &amp; Balances (Tab 4) &rarr;</span>
             </button>
@@ -3847,7 +3847,7 @@ Helpline: +91 84910 06127`;
           {/* KPI Summary Bar */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
             {/* 1. Total Remote Orders */}
-            <div className="p-3.5 sm:p-4 rounded-xl bg-[#131316] border border-zinc-800 space-y-1 shadow-sm">
+            <div className="p-3.5 sm:p-4 rounded-xl bg-[#0a0a0a] border border-[#222222] space-y-1 shadow-sm">
               <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
                 <span>Total Remote Orders</span>
                 <span className="material-symbols-outlined text-sm text-zinc-400">local_shipping</span>
@@ -3861,7 +3861,7 @@ Helpline: +91 84910 06127`;
             </div>
 
             {/* 2. Awaiting Customer Payment (Due) */}
-            <div className="p-3.5 sm:p-4 rounded-xl bg-[#131316] border border-zinc-800 space-y-1 shadow-sm">
+            <div className="p-3.5 sm:p-4 rounded-xl bg-[#0a0a0a] border border-[#222222] space-y-1 shadow-sm">
               <div className="flex items-center justify-between text-zinc-400 text-xs font-mono">
                 <span className="flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
@@ -3878,7 +3878,7 @@ Helpline: +91 84910 06127`;
             </div>
 
             {/* 3. Paid & Completed */}
-            <div className="p-3.5 sm:p-4 rounded-xl bg-[#131316] border border-zinc-800 space-y-1 shadow-sm">
+            <div className="p-3.5 sm:p-4 rounded-xl bg-[#0a0a0a] border border-[#222222] space-y-1 shadow-sm">
               <div className="flex items-center justify-between text-zinc-400 text-xs font-mono">
                 <span className="flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
@@ -3895,7 +3895,7 @@ Helpline: +91 84910 06127`;
             </div>
 
             {/* 4. Payment Verification Engine */}
-            <div className="bg-slate-900/85 border border-cyan-500/30 rounded-2xl p-3 sm:p-4 space-y-1 shadow-lg">
+            <div className="bg-[#0a0a0a]/85 border border-cyan-500/30 rounded-2xl p-3 sm:p-4 space-y-1 shadow-lg">
               <div className="flex items-center justify-between text-cyan-300 text-xs font-mono font-bold">
                 <span>⚡ Payment Verification</span>
                 <span className="material-symbols-outlined text-sm text-zinc-400">verified</span>
@@ -3911,15 +3911,15 @@ Helpline: +91 84910 06127`;
           </div>
 
           {/* Filter, Search & Actions Bar */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 p-2 bg-[#131316] border border-zinc-800 rounded-xl shadow-sm">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 p-2 bg-[#0a0a0a] border border-[#222222] rounded-xl shadow-sm">
             {/* Filter Tabs */}
-            <div className="flex items-center gap-1 bg-[#0e0e11] p-1 rounded-lg border border-zinc-800 text-xs font-mono overflow-x-auto">
+            <div className="flex items-center gap-1 bg-[#000000] p-1 rounded-lg border border-[#222222] text-xs font-mono overflow-x-auto">
               <button
                 type="button"
                 onClick={() => setRemoteFilter("all")}
                 className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap ${
                   remoteFilter === "all"
-                    ? "bg-zinc-800 text-white shadow-sm font-medium"
+                    ? "bg-[#161616] text-white shadow-sm font-medium"
                     : "text-zinc-400 hover:text-zinc-200"
                 }`}
               >
@@ -3930,7 +3930,7 @@ Helpline: +91 84910 06127`;
                 onClick={() => setRemoteFilter("pending")}
                 className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
                   remoteFilter === "pending"
-                    ? "bg-zinc-800 text-white border border-zinc-700 shadow-sm font-medium"
+                    ? "bg-[#161616] text-white border border-[#333333] shadow-sm font-medium"
                     : "text-zinc-400 hover:text-zinc-200"
                 }`}
               >
@@ -3941,7 +3941,7 @@ Helpline: +91 84910 06127`;
                 onClick={() => setRemoteFilter("paid")}
                 className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
                   remoteFilter === "paid"
-                    ? "bg-zinc-800 text-white border border-zinc-700 shadow-sm font-medium"
+                    ? "bg-[#161616] text-white border border-[#333333] shadow-sm font-medium"
                     : "text-zinc-400 hover:text-zinc-200"
                 }`}
               >
@@ -3952,7 +3952,7 @@ Helpline: +91 84910 06127`;
                 onClick={() => setRemoteFilter("expired")}
                 className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
                   remoteFilter === "expired"
-                    ? "bg-zinc-800 text-white border border-zinc-700 shadow-sm font-medium"
+                    ? "bg-[#161616] text-white border border-[#333333] shadow-sm font-medium"
                     : "text-zinc-400 hover:text-zinc-200"
                 }`}
               >
@@ -3963,7 +3963,7 @@ Helpline: +91 84910 06127`;
                 onClick={() => setRemoteFilter("whatsapp")}
                 className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
                   remoteFilter === "whatsapp"
-                    ? "bg-zinc-800 text-white border border-zinc-700 shadow-sm font-medium"
+                    ? "bg-[#161616] text-white border border-[#333333] shadow-sm font-medium"
                     : "text-zinc-400 hover:text-zinc-200"
                 }`}
               >
@@ -3974,7 +3974,7 @@ Helpline: +91 84910 06127`;
                 onClick={() => setRemoteFilter("catch_weight")}
                 className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
                   remoteFilter === "catch_weight"
-                    ? "bg-zinc-800 text-white border border-zinc-700 shadow-sm font-medium"
+                    ? "bg-[#161616] text-white border border-[#333333] shadow-sm font-medium"
                     : "text-zinc-400 hover:text-zinc-200"
                 }`}
               >
@@ -3993,7 +3993,7 @@ Helpline: +91 84910 06127`;
                   value={remoteSearch}
                   onChange={(e) => setRemoteSearch(e.target.value)}
                   placeholder="Search name, phone, inv #..."
-                  className="w-full pl-8 pr-7 py-1.5 bg-[#0e0e11] border border-zinc-800 rounded-lg text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-600 font-mono"
+                  className="w-full pl-8 pr-7 py-1.5 bg-[#000000] border border-[#222222] rounded-lg text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#555555] font-mono"
                 />
                 {remoteSearch && (
                   <button
@@ -4010,7 +4010,7 @@ Helpline: +91 84910 06127`;
                 type="button"
                 onClick={fetchRemoteOrders}
                 disabled={remoteLoading}
-                className="px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800 rounded-lg text-xs font-medium font-mono transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0"
+                className="px-3 py-1.5 bg-[#0a0a0a] hover:bg-[#161616] text-zinc-300 border border-[#222222] rounded-lg text-xs font-medium font-mono transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0"
                 title="Refresh Remote Orders"
               >
                 <span className={`material-symbols-outlined text-sm ${remoteLoading ? "animate-spin" : ""}`}>
@@ -4022,7 +4022,7 @@ Helpline: +91 84910 06127`;
               <button
                 type="button"
                 onClick={handleOpenNewRemoteModal}
-                className="px-3 py-1.5 bg-white hover:bg-zinc-200 text-zinc-950 font-semibold rounded-lg text-xs uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer shadow-sm shrink-0"
+                className="px-3 py-1.5 bg-white hover:bg-neutral-200 text-black font-semibold rounded-lg text-xs uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer shadow-sm shrink-0"
               >
                 <span className="material-symbols-outlined text-sm">add</span>
                 <span>Create Manual Invoice</span>
@@ -4031,7 +4031,7 @@ Helpline: +91 84910 06127`;
               <button
                 type="button"
                 onClick={() => setActiveTab("deal_calculator")}
-                className="px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-200 font-medium rounded-lg text-xs uppercase tracking-wider transition-colors flex items-center gap-1 cursor-pointer shadow-sm shrink-0"
+                className="px-3 py-1.5 bg-[#0a0a0a] hover:bg-[#161616] border border-[#333333] text-zinc-200 font-medium rounded-lg text-xs uppercase tracking-wider transition-colors flex items-center gap-1 cursor-pointer shadow-sm shrink-0"
                 title="Customer asking for bargain/discount? Open Deal Desk"
               >
                 <span className="material-symbols-outlined text-sm">handshake</span>
@@ -4042,8 +4042,8 @@ Helpline: +91 84910 06127`;
 
           {/* Orders Cards Grid */}
           {filteredRemoteOrders.length === 0 ? (
-            <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-8 sm:p-12 text-center space-y-3">
-              <div className="w-12 h-12 rounded-2xl bg-slate-800/80 border border-slate-700 flex items-center justify-center mx-auto text-slate-500">
+            <div className="bg-[#0a0a0a]/60 border border-[#222222] rounded-2xl p-8 sm:p-12 text-center space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-slate-800/80 border border-[#333333] flex items-center justify-center mx-auto text-slate-500">
                 <span className="material-symbols-outlined text-2xl">receipt_long</span>
               </div>
               <div>
@@ -4088,32 +4088,32 @@ Helpline: +91 84910 06127`;
                 return (
                   <div
                     key={order.id}
-                    className="rounded-xl p-4 space-y-3 bg-[#131316] border border-zinc-800 hover:border-zinc-700 transition-colors shadow-sm flex flex-col justify-between"
+                    className="rounded-xl p-4 space-y-3 bg-[#0a0a0a] border border-[#222222] hover:border-[#333333] transition-colors shadow-sm flex flex-col justify-between"
                   >
                     <div className="space-y-3">
                       {/* Header Row: Invoice #, Date & Status */}
-                      <div className="flex items-start justify-between gap-2 border-b border-zinc-800 pb-2.5">
+                      <div className="flex items-start justify-between gap-2 border-b border-[#222222] pb-2.5">
                         <div>
                           <div className="flex items-center gap-2">
                             <span className="font-mono font-semibold text-sm text-white tracking-tight">
                               #{invNum}
                             </span>
                             {pMethod.toLowerCase().includes("dual") ? (
-                              <span className="text-[9px] font-mono font-medium bg-zinc-800 border border-zinc-700 text-zinc-300 px-1.5 py-0.5 rounded-md">
+                              <span className="text-[9px] font-mono font-medium bg-[#161616] border border-[#333333] text-zinc-300 px-1.5 py-0.5 rounded-md">
                                 ✨ Dual (J&amp;K + Rzp)
                               </span>
                             ) : pMethod.toLowerCase().includes("jk") || pMethod.toLowerCase().includes("jkb") ? (
-                              <span className="text-[9px] font-mono font-medium bg-zinc-800 border border-zinc-700 text-zinc-300 px-1.5 py-0.5 rounded-md">
+                              <span className="text-[9px] font-mono font-medium bg-[#161616] border border-[#333333] text-zinc-300 px-1.5 py-0.5 rounded-md">
                                 ⚡ J&amp;K Bank Instant
                               </span>
                             ) : (
-                              <span className="text-[9px] font-mono text-zinc-400 bg-zinc-900 px-1.5 py-0.5 rounded-md border border-zinc-800">
+                              <span className="text-[9px] font-mono text-zinc-400 bg-[#0a0a0a] px-1.5 py-0.5 rounded-md border border-[#222222]">
                                 💳 Razorpay
                               </span>
                             )}
                             {paymentLinkId && (
                               <span
-                                className="text-[9px] font-mono text-slate-500 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800 truncate max-w-[90px]"
+                                className="text-[9px] font-mono text-slate-500 bg-black px-1.5 py-0.5 rounded border border-[#222222] truncate max-w-[90px]"
                                 title={paymentLinkId}
                               >
                                 {paymentLinkId}
@@ -4143,17 +4143,17 @@ Helpline: +91 84910 06127`;
 
                         <div className="text-right flex flex-col items-end gap-1">
                           {isPaid ? (
-                            <span className="px-2 py-0.5 rounded-md bg-zinc-800 border border-zinc-700 text-emerald-400 font-medium text-[10px] uppercase tracking-wider flex items-center gap-1.5">
+                            <span className="px-2 py-0.5 rounded-md bg-[#161616] border border-[#333333] text-emerald-400 font-medium text-[10px] uppercase tracking-wider flex items-center gap-1.5">
                               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                               PAID ✓
                             </span>
                           ) : isExp ? (
-                            <span className="px-2 py-0.5 rounded-md bg-zinc-800 border border-zinc-700 text-rose-400 font-medium text-[10px] uppercase tracking-wider flex items-center gap-1.5">
+                            <span className="px-2 py-0.5 rounded-md bg-[#161616] border border-[#333333] text-rose-400 font-medium text-[10px] uppercase tracking-wider flex items-center gap-1.5">
                               <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
                               EXPIRED ⏱️
                             </span>
                           ) : (
-                            <span className="px-2 py-0.5 rounded-md bg-zinc-800 border border-zinc-700 text-amber-400 font-medium text-[10px] uppercase tracking-wider flex items-center gap-1.5">
+                            <span className="px-2 py-0.5 rounded-md bg-[#161616] border border-[#333333] text-amber-400 font-medium text-[10px] uppercase tracking-wider flex items-center gap-1.5">
                               <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
                               PAYMENT DUE
                             </span>
@@ -4165,7 +4165,7 @@ Helpline: +91 84910 06127`;
                       </div>
 
                       {/* Customer Information Row */}
-                      <div className="p-2.5 rounded-lg bg-[#0e0e11] border border-zinc-800/80 space-y-1.5">
+                      <div className="p-2.5 rounded-lg bg-[#000000] border border-[#222222]/80 space-y-1.5">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-1.5 min-w-0">
                             <span className="text-xs font-medium text-white truncate" title={cName}>
@@ -4179,7 +4179,7 @@ Helpline: +91 84910 06127`;
                                 setEditCustomerPhone(cleanPhone !== "N/A" ? cleanPhone : "");
                                 setEditCustomerAddress(order.data?.address || order.address || orderNotes || "");
                               }}
-                              className="px-1.5 py-0.5 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white transition-colors text-[10px] font-mono flex items-center gap-0.5 cursor-pointer border border-zinc-700 shrink-0"
+                              className="px-1.5 py-0.5 rounded-md bg-[#161616] hover:bg-[#222222] text-zinc-300 hover:text-white transition-colors text-[10px] font-mono flex items-center gap-0.5 cursor-pointer border border-[#333333] shrink-0"
                               title="Edit Customer Name, Phone, or Delivery Note"
                             >
                               <span className="material-symbols-outlined text-[11px]">edit</span>
@@ -4201,7 +4201,7 @@ Helpline: +91 84910 06127`;
                                   onClick={() => {
                                     window.open(`https://wa.me/91${cleanPhone}`, "_blank");
                                   }}
-                                  className="p-1 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 transition-colors text-[10px] flex items-center gap-1 cursor-pointer"
+                                  className="p-1 rounded-md bg-[#161616] hover:bg-[#222222] text-zinc-300 border border-[#333333] transition-colors text-[10px] flex items-center gap-1 cursor-pointer"
                                   title="Open WhatsApp Chat"
                                 >
                                   <span className="material-symbols-outlined text-xs">chat</span>
@@ -4217,7 +4217,7 @@ Helpline: +91 84910 06127`;
                         </div>
 
                         {orderNotes && (
-                          <div className="text-[10.5px] text-zinc-300 bg-zinc-900 border border-zinc-800 p-1.5 rounded-md font-mono">
+                          <div className="text-[10.5px] text-zinc-300 bg-[#0a0a0a] border border-[#222222] p-1.5 rounded-md font-mono">
                             📍 Note: {orderNotes}
                           </div>
                         )}
@@ -4246,12 +4246,12 @@ Helpline: +91 84910 06127`;
                     </div>
 
                     {/* Action Buttons Footer */}
-                    <div className="pt-2 border-t border-zinc-800 space-y-2 mt-2">
+                    <div className="pt-2 border-t border-[#222222] space-y-2 mt-2">
                       {isPaid ? (
                         /* PAID ACTIONS */
                         <div className="space-y-1.5">
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <div className="flex-1 min-w-[100px] p-1.5 rounded-md bg-zinc-800 border border-zinc-700 text-[10px] text-emerald-400 font-mono text-center flex items-center justify-center gap-1 font-medium">
+                            <div className="flex-1 min-w-[100px] p-1.5 rounded-md bg-[#161616] border border-[#333333] text-[10px] text-emerald-400 font-mono text-center flex items-center justify-center gap-1 font-medium">
                               <span>✓</span> Paid in Full
                             </div>
                             <button
@@ -4260,7 +4260,7 @@ Helpline: +91 84910 06127`;
                               className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer ${
                                 copiedInvoiceId === order.id
                                   ? "bg-zinc-700 text-white border border-zinc-600"
-                                  : "bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700"
+                                  : "bg-[#161616] hover:bg-[#222222] text-zinc-200 border border-[#333333]"
                               }`}
                               title="Copy clean public invoice link"
                             >
@@ -4271,7 +4271,7 @@ Helpline: +91 84910 06127`;
                               href={`/invoice/${order.data?.num || invNum || order.id}?download=true`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="px-2 py-1.5 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-[10px] font-medium font-mono transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                              className="px-2 py-1.5 rounded-md bg-[#161616] hover:bg-[#222222] text-zinc-200 border border-[#333333] text-[10px] font-medium font-mono transition-colors flex items-center justify-center gap-1 cursor-pointer"
                               title="Direct Download Official 1-Page A4 Tax Invoice PDF"
                             >
                               <span>📥</span>
@@ -4280,7 +4280,7 @@ Helpline: +91 84910 06127`;
                             <button
                               type="button"
                               onClick={() => handleQuickUpdateStatus(order, "PAYMENT DUE")}
-                              className="px-2 py-1.5 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 text-[10px] font-medium font-mono transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                              className="px-2 py-1.5 rounded-md bg-[#161616] hover:bg-[#222222] text-zinc-300 border border-[#333333] text-[10px] font-medium font-mono transition-colors flex items-center justify-center gap-1 cursor-pointer"
                               title="Mark back to Payment Due"
                             >
                               <span>⏳ Mark Due</span>
@@ -4289,7 +4289,7 @@ Helpline: +91 84910 06127`;
                               type="button"
                               onClick={() => handleDeleteRemoteOrder(order)}
                               disabled={isDeleting}
-                              className="px-2 py-1.5 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-rose-400 border border-zinc-700 text-[10px] font-medium font-mono transition-colors flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
+                              className="px-2 py-1.5 rounded-md bg-[#161616] hover:bg-[#222222] text-zinc-400 hover:text-rose-400 border border-[#333333] text-[10px] font-medium font-mono transition-colors flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
                               title="Delete this order record"
                             >
                               <span>🗑️</span>
@@ -4306,8 +4306,8 @@ Helpline: +91 84910 06127`;
                                 onClick={() => handleSendReview(order)}
                                 className={`w-full py-1.5 px-2 rounded-lg text-[10.5px] font-medium font-mono transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${
                                   hasSentReview
-                                    ? "bg-zinc-800 border border-zinc-700 text-zinc-400"
-                                    : "bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300"
+                                    ? "bg-[#161616] border border-[#333333] text-zinc-400"
+                                    : "bg-[#0a0a0a] hover:bg-[#161616] border border-[#222222] text-zinc-300"
                                 }`}
                                 title="Send customer a WhatsApp message asking for a Google review"
                               >
@@ -4360,7 +4360,7 @@ Helpline: +91 84910 06127`;
                               href={`/invoice/${order.data?.num || invNum || order.id}?download=true`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="py-1.5 px-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer"
+                              className="py-1.5 px-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-[#333333] text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer"
                               title="Direct Download Official 1-Page A4 Tax Invoice PDF"
                             >
                               <span>📥</span>
@@ -4409,7 +4409,7 @@ Helpline: +91 84910 06127`;
                                   onClick={() => handleSendReminder(order)}
                                   className={`py-1.5 px-1 rounded-xl text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer relative ${
                                     hasReminded
-                                      ? "bg-slate-800 border border-slate-700 text-slate-400"
+                                      ? "bg-slate-800 border border-[#333333] text-slate-400"
                                       : needsReminder
                                       ? "bg-green-600/30 hover:bg-green-600/40 text-green-200 border border-green-400/60 shadow-md shadow-green-900/30 animate-pulse"
                                       : "bg-green-600/20 hover:bg-green-600/30 text-green-300 border border-green-500/40"
@@ -4427,7 +4427,7 @@ Helpline: +91 84910 06127`;
                                   href={`/invoice/${order.data?.num || invNum || order.id}?download=true`}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="py-1.5 px-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer"
+                                  className="py-1.5 px-1 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-[#333333] text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer"
                                   title="Direct Download Official 1-Page A4 Tax Invoice PDF"
                                 >
                                   <span>📥</span>
@@ -4564,8 +4564,8 @@ Helpline: +91 84910 06127`;
           }}
           className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/80 backdrop-blur-sm"
         >
-          <div className="relative w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-5 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div className="relative w-full max-w-md bg-[#0a0a0a] border border-[#222222] rounded-3xl p-5 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-[#222222] pb-3">
               <div>
                 <h3 className="text-base font-bold text-white flex items-center gap-2">
                   <span>💵</span> Mark Order as Paid
@@ -4583,7 +4583,7 @@ Helpline: +91 84910 06127`;
               </button>
             </div>
 
-            <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1 text-xs font-mono">
+            <div className="p-3 rounded-xl bg-black border border-[#222222] space-y-1 text-xs font-mono">
               <div className="flex justify-between text-slate-400">
                 <span>Customer:</span>
                 <span className="text-white font-bold">{manualPayModal.data?.name}</span>
@@ -4616,7 +4616,7 @@ Helpline: +91 84910 06127`;
                     className={`flex items-center gap-2.5 p-2.5 rounded-xl border cursor-pointer transition-all text-xs font-mono ${
                       manualPayMode === m.id
                         ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-300"
-                        : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700"
+                        : "bg-black border-[#222222] text-slate-400 hover:border-[#333333]"
                     }`}
                   >
                     <input
@@ -4642,7 +4642,7 @@ Helpline: +91 84910 06127`;
                 value={manualPayNote}
                 onChange={(e) => setManualPayNote(e.target.value)}
                 placeholder="e.g. Collected by Bilal, delivery completed"
-                className="w-full px-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-mono"
+                className="w-full px-3 py-2 bg-black border border-[#222222] rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-mono"
               />
             </div>
 
@@ -4676,7 +4676,7 @@ Helpline: +91 84910 06127`;
         >
           <div className="relative w-full max-w-md sm:max-w-xl bg-white text-slate-900 rounded-2xl sm:rounded-3xl p-3 sm:p-7 shadow-2xl space-y-4 my-2 sm:my-4 max-h-[92vh] sm:max-h-[95vh] overflow-y-auto">
             {/* ─── FLOATING TOP STICKY BAR: 1-CLICK SHARE & PRINT (NO SCROLLING NEEDED) ─── */}
-            <div className="sticky -top-3 sm:-top-7 -mx-3 sm:-mx-7 px-3 sm:px-7 py-2.5 sm:py-3 bg-slate-950 text-white border-b border-slate-800 z-30 shadow-lg flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 print:hidden">
+            <div className="sticky -top-3 sm:-top-7 -mx-3 sm:-mx-7 px-3 sm:px-7 py-2.5 sm:py-3 bg-black text-white border-b border-[#222222] z-30 shadow-lg flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 print:hidden">
               <div className="flex items-center justify-between sm:justify-start gap-2">
                 <span className="text-[11px] font-mono font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2.5 py-1 rounded-lg">
                   {generatedInvoice.invoiceNumber}
@@ -4726,7 +4726,7 @@ Helpline: +91 84910 06127`;
                     const url = `${origin}/invoice/${generatedInvoice.invoiceNumber}?download=true`;
                     window.open(url, "_blank");
                   }}
-                  className="flex-1 sm:flex-initial py-2 px-2.5 sm:px-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1 border border-slate-700 transition-all cursor-pointer shadow-sm"
+                  className="flex-1 sm:flex-initial py-2 px-2.5 sm:px-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1 border border-[#333333] transition-all cursor-pointer shadow-sm"
                   title="Direct Download Official 1-Page A4 Tax Invoice PDF"
                 >
                   <span>📥</span>
@@ -4736,7 +4736,7 @@ Helpline: +91 84910 06127`;
                 <button
                   type="button"
                   onClick={() => setFourUpModalOpen(true)}
-                  className="flex-1 sm:flex-initial py-2 px-2.5 sm:px-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1 border border-slate-700 transition-all cursor-pointer"
+                  className="flex-1 sm:flex-initial py-2 px-2.5 sm:px-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1 border border-[#333333] transition-all cursor-pointer"
                   title="Print 4 slips on 1 A4 sheet using Canon MF244dw laser printer"
                 >
                   <span>🖨️</span>
@@ -4746,7 +4746,7 @@ Helpline: +91 84910 06127`;
                 <button
                   type="button"
                   onClick={() => window.print()}
-                  className="flex-1 sm:flex-initial py-2 px-2.5 sm:px-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1 border border-slate-700 transition-all cursor-pointer"
+                  className="flex-1 sm:flex-initial py-2 px-2.5 sm:px-3.5 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1 border border-[#333333] transition-all cursor-pointer"
                 >
                   <span>🖨️</span>
                   <span className="truncate">Print Full</span>
@@ -4755,7 +4755,7 @@ Helpline: +91 84910 06127`;
                 <button
                   type="button"
                   onClick={() => setInvoiceModalOpen(false)}
-                  className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white border border-slate-800 transition-all cursor-pointer flex items-center justify-center shrink-0"
+                  className="p-2 rounded-xl bg-[#0a0a0a] hover:bg-slate-800 text-slate-400 hover:text-white border border-[#222222] transition-all cursor-pointer flex items-center justify-center shrink-0"
                   title="Close Window"
                 >
                   <span className="material-symbols-outlined text-base">close</span>
@@ -5085,7 +5085,7 @@ Helpline: +91 84910 06127`;
             className="bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border-2 border-emerald-500/40 rounded-3xl p-4 sm:p-6 max-w-2xl w-full text-center space-y-4 shadow-2xl shadow-emerald-950/80 cursor-default max-h-[95vh] overflow-y-auto"
           >
             {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-slate-800/80 pb-3">
+            <div className="flex items-center justify-between border-b border-[#222222]/80 pb-3">
               <div className="flex items-center gap-2.5 text-left">
                 <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center text-xl shadow-inner">
                   🐟
@@ -5135,7 +5135,7 @@ Helpline: +91 84910 06127`;
                   </p>
                 </div>
 
-                <div className="p-3.5 rounded-2xl bg-slate-900/80 border border-slate-800 text-left max-w-md mx-auto space-y-2 font-mono text-xs">
+                <div className="p-3.5 rounded-2xl bg-[#0a0a0a]/80 border border-[#222222] text-left max-w-md mx-auto space-y-2 font-mono text-xs">
                   <div className="flex justify-between text-slate-300">
                     <span>Catch Item:</span>
                     <span className="font-bold text-white">
@@ -5163,7 +5163,7 @@ Helpline: +91 84910 06127`;
                     </>
                   )}
                   {customerName && (
-                    <div className="flex justify-between text-slate-300 pt-1.5 border-t border-slate-800">
+                    <div className="flex justify-between text-slate-300 pt-1.5 border-t border-[#222222]">
                       <span>Billed To:</span>
                       <span className="font-bold text-white">{customerName} {customerPhone ? `(${customerPhone})` : ""}</span>
                     </div>
@@ -5227,8 +5227,8 @@ Helpline: +91 84910 06127`;
                           : singleItem.name;
 
                         return (
-                          <div className="rounded-2xl bg-slate-950/80 border border-emerald-500/30 p-3.5 space-y-3">
-                            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                          <div className="rounded-2xl bg-black/80 border border-emerald-500/30 p-3.5 space-y-3">
+                            <div className="flex items-center justify-between pb-2 border-b border-[#222222]">
                               <div>
                                 <h4 className="text-sm font-bold text-white leading-tight" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
                                   {fishTypeName}
@@ -5258,7 +5258,7 @@ Helpline: +91 84910 06127`;
 
                             {/* 3 Metric Pillars */}
                             <div className="grid grid-cols-3 gap-1.5 text-center">
-                              <div className="p-2 rounded-xl bg-slate-900 border border-slate-800">
+                              <div className="p-2 rounded-xl bg-[#0a0a0a] border border-[#222222]">
                                 <span className="text-[8.5px] uppercase font-mono text-slate-400 block">Type</span>
                                 <span className="text-xs sm:text-sm font-black text-slate-100 block truncate mt-0.5">
                                   {isGutted ? "Gutted" : isWhole ? "Whole" : "Trout"}
@@ -5268,7 +5268,7 @@ Helpline: +91 84910 06127`;
                                 </span>
                               </div>
 
-                              <div className="p-2 rounded-xl bg-slate-900 border border-slate-800">
+                              <div className="p-2 rounded-xl bg-[#0a0a0a] border border-[#222222]">
                                 <span className="text-[8.5px] uppercase font-mono text-slate-400 block">Weight</span>
                                 <span className="text-xs sm:text-sm font-black text-white font-mono block mt-0.5">
                                   {singleItem.weightKg.toFixed(2)} Kg
@@ -5286,7 +5286,7 @@ Helpline: +91 84910 06127`;
                             </div>
 
                             {/* Equation calculation */}
-                            <div className="px-3 py-2 rounded-xl bg-slate-900/60 border border-slate-800/80 flex items-center justify-between text-xs font-mono">
+                            <div className="px-3 py-2 rounded-xl bg-[#0a0a0a]/60 border border-[#222222]/80 flex items-center justify-between text-xs font-mono">
                               <span className="text-slate-400 text-[11px]">Breakdown:</span>
                               <span className="text-slate-200">
                                 {singleItem.weightKg.toFixed(2)} Kg × ₹{singleItem.pricePerKg}/Kg ={" "}
@@ -5298,8 +5298,8 @@ Helpline: +91 84910 06127`;
                       })()
                     ) : (
                       /* Multi-item bill breakdown */
-                      <div className="rounded-2xl bg-slate-950/80 border border-emerald-500/30 p-3 space-y-2">
-                        <div className="flex items-center justify-between pb-1.5 border-b border-slate-800">
+                      <div className="rounded-2xl bg-black/80 border border-emerald-500/30 p-3 space-y-2">
+                        <div className="flex items-center justify-between pb-1.5 border-b border-[#222222]">
                           <span className="text-[10.5px] font-bold uppercase tracking-wider text-slate-300 font-mono">
                             Catch Items Breakdown ({billItems.length})
                           </span>
@@ -5315,7 +5315,7 @@ Helpline: +91 84910 06127`;
                             return (
                               <div
                                 key={item.id || idx}
-                                className="p-2 rounded-xl bg-slate-900/80 border border-slate-800/80 flex items-center justify-between text-xs font-mono"
+                                className="p-2 rounded-xl bg-[#0a0a0a]/80 border border-[#222222]/80 flex items-center justify-between text-xs font-mono"
                               >
                                 <div>
                                   <div className="font-bold text-slate-200 flex items-center gap-1">
@@ -5337,7 +5337,7 @@ Helpline: +91 84910 06127`;
                     )
                   ) : (
                     /* Direct Amount Mode */
-                    <div className="rounded-2xl bg-slate-950/80 border border-emerald-500/30 p-3.5 space-y-1">
+                    <div className="rounded-2xl bg-black/80 border border-emerald-500/30 p-3.5 space-y-1">
                       <span className="text-[10px] uppercase font-mono text-slate-400 block">Direct Payment Bill</span>
                       <div className="text-sm font-bold text-white font-mono">{customNote || "Catch-Weight Counter Payment"}</div>
                       <p className="text-[11px] text-slate-400">Amount verified on live counter checkout.</p>
@@ -5346,7 +5346,7 @@ Helpline: +91 84910 06127`;
 
                   {/* Customer information chip if available */}
                   {customerName && (
-                    <div className="px-3 py-2 rounded-xl bg-slate-950/60 border border-slate-800 text-[11px] font-mono text-slate-300 flex items-center justify-between">
+                    <div className="px-3 py-2 rounded-xl bg-black/60 border border-[#222222] text-[11px] font-mono text-slate-300 flex items-center justify-between">
                       <span className="flex items-center gap-1.5">
                         <span>👤</span>
                         <span>Billed to: <strong className="text-white">{customerName}</strong></span>
@@ -5402,7 +5402,7 @@ Helpline: +91 84910 06127`;
                       {["Google Pay", "PhonePe", "Paytm", "J&K mPay", "BHIM UPI"].map((app) => (
                         <span
                           key={app}
-                          className="px-2 py-0.5 rounded-md bg-slate-800/90 text-slate-300 border border-slate-700/80 text-[9px] font-mono font-semibold"
+                          className="px-2 py-0.5 rounded-md bg-slate-800/90 text-slate-300 border border-[#333333]/80 text-[9px] font-mono font-semibold"
                         >
                           {app}
                         </span>
@@ -5415,7 +5415,7 @@ Helpline: +91 84910 06127`;
                       <button
                         type="button"
                         onClick={copyUpi}
-                        className="text-[9px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 hover:text-emerald-400 cursor-pointer border border-slate-700 transition-colors"
+                        className="text-[9px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 hover:text-emerald-400 cursor-pointer border border-[#333333] transition-colors"
                       >
                         {copiedUpi ? "✓ Copied" : "Copy"}
                       </button>
@@ -5436,9 +5436,9 @@ Helpline: +91 84910 06127`;
           }}
           className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-fadeIn"
         >
-          <div className="bg-slate-950 border border-emerald-500/40 rounded-2xl w-full max-w-md p-5 space-y-4 shadow-2xl relative text-left">
+          <div className="bg-black border border-emerald-500/40 rounded-2xl w-full max-w-md p-5 space-y-4 shadow-2xl relative text-left">
             {/* Modal Header */}
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+            <div className="flex items-center justify-between pb-2 border-b border-[#222222]">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center text-lg shadow-md shadow-emerald-500/10">
                   <span className="material-symbols-outlined text-xl">record_voice_over</span>
@@ -5455,14 +5455,14 @@ Helpline: +91 84910 06127`;
               <button
                 type="button"
                 onClick={() => setVoiceModalOpen(false)}
-                className="w-7 h-7 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-xs font-black cursor-pointer border border-slate-800"
+                className="w-7 h-7 rounded-lg bg-[#0a0a0a] hover:bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-xs font-black cursor-pointer border border-[#222222]"
               >
                 ✕
               </button>
             </div>
 
             {/* Master Toggle */}
-            <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800 flex items-center justify-between">
+            <div className="p-3 rounded-xl bg-[#0a0a0a]/80 border border-[#222222] flex items-center justify-between">
               <div>
                 <span className="text-xs font-bold text-white block">Voice Broadcast</span>
                 <span className="text-[10px] text-slate-400 font-mono">
@@ -5475,7 +5475,7 @@ Helpline: +91 84910 06127`;
                 className={`px-3 py-1.5 rounded-xl font-bold text-xs uppercase tracking-wider transition-all cursor-pointer ${
                   voiceEnabled
                     ? "bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20"
-                    : "bg-slate-800 text-slate-400 border border-slate-700"
+                    : "bg-slate-800 text-slate-400 border border-[#333333]"
                 }`}
               >
                 {voiceEnabled ? "🔊 Enabled" : "🔇 Disabled"}
@@ -5511,7 +5511,7 @@ Helpline: +91 84910 06127`;
                     className={`p-2.5 rounded-xl border text-left cursor-pointer transition-all ${
                       voiceLang === opt.id
                         ? "bg-emerald-500/15 border-emerald-500/50 shadow-sm"
-                        : "bg-slate-900/50 border-slate-800/80 hover:border-slate-700"
+                        : "bg-[#0a0a0a]/50 border-[#222222]/80 hover:border-[#333333]"
                     }`}
                   >
                     <div className="flex items-center justify-between">
@@ -5531,7 +5531,7 @@ Helpline: +91 84910 06127`;
             </div>
 
             {/* Test Voice Button */}
-            <div className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-center space-y-2">
+            <div className="p-3 rounded-xl bg-[#0a0a0a] border border-[#222222] text-center space-y-2">
               <div className="flex items-center justify-between text-[11px] font-mono">
                 <span className="text-slate-400">Speaker Test:</span>
                 <span className="text-emerald-400 font-bold">
@@ -5576,9 +5576,9 @@ Helpline: +91 84910 06127`;
           }}
           className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-fadeIn"
         >
-          <div className="bg-slate-950 border border-emerald-500/40 rounded-3xl w-full max-w-lg p-5 sm:p-6 space-y-4 shadow-2xl relative text-left max-h-[92vh] overflow-y-auto">
+          <div className="bg-black border border-emerald-500/40 rounded-3xl w-full max-w-lg p-5 sm:p-6 space-y-4 shadow-2xl relative text-left max-h-[92vh] overflow-y-auto">
             {/* Modal Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+            <div className="flex items-center justify-between pb-3 border-b border-[#222222]">
               <div className="flex items-center gap-2.5">
                 <div className="w-9 h-9 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center text-lg shadow-md shadow-emerald-500/10">
                   <span className="material-symbols-outlined text-xl">receipt_long</span>
@@ -5595,7 +5595,7 @@ Helpline: +91 84910 06127`;
               <button
                 type="button"
                 onClick={() => setNewRemoteModalOpen(false)}
-                className="w-8 h-8 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-xs font-black cursor-pointer border border-slate-800 transition-all"
+                className="w-8 h-8 rounded-xl bg-[#0a0a0a] hover:bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-xs font-black cursor-pointer border border-[#222222] transition-all"
               >
                 ✕
               </button>
@@ -5605,7 +5605,7 @@ Helpline: +91 84910 06127`;
               /* FORM STEP */
               <div className="space-y-3.5">
                 {/* Initial Payment Status Selector */}
-                <div className="space-y-1.5 p-3 rounded-2xl bg-slate-900/90 border border-slate-800">
+                <div className="space-y-1.5 p-3 rounded-2xl bg-[#0a0a0a]/90 border border-[#222222]">
                   <div className="flex items-center justify-between">
                     <label className="text-[10.5px] font-black text-slate-300 uppercase tracking-wider font-mono flex items-center gap-1.5">
                       <span>📋</span> Invoice Payment Status:
@@ -5621,7 +5621,7 @@ Helpline: +91 84910 06127`;
                       className={`p-2 rounded-xl text-center border transition-all cursor-pointer ${
                         newRemoteInitialStatus === "PAYMENT DUE"
                           ? "bg-amber-500/20 border-amber-400 text-amber-200 font-bold shadow-md shadow-amber-500/10"
-                          : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700"
+                          : "bg-black border-[#222222] text-slate-400 hover:border-[#333333]"
                       }`}
                     >
                       <div className="text-xs">⏳ Payment Due</div>
@@ -5633,7 +5633,7 @@ Helpline: +91 84910 06127`;
                       className={`p-2 rounded-xl text-center border transition-all cursor-pointer ${
                         newRemoteInitialStatus === "PAID"
                           ? "bg-emerald-500/25 border-emerald-400 text-emerald-200 font-bold shadow-md shadow-emerald-500/10"
-                          : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700"
+                          : "bg-black border-[#222222] text-slate-400 hover:border-[#333333]"
                       }`}
                     >
                       <div className="text-xs">✅ Mark Already Paid</div>
@@ -5643,7 +5643,7 @@ Helpline: +91 84910 06127`;
                 </div>
 
                 {/* Payment Mode Selector */}
-                <div className="space-y-2 p-3 rounded-2xl bg-slate-900/90 border border-slate-800">
+                <div className="space-y-2 p-3 rounded-2xl bg-[#0a0a0a]/90 border border-[#222222]">
                   <div className="flex items-center justify-between">
                     <label className="text-[10.5px] font-black text-slate-300 uppercase tracking-wider font-mono flex items-center gap-1.5">
                       <span>💰</span> Payment &amp; Settlement Mode:
@@ -5665,7 +5665,7 @@ Helpline: +91 84910 06127`;
                       className={`p-2 rounded-xl text-center border transition-all cursor-pointer ${
                         newRemotePaymentMode === "both"
                           ? "bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 border-cyan-400 text-white shadow-md shadow-cyan-500/10 font-bold"
-                          : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700"
+                          : "bg-black border-[#222222] text-slate-400 hover:border-[#333333]"
                       }`}
                     >
                       <div className="text-xs">✨ Dual (Both)</div>
@@ -5679,7 +5679,7 @@ Helpline: +91 84910 06127`;
                       className={`p-2 rounded-xl text-center border transition-all cursor-pointer ${
                         newRemotePaymentMode === "jk_bank"
                           ? "bg-emerald-500/25 border-emerald-400 text-white shadow-md shadow-emerald-500/10 font-bold"
-                          : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700"
+                          : "bg-black border-[#222222] text-slate-400 hover:border-[#333333]"
                       }`}
                     >
                       <div className="text-xs">⚡ J&amp;K Bank</div>
@@ -5693,7 +5693,7 @@ Helpline: +91 84910 06127`;
                       className={`p-2 rounded-xl text-center border transition-all cursor-pointer ${
                         newRemotePaymentMode === "razorpay"
                           ? "bg-blue-500/20 border-blue-400 text-white shadow-md shadow-blue-500/10 font-bold"
-                          : "bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700"
+                          : "bg-black border-[#222222] text-slate-400 hover:border-[#333333]"
                       }`}
                     >
                       <div className="text-xs">💳 Razorpay</div>
@@ -5703,7 +5703,7 @@ Helpline: +91 84910 06127`;
 
                   {/* Inline J&K Bank Account Info & Quick Editor */}
                   {(newRemotePaymentMode === "jk_bank" || newRemotePaymentMode === "both") && (
-                    <div className="mt-2 pt-2 border-t border-slate-800/80 text-[11px] font-mono space-y-2">
+                    <div className="mt-2 pt-2 border-t border-[#222222]/80 text-[11px] font-mono space-y-2">
                       <div className="flex items-center justify-between text-slate-300">
                         <div className="flex items-center gap-1.5 text-emerald-400 font-bold text-[10.5px]">
                           <span>🏦</span>
@@ -5719,7 +5719,7 @@ Helpline: +91 84910 06127`;
                       </div>
 
                       {!showJkBankConfig ? (
-                        <div className="flex items-center justify-between text-[10px] text-slate-400 bg-slate-950/70 p-2 rounded-lg border border-slate-800">
+                        <div className="flex items-center justify-between text-[10px] text-slate-400 bg-black/70 p-2 rounded-lg border border-[#222222]">
                           <div>
                             <span>A/C: </span>
                             <span className="text-slate-200 font-bold">
@@ -5734,7 +5734,7 @@ Helpline: +91 84910 06127`;
                           </span>
                         </div>
                       ) : (
-                        <div className="p-2.5 rounded-xl bg-slate-950 border border-emerald-500/30 space-y-2 animate-fadeIn">
+                        <div className="p-2.5 rounded-xl bg-black border border-emerald-500/30 space-y-2 animate-fadeIn">
                           <div className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">
                             J&amp;K Bank Transfer Details (Direct mPay / IMPS)
                           </div>
@@ -5749,7 +5749,7 @@ Helpline: +91 84910 06127`;
                                   try { localStorage.setItem("ut_jk_bank_account_number", e.target.value); } catch (_) {}
                                 }}
                                 placeholder="e.g. 0082040100001234"
-                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-[11px] text-white font-mono focus:outline-none focus:border-emerald-400"
+                                className="w-full bg-[#0a0a0a] border border-[#333333] rounded-lg px-2 py-1 text-[11px] text-white font-mono focus:outline-none focus:border-emerald-400"
                               />
                             </div>
                             <div>
@@ -5763,7 +5763,7 @@ Helpline: +91 84910 06127`;
                                   try { localStorage.setItem("ut_jk_bank_ifsc", val); } catch (_) {}
                                 }}
                                 placeholder="JAKA0MALBAG"
-                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-[11px] text-white font-mono uppercase focus:outline-none focus:border-emerald-400"
+                                className="w-full bg-[#0a0a0a] border border-[#333333] rounded-lg px-2 py-1 text-[11px] text-white font-mono uppercase focus:outline-none focus:border-emerald-400"
                               />
                             </div>
                           </div>
@@ -5778,7 +5778,7 @@ Helpline: +91 84910 06127`;
                                   try { localStorage.setItem("ut_jk_bank_account_name", e.target.value); } catch (_) {}
                                 }}
                                 placeholder="Urban Trout Aquaculture"
-                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-[11px] text-white font-mono focus:outline-none focus:border-emerald-400"
+                                className="w-full bg-[#0a0a0a] border border-[#333333] rounded-lg px-2 py-1 text-[11px] text-white font-mono focus:outline-none focus:border-emerald-400"
                               />
                             </div>
                             <div>
@@ -5791,7 +5791,7 @@ Helpline: +91 84910 06127`;
                                   try { localStorage.setItem("ut_jk_bank_branch", e.target.value); } catch (_) {}
                                 }}
                                 placeholder="Malabagh, Srinagar"
-                                className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-[11px] text-white font-mono focus:outline-none focus:border-emerald-400"
+                                className="w-full bg-[#0a0a0a] border border-[#333333] rounded-lg px-2 py-1 text-[11px] text-white font-mono focus:outline-none focus:border-emerald-400"
                               />
                             </div>
                           </div>
@@ -5801,7 +5801,7 @@ Helpline: +91 84910 06127`;
                   )}
                 </div>
                 {/* Customer Details with Autocomplete / Prefill from DB */}
-                <div className="p-3 rounded-2xl bg-slate-900/90 border border-slate-800">
+                <div className="p-3 rounded-2xl bg-[#0a0a0a]/90 border border-[#222222]">
                   <CustomerAutocompleteInput
                     customerName={newRemoteCustomerName}
                     customerPhone={newRemotePhone}
@@ -5822,7 +5822,7 @@ Helpline: +91 84910 06127`;
                 </div>
 
                 {/* ─── ITEMS IN WHATSAPP BILL (CLUBBING MULTIPLE PRODUCTS & PACKS) ─── */}
-                <div className="p-3 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-2.5">
+                <div className="p-3 rounded-2xl bg-[#0a0a0a]/90 border border-[#222222] space-y-2.5">
                   <div className="flex items-center justify-between">
                     <label className="text-[10.5px] font-black text-slate-300 uppercase tracking-wider font-mono flex items-center gap-1.5">
                       <span>🐟</span> Items in WhatsApp Bill ({remoteBillItems.length}):
@@ -5848,8 +5848,8 @@ Helpline: +91 84910 06127`;
                           onClick={() => setActiveRemoteItemId(item.id)}
                           className={`p-2 sm:p-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-2 ${
                             isFocused
-                              ? "bg-slate-950 border-emerald-400 shadow-md shadow-emerald-500/10"
-                              : "bg-slate-950/60 border-slate-800/80 hover:border-slate-700"
+                              ? "bg-black border-emerald-400 shadow-md shadow-emerald-500/10"
+                              : "bg-black/60 border-[#222222]/80 hover:border-[#333333]"
                           }`}
                         >
                           <div className="min-w-0 flex-1">
@@ -5889,7 +5889,7 @@ Helpline: +91 84910 06127`;
                                   e.stopPropagation();
                                   handleRemoveRemoteItem(item.id);
                                 }}
-                                className="w-6 h-6 rounded-lg bg-slate-900 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 flex items-center justify-center text-xs font-bold border border-slate-800 transition-colors"
+                                className="w-6 h-6 rounded-lg bg-[#0a0a0a] hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 flex items-center justify-center text-xs font-bold border border-[#222222] transition-colors"
                                 title="Remove this item"
                               >
                                 ✕
@@ -5902,7 +5902,7 @@ Helpline: +91 84910 06127`;
                   </div>
 
                   {/* Active Item Editor Panel */}
-                  <div className="pt-2 border-t border-slate-800/80 space-y-3">
+                  <div className="pt-2 border-t border-[#222222]/80 space-y-3">
                     <div className="flex items-center justify-between text-[11px] font-mono">
                       <span className="text-emerald-400 font-bold uppercase tracking-wider flex items-center gap-1">
                         <span>✏️</span> Edit Item #{remoteBillItems.findIndex((i) => i.id === activeRemoteItemId) + 1}:
@@ -5938,7 +5938,7 @@ Helpline: +91 84910 06127`;
                               className={`p-2 rounded-xl text-left border transition-all cursor-pointer flex items-center justify-between gap-1.5 ${
                                 isSel
                                   ? "bg-emerald-500/20 border-emerald-400 text-white shadow-md shadow-emerald-500/10"
-                                  : "bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700"
+                                  : "bg-black/60 border-[#222222] text-slate-400 hover:border-[#333333]"
                               }`}
                             >
                               <div className="min-w-0 flex-1">
@@ -5997,7 +5997,7 @@ Helpline: +91 84910 06127`;
                             });
                           }}
                           placeholder="e.g. 2.0"
-                          className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-xl font-mono text-cyan-300 font-bold focus:outline-none focus:border-cyan-400 shadow-inner"
+                          className="w-full bg-black border border-[#333333] rounded-xl px-4 py-2 text-xl font-mono text-cyan-300 font-bold focus:outline-none focus:border-cyan-400 shadow-inner"
                         />
                         <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-xs">
                           KG
@@ -6017,7 +6017,7 @@ Helpline: +91 84910 06127`;
                               className={`px-2 py-0.5 rounded-lg font-mono text-[11px] font-semibold border transition-all cursor-pointer ${
                                 activeRemoteItem.weightKg === numW
                                   ? "bg-cyan-500/20 text-cyan-300 border-cyan-400"
-                                  : "bg-slate-950 hover:bg-slate-800 text-slate-400 border-slate-800"
+                                  : "bg-black hover:bg-slate-800 text-slate-400 border-[#222222]"
                               }`}
                             >
                               {w}k
@@ -6028,7 +6028,7 @@ Helpline: +91 84910 06127`;
                     </div>
 
                     {/* Rates Row for Active Item */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 p-2.5 rounded-xl bg-slate-950/80 border border-slate-800">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 p-2.5 rounded-xl bg-black/80 border border-[#222222]">
                       <div className="space-y-1">
                         <label className="text-[10.5px] font-bold text-slate-400 font-mono block">
                           Our Base Rate (₹ / Kg):
@@ -6056,7 +6056,7 @@ Helpline: +91 84910 06127`;
                               }
                             }}
                             placeholder="580"
-                            className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-6 pr-3 py-1.5 text-sm font-mono text-white font-bold focus:outline-none focus:border-cyan-400"
+                            className="w-full bg-[#0a0a0a] border border-[#333333] rounded-xl pl-6 pr-3 py-1.5 text-sm font-mono text-white font-bold focus:outline-none focus:border-cyan-400"
                           />
                         </div>
                       </div>
@@ -6089,7 +6089,7 @@ Helpline: +91 84910 06127`;
                               }
                             }}
                             placeholder="560"
-                            className="w-full bg-slate-900 border-2 border-amber-500/60 rounded-xl pl-6 pr-3 py-1.5 text-sm font-mono text-amber-300 font-black focus:outline-none focus:border-amber-400"
+                            className="w-full bg-[#0a0a0a] border-2 border-amber-500/60 rounded-xl pl-6 pr-3 py-1.5 text-sm font-mono text-amber-300 font-black focus:outline-none focus:border-amber-400"
                           />
                         </div>
                       </div>
@@ -6113,7 +6113,7 @@ Helpline: +91 84910 06127`;
                           ₹{combinedDealTotal.toLocaleString("en-IN")}
                         </span>
                       </div>
-                      <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 border-t border-slate-800/80 pt-1.5">
+                      <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 border-t border-[#222222]/80 pt-1.5">
                         <span>Combined Quantity ({remoteBillItems.length} {remoteBillItems.length === 1 ? "item" : "items"}):</span>
                         <span className="text-white font-semibold font-mono tabular-nums">{combinedWeight.toFixed(2)} Kg</span>
                       </div>
@@ -6122,7 +6122,7 @@ Helpline: +91 84910 06127`;
                         <span>₹{combinedStandardTotal.toLocaleString("en-IN")}</span>
                       </div>
                       {combinedDiscount > 0 && (
-                        <div className="flex items-center justify-between text-[11px] font-mono text-rose-400 font-bold border-t border-slate-800/60 pt-1">
+                        <div className="flex items-center justify-between text-[11px] font-mono text-rose-400 font-bold border-t border-[#222222]/60 pt-1">
                           <span>Discount Given to Customer:</span>
                           <span>-₹{combinedDiscount.toLocaleString("en-IN")} ({combinedDiscountPct.toFixed(1)}% OFF)</span>
                         </div>
@@ -6175,7 +6175,7 @@ Helpline: +91 84910 06127`;
                     Order <strong className="text-emerald-300">#{newRemoteGeneratedData.billNum}</strong> • Amount:{" "}
                     <strong className="text-emerald-300">₹{newRemoteGeneratedData.total.toLocaleString("en-IN")}</strong>
                   </p>
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-slate-900 border border-slate-700">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-[#0a0a0a] border border-[#333333]">
                     {newRemoteGeneratedData.mode === "jk_bank" ? (
                       <span className="text-emerald-400 flex items-center gap-1">
                         <span>⚡</span> J&amp;K Bank Direct (0-Day Settlement, Zero Fees)
@@ -6216,7 +6216,7 @@ Helpline: +91 84910 06127`;
                       setNewRemoteCopied(true);
                       setTimeout(() => setNewRemoteCopied(false), 3000);
                     }}
-                    className="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 border border-slate-700 cursor-pointer transition-all"
+                    className="py-2.5 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 border border-[#333333] cursor-pointer transition-all"
                   >
                     <span className="material-symbols-outlined text-base">content_copy</span>
                     <span>{newRemoteCopied ? "✓ Message Copied!" : "Copy Full Message"}</span>
@@ -6243,7 +6243,7 @@ Helpline: +91 84910 06127`;
                       setNewRemoteLinkCopied(true);
                       setTimeout(() => setNewRemoteLinkCopied(false), 2500);
                     }}
-                    className="py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 font-mono text-xs font-bold border border-slate-800 flex items-center justify-center gap-1 cursor-pointer transition-all"
+                    className="py-2 px-3 rounded-xl bg-[#0a0a0a] hover:bg-slate-800 text-slate-300 font-mono text-xs font-bold border border-[#222222] flex items-center justify-center gap-1 cursor-pointer transition-all"
                     title={newRemoteGeneratedData.payUrl}
                   >
                     <span>🔗</span>
@@ -6278,7 +6278,7 @@ Helpline: +91 84910 06127`;
                       <span>Email Customer</span>
                     </button>
                   ) : (
-                    <div className="py-2 px-3 rounded-xl bg-slate-900/60 text-slate-500 font-mono text-[11px] text-center border border-slate-800/80">
+                    <div className="py-2 px-3 rounded-xl bg-[#0a0a0a]/60 text-slate-500 font-mono text-[11px] text-center border border-[#222222]/80">
                       Auto-Logged in Cards ✓
                     </div>
                   )}
@@ -6289,7 +6289,7 @@ Helpline: +91 84910 06127`;
                   <span className="text-[10px] text-slate-400 font-mono uppercase block">
                     Message Preview (Formatted for WhatsApp / Telegram / SMS):
                   </span>
-                  <pre className="p-3 rounded-xl bg-slate-900 border border-slate-800 text-[10.5px] text-slate-300 font-mono whitespace-pre-wrap max-h-40 overflow-y-auto">
+                  <pre className="p-3 rounded-xl bg-[#0a0a0a] border border-[#222222] text-[10.5px] text-slate-300 font-mono whitespace-pre-wrap max-h-40 overflow-y-auto">
                     {newRemoteGeneratedData.message}
                   </pre>
                 </div>
@@ -6319,8 +6319,8 @@ Helpline: +91 84910 06127`;
           }}
           className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-fadeIn"
         >
-          <div className="bg-slate-950 border border-cyan-500/40 rounded-3xl w-full max-w-md p-5 space-y-4 shadow-2xl relative text-left">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div className="bg-black border border-cyan-500/40 rounded-3xl w-full max-w-md p-5 space-y-4 shadow-2xl relative text-left">
+            <div className="flex items-center justify-between border-b border-[#222222] pb-3">
               <div>
                 <h3 className="text-base font-bold text-white flex items-center gap-1.5" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
                   <span className="material-symbols-outlined text-cyan-400 text-lg">edit</span>
@@ -6333,7 +6333,7 @@ Helpline: +91 84910 06127`;
               <button
                 type="button"
                 onClick={() => setEditCustomerModal(null)}
-                className="w-7 h-7 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-xs font-black cursor-pointer border border-slate-800"
+                className="w-7 h-7 rounded-lg bg-[#0a0a0a] hover:bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-xs font-black cursor-pointer border border-[#222222]"
               >
                 ✕
               </button>
@@ -6349,7 +6349,7 @@ Helpline: +91 84910 06127`;
                   value={editCustomerName}
                   onChange={(e) => setEditCustomerName(e.target.value)}
                   placeholder="e.g. Mushtaq Ahmad"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-400 font-mono"
+                  className="w-full bg-[#0a0a0a] border border-[#333333] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-400 font-mono"
                 />
               </div>
 
@@ -6363,7 +6363,7 @@ Helpline: +91 84910 06127`;
                   onChange={(e) => setEditCustomerPhone(e.target.value)}
                   placeholder="10-digit mobile"
                   maxLength={10}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-400 font-mono"
+                  className="w-full bg-[#0a0a0a] border border-[#333333] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-400 font-mono"
                 />
               </div>
 
@@ -6376,12 +6376,12 @@ Helpline: +91 84910 06127`;
                   value={editCustomerAddress}
                   onChange={(e) => setEditCustomerAddress(e.target.value)}
                   placeholder="e.g. Malabagh, Srinagar"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-400 font-mono resize-none"
+                  className="w-full bg-[#0a0a0a] border border-[#333333] rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-cyan-400 font-mono resize-none"
                 />
               </div>
             </div>
 
-            <div className="pt-2 flex items-center justify-end gap-2 border-t border-slate-800/80">
+            <div className="pt-2 flex items-center justify-end gap-2 border-t border-[#222222]/80">
               <button
                 type="button"
                 onClick={() => setEditCustomerModal(null)}

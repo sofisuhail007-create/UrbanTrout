@@ -191,7 +191,7 @@ export default function CustomerBalancesTab({
     <div className="space-y-4 animate-fadeIn">
       {/* KPI Flashcards Header */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="p-4 rounded-xl bg-[#131316] border border-zinc-800">
+        <div className="p-4 rounded-xl bg-[#0a0a0a] border border-[#222222]">
           <div className="flex items-center justify-between mb-1">
             <span className="text-[10px] uppercase font-mono tracking-wider text-zinc-400">Total Outstanding Khata</span>
             <span className="material-symbols-outlined text-zinc-400 text-base">account_balance_wallet</span>
@@ -204,7 +204,7 @@ export default function CustomerBalancesTab({
           </p>
         </div>
 
-        <div className="p-4 rounded-xl bg-[#131316] border border-zinc-800">
+        <div className="p-4 rounded-xl bg-[#0a0a0a] border border-[#222222]">
           <div className="flex items-center justify-between mb-1">
             <span className="text-[10px] uppercase font-mono tracking-wider text-zinc-400">Settled &amp; Waived</span>
             <span className="material-symbols-outlined text-zinc-400 text-base">verified</span>
@@ -217,7 +217,7 @@ export default function CustomerBalancesTab({
           </p>
         </div>
 
-        <div className="p-4 rounded-xl bg-[#131316] border border-zinc-800 flex flex-col justify-between">
+        <div className="p-4 rounded-xl bg-[#0a0a0a] border border-[#222222] flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-1">
               <span className="text-[10px] uppercase font-mono tracking-wider text-zinc-400">Razorpay Links Sent</span>
@@ -233,7 +233,7 @@ export default function CustomerBalancesTab({
           <button
             type="button"
             onClick={fetchBalances}
-            className="text-[11px] font-medium text-zinc-300 hover:text-white text-left cursor-pointer flex items-center gap-1 mt-2 pt-2 border-t border-zinc-800"
+            className="text-[11px] font-medium text-zinc-300 hover:text-white text-left cursor-pointer flex items-center gap-1 mt-2 pt-2 border-t border-[#222222]"
           >
             <span className="material-symbols-outlined text-xs">sync</span>
             Refresh Khata Ledger
@@ -242,14 +242,14 @@ export default function CustomerBalancesTab({
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 p-2 bg-[#131316] border border-zinc-800 rounded-xl">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 p-2 bg-[#0a0a0a] border border-[#222222] rounded-xl">
         <div className="flex items-center gap-1.5 w-full sm:w-auto">
           <button
             type="button"
             onClick={() => setStatusFilter("pending")}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer border ${
               statusFilter === "pending"
-                ? "bg-zinc-800 text-zinc-100 border-zinc-600 shadow-sm"
+                ? "bg-[#161616] text-zinc-100 border-zinc-600 shadow-sm"
                 : "text-zinc-400 hover:text-zinc-200 border-transparent"
             }`}
           >
@@ -260,7 +260,7 @@ export default function CustomerBalancesTab({
             onClick={() => setStatusFilter("settled")}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer border ${
               statusFilter === "settled"
-                ? "bg-zinc-800 text-zinc-100 border-zinc-600 shadow-sm"
+                ? "bg-[#161616] text-zinc-100 border-zinc-600 shadow-sm"
                 : "text-zinc-400 hover:text-zinc-200 border-transparent"
             }`}
           >
@@ -271,7 +271,7 @@ export default function CustomerBalancesTab({
             onClick={() => setStatusFilter("all")}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer border ${
               statusFilter === "all"
-                ? "bg-zinc-800 text-zinc-100 border-zinc-600 shadow-sm"
+                ? "bg-[#161616] text-zinc-100 border-zinc-600 shadow-sm"
                 : "text-zinc-400 hover:text-zinc-200 border-transparent"
             }`}
           >
@@ -286,14 +286,14 @@ export default function CustomerBalancesTab({
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search customer, phone, invoice..."
-            className="w-full bg-[#0e0e11] border border-zinc-800 rounded-lg pl-8 pr-3 py-1.5 text-xs text-zinc-100 focus:outline-none focus:border-zinc-600 placeholder:text-zinc-600"
+            className="w-full bg-[#000000] border border-[#222222] rounded-lg pl-8 pr-3 py-1.5 text-xs text-zinc-100 focus:outline-none focus:border-[#555555] placeholder:text-zinc-600"
           />
         </div>
       </div>
 
       {/* Search results banner */}
       {searchTerm && (
-        <div className="flex items-center justify-between px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-xs font-mono">
+        <div className="flex items-center justify-between px-3 py-2 bg-[#0a0a0a] border border-[#222222] rounded-lg text-xs font-mono">
           <span className="text-zinc-300">
             Results for &quot;{searchTerm}&quot;: {summary.pendingRecordsCount} pending, {summary.settledCount} settled ({summary.totalRecordsCount} total)
           </span>
@@ -302,7 +302,7 @@ export default function CustomerBalancesTab({
               <button
                 type="button"
                 onClick={() => setStatusFilter("all")}
-                className="px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[11px] font-medium transition-colors cursor-pointer"
+                className="px-2 py-0.5 rounded bg-[#161616] hover:bg-[#222222] text-zinc-200 text-[11px] font-medium transition-colors cursor-pointer"
               >
                 View All ({summary.totalRecordsCount})
               </button>
@@ -326,7 +326,7 @@ export default function CustomerBalancesTab({
         </div>
       ) : records.length === 0 ? (
         statusFilter === "pending" && summary.settledCount > 0 ? (
-          <div className="p-12 text-center bg-[#131316] border border-zinc-800 rounded-xl space-y-3">
+          <div className="p-12 text-center bg-[#0a0a0a] border border-[#222222] rounded-xl space-y-3">
             <span className="material-symbols-outlined text-4xl text-zinc-500">task_alt</span>
             <h4 className="text-sm font-semibold text-zinc-200 font-['Space_Grotesk']">
               No Pending Balances {searchTerm ? `for "${searchTerm}"` : ""}
@@ -339,13 +339,13 @@ export default function CustomerBalancesTab({
             <button
               type="button"
               onClick={() => setStatusFilter("settled")}
-              className="px-3.5 py-1.5 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-200 text-xs font-medium hover:bg-zinc-700 transition-colors cursor-pointer"
+              className="px-3.5 py-1.5 rounded-lg bg-[#161616] border border-[#333333] text-zinc-200 text-xs font-medium hover:bg-[#222222] transition-colors cursor-pointer"
             >
               View Settled / Waived Bills ({summary.settledCount})
             </button>
           </div>
         ) : (
-          <div className="p-12 text-center bg-[#131316] border border-zinc-800 rounded-xl space-y-2">
+          <div className="p-12 text-center bg-[#0a0a0a] border border-[#222222] rounded-xl space-y-2">
             <span className="material-symbols-outlined text-4xl text-zinc-600">check_circle</span>
             <h4 className="text-sm font-semibold text-zinc-300 font-['Space_Grotesk']">
               {statusFilter === "pending" ? "No Pending Balances Found" : "No Records Found"}
@@ -358,9 +358,9 @@ export default function CustomerBalancesTab({
           </div>
         )
       ) : (
-        <div className="overflow-x-auto rounded-xl border border-zinc-800 bg-[#131316]">
+        <div className="overflow-x-auto rounded-xl border border-[#222222] bg-[#0a0a0a]">
           <table className="w-full text-left text-xs">
-            <thead className="bg-[#0e0e11] text-zinc-400 font-mono text-[10px] uppercase tracking-wider border-b border-zinc-800">
+            <thead className="bg-[#000000] text-zinc-400 font-mono text-[10px] uppercase tracking-wider border-b border-[#222222]">
               <tr>
                 <th className="py-2.5 px-4">Customer &amp; Phone</th>
                 <th className="py-2.5 px-3">Invoice &amp; Date</th>
@@ -371,13 +371,13 @@ export default function CustomerBalancesTab({
                 <th className="py-2.5 px-4 text-center">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-zinc-800/60 font-sans">
+            <tbody className="divide-y divide-[#222222]/60 font-sans">
               {paginatedRecords.map((r) => {
                 const cleanPhone = (r.customer_phone || "").replace(/\D/g, "").slice(-10);
                 const isPending = r.status === "pending" && r.balance_amount > 0;
 
                 return (
-                  <tr key={r.id} className="hover:bg-zinc-800/30 transition-colors">
+                  <tr key={r.id} className="hover:bg-[#161616]/30 transition-colors">
                     <td className="py-2.5 px-4">
                       <div className="font-medium text-white text-sm">{r.customer_name}</div>
                       <div className="text-zinc-500 font-mono text-[11px] flex items-center gap-1 mt-0.5">
@@ -403,7 +403,7 @@ export default function CustomerBalancesTab({
                       {r.razorpay_payment_link_id && (
                         <div className="flex items-center gap-1 mt-0.5">
                           <span
-                            className="text-[9.5px] font-mono text-zinc-400 bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded truncate max-w-[110px]"
+                            className="text-[9.5px] font-mono text-zinc-400 bg-[#0a0a0a] border border-[#222222] px-1.5 py-0.5 rounded truncate max-w-[110px]"
                             title={`Razorpay Link ID: ${r.razorpay_payment_link_id}`}
                           >
                             🔗 {r.razorpay_payment_link_id}
@@ -435,9 +435,9 @@ export default function CustomerBalancesTab({
                       <span
                         className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-medium font-mono uppercase ${
                           r.status === "settled"
-                            ? "bg-zinc-800 text-zinc-300 border border-zinc-700"
+                            ? "bg-[#161616] text-zinc-300 border border-[#333333]"
                             : r.status === "waived_final"
-                            ? "bg-zinc-800 text-zinc-400 border border-zinc-700"
+                            ? "bg-[#161616] text-zinc-400 border border-[#333333]"
                             : "bg-amber-500/10 text-amber-300 border border-amber-500/20"
                         }`}
                       >
@@ -457,7 +457,7 @@ export default function CustomerBalancesTab({
                           href={`/invoice/${r.invoice_id}?download=true`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="px-2 py-1 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer"
+                          className="px-2 py-1 rounded-md bg-[#161616] hover:bg-[#222222] text-zinc-300 border border-[#333333] text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer"
                           title="Direct Download Official A4 Tax Invoice PDF"
                         >
                           <span className="material-symbols-outlined text-xs">picture_as_pdf</span>
@@ -468,7 +468,7 @@ export default function CustomerBalancesTab({
                         <button
                           type="button"
                           onClick={() => handleOpenAction(r, "remind")}
-                          className="px-2.5 py-1 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer"
+                          className="px-2.5 py-1 rounded-md bg-[#161616] hover:bg-[#222222] text-zinc-200 border border-[#333333] text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer"
                           title="Send WhatsApp Razorpay Payment Link"
                         >
                           <span className="material-symbols-outlined text-xs">link</span>
@@ -481,7 +481,7 @@ export default function CustomerBalancesTab({
                             type="button"
                             onClick={() => handleCheckLinkStatus(r)}
                             disabled={checkingLinkId === r.id}
-                            className="px-2 py-1 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer disabled:opacity-50"
+                            className="px-2 py-1 rounded-md bg-[#161616] hover:bg-[#222222] text-zinc-200 border border-[#333333] text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer disabled:opacity-50"
                             title="Poll Razorpay status for this payment link"
                           >
                             <span className={`material-symbols-outlined text-xs ${checkingLinkId === r.id ? "animate-spin" : ""}`}>
@@ -508,7 +508,7 @@ export default function CustomerBalancesTab({
                         <button
                           type="button"
                           onClick={() => handleDeleteRecord(r)}
-                          className="p-1 rounded-md hover:bg-zinc-800 text-zinc-500 hover:text-rose-400 transition-colors text-xs"
+                          className="p-1 rounded-md hover:bg-[#161616] text-zinc-500 hover:text-rose-400 transition-colors text-xs"
                           title="Delete record"
                         >
                           <span className="material-symbols-outlined text-sm">delete</span>

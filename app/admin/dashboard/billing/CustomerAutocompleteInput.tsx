@@ -138,10 +138,10 @@ export default function CustomerAutocompleteInput({
   };
 
   const isEmerald = theme === "emerald";
-  const focusBorder = "focus:border-zinc-500";
+  const focusBorder = "focus:border-[#555555]";
   const accentText = "text-zinc-200";
-  const accentBg = "bg-zinc-800";
-  const accentBorder = "border-zinc-700";
+  const accentBg = "bg-[#161616]";
+  const accentBorder = "border-[#333333]";
 
   return (
     <div ref={containerRef} className="space-y-2.5 relative">
@@ -152,7 +152,7 @@ export default function CustomerAutocompleteInput({
             Customer Details
           </span>
           {customers.length > 0 && (
-            <span className="text-[9.5px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 font-mono">
+            <span className="text-[9.5px] px-1.5 py-0.5 rounded bg-[#161616] text-zinc-400 font-mono">
               {customers.length} in database
             </span>
           )}
@@ -164,7 +164,7 @@ export default function CustomerAutocompleteInput({
             setBrowserSearch("");
             setBrowserModalOpen(true);
           }}
-          className="px-2.5 py-1 rounded-md bg-zinc-800 border border-zinc-700 text-zinc-300 hover:text-white hover:bg-zinc-700 text-[10.5px] font-medium transition-colors flex items-center gap-1 cursor-pointer"
+          className="px-2.5 py-1 rounded-md bg-[#161616] border border-[#333333] text-zinc-300 hover:text-white hover:bg-[#222222] text-[10.5px] font-medium transition-colors flex items-center gap-1 cursor-pointer"
           title="Pick an existing customer with prefilled details"
         >
           <span className="material-symbols-outlined text-[13px]">person_search</span>
@@ -174,9 +174,9 @@ export default function CustomerAutocompleteInput({
 
       {/* Selected Customer Notification Pill */}
       {selectedCustomer && (
-        <div className="p-2 rounded-lg bg-[#0e0e11] border border-zinc-700 flex items-center justify-between gap-2 animate-fadeIn">
+        <div className="p-2 rounded-lg bg-[#000000] border border-[#333333] flex items-center justify-between gap-2 animate-fadeIn">
           <div className="flex items-center gap-2 min-w-0">
-            <div className="w-6 h-6 rounded-md bg-zinc-800 text-emerald-400 flex items-center justify-center text-xs font-bold shrink-0">
+            <div className="w-6 h-6 rounded-md bg-[#161616] text-emerald-400 flex items-center justify-center text-xs font-bold shrink-0">
               ✓
             </div>
             <div className="min-w-0 text-left">
@@ -195,7 +195,7 @@ export default function CustomerAutocompleteInput({
           <button
             type="button"
             onClick={handleClearSelection}
-            className="px-2 py-1 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-rose-400 text-[10px] font-mono border border-zinc-700 cursor-pointer shrink-0 transition-colors"
+            className="px-2 py-1 rounded-md bg-[#161616] hover:bg-[#222222] text-zinc-400 hover:text-rose-400 text-[10px] font-mono border border-[#333333] cursor-pointer shrink-0 transition-colors"
             title="Clear and enter fresh details"
           >
             ✕ Clear
@@ -223,7 +223,7 @@ export default function CustomerAutocompleteInput({
               if (searchSuggestions.length > 0) setDropdownOpen(true);
             }}
             placeholder="e.g. Mushtaq Ahmad"
-            className="w-full bg-[#0e0e11] border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-600 font-mono"
+            className="w-full bg-[#000000] border border-[#222222] rounded-lg px-3 py-2 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-[#555555] font-mono"
           />
         </div>
 
@@ -248,7 +248,7 @@ export default function CustomerAutocompleteInput({
               }}
               placeholder="10-digit mobile"
               maxLength={10}
-              className="w-full bg-[#0e0e11] border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-600 font-mono"
+              className="w-full bg-[#000000] border border-[#222222] rounded-lg px-3 py-2 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-[#555555] font-mono"
             />
             {customerPhone.length === 10 && (
               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-emerald-400 text-xs font-bold font-mono">
@@ -261,8 +261,8 @@ export default function CustomerAutocompleteInput({
 
       {/* Floating Autocomplete Dropdown */}
       {dropdownOpen && searchSuggestions.length > 0 && (
-        <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-[#131316] border border-zinc-700 rounded-xl shadow-2xl p-1.5 space-y-1 max-h-56 overflow-y-auto animate-fadeIn backdrop-blur-xl">
-          <div className="px-2 py-1 text-[9.5px] font-mono uppercase tracking-wider text-zinc-400 border-b border-zinc-800 flex items-center justify-between">
+        <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-[#0a0a0a] border border-[#333333] rounded-xl shadow-2xl p-1.5 space-y-1 max-h-56 overflow-y-auto animate-fadeIn backdrop-blur-xl">
+          <div className="px-2 py-1 text-[9.5px] font-mono uppercase tracking-wider text-zinc-400 border-b border-[#222222] flex items-center justify-between">
             <span>Matching Customers in Database:</span>
             <span className="text-[9px] text-zinc-500">Tap to prefill</span>
           </div>
@@ -274,17 +274,17 @@ export default function CustomerAutocompleteInput({
                 key={cust.id || cleanPh}
                 type="button"
                 onClick={() => handleSelect(cust)}
-                className="w-full text-left p-2 rounded-lg hover:bg-zinc-800 active:bg-zinc-700 transition-colors flex items-center justify-between gap-2 cursor-pointer border border-transparent hover:border-zinc-700"
+                className="w-full text-left p-2 rounded-lg hover:bg-[#161616] active:bg-zinc-700 transition-colors flex items-center justify-between gap-2 cursor-pointer border border-transparent hover:border-[#333333]"
               >
                 <div className="min-w-0 flex items-center gap-2">
-                  <div className="w-7 h-7 rounded-md bg-zinc-800 text-zinc-200 border border-zinc-700 flex items-center justify-center font-bold text-xs shrink-0 font-mono">
+                  <div className="w-7 h-7 rounded-md bg-[#161616] text-zinc-200 border border-[#333333] flex items-center justify-center font-bold text-xs shrink-0 font-mono">
                     {(cust.name || "C")[0].toUpperCase()}
                   </div>
                   <div className="min-w-0">
                     <div className="font-medium text-xs text-white truncate flex items-center gap-1.5">
                       <span>{cust.name || "Customer"}</span>
                       {cust.total_orders && cust.total_orders > 1 ? (
-                        <span className="text-[9px] px-1 py-0.2 rounded bg-zinc-800 text-zinc-300 font-mono border border-zinc-700">
+                        <span className="text-[9px] px-1 py-0.2 rounded bg-[#161616] text-zinc-300 font-mono border border-[#333333]">
                           {cust.total_orders} orders
                         </span>
                       ) : null}
@@ -317,7 +317,7 @@ export default function CustomerAutocompleteInput({
             value={customerNotes}
             onChange={(e) => onNotesChange(e.target.value)}
             placeholder={notesPlaceholder}
-            className="w-full bg-[#0e0e11] border border-zinc-800 rounded-lg px-3 py-1.5 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-600 font-mono"
+            className="w-full bg-[#000000] border border-[#222222] rounded-lg px-3 py-1.5 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-[#555555] font-mono"
           />
         </div>
       )}
@@ -333,7 +333,7 @@ export default function CustomerAutocompleteInput({
             value={customerEmail}
             onChange={(e) => onEmailChange(e.target.value)}
             placeholder="customer@email.com"
-            className={`w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none ${focusBorder} font-mono`}
+            className={`w-full bg-[#0a0a0a] border border-[#222222] rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 focus:outline-none ${focusBorder} font-mono`}
           />
         </div>
       )}
@@ -346,8 +346,8 @@ export default function CustomerAutocompleteInput({
           }}
           className="fixed inset-0 z-[10000] bg-black/85 backdrop-blur-md flex items-center justify-center p-3 animate-fadeIn"
         >
-          <div className="bg-slate-950 border border-slate-800 rounded-3xl w-full max-w-md p-4 sm:p-5 space-y-3 shadow-2xl relative text-left max-h-[85vh] flex flex-col">
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+          <div className="bg-black border border-[#222222] rounded-3xl w-full max-w-md p-4 sm:p-5 space-y-3 shadow-2xl relative text-left max-h-[85vh] flex flex-col">
+            <div className="flex items-center justify-between pb-2 border-b border-[#222222]">
               <div className="flex items-center gap-2">
                 <span className={`material-symbols-outlined ${accentText} text-xl`}>
                   group
@@ -362,7 +362,7 @@ export default function CustomerAutocompleteInput({
               <button
                 type="button"
                 onClick={() => setBrowserModalOpen(false)}
-                className="w-7 h-7 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-xs font-black cursor-pointer border border-slate-800"
+                className="w-7 h-7 rounded-lg bg-[#0a0a0a] hover:bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-xs font-black cursor-pointer border border-[#222222]"
               >
                 ✕
               </button>
@@ -379,7 +379,7 @@ export default function CustomerAutocompleteInput({
                 onChange={(e) => setBrowserSearch(e.target.value)}
                 placeholder="Search name, phone number or locality..."
                 autoFocus
-                className={`w-full bg-slate-900 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none ${focusBorder} font-mono`}
+                className={`w-full bg-[#0a0a0a] border border-[#222222] rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none ${focusBorder} font-mono`}
               />
               {browserSearch && (
                 <button
@@ -415,7 +415,7 @@ export default function CustomerAutocompleteInput({
                       className={`w-full text-left p-2.5 rounded-xl border transition-all flex items-center justify-between gap-2 cursor-pointer ${
                         isCurrent
                           ? `${accentBg} ${accentBorder} shadow-sm`
-                          : "bg-slate-900/60 border-slate-800/80 hover:bg-slate-900 hover:border-slate-700"
+                          : "bg-[#0a0a0a]/60 border-[#222222]/80 hover:bg-[#0a0a0a] hover:border-[#333333]"
                       }`}
                     >
                       <div className="min-w-0">
@@ -446,7 +446,7 @@ export default function CustomerAutocompleteInput({
               )}
             </div>
 
-            <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-[10px] font-mono text-slate-500">
+            <div className="pt-2 border-t border-[#222222]/80 flex items-center justify-between text-[10px] font-mono text-slate-500">
               <span>Showing {browserList.length} customers</span>
               <button
                 type="button"

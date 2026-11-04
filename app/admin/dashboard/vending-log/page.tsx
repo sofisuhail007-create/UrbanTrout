@@ -4551,7 +4551,7 @@ export default function VendingCenterLoggerPage() {
       {/* ══════════════════════════════════════════════════════════
           TOP HEADER & ACTIONS
           ══════════════════════════════════════════════════════════ */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-3.5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#222222] pb-3.5">
         <div>
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -4573,7 +4573,7 @@ export default function VendingCenterLoggerPage() {
         <div className="flex flex-wrap items-center gap-2">
           <Link
             href="/admin/dashboard/billing"
-            className="py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700 text-xs font-bold transition-all flex items-center gap-1.5"
+            className="py-2 px-3 rounded-xl bg-[#0a0a0a] hover:bg-slate-800 text-slate-200 border border-[#333333] text-xs font-bold transition-all flex items-center gap-1.5"
             title="Switch to live POS Billing & Invoice generator"
           >
             <span className="material-symbols-outlined text-sm">point_of_sale</span>
@@ -4631,7 +4631,7 @@ export default function VendingCenterLoggerPage() {
           <button
             type="button"
             onClick={handleExportCSV}
-            className="py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-cyan-300 border border-cyan-500/30 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+            className="py-2 px-3 rounded-xl bg-[#0a0a0a] hover:bg-slate-800 text-cyan-300 border border-cyan-500/30 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
             title="Export filtered records to CSV"
           >
             <span className="material-symbols-outlined text-sm">download</span>
@@ -4644,7 +4644,7 @@ export default function VendingCenterLoggerPage() {
             className={`py-2 px-3 rounded-xl border text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95 ${
               expensesLogOpen
                 ? "bg-rose-500/25 border-rose-400 text-rose-200"
-                : "bg-slate-900 hover:bg-slate-800 text-rose-300 border-rose-500/30"
+                : "bg-[#0a0a0a] hover:bg-slate-800 text-rose-300 border-rose-500/30"
             }`}
             title="Toggle Vending Center Expenses Ledger"
           >
@@ -4757,7 +4757,7 @@ export default function VendingCenterLoggerPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-slate-800">
+          <div className="flex items-center gap-2 sm:gap-3 shrink-0 pt-2 md:pt-0 border-t md:border-t-0 border-[#222222]">
             {kpis.periodTotalSurplusKg > 0 ? (
               <div className="bg-emerald-950/80 border border-emerald-500/40 rounded-xl px-3 py-1.5 text-right font-mono">
                 <span className="text-[10px] text-emerald-400 block font-bold">Period Surplus Bonus</span>
@@ -4769,7 +4769,7 @@ export default function VendingCenterLoggerPage() {
                 </span>
               </div>
             ) : (
-              <div className="bg-slate-950/80 border border-slate-800 rounded-xl px-3 py-1.5 text-right font-mono">
+              <div className="bg-black/80 border border-[#222222] rounded-xl px-3 py-1.5 text-right font-mono">
                 <span className="text-[10px] text-slate-400 block font-bold">All-Time Surplus Sold</span>
                 <span className="text-emerald-300 font-bold text-xs">
                   +{formatKg(allTimeSurplusKg)} Kg
@@ -4818,7 +4818,7 @@ export default function VendingCenterLoggerPage() {
 
             <div className="flex items-center flex-wrap gap-3 self-start sm:self-auto">
               {/* CURRENT LIVE STOCK */}
-              <div className="flex items-baseline gap-2 bg-slate-950/90 px-4 py-2.5 rounded-2xl border border-blue-500/30 shadow-inner">
+              <div className="flex items-baseline gap-2 bg-black/90 px-4 py-2.5 rounded-2xl border border-blue-500/30 shadow-inner">
                 <div className="text-right">
                   <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400 font-mono">Live Stock</div>
                   <div className="flex items-baseline gap-1">
@@ -4837,7 +4837,7 @@ export default function VendingCenterLoggerPage() {
               </div>
 
               {/* TOTAL NUMBER OF ENTRIES FOR THE DAY */}
-              <div className="flex items-baseline gap-2 bg-slate-950/90 px-4 py-2.5 rounded-2xl border border-emerald-500/30 shadow-inner">
+              <div className="flex items-baseline gap-2 bg-black/90 px-4 py-2.5 rounded-2xl border border-emerald-500/30 shadow-inner">
                 <div className="text-right">
                   <div className="text-[10px] uppercase font-bold tracking-wider text-emerald-400 font-mono">Today's Entries</div>
                   <div className="flex items-baseline gap-1 justify-end">
@@ -4862,7 +4862,7 @@ export default function VendingCenterLoggerPage() {
         {/* Period Selector Pills */}
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-2">
-            <div className="flex flex-wrap items-center bg-slate-900/90 p-1 rounded-xl border border-slate-800 text-xs font-mono gap-0.5">
+            <div className="flex flex-wrap items-center bg-[#0a0a0a]/90 p-1 rounded-xl border border-[#222222] text-xs font-mono gap-0.5">
               {(isAdmin
                 ? [
                     { id: "today", label: `Today · ${formatIstDateDisplay(getTodayDate())}` },
@@ -4887,7 +4887,7 @@ export default function VendingCenterLoggerPage() {
                     onClick={() => setPeriod(tab.id as any)}
                     className={`py-1 px-2.5 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 ${
                       isSel
-                        ? "bg-zinc-800 text-zinc-100 border-zinc-600 shadow-sm"
+                        ? "bg-[#161616] text-zinc-100 border-zinc-600 shadow-sm"
                         : "text-slate-400 hover:text-white"
                     }`}
                   >
@@ -4896,7 +4896,7 @@ export default function VendingCenterLoggerPage() {
                       <span className={`px-1.5 py-0.2 rounded text-[10px] font-mono ${
                         isSel
                           ? "bg-emerald-500/30 text-emerald-200 border border-emerald-400/50"
-                          : "bg-slate-800 text-slate-300 border border-slate-700"
+                          : "bg-slate-800 text-slate-300 border border-[#333333]"
                       }`}>
                         {formatMonthDisplay(selectedMonth)}
                       </span>
@@ -4921,7 +4921,7 @@ export default function VendingCenterLoggerPage() {
                     className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-mono font-bold transition-all cursor-pointer active:scale-95 shadow-sm ${
                       showDailyHistogram && period === "month"
                         ? "bg-emerald-500 text-slate-950 border border-emerald-400 font-extrabold shadow-emerald-500/20 shadow-md"
-                        : "bg-slate-900/90 hover:bg-slate-800 text-cyan-300 hover:text-cyan-200 border border-cyan-500/30"
+                        : "bg-[#0a0a0a]/90 hover:bg-slate-800 text-cyan-300 hover:text-cyan-200 border border-cyan-500/30"
                     }`}
                     title="Toggle Everyday Sales Histogram & Detailed Flashcards"
                   >
@@ -4933,7 +4933,7 @@ export default function VendingCenterLoggerPage() {
                   <button
                     type="button"
                     onClick={() => setMonthWiseModalOpen(true)}
-                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-emerald-300 hover:text-emerald-200 border border-emerald-500/30 text-[11px] font-mono font-bold transition-all cursor-pointer active:scale-95 shadow-sm"
+                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-[#0a0a0a]/90 hover:bg-slate-800 text-emerald-300 hover:text-emerald-200 border border-emerald-500/30 text-[11px] font-mono font-bold transition-all cursor-pointer active:scale-95 shadow-sm"
                     title="Open Month-Wise All Months Comparison Table"
                   >
                     <span className="material-symbols-outlined text-sm text-emerald-400">table_chart</span>
@@ -4943,7 +4943,7 @@ export default function VendingCenterLoggerPage() {
                 </>
               )}
 
-              <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/80 border border-slate-800/80 text-[11px] font-mono text-slate-400">
+              <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0a0a0a]/80 border border-[#222222]/80 text-[11px] font-mono text-slate-400">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                 <span className="text-emerald-400 font-semibold">IST</span>
                 <span>·</span>
@@ -4972,7 +4972,7 @@ export default function VendingCenterLoggerPage() {
                   type="date"
                   value={selectedDate}
                   onChange={(e) => setSelectedDate(e.target.value)}
-                  className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-white focus:outline-none focus:border-emerald-400"
+                  className="bg-[#0a0a0a] border border-[#333333] rounded-lg px-2.5 py-1 text-white focus:outline-none focus:border-emerald-400"
                 />
                 <button
                   type="button"
@@ -4996,7 +4996,7 @@ export default function VendingCenterLoggerPage() {
 
             {/* Single Month Picker (Month tab - Admin Only) */}
             {isAdmin && period === "month" && (
-              <div className="flex flex-wrap items-center gap-1.5 text-xs font-mono bg-slate-900/90 p-1 rounded-xl border border-emerald-500/40">
+              <div className="flex flex-wrap items-center gap-1.5 text-xs font-mono bg-[#0a0a0a]/90 p-1 rounded-xl border border-emerald-500/40">
                 <span className="text-[10px] uppercase font-bold text-emerald-400 px-1 flex items-center gap-1">
                   <span className="material-symbols-outlined text-[13px]">calendar_month</span>
                   <span>Month:</span>
@@ -5014,10 +5014,10 @@ export default function VendingCenterLoggerPage() {
                 <select
                   value={selectedMonth}
                   onChange={(e) => setSelectedMonth(e.target.value)}
-                  className="bg-slate-950 border border-emerald-500/60 rounded-lg px-2.5 py-1 text-emerald-300 font-bold focus:outline-none focus:border-emerald-400 cursor-pointer shadow-sm text-xs font-mono"
+                  className="bg-black border border-emerald-500/60 rounded-lg px-2.5 py-1 text-emerald-300 font-bold focus:outline-none focus:border-emerald-400 cursor-pointer shadow-sm text-xs font-mono"
                 >
                   {availableSalaryMonths.map((m) => (
-                    <option key={m.key} value={m.key} className="bg-slate-900 text-white">
+                    <option key={m.key} value={m.key} className="bg-[#0a0a0a] text-white">
                       {m.displayLabel}
                     </option>
                   ))}
@@ -5060,7 +5060,7 @@ export default function VendingCenterLoggerPage() {
                       className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer flex items-center gap-1 shadow-sm active:scale-95 ml-1 ${
                         showDailyHistogram
                           ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40"
-                          : "bg-slate-800 text-slate-400 border border-slate-700 hover:text-white"
+                          : "bg-slate-800 text-slate-400 border border-[#333333] hover:text-white"
                       }`}
                       title={showDailyHistogram ? "Hide Everyday Sales Histogram" : "Show Everyday Sales Histogram"}
                     >
@@ -5079,14 +5079,14 @@ export default function VendingCenterLoggerPage() {
                   type="date"
                   value={customStartDate}
                   onChange={(e) => setCustomStartDate(e.target.value)}
-                  className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-white focus:outline-none focus:border-emerald-400"
+                  className="bg-[#0a0a0a] border border-[#333333] rounded-lg px-2.5 py-1 text-white focus:outline-none focus:border-emerald-400"
                 />
                 <span className="text-slate-500">to</span>
                 <input
                   type="date"
                   value={customEndDate}
                   onChange={(e) => setCustomEndDate(e.target.value)}
-                  className="bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1 text-white focus:outline-none focus:border-emerald-400"
+                  className="bg-[#0a0a0a] border border-[#333333] rounded-lg px-2.5 py-1 text-white focus:outline-none focus:border-emerald-400"
                 />
               </div>
             )}
@@ -5098,7 +5098,7 @@ export default function VendingCenterLoggerPage() {
               <button
                 type="button"
                 onClick={() => setShowAdminCards((prev) => !prev)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-emerald-400 border border-emerald-500/30 text-xs font-mono font-bold transition-all cursor-pointer shadow-sm active:scale-95"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#0a0a0a]/90 hover:bg-slate-800 text-emerald-400 border border-emerald-500/30 text-xs font-mono font-bold transition-all cursor-pointer shadow-sm active:scale-95"
                 title={showAdminCards ? "Hide financial metric cards" : "Show financial metric cards"}
               >
                 <span className="material-symbols-outlined text-sm">
@@ -5118,14 +5118,14 @@ export default function VendingCenterLoggerPage() {
 
         {/* ─── ORGANIZED CATEGORY NAVIGATION BAR ─── */}
         {isAdmin && showAdminCards && (
-          <div className="flex flex-wrap items-center justify-between gap-2 p-1.5 bg-[#131316] border border-zinc-800 rounded-xl animate-in fade-in duration-200">
+          <div className="flex flex-wrap items-center justify-between gap-2 p-1.5 bg-[#0a0a0a] border border-[#222222] rounded-xl animate-in fade-in duration-200">
             <div className="flex flex-wrap items-center gap-1 sm:gap-1.5">
               <button
                 type="button"
                 onClick={() => setKpiCategory("sales")}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
                   kpiCategory === "sales"
-                    ? "bg-zinc-800 text-zinc-100 border-zinc-600 shadow-sm"
+                    ? "bg-[#161616] text-zinc-100 border-zinc-600 shadow-sm"
                     : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
                 }`}
               >
@@ -5141,7 +5141,7 @@ export default function VendingCenterLoggerPage() {
                 onClick={() => setKpiCategory("aquarium")}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
                   kpiCategory === "aquarium"
-                    ? "bg-zinc-800 text-zinc-100 border-zinc-600 shadow-sm"
+                    ? "bg-[#161616] text-zinc-100 border-zinc-600 shadow-sm"
                     : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
                 }`}
               >
@@ -5157,7 +5157,7 @@ export default function VendingCenterLoggerPage() {
                 onClick={() => setKpiCategory("staff")}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
                   kpiCategory === "staff"
-                    ? "bg-zinc-800 text-zinc-100 border-zinc-600 shadow-sm"
+                    ? "bg-[#161616] text-zinc-100 border-zinc-600 shadow-sm"
                     : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
                 }`}
               >
@@ -5175,7 +5175,7 @@ export default function VendingCenterLoggerPage() {
                 onClick={() => setKpiCategory("expenses")}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
                   kpiCategory === "expenses"
-                    ? "bg-zinc-800 text-zinc-100 border-zinc-600 shadow-sm"
+                    ? "bg-[#161616] text-zinc-100 border-zinc-600 shadow-sm"
                     : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
                 }`}
               >
@@ -5193,7 +5193,7 @@ export default function VendingCenterLoggerPage() {
                 onClick={() => setKpiCategory("wallet")}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
                   kpiCategory === "wallet"
-                    ? "bg-zinc-800 text-zinc-100 border-zinc-600 shadow-sm"
+                    ? "bg-[#161616] text-zinc-100 border-zinc-600 shadow-sm"
                     : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
                 }`}
               >
@@ -5211,7 +5211,7 @@ export default function VendingCenterLoggerPage() {
                 onClick={() => setKpiCategory("all")}
                 className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
                   kpiCategory === "all"
-                    ? "bg-zinc-800 text-zinc-100 border-zinc-600 shadow-sm"
+                    ? "bg-[#161616] text-zinc-100 border-zinc-600 shadow-sm"
                     : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
                 }`}
               >
@@ -5243,7 +5243,7 @@ export default function VendingCenterLoggerPage() {
             )}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-3.5 sm:gap-4">
               {/* Card 1: Total Weight Sold */}
-              <div className="p-3.5 sm:p-4 rounded-2xl bg-[#131316] border border-zinc-800 relative overflow-hidden flex flex-col justify-between">
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-[#0a0a0a] border border-[#222222] relative overflow-hidden flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
                     <span className="font-bold tracking-wider">TOTAL KG SOLD</span>
@@ -5265,7 +5265,7 @@ export default function VendingCenterLoggerPage() {
                     )}
                   </div>
                 </div>
-                <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2.5 space-y-0.5">
+                <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-[#222222]/80 pt-2.5 space-y-0.5">
                   <div className="flex items-center justify-between">
                     <span className="text-emerald-300 font-bold">Gutted: {formatKg(kpis.guttedKg)} Kg</span>
                     <span className="text-cyan-300">Non: {formatKg(kpis.nonGuttedKg)} Kg</span>
@@ -5277,7 +5277,7 @@ export default function VendingCenterLoggerPage() {
               </div>
 
               {/* Card 2: Total Revenue Collected */}
-              <div className="p-3.5 sm:p-4 rounded-2xl bg-[#131316] border border-zinc-800 relative overflow-hidden flex flex-col justify-between">
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-[#0a0a0a] border border-[#222222] relative overflow-hidden flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
                     <span className="font-bold tracking-wider">REVENUE</span>
@@ -5299,7 +5299,7 @@ export default function VendingCenterLoggerPage() {
                     )}
                   </div>
                 </div>
-                <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2.5 space-y-0.5">
+                <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-[#222222]/80 pt-2.5 space-y-0.5">
                   <div className="flex items-center justify-between">
                     <span>Expected: ₹{kpis.totalExpected.toLocaleString("en-IN")}</span>
                   </div>
@@ -5310,7 +5310,7 @@ export default function VendingCenterLoggerPage() {
               </div>
 
               {/* Card 3: Credit & Khata Balance (All Customers) */}
-              <div className="p-3.5 sm:p-4 rounded-2xl bg-[#131316] border border-zinc-800 relative overflow-hidden flex flex-col justify-between group hover:border-purple-400/70 transition-all">
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-[#0a0a0a] border border-[#222222] relative overflow-hidden flex flex-col justify-between group hover:border-purple-400/70 transition-all">
                 <div>
                   <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
                     <span className="text-purple-300 font-bold tracking-wider flex items-center gap-1.5">
@@ -5337,7 +5337,7 @@ export default function VendingCenterLoggerPage() {
                     )}
                   </div>
                 </div>
-                <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2.5 space-y-1">
+                <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-[#222222]/80 pt-2.5 space-y-1">
                   <div className="flex items-center justify-between">
                     <span className="text-purple-300 font-medium truncate">
                       All Customers ({khataSummary.pendingCustomersCount})
@@ -5367,7 +5367,7 @@ export default function VendingCenterLoggerPage() {
               </div>
 
               {/* Card 4: Realized Profit on Sold Trout */}
-              <div className="p-3.5 sm:p-4 rounded-2xl bg-[#131316] border border-zinc-800 relative overflow-hidden flex flex-col justify-between">
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-[#0a0a0a] border border-[#222222] relative overflow-hidden flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
                     <span className="text-teal-300 font-bold tracking-wider flex items-center gap-1.5">
@@ -5397,7 +5397,7 @@ export default function VendingCenterLoggerPage() {
                     )}
                   </div>
                 </div>
-                <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2.5 space-y-1">
+                <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-[#222222]/80 pt-2.5 space-y-1">
                   <div className="flex items-center justify-between">
                     <span className="text-emerald-300 font-bold" title="Pure Gutted Trout Margin after procurement and gutting labor">
                       G: ₹{kpis.pureGuttedProfit.toLocaleString("en-IN")}
@@ -5428,7 +5428,7 @@ export default function VendingCenterLoggerPage() {
               </div>
 
               {/* Card 4.5: Delivery Logistics & Farm Subsidies (Admin Only) */}
-              <div className="p-3.5 sm:p-4 rounded-2xl bg-[#131316] border border-zinc-800 relative overflow-hidden flex flex-col justify-between group hover:border-blue-400/70 transition-all">
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-[#0a0a0a] border border-[#222222] relative overflow-hidden flex flex-col justify-between group hover:border-blue-400/70 transition-all">
                 <div>
                   <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
                     <span className="text-blue-300 font-bold tracking-wider flex items-center gap-1.5">
@@ -5452,7 +5452,7 @@ export default function VendingCenterLoggerPage() {
                     </span>
                   </div>
                 </div>
-                <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2.5 space-y-1">
+                <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-[#222222]/80 pt-2.5 space-y-1">
                   <div className="flex items-center justify-between">
                     <span className="text-slate-300">Riders Paid: ₹{kpis.totalDeliveryRiderPayout.toLocaleString("en-IN")}</span>
                     <span className="text-emerald-300 font-bold">Cust Paid: ₹{kpis.totalCustomerDeliveryCollected.toLocaleString("en-IN")}</span>
@@ -5464,7 +5464,7 @@ export default function VendingCenterLoggerPage() {
               </div>
 
               {/* Card 4.6: Delivery Net Profit (Admin Only) */}
-              <div className="p-3.5 sm:p-4 rounded-2xl bg-[#131316] border border-zinc-800 relative overflow-hidden flex flex-col justify-between group hover:border-emerald-400/70 transition-all">
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-[#0a0a0a] border border-[#222222] relative overflow-hidden flex flex-col justify-between group hover:border-emerald-400/70 transition-all">
                 <div>
                   <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
                     <span className="text-emerald-300 font-bold tracking-wider flex items-center gap-1.5">
@@ -5496,7 +5496,7 @@ export default function VendingCenterLoggerPage() {
                     </span>
                   </div>
                 </div>
-                <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2.5 space-y-1">
+                <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-[#222222]/80 pt-2.5 space-y-1">
                   <div className="flex items-center justify-between">
                     <span className="text-slate-300">{formatKg(kpis.totalDeliveryBiomassKg)} Kg Delivered</span>
                     <span className="text-emerald-300 font-semibold">Rev: ₹{kpis.totalDeliveryRevenueCollected.toLocaleString("en-IN")}</span>
@@ -5509,7 +5509,7 @@ export default function VendingCenterLoggerPage() {
               </div>
 
               {/* Card 5: Online Payments */}
-              <div className="p-3.5 sm:p-4 rounded-2xl bg-[#131316] border border-zinc-800 relative overflow-hidden flex flex-col justify-between">
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-[#0a0a0a] border border-[#222222] relative overflow-hidden flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
                     <span className="font-bold tracking-wider">ONLINE</span>
@@ -5531,7 +5531,7 @@ export default function VendingCenterLoggerPage() {
                     )}
                   </div>
                 </div>
-                <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2.5 space-y-0.5">
+                <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-[#222222]/80 pt-2.5 space-y-0.5">
                   <div className="flex items-center justify-between text-indigo-300">
                     <span>{kpis.onlineCount} orders</span>
                     <span>{formatKg(kpis.onlineKg)} Kg</span>
@@ -5541,7 +5541,7 @@ export default function VendingCenterLoggerPage() {
               </div>
 
               {/* Card 6: Cash Payments */}
-              <div className="p-3.5 sm:p-4 rounded-2xl bg-[#131316] border border-zinc-800 relative overflow-hidden flex flex-col justify-between">
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-[#0a0a0a] border border-[#222222] relative overflow-hidden flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
                     <span className="font-bold tracking-wider">CASH DRAWER</span>
@@ -5563,7 +5563,7 @@ export default function VendingCenterLoggerPage() {
                     )}
                   </div>
                 </div>
-                <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2.5 space-y-0.5">
+                <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-[#222222]/80 pt-2.5 space-y-0.5">
                   <div className="flex items-center justify-between text-blue-300">
                     <span>{kpis.cashCount} sales</span>
                     <span>{formatKg(kpis.cashKg)} Kg</span>
@@ -5573,7 +5573,7 @@ export default function VendingCenterLoggerPage() {
               </div>
 
               {/* Card 7: Average Sell Rate (₹/Kg) */}
-              <div className="p-3.5 sm:p-4 rounded-2xl bg-[#131316] border border-zinc-800 relative overflow-hidden flex flex-col justify-between">
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-[#0a0a0a] border border-[#222222] relative overflow-hidden flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
                     <span className="text-violet-300 font-bold tracking-wider flex items-center gap-1.5">
@@ -5603,7 +5603,7 @@ export default function VendingCenterLoggerPage() {
                     )}
                   </div>
                 </div>
-                <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2.5 space-y-0.5">
+                <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-[#222222]/80 pt-2.5 space-y-0.5">
                   <div className="flex items-center justify-between">
                     <span className="text-emerald-300 font-bold">
                       G: ₹{kpis.pureGuttedAvgRate > 0 ? kpis.pureGuttedAvgRate.toLocaleString("en-IN") : "—"}/Kg
@@ -5622,8 +5622,8 @@ export default function VendingCenterLoggerPage() {
               <div
                 className={`p-3.5 sm:p-4 rounded-2xl border shadow-xl relative overflow-hidden flex flex-col justify-between ${
                   kpis.totalLoss > 0
-                    ? "bg-[#131316] border-zinc-800"
-                    : "bg-[#131316] border-zinc-800"
+                    ? "bg-[#0a0a0a] border-[#222222]"
+                    : "bg-[#0a0a0a] border-[#222222]"
                 }`}
               >
                 <div>
@@ -5668,7 +5668,7 @@ export default function VendingCenterLoggerPage() {
                     )}
                   </div>
                 </div>
-                <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2.5 space-y-0.5">
+                <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-[#222222]/80 pt-2.5 space-y-0.5">
                   <div className="flex items-center justify-between">
                     {kpis.totalLoss > 0 ? (
                       <span className="text-amber-300 font-bold">
@@ -5688,7 +5688,7 @@ export default function VendingCenterLoggerPage() {
 
               {/* Card 8b: Extra / Tips Collected over Base Rate */}
               {kpis.totalExtraCollected > 0 && (
-                <div className="p-3.5 sm:p-4 rounded-2xl bg-[#131316] border border-zinc-800 relative overflow-hidden flex flex-col justify-between">
+                <div className="p-3.5 sm:p-4 rounded-2xl bg-[#0a0a0a] border border-[#222222] relative overflow-hidden flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
                       <span className="text-amber-300 font-bold tracking-wider flex items-center gap-1.5">
@@ -5709,7 +5709,7 @@ export default function VendingCenterLoggerPage() {
                       </span>
                     </div>
                   </div>
-                  <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2.5 space-y-0.5">
+                  <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-[#222222]/80 pt-2.5 space-y-0.5">
                     <div className="text-amber-200 font-bold">
                       Paid Above ₹580/kg Base Rate
                     </div>
@@ -5721,7 +5721,7 @@ export default function VendingCenterLoggerPage() {
               )}
 
               {/* Card 9: Vending Center Operational Expenses */}
-              <div className="p-3.5 sm:p-4 rounded-2xl bg-[#131316] border border-zinc-800 relative overflow-hidden flex flex-col justify-between">
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-[#0a0a0a] border border-[#222222] relative overflow-hidden flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
                     <span className="text-rose-300 font-bold tracking-wider flex items-center gap-1.5">
@@ -5751,7 +5751,7 @@ export default function VendingCenterLoggerPage() {
                     )}
                   </div>
                 </div>
-                <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2.5 space-y-0.5">
+                <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-[#222222]/80 pt-2.5 space-y-0.5">
                   <div className="flex items-center justify-between text-rose-300">
                     <span>Operational Costs</span>
                     <button
@@ -5772,7 +5772,7 @@ export default function VendingCenterLoggerPage() {
               </div>
 
               {/* Card 9b: Aquarium Mortality Loss (Dead Loss / Scrap Biomass) */}
-              <div className="p-3.5 sm:p-4 rounded-2xl bg-[#131316] border border-zinc-800 relative overflow-hidden flex flex-col justify-between group hover:border-rose-400/80 transition-all">
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-[#0a0a0a] border border-[#222222] relative overflow-hidden flex flex-col justify-between group hover:border-rose-400/80 transition-all">
                 <div>
                   <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
                     <span className="text-rose-300 font-bold tracking-wider flex items-center gap-1.5">
@@ -5813,7 +5813,7 @@ export default function VendingCenterLoggerPage() {
                     )}
                   </div>
                 </div>
-                <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2.5 space-y-1">
+                <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-[#222222]/80 pt-2.5 space-y-1">
                   <div className="flex items-center justify-between text-rose-300">
                     <span>
                       {periodMortalityCount > 0
@@ -5849,7 +5849,7 @@ export default function VendingCenterLoggerPage() {
               </div>
 
               {/* Card 10: Final Profit (Realized Sold Profit minus Operational Expenses, Worker Salary & Mortality Loss) */}
-              <div className="p-3.5 sm:p-4 rounded-2xl bg-[#131316] border border-zinc-800 relative overflow-hidden flex flex-col justify-between">
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-[#0a0a0a] border border-[#222222] relative overflow-hidden flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
                     <span className="text-emerald-300 font-black tracking-wider flex items-center gap-1.5">
@@ -5881,7 +5881,7 @@ export default function VendingCenterLoggerPage() {
                     )}
                   </div>
                 </div>
-                <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2.5 space-y-1">
+                <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-[#222222]/80 pt-2.5 space-y-1">
                   <div className="flex items-center justify-between">
                     <span className="text-teal-300 font-bold" title="Pure Trout Sold Profit">
                       Fish Sold: ₹{kpis.pureSoldProfit.toLocaleString("en-IN")}
@@ -6032,7 +6032,7 @@ export default function VendingCenterLoggerPage() {
                       handleUpdateBaseSalary(e);
                       setEditingBaseSalaryCard(false);
                     }}
-                    className="mt-3 p-3 rounded-xl bg-slate-950 border border-sky-500/50 flex items-center gap-2.5 animate-in fade-in"
+                    className="mt-3 p-3 rounded-xl bg-black border border-sky-500/50 flex items-center gap-2.5 animate-in fade-in"
                   >
                     <div className="flex-1">
                       <label className="text-[10px] uppercase font-mono text-slate-400 block mb-1">
@@ -6044,7 +6044,7 @@ export default function VendingCenterLoggerPage() {
                           type="number"
                           value={baseSalaryInput}
                           onChange={(e) => setBaseSalaryInput(e.target.value)}
-                          className="w-full pl-6 pr-2 py-1 bg-slate-900 border border-slate-700 rounded-lg text-xs text-white font-bold font-mono focus:outline-none focus:border-sky-400"
+                          className="w-full pl-6 pr-2 py-1 bg-[#0a0a0a] border border-[#333333] rounded-lg text-xs text-white font-bold font-mono focus:outline-none focus:border-sky-400"
                           placeholder="10500"
                           autoFocus
                           required
@@ -6098,7 +6098,7 @@ export default function VendingCenterLoggerPage() {
                 )}
               </div>
 
-              <div className="mt-3.5 text-xs text-slate-400 font-mono border-t border-slate-800/80 pt-2.5 flex flex-wrap items-center justify-between gap-2">
+              <div className="mt-3.5 text-xs text-slate-400 font-mono border-t border-[#222222]/80 pt-2.5 flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2.5 text-sky-200 text-[11px] flex-wrap">
                   <span>Base: <strong className="text-white">₹{salaryStats.baseMonthly.toLocaleString("en-IN")}</strong>/mo</span>
                   {salaryStats.monthDeductionsTotal > 0 && (
@@ -6174,7 +6174,7 @@ export default function VendingCenterLoggerPage() {
                 className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[11px] font-mono font-bold transition-all cursor-pointer ${
                   supplierRebatesOpen
                     ? "bg-blue-600 text-white border-blue-500 shadow-md shadow-blue-500/30"
-                    : "bg-slate-900/80 hover:bg-slate-800 text-blue-300 border-blue-500/30"
+                    : "bg-[#0a0a0a]/80 hover:bg-slate-800 text-blue-300 border-blue-500/30"
                 }`}
                 title="Toggle Khyber Aquaculture Volume Rebate Tracker & Credit Ledger"
               >
@@ -6189,7 +6189,7 @@ export default function VendingCenterLoggerPage() {
               <button
                 type="button"
                 onClick={() => setStockLogOpen((p) => !p)}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900/80 hover:bg-slate-800 text-slate-300 border border-slate-700/60 text-[11px] font-mono font-bold transition-all cursor-pointer"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#0a0a0a]/80 hover:bg-slate-800 text-slate-300 border border-[#333333]/60 text-[11px] font-mono font-bold transition-all cursor-pointer"
                 title="Toggle procurement log"
               >
                 <span className="material-symbols-outlined text-xs">
@@ -6200,7 +6200,7 @@ export default function VendingCenterLoggerPage() {
               <button
                 type="button"
                 onClick={() => setShowMortalityTable((p) => !p)}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-900/80 hover:bg-slate-800 text-rose-300 border border-rose-500/30 text-[11px] font-mono font-bold transition-all cursor-pointer"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#0a0a0a]/80 hover:bg-slate-800 text-rose-300 border border-rose-500/30 text-[11px] font-mono font-bold transition-all cursor-pointer"
                 title="Toggle mortality & scrap loss table"
               >
                 <span className="material-symbols-outlined text-xs">
@@ -6293,7 +6293,7 @@ export default function VendingCenterLoggerPage() {
                   )}
                 </div>
               </div>
-              <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2 space-y-1">
+              <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-[#222222]/80 pt-2 space-y-1">
                 {isAdmin && aquariumStock.surplusKg > 0 && (
                   <div className="flex items-center justify-between text-[10.5px] bg-emerald-500/15 border border-emerald-500/30 rounded px-1.5 py-0.5 text-emerald-300 font-bold shadow-sm">
                     <span>🎁 Surplus Dispatched:</span>
@@ -6334,7 +6334,7 @@ export default function VendingCenterLoggerPage() {
                   <span className="text-rose-400 font-bold font-mono text-sm">Kg</span>
                 </div>
               </div>
-              <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2 space-y-0.5">
+              <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-[#222222]/80 pt-2 space-y-0.5">
                 <div className="flex items-center justify-between">
                   <span className="text-rose-300/80">Dispatched all-time</span>
                   <span className="text-rose-200 font-bold">
@@ -6348,7 +6348,7 @@ export default function VendingCenterLoggerPage() {
             </div>
 
             {/* Card 3: Value if Sold as Gutted */}
-            <div className="p-3.5 sm:p-4 rounded-2xl bg-[#131316] border border-zinc-800 relative overflow-hidden flex flex-col justify-between">
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-[#0a0a0a] border border-[#222222] relative overflow-hidden flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
                   <span className="text-emerald-300 font-bold">VALUE · IF GUTTED</span>
@@ -6364,7 +6364,7 @@ export default function VendingCenterLoggerPage() {
                   </span>
                 </div>
               </div>
-              <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2 space-y-0.5">
+              <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-[#222222]/80 pt-2 space-y-0.5">
                 <div className="flex items-center justify-between">
                   <span>{formatKg(aquariumStock.remainingKg)} Kg remaining</span>
                   <span className="text-emerald-300">@ ₹{guttedPrice}/Kg</span>
@@ -6374,7 +6374,7 @@ export default function VendingCenterLoggerPage() {
             </div>
 
             {/* Card 4: Value if Sold as Non-Gutted */}
-            <div className="p-3.5 sm:p-4 rounded-2xl bg-[#131316] border border-zinc-800 relative overflow-hidden flex flex-col justify-between">
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-[#0a0a0a] border border-[#222222] relative overflow-hidden flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
                   <span className="text-cyan-300 font-bold">VALUE · IF NON-GUTTED</span>
@@ -6390,7 +6390,7 @@ export default function VendingCenterLoggerPage() {
                   </span>
                 </div>
               </div>
-              <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2 space-y-0.5">
+              <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-[#222222]/80 pt-2 space-y-0.5">
                 <div className="flex items-center justify-between">
                   <span>{formatKg(aquariumStock.remainingKg)} Kg remaining</span>
                   <span className="text-cyan-300">@ ₹{nonGuttedPrice}/Kg</span>
@@ -6417,7 +6417,7 @@ export default function VendingCenterLoggerPage() {
                   <span className="text-[10px] font-bold text-emerald-300 font-mono ml-1">Gutted</span>
                 </div>
               </div>
-              <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2 space-y-0.5">
+              <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-[#222222]/80 pt-2 space-y-0.5">
                 <div className="flex items-center justify-between">
                   <span className="text-slate-400">If Non-Gutted:</span>
                   <span className="text-cyan-300 font-bold font-mono">
@@ -6431,7 +6431,7 @@ export default function VendingCenterLoggerPage() {
             </div>
 
             {/* Card 6: Mortality & Scrap Wastage */}
-            <div className="p-3.5 sm:p-4 rounded-2xl bg-[#131316] border border-zinc-800 relative overflow-hidden flex flex-col justify-between">
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-[#0a0a0a] border border-[#222222] relative overflow-hidden flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
                   <span className="text-rose-300 font-bold flex items-center gap-1.5">
@@ -6455,7 +6455,7 @@ export default function VendingCenterLoggerPage() {
                   </span>
                 </div>
               </div>
-              <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-slate-800/80 pt-2 space-y-0.5">
+              <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-[#222222]/80 pt-2 space-y-0.5">
                 <div className="flex items-center justify-between">
                   <span className="text-slate-400">Period Loss:</span>
                   <span className="text-rose-300 font-bold">
@@ -6472,11 +6472,11 @@ export default function VendingCenterLoggerPage() {
 
           {/* Procurement Log Table (collapsible) */}
           {stockLogOpen && (
-            <div className="bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden animate-in fade-in duration-200">
+            <div className="bg-[#0a0a0a]/60 border border-[#222222] rounded-2xl overflow-hidden animate-in fade-in duration-200">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead>
-                    <tr className="border-b border-slate-800 bg-slate-950/80 text-[10px] font-mono uppercase tracking-wider text-slate-400">
+                    <tr className="border-b border-[#222222] bg-black/80 text-[10px] font-mono uppercase tracking-wider text-slate-400">
                       <th className="py-3 px-3 text-center w-8">#</th>
                       <th className="py-3 px-3">Date</th>
                       <th className="py-3 px-3">Time</th>
@@ -6491,7 +6491,7 @@ export default function VendingCenterLoggerPage() {
                       <th className="py-3 px-3 text-center">Del</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/60 font-mono">
+                  <tbody className="divide-y divide-[#222222]/60 font-mono">
                     {stockEntries.length === 0 ? (
                       <tr>
                         <td colSpan={12} className="py-10 text-center text-slate-500 text-xs">
@@ -6587,7 +6587,7 @@ export default function VendingCenterLoggerPage() {
 
           {/* Mortality & Scrap Wastage Table (collapsible) */}
           {showMortalityTable && (
-            <div className="bg-slate-900/60 border border-rose-500/30 rounded-2xl overflow-hidden animate-in fade-in duration-200">
+            <div className="bg-[#0a0a0a]/60 border border-rose-500/30 rounded-2xl overflow-hidden animate-in fade-in duration-200">
               <div className="px-4 py-3 bg-rose-950/20 border-b border-rose-500/20 flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-rose-400 text-sm">emergency</span>
@@ -6602,7 +6602,7 @@ export default function VendingCenterLoggerPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead>
-                    <tr className="border-b border-slate-800 bg-slate-950/80 text-[10px] font-mono uppercase tracking-wider text-slate-400">
+                    <tr className="border-b border-[#222222] bg-black/80 text-[10px] font-mono uppercase tracking-wider text-slate-400">
                       <th className="py-3 px-3 text-center w-8">#</th>
                       <th className="py-3 px-3">Date</th>
                       <th className="py-3 px-3">Time</th>
@@ -6615,7 +6615,7 @@ export default function VendingCenterLoggerPage() {
                       <th className="py-3 px-3 text-center">Del</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/60 font-mono">
+                  <tbody className="divide-y divide-[#222222]/60 font-mono">
                     {mortalityEntries.length === 0 ? (
                       <tr>
                         <td colSpan={10} className="py-10 text-center text-slate-500 text-xs">
@@ -6720,7 +6720,7 @@ export default function VendingCenterLoggerPage() {
           )}
 
           {/* Section Header Toolbar with Month Switcher */}
-          <div className="p-3 bg-slate-900/90 border border-rose-500/30 rounded-2xl shadow-md space-y-3">
+          <div className="p-3 bg-[#0a0a0a]/90 border border-rose-500/30 rounded-2xl shadow-md space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center text-rose-400">
@@ -6760,7 +6760,7 @@ export default function VendingCenterLoggerPage() {
             </div>
 
             {/* Month-Wise Tabs Quick Switcher */}
-            <div className="pt-2 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
+            <div className="pt-2 border-t border-[#222222]/80 flex flex-wrap items-center justify-between gap-2 text-xs font-mono">
               <div className="flex flex-wrap items-center gap-1.5">
                 <span className="text-[10.5px] text-slate-500 uppercase font-bold tracking-wider mr-1">
                   Filter Month:
@@ -6779,7 +6779,7 @@ export default function VendingCenterLoggerPage() {
                       className={`px-2.5 py-1 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                         isSelected
                           ? "bg-rose-600 text-white shadow-md shadow-rose-600/30 border border-rose-500"
-                          : "bg-slate-950/80 text-slate-400 hover:text-white border border-slate-800 hover:border-slate-700"
+                          : "bg-black/80 text-slate-400 hover:text-white border border-[#222222] hover:border-[#333333]"
                       }`}
                     >
                       {isCurrentLive && (
@@ -6787,7 +6787,7 @@ export default function VendingCenterLoggerPage() {
                       )}
                       <span>{em.monthLabel}</span>
                       <span className={`text-[10px] px-1.5 py-0.2 rounded ${
-                        isSelected ? "bg-rose-950/80 text-rose-200" : "bg-slate-900 text-slate-400"
+                        isSelected ? "bg-rose-950/80 text-rose-200" : "bg-[#0a0a0a] text-slate-400"
                       }`}>
                         ₹{em.totalAmount.toLocaleString("en-IN")}
                       </span>
@@ -6800,7 +6800,7 @@ export default function VendingCenterLoggerPage() {
                   className={`px-2.5 py-1 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
                     period === "all"
                       ? "bg-rose-600 text-white shadow-md shadow-rose-600/30 border border-rose-500"
-                      : "bg-slate-950/80 text-slate-400 hover:text-white border border-slate-800 hover:border-slate-700"
+                      : "bg-black/80 text-slate-400 hover:text-white border border-[#222222] hover:border-[#333333]"
                   }`}
                 >
                   All Time
@@ -6809,7 +6809,7 @@ export default function VendingCenterLoggerPage() {
 
               {/* Month Steppers */}
               {period === "month" && (
-                <div className="flex items-center gap-1 bg-slate-950/80 p-0.5 rounded-xl border border-slate-800">
+                <div className="flex items-center gap-1 bg-black/80 p-0.5 rounded-xl border border-[#222222]">
                   <button
                     type="button"
                     onClick={() => setSelectedMonth(getPreviousMonthKey(selectedMonth))}
@@ -6845,7 +6845,7 @@ export default function VendingCenterLoggerPage() {
           </div>
 
           {/* Category Breakdown Chips */}
-          <div className="flex flex-wrap items-center gap-1.5 p-2 bg-slate-950/70 border border-slate-800/80 rounded-xl text-xs font-mono">
+          <div className="flex flex-wrap items-center gap-1.5 p-2 bg-black/70 border border-[#222222]/80 rounded-xl text-xs font-mono">
             <span className="text-[10px] text-slate-500 uppercase font-bold tracking-wider px-1">
               Breakdown:
             </span>
@@ -6857,7 +6857,7 @@ export default function VendingCenterLoggerPage() {
               return (
                 <span
                   key={cat}
-                  className="px-2 py-0.5 rounded-lg bg-slate-900 border border-slate-800 text-[10.5px] text-slate-300 flex items-center gap-1"
+                  className="px-2 py-0.5 rounded-lg bg-[#0a0a0a] border border-[#222222] text-[10.5px] text-slate-300 flex items-center gap-1"
                 >
                   <span className="text-slate-400">{cat}:</span>
                   <strong className="text-rose-300">₹{catTotal.toLocaleString("en-IN")}</strong>
@@ -6867,11 +6867,11 @@ export default function VendingCenterLoggerPage() {
           </div>
 
           {/* Expenses Table */}
-          <div className="bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden shadow-lg animate-in fade-in duration-200">
+          <div className="bg-[#0a0a0a]/60 border border-[#222222] rounded-2xl overflow-hidden shadow-lg animate-in fade-in duration-200">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="border-b border-slate-800 bg-slate-950/80 text-[10px] font-mono uppercase tracking-wider text-slate-400">
+                  <tr className="border-b border-[#222222] bg-black/80 text-[10px] font-mono uppercase tracking-wider text-slate-400">
                     <th className="py-3 px-3 text-center w-8">#</th>
                     <th className="py-3 px-3">Date</th>
                     <th className="py-3 px-3">Time</th>
@@ -6884,7 +6884,7 @@ export default function VendingCenterLoggerPage() {
                     <th className="py-3 px-3 text-center">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60 font-mono">
+                <tbody className="divide-y divide-[#222222]/60 font-mono">
                   {filteredExpensesByPeriod.length === 0 ? (
                     <tr>
                       <td colSpan={10} className="py-10 text-center text-slate-500 text-xs">
@@ -6926,7 +6926,7 @@ export default function VendingCenterLoggerPage() {
                             ₹{Number(ex.amount).toLocaleString("en-IN")}
                           </td>
                           <td className="py-2.5 px-3 whitespace-nowrap">
-                            <span className="px-1.5 py-0.5 rounded bg-slate-800 text-[10px] text-slate-300 border border-slate-700">
+                            <span className="px-1.5 py-0.5 rounded bg-slate-800 text-[10px] text-slate-300 border border-[#333333]">
                               {ex.payment_mode || "Cash"}
                             </span>
                           </td>
@@ -6978,7 +6978,7 @@ export default function VendingCenterLoggerPage() {
                                 </>
                               ) : (
                                 <span
-                                  className="w-6 h-6 rounded bg-slate-900/60 text-slate-600 border border-slate-800/60 flex items-center justify-center cursor-not-allowed"
+                                  className="w-6 h-6 rounded bg-[#0a0a0a]/60 text-slate-600 border border-[#222222]/60 flex items-center justify-center cursor-not-allowed"
                                   title="Locked: Historical expenses can only be edited or deleted by Super Admin"
                                 >
                                   <span className="material-symbols-outlined text-[13px]">lock</span>
@@ -7040,7 +7040,7 @@ export default function VendingCenterLoggerPage() {
       {/* ══════════════════════════════════════════════════════════
           TABLE FILTERS & CONTROLS
           ══════════════════════════════════════════════════════════ */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-3 flex flex-wrap items-center justify-between gap-3 shadow-sm">
+      <div className="bg-[#0a0a0a]/80 border border-[#222222] rounded-2xl p-3 flex flex-wrap items-center justify-between gap-3 shadow-sm">
         {/* Search */}
         <div className="relative flex-1 min-w-[220px]">
           <span className="material-symbols-outlined absolute left-3 top-2.5 text-slate-500 text-sm">
@@ -7051,7 +7051,7 @@ export default function VendingCenterLoggerPage() {
             placeholder="Search date, time, customer, notes, payment..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-[#0e0e11] border border-zinc-800 rounded-lg text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-600 font-mono"
+            className="w-full pl-9 pr-4 py-2 bg-[#000000] border border-[#222222] rounded-lg text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#555555] font-mono"
           />
         </div>
 
@@ -7061,7 +7061,7 @@ export default function VendingCenterLoggerPage() {
           <select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
-            className="bg-[#0e0e11] border border-zinc-800 rounded-lg px-2.5 py-2 text-xs text-zinc-200 focus:outline-none focus:border-zinc-600 cursor-pointer"
+            className="bg-[#000000] border border-[#222222] rounded-lg px-2.5 py-2 text-xs text-zinc-200 focus:outline-none focus:border-[#555555] cursor-pointer"
           >
             <option value="all">All Types</option>
             <option value="gutted">Gutted (Worker Incentive)</option>
@@ -7076,7 +7076,7 @@ export default function VendingCenterLoggerPage() {
           <select
             value={filterPayment}
             onChange={(e) => setFilterPayment(e.target.value)}
-            className="bg-[#0e0e11] border border-zinc-800 rounded-lg px-2.5 py-2 text-xs text-zinc-200 focus:outline-none focus:border-zinc-600 cursor-pointer"
+            className="bg-[#000000] border border-[#222222] rounded-lg px-2.5 py-2 text-xs text-zinc-200 focus:outline-none focus:border-[#555555] cursor-pointer"
           >
             <option value="all">All Payments</option>
             <option value="Cash">💵 Cash</option>
@@ -7086,13 +7086,13 @@ export default function VendingCenterLoggerPage() {
         </div>
 
         {/* View Mode Toggle: Table vs Cards */}
-        <div className="flex items-center p-0.5 rounded-lg bg-[#0e0e11] border border-zinc-800">
+        <div className="flex items-center p-0.5 rounded-lg bg-[#000000] border border-[#222222]">
           <button
             type="button"
             onClick={() => handleSetViewMode("table")}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-mono transition-colors cursor-pointer ${
               viewMode === "table"
-                ? "bg-zinc-800 text-white border border-zinc-700 shadow-sm font-medium"
+                ? "bg-[#161616] text-white border border-[#333333] shadow-sm font-medium"
                 : "text-zinc-400 hover:text-white"
             }`}
             title="Compact Ledger Table View"
@@ -7105,7 +7105,7 @@ export default function VendingCenterLoggerPage() {
             onClick={() => handleSetViewMode("cards")}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-mono transition-colors cursor-pointer ${
               viewMode === "cards"
-                ? "bg-zinc-800 text-white border border-zinc-700 shadow-sm font-medium"
+                ? "bg-[#161616] text-white border border-[#333333] shadow-sm font-medium"
                 : "text-zinc-400 hover:text-white"
             }`}
             title="Visual Cards View"
@@ -7117,13 +7117,13 @@ export default function VendingCenterLoggerPage() {
 
         {/* Table Density Quick Toggle (Ultra-Compact vs Comfortable) */}
         {viewMode === "table" && (
-          <div className="flex items-center p-0.5 rounded-lg bg-[#0e0e11] border border-zinc-800">
+          <div className="flex items-center p-0.5 rounded-lg bg-[#000000] border border-[#222222]">
             <button
               type="button"
               onClick={() => handleSetTableDensity("compact")}
               className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-mono transition-colors cursor-pointer ${
                 tableDensity === "compact"
-                  ? "bg-zinc-800 text-white border border-zinc-700 font-medium shadow-sm"
+                  ? "bg-[#161616] text-white border border-[#333333] font-medium shadow-sm"
                   : "text-zinc-400 hover:text-white"
               }`}
               title="Compact View (Fits 12–18 entries on screen without scrolling)"
@@ -7136,7 +7136,7 @@ export default function VendingCenterLoggerPage() {
               onClick={() => handleSetTableDensity("normal")}
               className={`flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-mono transition-colors cursor-pointer ${
                 tableDensity === "normal"
-                  ? "bg-zinc-800 text-white border border-zinc-700 font-medium shadow-sm"
+                  ? "bg-[#161616] text-white border border-[#333333] font-medium shadow-sm"
                   : "text-zinc-400 hover:text-white"
               }`}
               title="Comfortable Row Spacing"
@@ -7154,8 +7154,8 @@ export default function VendingCenterLoggerPage() {
             onClick={() => setShowAdminCards((prev) => !prev)}
             className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-xs font-mono transition-all cursor-pointer ${
               !showAdminCards
-                ? "bg-zinc-800 text-white border-zinc-700 font-medium shadow-sm"
-                : "bg-zinc-900 hover:bg-zinc-800 text-zinc-400 border-zinc-800 hover:text-zinc-200"
+                ? "bg-[#161616] text-white border-[#333333] font-medium shadow-sm"
+                : "bg-[#0a0a0a] hover:bg-[#161616] text-zinc-400 border-[#222222] hover:text-zinc-200"
             }`}
             title={showAdminCards ? "Minimize KPI Stats cards to view more sales entries" : "Show KPI Stats cards"}
           >
@@ -7184,23 +7184,23 @@ export default function VendingCenterLoggerPage() {
           SALES ENTRIES — MODERN LEDGER TABLE OR CARD GRID
           ══════════════════════════════════════════════════════════ */}
       {loading && entries.length === 0 ? (
-        <div className="py-16 flex flex-col items-center gap-3 text-slate-400 bg-slate-900/40 rounded-3xl border border-slate-800/70">
+        <div className="py-16 flex flex-col items-center gap-3 text-slate-400 bg-[#0a0a0a]/40 rounded-3xl border border-[#222222]/70">
           <div className="w-9 h-9 border-2 border-emerald-400 border-t-transparent animate-spin rounded-full" />
           <span className="text-sm font-mono">Loading sales entries…</span>
         </div>
       ) : displayEntries.length === 0 ? (
-        <div className="py-16 flex flex-col items-center gap-3 text-slate-400 bg-slate-900/60 rounded-3xl border border-slate-800/70">
+        <div className="py-16 flex flex-col items-center gap-3 text-slate-400 bg-[#0a0a0a]/60 rounded-3xl border border-[#222222]/70">
           <span className="material-symbols-outlined text-5xl text-slate-700">set_meal</span>
           <p className="font-bold text-sm text-white">No sales entries found</p>
           <p className="text-xs text-slate-500">Click &quot;Log Sale&quot; to record today&apos;s first counter dispatch.</p>
         </div>
       ) : viewMode === "table" ? (
         /* ────────────── VIEW 1: EXECUTIVE LEDGER TABLE ────────────── */
-        <div className="rounded-xl border border-zinc-800 bg-[#131316] shadow-sm overflow-hidden">
+        <div className="rounded-xl border border-[#222222] bg-[#0a0a0a] shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse font-mono text-xs">
               <thead>
-                <tr className="bg-[#0e0e11] border-b border-zinc-800 text-[10.5px] font-medium text-zinc-400 uppercase tracking-wider select-none">
+                <tr className="bg-[#000000] border-b border-[#222222] text-[10.5px] font-medium text-zinc-400 uppercase tracking-wider select-none">
                   <th className={`${tableDensity === "compact" ? "py-2 px-2" : "py-3 px-2.5"} text-center w-9 text-slate-500`}>#</th>
                   <th className={`${tableDensity === "compact" ? "py-2 px-2.5" : "py-3 px-3"} text-left w-32`}>
                     <button
@@ -7223,7 +7223,7 @@ export default function VendingCenterLoggerPage() {
                   <th className={`${tableDensity === "compact" ? "py-2 px-2.5" : "py-3 px-3"} text-right w-24`}>Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-800/60">
+              <tbody className="divide-y divide-[#222222]/60">
                 {paginatedSalesEntries.map((e, index) => {
                   const sInfo = surplusInfoMap.get(e.id);
                   const isGutted =
@@ -7281,8 +7281,8 @@ export default function VendingCenterLoggerPage() {
                           : isSelfCleaned
                           ? "bg-amber-950/20 hover:bg-amber-950/35 border-l-4 border-l-amber-400"
                           : index % 2 === 0
-                          ? "bg-transparent hover:bg-zinc-800/30"
-                          : "bg-zinc-900/20 hover:bg-zinc-800/30"
+                          ? "bg-transparent hover:bg-[#161616]/30"
+                          : "bg-[#0a0a0a]/20 hover:bg-[#161616]/30"
                       }`}
                     >
                       {/* 1. # */}
@@ -7311,19 +7311,19 @@ export default function VendingCenterLoggerPage() {
                         <div className="flex flex-col gap-1 min-w-0 leading-tight">
                           <div className="flex items-center gap-1.5 flex-wrap">
                             {isGutted && isSelfCleaned ? (
-                              <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-zinc-800 text-zinc-200 border border-zinc-700 inline-flex items-center gap-1">
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-[#161616] text-zinc-200 border border-[#333333] inline-flex items-center gap-1">
                                 🐟 Gutted
                                 <span className="text-[8px] px-1 rounded bg-amber-500/30 text-amber-100 font-bold">Self</span>
                               </span>
                             ) : isGutted ? (
-                              <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-zinc-800/80 text-zinc-200 border border-zinc-700/80 inline-flex items-center gap-1">
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-[#161616]/80 text-zinc-200 border border-[#333333]/80 inline-flex items-center gap-1">
                                 🐟 Gutted
                                 <span className="text-[9px] text-zinc-400 font-mono">
                                   (+₹{Math.round(w * INCENTIVE_RATE_PER_KG)} inc)
                                 </span>
                               </span>
                             ) : (
-                              <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-zinc-800/60 text-zinc-300 border border-zinc-700/60">
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-[#161616]/60 text-zinc-300 border border-[#333333]/60">
                                 🐟 {e.product_type}
                               </span>
                             )}
@@ -7337,7 +7337,7 @@ export default function VendingCenterLoggerPage() {
 
                             {/* Delivery Order Badge */}
                             {Boolean(e.custom_fields?.is_delivery || e.custom_fields?.order_channel === "delivery") && (
-                              <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-zinc-800 text-zinc-300 border border-zinc-700 inline-flex items-center gap-1">
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-[#161616] text-zinc-300 border border-[#333333] inline-flex items-center gap-1">
                                 <span className="material-symbols-outlined text-[12px]">local_shipping</span>
                                 <span>Delivery {e.custom_fields?.delivery_area ? `(${e.custom_fields?.delivery_area})` : ""}</span>
                                 {Number(e.custom_fields?.delivery_customer_share) > 0 ? (
@@ -7361,7 +7361,7 @@ export default function VendingCenterLoggerPage() {
 
                           {/* Delivery Financial Triad (Rider Cost, Cust Share, Farm Subsidy) */}
                           {Boolean(e.custom_fields?.is_delivery || e.custom_fields?.order_channel === "delivery") && (
-                            <div className="flex items-center gap-2 text-[10px] font-mono flex-wrap bg-[#0e0e11] px-2 py-0.5 rounded-md border border-zinc-800 text-zinc-400">
+                            <div className="flex items-center gap-2 text-[10px] font-mono flex-wrap bg-[#000000] px-2 py-0.5 rounded-md border border-[#222222] text-zinc-400">
                               <span>🚚 Rider: ₹{e.custom_fields?.delivery_cost_total || 0}</span>
                               <span className="text-slate-500">•</span>
                               <span className="text-emerald-300">Cust: ₹{e.custom_fields?.delivery_customer_share || 0}</span>
@@ -7439,7 +7439,7 @@ export default function VendingCenterLoggerPage() {
                             )}
                             {extraVal > 0 && (
                               <span
-                                className="text-[9px] font-medium text-zinc-300 bg-zinc-800 px-1 py-0.2 rounded border border-zinc-700"
+                                className="text-[9px] font-medium text-zinc-300 bg-[#161616] px-1 py-0.2 rounded border border-[#333333]"
                                 title={`Customer paid ₹${extraVal} extra over standard bill (Tip / Premium)`}
                               >
                                 ⭐+₹{extraVal}
@@ -7479,35 +7479,35 @@ export default function VendingCenterLoggerPage() {
                           {/* Line 1: Payment Mode */}
                           <div className="flex items-center gap-1">
                             {isCreditSale && taken === 0 ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-zinc-800/80 border border-zinc-700/80 text-zinc-300 text-[9.5px] font-medium">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#161616]/80 border border-[#333333]/80 text-zinc-300 text-[9.5px] font-medium">
                                 📒 Credit (Khata)
                               </span>
                             ) : isCreditSale && taken > 0 ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-zinc-800/80 border border-zinc-700/80 text-zinc-300 text-[9.5px] font-medium">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#161616]/80 border border-[#333333]/80 text-zinc-300 text-[9.5px] font-medium">
                                 💵 ₹{taken} + 📒 Khata
                               </span>
                             ) : (e.payment_mode || "").toLowerCase().includes("credit") ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-zinc-800/80 border border-zinc-700/80 text-zinc-300 text-[9.5px] font-medium">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#161616]/80 border border-[#333333]/80 text-zinc-300 text-[9.5px] font-medium">
                                 📒 Credit (Khata)
                               </span>
                             ) : (e.payment_mode || "").toLowerCase().includes("split") || Boolean(e.custom_fields?.is_split) ? (
-                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-zinc-800/80 border border-zinc-700/80 text-zinc-300 text-[9px] font-medium font-mono">
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-[#161616]/80 border border-[#333333]/80 text-zinc-300 text-[9px] font-medium font-mono">
                                 💵 ₹{e.custom_fields?.cash_portion ?? Math.round(taken / 2)} + {(e.payment_mode?.includes("Razorpay") || e.custom_fields?.online_channel === "Razorpay") ? "⚡ Rzp" : "🏛️ JK"} ₹{e.custom_fields?.online_portion ?? (taken - Math.round(taken / 2))}
                               </span>
                             ) : (e.payment_mode || "").includes("JK Bank") || e.custom_fields?.online_channel === "JK Bank" ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-zinc-800/80 border border-zinc-700/80 text-zinc-300 text-[9.5px] font-medium">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#161616]/80 border border-[#333333]/80 text-zinc-300 text-[9.5px] font-medium">
                                 🏛️ JK Bank
                               </span>
                             ) : (e.payment_mode || "").includes("Razorpay Online") || e.payment_mode === "Razorpay" ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-zinc-800/80 border border-zinc-700/80 text-zinc-300 text-[9.5px] font-medium">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#161616]/80 border border-[#333333]/80 text-zinc-300 text-[9.5px] font-medium">
                                 ⚡ Razorpay
                               </span>
                             ) : isCash ? (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-zinc-800/80 border border-zinc-700/80 text-zinc-300 text-[9.5px] font-medium">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#161616]/80 border border-[#333333]/80 text-zinc-300 text-[9.5px] font-medium">
                                 💵 Cash
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-zinc-800/80 border border-zinc-700/80 text-zinc-300 text-[9.5px] font-medium">
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#161616]/80 border border-[#333333]/80 text-zinc-300 text-[9.5px] font-medium">
                                 ⚡ Online
                               </span>
                             )}
@@ -7554,7 +7554,7 @@ export default function VendingCenterLoggerPage() {
                             className={`w-6 h-6 rounded-md transition-all flex items-center justify-center cursor-pointer shadow-sm active:scale-95 border ${
                               Array.isArray(e.custom_fields?.edit_history) && e.custom_fields.edit_history.length > 0
                                 ? "bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30"
-                                : "bg-slate-800/90 text-slate-400 hover:text-sky-300 border-slate-700/80 hover:border-sky-500/40"
+                                : "bg-slate-800/90 text-slate-400 hover:text-sky-300 border-[#333333]/80 hover:border-sky-500/40"
                             }`}
                             title={
                               Array.isArray(e.custom_fields?.edit_history) && e.custom_fields.edit_history.length > 0
@@ -7569,14 +7569,14 @@ export default function VendingCenterLoggerPage() {
                             <button
                               type="button"
                               onClick={() => openEditModal(e)}
-                              className="w-6 h-6 rounded-md bg-slate-800/90 hover:bg-emerald-500/25 text-slate-400 hover:text-emerald-300 border border-slate-700/80 hover:border-emerald-500/40 transition-all flex items-center justify-center cursor-pointer shadow-sm active:scale-95"
+                              className="w-6 h-6 rounded-md bg-slate-800/90 hover:bg-emerald-500/25 text-slate-400 hover:text-emerald-300 border border-[#333333]/80 hover:border-emerald-500/40 transition-all flex items-center justify-center cursor-pointer shadow-sm active:scale-95"
                               title="Edit entry"
                             >
                               <span className="material-symbols-outlined text-[12px]">edit</span>
                             </button>
                           ) : (
                             <span
-                              className="w-6 h-6 rounded-md bg-slate-900/60 text-slate-600 border border-slate-800/60 flex items-center justify-center cursor-not-allowed"
+                              className="w-6 h-6 rounded-md bg-[#0a0a0a]/60 text-slate-600 border border-[#222222]/60 flex items-center justify-center cursor-not-allowed"
                               title="Locked: Past entries can only be edited by Super Admin"
                             >
                               <span className="material-symbols-outlined text-[11px]">lock</span>
@@ -7605,7 +7605,7 @@ export default function VendingCenterLoggerPage() {
                               <button
                                 type="button"
                                 onClick={() => setDeleteConfirmId(e.id)}
-                                className="w-6 h-6 rounded-md bg-slate-800/90 hover:bg-rose-500/25 text-slate-500 hover:text-rose-300 border border-slate-700/80 hover:border-rose-500/40 transition-all flex items-center justify-center cursor-pointer shadow-sm active:scale-95"
+                                className="w-6 h-6 rounded-md bg-slate-800/90 hover:bg-rose-500/25 text-slate-500 hover:text-rose-300 border border-[#333333]/80 hover:border-rose-500/40 transition-all flex items-center justify-center cursor-pointer shadow-sm active:scale-95"
                                 title="Delete entry"
                               >
                                 <span className="material-symbols-outlined text-[12px]">delete</span>
@@ -7666,11 +7666,11 @@ export default function VendingCenterLoggerPage() {
                     ? "bg-purple-950/20 border-purple-500/40 hover:bg-purple-950/30 border-l-4 border-l-purple-400"
                     : isSelfCleaned
                     ? "bg-amber-950/20 border-amber-500/40 hover:bg-amber-950/30 border-l-4 border-l-amber-400"
-                    : "bg-slate-900/80 border-slate-800/80 hover:border-slate-700 hover:bg-slate-850/80"
+                    : "bg-[#0a0a0a]/80 border-[#222222]/80 hover:border-[#333333] hover:bg-slate-850/80"
                 }`}
               >
                 {/* Card Top: Index, Date/Time & Actions */}
-                <div className="flex items-center justify-between border-b border-slate-800/60 pb-2.5">
+                <div className="flex items-center justify-between border-b border-[#222222]/60 pb-2.5">
                   <div className="flex items-center gap-2">
                     <span className="px-2 py-0.5 rounded-md bg-slate-800 text-slate-400 font-mono text-[10px] font-bold">
                       #{(salesPage - 1) * 50 + index + 1}
@@ -7689,7 +7689,7 @@ export default function VendingCenterLoggerPage() {
                       className={`w-7 h-7 rounded-lg transition-all flex items-center justify-center cursor-pointer border ${
                         Array.isArray(e.custom_fields?.edit_history) && e.custom_fields.edit_history.length > 0
                           ? "bg-amber-500/20 text-amber-300 border-amber-500/40 hover:bg-amber-500/30"
-                          : "bg-slate-800 text-slate-400 hover:text-sky-300 border-slate-700 hover:border-sky-500/40"
+                          : "bg-slate-800 text-slate-400 hover:text-sky-300 border-[#333333] hover:border-sky-500/40"
                       }`}
                       title={
                         Array.isArray(e.custom_fields?.edit_history) && e.custom_fields.edit_history.length > 0
@@ -7703,14 +7703,14 @@ export default function VendingCenterLoggerPage() {
                       <button
                         type="button"
                         onClick={() => openEditModal(e)}
-                        className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-emerald-500/20 text-slate-400 hover:text-emerald-300 border border-slate-700 transition-all flex items-center justify-center cursor-pointer"
+                        className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-emerald-500/20 text-slate-400 hover:text-emerald-300 border border-[#333333] transition-all flex items-center justify-center cursor-pointer"
                         title="Edit"
                       >
                         <span className="material-symbols-outlined text-sm">edit</span>
                       </button>
                     ) : (
                       <span
-                        className="w-7 h-7 rounded-lg bg-slate-900/60 text-slate-600 border border-slate-800/60 flex items-center justify-center cursor-not-allowed"
+                        className="w-7 h-7 rounded-lg bg-[#0a0a0a]/60 text-slate-600 border border-[#222222]/60 flex items-center justify-center cursor-not-allowed"
                         title="Locked: Past entries can only be edited by Super Admin"
                       >
                         <span className="material-symbols-outlined text-[13px]">lock</span>
@@ -7738,7 +7738,7 @@ export default function VendingCenterLoggerPage() {
                         <button
                           type="button"
                           onClick={() => setDeleteConfirmId(e.id)}
-                          className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-500 hover:text-rose-300 border border-slate-700 transition-all flex items-center justify-center cursor-pointer"
+                          className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-500 hover:text-rose-300 border border-[#333333] transition-all flex items-center justify-center cursor-pointer"
                           title="Delete"
                         >
                           <span className="material-symbols-outlined text-sm">delete</span>
@@ -7783,7 +7783,7 @@ export default function VendingCenterLoggerPage() {
                     )}
 
                     {/* Staff Badge */}
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-800/90 border border-slate-700/60 text-slate-300 text-[10px] font-sans font-medium">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-slate-800/90 border border-[#333333]/60 text-slate-300 text-[10px] font-sans font-medium">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
                       {formatStaffDisplayName(e.logged_by)}
                     </span>
@@ -7791,7 +7791,7 @@ export default function VendingCenterLoggerPage() {
 
                   {/* Customer / Location / Notes */}
                   {e.notes && (
-                    <div className="flex items-center gap-1.5 text-xs text-slate-300 font-sans font-medium bg-slate-950/60 border border-slate-800/80 px-2.5 py-1.5 rounded-xl">
+                    <div className="flex items-center gap-1.5 text-xs text-slate-300 font-sans font-medium bg-black/60 border border-[#222222]/80 px-2.5 py-1.5 rounded-xl">
                       <span className="material-symbols-outlined text-sm text-emerald-400 shrink-0">pin_drop</span>
                       <span className="truncate" title={e.notes}>{e.notes}</span>
                     </div>
@@ -7799,7 +7799,7 @@ export default function VendingCenterLoggerPage() {
 
                   {/* Twin Metric Boxes: Weight & Amount Collected */}
                   <div className="grid grid-cols-2 gap-2 pt-1 font-mono">
-                    <div className="bg-slate-950/70 border border-slate-800/80 rounded-xl p-2.5">
+                    <div className="bg-black/70 border border-[#222222]/80 rounded-xl p-2.5">
                       <div className="flex items-center justify-between">
                         <span className="text-[10px] uppercase font-bold text-slate-400 block">Weight</span>
                         {isAdmin && sInfo?.isSurplus && (
@@ -7819,7 +7819,7 @@ export default function VendingCenterLoggerPage() {
                       <span className="text-[10.5px] text-slate-400 block mt-0.5">@ ₹{e.rate_per_kg}/Kg</span>
                     </div>
 
-                    <div className="bg-slate-950/70 border border-slate-800/80 rounded-xl p-2.5 text-right">
+                    <div className="bg-black/70 border border-[#222222]/80 rounded-xl p-2.5 text-right">
                       <span className="text-[10px] uppercase font-bold text-cyan-400 block">Collected</span>
                       {taken === 0 && isCreditSale ? (
                         <div className="flex flex-col items-end">
@@ -7857,7 +7857,7 @@ export default function VendingCenterLoggerPage() {
 
                     return (
                       <>
-                        <div className="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-slate-950/80 border border-slate-800/90 text-[10.5px] font-mono mt-1.5">
+                        <div className="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-black/80 border border-[#222222]/90 text-[10.5px] font-mono mt-1.5">
                           <span className="text-slate-400 flex items-center gap-1">
                             <span className="material-symbols-outlined text-[12px] text-teal-400">price_change</span>
                             {isDelivery ? "Net Realized Rate:" : "Eff. Rate:"}
@@ -7910,7 +7910,7 @@ export default function VendingCenterLoggerPage() {
                 </div>
 
                 {/* Card Bottom: Payment & Status Badge */}
-                <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-800/60 font-mono text-xs">
+                <div className="flex items-center justify-between gap-2 pt-2 border-t border-[#222222]/60 font-mono text-xs">
                   <div>
                     {isCreditSale && taken === 0 ? (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-purple-500/20 border border-purple-500/40 text-purple-200 text-[10px] font-bold font-sans">
@@ -7971,7 +7971,7 @@ export default function VendingCenterLoggerPage() {
                         ✓ Full Paid
                       </span>
                     ) : e.custom_fields?.balance_status === "waived_final" ? (
-                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-medium text-slate-300 bg-slate-800/90 border border-slate-700">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-medium text-slate-300 bg-slate-800/90 border border-[#333333]">
                         🤝 Waived (-₹{loss})
                       </span>
                     ) : e.custom_fields?.balance_status === "settled" || e.custom_fields?.settled_at || e.custom_fields?.is_full_payment ? (
@@ -8054,7 +8054,7 @@ export default function VendingCenterLoggerPage() {
         }, 0);
 
         return (
-          <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 rounded-2xl bg-slate-950/90 border border-slate-800/80 font-mono text-xs font-bold mt-2 shadow-lg">
+          <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 rounded-2xl bg-black/90 border border-[#222222]/80 font-mono text-xs font-bold mt-2 shadow-lg">
             <span className="text-slate-500 uppercase tracking-wider text-[10px]">
               Visible Total — {displayEntries.length} entries
             </span>
@@ -8104,9 +8104,9 @@ export default function VendingCenterLoggerPage() {
           }}
           className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto"
         >
-          <div className="bg-slate-900 border border-emerald-500/40 rounded-3xl p-5 sm:p-7 max-w-lg w-full text-slate-200 shadow-2xl space-y-4 my-4 max-h-[92vh] overflow-y-auto">
+          <div className="bg-[#0a0a0a] border border-emerald-500/40 rounded-3xl p-5 sm:p-7 max-w-lg w-full text-slate-200 shadow-2xl space-y-4 my-4 max-h-[92vh] overflow-y-auto">
             {/* Header */}
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="flex items-center justify-between border-b border-[#222222] pb-3">
               <div>
                 <span className="text-[10px] uppercase font-bold tracking-widest text-emerald-400 font-mono">
                   {editingEntry ? "Edit Sale Record" : "Log New Counter Sale"}
@@ -8141,10 +8141,10 @@ export default function VendingCenterLoggerPage() {
                       }
                     }
                   }}
-                  className={`relative group bg-slate-950/80 border rounded-2xl p-2.5 sm:p-3 transition-all flex flex-col justify-between shadow-inner ${
+                  className={`relative group bg-black/80 border rounded-2xl p-2.5 sm:p-3 transition-all flex flex-col justify-between shadow-inner ${
                     isSuperAdmin || isAdmin
-                      ? "border-slate-800 hover:border-emerald-500/60 cursor-pointer"
-                      : "border-slate-800/80 cursor-not-allowed opacity-90"
+                      ? "border-[#222222] hover:border-emerald-500/60 cursor-pointer"
+                      : "border-[#222222]/80 cursor-not-allowed opacity-90"
                   }`}
                 >
                   <div className="flex items-center justify-between mb-1.5 flex-wrap gap-1">
@@ -8163,7 +8163,7 @@ export default function VendingCenterLoggerPage() {
                           className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-full border transition-all cursor-pointer ${
                             formDate === getIstYesterdayDate()
                               ? "bg-amber-500/25 text-amber-200 border-amber-500/50"
-                              : "bg-slate-800/90 hover:bg-slate-700 text-slate-400 hover:text-white border-slate-700"
+                              : "bg-slate-800/90 hover:bg-slate-700 text-slate-400 hover:text-white border-[#333333]"
                           }`}
                           title={`Set to Yesterday (${formatIstDateDisplay(getIstYesterdayDate())})`}
                         >
@@ -8178,7 +8178,7 @@ export default function VendingCenterLoggerPage() {
                           className={`text-[9px] font-mono font-bold px-1.5 py-0.5 rounded-full border transition-all cursor-pointer ${
                             formDate === getTodayDate()
                               ? "bg-emerald-950/90 text-emerald-300 border border-emerald-500/50"
-                              : "bg-slate-800/90 hover:bg-slate-700 text-slate-400 hover:text-white border-slate-700"
+                              : "bg-slate-800/90 hover:bg-slate-700 text-slate-400 hover:text-white border-[#333333]"
                           }`}
                           title={`Set to Today (${formatIstDateDisplay(getTodayDate())})`}
                         >
@@ -8186,7 +8186,7 @@ export default function VendingCenterLoggerPage() {
                         </button>
                       </div>
                     ) : (
-                      <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700">
+                      <span className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-[#333333]">
                         🔒 Today Only
                       </span>
                     )}
@@ -8249,7 +8249,7 @@ export default function VendingCenterLoggerPage() {
               </div>
 
               {/* Row 1.5: Order Channel (Counter Walk-In vs Home Delivery) */}
-              <div className="p-3 bg-slate-950/80 border border-slate-800 rounded-2xl space-y-2">
+              <div className="p-3 bg-black/80 border border-[#222222] rounded-2xl space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
                     <span className="material-symbols-outlined text-sm text-emerald-400">local_shipping</span>
@@ -8273,7 +8273,7 @@ export default function VendingCenterLoggerPage() {
                     className={`py-2 px-3 rounded-xl font-bold text-xs font-mono transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                       formOrderChannel === "counter"
                         ? "bg-emerald-500/20 text-emerald-300 border-2 border-emerald-500 shadow-md shadow-emerald-950/40"
-                        : "bg-slate-900 border border-slate-700 text-slate-400 hover:text-white"
+                        : "bg-[#0a0a0a] border border-[#333333] text-slate-400 hover:text-white"
                     }`}
                   >
                     <span>📍 Counter Walk-In</span>
@@ -8291,7 +8291,7 @@ export default function VendingCenterLoggerPage() {
                     className={`py-2 px-3 rounded-xl font-bold text-xs font-mono transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                       formOrderChannel === "delivery"
                         ? "bg-blue-500/20 text-blue-300 border-2 border-blue-500 shadow-md shadow-blue-950/40"
-                        : "bg-slate-900 border border-slate-700 text-slate-400 hover:text-white"
+                        : "bg-[#0a0a0a] border border-[#333333] text-slate-400 hover:text-white"
                     }`}
                   >
                     <span>🚚 Home Delivery</span>
@@ -8325,7 +8325,7 @@ export default function VendingCenterLoggerPage() {
                       value={formDeliveryArea}
                       onChange={(e) => setFormDeliveryArea(e.target.value)}
                       placeholder="e.g. Malabagh, Lal Bazar, Soura, Rajbagh..."
-                      className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-blue-400"
+                      className="w-full bg-black border border-[#333333] rounded-xl px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-blue-400"
                     />
                     <div className="flex items-center gap-1 mt-1.5 flex-wrap">
                       {["Malabagh", "Lal Bazar", "Soura", "Hazratbal", "Hawal", "Lal Chowk", "Rajbagh", "Sanat Nagar"].map((loc) => (
@@ -8336,7 +8336,7 @@ export default function VendingCenterLoggerPage() {
                           className={`px-2 py-0.5 rounded-md text-[9.5px] font-mono font-bold transition-all cursor-pointer ${
                             formDeliveryArea.toLowerCase() === loc.toLowerCase()
                               ? "bg-blue-500/30 border border-blue-400 text-blue-200"
-                              : "bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200"
+                              : "bg-[#0a0a0a] border border-[#222222] text-slate-400 hover:text-slate-200"
                           }`}
                         >
                           {loc}
@@ -8349,7 +8349,7 @@ export default function VendingCenterLoggerPage() {
                   <div className="space-y-3">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                       {/* 1. Total Delivery Cost Incurred (Charged by Courier / Rider) */}
-                      <div className="p-3 rounded-xl bg-slate-950 border border-amber-500/30 space-y-1.5">
+                      <div className="p-3 rounded-xl bg-black border border-amber-500/30 space-y-1.5">
                         <div className="flex items-center justify-between">
                           <label className="text-[10px] uppercase font-bold text-amber-400 font-mono flex items-center gap-1">
                             <span className="material-symbols-outlined text-[13px]">two_wheeler</span>
@@ -8368,7 +8368,7 @@ export default function VendingCenterLoggerPage() {
                             setFormDeliveryCostTotal(val);
                             setFormDeliveryRiderPayout(val);
                           }}
-                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-black font-mono text-amber-300 focus:outline-none focus:border-amber-400"
+                          className="w-full bg-[#0a0a0a] border border-[#333333] rounded-lg px-2.5 py-1.5 text-xs font-black font-mono text-amber-300 focus:outline-none focus:border-amber-400"
                         />
                         {/* Quick fare chips */}
                         <div className="flex items-center gap-1 pt-0.5 flex-wrap">
@@ -8383,7 +8383,7 @@ export default function VendingCenterLoggerPage() {
                               className={`px-1.5 py-0.5 rounded text-[8.5px] font-mono font-bold transition-all cursor-pointer ${
                                 formDeliveryCostTotal === fare
                                   ? "bg-amber-500/30 text-amber-200 border border-amber-400"
-                                  : "bg-slate-900 text-slate-400 hover:text-white"
+                                  : "bg-[#0a0a0a] text-slate-400 hover:text-white"
                               }`}
                             >
                               ₹{fare}
@@ -8393,7 +8393,7 @@ export default function VendingCenterLoggerPage() {
                       </div>
 
                       {/* 2. Customer's Delivery Share */}
-                      <div className="p-3 rounded-xl bg-slate-950 border border-emerald-500/30 space-y-1.5">
+                      <div className="p-3 rounded-xl bg-black border border-emerald-500/30 space-y-1.5">
                         <div className="flex items-center justify-between">
                           <label className="text-[10px] uppercase font-bold text-emerald-400 font-mono flex items-center gap-1">
                             <span className="material-symbols-outlined text-[13px]">person_check</span>
@@ -8417,7 +8417,7 @@ export default function VendingCenterLoggerPage() {
                               setFormAmount((fishExpected + cShare).toString());
                             }
                           }}
-                          className="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs font-black font-mono text-emerald-300 focus:outline-none focus:border-emerald-400"
+                          className="w-full bg-[#0a0a0a] border border-[#333333] rounded-lg px-2.5 py-1.5 text-xs font-black font-mono text-emerald-300 focus:outline-none focus:border-emerald-400"
                         />
                         {/* Quick fee presets based on delivery zones */}
                         <div className="flex items-center gap-1 pt-0.5 flex-wrap">
@@ -8444,7 +8444,7 @@ export default function VendingCenterLoggerPage() {
                               className={`px-1.5 py-0.5 rounded text-[8.5px] font-mono font-bold transition-all cursor-pointer ${
                                 formDeliveryCustomerShare === chip.v
                                   ? "bg-emerald-500/30 text-emerald-200 border border-emerald-400"
-                                  : "bg-slate-900 text-slate-400 hover:text-white"
+                                  : "bg-[#0a0a0a] text-slate-400 hover:text-white"
                               }`}
                             >
                               {chip.label}
@@ -8468,7 +8468,7 @@ export default function VendingCenterLoggerPage() {
 
                       return (
                         <div className="p-3 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-900/95 to-blue-950/40 border-2 border-blue-500/40 space-y-2.5 font-mono shadow-lg">
-                          <div className="flex items-center justify-between text-xs pb-2 border-b border-slate-800">
+                          <div className="flex items-center justify-between text-xs pb-2 border-b border-[#222222]">
                             <div className="flex items-center gap-1.5 font-bold text-cyan-300">
                               <span className="material-symbols-outlined text-sm text-cyan-400">payments</span>
                               <span>DYNAMIC DELIVERY CONTRIBUTION</span>
@@ -8511,7 +8511,7 @@ export default function VendingCenterLoggerPage() {
 
                           {/* Live Trout Buying Rate & Customer Bill Preview */}
                           {wNum > 0 && (
-                            <div className="p-2.5 rounded-xl bg-slate-950/90 border border-slate-800 space-y-1.5 text-xs">
+                            <div className="p-2.5 rounded-xl bg-black/90 border border-[#222222] space-y-1.5 text-xs">
                               <div className="flex items-center justify-between">
                                 <span className="text-slate-400">Actual Trout Buying Rate:</span>
                                 <div className="flex items-center gap-1.5">
@@ -8519,7 +8519,7 @@ export default function VendingCenterLoggerPage() {
                                   <span className="text-[9px] px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-300 font-bold">Pure Fish Price</span>
                                 </div>
                               </div>
-                              <div className="flex items-center justify-between pt-1.5 border-t border-slate-800/80">
+                              <div className="flex items-center justify-between pt-1.5 border-t border-[#222222]/80">
                                 <span className="text-slate-400">Total Bill for Customer:</span>
                                 <div className="text-right">
                                   <span className="text-white font-black text-base">₹{totalBill}</span>
@@ -8535,7 +8535,7 @@ export default function VendingCenterLoggerPage() {
                     })()}
 
                     {/* Optional: Final Rider Payout (defaults to total cost) */}
-                    <div className="flex items-center justify-between p-2 rounded-xl bg-slate-950 border border-slate-800/90 text-[10.5px] font-mono">
+                    <div className="flex items-center justify-between p-2 rounded-xl bg-black border border-[#222222]/90 text-[10.5px] font-mono">
                       <span className="text-slate-400">Final Paid to Rider:</span>
                       <div className="flex items-center gap-1.5">
                         <span className="text-slate-500">₹</span>
@@ -8546,7 +8546,7 @@ export default function VendingCenterLoggerPage() {
                           placeholder={formDeliveryCostTotal || "0"}
                           onFocus={(e) => e.target.select()}
                           onChange={(e) => setFormDeliveryRiderPayout(e.target.value)}
-                          className="w-20 bg-slate-900 border border-slate-700 rounded-lg px-2 py-0.5 text-xs font-black font-mono text-blue-300 focus:outline-none focus:border-blue-400 text-right"
+                          className="w-20 bg-[#0a0a0a] border border-[#333333] rounded-lg px-2 py-0.5 text-xs font-black font-mono text-blue-300 focus:outline-none focus:border-blue-400 text-right"
                         />
                       </div>
                     </div>
@@ -8559,7 +8559,7 @@ export default function VendingCenterLoggerPage() {
                       value={formDeliveryRiderNotes}
                       onChange={(e) => setFormDeliveryRiderNotes(e.target.value)}
                       placeholder="Rider / Courier details (e.g. Farooq - Auto / Rapido - Ph: 98765...)"
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-1.5 text-[11px] font-mono text-slate-300 focus:outline-none focus:border-blue-400"
+                      className="w-full bg-black border border-[#222222] rounded-xl px-3 py-1.5 text-[11px] font-mono text-slate-300 focus:outline-none focus:border-blue-400"
                     />
                   </div>
                 </div>
@@ -8584,7 +8584,7 @@ export default function VendingCenterLoggerPage() {
                     className={`py-2.5 px-3 rounded-xl font-bold text-xs transition-all cursor-pointer text-center ${
                       formType === "Gutted"
                         ? "bg-emerald-500/20 text-emerald-300 border-2 border-emerald-500 shadow-md shadow-emerald-950/40"
-                        : "bg-slate-950/80 text-slate-400 border border-slate-700 hover:text-white"
+                        : "bg-black/80 text-slate-400 border border-[#333333] hover:text-white"
                     }`}
                   >
                     🐟 Gutted Trout
@@ -8598,7 +8598,7 @@ export default function VendingCenterLoggerPage() {
                     className={`py-2.5 px-3 rounded-xl font-bold text-xs transition-all cursor-pointer text-center ${
                       formType === "Non Gutted"
                         ? "bg-cyan-500/20 text-cyan-300 border-2 border-cyan-500 shadow-md shadow-cyan-950/40"
-                        : "bg-slate-950/80 text-slate-400 border border-slate-700 hover:text-white"
+                        : "bg-black/80 text-slate-400 border border-[#333333] hover:text-white"
                     }`}
                   >
                     ✨ Non Gutted (Whole)
@@ -8616,7 +8616,7 @@ export default function VendingCenterLoggerPage() {
                   className={`p-3 rounded-2xl border transition-all cursor-pointer flex items-center justify-between gap-3 select-none ${
                     formSelfCleaned
                       ? "bg-amber-950/40 border-amber-500/60 shadow-lg shadow-amber-950/30"
-                      : "bg-slate-950/80 border-slate-800 hover:border-slate-700"
+                      : "bg-black/80 border-[#222222] hover:border-[#333333]"
                   }`}
                 >
                   <div className="flex items-center gap-3">
@@ -8624,7 +8624,7 @@ export default function VendingCenterLoggerPage() {
                       className={`w-6 h-6 rounded-lg flex items-center justify-center border transition-all flex-shrink-0 ${
                         formSelfCleaned
                           ? "bg-amber-500 border-amber-400 text-slate-950 font-black shadow-sm"
-                          : "bg-slate-900 border-slate-700 text-transparent"
+                          : "bg-[#0a0a0a] border-[#333333] text-transparent"
                       }`}
                     >
                       <span className="material-symbols-outlined text-sm font-black">check</span>
@@ -8688,7 +8688,7 @@ export default function VendingCenterLoggerPage() {
                     }}
                     required
                     placeholder="e.g. 2.155"
-                    className="w-full bg-slate-950 border-2 border-emerald-500/50 rounded-xl px-4 py-3 text-lg font-black text-white font-mono focus:outline-none focus:border-emerald-400"
+                    className="w-full bg-black border-2 border-emerald-500/50 rounded-xl px-4 py-3 text-lg font-black text-white font-mono focus:outline-none focus:border-emerald-400"
                   />
                   <span className="absolute right-4 top-3 text-sm text-emerald-400 font-bold font-mono">
                     Kg
@@ -8706,7 +8706,7 @@ export default function VendingCenterLoggerPage() {
                         setFormWeight((cur + inc).toFixed(3));
                         setFormAmountOverridden(false);
                       }}
-                      className="py-1 px-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-mono font-bold transition-all cursor-pointer text-center border border-slate-700"
+                      className="py-1 px-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10px] font-mono font-bold transition-all cursor-pointer text-center border border-[#333333]"
                     >
                       +{inc} Kg
                     </button>
@@ -8740,19 +8740,19 @@ export default function VendingCenterLoggerPage() {
                 return (
                   <div className="space-y-3">
                     {/* Rate & Expected Price Info Box */}
-                    <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800 space-y-2 font-mono">
+                    <div className="p-3 rounded-2xl bg-black border border-[#222222] space-y-2 font-mono">
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-slate-400">Standard Base Rate:</span>
                         <span className="text-white font-bold">₹{defaultStandardRate} / Kg</span>
                       </div>
                       {formRate !== defaultStandardRate && (
-                        <div className="flex items-center justify-between text-xs border-t border-slate-800/80 pt-1.5">
+                        <div className="flex items-center justify-between text-xs border-t border-[#222222]/80 pt-1.5">
                           <span className="text-amber-400 font-bold">Negotiated Customer Rate:</span>
                           <span className="text-amber-300 font-black">₹{formRate} / Kg</span>
                         </div>
                       )}
                       {isDel && custDelShare > 0 && (
-                        <div className="flex items-center justify-between text-xs border-t border-slate-800/80 pt-1.5">
+                        <div className="flex items-center justify-between text-xs border-t border-[#222222]/80 pt-1.5">
                           <span className="text-blue-400 font-bold flex items-center gap-1">
                             <span className="material-symbols-outlined text-[13px]">moped</span>
                             Customer Delivery Share:
@@ -8760,7 +8760,7 @@ export default function VendingCenterLoggerPage() {
                           <span className="text-blue-300 font-bold">+₹{custDelShare.toLocaleString("en-IN")}</span>
                         </div>
                       )}
-                      <div className="flex items-center justify-between text-xs border-t border-slate-800/80 pt-2">
+                      <div className="flex items-center justify-between text-xs border-t border-[#222222]/80 pt-2">
                         <span className="text-slate-400">
                           {isDel ? "Total Expected Bill (Fish + Del):" : formRate !== defaultStandardRate ? "Agreed Customer Bill:" : "Expected Customer Total:"}
                         </span>
@@ -8807,7 +8807,7 @@ export default function VendingCenterLoggerPage() {
                             }
                           }}
                           required
-                          className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2.5 text-sm font-mono text-white focus:outline-none focus:border-emerald-400"
+                          className="w-full bg-black border border-[#333333] rounded-xl px-3 py-2.5 text-sm font-mono text-white focus:outline-none focus:border-emerald-400"
                         />
                         {/* Quick Rate Negotiation Presets */}
                         <div className="flex items-center gap-1 mt-1.5 flex-wrap">
@@ -8830,7 +8830,7 @@ export default function VendingCenterLoggerPage() {
                               className={`px-2 py-0.5 rounded-md text-[9.5px] font-mono font-bold transition-all cursor-pointer ${
                                 formRate === chip.r
                                   ? "bg-emerald-500/30 border border-emerald-400 text-emerald-300 shadow-sm"
-                                  : "bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700"
+                                  : "bg-[#0a0a0a] border border-[#222222] text-slate-400 hover:text-slate-200 hover:border-[#333333]"
                               }`}
                             >
                               {chip.label}
@@ -8858,7 +8858,7 @@ export default function VendingCenterLoggerPage() {
                           }}
                           required
                           placeholder={`Agreed: ₹${expectedTotal}`}
-                          className="w-full bg-slate-950 border-2 border-cyan-500/50 rounded-xl px-3 py-2.5 text-base font-black text-cyan-300 font-mono focus:outline-none focus:border-cyan-400"
+                          className="w-full bg-black border-2 border-cyan-500/50 rounded-xl px-3 py-2.5 text-base font-black text-cyan-300 font-mono focus:outline-none focus:border-cyan-400"
                         />
                         <span className="text-[9.5px] text-slate-500 font-mono mt-1 block">
                           Type amount paid by customer (0 for Credit)
@@ -8879,21 +8879,21 @@ export default function VendingCenterLoggerPage() {
                               ? "bg-rose-500/20 text-rose-300 border border-rose-500/40"
                               : deliveryGain > 0
                               ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
-                              : "bg-slate-800 text-slate-300 border border-slate-700"
+                              : "bg-slate-800 text-slate-300 border border-[#333333]"
                           }`}>
                             {deliveryFarmSubsidy > 0 ? `Farm Subsidy Loss: -₹${deliveryFarmSubsidy}` : deliveryGain > 0 ? `Delivery Gain: +₹${deliveryGain}` : "Break-Even on Rider ✓"}
                           </span>
                         </div>
-                        <div className="grid grid-cols-3 gap-2 text-[10.5px] pt-1.5 border-t border-slate-800/80">
-                          <div className="p-1.5 rounded-lg bg-slate-900 border border-slate-800">
+                        <div className="grid grid-cols-3 gap-2 text-[10.5px] pt-1.5 border-t border-[#222222]/80">
+                          <div className="p-1.5 rounded-lg bg-[#0a0a0a] border border-[#222222]">
                             <span className="text-[9px] text-slate-400 block">Cust Delivery</span>
                             <span className="text-emerald-300 font-black text-xs">+₹{custDelShare}</span>
                           </div>
-                          <div className="p-1.5 rounded-lg bg-slate-900 border border-slate-800">
+                          <div className="p-1.5 rounded-lg bg-[#0a0a0a] border border-[#222222]">
                             <span className="text-[9px] text-slate-400 block">Rider Cost</span>
                             <span className="text-amber-300 font-black text-xs">-₹{riderCost}</span>
                           </div>
-                          <div className="p-1.5 rounded-lg bg-slate-900 border border-slate-800">
+                          <div className="p-1.5 rounded-lg bg-[#0a0a0a] border border-[#222222]">
                             <span className="text-[9px] text-slate-400 block">Net Fish In-Hand</span>
                             <span className="text-cyan-300 font-black text-xs">₹{netFishPaid}</span>
                           </div>
@@ -8974,7 +8974,7 @@ export default function VendingCenterLoggerPage() {
 
                         {/* Twin metric display */}
                         <div className="grid grid-cols-2 gap-2">
-                          <div className="p-2.5 rounded-xl bg-slate-950/90 border border-slate-800">
+                          <div className="p-2.5 rounded-xl bg-black/90 border border-[#222222]">
                             <span className="text-[9.5px] uppercase font-bold text-slate-400 block font-mono">
                               Effective Rate / Kg
                             </span>
@@ -9007,7 +9007,7 @@ export default function VendingCenterLoggerPage() {
                             )}
                           </div>
 
-                          <div className="p-2.5 rounded-xl bg-slate-950/90 border border-slate-800 text-right">
+                          <div className="p-2.5 rounded-xl bg-black/90 border border-[#222222] text-right">
                             <span className="text-[9.5px] uppercase font-bold text-slate-400 block font-mono">
                               {customerRemainingDue > 0 ? "Due from Customer" : "Concession / Loss"}
                             </span>
@@ -9036,7 +9036,7 @@ export default function VendingCenterLoggerPage() {
 
                     {/* Balance vs Final Settlement Options (When customer paid less than expected) */}
                     {wNum > 0 && (actualPaid > 0 || formAmount === "0") && customerRemainingDue > 0 && (
-                      <div className="p-3.5 rounded-2xl bg-slate-950/90 border border-purple-500/40 space-y-3">
+                      <div className="p-3.5 rounded-2xl bg-black/90 border border-purple-500/40 space-y-3">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <span className="material-symbols-outlined text-purple-400 text-base">account_balance_wallet</span>
@@ -9055,7 +9055,7 @@ export default function VendingCenterLoggerPage() {
                             className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                               formBalanceAction === "final_settlement"
                                 ? "bg-slate-800/90 border-amber-400 text-amber-200 ring-1 ring-amber-400/50 shadow-md"
-                                : "bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-300"
+                                : "bg-[#0a0a0a]/60 border-[#222222] text-slate-400 hover:text-slate-300"
                             }`}
                           >
                             <div className="flex items-center gap-1.5 font-bold text-xs">
@@ -9076,7 +9076,7 @@ export default function VendingCenterLoggerPage() {
                             className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                               formBalanceAction === "balance"
                                 ? "bg-purple-950/40 border-purple-400 text-purple-200 ring-1 ring-purple-400/50 shadow-md shadow-purple-950/30"
-                                : "bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-300"
+                                : "bg-[#0a0a0a]/60 border-[#222222] text-slate-400 hover:text-slate-300"
                             }`}
                           >
                             <div className="flex items-center gap-1.5 font-bold text-xs">
@@ -9090,7 +9090,7 @@ export default function VendingCenterLoggerPage() {
 
                         {/* Customer details when Balance is chosen */}
                         {formBalanceAction === "balance" && (
-                          <div className="p-3 rounded-xl bg-slate-900/90 border border-purple-500/30 space-y-2.5">
+                          <div className="p-3 rounded-xl bg-[#0a0a0a]/90 border border-purple-500/30 space-y-2.5">
                             <div className="flex items-center justify-between text-[11px] text-purple-300 font-mono">
                               <span className="font-bold">Customer Contact for Balance Reminder</span>
                               <span className="text-[10px] text-purple-400/80">Phone required for WhatsApp/QR</span>
@@ -9105,7 +9105,7 @@ export default function VendingCenterLoggerPage() {
                                   value={formCustomerPhone}
                                   onChange={(e) => setFormCustomerPhone(e.target.value)}
                                   placeholder="e.g. 9876543210"
-                                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-purple-400"
+                                  className="w-full bg-black border border-[#333333] rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-purple-400"
                                 />
                               </div>
                               <div>
@@ -9117,7 +9117,7 @@ export default function VendingCenterLoggerPage() {
                                   value={formCustomerName}
                                   onChange={(e) => setFormCustomerName(e.target.value)}
                                   placeholder="e.g. Dr. Farooq / Tariq Sb"
-                                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-purple-400"
+                                  className="w-full bg-black border border-[#333333] rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-purple-400"
                                 />
                               </div>
                             </div>
@@ -9129,7 +9129,7 @@ export default function VendingCenterLoggerPage() {
 
                         {/* Option 3: Remove / Clear Balance (Shown in edit mode or when balance was previously recorded) */}
                         {(editingEntry?.custom_fields?.balance_amount || formBalanceAction === "none") && (
-                          <div className="flex items-center justify-between pt-1 border-t border-slate-800/80">
+                          <div className="flex items-center justify-between pt-1 border-t border-[#222222]/80">
                             <span className="text-[10px] text-slate-400 font-mono">Need to remove tracking?</span>
                             <button
                               type="button"
@@ -9205,7 +9205,7 @@ export default function VendingCenterLoggerPage() {
                               : m.id.includes("JK Bank")
                               ? "bg-blue-500/25 text-blue-200 border-2 border-blue-400 shadow-md shadow-blue-950/40"
                               : "bg-emerald-500/20 text-emerald-300 border-2 border-emerald-500 shadow-md shadow-emerald-950/40"
-                            : "bg-slate-950/80 text-slate-400 border border-slate-700 hover:text-white"
+                            : "bg-black/80 text-slate-400 border border-[#333333] hover:text-white"
                         }`}
                       >
                         <span className="block text-xs sm:text-sm leading-tight font-black">{m.label}</span>
@@ -9217,7 +9217,7 @@ export default function VendingCenterLoggerPage() {
 
                 {/* Split Payment Controls (Cash + Online) */}
                 {formPayment === "Split (Cash + Online)" && (
-                  <div className="p-3.5 rounded-2xl bg-slate-950 border-2 border-cyan-500/40 space-y-3 font-mono animate-fadeIn">
+                  <div className="p-3.5 rounded-2xl bg-black border-2 border-cyan-500/40 space-y-3 font-mono animate-fadeIn">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-1.5">
                         <span className="text-base">🔀</span>
@@ -9257,7 +9257,7 @@ export default function VendingCenterLoggerPage() {
                               }
                             }}
                             placeholder="0"
-                            className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-6 pr-2 py-2 text-sm text-white font-mono font-bold focus:outline-none focus:border-cyan-400"
+                            className="w-full bg-[#0a0a0a] border border-[#333333] rounded-xl pl-6 pr-2 py-2 text-sm text-white font-mono font-bold focus:outline-none focus:border-cyan-400"
                           />
                         </div>
                       </div>
@@ -9281,7 +9281,7 @@ export default function VendingCenterLoggerPage() {
                               }
                             }}
                             placeholder="0"
-                            className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-6 pr-2 py-2 text-sm text-white font-mono font-bold focus:outline-none focus:border-cyan-400"
+                            className="w-full bg-[#0a0a0a] border border-[#333333] rounded-xl pl-6 pr-2 py-2 text-sm text-white font-mono font-bold focus:outline-none focus:border-cyan-400"
                           />
                         </div>
                       </div>
@@ -9304,7 +9304,7 @@ export default function VendingCenterLoggerPage() {
                             className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer text-left ${
                               formOnlineChannel === ch.id
                                 ? "bg-cyan-500/25 text-cyan-200 border-2 border-cyan-400 shadow-sm"
-                                : "bg-slate-900 text-slate-400 border border-slate-700 hover:text-white"
+                                : "bg-[#0a0a0a] text-slate-400 border border-[#333333] hover:text-white"
                             }`}
                           >
                             <span className="block leading-tight font-bold">{ch.label}</span>
@@ -9349,7 +9349,7 @@ export default function VendingCenterLoggerPage() {
 
               {/* Dynamic Custom Columns Fields */}
               {customColumns.filter((c) => c.visible).length > 0 && (
-                <div className="pt-2 border-t border-slate-800 space-y-2">
+                <div className="pt-2 border-t border-[#222222] space-y-2">
                   <span className="text-[10px] uppercase font-bold text-cyan-400 font-mono block">
                     Additional Custom Fields
                   </span>
@@ -9367,7 +9367,7 @@ export default function VendingCenterLoggerPage() {
                               onChange={(e) =>
                                 setFormCustomFields({ ...formCustomFields, [c.id]: e.target.value })
                               }
-                              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-cyan-400"
+                              className="w-full bg-black border border-[#333333] rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-cyan-400"
                             >
                               <option value="">Select...</option>
                               {c.options.map((opt) => (
@@ -9384,7 +9384,7 @@ export default function VendingCenterLoggerPage() {
                                 setFormCustomFields({ ...formCustomFields, [c.id]: e.target.value })
                               }
                               placeholder={`Enter ${c.name}`}
-                              className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-cyan-400"
+                              className="w-full bg-black border border-[#333333] rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-cyan-400"
                             />
                           )}
                         </div>
@@ -9394,7 +9394,7 @@ export default function VendingCenterLoggerPage() {
               )}
 
               {/* ── Customer Info & Quick Lookup ──────────────── */}
-              <div ref={customerDropdownRef} className="pt-3 border-t border-slate-800/80 space-y-2 relative">
+              <div ref={customerDropdownRef} className="pt-3 border-t border-[#222222]/80 space-y-2 relative">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-1.5">
                     <span className="material-symbols-outlined text-xs text-slate-400">person_search</span>
@@ -9427,7 +9427,7 @@ export default function VendingCenterLoggerPage() {
                         value={formCustomerName}
                         onChange={(e) => handleCustomerSearchChange("name", e.target.value)}
                         placeholder="Customer Name (e.g. Ovais / Zubair)"
-                        className="w-full bg-slate-950 border border-slate-700/80 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none transition-all placeholder:text-slate-600"
+                        className="w-full bg-black border border-[#333333]/80 focus:border-cyan-400 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none transition-all placeholder:text-slate-600"
                       />
                       {isSearchingCustomer && (
                         <span className="absolute right-2.5 top-1/2 -translate-y-1/2 material-symbols-outlined text-xs text-cyan-400 animate-spin">
@@ -9449,14 +9449,14 @@ export default function VendingCenterLoggerPage() {
                         onChange={(e) => handleCustomerSearchChange("phone", e.target.value)}
                         placeholder="10-digit Phone"
                         maxLength={10}
-                        className="w-full bg-slate-950 border border-slate-700/80 focus:border-cyan-400 rounded-xl pl-9 pr-3 py-2 text-xs text-white font-mono focus:outline-none transition-all placeholder:text-slate-600"
+                        className="w-full bg-black border border-[#333333]/80 focus:border-cyan-400 rounded-xl pl-9 pr-3 py-2 text-xs text-white font-mono focus:outline-none transition-all placeholder:text-slate-600"
                       />
                     </div>
                   </div>
 
                   {/* Floating Autocomplete Dropdown - Positioned strictly BELOW inputs */}
                   {customerDropdownOpen && (formCustomerName.trim() || formCustomerPhone.trim()) && (
-                    <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-slate-900 border border-cyan-500/40 rounded-xl shadow-2xl shadow-black/80 max-h-48 overflow-y-auto divide-y divide-slate-800">
+                    <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-[#0a0a0a] border border-cyan-500/40 rounded-xl shadow-2xl shadow-black/80 max-h-48 overflow-y-auto divide-y divide-[#222222]">
                       {isSearchingCustomer ? (
                         <div className="py-3 px-3 text-center text-[11px] text-slate-400 font-mono flex items-center justify-center gap-2">
                           <span className="material-symbols-outlined text-xs animate-spin text-cyan-400">sync</span>
@@ -9548,7 +9548,7 @@ export default function VendingCenterLoggerPage() {
                     value={formNotes}
                     onChange={(e) => setFormNotes(e.target.value)}
                     placeholder="e.g. Suhail / 3 fish cleaned"
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-emerald-400"
+                    className="w-full bg-black border border-[#333333] rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-emerald-400"
                   />
                 </div>
                 <div>
@@ -9563,7 +9563,7 @@ export default function VendingCenterLoggerPage() {
                     value={formLoggedBy}
                     onChange={(e) => setFormLoggedBy(e.target.value)}
                     placeholder="e.g. Mohd Amin"
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-emerald-400 mb-1.5"
+                    className="w-full bg-black border border-[#333333] rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-emerald-400 mb-1.5"
                   />
                   {/* Quick Staff Selection Chips */}
                   <div className="flex items-center gap-1.5 flex-wrap">
@@ -9575,7 +9575,7 @@ export default function VendingCenterLoggerPage() {
                         className={`px-2 py-0.5 rounded-lg text-[10px] font-mono transition-all cursor-pointer ${
                           formLoggedBy === sName
                             ? "bg-emerald-500 text-slate-950 font-bold shadow-sm"
-                            : "bg-slate-800/80 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700"
+                            : "bg-slate-800/80 text-slate-300 hover:bg-slate-700 hover:text-white border border-[#333333]"
                         }`}
                       >
                         {sName === "Suhail" ? "👑 Suhail" : sName === "Mohd Amin" ? "👤 Mohd Amin" : `👤 ${sName}`}
@@ -9611,8 +9611,8 @@ export default function VendingCenterLoggerPage() {
           }}
           className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto"
         >
-          <div className="bg-slate-900 border border-cyan-500/40 rounded-3xl p-5 sm:p-7 max-w-md w-full text-slate-200 shadow-2xl space-y-4 my-4">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div className="bg-[#0a0a0a] border border-cyan-500/40 rounded-3xl p-5 sm:p-7 max-w-md w-full text-slate-200 shadow-2xl space-y-4 my-4">
+            <div className="flex items-center justify-between border-b border-[#222222] pb-3">
               <div>
                 <span className="text-[10px] uppercase font-bold tracking-widest text-cyan-400 font-mono">
                   Table Customization
@@ -9639,18 +9639,18 @@ export default function VendingCenterLoggerPage() {
                 Standard Fixed Columns:
               </span>
               <div className="flex flex-wrap gap-1 text-[11px] font-mono text-slate-400">
-                <span className="px-2 py-0.5 rounded-md bg-slate-950 border border-slate-800">Date</span>
-                <span className="px-2 py-0.5 rounded-md bg-slate-950 border border-slate-800">Time</span>
-                <span className="px-2 py-0.5 rounded-md bg-slate-950 border border-slate-800">Weight (Kg)</span>
-                <span className="px-2 py-0.5 rounded-md bg-slate-950 border border-slate-800">Type</span>
-                <span className="px-2 py-0.5 rounded-md bg-slate-950 border border-slate-800">Rate @/Kg</span>
-                <span className="px-2 py-0.5 rounded-md bg-slate-950 border border-slate-800">Amount Paid</span>
-                <span className="px-2 py-0.5 rounded-md bg-slate-950 border border-slate-800">Mode of Payment</span>
+                <span className="px-2 py-0.5 rounded-md bg-black border border-[#222222]">Date</span>
+                <span className="px-2 py-0.5 rounded-md bg-black border border-[#222222]">Time</span>
+                <span className="px-2 py-0.5 rounded-md bg-black border border-[#222222]">Weight (Kg)</span>
+                <span className="px-2 py-0.5 rounded-md bg-black border border-[#222222]">Type</span>
+                <span className="px-2 py-0.5 rounded-md bg-black border border-[#222222]">Rate @/Kg</span>
+                <span className="px-2 py-0.5 rounded-md bg-black border border-[#222222]">Amount Paid</span>
+                <span className="px-2 py-0.5 rounded-md bg-black border border-[#222222]">Mode of Payment</span>
               </div>
             </div>
 
             {/* Custom User Columns List */}
-            <div className="space-y-2 pt-2 border-t border-slate-800">
+            <div className="space-y-2 pt-2 border-t border-[#222222]">
               <span className="text-[10px] uppercase font-bold text-cyan-400 font-mono block">
                 User-Defined Custom Columns:
               </span>
@@ -9664,7 +9664,7 @@ export default function VendingCenterLoggerPage() {
                   {customColumns.map((col) => (
                     <div
                       key={col.id}
-                      className="p-2 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between text-xs font-mono"
+                      className="p-2 rounded-xl bg-black border border-[#222222] flex items-center justify-between text-xs font-mono"
                     >
                       <div className="flex items-center gap-2">
                         <button
@@ -9704,7 +9704,7 @@ export default function VendingCenterLoggerPage() {
             </div>
 
             {/* Form: Add New Dynamic Column */}
-            <form onSubmit={handleAddColumn} className="space-y-3 pt-3 border-t border-slate-800">
+            <form onSubmit={handleAddColumn} className="space-y-3 pt-3 border-t border-[#222222]">
               <span className="text-[10px] uppercase font-bold text-slate-300 font-mono block">
                 Add New Dynamic Column
               </span>
@@ -9716,7 +9716,7 @@ export default function VendingCenterLoggerPage() {
                   value={newColName}
                   onChange={(e) => setNewColName(e.target.value)}
                   required
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-cyan-400"
+                  className="w-full bg-black border border-[#333333] rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-cyan-400"
                 />
 
                 <div className="grid grid-cols-3 gap-2">
@@ -9732,7 +9732,7 @@ export default function VendingCenterLoggerPage() {
                       className={`py-1.5 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
                         newColType === t.id
                           ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500"
-                          : "bg-slate-950 text-slate-400 border border-slate-800 hover:text-white"
+                          : "bg-black text-slate-400 border border-[#222222] hover:text-white"
                       }`}
                     >
                       {t.label}
@@ -9747,7 +9747,7 @@ export default function VendingCenterLoggerPage() {
                     value={newColOptions}
                     onChange={(e) => setNewColOptions(e.target.value)}
                     required
-                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-cyan-400"
+                    className="w-full bg-black border border-[#333333] rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-cyan-400"
                   />
                 )}
               </div>
@@ -9773,9 +9773,9 @@ export default function VendingCenterLoggerPage() {
           }}
           className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto"
         >
-          <div className="bg-slate-900 border border-purple-500/40 rounded-3xl p-5 sm:p-7 max-w-2xl w-full text-slate-200 shadow-2xl space-y-5 my-4 max-h-[92vh] overflow-y-auto font-mono">
+          <div className="bg-[#0a0a0a] border border-purple-500/40 rounded-3xl p-5 sm:p-7 max-w-2xl w-full text-slate-200 shadow-2xl space-y-5 my-4 max-h-[92vh] overflow-y-auto font-mono">
             {/* Modal Header */}
-            <div className="flex items-start justify-between border-b border-slate-800 pb-3.5">
+            <div className="flex items-start justify-between border-b border-[#222222] pb-3.5">
               <div>
                 <div className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-purple-400 text-xl">volunteer_activism</span>
@@ -9801,7 +9801,7 @@ export default function VendingCenterLoggerPage() {
 
             {/* Top Metric Summary Cards */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-              <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800">
+              <div className="p-3 rounded-2xl bg-black border border-[#222222]">
                 <span className="text-[10px] text-slate-400 uppercase tracking-wider block">
                   Worker Gutted (All-Time)
                 </span>
@@ -9819,7 +9819,7 @@ export default function VendingCenterLoggerPage() {
                 </div>
               </div>
 
-              <div className="p-3 rounded-2xl bg-slate-950 border border-purple-500/20">
+              <div className="p-3 rounded-2xl bg-black border border-purple-500/20">
                 <span className="text-[10px] text-purple-300 uppercase tracking-wider block">
                   Incentive Accrued
                 </span>
@@ -9831,7 +9831,7 @@ export default function VendingCenterLoggerPage() {
                 </span>
               </div>
 
-              <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800">
+              <div className="p-3 rounded-2xl bg-black border border-[#222222]">
                 <span className="text-[10px] text-slate-400 uppercase tracking-wider block">
                   Total Paid Out
                 </span>
@@ -9871,7 +9871,7 @@ export default function VendingCenterLoggerPage() {
             </div>
 
             {/* Form to Log New Payment */}
-            <div className="p-4 rounded-2xl bg-slate-950/90 border border-purple-500/30 space-y-3">
+            <div className="p-4 rounded-2xl bg-black/90 border border-purple-500/30 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs uppercase tracking-wider font-bold text-purple-300 flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-sm">payments</span>
@@ -9903,7 +9903,7 @@ export default function VendingCenterLoggerPage() {
                         value={payoutFormAmount}
                         onChange={(e) => setPayoutFormAmount(e.target.value)}
                         required
-                        className="w-full pl-7 pr-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-purple-400 font-bold"
+                        className="w-full pl-7 pr-3 py-1.5 bg-[#0a0a0a] border border-[#333333] rounded-xl text-xs text-white focus:outline-none focus:border-purple-400 font-bold"
                       />
                     </div>
                   </div>
@@ -9915,7 +9915,7 @@ export default function VendingCenterLoggerPage() {
                     <select
                       value={payoutFormMode}
                       onChange={(e) => setPayoutFormMode(e.target.value)}
-                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-purple-400"
+                      className="w-full px-3 py-1.5 bg-[#0a0a0a] border border-[#333333] rounded-xl text-xs text-white focus:outline-none focus:border-purple-400"
                     >
                       <option value="Cash">Cash Drawer</option>
                       <option value="UPI">UPI / GPay / PhonePe</option>
@@ -9933,7 +9933,7 @@ export default function VendingCenterLoggerPage() {
                       placeholder="e.g. Counter Staff"
                       value={payoutFormRecipient}
                       onChange={(e) => setPayoutFormRecipient(e.target.value)}
-                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-purple-400"
+                      className="w-full px-3 py-1.5 bg-[#0a0a0a] border border-[#333333] rounded-xl text-xs text-white focus:outline-none focus:border-purple-400"
                     />
                   </div>
                 </div>
@@ -9947,7 +9947,7 @@ export default function VendingCenterLoggerPage() {
                       type="date"
                       value={payoutFormDate}
                       onChange={(e) => setPayoutFormDate(e.target.value)}
-                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-purple-400"
+                      className="w-full px-3 py-1.5 bg-[#0a0a0a] border border-[#333333] rounded-xl text-xs text-white focus:outline-none focus:border-purple-400"
                     />
                   </div>
 
@@ -9960,7 +9960,7 @@ export default function VendingCenterLoggerPage() {
                       placeholder="e.g. Cleared for last week gutted sales"
                       value={payoutFormNotes}
                       onChange={(e) => setPayoutFormNotes(e.target.value)}
-                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-purple-400"
+                      className="w-full px-3 py-1.5 bg-[#0a0a0a] border border-[#333333] rounded-xl text-xs text-white focus:outline-none focus:border-purple-400"
                     />
                   </div>
                 </div>
@@ -9994,17 +9994,17 @@ export default function VendingCenterLoggerPage() {
               </span>
 
               {payouts.length === 0 ? (
-                <div className="text-center py-6 border border-dashed border-slate-800 rounded-2xl text-xs text-slate-500">
+                <div className="text-center py-6 border border-dashed border-[#222222] rounded-2xl text-xs text-slate-500">
                   <span className="material-symbols-outlined text-2xl text-slate-600 block mb-1">
                     receipt_long
                   </span>
                   No payments logged yet. Record a payout above when you disburse incentive money to your staff.
                 </div>
               ) : (
-                <div className="border border-slate-800 rounded-2xl overflow-hidden max-h-56 overflow-y-auto">
+                <div className="border border-[#222222] rounded-2xl overflow-hidden max-h-56 overflow-y-auto">
                   <table className="w-full text-left text-xs">
                     <thead>
-                      <tr className="bg-slate-950 border-b border-slate-800 text-[10px] text-slate-400 uppercase">
+                      <tr className="bg-black border-b border-[#222222] text-[10px] text-slate-400 uppercase">
                         <th className="py-2.5 px-3">Date</th>
                         <th className="py-2.5 px-3">Recipient</th>
                         <th className="py-2.5 px-3">Mode</th>
@@ -10013,7 +10013,7 @@ export default function VendingCenterLoggerPage() {
                         <th className="py-2.5 px-3 text-center">Action</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800/60 font-mono">
+                    <tbody className="divide-y divide-[#222222]/60 font-mono">
                       {payouts.map((p) => (
                         <tr key={p.id} className="hover:bg-slate-800/40 transition-colors">
                           <td className="py-2 px-3 whitespace-nowrap text-slate-300">
@@ -10026,7 +10026,7 @@ export default function VendingCenterLoggerPage() {
                             {p.recipient_name}
                           </td>
                           <td className="py-2 px-3 whitespace-nowrap">
-                            <span className="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-300 border border-slate-700">
+                            <span className="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-300 border border-[#333333]">
                               {p.payment_mode}
                             </span>
                           </td>
@@ -10086,9 +10086,9 @@ export default function VendingCenterLoggerPage() {
           }}
           className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto"
         >
-          <div className="bg-slate-900 border border-sky-500/40 rounded-3xl p-5 sm:p-7 max-w-2xl w-full text-slate-200 shadow-2xl space-y-5 my-4 max-h-[92vh] overflow-y-auto font-mono">
+          <div className="bg-[#0a0a0a] border border-sky-500/40 rounded-3xl p-5 sm:p-7 max-w-2xl w-full text-slate-200 shadow-2xl space-y-5 my-4 max-h-[92vh] overflow-y-auto font-mono">
             {/* Modal Header */}
-            <div className="flex items-start justify-between border-b border-slate-800 pb-3.5">
+            <div className="flex items-start justify-between border-b border-[#222222] pb-3.5">
               <div>
                 <div className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-sky-400 text-xl">badge</span>
@@ -10114,7 +10114,7 @@ export default function VendingCenterLoggerPage() {
 
             {/* Top Summary Metrics */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-              <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800">
+              <div className="p-3 rounded-2xl bg-black border border-[#222222]">
                 <div className="flex items-center justify-between">
                   <span className="text-[10px] text-slate-400 uppercase tracking-wider block">
                     Base Monthly Salary
@@ -10136,7 +10136,7 @@ export default function VendingCenterLoggerPage() {
                 </span>
               </div>
 
-              <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800">
+              <div className="p-3 rounded-2xl bg-black border border-[#222222]">
                 <span className="text-[10px] text-slate-400 uppercase tracking-wider block">
                   Paid for {selectedFormMonthLabel}
                 </span>
@@ -10177,7 +10177,7 @@ export default function VendingCenterLoggerPage() {
 
             {/* Edit Base Salary Form (if active) */}
             {editingBaseSalary && (
-              <form onSubmit={handleUpdateBaseSalary} className="p-3 rounded-2xl bg-slate-950 border border-sky-500/40 flex items-center gap-3">
+              <form onSubmit={handleUpdateBaseSalary} className="p-3 rounded-2xl bg-black border border-sky-500/40 flex items-center gap-3">
                 <div className="flex-1">
                   <label className="text-[10px] text-slate-400 uppercase block mb-1">
                     Set Monthly Base Wage for {salaryConfig.worker_name} (₹)
@@ -10186,7 +10186,7 @@ export default function VendingCenterLoggerPage() {
                     type="number"
                     value={baseSalaryInput}
                     onChange={(e) => setBaseSalaryInput(e.target.value)}
-                    className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-sky-400 font-bold"
+                    className="w-full px-3 py-1.5 bg-[#0a0a0a] border border-[#333333] rounded-xl text-xs text-white focus:outline-none focus:border-sky-400 font-bold"
                     placeholder="10500"
                     required
                   />
@@ -10201,7 +10201,7 @@ export default function VendingCenterLoggerPage() {
             )}
 
             {/* Form to Log New Salary Payment */}
-            <div className="p-4 rounded-2xl bg-slate-950/90 border border-sky-500/30 space-y-3.5">
+            <div className="p-4 rounded-2xl bg-black/90 border border-sky-500/30 space-y-3.5">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-xs uppercase tracking-wider font-bold text-sky-300 flex items-center gap-1.5">
                   <span className="material-symbols-outlined text-sm">payments</span>
@@ -10243,7 +10243,7 @@ export default function VendingCenterLoggerPage() {
                         value={salaryFormAmount}
                         onChange={(e) => setSalaryFormAmount(e.target.value)}
                         required
-                        className="w-full pl-7 pr-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-sky-400 font-bold font-mono"
+                        className="w-full pl-7 pr-3 py-1.5 bg-[#0a0a0a] border border-[#333333] rounded-xl text-xs text-white focus:outline-none focus:border-sky-400 font-bold font-mono"
                       />
                     </div>
                   </div>
@@ -10259,10 +10259,10 @@ export default function VendingCenterLoggerPage() {
                       value={formatMonthDisplay(salaryFormMonth)}
                       onChange={(e) => setSalaryFormMonth(e.target.value)}
                       required
-                      className="w-full px-3 py-1.5 bg-slate-900 border-2 border-emerald-500/60 rounded-xl text-xs text-emerald-300 focus:outline-none focus:border-emerald-400 font-bold font-mono cursor-pointer shadow-md"
+                      className="w-full px-3 py-1.5 bg-[#0a0a0a] border-2 border-emerald-500/60 rounded-xl text-xs text-emerald-300 focus:outline-none focus:border-emerald-400 font-bold font-mono cursor-pointer shadow-md"
                     >
                       {availableSalaryMonths.map((m) => (
-                        <option key={m.key} value={m.labelClean} className="bg-slate-900 text-white py-1">
+                        <option key={m.key} value={m.labelClean} className="bg-[#0a0a0a] text-white py-1">
                           {m.displayLabel}
                         </option>
                       ))}
@@ -10276,7 +10276,7 @@ export default function VendingCenterLoggerPage() {
                     <select
                       value={salaryFormMode}
                       onChange={(e) => setSalaryFormMode(e.target.value)}
-                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-sky-400 font-mono cursor-pointer"
+                      className="w-full px-3 py-1.5 bg-[#0a0a0a] border border-[#333333] rounded-xl text-xs text-white focus:outline-none focus:border-sky-400 font-mono cursor-pointer"
                     >
                       <option value="Cash">Cash Drawer</option>
                       <option value="UPI">UPI / GPay / PhonePe</option>
@@ -10297,7 +10297,7 @@ export default function VendingCenterLoggerPage() {
                       value={salaryFormDate}
                       onChange={(e) => setSalaryFormDate(e.target.value)}
                       required
-                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-sky-400 font-mono"
+                      className="w-full px-3 py-1.5 bg-[#0a0a0a] border border-[#333333] rounded-xl text-xs text-white focus:outline-none focus:border-sky-400 font-mono"
                     />
                   </div>
 
@@ -10310,7 +10310,7 @@ export default function VendingCenterLoggerPage() {
                       placeholder="e.g. Paid on 1st Oct for September 2026 work"
                       value={salaryFormNotes}
                       onChange={(e) => setSalaryFormNotes(e.target.value)}
-                      className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-sky-400"
+                      className="w-full px-3 py-1.5 bg-[#0a0a0a] border border-[#333333] rounded-xl text-xs text-white focus:outline-none focus:border-sky-400"
                     />
                   </div>
                 </div>
@@ -10352,17 +10352,17 @@ export default function VendingCenterLoggerPage() {
               </span>
 
               {salaryPayments.length === 0 ? (
-                <div className="text-center py-6 border border-dashed border-slate-800 rounded-2xl text-xs text-slate-500">
+                <div className="text-center py-6 border border-dashed border-[#222222] rounded-2xl text-xs text-slate-500">
                   <span className="material-symbols-outlined text-2xl text-slate-600 block mb-1">
                     receipt_long
                   </span>
                   No salary payments logged yet. Record a payment above when you disburse salary to Mohd Amin.
                 </div>
               ) : (
-                <div className="border border-slate-800 rounded-2xl overflow-hidden max-h-56 overflow-y-auto">
+                <div className="border border-[#222222] rounded-2xl overflow-hidden max-h-56 overflow-y-auto">
                   <table className="w-full text-left text-xs">
                     <thead>
-                      <tr className="bg-slate-950 border-b border-slate-800 text-[10px] text-slate-400 uppercase">
+                      <tr className="bg-black border-b border-[#222222] text-[10px] text-slate-400 uppercase">
                         <th className="py-2.5 px-3">Date</th>
                         <th className="py-2.5 px-3">Month</th>
                         <th className="py-2.5 px-3">Mode</th>
@@ -10371,7 +10371,7 @@ export default function VendingCenterLoggerPage() {
                         <th className="py-2.5 px-3 text-center">Action</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-800/60 font-mono">
+                    <tbody className="divide-y divide-[#222222]/60 font-mono">
                       {salaryPayments.map((p) => (
                         <tr key={p.id} className="hover:bg-slate-800/40 transition-colors">
                           <td className="py-2 px-3 whitespace-nowrap text-slate-300">
@@ -10384,7 +10384,7 @@ export default function VendingCenterLoggerPage() {
                             {p.salary_month}
                           </td>
                           <td className="py-2 px-3 whitespace-nowrap">
-                            <span className="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-300 border border-slate-700">
+                            <span className="px-2 py-0.5 rounded text-[10px] bg-slate-800 text-slate-300 border border-[#333333]">
                               {p.payment_mode}
                             </span>
                           </td>
@@ -10464,7 +10464,7 @@ export default function VendingCenterLoggerPage() {
         >
           <div className="w-full max-w-5xl bg-[#0a1322] border-2 border-emerald-500/40 rounded-3xl shadow-2xl shadow-emerald-950/40 overflow-hidden flex flex-col max-h-[92vh]">
             {/* Modal Header */}
-            <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-slate-800/80 bg-slate-950/60 flex-shrink-0">
+            <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-[#222222]/80 bg-black/60 flex-shrink-0">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
                   <span className="material-symbols-outlined text-xl">calendar_month</span>
@@ -10488,7 +10488,7 @@ export default function VendingCenterLoggerPage() {
                 <button
                   type="button"
                   onClick={handleExportMonthWiseCSV}
-                  className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-emerald-300 border border-emerald-500/30 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
+                  className="px-3 py-1.5 rounded-xl bg-[#0a0a0a] hover:bg-slate-800 text-emerald-300 border border-emerald-500/30 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer active:scale-95"
                   title="Export month-by-month summary to CSV"
                 >
                   <span className="material-symbols-outlined text-sm">download</span>
@@ -10509,7 +10509,7 @@ export default function VendingCenterLoggerPage() {
             {/* Modal Body: Scrollable Table */}
             <div className="p-4 sm:p-6 overflow-y-auto space-y-4">
               {/* Instructions banner */}
-              <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-900/80 border border-slate-800 text-xs font-mono text-slate-300">
+              <div className="flex items-center justify-between p-3 rounded-2xl bg-[#0a0a0a]/80 border border-[#222222] text-xs font-mono text-slate-300">
                 <div className="flex items-center gap-2">
                   <span className="material-symbols-outlined text-base text-emerald-400">info</span>
                   <span>
@@ -10522,11 +10522,11 @@ export default function VendingCenterLoggerPage() {
               </div>
 
               {/* Table */}
-              <div className="border border-slate-800 rounded-2xl overflow-hidden bg-slate-950/40 shadow-inner">
+              <div className="border border-[#222222] rounded-2xl overflow-hidden bg-black/40 shadow-inner">
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs font-mono">
                     <thead>
-                      <tr className="bg-slate-950 border-b border-slate-800 text-[10px] text-slate-400 uppercase tracking-wider">
+                      <tr className="bg-black border-b border-[#222222] text-[10px] text-slate-400 uppercase tracking-wider">
                         <th className="py-2.5 px-3.5">Month</th>
                         <th className="py-2.5 px-3 text-right">Bills</th>
                         <th className="py-2.5 px-3 text-right">Sold Kg</th>
@@ -10541,13 +10541,13 @@ export default function VendingCenterLoggerPage() {
                         <th className="py-2.5 px-3.5 text-center">Action</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-zinc-800/60">
+                    <tbody className="divide-y divide-[#222222]/60">
                       {monthWiseData.map((row) => {
                         const isCurrentActive = period === "month" && selectedMonth === row.monthKey;
                         return (
                           <tr
                             key={row.monthKey}
-                            className={`hover:bg-slate-900/60 transition-colors ${
+                            className={`hover:bg-[#0a0a0a]/60 transition-colors ${
                               isCurrentActive ? "bg-emerald-950/20 border-l-2 border-emerald-400" : ""
                             }`}
                           >
@@ -10676,7 +10676,7 @@ export default function VendingCenterLoggerPage() {
                                 className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all cursor-pointer shadow-sm active:scale-95 flex items-center gap-1 mx-auto ${
                                   isCurrentActive
                                     ? "bg-emerald-500 text-slate-950 hover:bg-emerald-400"
-                                    : "bg-slate-800 hover:bg-emerald-600 hover:text-white text-slate-300 border border-slate-700 hover:border-emerald-500"
+                                    : "bg-slate-800 hover:bg-emerald-600 hover:text-white text-slate-300 border border-[#333333] hover:border-emerald-500"
                                 }`}
                                 title="Open Month & Daily Sales Histogram"
                               >
@@ -10694,7 +10694,7 @@ export default function VendingCenterLoggerPage() {
             </div>
 
             {/* Modal Footer */}
-            <div className="flex items-center justify-between px-5 sm:px-6 py-3.5 border-t border-slate-800 bg-slate-950/80 flex-shrink-0">
+            <div className="flex items-center justify-between px-5 sm:px-6 py-3.5 border-t border-[#222222] bg-black/80 flex-shrink-0">
               <div className="text-[11px] font-mono text-slate-400">
                 Data accounts on accrual basis. Salaries are matched to the month they were allocated for.
               </div>
@@ -10717,7 +10717,7 @@ export default function VendingCenterLoggerPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
           <div className="w-full max-w-md bg-[#0a1628] border border-blue-500/30 rounded-3xl shadow-2xl shadow-blue-950/40 overflow-hidden">
             {/* Modal Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800/80">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#222222]/80">
               <div>
                 <div className="flex items-center gap-2 mb-0.5">
                   <span className="material-symbols-outlined text-blue-400 text-base">inventory_2</span>
@@ -10746,7 +10746,7 @@ export default function VendingCenterLoggerPage() {
               {/* Date & Time */}
               <div className="grid grid-cols-2 gap-3">
                 {/* Date Card */}
-                <div className="relative group bg-slate-900 border border-slate-700/80 hover:border-blue-500/50 rounded-2xl p-2.5 sm:p-3 transition-all cursor-pointer shadow-inner flex flex-col justify-between">
+                <div className="relative group bg-[#0a0a0a] border border-[#333333]/80 hover:border-blue-500/50 rounded-2xl p-2.5 sm:p-3 transition-all cursor-pointer shadow-inner flex flex-col justify-between">
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
                       <span className="material-symbols-outlined text-[13px] text-blue-400">calendar_today</span>
@@ -10763,7 +10763,7 @@ export default function VendingCenterLoggerPage() {
                           e.stopPropagation();
                           setStockFormDate(getTodayDate());
                         }}
-                        className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-all cursor-pointer"
+                        className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-[#333333] transition-all cursor-pointer"
                         title="Reset to today"
                       >
                         Today
@@ -10803,7 +10803,7 @@ export default function VendingCenterLoggerPage() {
                   type="text"
                   value={stockFormSupplier}
                   onChange={(e) => setStockFormSupplier(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-blue-400"
+                  className="w-full px-3 py-2.5 bg-[#0a0a0a] border border-[#333333] rounded-xl text-xs text-white focus:outline-none focus:border-blue-400"
                   placeholder="Khyber Aquaculture"
                   required
                 />
@@ -10874,19 +10874,19 @@ export default function VendingCenterLoggerPage() {
                       value={stockFormPresentStock}
                       onChange={(e) => setStockFormPresentStock(e.target.value)}
                       placeholder={stockAtTimeInfo ? String(stockAtTimeInfo.stockAtTimeKg) : "0"}
-                      className="w-full px-3 py-2 bg-slate-950 border border-cyan-500/40 rounded-xl text-xs text-cyan-200 font-mono font-bold focus:outline-none focus:border-cyan-300"
+                      className="w-full px-3 py-2 bg-black border border-cyan-500/40 rounded-xl text-xs text-cyan-200 font-mono font-bold focus:outline-none focus:border-cyan-300"
                       required
                     />
                   </div>
 
-                  <div className="flex flex-col justify-between p-2.5 rounded-xl bg-slate-950/70 border border-slate-800 text-[11px] font-mono space-y-1">
+                  <div className="flex flex-col justify-between p-2.5 rounded-xl bg-black/70 border border-[#222222] text-[11px] font-mono space-y-1">
                     <div className="flex items-center justify-between text-slate-400">
                       <span>+ New Intake:</span>
                       <span className="text-white font-bold">
                         {stockFormWeight && parseFloat(stockFormWeight) > 0 ? `${formatKg(parseFloat(stockFormWeight))} Kg` : "0.000 Kg"}
                       </span>
                     </div>
-                    <div className="flex items-center justify-between text-slate-200 pt-1 border-t border-slate-800 font-bold">
+                    <div className="flex items-center justify-between text-slate-200 pt-1 border-t border-[#222222] font-bold">
                       <span className="text-emerald-400">= Total After:</span>
                       <span className="text-emerald-300 text-xs">
                         {formatKg(
@@ -10911,7 +10911,7 @@ export default function VendingCenterLoggerPage() {
                     min="0.001"
                     value={stockFormWeight}
                     onChange={(e) => setStockFormWeight(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-blue-400 font-mono"
+                    className="w-full px-3 py-2.5 bg-[#0a0a0a] border border-[#333333] rounded-xl text-xs text-white focus:outline-none focus:border-blue-400 font-mono"
                     placeholder="e.g. 50.000"
                     required
                   />
@@ -10926,7 +10926,7 @@ export default function VendingCenterLoggerPage() {
                     min="1"
                     value={stockFormCost}
                     onChange={(e) => setStockFormCost(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-blue-400 font-mono"
+                    className="w-full px-3 py-2.5 bg-[#0a0a0a] border border-[#333333] rounded-xl text-xs text-white focus:outline-none focus:border-blue-400 font-mono"
                     placeholder="435"
                     required
                   />
@@ -10952,7 +10952,7 @@ export default function VendingCenterLoggerPage() {
                   value={stockFormNotes}
                   onChange={(e) => setStockFormNotes(e.target.value)}
                   rows={2}
-                  className="w-full px-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-blue-400 resize-none"
+                  className="w-full px-3 py-2.5 bg-[#0a0a0a] border border-[#333333] rounded-xl text-xs text-white focus:outline-none focus:border-blue-400 resize-none"
                   placeholder="e.g. Fresh batch, morning delivery..."
                 />
               </div>
@@ -11019,7 +11019,7 @@ export default function VendingCenterLoggerPage() {
               {/* Date & Time */}
               <div className="grid grid-cols-2 gap-3">
                 {/* Date Card */}
-                <div className="relative group bg-slate-900 border border-slate-700/80 hover:border-rose-500/50 rounded-2xl p-2.5 sm:p-3 transition-all cursor-pointer shadow-inner flex flex-col justify-between">
+                <div className="relative group bg-[#0a0a0a] border border-[#333333]/80 hover:border-rose-500/50 rounded-2xl p-2.5 sm:p-3 transition-all cursor-pointer shadow-inner flex flex-col justify-between">
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
                       <span className="material-symbols-outlined text-[13px] text-rose-400">calendar_today</span>
@@ -11036,7 +11036,7 @@ export default function VendingCenterLoggerPage() {
                           e.stopPropagation();
                           setMortalityFormDate(getTodayDate());
                         }}
-                        className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-all cursor-pointer"
+                        className="text-[9px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-[#333333] transition-all cursor-pointer"
                         title="Reset to today"
                       >
                         Today
@@ -11079,7 +11079,7 @@ export default function VendingCenterLoggerPage() {
                     min="0.001"
                     value={mortalityFormWeight}
                     onChange={(e) => setMortalityFormWeight(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-rose-400 font-mono font-bold"
+                    className="w-full px-3 py-2.5 bg-[#0a0a0a] border border-[#333333] rounded-xl text-xs text-white focus:outline-none focus:border-rose-400 font-mono font-bold"
                     placeholder="e.g. 1.250"
                     required
                     autoFocus
@@ -11095,7 +11095,7 @@ export default function VendingCenterLoggerPage() {
                     step="1"
                     value={mortalityFormCount}
                     onChange={(e) => setMortalityFormCount(e.target.value)}
-                    className="w-full px-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-rose-400 font-mono"
+                    className="w-full px-3 py-2.5 bg-[#0a0a0a] border border-[#333333] rounded-xl text-xs text-white focus:outline-none focus:border-rose-400 font-mono"
                     placeholder="e.g. 2"
                     required
                   />
@@ -11110,7 +11110,7 @@ export default function VendingCenterLoggerPage() {
                 <select
                   value={mortalityFormReason}
                   onChange={(e) => setMortalityFormReason(e.target.value)}
-                  className="w-full px-3 py-2.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-rose-400 font-mono"
+                  className="w-full px-3 py-2.5 bg-[#0a0a0a] border border-[#333333] rounded-xl text-xs text-white focus:outline-none focus:border-rose-400 font-mono"
                 >
                   <option value="Transport Stress">Transport Stress (Delivery shock)</option>
                   <option value="Water Temp Shock">Water Temp Shock (Chiller issue)</option>
@@ -11141,7 +11141,7 @@ export default function VendingCenterLoggerPage() {
                     type="text"
                     value={mortalityFormLoggedBy}
                     onChange={(e) => setMortalityFormLoggedBy(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-rose-400"
+                    className="w-full px-3 py-2 bg-[#0a0a0a] border border-[#333333] rounded-xl text-xs text-white focus:outline-none focus:border-rose-400"
                     placeholder="Mohd Amin"
                   />
                 </div>
@@ -11153,7 +11153,7 @@ export default function VendingCenterLoggerPage() {
                     type="text"
                     value={mortalityFormNotes}
                     onChange={(e) => setMortalityFormNotes(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-rose-400"
+                    className="w-full px-3 py-2 bg-[#0a0a0a] border border-[#333333] rounded-xl text-xs text-white focus:outline-none focus:border-rose-400"
                     placeholder="e.g. Found in morning opening..."
                   />
                 </div>
@@ -11237,7 +11237,7 @@ export default function VendingCenterLoggerPage() {
                   <span className="text-[10px] font-mono text-sky-400">Telegram Bot Channel</span>
                 </div>
                 <div
-                  className="p-4 rounded-2xl bg-slate-950/90 border border-slate-800 text-xs text-slate-200 font-mono whitespace-pre-wrap leading-relaxed max-h-64 overflow-y-auto shadow-inner"
+                  className="p-4 rounded-2xl bg-black/90 border border-[#222222] text-xs text-slate-200 font-mono whitespace-pre-wrap leading-relaxed max-h-64 overflow-y-auto shadow-inner"
                   dangerouslySetInnerHTML={{
                     __html: eodPreviewHtml || "Generating report...",
                   }}
@@ -11253,14 +11253,14 @@ export default function VendingCenterLoggerPage() {
                   type="text"
                   value={eodCustomNote}
                   onChange={(e) => setEodCustomNote(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-sky-400"
+                  className="w-full px-3 py-2 bg-[#0a0a0a] border border-[#333333] rounded-xl text-xs text-white focus:outline-none focus:border-sky-400"
                   placeholder="e.g. Counter closed 8:30 PM. Cash drawer tallied with safe."
                 />
               </div>
             </div>
 
             {/* Modal Footer */}
-            <div className="px-5 py-4 border-t border-slate-800/80 bg-slate-950 flex items-center justify-between gap-3 flex-shrink-0">
+            <div className="px-5 py-4 border-t border-[#222222]/80 bg-black flex items-center justify-between gap-3 flex-shrink-0">
               <button
                 type="button"
                 onClick={() => setEodModalOpen(false)}
@@ -11293,7 +11293,7 @@ export default function VendingCenterLoggerPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
           <div className="w-full max-w-md bg-[#0e1626] border border-rose-500/40 rounded-3xl shadow-2xl shadow-rose-950/40 overflow-hidden flex flex-col max-h-[92vh]">
             {/* Modal Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-rose-500/20 bg-slate-950/70">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-rose-500/20 bg-black/70">
               <div>
                 <div className="flex items-center gap-2 mb-0.5">
                   <span className="material-symbols-outlined text-rose-400 text-base">receipt_long</span>
@@ -11322,7 +11322,7 @@ export default function VendingCenterLoggerPage() {
               {/* Row 1: Date & Time */}
               <div className="grid grid-cols-2 gap-3">
                 {/* Date Card */}
-                <div className="relative group bg-slate-900 border border-slate-700/80 hover:border-rose-500/50 rounded-2xl p-2.5 sm:p-3 transition-all cursor-pointer shadow-inner flex flex-col justify-between">
+                <div className="relative group bg-[#0a0a0a] border border-[#333333]/80 hover:border-rose-500/50 rounded-2xl p-2.5 sm:p-3 transition-all cursor-pointer shadow-inner flex flex-col justify-between">
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
                       <span className="material-symbols-outlined text-[13px] text-rose-400">calendar_today</span>
@@ -11341,7 +11341,7 @@ export default function VendingCenterLoggerPage() {
                               e.stopPropagation();
                               setExpenseFormDate(getTodayDate());
                             }}
-                            className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-all cursor-pointer"
+                            className="text-[9px] font-mono font-bold px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-[#333333] transition-all cursor-pointer"
                           >
                             Today
                           </button>
@@ -11414,7 +11414,7 @@ export default function VendingCenterLoggerPage() {
                       className={`px-2 py-1.5 rounded-xl text-[10px] font-mono font-bold text-center border transition-all cursor-pointer truncate ${
                         expenseFormCategory === cat
                           ? "bg-rose-500/25 border-rose-400 text-rose-200 shadow-sm"
-                          : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700"
+                          : "bg-[#0a0a0a] border-[#222222] text-slate-400 hover:text-slate-200 hover:border-[#333333]"
                       }`}
                       title={cat}
                     >
@@ -11435,7 +11435,7 @@ export default function VendingCenterLoggerPage() {
                   value={expenseFormTitle}
                   onChange={(e) => setExpenseFormTitle(e.target.value)}
                   placeholder="e.g. 50 Polybag Rolls 1kg &amp; 2kg, Ice Blocks 25kg, Floor Cleaner"
-                  className="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-400 font-sans"
+                  className="w-full bg-black border border-[#333333]/80 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-400 font-sans"
                 />
               </div>
 
@@ -11458,7 +11458,7 @@ export default function VendingCenterLoggerPage() {
                       onWheel={(e) => e.currentTarget.blur()}
                       onChange={(e) => setExpenseFormAmount(e.target.value)}
                       placeholder="e.g. 250"
-                      className="w-full bg-slate-950 border-2 border-rose-500/40 rounded-xl pl-7 pr-3 py-2 text-base font-black text-white font-mono focus:outline-none focus:border-rose-400"
+                      className="w-full bg-black border-2 border-rose-500/40 rounded-xl pl-7 pr-3 py-2 text-base font-black text-white font-mono focus:outline-none focus:border-rose-400"
                     />
                   </div>
                   {/* Quick Amount presets */}
@@ -11468,7 +11468,7 @@ export default function VendingCenterLoggerPage() {
                         key={amt}
                         type="button"
                         onClick={() => setExpenseFormAmount(amt.toString())}
-                        className="px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700 text-[9.5px] font-mono cursor-pointer"
+                        className="px-1.5 py-0.5 rounded bg-[#0a0a0a] border border-[#222222] text-slate-400 hover:text-white hover:border-[#333333] text-[9.5px] font-mono cursor-pointer"
                       >
                         ₹{amt}
                       </button>
@@ -11490,7 +11490,7 @@ export default function VendingCenterLoggerPage() {
                         className={`py-2 px-2 rounded-xl text-[10.5px] font-mono font-bold border transition-all cursor-pointer text-center ${
                           expenseFormPaymentMode === mode
                             ? "bg-rose-500/25 border-rose-400 text-rose-200 shadow-sm"
-                            : "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700"
+                            : "bg-[#0a0a0a] border-[#222222] text-slate-400 hover:text-slate-200 hover:border-[#333333]"
                         }`}
                       >
                         {mode}
@@ -11510,12 +11510,12 @@ export default function VendingCenterLoggerPage() {
                   value={expenseFormNotes}
                   onChange={(e) => setExpenseFormNotes(e.target.value)}
                   placeholder="e.g. Purchased from local market, bill attached"
-                  className="w-full bg-slate-950 border border-slate-700/80 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-400 font-sans"
+                  className="w-full bg-black border border-[#333333]/80 rounded-xl px-3.5 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-400 font-sans"
                 />
               </div>
 
               {/* Modal Actions */}
-              <div className="flex items-center justify-between gap-3 pt-3 border-t border-slate-800/80">
+              <div className="flex items-center justify-between gap-3 pt-3 border-t border-[#222222]/80">
                 <button
                   type="button"
                   onClick={() => setExpenseModalOpen(false)}

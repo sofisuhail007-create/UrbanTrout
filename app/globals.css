@@ -1,59 +1,59 @@
 @import "tailwindcss";
 
-/* ─── Unslop Graphite Design Tokens (Ember Matte Aesthetic) ─── */
+/* ─── Unslop Pure Black Design Tokens (Vercel Obsidian Aesthetic) ─── */
 @theme {
   /* Colors */
-  --color-background:             #0e0e11;
-  --color-surface:                #0e0e11;
-  --color-surface-dim:            #0a0a0c;
+  --color-background:             #000000;
+  --color-surface:                #0a0a0a;
+  --color-surface-dim:            #000000;
   --color-surface-container-lowest: #000000;
-  --color-surface-container-low:  #111114;
-  --color-surface-container:      #161619;
-  --color-surface-container-high: #1c1c20;
-  --color-surface-container-highest: #232327;
-  --color-surface-variant:        #1c1c20;
-  --color-surface-bright:         #28282d;
+  --color-surface-container-low:  #0a0a0a;
+  --color-surface-container:      #111111;
+  --color-surface-container-high: #171717;
+  --color-surface-container-highest: #222222;
+  --color-surface-variant:        #171717;
+  --color-surface-bright:         #222222;
 
-  --color-primary:                #f59e0b;
-  --color-primary-dim:            #d97706;
-  --color-primary-fixed:          #fbbf24;
-  --color-primary-fixed-dim:      #f59e0b;
-  --color-primary-container:      #27272a;
-  --color-on-primary:             #0e0e11;
-  --color-on-primary-fixed:       #0e0e11;
-  --color-on-primary-fixed-variant: #78350f;
-  --color-on-primary-container:   #fef3c7;
+  --color-primary:                #ffffff;
+  --color-primary-dim:            #d4d4d8;
+  --color-primary-fixed:          #ffffff;
+  --color-primary-fixed-dim:      #e4e4e7;
+  --color-primary-container:      #18181b;
+  --color-on-primary:             #000000;
+  --color-on-primary-fixed:       #000000;
+  --color-on-primary-fixed-variant: #27272a;
+  --color-on-primary-container:   #ffffff;
 
-  --color-secondary:              #a1a1a6;
-  --color-secondary-dim:          #85858b;
+  --color-secondary:              #a1a1aa;
+  --color-secondary-dim:          #71717a;
   --color-secondary-fixed:        #d4d4d8;
-  --color-secondary-fixed-dim:    #a1a1a6;
-  --color-secondary-container:    #232327;
-  --color-on-secondary:           #ededed;
-  --color-on-secondary-fixed:     #18181b;
-  --color-on-secondary-fixed-variant: #3f3f46;
-  --color-on-secondary-container: #e4e4e7;
+  --color-secondary-fixed-dim:    #a1a1aa;
+  --color-secondary-container:    #18181b;
+  --color-on-secondary:           #ffffff;
+  --color-on-secondary-fixed:     #000000;
+  --color-on-secondary-fixed-variant: #27272a;
+  --color-on-secondary-container: #ffffff;
 
-  --color-tertiary:               #38bdf8;
-  --color-tertiary-dim:           #0284c7;
-  --color-tertiary-fixed:         #7dd3fc;
-  --color-tertiary-fixed-dim:     #38bdf8;
-  --color-tertiary-container:     #1e293b;
-  --color-on-tertiary:            #0e0e11;
-  --color-on-tertiary-fixed:      #0e0e11;
-  --color-on-tertiary-fixed-variant: #075985;
-  --color-on-tertiary-container:  #e0f2fe;
+  --color-tertiary:               #ffffff;
+  --color-tertiary-dim:           #d4d4d8;
+  --color-tertiary-fixed:         #ffffff;
+  --color-tertiary-fixed-dim:     #a1a1aa;
+  --color-tertiary-container:     #18181b;
+  --color-on-tertiary:            #000000;
+  --color-on-tertiary-fixed:      #000000;
+  --color-on-tertiary-fixed-variant: #27272a;
+  --color-on-tertiary-container:  #ffffff;
 
   --color-on-background:          #ededed;
   --color-on-surface:             #ededed;
-  --color-on-surface-variant:     #a1a1a6;
-  --color-inverse-on-surface:     #18181b;
-  --color-inverse-surface:        #fafafa;
-  --color-inverse-primary:        #b45309;
+  --color-on-surface-variant:     #a1a1aa;
+  --color-inverse-on-surface:     #000000;
+  --color-inverse-surface:        #ffffff;
+  --color-inverse-primary:        #27272a;
 
-  --color-outline:                #27272a;
-  --color-outline-variant:        #1f1f23;
-  --color-surface-tint:           #f59e0b;
+  --color-outline:                #262626;
+  --color-outline-variant:        #1f1f1f;
+  --color-surface-tint:           #ffffff;
 
   --color-error:                  #ef4444;
   --color-error-dim:              #dc2626;
@@ -86,7 +86,7 @@ html {
 }
 
 body {
-  background-color: #0e0e11;
+  background-color: #000000;
   color: #ededed;
   font-family: var(--font-manrope), "Manrope", sans-serif;
   -webkit-font-smoothing: antialiased;

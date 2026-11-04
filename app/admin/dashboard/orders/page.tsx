@@ -74,11 +74,11 @@ function orderToSlipData(order: Order, upi: string): InvoiceSlipData {
 
 const STATUSES: { value: OrderStatus; label: string; color: string }[] = [
   { value: "pending", label: "Awaiting Verification", color: "bg-amber-500/10 text-amber-300 border-amber-500/20" },
-  { value: "processing", label: "Confirmed", color: "bg-zinc-800 text-zinc-300 border-zinc-700" },
-  { value: "out_for_delivery", label: "Out for Delivery", color: "bg-zinc-800 text-zinc-300 border-zinc-700" },
-  { value: "delivered", label: "Delivered", color: "bg-zinc-800 text-zinc-200 border-zinc-700" },
+  { value: "processing", label: "Confirmed", color: "bg-[#161616] text-zinc-300 border-[#333333]" },
+  { value: "out_for_delivery", label: "Out for Delivery", color: "bg-[#161616] text-zinc-300 border-[#333333]" },
+  { value: "delivered", label: "Delivered", color: "bg-[#161616] text-zinc-200 border-[#333333]" },
   { value: "out_of_stock", label: "Out of Stock (Refund Due)", color: "bg-rose-500/10 text-rose-300 border-rose-500/20" },
-  { value: "cancelled", label: "Cancelled", color: "bg-zinc-800 text-zinc-500 border-zinc-700" },
+  { value: "cancelled", label: "Cancelled", color: "bg-[#161616] text-zinc-500 border-[#333333]" },
 ];
 
 function statusStyle(s: string) {
@@ -569,7 +569,7 @@ export default function OrdersPage() {
               }
               setPrintModalOrders(active);
             }}
-            className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="px-3 py-1.5 rounded-lg bg-[#161616] hover:bg-[#222222] border border-[#333333] text-zinc-200 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
             title="Print all active deliveries on Canon MF244dw (4 slips per A4 sheet)"
           >
             <span className="material-symbols-outlined text-xs">print</span>
@@ -596,7 +596,7 @@ export default function OrdersPage() {
             <button
               type="button"
               onClick={() => setSelectedOrderIds(new Set())}
-              className="px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 text-xs font-medium border border-zinc-700 transition-colors cursor-pointer"
+              className="px-2.5 py-1.5 rounded-lg bg-[#161616] hover:bg-[#222222] text-zinc-400 hover:text-zinc-200 text-xs font-medium border border-[#333333] transition-colors cursor-pointer"
             >
               Clear
             </button>
@@ -612,8 +612,8 @@ export default function OrdersPage() {
             onClick={() => setFilter(s.value)}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
               filter === s.value
-                ? "bg-zinc-800 text-zinc-100 border-zinc-600 shadow-sm"
-                : "bg-[#131316] text-zinc-400 border-zinc-800 hover:border-zinc-700 hover:text-zinc-200"
+                ? "bg-[#161616] text-zinc-100 border-zinc-600 shadow-sm"
+                : "bg-[#0a0a0a] text-zinc-400 border-[#222222] hover:border-[#333333] hover:text-zinc-200"
             }`}
           >
             {s.label} {s.value !== "all" && `(${orders.filter((o) => o.status === s.value).length})`}
@@ -629,7 +629,7 @@ export default function OrdersPage() {
               type="checkbox"
               checked={paginatedOrders.length > 0 && paginatedOrders.every((o) => selectedOrderIds.has(o.id))}
               onChange={() => toggleSelectAllPage(paginatedOrders)}
-              className="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-zinc-200 focus:ring-zinc-600 cursor-pointer"
+              className="w-4 h-4 rounded border-[#333333] bg-[#0a0a0a] text-zinc-200 focus:ring-zinc-600 cursor-pointer"
             />
             <span className="hover:text-zinc-200 transition-colors font-medium">
               Select all on page ({paginatedOrders.length})
@@ -646,7 +646,7 @@ export default function OrdersPage() {
       {loading ? (
         <div className="text-center text-zinc-500 py-20 font-mono text-xs">Loading orders...</div>
       ) : filtered.length === 0 ? (
-        <div className="text-center text-zinc-400 py-20 bg-[#131316] rounded-xl border border-zinc-800">
+        <div className="text-center text-zinc-400 py-20 bg-[#0a0a0a] rounded-xl border border-[#222222]">
           <span className="material-symbols-outlined text-4xl mb-3 block text-zinc-600">receipt_long</span>
           No orders found.
         </div>
@@ -654,10 +654,10 @@ export default function OrdersPage() {
         <>
           <div className="space-y-2">
             {paginatedOrders.map((order) => (
-            <div key={order.id} className="bg-[#131316] border border-zinc-800 rounded-xl overflow-hidden hover:border-zinc-700 transition-colors">
+            <div key={order.id} className="bg-[#0a0a0a] border border-[#222222] rounded-xl overflow-hidden hover:border-[#333333] transition-colors">
               {/* Row */}
               <div
-                className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-zinc-800/30 transition-colors"
+                className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-[#161616]/30 transition-colors"
                 onClick={() => setExpanded(expanded === order.id ? null : order.id)}
               >
                 <input
@@ -665,7 +665,7 @@ export default function OrdersPage() {
                   checked={selectedOrderIds.has(order.id)}
                   onChange={() => {}}
                   onClick={(e) => toggleSelectOrder(order.id, e)}
-                  className="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-zinc-200 focus:ring-zinc-600 cursor-pointer flex-shrink-0"
+                  className="w-4 h-4 rounded border-[#333333] bg-[#0a0a0a] text-zinc-200 focus:ring-zinc-600 cursor-pointer flex-shrink-0"
                   title="Select for batch 4-up printing"
                 />
                 <span className="text-zinc-500 text-xs font-mono w-10 flex-shrink-0">#{order.order_number}</span>
@@ -682,7 +682,7 @@ export default function OrdersPage() {
                         return (
                           <span
                             title={`Ordered ${item.orderedWeight} Kg, Scale Wt ${item.actualWeight} Kg. Refund of ₹${refund} due to customer.`}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-300 border border-zinc-700 text-[10px] font-mono flex-shrink-0"
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#161616] text-zinc-300 border border-[#333333] text-[10px] font-mono flex-shrink-0"
                           >
                             <span>Scale: {item.actualWeight.toFixed(2)} Kg (-₹{refund} Refund)</span>
                           </span>
@@ -705,7 +705,7 @@ export default function OrdersPage() {
                       return (
                         <span
                           title={`Scheduled Delivery: ${sched.text}`}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-300 border border-zinc-700 text-[10px] font-mono flex-shrink-0"
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#161616] text-zinc-300 border border-[#333333] text-[10px] font-mono flex-shrink-0"
                         >
                           <span className="material-symbols-outlined text-[11px]">calendar_today</span>
                           <span className="truncate max-w-[130px] sm:max-w-none">{sched.text}</span>
@@ -722,7 +722,7 @@ export default function OrdersPage() {
                           rel="noopener noreferrer"
                           onClick={(e) => e.stopPropagation()}
                           title="Google Maps Navigation"
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-700 text-[11px] font-medium transition-colors flex-shrink-0"
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-[#161616] text-zinc-300 hover:text-white border border-[#333333] text-[11px] font-medium transition-colors flex-shrink-0"
                         >
                           <span className="material-symbols-outlined text-xs">near_me</span>
                           <span>Map</span>
@@ -744,7 +744,7 @@ export default function OrdersPage() {
                     e.stopPropagation();
                     handleOpenOrderQr(order);
                   }}
-                  className="px-2.5 py-1 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs font-medium transition-colors flex items-center gap-1 shrink-0 cursor-pointer"
+                  className="px-2.5 py-1 rounded-md bg-[#161616] hover:bg-[#222222] text-zinc-200 border border-[#333333] text-xs font-medium transition-colors flex items-center gap-1 shrink-0 cursor-pointer"
                   title="Instant Locked QR for doorstep COD collection"
                 >
                   <span className="material-symbols-outlined text-xs">qr_code_2</span>
@@ -758,7 +758,7 @@ export default function OrdersPage() {
                     e.stopPropagation();
                     openScaleModal(order);
                   }}
-                  className="px-2.5 py-1 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs font-medium transition-colors flex items-center gap-1 shrink-0 cursor-pointer"
+                  className="px-2.5 py-1 rounded-md bg-[#161616] hover:bg-[#222222] text-zinc-200 border border-[#333333] text-xs font-medium transition-colors flex items-center gap-1 shrink-0 cursor-pointer"
                   title="Weigh / Catch-Weight: Enter harvest scale weight"
                 >
                   <span className="material-symbols-outlined text-xs">scale</span>
@@ -772,7 +772,7 @@ export default function OrdersPage() {
                     e.stopPropagation();
                     setPrintModalOrders([order]);
                   }}
-                  className="px-2 py-1 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs font-medium transition-colors flex items-center gap-1 shrink-0 cursor-pointer hidden sm:flex"
+                  className="px-2 py-1 rounded-md bg-[#161616] hover:bg-[#222222] text-zinc-200 border border-[#333333] text-xs font-medium transition-colors flex items-center gap-1 shrink-0 cursor-pointer hidden sm:flex"
                   title="Print 4-Up delivery slip on Canon MF244dw"
                 >
                   <span className="material-symbols-outlined text-xs">print</span>
@@ -789,7 +789,7 @@ export default function OrdersPage() {
 
               {/* Expanded */}
               {expanded === order.id && (
-                <div className="border-t border-slate-800 px-4 py-4 bg-slate-950/50 space-y-4">
+                <div className="border-t border-[#222222] px-4 py-4 bg-black/50 space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                     <div>
                       <p className="text-xs text-slate-600 uppercase tracking-widest mb-1">Delivery Address</p>
@@ -866,7 +866,7 @@ export default function OrdersPage() {
                           disabled={order.status === s.value || updating === order.id}
                           onClick={() => updateStatus(order.id, s.value)}
                           className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all disabled:opacity-40 ${
-                            order.status === s.value ? s.color + " opacity-100" : "bg-slate-800 text-slate-400 border-slate-700 hover:border-slate-500"
+                            order.status === s.value ? s.color + " opacity-100" : "bg-slate-800 text-slate-400 border-[#333333] hover:border-slate-500"
                           }`}
                         >
                           {s.label}
@@ -876,7 +876,7 @@ export default function OrdersPage() {
                   </div>
 
                   {/* Actions (Weigh/Scale + Print 4-Up + Navigate + WhatsApp + Delete) */}
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-800/80 flex-wrap gap-2">
+                  <div className="flex items-center justify-between pt-2 border-t border-[#222222]/80 flex-wrap gap-2">
                     <div className="flex items-center gap-2 flex-wrap">
                       <button
                         type="button"
@@ -963,7 +963,7 @@ export default function OrdersPage() {
           onPageChange={setCurrentPage}
           itemLabel="orders"
           themeColor="cyan"
-          className="mt-4 rounded-xl border border-slate-800/80"
+          className="mt-4 rounded-xl border border-[#222222]/80"
         />
       </>
     )}
@@ -976,9 +976,9 @@ export default function OrdersPage() {
           }}
           className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto"
         >
-          <div className="relative w-full max-w-lg bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl p-5 sm:p-6 text-white my-6">
+          <div className="relative w-full max-w-lg bg-[#0a0a0a] border border-[#333333]/80 rounded-2xl shadow-2xl p-5 sm:p-6 text-white my-6">
             {/* Header */}
-            <div className="flex items-start justify-between pb-4 border-b border-slate-800">
+            <div className="flex items-start justify-between pb-4 border-b border-[#222222]">
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-xl">⚖️</span>
@@ -1026,7 +1026,7 @@ export default function OrdersPage() {
                 return (
                   <>
                     {/* Item and Ordered Weight Reference */}
-                    <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 text-xs flex items-center justify-between">
+                    <div className="p-3 rounded-xl bg-black/70 border border-[#222222] text-xs flex items-center justify-between">
                       <div>
                         <span className="text-slate-400 block">Product Ordered</span>
                         <strong className="text-white text-sm">{primaryItem.name}</strong>
@@ -1064,7 +1064,7 @@ export default function OrdersPage() {
                           value={scaleActualWeight}
                           onChange={(e) => setScaleActualWeight(e.target.value)}
                           placeholder="e.g. 1.80"
-                          className="w-full px-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white font-mono text-lg font-bold focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
+                          className="w-full px-4 py-2.5 bg-black border border-[#333333] rounded-xl text-white font-mono text-lg font-bold focus:border-cyan-500 focus:outline-none focus:ring-1 focus:ring-cyan-500"
                         />
                         <span className="absolute right-3.5 text-sm font-bold text-slate-400 pointer-events-none">Kg</span>
                       </div>
@@ -1080,7 +1080,7 @@ export default function OrdersPage() {
                             className={`px-2 py-0.5 rounded text-[11px] font-mono border transition-all cursor-pointer ${
                               scaleActualWeight === w
                                 ? "bg-cyan-500 text-slate-950 font-bold border-cyan-400"
-                                : "bg-slate-800 text-slate-300 border-slate-700 hover:border-slate-500"
+                                : "bg-slate-800 text-slate-300 border-[#333333] hover:border-slate-500"
                             }`}
                           >
                             {w}
@@ -1106,7 +1106,7 @@ export default function OrdersPage() {
                           className={`p-2.5 rounded-xl border text-left text-xs transition-all cursor-pointer ${
                             scalePaymentMode === "prepaid"
                               ? "bg-emerald-500/15 border-emerald-500/60 text-emerald-200"
-                              : "bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700"
+                              : "bg-black/60 border-[#222222] text-slate-400 hover:border-[#333333]"
                           }`}
                         >
                           <div className="font-bold flex items-center gap-1">
@@ -1125,7 +1125,7 @@ export default function OrdersPage() {
                           className={`p-2.5 rounded-xl border text-left text-xs transition-all cursor-pointer ${
                             scalePaymentMode === "cod"
                               ? "bg-amber-500/15 border-amber-500/60 text-amber-200"
-                              : "bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700"
+                              : "bg-black/60 border-[#222222] text-slate-400 hover:border-[#333333]"
                           }`}
                         >
                           <div className="font-bold flex items-center gap-1">
@@ -1139,7 +1139,7 @@ export default function OrdersPage() {
 
                     {/* If Prepaid: Advance Amount Input */}
                     {scalePaymentMode === "prepaid" && (
-                      <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 space-y-2">
+                      <div className="p-3 rounded-xl bg-black/60 border border-[#222222] space-y-2">
                         <div className="flex items-center justify-between">
                           <label className="text-xs font-semibold text-slate-300">
                             Advance Amount Received (₹)
@@ -1159,7 +1159,7 @@ export default function OrdersPage() {
                             step="1"
                             value={scaleAdvancePaid}
                             onChange={(e) => setScaleAdvancePaid(e.target.value)}
-                            className="w-full pl-8 pr-4 py-2 bg-slate-900 border border-slate-700 rounded-lg text-white font-mono text-sm font-bold focus:border-cyan-500 focus:outline-none"
+                            className="w-full pl-8 pr-4 py-2 bg-[#0a0a0a] border border-[#333333] rounded-lg text-white font-mono text-sm font-bold focus:border-cyan-500 focus:outline-none"
                           />
                         </div>
                       </div>
@@ -1177,7 +1177,7 @@ export default function OrdersPage() {
                           <span className="font-mono text-white font-semibold">₹{deliveryFee}</span>
                         </div>
                       )}
-                      <div className="flex items-center justify-between text-xs px-2 py-1 border-t border-slate-800 text-slate-300 font-bold">
+                      <div className="flex items-center justify-between text-xs px-2 py-1 border-t border-[#222222] text-slate-300 font-bold">
                         <span>Revised Net Bill Payable:</span>
                         <span className="font-mono text-cyan-300 text-sm">₹{newGrandTotal.toLocaleString("en-IN")}</span>
                       </div>
@@ -1273,7 +1273,7 @@ export default function OrdersPage() {
             </div>
 
             {/* Modal Actions */}
-            <div className="pt-4 border-t border-slate-800 flex items-center justify-end gap-2 flex-wrap">
+            <div className="pt-4 border-t border-[#222222] flex items-center justify-end gap-2 flex-wrap">
               <button
                 type="button"
                 onClick={() => setScaleModalOrder(null)}
@@ -1331,9 +1331,9 @@ export default function OrdersPage() {
           }}
           className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto"
         >
-          <div className="relative w-full max-w-md bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl p-5 sm:p-6 text-white my-6">
+          <div className="relative w-full max-w-md bg-[#0a0a0a] border border-[#333333]/80 rounded-2xl shadow-2xl p-5 sm:p-6 text-white my-6">
             {/* Header */}
-            <div className="flex items-start justify-between pb-3 border-b border-slate-800">
+            <div className="flex items-start justify-between pb-3 border-b border-[#222222]">
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-xl">⚡</span>
@@ -1354,7 +1354,7 @@ export default function OrdersPage() {
             </div>
 
             {/* Mode Tabs */}
-            <div className="flex gap-2 mt-4 p-1 bg-slate-950/70 border border-slate-800 rounded-xl">
+            <div className="flex gap-2 mt-4 p-1 bg-black/70 border border-[#222222] rounded-xl">
               <button
                 type="button"
                 onClick={() => {
@@ -1385,7 +1385,7 @@ export default function OrdersPage() {
             </div>
 
             {/* Amount Banner */}
-            <div className="mt-3.5 p-3 rounded-xl bg-slate-950/90 border border-slate-800 flex items-center justify-between">
+            <div className="mt-3.5 p-3 rounded-xl bg-black/90 border border-[#222222] flex items-center justify-between">
               <div>
                 <span className="text-[11px] text-slate-400 block font-medium uppercase tracking-wider">Locked Pay Amount</span>
                 <div className="flex items-center gap-1.5 mt-0.5">
@@ -1404,7 +1404,7 @@ export default function OrdersPage() {
                   min="1"
                   value={qrAmount}
                   onChange={(e) => setQrAmount(e.target.value)}
-                  className="w-20 px-2 py-1 bg-slate-800 border border-slate-700 rounded-lg text-xs font-mono font-bold text-white text-right focus:outline-none focus:border-cyan-500"
+                  className="w-20 px-2 py-1 bg-slate-800 border border-[#333333] rounded-lg text-xs font-mono font-bold text-white text-right focus:outline-none focus:border-cyan-500"
                   placeholder="Amount"
                   title="Override collection amount if customer gives partial cash"
                 />
@@ -1427,7 +1427,7 @@ export default function OrdersPage() {
             </div>
 
             {/* QR Code Presentation Box */}
-            <div className="mt-4 flex flex-col items-center justify-center p-4 bg-slate-950 rounded-2xl border border-slate-800">
+            <div className="mt-4 flex flex-col items-center justify-center p-4 bg-black rounded-2xl border border-[#222222]">
               {posQrPaid ? (
                 <div className="py-8 flex flex-col items-center justify-center text-center animate-fadeIn space-y-3">
                   <div className="w-16 h-16 rounded-full bg-emerald-500/20 border-2 border-emerald-400 flex items-center justify-center text-3xl text-emerald-400 shadow-lg shadow-emerald-500/20">
@@ -1480,10 +1480,10 @@ export default function OrdersPage() {
 
                   {/* Supported Apps */}
                   <div className="mt-3 flex items-center justify-center gap-2 text-[10px] text-slate-400">
-                    <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800">Google Pay</span>
-                    <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800">PhonePe</span>
-                    <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800">Paytm</span>
-                    <span className="px-2 py-0.5 rounded bg-slate-900 border border-slate-800">mPay</span>
+                    <span className="px-2 py-0.5 rounded bg-[#0a0a0a] border border-[#222222]">Google Pay</span>
+                    <span className="px-2 py-0.5 rounded bg-[#0a0a0a] border border-[#222222]">PhonePe</span>
+                    <span className="px-2 py-0.5 rounded bg-[#0a0a0a] border border-[#222222]">Paytm</span>
+                    <span className="px-2 py-0.5 rounded bg-[#0a0a0a] border border-[#222222]">mPay</span>
                   </div>
                 </>
               )}
@@ -1497,7 +1497,7 @@ export default function OrdersPage() {
             )}
 
             {/* Action Buttons */}
-            <div className="mt-4 pt-3 border-t border-slate-800 flex flex-col gap-2">
+            <div className="mt-4 pt-3 border-t border-[#222222] flex flex-col gap-2">
               <div className="grid grid-cols-2 gap-2">
                 <button
                   type="button"

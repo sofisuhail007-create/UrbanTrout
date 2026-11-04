@@ -227,9 +227,9 @@ export default function CatchWeightWorkspaceTab({
   return (
     <div className="space-y-4 animate-fadeIn">
       {/* ─── BANNER HEADER ─── */}
-      <div className="p-4 rounded-xl bg-[#131316] border border-zinc-800 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 shadow-sm">
+      <div className="p-4 rounded-xl bg-[#0a0a0a] border border-[#222222] flex flex-col md:flex-row items-start md:items-center justify-between gap-3 shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 flex items-center justify-center text-xl shrink-0">
+          <div className="w-10 h-10 rounded-lg bg-[#0a0a0a] border border-[#222222] text-zinc-300 flex items-center justify-center text-xl shrink-0">
             ⚖️
           </div>
           <div>
@@ -237,7 +237,7 @@ export default function CatchWeightWorkspaceTab({
               <h2 className="text-sm sm:text-base font-semibold text-white font-['Space_Grotesk']">
                 WhatsApp Catch-Weight &amp; Delivery Billing
               </h2>
-              <span className="px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-300 border border-zinc-700 text-[10px] font-mono font-medium">
+              <span className="px-2 py-0.5 rounded-md bg-[#161616] text-zinc-300 border border-[#333333] text-[10px] font-mono font-medium">
                 SEPARATE DESK
               </span>
             </div>
@@ -251,7 +251,7 @@ export default function CatchWeightWorkspaceTab({
           <button
             type="button"
             onClick={resetForm}
-            className="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-300 text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer border border-zinc-800"
+            className="px-3 py-1.5 rounded-lg bg-[#0a0a0a] hover:bg-[#161616] text-zinc-300 text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer border border-[#222222]"
           >
             <span className="material-symbols-outlined text-sm">refresh</span>
             <span>Reset Form</span>
@@ -264,8 +264,8 @@ export default function CatchWeightWorkspaceTab({
         {/* LEFT COLUMN: Data Entry (7 cols) */}
         <div className="lg:col-span-7 space-y-4">
           {/* Card 1: Customer & Delivery Details */}
-          <div className="p-4 rounded-xl bg-[#131316] border border-zinc-800 space-y-3 shadow-sm">
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
+          <div className="p-4 rounded-xl bg-[#0a0a0a] border border-[#222222] space-y-3 shadow-sm">
+            <div className="flex items-center justify-between border-b border-[#222222] pb-2">
               <span className="text-xs font-medium text-zinc-300 uppercase tracking-wider font-mono flex items-center gap-1.5">
                 <span>👤</span> Customer &amp; Delivery Details
               </span>
@@ -295,7 +295,7 @@ export default function CatchWeightWorkspaceTab({
                   value={customerAddress}
                   onChange={(e) => setCustomerAddress(e.target.value)}
                   placeholder="e.g. Rajbagh near Zero Bridge"
-                  className="w-full bg-[#0e0e11] border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-600 font-mono"
+                  className="w-full bg-[#000000] border border-[#222222] rounded-lg px-3 py-2 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-[#555555] font-mono"
                 />
               </div>
 
@@ -308,15 +308,15 @@ export default function CatchWeightWorkspaceTab({
                   value={deliveryFee}
                   onChange={(e) => setDeliveryFee(parseFloat(e.target.value) || 0)}
                   placeholder="0"
-                  className="w-full bg-[#0e0e11] border border-zinc-800 rounded-lg px-3 py-2 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-600 font-mono font-semibold tabular-nums"
+                  className="w-full bg-[#000000] border border-[#222222] rounded-lg px-3 py-2 text-xs text-white placeholder-zinc-600 focus:outline-none focus:border-[#555555] font-mono font-semibold tabular-nums"
                 />
               </div>
             </div>
           </div>
 
           {/* Card 2: Catch-Weight Scales & Advance */}
-          <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-4 shadow-lg">
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
+          <div className="p-4 rounded-2xl bg-[#0a0a0a]/90 border border-[#222222] space-y-4 shadow-lg">
+            <div className="flex items-center justify-between border-b border-[#222222] pb-2">
               <span className="text-xs font-medium text-zinc-300 uppercase tracking-wider font-mono flex items-center gap-1.5">
                 <span>🐟</span> Variety &amp; Weights
               </span>
@@ -337,8 +337,8 @@ export default function CatchWeightWorkspaceTab({
                 }}
                 className={`p-2.5 rounded-lg border text-left transition-colors cursor-pointer ${
                   productType === "Gutted"
-                    ? "bg-zinc-800 text-white border-zinc-600 shadow-sm"
-                    : "bg-[#0e0e11] border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-300"
+                    ? "bg-[#161616] text-white border-zinc-600 shadow-sm"
+                    : "bg-[#000000] border-[#222222] text-zinc-400 hover:border-[#333333] hover:text-zinc-300"
                 }`}
               >
                 <div className="font-medium text-xs">Gutted Rainbow Trout</div>
@@ -355,8 +355,8 @@ export default function CatchWeightWorkspaceTab({
                 }}
                 className={`p-2.5 rounded-lg border text-left transition-colors cursor-pointer ${
                   productType === "Whole"
-                    ? "bg-zinc-800 text-white border-zinc-600 shadow-sm"
-                    : "bg-[#0e0e11] border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-300"
+                    ? "bg-[#161616] text-white border-zinc-600 shadow-sm"
+                    : "bg-[#000000] border-[#222222] text-zinc-400 hover:border-[#333333] hover:text-zinc-300"
                 }`}
               >
                 <div className="font-medium text-xs">Whole Rainbow Trout</div>
@@ -365,7 +365,7 @@ export default function CatchWeightWorkspaceTab({
             </div>
 
             {/* STEP 1: Ordered Weight */}
-            <div className="p-3.5 rounded-lg bg-[#0e0e11] border border-zinc-800 space-y-2">
+            <div className="p-3.5 rounded-lg bg-[#000000] border border-[#222222] space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-bold text-slate-300 font-mono flex items-center gap-1.5">
                   <span>1️⃣</span> Ordered Weight (What customer requested on WhatsApp):
@@ -390,7 +390,7 @@ export default function CatchWeightWorkspaceTab({
                     }
                   }}
                   placeholder="e.g. 2.00"
-                  className="w-full bg-[#131316] border border-zinc-800 rounded-lg px-4 py-2 text-xl font-mono text-white font-semibold tabular-nums focus:outline-none focus:border-zinc-600"
+                  className="w-full bg-[#0a0a0a] border border-[#222222] rounded-lg px-4 py-2 text-xl font-mono text-white font-semibold tabular-nums focus:outline-none focus:border-[#555555]"
                 />
                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 font-mono text-xs">
                   KG
@@ -410,8 +410,8 @@ export default function CatchWeightWorkspaceTab({
                     }}
                     className={`px-2 py-0.5 rounded-lg font-mono text-[11px] font-semibold border transition-all cursor-pointer ${
                       orderedWeight === w
-                        ? "bg-zinc-800 text-white border-zinc-600 font-semibold"
-                        : "bg-zinc-900 hover:bg-zinc-800 text-zinc-400 border-zinc-800"
+                        ? "bg-[#161616] text-white border-zinc-600 font-semibold"
+                        : "bg-[#0a0a0a] hover:bg-[#161616] text-zinc-400 border-[#222222]"
                     }`}
                   >
                     {w} Kg
@@ -421,7 +421,7 @@ export default function CatchWeightWorkspaceTab({
             </div>
 
             {/* STEP 2: Actual Harvest Scale Weight */}
-            <div className="p-3.5 rounded-lg bg-[#0e0e11] border border-zinc-800 space-y-2">
+            <div className="p-3.5 rounded-lg bg-[#000000] border border-[#222222] space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-medium text-zinc-300 font-mono flex items-center gap-1.5">
                   <span>2️⃣</span> Actual Harvest Scale Weight (What you weighed/killed):
@@ -450,7 +450,7 @@ export default function CatchWeightWorkspaceTab({
                   value={actualWeight}
                   onChange={(e) => setActualWeight(e.target.value)}
                   placeholder="e.g. 1.80"
-                  className="w-full bg-[#131316] border border-zinc-700 rounded-lg px-4 py-2.5 text-2xl font-mono text-white font-semibold tabular-nums focus:outline-none focus:border-zinc-500"
+                  className="w-full bg-[#0a0a0a] border border-[#333333] rounded-lg px-4 py-2.5 text-2xl font-mono text-white font-semibold tabular-nums focus:outline-none focus:border-[#555555]"
                 />
                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 font-mono font-medium text-sm">
                   KG
@@ -467,8 +467,8 @@ export default function CatchWeightWorkspaceTab({
                     onClick={() => setActualWeight(w)}
                     className={`px-2 py-0.5 rounded-lg font-mono text-[11px] font-semibold border transition-all cursor-pointer ${
                       actualWeight === w
-                        ? "bg-zinc-800 text-white border-zinc-600 font-semibold"
-                        : "bg-zinc-900 hover:bg-zinc-800 text-zinc-400 border-zinc-800"
+                        ? "bg-[#161616] text-white border-zinc-600 font-semibold"
+                        : "bg-[#0a0a0a] hover:bg-[#161616] text-zinc-400 border-[#222222]"
                     }`}
                   >
                     {w}
@@ -478,7 +478,7 @@ export default function CatchWeightWorkspaceTab({
             </div>
 
             {/* STEP 3: Payment Status & Advance Received */}
-            <div className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 space-y-2.5">
+            <div className="p-3.5 rounded-xl bg-black/80 border border-[#222222] space-y-2.5">
               <label className="text-xs font-bold text-slate-300 font-mono block">
                 3️⃣ Customer Advance / Payment Mode:
               </label>
@@ -494,8 +494,8 @@ export default function CatchWeightWorkspaceTab({
                   }}
                   className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                     isPrepaid
-                      ? "bg-zinc-800 border-zinc-600 text-white font-medium shadow-sm"
-                      : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-300"
+                      ? "bg-[#161616] border-zinc-600 text-white font-medium shadow-sm"
+                      : "bg-[#0a0a0a] border-[#222222] text-zinc-400 hover:border-[#333333] hover:text-zinc-300"
                   }`}
                 >
                   <div className="text-xs flex items-center gap-1.5">
@@ -512,8 +512,8 @@ export default function CatchWeightWorkspaceTab({
                   onClick={() => setIsPrepaid(false)}
                   className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
                     !isPrepaid
-                      ? "bg-zinc-800 border-zinc-600 text-white font-medium shadow-sm"
-                      : "bg-zinc-900 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-300"
+                      ? "bg-[#161616] border-zinc-600 text-white font-medium shadow-sm"
+                      : "bg-[#0a0a0a] border-[#222222] text-zinc-400 hover:border-[#333333] hover:text-zinc-300"
                   }`}
                 >
                   <div className="text-xs flex items-center gap-1.5">
@@ -545,7 +545,7 @@ export default function CatchWeightWorkspaceTab({
                       value={advancePaid}
                       onChange={(e) => setAdvancePaid(e.target.value)}
                       placeholder="e.g. 1160"
-                      className="w-full bg-[#131316] border border-zinc-800 rounded-lg pl-8 pr-3 py-2 text-base font-mono text-white font-semibold tabular-nums focus:outline-none focus:border-zinc-600"
+                      className="w-full bg-[#0a0a0a] border border-[#222222] rounded-lg pl-8 pr-3 py-2 text-base font-mono text-white font-semibold tabular-nums focus:outline-none focus:border-[#555555]"
                     />
                   </div>
                 </div>
@@ -557,8 +557,8 @@ export default function CatchWeightWorkspaceTab({
         {/* RIGHT COLUMN: Live Calculation Preview & Action Center (5 cols) */}
         <div className="lg:col-span-5 space-y-4">
           {/* Card: Calculation Breakdown */}
-          <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-3 shadow-xl">
-            <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
+          <div className="p-4 rounded-2xl bg-[#0a0a0a]/90 border border-[#222222] space-y-3 shadow-xl">
+            <div className="flex items-center justify-between border-b border-[#222222] pb-2">
               <span className="text-xs font-medium text-zinc-300 uppercase tracking-wider font-mono flex items-center gap-1.5">
                 <span>📊</span> Live Reconciliation Breakdown
               </span>
@@ -590,7 +590,7 @@ export default function CatchWeightWorkspaceTab({
                   <span className="text-white font-bold">₹{numDeliveryFee}</span>
                 </div>
               )}
-              <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-sm">
+              <div className="pt-2 border-t border-[#222222] flex items-center justify-between text-sm">
                 <span className="font-bold text-slate-200">Total Harvest Bill:</span>
                 <span className="font-semibold font-mono text-white text-base tabular-nums">
                   ₹{harvestGrandTotal.toLocaleString("en-IN")}
@@ -608,7 +608,7 @@ export default function CatchWeightWorkspaceTab({
             <div className="pt-2">
               {/* CASE 1: REFUND DUE (e.g. ordered 2.00 Kg, actual 1.80 Kg) */}
               {isPrepaid && refundAmount > 0 && (
-                <div className="p-4 rounded-xl bg-zinc-900 border border-zinc-700 space-y-2 text-zinc-200 shadow-sm">
+                <div className="p-4 rounded-xl bg-[#0a0a0a] border border-[#333333] space-y-2 text-zinc-200 shadow-sm">
                   <div className="flex items-center justify-between">
                     <span className="font-medium text-xs uppercase tracking-wider text-emerald-400 flex items-center gap-1.5 font-mono">
                       <span>💵</span>
@@ -621,7 +621,7 @@ export default function CatchWeightWorkspaceTab({
                   <p className="text-[11px] text-zinc-300 leading-tight">
                     Customer paid for {numOrdered.toFixed(2)} Kg (₹{numAdvance}), but harvest weight is {numActual.toFixed(2)} Kg (₹{harvestGrandTotal}).
                   </p>
-                  <div className="pt-2 border-t border-zinc-800 text-[11px] text-zinc-300 font-medium space-y-1">
+                  <div className="pt-2 border-t border-[#222222] text-[11px] text-zinc-300 font-medium space-y-1">
                     <div className="flex items-center gap-1.5">
                       <span>🛵</span>
                       <span><strong>Rider Handover:</strong> Return ₹{refundAmount} cash/UPI to customer</span>
@@ -635,7 +635,7 @@ export default function CatchWeightWorkspaceTab({
 
               {/* CASE 2: EXTRA BALANCE DUE (e.g. ordered 2.00 Kg, actual 2.10 Kg) */}
               {isPrepaid && balanceAmount > 0 && (
-                <div className="p-4 rounded-xl bg-zinc-900 border border-zinc-700 space-y-2 text-zinc-200 shadow-sm">
+                <div className="p-4 rounded-xl bg-[#0a0a0a] border border-[#333333] space-y-2 text-zinc-200 shadow-sm">
                   <div className="flex items-center justify-between">
                     <span className="font-medium text-xs uppercase tracking-wider text-amber-400 flex items-center gap-1.5 font-mono">
                       <span>⚠️</span>
@@ -648,7 +648,7 @@ export default function CatchWeightWorkspaceTab({
                   <p className="text-[11px] text-zinc-300 leading-tight">
                     Customer paid ₹{numAdvance}, but actual harvest scale weight is {numActual.toFixed(2)} Kg (Total ₹{harvestGrandTotal}).
                   </p>
-                  <div className="pt-2 border-t border-zinc-800 text-[11px] text-zinc-300 font-medium space-y-1">
+                  <div className="pt-2 border-t border-[#222222] text-[11px] text-zinc-300 font-medium space-y-1">
                     <div className="flex items-center gap-1.5">
                       <span>📱</span>
                       <span><strong>Locked J&amp;K Bank Dynamic UPI QR:</strong></span>
@@ -662,7 +662,7 @@ export default function CatchWeightWorkspaceTab({
 
               {/* CASE 3: EXACT MATCH */}
               {isPrepaid && refundAmount === 0 && balanceAmount === 0 && (
-                <div className="p-3.5 rounded-xl bg-zinc-900 border border-zinc-700 text-zinc-200 text-xs flex items-center justify-between">
+                <div className="p-3.5 rounded-xl bg-[#0a0a0a] border border-[#333333] text-zinc-200 text-xs flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span>✓</span>
                     <span>Exact weight match. Verified Paid in full (₹{harvestGrandTotal}).</span>
@@ -673,7 +673,7 @@ export default function CatchWeightWorkspaceTab({
 
               {/* CASE 4: COD / UNPAID */}
               {!isPrepaid && (
-                <div className="p-4 rounded-xl bg-zinc-900 border border-zinc-700 space-y-2 text-zinc-200 shadow-sm">
+                <div className="p-4 rounded-xl bg-[#0a0a0a] border border-[#333333] space-y-2 text-zinc-200 shadow-sm">
                   <div className="flex items-center justify-between">
                     <span className="font-medium text-xs uppercase tracking-wider text-amber-400 flex items-center gap-1.5 font-mono">
                       <span>⚠️</span>
@@ -691,12 +691,12 @@ export default function CatchWeightWorkspaceTab({
             </div>
 
             {/* ACTION BUTTONS */}
-            <div className="pt-3 border-t border-slate-800 space-y-2">
+            <div className="pt-3 border-t border-[#222222] space-y-2">
               <button
                 type="button"
                 disabled={isGenerating || numActual <= 0}
                 onClick={() => handleGenerateAndSave(true)}
-                className="w-full py-2.5 px-4 rounded-lg bg-white hover:bg-zinc-200 text-zinc-950 font-semibold text-xs tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-[0.99] disabled:opacity-50"
+                className="w-full py-2.5 px-4 rounded-md bg-white hover:bg-neutral-200 text-black font-semibold text-xs tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm active:scale-[0.99] disabled:bg-[#1a1a1a] disabled:text-[#666666] disabled:border disabled:border-[#2a2a2a] disabled:cursor-not-allowed"
               >
                 <span>🖨️</span>
                 <span>{isGenerating ? "Generating..." : "Generate & Print 4-Up Slip (Canon)"}</span>
@@ -706,7 +706,7 @@ export default function CatchWeightWorkspaceTab({
                 type="button"
                 disabled={isGenerating || numActual <= 0}
                 onClick={handleGenerateAndOpenPdf}
-                className="w-full py-2.5 px-4 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-700 font-medium text-xs tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer active:scale-[0.99] disabled:opacity-50"
+                className="w-full py-2.5 px-4 rounded-md bg-black hover:bg-[#161616] text-white border border-[#333333] font-medium text-xs tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm active:scale-[0.99] disabled:bg-[#1a1a1a] disabled:text-[#666666] disabled:border disabled:border-[#2a2a2a] disabled:cursor-not-allowed"
               >
                 <span className="material-symbols-outlined text-sm">picture_as_pdf</span>
                 <span>{isGenerating ? "Generating..." : "Generate & Open A4 Invoice PDF"}</span>
@@ -714,7 +714,7 @@ export default function CatchWeightWorkspaceTab({
 
               {/* Generated Success Links */}
               {generatedSlip && (
-                <div className="p-3 rounded-xl bg-slate-950 border border-emerald-500/40 space-y-2 animate-fadeIn">
+                <div className="p-3 rounded-xl bg-black border border-emerald-500/40 space-y-2 animate-fadeIn">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-emerald-400 font-bold font-mono">
                       ✓ Created #{generatedSlip.invoiceNumber}
@@ -762,15 +762,15 @@ export default function CatchWeightWorkspaceTab({
 
       {/* ─── RECENT CATCH-WEIGHT SLIPS TABLE (TODAY'S DISPATCHES) ─── */}
       {recentSlips.length > 0 && (
-        <div className="p-4 rounded-xl bg-[#131316] border border-zinc-800 space-y-3 shadow-sm">
-          <div className="flex items-center justify-between border-b border-zinc-800 pb-2">
+        <div className="p-4 rounded-xl bg-[#0a0a0a] border border-[#222222] space-y-3 shadow-sm">
+          <div className="flex items-center justify-between border-b border-[#222222] pb-2">
             <span className="text-xs font-medium text-zinc-300 uppercase tracking-wider font-mono flex items-center gap-1.5">
               <span>📋</span> Recent WhatsApp Catch-Weight Slips
             </span>
             <span className="text-[10px] text-zinc-500 font-mono">Today&apos;s Dispatches</span>
           </div>
 
-          <div className="divide-y divide-zinc-800/80">
+          <div className="divide-y divide-[#222222]/80">
             {recentSlips.map((s, idx) => {
               const wa = getWhatsAppMessage(s);
               return (
@@ -780,15 +780,15 @@ export default function CatchWeightWorkspaceTab({
                       <strong className="text-white">{s.customerName}</strong>
                       <span className="text-slate-500 font-mono">#{s.invoiceNumber}</span>
                       {(s.refundAmount || 0) > 0 ? (
-                        <span className="px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-200 border border-zinc-700 text-[10px] font-medium font-mono">
+                        <span className="px-1.5 py-0.5 rounded bg-[#161616] text-zinc-200 border border-[#333333] text-[10px] font-medium font-mono">
                           💵 Refund ₹{s.refundAmount}
                         </span>
                       ) : (s.balanceAmount || 0) > 0 ? (
-                        <span className="px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-200 border border-zinc-700 text-[10px] font-medium font-mono">
+                        <span className="px-1.5 py-0.5 rounded bg-[#161616] text-zinc-200 border border-[#333333] text-[10px] font-medium font-mono">
                           ⚠️ Balance ₹{s.balanceAmount}
                         </span>
                       ) : (
-                        <span className="px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-200 border border-zinc-700 text-[10px] font-medium font-mono">
+                        <span className="px-1.5 py-0.5 rounded bg-[#161616] text-zinc-200 border border-[#333333] text-[10px] font-medium font-mono">
                           ✓ Paid
                         </span>
                       )}
@@ -803,7 +803,7 @@ export default function CatchWeightWorkspaceTab({
                       href={`/invoice/${s.invoiceNumber}?download=true`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs font-medium transition-colors flex items-center gap-1 cursor-pointer"
+                      className="px-2.5 py-1 rounded-lg bg-[#161616] hover:bg-[#222222] text-zinc-200 border border-[#333333] text-xs font-medium transition-colors flex items-center gap-1 cursor-pointer"
                       title="Direct Download A4 Tax Invoice PDF"
                     >
                       <span className="material-symbols-outlined text-xs">picture_as_pdf</span>
@@ -812,7 +812,7 @@ export default function CatchWeightWorkspaceTab({
                     <button
                       type="button"
                       onClick={() => onOpenFourUpPrint(s)}
-                      className="px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs font-medium transition-colors flex items-center gap-1 cursor-pointer"
+                      className="px-2.5 py-1 rounded-lg bg-[#161616] hover:bg-[#222222] text-zinc-200 border border-[#333333] text-xs font-medium transition-colors flex items-center gap-1 cursor-pointer"
                       title="Print on Canon MF244dw"
                     >
                       <span>🖨️</span>
@@ -822,7 +822,7 @@ export default function CatchWeightWorkspaceTab({
                       href={wa.encodedUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="p-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 transition-colors cursor-pointer"
+                      className="p-1 rounded-lg bg-[#161616] hover:bg-[#222222] text-zinc-200 border border-[#333333] transition-colors cursor-pointer"
                       title="Send WhatsApp"
                     >
                       <span className="material-symbols-outlined text-sm">chat</span>

@@ -368,15 +368,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   };
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen h-[100dvh] bg-[#0c0c0e] text-zinc-200 overflow-hidden font-['Manrope']">
+    <div className="flex flex-col md:flex-row min-h-screen h-[100dvh] bg-black text-zinc-200 overflow-hidden font-['Manrope']">
       {/* ─── MOBILE TOP BAR (Visible on screens < md) ─── */}
-      <header className="flex md:hidden items-center justify-between px-3.5 py-2.5 bg-[#111114]/95 backdrop-blur-md border-b border-zinc-800/80 z-30 flex-shrink-0 sticky top-0">
+      <header className="flex md:hidden items-center justify-between px-3.5 py-2.5 bg-black/95 backdrop-blur-md border-b border-[#222222] z-30 flex-shrink-0 sticky top-0">
         <div className="flex items-center gap-2.5">
-          <img src="/sitelogo.png" alt="Urban Trout" className="w-6 h-6 rounded-md object-contain border border-zinc-700/60" />
-          <span className="text-sm font-semibold tracking-tight text-zinc-100 font-['Space_Grotesk']">
+          <img src="/sitelogo.png" alt="Urban Trout" className="w-6 h-6 rounded-md object-contain border border-[#333333]" />
+          <span className="text-sm font-semibold tracking-tight text-white font-['Space_Grotesk']">
             Urban Trout
           </span>
-          <span className="text-[10px] font-medium uppercase tracking-wider px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700/60 font-mono">
+          <span className="text-[10px] font-medium uppercase tracking-wider px-2 py-0.5 rounded bg-[#111111] text-zinc-400 border border-[#222222] font-mono">
             {adminRole.replace("_", " ")}
           </span>
         </div>
@@ -384,7 +384,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <button
           type="button"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-300 active:scale-95 cursor-pointer"
+          className="w-8 h-8 rounded-lg bg-[#111111] border border-[#222222] flex items-center justify-center text-zinc-300 active:scale-95 cursor-pointer"
         >
           <span className="material-symbols-outlined text-lg">{mobileMenuOpen ? "close" : "menu"}</span>
         </button>
@@ -394,13 +394,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {mobileMenuOpen && (
         <div
           onClick={() => setMobileMenuOpen(false)}
-          className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm md:hidden"
+          className="fixed inset-0 z-40 bg-black/80 backdrop-blur-sm md:hidden"
         />
       )}
 
       {/* ─── SIDEBAR (Desktop Fixed + Mobile Slide-over Drawer) ─── */}
       <aside
-        className={`fixed md:relative top-0 bottom-0 left-0 z-50 md:z-20 flex flex-col border-r border-zinc-800/80 bg-[#111114] flex-shrink-0 transition-all duration-200 ${
+        className={`fixed md:relative top-0 bottom-0 left-0 z-50 md:z-20 flex flex-col border-r border-[#222222] bg-black flex-shrink-0 transition-all duration-200 ${
           mobileMenuOpen ? "translate-x-0 w-64 shadow-2xl" : "-translate-x-full md:translate-x-0"
         } ${collapsed ? "md:w-16" : "md:w-60"}`}
       >
@@ -409,7 +409,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <button
             type="button"
             onClick={() => setCollapsed(false)}
-            className="hidden md:flex absolute -right-3 top-5 z-50 w-6 h-6 rounded-full bg-zinc-800 hover:bg-zinc-700 text-zinc-200 items-center justify-center shadow-md border border-zinc-700 transition-colors cursor-pointer"
+            className="hidden md:flex absolute -right-3 top-5 z-50 w-6 h-6 rounded-full bg-[#111111] hover:bg-[#222222] text-zinc-200 items-center justify-center shadow-md border border-[#333333] transition-colors cursor-pointer"
             title="Expand sidebar"
           >
             <span className="material-symbols-outlined text-xs">chevron_right</span>
@@ -418,15 +418,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* Logo / Header Area */}
         {!collapsed ? (
-          <div className="flex items-center justify-between px-3.5 py-3 border-b border-zinc-800/80 flex-shrink-0">
+          <div className="flex items-center justify-between px-3.5 py-3 border-b border-[#222222] flex-shrink-0">
             <div className="flex items-center gap-2.5 min-w-0">
               <img
                 src="/sitelogo.png"
                 alt="Urban Trout"
-                className="w-7 h-7 rounded-lg object-contain border border-zinc-700/60 bg-zinc-900 flex-shrink-0"
+                className="w-7 h-7 rounded-lg object-contain border border-[#333333] bg-black flex-shrink-0"
               />
               <div className="flex flex-col min-w-0">
-                <span className="text-sm font-semibold tracking-tight text-zinc-100 leading-tight font-['Space_Grotesk'] truncate">
+                <span className="text-sm font-semibold tracking-tight text-white leading-tight font-['Space_Grotesk'] truncate">
                   Urban Trout
                 </span>
                 <span className="text-[10px] text-zinc-400 tracking-normal font-mono mt-0.5">
@@ -439,7 +439,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <button
               type="button"
               onClick={() => setCollapsed(true)}
-              className="hidden md:flex ml-2 w-7 h-7 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 items-center justify-center text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer flex-shrink-0"
+              className="hidden md:flex ml-2 w-7 h-7 rounded-lg bg-black hover:bg-[#111111] border border-[#222222] items-center justify-center text-zinc-400 hover:text-white transition-colors cursor-pointer flex-shrink-0"
               title="Collapse sidebar"
             >
               <span className="material-symbols-outlined text-sm">chevron_left</span>
@@ -509,15 +509,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                       collapsed && !mobileMenuOpen
                         ? "justify-center h-9 w-9 mx-auto px-0"
                         : "justify-between px-2.5 py-1.5 h-9"
-                    } rounded-lg transition-colors text-xs ${
+                    } rounded-md transition-colors text-xs ${
                       active
-                        ? "bg-zinc-800/80 text-zinc-100 font-medium border border-zinc-700/60"
-                        : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/40 border border-transparent font-normal"
+                        ? "bg-[#161616] text-white font-medium border border-[#333333]"
+                        : "text-[#888888] hover:text-white hover:bg-[#111111] border border-transparent font-normal"
                     }`}
                   >
                     {/* Active Accent Left Indicator */}
                     {active && !collapsed && (
-                      <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-r bg-amber-400" />
+                      <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-r bg-white" />
                     )}
 
                     {/* Icon + Label */}
@@ -526,8 +526,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         <span
                           className={`material-symbols-outlined text-[18px] flex-shrink-0 ${
                             active
-                              ? "text-amber-400"
-                              : "text-zinc-400 group-hover:text-zinc-200"
+                              ? "text-white"
+                              : "text-[#888888] group-hover:text-white"
                           }`}
                         >
                           {item.icon}
@@ -536,13 +536,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         {/* Collapsed Badge Indicator Dot */}
                         {collapsed && !mobileMenuOpen && item.badge && (
                           <span
-                            className={`absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full ring-2 ring-zinc-950 ${
-                              item.badgeType === "live"
-                                ? "bg-emerald-400"
-                                : item.badgeType === "new"
-                                ? "bg-amber-400"
-                                : "bg-zinc-500"
-                            }`}
+                            className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full ring-2 ring-black bg-white"
                           />
                         )}
                       </div>
@@ -556,16 +550,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     {(!collapsed || mobileMenuOpen) && item.badge && (
                       <span className="flex-shrink-0 ml-2">
                         {item.badgeType === "live" ? (
-                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium bg-[#111111] text-emerald-400 border border-[#262626]">
                             <span className="w-1 h-1 rounded-full bg-emerald-400" />
                             Live
                           </span>
                         ) : item.badgeType === "new" ? (
-                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-zinc-800 text-zinc-300 border border-zinc-700/60">
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-[#111111] text-zinc-300 border border-[#262626]">
                             New
                           </span>
                         ) : (
-                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-zinc-800/80 text-zinc-400 border border-zinc-700/60">
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-[#111111] text-zinc-400 border border-[#262626]">
                             {item.badge}
                           </span>
                         )}
@@ -579,9 +573,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </nav>
 
         {/* Admin Profile & Logout */}
-        <div className="px-2.5 pb-2.5 border-t border-zinc-800/80 pt-2.5 space-y-2 flex-shrink-0">
+        <div className="px-2.5 pb-2.5 border-t border-[#222222] pt-2.5 space-y-2 flex-shrink-0">
           {(!collapsed || mobileMenuOpen) && adminEmail && (
-            <div className="p-2 rounded-lg bg-zinc-900/50 border border-zinc-800/80">
+            <div className="p-2 rounded-lg bg-black border border-[#222222]">
               <div className="flex items-center justify-between mb-0.5">
                 <div className="flex items-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
@@ -591,7 +585,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </div>
                 <span className="text-[9px] font-mono text-zinc-400">v2.4</span>
               </div>
-              <p className="text-xs font-medium text-zinc-200 truncate font-mono" title={adminName}>
+              <p className="text-xs font-medium text-white truncate font-mono" title={adminName}>
                 {adminName}
               </p>
               <p className="text-[11px] text-zinc-400 font-mono truncate" title={adminEmail}>
@@ -617,7 +611,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </aside>
 
       {/* ─── MAIN CONTENT AREA (Full Mobile Responsive) ─── */}
-      <main className="flex-1 min-w-0 overflow-y-auto relative pb-20 md:pb-6 overscroll-contain bg-[#090b0e]">
+      <main className="flex-1 min-w-0 overflow-y-auto relative pb-20 md:pb-6 overscroll-contain bg-black">
         {isRouteBlocked ? (
           <div className="flex items-center justify-center min-h-[80vh] p-4 text-center">
             <div className="max-w-md bg-zinc-900/90 border border-zinc-800 rounded-2xl p-6 space-y-3">
