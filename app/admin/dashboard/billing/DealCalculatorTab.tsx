@@ -1027,16 +1027,16 @@ Naseem Bagh / Malabagh, Srinagar`;
         {/* ─── LEFT: MULTI-WAY BARGAIN CALCULATOR (7 Cols) ─── */}
         <div className="lg:col-span-7 space-y-3">
           {/* Card 1: Product, Rate & Harvest Weight */}
-          <div className="bg-slate-900/85 border border-slate-800 rounded-2xl p-3 sm:p-4 space-y-3 shadow-xl">
+          <div className="bg-[#131316] border border-zinc-800 rounded-xl p-3 sm:p-4 space-y-3 shadow-sm">
             {/* Multi-Item Deal Management Header */}
             <div className="flex items-center justify-between pb-2 border-b border-slate-800">
               <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-cyan-400 text-base">layers</span>
+                <span className="material-symbols-outlined text-zinc-400 text-base">layers</span>
                 <span className="text-xs sm:text-sm font-bold text-white font-mono">
                   Items in Deal ({dealItems.length})
                 </span>
                 {dealItems.length > 1 && (
-                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 font-bold">
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-300 border border-zinc-700 font-medium">
                     Combined: {combinedWeight.toFixed(2)} Kg · ₹{combinedDealTotal.toLocaleString("en-IN")}
                   </span>
                 )}
@@ -1044,7 +1044,7 @@ Naseem Bagh / Malabagh, Srinagar`;
               <button
                 type="button"
                 onClick={() => handleAddDealItem()}
-                className="px-2.5 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/40 text-cyan-300 text-xs font-mono font-bold flex items-center gap-1 cursor-pointer transition-all"
+                className="px-2.5 py-1 rounded-md bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 text-xs font-mono font-medium flex items-center gap-1 cursor-pointer transition-colors"
                 title="Add another package or variety to this bargained deal (e.g. 3kg gutted & 2kg whole)"
               >
                 <span className="text-sm leading-none font-bold">+</span>
@@ -1060,14 +1060,14 @@ Naseem Bagh / Malabagh, Srinagar`;
                   <div
                     key={item.id}
                     onClick={() => handleSelectDealItem(item.id)}
-                    className={`group flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all cursor-pointer ${
+                    className={`group flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
                       isActive
-                        ? "bg-cyan-500/20 border-cyan-400 text-white shadow-md shadow-cyan-500/10"
-                        : "bg-slate-950/70 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200"
+                        ? "bg-zinc-800 border-zinc-600 text-white shadow-sm"
+                        : "bg-[#0e0e11] border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
                     }`}
                   >
                     <div className="flex items-center gap-1.5 text-xs font-mono">
-                      <span className="w-4 h-4 rounded-full bg-cyan-500/30 text-cyan-300 text-[10px] flex items-center justify-center font-bold">
+                      <span className="w-4 h-4 rounded-full bg-zinc-700 text-zinc-300 text-[10px] flex items-center justify-center font-medium">
                         {idx + 1}
                       </span>
                       <span className="font-bold truncate max-w-[110px] sm:max-w-[140px]">
@@ -1076,13 +1076,13 @@ Naseem Bagh / Malabagh, Srinagar`;
                       <span className="text-slate-400 text-[11px] font-bold">
                         {item.weightKg}k
                       </span>
-                      <span className="text-cyan-400 font-bold text-[11px]">
+                      <span className="text-white font-semibold font-mono tabular-nums text-[11px]">
                         ₹{item.dealTotal.toLocaleString("en-IN")}
                       </span>
                     </div>
 
                     {isActive && (
-                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-cyan-400/25 text-cyan-200 font-bold uppercase font-mono">
+                      <span className="text-[9px] px-1.5 py-0.5 rounded bg-zinc-700 text-zinc-200 font-medium uppercase font-mono">
                         Editing
                       </span>
                     )}
@@ -1110,10 +1110,10 @@ Naseem Bagh / Malabagh, Srinagar`;
                 className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5"
                 style={{ fontFamily: '"Space Grotesk", sans-serif' }}
               >
-                <span className="material-symbols-outlined text-cyan-400 text-base">scale</span>
+                <span className="material-symbols-outlined text-zinc-400 text-base">scale</span>
                 1. Product &amp; Harvest Weight (Item #{dealItems.findIndex((i) => i.id === (activeDealItem?.id || activeDealItemId)) + 1 || 1})
               </h2>
-              <span className="text-[11px] text-cyan-400 font-mono font-bold">
+              <span className="text-[11px] text-zinc-400 font-mono font-medium">
                 Standard: ₹{standardRate}/Kg
               </span>
             </div>
@@ -1127,14 +1127,14 @@ Naseem Bagh / Malabagh, Srinagar`;
                     key={p.id}
                     type="button"
                     onClick={() => handleSelectProduct(p.id)}
-                    className={`p-2.5 rounded-xl text-left transition-all cursor-pointer border ${
+                    className={`p-2.5 rounded-lg text-left transition-colors cursor-pointer border ${
                       isSelected
-                        ? "bg-cyan-500/20 border-cyan-400 text-white shadow-md shadow-cyan-500/10"
-                        : "bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700"
+                        ? "bg-zinc-800 border-zinc-600 text-white shadow-sm"
+                        : "bg-[#0e0e11] border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
                     }`}
                   >
-                    <div className="font-bold text-xs truncate">{p.name.split(" ")[0]} Trout</div>
-                    <div className="text-cyan-400 font-mono text-xs font-bold mt-0.5">
+                    <div className="font-medium text-xs truncate">{p.name.split(" ")[0]} Trout</div>
+                    <div className="text-zinc-300 font-mono text-xs font-semibold tabular-nums mt-0.5">
                       ₹{p.pricePerKg}/Kg
                     </div>
                   </button>
@@ -1145,14 +1145,14 @@ Naseem Bagh / Malabagh, Srinagar`;
               <button
                 type="button"
                 onClick={handleEnableCustomRate}
-                className={`p-2.5 rounded-xl text-left transition-all cursor-pointer border ${
+                className={`p-2.5 rounded-lg text-left transition-colors cursor-pointer border ${
                   isCustomRateActive
-                    ? "bg-amber-500/20 border-amber-400 text-amber-200"
-                    : "bg-slate-950/60 border-slate-800 text-slate-400 hover:border-slate-700"
+                    ? "bg-zinc-800 border-zinc-600 text-white shadow-sm"
+                    : "bg-[#0e0e11] border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
                 }`}
               >
                 <div className="font-bold text-xs">✏️ Custom Rate</div>
-                <div className="text-amber-400 font-mono text-xs font-bold mt-0.5">
+                <div className="text-zinc-300 font-mono text-xs font-semibold tabular-nums mt-0.5">
                   {isCustomRateActive ? `₹${customStandardRate || standardRate}/Kg` : "Override Rate"}
                 </div>
               </button>
@@ -1160,8 +1160,8 @@ Naseem Bagh / Malabagh, Srinagar`;
 
             {/* If Custom Rate active */}
             {isCustomRateActive && (
-              <div className="p-2.5 rounded-xl bg-amber-950/30 border border-amber-500/30 space-y-1.5 animate-fadeIn">
-                <label className="text-[10.5px] font-bold text-amber-300 block font-mono">
+              <div className="p-2.5 rounded-lg bg-[#0e0e11] border border-zinc-800 space-y-1.5 animate-fadeIn">
+                <label className="text-[10.5px] font-medium text-zinc-300 block font-mono">
                   Custom Standard Product Price (₹ / Kg):
                 </label>
                 <div className="flex items-center gap-2">
@@ -1172,7 +1172,7 @@ Naseem Bagh / Malabagh, Srinagar`;
                     onWheel={(e) => (e.target as HTMLElement).blur()}
                     onChange={(e) => handleCustomStandardRateChange(e.target.value)}
                     placeholder="e.g. 700"
-                    className="w-full bg-slate-950 border border-amber-500/40 rounded-lg px-3 py-1.5 text-sm text-white font-mono font-bold focus:outline-none"
+                    className="w-full bg-[#131316] border border-zinc-700 rounded-md px-3 py-1.5 text-sm text-white font-mono font-semibold tabular-nums focus:outline-none focus:border-zinc-500"
                   />
                   <button
                     type="button"
@@ -1195,7 +1195,7 @@ Naseem Bagh / Malabagh, Srinagar`;
                   <button
                     type="button"
                     onClick={() => handleWeightChange(activeScaleWeight)}
-                    className="text-cyan-400 hover:text-cyan-300 text-[10px] font-mono underline cursor-pointer"
+                    className="text-zinc-400 hover:text-white text-[10px] font-mono underline cursor-pointer"
                   >
                     📥 Pull Live Scale Weight ({activeScaleWeight} Kg)
                   </button>
@@ -1212,7 +1212,7 @@ Naseem Bagh / Malabagh, Srinagar`;
                   onWheel={(e) => (e.target as HTMLElement).blur()}
                   onChange={(e) => handleWeightChange(e.target.value)}
                   placeholder="e.g. 2.0"
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2 text-xl font-mono text-cyan-300 font-bold focus:outline-none focus:border-cyan-400 shadow-inner"
+                  className="w-full bg-[#0e0e11] border border-zinc-800 rounded-lg px-4 py-2 text-xl font-mono text-white font-semibold tabular-nums focus:outline-none focus:border-zinc-600"
                 />
                 <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-xs">
                   KG
@@ -1229,8 +1229,8 @@ Naseem Bagh / Malabagh, Srinagar`;
                     onClick={() => handleWeightChange(w.toFixed(1))}
                     className={`px-2 py-0.5 rounded-lg font-mono text-[11px] font-semibold border transition-all cursor-pointer ${
                       parseFloat(weightStr) === w
-                        ? "bg-cyan-500/20 text-cyan-300 border-cyan-400"
-                        : "bg-slate-800/80 hover:bg-slate-700 text-slate-300 border-slate-700"
+                        ? "bg-zinc-800 text-white border-zinc-600 font-semibold"
+                        : "bg-zinc-900 hover:bg-zinc-800 text-zinc-400 border-zinc-800"
                     }`}
                   >
                     {w}k
@@ -1242,7 +1242,7 @@ Naseem Bagh / Malabagh, Srinagar`;
                     const cur = parseFloat(weightStr) || 0;
                     handleWeightChange((cur + 0.5).toFixed(2));
                   }}
-                  className="px-2 py-0.5 rounded-lg bg-cyan-950/60 hover:bg-cyan-900/60 text-cyan-400 font-mono text-[11px] font-bold border border-cyan-500/30 cursor-pointer"
+                  className="px-2 py-0.5 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-mono text-[11px] font-semibold border border-zinc-700 cursor-pointer"
                 >
                   +0.5
                 </button>
@@ -1250,19 +1250,19 @@ Naseem Bagh / Malabagh, Srinagar`;
             </div>
 
             {/* Standard Inventory Baseline Display */}
-            <div className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between">
+            <div className="p-3 rounded-lg bg-[#0e0e11] border border-zinc-800 flex items-center justify-between">
               <div>
                 <span className="text-[10px] text-slate-400 uppercase font-mono tracking-wider block">
                   {dealItems.length > 1 ? "Active Item Standard Baseline" : "Standard Inventory Bill Total"}
                 </span>
-                <div className="text-base sm:text-lg font-black text-white font-mono">
+                <div className="text-base sm:text-lg font-semibold text-white font-mono tabular-nums">
                   ₹{standardTotal.toLocaleString("en-IN")}
                 </div>
               </div>
               <div className="text-right text-[11px] text-slate-400 font-mono">
                 <div>{weight.toFixed(2)} Kg @ ₹{standardRate}/Kg</div>
                 {dealItems.length > 1 && (
-                  <div className="text-cyan-400 text-[10px] font-bold">
+                  <div className="text-zinc-400 text-[10px] font-mono">
                     Combined Std: ₹{combinedStandardTotal.toLocaleString("en-IN")} ({combinedWeight.toFixed(2)} Kg)
                   </div>
                 )}
@@ -1271,23 +1271,23 @@ Naseem Bagh / Malabagh, Srinagar`;
           </div>
 
           {/* Card 2: What Customer Wants to Pay (Multi-Way Negotiation Input) */}
-          <div className="bg-slate-900/85 border border-cyan-500/30 rounded-2xl p-3 sm:p-4 space-y-3 shadow-xl">
+          <div className="bg-[#131316] border border-zinc-800 rounded-xl p-3 sm:p-4 space-y-3 shadow-sm">
             <div className="flex items-center justify-between">
               <h2
                 className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5"
                 style={{ fontFamily: '"Space Grotesk", sans-serif' }}
               >
-                <span className="material-symbols-outlined text-amber-400 text-base">calculate</span>
+                <span className="material-symbols-outlined text-zinc-400 text-base">calculate</span>
                 2. Customer Bargain / Offer Calculator
               </h2>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold">
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-300 border border-zinc-700 font-medium">
                   Instant Loss &amp; Rate Breakdown
                 </span>
                 <button
                   type="button"
                   onClick={handleClearDealDraft}
-                  className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition-all cursor-pointer"
+                  className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 border border-zinc-800 transition-colors cursor-pointer"
                   title="Reset all Deal Desk inputs and clear cached draft"
                 >
                   Clear Deal
@@ -1296,7 +1296,7 @@ Naseem Bagh / Malabagh, Srinagar`;
             </div>
 
             {/* 2 Interactive Negotiation Input Mode Tabs */}
-            <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-950 rounded-xl border border-slate-800 text-xs font-mono font-bold">
+            <div className="grid grid-cols-2 gap-1.5 p-1 bg-[#0e0e11] rounded-lg border border-zinc-800 text-xs font-mono font-medium">
               {[
                 { id: "rate", label: "₹ / Kg Rate" },
                 { id: "total", label: "₹ Deal Total" },
@@ -1307,8 +1307,8 @@ Naseem Bagh / Malabagh, Srinagar`;
                   onClick={() => setActiveInputMode(m.id as "rate" | "total")}
                   className={`py-2 rounded-lg text-center transition-all cursor-pointer ${
                     activeInputMode === m.id
-                      ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 shadow-sm font-black"
-                      : "text-slate-400 hover:text-slate-200"
+                      ? "bg-zinc-800 text-white border border-zinc-600 shadow-sm font-semibold"
+                      : "text-zinc-400 hover:text-zinc-200"
                   }`}
                 >
                   {m.label}
@@ -1323,7 +1323,7 @@ Naseem Bagh / Malabagh, Srinagar`;
                   Customer Offered Lump-Sum Amount (₹ Total for Item #{dealItems.findIndex((i) => i.id === (activeDealItem?.id || activeDealItemId)) + 1 || 1}):
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-cyan-400 font-bold font-mono text-lg">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 font-mono text-lg">
                     ₹
                   </span>
                   <input
@@ -1339,7 +1339,7 @@ Naseem Bagh / Malabagh, Srinagar`;
                       if (!isNaN(num)) applyDealTotal(num);
                     }}
                     placeholder={`e.g. ${Math.floor(standardTotal * 0.9)}`}
-                    className="w-full bg-slate-950 border-2 border-cyan-500/50 rounded-xl pl-8 pr-4 py-2 text-xl font-mono text-white font-black focus:outline-none focus:border-cyan-400"
+                    className="w-full bg-[#0e0e11] border border-zinc-800 rounded-lg pl-8 pr-4 py-2 text-xl font-mono text-white font-semibold tabular-nums focus:outline-none focus:border-zinc-600"
                   />
                 </div>
                 <p className="text-[10px] text-slate-400 font-mono">
@@ -1354,7 +1354,7 @@ Naseem Bagh / Malabagh, Srinagar`;
                   Negotiated Rate Per Kg (₹ / Kg for Item #{dealItems.findIndex((i) => i.id === (activeDealItem?.id || activeDealItemId)) + 1 || 1}):
                 </label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-cyan-400 font-bold font-mono text-lg">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 font-mono text-lg">
                     ₹
                   </span>
                   <input
@@ -1370,7 +1370,7 @@ Naseem Bagh / Malabagh, Srinagar`;
                       if (!isNaN(num)) applyDealRate(num);
                     }}
                     placeholder={`e.g. ${standardRate - 50}`}
-                    className="w-full bg-slate-950 border-2 border-cyan-500/50 rounded-xl pl-8 pr-16 py-2 text-xl font-mono text-white font-black focus:outline-none focus:border-cyan-400"
+                    className="w-full bg-[#0e0e11] border border-zinc-800 rounded-lg pl-8 pr-16 py-2 text-xl font-mono text-white font-semibold tabular-nums focus:outline-none focus:border-zinc-600"
                   />
                   <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 font-mono text-xs">
                     / KG
@@ -1391,7 +1391,7 @@ Naseem Bagh / Malabagh, Srinagar`;
                 <button
                   type="button"
                   onClick={handleRoundToFifty}
-                  className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 font-mono text-xs font-bold border border-slate-700 cursor-pointer"
+                  className="px-2.5 py-1 rounded-md bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-mono text-xs font-medium border border-zinc-800 cursor-pointer"
                   title="Round total down to nearest ₹50"
                 >
                   Round to ₹50
@@ -1399,7 +1399,7 @@ Naseem Bagh / Malabagh, Srinagar`;
                 <button
                   type="button"
                   onClick={handleRoundToHundred}
-                  className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-cyan-300 font-mono text-xs font-bold border border-slate-700 cursor-pointer"
+                  className="px-2.5 py-1 rounded-md bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-mono text-xs font-medium border border-zinc-800 cursor-pointer"
                   title="Round total down to nearest ₹100"
                 >
                   Round to ₹100
@@ -1409,7 +1409,7 @@ Naseem Bagh / Malabagh, Srinagar`;
                     key={pct}
                     type="button"
                     onClick={() => applyDiscountPercent(pct)}
-                    className="px-2 py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-amber-300 font-mono text-xs font-bold border border-slate-700 cursor-pointer"
+                    className="px-2 py-1 rounded-md bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-mono text-xs font-medium border border-zinc-800 cursor-pointer"
                   >
                     {pct}% Off
                   </button>
@@ -1419,7 +1419,7 @@ Naseem Bagh / Malabagh, Srinagar`;
                     key={amt}
                     type="button"
                     onClick={() => applyFlatDiscount(amt)}
-                    className="px-2 py-1 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-rose-300 font-mono text-xs font-bold border border-slate-700 cursor-pointer"
+                    className="px-2 py-1 rounded-md bg-zinc-900 hover:bg-zinc-800 text-zinc-300 font-mono text-xs font-medium border border-zinc-800 cursor-pointer"
                   >
                     -₹{amt}
                   </button>
@@ -1428,7 +1428,7 @@ Naseem Bagh / Malabagh, Srinagar`;
             </div>
 
             {/* Customer Details with Autocomplete Search from Database */}
-            <div className="pt-2 border-t border-slate-800/80">
+            <div className="pt-2 border-t border-zinc-800/80">
               <CustomerAutocompleteInput
                 customerName={customerName}
                 customerPhone={customerPhone}
@@ -1447,7 +1447,7 @@ Naseem Bagh / Malabagh, Srinagar`;
         {/* ─── RIGHT: EXACT LOSS INSIGHTS & LOCKED-IN QR (5 Cols) ─── */}
         <div className="lg:col-span-5 space-y-3">
           {/* 1. HOW MUCH LESS AM I SELLING & HOW MUCH DO I LOSE? (LIVE BREAKDOWN) */}
-          <div className="bg-slate-900/95 border border-slate-800 rounded-2xl p-3 sm:p-4 space-y-3 shadow-2xl">
+          <div className="bg-[#131316] border border-zinc-800 rounded-xl p-3 sm:p-4 space-y-3 shadow-sm">
             <div className="flex items-center justify-between pb-2 border-b border-slate-800">
               <div>
                 <span className="text-[9px] uppercase font-bold tracking-widest text-slate-500 font-mono">
@@ -1458,12 +1458,12 @@ Naseem Bagh / Malabagh, Srinagar`;
                   style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                 >
                   Agreed Deal:{" "}
-                  <span className="text-emerald-400">
+                  <span className="text-white font-mono tabular-nums font-semibold">
                     ₹{combinedDealTotal.toLocaleString("en-IN")}
                   </span>
                 </h3>
                 {dealItems.length > 1 && (
-                  <div className="text-[10px] font-mono text-cyan-400 font-bold">
+                  <div className="text-[10px] font-mono text-zinc-400">
                     {dealItems.length} Products Clubbed · {combinedWeight.toFixed(2)} Kg Total
                   </div>
                 )}
@@ -1472,8 +1472,8 @@ Naseem Bagh / Malabagh, Srinagar`;
                 <span
                   className={`px-2.5 py-1 rounded-full text-xs font-mono font-bold border ${
                     combinedDiscountAmount > 0
-                      ? "bg-rose-500/15 text-rose-300 border-rose-500/40"
-                      : "bg-emerald-500/15 text-emerald-300 border-emerald-500/40"
+                      ? "bg-zinc-800 text-rose-400 border-zinc-700"
+                      : "bg-zinc-800 text-zinc-300 border-zinc-700"
                   }`}
                 >
                   {combinedDiscountAmount > 0
@@ -1486,33 +1486,33 @@ Naseem Bagh / Malabagh, Srinagar`;
             {/* 3 Clean Crucial Metrics Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs font-mono">
               {/* Metric 1: Less Amount (Direct Cash Loss) */}
-              <div className="p-2.5 rounded-xl bg-slate-950/90 border border-rose-500/30 space-y-0.5">
+              <div className="p-2.5 rounded-lg bg-[#0e0e11] border border-zinc-800 space-y-0.5">
                 <span className="text-[10px] text-slate-400 block">Less Amount:</span>
-                <div className="text-base font-black text-rose-400">
+                <div className="text-base font-semibold font-mono text-rose-400 tabular-nums">
                   {combinedDiscountAmount > 0
                     ? `-₹${combinedDiscountAmount.toLocaleString("en-IN")}`
                     : "₹0"}
                 </div>
-                <div className="text-[9px] text-rose-400/80">
+                <div className="text-[9px] text-zinc-500 font-mono">
                   {combinedDiscountAmount > 0 ? `Losing ₹${combinedDiscountAmount}` : "Full price"}
                 </div>
               </div>
 
               {/* Metric 2: Loss Per Kilogram */}
-              <div className="p-2.5 rounded-xl bg-slate-950/90 border border-rose-500/30 space-y-0.5">
+              <div className="p-2.5 rounded-lg bg-[#0e0e11] border border-zinc-800 space-y-0.5">
                 <span className="text-[10px] text-slate-400 block">Concession / Kg:</span>
-                <div className="text-base font-black text-rose-400">
+                <div className="text-base font-semibold font-mono text-rose-400 tabular-nums">
                   {combinedLossPerKg > 0 ? `-₹${combinedLossPerKg.toFixed(1)}/Kg` : "₹0/Kg"}
                 </div>
-                <div className="text-[9px] text-rose-400/80">
+                <div className="text-[9px] text-zinc-500 font-mono">
                   {combinedLossPerKg > 0 ? `-₹${combinedLossPerKg.toFixed(1)}/kg` : "Zero loss"}
                 </div>
               </div>
 
               {/* Metric 3: Standard Price vs Realized */}
-              <div className="p-2.5 rounded-xl bg-slate-950/90 border border-slate-800 space-y-0.5">
+              <div className="p-2.5 rounded-lg bg-[#0e0e11] border border-zinc-800 space-y-0.5">
                 <span className="text-[10px] text-slate-400 block">Effective Rate:</span>
-                <div className="text-base font-black text-cyan-300">
+                <div className="text-base font-semibold font-mono text-white tabular-nums">
                   ₹{combinedEffectiveRate.toFixed(1)}/Kg
                 </div>
                 <div className="text-[9px] text-slate-500">
@@ -1560,10 +1560,10 @@ Naseem Bagh / Malabagh, Srinagar`;
           </div>
 
           {/* 2. LOCKED-IN QR CODE GENERATION & REAL-TIME AUTO-VERIFY */}
-          <div className="bg-slate-900/95 border border-slate-800 rounded-2xl p-3 sm:p-4 space-y-3 shadow-2xl">
+          <div className="bg-[#131316] border border-zinc-800 rounded-xl p-3 sm:p-4 space-y-3 shadow-sm">
             <div className="flex items-center justify-between pb-1 border-b border-slate-800/80">
               <div className="flex items-center gap-1.5">
-                <span className="material-symbols-outlined text-cyan-400 text-base">lock</span>
+                <span className="material-symbols-outlined text-zinc-400 text-base">lock</span>
                 <h3
                   className="text-xs sm:text-sm font-bold text-white"
                   style={{ fontFamily: '"Space Grotesk", sans-serif' }}
@@ -1573,14 +1573,14 @@ Naseem Bagh / Malabagh, Srinagar`;
               </div>
 
               {/* QR Engine Switcher (Default: J&K Soundbox) */}
-              <div className="flex items-center gap-1 bg-slate-950 p-0.5 rounded-lg border border-slate-800 text-[10px] font-mono">
+              <div className="flex items-center gap-1 bg-[#0e0e11] p-0.5 rounded-md border border-zinc-800 text-[10px] font-mono">
                 <button
                   type="button"
                   onClick={() => setQrEngine("soundbox")}
                   className={`px-2 py-0.5 rounded font-bold cursor-pointer transition-all ${
                     qrEngine === "soundbox"
-                      ? "bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 shadow-sm"
-                      : "text-slate-400 hover:text-slate-200"
+                      ? "bg-zinc-800 text-zinc-200 border border-zinc-700 shadow-sm font-semibold"
+                      : "text-zinc-400 hover:text-zinc-200"
                   }`}
                   title="Direct J&K Soundbox locked UPI QR (Default)"
                 >
@@ -1591,8 +1591,8 @@ Naseem Bagh / Malabagh, Srinagar`;
                   onClick={() => setQrEngine("razorpay")}
                   className={`px-2 py-0.5 rounded font-bold cursor-pointer transition-all ${
                     qrEngine === "razorpay"
-                      ? "bg-cyan-500/25 text-cyan-300 border border-cyan-500/40 shadow-sm"
-                      : "text-slate-400 hover:text-slate-200"
+                      ? "bg-zinc-800 text-zinc-200 border border-zinc-700 shadow-sm font-semibold"
+                      : "text-zinc-400 hover:text-zinc-200"
                   }`}
                   title="Single-use amount locked BharatQR with real-time auto capture"
                 >
@@ -1653,7 +1653,7 @@ Naseem Bagh / Malabagh, Srinagar`;
             ) : !dealQrGenerated ? (
               /* ─── READY STATE: ON-DEMAND BUTTON TO GENERATE LOCKED QR (PRIVACY MODE) ─── */
               <div className="w-full py-3 px-2 text-center space-y-3 animate-fadeIn">
-                <div className="w-11 h-11 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 flex items-center justify-center mx-auto text-xl shadow-inner">
+                <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 flex items-center justify-center mx-auto text-xl">
                   <span className="material-symbols-outlined text-2xl">qr_code_2</span>
                 </div>
 
@@ -1690,14 +1690,14 @@ Naseem Bagh / Malabagh, Srinagar`;
                     }
                     setCustomerDisplayOpen(true);
                   }}
-                  className="w-full py-3 px-3 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 active:scale-[0.98] text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
+                  className="w-full py-2.5 px-3 rounded-lg bg-white hover:bg-zinc-200 active:scale-[0.99] text-zinc-950 font-semibold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-sm"
                   style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                 >
                   <span className="material-symbols-outlined text-base">qr_code_scanner</span>
                   Generate Locked QR (₹{combinedDealTotal.toLocaleString("en-IN")})
                 </button>
 
-                <div className="p-2 rounded-lg bg-slate-950 border border-slate-800 text-[10px] text-slate-400 leading-relaxed text-left flex items-start gap-1.5 w-full">
+                <div className="p-2 rounded-md bg-[#0e0e11] border border-zinc-800 text-[10px] text-zinc-400 leading-relaxed text-left flex items-start gap-1.5 w-full">
                   <span className="text-emerald-400 text-xs mt-0.5">🛡️</span>
                   <span>
                     <strong className="text-slate-200">Staff Margin Privacy Protected:</strong> Clicking opens the clean customer-facing presentation. Concession analysis, loss per kg &amp; internal cost controls stay confidential.
@@ -1709,7 +1709,7 @@ Naseem Bagh / Malabagh, Srinagar`;
                   <button
                     type="button"
                     onClick={handlePushToBillAction}
-                    className="py-2 px-2.5 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/40 text-cyan-300 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+                    className="py-2 px-2.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-700 font-medium text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
                   >
                     <span className="material-symbols-outlined text-sm">shopping_cart_checkout</span>
                     <span>Push to Bill</span>
@@ -1718,7 +1718,7 @@ Naseem Bagh / Malabagh, Srinagar`;
                     type="button"
                     onClick={handleSendWhatsAppDeal}
                     disabled={waLinkLoading}
-                    className="py-2 px-2.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-300 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+                    className="py-2 px-2.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-700 font-medium text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
                   >
                     <span className="material-symbols-outlined text-sm">send</span>
                     <span>{waLinkLoading ? "Sending..." : "WhatsApp Deal"}</span>
@@ -1746,7 +1746,7 @@ Naseem Bagh / Malabagh, Srinagar`;
                       setLastGeneratedDealAmount(combinedDealTotal);
                       setCustomerDisplayOpen(true);
                     }}
-                    className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-md shadow-emerald-500/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="w-full py-2.5 px-3 rounded-lg bg-white hover:bg-zinc-200 active:scale-[0.99] text-zinc-950 font-semibold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
                     style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                   >
                     <span className="material-symbols-outlined text-base">fullscreen</span>
@@ -1788,7 +1788,7 @@ Naseem Bagh / Malabagh, Srinagar`;
                   <button
                     type="button"
                     onClick={handlePushToBillAction}
-                    className="py-2 px-2.5 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/40 text-cyan-300 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+                    className="py-2 px-2.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-700 font-medium text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
                   >
                     <span className="material-symbols-outlined text-sm">shopping_cart_checkout</span>
                     <span>Push to Bill</span>
@@ -1797,7 +1797,7 @@ Naseem Bagh / Malabagh, Srinagar`;
                     type="button"
                     onClick={handleSendWhatsAppDeal}
                     disabled={waLinkLoading}
-                    className="py-2 px-2.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-300 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+                    className="py-2 px-2.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-700 font-medium text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-colors"
                   >
                     <span className="material-symbols-outlined text-sm">send</span>
                     <span>{waLinkLoading ? "Sending..." : "WhatsApp Deal"}</span>

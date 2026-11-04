@@ -3838,7 +3838,7 @@ Helpline: +91 84910 06127`;
             <button
               type="button"
               onClick={() => setActiveTab("customer_balances")}
-              className="px-3.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-500/50 text-xs font-bold font-mono transition-all cursor-pointer flex items-center gap-1.5 shrink-0"
+              className="px-3 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-200 border border-zinc-700 text-xs font-medium font-mono transition-colors cursor-pointer flex items-center gap-1.5 shrink-0"
             >
               <span>📒 Open Khata &amp; Balances (Tab 4) &rarr;</span>
             </button>
@@ -3847,10 +3847,10 @@ Helpline: +91 84910 06127`;
           {/* KPI Summary Bar */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
             {/* 1. Total Remote Orders */}
-            <div className="bg-slate-900/85 border border-slate-800 rounded-2xl p-3 sm:p-4 space-y-1 shadow-lg">
+            <div className="p-3.5 sm:p-4 rounded-xl bg-[#131316] border border-zinc-800 space-y-1 shadow-sm">
               <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
                 <span>Total Remote Orders</span>
-                <span className="material-symbols-outlined text-sm text-cyan-400">local_shipping</span>
+                <span className="material-symbols-outlined text-sm text-zinc-400">local_shipping</span>
               </div>
               <div className="text-xl sm:text-2xl font-black text-white font-mono">
                 {remoteOrders.length}
@@ -3861,34 +3861,35 @@ Helpline: +91 84910 06127`;
             </div>
 
             {/* 2. Awaiting Customer Payment (Due) */}
-            <div className="bg-slate-900/85 border border-amber-500/30 rounded-2xl p-3 sm:p-4 space-y-1 shadow-lg relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-16 h-16 bg-amber-500/10 rounded-full blur-xl pointer-events-none" />
-              <div className="flex items-center justify-between text-amber-300 text-xs font-mono font-bold">
+            <div className="p-3.5 sm:p-4 rounded-xl bg-[#131316] border border-zinc-800 space-y-1 shadow-sm">
+              <div className="flex items-center justify-between text-zinc-400 text-xs font-mono">
                 <span className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
-                  ⏳ Payment Due
+                  <span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block" />
+                  Payment Due
                 </span>
-                <span className="material-symbols-outlined text-sm text-amber-400">pending</span>
+                <span className="material-symbols-outlined text-sm text-zinc-400">pending</span>
               </div>
-              <div className="text-xl sm:text-2xl font-black text-amber-300 font-mono">
+              <div className="text-xl sm:text-2xl font-semibold text-white font-mono tabular-nums">
                 ₹{pendingRemoteAmount.toLocaleString("en-IN")}
               </div>
-              <div className="text-[10px] text-amber-400/80 font-mono">
+              <div className="text-[10px] text-zinc-500 font-mono">
                 {pendingRemoteCount} {pendingRemoteCount === 1 ? "customer awaiting pay" : "customers awaiting pay"}
               </div>
             </div>
 
             {/* 3. Paid & Completed */}
-            <div className="bg-slate-900/85 border border-emerald-500/30 rounded-2xl p-3 sm:p-4 space-y-1 shadow-lg relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-16 h-16 bg-emerald-500/10 rounded-full blur-xl pointer-events-none" />
-              <div className="flex items-center justify-between text-emerald-300 text-xs font-mono font-bold">
-                <span>✅ Collected / Paid</span>
-                <span className="material-symbols-outlined text-sm text-emerald-400">check_circle</span>
+            <div className="p-3.5 sm:p-4 rounded-xl bg-[#131316] border border-zinc-800 space-y-1 shadow-sm">
+              <div className="flex items-center justify-between text-zinc-400 text-xs font-mono">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
+                  Collected / Paid
+                </span>
+                <span className="material-symbols-outlined text-sm text-zinc-400">check_circle</span>
               </div>
-              <div className="text-xl sm:text-2xl font-black text-emerald-400 font-mono">
+              <div className="text-xl sm:text-2xl font-semibold text-white font-mono tabular-nums">
                 ₹{paidRemoteAmount.toLocaleString("en-IN")}
               </div>
-              <div className="text-[10px] text-emerald-400/80 font-mono">
+              <div className="text-[10px] text-zinc-500 font-mono">
                 {paidRemoteOrders.length} orders settled
               </div>
             </div>
@@ -3897,7 +3898,7 @@ Helpline: +91 84910 06127`;
             <div className="bg-slate-900/85 border border-cyan-500/30 rounded-2xl p-3 sm:p-4 space-y-1 shadow-lg">
               <div className="flex items-center justify-between text-cyan-300 text-xs font-mono font-bold">
                 <span>⚡ Payment Verification</span>
-                <span className="material-symbols-outlined text-sm text-cyan-400">verified</span>
+                <span className="material-symbols-outlined text-sm text-zinc-400">verified</span>
               </div>
               <div className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5 pt-1">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -3910,16 +3911,16 @@ Helpline: +91 84910 06127`;
           </div>
 
           {/* Filter, Search & Actions Bar */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 p-2 bg-slate-900/70 border border-slate-800 rounded-2xl">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5 p-2 bg-[#131316] border border-zinc-800 rounded-xl shadow-sm">
             {/* Filter Tabs */}
-            <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800/80 text-xs font-mono overflow-x-auto">
+            <div className="flex items-center gap-1 bg-[#0e0e11] p-1 rounded-lg border border-zinc-800 text-xs font-mono overflow-x-auto">
               <button
                 type="button"
                 onClick={() => setRemoteFilter("all")}
                 className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap ${
                   remoteFilter === "all"
-                    ? "bg-slate-800 text-white shadow-sm"
-                    : "text-slate-400 hover:text-slate-200"
+                    ? "bg-zinc-800 text-white shadow-sm font-medium"
+                    : "text-zinc-400 hover:text-zinc-200"
                 }`}
               >
                 All ({remoteOrders.length})
@@ -3929,8 +3930,8 @@ Helpline: +91 84910 06127`;
                 onClick={() => setRemoteFilter("pending")}
                 className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
                   remoteFilter === "pending"
-                    ? "bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm"
-                    : "text-slate-400 hover:text-amber-300"
+                    ? "bg-zinc-800 text-white border border-zinc-700 shadow-sm font-medium"
+                    : "text-zinc-400 hover:text-zinc-200"
                 }`}
               >
                 <span>⏳ Due ({pendingRemoteCount})</span>
@@ -3940,8 +3941,8 @@ Helpline: +91 84910 06127`;
                 onClick={() => setRemoteFilter("paid")}
                 className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
                   remoteFilter === "paid"
-                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm"
-                    : "text-slate-400 hover:text-emerald-300"
+                    ? "bg-zinc-800 text-white border border-zinc-700 shadow-sm font-medium"
+                    : "text-zinc-400 hover:text-zinc-200"
                 }`}
               >
                 <span>✅ Paid ({paidRemoteOrders.length})</span>
@@ -3951,8 +3952,8 @@ Helpline: +91 84910 06127`;
                 onClick={() => setRemoteFilter("expired")}
                 className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
                   remoteFilter === "expired"
-                    ? "bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-sm"
-                    : "text-slate-400 hover:text-rose-300"
+                    ? "bg-zinc-800 text-white border border-zinc-700 shadow-sm font-medium"
+                    : "text-zinc-400 hover:text-zinc-200"
                 }`}
               >
                 <span>⏱️ Expired ({expiredRemoteCount})</span>
@@ -3962,8 +3963,8 @@ Helpline: +91 84910 06127`;
                 onClick={() => setRemoteFilter("whatsapp")}
                 className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
                   remoteFilter === "whatsapp"
-                    ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm"
-                    : "text-slate-400 hover:text-cyan-300"
+                    ? "bg-zinc-800 text-white border border-zinc-700 shadow-sm font-medium"
+                    : "text-zinc-400 hover:text-zinc-200"
                 }`}
               >
                 <span>💬 WhatsApp</span>
@@ -3973,8 +3974,8 @@ Helpline: +91 84910 06127`;
                 onClick={() => setRemoteFilter("catch_weight")}
                 className={`px-3 py-1.5 rounded-lg font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
                   remoteFilter === "catch_weight"
-                    ? "bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-sm"
-                    : "text-slate-400 hover:text-purple-300"
+                    ? "bg-zinc-800 text-white border border-zinc-700 shadow-sm font-medium"
+                    : "text-zinc-400 hover:text-zinc-200"
                 }`}
               >
                 <span>🐟 POS / Weight</span>
@@ -3992,7 +3993,7 @@ Helpline: +91 84910 06127`;
                   value={remoteSearch}
                   onChange={(e) => setRemoteSearch(e.target.value)}
                   placeholder="Search name, phone, inv #..."
-                  className="w-full pl-8 pr-7 py-1.5 bg-slate-950 border border-slate-800 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-cyan-500 font-mono"
+                  className="w-full pl-8 pr-7 py-1.5 bg-[#0e0e11] border border-zinc-800 rounded-lg text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-zinc-600 font-mono"
                 />
                 {remoteSearch && (
                   <button
@@ -4009,7 +4010,7 @@ Helpline: +91 84910 06127`;
                 type="button"
                 onClick={fetchRemoteOrders}
                 disabled={remoteLoading}
-                className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-bold font-mono transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0"
+                className="px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800 rounded-lg text-xs font-medium font-mono transition-colors flex items-center gap-1.5 cursor-pointer disabled:opacity-50 shrink-0"
                 title="Refresh Remote Orders"
               >
                 <span className={`material-symbols-outlined text-sm ${remoteLoading ? "animate-spin" : ""}`}>
@@ -4021,7 +4022,7 @@ Helpline: +91 84910 06127`;
               <button
                 type="button"
                 onClick={handleOpenNewRemoteModal}
-                className="px-3 py-1.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer shadow-sm shrink-0"
+                className="px-3 py-1.5 bg-white hover:bg-zinc-200 text-zinc-950 font-semibold rounded-lg text-xs uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer shadow-sm shrink-0"
               >
                 <span className="material-symbols-outlined text-sm">add</span>
                 <span>Create Manual Invoice</span>
@@ -4030,7 +4031,7 @@ Helpline: +91 84910 06127`;
               <button
                 type="button"
                 onClick={() => setActiveTab("deal_calculator")}
-                className="px-3 py-1.5 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 font-bold rounded-xl text-xs uppercase tracking-wider transition-all flex items-center gap-1 cursor-pointer shadow-sm shrink-0"
+                className="px-3 py-1.5 bg-zinc-900 hover:bg-zinc-800 border border-zinc-700 text-zinc-200 font-medium rounded-lg text-xs uppercase tracking-wider transition-colors flex items-center gap-1 cursor-pointer shadow-sm shrink-0"
                 title="Customer asking for bargain/discount? Open Deal Desk"
               >
                 <span className="material-symbols-outlined text-sm">handshake</span>
@@ -4087,32 +4088,26 @@ Helpline: +91 84910 06127`;
                 return (
                   <div
                     key={order.id}
-                    className={`rounded-2xl p-4 space-y-3 transition-all relative overflow-hidden flex flex-col justify-between ${
-                      isPaid
-                        ? "bg-slate-900/85 border border-emerald-500/40 shadow-lg shadow-emerald-950/20"
-                        : isExp
-                        ? "bg-slate-900/85 border border-rose-500/40 shadow-lg shadow-rose-950/20"
-                        : "bg-slate-900/85 border border-amber-500/40 shadow-lg shadow-amber-950/20"
-                    }`}
+                    className="rounded-xl p-4 space-y-3 bg-[#131316] border border-zinc-800 hover:border-zinc-700 transition-colors shadow-sm flex flex-col justify-between"
                   >
                     <div className="space-y-3">
                       {/* Header Row: Invoice #, Date & Status */}
-                      <div className="flex items-start justify-between gap-2 border-b border-slate-800/80 pb-2.5">
+                      <div className="flex items-start justify-between gap-2 border-b border-zinc-800 pb-2.5">
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="font-mono font-black text-sm text-white tracking-tight">
+                            <span className="font-mono font-semibold text-sm text-white tracking-tight">
                               #{invNum}
                             </span>
                             {pMethod.toLowerCase().includes("dual") ? (
-                              <span className="text-[9px] font-mono font-bold bg-cyan-500/15 border border-cyan-500/40 text-cyan-300 px-1.5 py-0.5 rounded">
+                              <span className="text-[9px] font-mono font-medium bg-zinc-800 border border-zinc-700 text-zinc-300 px-1.5 py-0.5 rounded-md">
                                 ✨ Dual (J&amp;K + Rzp)
                               </span>
                             ) : pMethod.toLowerCase().includes("jk") || pMethod.toLowerCase().includes("jkb") ? (
-                              <span className="text-[9px] font-mono font-bold bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 px-1.5 py-0.5 rounded">
+                              <span className="text-[9px] font-mono font-medium bg-zinc-800 border border-zinc-700 text-zinc-300 px-1.5 py-0.5 rounded-md">
                                 ⚡ J&amp;K Bank Instant
                               </span>
                             ) : (
-                              <span className="text-[9px] font-mono text-slate-400 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800">
+                              <span className="text-[9px] font-mono text-zinc-400 bg-zinc-900 px-1.5 py-0.5 rounded-md border border-zinc-800">
                                 💳 Razorpay
                               </span>
                             )}
@@ -4148,32 +4143,32 @@ Helpline: +91 84910 06127`;
 
                         <div className="text-right flex flex-col items-end gap-1">
                           {isPaid ? (
-                            <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 font-bold text-[10px] uppercase tracking-wider flex items-center gap-1 shadow-sm">
+                            <span className="px-2 py-0.5 rounded-md bg-zinc-800 border border-zinc-700 text-emerald-400 font-medium text-[10px] uppercase tracking-wider flex items-center gap-1.5">
                               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                               PAID ✓
                             </span>
                           ) : isExp ? (
-                            <span className="px-2.5 py-0.5 rounded-full bg-rose-500/20 border border-rose-500/50 text-rose-300 font-bold text-[10px] uppercase tracking-wider flex items-center gap-1 shadow-sm">
+                            <span className="px-2 py-0.5 rounded-md bg-zinc-800 border border-zinc-700 text-rose-400 font-medium text-[10px] uppercase tracking-wider flex items-center gap-1.5">
                               <span className="w-1.5 h-1.5 rounded-full bg-rose-400" />
                               EXPIRED ⏱️
                             </span>
                           ) : (
-                            <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/50 text-amber-300 font-bold text-[10px] uppercase tracking-wider flex items-center gap-1 shadow-sm animate-pulse">
+                            <span className="px-2 py-0.5 rounded-md bg-zinc-800 border border-zinc-700 text-amber-400 font-medium text-[10px] uppercase tracking-wider flex items-center gap-1.5">
                               <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
                               PAYMENT DUE
                             </span>
                           )}
-                          <span className="font-mono text-base font-black text-white">
+                          <span className="font-mono text-base font-semibold text-white tabular-nums">
                             ₹{totalAmt.toLocaleString("en-IN")}
                           </span>
                         </div>
                       </div>
 
                       {/* Customer Information Row */}
-                      <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800/80 space-y-1.5">
+                      <div className="p-2.5 rounded-lg bg-[#0e0e11] border border-zinc-800/80 space-y-1.5">
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-1.5 min-w-0">
-                            <span className="text-xs font-bold text-slate-200 truncate" title={cName}>
+                            <span className="text-xs font-medium text-white truncate" title={cName}>
                               👤 {cName || "Valued Customer"}
                             </span>
                             <button
@@ -4184,7 +4179,7 @@ Helpline: +91 84910 06127`;
                                 setEditCustomerPhone(cleanPhone !== "N/A" ? cleanPhone : "");
                                 setEditCustomerAddress(order.data?.address || order.address || orderNotes || "");
                               }}
-                              className="px-1.5 py-0.5 rounded-md bg-slate-800/90 hover:bg-slate-700 text-slate-400 hover:text-cyan-300 transition-all text-[10px] font-mono flex items-center gap-0.5 cursor-pointer border border-slate-700 shrink-0"
+                              className="px-1.5 py-0.5 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white transition-colors text-[10px] font-mono flex items-center gap-0.5 cursor-pointer border border-zinc-700 shrink-0"
                               title="Edit Customer Name, Phone, or Delivery Note"
                             >
                               <span className="material-symbols-outlined text-[11px]">edit</span>
@@ -4206,7 +4201,7 @@ Helpline: +91 84910 06127`;
                                   onClick={() => {
                                     window.open(`https://wa.me/91${cleanPhone}`, "_blank");
                                   }}
-                                  className="p-1 rounded-lg bg-green-600/20 hover:bg-green-600/30 text-green-300 border border-green-500/30 transition-all text-[10px] flex items-center gap-1 cursor-pointer"
+                                  className="p-1 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 transition-colors text-[10px] flex items-center gap-1 cursor-pointer"
                                   title="Open WhatsApp Chat"
                                 >
                                   <span className="material-symbols-outlined text-xs">chat</span>
@@ -4222,7 +4217,7 @@ Helpline: +91 84910 06127`;
                         </div>
 
                         {orderNotes && (
-                          <div className="text-[10.5px] text-amber-300/90 bg-amber-950/20 border border-amber-500/20 p-1.5 rounded-lg font-mono">
+                          <div className="text-[10.5px] text-zinc-300 bg-zinc-900 border border-zinc-800 p-1.5 rounded-md font-mono">
                             📍 Note: {orderNotes}
                           </div>
                         )}
@@ -4232,7 +4227,7 @@ Helpline: +91 84910 06127`;
                       <div className="text-[11px] font-mono text-slate-300 space-y-1">
                         <div className="flex items-center justify-between text-slate-400">
                           <span>Harvest Weight:</span>
-                          <span className="text-cyan-300 font-bold">
+                          <span className="text-white font-semibold font-mono tabular-nums">
                             {totalWt < 0.01 ? `${totalWt} Kg` : `${totalWt.toFixed(2)} Kg`}
                           </span>
                         </div>
@@ -4251,12 +4246,12 @@ Helpline: +91 84910 06127`;
                     </div>
 
                     {/* Action Buttons Footer */}
-                    <div className="pt-2 border-t border-slate-800/80 space-y-2 mt-2">
+                    <div className="pt-2 border-t border-zinc-800 space-y-2 mt-2">
                       {isPaid ? (
                         /* PAID ACTIONS */
                         <div className="space-y-1.5">
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <div className="flex-1 min-w-[100px] p-1.5 rounded-lg bg-emerald-950/40 border border-emerald-500/40 text-[10px] text-emerald-300 font-mono text-center flex items-center justify-center gap-1 font-bold">
+                            <div className="flex-1 min-w-[100px] p-1.5 rounded-md bg-zinc-800 border border-zinc-700 text-[10px] text-emerald-400 font-mono text-center flex items-center justify-center gap-1 font-medium">
                               <span>✓</span> Paid in Full
                             </div>
                             <button
@@ -4264,8 +4259,8 @@ Helpline: +91 84910 06127`;
                               onClick={() => handleCopyInvoiceLink(order)}
                               className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer ${
                                 copiedInvoiceId === order.id
-                                  ? "bg-emerald-500/30 text-emerald-200 border border-emerald-400 shadow-sm"
-                                  : "bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-200 border border-cyan-500/40"
+                                  ? "bg-zinc-700 text-white border border-zinc-600"
+                                  : "bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700"
                               }`}
                               title="Copy clean public invoice link"
                             >
@@ -4276,7 +4271,7 @@ Helpline: +91 84910 06127`;
                               href={`/invoice/${order.data?.num || invNum || order.id}?download=true`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 hover:border-slate-500 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer"
+                              className="px-2 py-1.5 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-[10px] font-medium font-mono transition-colors flex items-center justify-center gap-1 cursor-pointer"
                               title="Direct Download Official 1-Page A4 Tax Invoice PDF"
                             >
                               <span>📥</span>
@@ -4285,7 +4280,7 @@ Helpline: +91 84910 06127`;
                             <button
                               type="button"
                               onClick={() => handleQuickUpdateStatus(order, "PAYMENT DUE")}
-                              className="px-2 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer"
+                              className="px-2 py-1.5 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 text-[10px] font-medium font-mono transition-colors flex items-center justify-center gap-1 cursor-pointer"
                               title="Mark back to Payment Due"
                             >
                               <span>⏳ Mark Due</span>
@@ -4294,7 +4289,7 @@ Helpline: +91 84910 06127`;
                               type="button"
                               onClick={() => handleDeleteRemoteOrder(order)}
                               disabled={isDeleting}
-                              className="px-2 py-1.5 rounded-lg bg-slate-800/80 hover:bg-red-950/40 text-slate-400 hover:text-red-300 border border-slate-700 hover:border-red-500/30 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
+                              className="px-2 py-1.5 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-rose-400 border border-zinc-700 text-[10px] font-medium font-mono transition-colors flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
                               title="Delete this order record"
                             >
                               <span>🗑️</span>
@@ -4309,10 +4304,10 @@ Helpline: +91 84910 06127`;
                               <button
                                 type="button"
                                 onClick={() => handleSendReview(order)}
-                                className={`w-full py-1.5 px-2 rounded-xl text-[10.5px] font-bold font-mono transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                                className={`w-full py-1.5 px-2 rounded-lg text-[10.5px] font-medium font-mono transition-colors flex items-center justify-center gap-1.5 cursor-pointer ${
                                   hasSentReview
-                                    ? "bg-yellow-950/30 border border-yellow-500/30 text-yellow-400"
-                                    : "bg-yellow-500/15 hover:bg-yellow-500/25 border border-yellow-500/40 text-yellow-300 hover:text-yellow-200"
+                                    ? "bg-zinc-800 border border-zinc-700 text-zinc-400"
+                                    : "bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300"
                                 }`}
                                 title="Send customer a WhatsApp message asking for a Google review"
                               >
@@ -5872,7 +5867,7 @@ Helpline: +91 84910 06127`;
                               )}
                             </div>
                             <div className="text-[11px] text-slate-400 font-mono mt-0.5 flex items-center gap-2">
-                              <span className="text-cyan-300 font-bold">{item.weightKg} Kg</span>
+                              <span className="text-white font-semibold font-mono tabular-nums">{item.weightKg} Kg</span>
                               <span>@</span>
                               <span className="text-amber-300 font-bold">₹{item.dealRate}/Kg</span>
                               {item.baseRate > item.dealRate && (
@@ -6120,7 +6115,7 @@ Helpline: +91 84910 06127`;
                       </div>
                       <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 border-t border-slate-800/80 pt-1.5">
                         <span>Combined Quantity ({remoteBillItems.length} {remoteBillItems.length === 1 ? "item" : "items"}):</span>
-                        <span className="text-cyan-300 font-bold">{combinedWeight.toFixed(2)} Kg</span>
+                        <span className="text-white font-semibold font-mono tabular-nums">{combinedWeight.toFixed(2)} Kg</span>
                       </div>
                       <div className="flex items-center justify-between text-[11px] font-mono text-slate-400">
                         <span>Standard Total:</span>
