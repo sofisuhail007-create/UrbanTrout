@@ -2459,25 +2459,22 @@ Helpline: +91 84910 06127`;
   return (
     <div className="px-3 py-2 sm:px-5 sm:py-3 max-w-7xl mx-auto space-y-3">
       {/* ─── COMPACT HEADER BAR ─── */}
-      <div className="flex flex-wrap items-center justify-between gap-2 py-1.5 px-0.5 border-b border-slate-800/80">
+      <div className="flex flex-wrap items-center justify-between gap-2 py-1.5 px-0.5 border-b border-zinc-800/80">
         <div className="flex items-center gap-2 min-w-0">
-          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 flex-shrink-0">
+          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-300 flex-shrink-0">
             <span className="material-symbols-outlined text-base sm:text-lg">point_of_sale</span>
           </div>
           <div className="min-w-0">
-            <h1 className="text-sm sm:text-lg font-extrabold text-white truncate" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+            <h1 className="text-sm sm:text-base font-semibold text-zinc-100 truncate font-['Space_Grotesk']">
               Sales Billing POS
             </h1>
-            <span className="text-[9px] uppercase font-bold tracking-wider text-emerald-400 bg-emerald-500/10 px-1.5 py-0.2 rounded border border-emerald-500/20 sm:hidden">
-              Auto-Calc
-            </span>
           </div>
         </div>
 
         <div className="flex items-center gap-1.5 ml-auto flex-shrink-0">
           <Link
             href="/admin/dashboard/vending-log"
-            className="px-2 sm:px-3 py-1 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/30 text-emerald-300 transition-all text-[11px] sm:text-xs font-bold uppercase tracking-wider flex items-center gap-1"
+            className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-zinc-800/80 hover:bg-zinc-700/80 border border-zinc-700/80 text-zinc-300 transition-colors text-[11px] sm:text-xs font-medium flex items-center gap-1"
             title="Open Daily Sales Data Logger"
           >
             <span className="material-symbols-outlined text-sm">table_chart</span>
@@ -2487,17 +2484,17 @@ Helpline: +91 84910 06127`;
 
           <Link
             href="/admin/dashboard/orders"
-            className="px-2 sm:px-3 py-1 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/35 text-amber-300 transition-all text-[11px] sm:text-xs font-bold uppercase tracking-wider flex items-center gap-1 shadow-sm cursor-pointer"
-            title="⚖️ Weigh / Catch-Weight Orders & Print 4-Up Delivery Slips"
+            className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-zinc-800/80 hover:bg-zinc-700/80 border border-zinc-700/80 text-zinc-300 transition-colors text-[11px] sm:text-xs font-medium flex items-center gap-1 cursor-pointer"
+            title="Weigh / Catch-Weight Orders"
           >
-            <span>⚖️</span>
+            <span className="material-symbols-outlined text-sm">scale</span>
             <span className="hidden sm:inline">Weigh Orders</span>
             <span className="sm:hidden">Orders</span>
           </Link>
           <button
             type="button"
             onClick={handleReset}
-            className="px-2 sm:px-3 py-1 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-400 hover:text-white transition-all text-[11px] sm:text-xs font-bold uppercase tracking-wider flex items-center gap-1 cursor-pointer"
+            className="px-2 sm:px-2.5 py-1.5 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-zinc-200 transition-colors text-[11px] sm:text-xs font-medium flex items-center gap-1 cursor-pointer"
             title="Reset active bill"
           >
             <span className="material-symbols-outlined text-sm">refresh</span>
@@ -2507,30 +2504,30 @@ Helpline: +91 84910 06127`;
       </div>
 
       {/* ─── MOBILE COMPACT TAB BAR (< sm) ─── */}
-      <div className="grid grid-cols-5 gap-1 p-1 bg-slate-950/95 border border-slate-800/90 rounded-2xl sm:hidden text-center shadow-lg">
+      <div className="grid grid-cols-5 gap-1 p-1 bg-[#131316] border border-zinc-800 rounded-xl sm:hidden text-center">
         <button
           type="button"
           onClick={() => setActiveTab("pos")}
-          className={`py-2 px-1 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer ${
+          className={`py-1.5 px-1 rounded-lg text-xs transition-colors flex flex-col items-center justify-center gap-0.5 cursor-pointer ${
             activeTab === "pos"
-              ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 shadow-sm shadow-cyan-500/20 font-black"
-              : "text-slate-400 hover:text-slate-200"
+              ? "bg-zinc-800 text-white font-medium border border-zinc-700"
+              : "text-zinc-400 hover:text-zinc-200"
           }`}
         >
-          <span className="material-symbols-outlined text-lg">point_of_sale</span>
-          <span className="text-[9.5px] font-mono leading-none tracking-tight">Counter</span>
+          <span className="material-symbols-outlined text-base">point_of_sale</span>
+          <span className="text-[9.5px] font-mono leading-none">Counter</span>
         </button>
         <button
           type="button"
           onClick={() => setActiveTab("catch_weight")}
-          className={`py-2 px-1 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer ${
+          className={`py-1.5 px-1 rounded-lg text-xs transition-colors flex flex-col items-center justify-center gap-0.5 cursor-pointer ${
             activeTab === "catch_weight"
-              ? "bg-purple-500/20 text-purple-300 border border-purple-500/50 shadow-sm shadow-purple-500/20 font-black"
-              : "text-slate-400 hover:text-slate-200"
+              ? "bg-zinc-800 text-white font-medium border border-zinc-700"
+              : "text-zinc-400 hover:text-zinc-200"
           }`}
         >
-          <span className="material-symbols-outlined text-lg">scale</span>
-          <span className="text-[9.5px] font-mono leading-none tracking-tight">Catch-Wt</span>
+          <span className="material-symbols-outlined text-base">scale</span>
+          <span className="text-[9.5px] font-mono leading-none">Catch-Wt</span>
         </button>
         <button
           type="button"
@@ -2538,79 +2535,74 @@ Helpline: +91 84910 06127`;
             setActiveTab("remote_orders");
             fetchRemoteOrders();
           }}
-          className={`py-2 px-1 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-0.5 relative cursor-pointer ${
+          className={`py-1.5 px-1 rounded-lg text-xs transition-colors flex flex-col items-center justify-center gap-0.5 relative cursor-pointer ${
             activeTab === "remote_orders"
-              ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 shadow-sm shadow-emerald-500/20 font-black"
-              : "text-slate-400 hover:text-slate-200"
+              ? "bg-zinc-800 text-white font-medium border border-zinc-700"
+              : "text-zinc-400 hover:text-zinc-200"
           }`}
         >
-          <span className="material-symbols-outlined text-lg">local_shipping</span>
-          <span className="text-[9.5px] font-mono leading-none tracking-tight">Remote</span>
+          <span className="material-symbols-outlined text-base">receipt_long</span>
+          <span className="text-[9.5px] font-mono leading-none">Invoices</span>
           {pendingRemoteCount > 0 && (
-            <span className="absolute top-1.5 right-2 w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+            <span className="absolute top-1 right-2 w-1.5 h-1.5 rounded-full bg-amber-400" />
           )}
         </button>
         <button
           type="button"
           onClick={() => setActiveTab("deal_calculator")}
-          className={`py-2 px-1 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer ${
+          className={`py-1.5 px-1 rounded-lg text-xs transition-colors flex flex-col items-center justify-center gap-0.5 cursor-pointer ${
             activeTab === "deal_calculator"
-              ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/50 shadow-sm shadow-indigo-500/20 font-black"
-              : "text-slate-400 hover:text-slate-200"
+              ? "bg-zinc-800 text-white font-medium border border-zinc-700"
+              : "text-zinc-400 hover:text-zinc-200"
           }`}
         >
-          <span className="material-symbols-outlined text-lg">handshake</span>
-          <span className="text-[9.5px] font-mono leading-none tracking-tight">Deal</span>
+          <span className="material-symbols-outlined text-base">handshake</span>
+          <span className="text-[9.5px] font-mono leading-none">Deal</span>
         </button>
         <button
           type="button"
           onClick={() => setActiveTab("customer_balances")}
-          className={`py-2 px-1 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-0.5 relative cursor-pointer ${
+          className={`py-1.5 px-1 rounded-lg text-xs transition-colors flex flex-col items-center justify-center gap-0.5 relative cursor-pointer ${
             activeTab === "customer_balances"
-              ? "bg-amber-500/20 text-amber-300 border border-amber-500/50 shadow-sm shadow-amber-500/20 font-black"
-              : "text-slate-400 hover:text-slate-200"
+              ? "bg-zinc-800 text-white font-medium border border-zinc-700"
+              : "text-zinc-400 hover:text-zinc-200"
           }`}
         >
-          <span className="material-symbols-outlined text-lg">account_balance_wallet</span>
-          <span className="text-[9.5px] font-mono leading-none tracking-tight">Khata</span>
+          <span className="material-symbols-outlined text-base">account_balance_wallet</span>
+          <span className="text-[9.5px] font-mono leading-none">Khata</span>
           {pendingKhataCount > 0 && (
-            <span className="absolute top-1.5 right-2 w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+            <span className="absolute top-1 right-2 w-1.5 h-1.5 rounded-full bg-amber-400" />
           )}
         </button>
       </div>
 
       {/* ─── DESKTOP / TABLET SPACIOUS 5-PILLAR HUB (Visible on sm and up) ─── */}
-      <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-5 gap-2 sm:gap-2.5 p-1.5 sm:p-2 bg-slate-950/85 border border-slate-800/80 rounded-2xl shadow-xl">
+      <div className="hidden sm:grid sm:grid-cols-2 lg:grid-cols-5 gap-2 p-1.5 bg-[#131316] border border-zinc-800 rounded-xl">
         {/* Feature 1: Counter POS */}
         <button
           type="button"
           onClick={() => setActiveTab("pos")}
-          className={`group relative flex items-center gap-3 p-2.5 sm:p-3 rounded-xl border text-left transition-all cursor-pointer ${
+          className={`group relative flex items-center gap-3 p-2.5 rounded-lg border text-left transition-colors cursor-pointer ${
             activeTab === "pos"
-              ? "bg-gradient-to-br from-cyan-950/40 via-slate-900 to-slate-900/90 border-cyan-500/60 shadow-lg shadow-cyan-500/10 ring-1 ring-cyan-500/30"
-              : "bg-slate-900/40 hover:bg-slate-900/80 border-slate-800/80 hover:border-slate-700 text-slate-400 hover:text-slate-200"
+              ? "bg-zinc-800 text-white font-medium border-zinc-700 shadow-sm"
+              : "bg-transparent hover:bg-zinc-800/40 border-transparent text-zinc-400 hover:text-zinc-200"
           }`}
         >
           <div
-            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 transition-all ${
+            className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 border transition-colors ${
               activeTab === "pos"
-                ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm shadow-cyan-500/20"
-                : "bg-slate-800/70 text-slate-400 group-hover:text-cyan-400 group-hover:bg-cyan-500/10"
+                ? "bg-zinc-900 border-zinc-700 text-zinc-100"
+                : "bg-zinc-900/60 border-zinc-800/60 text-zinc-400 group-hover:text-zinc-200"
             }`}
           >
-            <span className="material-symbols-outlined text-lg sm:text-xl">point_of_sale</span>
+            <span className="material-symbols-outlined text-lg">point_of_sale</span>
           </div>
           <div className="min-w-0 flex-1">
-            <div className="flex items-center justify-between gap-1">
-              <span className={`text-xs sm:text-sm font-bold truncate ${activeTab === "pos" ? "text-cyan-200" : "text-white"}`}>
-                Counter POS
-              </span>
-              {activeTab === "pos" && (
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse shrink-0 hidden sm:block" />
-              )}
-            </div>
-            <p className="text-[10px] sm:text-[11px] text-slate-400 truncate mt-0.5">
-              Live Scale &amp; Fast Checkout
+            <span className={`text-xs sm:text-sm font-semibold truncate block ${activeTab === "pos" ? "text-zinc-100" : "text-zinc-300"}`}>
+              Counter POS
+            </span>
+            <p className="text-[11px] text-zinc-500 truncate mt-0.5 font-mono">
+              Live Scale &amp; Checkout
             </p>
           </div>
         </button>
@@ -2619,71 +2611,71 @@ Helpline: +91 84910 06127`;
         <button
           type="button"
           onClick={() => setActiveTab("catch_weight")}
-          className={`group relative flex items-center gap-3 p-2.5 sm:p-3 rounded-xl border text-left transition-all cursor-pointer ${
+          className={`group relative flex items-center gap-3 p-2.5 rounded-lg border text-left transition-colors cursor-pointer ${
             activeTab === "catch_weight"
-              ? "bg-gradient-to-br from-purple-950/40 via-slate-900 to-slate-900/90 border-purple-500/60 shadow-lg shadow-purple-500/10 ring-1 ring-purple-500/30"
-              : "bg-slate-900/40 hover:bg-slate-900/80 border-slate-800/80 hover:border-slate-700 text-slate-400 hover:text-slate-200"
+              ? "bg-zinc-800 text-white font-medium border-zinc-700 shadow-sm"
+              : "bg-transparent hover:bg-zinc-800/40 border-transparent text-zinc-400 hover:text-zinc-200"
           }`}
         >
           <div
-            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 transition-all ${
+            className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 border transition-colors ${
               activeTab === "catch_weight"
-                ? "bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-sm shadow-purple-500/20"
-                : "bg-slate-800/70 text-slate-400 group-hover:text-purple-400 group-hover:bg-purple-500/10"
+                ? "bg-zinc-900 border-zinc-700 text-zinc-100"
+                : "bg-zinc-900/60 border-zinc-800/60 text-zinc-400 group-hover:text-zinc-200"
             }`}
           >
-            <span className="material-symbols-outlined text-lg sm:text-xl">scale</span>
+            <span className="material-symbols-outlined text-lg">scale</span>
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-1">
-              <span className={`text-xs sm:text-sm font-bold truncate ${activeTab === "catch_weight" ? "text-purple-200" : "text-white"}`}>
+              <span className={`text-xs sm:text-sm font-semibold truncate ${activeTab === "catch_weight" ? "text-zinc-100" : "text-zinc-300"}`}>
                 Catch-Weight
               </span>
-              <span className="px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 text-[9px] font-mono font-bold border border-purple-500/30 shrink-0">
+              <span className="px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-400 text-[9px] font-mono border border-zinc-700 shrink-0">
                 ADVANCE
               </span>
             </div>
-            <p className="text-[10px] sm:text-[11px] text-slate-400 truncate mt-0.5">
-              WhatsApp &amp; Refund Slips
+            <p className="text-[11px] text-zinc-500 truncate mt-0.5 font-mono">
+              WhatsApp &amp; Slips
             </p>
           </div>
         </button>
 
-        {/* Feature 3: Remote Orders & WhatsApp Links */}
+        {/* Feature 3: Remote Orders & Invoices */}
         <button
           type="button"
           onClick={() => {
             setActiveTab("remote_orders");
             fetchRemoteOrders();
           }}
-          className={`group relative flex items-center gap-3 p-2.5 sm:p-3 rounded-xl border text-left transition-all cursor-pointer ${
+          className={`group relative flex items-center gap-3 p-2.5 rounded-lg border text-left transition-colors cursor-pointer ${
             activeTab === "remote_orders"
-              ? "bg-gradient-to-br from-emerald-950/40 via-slate-900 to-slate-900/90 border-emerald-500/60 shadow-lg shadow-emerald-500/10 ring-1 ring-emerald-500/30"
-              : "bg-slate-900/40 hover:bg-slate-900/80 border-slate-800/80 hover:border-slate-700 text-slate-400 hover:text-slate-200"
+              ? "bg-zinc-800 text-white font-medium border-zinc-700 shadow-sm"
+              : "bg-transparent hover:bg-zinc-800/40 border-transparent text-zinc-400 hover:text-zinc-200"
           }`}
         >
           <div
-            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 transition-all ${
+            className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 border transition-colors ${
               activeTab === "remote_orders"
-                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm shadow-emerald-500/20"
-                : "bg-slate-800/70 text-slate-400 group-hover:text-emerald-400 group-hover:bg-emerald-500/10"
+                ? "bg-zinc-900 border-zinc-700 text-zinc-100"
+                : "bg-zinc-900/60 border-zinc-800/60 text-zinc-400 group-hover:text-zinc-200"
             }`}
           >
-            <span className="material-symbols-outlined text-lg sm:text-xl">receipt_long</span>
+            <span className="material-symbols-outlined text-lg">receipt_long</span>
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-1">
-              <span className={`text-xs sm:text-sm font-bold truncate ${activeTab === "remote_orders" ? "text-emerald-200" : "text-white"}`}>
+              <span className={`text-xs sm:text-sm font-semibold truncate ${activeTab === "remote_orders" ? "text-zinc-100" : "text-zinc-300"}`}>
                 All Invoices
               </span>
               {pendingRemoteCount > 0 && (
-                <span className="px-1.5 py-0.5 rounded-full bg-amber-500/25 border border-amber-500/50 text-amber-300 text-[10px] font-mono font-bold animate-pulse shrink-0">
+                <span className="px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-300 border border-amber-500/30 text-[9px] font-mono font-medium shrink-0">
                   {pendingRemoteCount} DUE
                 </span>
               )}
             </div>
-            <p className="text-[10px] sm:text-[11px] text-slate-400 truncate mt-0.5">
-              Live Bills, 48h Links &amp; Expiry
+            <p className="text-[11px] text-zinc-500 truncate mt-0.5 font-mono">
+              Bills &amp; 48h Links
             </p>
           </div>
         </button>
@@ -2692,32 +2684,32 @@ Helpline: +91 84910 06127`;
         <button
           type="button"
           onClick={() => setActiveTab("deal_calculator")}
-          className={`group relative flex items-center gap-3 p-2.5 sm:p-3 rounded-xl border text-left transition-all cursor-pointer ${
+          className={`group relative flex items-center gap-3 p-2.5 rounded-lg border text-left transition-colors cursor-pointer ${
             activeTab === "deal_calculator"
-              ? "bg-gradient-to-br from-indigo-950/40 via-slate-900 to-slate-900/90 border-indigo-500/60 shadow-lg shadow-indigo-500/10 ring-1 ring-indigo-500/30"
-              : "bg-slate-900/40 hover:bg-slate-900/80 border-slate-800/80 hover:border-slate-700 text-slate-400 hover:text-slate-200"
+              ? "bg-zinc-800 text-white font-medium border-zinc-700 shadow-sm"
+              : "bg-transparent hover:bg-zinc-800/40 border-transparent text-zinc-400 hover:text-zinc-200"
           }`}
         >
           <div
-            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 transition-all ${
+            className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 border transition-colors ${
               activeTab === "deal_calculator"
-                ? "bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 shadow-sm shadow-indigo-500/20"
-                : "bg-slate-800/70 text-slate-400 group-hover:text-indigo-400 group-hover:bg-indigo-500/10"
+                ? "bg-zinc-900 border-zinc-700 text-zinc-100"
+                : "bg-zinc-900/60 border-zinc-800/60 text-zinc-400 group-hover:text-zinc-200"
             }`}
           >
-            <span className="material-symbols-outlined text-lg sm:text-xl">handshake</span>
+            <span className="material-symbols-outlined text-lg">handshake</span>
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-1">
-              <span className={`text-xs sm:text-sm font-bold truncate ${activeTab === "deal_calculator" ? "text-indigo-200" : "text-white"}`}>
+              <span className={`text-xs sm:text-sm font-semibold truncate ${activeTab === "deal_calculator" ? "text-zinc-100" : "text-zinc-300"}`}>
                 Deal Desk
               </span>
-              <span className="px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 text-[9px] font-mono font-bold border border-indigo-500/30 shrink-0">
+              <span className="px-1.5 py-0.2 rounded bg-zinc-800 text-zinc-400 text-[9px] font-mono border border-zinc-700 shrink-0">
                 BARGAIN
               </span>
             </div>
-            <p className="text-[10px] sm:text-[11px] text-slate-400 truncate mt-0.5">
-              Dynamic Locked QR &amp; Rate
+            <p className="text-[11px] text-zinc-500 truncate mt-0.5 font-mono">
+              Locked QR &amp; Rate
             </p>
           </div>
         </button>
@@ -2726,34 +2718,34 @@ Helpline: +91 84910 06127`;
         <button
           type="button"
           onClick={() => setActiveTab("customer_balances")}
-          className={`group relative flex items-center gap-3 p-2.5 sm:p-3 rounded-xl border text-left transition-all cursor-pointer ${
+          className={`group relative flex items-center gap-3 p-2.5 rounded-lg border text-left transition-colors cursor-pointer ${
             activeTab === "customer_balances"
-              ? "bg-gradient-to-br from-amber-950/40 via-slate-900 to-slate-900/90 border-amber-500/60 shadow-lg shadow-amber-500/10 ring-1 ring-amber-500/30"
-              : "bg-slate-900/40 hover:bg-slate-900/80 border-slate-800/80 hover:border-slate-700 text-slate-400 hover:text-slate-200"
+              ? "bg-zinc-800 text-white font-medium border-zinc-700 shadow-sm"
+              : "bg-transparent hover:bg-zinc-800/40 border-transparent text-zinc-400 hover:text-zinc-200"
           }`}
         >
           <div
-            className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center shrink-0 transition-all ${
+            className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 border transition-colors ${
               activeTab === "customer_balances"
-                ? "bg-amber-500/20 text-amber-300 border border-amber-500/40 shadow-sm shadow-amber-500/20"
-                : "bg-slate-800/70 text-slate-400 group-hover:text-amber-400 group-hover:bg-amber-500/10"
+                ? "bg-zinc-900 border-zinc-700 text-zinc-100"
+                : "bg-zinc-900/60 border-zinc-800/60 text-zinc-400 group-hover:text-zinc-200"
             }`}
           >
-            <span className="material-symbols-outlined text-lg sm:text-xl">account_balance_wallet</span>
+            <span className="material-symbols-outlined text-lg">account_balance_wallet</span>
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-1">
-              <span className={`text-xs sm:text-sm font-bold truncate ${activeTab === "customer_balances" ? "text-amber-200" : "text-white"}`}>
+              <span className={`text-xs sm:text-sm font-semibold truncate ${activeTab === "customer_balances" ? "text-zinc-100" : "text-zinc-300"}`}>
                 Customer Khata
               </span>
               {pendingKhataCount > 0 && (
-                <span className="px-1.5 py-0.5 rounded-full bg-amber-500/25 border border-amber-500/50 text-amber-300 text-[10px] font-mono font-bold animate-pulse shrink-0">
+                <span className="px-1.5 py-0.2 rounded bg-amber-500/10 text-amber-300 border border-amber-500/30 text-[9px] font-mono font-medium shrink-0">
                   {pendingKhataCount} PENDING
                 </span>
               )}
             </div>
-            <p className="text-[10px] sm:text-[11px] text-slate-400 truncate mt-0.5">
-              Credit Ledger &amp; Razorpay
+            <p className="text-[11px] text-zinc-500 truncate mt-0.5 font-mono">
+              Credit Ledger
             </p>
           </div>
         </button>
@@ -2766,16 +2758,16 @@ Helpline: +91 84910 06127`;
         {/* LEFT COLUMN: Weight Input & Customer (7 Cols) */}
         <div className="lg:col-span-7 space-y-3">
           {/* Card 1: Product & Live Real-Time Weight Input OR Direct Amount Mode */}
-          <div className="bg-slate-900/85 border border-slate-800 rounded-2xl p-3 sm:p-4 space-y-3 shadow-xl">
+          <div className="bg-[#131316] border border-zinc-800 rounded-xl p-3 sm:p-4 space-y-3">
             {/* Mode Switcher: Weigh Scale vs Direct Amount QR */}
-            <div className="flex p-1 bg-slate-950/90 rounded-xl border border-slate-800 text-xs font-mono font-bold gap-1">
+            <div className="flex p-0.5 bg-[#0e0e11] rounded-lg border border-zinc-800 text-xs font-mono font-medium gap-1">
               <button
                 type="button"
                 onClick={() => setPosInputMode("scale")}
-                className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                className={`flex-1 py-1.5 px-3 rounded-md flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
                   posInputMode === "scale"
-                    ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/50 shadow-sm shadow-cyan-950/30"
-                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-900/50"
+                    ? "bg-zinc-800 text-white border border-zinc-700 font-semibold"
+                    : "text-zinc-400 hover:text-zinc-200"
                 }`}
               >
                 <span className="material-symbols-outlined text-sm">scale</span>
@@ -2787,25 +2779,25 @@ Helpline: +91 84910 06127`;
                   setPosInputMode("custom_amount");
                   if (!customAmount) setCustomAmount("500");
                 }}
-                className={`flex-1 py-1.5 px-3 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                className={`flex-1 py-1.5 px-3 rounded-md flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
                   posInputMode === "custom_amount"
-                    ? "bg-amber-500/20 text-amber-300 border border-amber-500/50 shadow-sm shadow-amber-950/30"
-                    : "text-slate-400 hover:text-slate-200 hover:bg-slate-900/50"
+                    ? "bg-zinc-800 text-white border border-zinc-700 font-semibold"
+                    : "text-zinc-400 hover:text-zinc-200"
                 }`}
               >
                 <span className="material-symbols-outlined text-sm">qr_code_2</span>
-                <span>⚡ Direct Amount QR (No Kg)</span>
+                <span>Direct Amount QR</span>
               </button>
             </div>
 
             {posInputMode === "scale" ? (
               <>
                 <div className="flex items-center justify-between">
-                  <h2 className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
-                    <span className="material-symbols-outlined text-cyan-400 text-base">scale</span>
+                  <h2 className="text-xs sm:text-sm font-semibold text-zinc-100 flex items-center gap-1.5 font-['Space_Grotesk']">
+                    <span className="material-symbols-outlined text-zinc-400 text-base">scale</span>
                     Harvest Trout &amp; Weight
                   </h2>
-                  <span className="text-[11px] text-cyan-400 font-mono font-bold">₹{activeProduct.pricePerKg}/Kg</span>
+                  <span className="text-[11px] text-zinc-300 font-mono font-semibold">₹{activeProduct.pricePerKg}/Kg</span>
                 </div>
 
                 {/* Product Selector Chips with direct + Icon */}
@@ -2818,25 +2810,27 @@ Helpline: +91 84910 06127`;
                       <div
                         key={p.id}
                         onClick={() => handleSelectProduct(p.id)}
-                        className="p-2.5 rounded-xl text-left transition-all cursor-pointer active:scale-[0.99] flex items-center justify-between gap-2"
-                        style={{
-                          background: isSelected ? "rgba(114,221,253,0.18)" : "rgba(3,16,24,0.6)",
-                          border: isSelected ? "1.5px solid #72ddfd" : isInBill ? "1px solid rgba(16,185,129,0.4)" : "1px solid rgba(61,74,83,0.5)",
-                        }}
+                        className={`p-2.5 rounded-lg text-left transition-colors cursor-pointer flex items-center justify-between gap-2 border ${
+                          isSelected
+                            ? "bg-zinc-800 border-zinc-600 text-white"
+                            : isInBill
+                            ? "bg-zinc-900 border-zinc-700 text-zinc-200"
+                            : "bg-zinc-900/60 border-zinc-800 text-zinc-400 hover:border-zinc-700 hover:text-zinc-200"
+                        }`}
                       >
                         <div className="min-w-0 flex-1">
                           <div className="flex items-start justify-between">
-                            <h4 className="font-bold text-white text-xs leading-tight truncate" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                            <h4 className="font-semibold text-zinc-100 text-xs leading-tight truncate font-['Space_Grotesk']">
                               {p.name}
                             </h4>
-                            <span className={`text-[9px] font-bold ${isSelected ? "text-cyan-400" : isInBill ? "text-emerald-400" : "text-slate-600"}`}>
-                              {isSelected ? "● Active" : isInBill ? "✓ Added" : "○"}
+                            <span className={`text-[9px] font-mono ${isSelected ? "text-amber-400 font-medium" : isInBill ? "text-zinc-300" : "text-zinc-600"}`}>
+                              {isSelected ? "Active" : isInBill ? "Added" : ""}
                             </span>
                           </div>
                           <div className="flex items-center justify-between mt-1">
-                            <p className="text-cyan-400 font-bold text-xs sm:text-sm font-mono">₹{p.pricePerKg}/Kg</p>
+                            <p className="text-zinc-200 font-semibold text-xs sm:text-sm font-mono">₹{p.pricePerKg}/Kg</p>
                             {itemInBill && (
-                              <span className="text-[10px] text-emerald-400 font-mono font-bold">
+                              <span className="text-[10px] text-zinc-400 font-mono font-medium">
                                 {itemInBill.weightKg} Kg
                               </span>
                             )}
@@ -2851,7 +2845,7 @@ Helpline: +91 84910 06127`;
                             handleAddProductItem(p.id);
                           }}
                           title={`Add ${p.name.split(" ")[0]} to Bill`}
-                          className="w-7 h-7 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/35 border border-emerald-500/40 text-emerald-300 flex items-center justify-center font-black text-sm transition-all cursor-pointer flex-shrink-0"
+                          className="w-6 h-6 rounded bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 flex items-center justify-center font-bold text-sm transition-colors cursor-pointer flex-shrink-0"
                         >
                           +
                         </button>
@@ -2863,10 +2857,10 @@ Helpline: +91 84910 06127`;
                 {/* Instant Live Weight Input */}
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between text-[11px]">
-                    <label className="uppercase tracking-wider font-bold text-slate-400">
+                    <label className="font-mono text-zinc-400 text-[10px] uppercase tracking-wider">
                       Harvested Weight ({activeProduct.name.split(" ")[0]})
                     </label>
-                    <span className="text-emerald-400 font-semibold animate-pulse">● Live updating</span>
+                    <span className="text-zinc-400 font-mono text-[10px]">Live updating</span>
                   </div>
 
                   <div className="relative">
@@ -2879,23 +2873,23 @@ Helpline: +91 84910 06127`;
                       onWheel={(e) => (e.target as HTMLElement).blur()}
                       onChange={(e) => updateActiveWeight(e.target.value)}
                       placeholder="0.00"
-                      className="w-full bg-slate-950/90 border border-slate-700 rounded-xl px-4 py-2 sm:py-2.5 text-xl sm:text-2xl font-mono text-cyan-300 font-bold focus:outline-none focus:border-cyan-400 shadow-inner"
+                      className="w-full bg-[#0e0e11] border border-zinc-800 rounded-lg px-4 py-2 sm:py-2.5 text-xl sm:text-2xl font-mono text-white font-semibold focus:outline-none focus:border-zinc-600 tabular-nums"
                     />
-                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-500 font-bold text-xs sm:text-sm">
+                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 font-mono text-xs sm:text-sm">
                       KG
                     </span>
                   </div>
 
                   {/* Quick Weight Adder Chips & Add Product Button */}
-                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-800/80">
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-zinc-800/80">
                     <div className="flex flex-wrap items-center gap-1.5">
-                      <span className="text-[10px] text-slate-500 font-mono">Presets:</span>
+                      <span className="text-[10px] text-zinc-500 font-mono">Presets:</span>
                       {[0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 4.5, 5.0].map((w) => (
                         <button
                           key={w}
                           type="button"
                           onClick={() => handleQuickWeight(w, false)}
-                          className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 active:bg-slate-600 text-slate-300 font-mono text-xs font-semibold border border-slate-700 cursor-pointer min-w-[36px] text-center"
+                          className="px-2.5 py-1.5 rounded-md bg-zinc-800 hover:bg-zinc-700 active:bg-zinc-600 text-zinc-300 font-mono text-xs font-medium border border-zinc-700 cursor-pointer min-w-[36px] text-center"
                         >
                           {w}k
                         </button>
@@ -2903,7 +2897,7 @@ Helpline: +91 84910 06127`;
                       <button
                         type="button"
                         onClick={() => handleQuickWeight(0.5, true)}
-                        className="px-2.5 py-1.5 rounded-lg bg-cyan-950/60 hover:bg-cyan-900/60 active:bg-cyan-800/60 text-cyan-400 font-mono text-xs font-bold border border-cyan-500/30 cursor-pointer"
+                        className="px-2.5 py-1.5 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-mono text-xs font-semibold border border-zinc-700 cursor-pointer"
                       >
                         +0.5
                       </button>
@@ -2912,24 +2906,24 @@ Helpline: +91 84910 06127`;
                     <button
                       type="button"
                       onClick={() => handleAddProductItem()}
-                      className="px-3 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 active:scale-95 border border-emerald-500/30 text-emerald-400 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shadow-sm ml-auto"
+                      className="px-3 py-1.5 rounded-md bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 text-xs font-medium transition-colors flex items-center gap-1.5 cursor-pointer ml-auto"
                       title="Add another item or trout variety to bill"
                     >
-                      <span className="material-symbols-outlined text-sm">add_circle</span>
-                      + Add Item
+                      <span className="material-symbols-outlined text-sm">add</span>
+                      Add Item
                     </button>
                   </div>
 
-                  {/* Mobile-only Live Summary Strip: Cashier sees calculated total immediately without scrolling */}
-                  <div className="flex lg:hidden items-center justify-between p-2.5 rounded-xl bg-slate-950/90 border border-cyan-500/30 font-mono shadow-inner mt-2">
+                  {/* Mobile-only Live Summary Strip */}
+                  <div className="flex lg:hidden items-center justify-between p-2.5 rounded-lg bg-[#0e0e11] border border-zinc-800 font-mono mt-2">
                     <div>
-                      <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Live Payable</span>
-                      <span className="text-lg font-black text-cyan-400">₹{grandTotal.toLocaleString("en-IN")}</span>
+                      <span className="text-[10px] text-zinc-400 uppercase tracking-wider block">Live Payable</span>
+                      <span className="text-lg font-semibold text-white">₹{grandTotal.toLocaleString("en-IN")}</span>
                     </div>
                     <div className="text-right">
-                      <span className="text-[10px] text-slate-400 block">{isCustomAmountMode ? "⚡ Direct QR" : `${totalWeight.toFixed(2)} Kg Trout`}</span>
-                      <span className="text-[11px] text-emerald-400 font-bold">
-                        {paymentMethod === "JkBankSoundbox" ? "🔊 J&K Soundbox" : paymentMethod === "RazorpayQR" ? "⚡ Razorpay QR" : paymentMethod === "WhatsAppLink" ? "🛵 WhatsApp Link" : "💵 Cash"}
+                      <span className="text-[10px] text-zinc-400 block">{isCustomAmountMode ? "Direct QR" : `${totalWeight.toFixed(2)} Kg Trout`}</span>
+                      <span className="text-[11px] text-zinc-300 font-medium">
+                        {paymentMethod === "JkBankSoundbox" ? "J&K Soundbox" : paymentMethod === "RazorpayQR" ? "Razorpay QR" : paymentMethod === "WhatsAppLink" ? "WhatsApp Link" : "Cash"}
                       </span>
                     </div>
                   </div>
@@ -2943,21 +2937,21 @@ Helpline: +91 84910 06127`;
                     <span className="material-symbols-outlined text-amber-400 text-base">payments</span>
                     Enter Direct Payment Amount
                   </h2>
-                  <span className="px-2 py-0.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[10px] font-mono font-bold">
-                    ⚡ No-Kg QR Mode
+                  <span className="px-2 py-0.5 rounded-md bg-zinc-800 border border-zinc-700 text-zinc-300 text-[10px] font-mono">
+                    Direct Amount QR
                   </span>
                 </div>
 
                 {/* Big Amount Input Field */}
-                <div className="p-3.5 bg-slate-950/90 rounded-xl border-2 border-amber-500/40 shadow-inner space-y-1.5">
+                <div className="p-3 bg-[#0e0e11] rounded-xl border border-zinc-800 space-y-1.5">
                   <div className="flex items-center justify-between text-[11px]">
-                    <label className="uppercase tracking-wider font-bold text-amber-300">
+                    <label className="uppercase tracking-wider font-medium text-zinc-400 text-[10px] font-mono">
                       Amount Customer Needs To Pay (₹)
                     </label>
-                    <span className="text-slate-400 font-mono text-[10px]">Updates QR Live</span>
+                    <span className="text-zinc-500 font-mono text-[10px]">Updates QR Live</span>
                   </div>
                   <div className="relative flex items-center">
-                    <span className="absolute left-3.5 text-2xl sm:text-3xl font-black font-mono text-amber-400 select-none">
+                    <span className="absolute left-3 text-2xl font-bold font-mono text-zinc-400 select-none">
                       ₹
                     </span>
                     <input
@@ -2969,7 +2963,7 @@ Helpline: +91 84910 06127`;
                       onWheel={(e) => (e.target as HTMLElement).blur()}
                       onChange={(e) => setCustomAmount(e.target.value)}
                       placeholder="0.00"
-                      className="w-full bg-transparent pl-10 pr-4 py-2 text-2xl sm:text-3xl font-black text-white font-mono focus:outline-none placeholder:text-slate-600"
+                      className="w-full bg-transparent pl-8 pr-3 py-1.5 text-2xl font-semibold text-white font-mono tabular-nums focus:outline-none placeholder:text-zinc-600"
                       autoFocus
                     />
                   </div>
@@ -2977,9 +2971,9 @@ Helpline: +91 84910 06127`;
 
                 {/* Quick Presets Grid */}
                 <div className="space-y-1.5">
-                  <div className="flex items-center justify-between text-[10px] uppercase font-bold text-slate-400">
+                  <div className="flex items-center justify-between text-[10px] uppercase font-mono text-zinc-400">
                     <span>Quick Amount Presets</span>
-                    <span className="text-slate-500 font-normal">Click to set</span>
+                    <span className="text-zinc-500 font-normal">Click to set</span>
                   </div>
                   <div className="grid grid-cols-5 gap-1.5">
                     {[100, 200, 300, 500, 700, 1000, 1200, 1500, 2000, 2500].map((amt) => (
@@ -2987,10 +2981,10 @@ Helpline: +91 84910 06127`;
                         key={amt}
                         type="button"
                         onClick={() => setCustomAmount(amt.toString())}
-                        className={`py-2 px-1 rounded-xl text-xs font-mono font-bold border transition-all cursor-pointer text-center ${
+                        className={`py-2 px-1 rounded-lg text-xs font-mono tabular-nums border transition-colors cursor-pointer text-center ${
                           parseFloat(customAmount) === amt
-                            ? "bg-amber-500/30 border-amber-400 text-amber-200 shadow-sm shadow-amber-950/40 ring-1 ring-amber-500/40"
-                            : "bg-slate-950/80 hover:bg-slate-800/80 border-slate-800 text-slate-300"
+                            ? "bg-zinc-800 border-zinc-600 text-white font-semibold"
+                            : "bg-zinc-900/60 hover:bg-zinc-800/80 border-zinc-800 text-zinc-300"
                         }`}
                       >
                         ₹{amt}
@@ -2999,9 +2993,9 @@ Helpline: +91 84910 06127`;
                   </div>
 
                   {/* Increment pills + Clear */}
-                  <div className="flex flex-wrap items-center justify-between gap-1.5 pt-1 border-t border-slate-800/80">
+                  <div className="flex flex-wrap items-center justify-between gap-1.5 pt-1 border-t border-zinc-800/80">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[10px] text-slate-500 font-mono">Add:</span>
+                      <span className="text-[10px] text-zinc-500 font-mono">Add:</span>
                       {[50, 100, 500, 1000].map((add) => (
                         <button
                           key={add}
@@ -3010,7 +3004,7 @@ Helpline: +91 84910 06127`;
                             const cur = parseFloat(customAmount) || 0;
                             setCustomAmount((cur + add).toString());
                           }}
-                          className="px-2 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px] font-mono font-semibold border border-slate-700 cursor-pointer transition-all"
+                          className="px-2 py-1 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[11px] font-mono tabular-nums border border-zinc-700 cursor-pointer transition-colors"
                         >
                           +₹{add}
                         </button>
@@ -3020,7 +3014,7 @@ Helpline: +91 84910 06127`;
                     <button
                       type="button"
                       onClick={() => setCustomAmount("")}
-                      className="px-2.5 py-1 rounded-lg bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border border-rose-500/30 text-[11px] font-mono font-bold cursor-pointer transition-all"
+                      className="px-2.5 py-1 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-rose-400 border border-zinc-700 text-[11px] font-mono cursor-pointer transition-colors"
                     >
                       Clear
                     </button>
@@ -3029,7 +3023,7 @@ Helpline: +91 84910 06127`;
 
                 {/* Optional Custom Sale Note */}
                 <div className="space-y-1">
-                  <label className="block text-[10px] uppercase tracking-wider font-bold text-slate-400">
+                  <label className="block text-[10px] uppercase tracking-wider font-mono text-zinc-400">
                     Sale Description / Reason (Optional)
                   </label>
                   <input
@@ -3037,23 +3031,23 @@ Helpline: +91 84910 06127`;
                     value={customNote}
                     onChange={(e) => setCustomNote(e.target.value)}
                     placeholder="e.g. Counter Fish Sale / Advance Payment"
-                    className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-3 py-2 text-base sm:text-xs text-white focus:outline-none focus:border-amber-400 placeholder:text-slate-600"
+                    className="w-full bg-[#0e0e11] border border-zinc-800 rounded-lg px-3 py-2 text-xs text-zinc-100 focus:outline-none focus:border-zinc-600 placeholder:text-zinc-600"
                   />
                 </div>
 
                 {/* Helper info notice */}
-                <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-[11px] text-amber-300/90 font-mono flex items-center gap-2">
-                  <span className="material-symbols-outlined text-sm text-amber-400">bolt</span>
-                  <span>J&amp;K Bank Soundbox &amp; Razorpay QR in right column are now locked to ₹{(parseFloat(customAmount) || 0).toLocaleString("en-IN")}. Customer can scan immediately!</span>
+                <div className="p-2.5 rounded-lg bg-zinc-900/60 border border-zinc-800 text-[11px] text-zinc-400 font-mono flex items-center gap-2">
+                  <span className="material-symbols-outlined text-sm text-zinc-400">lock</span>
+                  <span>J&amp;K Bank Soundbox &amp; Razorpay QR in right column locked to ₹{(parseFloat(customAmount) || 0).toLocaleString("en-IN")}. Customer can scan immediately.</span>
                 </div>
               </div>
             )}
           </div>
 
           {/* Card 2: Customer Information */}
-          <div className="bg-slate-900/85 border border-slate-800 rounded-2xl p-3 sm:p-4 space-y-2.5 shadow-xl">
-            <h2 className="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
-              <span className="material-symbols-outlined text-cyan-400 text-base">person</span>
+          <div className="bg-[#131316] border border-zinc-800 rounded-xl p-3 sm:p-4 space-y-2.5">
+            <h2 className="text-xs sm:text-sm font-semibold text-zinc-200 flex items-center gap-1.5 font-['Space_Grotesk']">
+              <span className="material-symbols-outlined text-zinc-400 text-base">person</span>
               2. Customer Details (WhatsApp Bill &amp; Invoice)
             </h2>
 
@@ -3077,68 +3071,68 @@ Helpline: +91 84910 06127`;
 
         {/* RIGHT COLUMN: Live Bill Summary & Instant QR (5 Cols) */}
         <div className="lg:col-span-5 space-y-3">
-          <div className="bg-slate-900/95 border border-slate-800 rounded-2xl p-3 sm:p-4 space-y-2.5 shadow-2xl">
+          <div className="bg-[#131316] border border-zinc-800 rounded-xl p-3 sm:p-4 space-y-2.5">
             {/* Header: Total Payable Bar */}
-            <div className="flex items-center justify-between pb-2 border-b border-slate-800/80">
+            <div className="flex items-center justify-between pb-2 border-b border-zinc-800/80">
               <div>
-                <span className="text-[9px] uppercase font-bold tracking-widest text-slate-500 font-mono">Live Total</span>
-                <h3 className="text-xl sm:text-2xl font-black text-white leading-tight" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
-                  Payable: <span className="text-cyan-400">₹{grandTotal.toLocaleString("en-IN")}</span>
+                <span className="text-[9px] uppercase font-mono tracking-wider text-zinc-500">Live Total</span>
+                <h3 className="text-xl sm:text-2xl font-semibold text-white leading-tight font-['Space_Grotesk']">
+                  Payable: <span className="font-mono tabular-nums text-white">₹{grandTotal.toLocaleString("en-IN")}</span>
                 </h3>
               </div>
               <div className="flex items-center gap-1.5">
                 <button
                   type="button"
                   onClick={() => setActiveTab("deal_calculator")}
-                  className="px-2 py-1 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-[11px] font-bold uppercase tracking-wider flex items-center gap-1 cursor-pointer transition-all shadow-sm"
-                  title="Customer bargaining for discount? Open Deal Desk & Locked QR Calculator"
+                  className="px-2.5 py-1.5 rounded-lg bg-zinc-800/80 hover:bg-zinc-700/80 border border-zinc-700/80 text-zinc-300 text-[11px] font-medium flex items-center gap-1 cursor-pointer transition-colors"
+                  title="Customer bargaining for discount? Open Deal Desk"
                 >
                   <span className="material-symbols-outlined text-sm">handshake</span>
                   <span>Deal Desk</span>
                 </button>
-                <span className="px-2.5 py-1 rounded-full bg-slate-800 text-slate-300 text-xs font-mono font-bold">
-                  {isCustomAmountMode ? "⚡ Direct QR" : `${totalWeight.toFixed(2)} Kg`}
+                <span className="px-2 py-1 rounded-md bg-zinc-800 border border-zinc-700 text-zinc-300 text-xs font-mono tabular-nums">
+                  {isCustomAmountMode ? "Direct QR" : `${totalWeight.toFixed(2)} Kg`}
                 </span>
               </div>
             </div>
 
-            {/* ─── ITEMIZED PRODUCTS IN BILL (WITH REMOVE ✕ & SELECTION) OR DIRECT AMOUNT SUMMARY ─── */}
+            {/* ─── ITEMIZED PRODUCTS IN BILL OR DIRECT AMOUNT SUMMARY ─── */}
             <div className="space-y-1.5">
-              <div className="flex items-center justify-between text-[10px] uppercase font-bold tracking-wider text-slate-400 px-0.5">
+              <div className="flex items-center justify-between text-[10px] uppercase font-mono text-zinc-400 px-0.5">
                 <span>{isCustomAmountMode ? "Payment Mode" : `Items in Bill (${billItems.length})`}</span>
                 <span>{isCustomAmountMode ? "Direct QR Amount" : "Subtotal"}</span>
               </div>
 
               {isCustomAmountMode ? (
-                <div className="p-2.5 rounded-xl bg-slate-950/80 border border-amber-500/40 flex items-center justify-between gap-2 shadow-inner">
+                <div className="p-2.5 rounded-lg bg-[#0e0e11] border border-zinc-800 flex items-center justify-between gap-2">
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1.5">
-                      <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse shrink-0" />
-                      <span className="text-xs font-bold text-white truncate">
+                      <span className="w-1.5 h-1.5 rounded-full bg-zinc-400 shrink-0" />
+                      <span className="text-xs font-medium text-white truncate">
                         {customNote.trim() || "Counter Direct QR Payment"}
                       </span>
-                      <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[9px] font-mono font-bold shrink-0">
+                      <span className="px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 text-[9px] font-mono shrink-0">
                         DIRECT QR
                       </span>
                     </div>
-                    <div className="text-[11px] text-slate-400 font-mono mt-0.5">
+                    <div className="text-[11px] text-zinc-500 font-mono mt-0.5">
                       No Kg entered · Direct amount locked on QR
                     </div>
                   </div>
-                  <span className="font-mono font-bold text-amber-400 text-base sm:text-lg shrink-0">
+                  <span className="font-mono tabular-nums font-semibold text-white text-base sm:text-lg shrink-0">
                     ₹{grandTotal.toLocaleString("en-IN")}
                   </span>
                 </div>
               ) : billItems.length === 0 ? (
-                <div className="p-3 rounded-xl bg-slate-950/80 border border-dashed border-slate-800 text-center space-y-2">
-                  <p className="text-xs text-slate-400">No items added to bill yet.</p>
+                <div className="p-3 rounded-lg bg-[#0e0e11] border border-dashed border-zinc-800 text-center space-y-2">
+                  <p className="text-xs text-zinc-400">No items added to bill yet.</p>
                   <div className="flex items-center justify-center gap-2">
                     {products.map((p) => (
                       <button
                         key={p.id}
                         type="button"
                         onClick={() => handleAddProductItem(p.id)}
-                        className="px-2.5 py-1 rounded-lg bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 text-xs font-bold hover:bg-cyan-500/25 cursor-pointer"
+                        className="px-2.5 py-1 rounded-md bg-zinc-800 text-zinc-200 border border-zinc-700 text-xs font-medium hover:bg-zinc-700 cursor-pointer"
                       >
                         + Add {p.name.split(" ")[0]} (₹{p.pricePerKg}/kg)
                       </button>
@@ -3156,28 +3150,28 @@ Helpline: +91 84910 06127`;
                           setSelectedProductId(item.id);
                           setCurrentWeight(item.weightKg.toString());
                         }}
-                        className={`p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-between gap-2 ${
+                        className={`p-2 rounded-lg border transition-colors cursor-pointer flex items-center justify-between gap-2 ${
                           isFocused
-                            ? "bg-slate-950 border-cyan-500/50 shadow-sm shadow-cyan-950/40"
-                            : "bg-slate-950/60 border-slate-800/80 hover:border-slate-700"
+                            ? "bg-zinc-800/80 border-zinc-600"
+                            : "bg-[#0e0e11] border-zinc-800 hover:border-zinc-700"
                         }`}
                       >
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-1.5">
-                            <span className="text-xs font-bold text-white truncate">{item.name}</span>
+                            <span className="text-xs font-medium text-white truncate">{item.name}</span>
                             {isFocused && (
-                              <span className="px-1.5 py-0.2 rounded bg-cyan-500/20 text-cyan-400 text-[9px] font-bold">
+                              <span className="px-1.5 py-0.2 rounded bg-zinc-700 text-zinc-200 text-[9px] font-mono">
                                 Selected
                               </span>
                             )}
                           </div>
-                          <div className="text-[11px] text-slate-400 font-mono mt-0.5">
-                            <strong className="text-slate-200">{item.weightKg.toFixed(2)} Kg</strong> × ₹{item.pricePerKg}/Kg
+                          <div className="text-[11px] text-zinc-400 font-mono tabular-nums mt-0.5">
+                            <strong className="text-zinc-200 font-medium">{item.weightKg.toFixed(2)} Kg</strong> × ₹{item.pricePerKg}/Kg
                           </div>
                         </div>
 
                         <div className="flex items-center gap-2 flex-shrink-0">
-                          <span className="font-mono font-bold text-cyan-400 text-xs sm:text-sm">
+                          <span className="font-mono tabular-nums font-semibold text-zinc-100 text-xs sm:text-sm">
                             ₹{item.total.toLocaleString("en-IN")}
                           </span>
                           <button
@@ -3187,7 +3181,7 @@ Helpline: +91 84910 06127`;
                               handleRemoveItem(item.id);
                             }}
                             title={`Remove ${item.name}`}
-                            className="w-6 h-6 rounded-lg bg-red-500/10 hover:bg-red-500/25 text-red-400 border border-red-500/20 flex items-center justify-center font-black text-xs transition-all cursor-pointer"
+                            className="w-6 h-6 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-rose-400 border border-zinc-700 flex items-center justify-center font-bold text-xs transition-colors cursor-pointer"
                           >
                             ✕
                           </button>
@@ -3202,10 +3196,10 @@ Helpline: +91 84910 06127`;
             {/* Payment Channel Selector */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 pt-0.5">
               {[
-                { id: "JkBankSoundbox", label: "🔊 J&K Soundbox", sub: "Instant Voice", color: "#34d399", bg: "rgba(16,185,129,0.2)", border: "#10b981" },
-                { id: "RazorpayQR", label: "⚡ Razorpay QR", sub: "Auto-Verify", color: "#72ddfd", bg: "rgba(114,221,253,0.18)", border: "#72ddfd" },
-                { id: "WhatsAppLink", label: "🛵 WhatsApp Link", sub: "Remote Pay", color: "#4ade80", bg: "rgba(34,197,94,0.2)", border: "#22c55e" },
-                { id: "Cash", label: "💵 Cash", sub: "Counter", color: "#fbbf24", bg: "rgba(251,191,36,0.18)", border: "#fbbf24" },
+                { id: "JkBankSoundbox", label: "J&K Soundbox", sub: "Instant Voice" },
+                { id: "RazorpayQR", label: "Razorpay QR", sub: "Auto-Verify" },
+                { id: "WhatsAppLink", label: "WhatsApp Link", sub: "Remote Pay" },
+                { id: "Cash", label: "Cash", sub: "Counter" },
               ].map((channel) => {
                 const isSel = paymentMethod === channel.id;
                 return (
@@ -3213,16 +3207,14 @@ Helpline: +91 84910 06127`;
                     key={channel.id}
                     type="button"
                     onClick={() => setPaymentMethod(channel.id as any)}
-                    className="py-1.5 px-1 rounded-xl font-bold text-[10px] uppercase tracking-wider transition-all cursor-pointer text-center"
-                    style={{
-                      background: isSel ? channel.bg : "rgba(3,16,24,0.6)",
-                      border: isSel ? `1.5px solid ${channel.border}` : "1px solid rgba(61,74,83,0.5)",
-                      color: isSel ? channel.color : "#9fadb8",
-                      boxShadow: isSel ? `0 0 10px ${channel.bg}` : "none",
-                    }}
+                    className={`py-2 px-1 rounded-lg text-center transition-colors border cursor-pointer ${
+                      isSel
+                        ? "bg-zinc-800 text-zinc-100 border-zinc-600 shadow-sm"
+                        : "bg-zinc-900/60 text-zinc-400 border-zinc-800 hover:border-zinc-700 hover:text-zinc-300"
+                    }`}
                   >
-                    <div className="leading-tight truncate">{channel.label}</div>
-                    <span className="text-[8.5px] opacity-75 font-mono normal-case block">
+                    <div className="text-[11px] font-medium leading-tight truncate">{channel.label}</div>
+                    <span className="text-[9px] opacity-70 font-mono normal-case block mt-0.5">
                       {channel.sub}
                     </span>
                   </button>
@@ -3234,18 +3226,18 @@ Helpline: +91 84910 06127`;
 
             {/* 1. J&K Bank Soundbox Panel (Default) */}
             {paymentMethod === "JkBankSoundbox" && grandTotal > 0 && (
-              <div className="p-2.5 rounded-xl bg-slate-950/80 border border-emerald-500/30 flex flex-col items-center text-center space-y-2">
+              <div className="p-3 rounded-xl bg-[#0e0e11] border border-zinc-800 flex flex-col items-center text-center space-y-2">
                 {soundboxPaid ? (
-                  <div className="w-full py-4 px-3 rounded-xl bg-gradient-to-b from-emerald-950/40 to-slate-950 border border-emerald-500/40 text-center space-y-2 animate-fadeIn">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/50 text-emerald-400 flex items-center justify-center mx-auto text-xl font-black shadow-lg shadow-emerald-500/20">
+                  <div className="w-full py-4 px-3 rounded-lg bg-zinc-900 border border-zinc-700 text-center space-y-2 animate-fadeIn">
+                    <div className="w-9 h-9 rounded-full bg-zinc-800 border border-zinc-700 text-emerald-400 flex items-center justify-center mx-auto text-lg font-bold">
                       ✓
                     </div>
                     <div>
-                      <h4 className="text-base font-extrabold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
-                        Soundbox Payment Confirmed: <span className="text-emerald-400">₹{grandTotal.toLocaleString("en-IN")}</span>
+                      <h4 className="text-base font-semibold text-white font-['Space_Grotesk']">
+                        Soundbox Payment Confirmed: <span className="font-mono tabular-nums text-white">₹{grandTotal.toLocaleString("en-IN")}</span>
                       </h4>
-                      <p className="text-xs text-emerald-300 font-mono mt-0.5">
-                        🔊 Voice announcement confirmed on counter soundbox
+                      <p className="text-xs text-zinc-400 font-mono mt-0.5">
+                        Voice announcement confirmed on counter soundbox
                       </p>
                     </div>
                     <button
@@ -3255,34 +3247,34 @@ Helpline: +91 84910 06127`;
                         setSoundboxQrGenerated(true);
                         setEnlargeQrModal(true);
                       }}
-                      className="text-[10px] text-slate-400 hover:text-white underline cursor-pointer pt-1"
+                      className="text-[10px] text-zinc-400 hover:text-white underline cursor-pointer pt-1"
                     >
                       Show QR Again
                     </button>
                   </div>
                 ) : !soundboxQrGenerated ? (
-                  /* ─── READY STATE: ON-DEMAND BUTTON TO GENERATE QR (POS PRIVACY MODE) ─── */
-                  <div className="w-full py-3 px-2 text-center space-y-3 animate-fadeIn">
-                    <div className="flex items-center justify-between w-full pb-1.5 border-b border-slate-800/80 text-[10px] font-mono">
-                      <span className="flex items-center gap-1.5 text-emerald-400 font-bold uppercase">
-                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse inline-block"></span>
+                  /* ─── READY STATE: ON-DEMAND BUTTON TO GENERATE QR ─── */
+                  <div className="w-full py-2.5 px-2 text-center space-y-3 animate-fadeIn">
+                    <div className="flex items-center justify-between w-full pb-1.5 border-b border-zinc-800 text-[10px] font-mono">
+                      <span className="flex items-center gap-1.5 text-zinc-300 font-medium uppercase">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block"></span>
                         J&amp;K Bank Soundbox
                       </span>
-                      <span className="text-slate-400">🎙️ {terminalId} Active</span>
+                      <span className="text-zinc-500">{terminalId} Active</span>
                     </div>
 
-                    <div className="w-11 h-11 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center mx-auto text-xl shadow-inner">
-                      <span className="material-symbols-outlined text-2xl">qr_code_2</span>
+                    <div className="w-10 h-10 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 flex items-center justify-center mx-auto text-xl">
+                      <span className="material-symbols-outlined text-xl">qr_code_2</span>
                     </div>
 
                     <div className="space-y-0.5">
-                      <span className="text-[10px] uppercase font-mono tracking-wider text-slate-400 block">
+                      <span className="text-[10px] uppercase font-mono tracking-wider text-zinc-500 block">
                         Counter UPI Payment Ready
                       </span>
-                      <div className="text-xl sm:text-2xl font-black text-white font-mono">
+                      <div className="text-xl sm:text-2xl font-semibold text-white font-mono tabular-nums">
                         ₹{grandTotal.toLocaleString("en-IN")}.00
                       </div>
-                      <p className="text-[11px] text-slate-300 font-mono">
+                      <p className="text-[11px] text-zinc-400 font-mono">
                         {isCustomAmountMode
                           ? (customNote || "Catch-Weight Direct Payment")
                           : billItems.length === 1
@@ -3298,38 +3290,37 @@ Helpline: +91 84910 06127`;
                         setLastSoundboxAmount(grandTotal);
                         setEnlargeQrModal(true);
                       }}
-                      className="w-full py-3 px-3 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:from-emerald-400 hover:to-teal-400 active:scale-[0.98] text-slate-950 font-black text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/25 transition-all flex items-center justify-center gap-2 cursor-pointer"
-                      style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                      className="w-full py-2.5 px-3 rounded-lg bg-zinc-100 hover:bg-white active:scale-[0.99] text-zinc-950 font-semibold text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-2 cursor-pointer shadow-sm font-['Space_Grotesk']"
                     >
                       <span className="material-symbols-outlined text-base">qr_code_scanner</span>
                       Generate QR Code (₹{grandTotal.toLocaleString("en-IN")})
                     </button>
 
-                    <div className="p-2 rounded-lg bg-slate-900/80 border border-slate-800 text-[10px] text-slate-400 leading-relaxed text-left flex items-start gap-1.5 w-full">
-                      <span className="text-emerald-400 text-xs mt-0.5">🛡️</span>
+                    <div className="p-2 rounded-lg bg-zinc-900/60 border border-zinc-800/80 text-[10px] text-zinc-400 leading-relaxed text-left flex items-start gap-1.5 w-full">
+                      <span className="material-symbols-outlined text-xs text-zinc-400 mt-0.5">lock</span>
                       <span>
-                        <strong className="text-slate-200">Customer Privacy Protected:</strong> Clicking opens the clean customer-facing QR popup. Internal POS controls, margin calculations &amp; customer database stay safely hidden.
+                        <strong className="text-zinc-300 font-medium">Customer Privacy Protected:</strong> Clicking opens the clean customer-facing QR popup. Internal POS controls, margins &amp; customer database stay hidden.
                       </span>
                     </div>
                   </div>
                 ) : (
-                  /* ─── ACTIVE STATE: QR HAS BEEN GENERATED (POPUP RE-OPEN & QUICK ACTIONS) ─── */
+                  /* ─── ACTIVE STATE: QR HAS BEEN GENERATED ─── */
                   <div className="w-full space-y-2.5 animate-fadeIn">
-                    <div className="flex items-center justify-between w-full pb-1 border-b border-slate-800/80 text-[10px] font-mono">
-                      <span className="flex items-center gap-1.5 text-emerald-400 font-bold uppercase">
-                        <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block"></span>
+                    <div className="flex items-center justify-between w-full pb-1 border-b border-zinc-800 text-[10px] font-mono">
+                      <span className="flex items-center gap-1.5 text-zinc-300 font-medium uppercase">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block"></span>
                         J&amp;K Bank Soundbox QR Ready
                       </span>
-                      <span className="text-slate-400">🎙️ {terminalId}</span>
+                      <span className="text-zinc-500">{terminalId}</span>
                     </div>
 
                     <div className="space-y-0.5">
-                      <span className="text-[10px] uppercase font-mono tracking-wider text-slate-400">Locked Amount</span>
-                      <div className="text-xl font-black text-white font-mono">
+                      <span className="text-[10px] uppercase font-mono tracking-wider text-zinc-500">Locked Amount</span>
+                      <div className="text-xl font-semibold text-white font-mono tabular-nums">
                         ₹{grandTotal.toLocaleString("en-IN")}
                       </div>
-                      <div className="text-[10px] text-emerald-400 font-mono flex items-center justify-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
+                      <div className="text-[10px] text-zinc-400 font-mono flex items-center justify-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
                         <span>Listening for customer UPI payment</span>
                       </div>
                     </div>
@@ -3341,8 +3332,7 @@ Helpline: +91 84910 06127`;
                           setLastSoundboxAmount(grandTotal);
                           setEnlargeQrModal(true);
                         }}
-                        className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-md shadow-emerald-500/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                        style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                        className="w-full py-2.5 px-3 rounded-lg bg-zinc-100 hover:bg-white text-zinc-950 font-semibold text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-sm font-['Space_Grotesk']"
                       >
                         <span className="material-symbols-outlined text-base">fullscreen</span>
                         {grandTotal !== lastSoundboxAmount ? "Update & Open QR" : "Open QR Popup"}
@@ -3350,20 +3340,20 @@ Helpline: +91 84910 06127`;
                     </div>
 
                     {/* Optional Collapsible Inline QR for Cashier Internal View */}
-                    <div className="w-full pt-1 border-t border-slate-900">
+                    <div className="w-full pt-1 border-t border-zinc-800">
                       <button
                         type="button"
                         onClick={() => setShowInlineQr(!showInlineQr)}
-                        className="text-[10px] text-slate-400 hover:text-slate-200 font-mono flex items-center justify-center gap-1 w-full py-1 cursor-pointer"
+                        className="text-[10px] text-zinc-400 hover:text-zinc-200 font-mono flex items-center justify-center gap-1 w-full py-1 cursor-pointer"
                       >
-                        <span>{showInlineQr ? "▲ Hide" : "▼ Show"} inline QR on POS screen</span>
+                        <span>{showInlineQr ? "Hide" : "Show"} inline QR on POS screen</span>
                       </button>
 
                       {showInlineQr && (
                         <div className="pt-2 space-y-2 animate-fadeIn flex flex-col items-center">
                           <div
                             onClick={() => setEnlargeQrModal(true)}
-                            className="p-2 bg-white border-2 border-emerald-500/30 rounded-xl shadow-xl shadow-emerald-950/30 cursor-pointer hover:border-emerald-400 transition-all group relative overflow-hidden"
+                            className="p-2 bg-white border border-zinc-700 rounded-xl cursor-pointer hover:border-zinc-500 transition-colors group relative overflow-hidden"
                             title="Click to open popup for customer"
                           >
                             <img
@@ -3371,19 +3361,19 @@ Helpline: +91 84910 06127`;
                               alt="Counter UPI QR"
                               className="w-32 h-32 rounded-lg object-contain"
                             />
-                            <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex flex-col items-center justify-center text-white text-[11px] font-bold gap-1">
-                              <span>🔍 Open Popup</span>
+                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex flex-col items-center justify-center text-white text-[11px] font-medium gap-1">
+                              <span>Open Popup</span>
                             </div>
                           </div>
 
-                          <div className="flex items-center justify-center gap-1.5 text-[10px] text-slate-400 font-mono">
+                          <div className="flex items-center justify-center gap-1.5 text-[10px] text-zinc-400 font-mono">
                             <span>{upiId}</span>
                             <button
                               type="button"
                               onClick={copyUpi}
-                              className="text-[9px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 hover:text-emerald-400 cursor-pointer border border-slate-700"
+                              className="text-[9px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-300 hover:text-white cursor-pointer border border-zinc-700"
                             >
-                              {copiedUpi ? "✓ Copied" : "Copy"}
+                              {copiedUpi ? "Copied" : "Copy"}
                             </button>
                           </div>
                         </div>
@@ -3396,55 +3386,53 @@ Helpline: +91 84910 06127`;
 
             {/* 2. Razorpay Dynamic BharatQR Panel */}
             {paymentMethod === "RazorpayQR" && grandTotal > 0 && (
-              <div className="p-2.5 rounded-xl bg-slate-950/80 border border-cyan-500/30 flex flex-col items-center text-center space-y-2">
+              <div className="p-3 rounded-xl bg-[#0e0e11] border border-zinc-800 flex flex-col items-center text-center space-y-2">
                 {rzpPaid ? (
-                  /* ─── PAID CELEBRATION CARD ─── */
-                  <div className="w-full py-4 px-3 rounded-xl bg-gradient-to-b from-emerald-950/40 to-slate-950 border border-emerald-500/40 text-center space-y-2 animate-fadeIn">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/50 text-emerald-400 flex items-center justify-center mx-auto text-xl font-black shadow-lg shadow-emerald-500/20">
+                  <div className="w-full py-4 px-3 rounded-lg bg-zinc-900 border border-zinc-700 text-center space-y-2 animate-fadeIn">
+                    <div className="w-9 h-9 rounded-full bg-zinc-800 border border-zinc-700 text-emerald-400 flex items-center justify-center mx-auto text-lg font-bold">
                       ✓
                     </div>
                     <div>
-                      <h4 className="text-base font-extrabold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
-                        Payment Received: <span className="text-emerald-400">₹{rzpPaymentDetails?.amount || grandTotal}</span>
+                      <h4 className="text-base font-semibold text-white font-['Space_Grotesk']">
+                        Payment Received: <span className="font-mono tabular-nums text-white">₹{rzpPaymentDetails?.amount || grandTotal}</span>
                       </h4>
-                      <p className="text-xs text-slate-300 font-mono mt-0.5">
-                        Ref: <strong className="text-cyan-300">{rzpPaymentDetails?.id || "pay_verified"}</strong>
+                      <p className="text-xs text-zinc-400 font-mono mt-0.5">
+                        Ref: <strong className="text-zinc-200">{rzpPaymentDetails?.id || "pay_verified"}</strong>
                       </p>
                       {rzpPaymentDetails?.vpa && (
-                        <p className="text-[10px] text-slate-400 font-mono">
+                        <p className="text-[10px] text-zinc-500 font-mono">
                           From: {rzpPaymentDetails.vpa}
                         </p>
                       )}
                     </div>
-                    <div className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[10px] text-emerald-300 font-semibold flex items-center justify-center gap-1">
-                      <span>⚡</span> Verified via Razorpay. Bill marked PAID.
+                    <div className="p-1.5 rounded-md bg-zinc-800/80 border border-zinc-700 text-[10px] text-zinc-300 font-mono flex items-center justify-center gap-1">
+                      <span>Verified via Razorpay. Bill marked PAID.</span>
                     </div>
                   </div>
                 ) : rzpQrLoading ? (
-                  <div className="py-10 flex flex-col items-center justify-center space-y-2 text-slate-400">
-                    <span className="animate-spin text-xl">⏳</span>
+                  <div className="py-10 flex flex-col items-center justify-center space-y-2 text-zinc-400">
+                    <span className="material-symbols-outlined animate-spin text-xl">progress_activity</span>
                     <p className="text-xs font-mono">Generating Razorpay QR...</p>
                   </div>
                 ) : rzpQrError ? (
-                  <div className="w-full p-3 rounded-xl bg-red-950/60 border border-red-500/30 text-center space-y-1.5">
-                    <p className="text-xs text-red-300">⚠️ {rzpQrError}</p>
+                  <div className="w-full p-3 rounded-lg bg-zinc-900 border border-rose-800/50 text-center space-y-1.5">
+                    <p className="text-xs text-rose-300">{rzpQrError}</p>
                     <button
                       type="button"
                       onClick={() => generateRazorpayQr(grandTotal, true)}
-                      className="px-3 py-1 bg-red-600 hover:bg-red-500 text-white rounded-lg text-xs font-bold uppercase tracking-wider cursor-pointer"
+                      className="px-3 py-1 bg-zinc-800 hover:bg-zinc-700 text-white rounded-md text-xs font-medium uppercase tracking-wider cursor-pointer border border-zinc-700"
                     >
                       Retry QR
                     </button>
                   </div>
                 ) : rzpQrImageUrl ? (
                   <>
-                    {/* The 100% Clean, Unobstructed QR Box (~180px) */}
                     <div
                       onClick={() => setEnlargeQrModal(true)}
-                      className="w-44 h-44 sm:w-48 sm:h-48 bg-white border-2 border-cyan-400/60 rounded-2xl shadow-xl overflow-hidden cursor-pointer group flex items-center justify-center p-1.5 transition-all hover:border-cyan-300"
+                      className="w-44 h-44 sm:w-48 sm:h-48 bg-white border border-zinc-700 rounded-xl overflow-hidden cursor-pointer group flex items-center justify-center p-1.5 transition-colors hover:border-zinc-500"
                       title="Click to view fullscreen"
                     >
-                      <div className="w-full h-full overflow-hidden rounded-xl flex items-center justify-center bg-white">
+                      <div className="w-full h-full overflow-hidden rounded-lg flex items-center justify-center bg-white">
                         <img
                           src={rzpQrImageUrl}
                           alt="Razorpay Dynamic QR"
@@ -3459,32 +3447,32 @@ Helpline: +91 84910 06127`;
 
                     {/* QR Status Bar & Controls */}
                     <div className="flex items-center justify-between w-full px-1 pt-0.5">
-                      <div className="flex items-center gap-1.5 text-amber-400 font-mono text-[11px] font-bold">
-                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
+                      <div className="flex items-center gap-1.5 text-zinc-400 font-mono text-[11px]">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
                         Listening for scan...
                       </div>
                       <div className="flex items-center gap-1.5">
                         <button
                           type="button"
                           onClick={() => setEnlargeQrModal(true)}
-                          className="px-2 py-0.5 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/30 text-[10px] font-bold uppercase cursor-pointer"
+                          className="px-2 py-0.5 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 text-[10px] font-medium uppercase cursor-pointer"
                         >
                           Enlarge
                         </button>
                         <button
                           type="button"
                           onClick={() => generateRazorpayQr(grandTotal, true)}
-                          className="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-[10px] font-bold uppercase cursor-pointer"
+                          className="px-2 py-0.5 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 text-[10px] font-medium uppercase cursor-pointer"
                         >
                           Refresh
                         </button>
                         <button
                           type="button"
                           onClick={handleCancelActiveQr}
-                          className="px-2 py-0.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 text-[10px] font-bold uppercase cursor-pointer"
+                          className="px-2 py-0.5 rounded-md bg-zinc-800 hover:bg-rose-500/20 text-zinc-400 hover:text-rose-400 border border-zinc-700 text-[10px] font-medium uppercase cursor-pointer"
                           title="Cancel and close this dynamic QR code"
                         >
-                          ✕ Expire QR
+                          ✕ Expire
                         </button>
                       </div>
                     </div>
@@ -3492,31 +3480,30 @@ Helpline: +91 84910 06127`;
                     <button
                       type="button"
                       onClick={() => setPaymentMethod("WhatsAppLink")}
-                      className="text-[10px] text-cyan-400 hover:text-cyan-300 underline font-mono cursor-pointer pt-0.5"
+                      className="text-[10px] text-zinc-400 hover:text-zinc-200 underline font-mono cursor-pointer pt-0.5"
                     >
-                      🛵 Delivering to customer home? Send WhatsApp Payment Link instead →
+                      Delivering to customer home? Send WhatsApp Payment Link instead →
                     </button>
                   </>
                 ) : (
                   /* ─── READY STATE: ON-DEMAND BUTTON TO GENERATE QR ─── */
                   <div className="w-full py-4 px-3 text-center space-y-2.5">
-                    <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 flex items-center justify-center mx-auto text-lg">
-                      <span className="material-symbols-outlined text-xl">qr_code_2</span>
+                    <div className="w-9 h-9 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 flex items-center justify-center mx-auto text-lg">
+                      <span className="material-symbols-outlined text-lg">qr_code_2</span>
                     </div>
                     <div>
-                      <h4 className="text-xs sm:text-sm font-bold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                      <h4 className="text-xs sm:text-sm font-semibold text-white font-['Space_Grotesk']">
                         Customer QR Code
                       </h4>
-                      <p className="text-[11px] text-slate-400 mt-0.5">
-                        Amount locked to <strong className="text-cyan-300 font-mono text-xs sm:text-sm">₹{grandTotal.toLocaleString("en-IN")}</strong>
+                      <p className="text-[11px] text-zinc-400 mt-0.5">
+                        Amount locked to <strong className="text-zinc-200 font-mono tabular-nums text-xs sm:text-sm">₹{grandTotal.toLocaleString("en-IN")}</strong>
                       </p>
                     </div>
                     <button
                       type="button"
                       onClick={() => generateRazorpayQr(grandTotal, true)}
                       disabled={grandTotal <= 0}
-                      className="w-full py-2.5 px-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 active:scale-[0.98] disabled:opacity-50 text-slate-950 font-black uppercase tracking-wider text-xs transition-all shadow-md shadow-cyan-500/20 flex items-center justify-center gap-1.5 cursor-pointer"
-                      style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                      className="w-full py-2.5 px-3 rounded-lg bg-zinc-100 hover:bg-white active:scale-[0.99] disabled:opacity-50 text-zinc-950 font-semibold uppercase tracking-wider text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer font-['Space_Grotesk']"
                     >
                       <span className="material-symbols-outlined text-base">qr_code_scanner</span>
                       Generate Customer QR (₹{grandTotal.toLocaleString("en-IN")})
@@ -3524,9 +3511,9 @@ Helpline: +91 84910 06127`;
                     <button
                       type="button"
                       onClick={() => setPaymentMethod("WhatsAppLink")}
-                      className="text-[10px] text-cyan-400 hover:text-cyan-300 underline font-mono cursor-pointer block mx-auto pt-1"
+                      className="text-[10px] text-zinc-400 hover:text-zinc-200 underline font-mono cursor-pointer block mx-auto pt-1"
                     >
-                      🛵 Delivering home? Send WhatsApp Payment Link instead →
+                      Delivering home? Send WhatsApp Payment Link instead →
                     </button>
                   </div>
                 )}
@@ -3535,83 +3522,79 @@ Helpline: +91 84910 06127`;
 
             {/* 3. WhatsApp Payment Link Panel (Home Delivery / Remote Pay) */}
             {paymentMethod === "WhatsAppLink" && grandTotal > 0 && (
-              <div className="p-2.5 rounded-xl bg-slate-950/80 border border-green-500/30 flex flex-col items-center text-center space-y-2.5">
+              <div className="p-3 rounded-xl bg-[#0e0e11] border border-zinc-800 flex flex-col items-center text-center space-y-2.5">
                 {rzpPaid ? (
-                  /* ─── PAID CELEBRATION CARD ─── */
-                  <div className="w-full py-4 px-3 rounded-xl bg-gradient-to-b from-emerald-950/40 to-slate-950 border border-emerald-500/40 text-center space-y-2 animate-fadeIn">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/50 text-emerald-400 flex items-center justify-center mx-auto text-xl font-black shadow-lg shadow-emerald-500/20">
+                  <div className="w-full py-4 px-3 rounded-lg bg-zinc-900 border border-zinc-700 text-center space-y-2 animate-fadeIn">
+                    <div className="w-9 h-9 rounded-full bg-zinc-800 border border-zinc-700 text-emerald-400 flex items-center justify-center mx-auto text-lg font-bold">
                       ✓
                     </div>
                     <div>
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono font-bold uppercase tracking-wider">
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-zinc-800 text-zinc-300 font-mono uppercase tracking-wider">
                         Remote Payment Verified
                       </span>
-                      <h4 className="text-base font-extrabold text-white mt-1" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
-                        Payment Received: <span className="text-emerald-400">₹{rzpPaymentDetails?.amount || grandTotal}</span>
+                      <h4 className="text-base font-semibold text-white mt-1 font-['Space_Grotesk']">
+                        Payment Received: <span className="font-mono tabular-nums text-white">₹{rzpPaymentDetails?.amount || grandTotal}</span>
                       </h4>
-                      <p className="text-xs text-slate-300 font-mono mt-0.5">
-                        Ref: <strong className="text-emerald-300">{rzpPaymentDetails?.id || "pay_verified"}</strong>
+                      <p className="text-xs text-zinc-400 font-mono mt-0.5">
+                        Ref: <strong className="text-zinc-200">{rzpPaymentDetails?.id || "pay_verified"}</strong>
                       </p>
                     </div>
-                    <div className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[10px] text-emerald-300 font-semibold flex items-center justify-center gap-1">
-                      <span>⚡</span> Auto-captured via Razorpay. Bill marked PAID!
+                    <div className="p-1.5 rounded-md bg-zinc-800/80 border border-zinc-700 text-[10px] text-zinc-300 font-mono flex items-center justify-center gap-1">
+                      <span>Auto-captured via Razorpay. Bill marked PAID.</span>
                     </div>
                     <button
                       type="button"
                       onClick={handleGenerateInvoice}
-                      className="w-full py-2 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-bold uppercase tracking-wider cursor-pointer shadow-md transition-all mt-1"
+                      className="w-full py-2 px-3 rounded-lg bg-zinc-100 hover:bg-white text-zinc-950 text-xs font-semibold uppercase tracking-wider cursor-pointer transition-colors mt-1"
                     >
                       View / Print Final Invoice
                     </button>
                   </div>
                 ) : rzpLinkLoading ? (
-                  <div className="py-8 flex flex-col items-center justify-center space-y-2 text-slate-400">
-                    <span className="animate-spin text-2xl">⏳</span>
-                    <p className="text-xs font-mono text-emerald-400 font-bold">Creating Secure Razorpay Payment Link...</p>
-                    <p className="text-[10px] text-slate-500">Locking amount ₹{grandTotal.toLocaleString("en-IN")} &amp; opening WhatsApp</p>
+                  <div className="py-8 flex flex-col items-center justify-center space-y-2 text-zinc-400">
+                    <span className="material-symbols-outlined animate-spin text-2xl">progress_activity</span>
+                    <p className="text-xs font-mono text-zinc-200 font-medium">Creating Secure Razorpay Payment Link...</p>
+                    <p className="text-[10px] text-zinc-500 font-mono">Locking amount ₹{grandTotal.toLocaleString("en-IN")} &amp; opening WhatsApp</p>
                   </div>
                 ) : rzpLinkError ? (
-                  <div className="w-full p-3 rounded-xl bg-red-950/60 border border-red-500/30 text-center space-y-1.5">
-                    <p className="text-xs text-red-300">⚠️ {rzpLinkError}</p>
+                  <div className="w-full p-3 rounded-lg bg-zinc-900 border border-rose-800/50 text-center space-y-1.5">
+                    <p className="text-xs text-rose-300">{rzpLinkError}</p>
                     <button
                       type="button"
                       onClick={handleSendWhatsAppPaymentLink}
-                      className="px-3 py-1 bg-red-600 hover:bg-red-500 text-white rounded-lg text-xs font-bold uppercase tracking-wider cursor-pointer"
+                      className="px-3 py-1 bg-zinc-800 hover:bg-zinc-700 text-white rounded-md text-xs font-medium uppercase tracking-wider cursor-pointer border border-zinc-700"
                     >
                       Retry
                     </button>
                   </div>
                 ) : (
-                  /* ─── READY OR LISTENING STATE ─── */
                   <div className="w-full space-y-2.5">
-
                     {rzpLinkData ? (
-                      /* ─── ACTIVE LISTENING CARD ─── */
                       <div className="w-full space-y-2">
-                        <div className="flex items-center justify-between pb-1 border-b border-slate-800 text-[10px] font-mono">
-                          <span className="flex items-center gap-1.5 text-emerald-400 font-bold">
-                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                        <div className="flex items-center justify-between pb-1 border-b border-zinc-800 text-[10px] font-mono">
+                          <span className="flex items-center gap-1.5 text-zinc-300 font-medium">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
                             Listening for Customer Payment...
                           </span>
-                          <span className="text-slate-400 font-mono">Inv #{rzpLinkData.orderRef}</span>
+                          <span className="text-zinc-500 font-mono">Inv #{rzpLinkData.orderRef}</span>
                         </div>
 
-                        <div className="p-2.5 rounded-xl bg-slate-900 border border-emerald-500/30 text-left space-y-1.5">
+                        <div className="p-2.5 rounded-lg bg-zinc-900/60 border border-zinc-800 text-left space-y-1.5">
                           <div className="flex items-center justify-between text-[11px]">
-                            <span className="text-slate-400">Locked Amount:</span>
-                            <span className="text-emerald-400 font-mono font-bold text-sm">₹{rzpLinkData.amount.toLocaleString("en-IN")}</span>
+                            <span className="text-zinc-400">Locked Amount:</span>
+                            <span className="text-white font-mono tabular-nums font-semibold text-sm">₹{rzpLinkData.amount.toLocaleString("en-IN")}</span>
                           </div>
                           <div className="flex items-center justify-between text-[11px]">
-                            <span className="text-slate-400">Customer Phone:</span>
-                            <span className="text-slate-200 font-mono">{customerPhone || "N/A"}</span>
+                            <span className="text-zinc-400">Customer Phone:</span>
+                            <span className="text-zinc-200 font-mono">{customerPhone || "N/A"}</span>
                           </div>
 
-                          <div className="p-2 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-between gap-2">
+                          <div className="p-2 rounded-md bg-[#0e0e11] border border-zinc-800 flex items-center justify-between gap-2">
                             <a
                               href={rzpLinkData.short_url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-[11px] font-mono text-emerald-400 hover:underline truncate"
+                              className="text-[11px] font-mono text-zinc-300 hover:underline truncate"
                             >
                               {rzpLinkData.short_url}
                             </a>
@@ -3622,9 +3605,9 @@ Helpline: +91 84910 06127`;
                                 setRzpLinkCopied(true);
                                 setTimeout(() => setRzpLinkCopied(false), 2000);
                               }}
-                              className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] font-bold shrink-0 border border-slate-700 cursor-pointer"
+                              className="px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[10px] font-medium shrink-0 border border-zinc-700 cursor-pointer"
                             >
-                              {rzpLinkCopied ? "✓ Copied" : "Copy Link"}
+                              {rzpLinkCopied ? "Copied" : "Copy Link"}
                             </button>
                           </div>
                         </div>
@@ -3638,10 +3621,10 @@ Helpline: +91 84910 06127`;
                               const enc = encodeURIComponent(rzpLinkData.waMessage);
                               window.open(clean.length === 10 ? `https://wa.me/91${clean}?text=${enc}` : `https://wa.me/?text=${enc}`, "_blank");
                             }}
-                            className="py-1.5 px-1.5 rounded-lg bg-green-600/20 hover:bg-green-600/30 text-green-300 border border-green-500/40 text-[10px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1"
+                            className="py-1.5 px-1.5 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-[10px] font-medium transition-colors cursor-pointer flex items-center justify-center gap-1"
                             title="Open in WhatsApp app or default link"
                           >
-                            <span>📲</span> WhatsApp App
+                            <span>WhatsApp App</span>
                           </button>
                           <button
                             type="button"
@@ -3650,10 +3633,10 @@ Helpline: +91 84910 06127`;
                               const enc = encodeURIComponent(rzpLinkData.waMessage);
                               window.open(`https://web.whatsapp.com/send?phone=91${clean}&text=${enc}`, "_blank");
                             }}
-                            className="py-1.5 px-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1"
+                            className="py-1.5 px-1.5 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-[10px] font-medium transition-colors cursor-pointer flex items-center justify-center gap-1"
                             title="Open directly in WhatsApp Web in browser"
                           >
-                            <span>💻</span> WhatsApp Web
+                            <span>WhatsApp Web</span>
                           </button>
                           <button
                             type="button"
@@ -3662,27 +3645,27 @@ Helpline: +91 84910 06127`;
                               setRzpLinkMsgCopied(true);
                               setTimeout(() => setRzpLinkMsgCopied(false), 2000);
                             }}
-                            className="py-1.5 px-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-[10px] font-bold transition-all cursor-pointer flex items-center justify-center gap-1"
+                            className="py-1.5 px-1.5 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-[10px] font-medium transition-colors cursor-pointer flex items-center justify-center gap-1"
                           >
-                            <span>📝</span> {rzpLinkMsgCopied ? "✓ Copied" : "Copy Text"}
+                            <span>{rzpLinkMsgCopied ? "Copied" : "Copy Text"}</span>
                           </button>
                         </div>
 
-                        <div className="p-2 rounded-lg bg-emerald-950/20 border border-emerald-500/20 text-[10px] text-emerald-400 font-mono text-center">
-                          🛡️ Anti-Fraud active: Polling Razorpay every 1.2s. Screen turns green automatically upon payment.
+                        <div className="p-2 rounded-md bg-zinc-900/60 border border-zinc-800 text-[10px] text-zinc-400 font-mono text-center">
+                          Polling Razorpay for payment status. Screen updates automatically.
                         </div>
 
                         {/* Fast Actions for Counter Operator */}
-                        <div className="pt-2 border-t border-slate-800/80 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-1.5 bg-slate-950/60 p-2 rounded-xl border border-slate-800/60">
-                          <div className="text-[10px] text-slate-400 font-mono">
+                        <div className="pt-2 border-t border-zinc-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-1.5 bg-[#0e0e11] p-2 rounded-lg border border-zinc-800">
+                          <div className="text-[10px] text-zinc-400 font-mono">
                             Need to bill next walk-in customer?
                           </div>
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <button
                               type="button"
                               onClick={handleCancelActiveWhatsAppLink}
-                              className="flex-1 sm:flex-initial px-2.5 py-1.5 rounded-lg bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/40 text-[10px] font-bold font-mono transition-all cursor-pointer flex items-center justify-center gap-1"
-                              title="Cancel this order and permanently expire payment link on Razorpay"
+                              className="flex-1 sm:flex-initial px-2.5 py-1.5 rounded-md bg-zinc-800 hover:bg-rose-500/20 text-zinc-400 hover:text-rose-400 border border-zinc-700 text-[10px] font-medium font-mono transition-colors cursor-pointer flex items-center justify-center gap-1"
+                              title="Cancel this order and expire payment link"
                             >
                               <span>✕</span> Cancel &amp; Expire
                             </button>
@@ -3691,10 +3674,10 @@ Helpline: +91 84910 06127`;
                               onClick={() => {
                                 handleReset();
                               }}
-                              className="flex-1 sm:flex-initial px-2.5 py-1.5 rounded-lg bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-500/40 text-[10px] font-bold font-mono transition-all cursor-pointer flex items-center justify-center gap-1"
-                              title="Reset counter register to weigh and bill next customer (remote order stays saved in database)"
+                              className="flex-1 sm:flex-initial px-2.5 py-1.5 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-[10px] font-medium font-mono transition-colors cursor-pointer flex items-center justify-center gap-1"
+                              title="Reset counter register to bill next customer"
                             >
-                              <span>⚡</span> Clear &amp; Bill Next
+                              <span>Clear &amp; Bill Next</span>
                             </button>
                             <button
                               type="button"
@@ -3702,21 +3685,20 @@ Helpline: +91 84910 06127`;
                                 setActiveTab("remote_orders");
                                 fetchRemoteOrders();
                               }}
-                              className="flex-1 sm:flex-initial px-2.5 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold font-mono transition-all cursor-pointer flex items-center justify-center gap-1"
+                              className="flex-1 sm:flex-initial px-2.5 py-1.5 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-[10px] font-medium font-mono transition-colors cursor-pointer flex items-center justify-center gap-1"
                               title="Open Remote Orders tab to monitor customer payments"
                             >
-                              <span>🛵</span> View Remote Orders &rarr;
+                              <span>View Remote Orders →</span>
                             </button>
                           </div>
                         </div>
                       </div>
                     ) : (
-                      /* ─── READY STATE BEFORE GENERATING LINK ─── */
                       <div className="space-y-2.5">
-                        <div className="p-2 rounded-lg bg-slate-900 border border-slate-800 flex items-center justify-between text-[11px]">
-                          <span className="text-slate-400 font-mono">WhatsApp Number:</span>
-                          <span className="font-mono font-bold text-emerald-400">
-                            {customerPhone.replace(/\D/g, "").slice(-10) ? `+91 ${customerPhone.replace(/\D/g, "").slice(-10)}` : "⚠️ Enter phone in Section 2"}
+                        <div className="p-2 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-between text-[11px]">
+                          <span className="text-zinc-400 font-mono">WhatsApp Number:</span>
+                          <span className="font-mono font-medium text-zinc-200">
+                            {customerPhone.replace(/\D/g, "").slice(-10) ? `+91 ${customerPhone.replace(/\D/g, "").slice(-10)}` : "Enter phone in Section 2"}
                           </span>
                         </div>
 
@@ -3724,10 +3706,9 @@ Helpline: +91 84910 06127`;
                           type="button"
                           onClick={handleSendWhatsAppPaymentLink}
                           disabled={grandTotal <= 0 || rzpLinkLoading}
-                          className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 active:scale-[0.98] disabled:opacity-50 text-slate-950 font-black uppercase tracking-wider text-xs transition-all shadow-md shadow-emerald-500/20 flex items-center justify-center gap-1.5 cursor-pointer"
-                          style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                          className="w-full py-2.5 px-3 rounded-lg bg-zinc-100 hover:bg-white active:scale-[0.99] disabled:opacity-50 text-zinc-950 font-semibold uppercase tracking-wider text-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer font-['Space_Grotesk']"
                         >
-                          <span className="text-base">📲</span>
+                          <span className="material-symbols-outlined text-base">send</span>
                           Send WhatsApp Payment Link (₹{grandTotal.toLocaleString("en-IN")})
                         </button>
                       </div>
@@ -3739,19 +3720,17 @@ Helpline: +91 84910 06127`;
 
             {/* 4. Cash Payment Panel */}
             {paymentMethod === "Cash" && (
-              <div className="p-4 rounded-xl bg-slate-950/80 border border-emerald-500/20 text-center space-y-2">
-                <span className="text-2xl block">💵</span>
-                <h4 className="text-sm font-bold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+              <div className="p-4 rounded-xl bg-[#0e0e11] border border-zinc-800 text-center space-y-2">
+                <span className="material-symbols-outlined text-2xl text-zinc-400 block">payments</span>
+                <h4 className="text-sm font-semibold text-white font-['Space_Grotesk']">
                   Cash Payment Selected
                 </h4>
-                <p className="text-xs text-slate-400">
-                  Collect <strong className="text-emerald-400 font-mono">₹{grandTotal.toLocaleString("en-IN")}</strong> in cash from the customer at counter.
+                <p className="text-xs text-zinc-400">
+                  Collect <strong className="text-white font-mono tabular-nums">₹{grandTotal.toLocaleString("en-IN")}</strong> in cash from customer at counter.
                 </p>
-                <p className="text-[10px] text-slate-500 font-mono">Invoice will be recorded with &quot;Cash&quot; status.</p>
+                <p className="text-[10px] text-zinc-500 font-mono">Invoice will be recorded with &quot;Cash&quot; status.</p>
               </div>
             )}
-
-
 
             {/* Primary Action Button */}
             <div className="pt-1">
@@ -3760,17 +3739,16 @@ Helpline: +91 84910 06127`;
                   type="button"
                   onClick={handleSendWhatsAppPaymentLink}
                   disabled={grandTotal <= 0 || rzpLinkLoading}
-                  className="w-full py-2.5 sm:py-3 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 active:scale-[0.98] disabled:opacity-50 text-slate-950 font-bold uppercase tracking-wider text-xs sm:text-sm transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 cursor-pointer"
-                  style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                  className="w-full py-2.5 sm:py-3 rounded-xl bg-zinc-100 hover:bg-white active:scale-[0.99] disabled:opacity-50 text-zinc-950 font-semibold uppercase tracking-wider text-xs sm:text-sm transition-colors shadow-sm flex items-center justify-center gap-2 cursor-pointer font-['Space_Grotesk']"
                 >
                   {rzpLinkLoading ? (
                     <>
-                      <span className="animate-spin text-base">⏳</span>
+                      <span className="material-symbols-outlined animate-spin text-base">progress_activity</span>
                       Generating Link...
                     </>
                   ) : (
                     <>
-                      <span className="text-base">📲</span>
+                      <span className="material-symbols-outlined text-base">send</span>
                       Send WhatsApp Payment Link (₹{grandTotal.toLocaleString("en-IN")})
                     </>
                   )}
@@ -3780,8 +3758,7 @@ Helpline: +91 84910 06127`;
                   type="button"
                   onClick={handleGenerateInvoice}
                   disabled={grandTotal <= 0}
-                  className="w-full py-2.5 sm:py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] disabled:opacity-50 text-slate-950 font-bold uppercase tracking-wider text-xs sm:text-sm transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 cursor-pointer"
-                  style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                  className="w-full py-2.5 sm:py-3 rounded-xl bg-zinc-100 hover:bg-white active:scale-[0.99] disabled:opacity-50 text-zinc-950 font-semibold uppercase tracking-wider text-xs sm:text-sm transition-colors shadow-sm flex items-center justify-center gap-2 cursor-pointer font-['Space_Grotesk']"
                 >
                   <span className="material-symbols-outlined text-base sm:text-lg">receipt_long</span>
                   Generate Invoice (₹{grandTotal.toLocaleString("en-IN")})
@@ -3791,19 +3768,19 @@ Helpline: +91 84910 06127`;
           </div>
         </div>
 
-        {/* ─── STICKY MOBILE CHECKOUT BAR (Pinned above iOS home indicator on < lg screens) ─── */}
-        <div className="fixed bottom-0 left-0 right-0 z-40 bg-slate-950/95 backdrop-blur-lg border-t border-slate-800/90 px-3.5 py-2.5 lg:hidden shadow-[0_-4px_25px_rgba(0,0,0,0.7)]">
+        {/* ─── STICKY MOBILE CHECKOUT BAR ─── */}
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#0e0e11]/95 backdrop-blur-lg border-t border-zinc-800 px-3.5 py-2.5 lg:hidden">
           <div className="max-w-md mx-auto flex items-center justify-between gap-3">
             <div className="min-w-0 flex-1">
-              <div className="text-[10px] text-slate-400 font-mono flex items-center gap-1.5 leading-none mb-0.5">
-                <span>{isCustomAmountMode ? "⚡ Direct QR" : `${totalWeight.toFixed(2)} Kg`}</span>
+              <div className="text-[10px] text-zinc-400 font-mono flex items-center gap-1.5 leading-none mb-0.5">
+                <span>{isCustomAmountMode ? "Direct QR" : `${totalWeight.toFixed(2)} Kg`}</span>
                 <span>•</span>
-                <span className="text-emerald-400 font-bold truncate">
+                <span className="text-zinc-300 font-medium truncate">
                   {paymentMethod === "JkBankSoundbox" ? "Soundbox" : paymentMethod === "RazorpayQR" ? "Razorpay QR" : paymentMethod === "WhatsAppLink" ? "WhatsApp" : "Cash"}
                 </span>
               </div>
-              <div className="text-lg font-black text-white font-mono leading-tight">
-                Payable: <span className="text-cyan-400">₹{grandTotal.toLocaleString("en-IN")}</span>
+              <div className="text-lg font-semibold text-white font-mono tabular-nums leading-tight">
+                Payable: <span className="text-white">₹{grandTotal.toLocaleString("en-IN")}</span>
               </div>
             </div>
 
@@ -3813,9 +3790,8 @@ Helpline: +91 84910 06127`;
                   type="button"
                   onClick={handleSendWhatsAppPaymentLink}
                   disabled={grandTotal <= 0 || rzpLinkLoading}
-                  className="py-2.5 px-3.5 rounded-xl bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-400 hover:to-emerald-400 active:scale-95 disabled:opacity-50 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-md transition-all cursor-pointer"
+                  className="py-2 px-3 rounded-lg bg-zinc-100 hover:bg-white active:scale-95 disabled:opacity-50 text-zinc-950 font-semibold text-xs uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
-                  <span className="text-sm">📲</span>
                   <span>{rzpLinkLoading ? "Wait..." : "Send Link"}</span>
                 </button>
               ) : (
@@ -3823,7 +3799,7 @@ Helpline: +91 84910 06127`;
                   type="button"
                   onClick={handleGenerateInvoice}
                   disabled={grandTotal <= 0}
-                  className="py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 disabled:opacity-50 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-emerald-500/25 transition-all cursor-pointer"
+                  className="py-2 px-3.5 rounded-lg bg-zinc-100 hover:bg-white active:scale-95 disabled:opacity-50 text-zinc-950 font-semibold text-xs uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-base">receipt_long</span>
                   <span>Invoice</span>

@@ -1,65 +1,65 @@
 @import "tailwindcss";
 
-/* ─── Neon Aquatic Design Tokens ─── */
+/* ─── Unslop Graphite Design Tokens (Ember Matte Aesthetic) ─── */
 @theme {
   /* Colors */
-  --color-background:             #031018;
-  --color-surface:                #031018;
-  --color-surface-dim:            #031018;
+  --color-background:             #0e0e11;
+  --color-surface:                #0e0e11;
+  --color-surface-dim:            #0a0a0c;
   --color-surface-container-lowest: #000000;
-  --color-surface-container-low:  #06151e;
-  --color-surface-container:      #0b1b25;
-  --color-surface-container-high: #10212c;
-  --color-surface-container-highest: #152834;
-  --color-surface-variant:        #152834;
-  --color-surface-bright:         #1a2e3b;
+  --color-surface-container-low:  #111114;
+  --color-surface-container:      #161619;
+  --color-surface-container-high: #1c1c20;
+  --color-surface-container-highest: #232327;
+  --color-surface-variant:        #1c1c20;
+  --color-surface-bright:         #28282d;
 
-  --color-primary:                #008cb3;
-  --color-primary-dim:            #007a9e;
-  --color-primary-fixed:          #26aadb;
-  --color-primary-fixed-dim:      #008cb3;
-  --color-primary-container:      #007a9e;
-  --color-on-primary:             #e6f6fb;
-  --color-on-primary-fixed:       #002233;
-  --color-on-primary-fixed-variant: #003d52;
-  --color-on-primary-container:   #001a26;
+  --color-primary:                #f59e0b;
+  --color-primary-dim:            #d97706;
+  --color-primary-fixed:          #fbbf24;
+  --color-primary-fixed-dim:      #f59e0b;
+  --color-primary-container:      #27272a;
+  --color-on-primary:             #0e0e11;
+  --color-on-primary-fixed:       #0e0e11;
+  --color-on-primary-fixed-variant: #78350f;
+  --color-on-primary-container:   #fef3c7;
 
-  --color-secondary:              #bce1ff;
-  --color-secondary-dim:          #aed3f1;
-  --color-secondary-fixed:        #bce1ff;
-  --color-secondary-fixed-dim:    #aed3f1;
-  --color-secondary-container:    #254a63;
-  --color-on-secondary:           #2d526b;
-  --color-on-secondary-fixed:     #183f57;
-  --color-on-secondary-fixed-variant: #375c75;
-  --color-on-secondary-container: #b0d5f2;
+  --color-secondary:              #a1a1a6;
+  --color-secondary-dim:          #85858b;
+  --color-secondary-fixed:        #d4d4d8;
+  --color-secondary-fixed-dim:    #a1a1a6;
+  --color-secondary-container:    #232327;
+  --color-on-secondary:           #ededed;
+  --color-on-secondary-fixed:     #18181b;
+  --color-on-secondary-fixed-variant: #3f3f46;
+  --color-on-secondary-container: #e4e4e7;
 
-  --color-tertiary:               #c4ebff;
-  --color-tertiary-dim:           #95d2ee;
-  --color-tertiary-fixed:         #a3e0fc;
-  --color-tertiary-fixed-dim:     #95d2ee;
-  --color-tertiary-container:     #a3e0fc;
-  --color-on-tertiary:            #135a72;
-  --color-on-tertiary-fixed:      #003d50;
-  --color-on-tertiary-fixed-variant: #145b73;
-  --color-on-tertiary-container:  #005169;
+  --color-tertiary:               #38bdf8;
+  --color-tertiary-dim:           #0284c7;
+  --color-tertiary-fixed:         #7dd3fc;
+  --color-tertiary-fixed-dim:     #38bdf8;
+  --color-tertiary-container:     #1e293b;
+  --color-on-tertiary:            #0e0e11;
+  --color-on-tertiary-fixed:      #0e0e11;
+  --color-on-tertiary-fixed-variant: #075985;
+  --color-on-tertiary-container:  #e0f2fe;
 
-  --color-on-background:          #dfedf9;
-  --color-on-surface:             #dfedf9;
-  --color-on-surface-variant:     #9fadb8;
-  --color-inverse-on-surface:     #4a5760;
-  --color-inverse-surface:        #f6faff;
-  --color-inverse-primary:        #005574;
+  --color-on-background:          #ededed;
+  --color-on-surface:             #ededed;
+  --color-on-surface-variant:     #a1a1a6;
+  --color-inverse-on-surface:     #18181b;
+  --color-inverse-surface:        #fafafa;
+  --color-inverse-primary:        #b45309;
 
-  --color-outline:                #6a7782;
-  --color-outline-variant:        #3d4a53;
-  --color-surface-tint:           #008cb3;
+  --color-outline:                #27272a;
+  --color-outline-variant:        #1f1f23;
+  --color-surface-tint:           #f59e0b;
 
-  --color-error:                  #ff716c;
-  --color-error-dim:              #d7383b;
-  --color-error-container:        #9f0519;
-  --color-on-error:               #490006;
-  --color-on-error-container:     #ffa8a3;
+  --color-error:                  #ef4444;
+  --color-error-dim:              #dc2626;
+  --color-error-container:        #450a0a;
+  --color-on-error:               #ffffff;
+  --color-on-error-container:     #fecaca;
 
   /* Typography */
   --font-headline: var(--font-space-grotesk), "Space Grotesk", sans-serif;
@@ -71,9 +71,9 @@
   /* Border Radius */
   --radius:    0.25rem;
   --radius-lg: 0.5rem;
-  --radius-xl: 1rem;
-  --radius-2xl: 1.5rem;
-  --radius-3xl: 2rem;
+  --radius-xl: 0.75rem;
+  --radius-2xl: 1rem;
+  --radius-3xl: 1.25rem;
 }
 
 /* ─── Base ─── */
@@ -86,8 +86,8 @@ html {
 }
 
 body {
-  background-color: #031018;
-  color: #dfedf9;
+  background-color: #0e0e11;
+  color: #ededed;
   font-family: var(--font-manrope), "Manrope", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;

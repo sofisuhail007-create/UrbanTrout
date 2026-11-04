@@ -4823,7 +4823,7 @@ export default function VendingCenterLoggerPage() {
                   <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400 font-mono">Live Stock</div>
                   <div className="flex items-baseline gap-1">
                     <span
-                      className={`text-2xl sm:text-3xl font-black font-['Space_Grotesk'] ${
+                      className={`text-2xl sm:text-3xl font-semibold font-mono tabular-nums font-['Space_Grotesk'] ${
                         aquariumStock.isOutOfStock ? "text-amber-300" : "text-white"
                       }`}
                     >
@@ -4841,7 +4841,7 @@ export default function VendingCenterLoggerPage() {
                 <div className="text-right">
                   <div className="text-[10px] uppercase font-bold tracking-wider text-emerald-400 font-mono">Today's Entries</div>
                   <div className="flex items-baseline gap-1 justify-end">
-                    <span className="text-2xl sm:text-3xl font-black font-['Space_Grotesk'] text-emerald-400">
+                    <span className="text-2xl sm:text-3xl font-semibold font-mono tabular-nums font-['Space_Grotesk'] text-emerald-400">
                       {loading && entries.length === 0
                         ? "..."
                         : entries.filter((e) => e.entry_date === getTodayDate()).length}
@@ -4887,7 +4887,7 @@ export default function VendingCenterLoggerPage() {
                     onClick={() => setPeriod(tab.id as any)}
                     className={`py-1 px-2.5 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5 active:scale-95 ${
                       isSel
-                        ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm"
+                        ? "bg-zinc-800 text-zinc-100 border-zinc-600 shadow-sm"
                         : "text-slate-400 hover:text-white"
                     }`}
                   >
@@ -5118,14 +5118,14 @@ export default function VendingCenterLoggerPage() {
 
         {/* ─── ORGANIZED CATEGORY NAVIGATION BAR ─── */}
         {isAdmin && showAdminCards && (
-          <div className="flex flex-wrap items-center justify-between gap-2 p-1.5 bg-slate-900/90 border border-slate-800 rounded-2xl shadow-md animate-in fade-in duration-200">
+          <div className="flex flex-wrap items-center justify-between gap-2 p-1.5 bg-[#131316] border border-zinc-800 rounded-xl animate-in fade-in duration-200">
             <div className="flex flex-wrap items-center gap-1 sm:gap-1.5">
               <button
                 type="button"
                 onClick={() => setKpiCategory("sales")}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
                   kpiCategory === "sales"
-                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm"
+                    ? "bg-zinc-800 text-zinc-100 border-zinc-600 shadow-sm"
                     : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
                 }`}
               >
@@ -5141,7 +5141,7 @@ export default function VendingCenterLoggerPage() {
                 onClick={() => setKpiCategory("aquarium")}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
                   kpiCategory === "aquarium"
-                    ? "bg-blue-500/20 text-blue-300 border border-blue-500/40 shadow-sm"
+                    ? "bg-zinc-800 text-zinc-100 border-zinc-600 shadow-sm"
                     : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
                 }`}
               >
@@ -5157,7 +5157,7 @@ export default function VendingCenterLoggerPage() {
                 onClick={() => setKpiCategory("staff")}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
                   kpiCategory === "staff"
-                    ? "bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-sm"
+                    ? "bg-zinc-800 text-zinc-100 border-zinc-600 shadow-sm"
                     : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
                 }`}
               >
@@ -5175,7 +5175,7 @@ export default function VendingCenterLoggerPage() {
                 onClick={() => setKpiCategory("expenses")}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
                   kpiCategory === "expenses"
-                    ? "bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-sm"
+                    ? "bg-zinc-800 text-zinc-100 border-zinc-600 shadow-sm"
                     : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
                 }`}
               >
@@ -5193,7 +5193,7 @@ export default function VendingCenterLoggerPage() {
                 onClick={() => setKpiCategory("wallet")}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
                   kpiCategory === "wallet"
-                    ? "bg-purple-500/25 text-purple-200 border border-purple-500/50 shadow-sm"
+                    ? "bg-zinc-800 text-zinc-100 border-zinc-600 shadow-sm"
                     : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
                 }`}
               >
@@ -5211,7 +5211,7 @@ export default function VendingCenterLoggerPage() {
                 onClick={() => setKpiCategory("all")}
                 className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
                   kpiCategory === "all"
-                    ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm"
+                    ? "bg-zinc-800 text-zinc-100 border-zinc-600 shadow-sm"
                     : "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60"
                 }`}
               >
@@ -5243,7 +5243,7 @@ export default function VendingCenterLoggerPage() {
             )}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-3.5 sm:gap-4">
               {/* Card 1: Total Weight Sold */}
-              <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-emerald-950/40 via-slate-900/80 to-slate-900 border border-emerald-500/30 shadow-xl shadow-emerald-950/20 relative overflow-hidden flex flex-col justify-between">
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-[#131316] border border-zinc-800 relative overflow-hidden flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
                     <span className="font-bold tracking-wider">TOTAL KG SOLD</span>
@@ -5255,7 +5255,7 @@ export default function VendingCenterLoggerPage() {
                     ) : (
                       <>
                         <span
-                          className="text-2xl sm:text-3xl font-black text-white"
+                          className="text-2xl sm:text-3xl font-semibold font-mono tabular-nums text-white"
                           style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                         >
                           {formatKg(kpis.totalKg)}
@@ -5277,7 +5277,7 @@ export default function VendingCenterLoggerPage() {
               </div>
 
               {/* Card 2: Total Revenue Collected */}
-              <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-cyan-950/40 via-slate-900/80 to-slate-900 border border-cyan-500/30 shadow-xl shadow-cyan-950/20 relative overflow-hidden flex flex-col justify-between">
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-[#131316] border border-zinc-800 relative overflow-hidden flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
                     <span className="font-bold tracking-wider">REVENUE</span>
@@ -5290,7 +5290,7 @@ export default function VendingCenterLoggerPage() {
                       <>
                         <span className="text-cyan-400 font-bold text-lg">₹</span>
                         <span
-                          className="text-2xl sm:text-3xl font-black text-white"
+                          className="text-2xl sm:text-3xl font-semibold font-mono tabular-nums text-white"
                           style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                         >
                           {kpis.totalRevenue.toLocaleString("en-IN")}
@@ -5310,7 +5310,7 @@ export default function VendingCenterLoggerPage() {
               </div>
 
               {/* Card 3: Credit & Khata Balance (All Customers) */}
-              <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-purple-950/60 via-slate-900/90 to-slate-900 border border-purple-500/40 shadow-xl shadow-purple-950/25 relative overflow-hidden flex flex-col justify-between group hover:border-purple-400/70 transition-all">
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-[#131316] border border-zinc-800 relative overflow-hidden flex flex-col justify-between group hover:border-purple-400/70 transition-all">
                 <div>
                   <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
                     <span className="text-purple-300 font-bold tracking-wider flex items-center gap-1.5">
@@ -5328,7 +5328,7 @@ export default function VendingCenterLoggerPage() {
                       <>
                         <span className="text-purple-400 font-bold text-lg">₹</span>
                         <span
-                          className="text-2xl sm:text-3xl font-black text-white"
+                          className="text-2xl sm:text-3xl font-semibold font-mono tabular-nums text-white"
                           style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                         >
                           {khataSummary.totalPendingAmount.toLocaleString("en-IN")}
@@ -5367,7 +5367,7 @@ export default function VendingCenterLoggerPage() {
               </div>
 
               {/* Card 4: Realized Profit on Sold Trout */}
-              <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-teal-950/50 via-slate-900/90 to-slate-900 border border-teal-500/40 shadow-xl shadow-teal-950/25 relative overflow-hidden flex flex-col justify-between">
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-[#131316] border border-zinc-800 relative overflow-hidden flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
                     <span className="text-teal-300 font-bold tracking-wider flex items-center gap-1.5">
@@ -5385,7 +5385,7 @@ export default function VendingCenterLoggerPage() {
                       <>
                         <span className="text-teal-400 font-bold text-lg">₹</span>
                         <span
-                          className="text-2xl sm:text-3xl font-black text-white"
+                          className="text-2xl sm:text-3xl font-semibold font-mono tabular-nums text-white"
                           style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                         >
                           {kpis.pureSoldProfit.toLocaleString("en-IN")}
@@ -5428,7 +5428,7 @@ export default function VendingCenterLoggerPage() {
               </div>
 
               {/* Card 4.5: Delivery Logistics & Farm Subsidies (Admin Only) */}
-              <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-blue-950/50 via-slate-900/90 to-slate-900 border border-blue-500/40 shadow-xl shadow-blue-950/25 relative overflow-hidden flex flex-col justify-between group hover:border-blue-400/70 transition-all">
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-[#131316] border border-zinc-800 relative overflow-hidden flex flex-col justify-between group hover:border-blue-400/70 transition-all">
                 <div>
                   <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
                     <span className="text-blue-300 font-bold tracking-wider flex items-center gap-1.5">
@@ -5442,7 +5442,7 @@ export default function VendingCenterLoggerPage() {
                   <div className="mt-2 flex items-baseline gap-1 min-h-[32px]">
                     <span className="text-rose-400 font-bold text-lg">-₹</span>
                     <span
-                      className="text-2xl sm:text-3xl font-black text-rose-300"
+                      className="text-2xl sm:text-3xl font-semibold font-mono tabular-nums text-rose-300"
                       style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                     >
                       {kpis.totalFarmDeliverySubsidy.toLocaleString("en-IN")}
@@ -5464,7 +5464,7 @@ export default function VendingCenterLoggerPage() {
               </div>
 
               {/* Card 4.6: Delivery Net Profit (Admin Only) */}
-              <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-emerald-950/60 via-slate-900/90 to-slate-900 border border-emerald-500/40 shadow-xl shadow-emerald-950/30 relative overflow-hidden flex flex-col justify-between group hover:border-emerald-400/70 transition-all">
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-[#131316] border border-zinc-800 relative overflow-hidden flex flex-col justify-between group hover:border-emerald-400/70 transition-all">
                 <div>
                   <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
                     <span className="text-emerald-300 font-bold tracking-wider flex items-center gap-1.5">
@@ -5484,7 +5484,7 @@ export default function VendingCenterLoggerPage() {
                       {kpis.totalDeliveryNetProfit >= 0 ? "+₹" : "-₹"}
                     </span>
                     <span
-                      className={`text-2xl sm:text-3xl font-black ${
+                      className={`text-2xl sm:text-3xl font-semibold font-mono tabular-nums ${
                         kpis.totalDeliveryNetProfit >= 0 ? "text-emerald-300" : "text-rose-300"
                       }`}
                       style={{ fontFamily: '"Space Grotesk", sans-serif' }}
@@ -5509,7 +5509,7 @@ export default function VendingCenterLoggerPage() {
               </div>
 
               {/* Card 5: Online Payments */}
-              <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-indigo-950/40 via-slate-900/80 to-slate-900 border border-indigo-500/30 shadow-xl shadow-indigo-950/20 relative overflow-hidden flex flex-col justify-between">
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-[#131316] border border-zinc-800 relative overflow-hidden flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
                     <span className="font-bold tracking-wider">ONLINE</span>
@@ -5522,7 +5522,7 @@ export default function VendingCenterLoggerPage() {
                       <>
                         <span className="text-indigo-400 font-bold text-lg">₹</span>
                         <span
-                          className="text-2xl sm:text-3xl font-black text-white"
+                          className="text-2xl sm:text-3xl font-semibold font-mono tabular-nums text-white"
                           style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                         >
                           {kpis.onlineRevenue.toLocaleString("en-IN")}
@@ -5541,7 +5541,7 @@ export default function VendingCenterLoggerPage() {
               </div>
 
               {/* Card 6: Cash Payments */}
-              <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-blue-950/40 via-slate-900/80 to-slate-900 border border-blue-500/30 shadow-xl shadow-blue-950/20 relative overflow-hidden flex flex-col justify-between">
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-[#131316] border border-zinc-800 relative overflow-hidden flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
                     <span className="font-bold tracking-wider">CASH DRAWER</span>
@@ -5554,7 +5554,7 @@ export default function VendingCenterLoggerPage() {
                       <>
                         <span className="text-blue-400 font-bold text-lg">₹</span>
                         <span
-                          className="text-2xl sm:text-3xl font-black text-white"
+                          className="text-2xl sm:text-3xl font-semibold font-mono tabular-nums text-white"
                           style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                         >
                           {kpis.cashRevenue.toLocaleString("en-IN")}
@@ -5573,7 +5573,7 @@ export default function VendingCenterLoggerPage() {
               </div>
 
               {/* Card 7: Average Sell Rate (₹/Kg) */}
-              <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-violet-950/50 via-slate-900/90 to-slate-900 border border-violet-500/40 shadow-xl shadow-violet-950/25 relative overflow-hidden flex flex-col justify-between">
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-[#131316] border border-zinc-800 relative overflow-hidden flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
                     <span className="text-violet-300 font-bold tracking-wider flex items-center gap-1.5">
@@ -5591,7 +5591,7 @@ export default function VendingCenterLoggerPage() {
                       <>
                         <span className="text-violet-400 font-bold text-lg">₹</span>
                         <span
-                          className="text-2xl sm:text-3xl font-black text-white"
+                          className="text-2xl sm:text-3xl font-semibold font-mono tabular-nums text-white"
                           style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                         >
                           {kpis.pureAvgSellRate > 0 ? kpis.pureAvgSellRate.toLocaleString("en-IN") : "—"}
@@ -5622,8 +5622,8 @@ export default function VendingCenterLoggerPage() {
               <div
                 className={`p-3.5 sm:p-4 rounded-2xl border shadow-xl relative overflow-hidden flex flex-col justify-between ${
                   kpis.totalLoss > 0
-                    ? "bg-gradient-to-br from-amber-950/50 via-slate-900/90 to-slate-900 border-amber-500/40 shadow-amber-950/20"
-                    : "bg-gradient-to-br from-emerald-950/30 via-slate-900/80 to-slate-900 border-emerald-500/30 shadow-emerald-950/10"
+                    ? "bg-[#131316] border-zinc-800"
+                    : "bg-[#131316] border-zinc-800"
                 }`}
               >
                 <div>
@@ -5646,7 +5646,7 @@ export default function VendingCenterLoggerPage() {
                       <>
                         <span className="text-amber-400 font-bold text-lg">-₹</span>
                         <span
-                          className="text-2xl sm:text-3xl font-black text-amber-300"
+                          className="text-2xl sm:text-3xl font-semibold font-mono tabular-nums text-amber-300"
                           style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                         >
                           {kpis.totalLoss.toLocaleString("en-IN")}
@@ -5656,7 +5656,7 @@ export default function VendingCenterLoggerPage() {
                       <>
                         <span className="text-emerald-400 font-bold text-lg">₹</span>
                         <span
-                          className="text-2xl sm:text-3xl font-black text-emerald-400"
+                          className="text-2xl sm:text-3xl font-semibold font-mono tabular-nums text-emerald-400"
                           style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                         >
                           0
@@ -5688,7 +5688,7 @@ export default function VendingCenterLoggerPage() {
 
               {/* Card 8b: Extra / Tips Collected over Base Rate */}
               {kpis.totalExtraCollected > 0 && (
-                <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-amber-950/40 via-yellow-950/20 to-slate-900 border border-amber-500/40 shadow-xl shadow-amber-950/25 relative overflow-hidden flex flex-col justify-between">
+                <div className="p-3.5 sm:p-4 rounded-2xl bg-[#131316] border border-zinc-800 relative overflow-hidden flex flex-col justify-between">
                   <div>
                     <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
                       <span className="text-amber-300 font-bold tracking-wider flex items-center gap-1.5">
@@ -5702,7 +5702,7 @@ export default function VendingCenterLoggerPage() {
                     <div className="mt-2 flex items-baseline gap-1 min-h-[32px]">
                       <span className="text-amber-400 font-bold text-lg">+₹</span>
                       <span
-                        className="text-2xl sm:text-3xl font-black text-amber-300"
+                        className="text-2xl sm:text-3xl font-semibold font-mono tabular-nums text-amber-300"
                         style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                       >
                         {kpis.totalExtraCollected.toLocaleString("en-IN")}
@@ -5721,7 +5721,7 @@ export default function VendingCenterLoggerPage() {
               )}
 
               {/* Card 9: Vending Center Operational Expenses */}
-              <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-rose-950/50 via-slate-900/90 to-slate-900 border border-rose-500/40 shadow-xl shadow-rose-950/20 relative overflow-hidden flex flex-col justify-between">
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-[#131316] border border-zinc-800 relative overflow-hidden flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
                     <span className="text-rose-300 font-bold tracking-wider flex items-center gap-1.5">
@@ -5739,7 +5739,7 @@ export default function VendingCenterLoggerPage() {
                       <>
                         <span className="text-rose-400 font-bold text-lg">₹</span>
                         <span
-                          className="text-2xl sm:text-3xl font-black text-white"
+                          className="text-2xl sm:text-3xl font-semibold font-mono tabular-nums text-white"
                           style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                         >
                           {periodExpensesTotal.toLocaleString("en-IN")}
@@ -5772,7 +5772,7 @@ export default function VendingCenterLoggerPage() {
               </div>
 
               {/* Card 9b: Aquarium Mortality Loss (Dead Loss / Scrap Biomass) */}
-              <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-rose-950/60 via-red-950/30 to-slate-900 border border-rose-500/50 shadow-xl shadow-rose-950/30 relative overflow-hidden flex flex-col justify-between group hover:border-rose-400/80 transition-all">
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-[#131316] border border-zinc-800 relative overflow-hidden flex flex-col justify-between group hover:border-rose-400/80 transition-all">
                 <div>
                   <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
                     <span className="text-rose-300 font-bold tracking-wider flex items-center gap-1.5">
@@ -5788,7 +5788,7 @@ export default function VendingCenterLoggerPage() {
                       <>
                         <span className="text-rose-400 font-bold text-lg">-₹</span>
                         <span
-                          className="text-2xl sm:text-3xl font-black text-rose-300"
+                          className="text-2xl sm:text-3xl font-semibold font-mono tabular-nums text-rose-300"
                           style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                         >
                           {periodMortalityCost.toLocaleString("en-IN")}
@@ -5801,7 +5801,7 @@ export default function VendingCenterLoggerPage() {
                       <>
                         <span className="text-emerald-400 font-bold text-lg">₹</span>
                         <span
-                          className="text-2xl sm:text-3xl font-black text-emerald-400"
+                          className="text-2xl sm:text-3xl font-semibold font-mono tabular-nums text-emerald-400"
                           style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                         >
                           0
@@ -5849,7 +5849,7 @@ export default function VendingCenterLoggerPage() {
               </div>
 
               {/* Card 10: Final Profit (Realized Sold Profit minus Operational Expenses, Worker Salary & Mortality Loss) */}
-              <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-emerald-950/60 via-slate-900/95 to-teal-950/50 border-2 border-emerald-400/70 shadow-2xl shadow-emerald-950/30 relative overflow-hidden flex flex-col justify-between ring-1 ring-emerald-500/20">
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-[#131316] border border-zinc-800 relative overflow-hidden flex flex-col justify-between">
                 <div>
                   <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
                     <span className="text-emerald-300 font-black tracking-wider flex items-center gap-1.5">
@@ -5869,7 +5869,7 @@ export default function VendingCenterLoggerPage() {
                           {finalProfit >= 0 ? "₹" : "-₹"}
                         </span>
                         <span
-                          className={`text-2xl sm:text-3xl font-black ${finalProfit >= 0 ? "text-white" : "text-rose-300"}`}
+                          className={`text-2xl sm:text-3xl font-semibold font-mono tabular-nums ${finalProfit >= 0 ? "text-white" : "text-rose-300"}`}
                           style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                         >
                           {Math.abs(finalProfit).toLocaleString("en-IN")}
@@ -6074,7 +6074,7 @@ export default function VendingCenterLoggerPage() {
                         <div className="flex items-baseline gap-1">
                           <span className="text-sky-400 font-bold text-lg">₹</span>
                           <span
-                            className="text-2xl sm:text-3xl font-black text-white"
+                            className="text-2xl sm:text-3xl font-semibold font-mono tabular-nums text-white"
                             style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                           >
                             {salaryStats.thisMonthPaid.toLocaleString("en-IN")}
@@ -6278,7 +6278,7 @@ export default function VendingCenterLoggerPage() {
                   ) : (
                     <>
                       <span
-                        className={`text-2xl sm:text-3xl font-black ${aquariumStock.isOutOfStock ? "text-amber-300" : "text-white"}`}
+                        className={`text-2xl sm:text-3xl font-semibold font-mono tabular-nums ${aquariumStock.isOutOfStock ? "text-amber-300" : "text-white"}`}
                         style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                       >
                         {formatKg(aquariumStock.remainingKg)}
@@ -6326,7 +6326,7 @@ export default function VendingCenterLoggerPage() {
                 </div>
                 <div className="mt-2 flex items-baseline gap-2 min-h-[32px]">
                   <span
-                    className="text-2xl sm:text-3xl font-black text-white"
+                    className="text-2xl sm:text-3xl font-semibold font-mono tabular-nums text-white"
                     style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                   >
                     {formatKg(aquariumStock.soldKg)}
@@ -6348,7 +6348,7 @@ export default function VendingCenterLoggerPage() {
             </div>
 
             {/* Card 3: Value if Sold as Gutted */}
-            <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-emerald-950/40 via-slate-900/80 to-slate-900 border border-emerald-500/30 shadow-xl shadow-emerald-950/20 relative overflow-hidden flex flex-col justify-between">
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-[#131316] border border-zinc-800 relative overflow-hidden flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
                   <span className="text-emerald-300 font-bold">VALUE · IF GUTTED</span>
@@ -6357,7 +6357,7 @@ export default function VendingCenterLoggerPage() {
                 <div className="mt-2 flex items-baseline gap-1 min-h-[32px]">
                   <span className="text-emerald-400 font-bold text-lg">₹</span>
                   <span
-                    className="text-2xl sm:text-3xl font-black text-white"
+                    className="text-2xl sm:text-3xl font-semibold font-mono tabular-nums text-white"
                     style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                   >
                     {aquariumStock.valueIfGutted.toLocaleString("en-IN")}
@@ -6374,7 +6374,7 @@ export default function VendingCenterLoggerPage() {
             </div>
 
             {/* Card 4: Value if Sold as Non-Gutted */}
-            <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-cyan-950/40 via-slate-900/80 to-slate-900 border border-cyan-500/30 shadow-xl shadow-cyan-950/20 relative overflow-hidden flex flex-col justify-between">
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-[#131316] border border-zinc-800 relative overflow-hidden flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
                   <span className="text-cyan-300 font-bold">VALUE · IF NON-GUTTED</span>
@@ -6383,7 +6383,7 @@ export default function VendingCenterLoggerPage() {
                 <div className="mt-2 flex items-baseline gap-1 min-h-[32px]">
                   <span className="text-cyan-400 font-bold text-lg">₹</span>
                   <span
-                    className="text-2xl sm:text-3xl font-black text-white"
+                    className="text-2xl sm:text-3xl font-semibold font-mono tabular-nums text-white"
                     style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                   >
                     {aquariumStock.valueIfNonGutted.toLocaleString("en-IN")}
@@ -6409,7 +6409,7 @@ export default function VendingCenterLoggerPage() {
                 <div className="mt-2 flex items-baseline gap-1 min-h-[32px]">
                   <span className="text-amber-400 font-bold text-lg">₹</span>
                   <span
-                    className="text-2xl sm:text-3xl font-black text-white"
+                    className="text-2xl sm:text-3xl font-semibold font-mono tabular-nums text-white"
                     style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                   >
                     {aquariumStock.expectedProfitGutted.toLocaleString("en-IN")}
@@ -6431,7 +6431,7 @@ export default function VendingCenterLoggerPage() {
             </div>
 
             {/* Card 6: Mortality & Scrap Wastage */}
-            <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-br from-rose-950/50 via-slate-900/90 to-slate-900 border border-rose-500/40 shadow-xl shadow-rose-950/20 relative overflow-hidden flex flex-col justify-between">
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-[#131316] border border-zinc-800 relative overflow-hidden flex flex-col justify-between">
               <div>
                 <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
                   <span className="text-rose-300 font-bold flex items-center gap-1.5">
@@ -6444,7 +6444,7 @@ export default function VendingCenterLoggerPage() {
                 </div>
                 <div className="mt-2 flex items-baseline gap-2 min-h-[32px]">
                   <span
-                    className="text-2xl sm:text-3xl font-black text-rose-300"
+                    className="text-2xl sm:text-3xl font-semibold font-mono tabular-nums text-rose-300"
                     style={{ fontFamily: '"Space Grotesk", sans-serif' }}
                   >
                     {formatKg(periodMortalityKg)}

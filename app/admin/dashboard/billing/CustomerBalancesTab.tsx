@@ -191,49 +191,49 @@ export default function CustomerBalancesTab({
     <div className="space-y-4 animate-fadeIn">
       {/* KPI Flashcards Header */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-950/40 via-slate-900 to-slate-950 border border-amber-500/30 shadow-lg">
+        <div className="p-4 rounded-xl bg-[#131316] border border-zinc-800">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-amber-400">Total Outstanding Khata</span>
-            <span className="material-symbols-outlined text-amber-400 text-lg">account_balance_wallet</span>
+            <span className="text-[10px] uppercase font-mono tracking-wider text-zinc-400">Total Outstanding Khata</span>
+            <span className="material-symbols-outlined text-zinc-400 text-base">account_balance_wallet</span>
           </div>
-          <div className="text-2xl font-extrabold text-white font-mono">
+          <div className="text-2xl font-semibold text-white font-mono tabular-nums">
             ₹{summary.totalPendingAmount.toLocaleString("en-IN")}
           </div>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-zinc-400 mt-1">
             Across {summary.pendingCustomersCount} customer{summary.pendingCustomersCount === 1 ? "" : "s"} ({summary.pendingRecordsCount} bills)
           </p>
         </div>
 
-        <div className="p-4 rounded-2xl bg-gradient-to-br from-emerald-950/30 via-slate-900 to-slate-950 border border-emerald-500/20 shadow-lg">
+        <div className="p-4 rounded-xl bg-[#131316] border border-zinc-800">
           <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-emerald-400">Settled &amp; Waived</span>
-            <span className="material-symbols-outlined text-emerald-400 text-lg">verified</span>
+            <span className="text-[10px] uppercase font-mono tracking-wider text-zinc-400">Settled &amp; Waived</span>
+            <span className="material-symbols-outlined text-zinc-400 text-base">verified</span>
           </div>
-          <div className="text-2xl font-extrabold text-emerald-300 font-mono">
+          <div className="text-2xl font-semibold text-zinc-100 font-mono tabular-nums">
             {summary.settledCount}
           </div>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-zinc-400 mt-1">
             Cleared bills &amp; final cash settlements
           </p>
         </div>
 
-        <div className="p-4 rounded-2xl bg-gradient-to-br from-cyan-950/30 via-slate-900 to-slate-950 border border-cyan-500/30 shadow-lg flex flex-col justify-between">
+        <div className="p-4 rounded-xl bg-[#131316] border border-zinc-800 flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] uppercase font-bold tracking-wider text-cyan-400">Razorpay Links Sent</span>
-              <span className="material-symbols-outlined text-cyan-400 text-lg">link</span>
+              <span className="text-[10px] uppercase font-mono tracking-wider text-zinc-400">Razorpay Links Sent</span>
+              <span className="material-symbols-outlined text-zinc-400 text-base">link</span>
             </div>
-            <div className="text-2xl font-extrabold text-cyan-300 font-mono">
+            <div className="text-2xl font-semibold text-zinc-100 font-mono tabular-nums">
               {records.filter((r) => !!r.razorpay_payment_link_id && r.status === "pending").length} Active
             </div>
-            <p className="text-xs text-slate-400 mt-1">
-              Live status tracking, auto-expiring links &amp; auto-sync to Vending Log
+            <p className="text-xs text-zinc-400 mt-1">
+              Live status tracking, auto-expiring links &amp; auto-sync
             </p>
           </div>
           <button
             type="button"
             onClick={fetchBalances}
-            className="text-[11px] font-bold text-cyan-400 hover:text-cyan-300 text-left cursor-pointer flex items-center gap-1 mt-2 pt-2 border-t border-slate-800"
+            className="text-[11px] font-medium text-zinc-300 hover:text-white text-left cursor-pointer flex items-center gap-1 mt-2 pt-2 border-t border-zinc-800"
           >
             <span className="material-symbols-outlined text-xs">sync</span>
             Refresh Khata Ledger
@@ -242,15 +242,15 @@ export default function CustomerBalancesTab({
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 p-3 rounded-xl bg-slate-950/70 border border-slate-800">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-2.5 p-2 bg-[#131316] border border-zinc-800 rounded-xl">
         <div className="flex items-center gap-1.5 w-full sm:w-auto">
           <button
             type="button"
             onClick={() => setStatusFilter("pending")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer border ${
               statusFilter === "pending"
-                ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
-                : "text-slate-400 hover:text-slate-200 border border-transparent"
+                ? "bg-zinc-800 text-zinc-100 border-zinc-600 shadow-sm"
+                : "text-zinc-400 hover:text-zinc-200 border-transparent"
             }`}
           >
             Pending Balances ({summary.pendingRecordsCount})
@@ -258,10 +258,10 @@ export default function CustomerBalancesTab({
           <button
             type="button"
             onClick={() => setStatusFilter("settled")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer border ${
               statusFilter === "settled"
-                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
-                : "text-slate-400 hover:text-slate-200 border border-transparent"
+                ? "bg-zinc-800 text-zinc-100 border-zinc-600 shadow-sm"
+                : "text-zinc-400 hover:text-zinc-200 border-transparent"
             }`}
           >
             Settled / Waived ({summary.settledCount})
@@ -269,10 +269,10 @@ export default function CustomerBalancesTab({
           <button
             type="button"
             onClick={() => setStatusFilter("all")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors cursor-pointer border ${
               statusFilter === "all"
-                ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40"
-                : "text-slate-400 hover:text-slate-200 border border-transparent"
+                ? "bg-zinc-800 text-zinc-100 border-zinc-600 shadow-sm"
+                : "text-zinc-400 hover:text-zinc-200 border-transparent"
             }`}
           >
             All ({summary.totalRecordsCount})
@@ -280,21 +280,21 @@ export default function CustomerBalancesTab({
         </div>
 
         <div className="relative w-full sm:w-72">
-          <span className="material-symbols-outlined absolute left-2.5 top-2 text-slate-500 text-sm">search</span>
+          <span className="material-symbols-outlined absolute left-2.5 top-2 text-zinc-500 text-sm">search</span>
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search customer, phone, invoice..."
-            className="w-full bg-slate-900 border border-slate-700/80 rounded-lg pl-8 pr-3 py-1.5 text-xs text-white focus:outline-none focus:border-cyan-400"
+            className="w-full bg-[#0e0e11] border border-zinc-800 rounded-lg pl-8 pr-3 py-1.5 text-xs text-zinc-100 focus:outline-none focus:border-zinc-600 placeholder:text-zinc-600"
           />
         </div>
       </div>
 
       {/* Search results banner */}
       {searchTerm && (
-        <div className="flex items-center justify-between px-3 py-2 bg-cyan-950/40 border border-cyan-500/30 rounded-xl text-xs font-mono">
-          <span className="text-cyan-300">
+        <div className="flex items-center justify-between px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-lg text-xs font-mono">
+          <span className="text-zinc-300">
             Results for &quot;{searchTerm}&quot;: {summary.pendingRecordsCount} pending, {summary.settledCount} settled ({summary.totalRecordsCount} total)
           </span>
           <div className="flex items-center gap-2">
@@ -302,7 +302,7 @@ export default function CustomerBalancesTab({
               <button
                 type="button"
                 onClick={() => setStatusFilter("all")}
-                className="px-2 py-0.5 rounded bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-200 text-[11px] font-bold transition-all cursor-pointer"
+                className="px-2 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-[11px] font-medium transition-colors cursor-pointer"
               >
                 View All ({summary.totalRecordsCount})
               </button>
@@ -310,7 +310,7 @@ export default function CustomerBalancesTab({
             <button
               type="button"
               onClick={() => setSearchTerm("")}
-              className="text-slate-400 hover:text-rose-300 text-[11px] cursor-pointer"
+              className="text-zinc-400 hover:text-rose-400 text-[11px] cursor-pointer"
             >
               Clear Search
             </button>
@@ -320,18 +320,18 @@ export default function CustomerBalancesTab({
 
       {/* Ledger Table / List */}
       {loading ? (
-        <div className="p-12 text-center text-slate-500 text-xs font-mono">
-          <div className="w-6 h-6 border-2 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+        <div className="p-12 text-center text-zinc-500 text-xs font-mono">
+          <div className="w-5 h-5 border-2 border-zinc-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
           Loading customer khata ledger...
         </div>
       ) : records.length === 0 ? (
         statusFilter === "pending" && summary.settledCount > 0 ? (
-          <div className="p-12 text-center bg-slate-900/40 border border-slate-800/80 rounded-2xl space-y-3">
-            <span className="material-symbols-outlined text-4xl text-emerald-400">task_alt</span>
-            <h4 className="text-sm font-bold text-slate-200">
+          <div className="p-12 text-center bg-[#131316] border border-zinc-800 rounded-xl space-y-3">
+            <span className="material-symbols-outlined text-4xl text-zinc-500">task_alt</span>
+            <h4 className="text-sm font-semibold text-zinc-200 font-['Space_Grotesk']">
               No Pending Balances {searchTerm ? `for "${searchTerm}"` : ""}
             </h4>
-            <p className="text-xs text-slate-400 max-w-sm mx-auto">
+            <p className="text-xs text-zinc-400 max-w-sm mx-auto">
               {searchTerm
                 ? `There are ${summary.settledCount} settled / cleared bill(s) matching "${searchTerm}".`
                 : "All current balances are settled or cleared."}
@@ -339,18 +339,18 @@ export default function CustomerBalancesTab({
             <button
               type="button"
               onClick={() => setStatusFilter("settled")}
-              className="px-4 py-2 rounded-xl bg-emerald-600/30 border border-emerald-500/50 text-emerald-200 text-xs font-bold hover:bg-emerald-600/40 transition-all cursor-pointer"
+              className="px-3.5 py-1.5 rounded-lg bg-zinc-800 border border-zinc-700 text-zinc-200 text-xs font-medium hover:bg-zinc-700 transition-colors cursor-pointer"
             >
               View Settled / Waived Bills ({summary.settledCount})
             </button>
           </div>
         ) : (
-          <div className="p-12 text-center bg-slate-900/40 border border-slate-800/80 rounded-2xl space-y-2">
-            <span className="material-symbols-outlined text-4xl text-slate-600">check_circle</span>
-            <h4 className="text-sm font-bold text-slate-300">
-              {statusFilter === "pending" ? "No Pending Balances Found!" : "No Records Found"}
+          <div className="p-12 text-center bg-[#131316] border border-zinc-800 rounded-xl space-y-2">
+            <span className="material-symbols-outlined text-4xl text-zinc-600">check_circle</span>
+            <h4 className="text-sm font-semibold text-zinc-300 font-['Space_Grotesk']">
+              {statusFilter === "pending" ? "No Pending Balances Found" : "No Records Found"}
             </h4>
-            <p className="text-xs text-slate-500 max-w-sm mx-auto">
+            <p className="text-xs text-zinc-500 max-w-sm mx-auto">
               {statusFilter === "pending"
                 ? "All customer accounts are clear, settled, or waived. When you record a partial payment at the counter, it will appear here."
                 : "No customer records matching the current filter."}
@@ -358,52 +358,52 @@ export default function CustomerBalancesTab({
           </div>
         )
       ) : (
-        <div className="overflow-x-auto rounded-2xl border border-slate-800 bg-slate-950/40">
+        <div className="overflow-x-auto rounded-xl border border-zinc-800 bg-[#131316]">
           <table className="w-full text-left text-xs">
-            <thead className="bg-slate-900/90 text-slate-400 font-mono text-[11px] uppercase border-b border-slate-800">
+            <thead className="bg-[#0e0e11] text-zinc-400 font-mono text-[10px] uppercase tracking-wider border-b border-zinc-800">
               <tr>
-                <th className="py-3 px-4">Customer &amp; Phone</th>
-                <th className="py-3 px-3">Invoice &amp; Date</th>
-                <th className="py-3 px-3 text-right">Total Bill</th>
-                <th className="py-3 px-3 text-right">Paid So Far</th>
-                <th className="py-3 px-3 text-right">Balance Due</th>
-                <th className="py-3 px-3 text-center">Status</th>
-                <th className="py-3 px-4 text-center">Actions</th>
+                <th className="py-2.5 px-4">Customer &amp; Phone</th>
+                <th className="py-2.5 px-3">Invoice &amp; Date</th>
+                <th className="py-2.5 px-3 text-right">Total Bill</th>
+                <th className="py-2.5 px-3 text-right">Paid So Far</th>
+                <th className="py-2.5 px-3 text-right">Balance Due</th>
+                <th className="py-2.5 px-3 text-center">Status</th>
+                <th className="py-2.5 px-4 text-center">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60 font-sans">
+            <tbody className="divide-y divide-zinc-800/60 font-sans">
               {paginatedRecords.map((r) => {
                 const cleanPhone = (r.customer_phone || "").replace(/\D/g, "").slice(-10);
                 const isPending = r.status === "pending" && r.balance_amount > 0;
 
                 return (
-                  <tr key={r.id} className="hover:bg-slate-900/50 transition-colors">
-                    <td className="py-3 px-4">
-                      <div className="font-bold text-white text-sm">{r.customer_name}</div>
-                      <div className="text-slate-400 font-mono text-[11px] flex items-center gap-1 mt-0.5">
-                        <span className="material-symbols-outlined text-xs text-cyan-400">phone</span>
+                  <tr key={r.id} className="hover:bg-zinc-800/30 transition-colors">
+                    <td className="py-2.5 px-4">
+                      <div className="font-medium text-white text-sm">{r.customer_name}</div>
+                      <div className="text-zinc-500 font-mono text-[11px] flex items-center gap-1 mt-0.5">
+                        <span className="material-symbols-outlined text-xs text-zinc-500">phone</span>
                         {cleanPhone ? `+91 ${cleanPhone}` : "N/A"}
                       </div>
                     </td>
 
-                    <td className="py-3 px-3 font-mono">
+                    <td className="py-2.5 px-3 font-mono">
                       <a
                         href={`/invoice/${r.invoice_id}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-cyan-400 hover:text-cyan-300 hover:underline font-semibold inline-flex items-center gap-0.5"
+                        className="text-zinc-300 hover:text-white hover:underline font-medium inline-flex items-center gap-0.5"
                         title="Open Web Invoice"
                       >
                         <span>#{r.invoice_id}</span>
                         <span className="material-symbols-outlined text-[11px]">open_in_new</span>
                       </a>
-                      <div className="text-slate-500 text-[10px]">
+                      <div className="text-zinc-500 text-[10px]">
                         {formatShortDate(r.created_at)}
                       </div>
                       {r.razorpay_payment_link_id && (
                         <div className="flex items-center gap-1 mt-0.5">
                           <span
-                            className="text-[9.5px] font-mono text-cyan-300 bg-cyan-950/70 border border-cyan-500/30 px-1.5 py-0.5 rounded truncate max-w-[110px]"
+                            className="text-[9.5px] font-mono text-zinc-400 bg-zinc-900 border border-zinc-800 px-1.5 py-0.5 rounded truncate max-w-[110px]"
                             title={`Razorpay Link ID: ${r.razorpay_payment_link_id}`}
                           >
                             🔗 {r.razorpay_payment_link_id}
@@ -411,53 +411,53 @@ export default function CustomerBalancesTab({
                         </div>
                       )}
                       {r.items_summary && (
-                        <div className="text-[10px] text-slate-400 truncate max-w-[140px]" title={r.items_summary}>
+                        <div className="text-[10px] text-zinc-500 truncate max-w-[140px]" title={r.items_summary}>
                           {r.items_summary}
                         </div>
                       )}
                     </td>
 
-                    <td className="py-3 px-3 text-right font-mono text-slate-300">
+                    <td className="py-2.5 px-3 text-right font-mono tabular-nums text-zinc-300">
                       ₹{(Number(r.total_amount) || 0).toLocaleString("en-IN")}
                     </td>
 
-                    <td className="py-3 px-3 text-right font-mono text-emerald-400 font-semibold">
+                    <td className="py-2.5 px-3 text-right font-mono tabular-nums text-zinc-300">
                       ₹{(Number(r.paid_amount) || 0).toLocaleString("en-IN")}
                     </td>
 
-                    <td className="py-3 px-3 text-right font-mono">
-                      <span className={`text-sm font-extrabold ${isPending ? "text-amber-400" : "text-slate-500"}`}>
+                    <td className="py-2.5 px-3 text-right font-mono tabular-nums">
+                      <span className={`text-sm font-semibold ${isPending ? "text-amber-400" : "text-zinc-500"}`}>
                         ₹{(Number(r.balance_amount) || 0).toLocaleString("en-IN")}
                       </span>
                     </td>
 
-                    <td className="py-3 px-3 text-center">
+                    <td className="py-2.5 px-3 text-center">
                       <span
-                        className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${
+                        className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-medium font-mono uppercase ${
                           r.status === "settled"
-                            ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                            ? "bg-zinc-800 text-zinc-300 border border-zinc-700"
                             : r.status === "waived_final"
-                            ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
-                            : "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                            ? "bg-zinc-800 text-zinc-400 border border-zinc-700"
+                            : "bg-amber-500/10 text-amber-300 border border-amber-500/20"
                         }`}
                       >
                         {r.status === "waived_final" ? "Waived Final" : r.status}
                       </span>
                       {r.settlement_note && (
-                        <div className="text-[9.5px] text-slate-500 truncate max-w-[120px] mt-0.5" title={r.settlement_note}>
+                        <div className="text-[9.5px] text-zinc-500 truncate max-w-[120px] mt-0.5" title={r.settlement_note}>
                           {r.settlement_note}
                         </div>
                       )}
                     </td>
 
-                    <td className="py-3 px-4">
+                    <td className="py-2.5 px-4">
                       <div className="flex items-center justify-center gap-1.5">
                         {/* 📄 Direct Download A4 Tax Invoice PDF */}
                         <a
                           href={`/invoice/${r.invoice_id}?download=true`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-cyan-300 border border-slate-700 text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer"
+                          className="px-2 py-1 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer"
                           title="Direct Download Official A4 Tax Invoice PDF"
                         >
                           <span className="material-symbols-outlined text-xs">picture_as_pdf</span>
@@ -468,7 +468,7 @@ export default function CustomerBalancesTab({
                         <button
                           type="button"
                           onClick={() => handleOpenAction(r, "remind")}
-                          className="px-2.5 py-1.5 rounded-lg bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-500/30 text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer"
+                          className="px-2.5 py-1 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer"
                           title="Send WhatsApp Razorpay Payment Link"
                         >
                           <span className="material-symbols-outlined text-xs">link</span>
@@ -481,7 +481,7 @@ export default function CustomerBalancesTab({
                             type="button"
                             onClick={() => handleCheckLinkStatus(r)}
                             disabled={checkingLinkId === r.id}
-                            className="px-2 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/30 text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer disabled:opacity-50"
+                            className="px-2 py-1 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer disabled:opacity-50"
                             title="Poll Razorpay status for this payment link"
                           >
                             <span className={`material-symbols-outlined text-xs ${checkingLinkId === r.id ? "animate-spin" : ""}`}>
@@ -496,11 +496,11 @@ export default function CustomerBalancesTab({
                           <button
                             type="button"
                             onClick={() => handleOpenAction(r, "settle")}
-                            className="px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-emerald-600/25 to-teal-600/25 hover:from-emerald-600/40 hover:to-teal-600/40 text-emerald-300 border border-emerald-500/50 text-[11px] font-bold flex items-center gap-1 transition-all cursor-pointer shadow-sm active:scale-95"
+                            className="px-2.5 py-1 rounded-md bg-zinc-100 hover:bg-white text-zinc-950 border border-zinc-200 text-[11px] font-semibold flex items-center gap-1 transition-colors cursor-pointer shadow-sm active:scale-95"
                             title="1-Click Settle Khata: Record Cash / Online payment"
                           >
                             <span className="material-symbols-outlined text-xs">check_circle</span>
-                            ⚡ Settle Khata
+                            Settle Khata
                           </button>
                         )}
 
@@ -508,7 +508,7 @@ export default function CustomerBalancesTab({
                         <button
                           type="button"
                           onClick={() => handleDeleteRecord(r)}
-                          className="p-1.5 rounded-lg hover:bg-rose-500/20 text-slate-500 hover:text-rose-400 transition-colors text-xs"
+                          className="p-1 rounded-md hover:bg-zinc-800 text-zinc-500 hover:text-rose-400 transition-colors text-xs"
                           title="Delete record"
                         >
                           <span className="material-symbols-outlined text-sm">delete</span>

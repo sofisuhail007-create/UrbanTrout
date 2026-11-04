@@ -73,12 +73,12 @@ function orderToSlipData(order: Order, upi: string): InvoiceSlipData {
 }
 
 const STATUSES: { value: OrderStatus; label: string; color: string }[] = [
-  { value: "pending", label: "Awaiting Verification", color: "bg-amber-500/15 text-amber-400 border-amber-500/30" },
-  { value: "processing", label: "Payment Verified / Confirmed", color: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
-  { value: "out_for_delivery", label: "Out for Delivery", color: "bg-cyan-500/15 text-cyan-400 border-cyan-500/30" },
-  { value: "delivered", label: "Delivered", color: "bg-green-500/15 text-green-400 border-green-500/30" },
-  { value: "out_of_stock", label: "⚠️ Out of Stock (Refund Due)", color: "bg-orange-500/15 text-orange-400 border-orange-500/30" },
-  { value: "cancelled", label: "Cancelled", color: "bg-red-500/15 text-red-400 border-red-500/30" },
+  { value: "pending", label: "Awaiting Verification", color: "bg-amber-500/10 text-amber-300 border-amber-500/20" },
+  { value: "processing", label: "Confirmed", color: "bg-zinc-800 text-zinc-300 border-zinc-700" },
+  { value: "out_for_delivery", label: "Out for Delivery", color: "bg-zinc-800 text-zinc-300 border-zinc-700" },
+  { value: "delivered", label: "Delivered", color: "bg-zinc-800 text-zinc-200 border-zinc-700" },
+  { value: "out_of_stock", label: "Out of Stock (Refund Due)", color: "bg-rose-500/10 text-rose-300 border-rose-500/20" },
+  { value: "cancelled", label: "Cancelled", color: "bg-zinc-800 text-zinc-500 border-zinc-700" },
 ];
 
 function statusStyle(s: string) {
@@ -548,11 +548,11 @@ export default function OrdersPage() {
   }, [filtered, currentPage]);
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
-      <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>Orders</h1>
-          <p className="text-slate-500 text-sm mt-1">{orders.length} total orders</p>
+          <h1 className="text-xl sm:text-2xl font-semibold text-white font-['Space_Grotesk']">Orders</h1>
+          <p className="text-zinc-400 text-xs mt-0.5">{orders.length} total orders</p>
         </div>
 
         <div className="flex items-center gap-2 flex-wrap">
@@ -569,10 +569,10 @@ export default function OrdersPage() {
               }
               setPrintModalOrders(active);
             }}
-            className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer"
+            className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-200 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
             title="Print all active deliveries on Canon MF244dw (4 slips per A4 sheet)"
           >
-            <span>🖨️</span>
+            <span className="material-symbols-outlined text-xs">print</span>
             <span>Print Active Deliveries (4-Up)</span>
           </button>
 
@@ -584,10 +584,10 @@ export default function OrdersPage() {
                 const selected = orders.filter((o) => selectedOrderIds.has(o.id));
                 setPrintModalOrders(selected);
               }}
-              className="px-3.5 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-cyan-500/20 active:scale-95 transition-all cursor-pointer animate-pulse"
+              className="px-3 py-1.5 rounded-lg bg-zinc-100 hover:bg-white text-zinc-950 text-xs font-semibold uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer shadow-sm"
               title="Print selected orders on Canon MF244dw (4 slips per A4 sheet)"
             >
-              <span>🖨️</span>
+              <span className="material-symbols-outlined text-xs">print</span>
               <span>Print Selected ({selectedOrderIds.size}) (4-Up)</span>
             </button>
           )}
@@ -596,7 +596,7 @@ export default function OrdersPage() {
             <button
               type="button"
               onClick={() => setSelectedOrderIds(new Set())}
-              className="px-2.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-400 text-xs font-medium border border-slate-800 transition-colors cursor-pointer"
+              className="px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 hover:text-zinc-200 text-xs font-medium border border-zinc-700 transition-colors cursor-pointer"
             >
               Clear
             </button>
@@ -605,15 +605,15 @@ export default function OrdersPage() {
       </div>
 
       {/* Filter tabs */}
-      <div className="flex gap-2 flex-wrap mb-4">
+      <div className="flex gap-1.5 flex-wrap">
         {[{ value: "all", label: "All" }, ...STATUSES].map((s) => (
           <button
             key={s.value}
             onClick={() => setFilter(s.value)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
               filter === s.value
-                ? "bg-cyan-500/20 text-cyan-400 border-cyan-500/40"
-                : "bg-slate-800/60 text-slate-400 border-slate-700 hover:border-slate-600"
+                ? "bg-zinc-800 text-zinc-100 border-zinc-600 shadow-sm"
+                : "bg-[#131316] text-zinc-400 border-zinc-800 hover:border-zinc-700 hover:text-zinc-200"
             }`}
           >
             {s.label} {s.value !== "all" && `(${orders.filter((o) => o.status === s.value).length})`}
@@ -623,20 +623,20 @@ export default function OrdersPage() {
 
       {/* Select All on Page bar */}
       {filtered.length > 0 && (
-        <div className="flex items-center justify-between pb-3 px-1 text-xs text-slate-500">
+        <div className="flex items-center justify-between pb-1 px-1 text-xs text-zinc-400">
           <label className="inline-flex items-center gap-2 cursor-pointer select-none">
             <input
               type="checkbox"
               checked={paginatedOrders.length > 0 && paginatedOrders.every((o) => selectedOrderIds.has(o.id))}
               onChange={() => toggleSelectAllPage(paginatedOrders)}
-              className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-cyan-500 focus:ring-cyan-500/20 cursor-pointer"
+              className="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-zinc-200 focus:ring-zinc-600 cursor-pointer"
             />
-            <span className="hover:text-slate-300 transition-colors font-medium">
+            <span className="hover:text-zinc-200 transition-colors font-medium">
               Select all on page ({paginatedOrders.length})
             </span>
           </label>
           {selectedOrderIds.size > 0 && (
-            <span className="text-cyan-400 font-mono text-[11px] font-semibold">
+            <span className="text-zinc-300 font-mono text-[11px]">
               {selectedOrderIds.size} order{selectedOrderIds.size > 1 ? "s" : ""} selected for 4-up printing
             </span>
           )}
@@ -644,20 +644,20 @@ export default function OrdersPage() {
       )}
 
       {loading ? (
-        <div className="text-center text-slate-600 py-20">Loading orders...</div>
+        <div className="text-center text-zinc-500 py-20 font-mono text-xs">Loading orders...</div>
       ) : filtered.length === 0 ? (
-        <div className="text-center text-slate-600 py-20 bg-slate-900/40 rounded-xl border border-slate-800">
-          <span className="material-symbols-outlined text-4xl mb-3 block text-slate-700">receipt_long</span>
+        <div className="text-center text-zinc-400 py-20 bg-[#131316] rounded-xl border border-zinc-800">
+          <span className="material-symbols-outlined text-4xl mb-3 block text-zinc-600">receipt_long</span>
           No orders found.
         </div>
       ) : (
         <>
           <div className="space-y-2">
             {paginatedOrders.map((order) => (
-            <div key={order.id} className="bg-slate-900/60 border border-slate-800 rounded-xl overflow-hidden">
+            <div key={order.id} className="bg-[#131316] border border-zinc-800 rounded-xl overflow-hidden hover:border-zinc-700 transition-colors">
               {/* Row */}
               <div
-                className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-slate-800/40 transition-colors"
+                className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-zinc-800/30 transition-colors"
                 onClick={() => setExpanded(expanded === order.id ? null : order.id)}
               >
                 <input
@@ -665,13 +665,13 @@ export default function OrdersPage() {
                   checked={selectedOrderIds.has(order.id)}
                   onChange={() => {}}
                   onClick={(e) => toggleSelectOrder(order.id, e)}
-                  className="w-4 h-4 rounded border-slate-700 bg-slate-900 text-cyan-500 focus:ring-cyan-500/20 cursor-pointer flex-shrink-0"
+                  className="w-4 h-4 rounded border-zinc-700 bg-zinc-900 text-zinc-200 focus:ring-zinc-600 cursor-pointer flex-shrink-0"
                   title="Select for batch 4-up printing"
                 />
-                <span className="text-slate-600 text-xs font-mono w-10 flex-shrink-0">#{order.order_number}</span>
+                <span className="text-zinc-500 text-xs font-mono w-10 flex-shrink-0">#{order.order_number}</span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-semibold text-white truncate">{order.customer_name}</p>
+                    <p className="text-sm font-medium text-white truncate">{order.customer_name}</p>
                     {(() => {
                       const item = order.items?.[0] as any;
                       if (!item?.actualWeight || !item?.orderedWeight) return null;
@@ -682,9 +682,8 @@ export default function OrdersPage() {
                         return (
                           <span
                             title={`Ordered ${item.orderedWeight} Kg, Scale Wt ${item.actualWeight} Kg. Refund of ₹${refund} due to customer.`}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold tracking-tight flex-shrink-0"
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-300 border border-zinc-700 text-[10px] font-mono flex-shrink-0"
                           >
-                            <span>💵</span>
                             <span>Scale: {item.actualWeight.toFixed(2)} Kg (-₹{refund} Refund)</span>
                           </span>
                         );
@@ -693,9 +692,8 @@ export default function OrdersPage() {
                         return (
                           <span
                             title={`Ordered ${item.orderedWeight} Kg, Scale Wt ${item.actualWeight} Kg. Extra ₹${due} due from customer.`}
-                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10px] font-bold tracking-tight flex-shrink-0"
+                            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-300 border border-amber-500/20 text-[10px] font-mono flex-shrink-0"
                           >
-                            <span>⚠️</span>
                             <span>Scale: {item.actualWeight.toFixed(2)} Kg (+₹{due} Due)</span>
                           </span>
                         );
@@ -707,9 +705,9 @@ export default function OrdersPage() {
                       return (
                         <span
                           title={`Scheduled Delivery: ${sched.text}`}
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-[10px] font-bold tracking-tight flex-shrink-0"
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-300 border border-zinc-700 text-[10px] font-mono flex-shrink-0"
                         >
-                          <span>📅</span>
+                          <span className="material-symbols-outlined text-[11px]">calendar_today</span>
                           <span className="truncate max-w-[130px] sm:max-w-none">{sched.text}</span>
                         </span>
                       );
@@ -723,8 +721,8 @@ export default function OrdersPage() {
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={(e) => e.stopPropagation()}
-                          title="1-Tap Google Maps Navigation"
-                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 text-[11px] font-semibold transition-colors flex-shrink-0"
+                          title="Google Maps Navigation"
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-zinc-800 text-zinc-300 hover:text-white border border-zinc-700 text-[11px] font-medium transition-colors flex-shrink-0"
                         >
                           <span className="material-symbols-outlined text-xs">near_me</span>
                           <span>Map</span>
@@ -732,12 +730,12 @@ export default function OrdersPage() {
                       );
                     })()}
                   </div>
-                  <p className="text-xs text-slate-500">+91 {order.customer_phone}</p>
+                  <p className="text-xs text-zinc-500 font-mono">+91 {order.customer_phone}</p>
                 </div>
-                <span className={`hidden sm:inline-flex text-xs px-2.5 py-1 rounded-full border font-medium ${statusStyle(order.status)}`}>
+                <span className={`hidden sm:inline-flex text-[11px] px-2.5 py-0.5 rounded-full border font-mono uppercase font-medium ${statusStyle(order.status)}`}>
                   {statusLabel(order.status)}
                 </span>
-                <span className="text-sm font-bold text-cyan-400 font-mono">₹{order.total?.toLocaleString("en-IN")}</span>
+                <span className="text-sm font-semibold text-white font-mono tabular-nums">₹{order.total?.toLocaleString("en-IN")}</span>
 
                 {/* 1-Tap Instant Locked QR Button right on every row */}
                 <button
@@ -746,11 +744,11 @@ export default function OrdersPage() {
                     e.stopPropagation();
                     handleOpenOrderQr(order);
                   }}
-                  className="px-2.5 py-1 rounded-lg bg-emerald-500/25 hover:bg-emerald-500/40 text-emerald-300 border border-emerald-500/50 text-xs font-bold transition-all flex items-center gap-1 shrink-0 cursor-pointer shadow-md hover:scale-105 active:scale-95"
-                  title="⚡ Instant Locked QR: Lock exact rupee amount in GPay / PhonePe / mPay for doorstep COD collection"
+                  className="px-2.5 py-1 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs font-medium transition-colors flex items-center gap-1 shrink-0 cursor-pointer"
+                  title="Instant Locked QR for doorstep COD collection"
                 >
                   <span className="material-symbols-outlined text-xs">qr_code_2</span>
-                  <span>⚡ QR</span>
+                  <span>QR</span>
                 </button>
 
                 {/* 1-Tap Weigh Button right on every row */}
@@ -760,10 +758,10 @@ export default function OrdersPage() {
                     e.stopPropagation();
                     openScaleModal(order);
                   }}
-                  className="px-2.5 py-1 rounded-lg bg-amber-500/25 hover:bg-amber-500/40 text-amber-300 border border-amber-500/50 text-xs font-bold transition-all flex items-center gap-1 shrink-0 cursor-pointer shadow-md hover:scale-105 active:scale-95"
-                  title="⚖️ Weigh / Catch-Weight: Enter harvest scale weight and calculate customer refund or balance due"
+                  className="px-2.5 py-1 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs font-medium transition-colors flex items-center gap-1 shrink-0 cursor-pointer"
+                  title="Weigh / Catch-Weight: Enter harvest scale weight"
                 >
-                  <span>⚖️</span>
+                  <span className="material-symbols-outlined text-xs">scale</span>
                   <span>Weigh</span>
                 </button>
 
@@ -774,17 +772,17 @@ export default function OrdersPage() {
                     e.stopPropagation();
                     setPrintModalOrders([order]);
                   }}
-                  className="px-2 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/35 text-cyan-300 border border-cyan-500/40 text-xs font-bold transition-all flex items-center gap-1 shrink-0 cursor-pointer shadow-sm hidden sm:flex"
-                  title="🖨️ Print 4-Up delivery slip on Canon MF244dw"
+                  className="px-2 py-1 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs font-medium transition-colors flex items-center gap-1 shrink-0 cursor-pointer hidden sm:flex"
+                  title="Print 4-Up delivery slip on Canon MF244dw"
                 >
-                  <span>🖨️</span>
+                  <span className="material-symbols-outlined text-xs">print</span>
                   <span className="hidden md:inline">Print</span>
                 </button>
 
-                <span className="text-xs text-slate-600 hidden md:block w-20 text-right">
+                <span className="text-xs text-zinc-500 font-mono hidden md:block w-20 text-right">
                   {new Date(order.created_at).toLocaleDateString("en-IN")}
                 </span>
-                <span className="material-symbols-outlined text-slate-600 text-base">
+                <span className="material-symbols-outlined text-zinc-500 text-base">
                   {expanded === order.id ? "expand_less" : "expand_more"}
                 </span>
               </div>

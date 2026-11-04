@@ -368,15 +368,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   };
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen h-[100dvh] bg-[#090b0e] text-zinc-200 overflow-hidden font-['Manrope']">
+    <div className="flex flex-col md:flex-row min-h-screen h-[100dvh] bg-[#0c0c0e] text-zinc-200 overflow-hidden font-['Manrope']">
       {/* ─── MOBILE TOP BAR (Visible on screens < md) ─── */}
-      <header className="flex md:hidden items-center justify-between px-3.5 py-2.5 bg-[#0d1015]/95 backdrop-blur-md border-b border-zinc-800/80 z-30 flex-shrink-0 sticky top-0">
+      <header className="flex md:hidden items-center justify-between px-3.5 py-2.5 bg-[#111114]/95 backdrop-blur-md border-b border-zinc-800/80 z-30 flex-shrink-0 sticky top-0">
         <div className="flex items-center gap-2.5">
           <img src="/sitelogo.png" alt="Urban Trout" className="w-6 h-6 rounded-md object-contain border border-zinc-700/60" />
           <span className="text-sm font-semibold tracking-tight text-zinc-100 font-['Space_Grotesk']">
             Urban Trout
           </span>
-          <span className="text-[10px] font-medium uppercase tracking-wider px-2 py-0.5 rounded bg-zinc-800/80 text-zinc-400 border border-zinc-700/60 font-mono">
+          <span className="text-[10px] font-medium uppercase tracking-wider px-2 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700/60 font-mono">
             {adminRole.replace("_", " ")}
           </span>
         </div>
@@ -394,13 +394,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {mobileMenuOpen && (
         <div
           onClick={() => setMobileMenuOpen(false)}
-          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
+          className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm md:hidden"
         />
       )}
 
       {/* ─── SIDEBAR (Desktop Fixed + Mobile Slide-over Drawer) ─── */}
       <aside
-        className={`fixed md:relative top-0 bottom-0 left-0 z-50 md:z-20 flex flex-col border-r border-zinc-800/80 bg-[#0d1015] flex-shrink-0 transition-all duration-200 ${
+        className={`fixed md:relative top-0 bottom-0 left-0 z-50 md:z-20 flex flex-col border-r border-zinc-800/80 bg-[#111114] flex-shrink-0 transition-all duration-200 ${
           mobileMenuOpen ? "translate-x-0 w-64 shadow-2xl" : "-translate-x-full md:translate-x-0"
         } ${collapsed ? "md:w-16" : "md:w-60"}`}
       >
@@ -517,7 +517,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                   >
                     {/* Active Accent Left Indicator */}
                     {active && !collapsed && (
-                      <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-r bg-cyan-400" />
+                      <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-r bg-amber-400" />
                     )}
 
                     {/* Icon + Label */}
@@ -526,8 +526,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         <span
                           className={`material-symbols-outlined text-[18px] flex-shrink-0 ${
                             active
-                              ? "text-cyan-400"
-                              : "text-zinc-400 group-hover:text-zinc-300"
+                              ? "text-amber-400"
+                              : "text-zinc-400 group-hover:text-zinc-200"
                           }`}
                         >
                           {item.icon}
@@ -540,7 +540,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                               item.badgeType === "live"
                                 ? "bg-emerald-400"
                                 : item.badgeType === "new"
-                                ? "bg-cyan-400"
+                                ? "bg-amber-400"
                                 : "bg-zinc-500"
                             }`}
                           />
