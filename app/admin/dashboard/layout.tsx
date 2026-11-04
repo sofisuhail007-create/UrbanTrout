@@ -115,8 +115,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const router = useRouter();
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
+  // Default to collapsed (icon-only mode) so POS billing and dashboard have maximum screen space
+  const [collapsed, setCollapsed] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Restore user-explicit sidebar toggle preference if set
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("ut_sidebar_collapsed");
+      if (saved !== null) {
+        setCollapsed(saved === "true");
+      }
+    } catch {}
+  }, []);
+
+  const handleToggleCollapse = (val: boolean) => {
+    setCollapsed(val);
+    try {
+      localStorage.setItem("ut_sidebar_collapsed", String(val));
+    } catch {}
+  };
   const [adminEmail, setAdminEmail] = useState<string>("");
   const [adminRole, setAdminRole] = useState<string>("staff");
   const [adminName, setAdminName] = useState<string>("Suhail");
@@ -408,7 +426,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {collapsed && (
           <button
             type="button"
-            onClick={() => setCollapsed(false)}
+            onClick={() => handleToggleCollapse(false)}
             className="hidden md:flex absolute -right-3 top-5 z-50 w-6 h-6 rounded-full bg-[#111111] hover:bg-[#222222] text-zinc-200 items-center justify-center shadow-md border border-[#333333] transition-colors cursor-pointer"
             title="Expand sidebar"
           >
@@ -438,7 +456,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {/* Desktop Collapse Toggle */}
             <button
               type="button"
-              onClick={() => setCollapsed(true)}
+              onClick={() => handleToggleCollapse(true)}
               className="hidden md:flex ml-2 w-7 h-7 rounded-lg bg-black hover:bg-[#111111] border border-[#222222] items-center justify-center text-zinc-400 hover:text-white transition-colors cursor-pointer flex-shrink-0"
               title="Collapse sidebar"
             >
@@ -459,7 +477,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             {/* Clickable Logo that also expands */}
             <button
               type="button"
-              onClick={() => setCollapsed(false)}
+              onClick={() => handleToggleCollapse(false)}
               className="group flex items-center justify-center cursor-pointer"
               title="Expand sidebar"
             >
@@ -472,7 +490,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
             <button
               type="button"
-              onClick={() => setCollapsed(false)}
+              onClick={() => handleToggleCollapse(false)}
               className="w-6 h-6 rounded-md bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-zinc-200 flex items-center justify-center transition-colors cursor-pointer"
               title="Expand sidebar"
             >

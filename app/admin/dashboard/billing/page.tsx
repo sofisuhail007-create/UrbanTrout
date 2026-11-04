@@ -1,6 +1,5 @@
 "use client";
 import { useState, useEffect, useMemo, useCallback } from "react";
-import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { adminFetch } from "@/lib/adminClient";
 import type { InventoryItem } from "@/lib/supabase";
@@ -2457,51 +2456,7 @@ Helpline: +91 84910 06127`;
   }, [filteredRemoteOrders, remoteOrdersPage]);
 
   return (
-    <div className="px-3 py-2 sm:px-5 sm:py-3 max-w-7xl mx-auto space-y-3">
-      {/* ─── COMPACT HEADER BAR ─── */}
-      <div className="flex flex-wrap items-center justify-between gap-2 py-1.5 px-0.5 border-b border-[#222222]/80">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-[#0a0a0a] border border-[#222222] flex items-center justify-center text-zinc-300 flex-shrink-0">
-            <span className="material-symbols-outlined text-base sm:text-lg">point_of_sale</span>
-          </div>
-          <div className="min-w-0">
-            <h1 className="text-sm sm:text-base font-semibold text-zinc-100 truncate font-['Space_Grotesk']">
-              Sales Billing POS
-            </h1>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-1.5 ml-auto flex-shrink-0">
-          <Link
-            href="/admin/dashboard/vending-log"
-            className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-[#161616]/80 hover:bg-[#222222]/80 border border-[#333333]/80 text-zinc-300 transition-colors text-[11px] sm:text-xs font-medium flex items-center gap-1"
-            title="Open Daily Sales Data Logger"
-          >
-            <span className="material-symbols-outlined text-sm">table_chart</span>
-            <span className="hidden sm:inline">Vending Log</span>
-            <span className="sm:hidden">Log</span>
-          </Link>
-
-          <Link
-            href="/admin/dashboard/orders"
-            className="px-2.5 sm:px-3 py-1.5 rounded-lg bg-[#161616]/80 hover:bg-[#222222]/80 border border-[#333333]/80 text-zinc-300 transition-colors text-[11px] sm:text-xs font-medium flex items-center gap-1 cursor-pointer"
-            title="Weigh / Catch-Weight Orders"
-          >
-            <span className="material-symbols-outlined text-sm">scale</span>
-            <span className="hidden sm:inline">Weigh Orders</span>
-            <span className="sm:hidden">Orders</span>
-          </Link>
-          <button
-            type="button"
-            onClick={handleReset}
-            className="px-2 sm:px-2.5 py-1.5 rounded-lg bg-[#0a0a0a] hover:bg-[#161616] border border-[#222222] text-zinc-400 hover:text-zinc-200 transition-colors text-[11px] sm:text-xs font-medium flex items-center gap-1 cursor-pointer"
-            title="Reset active bill"
-          >
-            <span className="material-symbols-outlined text-sm">refresh</span>
-            <span className="hidden sm:inline">Reset</span>
-          </button>
-        </div>
-      </div>
+    <div className="px-2.5 pt-1.5 pb-4 sm:px-4 sm:pt-2 sm:pb-6 max-w-7xl mx-auto space-y-2.5">
 
       {/* ─── MOBILE COMPACT TAB BAR (< sm) ─── */}
       <div className="grid grid-cols-5 gap-1 p-1 bg-[#0a0a0a] border border-[#222222] rounded-xl sm:hidden text-center">
