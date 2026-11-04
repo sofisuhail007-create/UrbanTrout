@@ -8104,7 +8104,7 @@ export default function VendingCenterLoggerPage() {
           }}
           className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto"
         >
-          <div className="bg-[#0a0a0a] border border-emerald-500/40 rounded-3xl p-5 sm:p-7 max-w-lg w-full text-slate-200 shadow-2xl space-y-4 my-4 max-h-[92vh] overflow-y-auto">
+          <div className="bg-[#0a0a0a] border border-emerald-500/40 rounded-3xl p-5 sm:p-7 max-w-lg w-full text-slate-200 shadow-2xl space-y-4 my-auto max-h-[90dvh] overflow-y-auto overscroll-contain">
             {/* Header */}
             <div className="flex items-center justify-between border-b border-[#222222] pb-3">
               <div>
@@ -9611,7 +9611,7 @@ export default function VendingCenterLoggerPage() {
           }}
           className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto"
         >
-          <div className="bg-[#0a0a0a] border border-cyan-500/40 rounded-3xl p-5 sm:p-7 max-w-md w-full text-slate-200 shadow-2xl space-y-4 my-4">
+          <div className="bg-[#0a0a0a] border border-cyan-500/40 rounded-3xl p-5 sm:p-7 max-w-md w-full text-slate-200 shadow-2xl space-y-4 my-auto max-h-[90dvh] overflow-y-auto overscroll-contain">
             <div className="flex items-center justify-between border-b border-[#222222] pb-3">
               <div>
                 <span className="text-[10px] uppercase font-bold tracking-widest text-cyan-400 font-mono">
@@ -9773,7 +9773,7 @@ export default function VendingCenterLoggerPage() {
           }}
           className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto"
         >
-          <div className="bg-[#0a0a0a] border border-purple-500/40 rounded-3xl p-5 sm:p-7 max-w-2xl w-full text-slate-200 shadow-2xl space-y-5 my-4 max-h-[92vh] overflow-y-auto font-mono">
+          <div className="bg-[#0a0a0a] border border-purple-500/40 rounded-3xl p-5 sm:p-7 max-w-2xl w-full text-slate-200 shadow-2xl space-y-5 my-auto max-h-[90dvh] overflow-y-auto overscroll-contain font-mono">
             {/* Modal Header */}
             <div className="flex items-start justify-between border-b border-[#222222] pb-3.5">
               <div>
@@ -10086,7 +10086,7 @@ export default function VendingCenterLoggerPage() {
           }}
           className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto"
         >
-          <div className="bg-[#0a0a0a] border border-sky-500/40 rounded-3xl p-5 sm:p-7 max-w-2xl w-full text-slate-200 shadow-2xl space-y-5 my-4 max-h-[92vh] overflow-y-auto font-mono">
+          <div className="bg-[#0a0a0a] border border-sky-500/40 rounded-3xl p-5 sm:p-7 max-w-2xl w-full text-slate-200 shadow-2xl space-y-5 my-auto max-h-[90dvh] overflow-y-auto overscroll-contain font-mono">
             {/* Modal Header */}
             <div className="flex items-start justify-between border-b border-[#222222] pb-3.5">
               <div>
@@ -10462,7 +10462,7 @@ export default function VendingCenterLoggerPage() {
           }}
           className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto"
         >
-          <div className="w-full max-w-5xl bg-[#0a1322] border-2 border-emerald-500/40 rounded-3xl shadow-2xl shadow-emerald-950/40 overflow-hidden flex flex-col max-h-[92vh]">
+          <div className="w-full max-w-5xl bg-[#0a1322] border-2 border-emerald-500/40 rounded-3xl shadow-2xl shadow-emerald-950/40 overflow-hidden flex flex-col my-auto max-h-[90dvh] overscroll-contain">
             {/* Modal Header */}
             <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-[#222222]/80 bg-black/60 flex-shrink-0">
               <div className="flex items-center gap-3">
@@ -10714,10 +10714,10 @@ export default function VendingCenterLoggerPage() {
           LOG STOCK MODAL — Add New Biomass Procurement Entry
           ══════════════════════════════════════════════════════════ */}
       {stockModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-[#0a1628] border border-blue-500/30 rounded-3xl shadow-2xl shadow-blue-950/40 overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/85 backdrop-blur-sm overflow-y-auto overscroll-contain">
+          <div className="w-full max-w-md bg-[#0a1628] border border-blue-500/30 rounded-3xl shadow-2xl shadow-blue-950/40 my-auto max-h-[90dvh] flex flex-col overflow-hidden">
             {/* Modal Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[#222222]/80">
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-[#222222]/80 flex-shrink-0 bg-[#0a1628]">
               <div>
                 <div className="flex items-center gap-2 mb-0.5">
                   <span className="material-symbols-outlined text-blue-400 text-base">inventory_2</span>
@@ -10742,7 +10742,7 @@ export default function VendingCenterLoggerPage() {
             </div>
 
             {/* Modal Form */}
-            <form onSubmit={handleAddStockEntry} className="p-5 space-y-4">
+            <form onSubmit={handleAddStockEntry} className="p-4 sm:p-5 space-y-3.5 overflow-y-auto overscroll-contain flex-1">
               {/* Date & Time */}
               <div className="grid grid-cols-2 gap-3">
                 {/* Date Card */}
@@ -10957,8 +10957,8 @@ export default function VendingCenterLoggerPage() {
                 />
               </div>
 
-              {/* Submit */}
-              <div className="flex gap-2 pt-1">
+              {/* Submit (Sticky pinned for iPhone 14 / mobile touch) */}
+              <div className="flex gap-2 pt-2.5 pb-1 border-t border-blue-500/20 bg-[#0a1628] flex-shrink-0 sticky bottom-0">
                 <button
                   type="button"
                   onClick={() => setStockModalOpen(false)}
@@ -10987,10 +10987,10 @@ export default function VendingCenterLoggerPage() {
           LOG MORTALITY & SCRAP MODAL
           ══════════════════════════════════════════════════════════ */}
       {mortalityModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-[#120b12] border border-rose-500/40 rounded-3xl shadow-2xl shadow-rose-950/40 overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/85 backdrop-blur-sm overflow-y-auto overscroll-contain">
+          <div className="w-full max-w-md bg-[#120b12] border border-rose-500/40 rounded-3xl shadow-2xl shadow-rose-950/40 my-auto max-h-[90dvh] flex flex-col overflow-hidden">
             {/* Modal Header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-rose-500/20">
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-rose-500/20 flex-shrink-0 bg-[#120b12]">
               <div>
                 <div className="flex items-center gap-2 mb-0.5">
                   <span className="material-symbols-outlined text-rose-400 text-base">emergency</span>
@@ -11015,7 +11015,7 @@ export default function VendingCenterLoggerPage() {
             </div>
 
             {/* Modal Form */}
-            <form onSubmit={handleAddMortalityEntry} className="p-5 space-y-4">
+            <form onSubmit={handleAddMortalityEntry} className="p-4 sm:p-5 space-y-3.5 overflow-y-auto overscroll-contain flex-1">
               {/* Date & Time */}
               <div className="grid grid-cols-2 gap-3">
                 {/* Date Card */}
@@ -11159,8 +11159,8 @@ export default function VendingCenterLoggerPage() {
                 </div>
               </div>
 
-              {/* Submit */}
-              <div className="flex gap-2 pt-2">
+              {/* Submit (Sticky pinned for iPhone 14 / mobile touch) */}
+              <div className="flex gap-2 pt-2.5 pb-1 border-t border-rose-500/20 bg-[#120b12] flex-shrink-0 sticky bottom-0">
                 <button
                   type="button"
                   onClick={() => setMortalityModalOpen(false)}
@@ -11190,8 +11190,8 @@ export default function VendingCenterLoggerPage() {
           EOD TELEGRAM REPORT PREVIEW & DISPATCH MODAL
           ══════════════════════════════════════════════════════════ */}
       {eodModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="w-full max-w-lg bg-[#0b1420] border border-sky-500/40 rounded-3xl shadow-2xl shadow-sky-950/50 overflow-hidden flex flex-col max-h-[90vh]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/85 backdrop-blur-sm overflow-y-auto overscroll-contain">
+          <div className="w-full max-w-lg bg-[#0b1420] border border-sky-500/40 rounded-3xl shadow-2xl shadow-sky-950/50 overflow-hidden flex flex-col my-auto max-h-[90dvh] overscroll-contain">
             {/* Modal Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-sky-500/20 bg-sky-950/20 flex-shrink-0">
               <div className="flex items-center gap-2.5">
@@ -11290,8 +11290,8 @@ export default function VendingCenterLoggerPage() {
           LOG / EDIT VENDING CENTER EXPENSE MODAL
           ══════════════════════════════════════════════════════════ */}
       {expenseModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-[#0e1626] border border-rose-500/40 rounded-3xl shadow-2xl shadow-rose-950/40 overflow-hidden flex flex-col max-h-[92vh]">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/85 backdrop-blur-sm overflow-y-auto overscroll-contain">
+          <div className="w-full max-w-md bg-[#0e1626] border border-rose-500/40 rounded-3xl shadow-2xl shadow-rose-950/40 overflow-hidden flex flex-col my-auto max-h-[90dvh] overscroll-contain">
             {/* Modal Header */}
             <div className="flex items-center justify-between px-5 py-4 border-b border-rose-500/20 bg-black/70">
               <div>

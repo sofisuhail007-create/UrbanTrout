@@ -2456,7 +2456,7 @@ Helpline: +91 84910 06127`;
   }, [filteredRemoteOrders, remoteOrdersPage]);
 
   return (
-    <div className="px-2.5 pt-1.5 pb-4 sm:px-4 sm:pt-2 sm:pb-6 max-w-7xl mx-auto space-y-2.5">
+    <div className="px-2.5 pt-1.5 pb-28 sm:px-4 sm:pt-2 sm:pb-8 max-w-7xl mx-auto space-y-2.5">
 
       {/* ─── MOBILE COMPACT TAB BAR (< sm) ─── */}
       <div className="grid grid-cols-5 gap-1 p-1 bg-[#0a0a0a] border border-[#222222] rounded-xl sm:hidden text-center">
@@ -3731,9 +3731,9 @@ Helpline: +91 84910 06127`;
           </div>
         </div>
 
-        {/* ─── STICKY MOBILE CHECKOUT BAR ─── */}
-        <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#000000]/95 backdrop-blur-lg border-t border-[#222222] px-3.5 py-2.5 lg:hidden">
-          <div className="max-w-md mx-auto flex items-center justify-between gap-3">
+        {/* ─── STICKY MOBILE CHECKOUT BAR (QR CODE GENERATOR FIRST FOR IPHONE / MOBILE) ─── */}
+        <div className="fixed bottom-0 left-0 right-0 z-40 bg-[#000000]/95 backdrop-blur-lg border-t border-[#222222] px-3.5 pt-2 pb-[max(0.65rem,env(safe-area-inset-bottom))] lg:hidden shadow-2xl">
+          <div className="max-w-md mx-auto flex items-center justify-between gap-2.5">
             <div className="min-w-0 flex-1">
               <div className="text-[10px] text-zinc-400 font-mono flex items-center gap-1.5 leading-none mb-0.5">
                 <span>{isCustomAmountMode ? "Direct QR" : `${totalWeight.toFixed(2)} Kg`}</span>
@@ -3742,31 +3742,57 @@ Helpline: +91 84910 06127`;
                   {paymentMethod === "JkBankSoundbox" ? "Soundbox" : paymentMethod === "RazorpayQR" ? "Razorpay QR" : paymentMethod === "WhatsAppLink" ? "WhatsApp" : "Cash"}
                 </span>
               </div>
-              <div className="text-lg font-semibold text-white font-mono tabular-nums leading-tight">
-                Payable: <span className="text-white">₹{grandTotal.toLocaleString("en-IN")}</span>
+              <div className="text-base sm:text-lg font-bold text-white font-mono tabular-nums leading-tight">
+                Payable: <span className="text-cyan-300 font-black">₹{grandTotal.toLocaleString("en-IN")}</span>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 flex-shrink-0">
+            <div className="flex items-center gap-1.5 flex-shrink-0">
               {paymentMethod === "WhatsAppLink" && !rzpPaid ? (
                 <button
                   type="button"
                   onClick={handleSendWhatsAppPaymentLink}
                   disabled={grandTotal <= 0 || rzpLinkLoading}
-                  className="py-2 px-3 rounded-lg bg-zinc-100 hover:bg-white active:scale-95 disabled:opacity-50 text-zinc-950 font-semibold text-xs uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer"
+                  className="py-2.5 px-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 active:scale-95 disabled:from-zinc-800 disabled:to-zinc-800 disabled:text-zinc-600 disabled:cursor-not-allowed text-slate-950 font-black text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-emerald-500/25 transition-all cursor-pointer font-['Space_Grotesk']"
                 >
+                  <span className="material-symbols-outlined text-base">send</span>
                   <span>{rzpLinkLoading ? "Wait..." : "Send Link"}</span>
                 </button>
               ) : (
-                <button
-                  type="button"
-                  onClick={handleGenerateInvoice}
-                  disabled={grandTotal <= 0}
-                  className="py-2 px-3.5 rounded-lg bg-zinc-100 hover:bg-white active:scale-95 disabled:opacity-50 text-zinc-950 font-semibold text-xs uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer"
-                >
-                  <span className="material-symbols-outlined text-base">receipt_long</span>
-                  <span>Invoice</span>
-                </button>
+                <>
+                  {/* Sticky QR Code Generator Primary Button */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (grandTotal <= 0) return;
+                      if (paymentMethod === "RazorpayQR") {
+                        generateRazorpayQr(grandTotal, true);
+                      } else if (paymentMethod === "Cash") {
+                        handleGenerateInvoice();
+                      } else {
+                        setSoundboxQrGenerated(true);
+                        setLastSoundboxAmount(grandTotal);
+                        setEnlargeQrModal(true);
+                      }
+                    }}
+                    disabled={grandTotal <= 0}
+                    className="py-2.5 px-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 active:scale-95 disabled:from-zinc-800 disabled:to-zinc-800 disabled:text-zinc-600 disabled:cursor-not-allowed text-slate-950 font-black text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-emerald-500/25 transition-all cursor-pointer font-['Space_Grotesk']"
+                  >
+                    <span className="material-symbols-outlined text-base">qr_code_scanner</span>
+                    <span>{paymentMethod === "Cash" ? "Cash Bill" : "Generate QR"}</span>
+                  </button>
+
+                  {/* Compact Quick Invoice Button */}
+                  <button
+                    type="button"
+                    onClick={handleGenerateInvoice}
+                    disabled={grandTotal <= 0}
+                    className="py-2.5 px-2.5 rounded-xl bg-[#161616] hover:bg-[#222222] active:scale-95 border border-[#333333] text-zinc-300 disabled:opacity-40 disabled:cursor-not-allowed text-xs transition-all cursor-pointer"
+                    title="Generate Invoice (A4 / Thermal)"
+                  >
+                    <span className="material-symbols-outlined text-base">receipt_long</span>
+                  </button>
+                </>
               )}
             </div>
           </div>
@@ -4637,7 +4663,7 @@ Helpline: +91 84910 06127`;
           }}
           className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto"
         >
-          <div className="relative w-full max-w-md sm:max-w-xl bg-white text-slate-900 rounded-2xl sm:rounded-3xl p-3 sm:p-7 shadow-2xl space-y-4 my-2 sm:my-4 max-h-[92vh] sm:max-h-[95vh] overflow-y-auto">
+          <div className="relative w-full max-w-md sm:max-w-xl bg-white text-slate-900 rounded-2xl sm:rounded-3xl p-3 sm:p-7 shadow-2xl space-y-4 my-auto max-h-[90dvh] overflow-y-auto overscroll-contain">
             {/* ─── FLOATING TOP STICKY BAR: 1-CLICK SHARE & PRINT (NO SCROLLING NEEDED) ─── */}
             <div className="sticky -top-3 sm:-top-7 -mx-3 sm:-mx-7 px-3 sm:px-7 py-2.5 sm:py-3 bg-black text-white border-b border-[#222222] z-30 shadow-lg flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 print:hidden">
               <div className="flex items-center justify-between sm:justify-start gap-2">
@@ -5041,11 +5067,11 @@ Helpline: +91 84910 06127`;
       {enlargeQrModal && (
         <div
           onClick={() => setEnlargeQrModal(false)}
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 bg-black/90 backdrop-blur-md cursor-pointer animate-fadeIn"
+          className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 md:p-6 bg-black/90 backdrop-blur-md cursor-pointer animate-fadeIn overflow-y-auto overscroll-contain"
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border-2 border-emerald-500/40 rounded-3xl p-4 sm:p-6 max-w-2xl w-full text-center space-y-4 shadow-2xl shadow-emerald-950/80 cursor-default max-h-[95vh] overflow-y-auto"
+            className="bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border-2 border-emerald-500/40 rounded-3xl p-4 sm:p-6 max-w-2xl w-full text-center space-y-4 shadow-2xl shadow-emerald-950/80 cursor-default my-auto max-h-[90dvh] overflow-y-auto overscroll-contain"
           >
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-[#222222]/80 pb-3">
@@ -5397,9 +5423,9 @@ Helpline: +91 84910 06127`;
           onClick={(e) => {
             if (e.target === e.currentTarget) setVoiceModalOpen(false);
           }}
-          className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-fadeIn"
+          className="fixed inset-0 z-[9999] bg-black/85 backdrop-blur-md flex items-center justify-center p-2.5 sm:p-4 animate-fadeIn overflow-y-auto overscroll-contain"
         >
-          <div className="bg-black border border-emerald-500/40 rounded-2xl w-full max-w-md p-5 space-y-4 shadow-2xl relative text-left">
+          <div className="bg-black border border-emerald-500/40 rounded-2xl w-full max-w-md p-5 space-y-4 shadow-2xl relative text-left my-auto max-h-[90dvh] overflow-y-auto overscroll-contain">
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-2 border-b border-[#222222]">
               <div className="flex items-center gap-2.5">
@@ -5539,7 +5565,7 @@ Helpline: +91 84910 06127`;
           }}
           className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-fadeIn"
         >
-          <div className="bg-black border border-emerald-500/40 rounded-3xl w-full max-w-lg p-5 sm:p-6 space-y-4 shadow-2xl relative text-left max-h-[92vh] overflow-y-auto">
+          <div className="bg-black border border-emerald-500/40 rounded-3xl w-full max-w-lg p-5 sm:p-6 space-y-4 shadow-2xl relative text-left my-auto max-h-[90dvh] overflow-y-auto overscroll-contain">
             {/* Modal Header */}
             <div className="flex items-center justify-between pb-3 border-b border-[#222222]">
               <div className="flex items-center gap-2.5">
@@ -6280,9 +6306,9 @@ Helpline: +91 84910 06127`;
           onClick={(e) => {
             if (e.target === e.currentTarget) setEditCustomerModal(null);
           }}
-          className="fixed inset-0 z-[9999] bg-black/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-fadeIn"
+          className="fixed inset-0 z-[9999] bg-black/85 backdrop-blur-md flex items-center justify-center p-2.5 sm:p-4 animate-fadeIn overflow-y-auto overscroll-contain"
         >
-          <div className="bg-black border border-cyan-500/40 rounded-3xl w-full max-w-md p-5 space-y-4 shadow-2xl relative text-left">
+          <div className="bg-black border border-cyan-500/40 rounded-3xl w-full max-w-md p-5 space-y-4 shadow-2xl relative text-left my-auto max-h-[90dvh] overflow-y-auto overscroll-contain">
             <div className="flex items-center justify-between border-b border-[#222222] pb-3">
               <div>
                 <h3 className="text-base font-bold text-white flex items-center gap-1.5" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>

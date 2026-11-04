@@ -1816,11 +1816,11 @@ Naseem Bagh / Malabagh, Srinagar`;
           onClick={(e) => {
             if (e.target === e.currentTarget) setCustomerDisplayOpen(false);
           }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 md:p-6 bg-black/90 backdrop-blur-md cursor-pointer animate-fadeIn"
+          className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 md:p-6 bg-black/90 backdrop-blur-md cursor-pointer animate-fadeIn overflow-y-auto overscroll-contain"
         >
           <div
             onClick={(e) => e.stopPropagation()}
-            className="bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border-2 border-emerald-500/40 rounded-3xl p-4 sm:p-6 max-w-2xl w-full text-center space-y-4 shadow-2xl shadow-emerald-950/80 cursor-default max-h-[95vh] overflow-y-auto"
+            className="bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border-2 border-emerald-500/40 rounded-3xl p-4 sm:p-6 max-w-2xl w-full text-center space-y-4 shadow-2xl shadow-emerald-950/80 cursor-default my-auto max-h-[90dvh] overflow-y-auto overscroll-contain"
           >
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-[#222222]/80 pb-3">

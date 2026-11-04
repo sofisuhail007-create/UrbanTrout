@@ -681,8 +681,8 @@ export default function AdminFarmVisitsPage() {
 
       {/* ─── Manual Add Visit Modal ─── */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-slate-950 border border-cyan-500/30 rounded-3xl p-6 sm:p-8 max-w-lg w-full space-y-5 shadow-2xl relative">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-2.5 sm:p-4 overflow-y-auto overscroll-contain">
+          <div className="bg-slate-950 border border-cyan-500/30 rounded-3xl p-5 sm:p-7 max-w-lg w-full space-y-5 shadow-2xl relative my-auto max-h-[90dvh] overflow-y-auto overscroll-contain">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <h3 style={{ fontFamily: '"Space Grotesk", sans-serif' }} className="text-xl font-bold text-white">
                 Add Farm Visit (Walk-in / Phone)

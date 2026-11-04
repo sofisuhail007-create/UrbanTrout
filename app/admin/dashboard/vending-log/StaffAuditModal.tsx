@@ -172,9 +172,9 @@ export default function StaffAuditModal({
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto"
+      className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto overscroll-contain"
     >
-      <div className="bg-slate-900 border border-emerald-500/40 rounded-3xl max-w-4xl w-full text-slate-200 shadow-2xl space-y-4 my-4 max-h-[94vh] flex flex-col font-mono overflow-hidden">
+      <div className="bg-slate-900 border border-emerald-500/40 rounded-3xl max-w-4xl w-full text-slate-200 shadow-2xl space-y-4 my-auto max-h-[90dvh] flex flex-col font-mono overflow-hidden">
         {/* Header */}
         <div className="p-4 sm:p-6 pb-3 border-b border-slate-800 flex items-start justify-between bg-slate-950/60">
           <div className="space-y-1">

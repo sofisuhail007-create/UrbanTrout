@@ -974,9 +974,9 @@ export default function OrdersPage() {
           onClick={(e) => {
             if (e.target === e.currentTarget && !scaleSaving) setScaleModalOrder(null);
           }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto"
+          className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto overscroll-contain"
         >
-          <div className="relative w-full max-w-lg bg-[#0a0a0a] border border-[#333333]/80 rounded-2xl shadow-2xl p-5 sm:p-6 text-white my-6">
+          <div className="relative w-full max-w-lg bg-[#0a0a0a] border border-[#333333]/80 rounded-2xl shadow-2xl p-5 sm:p-6 text-white my-auto max-h-[90dvh] overflow-y-auto overscroll-contain">
             {/* Header */}
             <div className="flex items-start justify-between pb-4 border-b border-[#222222]">
               <div>
@@ -1312,7 +1312,7 @@ export default function OrdersPage() {
           }}
           className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto"
         >
-          <div className="relative w-full max-w-4xl my-4">
+          <div className="relative w-full max-w-4xl my-auto max-h-[90dvh] overflow-y-auto overscroll-contain">
             <FourUpInvoiceSheet
               invoices={printModalOrders.map((o) => orderToSlipData(o, upiId))}
               repeatSingle={printModalOrders.length === 1}
@@ -1329,9 +1329,9 @@ export default function OrdersPage() {
           onClick={(e) => {
             if (e.target === e.currentTarget && !qrLoading) handleCloseQrModal();
           }}
-          className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto"
+          className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-black/85 backdrop-blur-md overflow-y-auto overscroll-contain"
         >
-          <div className="relative w-full max-w-md bg-[#0a0a0a] border border-[#333333]/80 rounded-2xl shadow-2xl p-5 sm:p-6 text-white my-6">
+          <div className="relative w-full max-w-md bg-[#0a0a0a] border border-[#333333]/80 rounded-2xl shadow-2xl p-5 sm:p-6 text-white my-auto max-h-[90dvh] overflow-y-auto overscroll-contain">
             {/* Header */}
             <div className="flex items-start justify-between pb-3 border-b border-[#222222]">
               <div>

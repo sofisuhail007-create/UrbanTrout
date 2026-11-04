@@ -629,7 +629,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </aside>
 
       {/* ─── MAIN CONTENT AREA (Full Mobile Responsive) ─── */}
-      <main className="flex-1 min-w-0 overflow-y-auto relative pb-20 md:pb-6 overscroll-contain bg-black">
+      <main className="flex-1 min-w-0 overflow-y-auto relative pb-28 md:pb-6 overscroll-contain bg-black">
         {isRouteBlocked ? (
           <div className="flex items-center justify-center min-h-[80vh] p-4 text-center">
             <div className="max-w-md bg-zinc-900/90 border border-zinc-800 rounded-2xl p-6 space-y-3">
