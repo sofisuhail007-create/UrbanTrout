@@ -16,11 +16,11 @@ import {
 } from "@/lib/do-saturation";
 
 const STATUS_COLOR: Record<string, string> = {
-  pending: "bg-amber-500/15 text-amber-400",
-  processing: "bg-blue-500/15 text-blue-400",
-  out_for_delivery: "bg-cyan-500/15 text-cyan-400",
-  delivered: "bg-green-500/15 text-green-400",
-  cancelled: "bg-red-500/15 text-red-400",
+  pending: "bg-amber-500/10 text-amber-400 border border-amber-500/20",
+  processing: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
+  out_for_delivery: "bg-cyan-500/10 text-cyan-400 border border-cyan-500/20",
+  delivered: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
+  cancelled: "bg-rose-500/10 text-rose-400 border border-rose-500/20",
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -33,15 +33,17 @@ const STATUS_LABEL: Record<string, string> = {
 
 const TANK_LABELS: Record<string, string> = { tank: "Tank", sump: "Sump Tank" };
 
-function StatCard({ icon, label, value, sub, color }: { icon: string; label: string; value: string | number; sub?: string; color: string }) {
+function StatCard({ icon, label, value, sub }: { icon: string; label: string; value: string | number; sub?: string; color?: string }) {
   return (
-    <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5">
-      <div className={`w-10 h-10 rounded-lg flex items-center justify-center mb-3 ${color}`}>
-        <span className="material-symbols-outlined text-lg">{icon}</span>
+    <div className="bg-zinc-900/60 border border-zinc-800/80 rounded-xl p-4 sm:p-5 flex flex-col justify-between">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs font-medium text-zinc-400 font-['Manrope']">{label}</span>
+        <span className="material-symbols-outlined text-zinc-500 text-base">{icon}</span>
       </div>
-      <p className="text-slate-500 text-xs uppercase tracking-widest mb-1" style={{ fontFamily: '"Manrope", sans-serif' }}>{label}</p>
-      <p className="text-2xl font-bold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>{value}</p>
-      {sub && <p className="text-xs text-slate-600 mt-1">{sub}</p>}
+      <div className="mt-3">
+        <p className="text-2xl font-semibold text-zinc-100 font-mono tabular-nums tracking-tight font-['Space_Grotesk']">{value}</p>
+        {sub && <p className="text-[11px] text-zinc-400 font-mono mt-0.5">{sub}</p>}
+      </div>
     </div>
   );
 }
@@ -277,11 +279,13 @@ export default function DashboardPage() {
   const hasDangerAlarms = alarms.some((a) => a.color === "#f87171" || a.color === "#ef4444");
 
   return (
-    <div className="p-6 max-w-6xl mx-auto space-y-6">
+    <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-5">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>Dashboard</h1>
-        <p className="text-slate-500 text-sm mt-1" style={{ fontFamily: '"Manrope", sans-serif' }}>
+        <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-zinc-100 font-['Space_Grotesk']">
+          Dashboard
+        </h1>
+        <p className="text-xs text-zinc-400 font-mono mt-0.5">
           {new Date().toLocaleDateString("en-IN", {
             weekday: "long",
             year: "numeric",
@@ -295,33 +299,41 @@ export default function DashboardPage() {
       {/* Live Store & Facility Status Banner */}
       {storeStatus && (
         <div
-          className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-md ${
+          className={`p-3.5 sm:p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-3 ${
             storeStatus.isOpen
-              ? "bg-emerald-950/30 border-emerald-500/40 text-emerald-300"
+              ? "bg-zinc-900/60 border-emerald-500/30 text-zinc-200"
               : storeStatus.closedReason === "farm_maintenance"
-              ? "bg-amber-950/40 border-amber-500/45 text-amber-300"
+              ? "bg-zinc-900/60 border-amber-500/30 text-zinc-200"
               : storeStatus.closedReason === "friday_maintenance"
-              ? "bg-amber-950/30 border-amber-500/35 text-amber-300"
+              ? "bg-zinc-900/60 border-amber-500/30 text-zinc-200"
               : storeStatus.closedReason === "manual"
-              ? "bg-red-950/40 border-red-500/40 text-red-300"
-              : "bg-slate-900/60 border-slate-800 text-slate-300"
+              ? "bg-zinc-900/60 border-rose-500/30 text-zinc-200"
+              : "bg-zinc-900/60 border-zinc-800 text-zinc-300"
           }`}
         >
           <div className="flex items-center gap-3">
-            <span className="text-xl">
-              {storeStatus.isOpen
-                ? "🟢"
-                : storeStatus.closedReason === "farm_maintenance"
-                ? "🛠️"
-                : storeStatus.closedReason === "friday_maintenance"
-                ? "📅"
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+              storeStatus.isOpen
+                ? "bg-emerald-500/10 text-emerald-400"
                 : storeStatus.closedReason === "manual"
-                ? "🔴"
-                : "⏰"}
-            </span>
+                ? "bg-rose-500/10 text-rose-400"
+                : "bg-amber-500/10 text-amber-400"
+            }`}>
+              <span className="material-symbols-outlined text-lg">
+                {storeStatus.isOpen
+                  ? "storefront"
+                  : storeStatus.closedReason === "farm_maintenance"
+                  ? "construction"
+                  : storeStatus.closedReason === "friday_maintenance"
+                  ? "calendar_month"
+                  : storeStatus.closedReason === "manual"
+                  ? "pause_circle"
+                  : "schedule"}
+              </span>
+            </div>
             <div>
               <div className="flex items-center gap-2 flex-wrap">
-                <span className="font-bold text-sm text-white font-['Space_Grotesk']">
+                <span className="font-medium text-sm text-zinc-100 font-['Space_Grotesk']">
                   Store Status:{" "}
                   {storeStatus.isOpen
                     ? "Open · Accepting Online Orders"
@@ -333,17 +345,21 @@ export default function DashboardPage() {
                     ? "Manually Paused"
                     : "Closed Outside Hours"}
                 </span>
-                <span className="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-full border border-current bg-black/20">
+                <span className={`text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded border ${
+                  storeStatus.isOpen
+                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                    : "bg-zinc-800 text-zinc-400 border-zinc-700/60"
+                }`}>
                   {storeStatus.isOpen ? "Checkout Active" : "Checkout Paused"}
                 </span>
               </div>
-              <p className="text-xs text-slate-400 mt-0.5 font-['Manrope']">
+              <p className="text-xs text-zinc-400 mt-0.5 font-['Manrope']">
                 {storeStatus.isOpen
                   ? "Standard schedule: 8:00 AM – 8:00 PM IST. Delivery radius: 16km."
                   : storeStatus.closedReason === "farm_maintenance"
                   ? "Farm & Vending Center maintenance active. Online checkout is temporarily paused."
                   : storeStatus.closedReason === "friday_maintenance"
-                  ? "Closed for regular Friday maintenance. If your vending center is open today, you can enable Friday orders in Settings!"
+                  ? "Closed for regular Friday maintenance. Online checkout can be toggled in Settings."
                   : storeStatus.closedReason === "manual"
                   ? "Store is manually paused by an administrator."
                   : `Store reopens ${storeStatus.nextOpenLabel || "tomorrow at 8:00 AM IST"}.`}
@@ -353,7 +369,7 @@ export default function DashboardPage() {
 
           <Link
             href="/admin/dashboard/settings"
-            className="flex-shrink-0 text-xs font-bold px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 transition-colors w-max"
+            className="flex-shrink-0 text-xs font-medium px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 transition-colors w-max"
           >
             Manage Operations →
           </Link>
@@ -363,27 +379,24 @@ export default function DashboardPage() {
       {/* Bio-Alarm Banner */}
       {alarms.length > 0 && (
         <div
-          className="rounded-xl border p-4"
-          style={{
-            background: hasDangerAlarms ? "#f8717115" : "#fbbf2415",
-            borderColor: hasDangerAlarms ? "#f8717140" : "#fbbf2440",
-          }}
+          className={`rounded-xl border p-4 ${
+            hasDangerAlarms
+              ? "bg-rose-500/10 border-rose-500/30 text-rose-200"
+              : "bg-amber-500/10 border-amber-500/30 text-amber-200"
+          }`}
         >
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <span
-                className="material-symbols-outlined text-xl"
-                style={{ color: hasDangerAlarms ? "#f87171" : "#fbbf24", animation: hasDangerAlarms ? "pulse 2s infinite" : "none" }}
-              >
-                crisis_alert
+              <span className="material-symbols-outlined text-lg">
+                warning
               </span>
-              <span className="font-semibold text-sm" style={{ color: hasDangerAlarms ? "#f87171" : "#fbbf24" }}>
+              <span className="font-medium text-sm text-zinc-100">
                 {alarms.length} Water Parameter Alert{alarms.length > 1 ? "s" : ""} (Last 48 hrs)
               </span>
             </div>
             <Link
               href="/admin/dashboard/farm/alarms"
-              className="text-xs text-slate-400 hover:text-slate-200 underline"
+              className="text-xs text-zinc-400 hover:text-zinc-200 underline"
             >
               View all →
             </Link>
@@ -392,15 +405,15 @@ export default function DashboardPage() {
             {alarms.slice(0, 6).map((a, i) => (
               <span
                 key={i}
-                className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full"
-                style={{ background: `${a.color}20`, color: a.color }}
+                className="flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-md bg-zinc-900/80 border border-zinc-700/60"
+                style={{ color: a.color }}
               >
-                <span className="material-symbols-outlined text-[12px]">warning</span>
+                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: a.color }} />
                 {a.tank} · {a.parameter}: {a.value}
               </span>
             ))}
             {alarms.length > 6 && (
-              <span className="text-xs text-slate-600 self-center">+{alarms.length - 6} more</span>
+              <span className="text-xs text-zinc-400 self-center font-mono">+{alarms.length - 6} more</span>
             )}
           </div>
         </div>
@@ -408,68 +421,63 @@ export default function DashboardPage() {
 
       {/* ─── AQUARIUM LIVE STOCK FLASH CARD (STAFF VIEW - MOHD AMIN) ─── */}
       {!isAdmin && (
-        <div className="bg-gradient-to-r from-cyan-950/40 via-slate-900 to-slate-950 border border-cyan-500/40 rounded-2xl p-5 shadow-2xl relative overflow-hidden animate-fadeIn">
-          <div className="absolute top-0 right-0 w-36 h-36 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none" />
+        <div className="bg-zinc-900/70 border border-zinc-800 rounded-xl p-4 sm:p-5">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3.5">
-              <div className="w-12 h-12 rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-400 flex items-center justify-center flex-shrink-0">
-                <span className="material-symbols-outlined text-2xl">water_ph</span>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-zinc-800 border border-zinc-700/60 text-cyan-400 flex items-center justify-center flex-shrink-0">
+                <span className="material-symbols-outlined text-xl">water_ph</span>
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="font-bold text-white text-base" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                  <h2 className="font-semibold text-zinc-100 text-sm font-['Space_Grotesk']">
                     Aquarium Live Trout Stock
                   </h2>
                   <span
-                    className={`px-2.5 py-0.5 rounded-full text-[11px] font-mono font-bold border ${
+                    className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-mono font-medium border ${
                       isAquariumOutOfStock
-                        ? "bg-rose-500/20 text-rose-300 border-rose-500/40"
+                        ? "bg-rose-500/10 text-rose-300 border-rose-500/30"
                         : aquariumStockKg < 10
-                        ? "bg-amber-500/20 text-amber-300 border-amber-500/40 animate-pulse"
-                        : "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                        ? "bg-amber-500/10 text-amber-300 border-amber-500/30"
+                        : "bg-emerald-500/10 text-emerald-300 border-emerald-500/30"
                     }`}
                   >
-                    {isAquariumOutOfStock ? "EMPTY / RESTOCK" : aquariumStockKg < 10 ? "LOW STOCK" : "OPTIMAL ACTIVE"}
+                    {isAquariumOutOfStock ? "Restock Required" : aquariumStockKg < 10 ? "Low Stock" : "Optimal Active"}
                   </span>
                 </div>
-                <p className="text-slate-400 text-xs mt-0.5">
-                  Real-time live trout biomass remaining in shop display aquarium for counter sales
+                <p className="text-zinc-400 text-xs mt-0.5 font-['Manrope']">
+                  Real-time live biomass available in shop aquarium for counter sales
                 </p>
               </div>
             </div>
 
             <div className="flex items-center flex-wrap sm:flex-nowrap gap-4 sm:gap-6 w-full sm:w-auto justify-between sm:justify-end">
-              <div className="text-right">
-                <div className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Current Stock</div>
-                <div className="text-2xl font-black text-cyan-400 font-mono tracking-tight">
-                  {aquariumStockKg.toFixed(3)} <span className="text-xs text-cyan-300/80 font-normal">Kg</span>
+              <div className="text-left sm:text-right">
+                <div className="text-[10px] font-medium tracking-wide text-zinc-400 font-mono">Current Stock</div>
+                <div className="text-2xl font-semibold text-zinc-100 font-mono tabular-nums tracking-tight">
+                  {aquariumStockKg.toFixed(3)} <span className="text-xs text-zinc-400 font-normal">kg</span>
                 </div>
               </div>
 
-              <div className="text-right border-l border-slate-800 pl-4 sm:pl-6">
-                <div className="text-[10px] uppercase font-bold tracking-wider text-emerald-400 flex items-center justify-end gap-1">
-                  <span className="material-symbols-outlined text-[13px]">receipt_long</span>
-                  <span>Today's Entries</span>
-                </div>
-                <div className="text-2xl font-black text-emerald-400 font-mono tracking-tight flex items-baseline justify-end gap-1">
-                  <span>{todayEntriesCount}</span>
-                  <span className="text-xs text-emerald-300/80 font-normal">{todayEntriesCount === 1 ? 'entry' : 'entries'}</span>
+              <div className="text-left sm:text-right border-l border-zinc-800 pl-4 sm:pl-6">
+                <div className="text-[10px] font-medium tracking-wide text-zinc-400 font-mono">Today's Entries</div>
+                <div className="text-2xl font-semibold text-zinc-100 font-mono tabular-nums tracking-tight">
+                  {todayEntriesCount} <span className="text-xs text-zinc-400 font-normal">{todayEntriesCount === 1 ? 'entry' : 'entries'}</span>
                 </div>
               </div>
 
               <div className="flex items-center gap-2">
                 <Link
                   href="/admin/dashboard/billing"
-                  className="px-3.5 py-2 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
+                  className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs font-medium transition-colors flex items-center gap-1.5"
                 >
                   <span className="material-symbols-outlined text-sm">point_of_sale</span>
-                  <span>Open POS</span>
+                  <span>POS Billing</span>
                 </Link>
                 <Link
                   href="/admin/dashboard/vending-log"
-                  className="px-3.5 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
+                  className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs font-medium transition-colors flex items-center gap-1.5"
                 >
-                  <span className="material-symbols-outlined text-sm">receipt_long</span>
+                  <span className="material-symbols-outlined text-sm">table_chart</span>
                   <span>Vending Log</span>
                 </Link>
               </div>
@@ -480,68 +488,63 @@ export default function DashboardPage() {
 
       {/* Stats */}
       {isAdmin ? (
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5">
-          <StatCard icon="today" label="Today's Orders" value={todayOrders.length} color="bg-cyan-500/15 text-cyan-400" />
-          <StatCard icon="currency_rupee" label="Today's Revenue" value={`₹${todayRevenue.toLocaleString("en-IN")}`} color="bg-green-500/15 text-green-400" />
-          <StatCard icon="pending" label="Pending Orders" value={pending} color="bg-amber-500/15 text-amber-400" sub="Needs action" />
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+          <StatCard icon="today" label="Today's Orders" value={todayOrders.length} />
+          <StatCard icon="currency_rupee" label="Today's Revenue" value={`₹${todayRevenue.toLocaleString("en-IN")}`} />
+          <StatCard icon="pending" label="Pending Orders" value={pending} sub="Needs action" />
           <StatCard
             icon="account_balance_wallet"
             label="Pending Khata"
             value={`₹${balanceSummary.totalPendingAmount.toLocaleString("en-IN")}`}
-            color="bg-amber-500/15 text-amber-400"
             sub={balanceSummary.pendingRecordsCount > 0 ? `${balanceSummary.pendingRecordsCount} unpaid bills` : "All clear ✓"}
           />
-          <StatCard icon="group" label="Total Customers" value={customers} color="bg-purple-500/15 text-purple-400" />
+          <StatCard icon="group" label="Total Customers" value={customers} />
         </div>
       ) : (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           <StatCard
             icon="receipt_long"
             label="Today's Entries"
             value={`${todayEntriesCount} ${todayEntriesCount === 1 ? 'Entry' : 'Entries'}`}
-            color="bg-emerald-500/15 text-emerald-400"
             sub="Counter Sales Logged"
           />
           <StatCard
             icon="water_ph"
             label="Aquarium Stock"
-            value={`${aquariumStockKg.toFixed(3)} Kg`}
-            color="bg-cyan-500/15 text-cyan-400"
+            value={`${aquariumStockKg.toFixed(3)} kg`}
             sub={isAquariumOutOfStock ? "Needs Restock" : "Available in Tank"}
           />
-          <StatCard icon="today" label="Today's Orders" value={todayOrders.length} color="bg-blue-500/15 text-blue-400" sub="Online Checkout" />
-          <StatCard icon="pending" label="Pending Orders" value={pending} color="bg-amber-500/15 text-amber-400" sub="Needs action" />
+          <StatCard icon="today" label="Today's Orders" value={todayOrders.length} sub="Online Checkout" />
+          <StatCard icon="pending" label="Pending Orders" value={pending} sub="Needs action" />
         </div>
       )}
 
       {/* ─── OUTSTANDING BALANCES FLASHCARD (KHATA WIDGET) ─── */}
       {isAdmin && balanceSummary.pendingRecordsCount > 0 && (
-        <div className="bg-gradient-to-r from-amber-950/40 via-slate-900 to-slate-950 border border-amber-500/40 rounded-2xl p-5 shadow-2xl relative overflow-hidden animate-fadeIn">
-          <div className="absolute top-0 right-0 w-36 h-36 bg-amber-500/10 rounded-full blur-2xl pointer-events-none" />
-
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 pb-3.5 border-b border-slate-800/80">
+        <div className="bg-zinc-900/70 border border-zinc-800 rounded-xl p-4 sm:p-5">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4 pb-3.5 border-b border-zinc-800/80">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center flex-shrink-0">
+              <div className="w-10 h-10 rounded-lg bg-zinc-800 border border-zinc-700/60 text-amber-400 flex items-center justify-center flex-shrink-0">
                 <span className="material-symbols-outlined text-xl">account_balance_wallet</span>
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="font-bold text-white text-base" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                  <h2 className="font-semibold text-zinc-100 text-sm font-['Space_Grotesk']">
                     Outstanding Customer Balances ({balanceSummary.pendingRecordsCount} Unpaid)
                   </h2>
-                  <span className="px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[10.5px] font-mono font-extrabold animate-pulse">
-                    ₹{balanceSummary.totalPendingAmount.toLocaleString("en-IN")} DUE
+                  <span className="px-2 py-0.5 rounded bg-amber-500/10 text-amber-300 border border-amber-500/30 text-[10px] font-mono font-medium">
+                    ₹{balanceSummary.totalPendingAmount.toLocaleString("en-IN")} Due
                   </span>
                 </div>
-                <p className="text-slate-400 text-xs mt-0.5">
-                  Automated polite system-generated WhatsApp reminders with dynamic Razorpay balance QR
+                <p className="text-zinc-400 text-xs mt-0.5 font-['Manrope']">
+                  Polite automated WhatsApp ledger reminders and Razorpay balance settlement QR
                 </p>
               </div>
             </div>
 
             <Link
               href="/admin/dashboard/billing?tab=customer_balances"
-              className="text-amber-400 hover:text-amber-300 text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 bg-amber-500/10 hover:bg-amber-500/20 px-3.5 py-2 rounded-xl border border-amber-500/30 transition-all shadow-sm"
+              className="text-zinc-300 hover:text-white text-xs font-medium flex items-center gap-1.5 bg-zinc-800 hover:bg-zinc-700 px-3 py-1.5 rounded-lg border border-zinc-700 transition-colors"
             >
               <span>Manage Khata Ledger</span>
               <span>→</span>
@@ -554,39 +557,39 @@ export default function DashboardPage() {
               return (
                 <div
                   key={rec.id}
-                  className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800/90 flex flex-col justify-between gap-3 hover:border-amber-500/30 transition-all shadow-sm"
+                  className="p-3.5 rounded-lg bg-zinc-950/70 border border-zinc-800/80 flex flex-col justify-between gap-3 hover:border-zinc-700 transition-colors"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
-                      <p className="font-bold text-white text-sm truncate">{rec.customer_name}</p>
-                      <p className="text-slate-400 text-xs font-mono flex items-center gap-1 mt-0.5">
-                        <span className="material-symbols-outlined text-xs text-cyan-400">phone</span>
+                      <p className="font-medium text-zinc-100 text-sm truncate">{rec.customer_name}</p>
+                      <p className="text-zinc-400 text-xs font-mono flex items-center gap-1 mt-0.5">
+                        <span className="material-symbols-outlined text-xs text-zinc-500">phone</span>
                         {cleanPhone ? `+91 ${cleanPhone}` : "N/A"}
                       </p>
-                      <p className="text-slate-500 text-[10px] font-mono mt-0.5">
+                      <p className="text-zinc-500 text-[10px] font-mono mt-0.5">
                         Invoice #{rec.invoice_id}
                       </p>
                     </div>
 
                     <div className="text-right flex-shrink-0">
-                      <p className="text-[10px] uppercase font-bold tracking-wider text-slate-400">Balance Due</p>
-                      <p className="text-base font-extrabold text-amber-400 font-mono">
+                      <p className="text-[10px] font-medium tracking-wide text-zinc-500 font-mono">Balance Due</p>
+                      <p className="text-sm font-semibold text-amber-400 font-mono tabular-nums">
                         ₹{rec.balance_amount.toLocaleString("en-IN")}
                       </p>
-                      <p className="text-[10px] text-slate-500 font-mono">
+                      <p className="text-[10px] text-zinc-500 font-mono tabular-nums">
                         Paid ₹{rec.paid_amount.toLocaleString("en-IN")} of ₹{rec.total_amount.toLocaleString("en-IN")}
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 pt-2 border-t border-slate-900">
+                  <div className="flex items-center gap-2 pt-2 border-t border-zinc-800/80">
                     <button
                       type="button"
                       onClick={() => {
                         setSelectedBalanceRecord(rec);
                         setIsBalanceModalOpen(true);
                       }}
-                      className="flex-1 py-1.5 px-2 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/40 text-xs font-bold flex items-center justify-center gap-1 transition-all cursor-pointer"
+                      className="flex-1 py-1.5 px-2 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs font-medium flex items-center justify-center gap-1 transition-colors cursor-pointer"
                       title="Send Polite System Reminder on WhatsApp"
                     >
                       <span className="material-symbols-outlined text-xs">chat</span>
@@ -599,7 +602,7 @@ export default function DashboardPage() {
                         setSelectedBalanceRecord(rec);
                         setIsBalanceModalOpen(true);
                       }}
-                      className="flex-1 py-1.5 px-2 rounded-lg bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-500/40 text-xs font-bold flex items-center justify-center gap-1 transition-all cursor-pointer"
+                      className="flex-1 py-1.5 px-2 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs font-medium flex items-center justify-center gap-1 transition-colors cursor-pointer"
                       title="Generate Razorpay Balance QR"
                     >
                       <span className="material-symbols-outlined text-xs">qr_code_2</span>
@@ -612,7 +615,7 @@ export default function DashboardPage() {
                         setSelectedBalanceRecord(rec);
                         setIsBalanceModalOpen(true);
                       }}
-                      className="py-1.5 px-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold flex items-center justify-center transition-all cursor-pointer"
+                      className="py-1.5 px-2.5 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs font-medium flex items-center justify-center transition-colors cursor-pointer"
                       title="Settle or Record Payment"
                     >
                       Settle
@@ -627,7 +630,7 @@ export default function DashboardPage() {
             <div className="text-center pt-3">
               <Link
                 href="/admin/dashboard/billing?tab=customer_balances"
-                className="text-xs text-slate-400 hover:text-amber-300 underline font-mono"
+                className="text-xs text-zinc-400 hover:text-zinc-200 underline font-mono"
               >
                 + View all {pendingBalances.length} pending customer balances →
               </Link>
@@ -638,15 +641,15 @@ export default function DashboardPage() {
 
       {/* Abandoned Leads Alert Widget */}
       {recentLeads.length > 0 && (
-        <div className="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-5">
-          <div className="flex items-center justify-between mb-4">
+        <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl p-4 sm:p-5">
+          <div className="flex items-center justify-between mb-3.5">
             <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-amber-400">phone_callback</span>
-              <h2 className="font-bold text-white text-base" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+              <span className="material-symbols-outlined text-amber-400 text-lg">phone_callback</span>
+              <h2 className="font-semibold text-zinc-100 text-sm font-['Space_Grotesk']">
                 Hot Leads to Call ({recentLeads.length} Abandoned Checkouts)
               </h2>
             </div>
-            <Link href="/admin/dashboard/leads" className="text-amber-400 hover:text-amber-300 text-xs font-bold uppercase tracking-wider">
+            <Link href="/admin/dashboard/leads" className="text-zinc-400 hover:text-zinc-200 text-xs font-medium">
               View All Leads →
             </Link>
           </div>
@@ -661,18 +664,18 @@ export default function DashboardPage() {
               );
 
               return (
-                <div key={lead.id} className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 flex items-center justify-between gap-3">
+                <div key={lead.id} className="p-3.5 rounded-lg bg-zinc-950/70 border border-zinc-800/80 flex items-center justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="font-bold text-white text-sm truncate">{lead.customer_name || "Guest Customer"}</p>
-                    <p className="text-slate-400 text-xs font-mono">{cleanPhone ? `+91 ${cleanPhone}` : "N/A"}</p>
-                    <p className="text-cyan-400 text-xs font-semibold mt-0.5">₹{Number(lead.estimated_total || 0).toLocaleString("en-IN")}</p>
+                    <p className="font-medium text-zinc-100 text-sm truncate">{lead.customer_name || "Guest Customer"}</p>
+                    <p className="text-zinc-400 text-xs font-mono">{cleanPhone ? `+91 ${cleanPhone}` : "N/A"}</p>
+                    <p className="text-zinc-300 text-xs font-mono tabular-nums font-semibold mt-0.5">₹{Number(lead.estimated_total || 0).toLocaleString("en-IN")}</p>
                   </div>
                   <div className="flex items-center gap-1.5 flex-shrink-0">
                     {cleanPhone && (
                       <>
                         <a
                           href={`tel:+91${cleanPhone}`}
-                          className="px-2.5 py-1.5 rounded-lg bg-cyan-500/20 text-cyan-300 hover:bg-cyan-500/30 text-xs font-bold flex items-center gap-1 transition-all"
+                          className="px-2.5 py-1 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs font-medium flex items-center gap-1 transition-colors"
                           title="Call Customer"
                         >
                           <span className="material-symbols-outlined text-[13px]">call</span>
@@ -682,7 +685,7 @@ export default function DashboardPage() {
                           href={`https://wa.me/91${cleanPhone}?text=${waText}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="px-2.5 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 text-xs font-bold flex items-center gap-1 transition-all"
+                          className="px-2.5 py-1 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs font-medium flex items-center gap-1 transition-colors"
                           title="WhatsApp Customer"
                         >
                           WhatsApp
@@ -692,8 +695,8 @@ export default function DashboardPage() {
                     <button
                       type="button"
                       onClick={() => handleMarkLeadContacted(lead.id, cleanPhone)}
-                      className="px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-700 hover:border-emerald-500/50 text-xs font-bold flex items-center gap-1 transition-all cursor-pointer active:scale-95 shadow-sm"
-                      title="Mark as Contacted (Remove from Hot Leads widget)"
+                      className="px-2.5 py-1 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white border border-zinc-700 text-xs font-medium flex items-center gap-1 transition-colors cursor-pointer"
+                      title="Mark as Contacted"
                     >
                       <span className="material-symbols-outlined text-[13px] text-emerald-400">check_circle</span>
                       <span>Done</span>
@@ -707,29 +710,29 @@ export default function DashboardPage() {
       )}
 
       {/* Recent Orders */}
-      <div className="bg-slate-900/60 border border-slate-800 rounded-xl overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
-          <h2 className="font-semibold text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>Recent Orders</h2>
-          <Link href="/admin/dashboard/orders" className="text-cyan-400 text-xs hover:underline">View all →</Link>
+      <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl overflow-hidden">
+        <div className="flex items-center justify-between px-4 sm:px-5 py-3.5 border-b border-zinc-800/80">
+          <h2 className="font-semibold text-zinc-100 text-sm font-['Space_Grotesk']">Recent Orders</h2>
+          <Link href="/admin/dashboard/orders" className="text-zinc-400 hover:text-zinc-200 text-xs font-medium">View all →</Link>
         </div>
         {loading ? (
-          <div className="p-8 text-center text-slate-600 text-sm">Loading...</div>
+          <div className="p-8 text-center text-zinc-500 text-sm font-mono">Loading orders…</div>
         ) : orders.length === 0 ? (
-          <div className="p-8 text-center text-slate-600 text-sm">No orders yet. Orders placed via checkout will appear here.</div>
+          <div className="p-8 text-center text-zinc-500 text-sm">No orders yet. Orders placed via checkout will appear here.</div>
         ) : (
-          <div className="divide-y divide-slate-800">
+          <div className="divide-y divide-zinc-800/60">
             {orders.slice(0, 6).map((o) => (
-              <div key={o.id} className="flex items-center gap-4 px-5 py-3 hover:bg-slate-800/40 transition-colors">
-                <span className="text-slate-600 text-xs font-mono w-12">#{o.order_number}</span>
+              <div key={o.id} className="flex items-center gap-4 px-4 sm:px-5 py-3 hover:bg-zinc-800/30 transition-colors">
+                <span className="text-zinc-500 text-xs font-mono w-14">#{o.order_number}</span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-slate-200 font-medium truncate">{o.customer_name}</p>
-                  <p className="text-xs text-slate-600">{o.customer_phone}</p>
+                  <p className="text-sm text-zinc-200 font-medium truncate">{o.customer_name}</p>
+                  <p className="text-xs text-zinc-500 font-mono">{o.customer_phone}</p>
                 </div>
-                <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${STATUS_COLOR[o.status] ?? "bg-slate-700 text-slate-400"}`}>
+                <span className={`text-[11px] px-2 py-0.5 rounded font-medium ${STATUS_COLOR[o.status] ?? "bg-zinc-800 text-zinc-400"}`}>
                   {STATUS_LABEL[o.status] ?? o.status}
                 </span>
-                <span className="text-sm font-bold text-cyan-400 font-mono">₹{o.total?.toLocaleString("en-IN")}</span>
-                <span className="text-xs text-slate-600 w-20 text-right">{new Date(o.created_at).toLocaleDateString("en-IN")}</span>
+                <span className="text-sm font-semibold text-zinc-100 font-mono tabular-nums">₹{o.total?.toLocaleString("en-IN")}</span>
+                <span className="text-xs text-zinc-500 font-mono w-20 text-right">{new Date(o.created_at).toLocaleDateString("en-IN")}</span>
               </div>
             ))}
           </div>

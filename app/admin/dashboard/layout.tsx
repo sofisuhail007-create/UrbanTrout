@@ -35,7 +35,7 @@ interface NavGroup {
 
 const NAV_GROUPS: NavGroup[] = [
   {
-    title: "COUNTER & POS",
+    title: "Counter & POS",
     items: [
       {
         href: "/admin/dashboard/billing",
@@ -84,7 +84,7 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    title: "MANAGEMENT",
+    title: "Management",
     items: [
       { href: "/admin/dashboard", icon: "dashboard", label: "Dashboard", permKey: null },
       { href: "/admin/dashboard/orders", icon: "receipt_long", label: "Orders", permKey: "orders" },
@@ -93,7 +93,7 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    title: "OPERATIONS",
+    title: "Operations",
     items: [
       { href: "/admin/dashboard/inventory", icon: "inventory_2", label: "Inventory", permKey: "inventory" },
       { href: "/admin/dashboard/customers", icon: "people", label: "Customers", permKey: "customers" },
@@ -102,7 +102,7 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    title: "SYSTEM",
+    title: "System",
     items: [
       { href: "/admin/dashboard/notifications", icon: "notifications_active", label: "Push Alerts", permKey: "settings", badge: "Push", badgeType: "new", activeTheme: "cyan" },
       { href: "/admin/dashboard/delivery", icon: "radar", label: "Delivery Radius", permKey: "settings", badge: "Map", badgeType: "map" },
@@ -321,17 +321,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   if (!mounted) {
     return (
-      <div className="flex flex-col md:flex-row min-h-screen h-[100dvh] bg-[#020d12] text-slate-200">
+      <div className="flex flex-col md:flex-row min-h-screen h-[100dvh] bg-[#090b0e] text-zinc-200">
         <div className="flex-1 flex items-center justify-center p-4">
-          <div className="text-center space-y-4 max-w-xs">
-            <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center mx-auto text-cyan-400 shadow-lg shadow-cyan-500/10">
-              <span className="material-symbols-outlined text-2xl animate-spin">sync</span>
+          <div className="text-center space-y-3 max-w-xs">
+            <div className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center mx-auto text-zinc-400">
+              <span className="material-symbols-outlined text-xl animate-spin">sync</span>
             </div>
             <div>
-              <p className="text-sm font-bold text-white tracking-wide" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
-                URBAN TROUT ADMIN
+              <p className="text-xs font-semibold text-zinc-200 tracking-wider uppercase font-mono">
+                Urban Trout Admin
               </p>
-              <p className="text-xs text-slate-400 font-mono mt-1">Loading dashboard interface…</p>
+              <p className="text-[11px] text-zinc-500 font-mono mt-0.5">Loading workspace…</p>
             </div>
           </div>
         </div>
@@ -368,16 +368,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   };
 
   return (
-    <div className="flex flex-col md:flex-row min-h-screen h-[100dvh] bg-[#020d12] text-slate-200 overflow-hidden font-['Manrope']">
+    <div className="flex flex-col md:flex-row min-h-screen h-[100dvh] bg-[#090b0e] text-zinc-200 overflow-hidden font-['Manrope']">
       {/* ─── MOBILE TOP BAR (Visible on screens < md) ─── */}
-      <header className="flex md:hidden items-center justify-between px-3.5 py-2.5 bg-slate-950/95 backdrop-blur-md border-b border-slate-800/80 z-30 flex-shrink-0 sticky top-0">
-
+      <header className="flex md:hidden items-center justify-between px-3.5 py-2.5 bg-[#0d1015]/95 backdrop-blur-md border-b border-zinc-800/80 z-30 flex-shrink-0 sticky top-0">
         <div className="flex items-center gap-2.5">
-          <img src="/sitelogo.png" alt="Urban Trout" className="w-7 h-7 rounded-lg object-contain border border-cyan-500/30" />
-          <span className="text-sm font-black tracking-tight text-white font-['Space_Grotesk']">
-            URBAN <span className="text-cyan-400">TROUT</span>
+          <img src="/sitelogo.png" alt="Urban Trout" className="w-6 h-6 rounded-md object-contain border border-zinc-700/60" />
+          <span className="text-sm font-semibold tracking-tight text-zinc-100 font-['Space_Grotesk']">
+            Urban Trout
           </span>
-          <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 font-mono">
+          <span className="text-[10px] font-medium uppercase tracking-wider px-2 py-0.5 rounded bg-zinc-800/80 text-zinc-400 border border-zinc-700/60 font-mono">
             {adminRole.replace("_", " ")}
           </span>
         </div>
@@ -385,9 +384,9 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <button
           type="button"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="w-9 h-9 rounded-xl bg-slate-900 border border-slate-700/80 flex items-center justify-center text-slate-300 active:scale-95 cursor-pointer"
+          className="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-300 active:scale-95 cursor-pointer"
         >
-          <span className="material-symbols-outlined text-xl">{mobileMenuOpen ? "close" : "menu"}</span>
+          <span className="material-symbols-outlined text-lg">{mobileMenuOpen ? "close" : "menu"}</span>
         </button>
       </header>
 
@@ -395,42 +394,42 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       {mobileMenuOpen && (
         <div
           onClick={() => setMobileMenuOpen(false)}
-          className="fixed inset-0 z-40 bg-black/80 backdrop-blur-sm md:hidden"
+          className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm md:hidden"
         />
       )}
 
       {/* ─── SIDEBAR (Desktop Fixed + Mobile Slide-over Drawer) ─── */}
       <aside
-        className={`fixed md:relative top-0 bottom-0 left-0 z-50 md:z-20 flex flex-col border-r border-slate-800/80 bg-[#030d14] flex-shrink-0 transition-all duration-200 ${
-          mobileMenuOpen ? "translate-x-0 w-72 shadow-2xl" : "-translate-x-full md:translate-x-0"
-        } ${collapsed ? "md:w-16" : "md:w-64"}`}
+        className={`fixed md:relative top-0 bottom-0 left-0 z-50 md:z-20 flex flex-col border-r border-zinc-800/80 bg-[#0d1015] flex-shrink-0 transition-all duration-200 ${
+          mobileMenuOpen ? "translate-x-0 w-64 shadow-2xl" : "-translate-x-full md:translate-x-0"
+        } ${collapsed ? "md:w-16" : "md:w-60"}`}
       >
         {/* Floating Expand Arrow on the right border when collapsed (Desktop) */}
         {collapsed && (
           <button
             type="button"
             onClick={() => setCollapsed(false)}
-            className="hidden md:flex absolute -right-3.5 top-6 z-50 w-7 h-7 rounded-full bg-cyan-500 hover:bg-cyan-400 text-slate-950 items-center justify-center shadow-lg shadow-cyan-500/40 hover:scale-110 transition-all cursor-pointer border-2 border-[#020d12]"
-            title="Expand sidebar (Show menu options)"
+            className="hidden md:flex absolute -right-3 top-5 z-50 w-6 h-6 rounded-full bg-zinc-800 hover:bg-zinc-700 text-zinc-200 items-center justify-center shadow-md border border-zinc-700 transition-colors cursor-pointer"
+            title="Expand sidebar"
           >
-            <span className="material-symbols-outlined text-sm font-black">chevron_right</span>
+            <span className="material-symbols-outlined text-xs">chevron_right</span>
           </button>
         )}
 
         {/* Logo / Header Area */}
         {!collapsed ? (
-          <div className="flex items-center justify-between px-3.5 py-3.5 border-b border-slate-800/80 flex-shrink-0">
+          <div className="flex items-center justify-between px-3.5 py-3 border-b border-zinc-800/80 flex-shrink-0">
             <div className="flex items-center gap-2.5 min-w-0">
               <img
                 src="/sitelogo.png"
                 alt="Urban Trout"
-                className="w-8 h-8 rounded-xl object-contain border border-cyan-500/30 bg-slate-900 shadow-sm shadow-cyan-500/20 flex-shrink-0"
+                className="w-7 h-7 rounded-lg object-contain border border-zinc-700/60 bg-zinc-900 flex-shrink-0"
               />
               <div className="flex flex-col min-w-0">
-                <span className="text-sm font-black tracking-tight text-white leading-tight font-['Space_Grotesk'] truncate">
-                  URBAN <span className="text-cyan-400">TROUT</span>
+                <span className="text-sm font-semibold tracking-tight text-zinc-100 leading-tight font-['Space_Grotesk'] truncate">
+                  Urban Trout
                 </span>
-                <span className="text-[9px] font-bold text-slate-400 tracking-wider uppercase font-mono mt-0.5">
+                <span className="text-[10px] text-zinc-400 tracking-normal font-mono mt-0.5">
                   Aquaculture Admin
                 </span>
               </div>
@@ -440,7 +439,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <button
               type="button"
               onClick={() => setCollapsed(true)}
-              className="hidden md:flex ml-2 w-7 h-7 rounded-lg bg-slate-900/80 hover:bg-slate-800 border border-slate-700/80 items-center justify-center text-slate-400 hover:text-white transition-all cursor-pointer flex-shrink-0"
+              className="hidden md:flex ml-2 w-7 h-7 rounded-lg bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 items-center justify-center text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer flex-shrink-0"
               title="Collapse sidebar"
             >
               <span className="material-symbols-outlined text-sm">chevron_left</span>
@@ -450,113 +449,85 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             <button
               type="button"
               onClick={() => setMobileMenuOpen(false)}
-              className="md:hidden ml-auto text-slate-400 hover:text-white p-1"
+              className="md:hidden ml-auto text-zinc-400 hover:text-zinc-200 p-1"
             >
-              <span className="material-symbols-outlined">close</span>
+              <span className="material-symbols-outlined text-lg">close</span>
             </button>
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center py-3.5 border-b border-slate-800/80 gap-2 flex-shrink-0">
+          <div className="flex flex-col items-center justify-center py-3 border-b border-zinc-800/80 gap-2 flex-shrink-0">
             {/* Clickable Logo that also expands */}
             <button
               type="button"
               onClick={() => setCollapsed(false)}
               className="group flex items-center justify-center cursor-pointer"
-              title="Click to expand sidebar"
+              title="Expand sidebar"
             >
               <img
                 src="/sitelogo.png"
                 alt="Urban Trout"
-                className="w-8 h-8 rounded-xl object-contain border border-cyan-500/30 bg-slate-900 shadow-sm shadow-cyan-500/20 group-hover:border-cyan-400 transition-all"
+                className="w-7 h-7 rounded-lg object-contain border border-zinc-700/60 bg-zinc-900 group-hover:border-zinc-500 transition-colors"
               />
             </button>
 
-            {/* Centered Expand Button inside collapsed header */}
             <button
               type="button"
               onClick={() => setCollapsed(false)}
-              className="w-7 h-7 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/30 border border-cyan-500/30 text-cyan-300 hover:text-white flex items-center justify-center transition-all cursor-pointer shadow-sm shadow-cyan-500/10"
-              title="Expand sidebar (Show menu options)"
+              className="w-6 h-6 rounded-md bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 hover:text-zinc-200 flex items-center justify-center transition-colors cursor-pointer"
+              title="Expand sidebar"
             >
-              <span className="material-symbols-outlined text-sm font-bold">chevron_right</span>
+              <span className="material-symbols-outlined text-xs">chevron_right</span>
             </button>
           </div>
         )}
 
         {/* Nav items */}
-        <nav className="flex-1 py-3 px-2.5 overflow-y-auto space-y-4">
+        <nav className="flex-1 py-2.5 px-2 overflow-y-auto space-y-3.5">
           {visibleGroups.map((group, groupIdx) => (
-            <div key={group.title} className="space-y-1">
-              {/* Group Title (Hidden when collapsed) */}
+            <div key={group.title} className="space-y-0.5">
+              {/* Group Title */}
               {(!collapsed || mobileMenuOpen) ? (
-                <div className="px-2.5 pt-1 pb-1">
-                  <span className="text-[10px] font-extrabold tracking-widest text-slate-400 uppercase font-mono">
+                <div className="px-2 pt-1 pb-1">
+                  <span className="text-[11px] font-medium text-zinc-400 tracking-wide font-mono">
                     {group.title}
                   </span>
                 </div>
               ) : groupIdx > 0 ? (
-                <div className="my-2 mx-2 border-t border-slate-800/80" />
+                <div className="my-1.5 mx-2 border-t border-zinc-800/60" />
               ) : null}
 
               {/* Group Items */}
               {group.items.map((item) => {
                 const active = isItemActive(item.href);
-                const isBilling = item.href === "/admin/dashboard/billing" || item.href === "/admin/dashboard/delivery-calculator";
-                const isVending = item.href === "/admin/dashboard/vending-log";
-
-                // Active & Inactive Styling
-                let linkStyle = "";
-                if (active) {
-                  if (item.activeTheme === "emerald") {
-                    linkStyle =
-                      "bg-emerald-500/15 text-emerald-300 border border-emerald-500/35 font-bold shadow-sm shadow-emerald-500/10";
-                  } else {
-                    linkStyle =
-                      "bg-cyan-500/15 text-cyan-300 border border-cyan-500/35 font-bold shadow-sm shadow-cyan-500/10";
-                  }
-                } else {
-                  if (isBilling) {
-                    linkStyle =
-                      "text-slate-400 hover:text-emerald-300 hover:bg-emerald-500/10 hover:border-emerald-500/25 border border-transparent font-medium";
-                  } else if (isVending) {
-                    linkStyle =
-                      "text-slate-400 hover:text-cyan-300 hover:bg-cyan-500/10 hover:border-cyan-500/25 border border-transparent font-medium";
-                  } else {
-                    linkStyle =
-                      "text-slate-400 hover:text-slate-200 hover:bg-slate-800/60 hover:border-slate-700/60 border border-transparent font-medium";
-                  }
-                }
 
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
                     title={item.label}
-                    className={`relative flex items-center ${
+                    className={`group relative flex items-center ${
                       collapsed && !mobileMenuOpen
-                        ? "justify-center h-10 w-10 mx-auto px-0"
-                        : "justify-between px-3 py-2.5"
-                    } rounded-xl transition-all text-xs ${linkStyle}`}
+                        ? "justify-center h-9 w-9 mx-auto px-0"
+                        : "justify-between px-2.5 py-1.5 h-9"
+                    } rounded-lg transition-colors text-xs ${
+                      active
+                        ? "bg-zinc-800/80 text-zinc-100 font-medium border border-zinc-700/60"
+                        : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/40 border border-transparent font-normal"
+                    }`}
                   >
                     {/* Active Accent Left Indicator */}
                     {active && !collapsed && (
-                      <span
-                        className={`absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 rounded-r-full ${
-                          item.activeTheme === "emerald" ? "bg-emerald-400" : "bg-cyan-400"
-                        }`}
-                      />
+                      <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-4 rounded-r bg-cyan-400" />
                     )}
 
                     {/* Icon + Label */}
-                    <div className={`flex items-center ${collapsed && !mobileMenuOpen ? "justify-center" : "gap-3"} min-w-0`}>
+                    <div className={`flex items-center ${collapsed && !mobileMenuOpen ? "justify-center" : "gap-2.5"} min-w-0`}>
                       <div className="relative flex items-center justify-center">
                         <span
-                          className={`material-symbols-outlined text-[19px] flex-shrink-0 ${
+                          className={`material-symbols-outlined text-[18px] flex-shrink-0 ${
                             active
-                              ? item.activeTheme === "emerald"
-                                ? "text-emerald-400"
-                                : "text-cyan-400"
-                              : ""
+                              ? "text-cyan-400"
+                              : "text-zinc-400 group-hover:text-zinc-300"
                           }`}
                         >
                           {item.icon}
@@ -565,12 +536,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                         {/* Collapsed Badge Indicator Dot */}
                         {collapsed && !mobileMenuOpen && item.badge && (
                           <span
-                            className={`absolute -top-1 -right-1 w-2 h-2 rounded-full ring-2 ring-slate-950 ${
+                            className={`absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full ring-2 ring-zinc-950 ${
                               item.badgeType === "live"
-                                ? "bg-emerald-400 animate-pulse"
+                                ? "bg-emerald-400"
                                 : item.badgeType === "new"
                                 ? "bg-cyan-400"
-                                : "bg-slate-400"
+                                : "bg-zinc-500"
                             }`}
                           />
                         )}
@@ -585,16 +556,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     {(!collapsed || mobileMenuOpen) && item.badge && (
                       <span className="flex-shrink-0 ml-2">
                         {item.badgeType === "live" ? (
-                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 shadow-sm shadow-emerald-500/20">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                            LIVE
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                            <span className="w-1 h-1 rounded-full bg-emerald-400" />
+                            Live
                           </span>
                         ) : item.badgeType === "new" ? (
-                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 shadow-sm shadow-cyan-500/20">
-                            NEW
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-zinc-800 text-zinc-300 border border-zinc-700/60">
+                            New
                           </span>
                         ) : (
-                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider bg-slate-800 text-slate-300 border border-slate-700">
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium bg-zinc-800/80 text-zinc-400 border border-zinc-700/60">
                             {item.badge}
                           </span>
                         )}
@@ -608,22 +579,22 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </nav>
 
         {/* Admin Profile & Logout */}
-        <div className="px-2.5 pb-3 border-t border-slate-800/80 pt-3 space-y-2 flex-shrink-0">
+        <div className="px-2.5 pb-2.5 border-t border-zinc-800/80 pt-2.5 space-y-2 flex-shrink-0">
           {(!collapsed || mobileMenuOpen) && adminEmail && (
-            <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/80 hover:border-slate-700/80 transition-all">
-              <div className="flex items-center justify-between mb-1">
+            <div className="p-2 rounded-lg bg-zinc-900/50 border border-zinc-800/80">
+              <div className="flex items-center justify-between mb-0.5">
                 <div className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  <span className="text-[9px] uppercase font-bold tracking-widest text-emerald-400 font-mono">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                  <span className="text-[9px] uppercase font-mono tracking-wider text-zinc-400">
                     {adminRole.replace("_", " ")}
                   </span>
                 </div>
-                <span className="text-[9px] font-mono text-slate-400">v2.4</span>
+                <span className="text-[9px] font-mono text-zinc-400">v2.4</span>
               </div>
-              <p className="text-xs font-bold text-white truncate font-mono" title={adminName}>
+              <p className="text-xs font-medium text-zinc-200 truncate font-mono" title={adminName}>
                 {adminName}
               </p>
-              <p className="text-[11px] text-slate-400 font-mono truncate mt-0.5" title={adminEmail}>
+              <p className="text-[11px] text-zinc-400 font-mono truncate" title={adminEmail}>
                 {adminEmail}
               </p>
             </div>
@@ -635,36 +606,35 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             title="Logout"
             className={`flex items-center ${
               collapsed && !mobileMenuOpen
-                ? "justify-center h-10 w-10 mx-auto px-0"
-                : "gap-2.5 px-3 py-2 w-full"
-            } rounded-xl text-slate-400 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/25 border border-transparent transition-all text-xs font-semibold cursor-pointer`}
+                ? "justify-center h-8 w-8 mx-auto px-0"
+                : "gap-2 px-2.5 py-1.5 w-full"
+            } rounded-lg text-zinc-400 hover:text-rose-400 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 transition-colors text-xs font-medium cursor-pointer`}
           >
-            <span className="material-symbols-outlined text-[18px] flex-shrink-0">logout</span>
+            <span className="material-symbols-outlined text-[16px] flex-shrink-0">logout</span>
             {(!collapsed || mobileMenuOpen) && <span>Logout</span>}
           </button>
         </div>
       </aside>
 
       {/* ─── MAIN CONTENT AREA (Full Mobile Responsive) ─── */}
-      <main className="flex-1 min-w-0 overflow-y-auto relative pb-24 md:pb-6 overscroll-contain">
-
+      <main className="flex-1 min-w-0 overflow-y-auto relative pb-20 md:pb-6 overscroll-contain bg-[#090b0e]">
         {isRouteBlocked ? (
           <div className="flex items-center justify-center min-h-[80vh] p-4 text-center">
-            <div className="max-w-md bg-slate-900/80 border border-red-500/30 rounded-3xl p-8 space-y-4 shadow-2xl">
-              <div className="w-14 h-14 rounded-2xl bg-red-500/15 border border-red-500/40 text-red-400 flex items-center justify-center mx-auto">
-                <span className="material-symbols-outlined text-2xl">lock</span>
+            <div className="max-w-md bg-zinc-900/90 border border-zinc-800 rounded-2xl p-6 space-y-3">
+              <div className="w-12 h-12 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center justify-center mx-auto">
+                <span className="material-symbols-outlined text-xl">lock</span>
               </div>
               <div>
-                <h2 className="text-lg font-bold text-white mb-1" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                <h2 className="text-base font-semibold text-zinc-100 mb-1 font-['Space_Grotesk']">
                   Permission Restricted
                 </h2>
-                <p className="text-xs text-slate-400 leading-relaxed" style={{ fontFamily: '"Manrope", sans-serif' }}>
-                  Your account does not have access to this section. Please contact your administrator (<code className="text-cyan-400">sofisuhail007@gmail.com</code>) to request permission.
+                <p className="text-xs text-zinc-400 leading-relaxed font-['Manrope']">
+                  Your account does not have access to this section. Please contact your administrator (<code className="text-zinc-300">sofisuhail007@gmail.com</code>) to request permission.
                 </p>
               </div>
               <Link
                 href="/admin/dashboard/billing"
-                className="inline-block py-2.5 px-4 bg-cyan-500 text-slate-950 font-bold rounded-xl text-xs uppercase tracking-wider"
+                className="inline-block py-2 px-3.5 bg-zinc-100 hover:bg-white text-zinc-950 font-medium rounded-lg text-xs transition-colors"
               >
                 Go to POS Billing
               </Link>
