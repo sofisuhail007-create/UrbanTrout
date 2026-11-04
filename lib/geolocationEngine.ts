@@ -17,7 +17,9 @@ export interface GeocodeResult {
   message: string;
 }
 
-// Haversine formula
+// Haversine formula with Srinagar Road Winding Calibration (Same as AI Agent)
+// Converts straight-line aerial distance into actual driving road distance:
+// Direct local routes <=4km have ~1.10x factor; routes >4km across Dal Lake / Jhelum bridges have ~1.32x road winding factor.
 export function calculateHaversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371; // Earth radius in km
   const dLat = (lat2 - lat1) * (Math.PI / 180);
@@ -25,7 +27,9 @@ export function calculateHaversineDistance(lat1: number, lon1: number, lat2: num
   const a =
     Math.sin(dLat / 2) ** 2 +
     Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * Math.sin(dLon / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const aerial = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const roadFactor = aerial <= 4.0 ? 1.10 : 1.32;
+  return aerial * roadFactor;
 }
 
 // 75+ Core Verified Localities in Srinagar
@@ -91,8 +95,15 @@ export const CORE_IN_ZONE_AREAS: Array<{ pattern: RegExp; name: string; dist: nu
   { pattern: /\b(?:khanyar|khan\s*yar)\b/i, name: "Khanyar", dist: 5.5 },
   { pattern: /\b(?:shalimar|shalimar\s*bagh|shalimar\s*garden)\b/i, name: "Shalimar", dist: 5.5 },
   { pattern: /\b(?:ali\s*kadal|ali\s*kadel|alikadal)\b/i, name: "Ali Kadal", dist: 5.8 },
+  { pattern: /\b(?:rajouri\s*kadal|rajourikadal|rajouri\s*kadel)\b/i, name: "Rajouri Kadal", dist: 6.2 },
+  { pattern: /\b(?:saraf\s*kadal|sarafkadal)\b/i, name: "Saraf Kadal", dist: 6.5 },
+  { pattern: /\b(?:bohri\s*kadal|bohrikadal|bhori\s*kadal|bhorikadal)\b/i, name: "Bohri Kadal", dist: 6.8 },
 
   // ── Zone 3: Greater Srinagar (7–11.5 km, Free on 3 kg) ──
+  { pattern: /\b(?:zaina\s*kadal|zainakadal|zaina\s*kadel|new\s*zaina\s*kadal)\b/i, name: "Zaina Kadal", dist: 7.8, minKg: 3 },
+  { pattern: /\b(?:maharaj\s*gunj|maharajgunj|maharaj\s*ganj|maharajganj)\b/i, name: "Maharaj Gunj", dist: 7.8, minKg: 3 },
+  { pattern: /\b(?:fateh\s*kadal|fatehkadal|fateh\s*kadel|fatehkadel|astaan\s*syed\s*ali\s*akbar)\b/i, name: "Fateh Kadal", dist: 8.8, minKg: 3 },
+  { pattern: /\b(?:habba\s*kadal|habbakadal|habba\s*kadel)\b/i, name: "Habba Kadal", dist: 9.0, minKg: 3 },
   { pattern: /\b(?:lal\s*chowk|lalchowk)\b/i, name: "Lal Chowk", dist: 8.0, minKg: 3 },
   { pattern: /\b(?:dalgate|dal\s*gate)\b/i, name: "Dalgate", dist: 7.5, minKg: 3 },
   { pattern: /\b(?:khay+am|khyam|khaiam)(?:\s*(?:chowk|road|cinema))?\b/i, name: "Khayam", dist: 7.2, minKg: 3 },
@@ -282,7 +293,7 @@ function buildResult(name: string, dist: number, source: GeocodeResult["source"]
     };
   } else if (dist <= 16.0) {
     const minKg = 4;
-    const fee = weightKg >= 4 ? 0 : (weightKg === 3 ? 49 : (weightKg === 2 ? 89 : 119));
+    const fee = weightKg >= 4 ? 0 : (weightKg === 3 ? 79 : (weightKg === 2 ? 99 : 139));
     return {
       status: "IN_ZONE",
       name,

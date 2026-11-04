@@ -92,13 +92,13 @@ export const DELIVERY_ZONES: Record<string, ZoneConfig> = {
     rangeKm: "11.5 – 16.0 km",
     minKgFree: 4,
     minOrderFreeText: "4 kg",
-    specialDeliveryFee: 89,
+    specialDeliveryFee: 99,
     deliveryTime: "Within 2 hours",
     color: "#f59e0b",
     badgeBg: "rgba(245, 158, 11, 0.15)",
     badgeBorder: "rgba(245, 158, 11, 0.35)",
     badgeText: "#fbbf24",
-    description: "100% FREE doorstep delivery on 4 kg family pack (or ₹49 for 3 kg, ₹89 for 2 kg, ₹119 for 1 kg).",
+    description: "100% FREE doorstep delivery on 4 kg family pack (or ₹79 for 3 kg, ₹99 for 2 kg, ₹139 for 1 kg).",
   },
   out_of_zone: {
     id: "out_of_zone",
@@ -170,8 +170,15 @@ export const SRINAGAR_LOCALITY_CATALOG: LocalityData[] = [
   { name: "Khanyar", aliases: ["khanyar", "khan yar", "dastgeer sahib"], lat: 34.0930, lng: 74.8190, pincode: "190003", distKm: 5.5, tier: "zone2", minKgFree: 3 },
   { name: "Shalimar", aliases: ["shalimar", "shalimar bagh", "shalimar garden"], lat: 34.1480, lng: 74.8720, pincode: "190025", distKm: 5.5, tier: "zone2", minKgFree: 3 },
   { name: "Ali Kadal", aliases: ["ali kadal", "alikadal", "ali kadel"], lat: 34.0920, lng: 74.8050, pincode: "190002", distKm: 5.8, tier: "zone2", minKgFree: 3 },
+  { name: "Rajouri Kadal", aliases: ["rajouri kadal", "rajourikadal", "rajouri kadel"], lat: 34.0950, lng: 74.8100, pincode: "190002", distKm: 6.2, tier: "zone2", minKgFree: 3 },
+  { name: "Saraf Kadal", aliases: ["saraf kadal", "sarafkadal"], lat: 34.0910, lng: 74.8080, pincode: "190002", distKm: 6.5, tier: "zone2", minKgFree: 3 },
+  { name: "Bohri Kadal", aliases: ["bohri kadal", "bohrikadal", "bhori kadal", "bhorikadal"], lat: 34.0920, lng: 74.8110, pincode: "190002", distKm: 6.8, tier: "zone2", minKgFree: 3 },
 
   // ─── ZONE 3 (7.0 to 11.5 km — Greater Srinagar, Free from 3 kg) ───
+  { name: "Zaina Kadal", aliases: ["zaina kadal", "zainakadal", "zaina kadel", "new zaina kadal"], lat: 34.0900, lng: 74.8060, pincode: "190002", distKm: 7.8, tier: "zone3", minKgFree: 3 },
+  { name: "Maharaj Gunj", aliases: ["maharaj gunj", "maharajgunj", "maharaj ganj", "maharajganj"], lat: 34.0890, lng: 74.8090, pincode: "190002", distKm: 7.8, tier: "zone3", minKgFree: 3 },
+  { name: "Fateh Kadal", aliases: ["fateh kadal", "fatehkadal", "fateh kadel", "fatehkadel", "astaan syed ali akbar"], lat: 34.0868, lng: 74.8045, pincode: "190002", distKm: 8.8, tier: "zone3", minKgFree: 3 },
+  { name: "Habba Kadal", aliases: ["habba kadal", "habbakadal", "habba kadel"], lat: 34.0820, lng: 74.8100, pincode: "190001", distKm: 9.0, tier: "zone3", minKgFree: 3 },
   { name: "Khayam", aliases: ["khayam", "khayyam", "khyam", "khaiam", "khayam chowk", "khayyam chowk", "khyber hospital"], lat: 34.0810, lng: 74.8180, pincode: "190001", distKm: 7.2, tier: "zone3", minKgFree: 3 },
   { name: "Dalgate & Boulevard", aliases: ["dalgate", "dal gate", "boulevard", "nehru park", "boulevard road", "gate 1"], lat: 34.0840, lng: 74.8320, pincode: "190001", distKm: 7.0, tier: "zone3", minKgFree: 3 },
   { name: "Lal Chowk", aliases: ["lal chowk", "lalchowk", "clock tower", "ghanta ghar", "residency road", "regal chowk", "maisuma"], lat: 34.0725, lng: 74.8090, pincode: "190001", distKm: 7.2, tier: "zone3", minKgFree: 3 },
@@ -209,7 +216,9 @@ export const SRINAGAR_LOCALITY_CATALOG: LocalityData[] = [
   { name: "Chadoora", aliases: ["chadoora", "chadure"], lat: 33.9500, lng: 74.8000, pincode: "191113", distKm: 19.0, tier: "out_of_zone", minKgFree: 0 },
 ];
 
-// Haversine distance formula in km
+// Haversine distance formula with Srinagar Road Winding Calibration (Same as AI Agent)
+// Converts straight-line aerial distance into actual driving road distance:
+// Direct local routes <=4km have ~1.10x factor; routes >4km across Dal Lake / Jhelum bridges have ~1.32x road winding factor.
 export function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371; // Earth radius in km
   const dLat = (lat2 - lat1) * (Math.PI / 180);
@@ -217,7 +226,9 @@ export function calculateDistance(lat1: number, lon1: number, lat2: number, lon2
   const a =
     Math.sin(dLat / 2) ** 2 +
     Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * Math.sin(dLon / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const aerial = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const roadFactor = aerial <= 4.0 ? 1.10 : 1.32;
+  return aerial * roadFactor;
 }
 
 export interface DeliveryCheckResult {
@@ -240,9 +251,9 @@ export interface DeliveryCheckResult {
 }
 
 /**
- * Returns true if the current time in IST is between 5:00 PM and 7:59 PM (17:00 – 19:59).
+ * Returns true if the current time in IST is between 4:00 PM and 7:59 PM (16:00 – 19:59).
  * During this peak rush hour window, third-party riders (Rapido) charge surge pricing,
- * so a +₹40 evening rush surcharge is applied to subsidized courier deliveries to protect margins.
+ * so a +₹40 evening rush surcharge is applied to subsidized courier deliveries to protect margins (matching AI agent).
  * Free delivery thresholds (e.g. 4 kg in Zone 4, 3 kg in Zone 2/3, 2 kg in Zone 1) remain 100% Free!
  */
 export function isEveningRushHour(date?: Date): boolean {
@@ -250,7 +261,7 @@ export function isEveningRushHour(date?: Date): boolean {
   const istOffset = (5 * 60 + 30) * 60 * 1000;
   const istDate = new Date(now.getTime() + istOffset);
   const hour = istDate.getUTCHours();
-  return hour >= 17 && hour < 20;
+  return hour >= 16 && hour < 20;
 }
 
 // Evaluate delivery zone from text search or GPS coordinates and optional weight
@@ -349,16 +360,16 @@ export function evaluateDeliveryZone(params: {
     if (weightKg >= 4) {
       fee = 0;
     } else if (weightKg === 3) {
-      fee = 49;
+      fee = 79;
       upgradeAdvice = `Add +1 kg to unlock 100% FREE doorstep delivery on our 4 kg family pack!`;
       savingsAmount = fee;
     } else if (weightKg === 2) {
-      fee = 89;
+      fee = 99;
       upgradeAdvice = `Upgrade to 4 kg family pack for 100% FREE delivery!`;
       savingsAmount = fee;
     } else {
-      fee = 119;
-      upgradeAdvice = `Upgrade to 2 kg (₹89 fee) or 4 kg family pack for 100% FREE delivery!`;
+      fee = 139;
+      upgradeAdvice = `Upgrade to 2 kg (₹99 fee) or 4 kg family pack for 100% FREE delivery!`;
       savingsAmount = fee;
     }
   }

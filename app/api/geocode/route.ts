@@ -66,7 +66,7 @@ export async function POST(req: NextRequest) {
             } else if (dist <= 16.0) {
               tier = "11.5-16km";
               minKg = 4;
-              fee = Number(weightKg) >= 4 ? 0 : (Number(weightKg) === 3 ? 49 : (Number(weightKg) === 2 ? 89 : 119));
+              fee = Number(weightKg) >= 4 ? 0 : (Number(weightKg) === 3 ? 79 : (Number(weightKg) === 2 ? 99 : 139));
             }
 
             return NextResponse.json({
@@ -126,7 +126,7 @@ export async function POST(req: NextRequest) {
           } else if (dist <= 16.0) {
             tier = "11.5-16km";
             minKg = 4;
-            fee = Number(weightKg) >= 4 ? 0 : (Number(weightKg) === 3 ? 49 : (Number(weightKg) === 2 ? 89 : 119));
+            fee = Number(weightKg) >= 4 ? 0 : (Number(weightKg) === 3 ? 79 : (Number(weightKg) === 2 ? 99 : 139));
           }
 
           return NextResponse.json({

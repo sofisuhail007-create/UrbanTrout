@@ -72,6 +72,9 @@ const DELIVERY_RADIUS_KM = 16.0;
 export type SrinagarLandmark = LocalityData;
 const SRINAGAR_LANDMARKS: SrinagarLandmark[] = SRINAGAR_LOCALITY_CATALOG;
 
+// Haversine distance formula with Srinagar Road Winding Calibration (Same as AI Agent)
+// Converts straight-line aerial distance into actual driving road distance:
+// Direct local routes <=4km have ~1.10x factor; routes >4km across Dal Lake / Jhelum bridges have ~1.32x road winding factor.
 function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371; // Earth's radius in km
   const dLat = (lat2 - lat1) * (Math.PI / 180);
@@ -79,7 +82,9 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   const a =
     Math.sin(dLat / 2) ** 2 +
     Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * Math.sin(dLon / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const aerial = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  const roadFactor = aerial <= 4.0 ? 1.10 : 1.32;
+  return aerial * roadFactor;
 }
 
 function findNearestLandmark(lat: number, lng: number): { name: string; pincode: string } {

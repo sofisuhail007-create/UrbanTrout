@@ -123,9 +123,9 @@ function computeDeliveryFee(tier: string, weightKg: number): number {
   }
   if (tier === "zone4") {
     if (weightKg >= 4) return 0;
-    if (weightKg === 3) return 49;
-    if (weightKg === 2) return 89;
-    return 119;
+    if (weightKg === 3) return 79;
+    if (weightKg === 2) return 99;
+    return 139;
   }
   return 0; // out of zone has no doorstep delivery fee (counter pickup)
 }
