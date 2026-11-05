@@ -102,10 +102,16 @@ export default function DashboardPage() {
   const [selectedBalanceRecord, setSelectedBalanceRecord] = useState<CustomerBalanceRecord | null>(null);
   const [isBalanceModalOpen, setIsBalanceModalOpen] = useState(false);
   const [storeStatus, setStoreStatus] = useState<any>(null);
-  const [isAdmin, setIsAdmin] = useState<boolean>(true);
+  const [isAdmin, setIsAdmin] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    const storedEmail = (localStorage.getItem("ut_admin_email") || sessionStorage.getItem("ut_admin_email") || "").toLowerCase().trim();
+    const storedRole = (localStorage.getItem("ut_admin_role") || sessionStorage.getItem("ut_admin_role") || "").toLowerCase().trim();
+    return storedEmail === "sofisuhail007@gmail.com" || storedEmail === "info.urbantrout@gmail.com" || storedRole === "super_admin";
+  });
   const [aquariumStockKg, setAquariumStockKg] = useState<number>(0);
   const [isAquariumOutOfStock, setIsAquariumOutOfStock] = useState<boolean>(false);
   const [todayEntriesCount, setTodayEntriesCount] = useState<number>(0);
+  const [todayVendingEntries, setTodayVendingEntries] = useState<any[]>([]);
 
   const fetchBalancesData = async () => {
     try {
@@ -144,53 +150,73 @@ export default function DashboardPage() {
   };
 
   const loadData = useCallback(async () => {
+      // Check admin status for staff vs owner immediately
+      const storedEmail = (localStorage.getItem("ut_admin_email") || sessionStorage.getItem("ut_admin_email") || "").toLowerCase().trim();
+      const storedRole = (localStorage.getItem("ut_admin_role") || sessionStorage.getItem("ut_admin_role") || "").toLowerCase().trim();
+      const isOwner = storedEmail === "sofisuhail007@gmail.com" || storedEmail === "info.urbantrout@gmail.com" || storedRole === "super_admin";
+      setIsAdmin(isOwner);
+
       const cutoff = new Date(Date.now() - 48 * 3600 * 1000).toISOString();
       
-      // Fetch orders, customer count, water params, and deduplicated leads
-      const [{ data: ord }, { count }, { data: wp }] = await Promise.all([
-        supabase.from("orders").select("*").order("created_at", { ascending: false }).limit(6),
-        supabase.from("customers").select("*", { count: "exact", head: true }),
-        supabase
+      // Fetch orders and leads ONLY if user is owner / super admin
+      if (isOwner) {
+        const [{ data: ord }, { count }, { data: wp }] = await Promise.all([
+          supabase.from("orders").select("*").order("created_at", { ascending: false }).limit(6),
+          supabase.from("customers").select("*", { count: "exact", head: true }),
+          supabase
+            .from("water_parameters")
+            .select("*")
+            .gte("created_at", cutoff)
+            .order("created_at", { ascending: false }),
+        ]);
+
+        setOrders(ord ?? []);
+        setCustomers(count ?? 0);
+        setRecentParams((wp as WaterParameter[]) ?? []);
+
+        // Fetch deduplicated leads via API endpoint (Super Admin Only)
+        try {
+          const res = await adminFetch("/api/lead");
+          if (res.ok) {
+            const json = await res.json();
+            if (json?.success && Array.isArray(json.leads)) {
+              const abandoned = json.leads.filter((l: Lead) => l.status === "abandoned").slice(0, 4);
+              setRecentLeads(abandoned);
+            }
+          }
+        } catch (_) {
+          // Fallback: direct Supabase query with in-memory deduplication
+          const { data: leadsData } = await supabase
+            .from("leads")
+            .select("*")
+            .eq("status", "abandoned")
+            .order("created_at", { ascending: false });
+
+          if (leadsData) {
+            const seen = new Set<string>();
+            const deduped: Lead[] = [];
+            for (const l of leadsData as Lead[]) {
+              const clean = (l.customer_phone || "").replace(/\D/g, "").slice(-10);
+              if (!seen.has(clean)) {
+                seen.add(clean);
+                deduped.push(l);
+              }
+            }
+            setRecentLeads(deduped.slice(0, 4));
+          }
+        }
+      } else {
+        // Sales Staff (Mohd Amin): strictly zero online orders, zero leads, zero customer data
+        setOrders([]);
+        setCustomers(0);
+        setRecentLeads([]);
+
+        const { data: wp } = await supabase
           .from("water_parameters")
           .select("*")
           .gte("created_at", cutoff)
-          .order("created_at", { ascending: false }),
-      ]);
-
-      setOrders(ord ?? []);
-      setCustomers(count ?? 0);
-      setRecentParams((wp as WaterParameter[]) ?? []);
-
-      // Fetch deduplicated leads via API endpoint
-      try {
-        const res = await adminFetch("/api/lead");
-        if (res.ok) {
-          const json = await res.json();
-          if (json?.success && Array.isArray(json.leads)) {
-            const abandoned = json.leads.filter((l: Lead) => l.status === "abandoned").slice(0, 4);
-            setRecentLeads(abandoned);
-          }
-        }
-      } catch (_) {
-        // Fallback: direct Supabase query with in-memory deduplication
-        const { data: leadsData } = await supabase
-          .from("leads")
-          .select("*")
-          .eq("status", "abandoned")
           .order("created_at", { ascending: false });
-
-        if (leadsData) {
-          const seen = new Set<string>();
-          const deduped: Lead[] = [];
-          for (const l of leadsData as Lead[]) {
-            const clean = (l.customer_phone || "").replace(/\D/g, "").slice(-10);
-            if (!seen.has(clean)) {
-              seen.add(clean);
-              deduped.push(l);
-            }
-          }
-          setRecentLeads(deduped.slice(0, 4));
-        }
+        setRecentParams((wp as WaterParameter[]) ?? []);
       }
 
       await fetchBalancesData();
@@ -201,12 +227,6 @@ export default function DashboardPage() {
           setStoreStatus(storeJson);
         }
       } catch (_) {}
-
-      // Check admin status for staff vs owner
-      const storedEmail = (localStorage.getItem("ut_admin_email") || sessionStorage.getItem("ut_admin_email") || "").toLowerCase().trim();
-      const storedRole = (localStorage.getItem("ut_admin_role") || sessionStorage.getItem("ut_admin_role") || "").toLowerCase().trim();
-      const isOwner = storedEmail === "sofisuhail007@gmail.com" || storedEmail === "info.urbantrout@gmail.com" || storedRole === "super_admin";
-      setIsAdmin(isOwner);
 
       // Fetch live aquarium stock for flash card
       try {
@@ -221,7 +241,7 @@ export default function DashboardPage() {
         }
       } catch (_) {}
 
-      // Fetch today's vending sales entries count
+      // Fetch today's vending sales entries and count
       try {
         const todayStr = new Intl.DateTimeFormat("en-CA", {
           timeZone: "Asia/Kolkata",
@@ -234,6 +254,7 @@ export default function DashboardPage() {
         if (vendingRes.ok) {
           const vendingJson = await vendingRes.json();
           if (Array.isArray(vendingJson?.entries)) {
+            setTodayVendingEntries(vendingJson.entries);
             setTodayEntriesCount(vendingJson.entries.length);
           } else if (vendingJson?.kpis?.today?.count !== undefined) {
             setTodayEntriesCount(Number(vendingJson.kpis.today.count) || 0);
@@ -367,12 +388,21 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <Link
-            href="/admin/dashboard/settings"
-            className="flex-shrink-0 text-xs font-medium px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 transition-colors w-max"
-          >
-            Manage Operations →
-          </Link>
+          {isAdmin ? (
+            <Link
+              href="/admin/dashboard/settings"
+              className="flex-shrink-0 text-xs font-medium px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 transition-colors w-max"
+            >
+              Manage Operations →
+            </Link>
+          ) : (
+            <Link
+              href="/admin/dashboard/billing"
+              className="flex-shrink-0 text-xs font-medium px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 transition-colors w-max"
+            >
+              POS Billing →
+            </Link>
+          )}
         </div>
       )}
 
@@ -514,8 +544,18 @@ export default function DashboardPage() {
             value={`${aquariumStockKg.toFixed(3)} kg`}
             sub={isAquariumOutOfStock ? "Needs Restock" : "Available in Tank"}
           />
-          <StatCard icon="today" label="Today's Orders" value={todayOrders.length} sub="Online Checkout" />
-          <StatCard icon="pending" label="Pending Orders" value={pending} sub="Needs action" />
+          <StatCard
+            icon="account_balance_wallet"
+            label="Pending Khata"
+            value={`₹${balanceSummary.totalPendingAmount.toLocaleString("en-IN")}`}
+            sub={balanceSummary.pendingRecordsCount > 0 ? `${balanceSummary.pendingRecordsCount} unpaid bills` : "All clear ✓"}
+          />
+          <StatCard
+            icon="point_of_sale"
+            label="Counter Status"
+            value="Active"
+            sub="POS Billing Ready"
+          />
         </div>
       )}
 
@@ -639,8 +679,8 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Abandoned Leads Alert Widget */}
-      {recentLeads.length > 0 && (
+      {/* Abandoned Leads Alert Widget (Super Admin Only) */}
+      {isAdmin && recentLeads.length > 0 && (
         <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl p-4 sm:p-5">
           <div className="flex items-center justify-between mb-3.5">
             <div className="flex items-center gap-2">
@@ -709,35 +749,109 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Recent Orders */}
-      <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl overflow-hidden">
-        <div className="flex items-center justify-between px-4 sm:px-5 py-3.5 border-b border-zinc-800/80">
-          <h2 className="font-semibold text-zinc-100 text-sm font-['Space_Grotesk']">Recent Orders</h2>
-          <Link href="/admin/dashboard/orders" className="text-zinc-400 hover:text-zinc-200 text-xs font-medium">View all →</Link>
-        </div>
-        {loading ? (
-          <div className="p-8 text-center text-zinc-500 text-sm font-mono">Loading orders…</div>
-        ) : orders.length === 0 ? (
-          <div className="p-8 text-center text-zinc-500 text-sm">No orders yet. Orders placed via checkout will appear here.</div>
-        ) : (
-          <div className="divide-y divide-zinc-800/60">
-            {orders.slice(0, 6).map((o) => (
-              <div key={o.id} className="flex items-center gap-4 px-4 sm:px-5 py-3 hover:bg-zinc-800/30 transition-colors">
-                <span className="text-zinc-500 text-xs font-mono w-14">#{o.order_number}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-zinc-200 font-medium truncate">{o.customer_name}</p>
-                  <p className="text-xs text-zinc-500 font-mono">{o.customer_phone}</p>
-                </div>
-                <span className={`text-[11px] px-2 py-0.5 rounded font-medium ${STATUS_COLOR[o.status] ?? "bg-zinc-800 text-zinc-400"}`}>
-                  {STATUS_LABEL[o.status] ?? o.status}
-                </span>
-                <span className="text-sm font-semibold text-zinc-100 font-mono tabular-nums">₹{o.total?.toLocaleString("en-IN")}</span>
-                <span className="text-xs text-zinc-500 font-mono w-20 text-right">{new Date(o.created_at).toLocaleDateString("en-IN")}</span>
-              </div>
-            ))}
+      {/* Recent Orders (Admin) OR Today's Counter Sales (Staff) */}
+      {isAdmin ? (
+        <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl overflow-hidden">
+          <div className="flex items-center justify-between px-4 sm:px-5 py-3.5 border-b border-zinc-800/80">
+            <h2 className="font-semibold text-zinc-100 text-sm font-['Space_Grotesk']">Recent Orders</h2>
+            <Link href="/admin/dashboard/orders" className="text-zinc-400 hover:text-zinc-200 text-xs font-medium">View all →</Link>
           </div>
-        )}
-      </div>
+          {loading ? (
+            <div className="p-8 text-center text-zinc-500 text-sm font-mono">Loading orders…</div>
+          ) : orders.length === 0 ? (
+            <div className="p-8 text-center text-zinc-500 text-sm">No orders yet. Orders placed via checkout will appear here.</div>
+          ) : (
+            <div className="divide-y divide-zinc-800/60">
+              {orders.slice(0, 6).map((o) => (
+                <div key={o.id} className="flex items-center gap-4 px-4 sm:px-5 py-3 hover:bg-zinc-800/30 transition-colors">
+                  <span className="text-zinc-500 text-xs font-mono w-14">#{o.order_number}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-zinc-200 font-medium truncate">{o.customer_name}</p>
+                    <p className="text-xs text-zinc-500 font-mono">{o.customer_phone}</p>
+                  </div>
+                  <span className={`text-[11px] px-2 py-0.5 rounded font-medium ${STATUS_COLOR[o.status] ?? "bg-zinc-800 text-zinc-400"}`}>
+                    {STATUS_LABEL[o.status] ?? o.status}
+                  </span>
+                  <span className="text-sm font-semibold text-zinc-100 font-mono tabular-nums">₹{o.total?.toLocaleString("en-IN")}</span>
+                  <span className="text-xs text-zinc-500 font-mono w-20 text-right">{new Date(o.created_at).toLocaleDateString("en-IN")}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl overflow-hidden">
+          <div className="flex items-center justify-between px-4 sm:px-5 py-3.5 border-b border-zinc-800/80">
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-cyan-400 text-lg">receipt_long</span>
+              <h2 className="font-semibold text-zinc-100 text-sm font-['Space_Grotesk']">
+                Today's Counter Entries ({todayVendingEntries.length})
+              </h2>
+            </div>
+            <div className="flex items-center gap-2">
+              <Link
+                href="/admin/dashboard/billing"
+                className="text-xs font-medium px-2.5 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 transition-colors"
+              >
+                + New POS Bill
+              </Link>
+              <Link
+                href="/admin/dashboard/vending-log"
+                className="text-zinc-400 hover:text-zinc-200 text-xs font-medium"
+              >
+                Full Vending Log →
+              </Link>
+            </div>
+          </div>
+          {loading ? (
+            <div className="p-8 text-center text-zinc-500 text-sm font-mono">Loading counter entries…</div>
+          ) : todayVendingEntries.length === 0 ? (
+            <div className="p-8 text-center text-zinc-500 text-sm">
+              <p>No counter sales logged yet today.</p>
+              <div className="mt-3 flex items-center justify-center gap-2">
+                <Link
+                  href="/admin/dashboard/billing"
+                  className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs font-medium"
+                >
+                  Open POS Billing
+                </Link>
+                <Link
+                  href="/admin/dashboard/vending-log"
+                  className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs font-medium"
+                >
+                  Record Vending Entry
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div className="divide-y divide-zinc-800/60">
+              {todayVendingEntries.slice(0, 6).map((entry) => (
+                <div key={entry.id} className="flex items-center justify-between gap-4 px-4 sm:px-5 py-3 hover:bg-zinc-800/30 transition-colors">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <span className="text-zinc-400 text-xs font-mono">{entry.entry_time || "--:--"}</span>
+                    <div>
+                      <p className="text-sm text-zinc-200 font-medium truncate">
+                        {entry.product_type || "Gutted"} Trout · {Number(entry.weight_kg || 0).toFixed(3)} kg
+                      </p>
+                      <p className="text-[11px] text-zinc-500 font-mono">
+                        {entry.payment_mode || "Cash"} · Logged by {entry.logged_by || "Staff"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-semibold text-emerald-400 font-mono tabular-nums">
+                      ₹{Number(entry.amount_paid || 0).toLocaleString("en-IN")}
+                    </p>
+                    <p className="text-[10px] text-zinc-500 font-mono">
+                      @ ₹{entry.rate_per_kg || 580}/kg
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Customer Balance Reminder & Razorpay QR Modal */}
       <BalanceReminderModal

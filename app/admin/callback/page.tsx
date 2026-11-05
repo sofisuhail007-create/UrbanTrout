@@ -102,10 +102,10 @@ export default function AdminAuthCallback() {
               isAuthorized = true;
               staffPermissions = {
                 billing: true,
-                orders: true,
-                leads: true,
+                orders: false,
+                leads: false,
                 inventory: true,
-                customers: true,
+                customers: false,
                 analytics: false,
                 farm: false,
                 settings: false,
@@ -138,10 +138,10 @@ export default function AdminAuthCallback() {
           JSON.stringify(
             staffPermissions || {
               billing: true,
-              orders: true,
+              orders: false,
               leads: false,
               inventory: true,
-              customers: true,
+              customers: false,
               analytics: false,
               farm: false,
               settings: false,

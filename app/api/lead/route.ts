@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import { requireAdminAuth } from "@/lib/adminAuth";
+import { requireAdminAuth, requireSuperAdminAuth } from "@/lib/adminAuth";
 import { checkRateLimit } from "@/lib/rateLimit";
 
 // Use service role key if configured in Vercel to bypass RLS, or fallback to anon key
@@ -93,7 +93,7 @@ export async function POST(request: Request) {
 }
 
 export async function GET(request: Request) {
-  const authError = await requireAdminAuth(request);
+  const authError = await requireSuperAdminAuth(request);
   if (authError) return authError;
 
   try {
@@ -130,7 +130,7 @@ export async function GET(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const authError = await requireAdminAuth(request);
+  const authError = await requireSuperAdminAuth(request);
   if (authError) return authError;
 
   try {
@@ -167,7 +167,7 @@ export async function DELETE(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const authError = await requireAdminAuth(request);
+  const authError = await requireSuperAdminAuth(request);
   if (authError) return authError;
 
   try {

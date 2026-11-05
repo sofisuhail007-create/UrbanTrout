@@ -6,12 +6,61 @@ const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PU
 
 const supabaseServer = createClient(supabaseUrl, supabaseKey);
 
-// Whitelisted owner emails
+// Whitelisted owner / super admin emails
+export const SUPER_ADMIN_EMAILS = [
+  "sofisuhail007@gmail.com",
+  "info.urbantrout@gmail.com",
+  "founder@urbantrout.in",
+  "admin@urbantrout.in",
+];
+
+// Whitelisted authorized emails (owners + staff)
 const DEFAULT_ALLOWED_EMAILS = [
   "sofisuhail007@gmail.com",
   "work.suhail007@gmail.com",
+  "worksuhail007@gmail.com",
   "info.urbantrout@gmail.com",
 ];
+
+/**
+ * Strict authentication check: Only Super Admin (owners) or internal secret token allowed.
+ */
+export async function requireSuperAdminAuth(request: Request): Promise<NextResponse | null> {
+  const adminSecret = process.env.ADMIN_API_SECRET;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const tokenHeader = request.headers.get("x-admin-token");
+  if (
+    (adminSecret && tokenHeader === adminSecret) ||
+    (serviceKey && tokenHeader === serviceKey)
+  ) {
+    return null; // Authorized internal system/cron
+  }
+
+  const authHeader = request.headers.get("authorization") || request.headers.get("Authorization");
+  let bearerToken: string | null = null;
+  if (authHeader && authHeader.toLowerCase().startsWith("bearer ")) {
+    bearerToken = authHeader.substring(7).trim();
+  }
+
+  if (bearerToken) {
+    try {
+      const { data: { user }, error } = await supabaseServer.auth.getUser(bearerToken);
+      if (!error && user && user.email) {
+        const userEmail = user.email.toLowerCase().trim();
+        if (SUPER_ADMIN_EMAILS.includes(userEmail)) {
+          return null; // Authorized super admin
+        }
+      }
+    } catch (err) {
+      console.warn("[adminAuth] Super admin auth error:", err);
+    }
+  }
+
+  return NextResponse.json(
+    { success: false, error: "Forbidden: Super Admin access required." },
+    { status: 403 }
+  );
+}
 
 /**
  * Validates that an API request comes from an authorized admin session.

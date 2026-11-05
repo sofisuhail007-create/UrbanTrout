@@ -87,17 +87,17 @@ const NAV_GROUPS: NavGroup[] = [
     title: "Management",
     items: [
       { href: "/admin/dashboard", icon: "dashboard", label: "Dashboard", permKey: null },
-      { href: "/admin/dashboard/orders", icon: "receipt_long", label: "Orders", permKey: "orders" },
+      { href: "/admin/dashboard/orders", icon: "receipt_long", label: "Orders", permKey: "orders", ownerOnly: true },
       { href: "/admin/dashboard/visits", icon: "calendar_month", label: "Farm Visits", permKey: "farm" },
-      { href: "/admin/dashboard/leads", icon: "phone_callback", label: "Leads & Abandoned", permKey: "leads" },
+      { href: "/admin/dashboard/leads", icon: "phone_callback", label: "Leads & Abandoned", permKey: "leads", ownerOnly: true },
     ],
   },
   {
     title: "Operations",
     items: [
       { href: "/admin/dashboard/inventory", icon: "inventory_2", label: "Inventory", permKey: "inventory" },
-      { href: "/admin/dashboard/customers", icon: "people", label: "Customers", permKey: "customers" },
-      { href: "/admin/dashboard/analytics", icon: "analytics", label: "Analytics", permKey: "analytics" },
+      { href: "/admin/dashboard/customers", icon: "people", label: "Customers", permKey: "customers", ownerOnly: true },
+      { href: "/admin/dashboard/analytics", icon: "analytics", label: "Analytics", permKey: "analytics", ownerOnly: true },
       { href: "/admin/dashboard/farm", icon: "psychiatry", label: "Farm Mgmt", permKey: "farm" },
     ],
   },
@@ -106,7 +106,7 @@ const NAV_GROUPS: NavGroup[] = [
     items: [
       { href: "/admin/dashboard/notifications", icon: "notifications_active", label: "Push Alerts", permKey: "settings", badge: "Push", badgeType: "new", activeTheme: "cyan" },
       { href: "/admin/dashboard/delivery", icon: "radar", label: "Delivery Radius", permKey: "settings", badge: "Map", badgeType: "map" },
-      { href: "/admin/dashboard/settings", icon: "settings", label: "Settings", permKey: "settings" },
+      { href: "/admin/dashboard/settings", icon: "settings", label: "Settings", permKey: "settings", ownerOnly: true },
     ],
   },
 ];
