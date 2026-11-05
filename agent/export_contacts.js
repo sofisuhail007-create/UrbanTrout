@@ -182,7 +182,8 @@ const expandedAreas = [
   { name: 'Nawa Kadal', re: /\b(?:nawa\s*kadal|nawakadal|nawa\s*bazaar|nawabazar|kokermasjid)\b/i },
   { name: 'Chanapora', re: /\b(?:chanapora|channapora|chanpora)\b/i },
   { name: 'Natipora', re: /\b(?:natipora|natipura)\b/i },
-  { name: 'Barzulla', re: /\b(?:barzulla|baghat|baghat\s*barzulla)\b/i },
+  { name: 'Baghat Barzulla', re: /\b(?:baghat\s*barzulla|baghat)\b/i },
+  { name: 'Barzulla', re: /\b(?:barzulla|old\s*barzulla)\b/i },
   { name: 'Rawalpora', re: /\b(?:rawalpora|rawalpura|rawapora)\b/i },
   { name: 'Karan Nagar', re: /\b(?:karan\s*nagar|karannagar)\b/i },
   { name: 'Ganderbal', re: /\b(?:ganderbal)\b/i },
@@ -858,4 +859,4 @@ if (require.main === module) {
   exportContacts();
 }
 
-module.exports = { exportContacts };
+module.exports = { exportContacts, loadPrimaryPhones };

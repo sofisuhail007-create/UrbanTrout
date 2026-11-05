@@ -2,7 +2,8 @@ const {
   default: makeWASocket,
   useMultiFileAuthState,
   DisconnectReason,
-  fetchLatestBaileysVersion
+  fetchLatestBaileysVersion,
+  downloadMediaMessage
 } = require("@whiskeysockets/baileys");
 const qrcodeTerminal = require("qrcode-terminal");
 const QRCode = require("qrcode");
@@ -1057,7 +1058,7 @@ const SUPABASE_KEY = process.env.SUPABASE_KEY;
 const lidToPhone = new Map();
 
 // Google Contacts exporter module
-const { exportContacts } = require("./export_contacts");
+const { exportContacts, loadPrimaryPhones } = require("./export_contacts");
 
 // Global AI Sales Agent Kill Switch / Pause State (Controllable from Phone via #pause / #resume)
 let isAiPausedGlobally = false;
@@ -4288,6 +4289,59 @@ async function startBot() {
     const cleanPhone = resolveCustomerPhone(remoteJid);
     const isOwner = msg.key.fromMe || cleanPhone.endsWith("7006604148") || String(remoteJid).includes("174637916885151");
 
+    // 0. Owner VCF Document Ingestion (Option 1: Send .vcf directly to bot to update primary contacts & -UTA- tags)
+    if (isOwner) {
+      const doc = innerMessage.documentMessage || innerMessage.documentWithCaptionMessage?.message?.documentMessage;
+      if (doc) {
+        const docFileName = (doc.fileName || "").toLowerCase();
+        const docMime = (doc.mimetype || "").toLowerCase();
+        const isVcfDoc = docFileName.endsWith(".vcf") || docMime.includes("vcard") || docMime.includes("x-vcard");
+
+        if (isVcfDoc) {
+          const displayDocName = doc.fileName || "contacts.vcf";
+          console.log(`📥 [Owner VCF Ingestion] Processing contact file "${displayDocName}" from owner (${formatPhoneDisplay(cleanPhone)})...`);
+          try {
+            await sock.sendMessage(remoteJid, { text: `⏳ *Processing ${displayDocName}...*\nParsing contacts and syncing your delivered customer tags...` });
+            const buffer = await downloadMediaMessage(msg, "buffer", {});
+            if (buffer && buffer.length > 0) {
+              const localPrimaryVcf = path.join(__dirname, "My Primary Contacts.vcf");
+              fs.writeFileSync(localPrimaryVcf, buffer);
+
+              const desktopDir = path.join(process.env.USERPROFILE || "C:\\Users\\Suhail - CGIT", "Desktop");
+              if (fs.existsSync(desktopDir)) {
+                try {
+                  fs.writeFileSync(path.join(desktopDir, "My Primary Contacts.vcf"), buffer);
+                } catch (_) {}
+              }
+
+              // Re-run contact export and indexing
+              const updatedContacts = exportContacts();
+              const { primaryPhones, utaPrimaryMap } = loadPrimaryPhones();
+              const utaCount = utaPrimaryMap ? utaPrimaryMap.size : 0;
+              const primaryCount = primaryPhones ? Math.floor(primaryPhones.size / 2) : 0;
+
+              await sock.sendMessage(remoteJid, {
+                text: `✅ *PRIMARY CONTACTS UPDATED SUCCESSFULLY!*\n\n` +
+                      `📁 *Source File:* ${displayDocName}\n` +
+                      `🛡️ *Protected Personal Contacts:* ${primaryCount}\n` +
+                      `🛵 *Delivered Customers Recognized (-UTA-):* ${utaCount}\n` +
+                      `👥 *Total Exported UT Leads:* ${updatedContacts.length}\n\n` +
+                      `All customer profiles, nicknames, and delivery landmarks are actively loaded in memory!`
+              });
+              console.log(`✅ [Owner VCF Ingestion Complete] ${displayDocName} processed successfully.`);
+              return;
+            }
+          } catch (vcfErr) {
+            console.error("Failed to process owner VCF:", vcfErr);
+            await sock.sendMessage(remoteJid, {
+              text: `⚠️ *Error importing contacts:* ${vcfErr.message}`
+            });
+            return;
+          }
+        }
+      }
+    }
+
     // ─── STRICT ADMIN COMMAND AUTHENTICATION LOCK ───
     // ONLY Admin Suhail (+91 7006604148 / msg.key.fromMe / 174637916885151) is allowed to execute ANY '#' commands!
     if (text.startsWith("#")) {
@@ -4384,6 +4438,28 @@ async function startBot() {
         }
         return;
       }
+      if (lower === "#contacts" || lower === "#export" || lower === "#vcf" || lower === "#getcontacts") {
+        try {
+          await sock.sendMessage(remoteJid, { text: "⏳ *Compiling and exporting latest Urban Trout contacts...*" });
+          const contacts = exportContacts();
+          const localVcf = path.join(__dirname, "Urban_Trout_Contacts.vcf");
+          if (fs.existsSync(localVcf)) {
+            await sock.sendMessage(remoteJid, {
+              document: fs.readFileSync(localVcf),
+              mimetype: "text/vcard",
+              fileName: "Urban_Trout_Contacts.vcf",
+              caption: `✅ *Urban Trout Contacts Export*\n\n• Total Synced Leads: ${contacts.length}\n• Tap this file on your phone to import or update into Google Contacts!`
+            });
+            console.log(`✅ [Owner Contacts Export] Sent Urban_Trout_Contacts.vcf (${contacts.length} contacts) to owner.`);
+          } else {
+            await sock.sendMessage(remoteJid, { text: `⚠️ Contacts file not found on disk.` });
+          }
+        } catch (expErr) {
+          console.error("Failed to export contacts on demand:", expErr);
+          await sock.sendMessage(remoteJid, { text: `⚠️ *Error exporting contacts:* ${expErr.message}` });
+        }
+        return;
+      }
       if (lower === "#help" || lower === "#commands") {
         await sock.sendMessage(remoteJid, {
           text: `🛠️ *URBAN TROUT OWNER QUICK COMMANDS*\n\n` +
@@ -4404,6 +4480,9 @@ async function startBot() {
             `• *#link 1940* (Direct flat amount of ₹1,940)\n` +
             `• *#3kg +200 9876543210* (With customer phone number)\n` +
             `• *#3kg +200 9876543210 Farooq Sb Lalbazar* (With phone & name/address)\n\n` +
+            `👥 *Contacts & Customer Tags:*\n` +
+            `• *#contacts* (Get latest Urban_Trout_Contacts.vcf sent right here to import)\n` +
+            `• *Send any .vcf document* (Send your updated Google Contacts file anytime to reload -UTA- delivery tags)\n\n` +
             `⏸️ *AI Agent Controls:*\n` +
             `• *#pause* (Pause AI globally, or for 60m in customer chat)\n` +
             `• *#pause 30* (Pause for custom minutes)\n` +
