@@ -114,7 +114,7 @@ body {
   font-family: 'Material Symbols Outlined';
   font-style: normal;
   font-weight: 100 700;
-  font-display: swap;
+  font-display: block;
   src: url('/fonts/material-symbols-outlined.woff2') format('woff2');
 }
 
@@ -140,6 +140,10 @@ body {
   vertical-align: middle;
   flex-shrink: 0;
   text-rendering: optimizeLegibility;
+  width: 1em;
+  height: 1em;
+  overflow: hidden;
+  box-sizing: content-box;
 }
 
 /* ─── Neon Glow Utilities ─── */
