@@ -7,6 +7,7 @@ import FourUpInvoiceSheet, { InvoiceSlipData } from "@/components/FourUpInvoiceS
 import { numberToIndianWords } from "@/lib/numberWords";
 import { downloadElementAsSinglePagePdf } from "@/lib/pdfGenerator";
 import { findKhataInvoice } from "@/lib/khataInvoice";
+import { generateFastQrDataUrl } from "@/lib/qrCode";
 
 interface DecodedInvoice {
   invoiceNumber: string;
@@ -479,9 +480,7 @@ export default function PublicInvoicePage() {
     ? `TERM${activeUpiId.split("@")[0].replace(/^JKBMERC/, "")}`
     : "TERM00828895";
   const upiPayUri = `upi://pay?pa=${activeUpiId}&pn=Urban%20Trout%20Aquaculture&tr=${terminalId}&am=${remainingAmount}&cu=INR&tn=Invoice-${invoice.invoiceNumber}`;
-  const upiQrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(
-    upiPayUri
-  )}&bgcolor=255-255-255&color=2-13-18&margin=2`;
+  const upiQrCodeUrl = generateFastQrDataUrl(upiPayUri, { darkColor: "#020d12", margin: 2 });
 
   // 4-in-1 Sheet Mode (Canon MF244dw Laser Printer Optimized)
   if (viewMode === "4up") {
@@ -565,17 +564,6 @@ export default function PublicInvoicePage() {
               <span>Live Tax Invoice &bull; Expires in ~{invoice.expiresInHours || 48} Hours</span>
             </div>
           )}
-
-          <button
-            type="button"
-            onClick={handleDirectDownloadPdf}
-            disabled={downloadingPdf}
-            className="py-2.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-emerald-500/25 cursor-pointer active:scale-95 transition-all disabled:opacity-50"
-            title="Direct Download Official 1-Page A4 PDF to Device"
-          >
-            <span className="text-base">{downloadingPdf ? "⏳" : "📥"}</span>
-            <span>{downloadingPdf ? "Saving 1-Page PDF..." : "DOWNLOAD INVOICE PDF (1-PAGE A4)"}</span>
-          </button>
         </div>
 
         {/* ─── PRINTABLE A4 INVOICE SHEET ─── */}
@@ -960,7 +948,7 @@ export default function PublicInvoicePage() {
                       src={
                         invoice.qrImageUrl ||
                         (invoice.paymentLinkUrl
-                          ? `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(invoice.paymentLinkUrl)}`
+                          ? generateFastQrDataUrl(invoice.paymentLinkUrl, { darkColor: "#020d12", margin: 2 })
                           : upiQrCodeUrl)
                       }
                       alt="Scan to Pay via Razorpay"

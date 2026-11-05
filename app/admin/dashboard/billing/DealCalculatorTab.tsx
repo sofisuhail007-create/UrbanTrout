@@ -4,6 +4,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import PaginationBar from "@/components/PaginationBar";
 import { adminFetch } from "@/lib/adminClient";
 import CustomerAutocompleteInput, { DbCustomer } from "./CustomerAutocompleteInput";
+import { generateFastQrDataUrl } from "@/lib/qrCode";
 
 export interface DealProduct {
   id: string;
@@ -564,9 +565,10 @@ export default function DealCalculatorTab({
   const soundboxUpiUri = combinedDealTotal > 0
     ? `upi://pay?pa=${upiId}&pn=Urban%20Trout%20Aquaculture&tr=${terminalId}&am=${combinedDealTotal}&mam=${combinedDealTotal}&cu=INR&tn=Deal-${activeDealNumber || Date.now().toString().slice(-4)}`
     : `upi://pay?pa=${upiId}&pn=Urban%20Trout%20Aquaculture&tr=${terminalId}&cu=INR`;
-  const soundboxQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(
-    soundboxUpiUri
-  )}&bgcolor=255-255-255&color=2-13-18&margin=2`;
+  const soundboxQrUrl = useMemo(
+    () => generateFastQrDataUrl(soundboxUpiUri, { darkColor: "#020d12", margin: 2 }),
+    [soundboxUpiUri]
+  );
 
   // ─── 5. INPUT SYNCHRONIZATION HELPERS ───
   const applyDealTotal = (totalVal: number) => {

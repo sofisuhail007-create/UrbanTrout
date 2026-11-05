@@ -10,6 +10,7 @@ import PaginationBar from "@/components/PaginationBar";
 import CustomerAutocompleteInput, { DbCustomer } from "./CustomerAutocompleteInput";
 import FourUpInvoiceSheet, { InvoiceSlipData } from "@/components/FourUpInvoiceSheet";
 import CatchWeightWorkspaceTab from "./CatchWeightWorkspaceTab";
+import { generateFastQrDataUrl } from "@/lib/qrCode";
 
 export interface RemoteBillItem {
   id: string;
@@ -756,9 +757,10 @@ export default function POSBillingPage() {
   const upiPayUri = grandTotal > 0
     ? `upi://pay?pa=${upiId}&pn=Urban%20Trout%20Aquaculture&tr=${terminalId}&am=${grandTotal}&cu=INR&tn=Urban%20Trout%20POS`
     : `upi://pay?pa=${upiId}&pn=JKBANK%20MERCHANT&mc=&tr=${terminalId}&tn=&am=&mam=&cu=INR&refUrl=https://jkbank.com/`;
-  const upiQrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(
-    upiPayUri
-  )}&bgcolor=255-255-255&color=2-13-18&margin=2`;
+  const upiQrCodeUrl = useMemo(
+    () => generateFastQrDataUrl(upiPayUri, { darkColor: "#020d12", margin: 2 }),
+    [upiPayUri]
+  );
 
   const copyUpi = () => {
     navigator.clipboard.writeText(upiId);

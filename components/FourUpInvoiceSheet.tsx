@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { generateFastQrDataUrl } from "@/lib/qrCode";
 
 export interface InvoiceSlipData {
   invoiceNumber: string;
@@ -74,7 +75,7 @@ function SingleInvoiceSlip({
     ? `TERM${upi.split("@")[0].replace(/^JKBMERC/, "")}`
     : "TERM00828895";
   const upiPayUri = `upi://pay?pa=${upi}&pn=Urban%20Trout%20Aquaculture&tr=${terminalId}&am=${remainingAmount.toFixed(2)}&cu=INR&tn=Inv-${data.invoiceNumber || data.orderNumber}`;
-  const qrUrl = data.qrImageUrl || `https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(upiPayUri)}&bgcolor=255-255-255&color=0-0-0&margin=1`;
+  const qrUrl = data.qrImageUrl || generateFastQrDataUrl(upiPayUri, { darkColor: "#000000", margin: 1 });
 
   const dateStr = data.createdAt
     ? new Date(data.createdAt).toLocaleDateString("en-IN", {

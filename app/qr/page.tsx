@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import { generateFastQrDataUrl } from "@/lib/qrCode";
 
 function QuickQrContent() {
   const searchParams = useSearchParams();
@@ -30,7 +31,7 @@ function QuickQrContent() {
     : "";
 
   const jkQrImageUrl = upiUri
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(upiUri)}&bgcolor=255-255-255&color=0-0-0&margin=2`
+    ? generateFastQrDataUrl(upiUri, { darkColor: "#000000", margin: 2 })
     : "";
 
   // Fetch dynamic Razorpay QR if gateway is razorpay

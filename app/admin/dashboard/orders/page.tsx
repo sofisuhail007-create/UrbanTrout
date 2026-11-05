@@ -5,6 +5,7 @@ import type { Order, OrderStatus } from "@/lib/supabase";
 import { adminFetch } from "@/lib/adminClient";
 import PaginationBar from "@/components/PaginationBar";
 import FourUpInvoiceSheet, { InvoiceSlipData } from "@/components/FourUpInvoiceSheet";
+import { generateFastQrDataUrl } from "@/lib/qrCode";
 
 function orderToSlipData(order: Order, upi: string): InvoiceSlipData {
   let totalOrderedWeight = 0;
@@ -456,7 +457,7 @@ export default function OrdersPage() {
     ? `upi://pay?pa=${upiId}&pn=Urban%20Trout%20Aquaculture&tr=TERM${String(qrModalOrder.order_number)}&am=${parsedQrAmount.toFixed(2)}&cu=INR&tn=Order%20${qrModalOrder.order_number}`
     : "";
   const directUpiQrUrl = directUpiUri
-    ? `https://api.qrserver.com/v1/create-qr-code/?size=320x320&data=${encodeURIComponent(directUpiUri)}&bgcolor=255-255-255&color=0-0-0&margin=2`
+    ? generateFastQrDataUrl(directUpiUri, { darkColor: "#000000", margin: 2 })
     : "";
 
   const handleShareQrOnWhatsApp = () => {
