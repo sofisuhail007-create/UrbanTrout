@@ -36,8 +36,7 @@ export const SRINAGAR_LOCALITIES: ZoneLocation[] = [
   { id: "jawahar-nagar", name: "Jawahar Nagar", lat: 34.0580, lng: 74.8170, pincode: "190008", landmark: "Jawahar Nagar Park" },
   { id: "bemina", name: "Bemina", lat: 34.0850, lng: 74.7680, pincode: "190018", landmark: "Bemina Degree College" },
   { id: "rawalpora", name: "Rawalpora", lat: 34.0290, lng: 74.7880, pincode: "190005", landmark: "Rawalpora Main Market" },
-  { id: "nowgam", name: "Nowgam", lat: 34.0220, lng: 74.8290, pincode: "190015", landmark: "Srinagar Railway Station Link" },
-  { id: "ganderbal", name: "Ganderbal Town", lat: 34.2160, lng: 74.7780, pincode: "191201", landmark: "Sindh River Basin" },
+  { id: "nowgam", name: "Nowgam", lat: 34.0220, lng: 74.8290, pincode: "190015", landmark: "Srinagar Railway Station Link" }
 ];
 
 export function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {

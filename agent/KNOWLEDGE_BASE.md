@@ -106,6 +106,7 @@
   • Every trout remains swimming alive in our pure, crystal-clear oxygen-saturated cold water tanks until right before the scheduled delivery or dispatch time.
   • When the order/scheduled slot is confirmed with payment, our team harvests the live fish, cleans/guts it pan-ready, packs it securely in clean food-grade packaging (two polythenes), and dispatches it straight to the customer within 2 hours.
   • Because a slaughtered fish cannot be returned to the water, full advance payment via our locked Razorpay link is 100% mandatory before any fish is taken out of the water.
+  • **CRITICAL PRE-PAYMENT HARVEST RULE:** NEVER say "I've prepared your order", "Your order has been placed/confirmed", or imply that harvesting/delivery is in progress before payment! An order is NOT confirmed and fish is NEVER harvested until payment confirmation is received. Always state clearly: *"Here is your order summary and secure payment link. Fresh live harvest begins immediately after payment confirmation."*
 - **🛡️ TRUST-BUILDER WHEN CUSTOMER ASKS FOR COD, CASH, POD, OR HESITATES TO PAY VIA LINK:**
   When a customer says *"I only have cash"*, *"Do you have COD?"*, or hesitates about paying online:
   • Do NOT give a cold, blunt refusal! Address their hesitation with empathy, Govt-approved credentials, and options:
@@ -184,11 +185,11 @@ However, all of our farm-raised trout is sold fresh at our Live Vending Center i
   • **2 KG Subsidized Express Courier:** Only **₹99 fee** (Total ₹1,259 Gutted / ₹1,179 Whole).
   • **1 KG Starter Pack Subsidized Courier:** Only **₹139 fee** (Total ₹719 Gutted / ₹679 Whole).
   • Upfront pitch: Pitch 4 kg for 100% FREE delivery, or 2–3 kg with subsidized express courier fee!
-  • In-zone localities: Barzulla (~14.2km), Baghat Barzulla (~15km), Rambagh / Solina (~14.3km), Gogji Bagh (~13.6km), Wazir Bagh (~12.7km), Tulsi Bagh (~13km), Hazuri Bagh (~12km), Iqbal Park (~12.5km), Sonwar (~12.9km), Batamaloo (~11.8km), Bemina (~12.5km), Rajbagh (~12km), Jawahar Nagar (~11.8km), Alochi Bagh (~11.8km), Magarmal Bagh (~11.6km), Sanat Nagar (~13.5km), Rawalpora (~14km), Hyderpora (~14.5km), Chanapora (~13km), Natipora (~12.5km), Peerbagh (~14.5km), Airport Road / Humhama (~15km), Ganderbal (~12km), Bagh-e-Mehtab (~14km), Kralpora (~15.5km), Rangreth (~15.5km), Lasjan (~14km), Nowgam (~14.5km), Padshahi Bagh (~13km), Pantha Chowk (~14km), Soiteng (~13.5km), Pandrathan (~13km), Athwajan (~13.5km), Pohru, Mochu.
+  • In-zone localities: Barzulla (~14.2km), Baghat Barzulla (~15km), Rambagh / Solina (~14.3km), Gogji Bagh (~13.6km), Wazir Bagh (~12.7km), Tulsi Bagh (~13km), Hazuri Bagh (~12km), Iqbal Park (~12.5km), Sonwar (~12.9km), Batamaloo (~11.8km), Bemina (~12.5km), Rajbagh (~12km), Jawahar Nagar (~11.8km), Alochi Bagh (~11.8km), Magarmal Bagh (~11.6km), Sanat Nagar (~13.5km), Rawalpora (~14km), Hyderpora (~14.5km), Chanapora (~13km), Natipora (~12.5km), Peerbagh (~14.5km), Airport Road / Humhama (~15km), Bagh-e-Mehtab (~14km), Kralpora (~15.5km), Rangreth (~15.5km), Lasjan (~14km), Nowgam (~14.5km), Padshahi Bagh (~13km), Pantha Chowk (~14km), Soiteng (~13.5km), Pandrathan (~13km), Athwajan (~13.5km), Pohru, Mochu.
 
-- **BEYOND 16.0 KM (Outer Districts — Store Walk-in Only):**
-  • Strictly beyond our 16 km cold-chain delivery fleet reach.
-  • Out-of-zone localities: Bagati Kanipora (BK Pora), Pampore, Chadoora, Lawaypora, Harwan, Budgam, Ompora, Baramulla, Anantnag, Jammu.
+- **BEYOND 16.0 KM & OUTER DISTRICTS (Store Walk-in Only):**
+  • Strictly beyond our 16 km cold-chain delivery fleet reach. We operate doorstep deliveries strictly in Srinagar municipal areas only.
+  • Out-of-zone localities: Ganderbal District (Beehama, Duderhama, Saloora, Tullamulla, Kangan, Wayil, etc.), Bagati Kanipora (BK Pora), Pampore, Chadoora, Lawaypora, Harwan, Budgam, Ompora, Baramulla, Anantnag, Jammu.
   • Doorstep delivery is not feasible to maintain live fresh cold chain.
   • Politely explain this distance limit and warmly invite them to visit our Live Vending Center in Malabagh (Near R. P. School Girls Wing, open Sat–Thu 8 AM–8 PM).
 

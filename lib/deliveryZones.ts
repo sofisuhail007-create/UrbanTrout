@@ -156,7 +156,7 @@ export const SRINAGAR_LOCALITY_CATALOG: LocalityData[] = [
   // ─── ZONE 2 (4.0 to 6.0 km — Free from 3 kg) ───
   { name: "Badamwari", aliases: ["badamwari", "badam wari", "badamwari garden"], lat: 34.1050, lng: 74.8150, pincode: "190003", distKm: 4.2, tier: "zone2", minKgFree: 3 },
   { name: "Alamgari Bazar", aliases: ["alamgari bazar", "alamgari bazaar", "alamgaribazar"], lat: 34.1080, lng: 74.8170, pincode: "190002", distKm: 4.3, tier: "zone2", minKgFree: 3 },
-  { name: "Nagbal", aliases: ["nagbal", "nagbal crossing", "nagbal ganderbal"], lat: 34.1850, lng: 74.8210, pincode: "190024", distKm: 4.3, tier: "zone2", minKgFree: 3 },
+  { name: "Nagbal", aliases: ["nagbal", "nagbal crossing"], lat: 34.1850, lng: 74.8210, pincode: "190024", distKm: 4.3, tier: "zone2", minKgFree: 3 },
   { name: "Saida Kadal", aliases: ["saida kadal", "saidakadal", "saida kadal bridge"], lat: 34.1090, lng: 74.8320, pincode: "190003", distKm: 4.3, tier: "zone2", minKgFree: 3 },
   { name: "Burzahama", aliases: ["burzahama", "burzuhama", "burza hama"], lat: 34.1680, lng: 74.8620, pincode: "190006", distKm: 4.3, tier: "zone2", minKgFree: 3 },
   { name: "Hawal", aliases: ["hawal", "hawal chowk", "hawal srinagar", "mirwaiz manzil"], lat: 34.1100, lng: 74.8130, pincode: "190002", distKm: 4.6, tier: "zone2", minKgFree: 3 },
@@ -199,7 +199,6 @@ export const SRINAGAR_LOCALITY_CATALOG: LocalityData[] = [
 
   // ─── ZONE 4 (11.5 to 16.0 km — South Corridor & Outskirts, Free from 4 kg) ───
   { name: "Rawalpora", aliases: ["rawalpora", "rawapora"], lat: 34.0290, lng: 74.7880, pincode: "190005", distKm: 12.0, tier: "zone4", minKgFree: 4 },
-  { name: "Ganderbal Town", aliases: ["ganderbal", "ganderbal town", "beehama"], lat: 34.2160, lng: 74.7780, pincode: "191201", distKm: 12.0, tier: "zone4", minKgFree: 4 },
   { name: "Peerbagh", aliases: ["peerbagh", "peer bagh", "pirbagh"], lat: 34.0250, lng: 74.7800, pincode: "190014", distKm: 12.5, tier: "zone4", minKgFree: 4 },
   { name: "Airport Road / Humhama", aliases: ["airport road", "humhama", "srinagar airport"], lat: 34.0150, lng: 74.7750, pincode: "190014", distKm: 13.0, tier: "zone4", minKgFree: 4 },
   { name: "Lasjan", aliases: ["lasjan", "lassjan"], lat: 34.0200, lng: 74.8450, pincode: "190015", distKm: 13.5, tier: "zone4", minKgFree: 4 },
@@ -210,7 +209,8 @@ export const SRINAGAR_LOCALITY_CATALOG: LocalityData[] = [
   { name: "Rangreth", aliases: ["rangreth", "sidco rangreth"], lat: 34.0050, lng: 74.7900, pincode: "190007", distKm: 14.0, tier: "zone4", minKgFree: 4 },
   { name: "HMT / Zainakote", aliases: ["hmt", "zainakote", "mustafabad"], lat: 34.1000, lng: 74.7300, pincode: "190012", distKm: 15.0, tier: "zone4", minKgFree: 4 },
 
-  // ─── OUT OF ZONE (> 16.0 km — Counter Pickup) ───
+  // ─── OUT OF ZONE (> 16.0 km & Outer Districts — Counter Pickup) ───
+  { name: "Ganderbal District", aliases: ["ganderbal", "ganderbal town", "beehama", "duderhama", "saloora", "tullamulla", "kangan", "wayil", "manigam", "safapora"], lat: 34.2160, lng: 74.7780, pincode: "191201", distKm: 12.0, tier: "out_of_zone", minKgFree: 0 },
   { name: "Budgam", aliases: ["budgam", "ompora"], lat: 34.0180, lng: 74.7250, pincode: "191111", distKm: 16.5, tier: "out_of_zone", minKgFree: 0 },
   { name: "Pampore", aliases: ["pampore", "saffron town"], lat: 34.0200, lng: 74.9100, pincode: "192121", distKm: 17.0, tier: "out_of_zone", minKgFree: 0 },
   { name: "Chadoora", aliases: ["chadoora", "chadure"], lat: 33.9500, lng: 74.8000, pincode: "191113", distKm: 19.0, tier: "out_of_zone", minKgFree: 0 },

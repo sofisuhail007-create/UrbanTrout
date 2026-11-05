@@ -307,7 +307,6 @@ const KNOWN_IN_ZONE_AREAS = [
   { pattern: /\b(?:natipora)\b/i, name: "Natipora", dist: 12.5, minKg: 4 },
   { pattern: /\b(?:peerbagh|peer\s*bagh|pirbagh|pir\s*bagh)\b/i, name: "Peerbagh", dist: 14.5, minKg: 4 },
   { pattern: /\b(?:airport\s*road|humhama)\b/i, name: "Airport Road / Humhama", dist: 15.0, minKg: 4 },
-  { pattern: /\b(?:ganderbal)\b/i, name: "Ganderbal", dist: 12.0, minKg: 4 },
   { pattern: /\b(?:bagh[- ]e[- ]mehtab|baghi\s*mehtab)\b/i, name: "Bagh-e-Mehtab", dist: 14.0, minKg: 4 },
   { pattern: /\b(?:kralpora|kral\s*pora)\b/i, name: "Kralpora", dist: 15.5, minKg: 4 },
   { pattern: /\b(?:rangreth)\b/i, name: "Rangreth", dist: 15.5, minKg: 4 },
@@ -324,6 +323,7 @@ const KNOWN_IN_ZONE_AREAS = [
 
 const KNOWN_OUT_ZONE_AREAS = [
   // ── Beyond 16 km / Outer Districts (Store Walk-in Only) ──
+  { pattern: /\b(?:ganderbal|beehama|bihama|duderhama|dudurhama|saloora|salora|tullamulla|tulmulla|kangan|wayil|manigam|safapora|wussan)\b/i, name: "Ganderbal District" },
   { pattern: /\b(?:bagati\s*kanipora|b\.?k\.?\s*pora|bk\s*pora|kanipora\s*budgam|kanipora)\b/i, name: "Bagati Kanipora (BK Pora)" },
   { pattern: /\b(?:pampore)\b/i, name: "Pampore" },
   { pattern: /\b(?:chadoora|chadure)\b/i, name: "Chadoora" },
@@ -816,6 +816,7 @@ async function createRazorpayPaymentLink({ amount, customerPhone, customerName, 
             console.log(`[Razorpay Link Generated] Amount: ₹${amount} -> ${json.short_url} (${json.id})`);
             resolve({
               url: json.short_url,
+              short_url: json.short_url,
               id: json.id,
               ref
             });
@@ -2295,7 +2296,7 @@ async function generateGeminiReply(chatId, userMessage, customerPhone, customerN
         : isEarlyPreDawn
         ? (isFridayToday ? "scheduled for Saturday morning (8:00 AM – 11:00 AM)" : "scheduled for today's morning harvest (8:00 AM – 11:00 AM)")
         : "delivered within 2 hours";
-      fastReorderReply = `Wonderful! I've prepared your usual order for ${vipProfile.usualWeightKg} kg ${vipProfile.usualCut} to ${vipProfile.locality} (${timeNote}).\n\nPlease tap the link below to complete payment and confirm live harvest:\n${vipProfile.reorderPayTag}\n\nOur farm team in Malabagh will harvest them fresh from our cold-water tanks, pack them in clean food-grade packs, and dispatch straight to your door! 🐟`;
+      fastReorderReply = `Here is your order summary and secure payment link for ${vipProfile.usualWeightKg} kg ${vipProfile.usualCut} to ${vipProfile.locality} (${timeNote} upon payment confirmation):\n\n${vipProfile.reorderPayTag}\n\n⚡ *Important Note:* Fresh live harvest from our oxygen-saturated cold water tanks begins immediately *after* payment confirmation. Please complete payment above to lock your slot and confirm live harvest! 🐟`;
     } else if (parsedQuantity) {
       // Customer asked for ANY quantity (e.g. 1kg, 2kg, 3kg, 4kg) — share payment link NO STRINGS ATTACHED!
       const reqWeight = parsedQuantity.weightKg;
@@ -2332,7 +2333,7 @@ async function generateGeminiReply(chatId, userMessage, customerPhone, customerN
         : isEarlyPreDawn
         ? "scheduled for today's morning harvest (8:00 AM – 11:00 AM)"
         : "delivered within 2 hours";
-      fastReorderReply = `Wonderful! I've prepared your order for ${reqWeight} kg ${reqCut} to ${targetLocality} (${timeNote}).\n\nPlease tap the link below to complete payment and confirm live harvest:\n[PAY_LINK: ${pricing.amount} : ${pricing.tagDesc}]\n\nOur farm team in Malabagh will harvest them fresh from our cold-water tanks, pack them in clean food-grade packs, and dispatch straight to your door! 🐟`;
+      fastReorderReply = `Here is your order summary and secure payment link for ${reqWeight} kg ${reqCut} to ${targetLocality} (${timeNote} upon payment confirmation):\n\n[PAY_LINK: ${pricing.amount} : ${pricing.tagDesc}]\n\n⚡ *Important Note:* Fresh live harvest from our oxygen-saturated cold water tanks begins immediately *after* payment confirmation. Please complete payment above to lock your slot and confirm live harvest! 🐟`;
     }
   }
 
@@ -3145,8 +3146,9 @@ ${fridayOperatingNote}
    - Immediate express delivery within Srinagar is delivered within 2 hours of payment confirmation.
    - Customers CAN schedule deliveries for ANY preferred future date & time slot between 8:00 AM and 8:00 PM.
    - NEVER tell a customer that we do not offer scheduled future deliveries! We happily take scheduled orders.
-3. 100% UPFRONT PAYMENT LAW & TRUST-BUILDER FOR CASH/COD INQUIRIES:
+3. 100% UPFRONT PAYMENT LAW & STRICT PRE-PAYMENT HARVEST RULE:
    - We harvest live swimming fish ONLY upon upfront payment confirmation via locked Razorpay link. We do NOT stock dead fish or freeze pre-harvested fish.
+   - CRITICAL PRE-PAYMENT HARVEST RULE: NEVER say "I've prepared your order", "Your order is confirmed", or imply live harvest or delivery dispatch has started before payment! An order is NOT confirmed and fish is NEVER harvested until payment confirmation is received. When providing payment links or summaries, frame it clearly: "Here is your official order summary and secure payment link. Live harvest begins immediately upon payment confirmation so your trout is 100% fresh from our oxygenated tanks."
    - TRUST-BUILDER WHEN CUSTOMER ASKS FOR COD, CASH, POD, OR HESITATES TO PAY VIA LINK:
      Explain concisely (maximum 4 lines):
      "We completely understand! Here is why we operate strictly via secure upfront link:
@@ -3164,9 +3166,9 @@ ${fridayOperatingNote}
    - TIER 3 (7.0 to 11.5 km): 100% FREE on 3 kg+ (Cleaned & Gutted ₹1,740). 2 kg = ₹1,229 (only ₹69 courier fee). 1 kg = ₹659 (₹79 fee).
      Confirmed areas: Karan Nagar, Lal Chowk, Khayam, Dalgate, Qamarwari, Nishat, Brein, Balgarden.
    - TIER 4 (11.5 to 16.0 km): 100% FREE on 4 kg family pack (Cleaned & Gutted ₹2,320). 3 kg = ₹1,819 (₹79 fee). 2 kg = ₹1,259 (₹99 fee). 1 kg = ₹719 (₹139 fee).
-     Confirmed areas: Barzulla, Baghat Barzulla, Rambagh, Solina, Gogji Bagh, Wazir Bagh, Tulsi Bagh, Hazuri Bagh, Iqbal Park, Sonwar, Batamaloo, Bemina, Rajbagh, Jawahar Nagar, Alochi Bagh, Magarmal Bagh, Sanat Nagar, Rawalpora, Hyderpora, Chanapora, Natipora, Peerbagh, Airport Road / Humhama, Ganderbal, Bagh-e-Mehtab, Kralpora, Rangreth, Lasjan, Nowgam, Padshahi Bagh, Pantha Chowk, Soiteng, Pandrathan, Athwajan, Pohru, Mochu, HMT, Zainakote, Umerabad.
-   - CONFIRMED OUT-ZONE AREAS (> 16 km): Bagati Kanipora (BK Pora), Pampore, Chadoora, Lawaypora, Narbal, Harwan, Budgam, Ompora, Baramulla, Anantnag, Jammu.
-     No delivery beyond 16 km to maintain cold chain. Direct them to visit Live Vending Center in Malabagh.
+     Confirmed areas: Barzulla, Baghat Barzulla, Rambagh, Solina, Gogji Bagh, Wazir Bagh, Tulsi Bagh, Hazuri Bagh, Iqbal Park, Sonwar, Batamaloo, Bemina, Rajbagh, Jawahar Nagar, Alochi Bagh, Magarmal Bagh, Sanat Nagar, Rawalpora, Hyderpora, Chanapora, Natipora, Peerbagh, Airport Road / Humhama, Bagh-e-Mehtab, Kralpora, Rangreth, Lasjan, Nowgam, Padshahi Bagh, Pantha Chowk, Soiteng, Pandrathan, Athwajan, Pohru, Mochu, HMT, Zainakote, Umerabad.
+   - CONFIRMED OUT-ZONE AREAS (> 16 km & OUTER DISTRICTS): Ganderbal District (Beehama, Duderhama, Saloora, Tullamulla, Kangan, Wayil, etc.), Bagati Kanipora (BK Pora), Pampore, Chadoora, Lawaypora, Narbal, Harwan, Budgam, Ompora, Baramulla, Anantnag, Jammu.
+     No delivery to outer districts or beyond 16 km to maintain cold chain. Direct them to visit Live Vending Center in Malabagh.
    - CRITICAL REVENUE PROTECTION RULE (NEVER BLINDLY DISCARD LEADS):
      If a customer mentions a locality, colony, or address that is NOT on the confirmed lists, NEVER ASSUME OR GUESS IT IS OUTSIDE ZONE!
      DO NOT reject them or send the outside-zone message!
@@ -5070,6 +5072,11 @@ async function startBot() {
           } else {
             courierFee = (orderWeight >= 4) ? 0 : (orderWeight >= 3 ? (79 + surgeGps) : (orderWeight >= 2 ? (99 + surgeGps) : (139 + surgeGps)));
           }
+
+          // PRICE LOCK: If bot previously quoted a specific courier fee in chat, honor the quoted price
+          if (chatHist.some(m => m.role === "model" && m.text && (m.text.includes("₹39") || m.text.includes("₹1199")))) {
+            courierFee = Math.min(courierFee, 39 + surgeGps);
+          }
           const totalPayable = fishCost + courierFee;
           const itemsDesc = `${orderWeight} kg × ${isWhole ? "Whole Fresh Trout" : "Cleaned & Gutted (Pan-Ready)"}`;
           const randSuffix = Math.floor(10 + Math.random() * 90);
@@ -5084,7 +5091,7 @@ async function startBot() {
               orderRef: orderRef,
               description: itemsDesc
             });
-            generatedPayUrl = rzpRes.short_url;
+            generatedPayUrl = rzpRes.url || rzpRes.short_url || "https://urbantrout.in";
           } catch (plErr) {
             console.error("Razorpay link generation failed on location pin:", plErr.message);
           }
@@ -5112,8 +5119,8 @@ async function startBot() {
             amount: `₹${totalPayable}`,
             status: "Payment Link Sent (Awaiting Upfront Payment)",
             payUrl: generatedPayUrl,
-            latitude: lat,
-            longitude: lon,
+            latitude: detectedLat,
+            longitude: detectedLng,
             googleMapsUrl: mapsUrl,
             deliveryArea: detectedLocalityName || "Srinagar",
             distanceKm: distRounded,
@@ -5532,6 +5539,7 @@ if (require.main === module) {
     geocodeAddressWithNominatim,
     customAreas,
     deliveryZoneDb,
-    formatOrderSummaryCard
+    formatOrderSummaryCard,
+    createRazorpayPaymentLink
   };
 }

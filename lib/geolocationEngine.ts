@@ -130,7 +130,6 @@ export const CORE_IN_ZONE_AREAS: Array<{ pattern: RegExp; name: string; dist: nu
   // ── Zone 4: South Corridor & Outskirts (11.5–16 km, Free on 4 kg) ──
   { pattern: /\b(?:rawalpora|rawapora)\b/i, name: "Rawalpora", dist: 12.0, minKg: 4 },
   { pattern: /\b(?:athwajan)\b/i, name: "Athwajan", dist: 12.0, minKg: 4 },
-  { pattern: /\b(?:ganderbal|beehama|beehama\s*ganderbal)\b/i, name: "Ganderbal Town", dist: 12.0, minKg: 4 },
   { pattern: /\b(?:peerbagh|peer\s*bagh|pirbagh)\b/i, name: "Peerbagh", dist: 12.5, minKg: 4 },
   { pattern: /\b(?:soiteng|suiteng)\b/i, name: "Soiteng", dist: 12.5, minKg: 4 },
   { pattern: /\b(?:bagh[- ]e[- ]mehtab|baghi\s*mehtab)\b/i, name: "Bagh-e-Mehtab", dist: 12.5, minKg: 4 },
@@ -145,8 +144,9 @@ export const CORE_IN_ZONE_AREAS: Array<{ pattern: RegExp; name: string; dist: nu
   { pattern: /\b(?:hmt|zainakote|mustafabad)\b/i, name: "HMT / Zainakote", dist: 15.0, minKg: 4 }
 ];
 
-// Strict Out-of-Zone Localities (> 16 km)
+// Strict Out-of-Zone Localities (> 16 km & Outer Districts)
 export const CORE_OUT_ZONE_AREAS: Array<{ pattern: RegExp; name: string }> = [
+  { pattern: /\b(?:ganderbal|beehama|bihama|duderhama|dudurhama|saloora|salora|tullamulla|tulmulla|kangan|wayil|manigam|safapora|wussan)\b/i, name: "Ganderbal District" },
   { pattern: /\b(?:pampore)\b/i, name: "Pampore" },
   { pattern: /\b(?:chadoora|chadure)\b/i, name: "Chadoora" },
   { pattern: /\b(?:lawaypora|lawapora|narbal)\b/i, name: "Lawaypora / Narbal" },
