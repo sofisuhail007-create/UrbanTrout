@@ -4660,7 +4660,8 @@ async function startBot() {
       }
 
       // Owner Command: #delivered or #done - Mark order delivered and remove from active dispatch
-      if (lower.startsWith("#delivered") || lower.startsWith("#done")) {
+      const isDeliveredCmd = lower.startsWith("#delivered") || lower.startsWith("#done") || lower.startsWith("#complete") || /^#order\s+(?:delivered|deliverred|done|complete|completed)/i.test(lower);
+      if (isDeliveredCmd) {
         try {
           const ordersFilePath = path.join(__dirname, "customer_orders.json");
           let orders = {};
@@ -4702,14 +4703,14 @@ async function startBot() {
           order.deliveredAt = new Date().toISOString();
           recordNewCustomerOrder(targetKey, order);
 
-          await sock.sendMessage(remoteJid, {
-            text: `✅ *Order #${order.orderRef} Marked Delivered!* 🐟\n\nCustomer: ${order.name || "Customer"} (+91 ${order.phone || targetKey})\nItems: ${order.items || "Fresh Trout"}\nStatus: Delivered & Completed ✅\nRemoved from active dispatch queue.`
-          });
-
-          // Post update to Telegram
-          try {
-            await sendTelegramMessage(`✅ <b>ORDER DELIVERED &amp; COMPLETED!</b> 🐟\n━━━━━━━━━━━━━━━━━━━━━━\n📦 <b>Order Ref:</b> #${order.orderRef}\n👤 <b>Customer:</b> ${order.name || "Customer"} (+91 ${order.phone || targetKey})\n🎉 <i>Delivered fresh to doorstep!</i>`);
-          } catch (_) {}
+          // If typed in owner self-chat or owner private chat, send admin reply.
+          // In customer chats, do NOT send internal admin text to the customer!
+          const isCustomerChat = !isSelfChat && !cleanPhone.endsWith("7006604148");
+          if (!isCustomerChat) {
+            await sock.sendMessage(remoteJid, {
+              text: `✅ *Order #${order.orderRef} Marked Delivered!* 🐟\n\nCustomer: ${order.name || "Customer"} (+91 ${order.phone || targetKey})\nItems: ${order.items || "Fresh Trout"}\nStatus: Delivered & Completed ✅\nRemoved from active dispatch queue.`
+            });
+          }
         } catch (delivErr) {
           await sock.sendMessage(remoteJid, { text: `⚠️ Error marking delivered: ${delivErr.message}` });
         }

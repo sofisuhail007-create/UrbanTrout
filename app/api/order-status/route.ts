@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { sendOrderStatusUpdateEmail } from "@/lib/email";
-import { getOrderKeyboard, sendTelegramMessage } from "@/lib/telegram";
 import { requireAdminAuth } from "@/lib/adminAuth";
 
 const getServiceClient = () => {
@@ -129,28 +128,6 @@ export async function POST(request: Request) {
       }
     } catch (emailErr) {
       console.warn("[order-status] Email notification failed (non-blocking):", emailErr);
-    }
-
-    // 3. Log status change in Telegram group with WhatsApp customer update button
-    try {
-      const statusLabels: Record<string, string> = {
-        processing: "✅ Payment Verified (Order Confirmed & Harvesting)",
-        out_for_delivery: "🚚 Out for Delivery (Rider Dispatched)",
-        delivered: "✨ Delivered to Customer",
-        cancelled: "❌ Order Cancelled",
-      };
-
-      if (statusLabels[status]) {
-        const cleanPhone = String(updatedOrder.customer_phone || "").replace(/\D/g, "").slice(-10);
-        const kb = getOrderKeyboard(updatedOrder.order_number, status, cleanPhone, updatedOrder.customer_name);
-        await sendTelegramMessage(
-          `📋 <b>ORDER STATUS UPDATED VIA ADMIN PANEL</b>\n━━━━━━━━━━━━━━━━━━━━\n<b>Order ID:</b> <code>#${updatedOrder.order_number}</code>\n<b>Customer:</b> ${updatedOrder.customer_name} (<a href="tel:+91${cleanPhone}">+91 ${cleanPhone}</a>)\n<b>New Status:</b> <b>${statusLabels[status]}</b>`,
-          "HTML",
-          kb
-        );
-      }
-    } catch (tgErr) {
-      console.warn("[order-status] Telegram notification failed (non-blocking):", tgErr);
     }
 
     // 4. Trigger Instant Web Push Notification to customer's phone/desktop
