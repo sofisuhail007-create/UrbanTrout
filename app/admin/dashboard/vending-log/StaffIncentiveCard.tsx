@@ -137,8 +137,77 @@ export default function StaffIncentiveCard({
         </div>
       </div>
 
-      {/* ─── 4-Column Structured Flash Cards (Clear Answers to All Questions) ─── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5 my-4">
+      {/* ─── 5-Column Structured Flash Cards (Includes Dedicated Due Balance Card) ─── */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-3 sm:gap-3.5 my-4">
+        {/* CARD 0: TOTAL NET DUE BALANCE */}
+        <div
+          className={`p-4 rounded-2xl bg-gradient-to-br ${
+            balanceRemaining > 0
+              ? "from-amber-950/40 via-slate-900 to-slate-950 border-amber-500/50 shadow-lg shadow-amber-950/20"
+              : "from-emerald-950/40 via-slate-900 to-slate-950 border-emerald-500/40 shadow-lg shadow-emerald-950/20"
+          } border relative overflow-hidden flex flex-col justify-between group`}
+        >
+          <div>
+            <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
+              <span
+                className={`text-[10px] uppercase font-bold tracking-wider flex items-center gap-1 ${
+                  balanceRemaining > 0 ? "text-amber-300" : "text-emerald-300"
+                }`}
+              >
+                <span className="material-symbols-outlined text-[14px]">account_balance_wallet</span>
+                <span>Due Balance</span>
+              </span>
+              <span
+                className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold border ${
+                  balanceRemaining > 0
+                    ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
+                    : "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                }`}
+              >
+                {balanceRemaining > 0 ? "Pending Due" : "Settled ✓"}
+              </span>
+            </div>
+            <div className="mt-2 flex items-baseline gap-1.5">
+              <span
+                className={`text-xl font-bold font-mono ${
+                  balanceRemaining > 0 ? "text-amber-400" : "text-emerald-400"
+                }`}
+              >
+                ₹
+              </span>
+              <span
+                className="text-3xl font-black text-white font-mono tracking-tight"
+                style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+              >
+                {balanceRemaining.toLocaleString("en-IN")}
+              </span>
+            </div>
+          </div>
+          <div className="mt-3 pt-2 border-t border-slate-800/80 text-[11px] text-slate-400 font-mono flex items-center justify-between">
+            <span className="truncate">
+              {thisMonthBalanceDue > 0
+                ? `${thisMonthLabel.split(" ")[0]}: ₹${thisMonthBalanceDue}`
+                : "Month Clear"}
+              {balanceRemaining - thisMonthBalanceDue > 0
+                ? ` · Past: ₹${balanceRemaining - thisMonthBalanceDue}`
+                : ""}
+            </span>
+            {balanceRemaining > 0 && onOpenPayoutModal ? (
+              <button
+                type="button"
+                onClick={onOpenPayoutModal}
+                className="text-[10.5px] font-bold text-amber-300 hover:text-amber-200 underline font-mono cursor-pointer flex items-center gap-0.5"
+                title="Disburse pending incentive payout"
+              >
+                <span>Pay</span>
+                <span className="material-symbols-outlined text-[11px]">arrow_forward</span>
+              </button>
+            ) : (
+              <span className="text-emerald-400 font-bold">Clear ✓</span>
+            )}
+          </div>
+        </div>
+
         {/* CARD 1: EARNED TODAY */}
         <div className="p-4 rounded-2xl bg-gradient-to-br from-purple-950/40 via-slate-900 to-slate-950 border border-purple-500/30 shadow-lg relative overflow-hidden flex flex-col justify-between">
           <div>

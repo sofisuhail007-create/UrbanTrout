@@ -1951,8 +1951,107 @@ export default function VendingCenterLoggerPage() {
     // Extra pure profit from surplus (procurement cost saved that directly becomes 100% whole profit)
     const surplusProfitBonus = Math.round(periodTotalSurplusKg * procurementAvgCost);
 
+    // ─── Operating Days & Sales Pace (Excluding Fridays - Weekly Bio-security Closed Days) ───
+    const todayStr = getTodayDate();
+    const [ty, tm, td] = todayStr.split("-").map(Number);
+    const currDate =
+      ty && tm && td ? new Date(ty, tm - 1, td) : new Date();
+
+    let operatingDaysCount = 1;
+    let monthTotalOperatingDays = 26; // Default standard non-Friday days in month
+    const uniqueSalesDaysCount = new Set(filteredEntriesByPeriod.map((e) => e.entry_date)).size;
+
+    if (period === "today" || period === "yesterday" || period === "date") {
+      operatingDaysCount = 1;
+    } else if (period === "week") {
+      // Rolling 7 days in IST contains exactly 6 operating days (1 Friday closure)
+      operatingDaysCount = 6;
+    } else if (period === "month") {
+      const targetMonth = selectedMonth || todayStr.slice(0, 7);
+      const [my, mm] = targetMonth.split("-").map(Number);
+      const daysInTargetMonth = new Date(my, mm, 0).getDate();
+      const isCurrentMonth = targetMonth === todayStr.slice(0, 7);
+      const isPastMonth = targetMonth < todayStr.slice(0, 7);
+
+      // Total non-Friday days across the entire calendar month
+      let totalNonFridaysInMonth = 0;
+      for (let day = 1; day <= daysInTargetMonth; day++) {
+        const dObj = new Date(my, mm - 1, day);
+        if (dObj.getDay() !== 5) {
+          totalNonFridaysInMonth++;
+        }
+      }
+      monthTotalOperatingDays = totalNonFridaysInMonth || 26;
+
+      if (isCurrentMonth) {
+        // Elapsed non-Friday operating days up to today
+        let elapsedNonFridays = 0;
+        const currentDayNum = Math.min(currDate.getDate(), daysInTargetMonth);
+        for (let day = 1; day <= currentDayNum; day++) {
+          const dObj = new Date(my, mm - 1, day);
+          if (dObj.getDay() !== 5) {
+            elapsedNonFridays++;
+          }
+        }
+        operatingDaysCount = Math.max(1, elapsedNonFridays);
+      } else if (isPastMonth) {
+        operatingDaysCount = Math.max(1, totalNonFridaysInMonth);
+      } else {
+        operatingDaysCount = Math.max(1, totalNonFridaysInMonth);
+      }
+    } else if (period === "custom") {
+      if (customStartDate && customEndDate) {
+        const [sy, sm, sd] = customStartDate.split("-").map(Number);
+        const [ey, em, ed] = customEndDate.split("-").map(Number);
+        const startD = new Date(sy, sm - 1, sd);
+        const endD = new Date(ey, em - 1, ed);
+        const effectiveEnd = endD > currDate ? currDate : endD;
+        let countNonFridays = 0;
+        const cur = new Date(startD);
+        while (cur <= effectiveEnd) {
+          if (cur.getDay() !== 5) {
+            countNonFridays++;
+          }
+          cur.setDate(cur.getDate() + 1);
+        }
+        operatingDaysCount = Math.max(1, countNonFridays);
+      } else {
+        operatingDaysCount = Math.max(1, uniqueSalesDaysCount);
+      }
+    } else {
+      // period === "all"
+      const uniqueDates = Array.from(new Set(filteredEntriesByPeriod.map((e) => e.entry_date)));
+      const nonFridayDates = uniqueDates.filter((dStr) => {
+        const [dy, dm, dd] = dStr.split("-").map(Number);
+        return new Date(dy, dm - 1, dd).getDay() !== 5;
+      });
+      operatingDaysCount = Math.max(1, nonFridayDates.length || uniqueSalesDaysCount);
+    }
+
+    // Daily pace vs Target of 20 Kg/day
+    const dailyTargetKg = 20;
+    const avgKgPerDay = Math.round((totalKg / Math.max(1, operatingDaysCount)) * 10) / 10;
+    const dailyTargetDiff = Math.round((avgKgPerDay - dailyTargetKg) * 10) / 10;
+    const dailyTargetPct = Math.round((avgKgPerDay / dailyTargetKg) * 100);
+
+    // Projected Monthly Volume (Pace × Operating Days in Month)
+    const projectedMonthlyKg =
+      period === "month"
+        ? selectedMonth && selectedMonth < todayStr.slice(0, 7)
+          ? Math.round(totalKg)
+          : Math.round(avgKgPerDay * monthTotalOperatingDays)
+        : Math.round(avgKgPerDay * 26);
+
     return {
       totalKg,
+      avgKgPerDay,
+      dailyTargetKg,
+      dailyTargetDiff,
+      dailyTargetPct,
+      operatingDaysCount,
+      uniqueSalesDaysCount,
+      monthTotalOperatingDays,
+      projectedMonthlyKg,
       totalRevenue,
       totalExpected,
       totalLoss,
@@ -2027,7 +2126,7 @@ export default function VendingCenterLoggerPage() {
       deliveryProfitMarginPercent,
       avgDeliveryProfitPerKg,
     };
-  }, [filteredEntriesByPeriod, procurementAvgCost, surplusInfoMap, specialRules]);
+  }, [filteredEntriesByPeriod, procurementAvgCost, surplusInfoMap, specialRules, period, selectedMonth, selectedDate, customStartDate, customEndDate, getTodayDate]);
 
   // ─── Period Supplier Volume Rebate (Khyber Aquaculture Slabs) ───
   const periodSupplierRebate = useMemo(() => {
@@ -5272,6 +5371,81 @@ export default function VendingCenterLoggerPage() {
                   </div>
                   <div className="text-[10.5px] text-slate-500 truncate">
                     {kpis.count} total dispatches {kpis.periodCreditCount > 0 ? `(${kpis.periodCreditCount} on credit)` : ""}
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 1.5: Average Kg Sold Per Operating Day (Target 20 Kg/day, excl. Friday) */}
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-[#0a0a0a] border border-[#222222] relative overflow-hidden flex flex-col justify-between group hover:border-emerald-500/40 transition-all">
+                <div>
+                  <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
+                    <span className="font-bold tracking-wider flex items-center gap-1.5">
+                      <span>AVG KG / DAY</span>
+                      <span
+                        className={`px-1.5 py-0.2 rounded text-[9px] font-bold border ${
+                          kpis.avgKgPerDay >= 20
+                            ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                            : "bg-amber-500/20 text-amber-300 border-amber-500/40"
+                        }`}
+                        title="Urban Trout target is 20 Kg per operating day (excluding Fridays) to achieve >= 500 Kg/month"
+                      >
+                        {kpis.avgKgPerDay >= 20 ? "Target Met ✓" : "Below 20 Kg"}
+                      </span>
+                    </span>
+                    <span className="material-symbols-outlined text-emerald-400 text-lg">trending_up</span>
+                  </div>
+                  <div className="mt-2 flex items-baseline gap-1.5 min-h-[32px]">
+                    {loading && entries.length === 0 ? (
+                      <div className="h-7 w-28 bg-emerald-500/10 rounded animate-pulse" />
+                    ) : (
+                      <>
+                        <span
+                          className="text-2xl sm:text-3xl font-semibold font-mono tabular-nums text-white"
+                          style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                        >
+                          {kpis.avgKgPerDay.toFixed(1)}
+                        </span>
+                        <span className="text-emerald-400 font-bold font-mono text-sm">Kg/day</span>
+                        <span
+                          className={`text-xs font-mono font-bold ml-1 ${
+                            kpis.dailyTargetDiff >= 0 ? "text-emerald-400" : "text-amber-400"
+                          }`}
+                        >
+                          ({kpis.dailyTargetDiff >= 0 ? "+" : ""}{kpis.dailyTargetDiff.toFixed(1)} vs 20)
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-[#222222]/80 pt-2.5 space-y-0.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-300">
+                      Target: <strong className="text-white">20 Kg</strong>/day
+                    </span>
+                    <span
+                      className={`font-bold ${
+                        kpis.dailyTargetPct >= 100 ? "text-emerald-400" : "text-amber-400"
+                      }`}
+                    >
+                      {kpis.dailyTargetPct}% pace
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between text-[10.5px] text-slate-500 truncate">
+                    <span>
+                      {kpis.operatingDaysCount} operating {kpis.operatingDaysCount === 1 ? "day" : "days"} (excl. Fri)
+                    </span>
+                    {period === "month" && (
+                      <span
+                        className={
+                          kpis.projectedMonthlyKg >= 500
+                            ? "text-emerald-400 font-semibold"
+                            : "text-amber-400 font-semibold"
+                        }
+                        title={`Projected: ${kpis.avgKgPerDay.toFixed(1)} Kg × ${kpis.monthTotalOperatingDays} operating days`}
+                      >
+                        Proj: ~{kpis.projectedMonthlyKg} / 500 Kg
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
