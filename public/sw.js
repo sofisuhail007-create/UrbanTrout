@@ -6,8 +6,7 @@ const STATIC_ASSETS = [
   "/icon-192.png",
   "/icon-512.png",
   "/apple-touch-icon.png",
-  "/offline-pos.html",
-  "/qr",
+    "/qr",
 ];
 
 self.addEventListener("message", (event) => {
@@ -69,16 +68,7 @@ self.addEventListener("fetch", (event) => {
           // Fallback only if device is completely offline
           const cached = await caches.match(event.request);
           if (cached) return cached;
-          if (
-            url.pathname.startsWith("/admin") ||
-            url.pathname.startsWith("/qr") ||
-            url.pathname.startsWith("/offline-pos")
-          ) {
-            const offlinePos = await caches.match("/offline-pos.html");
-            if (offlinePos) return offlinePos;
-          }
-          const defaultOffline = await caches.match("/offline-pos.html");
-          return defaultOffline || caches.match("/favicon.ico");
+          return caches.match("/favicon.ico");
         })
     );
     return;

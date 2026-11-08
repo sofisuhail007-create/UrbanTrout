@@ -26,10 +26,10 @@ process.on("unhandledRejection", (reason) => {
 // ============================================================================
 // URBAN TROUT SALES AGENT — BUILD & VERSION TRACKING
 // ============================================================================
-const BOT_VERSION = "2.4.0";
-const BOT_LAST_UPDATED = "06-Nov-2026, 08:35 PM IST";
-const BOT_RELEASE_TITLE = "Hostinger Cloud VPS Edition";
-const BOT_RELEASE_NOTES = "Location-First Order Summary Lock • Frictionless Minimalist Order Card & QR • Cultural Salam Compliance";
+const BOT_VERSION = "2.5.0";
+const BOT_LAST_UPDATED = "08-Nov-2026, 11:30 PM IST";
+const BOT_RELEASE_TITLE = "Hostinger Cloud VPS Edition (Order Pool & Advance Scheduling)";
+const BOT_RELEASE_NOTES = "Dynamic Daily Order Pool • Advance Delivery Scheduling • Single Payment Link Reuse • Size vs Quantity Shield";
 
 // ============================================================================
 // STRICT VVIP MANUAL-ONLY LIST (AI MUST NEVER TEXT UNDER ANY CIRCUMSTANCE)
