@@ -1,4 +1,4 @@
-const CACHE_NAME = "urban-trout-v5";
+const CACHE_NAME = "urban-trout-v6";
 const STATIC_ASSETS = [
   "/favicon.ico",
   "/headerfooterlogo.png",
@@ -6,6 +6,8 @@ const STATIC_ASSETS = [
   "/icon-192.png",
   "/icon-512.png",
   "/apple-touch-icon.png",
+  "/offline-pos.html",
+  "/qr",
 ];
 
 self.addEventListener("message", (event) => {
@@ -43,11 +45,10 @@ self.addEventListener("fetch", (event) => {
 
   const url = new URL(event.request.url);
 
-  // Skip API routes, admin, checkout, Next.js RSC requests, fonts, or external origins
+  // Skip API routes, checkout, Next.js RSC requests, fonts, or external origins
   if (
     url.origin !== self.location.origin ||
     url.pathname.startsWith("/api/") ||
-    url.pathname.startsWith("/admin") ||
     url.pathname.startsWith("/checkout") ||
     url.pathname.startsWith("/fonts/") ||
     url.searchParams.has("_rsc") ||
@@ -67,7 +68,17 @@ self.addEventListener("fetch", (event) => {
         .catch(async () => {
           // Fallback only if device is completely offline
           const cached = await caches.match(event.request);
-          return cached || caches.match("/favicon.ico");
+          if (cached) return cached;
+          if (
+            url.pathname.startsWith("/admin") ||
+            url.pathname.startsWith("/qr") ||
+            url.pathname.startsWith("/offline-pos")
+          ) {
+            const offlinePos = await caches.match("/offline-pos.html");
+            if (offlinePos) return offlinePos;
+          }
+          const defaultOffline = await caches.match("/offline-pos.html");
+          return defaultOffline || caches.match("/favicon.ico");
         })
     );
     return;

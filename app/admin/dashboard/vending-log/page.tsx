@@ -5319,12 +5319,24 @@ export default function VendingCenterLoggerPage() {
               </button>
             </div>
 
-            <div className="text-[11px] font-mono text-slate-500 pr-2 hidden lg:block">
-              {kpiCategory === "sales" && "Showing counter sales, revenue & cash flow"}
-              {kpiCategory === "aquarium" && "Showing live aquarium biomass, stock & mortality"}
-              {kpiCategory === "staff" && "Showing Mohd Amin wages & incentive payouts"}
-              {kpiCategory === "expenses" && "Showing Vending Center operational overheads, ice, packaging & maintenance"}
-              {kpiCategory === "all" && "Showing all sections"}
+            <div className="flex items-center gap-2">
+              <div className="text-[11px] font-mono text-slate-500 pr-2 hidden lg:block">
+                {kpiCategory === "sales" && "Showing counter sales, revenue & cash flow"}
+                {kpiCategory === "aquarium" && "Showing live aquarium biomass, stock & mortality"}
+                {kpiCategory === "staff" && "Showing Mohd Amin wages & incentive payouts"}
+                {kpiCategory === "expenses" && "Showing Vending Center operational overheads, ice, packaging & maintenance"}
+                {kpiCategory === "all" && "Showing all sections"}
+              </div>
+              <a
+                href="/offline-pos.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[11px] font-mono font-bold transition-all"
+                title="Zero Internet Counter POS & Locked Soundbox QR (Works 100% offline during shop WiFi outages)"
+              >
+                <span className="material-symbols-outlined text-sm">wifi_off</span>
+                <span>Offline POS</span>
+              </a>
             </div>
           </div>
         )}
@@ -6018,6 +6030,54 @@ export default function VendingCenterLoggerPage() {
                     >
                       + Log Mortality
                     </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 9.8: Mohd Amin Wages & Incentive Due */}
+              <div className="p-3.5 sm:p-4 rounded-2xl bg-[#0a0a0a] border border-[#222222] relative overflow-hidden flex flex-col justify-between group hover:border-purple-500/40 transition-all">
+                <div>
+                  <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
+                    <span className="text-purple-300 font-bold tracking-wider flex items-center gap-1.5">
+                      <span>STAFF WAGES DUE</span>
+                      <span
+                        className={`px-1.5 py-0.2 rounded text-[9px] font-bold border ${
+                          incentiveStats.balanceRemaining > 0
+                            ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
+                            : "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
+                        }`}
+                      >
+                        {incentiveStats.balanceRemaining > 0 ? "Pending Due" : "Settled ✓"}
+                      </span>
+                    </span>
+                    <span className="material-symbols-outlined text-purple-400 text-lg">badge</span>
+                  </div>
+                  <div className="mt-2 flex items-baseline gap-1 min-h-[32px]">
+                    <span className={incentiveStats.balanceRemaining > 0 ? "text-amber-400 font-bold text-lg" : "text-emerald-400 font-bold text-lg"}>₹</span>
+                    <span
+                      className="text-2xl sm:text-3xl font-semibold font-mono tabular-nums text-white"
+                      style={{ fontFamily: '"Space Grotesk", sans-serif' }}
+                    >
+                      {incentiveStats.balanceRemaining.toLocaleString("en-IN")}
+                    </span>
+                    <span className="text-[11px] font-mono text-slate-400 ml-1">Mohd Amin</span>
+                  </div>
+                </div>
+                <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-[#222222]/80 pt-2.5 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-300">
+                      Today: ₹{incentiveStats.todayEarned} ({formatKg(incentiveStats.todayGuttedKg)} Kg)
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setKpiCategory("staff")}
+                      className="text-[10px] text-purple-400 hover:text-purple-300 underline font-bold cursor-pointer"
+                    >
+                      View Ledger →
+                    </button>
+                  </div>
+                  <div className="text-[10.5px] text-slate-500 truncate">
+                    Month incentive: ₹{incentiveStats.thisMonthEarned} · Base: ₹10,500/mo
                   </div>
                 </div>
               </div>
