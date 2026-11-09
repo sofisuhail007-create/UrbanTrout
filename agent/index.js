@@ -4424,9 +4424,11 @@ async function startBot() {
     }
 
     // 10-digit customer phone
+    let explicitPhone = null;
     let targetCustPhone = null;
     const phoneMatch = text.match(/\b([6-9]\d{9})\b/);
     if (phoneMatch) {
+      explicitPhone = phoneMatch[1];
       targetCustPhone = phoneMatch[1];
     } else if (defaultPhone && defaultPhone.length >= 10) {
       targetCustPhone = defaultPhone.slice(-10);
@@ -4449,6 +4451,7 @@ async function startBot() {
     const targetCustName = notesText.length > 1 ? notesText : (targetCustPhone ? `Customer (+91 ${targetCustPhone})` : "Customer");
 
     return {
+      explicitPhone,
       deliveryFee,
       directTotalAmount,
       weightKg,
@@ -4554,7 +4557,6 @@ async function startBot() {
         throw new Error("Failed to generate QR image buffer");
       }
 
-      const payUrl = targetOrder?.payUrl || "https://rzp.io/l/urbantrout";
       const cleanItemDesc = (itemsDesc || "Cleaned & Gutted Trout")
         .replace(/\s*\(Pan-Ready\)/i, "")
         .replace(/\s*\(Family Pack\)/i, "")
@@ -4565,8 +4567,7 @@ async function startBot() {
         `• *Amount:* *₹${amt}* (Pre-filled & Locked)\n` +
         `• *Ref:* #${orderRef}\n\n` +
         `👉 *Scan & Pay with any UPI app:* PhonePe, Google Pay, Paytm, or J&K Bank mPay.\n` +
-        `Live harvest begins immediately upon payment confirmation! 🚀\n\n` +
-        `_(Or tap to pay online: ${payUrl})_`;
+        `Live harvest begins immediately upon payment confirmation! 🚀`;
 
       const qrMsg = await sock.sendMessage(remoteJid, {
         image: qrBuffer,
@@ -4876,14 +4877,18 @@ async function startBot() {
       // Owner Command: #qr or #scanner - Send locked QR image into customer chat (#qr 2kg, #qr 1740, etc.)
       if (lower.startsWith("#qr") || lower.startsWith("#scanner")) {
         const parsed = parseQuickOrderParams(text, cleanPhone || raw10);
-        const targetPhone = parsed.targetCustPhone || (cleanPhone || raw10);
-        let targetJid = !isSelfChat ? remoteJid : (targetPhone ? `91${targetPhone}@s.whatsapp.net` : null);
+        
+        let targetJid = null;
+        let targetPhone = null;
 
-        if (!targetJid) {
-          await sock.sendMessage(remoteJid, {
-            text: "⚠️ *Usage:* Reply *#qr [weight/amount]* inside customer chat (e.g. *#qr 2kg* or *#qr 1740*), or *#qr 2kg 9876543210* in self-chat."
-          });
-          return;
+        if (parsed.explicitPhone) {
+          // Explicit phone passed in command (e.g. #qr 2kg 7006604148 or #qr 1740 9876543210)
+          targetPhone = parsed.explicitPhone;
+          targetJid = `91${targetPhone}@s.whatsapp.net`;
+        } else {
+          // No phone in command -> send directly into the current chat
+          targetJid = remoteJid;
+          targetPhone = cleanPhone || raw10 || (remoteJid.includes("@s.whatsapp.net") ? remoteJid.split("@")[0].replace(/\D/g, "").slice(-10) : null);
         }
 
         const chatHist = chatHistories.get(targetJid) || [];
@@ -4902,9 +4907,9 @@ async function startBot() {
 
         if (success) {
           humanOverrides.set(targetJid, Date.now() + 30 * 60 * 1000);
-          if (isSelfChat || targetJid !== remoteJid) {
+          if (targetJid !== remoteJid) {
             await sock.sendMessage(remoteJid, {
-              text: `✅ *Locked QR Code Dispatched!* 🐟\nDelivered ${finalAmt ? `*₹${finalAmt.toLocaleString("en-IN")}*` : "locked"} QR image to ${formatPhoneDisplay(targetPhone)}${parsed.targetCustName && parsed.targetCustName !== "Customer" ? ` (${parsed.targetCustName})` : ""}.`
+              text: `✅ *Locked QR Code Dispatched!* 🐟\nDelivered ${finalAmt ? `*₹${finalAmt.toLocaleString("en-IN")}*` : "locked"} QR image directly to ${formatPhoneDisplay(targetPhone)}${parsed.targetCustName && parsed.targetCustName !== "Customer" ? ` (${parsed.targetCustName})` : ""}.`
             });
           }
         }
@@ -5258,47 +5263,30 @@ async function startBot() {
             payUrl: payObj.url
           });
 
-          // If owner typed directly inside customer chat, send card straight to customer!
-          if (!isSelfChat) {
-            humanOverrides.set(remoteJid, Date.now() + 30 * 60 * 1000);
-            await sock.sendMessage(remoteJid, { text: orderCard });
-            console.log(`✅ [Direct Link in Customer Chat] Order #${payObj.ref} sent directly to ${remoteJid}`);
-            return;
-          }
-
-          // If in self-chat and customer phone was provided, dispatch to customer!
-          let sentDirectToCustomer = false;
-          if (customerJid) {
+          // If customer phone was explicitly provided and differs from the current chat, dispatch to customer!
+          if (phoneMatch && customerJid && customerJid !== remoteJid) {
             try {
               await sock.sendMessage(customerJid, { text: orderCard });
-              sentDirectToCustomer = true;
+              humanOverrides.set(customerJid, Date.now() + 30 * 60 * 1000);
               console.log(`✅ [Direct WhatsApp Link Sent] Delivered directly to customer ${customerJid}!`);
+              await sock.sendMessage(remoteJid, {
+                text: `✅ *Order #${payObj.ref} Generated & Dispatched!* 🚀\n\n` +
+                  `• *Customer:* ${targetCustName} (+91 ${targetCustPhone})\n` +
+                  `• *Item:* ${weightKg ? `${weightKg} kg ${prodType}` : itemDesc}\n` +
+                  `• *Total Payable:* *₹${totalAmount}*\n` +
+                  `• *Payment Link:* ${payObj.url}\n\n` +
+                  `📩 *Order summary and payment link delivered directly to customer (+91 ${targetCustPhone}) on WhatsApp!*`
+              });
+              return;
             } catch (custSendErr) {
               console.error(`❌ [Customer Send Error]: Could not send to ${customerJid}:`, custSendErr.message);
             }
           }
 
-          // Message to Owner in self chat
-          if (sentDirectToCustomer) {
-            await sock.sendMessage(remoteJid, {
-              text: `✅ *Order #${payObj.ref} Generated & Dispatched!* 🚀\n\n` +
-                `• *Customer:* ${targetCustName} (+91 ${targetCustPhone})\n` +
-                `• *Item:* ${weightKg ? `${weightKg} kg ${prodType}` : itemDesc}\n` +
-                `• *Total Payable:* *₹${totalAmount}*\n` +
-                `• *Payment Link:* ${payObj.url}\n\n` +
-                `📩 *Order summary and payment link delivered directly to customer (+91 ${targetCustPhone}) on WhatsApp!* They will receive an automated payment receipt the moment they complete payment.`
-            });
-          } else {
-            await sock.sendMessage(remoteJid, {
-              text: `✅ *Order #${payObj.ref} Generated Successfully!*\n\n` +
-                `• *Item:* ${weightKg ? `${weightKg} kg ${prodType}` : itemDesc}\n` +
-                `• *Total Payable:* *₹${totalAmount}*\n` +
-                `• *Payment Link:* ${payObj.url}\n\n` +
-                `👇 *Forward the message below directly to your customer:*`
-            });
-            await sock.sendMessage(remoteJid, { text: orderCard });
-          }
-          console.log(`✅ [Owner Quick-Link Sent] Order #${payObj.ref} processed`);
+          // Otherwise (typed in customer chat or self-chat without another phone), send card to current chat!
+          humanOverrides.set(remoteJid, Date.now() + 30 * 60 * 1000);
+          await sock.sendMessage(remoteJid, { text: orderCard });
+          console.log(`✅ [Direct Link in Current Chat] Order #${payObj.ref} sent to ${remoteJid}`);
           return;
         } catch (linkErr) {
           console.error(`❌ [Owner Quick-Link Error]:`, linkErr);
