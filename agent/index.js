@@ -925,7 +925,7 @@ function formatOrderSummaryCard({
 💳 *Tap to Pay Online (UPI / GPay / Cards):*
 ${payUrl}
 
-📷 _Prefer UPI QR? Reply *"Send Scanner"* to receive your locked QR image._
+📷 _Prefer UPI QR? Reply *"Send QR"* to receive your locked QR image._
 🕒 _${slotDisplay}_`;
 }
 
@@ -3146,7 +3146,7 @@ CRITICAL READABILITY & MAXIMUM BREVITY MANDATE (ANSWER ONLY WHAT IS REQUIRED):
    • Under NO circumstances should you EVER output [PAY_LINK: ...], generate an order summary card, or share a QR code UNLESS the customer's delivery locality or area in Srinagar is confirmed!
    • NEVER write order summary bullet points (e.g. "Order Summary", "Total Payable: ...", "Delivery Address: ...") before knowing their location!
    • Our delivery fees and minimum order quantities depend entirely on their delivery area (0–4 km, 4–7 km, 7–11.5 km, 11.5–16 km from Malabagh). Without knowing their area, the total payable amount CANNOT be calculated!
-   • If a customer says "Need 2 kg", "Send 1 kg", "Price", "Send scanner", "QR please", "Book order", "Confirm", or asks to pay, BUT has NOT mentioned their area, colony, or landmark in Srinagar:
+   • If a customer says "Need 2 kg", "Send 1 kg", "Price", "Send QR", "Send scanner", "QR please", "Book order", "Confirm", or asks to pay, BUT has NOT mentioned their area, colony, or landmark in Srinagar:
      - Acknowledge their requested quantity warmly.
      - State the price (₹580/kg Cleaned & Gutted).
      - STRICT MANDATE: Ask for their delivery area: "Which area, locality, or landmark in Srinagar should we deliver to (e.g. Soura, Lal Chowk, Rajbagh, Hyderpora)? Or you can share a quick WhatsApp location pin so our system can verify your delivery terms and generate your official order summary and payment link / QR code right away! 🐟"
@@ -3266,9 +3266,9 @@ Example (Outer Corridor, 4 kg):
 Our payment engine will automatically replace that tag with an official, organized order summary card breaking down all charges (fish price, delivery fee, clean double packaging, total amount) and a secure Razorpay payment link.
 NEVER write any raw UPI ID, bank details, or generic payment methods in text. ONLY output the [PAY_LINK: ...] tag!
 
-SCANNER & QR CODE REQUEST HANDLING ("SCANNER BHEJO" / "SEND QR CODE"):
+SCANNER & QR CODE REQUEST HANDLING ("SEND QR" / "SCANNER BHEJO" / "SEND QR CODE"):
 • Customers often prefer scanning a QR code with PhonePe, Google Pay, or J&K Bank mPay.
-• When a customer asks for a "scanner", "QR", "scanner bhejo", or "send scanner":
+• When a customer asks for a "QR", "Send QR", "scanner", "QR please", "scanner bhejo", or "send scanner":
   - If their delivery area or locality in Srinagar is NOT confirmed yet:
     Ask for their area: "Which area, locality, or landmark in Srinagar should we deliver to (e.g. Soura, Lal Chowk, Rajbagh, Hyderpora)? Or drop a quick WhatsApp location pin so our system can confirm your delivery terms and generate your exact locked QR scanner right away! 🐟"
     DO NOT output [PAY_LINK: ...] without a confirmed locality!
@@ -4350,7 +4350,119 @@ async function startBot() {
     return false;
   }
 
-  async function dispatchLockedQrImage(sock, remoteJid, { cleanPhone, raw10, customerName, forceAmount, forceRef, chatHist = [] }) {
+  // Helper to parse quick order commands (#link 2kg, #qr 2kg, #qr 1740, #link 3kg +200, etc.)
+  function parseQuickOrderParams(text, defaultPhone = null) {
+    let deliveryFee = 0;
+    const plusFeeMatch = text.match(/\+\s*(?:rs\.?|inr|₹)?\s*(\d+)/i);
+    const delFeeMatch = text.match(/(?:delivery|del|d|shipping|charge|charges|fee)\s*(?:fee|charges?)?\s*(?:is|=|:|\+)?\s*(?:rs\.?|inr|₹)?\s*(\d+)/i);
+    const numDelFeeMatch = text.match(/(\d+)\s*(?:rs\.?|inr|₹)?\s*(?:delivery|del|shipping)/i);
+
+    if (plusFeeMatch) {
+      deliveryFee = parseInt(plusFeeMatch[1], 10) || 0;
+    } else if (delFeeMatch) {
+      deliveryFee = parseInt(delFeeMatch[1], 10) || 0;
+    } else if (numDelFeeMatch) {
+      deliveryFee = parseInt(numDelFeeMatch[1], 10) || 0;
+    }
+
+    // Direct total amount (e.g. #qr 1740, #link 1740, #1740, #pay 1740)
+    let directTotalAmount = null;
+    const directAmtMatch = text.match(/(?:#qr|#scanner|#link|#pay|#order|#amount|#total|#)\s*(?:rs\.?|inr|₹)?\s*(\d{3,6})\b/i);
+    if (directAmtMatch && !text.match(new RegExp(`${directAmtMatch[1]}\s*(?:kg|kilos?|kgs)`, 'i'))) {
+      const possibleAmt = parseInt(directAmtMatch[1], 10);
+      if (possibleAmt >= 300 && !/\b[6-9]\d{9}\b/.test(directAmtMatch[1])) {
+        directTotalAmount = possibleAmt;
+      }
+    }
+
+    // Weight: e.g. 2kg, 2.5kg, 3 kilos, 3 kgs, or explicit weight number
+    let weightKg = null;
+    const weightMatchWithUnit = text.match(/(\d+(?:\.\d+)?)\s*(?:kg|kilos?|kgs)\b/i);
+    if (weightMatchWithUnit) {
+      weightKg = Math.round(parseFloat(weightMatchWithUnit[1]) * 100) / 100;
+    } else if (!directTotalAmount) {
+      const smallNumMatch = text.match(/#?(?:qr|scanner|link|order|pay)?\s*(\d+(?:\.\d+)?)\b/i);
+      if (smallNumMatch) {
+        const val = parseFloat(smallNumMatch[1]);
+        if (val > 0 && val <= 50) {
+          weightKg = Math.round(val * 100) / 100;
+        }
+      }
+    }
+
+    // Fallback delivery fee if typed e.g. "#qr 3kg 200" without + sign
+    if (deliveryFee === 0 && weightKg && !directTotalAmount) {
+      const stripped = text
+        .replace(new RegExp(`\b${weightKg}\s*(?:kg|kilos?|kgs)?\b`, "gi"), "")
+        .replace(/\b[6-9]\d{9}\b/g, "")
+        .replace(/#(?:qr|scanner|link|order|pay)?/gi, "");
+      const standaloneFee = stripped.match(/\b([5-9]0|[1-5]\d{2})\b/);
+      if (standaloneFee) {
+        deliveryFee = parseInt(standaloneFee[1], 10) || 0;
+      }
+    }
+
+    // Cut type: Whole vs Gutted
+    const isWhole = /\b(?:whole|sabut)\b/i.test(text);
+    const rate = isWhole ? 540 : 580;
+    const prodType = isWhole ? "Whole Fresh Trout" : "Cleaned & Gutted (Pan-ready)";
+
+    let totalAmount = null;
+    let itemDesc = null;
+
+    if (directTotalAmount) {
+      totalAmount = directTotalAmount;
+      if (weightKg) {
+        itemDesc = `${weightKg}kg ${prodType}${deliveryFee > 0 ? ` (+₹${deliveryFee} Delivery)` : ""}`;
+      } else {
+        itemDesc = `${prodType} Order`;
+      }
+    } else if (weightKg) {
+      const fishTotal = Math.round(weightKg * rate);
+      totalAmount = fishTotal + deliveryFee;
+      itemDesc = `${weightKg}kg ${prodType}${deliveryFee > 0 ? ` (+₹${deliveryFee} Delivery)` : ""}`;
+    }
+
+    // 10-digit customer phone
+    let targetCustPhone = null;
+    const phoneMatch = text.match(/\b([6-9]\d{9})\b/);
+    if (phoneMatch) {
+      targetCustPhone = phoneMatch[1];
+    } else if (defaultPhone && defaultPhone.length >= 10) {
+      targetCustPhone = defaultPhone.slice(-10);
+    }
+
+    // Customer Name / Notes
+    let notesText = text
+      .replace(/#(?:qr|scanner|link|order|pay)?/gi, "")
+      .replace(/\b\d+(?:\.\d+)?\s*(?:kg|kilos?|kgs)\b/gi, "")
+      .replace(/\b(?:cleaned|gutted|whole|sabut|kg|kilos?|kgs)\b/gi, "")
+      .replace(/\b[6-9]\d{9}\b/g, "")
+      .replace(/\+\s*(?:rs\.?|inr|₹)?\s*\d+/gi, "")
+      .replace(/(?:delivery|del|d|shipping|charge|charges|fee)\s*(?:fee|charges?)?\s*(?:is|=|:|\+)?\s*(?:rs\.?|inr|₹)?\s*\d+/gi, "")
+      .replace(/\b\d+\s*(?:rs\.?|inr|₹)?\s*(?:delivery|del|shipping)\b/gi, "")
+      .replace(/\b([5-9]0|[1-5]\d{2})\b/g, "")
+      .replace(/\b\d{3,6}\b/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+
+    const targetCustName = notesText.length > 1 ? notesText : (targetCustPhone ? `Customer (+91 ${targetCustPhone})` : "Customer");
+
+    return {
+      deliveryFee,
+      directTotalAmount,
+      weightKg,
+      isWhole,
+      rate,
+      prodType,
+      totalAmount,
+      itemDesc,
+      targetCustPhone,
+      targetCustName
+    };
+  }
+
+  async function dispatchLockedQrImage(sock, remoteJid, { cleanPhone, raw10, customerName, forceAmount, forceRef, forceDesc, bypassLocationGuard = false, chatHist = [] }) {
     try {
       const ordersFilePath = path.join(__dirname, "customer_orders.json");
       let orders = {};
@@ -4369,10 +4481,10 @@ async function startBot() {
         targetOrder
       });
 
-      if (!locationConfirmed) {
+      if (!bypassLocationGuard && !locationConfirmed) {
         console.log(`[QR Guard] Blocked QR dispatch for ${remoteJid} — location is unverified.`);
         await sock.sendMessage(remoteJid, {
-          text: `📍 *To generate your locked QR scanner:* Which area, locality, or landmark in Srinagar should we deliver to (e.g. Soura, Lal Chowk, Rajbagh, Hyderpora)?\n\nOr drop a quick WhatsApp location pin so our system can confirm your delivery terms and dispatch your exact locked QR scanner right away! 🐟`
+          text: `📍 *To generate your locked QR code:* Which area, locality, or landmark in Srinagar should we deliver to (e.g. Soura, Lal Chowk, Rajbagh, Hyderpora)?\n\nOr drop a quick WhatsApp location pin so our system can confirm your delivery terms and dispatch your exact locked QR code right away! 🐟`
         });
         return true; // Handled
       }
@@ -4402,7 +4514,7 @@ async function startBot() {
       const orderRef = forceRef || targetOrder?.orderRef || `UT-WA-${Date.now().toString().slice(-8)}`;
 
       // 3. Resolve items description
-      let itemsDesc = targetOrder?.items;
+      let itemsDesc = forceDesc || targetOrder?.items;
       if (!itemsDesc) {
         if (amt >= 2300) itemsDesc = "4 kg Cleaned & Gutted (Family Pack)";
         else if (amt >= 1700) itemsDesc = "3 kg Cleaned & Gutted (Pan-Ready)";
@@ -4448,7 +4560,7 @@ async function startBot() {
         .replace(/\s*\(Family Pack\)/i, "")
         .replace(/\s*\(Starter Pack\)/i, "");
 
-      const caption = `🐟 *URBAN TROUT • UPI QR SCANNER*\n` +
+      const caption = `🐟 *URBAN TROUT • UPI QR CODE*\n` +
         `• *Order:* ${cleanItemDesc}\n` +
         `• *Amount:* *₹${amt}* (Pre-filled & Locked)\n` +
         `• *Ref:* #${orderRef}\n\n` +
@@ -4732,7 +4844,12 @@ async function startBot() {
             `• *#paid 9876543210 1259* (Confirm payment for specific phone number)\n` +
             `• *#delivered* (Mark order as delivered & remove from active queue)\n` +
             `• *#delivered 9876543210* (Mark order delivered by phone or ref)\n` +
-            `• *#qr* or *#qr 1259* (Instantly drop locked UPI QR image in customer chat)\n\n` +
+            `• *#qr 2kg* (Cleaned & Gutted @ ₹580 * 2 = ₹1,160 locked UPI QR)\n` +
+            `• *#qr 1740* (Direct flat ₹1,740 locked UPI QR)\n` +
+            `• *#qr 3kg +200* (3kg Gutted + ₹200 delivery = ₹1,940 QR)\n` +
+            `• *#qr 2.5kg whole* (Whole Fresh @ ₹540 * 2.5 = ₹1,350 QR)\n` +
+            `• *#qr 2kg 9876543210* (Send locked QR image directly to customer)\n` +
+            `• *#qr* (Drop locked QR for current active order)\n\n` +
             `⚡ *Instant Payment Link Shortcuts:*\n` +
             `• *#3kg +200* (3kg Gutted + ₹200 delivery = ₹1,940)\n` +
             `• *#link 3kg +200* (3kg Gutted + ₹200 delivery)\n` +
@@ -4756,34 +4873,40 @@ async function startBot() {
         return;
       }
 
-      // Owner Command: #qr or #scanner - Send locked QR image into customer chat
+      // Owner Command: #qr or #scanner - Send locked QR image into customer chat (#qr 2kg, #qr 1740, etc.)
       if (lower.startsWith("#qr") || lower.startsWith("#scanner")) {
-        const amtMatch = text.match(/\b(\d{3,5})\b/);
-        const forceAmt = amtMatch ? parseInt(amtMatch[1], 10) : null;
-        const phoneMatch = text.match(/\b([6-9]\d{9})\b/);
-        const targetPhone = phoneMatch ? phoneMatch[1] : (cleanPhone || raw10);
+        const parsed = parseQuickOrderParams(text, cleanPhone || raw10);
+        const targetPhone = parsed.targetCustPhone || (cleanPhone || raw10);
         let targetJid = !isSelfChat ? remoteJid : (targetPhone ? `91${targetPhone}@s.whatsapp.net` : null);
 
         if (!targetJid) {
           await sock.sendMessage(remoteJid, {
-            text: "⚠️ *Usage:* Reply *#qr [amount]* inside customer chat, or *#qr 9876543210 1259*"
+            text: "⚠️ *Usage:* Reply *#qr [weight/amount]* inside customer chat (e.g. *#qr 2kg* or *#qr 1740*), or *#qr 2kg 9876543210* in self-chat."
           });
           return;
         }
 
         const chatHist = chatHistories.get(targetJid) || [];
+        const finalAmt = parsed.totalAmount || null;
+        const finalDesc = parsed.itemDesc || null;
+
         const success = await dispatchLockedQrImage(sock, targetJid, {
           cleanPhone: targetPhone,
           raw10: targetPhone,
-          customerName: customerName || "Customer",
-          forceAmount: forceAmt,
+          customerName: parsed.targetCustName || customerName || "Customer",
+          forceAmount: finalAmt,
+          forceDesc: finalDesc,
+          bypassLocationGuard: true,
           chatHist
         });
 
-        if (success && (isSelfChat || targetJid !== remoteJid)) {
-          await sock.sendMessage(remoteJid, {
-            text: `✅ *Locked QR Scanner Image Dispatched!* 🐟\nDelivered to ${formatPhoneDisplay(targetPhone)}.`
-          });
+        if (success) {
+          humanOverrides.set(targetJid, Date.now() + 30 * 60 * 1000);
+          if (isSelfChat || targetJid !== remoteJid) {
+            await sock.sendMessage(remoteJid, {
+              text: `✅ *Locked QR Code Dispatched!* 🐟\nDelivered ${finalAmt ? `*₹${finalAmt.toLocaleString("en-IN")}*` : "locked"} QR image to ${formatPhoneDisplay(targetPhone)}${parsed.targetCustName && parsed.targetCustName !== "Customer" ? ` (${parsed.targetCustName})` : ""}.`
+            });
+          }
         }
         return;
       }

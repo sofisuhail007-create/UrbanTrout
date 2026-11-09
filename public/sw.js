@@ -1,4 +1,4 @@
-const CACHE_NAME = "urban-trout-v6";
+const CACHE_NAME = "urban-trout-v7";
 const STATIC_ASSETS = [
   "/favicon.ico",
   "/headerfooterlogo.png",
@@ -6,7 +6,8 @@ const STATIC_ASSETS = [
   "/icon-192.png",
   "/icon-512.png",
   "/apple-touch-icon.png",
-    "/qr",
+  "/offline-pos.html",
+  "/qr",
 ];
 
 self.addEventListener("message", (event) => {
@@ -68,6 +69,14 @@ self.addEventListener("fetch", (event) => {
           // Fallback only if device is completely offline
           const cached = await caches.match(event.request);
           if (cached) return cached;
+          if (
+            url.pathname.startsWith("/admin") ||
+            url.pathname.startsWith("/qr") ||
+            url.pathname.startsWith("/offline-pos")
+          ) {
+            const offlinePos = await caches.match("/offline-pos.html");
+            if (offlinePos) return offlinePos;
+          }
           return caches.match("/favicon.ico");
         })
     );
