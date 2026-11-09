@@ -5319,24 +5319,12 @@ export default function VendingCenterLoggerPage() {
               </button>
             </div>
 
-            <div className="flex items-center gap-2">
-              <div className="text-[11px] font-mono text-slate-500 pr-2 hidden lg:block">
-                {kpiCategory === "sales" && "Showing counter sales, revenue & cash flow"}
-                {kpiCategory === "aquarium" && "Showing live aquarium biomass, stock & mortality"}
-                {kpiCategory === "staff" && "Showing Mohd Amin wages & incentive payouts"}
-                {kpiCategory === "expenses" && "Showing Vending Center operational overheads, ice, packaging & maintenance"}
-                {kpiCategory === "all" && "Showing all sections"}
-              </div>
-              <a
-                href="/offline-pos.html"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[11px] font-mono font-bold transition-all"
-                title="Zero Internet Counter POS & Locked Soundbox QR (Works 100% offline during shop WiFi outages)"
-              >
-                <span className="material-symbols-outlined text-sm">wifi_off</span>
-                <span>Offline POS</span>
-              </a>
+            <div className="text-[11px] font-mono text-slate-500 pr-2 hidden lg:block">
+              {kpiCategory === "sales" && "Showing counter sales, revenue & cash flow"}
+              {kpiCategory === "aquarium" && "Showing live aquarium biomass, stock & mortality"}
+              {kpiCategory === "staff" && "Showing Mohd Amin wages & incentive payouts"}
+              {kpiCategory === "expenses" && "Showing Vending Center operational overheads, ice, packaging & maintenance"}
+              {kpiCategory === "all" && "Showing all sections"}
             </div>
           </div>
         )}
@@ -5383,81 +5371,6 @@ export default function VendingCenterLoggerPage() {
                   </div>
                   <div className="text-[10.5px] text-slate-500 truncate">
                     {kpis.count} total dispatches {kpis.periodCreditCount > 0 ? `(${kpis.periodCreditCount} on credit)` : ""}
-                  </div>
-                </div>
-              </div>
-
-              {/* Card 1.5: Average Kg Sold Per Operating Day (Target 20 Kg/day, excl. Friday) */}
-              <div className="p-3.5 sm:p-4 rounded-2xl bg-[#0a0a0a] border border-[#222222] relative overflow-hidden flex flex-col justify-between group hover:border-emerald-500/40 transition-all">
-                <div>
-                  <div className="flex items-center justify-between text-slate-400 text-xs font-mono">
-                    <span className="font-bold tracking-wider flex items-center gap-1.5">
-                      <span>AVG KG / DAY</span>
-                      <span
-                        className={`px-1.5 py-0.2 rounded text-[9px] font-bold border ${
-                          kpis.avgKgPerDay >= 20
-                            ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40"
-                            : "bg-amber-500/20 text-amber-300 border-amber-500/40"
-                        }`}
-                        title="Urban Trout target is 20 Kg per operating day (excluding Fridays) to achieve >= 500 Kg/month"
-                      >
-                        {kpis.avgKgPerDay >= 20 ? "Target Met ✓" : "Below 20 Kg"}
-                      </span>
-                    </span>
-                    <span className="material-symbols-outlined text-emerald-400 text-lg">trending_up</span>
-                  </div>
-                  <div className="mt-2 flex items-baseline gap-1.5 min-h-[32px]">
-                    {loading && entries.length === 0 ? (
-                      <div className="h-7 w-28 bg-emerald-500/10 rounded animate-pulse" />
-                    ) : (
-                      <>
-                        <span
-                          className="text-2xl sm:text-3xl font-semibold font-mono tabular-nums text-white"
-                          style={{ fontFamily: '"Space Grotesk", sans-serif' }}
-                        >
-                          {kpis.avgKgPerDay.toFixed(1)}
-                        </span>
-                        <span className="text-emerald-400 font-bold font-mono text-sm">Kg/day</span>
-                        <span
-                          className={`text-xs font-mono font-bold ml-1 ${
-                            kpis.dailyTargetDiff >= 0 ? "text-emerald-400" : "text-amber-400"
-                          }`}
-                        >
-                          ({kpis.dailyTargetDiff >= 0 ? "+" : ""}{kpis.dailyTargetDiff.toFixed(1)} vs 20)
-                        </span>
-                      </>
-                    )}
-                  </div>
-                </div>
-                <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-[#222222]/80 pt-2.5 space-y-0.5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-300">
-                      Target: <strong className="text-white">20 Kg</strong>/day
-                    </span>
-                    <span
-                      className={`font-bold ${
-                        kpis.dailyTargetPct >= 100 ? "text-emerald-400" : "text-amber-400"
-                      }`}
-                    >
-                      {kpis.dailyTargetPct}% pace
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between text-[10.5px] text-slate-500 truncate">
-                    <span>
-                      {kpis.operatingDaysCount} operating {kpis.operatingDaysCount === 1 ? "day" : "days"} (excl. Fri)
-                    </span>
-                    {period === "month" && (
-                      <span
-                        className={
-                          kpis.projectedMonthlyKg >= 500
-                            ? "text-emerald-400 font-semibold"
-                            : "text-amber-400 font-semibold"
-                        }
-                        title={`Projected: ${kpis.avgKgPerDay.toFixed(1)} Kg × ${kpis.monthTotalOperatingDays} operating days`}
-                      >
-                        Proj: ~{kpis.projectedMonthlyKg} / 500 Kg
-                      </span>
-                    )}
                   </div>
                 </div>
               </div>

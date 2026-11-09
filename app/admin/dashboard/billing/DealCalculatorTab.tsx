@@ -1043,27 +1043,15 @@ Naseem Bagh / Malabagh, Srinagar`;
                   </span>
                 )}
               </div>
-              <div className="flex items-center gap-1.5">
-                <a
-                  href="/offline-pos.html"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="px-2.5 py-1 rounded-md bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-xs font-mono font-bold flex items-center gap-1 transition-colors"
-                  title="Open Standalone Offline POS & Soundbox QR (Works 100% offline with zero internet during shop WiFi outages)"
-                >
-                  <span className="material-symbols-outlined text-sm">wifi_off</span>
-                  <span className="hidden sm:inline">Offline POS</span>
-                </a>
-                <button
-                  type="button"
-                  onClick={() => handleAddDealItem()}
-                  className="px-2.5 py-1 rounded-md bg-[#161616] hover:bg-[#222222] border border-[#333333] text-zinc-200 text-xs font-mono font-medium flex items-center gap-1 cursor-pointer transition-colors"
-                  title="Add another package or variety to this bargained deal (e.g. 3kg gutted & 2kg whole)"
-                >
-                  <span className="text-sm leading-none font-bold">+</span>
-                  <span>Add Item</span>
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={() => handleAddDealItem()}
+                className="px-2.5 py-1 rounded-md bg-[#161616] hover:bg-[#222222] border border-[#333333] text-zinc-200 text-xs font-mono font-medium flex items-center gap-1 cursor-pointer transition-colors"
+                title="Add another package or variety to this bargained deal (e.g. 3kg gutted & 2kg whole)"
+              >
+                <span className="text-sm leading-none font-bold">+</span>
+                <span>Add Item</span>
+              </button>
             </div>
 
             {/* Deal Items Chips List */}

@@ -14,7 +14,8 @@
 -- Admin logs fresh batches whenever new fish arrive from Khyber Aquaculture.
 -- The latest cumulative total is the shared pool available for both products.
 
-CREATE OR REPLACE VIEW public.aquarium_available_stock AS
+CREATE OR REPLACE VIEW public.aquarium_available_stock
+WITH (security_invoker = true) AS
 SELECT
   GREATEST(
     0,
@@ -33,7 +34,8 @@ GRANT SELECT ON public.aquarium_available_stock TO authenticated;
 -- =========================================================================
 -- OPTIONAL: If you want per-day totals (useful for admin dashboards later)
 -- =========================================================================
-CREATE OR REPLACE VIEW public.aquarium_stock_by_date AS
+CREATE OR REPLACE VIEW public.aquarium_stock_by_date
+WITH (security_invoker = true) AS
 SELECT
   stock_date,
   supplier_name,

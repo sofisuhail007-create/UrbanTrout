@@ -134,18 +134,8 @@ function QuickQrContent() {
             <p className="text-[10px] text-cyan-400 font-bold uppercase tracking-wider mt-0.5">Rider Instant Locked QR</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <a
-            href="/offline-pos.html"
-            className="flex items-center gap-1 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/40 text-amber-300 px-2 py-1 rounded-full text-[10px] font-bold font-mono transition-colors"
-            title="Works 100% offline with zero internet during WiFi downtime"
-          >
-            <span>📶</span>
-            <span>Offline POS</span>
-          </a>
-          <div className="flex items-center gap-1.5 bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 px-2.5 py-1 rounded-full text-xs font-bold font-mono">
-            <span>{gateway === "razorpay" ? "⚡ Auto-Telegram" : "🔒 0% Fee J&K"}</span>
-          </div>
+        <div className="flex items-center gap-1.5 bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 px-2.5 py-1 rounded-full text-xs font-bold font-mono">
+          <span>{gateway === "razorpay" ? "⚡ Auto-Telegram" : "🔒 0% Fee J&K"}</span>
         </div>
       </div>
 

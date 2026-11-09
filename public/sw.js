@@ -6,7 +6,6 @@ const STATIC_ASSETS = [
   "/icon-192.png",
   "/icon-512.png",
   "/apple-touch-icon.png",
-  "/offline-pos.html",
   "/qr",
 ];
 
@@ -72,10 +71,7 @@ self.addEventListener("fetch", (event) => {
           if (
             url.pathname.startsWith("/admin") ||
             url.pathname.startsWith("/qr") ||
-            url.pathname.startsWith("/offline-pos")
           ) {
-            const offlinePos = await caches.match("/offline-pos.html");
-            if (offlinePos) return offlinePos;
           }
           return caches.match("/favicon.ico");
         })
