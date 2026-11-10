@@ -9,23 +9,30 @@ function getISTDateObj(d) {
 }
 
 function loadPrimaryPhones() {
-  const desktopDir = path.join(process.env.USERPROFILE || 'C:\\Users\\Suhail - CGIT', 'Desktop');
-  const possiblePaths = [
-    path.join(desktopDir, 'My Primary Contacts.vcf'),
-    path.join(__dirname, 'My Primary Contacts.vcf')
-  ];
+  const desktopDir = process.env.USERPROFILE ? path.join(process.env.USERPROFILE, 'Desktop') : null;
+  const candidateDirs = [];
+  if (desktopDir && fs.existsSync(desktopDir)) {
+    candidateDirs.push(path.join(desktopDir, 'Urban Trout', 'Contacts'));
+    candidateDirs.push(desktopDir);
+  }
+  candidateDirs.push(__dirname);
 
-  try {
-    if (fs.existsSync(desktopDir)) {
-      const files = fs.readdirSync(desktopDir);
-      for (const f of files) {
+  const existingCandidates = [];
+  for (const dir of candidateDirs) {
+    if (!fs.existsSync(dir)) continue;
+    try {
+      for (const f of fs.readdirSync(dir)) {
         if (/primary.*contact.*\.vcf$/i.test(f)) {
-          const full = path.join(desktopDir, f);
-          if (!possiblePaths.includes(full)) possiblePaths.unshift(full);
+          const full = path.join(dir, f);
+          const stat = fs.statSync(full);
+          existingCandidates.push({ path: full, mtime: stat.mtimeMs });
         }
       }
-    }
-  } catch (_) {}
+    } catch (_) {}
+  }
+  // Prefer most recently modified primary contacts VCF
+  existingCandidates.sort((a, b) => b.mtime - a.mtime);
+  const possiblePaths = existingCandidates.map(c => c.path);
 
   const primaryPhones = new Set(["9419153353", "919419153353"]); // VVIP IAS Officer protected
   const utaPrimaryMap = new Map();
@@ -819,26 +826,35 @@ function exportContacts() {
     return lines.join('\r\n');
   }).join('\r\n') + '\r\n';
 
-  const desktopDir = path.join(process.env.USERPROFILE || 'C:\\Users\\Suhail - CGIT', 'Desktop');
-  const desktopVcf = path.join(desktopDir, 'Urban_Trout_Contacts.vcf');
+  const desktopDir = process.env.USERPROFILE ? path.join(process.env.USERPROFILE, 'Desktop') : null;
   const localVcf = path.join(__dirname, 'Urban_Trout_Contacts.vcf');
   const jsonDbPath = path.join(__dirname, 'contacts_database.json');
 
   // Clean up any legacy CSV files
   const legacyFiles = [
-    path.join(desktopDir, 'Urban_Trout_Google_Contacts.csv'),
-    path.join(desktopDir, 'Urban_Trout_Outlook_Contacts.csv'),
     path.join(__dirname, 'Urban_Trout_Google_Contacts.csv'),
     path.join(__dirname, 'Urban_Trout_Outlook_Contacts.csv')
   ];
+  if (desktopDir && fs.existsSync(desktopDir)) {
+    legacyFiles.push(path.join(desktopDir, 'Urban_Trout_Google_Contacts.csv'));
+    legacyFiles.push(path.join(desktopDir, 'Urban_Trout_Outlook_Contacts.csv'));
+  }
   legacyFiles.forEach(f => {
     try {
       if (fs.existsSync(f)) fs.unlinkSync(f);
     } catch (_) {}
   });
 
-  // Write vCard files
-  fs.writeFileSync(desktopVcf, vcfContent, 'utf8');
+  // Write vCard files cleanly inside Desktop\Urban Trout\Contacts\
+  if (desktopDir && fs.existsSync(desktopDir)) {
+    try {
+      const contactsFolder = path.join(desktopDir, 'Urban Trout', 'Contacts');
+      if (!fs.existsSync(contactsFolder)) fs.mkdirSync(contactsFolder, { recursive: true });
+      const desktopVcf = path.join(contactsFolder, 'Urban_Trout_Contacts.vcf');
+      fs.writeFileSync(desktopVcf, vcfContent, 'utf8');
+      console.log(`📁 1. Organized Desktop vCard: ${desktopVcf}`);
+    } catch (_) {}
+  }
   fs.writeFileSync(localVcf, vcfContent, 'utf8');
 
   // Write JSON DB
@@ -848,9 +864,8 @@ function exportContacts() {
   if (skippedPrimaryCount > 0) {
     console.log(`🛡️ Preserved privacy: excluded ${skippedPrimaryCount} primary/personal contacts from Urban Trout export!`);
   }
-  console.log(`📁 1. Desktop vCard: ${desktopVcf}`);
-  console.log(`📁 2. Local vCard:   ${localVcf}`);
-  console.log(`📁 3. JSON Database: ${jsonDbPath}`);
+  console.log(`📁 Local vCard:   ${localVcf}`);
+  console.log(`📁 JSON Database: ${jsonDbPath}`);
 
   return contacts;
 }

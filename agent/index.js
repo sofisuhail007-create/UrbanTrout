@@ -583,6 +583,29 @@ function saveChatHistories() {
   }
 }
 
+const dailyArchiveBaseDir = path.join(__dirname, "daily_chat_archive");
+function appendDailyChatLog({ jid = "", phone = "", name = "", role = "customer", text = "", meta = null }) {
+  try {
+    if (!text && !meta) return;
+    if (!fs.existsSync(dailyArchiveBaseDir)) fs.mkdirSync(dailyArchiveBaseDir, { recursive: true });
+    const now = new Date();
+    const dateKey = now.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+    const istTime = now.toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true });
+    const logPath = path.join(dailyArchiveBaseDir, `${dateKey}.jsonl`);
+    const record = {
+      ts: now.toISOString(),
+      istTime,
+      jid,
+      phone: phone || "",
+      name: name || "",
+      role,
+      text: String(text || "").slice(0, 2000),
+      ...(meta ? { meta } : {})
+    };
+    fs.appendFileSync(logPath, JSON.stringify(record) + "\n", "utf8");
+  } catch (_) {}
+}
+
 // Clean customer names and informal honorifics so sales agent NEVER calls customer by personal name
 function scrubCustomerNames(text, customerName) {
   if (!text) return text;
@@ -4579,6 +4602,14 @@ async function startBot() {
         setTimeout(() => botSentMessageIds.delete(qrMsg.key.id), 10 * 60 * 1000);
       }
       await sock.sendPresenceUpdate("available", remoteJid);
+      appendDailyChatLog({
+        jid: remoteJid,
+        phone: cleanPhone || raw10,
+        name: customerName || targetOrder?.name || "Customer",
+        role: "ai_bot",
+        text: `[Locked QR Code ₹${amt}] ${caption}`,
+        meta: { qrRef: orderRef, amount: amt }
+      });
 
       console.log(`📷 [${isRazorpayQr ? "Razorpay" : "UPI"} Locked QR Dispatched Directly] Sent ₹${amt} locked QR image to ${formatPhoneDisplay(cleanPhone || raw10)} for #${orderRef}`);
 
@@ -5306,6 +5337,21 @@ async function startBot() {
         if (cleanPhone) humanOverrides.set(cleanPhone, expiry);
         const resolved = resolveCustomerPhone(remoteJid);
         if (resolved) humanOverrides.set(resolved, expiry);
+        const manualPhone = (resolved || cleanPhone || "").slice(-10);
+        if (text) {
+          appendDailyChatLog({
+            jid: remoteJid,
+            phone: manualPhone || cleanPhone || "",
+            name: (chatMetadata[remoteJid] && chatMetadata[remoteJid].pushName) || "",
+            role: text.startsWith("#") ? "owner_command" : "owner_manual",
+            text
+          });
+          if (!chatMetadata[remoteJid]) chatMetadata[remoteJid] = {};
+          chatMetadata[remoteJid].lastMsgRole = "human";
+          chatMetadata[remoteJid].lastHumanMsgTime = Date.now();
+          chatMetadata[remoteJid].lastHumanReply = text.slice(0, 150);
+          saveChatMetadata();
+        }
         return;
       }
     }
@@ -5400,6 +5446,14 @@ async function startBot() {
         saveChatHistories();
 
         await sock.sendMessage(remoteJid, { text: disarmReply });
+        appendDailyChatLog({
+          jid: remoteJid,
+          phone: cleanPhone || raw10,
+          name: customerName,
+          role: "ai_bot",
+          text: disarmReply,
+          meta: { escalation: escalation.category, severity: escalation.severity }
+        });
         return;
       }
     }
@@ -5648,6 +5702,14 @@ async function startBot() {
 
       await sock.sendMessage(remoteJid, { text: locReply });
       await sock.sendPresenceUpdate("available", remoteJid);
+      appendDailyChatLog({
+        jid: remoteJid,
+        phone: cleanPhone || raw10,
+        name: customerName,
+        role: "ai_bot",
+        text: locReply,
+        meta: { gpsVerified: true, distanceKm: distRounded }
+      });
       return;
     }
 
@@ -5659,6 +5721,14 @@ async function startBot() {
         const voiceReply = `Hello! Thank you for reaching out to Urban Trout Aquaculture! 🐟\n\nWe received your voice note. Our automated system cannot listen to voice notes just yet. Could you kindly reply with a short text message with your delivery locality or order quantity (1 kg / 2 kg / 3 kg)?\n\nOur team in Malabagh will assist you immediately! 😊`;
         try {
           await sock.sendMessage(remoteJid, { text: voiceReply });
+          appendDailyChatLog({
+            jid: remoteJid,
+            phone: cleanPhone || raw10,
+            name: customerName,
+            role: "ai_bot",
+            text: voiceReply,
+            meta: { voicePrompt: true }
+          });
           let chatHist = chatHistories.get(remoteJid) || [];
           chatHist.push({ role: "user", text: "[Customer sent an audio / voice note]" });
           chatHist.push({ role: "model", text: voiceReply });
@@ -5754,6 +5824,14 @@ async function startBot() {
         setTimeout(() => botSentMessageIds.delete(sentMsg.key.id), 10 * 60 * 1000);
       }
       await sock.sendPresenceUpdate("available", remoteJid);
+      appendDailyChatLog({
+        jid: remoteJid,
+        phone: cleanPhone || raw10,
+        name: customerName,
+        role: "ai_bot",
+        text: aiReply,
+        meta: { responseMs: responseTimeMs, locality: activeLocality }
+      });
 
       // Track bot response in metadata
       chatMetadata[remoteJid].lastBotMsgTime = Date.now();
@@ -5890,6 +5968,26 @@ async function startBot() {
             continue;
           }
           recentUserMessages.set(remoteJid, { text: rawText, timestamp: now });
+        }
+
+        // Persist every incoming customer message into daily archive for supervised learning (even during manual takeover / pause)
+        if (!isOwner) {
+          const fallbackLabel = inner.locationMessage || inner.liveLocationMessage
+            ? "[WhatsApp Location Pin]"
+            : inner.audioMessage
+            ? "[Voice Note]"
+            : inner.imageMessage
+            ? "[Image]"
+            : inner.documentMessage
+            ? "[Document]"
+            : "";
+          appendDailyChatLog({
+            jid: remoteJid,
+            phone: cleanPhone,
+            name: msg.pushName || "",
+            role: "customer",
+            text: rawText || fallbackLabel
+          });
         }
 
         // 1. If message is from owner (either manual message or # command)
