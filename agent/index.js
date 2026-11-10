@@ -26,8 +26,8 @@ process.on("unhandledRejection", (reason) => {
 // ============================================================================
 // URBAN TROUT SALES AGENT — BUILD & VERSION TRACKING
 // ============================================================================
-const BOT_VERSION = "2.8.1";
-const BOT_LAST_UPDATED = "10-Nov-2026, 11:28 PM IST";
+const BOT_VERSION = "2.8.2";
+const BOT_LAST_UPDATED = "10-Nov-2026, 11:34 PM IST";
 const BOT_RELEASE_TITLE = "Hostinger Cloud VPS Edition (#location Lookup & 8 PM Name-Location Scan)";
 const BOT_RELEASE_NOTES = "#location Delivery Rate Lookup • 8 PM Full Chat Scan (Name - Location) • 5kg Free Zone 4 Corridor • 70/30 Courier Split • Landmark Escalation Guard";
 
@@ -1887,6 +1887,26 @@ function calculateReorderPricing(weightKg, cutType, distKm, isSurgeOverride) {
     return { amount: fishCost, tagDesc: `${weightKg} kg ${cutType}` };
   }
   return { amount: fishCost + fee, tagDesc: `${weightKg} kg ${cutType} (+Express Delivery)` };
+}
+
+// Find closest human-friendly neighbourhood name from 453-landmark deliveryZoneDb for raw GPS coords
+function resolveNearestLocalityName(lat, lng) {
+  if (!deliveryZoneDb || !deliveryZoneDb.length || lat == null || lng == null) return null;
+  let best = null;
+  let bestScore = Infinity;
+  for (const p of deliveryZoneDb) {
+    if (p.lat == null || p.lon == null || !p.name) continue;
+    const d = calculateDistance(lat, lng, Number(p.lat), Number(p.lon));
+    const hasAlias = Array.isArray(p.aliases) && p.aliases.length > 0;
+    const penalty = hasAlias ? 0 : 0.25;
+    if (d + penalty < bestScore) {
+      bestScore = d + penalty;
+      best = { place: p, rawKm: d };
+    }
+  }
+  if (!best || best.rawKm > 2.5) return null;
+  const p = best.place;
+  return (Array.isArray(p.aliases) && p.aliases[0]) ? p.aliases[0] : p.name;
 }
 
 // Customer-shareable, copy-paste ready #location delivery rate quote formatter (Cleaned & Gutted pan-ready pieces only)
@@ -4979,9 +4999,9 @@ async function startBot() {
         await sock.sendMessage(remoteJid, {
           text: `🛠️ *URBAN TROUT OWNER QUICK COMMANDS*\n\n` +
             `📍 *Instant Delivery & Rate Quote (#location):*\n` +
-            `• *#location sanatnagar* (Distance, Free MOQ & all <MOQ courier rates ready to forward)\n` +
-            `• *#loc bemina* / *#location airport road* / *#location <maps link>*\n` +
-            `• *#location sanatnagar 9876543210* (Send rate breakdown directly to customer)\n\n` +
+            `• *#location sanatnagar* (Distance, Free MOQ & <MOQ rates ready to copy-paste)\n` +
+            `• *#location 34.112105, 74.823007* (Check GPS coords directly)\n` +
+            `• *#loc bemina* / *#location airport road* / *#location <maps link>*\n\n` +
             `🛵 *Mobile Order Dispatch (iPhone Control):*\n` +
             `• *#orders* (View all active undelivered orders right now)\n` +
             `• *#paid* (Confirm payment inside customer chat & auto-send official receipt)\n` +
@@ -5018,19 +5038,17 @@ async function startBot() {
         return;
       }
 
-      // Owner Command: #location / #loc / #zone - Instant distance, MOQ & <MOQ rate quote ready to share
+      // Owner Command: #location / #loc / #zone - Admin-only GPS/locality rate lookup (never auto-sends to customers)
       if (/^#(?:location|loc|zone|checkloc)\b/i.test(lower)) {
-        const phoneMatch = text.match(/(?:\+?91[\s\-]?)?\b([6-9]\d{9})\b/);
-        const targetCustPhone = phoneMatch ? phoneMatch[1] : null;
+        const ownerDeskJid = isOwnerAdminDesk ? remoteJid : "917006604148@s.whatsapp.net";
         const locQuery = text
           .replace(/^#(?:location|loc|zone|checkloc)\b/i, "")
-          .replace(/(?:\+?91[\s\-]?)?\b[6-9]\d{9}\b/g, "")
           .replace(/\s+/g, " ")
           .trim();
 
         if (!locQuery) {
-          await sock.sendMessage(remoteJid, {
-            text: `📍 *Location Rate Checker Usage:*\n\n• *#location sanatnagar*\n• *#loc bemina*\n• *#location airport road*\n• *#location Iqbal park near Shergari*\n• *#location <Google Maps link or lat,lng>*\n• *#location bemina 9876543210* _(sends directly to customer)_`
+          await sock.sendMessage(ownerDeskJid, {
+            text: `📍 *Location Rate Checker Usage:*\n\n• *#location sanatnagar*\n• *#loc bemina*\n• *#location 34.112105, 74.823007*\n• *#location Iqbal park near Shergari*\n• *#location <Google Maps link>*`
           });
           return;
         }
@@ -5040,11 +5058,12 @@ async function startBot() {
           const coords = await getCoordinatesFromText(locQuery);
           if (coords && coords.lat != null && coords.lng != null) {
             const dist = parseFloat(calculateDistance(FARM_LAT, FARM_LNG, coords.lat, coords.lng).toFixed(1));
-            const labelFromText = locQuery.replace(/https?:\/\/\S+/gi, "").replace(/-?\d{1,2}\.\d+[,\s]+-?\d{1,3}\.\d+/g, "").trim();
+            const labelFromText = locQuery.replace(/https?:\/\/\S+/gi, "").replace(/-?\d{1,2}\.\d+[,\s]+-?\d{1,3}\.\d+/g, "").replace(/[,\s]+/g, " ").trim();
             const textDet = labelFromText ? detectSrinagarLocality(labelFromText) : null;
+            const nearestPlace = resolveNearestLocalityName(coords.lat, coords.lng);
             resolved = {
               status: dist <= 16.0 ? "IN_ZONE" : "OUT_ZONE",
-              name: (textDet && textDet.name) || labelFromText || "Pinned Location",
+              name: (textDet && textDet.name) || nearestPlace || labelFromText || "Your Location",
               dist
             };
           }
@@ -5060,8 +5079,8 @@ async function startBot() {
         }
 
         if (!resolved) {
-          await sock.sendMessage(remoteJid, {
-            text: `⚠️ Could not resolve location *"${locQuery}"*.\n\nTry a Srinagar colony/landmark name (e.g. *#location sanatnagar*, *#location bemina*, *#location rajbagh*) or paste a Google Maps link!`
+          await sock.sendMessage(ownerDeskJid, {
+            text: `⚠️ Could not resolve location *"${locQuery}"*.\n\nTry a Srinagar colony/landmark (e.g. *#location sanatnagar*, *#location bemina*), GPS coordinates (*#location 34.112105, 74.823007*), or a Google Maps link!`
           });
           return;
         }
@@ -5072,19 +5091,8 @@ async function startBot() {
           status: resolved.status
         });
 
-        if (targetCustPhone) {
-          const destJid = `91${targetCustPhone}@s.whatsapp.net`;
-          await sock.sendMessage(destJid, { text: quoteText });
-          humanOverrides.set(destJid, Date.now() + 30 * 60 * 1000);
-          if (destJid !== remoteJid) {
-            await sock.sendMessage(remoteJid, {
-              text: `✅ *Location Rate Breakdown Sent to ${formatPhoneDisplay(targetCustPhone)}:*\n\n${quoteText}`
-            });
-          }
-        } else {
-          await sock.sendMessage(remoteJid, { text: quoteText });
-        }
-        console.log(`📍 [Owner #location] "${locQuery}" -> ${resolved.name} (~${resolved.dist ?? "?"} km, ${resolved.status})${targetCustPhone ? ` -> sent to ${targetCustPhone}` : ""}`);
+        await sock.sendMessage(ownerDeskJid, { text: quoteText });
+        console.log(`📍 [Owner #location] "${locQuery}" -> ${resolved.name} (~${resolved.dist ?? "?"} km, ${resolved.status}) [Replied only to Admin]`);
         return;
       }
 
