@@ -26,10 +26,10 @@ process.on("unhandledRejection", (reason) => {
 // ============================================================================
 // URBAN TROUT SALES AGENT — BUILD & VERSION TRACKING
 // ============================================================================
-const BOT_VERSION = "2.5.0";
-const BOT_LAST_UPDATED = "08-Nov-2026, 11:30 PM IST";
-const BOT_RELEASE_TITLE = "Hostinger Cloud VPS Edition (Order Pool & Advance Scheduling)";
-const BOT_RELEASE_NOTES = "Dynamic Daily Order Pool • Advance Delivery Scheduling • Single Payment Link Reuse • Size vs Quantity Shield";
+const BOT_VERSION = "2.7.0";
+const BOT_LAST_UPDATED = "10-Nov-2026, 10:25 PM IST";
+const BOT_RELEASE_TITLE = "Hostinger Cloud VPS Edition (5kg South Corridor & 70/30 Delivery Split)";
+const BOT_RELEASE_NOTES = "5kg Free South/Rajbagh/Batamaloo Corridor • 70/30 Courier Split • Landmark Escalation Guard • Full Daily Chat Archive & #qr Direct Routing";
 
 // ============================================================================
 // STRICT VVIP MANUAL-ONLY LIST (AI MUST NEVER TEXT UNDER ANY CIRCUMSTANCE)
@@ -278,7 +278,7 @@ const KNOWN_IN_ZONE_AREAS = [
   { pattern: /\b(?:saraf\s*kadal|sarafkadal)\b/i, name: "Saraf Kadal", dist: 6.5 },
   { pattern: /\b(?:bohri\s*kadal|bohrikadal|bhori\s*kadal|bhorikadal)\b/i, name: "Bohri Kadal", dist: 6.8 },
   { pattern: /\b(?:khalamul)\b/i, name: "Khalamul", dist: 5.9 },
-  // ── Zone 3: Greater Srinagar (7.0 to 11.5 km, Free Delivery on 3 kg+, 2 kg +₹69 fee) ──
+  // ── Zone 3: Greater Srinagar (7.0 to 11.5 km, Free Delivery on 3 kg+, 2 kg +₹89 fee / 1 kg +₹99 fee) ──
   { pattern: /\b(?:zaina\s*kadal|zainakadal|zaina\s*kadel|new\s*zaina\s*kadal)\b/i, name: "Zaina Kadal", dist: 7.8, minKg: 3 },
   { pattern: /\b(?:maharaj\s*gunj|maharajgunj|maharaj\s*ganj|maharajganj)\b/i, name: "Maharaj Gunj", dist: 7.8, minKg: 3 },
   { pattern: /\b(?:fateh\s*kadal|fatehkadal|fateh\s*kadel|fatehkadel|astaan\s*syed\s*ali\s*akbar)\b/i, name: "Fateh Kadal", dist: 8.8, minKg: 3 },
@@ -293,41 +293,41 @@ const KNOWN_IN_ZONE_AREAS = [
   { pattern: /\b(?:brein|brain)\b/i, name: "Brein (Nishat)", dist: 11.0, minKg: 3 },
   { pattern: /\b(?:nishat)\b/i, name: "Nishat", dist: 8.0, minKg: 3 },
 
-  // ── Zone 4: South Srinagar & Outer Corridor (11.5 to 16.0 km, Free Delivery on 4 kg+, Subsidized Courier on 1–3 kg) ──
-  { pattern: /\b(?:baghat\s*barzulla|baghat)\b/i, name: "Baghat Barzulla", dist: 15.0, minKg: 4 },
-  { pattern: /\b(?:barzulla|old\s*barzulla)\b/i, name: "Barzulla", dist: 14.2, minKg: 4 },
-  { pattern: /\b(?:solina|rambagh|ram\s*bagh)\b/i, name: "Rambagh/Solina", dist: 14.3, minKg: 4 },
-  { pattern: /\b(?:gogji\s*bagh|gogjibagh)\b/i, name: "Gogji Bagh", dist: 13.6, minKg: 4 },
-  { pattern: /\b(?:wazir\s*bagh|wazirbagh)\b/i, name: "Wazir Bagh", dist: 12.7, minKg: 4 },
-  { pattern: /\b(?:tulsi\s*bagh|tulsibagh)\b/i, name: "Tulsi Bagh", dist: 13.0, minKg: 4 },
-  { pattern: /\b(?:hazuri\s*bagh|hazuribagh)\b/i, name: "Hazuri Bagh", dist: 12.0, minKg: 4 },
-  { pattern: /\b(?:iqbal\s*park)\b/i, name: "Iqbal Park", dist: 12.5, minKg: 4 },
-  { pattern: /\b(?:sonwar|sonawar|sona\s*war)\b/i, name: "Sonwar", dist: 12.9, minKg: 4 },
-  { pattern: /\b(?:batamaloo|batmaloo)\b/i, name: "Batamaloo", dist: 11.8, minKg: 4 },
-  { pattern: /\b(?:bemina)\b/i, name: "Bemina", dist: 12.5, minKg: 4 },
-  { pattern: /\b(?:raj\s*bagh|rajbagh)\b/i, name: "Rajbagh", dist: 12.0, minKg: 4 },
-  { pattern: /\b(?:jawahar\s*nagar|jawaharnagar)\b/i, name: "Jawahar Nagar", dist: 11.8, minKg: 4 },
-  { pattern: /\b(?:al[ol]+chi\s*bagh|al[ol]+chi|alochi|allochi|aloochi|elachi\s*bagh)\b/i, name: "Alochi Bagh", dist: 11.8, minKg: 4 },
-  { pattern: /\b(?:magarmal\s*bagh|magarmal)\b/i, name: "Magarmal Bagh", dist: 11.6, minKg: 4 },
-  { pattern: /\b(?:sanat\s*nagar|sanatnagar)\b/i, name: "Sanat Nagar", dist: 13.5, minKg: 4 },
-  { pattern: /\b(?:rawalpora|rawapora)\b/i, name: "Rawalpora", dist: 14.0, minKg: 4 },
-  { pattern: /\b(?:hyder|haider|huder|hadir|heydar)\s*pora\b/i, name: "Hyderpora", dist: 14.5, minKg: 4 },
-  { pattern: /\b(?:chanapora|chanpora)\b/i, name: "Chanapora", dist: 13.0, minKg: 4 },
-  { pattern: /\b(?:natipora)\b/i, name: "Natipora", dist: 12.5, minKg: 4 },
-  { pattern: /\b(?:peerbagh|peer\s*bagh|pirbagh|pir\s*bagh)\b/i, name: "Peerbagh", dist: 14.5, minKg: 4 },
-  { pattern: /\b(?:airport\s*road|humhama)\b/i, name: "Airport Road / Humhama", dist: 15.0, minKg: 4 },
-  { pattern: /\b(?:bagh[- ]e[- ]mehtab|baghi\s*mehtab)\b/i, name: "Bagh-e-Mehtab", dist: 14.0, minKg: 4 },
-  { pattern: /\b(?:kralpora|kral\s*pora)\b/i, name: "Kralpora", dist: 15.5, minKg: 4 },
-  { pattern: /\b(?:rangreth)\b/i, name: "Rangreth", dist: 15.5, minKg: 4 },
-  { pattern: /\b(?:lasjan|lassjan|lasjan\s*bypass)\b/i, name: "Lasjan", dist: 14.0, minKg: 4 },
-  { pattern: /\b(?:nowgam|naugaon|nowgam\s*bypass)\b/i, name: "Nowgam", dist: 14.5, minKg: 4 },
-  { pattern: /\b(?:padshahi\s*bagh|padshahibagh)\b/i, name: "Padshahi Bagh", dist: 13.0, minKg: 4 },
-  { pattern: /\b(?:pantha\s*chowk|panthachowk)\b/i, name: "Pantha Chowk", dist: 14.0, minKg: 4 },
-  { pattern: /\b(?:soiteng|suiteng|soitang)\b/i, name: "Soiteng", dist: 13.5, minKg: 4 },
-  { pattern: /\b(?:pandrathan)\b/i, name: "Pandrathan", dist: 13.0, minKg: 4 },
-  { pattern: /\b(?:athwajan)\b/i, name: "Athwajan", dist: 13.5, minKg: 4 },
-  { pattern: /\b(?:pohru|pohroo)\b/i, name: "Pohru", dist: 15.0, minKg: 4 },
-  { pattern: /\b(?:mochu|moochu)\b/i, name: "Mochu", dist: 15.0, minKg: 4 }
+  // ── Zone 4: South Srinagar & Cross-City Outer Corridor (11.5 to 16.0 km, Free Delivery on 5 kg+, 70/30 Courier Split on 1–4 kg) ──
+  { pattern: /\b(?:baghat\s*barzulla|baghat)\b/i, name: "Baghat Barzulla", dist: 15.0, minKg: 5 },
+  { pattern: /\b(?:barzulla|old\s*barzulla)\b/i, name: "Barzulla", dist: 14.2, minKg: 5 },
+  { pattern: /\b(?:solina|rambagh|ram\s*bagh)\b/i, name: "Rambagh/Solina", dist: 14.3, minKg: 5 },
+  { pattern: /\b(?:gogji\s*bagh|gogjibagh)\b/i, name: "Gogji Bagh", dist: 13.6, minKg: 5 },
+  { pattern: /\b(?:wazir\s*bagh|wazirbagh)\b/i, name: "Wazir Bagh", dist: 12.7, minKg: 5 },
+  { pattern: /\b(?:tulsi\s*bagh|tulsibagh)\b/i, name: "Tulsi Bagh", dist: 13.0, minKg: 5 },
+  { pattern: /\b(?:hazuri\s*bagh|hazuribagh)\b/i, name: "Hazuri Bagh", dist: 12.0, minKg: 5 },
+  { pattern: /\b(?:iqbal\s*park)\b/i, name: "Iqbal Park", dist: 12.5, minKg: 5 },
+  { pattern: /\b(?:sonwar|sonawar|sona\s*war)\b/i, name: "Sonwar", dist: 12.9, minKg: 5 },
+  { pattern: /\b(?:batamaloo|batmaloo)\b/i, name: "Batamaloo", dist: 11.8, minKg: 5 },
+  { pattern: /\b(?:bemina)\b/i, name: "Bemina", dist: 12.5, minKg: 5 },
+  { pattern: /\b(?:raj\s*bagh|rajbagh)\b/i, name: "Rajbagh", dist: 12.0, minKg: 5 },
+  { pattern: /\b(?:jawahar\s*nagar|jawaharnagar)\b/i, name: "Jawahar Nagar", dist: 11.8, minKg: 5 },
+  { pattern: /\b(?:al[ol]+chi\s*bagh|al[ol]+chi|alochi|allochi|aloochi|elachi\s*bagh)\b/i, name: "Alochi Bagh", dist: 11.8, minKg: 5 },
+  { pattern: /\b(?:magarmal\s*bagh|magarmal)\b/i, name: "Magarmal Bagh", dist: 11.6, minKg: 5 },
+  { pattern: /\b(?:sanat\s*nagar|sanatnagar)\b/i, name: "Sanat Nagar", dist: 13.5, minKg: 5 },
+  { pattern: /\b(?:rawalpora|rawapora)\b/i, name: "Rawalpora", dist: 14.0, minKg: 5 },
+  { pattern: /\b(?:hyder|haider|huder|hadir|heydar)\s*pora\b/i, name: "Hyderpora", dist: 14.5, minKg: 5 },
+  { pattern: /\b(?:chanapora|chanpora)\b/i, name: "Chanapora", dist: 13.0, minKg: 5 },
+  { pattern: /\b(?:natipora)\b/i, name: "Natipora", dist: 12.5, minKg: 5 },
+  { pattern: /\b(?:peerbagh|peer\s*bagh|pirbagh|pir\s*bagh)\b/i, name: "Peerbagh", dist: 14.5, minKg: 5 },
+  { pattern: /\b(?:airport\s*road|humhama|srinagar\s*airport|sheikh\s*ul\s*alam\s*airport)\b/i, name: "Airport Road / Humhama", dist: 15.0, minKg: 5 },
+  { pattern: /\b(?:bagh[- ]e[- ]mehtab|baghi\s*mehtab)\b/i, name: "Bagh-e-Mehtab", dist: 14.0, minKg: 5 },
+  { pattern: /\b(?:kralpora|kral\s*pora)\b/i, name: "Kralpora", dist: 15.5, minKg: 5 },
+  { pattern: /\b(?:rangreth)\b/i, name: "Rangreth", dist: 15.5, minKg: 5 },
+  { pattern: /\b(?:lasjan|lassjan|lasjan\s*bypass)\b/i, name: "Lasjan", dist: 14.0, minKg: 5 },
+  { pattern: /\b(?:nowgam|naugaon|nowgham|nowgam\s*bypass)\b/i, name: "Nowgam", dist: 14.5, minKg: 5 },
+  { pattern: /\b(?:padshahi\s*bagh|padshahibagh)\b/i, name: "Padshahi Bagh", dist: 13.0, minKg: 5 },
+  { pattern: /\b(?:pantha\s*chowk|panthachowk)\b/i, name: "Pantha Chowk", dist: 14.0, minKg: 5 },
+  { pattern: /\b(?:soiteng|suiteng|soitang)\b/i, name: "Soiteng", dist: 13.5, minKg: 5 },
+  { pattern: /\b(?:pandrathan)\b/i, name: "Pandrathan", dist: 13.0, minKg: 5 },
+  { pattern: /\b(?:athwajan)\b/i, name: "Athwajan", dist: 13.5, minKg: 5 },
+  { pattern: /\b(?:pohru|pohroo)\b/i, name: "Pohru", dist: 15.0, minKg: 5 },
+  { pattern: /\b(?:mochu|moochu)\b/i, name: "Mochu", dist: 15.0, minKg: 5 }
 ];
 
 const KNOWN_OUT_ZONE_AREAS = [
@@ -385,7 +385,7 @@ function detectSrinagarLocality(text) {
   // 1. High-priority hardcoded localities
   for (const item of KNOWN_IN_ZONE_AREAS) {
     if (item.pattern.test(text)) {
-      const minKg = item.minKg || (item.dist <= 4.0 ? 2 : item.dist <= 11.5 ? 3 : 4);
+      const minKg = item.minKg || (item.dist <= 4.0 ? 2 : item.dist <= 11.5 ? 3 : 5);
       const tier = item.dist <= 4.0 ? "0-4km" : item.dist <= 7.0 ? "4-7km" : item.dist <= 11.5 ? "7-11.5km" : "11.5-16km";
       return { status: "IN_ZONE", name: item.name, dist: item.dist, minKg, tier };
     }
@@ -397,7 +397,7 @@ function detectSrinagarLocality(text) {
     const escaped = cName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     if (new RegExp(`\\b${escaped}\\b`, "i").test(text)) {
       const dist = cData.dist;
-      const minKg = dist <= 4.0 ? 2 : dist <= 11.5 ? 3 : 4;
+      const minKg = dist <= 4.0 ? 2 : dist <= 11.5 ? 3 : 5;
       const tier = dist <= 4.0 ? "0-4km" : dist <= 7.0 ? "4-7km" : dist <= 11.5 ? "7-11.5km" : "11.5-16km";
       const status = dist <= 16.0 ? "IN_ZONE" : "OUT_ZONE";
       return { status, name: cName, dist, minKg, tier };
@@ -411,7 +411,7 @@ function detectSrinagarLocality(text) {
       const escaped = place.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       if (new RegExp(`\\b${escaped}\\b`, "i").test(text)) {
         const dist = parseFloat(place.distance_km.toFixed(1));
-        const minKg = dist <= 4.0 ? 2 : dist <= 11.5 ? 3 : 4;
+        const minKg = dist <= 4.0 ? 2 : dist <= 11.5 ? 3 : 5;
         const tier = dist <= 4.0 ? "0-4km" : dist <= 7.0 ? "4-7km" : dist <= 11.5 ? "7-11.5km" : "11.5-16km";
         const status = dist <= 16.0 ? "IN_ZONE" : "OUT_ZONE";
         return { status, name: place.name, dist, minKg, tier };
@@ -537,7 +537,7 @@ async function resolveUnknownLocalityWithApi(text) {
   if (geo && geo.lat && geo.lng) {
     const dist = calculateDistance(FARM_LAT, FARM_LNG, geo.lat, geo.lng);
     const distRounded = parseFloat(dist.toFixed(1));
-    const minKg = distRounded <= 4.0 ? 2 : distRounded <= 11.5 ? 3 : 4;
+    const minKg = distRounded <= 4.0 ? 2 : distRounded <= 11.5 ? 3 : 5;
     const tier = distRounded <= 4.0 ? "0-4km" : distRounded <= 7.0 ? "4-7km" : distRounded <= 11.5 ? "7-11.5km" : "11.5-16km";
     const status = distRounded <= 16.0 ? "IN_ZONE" : "OUT_ZONE";
     const locResult = { status, name: geo.name || candidate, dist: distRounded, minKg, tier, source: geo.source };
@@ -1056,8 +1056,14 @@ function detectCustomerEscalation(text) {
     };
   }
 
+  // Strip innocent Srinagar landmark names (e.g. "Near Shergari Police Station", "Near Khyber Hospital", "High Court")
+  const sanitizedForThreat = t
+    .replace(/\b(?:shergari|saddar|kothibagh|rammunshibagh|rajbagh|safa\s*kadal|m\.?r\.?\s*gunj|khanyar|rainawari|zadibal|zakura|soura|parimpora|batamaloo|bemina|nowgam|pantha\s*chowk|chanapora|lal\s*bazar|nigeen|hazratbal|nishat|harwan|kralkhud|maisuma|shaheed\s*gunj)\s*police\s*(?:station|post|chowki|lines?)\b/gi, "")
+    .replace(/\b(?:near|opp(?:osite)?|behind|beside|in\s*front\s*of|next\s*to)\s+[\w\s]{0,30}\b(?:police\s*(?:station|post|chowki|lines?)|thana|court|hospital)\b/gi, "")
+    .replace(/\b(?:police\s*station|police\s*lines?|police\s*chowki|skims\s*hospital|smhs\s*hospital|khyber\s*hospital|jlnm\s*hospital|lal\s*ded\s*hospital|bone\s*(?:&|and)\s*joint\s*hospital|high\s*court)\b/gi, "");
+
   // 2. Legal, Regulatory, Police, Fraud, Scam, Cheating threats
-  if (/\b(?:fraud|scam|cheating|cheat|chor|chori|loot|loot\s*rahe|dhokha|420|police|consumer\s*court|consumer\s*forum|fssai|legal\s*action|police\s*complaint|fir\s*karega|report\s*(?:you|karoonga|karenge|krunga)|court|lawyer|advocate)\b/i.test(t)) {
+  if (/\b(?:fraud|scam|cheating|cheat|chor|chori|loot|loot\s*rahe|dhokha|420|police\s*(?:complaint|ko|case|report)|call\s*(?:the\s*)?police|go\s*to\s*police|consumer\s*court|consumer\s*forum|legal\s*action|fir\s*(?:karega|karunga|likhunga|darj)|report\s*(?:you|karoonga|karenge|krunga)|drag\s*(?:you\s*)?to\s*court|court\s*case|lawyer|advocate)\b/i.test(sanitizedForThreat)) {
     return {
       severity: "CRITICAL",
       category: "Legal / Fraud / Regulatory Threat",
@@ -1066,7 +1072,7 @@ function detectCustomerEscalation(text) {
   }
 
   // 3. Product quality / Rotten / Spoiled / Sickness / Food safety
-  if (/\b(?:spoiled|stale|kharab|sadi\s*hui|sada\s*hua|bad\s*smell|smelling|stinking|rotten|vomit|vomiting|food\s*poisoning|poison|sick|bimar|hospital|hospitalized|pet\s*kharab|loose\s*motion|unhygienic|gandi\s*fish|insects|worm)\b/i.test(t)) {
+  if (/\b(?:spoiled|stale|kharab|sadi\s*hui|sada\s*hua|bad\s*smell|smelling|stinking|rotten|vomit|vomiting|food\s*poisoning|poison|sick|bimar|hospitalized|hospitalised|in\s*hospital|admitted\s*(?:to|in)\s*hospital|pet\s*kharab|loose\s*motion|unhygienic|gandi\s*fish|insects|worm)\b/i.test(sanitizedForThreat)) {
     return {
       severity: "CRITICAL",
       category: "Food Safety / Quality Escalation",
@@ -1811,7 +1817,7 @@ function getSystemPrompt() {
   } catch (e) {
     console.error("Error reading KNOWLEDGE_BASE.md:", e);
   }
-  return "You are Suhail, sales manager at Urban Trout Aquaculture, Malabagh, Srinagar. Strictly 16km radius delivery across Srinagar (Tiered MOQ: 2kg/3kg/4kg).";
+  return "You are Suhail, sales manager at Urban Trout Aquaculture, Malabagh, Srinagar. Strictly 16km radius delivery across Srinagar (Tiered MOQ: 2kg/3kg/5kg).";
 }
 
 // Extract clean, human customer name (ignoring internal CRM tags, numbers, and localities)
@@ -1840,36 +1846,47 @@ function isCurrentEveningSurge() {
   return hour >= 16 && hour < 20;
 }
 
+// Single source of truth for Srinagar 4-Tier Delivery Fees (70% Customer / 30% Urban Trout Subsidy)
+function getDeliveryFeeForDistance(distKm, weightKg, isSurgeOverride) {
+  const dist = (distKm != null && !isNaN(distKm)) ? distKm : 2.0;
+  const isSurge = isSurgeOverride !== undefined ? Boolean(isSurgeOverride) : isCurrentEveningSurge();
+  const surgeAdd = isSurge ? 40 : 0;
+
+  if (dist <= 4.0) {
+    // Tier 1 (0-4 km): Free on 2kg+, 1kg = ₹35 (+₹40 evening)
+    return weightKg >= 2 ? 0 : (35 + surgeAdd);
+  } else if (dist <= 7.0) {
+    // Tier 2 (4-7 km): Free on 3kg+, 2kg = ₹55, 1kg = ₹65 (+₹40 evening)
+    if (weightKg >= 3) return 0;
+    if (weightKg >= 2) return 55 + surgeAdd;
+    return 65 + surgeAdd;
+  } else if (dist <= 11.5) {
+    // Tier 3 (7-11.5 km): Free on 3kg+, 2kg = ₹89, 1kg = ₹99 (+₹40 evening)
+    if (weightKg >= 3) return 0;
+    if (weightKg >= 2) return 89 + surgeAdd;
+    return 99 + surgeAdd;
+  } else {
+    // Tier 4 (11.5-16 km — South Corridor, Rajbagh, Jawahar Nagar, Batamaloo, Sanat Nagar, Peerbagh, Airport Rd, Nowgam):
+    // Free on 5kg+, 4kg = ₹109, 3kg = ₹129, 2kg = ₹139, 1kg = ₹149 (+₹40 evening)
+    if (weightKg >= 5) return 0;
+    if (weightKg >= 4) return 109 + surgeAdd;
+    if (weightKg >= 3) return 129 + surgeAdd;
+    if (weightKg >= 2) return 139 + surgeAdd;
+    return 149 + surgeAdd;
+  }
+}
+
 // Calculate exact reorder pricing and description based on distance and past cut (4-Tier Model)
 function calculateReorderPricing(weightKg, cutType, distKm, isSurgeOverride) {
   const isWhole = cutType.toLowerCase().includes("whole");
   const baseRate = isWhole ? 540 : 580;
-  const dist = (distKm != null && !isNaN(distKm)) ? distKm : 2.0;
-  const isSurge = isSurgeOverride !== undefined ? Boolean(isSurgeOverride) : isCurrentEveningSurge();
-  const surgeAdd = isSurge ? 40 : 0;
   const fishCost = Math.round(weightKg * baseRate);
+  const fee = getDeliveryFeeForDistance(distKm, weightKg, isSurgeOverride);
 
-  if (dist <= 4.0) {
-    // Tier 1 (0-4 km): Free on 2kg+, <2kg has +₹29 (or +₹69 evening) subsidized courier fee
-    if (weightKg >= 2) return { amount: fishCost, tagDesc: `${weightKg} kg ${cutType}` };
-    return { amount: fishCost + 29 + surgeAdd, tagDesc: `${weightKg} kg ${cutType} (+Express Delivery)` };
-  } else if (dist <= 7.0) {
-    // Tier 2 (4-7 km): Free on 3kg+, 2 to <3kg has +₹39 (or +₹79 evening), <2kg has +₹49 (or +₹89 evening) fee
-    if (weightKg >= 3) return { amount: fishCost, tagDesc: `${weightKg} kg ${cutType}` };
-    if (weightKg >= 2) return { amount: fishCost + 39 + surgeAdd, tagDesc: `${weightKg} kg ${cutType} (+Express Delivery)` };
-    return { amount: fishCost + 49 + surgeAdd, tagDesc: `${weightKg} kg ${cutType} (+Express Delivery)` };
-  } else if (dist <= 11.5) {
-    // Tier 3 (7-11.5 km): Free on 3kg+, 2 to <3kg has +₹69 (or +₹109 evening), <2kg has +₹79 (or +₹119 evening) fee
-    if (weightKg >= 3) return { amount: fishCost, tagDesc: `${weightKg} kg ${cutType}` };
-    if (weightKg >= 2) return { amount: fishCost + 69 + surgeAdd, tagDesc: `${weightKg} kg ${cutType} (+Express Delivery)` };
-    return { amount: fishCost + 79 + surgeAdd, tagDesc: `${weightKg} kg ${cutType} (+Express Delivery)` };
-  } else {
-    // Tier 4 (11.5-16 km): Free on 4kg+, 3 to <4kg has +₹79 (or +₹119 evening), 2 to <3kg has +₹99 (or +₹139 evening), <2kg has +₹139 (or +₹179 evening) fee
-    if (weightKg >= 4) return { amount: fishCost, tagDesc: `${weightKg} kg ${cutType}` };
-    if (weightKg >= 3) return { amount: fishCost + 79 + surgeAdd, tagDesc: `${weightKg} kg ${cutType} (+Express Delivery)` };
-    if (weightKg >= 2) return { amount: fishCost + 99 + surgeAdd, tagDesc: `${weightKg} kg ${cutType} (+Express Delivery)` };
-    return { amount: fishCost + 139 + surgeAdd, tagDesc: `${weightKg} kg ${cutType} (+Express Delivery)` };
+  if (fee === 0) {
+    return { amount: fishCost, tagDesc: `${weightKg} kg ${cutType}` };
   }
+  return { amount: fishCost + fee, tagDesc: `${weightKg} kg ${cutType} (+Express Delivery)` };
 }
 
 // Safe extraction of clean personal name from WhatsApp pushName
@@ -2592,9 +2609,9 @@ CRITICAL DELIVERY & PRICING INSTRUCTIONS:${isEveningSurge ? "\n⚡ CURRENT TIME:
 • Pitch for ${detectedLoc.name}:
   "Great! ${detectedLoc.name} is right in our core delivery zone! Doorstep delivery is 100% FREE within 2 hours (minimum order 2 kg, gives 4–5 pan-ready trout for ₹1,160 total). How many Kgs of Cleaned & Gutted trout would you like for your family?"
 • IF CUSTOMER ASKS FOR 1 KG:
-  "Doorstep delivery is 100% FREE on 2 kg (₹1,160 total). If you'd like just 1 kg as a starter pack to taste today, we can dispatch it express for ₹580 + ₹${29 + surgeAdd} courier fee (₹${609 + surgeAdd} total), or you can visit our Live Vending Center in Malabagh with zero delivery fee. Which works better for you?"
+  "Doorstep delivery is 100% FREE on 2 kg (₹1,160 total). If you'd like just 1 kg as a starter pack to taste today, we can dispatch it express for ₹580 + ₹${35 + surgeAdd} courier fee (₹${615 + surgeAdd} total), or you can visit our Live Vending Center in Malabagh with zero delivery fee. Which works better for you?"
 • When customer confirms 2 kg Cleaned & Gutted: output [PAY_LINK: 1160 : 2 kg Cleaned & Gutted]
-• When customer confirms 1 kg Cleaned & Gutted: output [PAY_LINK: ${609 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
+• When customer confirms 1 kg Cleaned & Gutted: output [PAY_LINK: ${615 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
 DO NOT ask them for a WhatsApp GPS location pin!
 ======================================================`;
       } else if (detectedLoc.dist <= 7.0) {
@@ -2603,18 +2620,18 @@ DO NOT ask them for a WhatsApp GPS location pin!
 ⚠️ STRICT MANDATE: NEVER MENTION "Zone 2" OR ANY ZONE NUMBERS TO THE CUSTOMER! Speak naturally: "We deliver express right to your doorstep in ${detectedLoc.name}!".
 CRITICAL DELIVERY & PRICING INSTRUCTIONS:${isEveningSurge ? "\n⚡ CURRENT TIME: EVENING RUSH HOUR (4:00 PM – 8:00 PM IST) — +₹40 evening rush courier surge applies to subsidized courier orders. 3 kg+ is 100% FREE!" : ""}
 • Doorstep Delivery: 100% FREE on 3 kg or more!
-• 2 kg Order: Available with a nominal subsidized express courier fee of only *₹${39 + surgeAdd}* (₹1,160 + ₹${39 + surgeAdd} = *₹${1199 + surgeAdd} total* for Cleaned & Gutted).
-• 1 kg Starter Pack: Available with subsidized courier fee of *₹${49 + surgeAdd}* (₹580 + ₹${49 + surgeAdd} = *₹${629 + surgeAdd} total*).
+• 2 kg Order: Available with a nominal subsidized express courier fee of only *₹${55 + surgeAdd}* (₹1,160 + ₹${55 + surgeAdd} = *₹${1215 + surgeAdd} total* for Cleaned & Gutted).
+• 1 kg Starter Pack: Available with subsidized courier fee of *₹${65 + surgeAdd}* (₹580 + ₹${65 + surgeAdd} = *₹${645 + surgeAdd} total*).
 • Rates: Cleaned & Gutted = ₹580/kg | Whole Fresh = ₹540/kg
 • Pitch for ${detectedLoc.name}:
-  "Great! We deliver express to ${detectedLoc.name}! Doorstep delivery is 100% FREE on 3 kg (gives 6–7 fresh trout at ₹1,740 total). Or we can send 2 kg for just a nominal ₹${39 + surgeAdd} courier fee (₹${1199 + surgeAdd} total). How many Kgs would you like for your family?"
+  "Great! We deliver express to ${detectedLoc.name}! Doorstep delivery is 100% FREE on 3 kg (gives 6–7 fresh trout at ₹1,740 total). Or we can send 2 kg for just a nominal ₹${55 + surgeAdd} courier fee (₹${1215 + surgeAdd} total). How many Kgs would you like for your family?"
 • IF CUSTOMER ASKS FOR 2 KG:
-  Gladly confirm! "Sure, we'd be happy to send 2 kg! It comes to ₹1,160 fish + ₹${39 + surgeAdd} subsidized courier = ₹${1199 + surgeAdd} total. Shall I send your payment link?"
+  Gladly confirm! "Sure, we'd be happy to send 2 kg! It comes to ₹1,160 fish + ₹${55 + surgeAdd} subsidized courier = ₹${1215 + surgeAdd} total. Shall I send your payment link?"
 • IF CUSTOMER ASKS FOR 1 KG:
-  "Doorstep delivery is 100% FREE on 3 kg (or ₹${39 + surgeAdd} on 2 kg). If you'd prefer just 1 kg starter pack to taste today, we can dispatch it express for ₹580 + ₹${49 + surgeAdd} courier fee (₹${629 + surgeAdd} total). Which would you like?"
+  "Doorstep delivery is 100% FREE on 3 kg (or ₹${55 + surgeAdd} on 2 kg). If you'd prefer just 1 kg starter pack to taste today, we can dispatch it express for ₹580 + ₹${65 + surgeAdd} courier fee (₹${645 + surgeAdd} total). Which would you like?"
 • When customer confirms 3 kg Cleaned & Gutted: output [PAY_LINK: 1740 : 3 kg Cleaned & Gutted]
-• When customer confirms 2 kg Cleaned & Gutted: output [PAY_LINK: ${1199 + surgeAdd} : 2 kg Cleaned & Gutted (+Express Delivery)]
-• When customer confirms 1 kg Cleaned & Gutted: output [PAY_LINK: ${629 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
+• When customer confirms 2 kg Cleaned & Gutted: output [PAY_LINK: ${1215 + surgeAdd} : 2 kg Cleaned & Gutted (+Express Delivery)]
+• When customer confirms 1 kg Cleaned & Gutted: output [PAY_LINK: ${645 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
 DO NOT ask them for a WhatsApp GPS location pin!
 ======================================================`;
       } else if (detectedLoc.dist <= 11.5) {
@@ -2623,42 +2640,46 @@ DO NOT ask them for a WhatsApp GPS location pin!
 ⚠️ STRICT MANDATE: NEVER MENTION "Zone 3" OR ANY ZONE NUMBERS TO THE CUSTOMER! Speak naturally: "We deliver express right to your doorstep in ${detectedLoc.name}!".
 CRITICAL DELIVERY & PRICING INSTRUCTIONS:${isEveningSurge ? "\n⚡ CURRENT TIME: EVENING RUSH HOUR (4:00 PM – 8:00 PM IST) — +₹40 evening rush courier surge applies to subsidized courier orders. 3 kg+ is 100% FREE!" : ""}
 • Doorstep Delivery: 100% FREE on 3 kg or more!
-• 2 kg Order: Available with a nominal subsidized express courier fee of only *₹${69 + surgeAdd}* (₹1,160 + ₹${69 + surgeAdd} = *₹${1229 + surgeAdd} total* for Cleaned & Gutted).
-• 1 kg Starter Pack: Available with subsidized courier fee of *₹${79 + surgeAdd}* (₹580 + ₹${79 + surgeAdd} = *₹${659 + surgeAdd} total*).
+• 2 kg Order: Available with a nominal subsidized express courier fee of only *₹${89 + surgeAdd}* (₹1,160 + ₹${89 + surgeAdd} = *₹${1249 + surgeAdd} total* for Cleaned & Gutted).
+• 1 kg Starter Pack: Available with subsidized courier fee of *₹${99 + surgeAdd}* (₹580 + ₹${99 + surgeAdd} = *₹${679 + surgeAdd} total*).
 • Rates: Cleaned & Gutted = ₹580/kg | Whole Fresh = ₹540/kg
 • Pitch for ${detectedLoc.name}:
-  "Great! We deliver express to ${detectedLoc.name}! Doorstep delivery is 100% FREE on 3 kg (gives 6–7 fresh trout at ₹1,740 total). Or we can send 2 kg with just a subsidized ₹${69 + surgeAdd} courier fee (₹${1229 + surgeAdd} total). How many Kgs would you like for your family?"
+  "Great! We deliver express to ${detectedLoc.name}! Doorstep delivery is 100% FREE on 3 kg (gives 6–7 fresh trout at ₹1,740 total). Or we can send 2 kg with just a subsidized ₹${89 + surgeAdd} courier fee (₹${1249 + surgeAdd} total). How many Kgs would you like for your family?"
 • IF CUSTOMER ASKS FOR 2 KG:
-  Gladly confirm! "Sure, let's do it! We'd be happy to send 2 kg to ${detectedLoc.name}. It comes to ₹1,160 fish + ₹${69 + surgeAdd} subsidized courier fee = ₹${1229 + surgeAdd} total. Shall I send your payment link?"
+  Gladly confirm! "Sure, let's do it! We'd be happy to send 2 kg to ${detectedLoc.name}. It comes to ₹1,160 fish + ₹${89 + surgeAdd} subsidized courier fee = ₹${1249 + surgeAdd} total. Shall I send your payment link?"
 • IF CUSTOMER ASKS FOR 1 KG:
-  "Doorstep delivery is 100% FREE on 3 kg (or ₹${69 + surgeAdd} on 2 kg). If you'd prefer just 1 kg starter pack to taste today, we can dispatch it express for ₹580 + ₹${79 + surgeAdd} courier fee (₹${659 + surgeAdd} total). Which works best for you?"
+  "Doorstep delivery is 100% FREE on 3 kg (or ₹${89 + surgeAdd} on 2 kg). If you'd prefer just 1 kg starter pack to taste today, we can dispatch it express for ₹580 + ₹${99 + surgeAdd} courier fee (₹${679 + surgeAdd} total). Which works best for you?"
 • When customer confirms 3 kg Cleaned & Gutted: output [PAY_LINK: 1740 : 3 kg Cleaned & Gutted]
-• When customer confirms 2 kg Cleaned & Gutted: output [PAY_LINK: ${1229 + surgeAdd} : 2 kg Cleaned & Gutted (+Express Delivery)]
-• When customer confirms 1 kg Cleaned & Gutted: output [PAY_LINK: ${659 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
+• When customer confirms 2 kg Cleaned & Gutted: output [PAY_LINK: ${1249 + surgeAdd} : 2 kg Cleaned & Gutted (+Express Delivery)]
+• When customer confirms 1 kg Cleaned & Gutted: output [PAY_LINK: ${679 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
 DO NOT ask them for a WhatsApp GPS location pin!
 ======================================================`;
       } else if (detectedLoc.dist <= 16.0) {
         localityContext = `\n======================================================
 📍 SMART LOCALITY DETECTED: Customer mentioned "${detectedLoc.name}" (~${detectedLoc.dist} km from Malabagh).
 ⚠️ STRICT MANDATE: NEVER MENTION "Zone 4", ANY ZONE NUMBERS, OR KM RANGES LIKE "(11.5–16 km)" TO THE CUSTOMER! Speak naturally: "We deliver express right to your doorstep in ${detectedLoc.name}!".
-CRITICAL DELIVERY & PRICING INSTRUCTIONS:${isEveningSurge ? "\n⚡ CURRENT TIME: EVENING RUSH HOUR (4:00 PM – 8:00 PM IST) — +₹40 evening rush courier surge applies to subsidized courier orders. 4 kg family pack remains 100% FREE!" : ""}
-• Doorstep Delivery: 100% FREE on 4 kg family pack (gives 8–10 fresh trout at *₹2,320 total*)!
-• 3 kg Order: Available with a nominal subsidized courier fee of *₹${79 + surgeAdd}* (₹1,740 + ₹${79 + surgeAdd} = *₹${1819 + surgeAdd} total*).
-• 2 kg Order: Available with a nominal subsidized courier fee of *₹${99 + surgeAdd}* (₹1,160 + ₹${99 + surgeAdd} = *₹${1259 + surgeAdd} total*).
-• 1 kg Starter Pack: Available with subsidized courier fee of *₹${139 + surgeAdd}* (₹580 + ₹${139 + surgeAdd} = *₹${719 + surgeAdd} total*).
+CRITICAL DELIVERY & PRICING INSTRUCTIONS:${isEveningSurge ? "\n⚡ CURRENT TIME: EVENING RUSH HOUR (4:00 PM – 8:00 PM IST) — +₹40 evening rush courier surge applies to subsidized courier orders. 5 kg family pack remains 100% FREE!" : ""}
+• Doorstep Delivery: 100% FREE on 5 kg family pack (gives 10–12 fresh trout at *₹2,900 total*)!
+• 4 kg Order: Available with a nominal subsidized courier fee of *₹${109 + surgeAdd}* (₹2,320 + ₹${109 + surgeAdd} = *₹${2429 + surgeAdd} total*).
+• 3 kg Order: Available with a nominal subsidized courier fee of *₹${129 + surgeAdd}* (₹1,740 + ₹${129 + surgeAdd} = *₹${1869 + surgeAdd} total*).
+• 2 kg Order: Available with a nominal subsidized courier fee of *₹${139 + surgeAdd}* (₹1,160 + ₹${139 + surgeAdd} = *₹${1299 + surgeAdd} total*).
+• 1 kg Starter Pack: Available with subsidized courier fee of *₹${149 + surgeAdd}* (₹580 + ₹${149 + surgeAdd} = *₹${729 + surgeAdd} total*).
 • Rates: Cleaned & Gutted = ₹580/kg | Whole Fresh = ₹540/kg
 • Pitch for ${detectedLoc.name}:
-  "Great! We deliver express to ${detectedLoc.name}! Doorstep delivery is 100% FREE for our 4 kg family pack (gives 8–10 fresh trout at ₹2,320 total). We can also send 2 kg for just ₹${99 + surgeAdd} express courier fee (₹${1259 + surgeAdd} total) or 3 kg for ₹${79 + surgeAdd} courier fee (₹${1819 + surgeAdd} total). Which would you like for your home?"
+  "Great! We deliver express to ${detectedLoc.name}! Doorstep delivery is 100% FREE for our 5 kg family pack (gives 10–12 fresh trout at ₹2,900 total). We can also send 2 kg for just ₹${139 + surgeAdd} express courier fee (₹${1299 + surgeAdd} total), 3 kg for ₹${129 + surgeAdd} courier fee (₹${1869 + surgeAdd} total), or 4 kg for ₹${109 + surgeAdd} courier fee (₹${2429 + surgeAdd} total). Which would you like for your home?"
 • IF CUSTOMER ASKS FOR 2 KG:
-  Gladly confirm! "Sure, let's do it! We can send 2 kg to ${detectedLoc.name} express for ₹1,160 fish + ₹${99 + surgeAdd} subsidized courier fee = ₹${1259 + surgeAdd} total. Shall I send your payment link?"
+  Gladly confirm! "Sure, let's do it! We can send 2 kg to ${detectedLoc.name} express for ₹1,160 fish + ₹${139 + surgeAdd} subsidized courier fee = ₹${1299 + surgeAdd} total. Shall I send your payment link?"
 • IF CUSTOMER ASKS FOR 3 KG:
-  "Sure! 3 kg to ${detectedLoc.name} is ₹1,740 fish + ₹${79 + surgeAdd} subsidized courier fee = ₹${1819 + surgeAdd} total. Shall I send your payment link?"
+  "Sure! 3 kg to ${detectedLoc.name} is ₹1,740 fish + ₹${129 + surgeAdd} subsidized courier fee = ₹${1869 + surgeAdd} total. Shall I send your payment link?"
+• IF CUSTOMER ASKS FOR 4 KG:
+  "Sure! 4 kg to ${detectedLoc.name} is ₹2,320 fish + ₹${109 + surgeAdd} subsidized courier fee = ₹${2429 + surgeAdd} total (or upgrade to 5 kg for ₹2,900 with 100% FREE delivery!). Shall I send your payment link?"
 • IF CUSTOMER ASKS FOR 1 KG:
-  "Doorstep delivery is 100% FREE on 4 kg (or ₹${99 + surgeAdd} on 2 kg). If you'd like just 1 kg as a starter pack, we can send it express for ₹580 + ₹${139 + surgeAdd} courier fee (₹${719 + surgeAdd} total), or you can visit our Live Vending Center in Malabagh with zero delivery fee. Which would you prefer?"
-• When customer confirms 4 kg Cleaned & Gutted: output [PAY_LINK: 2320 : 4 kg Cleaned & Gutted]
-• When customer confirms 3 kg Cleaned & Gutted: output [PAY_LINK: ${1819 + surgeAdd} : 3 kg Cleaned & Gutted (+Express Delivery)]
-• When customer confirms 2 kg Cleaned & Gutted: output [PAY_LINK: ${1259 + surgeAdd} : 2 kg Cleaned & Gutted (+Express Delivery)]
-• When customer confirms 1 kg Cleaned & Gutted: output [PAY_LINK: ${719 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
+  "Doorstep delivery is 100% FREE on 5 kg (or ₹${139 + surgeAdd} on 2 kg). If you'd like just 1 kg as a starter pack, we can send it express for ₹580 + ₹${149 + surgeAdd} courier fee (₹${729 + surgeAdd} total), or you can visit our Live Vending Center in Malabagh with zero delivery fee. Which would you prefer?"
+• When customer confirms 5 kg Cleaned & Gutted: output [PAY_LINK: 2900 : 5 kg Cleaned & Gutted]
+• When customer confirms 4 kg Cleaned & Gutted: output [PAY_LINK: ${2429 + surgeAdd} : 4 kg Cleaned & Gutted (+Express Delivery)]
+• When customer confirms 3 kg Cleaned & Gutted: output [PAY_LINK: ${1869 + surgeAdd} : 3 kg Cleaned & Gutted (+Express Delivery)]
+• When customer confirms 2 kg Cleaned & Gutted: output [PAY_LINK: ${1299 + surgeAdd} : 2 kg Cleaned & Gutted (+Express Delivery)]
+• When customer confirms 1 kg Cleaned & Gutted: output [PAY_LINK: ${729 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
 DO NOT ask them for a WhatsApp GPS location pin!
 ======================================================`;
       }
@@ -2679,44 +2700,46 @@ CRITICAL INSTRUCTION: Inform them politely that doorstep delivery is restricted 
 📍 CUSTOMER DISTANCE ON FILE: ~${sDist} km (Nearby Srinagar: 0–4 km).
 ⚠️ STRICT MANDATE: NEVER SAY "ZONE 1" TO CUSTOMER!
 • Doorstep Delivery: 100% FREE on 2 kg or more (Cleaned & Gutted ₹1,160).
-• 1 kg starter pack: ₹580 + ₹${29 + surgeAdd} courier fee = ₹${609 + surgeAdd} total.
+• 1 kg starter pack: ₹580 + ₹${35 + surgeAdd} courier fee = ₹${615 + surgeAdd} total.
 • If confirmed 2 kg: [PAY_LINK: 1160 : 2 kg Cleaned & Gutted]
-• If confirmed 1 kg: [PAY_LINK: ${609 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
+• If confirmed 1 kg: [PAY_LINK: ${615 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
 ======================================================`;
       } else if (sDist <= 7.0) {
         localityContext = `\n======================================================
-📍 CUSTOMER DISTANCE ON FILE: ~${sDist} km (Mid Srinagar: 4–7 km).${isEveningSurge ? "\n⚡ EVENING RUSH HOUR (5–8 PM): +₹40 evening rush courier surge applies to subsidized orders. 3 kg+ is 100% FREE!" : ""}
+📍 CUSTOMER DISTANCE ON FILE: ~${sDist} km (Mid Srinagar: 4–7 km).${isEveningSurge ? "\n⚡ EVENING RUSH HOUR (4–8 PM): +₹40 evening rush courier surge applies to subsidized orders. 3 kg+ is 100% FREE!" : ""}
 ⚠️ STRICT MANDATE: NEVER SAY "ZONE 2" TO CUSTOMER!
 • Doorstep Delivery: 100% FREE on 3 kg or more (Cleaned & Gutted ₹1,740).
-• 2 kg: ₹1,160 + ₹${39 + surgeAdd} subsidized courier fee = ₹${1199 + surgeAdd} total.
-• 1 kg: ₹580 + ₹${49 + surgeAdd} subsidized courier fee = ₹${629 + surgeAdd} total.
+• 2 kg: ₹1,160 + ₹${55 + surgeAdd} subsidized courier fee = ₹${1215 + surgeAdd} total.
+• 1 kg: ₹580 + ₹${65 + surgeAdd} subsidized courier fee = ₹${645 + surgeAdd} total.
 • If confirmed 3 kg: [PAY_LINK: 1740 : 3 kg Cleaned & Gutted]
-• If confirmed 2 kg: [PAY_LINK: ${1199 + surgeAdd} : 2 kg Cleaned & Gutted (+Express Delivery)]
-• If confirmed 1 kg: [PAY_LINK: ${629 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
+• If confirmed 2 kg: [PAY_LINK: ${1215 + surgeAdd} : 2 kg Cleaned & Gutted (+Express Delivery)]
+• If confirmed 1 kg: [PAY_LINK: ${645 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
 ======================================================`;
       } else if (sDist <= 11.5) {
         localityContext = `\n======================================================
-📍 CUSTOMER DISTANCE ON FILE: ~${sDist} km (Greater Srinagar: 7–11.5 km).${isEveningSurge ? "\n⚡ EVENING RUSH HOUR (5–8 PM): +₹40 evening rush courier surge applies to subsidized orders. 3 kg+ is 100% FREE!" : ""}
+📍 CUSTOMER DISTANCE ON FILE: ~${sDist} km (Greater Srinagar: 7–11.5 km).${isEveningSurge ? "\n⚡ EVENING RUSH HOUR (4–8 PM): +₹40 evening rush courier surge applies to subsidized orders. 3 kg+ is 100% FREE!" : ""}
 ⚠️ STRICT MANDATE: NEVER SAY "ZONE 3" TO CUSTOMER!
 • Doorstep Delivery: 100% FREE on 3 kg or more (Cleaned & Gutted ₹1,740).
-• 2 kg: ₹1,160 + ₹${69 + surgeAdd} subsidized courier fee = ₹${1229 + surgeAdd} total.
-• 1 kg: ₹580 + ₹${79 + surgeAdd} subsidized courier fee = ₹${659 + surgeAdd} total.
+• 2 kg: ₹1,160 + ₹${89 + surgeAdd} subsidized courier fee = ₹${1249 + surgeAdd} total.
+• 1 kg: ₹580 + ₹${99 + surgeAdd} subsidized courier fee = ₹${679 + surgeAdd} total.
 • If confirmed 3 kg: [PAY_LINK: 1740 : 3 kg Cleaned & Gutted]
-• If confirmed 2 kg: [PAY_LINK: ${1229 + surgeAdd} : 2 kg Cleaned & Gutted (+Express Delivery)]
-• If confirmed 1 kg: [PAY_LINK: ${659 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
+• If confirmed 2 kg: [PAY_LINK: ${1249 + surgeAdd} : 2 kg Cleaned & Gutted (+Express Delivery)]
+• If confirmed 1 kg: [PAY_LINK: ${679 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
 ======================================================`;
       } else if (sDist <= 16.0) {
         localityContext = `\n======================================================
-📍 CUSTOMER DISTANCE ON FILE: ~${sDist} km (Outer Corridor: 11.5–16 km).${isEveningSurge ? "\n⚡ EVENING RUSH HOUR (5–8 PM): +₹40 evening rush courier surge applies to subsidized orders. 4 kg family pack remains 100% FREE!" : ""}
+📍 CUSTOMER DISTANCE ON FILE: ~${sDist} km (Outer Corridor: 11.5–16 km).${isEveningSurge ? "\n⚡ EVENING RUSH HOUR (4–8 PM): +₹40 evening rush courier surge applies to subsidized orders. 5 kg family pack remains 100% FREE!" : ""}
 ⚠️ STRICT MANDATE: NEVER SAY "ZONE 4" TO CUSTOMER!
-• Doorstep Delivery: 100% FREE on 4 kg family pack (Cleaned & Gutted ₹2,320).
-• 3 kg: ₹1,740 + ₹${79 + surgeAdd} subsidized courier fee = ₹${1819 + surgeAdd} total.
-• 2 kg: ₹1,160 + ₹${99 + surgeAdd} subsidized courier fee = ₹${1259 + surgeAdd} total.
-• 1 kg: ₹580 + ₹${139 + surgeAdd} subsidized courier fee = ₹${719 + surgeAdd} total.
-• If confirmed 4 kg: [PAY_LINK: 2320 : 4 kg Cleaned & Gutted]
-• If confirmed 3 kg: [PAY_LINK: ${1819 + surgeAdd} : 3 kg Cleaned & Gutted (+Express Delivery)]
-• If confirmed 2 kg: [PAY_LINK: ${1259 + surgeAdd} : 2 kg Cleaned & Gutted (+Express Delivery)]
-• If confirmed 1 kg: [PAY_LINK: ${719 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
+• Doorstep Delivery: 100% FREE on 5 kg family pack (Cleaned & Gutted ₹2,900).
+• 4 kg: ₹2,320 + ₹${109 + surgeAdd} subsidized courier fee = ₹${2429 + surgeAdd} total.
+• 3 kg: ₹1,740 + ₹${129 + surgeAdd} subsidized courier fee = ₹${1869 + surgeAdd} total.
+• 2 kg: ₹1,160 + ₹${139 + surgeAdd} subsidized courier fee = ₹${1299 + surgeAdd} total.
+• 1 kg: ₹580 + ₹${149 + surgeAdd} subsidized courier fee = ₹${729 + surgeAdd} total.
+• If confirmed 5 kg: [PAY_LINK: 2900 : 5 kg Cleaned & Gutted]
+• If confirmed 4 kg: [PAY_LINK: ${2429 + surgeAdd} : 4 kg Cleaned & Gutted (+Express Delivery)]
+• If confirmed 3 kg: [PAY_LINK: ${1869 + surgeAdd} : 3 kg Cleaned & Gutted (+Express Delivery)]
+• If confirmed 2 kg: [PAY_LINK: ${1299 + surgeAdd} : 2 kg Cleaned & Gutted (+Express Delivery)]
+• If confirmed 1 kg: [PAY_LINK: ${729 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
 ======================================================`;
       } else {
         localityContext = `\n======================================================
@@ -2751,7 +2774,7 @@ CRITICAL INSTRUCTION: Answer ONLY what is required (keep it brief and organized)
 • Cleaned & Gutted: *₹580/kg* (Pan-ready, scaled & cleaned)
 • Whole Fresh: *₹540/kg*
 
-🛵 *Doorstep delivery is 100% FREE* on eligible orders across Srinagar (min 2 kg for nearby areas like Malabagh, Soura, Hazratbal, Lal Bazar; 3–4 kg for other areas; subsidized express courier on smaller orders)!
+🛵 *Doorstep delivery is 100% FREE* on eligible orders across Srinagar (min 2 kg for nearby areas like Malabagh, Soura, Hazratbal, Lal Bazar; 3–5 kg for other Srinagar areas; subsidized express courier on smaller orders)!
 
 Which area in Srinagar would you like delivery to, or would you like to visit our Live Vending Center in Malabagh?
 ======================================================`;
@@ -2796,39 +2819,39 @@ How can I help you today? Would you like Cleaned & Gutted (₹580/kg) or Whole F
       intentContext += `\n======================================================
 💡 QUERY INTENT DECODED: Customer inquired about 1 kg for ${locName} (~${locDist} km from farm).
 ⚠️ STRICT MANDATE: NEVER MENTION "ZONE 4" OR ANY ZONE LABELS TO THE CUSTOMER!
-• Doorstep delivery is 100% FREE on our 4 kg family pack (₹2,320 total).
-• If customer wants 1 kg starter pack: ₹580 + ₹139 subsidized courier fee = *₹719 total*.
-• If customer wants 2 kg: ₹1,160 + ₹99 subsidized courier fee = *₹1,259 total*.
-• When customer confirms 1 kg: output [PAY_LINK: 719 : 1 kg Cleaned & Gutted (+Express Delivery)]
-• When customer confirms 2 kg: output [PAY_LINK: 1259 : 2 kg Cleaned & Gutted (+Express Delivery)]
+• Doorstep delivery is 100% FREE on our 5 kg family pack (₹2,900 total).
+• If customer wants 1 kg starter pack: ₹580 + ₹${149 + surgeAdd} courier fee = *₹${729 + surgeAdd} total*.
+• If customer wants 2 kg: ₹1,160 + ₹${139 + surgeAdd} courier fee = *₹${1299 + surgeAdd} total*.
+• When customer confirms 1 kg: output [PAY_LINK: ${729 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
+• When customer confirms 2 kg: output [PAY_LINK: ${1299 + surgeAdd} : 2 kg Cleaned & Gutted (+Express Delivery)]
 ======================================================`;
     } else if (locDist !== null && locDist > 7.0 && locDist <= 11.5) {
       intentContext += `\n======================================================
 💡 QUERY INTENT DECODED: Customer inquired about 1 kg for ${locName} (~${locDist} km from farm).
 ⚠️ STRICT MANDATE: NEVER MENTION "ZONE 3" OR ANY ZONE LABELS TO THE CUSTOMER!
 • Doorstep delivery is 100% FREE on 3 kg (₹1,740 total).
-• If customer wants 1 kg starter pack: ₹580 + ₹79 subsidized courier fee = *₹659 total*.
-• If customer wants 2 kg: ₹1,160 + ₹69 subsidized courier fee = *₹1,229 total*.
-• When customer confirms 1 kg: output [PAY_LINK: 659 : 1 kg Cleaned & Gutted (+Express Delivery)]
-• When customer confirms 2 kg: output [PAY_LINK: 1229 : 2 kg Cleaned & Gutted (+Express Delivery)]
+• If customer wants 1 kg starter pack: ₹580 + ₹${99 + surgeAdd} courier fee = *₹${679 + surgeAdd} total*.
+• If customer wants 2 kg: ₹1,160 + ₹${89 + surgeAdd} courier fee = *₹${1249 + surgeAdd} total*.
+• When customer confirms 1 kg: output [PAY_LINK: ${679 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
+• When customer confirms 2 kg: output [PAY_LINK: ${1249 + surgeAdd} : 2 kg Cleaned & Gutted (+Express Delivery)]
 ======================================================`;
     } else if (locDist !== null && locDist > 4.0 && locDist <= 7.0) {
       intentContext += `\n======================================================
 💡 QUERY INTENT DECODED: Customer inquired about 1 kg for ${locName} (~${locDist} km from farm).
 ⚠️ STRICT MANDATE: NEVER MENTION "ZONE 2" OR ANY ZONE LABELS TO THE CUSTOMER!
 • Doorstep delivery is 100% FREE on 3 kg (₹1,740 total).
-• If customer wants 1 kg starter pack: ₹580 + ₹49 subsidized courier fee = *₹629 total*.
-• If customer wants 2 kg: ₹1,160 + ₹39 subsidized courier fee = *₹1,199 total*.
-• When customer confirms 1 kg: output [PAY_LINK: 629 : 1 kg Cleaned & Gutted (+Express Delivery)]
-• When customer confirms 2 kg: output [PAY_LINK: 1199 : 2 kg Cleaned & Gutted (+Express Delivery)]
+• If customer wants 1 kg starter pack: ₹580 + ₹${65 + surgeAdd} courier fee = *₹${645 + surgeAdd} total*.
+• If customer wants 2 kg: ₹1,160 + ₹${55 + surgeAdd} courier fee = *₹${1215 + surgeAdd} total*.
+• When customer confirms 1 kg: output [PAY_LINK: ${645 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
+• When customer confirms 2 kg: output [PAY_LINK: ${1215 + surgeAdd} : 2 kg Cleaned & Gutted (+Express Delivery)]
 ======================================================`;
     } else if (locDist !== null && locDist <= 4.0) {
       intentContext += `\n======================================================
 💡 QUERY INTENT DECODED: Customer inquired about 1 kg for ${locName} (~${locDist} km from farm).
 ⚠️ STRICT MANDATE: NEVER MENTION "ZONE 1" OR ANY ZONE LABELS TO THE CUSTOMER!
 • Doorstep delivery is 100% FREE on 2 kg (₹1,160 total).
-• If customer prefers just 1 kg as a starter pack: ₹580 + ₹29 subsidized courier fee = *₹609 total* (or free counter pickup at our Live Vending Center in Malabagh with zero delivery fee).
-• When customer confirms 1 kg: output [PAY_LINK: 609 : 1 kg Cleaned & Gutted (+Express Delivery)]
+• If customer prefers just 1 kg as a starter pack: ₹580 + ₹${35 + surgeAdd} courier fee = *₹${615 + surgeAdd} total* (or free counter pickup at our Live Vending Center in Malabagh with zero delivery fee).
+• When customer confirms 1 kg: output [PAY_LINK: ${615 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
 • When customer confirms 2 kg: output [PAY_LINK: 1160 : 2 kg Cleaned & Gutted]
 ======================================================`;
     } else {
@@ -2836,8 +2859,8 @@ How can I help you today? Would you like Cleaned & Gutted (₹580/kg) or Whole F
 💡 QUERY INTENT DECODED: Customer inquired about 1 kg, but their locality in Srinagar is NOT yet known.
 ⚠️ ABSOLUTE MANDATE: NEVER MENTION "ZONE 1" OR ANY ZONE NUMBERS! DO NOT ASSUME THEIR AREA!
 • Explain warmly:
-  "Great! For 1 kg, doorstep delivery is available with a nominal subsidized express courier fee (e.g. ₹29 for nearby areas like Malabagh, Soura, Hazratbal, Lal Bazar; ₹49–₹89 across other Srinagar localities).
-  Alternatively, doorstep delivery is *100% FREE* on 2 kg or more (₹1,160 total), or you can pick up 1 kg fresh with zero delivery fee at our Live Vending Center in Malabagh.
+  "Great! For 1 kg, doorstep delivery is available with a nominal subsidized express courier fee (e.g. ₹${35 + surgeAdd} for nearby areas like Malabagh, Soura, Hazratbal, Lal Bazar; ₹${65 + surgeAdd}–₹${149 + surgeAdd} across other Srinagar localities).
+  Alternatively, doorstep delivery is *100% FREE* on 2 kg+ in nearby areas (3–5 kg across wider Srinagar), or you can pick up 1 kg fresh with zero delivery fee at our Live Vending Center in Malabagh.
   Which area in Srinagar shall we deliver to?"
 • Always ask for their area so our system can calculate the exact delivery distance!
 ======================================================`;
@@ -2890,7 +2913,7 @@ TEMPORAL REALITY DIRECTIVE:
   • 🕗 Morning Slot: 8:00 AM – 11:00 AM (Harvest starts 8:00 AM)
   • 🕛 Afternoon Slot: 12:00 PM – 3:00 PM
   • 🕔 Evening Slot: 4:00 PM – 7:00 PM
-• Ask which slot works best and confirm their quantity (Cleaned & Gutted @ ₹580/kg, minimum order 2 kg for free delivery)!
+• Ask which slot works best and confirm their quantity (Cleaned & Gutted @ ₹580/kg, min 2–5 kg depending on area for 100% free delivery)!
 ======================================================`;
   }
 
@@ -2929,7 +2952,7 @@ However, we are actively taking advance bookings for tomorrow, Saturday!
 • Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero prep)
 • Whole Fresh: *₹540/kg*
 
-🛵 *Doorstep delivery is 100% FREE* on eligible orders (2 kg for 0–4 km, 3 kg for 4–11.5 km, 4 kg for 11.5–16 km; subsidized courier on smaller orders)!
+🛵 *Doorstep delivery is 100% FREE* on eligible orders (2 kg for 0–4 km, 3 kg for 4–11.5 km, 5 kg for 11.5–16 km & South Srinagar; subsidized courier on smaller orders)!
 
 Would you like us to schedule a fresh live-harvest delivery for you tomorrow (Saturday)?`;
 
@@ -2954,7 +2977,7 @@ We would be delighted to schedule your fresh live-harvest delivery for:
 • 🕛 *Afternoon:* 12:00 PM – 3:00 PM
 • 🕔 *Evening:* 4:00 PM – 7:00 PM
 
-🛵 *Doorstep delivery is 100% FREE* on eligible orders (2 kg for 0–4 km, 3 kg for 4–11.5 km, 4 kg for 11.5–16 km; subsidized courier on smaller orders)!
+🛵 *Doorstep delivery is 100% FREE* on eligible orders (2 kg for 0–4 km, 3 kg for 4–11.5 km, 5 kg for 11.5–16 km & South Srinagar; subsidized courier on smaller orders)!
 
 Would you prefer fresh delivery today (Thursday) within 2 hours, or an advance booking for Saturday?`;
 
@@ -2994,7 +3017,7 @@ We start taking fresh live-harvest orders from 8:00 AM every Saturday morning! W
 • 🕛 *Afternoon Slot:* 12:00 PM – 3:00 PM
 • 🕔 *Evening Slot:* 4:00 PM – 7:00 PM
 
-🛵 *Doorstep delivery is 100% FREE* on eligible orders (2 kg for 0–4 km, 3 kg for 4–11.5 km, 4 kg for 11.5–16 km; subsidized courier on smaller orders)!
+🛵 *Doorstep delivery is 100% FREE* on eligible orders (2 kg for 0–4 km, 3 kg for 4–11.5 km, 5 kg for 11.5–16 km & South Srinagar; subsidized courier on smaller orders)!
 
 Which slot on Saturday works best for your delivery, and how many Kgs of Cleaned & Gutted trout (₹580/kg, pan-ready) shall I book for you?`
         : `Our deliveries for tonight closed at 8:00 PM. We start taking fresh live-harvest orders from 8:00 AM every morning!
@@ -3004,7 +3027,7 @@ We would be delighted to schedule your fresh live-harvest delivery for tomorrow:
 • 🕛 *Afternoon Slot:* 12:00 PM – 3:00 PM
 • 🕔 *Evening Slot:* 4:00 PM – 7:00 PM
 
-🛵 *Doorstep delivery is 100% FREE* on eligible orders (2 kg for 0–4 km, 3 kg for 4–11.5 km, 4 kg for 11.5–16 km; subsidized courier on smaller orders)!
+🛵 *Doorstep delivery is 100% FREE* on eligible orders (2 kg for 0–4 km, 3 kg for 4–11.5 km, 5 kg for 11.5–16 km & South Srinagar; subsidized courier on smaller orders)!
 
 Which slot tomorrow works best for your delivery, and how many Kgs of Cleaned & Gutted trout (₹580/kg, pan-ready) shall I book for you?`;
     }
@@ -3036,7 +3059,7 @@ We would be delighted to schedule your fresh live-harvest delivery for this morn
 • 🕔 *Evening Slot:* 4:00 PM – 7:00 PM
 
 • Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — descaled, zero kitchen mess, straight to pan)
-🛵 *Doorstep delivery is 100% FREE* on eligible orders (2 kg for 0–4 km, 3 kg for 4–11.5 km, 4 kg for 11.5–16 km; subsidized courier on smaller orders)!
+🛵 *Doorstep delivery is 100% FREE* on eligible orders (2 kg for 0–4 km, 3 kg for 4–11.5 km, 5 kg for 11.5–16 km & South Srinagar; subsidized courier on smaller orders)!
 
 Which slot today works best for you, and how many Kgs would you like for your family? 🐟`;
     }
@@ -3082,7 +3105,7 @@ Which slot today works best for you, and how many Kgs would you like for your fa
 - We start taking fresh live-harvest orders from 8:00 AM every single day (except Friday)!
 - We are currently open and actively taking orders for TODAY (${todayDayName}) right now!
 - Live-harvested Rainbow Trout delivered straight to the customer's doorstep WITHIN 2 HOURS (or at their preferred scheduled time slot today up to 8:00 PM).
-- Minimum order: 2 kg for 0–4 km, 3 kg for 4–6 km, 4 kg for 6–8 km.
+- Minimum order for FREE delivery: 2 kg for 0–4 km, 3 kg for 4–11.5 km, 5 kg for 11.5–16 km (Rajbagh, Jawahar Nagar, Batamaloo, Sanat Nagar, Peerbagh, Airport Rd, Nowgam, Hyderpora, etc.); subsidized 70/30 courier on smaller orders.
 - ABSOLUTELY NEVER say "deliveries wrapped up" or "book for tomorrow" during daytime (8:00 AM - 8:00 PM)! Offer live delivery TODAY within 2 hours!${thuNote}`;
   } else if (isNightAfter9PM) {
     if (isThursdayToday) {
@@ -3191,20 +3214,20 @@ CRITICAL READABILITY & MAXIMUM BREVITY MANDATE (ANSWER ONLY WHAT IS REQUIRED):
    • Whole Fresh Trout (*₹540/kg*, uncleaned/round) is an unadvertised on-demand fallback option. ONLY reveal it if the customer specifically asks: "bina saaf kiye", "whole fish", "sabut", "uncleaned", or pushes hard on price.
    • When customer asks about whole/uncleaned: "Yes, we also offer Whole Fresh Trout (uncleaned/round) at ₹540/kg if you prefer cleaning it at home. However, most families choose our Cleaned & Gutted (₹580/kg) because it arrives completely descaled, gutted, and cut into pan-ready steaks with zero kitchen mess. Which would you prefer?"
 6. DELIVERY CALLOUT LINE (SEPARATE LINE BELOW RATES):
-   🛵 *Doorstep delivery is 100% FREE* on eligible orders across Srinagar (min 2 kg for nearby areas, 3–4 kg for other Srinagar areas; subsidized express courier on smaller orders)!
+   🛵 *Doorstep delivery is 100% FREE* on eligible orders across Srinagar (min 2 kg for nearby areas, 3–5 kg for wider Srinagar areas; subsidized express courier on smaller orders)!
 7. TERMINOLOGY: Always use "Live Vending Center" (located in Malabagh). NEVER say "Malabagh Vending Center".
 8. STRICT PROHIBITION: NEVER MENTION ZONE NUMBERS (ZONE 1, 2, 3, 4) OR KM RANGES TO CUSTOMERS:
    • Internal delivery zones are for backend fee calculations ONLY. Customers find zone labels confusing, cold, and robotic!
    • ABSOLUTELY NEVER say: "Zone 1", "Zone 2", "Zone 3", "Zone 4", "(Zone 1)", "in your area (Zone 1)", "Zone 3 area", or "(11.5–16 km)"!
    • ALWAYS speak naturally using locality names: "Great! We deliver express right to your doorstep in [Locality]!" or "for nearby areas like Malabagh, Soura, Hazratbal".
-   • State the free delivery policy warmly: e.g. "For Hyderpora, doorstep delivery is 100% FREE on 4 kg or more!"
+   • State the free delivery policy warmly: e.g. "For Hyderpora, doorstep delivery is 100% FREE on 5 kg or more!"
 
 9. STRICT MOQ-FIRST POLICY (ZERO PROACTIVE 1 KG DOWNSELLING):
-   • When greeting a new lead, sharing prices, or confirming a delivery locality: ALWAYS state or ask for the Area Minimum Order Quantity (MOQ: 2 kg for nearby areas like Malabagh/Soura/Hazratbal, 3 kg for mid/greater Srinagar, 4 kg for outer corridor).
+   • When greeting a new lead, sharing prices, or confirming a delivery locality: ALWAYS state or ask for the Area Minimum Order Quantity (MOQ: 2 kg for nearby areas like Malabagh/Soura/Hazratbal, 3 kg for mid/central Srinagar, 5 kg for South Corridor, Rajbagh, Jawahar Nagar, Batamaloo, Sanat Nagar, Peerbagh, Airport Road, Nowgam, etc.).
    • NEVER volunteer 1 kg or mention delivery fees upfront! Pitching 1 kg upfront hurts basket size and causes customer confusion.
    • ONLY when a customer explicitly asks: "Can I get 1 kg?", "1 kg kitne ka hai?", "1kg chahiye", or asks for an amount below the Area MOQ:
      - Step 1: Explain that the Area MOQ gives 100% free delivery.
-     - Step 2: Gladly accommodate them with our nominal subsidized express courier (+₹29 for nearby areas, +₹49 to +₹89 for other areas) or free counter pickup at our Live Vending Center in Malabagh.
+     - Step 2: Gladly accommodate them with our subsidized express courier (30% subsidized by Urban Trout: +₹35 for nearby areas, +₹55 to +₹149 across Srinagar) or free counter pickup at our Live Vending Center in Malabagh.
      - Step 3: When customer confirms, generate the payment link immediately.
 
 10. MANDATORY LIVE-HARVEST WEIGHING & VISCERAL LOSS DISCLOSURE LAW:
@@ -3217,7 +3240,7 @@ CRITICAL READABILITY & MAXIMUM BREVITY MANDATE (ANSWER ONLY WHAT IS REQUIRED):
      Always answer with 100% transparency: Live harvest is weighed whole (1.0 kg); expert gutting/descaling has a natural 15-20% visceral loss (yielding ~800-850g net steaks). If they want 1 kg of net meat on their scale, offer a 1.25 kg live harvest (₹725).
 
 11. PRICE-LOCK & NO BAIT-AND-SWITCH GUARANTEE:
-   • Once an order price or courier fee has been quoted to a customer for their area (e.g. "2 kg Batamaloo = ₹1,249"), that quote is 100% LOCKED IN for that order!
+   • Once an order price or courier fee has been quoted to a customer for their area (e.g. "2 kg Batamaloo = ₹1,299"), that quote is 100% LOCKED IN for that order!
    • When the customer shares their WhatsApp location pin or exact colony name, NEVER recalculate or increase the courier fee! The GPS pin is solely for our delivery rider's navigation.
    • If a customer inquired before 4:00 PM and confirms during evening rush hours (4:00 PM – 8:00 PM), ALWAYS honor the original daytime quote without adding rush surcharges. Bait-and-switch pricing destroys customer trust.
 
@@ -3225,54 +3248,57 @@ CONVERSATION FLOW & GREETING RULE:
 ${stageInstruction}
 
 SPECIAL SYSTEM CAPABILITY (RAZORPAY PAYMENT LINK GENERATOR):
-4-TIER DELIVERY DISTANCES & PRICING:${isEveningSurge ? "\n⚡ CURRENT TIME: EVENING RUSH HOUR ACTIVE (4:00 PM – 8:00 PM IST) — +₹40 evening rush courier surge is included in all subsidized courier tags below. 4 kg family pack (and 2-3 kg eligible free deliveries) remains 100% FREE!" : ""}
+4-TIER DELIVERY DISTANCES & PRICING (70% Customer / 30% Urban Trout Subsidy):${isEveningSurge ? "\n⚡ CURRENT TIME: EVENING RUSH HOUR ACTIVE (4:00 PM – 8:00 PM IST) — +₹40 evening rush courier surge is included in all subsidized courier tags below. Eligible free delivery packs (2 kg / 3 kg / 5 kg) remain 100% FREE!" : ""}
 1. NEARBY AREAS (0 to 4.0 km from Malabagh — Core Area: Malabagh, Soura, Hazratbal, Lal Bazar, Zakura):
    - Free Delivery MOQ: 2 KG or more
-   - Cleaned & Gutted: 2 kg = ₹1,160 | 3 kg = ₹1,740 | 4 kg = ₹2,320 (100% FREE delivery)
-   - 1 KG Starter Pack: ₹580 + ₹${29 + surgeAdd} subsidized courier fee = ₹${609 + surgeAdd} total:
-     [PAY_LINK: ${609 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
+   - Cleaned & Gutted: 2 kg = ₹1,160 | 3 kg = ₹1,740 | 4 kg = ₹2,320 | 5 kg = ₹2,900 (100% FREE delivery)
+   - 1 KG Starter Pack: ₹580 + ₹${35 + surgeAdd} subsidized courier fee = ₹${615 + surgeAdd} total:
+     [PAY_LINK: ${615 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
    - Confirmed 2 kg: [PAY_LINK: 1160 : 2 kg Cleaned & Gutted]
 
 2. MID SRINAGAR (4.0 to 7.0 km from Malabagh — Hawal, Khanyar, Rainawari, Nowhatta, Eidgah):
    - Free Delivery MOQ: 3 KG or more (3 kg Gutted = ₹1,740 total)
-   - 2 KG Order: Subsidized express courier fee of only ₹${39 + surgeAdd} (₹1,160 + ₹${39 + surgeAdd} = ₹${1199 + surgeAdd} total):
-     [PAY_LINK: ${1199 + surgeAdd} : 2 kg Cleaned & Gutted (+Express Delivery)]
-   - 1 KG Starter Pack: ₹580 + ₹${49 + surgeAdd} courier fee = ₹${629 + surgeAdd} total:
-     [PAY_LINK: ${629 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
+   - 2 KG Order: Subsidized express courier fee of only ₹${55 + surgeAdd} (₹1,160 + ₹${55 + surgeAdd} = ₹${1215 + surgeAdd} total):
+     [PAY_LINK: ${1215 + surgeAdd} : 2 kg Cleaned & Gutted (+Express Delivery)]
+   - 1 KG Starter Pack: ₹580 + ₹${65 + surgeAdd} courier fee = ₹${645 + surgeAdd} total:
+     [PAY_LINK: ${645 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
    - Confirmed 3 kg: [PAY_LINK: 1740 : 3 kg Cleaned & Gutted]
 
 3. GREATER SRINAGAR (7.0 to 11.5 km from Malabagh — Lal Chowk, Karan Nagar, Dalgate, Khayam, Qamarwari, Nishat, Balgarden):
    - Free Delivery MOQ: 3 KG or more (3 kg Gutted = ₹1,740 total)
-   - 2 KG Order: Subsidized express courier fee of only ₹${69 + surgeAdd} (₹1,160 + ₹${69 + surgeAdd} = ₹${1229 + surgeAdd} total):
-     [PAY_LINK: ${1229 + surgeAdd} : 2 kg Cleaned & Gutted (+Express Delivery)]
-   - 1 KG Starter Pack: ₹580 + ₹${79 + surgeAdd} courier fee = ₹${659 + surgeAdd} total:
-     [PAY_LINK: ${659 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
+   - 2 KG Order: Subsidized express courier fee of only ₹${89 + surgeAdd} (₹1,160 + ₹${89 + surgeAdd} = ₹${1249 + surgeAdd} total):
+     [PAY_LINK: ${1249 + surgeAdd} : 2 kg Cleaned & Gutted (+Express Delivery)]
+   - 1 KG Starter Pack: ₹580 + ₹${99 + surgeAdd} courier fee = ₹${679 + surgeAdd} total:
+     [PAY_LINK: ${679 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
    - Confirmed 3 kg: [PAY_LINK: 1740 : 3 kg Cleaned & Gutted]
 
-4. SOUTH SRINAGAR & OUTER CORRIDOR (11.5 to 16.0 km from Malabagh — Barzulla, Baghat, Rambagh, Sanat Nagar, Hyderpora, Rawalpora, Chanapora, Natipora, Peerbagh, Sonwar, Gogji Bagh, Wazir Bagh):
-   - Free Delivery MOQ: 4 KG family pack (4 kg Gutted = ₹2,320 total):
-     [PAY_LINK: 2320 : 4 kg Cleaned & Gutted]
-   - 3 KG Order: Subsidized courier fee of only ₹${79 + surgeAdd} (₹1,740 + ₹${79 + surgeAdd} = ₹${1819 + surgeAdd} total):
-     [PAY_LINK: ${1819 + surgeAdd} : 3 kg Cleaned & Gutted (+Express Delivery)]
-   - 2 KG Order: Subsidized courier fee of only ₹${99 + surgeAdd} (₹1,160 + ₹${99 + surgeAdd} = ₹${1259 + surgeAdd} total):
-     [PAY_LINK: ${1259 + surgeAdd} : 2 kg Cleaned & Gutted (+Express Delivery)]
-   - 1 KG Starter Pack: ₹580 + ₹${139 + surgeAdd} courier fee = ₹${719 + surgeAdd} total:
-     [PAY_LINK: ${719 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
+4. SOUTH SRINAGAR & CROSS-CITY CORRIDOR (11.5 to 16.0 km from Malabagh — Rajbagh, Jawahar Nagar, Batamaloo, Sanat Nagar, Peerbagh, Airport Road/Humhama, Nowgam, Hyderpora, Rawalpora, Barzulla, Baghat, Rambagh, Chanapora, Natipora, Sonwar, Bemina, Gogji Bagh, Wazir Bagh, Pantha Chowk, Lasjan):
+   - Free Delivery MOQ: 5 KG family bulk pack (5 kg Gutted = ₹2,900 total):
+     [PAY_LINK: 2900 : 5 kg Cleaned & Gutted]
+   - 4 KG Order: Subsidized courier fee of only ₹${109 + surgeAdd} (₹2,320 + ₹${109 + surgeAdd} = ₹${2429 + surgeAdd} total):
+     [PAY_LINK: ${2429 + surgeAdd} : 4 kg Cleaned & Gutted (+Express Delivery)]
+   - 3 KG Order: Subsidized courier fee of only ₹${129 + surgeAdd} (₹1,740 + ₹${129 + surgeAdd} = ₹${1869 + surgeAdd} total):
+     [PAY_LINK: ${1869 + surgeAdd} : 3 kg Cleaned & Gutted (+Express Delivery)]
+   - 2 KG Order: Subsidized courier fee of only ₹${139 + surgeAdd} (₹1,160 + ₹${139 + surgeAdd} = ₹${1299 + surgeAdd} total):
+     [PAY_LINK: ${1299 + surgeAdd} : 2 kg Cleaned & Gutted (+Express Delivery)]
+   - 1 KG Starter Pack: ₹580 + ₹${149 + surgeAdd} courier fee = ₹${729 + surgeAdd} total:
+     [PAY_LINK: ${729 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
 
 5. BEYOND 16.0 KM (Outer Districts — Bagati Kanipora / BK Pora, Pampore, Chadoora, Harwan, HMT/Lawaypora, Budgam, Jammu):
    - Doorstep delivery is not feasible beyond 16 km to maintain cold chain. Direct them to visit Live Vending Center in Malabagh.
 
-HOW TO HANDLE 1 KG & 2 KG INQUIRIES (VALUE-UPGRADE FIRST — ZERO STICKER SHOCK):
-• Always highlight the free delivery threshold first, but warmly welcome 1 kg / 2 kg with our small subsidized courier fee.
+HOW TO HANDLE 1 KG – 4 KG INQUIRIES BELOW FREE DELIVERY MOQ (VALUE-UPGRADE FIRST — ZERO STICKER SHOCK):
+• Always highlight the free delivery threshold first, but warmly welcome smaller orders with our subsidized courier fee.
 • When customer confirms, NEVER re-pitch MOQ! Immediately output the exact [PAY_LINK: ...] tag!
-- Nearby Areas (1 kg): [PAY_LINK: ${609 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
-- Mid Srinagar (2 kg): [PAY_LINK: ${1199 + surgeAdd} : 2 kg Cleaned & Gutted (+Express Delivery)]
-- Mid Srinagar (1 kg): [PAY_LINK: ${629 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
-- Greater Srinagar (2 kg): [PAY_LINK: ${1229 + surgeAdd} : 2 kg Cleaned & Gutted (+Express Delivery)]
-- Greater Srinagar (1 kg): [PAY_LINK: ${659 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
-- Outer Corridor (2 kg): [PAY_LINK: ${1259 + surgeAdd} : 2 kg Cleaned & Gutted (+Express Delivery)]
-- Outer Corridor (3 kg): [PAY_LINK: ${1819 + surgeAdd} : 3 kg Cleaned & Gutted (+Express Delivery)]
-- Outer Corridor (1 kg): [PAY_LINK: ${719 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
+- Nearby Areas (1 kg): [PAY_LINK: ${615 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
+- Mid Srinagar (2 kg): [PAY_LINK: ${1215 + surgeAdd} : 2 kg Cleaned & Gutted (+Express Delivery)]
+- Mid Srinagar (1 kg): [PAY_LINK: ${645 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
+- Greater Srinagar (2 kg): [PAY_LINK: ${1249 + surgeAdd} : 2 kg Cleaned & Gutted (+Express Delivery)]
+- Greater Srinagar (1 kg): [PAY_LINK: ${679 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
+- South/Cross-City Corridor (4 kg): [PAY_LINK: ${2429 + surgeAdd} : 4 kg Cleaned & Gutted (+Express Delivery)]
+- South/Cross-City Corridor (3 kg): [PAY_LINK: ${1869 + surgeAdd} : 3 kg Cleaned & Gutted (+Express Delivery)]
+- South/Cross-City Corridor (2 kg): [PAY_LINK: ${1299 + surgeAdd} : 2 kg Cleaned & Gutted (+Express Delivery)]
+- South/Cross-City Corridor (1 kg): [PAY_LINK: ${729 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
 
 In your response when confirmed, include this EXACT tag on its own line:
 [PAY_LINK: TOTAL_AMOUNT : ITEM_DESCRIPTION]
@@ -3283,8 +3309,8 @@ Example (Nearby Area, 2 kg):
 Example (Mid / Greater Srinagar, 3 kg):
 [PAY_LINK: 1740 : 3 kg Cleaned & Gutted]
 
-Example (Outer Corridor, 4 kg):
-[PAY_LINK: 2320 : 4 kg Cleaned & Gutted]
+Example (South / Cross-City Corridor, 5 kg):
+[PAY_LINK: 2900 : 5 kg Cleaned & Gutted]
 
 Our payment engine will automatically replace that tag with an official, organized order summary card breaking down all charges (fish price, delivery fee, clean double packaging, total amount) and a secure Razorpay payment link.
 NEVER write any raw UPI ID, bank details, or generic payment methods in text. ONLY output the [PAY_LINK: ...] tag!
@@ -3319,14 +3345,14 @@ ${fridayOperatingNote}
      Or lock your slot via Razorpay — takes 30 seconds. Which works better for you?"
 4. DELIVERY RADIUS & 4-TIER MOQ MANDATE:
    - Doorstep deliveries are offered up to 16 km across Srinagar!
-   - TIER 1 (0 to 4.0 km): 100% FREE on 2 kg+ (Cleaned & Gutted ₹1,160). 1 kg via express courier = ₹609.
+   - TIER 1 (0 to 4.0 km): 100% FREE on 2 kg+ (Cleaned & Gutted ₹1,160). 1 kg via express courier = ₹615 (₹35 fee).
      Confirmed areas: Malabagh, Mirza Bagh, Naseem Bagh, Hazratbal, Habak, Zakura, Batapora, Gulab Bagh, Buchpora, Soura, Ahmad Nagar, 90 Feet Road, Illahi Bagh, Nowshera, Bagh Ali Mardan Khan, Zadibal, Lal Bazar, Botakadal, Saderbal, Kanitar, Nigeen, Ashaie Bagh, Umer Colony, Usman Colony, Bilal Colony, Zoonimar, Pandach.
-   - TIER 2 (4.0 to 7.0 km): 100% FREE on 3 kg+ (Cleaned & Gutted ₹1,740). 2 kg = ₹1,199 (only ₹39 courier fee). 1 kg = ₹629 (₹49 fee).
+   - TIER 2 (4.0 to 7.0 km): 100% FREE on 3 kg+ (Cleaned & Gutted ₹1,740). 2 kg = ₹1,215 (₹55 courier fee). 1 kg = ₹645 (₹65 fee).
      Confirmed areas: Hawal, Badamwari, Madin Sahib, Alamgari Bazar, Saida Kadal, Nagbal, Kathi Darwaza, Mirak Shah Colony, Tailbal, Rainawari, Khanyar, Nowhatta, Gojwara, Shalimar, Eidgah, Safakadal, Ali Kadal, Bakura, Shuhama, Sangam.
-   - TIER 3 (7.0 to 11.5 km): 100% FREE on 3 kg+ (Cleaned & Gutted ₹1,740). 2 kg = ₹1,229 (only ₹69 courier fee). 1 kg = ₹659 (₹79 fee).
+   - TIER 3 (7.0 to 11.5 km): 100% FREE on 3 kg+ (Cleaned & Gutted ₹1,740). 2 kg = ₹1,249 (₹89 courier fee). 1 kg = ₹679 (₹99 fee).
      Confirmed areas: Karan Nagar, Lal Chowk, Khayam, Dalgate, Qamarwari, Nishat, Brein, Balgarden.
-   - TIER 4 (11.5 to 16.0 km): 100% FREE on 4 kg family pack (Cleaned & Gutted ₹2,320). 3 kg = ₹1,819 (₹79 fee). 2 kg = ₹1,259 (₹99 fee). 1 kg = ₹719 (₹139 fee).
-     Confirmed areas: Barzulla, Baghat Barzulla, Rambagh, Solina, Gogji Bagh, Wazir Bagh, Tulsi Bagh, Hazuri Bagh, Iqbal Park, Sonwar, Batamaloo, Bemina, Rajbagh, Jawahar Nagar, Alochi Bagh, Magarmal Bagh, Sanat Nagar, Rawalpora, Hyderpora, Chanapora, Natipora, Peerbagh, Airport Road / Humhama, Bagh-e-Mehtab, Kralpora, Rangreth, Lasjan, Nowgam, Padshahi Bagh, Pantha Chowk, Soiteng, Pandrathan, Athwajan, Pohru, Mochu, HMT, Zainakote, Umerabad.
+   - TIER 4 (11.5 to 16.0 km — South & Cross-City Corridor): 100% FREE on 5 kg family bulk pack (Cleaned & Gutted ₹2,900). 4 kg = ₹2,429 (₹109 fee). 3 kg = ₹1,869 (₹129 fee). 2 kg = ₹1,299 (₹139 fee). 1 kg = ₹729 (₹149 fee).
+     Confirmed areas: Rajbagh, Jawahar Nagar, Batamaloo, Sanat Nagar, Peerbagh, Airport Road / Humhama, Nowgam, Hyderpora, Rawalpora, Barzulla, Baghat Barzulla, Rambagh, Solina, Gogji Bagh, Wazir Bagh, Tulsi Bagh, Hazuri Bagh, Iqbal Park, Sonwar, Bemina, Alochi Bagh, Magarmal Bagh, Chanapora, Natipora, Bagh-e-Mehtab, Kralpora, Rangreth, Lasjan, Padshahi Bagh, Pantha Chowk, Soiteng, Pandrathan, Athwajan, Pohru, Mochu, HMT, Zainakote, Umerabad.
    - CONFIRMED OUT-ZONE AREAS (> 16 km & OUTER DISTRICTS): Ganderbal District (Beehama, Duderhama, Saloora, Tullamulla, Kangan, Wayil, etc.), Bagati Kanipora (BK Pora), Pampore, Chadoora, Lawaypora, Narbal, Harwan, Budgam, Ompora, Baramulla, Anantnag, Jammu.
      No delivery to outer districts or beyond 16 km to maintain cold chain. Direct them to visit Live Vending Center in Malabagh.
    - CRITICAL REVENUE PROTECTION RULE (NEVER BLINDLY DISCARD LEADS):
@@ -3397,7 +3423,7 @@ We look forward to welcoming you to our Live Vending Center in Malabagh (Near R.
      "Here are our fresh live-harvested trout rates:
 
 • Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — descaled, zero kitchen prep)
-🛵 *Doorstep delivery is 100% FREE* on eligible orders (2 kg for 0–4 km, 3 kg for 4–11.5 km, 4 kg for 11.5–16 km; subsidized courier on smaller orders)!
+🛵 *Doorstep delivery is 100% FREE* on eligible orders (2 kg for 0–4 km, 3 kg for 4–11.5 km, 5 kg for 11.5–16 km & South Srinagar; subsidized courier on smaller orders)!
 
 Which area in Srinagar would you like delivery to?"
 12. DISCOUNT & BARGAINING INQUIRIES ("kam karo", "discount please", "500 me do", "any concession?"):
@@ -3692,9 +3718,12 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
 
               // Parse order weight if indicated in description (e.g. "2 kg Cleaned & Gutted" -> 2)
               const weightMatch = desc.match(/(\d+(?:\.\d+)?)\s*(?:kg|kilos?)/i);
-              const orderWeight = weightMatch ? parseFloat(weightMatch[1]) : (amount >= 1620 ? 3 : 2);
+              const isWholeLink = /\b(?:whole|sabut)\b/i.test(desc);
+              const baseRateLink = isWholeLink ? 540 : 580;
+              const orderWeight = weightMatch ? parseFloat(weightMatch[1]) : (amount >= 2160 ? 4 : (amount >= 1620 ? 3 : 2));
+              const includesCourierFee = amount > (orderWeight * baseRateLink) + 10;
 
-              const isSpecialDeliveryOrder = /\(\+(?:Special|Express) Delivery\)/i.test(desc) || [609, 629, 649, 659, 669, 699, 719, 759, 1199, 1229, 1239, 1249, 1259, 1269, 1299, 1789, 1819, 1859, 569, 589, 619, 679, 1119, 1149, 1159, 1169, 1179, 1189, 1219, 1669, 1699, 1739, 830, 790, 880, 1410, 1460, 680].includes(amount);
+              const isSpecialDeliveryOrder = /\(\+(?:Special|Express) Delivery\)/i.test(desc) || includesCourierFee || [615, 655, 645, 685, 679, 719, 729, 769, 1215, 1255, 1249, 1289, 1299, 1339, 1869, 1909, 2429, 2469, 575, 605, 639, 689, 1135, 1169, 1219, 1749, 2269].includes(amount);
               const recentContextForOutZone = (userMessage + " " + history.filter(h => h.role === "user").map(h => h.text).slice(-2).join(" ")).toLowerCase();
               const isFarOutZone = /(?:pampore|chadoora|lawaypora|hmt|harwan|budgam|ompora|baramulla|anantnag|jammu|kanipora|bk\s*pora|bagati\s*kanipora|narbal|magam|pulwama)/i.test(recentContextForOutZone);
 
@@ -3713,18 +3742,20 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
                   payMatch[0],
                   `📍 *Outside Delivery Zone:* Doorstep delivery is not available for your location (~${custDist ? custDist.toFixed(1) : "far"} km). You are warmly welcome to visit our Live Vending Center in Malabagh (Near R. P. School Girls Wing, open Saturday to Thursday) where you can pick live trout on the spot! 🐟\nMaps: https://maps.app.goo.gl/6FT5iLk5n8mbKSRU9`
                 );
-              } else if (!isSpecialDeliveryOrder && custDist !== null && custDist > 11.5 && custDist <= 16.0 && (orderWeight < 3.95 || amount < 2160)) {
-                console.log(`[Link Guard] Blocked <4kg free-delivery payment link for ${chatId} - zone 4 requires 4kg MOQ for free delivery.`);
+              } else if (!isSpecialDeliveryOrder && custDist !== null && custDist > 11.5 && custDist <= 16.0 && (orderWeight < 4.95 || amount < 2700)) {
+                console.log(`[Link Guard] Blocked <5kg free-delivery payment link for ${chatId} - zone 4 requires 5kg MOQ for free delivery.`);
+                const sGuard = isEveningSurge ? 40 : 0;
                 rawReply = rawReply.replace(
                   payMatch[0],
-                  `🛵 *Delivery Note (South & Outer Srinagar Zone):*\nYour address is ~${custDist ? custDist.toFixed(1) : "12–16"} km from our farm. Doorstep delivery is 100% FREE for our *4 kg* family pack (₹2,320 Cleaned & Gutted / ₹2,160 Whole).\n\nSmaller orders are also gladly delivered with nominal subsidized courier:\n• 3 kg: ₹1,819 total (₹79 courier fee)\n• 2 kg: ₹1,259 total (₹99 courier fee)\n• 1 kg: ₹719 total (₹139 courier fee)\n\nWhich option would you like? 🐟`
+                  `🛵 *Delivery Note (South & Cross-City Srinagar Zone):*\nYour address is ~${custDist ? custDist.toFixed(1) : "12–16"} km from our farm. Doorstep delivery is 100% FREE for our *5 kg* family pack (₹2,900 Cleaned & Gutted / ₹2,700 Whole).\n\nSmaller orders are also gladly delivered with subsidized express courier:\n• 4 kg: ₹${2429 + sGuard} total (₹${109 + sGuard} courier fee)\n• 3 kg: ₹${1869 + sGuard} total (₹${129 + sGuard} courier fee)\n• 2 kg: ₹${1299 + sGuard} total (₹${139 + sGuard} courier fee)\n• 1 kg: ₹${729 + sGuard} total (₹${149 + sGuard} courier fee)\n\nWhich option would you like? 🐟`
                 );
               } else if (!isSpecialDeliveryOrder && custDist !== null && custDist > 4.0 && custDist <= 11.5 && (orderWeight < 2.95 || amount < 1620)) {
                 console.log(`[Link Guard] Blocked <3kg free-delivery payment link for ${chatId} - zone 2/3 requires 3kg MOQ for free delivery.`);
+                const sGuard = isEveningSurge ? 40 : 0;
                 const isZone2 = custDist <= 7.0;
-                const fee2kg = isZone2 ? 39 : 69;
+                const fee2kg = (isZone2 ? 55 : 89) + sGuard;
                 const tot2kg = 1160 + fee2kg;
-                const fee1kg = isZone2 ? 49 : 79;
+                const fee1kg = (isZone2 ? 65 : 99) + sGuard;
                 const tot1kg = 580 + fee1kg;
                 rawReply = rawReply.replace(
                   payMatch[0],
@@ -3919,8 +3950,8 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
         rawReply = rawReply.replace(/([:!?.\n])\s*(\d+\.\s+)/g, "$1\n$2");
         // ─── STRICT ANTI-ZONE SANITIZER (PURGE ALL LOGISTICS JARGON BEFORE SENDING) ───
         rawReply = rawReply.replace(/\b(?:in\s+your\s+area\s+)?\(Zone\s*[1-4]\)/gi, "");
-        rawReply = rawReply.replace(/\bmin(?:imum)?\s*2\s*kg\s*for\s*Zone\s*1,\s*3\s*kg\s*for\s*Zone\s*2\s*(?:&|and)\s*3,\s*4\s*kg\s*for\s*Zone\s*4\b/gi, "min 2 kg for nearby areas, 3–4 kg for other Srinagar areas");
-        rawReply = rawReply.replace(/\b(?:min(?:imum)?\s*order\s*)?2\s*kg\s*for\s*Zone\s*1[^,\n)]*,\s*3\s*kg\s*for\s*Zone\s*2[^,\n)]*,\s*4\s*kg\s*for\s*Zone\s*4\b/gi, "min 2 kg for nearby areas, 3–4 kg for other Srinagar areas");
+        rawReply = rawReply.replace(/\bmin(?:imum)?\s*2\s*kg\s*for\s*Zone\s*1,\s*3\s*kg\s*for\s*Zone\s*2\s*(?:&|and)\s*3,\s*4\s*kg\s*for\s*Zone\s*4\b/gi, "min 2 kg for nearby areas, 3–5 kg for wider Srinagar areas");
+        rawReply = rawReply.replace(/\b(?:min(?:imum)?\s*order\s*)?2\s*kg\s*for\s*Zone\s*1[^,\n)]*,\s*3\s*kg\s*for\s*Zone\s*2[^,\n)]*,\s*4\s*kg\s*for\s*Zone\s*4\b/gi, "min 2 kg for nearby areas, 3–5 kg for wider Srinagar areas");
         rawReply = rawReply.replace(/\bZone\s*1\s*\((?:0[-–]4\s*km|core\s*zone)\)/gi, "nearby areas");
         rawReply = rawReply.replace(/\bZone\s*2\s*\(4[-–]7\s*km\)/gi, "mid Srinagar areas");
         rawReply = rawReply.replace(/\bZone\s*3\s*\(7[-–]11\.5\s*km\)/gi, "greater Srinagar areas");
@@ -3976,7 +4007,7 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
     const welcomeFallback = `${greetingPrefix}Welcome to Urban Trout 🐟 — Srinagar's only live-harvest farm delivering fresh trout straight to your kitchen within 2 hours, harvested live the moment you order from our crystal-clear oxygen-saturated cold water tanks.
 
 • Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — descaled, zero kitchen mess, straight to pan)
-🛵 *Express doorstep delivery* across Srinagar (100% FREE delivery available: min 2 kg for nearby areas, 3–4 kg for other Srinagar areas; subsidized express courier on smaller orders). Which area in Srinagar shall we deliver to?`;
+🛵 *Express doorstep delivery* across Srinagar (100% FREE delivery available: min 2 kg for nearby areas, 3–5 kg for wider Srinagar areas; subsidized express courier on smaller orders). Which area in Srinagar shall we deliver to?`;
     history.push({ role: "user", text: userMessage });
     history.push({ role: "model", text: welcomeFallback });
     if (history.length > 16) history.splice(0, history.length - 16);
@@ -4301,7 +4332,7 @@ async function startBot() {
       }
     } else if (connection === "open") {
       console.log("\n✅ URBAN TROUT SALES AGENT IS LIVE & CONNECTED TO WHATSAPP!");
-      console.log("🤖 10 Strict Directives Active | 16km Perimeter Enforced (Tiered MOQ: 2kg/3kg/4kg) | Razorpay Link Ready.");
+      console.log("🤖 10 Strict Directives Active | 16km Perimeter Enforced (Tiered MOQ: 2kg/3kg/5kg) | Razorpay Link Ready.");
       console.log("📊 Telegram 8:00 PM Nightly Executive Briefing Active (Auto-reports revenue, orders, inquiries & store walk-ins)");
       console.log("📱 Phone Kill Switch Active: Send #pause / #resume from phone to control AI");
 
@@ -4542,7 +4573,8 @@ async function startBot() {
       // 3. Resolve items description
       let itemsDesc = forceDesc || targetOrder?.items;
       if (!itemsDesc) {
-        if (amt >= 2300) itemsDesc = "4 kg Cleaned & Gutted (Family Pack)";
+        if (amt >= 2850) itemsDesc = "5 kg Cleaned & Gutted (Family Bulk Pack)";
+        else if (amt >= 2300) itemsDesc = "4 kg Cleaned & Gutted";
         else if (amt >= 1700) itemsDesc = "3 kg Cleaned & Gutted (Pan-Ready)";
         else if (amt >= 1160) itemsDesc = "2 kg Cleaned & Gutted (Pan-Ready)";
         else itemsDesc = "1 kg Cleaned & Gutted (Starter Pack)";
@@ -4809,7 +4841,7 @@ async function startBot() {
                 `• *Last Updated:* ${BOT_LAST_UPDATED}\n` +
                 `• *Build Focus:* ${BOT_RELEASE_NOTES}\n\n` +
                 `• *This Chat AI Status:* ${chatStatus}\n` +
-                `• *Delivery Perimeter:* Up to 16.0 km (Tiered MOQ: 2kg/3kg/4kg)\n` +
+                `• *Delivery Perimeter:* Up to 16.0 km (Tiered MOQ: 2kg/3kg/5kg)\n` +
                 `• *Active Conversations:* ${chatHistories.size}\n` +
                 `• *Google Contacts DB:* ${contactCount} Leads Synced\n` +
                 `• *Human Pause Window:* 30 minutes per manual intervention\n` +
@@ -5583,20 +5615,11 @@ async function startBot() {
           }
           const rate = isWhole ? 540 : 580;
           const fishCost = orderWeight * rate;
-          let courierFee = 0;
-          if (distNum <= 4.0) {
-            courierFee = (orderWeight >= 2) ? 0 : 49;
-          } else if (distNum <= 7.0) {
-            courierFee = (orderWeight >= 3) ? 0 : (orderWeight >= 2 ? (39 + surgeGps) : (49 + surgeGps));
-          } else if (distNum <= 11.5) {
-            courierFee = (orderWeight >= 3) ? 0 : (orderWeight >= 2 ? (69 + surgeGps) : (79 + surgeGps));
-          } else {
-            courierFee = (orderWeight >= 4) ? 0 : (orderWeight >= 3 ? (79 + surgeGps) : (orderWeight >= 2 ? (99 + surgeGps) : (139 + surgeGps)));
-          }
+          let courierFee = getDeliveryFeeForDistance(distNum, orderWeight, isEveningGps);
 
           // PRICE LOCK: If bot previously quoted a specific courier fee in chat, honor the quoted price
-          if (chatHist.some(m => m.role === "model" && m.text && (m.text.includes("₹39") || m.text.includes("₹1199")))) {
-            courierFee = Math.min(courierFee, 39 + surgeGps);
+          if (chatHist.some(m => m.role === "model" && m.text && (m.text.includes("₹55") || m.text.includes("₹1215")))) {
+            courierFee = Math.min(courierFee, 55 + surgeGps);
           }
           const totalPayable = fishCost + courierFee;
           const itemsDesc = `${orderWeight} kg × ${isWhole ? "Whole Fresh Trout" : "Cleaned & Gutted (Pan-Ready)"}`;
@@ -5665,25 +5688,25 @@ async function startBot() {
             historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. Minimum order for free delivery is 2 kg.]`;
           } else if (distNum <= 7.0) {
             locReply = isNightGps
-              ? `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on 3 kg (₹1,740 total)! We can also send 2 kg for just a subsidized ₹${39 + surgeGps} courier fee (₹${1199 + surgeGps} total).\nDeliveries for tonight closed at 8:00 PM. We can schedule your express live-harvest delivery for tomorrow morning!\n\nWould you like 3 kg free delivery or 2 kg scheduled for tomorrow? 🐟`
+              ? `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on 3 kg (₹1,740 total)! We can also send 2 kg for just a subsidized ₹${55 + surgeGps} courier fee (₹${1215 + surgeGps} total).\nDeliveries for tonight closed at 8:00 PM. We can schedule your express live-harvest delivery for tomorrow morning!\n\nWould you like 3 kg free delivery or 2 kg scheduled for tomorrow? 🐟`
               : isEarlyGps
-              ? `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on 3 kg (₹1,740 total)! We can also send 2 kg for just a subsidized ₹${39 + surgeGps} courier fee (₹${1199 + surgeGps} total).\nGood morning! Our live harvest begins at 8:00 AM sharp today. We can schedule your delivery for today's morning slot (8:00 AM – 11:00 AM)!\n\nWould you like 3 kg free delivery or 2 kg for today's morning harvest? 🐟`
-              : `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on 3 kg (₹1,740 total)! We can also send 2 kg for just a subsidized ₹${39 + surgeGps} courier fee (₹${1199 + surgeGps} total)${isEveningGps ? " (includes ₹40 evening rush surcharge)" : ""}.\n\nWould you like 3 kg free delivery or 2 kg delivered fresh to your door? 🐟`;
-            historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. Free delivery on 3 kg+ (₹1740); 2 kg has ₹${39 + surgeGps} courier fee (₹${1199 + surgeGps}); 1 kg has ₹${49 + surgeGps} fee (₹${629 + surgeGps}).]`;
+              ? `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on 3 kg (₹1,740 total)! We can also send 2 kg for just a subsidized ₹${55 + surgeGps} courier fee (₹${1215 + surgeGps} total).\nGood morning! Our live harvest begins at 8:00 AM sharp today. We can schedule your delivery for today's morning slot (8:00 AM – 11:00 AM)!\n\nWould you like 3 kg free delivery or 2 kg for today's morning harvest? 🐟`
+              : `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on 3 kg (₹1,740 total)! We can also send 2 kg for just a subsidized ₹${55 + surgeGps} courier fee (₹${1215 + surgeGps} total)${isEveningGps ? " (includes ₹40 evening rush surcharge)" : ""}.\n\nWould you like 3 kg free delivery or 2 kg delivered fresh to your door? 🐟`;
+            historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. Free delivery on 3 kg+ (₹1740); 2 kg has ₹${55 + surgeGps} courier fee (₹${1215 + surgeGps}); 1 kg has ₹${65 + surgeGps} fee (₹${645 + surgeGps}).]`;
           } else if (distNum <= 11.5) {
             locReply = isNightGps
-              ? `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on 3 kg (₹1,740 total)! We can also send 2 kg for just a subsidized ₹${69 + surgeGps} courier fee (₹${1229 + surgeGps} total).\nDeliveries for tonight closed at 8:00 PM. We can schedule your express live-harvest delivery for tomorrow morning!\n\nWould you like 3 kg free delivery or 2 kg scheduled for tomorrow? 🐟`
+              ? `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on 3 kg (₹1,740 total)! We can also send 2 kg for just a subsidized ₹${89 + surgeGps} courier fee (₹${1249 + surgeGps} total).\nDeliveries for tonight closed at 8:00 PM. We can schedule your express live-harvest delivery for tomorrow morning!\n\nWould you like 3 kg free delivery or 2 kg scheduled for tomorrow? 🐟`
               : isEarlyGps
-              ? `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on 3 kg (₹1,740 total)! We can also send 2 kg for just a subsidized ₹${69 + surgeGps} courier fee (₹${1229 + surgeGps} total).\nGood morning! Our live harvest begins at 8:00 AM sharp today. We can schedule your delivery for today's morning slot (8:00 AM – 11:00 AM)!\n\nWould you like 3 kg free delivery or 2 kg for today's morning harvest? 🐟`
-              : `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on 3 kg (₹1,740 total)! We can also send 2 kg for just a subsidized ₹${69 + surgeGps} courier fee (₹${1229 + surgeGps} total)${isEveningGps ? " (includes ₹40 evening rush surcharge)" : ""}.\n\nWould you like 3 kg free delivery or 2 kg delivered fresh to your door? 🐟`;
-            historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. Free delivery on 3 kg+ (₹1740); 2 kg has ₹${69 + surgeGps} courier fee (₹${1229 + surgeGps}); 1 kg has ₹${79 + surgeGps} fee (₹${659 + surgeGps}).]`;
+              ? `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on 3 kg (₹1,740 total)! We can also send 2 kg for just a subsidized ₹${89 + surgeGps} courier fee (₹${1249 + surgeGps} total).\nGood morning! Our live harvest begins at 8:00 AM sharp today. We can schedule your delivery for today's morning slot (8:00 AM – 11:00 AM)!\n\nWould you like 3 kg free delivery or 2 kg for today's morning harvest? 🐟`
+              : `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on 3 kg (₹1,740 total)! We can also send 2 kg for just a subsidized ₹${89 + surgeGps} courier fee (₹${1249 + surgeGps} total)${isEveningGps ? " (includes ₹40 evening rush surcharge)" : ""}.\n\nWould you like 3 kg free delivery or 2 kg delivered fresh to your door? 🐟`;
+            historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. Free delivery on 3 kg+ (₹1740); 2 kg has ₹${89 + surgeGps} courier fee (₹${1249 + surgeGps}); 1 kg has ₹${99 + surgeGps} fee (₹${679 + surgeGps}).]`;
           } else {
             locReply = isNightGps
-              ? `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on our 4 kg family pack (₹2,320 total)! We can also send 2 kg for just ₹${99 + surgeGps} express courier fee (₹${1259 + surgeGps} total) or 3 kg for ₹${79 + surgeGps} courier fee (₹${1819 + surgeGps} total).\nDeliveries for tonight closed at 8:00 PM. We can schedule your express live-harvest delivery for tomorrow morning!\n\nWould you like 4 kg free delivery or 2 kg scheduled for tomorrow? 🐟`
+              ? `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on our 5 kg family pack (₹2,900 total)! We can also send 2 kg for just ₹${139 + surgeGps} express courier fee (₹${1299 + surgeGps} total), 3 kg for ₹${129 + surgeGps} (₹${1869 + surgeGps} total), or 4 kg for ₹${109 + surgeGps} (₹${2429 + surgeGps} total).\nDeliveries for tonight closed at 8:00 PM. We can schedule your express live-harvest delivery for tomorrow morning!\n\nWould you like 5 kg free delivery or 2 kg scheduled for tomorrow? 🐟`
               : isEarlyGps
-              ? `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on our 4 kg family pack (₹2,320 total)! We can also send 2 kg for just ₹${99 + surgeGps} express courier fee (₹${1259 + surgeGps} total) or 3 kg for ₹${79 + surgeGps} courier fee (₹${1819 + surgeGps} total).\nGood morning! Our live harvest begins at 8:00 AM sharp today. We can schedule your delivery for today's morning slot (8:00 AM – 11:00 AM)!\n\nWould you like 4 kg free delivery or 2 kg for today's morning harvest? 🐟`
-              : `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on our 4 kg family pack (₹2,320 total)! We can also send 2 kg for just ₹${99 + surgeGps} express courier fee (₹${1259 + surgeGps} total) or 3 kg for ₹${79 + surgeGps} courier fee (₹${1819 + surgeGps} total)${isEveningGps ? " (includes ₹40 evening rush courier surcharge)" : ""}.\n\nWould you like to confirm 4 kg free delivery or 2 kg for doorstep delivery? 🐟`;
-            historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. Free delivery on 4 kg family pack (₹2320); 3 kg has ₹${79 + surgeGps} fee (₹${1819 + surgeGps}); 2 kg has ₹${99 + surgeGps} fee (₹${1259 + surgeGps}); 1 kg has ₹${139 + surgeGps} fee (₹${719 + surgeGps}).]`;
+              ? `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on our 5 kg family pack (₹2,900 total)! We can also send 2 kg for just ₹${139 + surgeGps} express courier fee (₹${1299 + surgeGps} total), 3 kg for ₹${129 + surgeGps} (₹${1869 + surgeGps} total), or 4 kg for ₹${109 + surgeGps} (₹${2429 + surgeGps} total).\nGood morning! Our live harvest begins at 8:00 AM sharp today. We can schedule your delivery for today's morning slot (8:00 AM – 11:00 AM)!\n\nWould you like 5 kg free delivery or 2 kg for today's morning harvest? 🐟`
+              : `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on our 5 kg family pack (₹2,900 total)! We can also send 2 kg for just ₹${139 + surgeGps} express courier fee (₹${1299 + surgeGps} total), 3 kg for ₹${129 + surgeGps} (₹${1869 + surgeGps} total), or 4 kg for ₹${109 + surgeGps} (₹${2429 + surgeGps} total)${isEveningGps ? " (includes ₹40 evening rush courier surcharge)" : ""}.\n\nWould you like to confirm 5 kg free delivery or 2 kg for doorstep delivery? 🐟`;
+            historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. Free delivery on 5 kg family pack (₹2900); 4 kg has ₹${109 + surgeGps} fee (₹${2429 + surgeGps}); 3 kg has ₹${129 + surgeGps} fee (₹${1869 + surgeGps}); 2 kg has ₹${139 + surgeGps} fee (₹${1299 + surgeGps}); 1 kg has ₹${149 + surgeGps} fee (₹${729 + surgeGps}).]`;
           }
         }
         console.log(`│ ✅ IN RANGE (<=16km, ${distRounded} km) — Saved: ${mapsUrl}`);

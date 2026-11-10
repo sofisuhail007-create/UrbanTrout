@@ -332,7 +332,7 @@ export default function DeliveryZoneChecker() {
                 <span className="text-xs">🟢</span>
               </div>
               <div className="font-extrabold text-white text-xs mt-1">FREE from 2 kg</div>
-              <div className="text-[10px] text-slate-400 mt-0.5">₹29 fee for 1 kg</div>
+              <div className="text-[10px] text-slate-400 mt-0.5">₹35 fee for 1 kg</div>
             </button>
 
             {/* Zone 2 Pill */}
@@ -350,7 +350,7 @@ export default function DeliveryZoneChecker() {
                 <span className="text-xs">🔵</span>
               </div>
               <div className="font-extrabold text-white text-xs mt-1">FREE from 3 kg</div>
-              <div className="text-[10px] text-slate-400 mt-0.5">₹39 on 2kg / ₹49 on 1kg</div>
+              <div className="text-[10px] text-slate-400 mt-0.5">₹55 on 2kg / ₹65 on 1kg</div>
             </button>
 
             {/* Zone 3 Pill */}
@@ -368,7 +368,7 @@ export default function DeliveryZoneChecker() {
                 <span className="text-xs">🟣</span>
               </div>
               <div className="font-extrabold text-white text-xs mt-1">FREE from 3 kg</div>
-              <div className="text-[10px] text-slate-400 mt-0.5">₹69 on 2kg / ₹79 on 1kg</div>
+              <div className="text-[10px] text-slate-400 mt-0.5">₹89 on 2kg / ₹99 on 1kg</div>
             </button>
 
             {/* Zone 4 Pill */}
@@ -385,8 +385,8 @@ export default function DeliveryZoneChecker() {
                 <span className="text-[10px] font-mono font-bold text-amber-400 uppercase">Zone 4 (11.5–16 km)</span>
                 <span className="text-xs">🟡</span>
               </div>
-              <div className="font-extrabold text-white text-xs mt-1">FREE from 4 kg</div>
-              <div className="text-[10px] text-slate-400 mt-0.5">₹49 on 3kg / ₹89 on 2kg</div>
+              <div className="font-extrabold text-white text-xs mt-1">FREE from 5 kg</div>
+              <div className="text-[10px] text-slate-400 mt-0.5">₹109 on 4kg / ₹139 on 2kg</div>
             </button>
 
             {/* Counter Pickup Pill */}
@@ -421,7 +421,7 @@ export default function DeliveryZoneChecker() {
                   : activeZoneTab === "zone3"
                   ? "Zone 3 Localities (7–11.5 km — 100% Free on 3 kg+)"
                   : activeZoneTab === "zone4"
-                  ? "Zone 4 South Corridor (11.5–16 km — 100% Free on 4 kg+)"
+                  ? "Zone 4 South & Cross-City Corridor (11.5–16 km — 100% Free on 5 kg+)"
                   : "Beyond 16 km Localities (Counter Pickup at Malabagh Farm Hub)"}
               </span>
               {activeZoneTab !== "all" && (

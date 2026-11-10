@@ -25,9 +25,9 @@ const COGS_PER_KG = 440;   // ₹435 supplier + ₹5 staff incentive
 const REAL_COURIER_ESTIMATE: Record<string, number> = {
   zone1: 45,
   zone2: 75,
-  zone3: 135,
-  zone4: 175,
-  out_of_zone: 220,
+  zone3: 130,
+  zone4: 190,
+  out_of_zone: 240,
 };
 
 interface SearchPlace {
@@ -109,23 +109,24 @@ function getTierFromDistance(dist: number): "zone1" | "zone2" | "zone3" | "zone4
 
 function computeDeliveryFee(tier: string, weightKg: number): number {
   if (tier === "zone1") {
-    return weightKg >= 2 ? 0 : 29;
+    return weightKg >= 2 ? 0 : 35;
   }
   if (tier === "zone2") {
     if (weightKg >= 3) return 0;
-    if (weightKg === 2) return 39;
-    return 49;
+    if (weightKg >= 2) return 55;
+    return 65;
   }
   if (tier === "zone3") {
     if (weightKg >= 3) return 0;
-    if (weightKg === 2) return 69;
-    return 79;
+    if (weightKg >= 2) return 89;
+    return 99;
   }
   if (tier === "zone4") {
-    if (weightKg >= 4) return 0;
-    if (weightKg === 3) return 79;
-    if (weightKg === 2) return 99;
-    return 139;
+    if (weightKg >= 5) return 0;
+    if (weightKg >= 4) return 109;
+    if (weightKg >= 3) return 129;
+    if (weightKg >= 2) return 139;
+    return 149;
   }
   return 0; // out of zone has no doorstep delivery fee (counter pickup)
 }
@@ -447,7 +448,7 @@ function CalculatorInner() {
     if (tier === "zone1" && weightKg < 2) {
       return {
         isFree: false,
-        text: `Add +${2 - weightKg} kg to unlock 100% FREE doorstep delivery (Save ₹29)!`,
+        text: `Add +${2 - weightKg} kg to unlock 100% FREE doorstep delivery (Save ₹35)!`,
       };
     }
     if (tier === "zone2" && weightKg < 3) {
@@ -462,10 +463,10 @@ function CalculatorInner() {
         text: `Add +${3 - weightKg} kg to unlock 100% FREE doorstep delivery (Save ₹${deliveryFee})!`,
       };
     }
-    if (tier === "zone4" && weightKg < 4) {
+    if (tier === "zone4" && weightKg < 5) {
       return {
         isFree: false,
-        text: `Upgrade to our 4 kg Family Pack for 100% FREE doorstep delivery (Save ₹${deliveryFee})!`,
+        text: `Upgrade to our 5 kg Family Pack for 100% FREE doorstep delivery (Save ₹${deliveryFee})!`,
       };
     }
     return null;
@@ -737,7 +738,7 @@ function CalculatorInner() {
               <div className="flex items-center justify-between mb-2">
                 <label className="text-sm font-semibold text-white">⚖️ Step 3: Order Weight</label>
                 <span className="text-xs font-bold text-[#72ddfd] bg-[#72ddfd]/10 px-2 py-0.5 rounded-full border border-[#72ddfd]/20">
-                  {weightKg} kg ({weightKg >= 4 ? "Family Pack" : "Standard"})
+                  {weightKg} kg ({weightKg >= 5 ? "Family Pack" : "Standard"})
                 </span>
               </div>
 
@@ -1034,7 +1035,7 @@ function CalculatorInner() {
               </p>
               <div className="text-xs text-white font-medium bg-black/30 p-2 rounded-lg">
                 • <strong className="text-emerald-300">100% Free Delivery</strong> on 2+ kg<br />
-                • Nominal ₹29 courier fee on 1 kg
+                • Nominal ₹35 courier fee on 1 kg
               </div>
             </div>
 
@@ -1050,7 +1051,7 @@ function CalculatorInner() {
               </p>
               <div className="text-xs text-white font-medium bg-black/30 p-2 rounded-lg">
                 • <strong className="text-sky-300">100% Free Delivery</strong> on 3+ kg<br />
-                • ₹39 on 2 kg | ₹49 on 1 kg (Subsidized by Urban Trout)
+                • ₹55 on 2 kg | ₹65 on 1 kg (30% Subsidized)
               </div>
             </div>
 
@@ -1062,27 +1063,27 @@ function CalculatorInner() {
                 </span>
               </div>
               <p className="text-xs text-[#9fadb8] mb-2">
-                Lal Chowk, Rajbagh, Dalgate, Bemina, Jawahar Nagar, Sonwar, Sanat Nagar, Hyderpora, Nishat.
+                Lal Chowk, Dalgate, Boulevard, Karan Nagar, Khayyam, Qamarwari, Nishat.
               </p>
               <div className="text-xs text-white font-medium bg-black/30 p-2 rounded-lg">
                 • <strong className="text-indigo-300">100% Free Delivery</strong> on 3+ kg<br />
-                • ₹69 on 2 kg | ₹79 on 1 kg (Subsidized by Urban Trout)
+                • ₹89 on 2 kg | ₹99 on 1 kg (30% Subsidized)
               </div>
             </div>
 
             <div className="p-4 rounded-xl bg-[#10212c] border border-amber-500/20">
               <div className="flex items-center justify-between mb-2">
-                <span className="font-bold text-amber-400 text-sm">Zone 4: South Corridor</span>
+                <span className="font-bold text-amber-400 text-sm">Zone 4: South &amp; Cross-City Corridor</span>
                 <span className="text-xs bg-amber-500/10 text-amber-300 px-2 py-0.5 rounded-full font-mono">
                   11.5 to 16.0 km
                 </span>
               </div>
               <p className="text-xs text-[#9fadb8] mb-2">
-                Rawalpora, Peerbagh, Airport Road, Lasjan, Nowgam, Pantha Chowk, Athwajan, Rangreth.
+                Sanat Nagar, Peerbagh, Airport Road, Nowgam, Rajbagh, Jawahar Nagar, Batamaloo, Bemina, Sonwar, Hyderpora, Rawalpora, Lasjan, Pantha Chowk, Rangreth.
               </p>
               <div className="text-xs text-white font-medium bg-black/30 p-2 rounded-lg">
-                • <strong className="text-amber-300">100% Free Delivery</strong> on 4 kg Family Pack<br />
-                • ₹49 on 3 kg | ₹89 on 2 kg | ₹119 on 1 kg
+                • <strong className="text-amber-300">100% Free Delivery</strong> on 5 kg Family Pack<br />
+                • ₹109 on 4 kg | ₹129 on 3 kg | ₹139 on 2 kg | ₹149 on 1 kg
               </div>
             </div>
           </div>

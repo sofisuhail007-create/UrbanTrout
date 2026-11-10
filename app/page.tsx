@@ -72,7 +72,7 @@ const faqs = [
   },
   {
     q: "Which areas in Srinagar do you deliver to?",
-    a: "To ensure peak freshness and cold-chain integrity, we deliver across Srinagar up to 16 km from our Malabagh farm across 4 transparent tiers: Zone 1 (0–4 km: Malabagh, Soura, Hazratbal, Zakura, Lal Bazar — Free from 2 kg), Zone 2 (4–7 km: Hawal, Eidgah, Khanyar, Rainawari, Shalimar — Free from 3 kg), Zone 3 (7–11.5 km: Lal Chowk, Dalgate, Sonwar, Bemina, Rajbagh, Sanat Nagar — Free from 3 kg), and Zone 4 (11.5–16 km: Rawalpora, Peerbagh, Airport Road, Lasjan, Nowgam, Pantha Chowk — Free on 4 kg Family Pack). Subsidized express courier is available for smaller orders. For locations beyond 16 km, fresh live-harvest counter pickup is available at our Live Vending Center in Malabagh.",
+    a: "To ensure peak freshness and cold-chain integrity, we deliver across Srinagar up to 16 km from our Malabagh farm across 4 transparent tiers: Zone 1 (0–4 km: Malabagh, Soura, Hazratbal, Zakura, Lal Bazar — Free from 2 kg), Zone 2 (4–7 km: Hawal, Eidgah, Khanyar, Rainawari, Shalimar — Free from 3 kg), Zone 3 (7–11.5 km: Lal Chowk, Dalgate, Boulevard, Qamarwari, Nishat — Free from 3 kg), and Zone 4 (11.5–16 km: Sanat Nagar, Peerbagh, Airport Road, Nowgam, Rajbagh, Jawahar Nagar, Batamaloo, Bemina, Sonwar, Hyderpora, Rawalpora, Lasjan, Pantha Chowk — Free on 5 kg Family Pack). Subsidized express courier is available for smaller orders (30% subsidized by Urban Trout). For locations beyond 16 km, fresh live-harvest counter pickup is available at our Live Vending Center in Malabagh.",
   },
   {
     q: "How fresh is Urban Trout compared to market fish?",
@@ -80,7 +80,7 @@ const faqs = [
   },
   {
     q: "What is the minimum order quantity for home delivery?",
-    a: "Doorstep delivery is 100% Free based on distance from our Malabagh farm: minimum 2 kg for Zone 1 (0–4 km), 3 kg for Zone 2 (4–7 km), 3 kg for Zone 3 (7–11.5 km), and 4 kg for Zone 4 (11.5–16 km). Smaller orders are dispatched with a heavily subsidized express courier fee, or picked up directly from our farm counter with zero delivery charges.",
+    a: "Doorstep delivery is 100% Free based on distance from our Malabagh farm: minimum 2 kg for Zone 1 (0–4 km), 3 kg for Zone 2 (4–7 km), 3 kg for Zone 3 (7–11.5 km), and 5 kg for Zone 4 (11.5–16 km). Smaller orders are dispatched with a 30%-subsidized express courier fee (customer pays 70%), or picked up directly from our farm counter with zero delivery charges.",
   },
   {
     q: "What payment methods do you accept?",
@@ -685,7 +685,7 @@ export default async function HomePage() {
                 </tr>
                 <tr className="hover:bg-slate-900/30 transition-colors">
                   <td className="p-4 md:p-5 font-medium text-white">Minimum Order for Free Delivery</td>
-                  <td className="p-4 md:p-5 text-white bg-cyan-950/30 border-x border-cyan-500/20 font-medium">Tiered (2 kg / 3 kg / 4 kg)</td>
+                  <td className="p-4 md:p-5 text-white bg-cyan-950/30 border-x border-cyan-500/20 font-medium">Tiered (2 kg / 3 kg / 5 kg)</td>
                   <td className="p-4 md:p-5 text-slate-400">1 Kg</td>
                   <td className="p-4 md:p-5 text-slate-400">5 – 10 Kg minimum commercial lot</td>
                   <td className="p-4 md:p-5 text-slate-400">Single plate portion</td>

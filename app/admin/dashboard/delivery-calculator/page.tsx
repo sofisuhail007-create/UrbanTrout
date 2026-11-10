@@ -493,11 +493,12 @@ export default function DeliveryProfitCalculatorPage() {
             <div className="flex items-center gap-1 flex-wrap pt-0.5">
               {[
                 { label: "Free (₹0)", v: "0" },
-                { label: "+₹20", v: "20" },
-                { label: "+₹29", v: "29" },
-                { label: "+₹39", v: "39" },
-                { label: "+₹69", v: "69" },
+                { label: "+₹35", v: "35" },
+                { label: "+₹55", v: "55" },
                 { label: "+₹89", v: "89" },
+                { label: "+₹109", v: "109" },
+                { label: "+₹139", v: "139" },
+                { label: "+₹149", v: "149" },
               ].map((chip) => (
                 <button
                   key={chip.v}

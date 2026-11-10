@@ -47,13 +47,13 @@ export const DELIVERY_ZONES: Record<string, ZoneConfig> = {
     rangeKm: "0 – 4.0 km",
     minKgFree: 2,
     minOrderFreeText: "2 kg",
-    specialDeliveryFee: 29,
+    specialDeliveryFee: 35,
     deliveryTime: "Within 90–120 mins",
     color: "#22c55e",
     badgeBg: "rgba(34, 197, 94, 0.15)",
     badgeBorder: "rgba(34, 197, 94, 0.35)",
     badgeText: "#4ade80",
-    description: "100% FREE doorstep delivery on min 2 kg (or ₹29 subsidized courier for 1 kg).",
+    description: "100% FREE doorstep delivery on min 2 kg (or ₹35 subsidized courier for 1 kg).",
   },
   zone2: {
     id: "zone2",
@@ -62,13 +62,13 @@ export const DELIVERY_ZONES: Record<string, ZoneConfig> = {
     rangeKm: "4.0 – 7.0 km",
     minKgFree: 3,
     minOrderFreeText: "3 kg",
-    specialDeliveryFee: 39,
+    specialDeliveryFee: 55,
     deliveryTime: "Within 2 hours",
     color: "#38bdf8",
     badgeBg: "rgba(56, 189, 248, 0.15)",
     badgeBorder: "rgba(56, 189, 248, 0.35)",
     badgeText: "#7dd3fc",
-    description: "100% FREE doorstep delivery on min 3 kg (or ₹39 courier fee for 2 kg, ₹49 for 1 kg).",
+    description: "100% FREE doorstep delivery on min 3 kg (or ₹55 courier fee for 2 kg, ₹65 for 1 kg).",
   },
   zone3: {
     id: "zone3",
@@ -77,28 +77,28 @@ export const DELIVERY_ZONES: Record<string, ZoneConfig> = {
     rangeKm: "7.0 – 11.5 km",
     minKgFree: 3,
     minOrderFreeText: "3 kg",
-    specialDeliveryFee: 69,
+    specialDeliveryFee: 89,
     deliveryTime: "Within 2 hours",
     color: "#a855f7",
     badgeBg: "rgba(168, 85, 247, 0.15)",
     badgeBorder: "rgba(168, 85, 247, 0.35)",
     badgeText: "#c084fc",
-    description: "100% FREE doorstep delivery on min 3 kg (or ₹69 courier fee for 2 kg, ₹79 for 1 kg).",
+    description: "100% FREE doorstep delivery on min 3 kg (or ₹89 courier fee for 2 kg, ₹99 for 1 kg).",
   },
   zone4: {
     id: "zone4",
-    title: "Zone 4: South Corridor & Outer Srinagar",
+    title: "Zone 4: South Corridor & Cross-City Srinagar",
     shortLabel: "11.5 – 16 km",
     rangeKm: "11.5 – 16.0 km",
-    minKgFree: 4,
-    minOrderFreeText: "4 kg",
-    specialDeliveryFee: 99,
+    minKgFree: 5,
+    minOrderFreeText: "5 kg",
+    specialDeliveryFee: 139,
     deliveryTime: "Within 2 hours",
     color: "#f59e0b",
     badgeBg: "rgba(245, 158, 11, 0.15)",
     badgeBorder: "rgba(245, 158, 11, 0.35)",
     badgeText: "#fbbf24",
-    description: "100% FREE doorstep delivery on 4 kg family pack (or ₹79 for 3 kg, ₹99 for 2 kg, ₹139 for 1 kg).",
+    description: "100% FREE doorstep delivery on 5 kg family pack (or ₹109 for 4 kg, ₹129 for 3 kg, ₹139 for 2 kg, ₹149 for 1 kg).",
   },
   out_of_zone: {
     id: "out_of_zone",
@@ -182,32 +182,32 @@ export const SRINAGAR_LOCALITY_CATALOG: LocalityData[] = [
   { name: "Khayam", aliases: ["khayam", "khayyam", "khyam", "khaiam", "khayam chowk", "khayyam chowk", "khyber hospital"], lat: 34.0810, lng: 74.8180, pincode: "190001", distKm: 7.2, tier: "zone3", minKgFree: 3 },
   { name: "Dalgate & Boulevard", aliases: ["dalgate", "dal gate", "boulevard", "nehru park", "boulevard road", "gate 1"], lat: 34.0840, lng: 74.8320, pincode: "190001", distKm: 7.0, tier: "zone3", minKgFree: 3 },
   { name: "Lal Chowk", aliases: ["lal chowk", "lalchowk", "clock tower", "ghanta ghar", "residency road", "regal chowk", "maisuma"], lat: 34.0725, lng: 74.8090, pincode: "190001", distKm: 7.2, tier: "zone3", minKgFree: 3 },
-  { name: "Qamarwari", aliases: ["qamarwari", "qamar wari", "kamarwari", "qamarwari chowk"], lat: 34.0880, lng: 74.7780, pincode: "190010", distKm: 7.4, tier: "zone3", minKgFree: 3 },
-  { name: "Wazir Bagh", aliases: ["wazir bagh", "wazirbagh"], lat: 34.0670, lng: 74.8150, pincode: "190008", distKm: 7.5, tier: "zone3", minKgFree: 3 },
-  { name: "Batamaloo", aliases: ["batamaloo", "batamalo", "batmaloo"], lat: 34.0740, lng: 74.7920, pincode: "190009", distKm: 7.5, tier: "zone3", minKgFree: 3 },
-  { name: "Rajbagh", aliases: ["rajbagh", "raj bagh", "zero bridge", "kursoo rajbagh"], lat: 34.0680, lng: 74.8240, pincode: "190008", distKm: 7.6, tier: "zone3", minKgFree: 3 },
-  { name: "Jawahar Nagar", aliases: ["jawahar nagar", "jawaharnagar"], lat: 34.0580, lng: 74.8170, pincode: "190008", distKm: 7.8, tier: "zone3", minKgFree: 3 },
-  { name: "Sonwar", aliases: ["sonwar", "sonawar", "sona war", "sonwar bazar"], lat: 34.0700, lng: 74.8390, pincode: "190004", distKm: 7.8, tier: "zone3", minKgFree: 3 },
-  { name: "Bemina", aliases: ["bemina", "sd colony", "hamdania colony", "bemina byepass"], lat: 34.0850, lng: 74.7680, pincode: "190018", distKm: 8.8, tier: "zone3", minKgFree: 3 },
-  { name: "Nishat", aliases: ["nishat", "nishat bagh", "brein", "brain"], lat: 34.1230, lng: 74.8780, pincode: "190019", distKm: 9.0, tier: "zone3", minKgFree: 3 },
+  { name: "Qamarwari", aliases: ["qamarwari", "qamar wari", "kamarwari", "qamarwari chowk"], lat: 34.0880, lng: 74.7780, pincode: "190010", distKm: 9.5, tier: "zone3", minKgFree: 3 },
+  { name: "Nishat", aliases: ["nishat", "nishat bagh", "brein", "brain"], lat: 34.1230, lng: 74.8780, pincode: "190019", distKm: 8.0, tier: "zone3", minKgFree: 3 },
   { name: "Harwan", aliases: ["harwan", "harwan garden", "dara"], lat: 34.1650, lng: 74.8980, pincode: "190023", distKm: 9.5, tier: "zone3", minKgFree: 3 },
-  { name: "Natipora", aliases: ["natipora", "nati pora"], lat: 34.0450, lng: 74.8080, pincode: "190015", distKm: 10.5, tier: "zone3", minKgFree: 3 },
-  { name: "Barzulla / Baghat", aliases: ["barzulla", "baghat", "baghat barzulla"], lat: 34.0420, lng: 74.7920, pincode: "190005", distKm: 10.5, tier: "zone3", minKgFree: 3 },
-  { name: "Sanat Nagar", aliases: ["sanat nagar", "sanatnagar"], lat: 34.0320, lng: 74.7950, pincode: "190005", distKm: 11.0, tier: "zone3", minKgFree: 3 },
-  { name: "Chanapora", aliases: ["chanapora", "chanpora"], lat: 34.0400, lng: 74.8050, pincode: "190015", distKm: 11.0, tier: "zone3", minKgFree: 3 },
-  { name: "Hyderpora", aliases: ["hyderpora", "hyder pora", "hyderpora flyover"], lat: 34.0370, lng: 74.7820, pincode: "190014", distKm: 11.5, tier: "zone3", minKgFree: 3 },
 
-  // ─── ZONE 4 (11.5 to 16.0 km — South Corridor & Outskirts, Free from 4 kg) ───
-  { name: "Rawalpora", aliases: ["rawalpora", "rawapora"], lat: 34.0290, lng: 74.7880, pincode: "190005", distKm: 12.0, tier: "zone4", minKgFree: 4 },
-  { name: "Peerbagh", aliases: ["peerbagh", "peer bagh", "pirbagh"], lat: 34.0250, lng: 74.7800, pincode: "190014", distKm: 12.5, tier: "zone4", minKgFree: 4 },
-  { name: "Airport Road / Humhama", aliases: ["airport road", "humhama", "srinagar airport"], lat: 34.0150, lng: 74.7750, pincode: "190014", distKm: 13.0, tier: "zone4", minKgFree: 4 },
-  { name: "Lasjan", aliases: ["lasjan", "lassjan"], lat: 34.0200, lng: 74.8450, pincode: "190015", distKm: 13.5, tier: "zone4", minKgFree: 4 },
-  { name: "Nowgam", aliases: ["nowgam", "naugaon"], lat: 34.0100, lng: 74.8250, pincode: "190015", distKm: 13.5, tier: "zone4", minKgFree: 4 },
-  { name: "Pantha Chowk", aliases: ["pantha chowk", "panthachowk"], lat: 34.0280, lng: 74.8850, pincode: "191101", distKm: 13.0, tier: "zone4", minKgFree: 4 },
-  { name: "Athwajan", aliases: ["athwajan"], lat: 34.0320, lng: 74.8700, pincode: "190004", distKm: 12.0, tier: "zone4", minKgFree: 4 },
-  { name: "Bagh-e-Mehtab", aliases: ["bagh-e-mehtab", "baghi mehtab"], lat: 34.0200, lng: 74.7950, pincode: "190019", distKm: 12.5, tier: "zone4", minKgFree: 4 },
-  { name: "Rangreth", aliases: ["rangreth", "sidco rangreth"], lat: 34.0050, lng: 74.7900, pincode: "190007", distKm: 14.0, tier: "zone4", minKgFree: 4 },
-  { name: "HMT / Zainakote", aliases: ["hmt", "zainakote", "mustafabad"], lat: 34.1000, lng: 74.7300, pincode: "190012", distKm: 15.0, tier: "zone4", minKgFree: 4 },
+  // ─── ZONE 4 (11.5 to 16.0 km — South Corridor, Rajbagh, Jawahar Nagar, Batamaloo, Sanat Nagar, Peerbagh, Airport Rd, Nowgam — Free from 5 kg) ───
+  { name: "Batamaloo", aliases: ["batamaloo", "batamalo", "batmaloo"], lat: 34.0740, lng: 74.7920, pincode: "190009", distKm: 11.8, tier: "zone4", minKgFree: 5 },
+  { name: "Jawahar Nagar", aliases: ["jawahar nagar", "jawaharnagar"], lat: 34.0580, lng: 74.8170, pincode: "190008", distKm: 11.8, tier: "zone4", minKgFree: 5 },
+  { name: "Rajbagh", aliases: ["rajbagh", "raj bagh", "zero bridge", "kursoo rajbagh"], lat: 34.0680, lng: 74.8240, pincode: "190008", distKm: 12.0, tier: "zone4", minKgFree: 5 },
+  { name: "Wazir Bagh", aliases: ["wazir bagh", "wazirbagh"], lat: 34.0670, lng: 74.8150, pincode: "190008", distKm: 12.7, tier: "zone4", minKgFree: 5 },
+  { name: "Sonwar", aliases: ["sonwar", "sonawar", "sona war", "sonwar bazar"], lat: 34.0700, lng: 74.8390, pincode: "190004", distKm: 12.9, tier: "zone4", minKgFree: 5 },
+  { name: "Bemina", aliases: ["bemina", "sd colony", "hamdania colony", "bemina byepass"], lat: 34.0850, lng: 74.7680, pincode: "190018", distKm: 12.5, tier: "zone4", minKgFree: 5 },
+  { name: "Natipora", aliases: ["natipora", "nati pora"], lat: 34.0450, lng: 74.8080, pincode: "190015", distKm: 12.5, tier: "zone4", minKgFree: 5 },
+  { name: "Chanapora", aliases: ["chanapora", "chanpora"], lat: 34.0400, lng: 74.8050, pincode: "190015", distKm: 13.0, tier: "zone4", minKgFree: 5 },
+  { name: "Barzulla / Baghat", aliases: ["barzulla", "baghat", "baghat barzulla"], lat: 34.0420, lng: 74.7920, pincode: "190005", distKm: 14.2, tier: "zone4", minKgFree: 5 },
+  { name: "Sanat Nagar", aliases: ["sanat nagar", "sanatnagar"], lat: 34.0320, lng: 74.7950, pincode: "190005", distKm: 13.5, tier: "zone4", minKgFree: 5 },
+  { name: "Hyderpora", aliases: ["hyderpora", "hyder pora", "hyderpora flyover"], lat: 34.0370, lng: 74.7820, pincode: "190014", distKm: 14.5, tier: "zone4", minKgFree: 5 },
+  { name: "Rawalpora", aliases: ["rawalpora", "rawapora"], lat: 34.0290, lng: 74.7880, pincode: "190005", distKm: 14.0, tier: "zone4", minKgFree: 5 },
+  { name: "Peerbagh", aliases: ["peerbagh", "peer bagh", "pirbagh"], lat: 34.0250, lng: 74.7800, pincode: "190014", distKm: 14.5, tier: "zone4", minKgFree: 5 },
+  { name: "Airport Road / Humhama", aliases: ["airport road", "humhama", "srinagar airport"], lat: 34.0150, lng: 74.7750, pincode: "190014", distKm: 15.0, tier: "zone4", minKgFree: 5 },
+  { name: "Lasjan", aliases: ["lasjan", "lassjan"], lat: 34.0200, lng: 74.8450, pincode: "190015", distKm: 14.0, tier: "zone4", minKgFree: 5 },
+  { name: "Nowgam", aliases: ["nowgam", "naugaon", "nowgham", "nowgam bypass"], lat: 34.0100, lng: 74.8250, pincode: "190015", distKm: 14.5, tier: "zone4", minKgFree: 5 },
+  { name: "Pantha Chowk", aliases: ["pantha chowk", "panthachowk"], lat: 34.0280, lng: 74.8850, pincode: "191101", distKm: 14.0, tier: "zone4", minKgFree: 5 },
+  { name: "Athwajan", aliases: ["athwajan"], lat: 34.0320, lng: 74.8700, pincode: "190004", distKm: 13.5, tier: "zone4", minKgFree: 5 },
+  { name: "Bagh-e-Mehtab", aliases: ["bagh-e-mehtab", "baghi mehtab"], lat: 34.0200, lng: 74.7950, pincode: "190019", distKm: 14.0, tier: "zone4", minKgFree: 5 },
+  { name: "Rangreth", aliases: ["rangreth", "sidco rangreth"], lat: 34.0050, lng: 74.7900, pincode: "190007", distKm: 15.5, tier: "zone4", minKgFree: 5 },
+  { name: "HMT / Zainakote", aliases: ["hmt", "zainakote", "mustafabad"], lat: 34.1000, lng: 74.7300, pincode: "190012", distKm: 15.0, tier: "zone4", minKgFree: 5 },
 
   // ─── OUT OF ZONE (> 16.0 km & Outer Districts — Counter Pickup) ───
   { name: "Ganderbal District", aliases: ["ganderbal", "ganderbal town", "beehama", "duderhama", "saloora", "tullamulla", "kangan", "wayil", "manigam", "safapora"], lat: 34.2160, lng: 74.7780, pincode: "191201", distKm: 12.0, tier: "out_of_zone", minKgFree: 0 },
@@ -327,49 +327,53 @@ export function evaluateDeliveryZone(params: {
   if (!isDeliverable) {
     fee = 0;
   } else if (tierId === "zone1") {
-    fee = weightKg >= 2 ? 0 : 29;
+    fee = weightKg >= 2 ? 0 : 35;
     if (fee > 0) {
-      upgradeAdvice = `Add +${2 - weightKg} kg to get 100% FREE doorstep delivery and save ₹29!`;
+      upgradeAdvice = `Add +${2 - weightKg} kg to get 100% FREE doorstep delivery and save ₹35!`;
       savingsAmount = fee;
     }
   } else if (tierId === "zone2") {
     if (weightKg >= 3) {
       fee = 0;
-    } else if (weightKg === 2) {
-      fee = 39;
-      upgradeAdvice = `Add +1 kg to get 100% FREE doorstep delivery and save ₹39!`;
+    } else if (weightKg >= 2) {
+      fee = 55;
+      upgradeAdvice = `Add +1 kg to get 100% FREE doorstep delivery and save ₹55!`;
       savingsAmount = fee;
     } else {
-      fee = 49;
-      upgradeAdvice = `Upgrade to 2 kg for just ₹39 courier fee, or 3 kg for 100% FREE delivery!`;
+      fee = 65;
+      upgradeAdvice = `Upgrade to 2 kg for just ₹55 courier fee, or 3 kg for 100% FREE delivery!`;
       savingsAmount = fee;
     }
   } else if (tierId === "zone3") {
     if (weightKg >= 3) {
       fee = 0;
-    } else if (weightKg === 2) {
-      fee = 69;
-      upgradeAdvice = `Add +1 kg to get 100% FREE doorstep delivery and save ₹69!`;
+    } else if (weightKg >= 2) {
+      fee = 89;
+      upgradeAdvice = `Add +1 kg to get 100% FREE doorstep delivery and save ₹89!`;
       savingsAmount = fee;
     } else {
-      fee = 79;
-      upgradeAdvice = `Upgrade to 2 kg for just ₹69 courier fee, or 3 kg for 100% FREE delivery!`;
+      fee = 99;
+      upgradeAdvice = `Upgrade to 2 kg for just ₹89 courier fee, or 3 kg for 100% FREE delivery!`;
       savingsAmount = fee;
     }
   } else if (tierId === "zone4") {
-    if (weightKg >= 4) {
+    if (weightKg >= 5) {
       fee = 0;
-    } else if (weightKg === 3) {
-      fee = 79;
-      upgradeAdvice = `Add +1 kg to unlock 100% FREE doorstep delivery on our 4 kg family pack!`;
+    } else if (weightKg >= 4) {
+      fee = 109;
+      upgradeAdvice = `Add +1 kg to unlock 100% FREE doorstep delivery on our 5 kg family pack!`;
       savingsAmount = fee;
-    } else if (weightKg === 2) {
-      fee = 99;
-      upgradeAdvice = `Upgrade to 4 kg family pack for 100% FREE delivery!`;
+    } else if (weightKg >= 3) {
+      fee = 129;
+      upgradeAdvice = `Upgrade to our 5 kg family pack for 100% FREE doorstep delivery!`;
+      savingsAmount = fee;
+    } else if (weightKg >= 2) {
+      fee = 139;
+      upgradeAdvice = `Upgrade to 5 kg family pack for 100% FREE delivery!`;
       savingsAmount = fee;
     } else {
-      fee = 139;
-      upgradeAdvice = `Upgrade to 2 kg (₹99 fee) or 4 kg family pack for 100% FREE delivery!`;
+      fee = 149;
+      upgradeAdvice = `Upgrade to 2 kg (₹139 fee) or 5 kg family pack for 100% FREE delivery!`;
       savingsAmount = fee;
     }
   }
@@ -388,8 +392,8 @@ export function evaluateDeliveryZone(params: {
       upgradeAdvice = `Add +${3 - weightKg} kg to unlock 100% FREE doorstep delivery and save ₹${fee} (avoids evening rush surge)!`;
     } else if (tierId === "zone3" && weightKg < 3) {
       upgradeAdvice = `Add +${3 - weightKg} kg to unlock 100% FREE doorstep delivery and save ₹${fee} (avoids evening rush surge)!`;
-    } else if (tierId === "zone4" && weightKg < 4) {
-      upgradeAdvice = `Upgrade to our 4 kg family pack to get 100% FREE doorstep delivery and save ₹${fee}!`;
+    } else if (tierId === "zone4" && weightKg < 5) {
+      upgradeAdvice = `Upgrade to our 5 kg family pack to get 100% FREE doorstep delivery and save ₹${fee}!`;
     }
   }
 
@@ -404,29 +408,29 @@ export function evaluateDeliveryZone(params: {
       ? `✓ Free Delivery from 2 kg (~${dist.toFixed(1)} km) · ⚡ Evening Rush Courier`
       : `✓ 100% Free Doorstep Delivery from 2 kg (~${dist.toFixed(1)} km)`;
     deliveryMessage = isRush && fee > 0
-      ? `Deliverable within 90–120 minutes. Free on 2+ kg, or ₹${fee} express courier (includes ₹40 evening rush surcharge 5–8 PM).`
+      ? `Deliverable within 90–120 minutes. Free on 2+ kg, or ₹${fee} express courier (includes ₹40 evening rush surcharge 4–8 PM).`
       : `Deliverable within 90–120 minutes in clean food-grade packaging. Free on 2+ kg, or ₹${fee} subsidized courier for 1 kg.`;
   } else if (tierId === "zone2") {
     statusHeadline = isRush && fee > 0
       ? `✓ Mid-City Delivery — Free from 3 kg (~${dist.toFixed(1)} km) · ⚡ Evening Rush Courier`
       : `✓ Mid-City Delivery — Free from 3 kg (~${dist.toFixed(1)} km)`;
     deliveryMessage = isRush && fee > 0
-      ? `Deliverable within 2 hours. Free on 3+ kg, or ₹${fee} express courier for ${weightKg} kg (includes ₹40 evening rush surcharge 5–8 PM).`
-      : `Deliverable within 2 hours. Free on 3+ kg, or nominal express courier (₹39 for 2 kg / ₹49 for 1 kg).`;
+      ? `Deliverable within 2 hours. Free on 3+ kg, or ₹${fee} express courier for ${weightKg} kg (includes ₹40 evening rush surcharge 4–8 PM).`
+      : `Deliverable within 2 hours. Free on 3+ kg, or subsidized express courier (₹55 for 2 kg / ₹65 for 1 kg).`;
   } else if (tierId === "zone3") {
     statusHeadline = isRush && fee > 0
       ? `✓ Greater Srinagar Delivery — Free from 3 kg (~${dist.toFixed(1)} km) · ⚡ Evening Rush Courier`
       : `✓ Greater Srinagar Delivery — Free from 3 kg (~${dist.toFixed(1)} km)`;
     deliveryMessage = isRush && fee > 0
-      ? `Deliverable within 2 hours. Free on 3+ kg, or ₹${fee} express courier for ${weightKg} kg (includes ₹40 evening rush surcharge 5–8 PM).`
-      : `Deliverable within 2 hours with cold-chain packaging. Free on 3+ kg, or nominal express courier (₹69 for 2 kg / ₹79 for 1 kg).`;
+      ? `Deliverable within 2 hours. Free on 3+ kg, or ₹${fee} express courier for ${weightKg} kg (includes ₹40 evening rush surcharge 4–8 PM).`
+      : `Deliverable within 2 hours with cold-chain packaging. Free on 3+ kg, or subsidized express courier (₹89 for 2 kg / ₹99 for 1 kg).`;
   } else if (tierId === "zone4") {
     statusHeadline = isRush && fee > 0
-      ? `✓ South Corridor Delivery — Free on 4 kg (~${dist.toFixed(1)} km) · ⚡ Evening Rush Courier`
-      : `✓ South Corridor Delivery — Free on 4 kg (~${dist.toFixed(1)} km)`;
+      ? `✓ South Corridor Delivery — Free on 5 kg (~${dist.toFixed(1)} km) · ⚡ Evening Rush Courier`
+      : `✓ South Corridor Delivery — Free on 5 kg (~${dist.toFixed(1)} km)`;
     deliveryMessage = isRush && fee > 0
-      ? `Deliverable within 2 hours. 100% Free on 4 kg family pack, or ₹${fee} express courier for ${weightKg} kg (includes ₹40 evening rush surcharge 5–8 PM).`
-      : `Deliverable within 2 hours with thermal insulation. 100% Free on 4 kg family pack, or nominal express courier (₹89 for 2 kg / ₹49 for 3 kg).`;
+      ? `Deliverable within 2 hours. 100% Free on 5 kg family pack, or ₹${fee} express courier for ${weightKg} kg (includes ₹40 evening rush surcharge 4–8 PM).`
+      : `Deliverable within 2 hours in clean food-grade packaging. 100% Free on 5 kg family pack, or subsidized courier (₹109 for 4 kg / ₹129 for 3 kg / ₹139 for 2 kg / ₹149 for 1 kg).`;
   } else {
     statusHeadline = `📍 Outside 16 km Express Delivery Perimeter (~${dist.toFixed(1)} km)`;
     deliveryMessage = `To ensure live-harvest cold chain integrity within 2 hours, doorstep delivery is restricted to 16 km. You are warmly welcome to pick up fresh live catch directly from our Live Vending Center in Malabagh with ZERO delivery fee!`;

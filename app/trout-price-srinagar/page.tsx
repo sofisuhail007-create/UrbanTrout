@@ -49,7 +49,7 @@ const C = {
 const priceFaqs = [
   {
     q: "What is the current rate of Rainbow Trout per kg in Srinagar for 2026?",
-    a: "At Urban Trout farm in Malabagh, Srinagar, fresh Whole Rainbow Trout is priced at ₹540 per kg, and Premium Cleaned & Gutted Trout is ₹580 per kg. Both include chilled doorstep delivery across our 16km farm perimeter (free from 2 kg in Zone 1, 3 kg in Zone 2 and Zone 3, and 4 kg Family Pack in Zone 4) within 90–120 minutes of harvest.",
+    a: "At Urban Trout farm in Malabagh, Srinagar, fresh Whole Rainbow Trout is priced at ₹540 per kg, and Premium Cleaned & Gutted Trout is ₹580 per kg. Both include chilled doorstep delivery across our 16km farm perimeter (free from 2 kg in Zone 1, 3 kg in Zone 2 and Zone 3, and 5 kg Family Pack in Zone 4) within 90–120 minutes of harvest.",
   },
   {
     q: "Why are market fish and IndiaMART rates higher than Urban Trout?",
@@ -57,7 +57,7 @@ const priceFaqs = [
   },
   {
     q: "What is the minimum order quantity for free delivery?",
-    a: "Free doorstep delivery starts from 2 kg in Zone 1 (0–4 km), 3 kg in Zone 2 (4–7 km), 3 kg in Zone 3 (7–11.5 km), and 4 kg Family Pack in Zone 4 (11.5–16 km). For smaller quantities, we heavily subsidize the express courier so you pay only a nominal fee.",
+    a: "Free doorstep delivery starts from 2 kg in Zone 1 (0–4 km), 3 kg in Zone 2 (4–7 km), 3 kg in Zone 3 (7–11.5 km), and 5 kg Family Pack in Zone 4 (11.5–16 km). For smaller quantities, we subsidize 30% of the express courier fee (you pay only 70%).",
   },
   {
     q: "Is there any extra charge for descaling, gutting, or doorstep delivery?",
