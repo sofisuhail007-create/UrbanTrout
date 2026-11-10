@@ -26,8 +26,8 @@ process.on("unhandledRejection", (reason) => {
 // ============================================================================
 // URBAN TROUT SALES AGENT — BUILD & VERSION TRACKING
 // ============================================================================
-const BOT_VERSION = "2.8.0";
-const BOT_LAST_UPDATED = "10-Nov-2026, 11:08 PM IST";
+const BOT_VERSION = "2.8.1";
+const BOT_LAST_UPDATED = "10-Nov-2026, 11:28 PM IST";
 const BOT_RELEASE_TITLE = "Hostinger Cloud VPS Edition (#location Lookup & 8 PM Name-Location Scan)";
 const BOT_RELEASE_NOTES = "#location Delivery Rate Lookup • 8 PM Full Chat Scan (Name - Location) • 5kg Free Zone 4 Corridor • 70/30 Courier Split • Landmark Escalation Guard";
 
@@ -1889,74 +1889,68 @@ function calculateReorderPricing(weightKg, cutType, distKm, isSurgeOverride) {
   return { amount: fishCost + fee, tagDesc: `${weightKg} kg ${cutType} (+Express Delivery)` };
 }
 
-// Customer-shareable #location delivery rate quote formatter (70/30 split across Zones 1-4)
+// Customer-shareable, copy-paste ready #location delivery rate quote formatter (Cleaned & Gutted pan-ready pieces only)
 function buildLocationRateQuote({ name, dist, status }) {
   const distDisplay = dist != null && !isNaN(dist) ? Number(dist).toFixed(1) : null;
   if (status === "OUT_ZONE" || (dist != null && dist > 16.0)) {
     return (
-      `📍 *Delivery & Rate Check — ${name}*\n` +
-      (distDisplay ? `_(~${distDisplay} km from Malabagh Farm — Outside 16.0 km Doorstep Perimeter)_\n\n` : `_(Outside 16.0 km Doorstep Perimeter)_\n\n`) +
-      `To guarantee live-harvest freshness within 90–120 minutes, doorstep delivery operates strictly up to *16.0 km* across Srinagar.\n\n` +
-      `🏪 *Fresh Live Counter Pickup Available:*\n` +
-      `• *Cleaned & Gutted (Pan-ready):* ₹580/kg\n` +
-      `• *Whole Fresh Trout:* ₹540/kg\n` +
+      `📍 *Urban Trout Delivery Check — ${name}*\n` +
+      (distDisplay
+        ? `_(Approx. ${distDisplay} km from our Malabagh Farm — Outside 16.0 km Doorstep Perimeter)_\n\n`
+        : `_(Outside our 16.0 km Srinagar Doorstep Delivery Perimeter)_\n\n`) +
+      `To guarantee peak live-harvest freshness within 90–120 minutes, doorstep delivery operates strictly within *16.0 km* across Srinagar.\n\n` +
+      `🏪 *Fresh Live Counter Pickup Available at Malabagh:*\n` +
+      `• *Cleaned, Gutted & Pan-Ready Pieces:* ₹580 / kg\n` +
       `• *Location:* Live Vending Center, Near R.P. School Girls Wing, Malabagh, Srinagar\n` +
       `• *Timings:* 8:00 AM – 8:00 PM _(Sat–Thu, closed Fridays)_\n` +
-      `• *Maps:* https://maps.app.goo.gl/6FT5iLk5n8mbKSRU9`
+      `• *Google Maps:* https://maps.app.goo.gl/6FT5iLk5n8mbKSRU9`
     );
   }
 
   const d = dist != null && !isNaN(dist) ? Number(dist) : 2.0;
-  let zoneLabel = "Zone 1 (0–4.0 km)";
   let freeMinKg = 2;
   let belowWeights = [1];
 
   if (d <= 4.0) {
-    zoneLabel = "Zone 1 (0–4.0 km)";
     freeMinKg = 2;
     belowWeights = [1];
   } else if (d <= 7.0) {
-    zoneLabel = "Zone 2 (4.0–7.0 km)";
     freeMinKg = 3;
     belowWeights = [2, 1];
   } else if (d <= 11.5) {
-    zoneLabel = "Zone 3 (7.0–11.5 km)";
     freeMinKg = 3;
     belowWeights = [2, 1];
   } else {
-    zoneLabel = "Zone 4 (11.5–16.0 km)";
     freeMinKg = 5;
     belowWeights = [4, 3, 2, 1];
   }
 
-  const freeGuttedTotal = (freeMinKg * 580).toLocaleString("en-IN");
-  const freeWholeTotal = (freeMinKg * 540).toLocaleString("en-IN");
+  const freeTotal = (freeMinKg * 580).toLocaleString("en-IN");
   const isEveningNow = isCurrentEveningSurge();
 
   const belowLines = belowWeights.map((kg) => {
     const feeDay = getDeliveryFeeForDistance(d, kg, false);
-    const gutDay = (kg * 580 + feeDay).toLocaleString("en-IN");
-    const wholeDay = (kg * 540 + feeDay).toLocaleString("en-IN");
+    const fishPrice = (kg * 580).toLocaleString("en-IN");
+    const totalDay = (kg * 580 + feeDay).toLocaleString("en-IN");
     if (isEveningNow) {
       const feeEve = feeDay + 40;
-      const gutEve = (kg * 580 + feeEve).toLocaleString("en-IN");
-      return `• *${kg} kg:* +₹${feeDay} daytime (*₹${gutDay}* Gutted / ₹${wholeDay} Whole) | ⚡ Evening now: +₹${feeEve} (*₹${gutEve}*)`;
+      const totalEve = (kg * 580 + feeEve).toLocaleString("en-IN");
+      return `• *${kg} kg:* ₹${fishPrice} + ₹${feeEve} courier *(evening rush)* = *₹${totalEve} total* _(Daytime: +₹${feeDay} = ₹${totalDay})_`;
     }
-    return `• *${kg} kg:* +₹${feeDay} courier → *₹${gutDay}* Gutted _(₹${wholeDay} Whole)_`;
+    return `• *${kg} kg:* ₹${fishPrice} + ₹${feeDay} courier = *₹${totalDay} total*`;
   }).join("\n");
 
   return (
-    `📍 *Delivery & Rate Details — ${name}*\n` +
-    (distDisplay ? `_(~${distDisplay} km from Malabagh Farm · ${zoneLabel})_\n\n` : `_(${zoneLabel})_\n\n`) +
-    `🐟 *Live-Harvest Trout Rates:*\n` +
-    `• *Cleaned & Gutted (Pan-ready):* ₹580/kg\n` +
-    `• *Whole Fresh Trout:* ₹540/kg\n\n` +
+    `📍 *Urban Trout Delivery Details — ${name}*\n` +
+    (distDisplay ? `_(Approx. ${distDisplay} km from our Malabagh Farm)_\n\n` : `\n`) +
+    `🐟 *Fresh Live-Harvested Trout (Cleaned, Gutted & Cut into Pan-Ready Pieces):*\n` +
+    `• *Rate:* ₹580 / kg\n\n` +
     `🛵 *100% FREE Doorstep Delivery:*\n` +
-    `• *${freeMinKg} kg & above:* *FREE Delivery* (₹${freeGuttedTotal} Gutted / ₹${freeWholeTotal} Whole)\n\n` +
-    `📦 *Express Delivery Charges (Below ${freeMinKg} kg):*\n` +
+    `• *${freeMinKg} kg & above:* FREE Delivery (*₹${freeTotal}* total for ${freeMinKg} kg)\n\n` +
+    `📦 *Express Doorstep Delivery (Orders below ${freeMinKg} kg):*\n` +
     `${belowLines}\n\n` +
-    `⚡ _Evening Rush (4:00 PM – 8:00 PM): +₹40 courier surcharge on subsidized orders below ${freeMinKg} kg; ${freeMinKg} kg+ remains 100% FREE._\n\n` +
-    `Reply with your quantity & cut type to book fresh live harvest within 90–120 minutes! 🐟`
+    `⚡ _Note: Evening rush hours (4:00 PM – 8:00 PM) carry a +₹40 courier surcharge on subsidized orders below ${freeMinKg} kg; ${freeMinKg} kg+ remains 100% FREE._\n\n` +
+    `Reply with your preferred quantity (in kg) and address/location pin to book fresh live-harvest delivery within 90–120 minutes! 🐟`
   );
 }
 
