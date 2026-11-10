@@ -26,10 +26,10 @@ process.on("unhandledRejection", (reason) => {
 // ============================================================================
 // URBAN TROUT SALES AGENT — BUILD & VERSION TRACKING
 // ============================================================================
-const BOT_VERSION = "2.7.0";
-const BOT_LAST_UPDATED = "10-Nov-2026, 10:25 PM IST";
-const BOT_RELEASE_TITLE = "Hostinger Cloud VPS Edition (5kg South Corridor & 70/30 Delivery Split)";
-const BOT_RELEASE_NOTES = "5kg Free South/Rajbagh/Batamaloo Corridor • 70/30 Courier Split • Landmark Escalation Guard • Full Daily Chat Archive & #qr Direct Routing";
+const BOT_VERSION = "2.8.0";
+const BOT_LAST_UPDATED = "10-Nov-2026, 11:08 PM IST";
+const BOT_RELEASE_TITLE = "Hostinger Cloud VPS Edition (#location Lookup & 8 PM Name-Location Scan)";
+const BOT_RELEASE_NOTES = "#location Delivery Rate Lookup • 8 PM Full Chat Scan (Name - Location) • 5kg Free Zone 4 Corridor • 70/30 Courier Split • Landmark Escalation Guard";
 
 // ============================================================================
 // STRICT VVIP MANUAL-ONLY LIST (AI MUST NEVER TEXT UNDER ANY CIRCUMSTANCE)
@@ -287,7 +287,7 @@ const KNOWN_IN_ZONE_AREAS = [
   { pattern: /\b(?:lal\s*chowk|lalchowk)\b/i, name: "Lal Chowk", dist: 11.0, minKg: 3 },
   { pattern: /\b(?:dalgate|dal\s*gate)\b/i, name: "Dalgate", dist: 9.5, minKg: 3 },
   { pattern: /\b(?:khay+am|khyam|khaiam)(?:\s*(?:chowk|road|cinema))?\b/i, name: "Khayam", dist: 8.5, minKg: 3 },
-  { pattern: /\b(?:khyber\s*hospital|khyber)\b/i, name: "Khayam (Khyber Hospital)", dist: 8.5, minKg: 3 },
+  { pattern: /\b(?:khyber\s*(?:hospital|medical|institute)|hospital\s*khyber)\b/i, name: "Khayam (Khyber Hospital)", dist: 8.5, minKg: 3 },
   { pattern: /\b(?:qamarwari|qamar\s*wari|kamarwari)\b/i, name: "Qamarwari", dist: 9.5, minKg: 3 },
   { pattern: /\b(?:balgarden|bal\s*garden)\b/i, name: "Balgarden", dist: 9.8, minKg: 3 },
   { pattern: /\b(?:brein|brain)\b/i, name: "Brein (Nishat)", dist: 11.0, minKg: 3 },
@@ -983,7 +983,7 @@ const SUPABASE_KEY = process.env.SUPABASE_KEY;
 const lidToPhone = new Map();
 
 // Google Contacts exporter module
-const { exportContacts, loadPrimaryPhones } = require("./export_contacts");
+const { exportContacts, enrichContactsFromChats, loadPrimaryPhones, sanitizeRawContactName } = require("./export_contacts");
 
 // Global AI Sales Agent Kill Switch / Pause State (Controllable from Phone via #pause / #resume)
 let isAiPausedGlobally = false;
@@ -1889,15 +1889,89 @@ function calculateReorderPricing(weightKg, cutType, distKm, isSurgeOverride) {
   return { amount: fishCost + fee, tagDesc: `${weightKg} kg ${cutType} (+Express Delivery)` };
 }
 
+// Customer-shareable #location delivery rate quote formatter (70/30 split across Zones 1-4)
+function buildLocationRateQuote({ name, dist, status }) {
+  const distDisplay = dist != null && !isNaN(dist) ? Number(dist).toFixed(1) : null;
+  if (status === "OUT_ZONE" || (dist != null && dist > 16.0)) {
+    return (
+      `📍 *Delivery & Rate Check — ${name}*\n` +
+      (distDisplay ? `_(~${distDisplay} km from Malabagh Farm — Outside 16.0 km Doorstep Perimeter)_\n\n` : `_(Outside 16.0 km Doorstep Perimeter)_\n\n`) +
+      `To guarantee live-harvest freshness within 90–120 minutes, doorstep delivery operates strictly up to *16.0 km* across Srinagar.\n\n` +
+      `🏪 *Fresh Live Counter Pickup Available:*\n` +
+      `• *Cleaned & Gutted (Pan-ready):* ₹580/kg\n` +
+      `• *Whole Fresh Trout:* ₹540/kg\n` +
+      `• *Location:* Live Vending Center, Near R.P. School Girls Wing, Malabagh, Srinagar\n` +
+      `• *Timings:* 8:00 AM – 8:00 PM _(Sat–Thu, closed Fridays)_\n` +
+      `• *Maps:* https://maps.app.goo.gl/6FT5iLk5n8mbKSRU9`
+    );
+  }
+
+  const d = dist != null && !isNaN(dist) ? Number(dist) : 2.0;
+  let zoneLabel = "Zone 1 (0–4.0 km)";
+  let freeMinKg = 2;
+  let belowWeights = [1];
+
+  if (d <= 4.0) {
+    zoneLabel = "Zone 1 (0–4.0 km)";
+    freeMinKg = 2;
+    belowWeights = [1];
+  } else if (d <= 7.0) {
+    zoneLabel = "Zone 2 (4.0–7.0 km)";
+    freeMinKg = 3;
+    belowWeights = [2, 1];
+  } else if (d <= 11.5) {
+    zoneLabel = "Zone 3 (7.0–11.5 km)";
+    freeMinKg = 3;
+    belowWeights = [2, 1];
+  } else {
+    zoneLabel = "Zone 4 (11.5–16.0 km)";
+    freeMinKg = 5;
+    belowWeights = [4, 3, 2, 1];
+  }
+
+  const freeGuttedTotal = (freeMinKg * 580).toLocaleString("en-IN");
+  const freeWholeTotal = (freeMinKg * 540).toLocaleString("en-IN");
+  const isEveningNow = isCurrentEveningSurge();
+
+  const belowLines = belowWeights.map((kg) => {
+    const feeDay = getDeliveryFeeForDistance(d, kg, false);
+    const gutDay = (kg * 580 + feeDay).toLocaleString("en-IN");
+    const wholeDay = (kg * 540 + feeDay).toLocaleString("en-IN");
+    if (isEveningNow) {
+      const feeEve = feeDay + 40;
+      const gutEve = (kg * 580 + feeEve).toLocaleString("en-IN");
+      return `• *${kg} kg:* +₹${feeDay} daytime (*₹${gutDay}* Gutted / ₹${wholeDay} Whole) | ⚡ Evening now: +₹${feeEve} (*₹${gutEve}*)`;
+    }
+    return `• *${kg} kg:* +₹${feeDay} courier → *₹${gutDay}* Gutted _(₹${wholeDay} Whole)_`;
+  }).join("\n");
+
+  return (
+    `📍 *Delivery & Rate Details — ${name}*\n` +
+    (distDisplay ? `_(~${distDisplay} km from Malabagh Farm · ${zoneLabel})_\n\n` : `_(${zoneLabel})_\n\n`) +
+    `🐟 *Live-Harvest Trout Rates:*\n` +
+    `• *Cleaned & Gutted (Pan-ready):* ₹580/kg\n` +
+    `• *Whole Fresh Trout:* ₹540/kg\n\n` +
+    `🛵 *100% FREE Doorstep Delivery:*\n` +
+    `• *${freeMinKg} kg & above:* *FREE Delivery* (₹${freeGuttedTotal} Gutted / ₹${freeWholeTotal} Whole)\n\n` +
+    `📦 *Express Delivery Charges (Below ${freeMinKg} kg):*\n` +
+    `${belowLines}\n\n` +
+    `⚡ _Evening Rush (4:00 PM – 8:00 PM): +₹40 courier surcharge on subsidized orders below ${freeMinKg} kg; ${freeMinKg} kg+ remains 100% FREE._\n\n` +
+    `Reply with your quantity & cut type to book fresh live harvest within 90–120 minutes! 🐟`
+  );
+}
+
 // Safe extraction of clean personal name from WhatsApp pushName
 function extractCleanWhatsAppName(pushName) {
   if (!pushName) return null;
-  let n = String(pushName).trim();
+  const sanitized = typeof sanitizeRawContactName === "function" ? sanitizeRawContactName(pushName) : null;
+  let n = sanitized ? sanitized.cleanName : String(pushName).trim();
+  if (!n) return null;
   n = n.replace(/[\u200B-\u200D\uFEFF\u202A-\u202E]/g, "").trim();
   n = n.replace(/^[~•*-\s]+/, "").trim();
   n = n.replace(/[^\w\s.']/gi, "").trim();
   if (/^\+?\d+$/.test(n.replace(/[\s\-()]/g, ""))) return null;
-  if (/^(?:valued\s*customer|customer|user|buyer|lead|srinagar|kashmir|urban\s*trout|none|null|unknown|guest)$/i.test(n)) return null;
+  if (/^(?:valued\s*customer|customer|user|buyer|lead|srinagar|kashmir|urban\s*trout(?:\s*aquaculture)?|aquaculture|none|null|unknown|guest|assalam[-\s]*o?[-\s]*alaikum|assalamu\s*alaikum|asalamualikum|salam)$/i.test(n)) return null;
+  if (/\b(?:lead|buyer)\s*\(?\d{3,4}\)?$/i.test(n) || /^UT\b/i.test(n)) return null;
   if (n.length < 2 || n.length > 30) return null;
   if (!/[a-zA-Z]/.test(n)) return null;
   return n;
@@ -4211,6 +4285,14 @@ async function checkNightlyReportSchedule() {
       }
 
       if (!alreadySent) {
+        try {
+          console.log(`\n👥 [8:00 PM NIGHTLY CHAT SCAN] Scanning all chats & daily archive for customer names & locations...`);
+          const enrichedContacts = enrichContactsFromChats({ updateMetadata: true, silent: false });
+          const withLocCount = Array.isArray(enrichedContacts) ? enrichedContacts.filter(c => c.customerName && c.area && c.area !== "Srinagar").length : 0;
+          console.log(`✅ [8:00 PM Contact Sync] Synced ${Array.isArray(enrichedContacts) ? enrichedContacts.length : 0} contacts (${withLocCount} formatted as "Name - Location").`);
+        } catch (scanErr) {
+          console.error("Error in 8:00 PM nightly chat contact scan:", scanErr.message);
+        }
         console.log(`\n📊 [8:00 PM NIGHTLY BRIEFING TRIGGERED] Compiling and dispatching executive briefing for ${todayStr}...`);
         await sendNightlyBriefing(todayStr);
       }
@@ -4876,19 +4958,20 @@ async function startBot() {
         }
         return;
       }
-      if (lower === "#contacts" || lower === "#export" || lower === "#vcf" || lower === "#getcontacts") {
+      if (lower === "#contacts" || lower === "#export" || lower === "#vcf" || lower === "#getcontacts" || lower === "#scanchats" || lower === "#synccontacts") {
         try {
-          await sock.sendMessage(remoteJid, { text: "⏳ *Compiling and exporting latest Urban Trout contacts...*" });
-          const contacts = exportContacts();
+          await sock.sendMessage(remoteJid, { text: "⏳ *Scanning all chats for Name & Location and exporting Urban Trout contacts...*" });
+          const contacts = enrichContactsFromChats({ updateMetadata: true, silent: false });
+          const withLocCount = Array.isArray(contacts) ? contacts.filter(c => c.customerName && c.area && c.area !== "Srinagar").length : 0;
           const localVcf = path.join(__dirname, "Urban_Trout_Contacts.vcf");
           if (fs.existsSync(localVcf)) {
             await sock.sendMessage(remoteJid, {
               document: fs.readFileSync(localVcf),
               mimetype: "text/vcard",
               fileName: "Urban_Trout_Contacts.vcf",
-              caption: `✅ *Urban Trout Contacts Export*\n\n• Total Synced Leads: ${contacts.length}\n• Tap this file on your phone to import or update into Google Contacts!`
+              caption: `✅ *Urban Trout Contacts Export*\n\n• Total Synced Leads: ${contacts.length}\n• Named with Location: ${withLocCount}\n• Personal primary contacts protected & excluded.\n• Tap this file to import or update into Google Contacts!`
             });
-            console.log(`✅ [Owner Contacts Export] Sent Urban_Trout_Contacts.vcf (${contacts.length} contacts) to owner.`);
+            console.log(`✅ [Owner Contacts Export] Sent Urban_Trout_Contacts.vcf (${contacts.length} contacts, ${withLocCount} Name-Location) to owner.`);
           } else {
             await sock.sendMessage(remoteJid, { text: `⚠️ Contacts file not found on disk.` });
           }
@@ -4901,6 +4984,10 @@ async function startBot() {
       if (lower === "#help" || lower === "#commands") {
         await sock.sendMessage(remoteJid, {
           text: `🛠️ *URBAN TROUT OWNER QUICK COMMANDS*\n\n` +
+            `📍 *Instant Delivery & Rate Quote (#location):*\n` +
+            `• *#location sanatnagar* (Distance, Free MOQ & all <MOQ courier rates ready to forward)\n` +
+            `• *#loc bemina* / *#location airport road* / *#location <maps link>*\n` +
+            `• *#location sanatnagar 9876543210* (Send rate breakdown directly to customer)\n\n` +
             `🛵 *Mobile Order Dispatch (iPhone Control):*\n` +
             `• *#orders* (View all active undelivered orders right now)\n` +
             `• *#paid* (Confirm payment inside customer chat & auto-send official receipt)\n` +
@@ -4923,9 +5010,9 @@ async function startBot() {
             `• *#link 1940* (Direct flat amount of ₹1,940)\n` +
             `• *#3kg +200 9876543210* (With customer phone number)\n` +
             `• *#3kg +200 9876543210 Farooq Sb Lalbazar* (With phone & name/address)\n\n` +
-            `👥 *Contacts & Customer Tags:*\n` +
-            `• *#contacts* (Get latest Urban_Trout_Contacts.vcf sent right here to import)\n` +
-            `• *Send any .vcf document* (Send your updated Google Contacts file anytime to reload -UTA- delivery tags)\n\n` +
+            `👥 *Contacts & Nightly Scan:*\n` +
+            `• *#contacts* or *#scanchats* (Scan all chats for Name - Location & export .vcf)\n` +
+            `• Automated 8:00 PM nightly chat scan runs daily with the executive report\n\n` +
             `⏸️ *AI Agent Controls:*\n` +
             `• *#pause* (Pause AI globally, or for 60m in customer chat)\n` +
             `• *#pause 30* (Pause for custom minutes)\n` +
@@ -4934,6 +5021,76 @@ async function startBot() {
             `• *#restart* (Cleanly reboot cloud agent via PM2)\n` +
             `• *#report* (Generate & send 8:00 PM Daily Executive Briefing now)`
         });
+        return;
+      }
+
+      // Owner Command: #location / #loc / #zone - Instant distance, MOQ & <MOQ rate quote ready to share
+      if (/^#(?:location|loc|zone|checkloc)\b/i.test(lower)) {
+        const phoneMatch = text.match(/(?:\+?91[\s\-]?)?\b([6-9]\d{9})\b/);
+        const targetCustPhone = phoneMatch ? phoneMatch[1] : null;
+        const locQuery = text
+          .replace(/^#(?:location|loc|zone|checkloc)\b/i, "")
+          .replace(/(?:\+?91[\s\-]?)?\b[6-9]\d{9}\b/g, "")
+          .replace(/\s+/g, " ")
+          .trim();
+
+        if (!locQuery) {
+          await sock.sendMessage(remoteJid, {
+            text: `📍 *Location Rate Checker Usage:*\n\n• *#location sanatnagar*\n• *#loc bemina*\n• *#location airport road*\n• *#location Iqbal park near Shergari*\n• *#location <Google Maps link or lat,lng>*\n• *#location bemina 9876543210* _(sends directly to customer)_`
+          });
+          return;
+        }
+
+        let resolved = null;
+        try {
+          const coords = await getCoordinatesFromText(locQuery);
+          if (coords && coords.lat != null && coords.lng != null) {
+            const dist = parseFloat(calculateDistance(FARM_LAT, FARM_LNG, coords.lat, coords.lng).toFixed(1));
+            const labelFromText = locQuery.replace(/https?:\/\/\S+/gi, "").replace(/-?\d{1,2}\.\d+[,\s]+-?\d{1,3}\.\d+/g, "").trim();
+            const textDet = labelFromText ? detectSrinagarLocality(labelFromText) : null;
+            resolved = {
+              status: dist <= 16.0 ? "IN_ZONE" : "OUT_ZONE",
+              name: (textDet && textDet.name) || labelFromText || "Pinned Location",
+              dist
+            };
+          }
+        } catch (_) {}
+
+        if (!resolved) {
+          resolved = detectSrinagarLocality(locQuery);
+        }
+        if (!resolved) {
+          try {
+            resolved = await resolveUnknownLocalityWithApi(locQuery);
+          } catch (_) {}
+        }
+
+        if (!resolved) {
+          await sock.sendMessage(remoteJid, {
+            text: `⚠️ Could not resolve location *"${locQuery}"*.\n\nTry a Srinagar colony/landmark name (e.g. *#location sanatnagar*, *#location bemina*, *#location rajbagh*) or paste a Google Maps link!`
+          });
+          return;
+        }
+
+        const quoteText = buildLocationRateQuote({
+          name: resolved.name || locQuery,
+          dist: resolved.dist,
+          status: resolved.status
+        });
+
+        if (targetCustPhone) {
+          const destJid = `91${targetCustPhone}@s.whatsapp.net`;
+          await sock.sendMessage(destJid, { text: quoteText });
+          humanOverrides.set(destJid, Date.now() + 30 * 60 * 1000);
+          if (destJid !== remoteJid) {
+            await sock.sendMessage(remoteJid, {
+              text: `✅ *Location Rate Breakdown Sent to ${formatPhoneDisplay(targetCustPhone)}:*\n\n${quoteText}`
+            });
+          }
+        } else {
+          await sock.sendMessage(remoteJid, { text: quoteText });
+        }
+        console.log(`📍 [Owner #location] "${locQuery}" -> ${resolved.name} (~${resolved.dist ?? "?"} km, ${resolved.status})${targetCustPhone ? ` -> sent to ${targetCustPhone}` : ""}`);
         return;
       }
 
@@ -5435,13 +5592,13 @@ async function startBot() {
 
     const msgStartTime = Date.now();
     const raw10 = cleanPhone ? cleanPhone.slice(-10) : "";
-    const cleanPushName = extractCleanWhatsAppName(msg.pushName);
-    if (msg.pushName) {
+    const cleanPushName = !msg.key?.fromMe ? extractCleanWhatsAppName(msg.pushName) : null;
+    if (!msg.key?.fromMe && msg.pushName) {
       saveWhatsAppContact(remoteJid, msg.pushName);
     }
 
     const displayPhone = formatPhoneDisplay(cleanPhone);
-    const customerName = cleanPushName || resolveCustomerDisplayName(msg.pushName, null) || "Customer";
+    const customerName = cleanPushName || (!msg.key?.fromMe ? resolveCustomerDisplayName(msg.pushName, null) : null) || "Customer";
 
     // 3b. Customer Sentiment & Dissatisfaction Escalation Check
     if (!isSelfChat && !isOwner && text) {
@@ -5944,8 +6101,8 @@ async function startBot() {
         // Ignore group chats and status broadcasts
         if (remoteJid.endsWith("@g.us") || remoteJid.includes("broadcast")) continue;
 
-        // Persist sender's WhatsApp pushName immediately
-        if (msg.pushName) {
+        // Persist sender's WhatsApp pushName immediately (never overwrite with owner's self pushName)
+        if (!msg.key?.fromMe && msg.pushName) {
           saveWhatsAppContact(remoteJid, msg.pushName);
         }
 

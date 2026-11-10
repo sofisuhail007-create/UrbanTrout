@@ -50,6 +50,70 @@ export const getIncentiveRateForDate = (
   return INCENTIVE_RATE_PER_KG;
 };
 
+export interface EntrySellRateBreakdown {
+  baseRatePerKg: number;
+  deliveryCustShare: number;
+  deliveryRiderPayout: number;
+  deliveryNetDelta: number;
+  deliveryPerKgDelta: number;
+  workerIncentiveRatePerKg: number;
+  workerIncentiveTotal: number;
+  netRealizedTotal: number;
+  finalSellRatePerKg: number;
+}
+
+/** Computes net realized sell rate per kg starting from base rate, delivery cost, and worker gutting incentive. */
+export const computeEntrySellRateBreakdown = (params: {
+  weightKg: number;
+  ratePerKg: number;
+  amountPaid: number;
+  isGutted: boolean;
+  isSelfCleaned: boolean;
+  isDelivery: boolean;
+  custDelShare: number;
+  riderPayout: number;
+  entryDate?: string | null;
+  specialRules?: any;
+  isCreditSale?: boolean;
+  balanceAmount?: number;
+}): EntrySellRateBreakdown => {
+  const w = params.weightKg > 0 ? params.weightKg : 0;
+  const baseRatePerKg = Number(params.ratePerKg) || 0;
+  const deliveryCustShare = params.isDelivery ? (Number(params.custDelShare) || 0) : 0;
+  const deliveryRiderPayout = params.isDelivery ? (Number(params.riderPayout) || 0) : 0;
+  const deliveryNetDelta = params.isDelivery ? deliveryCustShare - deliveryRiderPayout : 0;
+  const deliveryPerKgDelta = params.isDelivery && w > 0 ? deliveryNetDelta / w : 0;
+
+  const workerIncentiveRatePerKg =
+    params.isGutted && !params.isSelfCleaned
+      ? getIncentiveRateForDate(params.entryDate, params.specialRules)
+      : 0;
+  const workerIncentiveTotal = w * workerIncentiveRatePerKg;
+
+  const expectedGrossWithDel = w * baseRatePerKg + deliveryCustShare;
+  const grossFishPlusDel = params.isCreditSale
+    ? (params.amountPaid > 0 ? params.amountPaid + (Number(params.balanceAmount) || 0) : expectedGrossWithDel)
+    : params.amountPaid;
+
+  const netRealizedTotal = Math.max(0, grossFishPlusDel - deliveryRiderPayout - workerIncentiveTotal);
+  const finalSellRatePerKg =
+    w > 0
+      ? netRealizedTotal / w
+      : Math.max(0, baseRatePerKg - workerIncentiveRatePerKg + deliveryPerKgDelta);
+
+  return {
+    baseRatePerKg,
+    deliveryCustShare,
+    deliveryRiderPayout,
+    deliveryNetDelta,
+    deliveryPerKgDelta,
+    workerIncentiveRatePerKg,
+    workerIncentiveTotal,
+    netRealizedTotal,
+    finalSellRatePerKg,
+  };
+};
+
 const EXPENSE_CATEGORIES = [
   "Polybags & Packaging",
   "Ice & Cooling",
@@ -1869,6 +1933,8 @@ export default function VendingCenterLoggerPage() {
     let totalCustomerDeliveryCollected = 0;
     let totalFarmDeliverySubsidy = 0;
     let totalDeliveryRiderPayout = 0;
+    let guttedDeliveryRiderPayout = 0;
+    let nonGuttedDeliveryRiderPayout = 0;
     let totalDeliveryBiomassKg = 0;
     let totalDeliveryRevenueCollected = 0;
     let totalDeliveryNetProfit = 0;
@@ -1895,6 +1961,10 @@ export default function VendingCenterLoggerPage() {
         const isGut =
           (e.product_type || "").toLowerCase().includes("gutted") &&
           !(e.product_type || "").toLowerCase().includes("non");
+        if (rev > 0) {
+          if (isGut) guttedDeliveryRiderPayout += payout;
+          else nonGuttedDeliveryRiderPayout += payout;
+        }
         const isSelf = Boolean(cf.self_cleaned || (e as any).self_cleaned);
         const sInfo = surplusInfoMap.get(e.id) || { regularKg: w, surplusKg: 0, isSurplus: false };
         const procCost = sInfo.regularKg * procurementAvgCost;
@@ -1940,11 +2010,15 @@ export default function VendingCenterLoggerPage() {
     const avgProfitPerKg = realizedKg > 0 ? Math.round(totalSoldProfit / realizedKg) : 0;
     const pureAvgProfitPerKg = realizedKg > 0 ? Math.round(pureSoldProfit / realizedKg) : 0;
     const avgSellRate = realizedKg > 0 ? Math.round(totalRevenue / realizedKg) : 0;
-    const pureAvgSellRate = realizedKg > 0 ? Math.round(pureFishRevenue / realizedKg) : 0;
+    // Final Net Realized Sell Rate (after delivery rider payouts AND Mohd Amin's gutting incentives)
+    const netFinalFishRevenue = Math.max(0, totalRevenue - totalDeliveryRiderPayout - periodWorkerLaborCost);
+    const netFinalGuttedRevenue = Math.max(0, guttedRevenue - guttedDeliveryRiderPayout - periodWorkerLaborCost);
+    const netFinalNonGuttedRevenue = Math.max(0, nonGuttedRevenue - nonGuttedDeliveryRiderPayout);
+    const pureAvgSellRate = realizedKg > 0 ? Math.round(netFinalFishRevenue / realizedKg) : 0;
     const guttedAvgRate = realizedGuttedKg > 0 ? Math.round(guttedRevenue / realizedGuttedKg) : 0;
     const nonGuttedAvgRate = realizedNonGuttedKg > 0 ? Math.round(nonGuttedRevenue / realizedNonGuttedKg) : 0;
-    const pureGuttedAvgRate = realizedGuttedKg > 0 ? Math.round(pureGuttedRevenue / realizedGuttedKg) : 0;
-    const pureNonGuttedAvgRate = realizedNonGuttedKg > 0 ? Math.round(pureNonGuttedRevenue / realizedNonGuttedKg) : 0;
+    const pureGuttedAvgRate = realizedGuttedKg > 0 ? Math.round(netFinalGuttedRevenue / realizedGuttedKg) : 0;
+    const pureNonGuttedAvgRate = realizedNonGuttedKg > 0 ? Math.round(netFinalNonGuttedRevenue / realizedNonGuttedKg) : 0;
     const netDeliveryContribution = totalCustomerDeliveryCollected - totalDeliveryRiderPayout;
     const totalDeliveryGain = Math.max(0, totalCustomerDeliveryCollected - totalDeliveryRiderPayout);
 
@@ -2956,8 +3030,21 @@ export default function VendingCenterLoggerPage() {
     }
 
     const riderCost = formOrderChannel === "delivery" ? (parseFloat(formDeliveryRiderPayout) || (parseFloat(formDeliveryCostTotal) || 0)) : 0;
-    const netFishPaid = formOrderChannel === "delivery" ? Math.max(0, amt - riderCost) : amt;
-    const calculatedEffectiveRate = w > 0 ? (netFishPaid > 0 ? Math.round((netFishPaid / w) * 10) / 10 : formRate) : formRate;
+    const submitRateBreakdown = computeEntrySellRateBreakdown({
+      weightKg: w,
+      ratePerKg: formRate,
+      amountPaid: amt,
+      isGutted: formType === "Gutted",
+      isSelfCleaned: formType === "Gutted" ? formSelfCleaned : true,
+      isDelivery: formOrderChannel === "delivery",
+      custDelShare,
+      riderPayout: riderCost,
+      entryDate: formDate,
+      specialRules,
+      isCreditSale: balanceStatus === "pending",
+      balanceAmount,
+    });
+    const calculatedEffectiveRate = Math.round(submitRateBreakdown.finalSellRatePerKg * 10) / 10;
 
     // Payment Mode & Split Payment breakdown
     let resolvedPaymentMode = formPayment;
@@ -4001,8 +4088,28 @@ export default function VendingCenterLoggerPage() {
       const isDel = Boolean(e.custom_fields?.is_delivery || e.custom_fields?.order_channel === "delivery");
       const custDel = isDel ? (Number(e.custom_fields?.delivery_customer_share) || 0) : 0;
       const riderPaid = isDel ? (Number(e.custom_fields?.delivery_rider_payout) || Number(e.custom_fields?.delivery_cost_total) || 0) : 0;
-      const netFish = isDel ? Math.max(0, taken - riderPaid) : taken;
-      const effRate = w > 0 && netFish > 0 ? Math.round((netFish / w) * 10) / 10 : Number(e.rate_per_kg);
+      const isGut = (e.product_type || "").toLowerCase().includes("gutted") && !(e.product_type || "").toLowerCase().includes("non");
+      const isSelf = Boolean(e.custom_fields?.self_cleaned || (e as any).self_cleaned);
+      const isCredit =
+        (e.custom_fields?.balance_status === "pending" && Number(e.custom_fields?.balance_amount) > 0) ||
+        (e.payment_mode || "").toLowerCase().includes("credit") ||
+        (e.payment_mode || "").toLowerCase().includes("khata") ||
+        (taken === 0 && e.custom_fields?.balance_status !== "waived_final");
+      const csvBreakdown = computeEntrySellRateBreakdown({
+        weightKg: w,
+        ratePerKg: Number(e.rate_per_kg) || 0,
+        amountPaid: taken,
+        isGutted: isGut,
+        isSelfCleaned: isSelf,
+        isDelivery: isDel,
+        custDelShare: custDel,
+        riderPayout: riderPaid,
+        entryDate: e.entry_date,
+        specialRules,
+        isCreditSale: isCredit,
+        balanceAmount: Number(e.custom_fields?.balance_amount) || 0,
+      });
+      const effRate = Math.round(csvBreakdown.finalSellRatePerKg * 10) / 10;
       const loss =
         e.discount_amount !== undefined && e.discount_amount !== null
           ? Number(e.discount_amount)
@@ -4175,7 +4282,29 @@ export default function VendingCenterLoggerPage() {
         const surplusKg = sInfo?.surplusKg || 0;
         const regularKg = sInfo ? sInfo.regularKg : Number(e.weight_kg);
         const procCostDeducted = Math.round(regularKg * procurementAvgCost);
-        const netProfitRs = Math.round(taken - workerIncentiveRs - procCostDeducted);
+        const isDel = Boolean(e.custom_fields?.is_delivery || e.custom_fields?.order_channel === "delivery");
+        const custDel = isDel ? (Number(e.custom_fields?.delivery_customer_share) || 0) : 0;
+        const riderPaid = isDel ? (Number(e.custom_fields?.delivery_rider_payout) || Number(e.custom_fields?.delivery_cost_total) || 0) : 0;
+        const isCredit =
+          (e.custom_fields?.balance_status === "pending" && Number(e.custom_fields?.balance_amount) > 0) ||
+          (e.payment_mode || "").toLowerCase().includes("credit") ||
+          (e.payment_mode || "").toLowerCase().includes("khata") ||
+          (taken === 0 && e.custom_fields?.balance_status !== "waived_final");
+        const excelBreakdown = computeEntrySellRateBreakdown({
+          weightKg: Number(e.weight_kg) || 0,
+          ratePerKg: Number(e.rate_per_kg) || 0,
+          amountPaid: taken,
+          isGutted: isGut,
+          isSelfCleaned: isSelf,
+          isDelivery: isDel,
+          custDelShare: custDel,
+          riderPayout: riderPaid,
+          entryDate: e.entry_date,
+          specialRules,
+          isCreditSale: isCredit,
+          balanceAmount: Number(e.custom_fields?.balance_amount) || 0,
+        });
+        const netProfitRs = Math.round(taken - riderPaid - workerIncentiveRs - procCostDeducted);
 
         const row: Record<string, any> = {
           "#": idx + 1,
@@ -4192,7 +4321,7 @@ export default function VendingCenterLoggerPage() {
           "Amount Received (Rs)": taken,
           "Procurement Cost Deducted (Rs)": procCostDeducted,
           "Net Profit on Sale (Rs)": netProfitRs,
-          "Effective Rate (Rs/Kg)": Number((Number(e.weight_kg) > 0 && taken > 0 ? taken / Number(e.weight_kg) : Number(e.rate_per_kg)).toFixed(1)),
+          "Effective Rate (Rs/Kg)": Number(excelBreakdown.finalSellRatePerKg.toFixed(1)),
           "Negotiation Loss (Rs)": loss,
           "Extra / Tip (Rs)": Number(e.custom_fields?.extra_amount) || 0,
           "Payment Mode": e.payment_mode,
@@ -5712,7 +5841,7 @@ export default function VendingCenterLoggerPage() {
                     </span>
                   </div>
                   <div className="text-[10.5px] text-slate-500 truncate">
-                    Revenue ÷ Realized Sold Kg
+                    After Deliv &amp; Mohd Amin Inc ÷ Kg
                   </div>
                 </div>
               </div>
@@ -7407,13 +7536,26 @@ export default function VendingCenterLoggerPage() {
                   const riderPayout = isDelivery ? (Number(e.custom_fields?.delivery_rider_payout) || Number(e.custom_fields?.delivery_cost_total) || 0) : 0;
                   const farmDelSubsidy = isDelivery ? Math.max(0, riderPayout - custDelShare) : 0;
                   const fishAmountPaid = isDelivery ? Math.max(0, taken - custDelShare) : taken;
-                  // Net fish money realized in-hand by farm after paying delivery out-of-pocket
-                  const netFishRealized = isDelivery ? Math.max(0, taken - riderPayout) : taken;
+                  const rowRateBreakdown = computeEntrySellRateBreakdown({
+                    weightKg: w,
+                    ratePerKg: rate,
+                    amountPaid: taken,
+                    isGutted,
+                    isSelfCleaned,
+                    isDelivery,
+                    custDelShare,
+                    riderPayout,
+                    entryDate: e.entry_date,
+                    specialRules,
+                    isCreditSale,
+                    balanceAmount: Number(e.custom_fields?.balance_amount) || 0,
+                  });
+                  const netFishRealized = rowRateBreakdown.netRealizedTotal;
                   const extraVal = isDelivery
                     ? Math.max(0, taken - (exp + custDelShare))
                     : (Number(e.custom_fields?.extra_amount) || (!isCreditSale && taken > exp && exp > 0 ? taken - exp : 0));
-                  // Effective in-hand trout rate realized per kg by farm (deducts farm-subsidized delivery)
-                  const effRate = isCreditSale ? rate : (w > 0 && netFishRealized > 0 ? netFishRealized / w : rate);
+                  // Exclusive final trout rate realized per kg (Base Rate -> Delivery Cost if any -> Mohd Amin Gutting Incentive if gutted)
+                  const effRate = rowRateBreakdown.finalSellRatePerKg;
                   const standardBenchmarkRate = isGutted ? (guttedPrice || DEFAULT_GUTTED_PRICE) : rate;
                   const rateDiff = standardBenchmarkRate - effRate;
 
@@ -7521,7 +7663,12 @@ export default function VendingCenterLoggerPage() {
                                 </>
                               )}
                               <span className="text-slate-500">•</span>
-                              <span className="text-cyan-300 font-bold" title={`Net in-hand trout rate after farm delivery subsidy (-₹${farmDelSubsidy})`}>Trout: ₹{effRate.toFixed(0)}/Kg</span>
+                              <span
+                                className="text-cyan-300 font-bold"
+                                title={`Final Sell Rate = Base ₹${rate}/Kg${rowRateBreakdown.deliveryNetDelta !== 0 ? ` ${rowRateBreakdown.deliveryNetDelta < 0 ? "-" : "+"} ₹${Math.abs(rowRateBreakdown.deliveryPerKgDelta).toFixed(1)}/Kg Delivery` : ""}${rowRateBreakdown.workerIncentiveRatePerKg > 0 ? ` − ₹${rowRateBreakdown.workerIncentiveRatePerKg}/Kg Mohd Amin Inc` : ""}`}
+                              >
+                                Final: ₹{effRate.toFixed(1)}/Kg
+                              </span>
                               {e.custom_fields?.delivery_rider_notes && (
                                 <span className="text-slate-400 italic">({e.custom_fields?.delivery_rider_notes})</span>
                               )}
@@ -7558,20 +7705,43 @@ export default function VendingCenterLoggerPage() {
                       </td>
 
                       {/* 4. Weight / Rate */}
-                      <td className={`${cellPad} text-right whitespace-nowrap align-middle font-mono w-24`}>
+                      <td className={`${cellPad} text-right whitespace-nowrap align-middle font-mono w-28`}>
                         <div className="flex flex-col items-end gap-0.5 leading-tight">
                           <div>
                             <span className="text-emerald-400 font-bold font-mono text-xs tracking-tight tabular-nums">{formatKg(e.weight_kg)}</span>
                             <span className="text-emerald-400/80 text-[10px] ml-1 font-sans font-medium">Kg</span>
                           </div>
                           <span className="text-slate-400 text-[10px] font-sans">
-                            @ ₹{e.rate_per_kg}/Kg
+                            Base ₹{e.rate_per_kg}/Kg
                           </span>
-                          {isDelivery && Math.abs(effRate - rate) > 0.5 && (
-                            <span className="text-[9px] font-mono text-cyan-300 font-bold" title={`Net in-hand trout rate after farm delivery subsidy (-₹${farmDelSubsidy}): ₹${netFishRealized.toLocaleString("en-IN")} / ${w} Kg`}>
-                              Net: ₹{effRate.toFixed(0)}/Kg
+                          {(isDelivery || rowRateBreakdown.workerIncentiveTotal > 0 || Math.abs(effRate - rate) > 0.1) && (
+                            <span
+                              className={`text-[9.5px] font-mono font-bold ${
+                                effRate < rate - 0.5
+                                  ? "text-amber-300"
+                                  : effRate > rate + 0.5
+                                  ? "text-cyan-300"
+                                  : "text-emerald-300"
+                              }`}
+                              title={`Base ₹${rate}/Kg${isDelivery && rowRateBreakdown.deliveryRiderPayout > 0 ? ` | Del ${rowRateBreakdown.deliveryNetDelta < 0 ? "-" : "+"}₹${Math.abs(rowRateBreakdown.deliveryPerKgDelta).toFixed(1)}/Kg` : ""}${rowRateBreakdown.workerIncentiveRatePerKg > 0 ? ` | Amin -₹${rowRateBreakdown.workerIncentiveRatePerKg}/Kg` : ""}`}
+                            >
+                              Final: ₹{effRate % 1 === 0 ? effRate.toFixed(0) : effRate.toFixed(1)}/Kg
                             </span>
                           )}
+                          {(isDelivery && rowRateBreakdown.deliveryNetDelta !== 0) || rowRateBreakdown.workerIncentiveRatePerKg > 0 ? (
+                            <span className="text-[8.5px] font-mono text-slate-400">
+                              {[
+                                isDelivery && rowRateBreakdown.deliveryNetDelta !== 0
+                                  ? `Del ${rowRateBreakdown.deliveryNetDelta < 0 ? "-" : "+"}₹${Math.abs(rowRateBreakdown.deliveryPerKgDelta).toFixed(1)}`
+                                  : null,
+                                rowRateBreakdown.workerIncentiveRatePerKg > 0
+                                  ? `Amin -₹${rowRateBreakdown.workerIncentiveRatePerKg}`
+                                  : null,
+                              ]
+                                .filter(Boolean)
+                                .join(" · ")}
+                            </span>
+                          ) : null}
                         </div>
                       </td>
 
@@ -7990,10 +8160,21 @@ export default function VendingCenterLoggerPage() {
                     const isDelivery = Boolean(e.custom_fields?.is_delivery || e.custom_fields?.order_channel === "delivery");
                     const custDelShare = isDelivery ? (Number(e.custom_fields?.delivery_customer_share) || 0) : 0;
                     const riderPayout = isDelivery ? (Number(e.custom_fields?.delivery_rider_payout) || Number(e.custom_fields?.delivery_cost_total) || 0) : 0;
-                    const farmDelSubsidy = isDelivery ? Math.max(0, riderPayout - custDelShare) : 0;
-                    const fishAmountPaid = isDelivery ? Math.max(0, taken - custDelShare) : taken;
-                    const netFishRealized = isDelivery ? Math.max(0, taken - riderPayout) : taken;
-                    const effRate = isCreditSale ? rate : (w > 0 && netFishRealized > 0 ? netFishRealized / w : rate);
+                    const mobRateBreakdown = computeEntrySellRateBreakdown({
+                      weightKg: w,
+                      ratePerKg: rate,
+                      amountPaid: taken,
+                      isGutted,
+                      isSelfCleaned,
+                      isDelivery,
+                      custDelShare,
+                      riderPayout,
+                      entryDate: e.entry_date,
+                      specialRules,
+                      isCreditSale,
+                      balanceAmount: Number(e.custom_fields?.balance_amount) || 0,
+                    });
+                    const effRate = mobRateBreakdown.finalSellRatePerKg;
                     const standardBenchmarkRate = isGutted ? (guttedPrice || DEFAULT_GUTTED_PRICE) : rate;
                     const rateDiff = standardBenchmarkRate - effRate;
                     const isLoss = !isCreditSale && rateDiff > 0.5;
@@ -8004,11 +8185,12 @@ export default function VendingCenterLoggerPage() {
 
                     return (
                       <>
-                        <div className="flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-black/80 border border-[#222222]/90 text-[10.5px] font-mono mt-1.5">
-                          <span className="text-slate-400 flex items-center gap-1">
-                            <span className="material-symbols-outlined text-[12px] text-teal-400">price_change</span>
-                            {isDelivery ? "Net Realized Rate:" : "Eff. Rate:"}
-                          </span>
+                        <div className="flex flex-col gap-1 px-2.5 py-1.5 rounded-xl bg-black/80 border border-[#222222]/90 text-[10.5px] font-mono mt-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-400 flex items-center gap-1">
+                              <span className="material-symbols-outlined text-[12px] text-teal-400">price_change</span>
+                              Final Sell Rate:
+                            </span>
                           <div className="flex items-center gap-1.5">
                             <span
                               className={`font-black ${
@@ -8020,10 +8202,6 @@ export default function VendingCenterLoggerPage() {
                             {isCreditSale ? (
                               <span className="text-[9.5px] text-purple-400 font-medium">
                                 (Credit)
-                              </span>
-                            ) : isDelivery ? (
-                              <span className="text-[9px] px-1.5 py-0.2 rounded bg-blue-500/20 text-blue-300 font-bold border border-blue-500/30">
-                                Deliv Excl.
                               </span>
                             ) : isLoss ? (
                               <span className="text-[9.5px] text-rose-400 font-medium">
@@ -8037,6 +8215,24 @@ export default function VendingCenterLoggerPage() {
                               <span className="text-[9px] text-slate-500">
                                 (Std)
                               </span>
+                            )}
+                          </div>
+                          </div>
+                          <div className="text-[9px] text-slate-400 flex items-center gap-1.5 flex-wrap border-t border-[#1e1e1e] pt-1">
+                            <span>Base ₹{rate}/Kg</span>
+                            {isDelivery && mobRateBreakdown.deliveryRiderPayout > 0 && (
+                              <>
+                                <span className="text-slate-600">→</span>
+                                <span className={mobRateBreakdown.deliveryNetDelta < 0 ? "text-rose-300" : "text-emerald-300"}>
+                                  Del {mobRateBreakdown.deliveryNetDelta < 0 ? "-" : "+"}₹{Math.abs(mobRateBreakdown.deliveryPerKgDelta).toFixed(1)}/Kg
+                                </span>
+                              </>
+                            )}
+                            {mobRateBreakdown.workerIncentiveRatePerKg > 0 && (
+                              <>
+                                <span className="text-slate-600">→</span>
+                                <span className="text-amber-300">Amin -₹{mobRateBreakdown.workerIncentiveRatePerKg}/Kg</span>
+                              </>
                             )}
                           </div>
                         </div>
@@ -8874,12 +9070,27 @@ export default function VendingCenterLoggerPage() {
                 const expectedTotal = fishExpectedTotal + custDelShare;
                 const standardExpectedTotal = fishStandardExpectedTotal + custDelShare;
                 const actualPaid = parseFloat(formAmount) || 0;
-                const netFishPaid = isDel ? Math.max(0, actualPaid - riderCost) : actualPaid;
+                const modalIsGutted = formType === "Gutted";
+                const modalRateBreakdown = computeEntrySellRateBreakdown({
+                  weightKg: wNum,
+                  ratePerKg: formRate,
+                  amountPaid: actualPaid,
+                  isGutted: modalIsGutted,
+                  isSelfCleaned: modalIsGutted ? formSelfCleaned : true,
+                  isDelivery: isDel,
+                  custDelShare,
+                  riderPayout: riderCost,
+                  entryDate: formDate,
+                  specialRules,
+                  isCreditSale: formPayment === "Credit (Khata)" || (formBalanceAction === "balance" && Math.max(0, expectedTotal - actualPaid) > 0),
+                  balanceAmount: formBalanceAction === "balance" ? Math.max(0, expectedTotal - actualPaid) : 0,
+                });
+                const netFishPaid = modalRateBreakdown.netRealizedTotal;
                 const rateConcession = Math.max(0, fishStandardExpectedTotal - fishExpectedTotal);
                 const customerRemainingDue = Math.max(0, expectedTotal - actualPaid);
                 const loss = wNum > 0 ? expectedTotal - actualPaid : 0;
                 const benchmarkLoss = wNum > 0 ? standardExpectedTotal - actualPaid : 0;
-                const effectiveRate = wNum > 0 && netFishPaid > 0 ? (netFishPaid / wNum) : formRate;
+                const effectiveRate = modalRateBreakdown.finalSellRatePerKg;
                 const rateLossPerKg = defaultStandardRate - effectiveRate;
                 const displayLoss = customerRemainingDue;
                 const deliveryFarmSubsidy = isDel ? Math.max(0, riderCost - custDelShare) : 0;
@@ -9042,18 +9253,18 @@ export default function VendingCenterLoggerPage() {
                             <span className="text-amber-300 font-black text-xs">-₹{riderCost}</span>
                           </div>
                           <div className="p-1.5 rounded-lg bg-[#0a0a0a] border border-[#222222]">
-                            <span className="text-[9px] text-slate-400 block">Net Fish In-Hand</span>
-                            <span className="text-cyan-300 font-black text-xs">₹{netFishPaid}</span>
+                            <span className="text-[9px] text-slate-400 block">Net Realized{modalRateBreakdown.workerIncentiveTotal > 0 ? " (-Inc)" : ""}</span>
+                            <span className="text-cyan-300 font-black text-xs">₹{Math.round(netFishPaid)}</span>
                           </div>
                         </div>
                         <div className="text-[9.5px] text-slate-400 leading-normal">
                           {deliveryFarmSubsidy > 0 ? (
                             <span className="text-rose-300/90 font-medium">
-                              ⚠️ We are losing ₹{deliveryFarmSubsidy} on rider payout for this delivery. Realized fish rate drops to ₹{effectiveRate.toFixed(1)}/Kg.
+                              ⚠️ Delivery subsidy -₹{deliveryFarmSubsidy}{modalRateBreakdown.workerIncentiveTotal > 0 ? ` & Mohd Amin incentive -₹${Math.round(modalRateBreakdown.workerIncentiveTotal)}` : ""}. Final sell rate drops to ₹{effectiveRate.toFixed(1)}/Kg.
                             </span>
                           ) : (
                             <span className="text-emerald-300/90 font-medium">
-                              ✓ Customer delivery share covers rider fare. Full fish value realized.
+                              ✓ Customer delivery share covers rider fare{modalRateBreakdown.workerIncentiveTotal > 0 ? ` (Final rate ₹${effectiveRate.toFixed(1)}/Kg after ₹${Math.round(modalRateBreakdown.workerIncentiveTotal)} Mohd Amin inc)` : ". Full fish value realized"}.
                             </span>
                           )}
                         </div>
@@ -9124,7 +9335,7 @@ export default function VendingCenterLoggerPage() {
                         <div className="grid grid-cols-2 gap-2">
                           <div className="p-2.5 rounded-xl bg-black/90 border border-[#222222]">
                             <span className="text-[9.5px] uppercase font-bold text-slate-400 block font-mono">
-                              Effective Rate / Kg
+                              Final Sell Rate / Kg
                             </span>
                             <div className="flex items-baseline gap-1 mt-0.5">
                               <span
@@ -9140,6 +9351,15 @@ export default function VendingCenterLoggerPage() {
                               </span>
                               <span className="text-[10px] font-sans text-slate-400">/ Kg</span>
                             </div>
+                            <span className="text-[9px] text-slate-400 block mt-0.5 leading-snug">
+                              Base ₹{formRate}
+                              {isDel && riderCost > 0
+                                ? ` ${modalRateBreakdown.deliveryNetDelta < 0 ? "−" : "+"} Del ₹${Math.abs(modalRateBreakdown.deliveryPerKgDelta).toFixed(1)}`
+                                : ""}
+                              {modalRateBreakdown.workerIncentiveRatePerKg > 0
+                                ? ` − Amin ₹${modalRateBreakdown.workerIncentiveRatePerKg}`
+                                : ""}
+                            </span>
                             {rateLossPerKg > 0.5 ? (
                               <span className="text-[9px] text-rose-400 font-medium block mt-0.5">
                                 -₹{rateLossPerKg.toFixed(1)}/Kg vs ₹{defaultStandardRate} std
