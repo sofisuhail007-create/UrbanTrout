@@ -3075,7 +3075,7 @@ However, we are actively taking advance bookings for tomorrow, Saturday!
 • Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero prep)
 • Whole Fresh: *₹540/kg*
 
-🛵 *Express delivery is 100% FREE* on eligible orders (2 kg for 0–4 km, 3 kg for 4–11.5 km, 5 kg for 11.5–16 km & South Srinagar; standard delivery fee on smaller orders)!
+🛵 *Express delivery is 100% FREE* on eligible orders (min 2 kg for nearby areas, 3–5 kg for wider Srinagar areas; standard express delivery fee on smaller orders)!
 
 Would you like us to schedule a fresh live-harvest delivery for you tomorrow (Saturday)?`;
 
@@ -3100,7 +3100,7 @@ We would be delighted to schedule your fresh live-harvest delivery for:
 • 🕛 *Afternoon:* 12:00 PM – 3:00 PM
 • 🕔 *Evening:* 4:00 PM – 7:00 PM
 
-🛵 *Express delivery is 100% FREE* on eligible orders (2 kg for 0–4 km, 3 kg for 4–11.5 km, 5 kg for 11.5–16 km & South Srinagar; standard delivery fee on smaller orders)!
+🛵 *Express delivery is 100% FREE* on eligible orders (min 2 kg for nearby areas, 3–5 kg for wider Srinagar areas; standard express delivery fee on smaller orders)!
 
 Would you prefer fresh delivery today (Thursday) within 2 hours, or an advance booking for Saturday?`;
 
@@ -3140,7 +3140,7 @@ We start taking fresh live-harvest orders from 8:00 AM every Saturday morning! W
 • 🕛 *Afternoon Slot:* 12:00 PM – 3:00 PM
 • 🕔 *Evening Slot:* 4:00 PM – 7:00 PM
 
-🛵 *Express delivery is 100% FREE* on eligible orders (2 kg for 0–4 km, 3 kg for 4–11.5 km, 5 kg for 11.5–16 km & South Srinagar; standard delivery fee on smaller orders)!
+🛵 *Express delivery is 100% FREE* on eligible orders (min 2 kg for nearby areas, 3–5 kg for wider Srinagar areas; standard express delivery fee on smaller orders)!
 
 Which slot on Saturday works best for your delivery, and how many Kgs of Cleaned & Gutted trout (₹580/kg, pan-ready) shall I book for you?`
         : `Our deliveries for tonight closed at 8:00 PM. We start taking fresh live-harvest orders from 8:00 AM every morning!
@@ -3150,7 +3150,7 @@ We would be delighted to schedule your fresh live-harvest delivery for tomorrow:
 • 🕛 *Afternoon Slot:* 12:00 PM – 3:00 PM
 • 🕔 *Evening Slot:* 4:00 PM – 7:00 PM
 
-🛵 *Express delivery is 100% FREE* on eligible orders (2 kg for 0–4 km, 3 kg for 4–11.5 km, 5 kg for 11.5–16 km & South Srinagar; standard delivery fee on smaller orders)!
+🛵 *Express delivery is 100% FREE* on eligible orders (min 2 kg for nearby areas, 3–5 kg for wider Srinagar areas; standard express delivery fee on smaller orders)!
 
 Which slot tomorrow works best for your delivery, and how many Kgs of Cleaned & Gutted trout (₹580/kg, pan-ready) shall I book for you?`;
     }
@@ -3182,7 +3182,7 @@ We would be delighted to schedule your fresh live-harvest delivery for this morn
 • 🕔 *Evening Slot:* 4:00 PM – 7:00 PM
 
 • Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — descaled, zero kitchen mess, straight to pan)
-🛵 *Express delivery is 100% FREE* on eligible orders (2 kg for 0–4 km, 3 kg for 4–11.5 km, 5 kg for 11.5–16 km & South Srinagar; standard delivery fee on smaller orders)!
+🛵 *Express delivery is 100% FREE* on eligible orders (min 2 kg for nearby areas, 3–5 kg for wider Srinagar areas; standard express delivery fee on smaller orders)!
 
 Which slot today works best for you, and how many Kgs would you like for your family? 🐟`;
     }
@@ -3505,6 +3505,7 @@ However, all of our farm-raised trout is sold fresh at our Live Vending Center i
 6. PIN-POINT SHARED LOCATION DELIVERY PROTOCOL, BIO-DEGRADABLE PACKAGING & CONFIDENTIALITY RULES (STRICT MANDATE):
    - NEVER use the terms "doorstep delivery", "to your door", "house number search", "cold-chain", "cold chain", "chilled delivery", "delivered chilled", "chilled package", "Rapido", "third-party delivery", "subsidized", "subsidised", "subsidy", "70%", or "30%"!
    - Always refer to delivery logistics as our *Urban Trout Express Dispatch Partner* and fees simply as *express delivery fee*.
+   - If a customer asks who delivers or whether you use Rapido or third-party riders: NEVER name external courier apps, internal cost splits, zone numbers, or margins, AND NEVER falsely claim "we do not use third-party delivery". Instead reply warmly: "All express deliveries across Srinagar are coordinated via our Express Dispatch Partner directly to your shared GPS location pin, packed fresh in 100% food-grade biodegradable polythene (0% ice)."
    - Packaging fact (if asked or confirming delivery): Fish is packed fresh immediately after live harvest in *100% food-grade biodegradable polythene (two polythenes) with 0% ice* (we do NOT use cold-chain delivery or ice).
    - RULE 1 (KNOWN SRINAGAR LOCALITIES):
      * Instantly confirm express delivery, quote the free delivery MOQ / pricing, and ask them to share a *Google Maps link or WhatsApp location pin* (never house numbers) so our Express Dispatch Partner can navigate directly.
@@ -3552,7 +3553,7 @@ We look forward to welcoming you to our Live Vending Center in Malabagh (Near R.
      "Here are our fresh live-harvested trout rates:
 
 • Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — descaled, zero kitchen prep)
-🛵 *Express delivery is 100% FREE* on eligible orders (2 kg for 0–4 km, 3 kg for 4–11.5 km, 5 kg for 11.5–16 km & South Srinagar; standard delivery fee on smaller orders)!
+🛵 *Express delivery is 100% FREE* on eligible orders (min 2 kg for nearby areas, 3–5 kg for wider Srinagar areas; standard express delivery fee on smaller orders)!
 
 Which area in Srinagar would you like delivery to, or please drop your WhatsApp location pin / Google Maps link?"
 12. DISCOUNT & BARGAINING INQUIRIES ("kam karo", "discount please", "500 me do", "any concession?"):
@@ -4102,7 +4103,8 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
           .replace(/\b(?:subsidized|subsidised)\s+(?:express\s+)?(?:courier|delivery)\s+(?:fee|charge|rates?)/gi, "express delivery fee")
           .replace(/\b(?:subsidized|subsidised)\s+(?:express\s+)?(?:courier|delivery)/gi, "express delivery")
           .replace(/\b(?:subsidized|subsidised|subsidy)\b/gi, "standard")
-          .replace(/\b(?:rapido|third[- ]party\s*(?:courier|delivery|rider|bike)?)\b/gi, "Express Dispatch Partner")
+          .replace(/(?:no,\s*)?(?:we\s+(?:do\s+not|don['’]?t|never)\s+(?:use|work\s+with|partner\s+with|rely\s+on)|not\s+using)\s+(?:rapido|third[- ]?party(?:\s*(?:apps?|couriers?|deliver(?:y|ies)|riders?|bikes?|partners?|services?))?)(?:\s*(?:or|and|,)\s*(?:rapido|third[- ]?party(?:\s*(?:apps?|couriers?|deliver(?:y|ies)|riders?|bikes?|partners?|services?))?))*[^.!?\n]*[.!?]?/gi, "All express deliveries across Srinagar are coordinated through our Express Dispatch Partner.")
+          .replace(/\b(?:rapido|third[- ]party\s*(?:apps?|couriers?|deliver(?:y|ies)|riders?|bikes?|partners?|services?)?)\b/gi, "Express Dispatch Partner")
           .replace(/\b(?:urban\s+trout\s+)?cold[-\s]?chain\s+dispatch\s+partner\b/gi, "Express Dispatch Partner")
           .replace(/\bcold[-\s]?chain\s+(?:dispatch\s+)?executive\b/gi, "express dispatch executive")
           .replace(/\b(?:cold[-\s]?chain\s+)?chilled\s+(vans?|trucks?|vehicles?|boxes?)\b/gi, "refrigerated $1")
@@ -4733,7 +4735,7 @@ async function startBot() {
           if (mPayable) { amt = parseFloat(mPayable[1]); break; }
           const mTotal = t.match(/₹\s*(\d{3,5})\s*total\b/i);
           if (mTotal) { amt = parseFloat(mTotal[1]); break; }
-          const mFixed = t.match(/₹\s*(1[1-9]\d{2}|2\d{3}|6\d{2}|7\d{2})\b/);
+          const mFixed = t.match(/₹\s*(1[1-9]\d{2}|2\d{3}|6\d{2}|7\d{2}|8\d{2})\b(?!\s*\/\s*kg)/i);
           if (mFixed) { amt = parseFloat(mFixed[1]); break; }
         }
       }
@@ -4796,7 +4798,7 @@ async function startBot() {
         `• *Amount:* *₹${amt}* (Pre-filled & Locked)\n` +
         `• *Ref:* #${orderRef}\n\n` +
         `👉 *Scan & Pay with any UPI app:* PhonePe, Google Pay, Paytm, or J&K Bank mPay.\n` +
-        `Live harvest begins immediately upon payment confirmation! 🚀`;
+        `_Packed fresh in 100% food-grade biodegradable polythene (0% ice). Delivered strictly to shared GPS pin (in-person receipt; if a delivery attempt fails, customer must collect manually from our Live Vending Center in Malabagh)._ 🚀`;
 
       const qrMsg = await sock.sendMessage(remoteJid, {
         image: qrBuffer,
@@ -4829,7 +4831,7 @@ async function startBot() {
         items: itemsDesc,
         amount: `₹${amt}`,
         status: targetOrder?.status?.includes("Paid") ? targetOrder.status : "Payment Link & QR Sent",
-        payUrl,
+        payUrl: targetOrder?.payUrl || null,
         razorpayQrId: rzpQrId,
         razorpayQrUrl: rzpQrUrl,
         updatedAt: new Date().toISOString()
