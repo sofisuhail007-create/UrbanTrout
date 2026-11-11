@@ -1653,7 +1653,7 @@ export default function CheckoutPage() {
                   <p className="text-[11px] text-slate-400 leading-relaxed">
                     Shared GPS pin coordinates ({orderSuccess.detectedCoords?.lat?.toFixed(5)}°, {orderSuccess.detectedCoords?.lng?.toFixed(5)}°)
                     {orderSuccess.calculatedDistance ? ` • ~${orderSuccess.calculatedDistance.toFixed(1)} km from Urban Trout Aquaculture Farm, Malabagh` : ""}
-                    {" "}have been securely locked for our Cold-Chain Dispatch Partner (deliveries are strictly to the shared pin in person; please keep your phone reachable).
+                    {" "}have been securely locked for our Express Dispatch Partner (packed in food-grade biodegradable polythene, 0% ice; delivered strictly to the shared pin in person — please keep your phone reachable, and if a delivery attempt fails, customer must collect the package manually from our Live Vending Center in Malabagh).
                   </p>
                 </div>
               )}
@@ -2042,7 +2042,7 @@ export default function CheckoutPage() {
 
                   <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-cyan-950/50 border border-cyan-800/50 text-[11px] text-cyan-300 font-mono">
                     <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-                    Pin-Point Cold-Chain Express
+                    Pin-Point Express Delivery
                   </div>
                 </div>
 
@@ -2568,7 +2568,7 @@ export default function CheckoutPage() {
                       </span>
                     </div>
                     <p className="text-xs text-slate-300 leading-relaxed" style={{ fontFamily: '"Manrope", sans-serif' }}>
-                      We use your location <strong>solely to calculate delivery distance</strong> from Urban Trout Aquaculture Farm in Malabagh and guide our Cold-Chain Dispatch Partner strictly to your shared GPS location pin (in-person receipt; no house-number searching).
+                      We use your location <strong>solely to calculate delivery distance</strong> from Urban Trout Aquaculture Farm in Malabagh and guide our Express Dispatch Partner strictly to your shared GPS location pin (packed fresh in food-grade biodegradable polythene with 0% ice; in-person receipt; no house-number searching).
                     </p>
                   </div>
                 </div>
@@ -2696,7 +2696,7 @@ export default function CheckoutPage() {
                             Auto-Detect Your Delivery Location
                           </h3>
                           <p className="text-xs text-slate-400 max-w-sm mx-auto leading-relaxed">
-                            Tap below to verify delivery eligibility via your device GPS and lock your exact shared location pin for our Cold-Chain Dispatch Partner.
+                            Tap below to verify delivery eligibility via your device GPS and lock your exact shared location pin for our Express Dispatch Partner.
                           </p>
                         </div>
                       )}
@@ -2882,7 +2882,7 @@ export default function CheckoutPage() {
                             <div className="flex items-center gap-2 text-emerald-300">
                               <span className="text-base">✓</span>
                               <span>
-                                <strong>100% FREE Express Delivery Applied:</strong> Your order ({totalWeightKg} kg) qualifies for free cold-chain delivery in {currentZoneEvaluation.zoneConfig.title}!
+                                <strong>100% FREE Express Delivery Applied:</strong> Your order ({totalWeightKg} kg) qualifies for free express delivery in {currentZoneEvaluation.zoneConfig.title}!
                               </span>
                             </div>
                             <span className="font-mono font-bold text-emerald-400 bg-emerald-950 px-2.5 py-1 rounded-md border border-emerald-500/30 flex-shrink-0">
@@ -2914,7 +2914,7 @@ export default function CheckoutPage() {
                         )}
 
                         <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 text-left text-[11px] text-amber-100/90 leading-relaxed">
-                          📌 <strong>Pin-Point Cold-Chain Handover:</strong> Our Cold-Chain Dispatch Partner delivers strictly to this shared GPS pin (no house-number search). Please collect in person and keep your phone reachable — no second attempt can be made if unreachable.
+                          📌 <strong>Pin-Point Express Handover:</strong> Packed fresh in food-grade biodegradable polythene (0% ice). Our Express Dispatch Partner delivers strictly to this shared GPS pin (no house-number search). Please collect in person and keep your phone reachable — no second attempt can be made, and if a delivery attempt fails, you will have to collect your package manually from our Live Vending Center in Malabagh.
                         </div>
 
                         <div className="flex flex-col sm:flex-row gap-3">
@@ -2961,7 +2961,7 @@ export default function CheckoutPage() {
                             🏪 Live Vending Center Self-Pickup Available:
                           </strong>
                           <p className="text-slate-300">
-                            Because live harvested trout requires express aeration within 90 minutes, cold-chain express delivery is restricted to our {deliveryRadiusKm}km perimeter. You are always welcome to pick up freshly harvested catch directly from our dedicated Live Trout Vending Center:
+                            Since live-harvested trout is packed purely in food-grade biodegradable polythene (0% ice) and dispatched within 90 minutes, express delivery is restricted to our {deliveryRadiusKm}km perimeter. You are always welcome to pick up freshly harvested catch directly from our dedicated Live Trout Vending Center:
                           </p>
                           <span className="text-slate-200 block font-semibold pt-1">
                             📍 Malabagh, Srinagar — 190006 (Near R P School, Girls Wing)
@@ -3218,10 +3218,10 @@ export default function CheckoutPage() {
                       <span className="text-emerald-400 text-base mt-0.5">⚡</span>
                       <div>
                         <strong className="text-xs text-white block" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
-                          Guaranteed &lt; 2-Hour Chilled Pin-Point Delivery
+                          Guaranteed &lt; 2-Hour Pin-Point Express Delivery
                         </strong>
                         <span className="text-[11px] text-slate-400 leading-normal block mt-0.5">
-                          Prepaid orders trigger instant priority harvest and chilled dispatch via our Cold-Chain Dispatch Partner strictly to your shared GPS location pin (in-person receipt; keep your phone reachable as no second attempt can be made if unreachable).
+                          Prepaid orders trigger instant priority harvest, packed fresh in food-grade biodegradable polythene (0% ice), and dispatched via our Express Dispatch Partner strictly to your shared GPS location pin (in-person receipt; keep your phone reachable — no second attempt can be made, and if a delivery attempt fails, you will have to collect your package manually from our Live Vending Center in Malabagh).
                         </span>
                       </div>
                     </div>
@@ -3284,7 +3284,7 @@ export default function CheckoutPage() {
                         margin: 0,
                       }}
                     >
-                      Pin-Point Cold-Chain Delivery • Instant 1-Tap UPI (GPay, PhonePe, Paytm, Cards)
+                      Pin-Point Express Delivery • Instant 1-Tap UPI (GPay, PhonePe, Paytm, Cards)
                     </p>
                   </div>
 
@@ -3757,7 +3757,7 @@ export default function CheckoutPage() {
                   </div>
                   <div className="flex items-center gap-2" style={{ color: "#86efac" }}>
                     <span>✓</span>
-                    <span>{!storeStatus.isOpen ? `Fresh Harvest for ${selectedScheduledSlot}` : "Cold-Chain 90-Min Dispatch"}</span>
+                    <span>{!storeStatus.isOpen ? `Fresh Harvest for ${selectedScheduledSlot}` : "Express 90-Min Dispatch"}</span>
                   </div>
                   <div className="flex items-center gap-2" style={{ color: "#86efac" }}>
                     <span>✓</span>

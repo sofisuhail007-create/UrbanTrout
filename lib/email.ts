@@ -238,14 +238,14 @@ export async function sendOrderStatusUpdateEmail(order: {
     },
     processing: {
       title: "Payment Verified & Order Confirmed! 🎉",
-      subtitle: "We have confirmed your payment. Our team at Urban Trout Farm is now harvesting and cold-packing your fresh Rainbow Trout.",
+      subtitle: "We have confirmed your payment. Our team at Urban Trout Farm is now harvesting and packing your fresh Rainbow Trout in food-grade biodegradable polythene (0% ice).",
       icon: "🐟",
       color: "#25d366",
       subject: `✅ Payment Verified! Order #${order.orderNumber} Confirmed - Urban Trout`,
     },
     out_for_delivery: {
       title: "Your Fresh Catch is Out for Delivery! 🚚",
-      subtitle: "Your trout has been harvested fresh from our farm tanks, packed in clean food-grade packaging, and dispatched via our Cold-Chain Dispatch Partner strictly to your shared GPS location pin (in-person receipt required; please keep your phone reachable as no second attempt can be made if unreachable).",
+      subtitle: "Your trout has been harvested fresh from our farm tanks, packed in food-grade biodegradable polythene (0% ice), and dispatched via our Express Dispatch Partner strictly to your shared GPS location pin (in-person receipt required; please keep your phone reachable — no second delivery attempt can be made, and if a delivery attempt fails, customer must collect the package manually from our Live Vending Center in Malabagh).",
       icon: "🛵",
       color: "#38bdf8",
       subject: `🚚 Out for Delivery: Order #${order.orderNumber} is on its way! - Urban Trout`,

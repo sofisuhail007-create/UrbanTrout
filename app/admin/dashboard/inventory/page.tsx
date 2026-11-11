@@ -75,7 +75,7 @@ export default function InventoryPage() {
       "gutted-trout": {
         img: "/images/gutted_trout_premium.png",
         label: "CLEANED & GUTTED",
-        desc: "Expertly cleaned, gutted, and ready to cook. Harvested fresh to order and chilled for delivery.",
+        desc: "Expertly cleaned, gutted, and ready to cook. Harvested fresh to order and packed in 100% food-grade biodegradable polythene (0% ice) for express delivery.",
         originalPrice: 650,
       },
       "whole-trout": {

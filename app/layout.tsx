@@ -52,7 +52,7 @@ export const metadata: Metadata = {
     template: "%s | Urban Trout",
   },
   description:
-    "Live-harvested Rainbow Trout in Srinagar. Fresh from ₹540/kg, delivered chilled in 2 hrs. Free cold-chain express delivery across Srinagar 16km zone. Order now.",
+    "Live-harvested Rainbow Trout in Srinagar. Fresh from ₹540/kg, packed in food-grade biodegradable polythene (0% ice) and delivered fresh in 2 hrs across Srinagar 16km zone. Order now.",
   keywords: [
     "Rainbow Trout Srinagar",
     "Buy fresh trout Srinagar",
@@ -67,7 +67,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Fresh Rainbow Trout in Srinagar from ₹540/kg | Urban Trout",
     description:
-      "Live-harvested Rainbow Trout in Srinagar. Fresh from ₹540/kg, delivered chilled in 2 hrs. Free cold-chain express delivery across Srinagar 16km zone. Order now.",
+      "Live-harvested Rainbow Trout in Srinagar. Fresh from ₹540/kg, packed in food-grade biodegradable polythene (0% ice) and delivered fresh in 2 hrs across Srinagar 16km zone. Order now.",
     url: "https://urbantrout.in",
     siteName: "Urban Trout",
     images: [
@@ -86,7 +86,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Buy Fresh Rainbow Trout in Srinagar | Urban Trout",
-    description: "Farm-fresh Rainbow Trout harvested to order in Srinagar. Chilled 2-hour cold-chain express delivery within our 16km farm zone.",
+    description: "Farm-fresh Rainbow Trout harvested to order in Srinagar. Fresh 2-hour express delivery in food-grade biodegradable polythene (0% ice) within our 16km farm zone.",
     images: ["https://urbantrout.in/og-image.jpg"],
   },
   robots: {
@@ -137,7 +137,7 @@ const jsonLd = {
       "alternateName": ["Urban Trout Srinagar", "Urban Trout Aquaculture", "ٹراؤٹ مچھلی سرینگر", "ट्राउट मछली श्रीनगर"],
       "image": "https://urbantrout.in/images/og-image.png",
       "logo": "https://urbantrout.in/sitelogo.png",
-      "description": "Srinagar's premier cold-water aquaculture farm located in Malabagh. Producing fresh whole and cleaned Rainbow Trout (Oncorhynchus mykiss) harvested live to order with rapid chilled delivery within 2 hours across our 16km express farm radius in Srinagar.",
+      "description": "Srinagar's premier cold-water aquaculture farm located in Malabagh. Producing fresh whole and cleaned Rainbow Trout (Oncorhynchus mykiss) harvested live to order, packed in food-grade biodegradable polythene (0% ice) with express delivery within 2 hours across our 16km farm radius in Srinagar.",
       "url": "https://urbantrout.in",
       "hasMap": "https://maps.app.goo.gl/4N8A8ywhJpys9EaDA",
       "sameAs": [

@@ -34,7 +34,7 @@ const sections = [
   },
   {
     title: "3. Perishable Goods & Quality Guarantee",
-    body: "• We take extreme care to pack our trout securely in clean food-grade double packaging (two polythenes) to ensure peak freshness upon arrival with zero melting mess.\n• We strongly advise customers or their representatives to inspect the order package at the time of delivery.\n• In the unlikely event that your delivery arrives damaged, compromised in temperature, spoiled, or if the wrong item/quantity was delivered, please notify us within 2 hours of delivery with photographic evidence via WhatsApp (+91 84910 06127) or email (founder@urbantrout.in).",
+    body: "• We take extreme care to pack our trout securely in 100% food-grade biodegradable polythene (two polythenes) with 0% ice to ensure peak freshness upon arrival with zero melting mess.\n• We strongly advise customers or their representatives to inspect the order package at the time of delivery.\n• In the unlikely event that your delivery arrives damaged, spoiled, or if the wrong item/quantity was delivered, please notify us within 2 hours of delivery with photographic evidence via WhatsApp (+91 84910 06127) or email (founder@urbantrout.in).\n• If a delivery attempt fails because the customer's phone is unreachable/switched off or no recipient is available at the shared GPS pin, no second delivery attempt is made and the customer must collect the package manually from our Live Vending Center in Malabagh.",
   },
   {
     title: "4. Refund Eligibility & Resolution",

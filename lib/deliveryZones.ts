@@ -113,7 +113,7 @@ export const DELIVERY_ZONES: Record<string, ZoneConfig> = {
     badgeBg: "rgba(239, 68, 68, 0.15)",
     badgeBorder: "rgba(239, 68, 68, 0.35)",
     badgeText: "#f87171",
-    description: "Outside 16 km express cold-chain perimeter. 100% free live harvest pickup at our Malabagh Farm.",
+    description: "Outside 16 km express delivery perimeter. 100% free live harvest pickup at our Malabagh Farm.",
   },
 };
 
@@ -423,17 +423,17 @@ export function evaluateDeliveryZone(params: {
       : `✓ Greater Srinagar Delivery — Free from 3 kg (~${dist.toFixed(1)} km)`;
     deliveryMessage = isRush && fee > 0
       ? `Deliverable within 2 hours to your shared GPS location. Free on 3+ kg, or ₹${fee} express delivery fee for ${weightKg} kg (includes ₹40 evening rush surcharge 4–8 PM).`
-      : `Deliverable within 2 hours to your shared GPS location with cold-chain packaging. Free on 3+ kg, or express delivery fee (₹89 for 2 kg / ₹130 for 1 kg).`;
+      : `Deliverable within 2 hours to your shared GPS location in food-grade biodegradable polythene (0% ice). Free on 3+ kg, or express delivery fee (₹89 for 2 kg / ₹130 for 1 kg).`;
   } else if (tierId === "zone4") {
     statusHeadline = isRush && fee > 0
       ? `✓ South Corridor Delivery — Free on 5 kg (~${dist.toFixed(1)} km) · ⚡ Evening Rush Express`
       : `✓ South Corridor Delivery — Free on 5 kg (~${dist.toFixed(1)} km)`;
     deliveryMessage = isRush && fee > 0
       ? `Deliverable within 2 hours to your shared GPS location. 100% Free on 5 kg family pack, or ₹${fee} express delivery fee for ${weightKg} kg (includes ₹40 evening rush surcharge 4–8 PM).`
-      : `Deliverable within 2 hours to your shared GPS location in clean food-grade packaging. 100% Free on 5 kg family pack, or express delivery fee (₹109 for 4 kg / ₹129 for 3 kg / ₹139 for 2 kg / ₹190 for 1 kg).`;
+      : `Deliverable within 2 hours to your shared GPS location in food-grade biodegradable polythene (0% ice). 100% Free on 5 kg family pack, or express delivery fee (₹109 for 4 kg / ₹129 for 3 kg / ₹139 for 2 kg / ₹190 for 1 kg).`;
   } else {
     statusHeadline = `📍 Outside 16 km Express Delivery Perimeter (~${dist.toFixed(1)} km)`;
-    deliveryMessage = `To ensure live-harvest cold chain integrity within 2 hours, cold-chain express delivery is restricted to 16 km. You are warmly welcome to pick up fresh live catch directly from our Live Vending Center in Malabagh with ZERO delivery fee!`;
+    deliveryMessage = `To preserve peak live-harvest freshness with 0% ice biodegradable packaging within 2 hours, express delivery is restricted to 16 km. You are warmly welcome to pick up fresh live catch directly from our Live Vending Center in Malabagh with ZERO delivery fee!`;
   }
 
   return {

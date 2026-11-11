@@ -12,7 +12,7 @@ import { getGoogleReviewsData } from "@/lib/reviews";
 export const metadata: Metadata = {
   title: "Premium Cleaned & Gutted Rainbow Trout (₹580/Kg)",
   description:
-    "Expertly cleaned, scaled, gutted, and prepared for immediate cooking. Farmed in Malabagh, Srinagar. Chilled 2-hour cold-chain express delivery across Srinagar 16km farm zone.",
+    "Expertly cleaned, scaled, gutted, and prepared for immediate cooking. Farmed in Malabagh, Srinagar. Fresh 2-hour express delivery in food-grade biodegradable polythene (0% ice) across Srinagar 16km farm zone.",
   alternates: {
     canonical: "https://urbantrout.in/shop/gutted-trout",
   },
@@ -674,7 +674,7 @@ export default async function GuttedTroutPage() {
                 </h3>
               </div>
               <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "1rem", color: C.onSurfVar, lineHeight: 1.75, maxWidth: "640px", marginBottom: "2rem" }}>
-                Raised in clean, continuously filtered cold water right here in Srinagar. Harvested only when you order, immediately packed in clean food-grade packs, and delivered chilled to your shared GPS location across our 16km Srinagar express zone.
+                Raised in clean, continuously filtered cold water right here in Srinagar. Harvested only when you order, immediately packed fresh in food-grade biodegradable polythene (0% ice), and delivered to your shared GPS location across our 16km Srinagar express zone.
               </p>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "1.5rem" }}>
                 {[

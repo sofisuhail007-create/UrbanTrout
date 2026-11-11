@@ -857,7 +857,7 @@ export default function PublicInvoicePage() {
                       <span>₹{invoice.refundAmount.toLocaleString("en-IN")}</span>
                     </div>
                     <p className="text-[10.5px] font-sans font-medium text-emerald-800 mt-1 leading-tight">
-                      Handover Note: Our Cold-Chain Dispatch Partner will return ₹{invoice.refundAmount} via UPI or cash upon in-person receipt at your shared GPS location.
+                      Handover Note: Our Express Dispatch Partner will return ₹{invoice.refundAmount} via UPI or cash upon in-person receipt at your shared GPS location.
                     </p>
                   </div>
                 </div>
@@ -931,7 +931,7 @@ export default function PublicInvoicePage() {
               <div className="bg-slate-50/90 px-3 py-1.5 border-t border-slate-200 text-[10px] text-slate-600 font-mono flex flex-wrap items-center justify-between gap-2">
                 <span>Tax Amount (in words): <strong>INR NIL</strong></span>
                 <span className="italic text-slate-500">
-                  * Exempt commodity under GST Notification No. 2/2017-Central Tax (Rate), Chapter 3 (Live, fresh, or chilled fish).
+                  * Exempt commodity under GST Notification No. 2/2017-Central Tax (Rate), Chapter 3 (Live &amp; Fresh Fish).
                 </span>
               </div>
             </div>

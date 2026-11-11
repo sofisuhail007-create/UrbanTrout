@@ -10,14 +10,14 @@ import { getGoogleReviewsData } from "@/lib/reviews";
 export const metadata: Metadata = {
   title: "Fresh Trout Fish in Srinagar from ₹540/kg | Urban Trout",
   description:
-    "Order live-harvested fresh Rainbow Trout in Srinagar from ₹540/kg. Pan-ready cleaned & gutted, packed in food-grade packs & delivered chilled via cold-chain express in 2 hrs.",
+    "Order live-harvested fresh Rainbow Trout in Srinagar from ₹540/kg. Pan-ready cleaned & gutted, packed in food-grade biodegradable polythene (0% ice) & delivered fresh via express delivery in 2 hrs.",
   alternates: {
     canonical: "https://urbantrout.in",
   },
   openGraph: {
     title: "Fresh Trout Fish in Srinagar from ₹540/kg | Urban Trout",
     description:
-      "Order live-harvested fresh Rainbow Trout in Srinagar from ₹540/kg. Pan-ready cleaned & gutted, packed in food-grade packs & delivered chilled via cold-chain express in 2 hrs.",
+      "Order live-harvested fresh Rainbow Trout in Srinagar from ₹540/kg. Pan-ready cleaned & gutted, packed in food-grade biodegradable polythene (0% ice) & delivered fresh via express delivery in 2 hrs.",
     url: "https://urbantrout.in",
     siteName: "Urban Trout",
     images: [
@@ -60,35 +60,35 @@ const farmConditions = [
 const faqs = [
   {
     q: "Where can I buy fresh trout fish in Srinagar?",
-    a: "You can order fresh Rainbow Trout online directly through urbantrout.in or via WhatsApp (+91 84910 06127) for cold-chain express delivery to your shared GPS location within 2 hours across our 16km radius zone from our Malabagh farm. Customers across all of Srinagar are also warmly welcome to pick up orders directly from our dedicated Live Trout Vending Center in Malabagh.",
+    a: "You can order fresh Rainbow Trout online directly through urbantrout.in or via WhatsApp (+91 84910 06127) for fast express delivery to your shared GPS location within 2 hours across our 16km radius zone from our Malabagh farm. Customers across all of Srinagar are also warmly welcome to pick up orders directly from our dedicated Live Trout Vending Center in Malabagh.",
   },
   {
     q: "What is the price of Rainbow Trout per Kg in Srinagar?",
-    a: "Our fresh Whole Rainbow Trout is ₹540 per Kg, and our Premium Cleaned & Gutted Trout is ₹580 per Kg. Unlike marketplace suppliers who charge extra for packing and delivery, our prices include 100% Free cold-chain express delivery in clean food-grade packaging within our delivery zones (up to 16km) in Srinagar based on order tier.",
+    a: "Our fresh Whole Rainbow Trout is ₹540 per Kg, and our Premium Cleaned & Gutted Trout is ₹580 per Kg. Unlike marketplace suppliers who charge extra for packing and delivery, our prices include 100% Free express delivery in food-grade biodegradable polythene (0% ice) within our delivery zones (up to 16km) in Srinagar based on order tier.",
   },
   {
     q: "Do you clean and gut the trout before delivery?",
-    a: "Yes! When you select our Cleaned & Gutted Rainbow Trout (₹580/kg), the fish is weighed whole at live harvest (gross weight) and then our farm team expertly descales, cleans, and guts it. Because inedible viscera and gills (~15%–18%) are removed during cleaning, you receive ~820g–850g of 100% pan-ready edible fish per kg ordered, thoroughly washed with cold groundwater and packed in clean food-grade double packaging with zero kitchen mess.",
+    a: "Yes! When you select our Cleaned & Gutted Rainbow Trout (₹580/kg), the fish is weighed whole at live harvest (gross weight) and then our farm team expertly descales, cleans, and guts it. Because inedible viscera and gills (~15%–18%) are removed during cleaning, you receive ~820g–850g of 100% pan-ready edible fish per kg ordered, thoroughly washed with cold groundwater and packed in food-grade biodegradable double polythene (0% ice) with zero kitchen mess.",
   },
   {
     q: "Which areas in Srinagar do you deliver to?",
-    a: "To ensure peak freshness and cold-chain integrity, we deliver across Srinagar up to 16 km from our Malabagh farm across 4 transparent tiers: Zone 1 (0–4 km: Malabagh, Soura, Hazratbal, Zakura, Lal Bazar — Free from 2 kg), Zone 2 (4–7 km: Hawal, Eidgah, Khanyar, Rainawari, Shalimar — Free from 3 kg), Zone 3 (7–11.5 km: Lal Chowk, Dalgate, Boulevard, Qamarwari, Nishat — Free from 3 kg), and Zone 4 (11.5–16 km: Sanat Nagar, Peerbagh, Airport Road, Nowgam, Rajbagh, Jawahar Nagar, Batamaloo, Bemina, Sonwar, Hyderpora, Rawalpora, Lasjan, Pantha Chowk — Free on 5 kg Family Pack). Standard express delivery charges apply for smaller orders. For locations beyond 16 km, fresh live-harvest counter pickup is available at our Live Vending Center in Malabagh.",
+    a: "To ensure peak live-harvest freshness with 0% ice packaging, we deliver across Srinagar up to 16 km from our Malabagh farm across 4 transparent tiers: Zone 1 (0–4 km: Malabagh, Soura, Hazratbal, Zakura, Lal Bazar — Free from 2 kg), Zone 2 (4–7 km: Hawal, Eidgah, Khanyar, Rainawari, Shalimar — Free from 3 kg), Zone 3 (7–11.5 km: Lal Chowk, Dalgate, Boulevard, Qamarwari, Nishat — Free from 3 kg), and Zone 4 (11.5–16 km: Sanat Nagar, Peerbagh, Airport Road, Nowgam, Rajbagh, Jawahar Nagar, Batamaloo, Bemina, Sonwar, Hyderpora, Rawalpora, Lasjan, Pantha Chowk — Free on 5 kg Family Pack). Standard express delivery charges apply for smaller orders. For locations beyond 16 km, fresh live-harvest counter pickup is available at our Live Vending Center in Malabagh.",
   },
   {
     q: "How fresh is Urban Trout compared to market fish?",
-    a: "Market fish is often caught days in advance and transported on melting ice. At Urban Trout, your fish (Oncorhynchus mykiss) is alive and swimming in pure cold-water tanks when you place your order. We net it live, prepare it to your specifications, pack it securely in clean food-grade packaging (two polythenes), and deliver it within 2 hours. The flesh is firm, bouncy, and completely free of fishy odor.",
+    a: "Market fish is often caught days in advance and transported on melting ice. At Urban Trout, your fish (Oncorhynchus mykiss) is alive and swimming in pure cold-water tanks when you place your order. We net it live, prepare it to your specifications, pack it securely in 100% food-grade biodegradable double polythene (0% ice), and deliver it within 2 hours. The flesh is firm, bouncy, and completely free of fishy odor.",
   },
   {
     q: "What is the minimum order quantity and how does pin-point delivery work?",
-    a: "Cold-chain express delivery is 100% Free based on distance from our Malabagh farm: minimum 2 kg for Zone 1 (0–4 km), 3 kg for Zone 2 (4–7 km), 3 kg for Zone 3 (7–11.5 km), and 5 kg for Zone 4 (11.5–16 km). Smaller orders carry standard express delivery fees (from ₹45 in Zone 1), or can be picked up directly from our farm counter with zero charges. Simply share a Google Maps link or WhatsApp Location Pin — our Cold-Chain Dispatch Partner delivers strictly to that shared GPS pin (not house numbers), handed over in person; please keep your phone reachable as no second attempt can be made if unreachable.",
+    a: "Express delivery is 100% Free based on distance from our Malabagh farm: minimum 2 kg for Zone 1 (0–4 km), 3 kg for Zone 2 (4–7 km), 3 kg for Zone 3 (7–11.5 km), and 5 kg for Zone 4 (11.5–16 km). Smaller orders carry standard express delivery fees (from ₹45 in Zone 1), or can be picked up directly from our farm counter with zero charges. Simply share a Google Maps link or WhatsApp Location Pin — our Express Dispatch Partner delivers strictly to that shared GPS pin (not house numbers), handed over in person; please keep your phone reachable as no second attempt can be made, and if a delivery attempt fails, customer must collect the package manually from our Live Vending Center in Malabagh.",
   },
   {
     q: "What payment methods do you accept?",
-    a: "We accept all major secure online payment methods including UPI (Google Pay, PhonePe, Paytm), Debit & Credit Cards, and Net Banking for express delivery orders. Because trout is netted live solely after your order is confirmed to maintain peak freshness and cold-chain integrity, delivery orders are prepaid. For in-person walk-ins at our Malabagh farm vending center, both Cash and UPI are welcome.",
+    a: "We accept all major secure online payment methods including UPI (Google Pay, PhonePe, Paytm), Debit & Credit Cards, and Net Banking for express delivery orders. Because trout is netted live solely after your order is confirmed to guarantee live harvest with zero wastage, delivery orders are prepaid. For in-person walk-ins at our Malabagh farm vending center, both Cash and UPI are welcome.",
   },
   {
     q: "How should I store fresh trout and how long does it last?",
-    a: "If cooking within 48 hours, keep the trout in its chilled packaging inside your refrigerator chiller (0°C–4°C). For longer storage, wrap the trout in airtight freezer film or vacuum bags and freeze at -18°C for up to 3 months without compromising moisture or texture.",
+    a: "If cooking within 48 hours, refrigerate the fresh biodegradable pack inside your refrigerator chiller (0°C–4°C). For longer storage, wrap the trout in airtight freezer film or vacuum bags and freeze at -18°C for up to 3 months without compromising moisture or texture.",
   },
   {
     q: "What are your operating hours and are you open every day?",
@@ -158,7 +158,7 @@ export default async function HomePage() {
         "name": "Urban Trout",
         "alternateName": ["Urban Trout Srinagar", "Urban Trout Aquaculture"],
         "description":
-          "Srinagar's premier cold-water trout aquaculture farm and co-located Live Trout Vending Center on Hazratbal Road, Malabagh. Harvested live to order from pure groundwater-fed RAS tanks with rapid chilled cold-chain express delivery within 2 hours across our 16km Srinagar zone and direct farm counter pickup.",
+          "Srinagar's premier cold-water trout aquaculture farm and co-located Live Trout Vending Center on Hazratbal Road, Malabagh. Harvested live to order from pure groundwater-fed RAS tanks, packed in 100% food-grade biodegradable polythene (0% ice) with express delivery within 2 hours across our 16km Srinagar zone and direct farm counter pickup.",
         "url": "https://urbantrout.in",
         "telephone": "+918491006127",
         "priceRange": "₹₹",
@@ -385,7 +385,7 @@ export default async function HomePage() {
 
   const whatsappOrderUrl =
     "https://wa.me/918491006127?text=" +
-    encodeURIComponent("Hi Urban Trout! I would like to order fresh Rainbow Trout for cold-chain express delivery in Srinagar.");
+    encodeURIComponent("Hi Urban Trout! I would like to order fresh Rainbow Trout for express delivery in Srinagar.");
 
   return (
     <div style={{ background: C.bg, minHeight: "100vh" }}>
@@ -467,7 +467,7 @@ export default async function HomePage() {
               lineHeight: 1.75,
             }}
           >
-            Urban Trout delivers fresh cold-water Rainbow Trout (<em>Oncorhynchus mykiss</em>) directly from our Malabagh farm tanks to your kitchen in under 2 hours. Swimming in pure 10°C subterranean borewell water until you order, expertly cleaned, packed in clean food-grade packaging, and delivered chilled across Srinagar up to 16 km. Whole from <strong style={{ color: "#72ddfd" }}>₹540/kg</strong>, pan-ready cleaned &amp; gutted from <strong style={{ color: "#72ddfd" }}>₹580/kg</strong>, or available for direct farm counter pickup.
+            Urban Trout delivers fresh cold-water Rainbow Trout (<em>Oncorhynchus mykiss</em>) directly from our Malabagh farm tanks to your kitchen in under 2 hours. Swimming in pure 10°C subterranean borewell water until you order, expertly cleaned, packed in 100% food-grade biodegradable polythene (0% ice), and delivered fresh across Srinagar up to 16 km. Whole from <strong style={{ color: "#72ddfd" }}>₹540/kg</strong>, pan-ready cleaned &amp; gutted from <strong style={{ color: "#72ddfd" }}>₹580/kg</strong>, or available for direct farm counter pickup.
           </p>
 
           {/* CTAs */}
@@ -565,7 +565,7 @@ export default async function HomePage() {
               Today&apos;s Fresh Rainbow Trout Rates
             </h2>
             <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfaceVariant, fontSize: "0.95rem", marginTop: "0.5rem", maxWidth: "680px", margin: "0.5rem auto 0" }}>
-              Harvested live from cold 10°C borewell water in Malabagh. 100% Free cold-chain express delivery in clean food-grade packaging across Srinagar up to 16 km based on order tier, or direct farm counter pickup.
+              Harvested live from cold 10°C borewell water in Malabagh. 100% Free express delivery in food-grade biodegradable polythene (0% ice) across Srinagar up to 16 km based on order tier, or direct farm counter pickup.
             </p>
           </div>
 
@@ -582,7 +582,7 @@ export default async function HomePage() {
           <div className="flex flex-wrap items-center justify-between gap-4 mt-8 p-4 rounded-xl bg-slate-900/70 border border-slate-800 max-w-4xl mx-auto text-xs text-slate-300 font-sans">
             <div className="flex items-center gap-2">
               <span className="text-cyan-400 font-bold">💳 Payment Terms:</span>
-              <span className="text-slate-300">Prepaid online (UPI, Cards, Net Banking) for cold-chain express delivery. Cash &amp; UPI accepted for direct farm pickup.</span>
+              <span className="text-slate-300">Prepaid online (UPI, Cards, Net Banking) for express delivery. Cash &amp; UPI accepted for direct farm pickup.</span>
             </div>
             <div>
               <span>Need bulk catering / dawats? </span>
@@ -613,7 +613,7 @@ export default async function HomePage() {
               </div>
               <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800/80">
                 <span className="font-bold text-emerald-400 block mb-0.5">Cleaned &amp; Gutted (₹580/kg):</span>
-                <span className="text-slate-400">100% pan-ready. Descaled and eviscerated with chilled groundwater wash. Straight onto the tawa or into the oven upon delivery.</span>
+                <span className="text-slate-400">100% pan-ready. Descaled and eviscerated with fresh cold groundwater wash. Straight onto the tawa or into the oven upon delivery.</span>
               </div>
             </div>
           </div>
@@ -631,7 +631,7 @@ export default async function HomePage() {
               Farm Direct vs. Srinagar Markets &amp; Directories
             </h2>
             <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfaceVariant, fontSize: "0.95rem", lineHeight: 1.7 }}>
-              Directories and marketplaces in Srinagar list trout between ₹650 and ₹1,000 per kg with extra packaging and transit charges. At Urban Trout, you get live-harvested fish delivered chilled to your shared GPS location at direct producer rates.
+              Directories and marketplaces in Srinagar list trout between ₹650 and ₹1,000 per kg with extra packaging and transit charges. At Urban Trout, you get live-harvested fish packed in food-grade biodegradable polythene (0% ice) delivered fresh to your shared GPS location at direct producer rates.
             </p>
           </div>
 
@@ -675,9 +675,9 @@ export default async function HomePage() {
                   <td className="p-4 md:p-5 text-slate-400">Prepared from refrigerated or frozen inventory.</td>
                 </tr>
                 <tr className="hover:bg-slate-900/30 transition-colors">
-                  <td className="p-4 md:p-5 font-medium text-white">Cold-Chain Express Delivery (Up to 16km Zone)</td>
+                  <td className="p-4 md:p-5 font-medium text-white">Express Delivery (Up to 16km Zone)</td>
                   <td className="p-4 md:p-5 text-cyan-200 bg-cyan-950/30 border-x border-cyan-500/20 font-semibold text-emerald-400">
-                    100% FREE within 2 Hours (Clean food-grade packaging)
+                    100% FREE within 2 Hours (Biodegradable polythene, 0% ice)
                   </td>
                   <td className="p-4 md:p-5 text-slate-400">Self-pickup required or ₹100+ local courier.</td>
                   <td className="p-4 md:p-5 text-slate-400">₹200–₹400 extra thermocol box &amp; shipping; frozen delays.</td>
@@ -714,7 +714,7 @@ export default async function HomePage() {
 
           <div className="mt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs text-slate-400">
             <span className="max-w-2xl leading-relaxed">
-              Rates verified across Srinagar retail channels (March 2026). Urban Trout rates include 100% free insulated cold-chain express delivery with clean food-grade packaging across Srinagar delivery zones (up to 16km). Sourced via direct market surveys (Batamaloo &amp; Maharaj Gunj stalls), verified B2B listings, and restaurant menus.
+              Rates verified across Srinagar retail channels (March 2026). Urban Trout rates include 100% free express delivery packed in 100% food-grade biodegradable polythene (0% ice) across Srinagar delivery zones (up to 16km). Sourced via direct market surveys (Batamaloo &amp; Maharaj Gunj stalls), verified B2B listings, and restaurant menus.
             </span>
             <Link href="/trout-price-srinagar" className="inline-flex items-center gap-1.5 text-cyan-400 font-bold hover:underline whitespace-nowrap">
               <span>Read Full Srinagar Trout Price Guide</span>
@@ -728,7 +728,7 @@ export default async function HomePage() {
               <span className="text-[10px] uppercase font-mono font-bold tracking-widest text-amber-400">Srinagar Trout Buying Channels</span>
               <h3 className="text-sm font-bold text-white font-['Space_Grotesk']">Farm-Direct Express Delivery &amp; J&amp;K Fisheries Department Outlets</h3>
               <p className="text-xs text-slate-300 leading-relaxed font-sans max-w-3xl">
-                The J&amp;K Department of Fisheries has pioneered cold-water trout aquaculture across Kashmir, operating reputable public breeding centers and counters at <strong>Gagribal (Boulevard)</strong>, <strong>Laribal Hatchery</strong>, and <strong>Kokernag</strong>. While official government counters operate during limited morning windows (typically 8:00 AM – 11:00 AM, subject to daily supply quotas and in-person walk-ins), Urban Trout provides an on-demand hyper-local service. We harvest live to order from our private groundwater-fed RAS facility in Malabagh, offer custom kitchen descaling &amp; cleaning, and deliver chilled via our Cold-Chain Dispatch Partner to your shared GPS location within 2 hours across our 16km Srinagar zone (or direct pickup at our Malabagh farm vending counter).
+                The J&amp;K Department of Fisheries has pioneered cold-water trout aquaculture across Kashmir, operating reputable public breeding centers and counters at <strong>Gagribal (Boulevard)</strong>, <strong>Laribal Hatchery</strong>, and <strong>Kokernag</strong>. While official government counters operate during limited morning windows (typically 8:00 AM – 11:00 AM, subject to daily supply quotas and in-person walk-ins), Urban Trout provides an on-demand hyper-local service. We harvest live to order from our private groundwater-fed RAS facility in Malabagh, offer custom kitchen descaling &amp; cleaning, pack in food-grade biodegradable polythene (0% ice), and deliver fresh via our Express Dispatch Partner to your shared GPS location within 2 hours across our 16km Srinagar zone (or direct pickup at our Malabagh farm vending counter).
               </p>
             </div>
             <div className="flex-shrink-0">
@@ -748,7 +748,7 @@ export default async function HomePage() {
               Live Water Quality &amp; Farming Standards
             </span>
             <h2 className="text-xl md:text-2xl font-extrabold text-white font-['Space_Grotesk'] tracking-tight mt-1">
-              Verified Water Purity &amp; Cold-Chain Timeline
+              Verified Water Purity &amp; Express Harvest Timeline
             </h2>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
@@ -761,7 +761,7 @@ export default async function HomePage() {
             ))}
           </div>
 
-          {/* Cold Chain Harvest-to-Doorstep Timeline */}
+          {/* Live Harvest-to-Kitchen Timeline */}
           <div className="mt-12 pt-10 border-t border-slate-800">
             <div className="text-center mb-6">
               <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "10px", letterSpacing: "0.2em", textTransform: "uppercase", color: "#34d399", fontWeight: 700 }}>
@@ -791,10 +791,10 @@ export default async function HomePage() {
               <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-mono font-bold text-cyan-300 bg-cyan-950/80 px-2 py-0.5 rounded border border-cyan-500/30">00:25 MIN</span>
-                  <span className="text-base">❄️</span>
+                  <span className="text-base">🌿</span>
                 </div>
-                <h4 className="font-bold text-sm text-white">Clean Food-Grade Double Packaging</h4>
-                <p className="text-xs text-slate-400 leading-relaxed">Packed in clean food-grade packaging (two polythenes), sealed securely with zero melting water or mess.</p>
+                <h4 className="font-bold text-sm text-white">Biodegradable Double Polythene (0% Ice)</h4>
+                <p className="text-xs text-slate-400 leading-relaxed">Packed fresh in 100% food-grade biodegradable double polythene (two polythenes) with 0% ice and zero melting water.</p>
               </div>
               <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-col gap-2">
                 <div className="flex items-center justify-between">
@@ -802,7 +802,7 @@ export default async function HomePage() {
                   <span className="text-base">🚀</span>
                 </div>
                 <h4 className="font-bold text-sm text-white">Pin-Point Location Handover</h4>
-                <p className="text-xs text-slate-400 leading-relaxed">Dispatched via our Cold-Chain Dispatch Partner strictly to your shared GPS pin across Srinagar (received in person; zero delivery fee on qualifying orders).</p>
+                <p className="text-xs text-slate-400 leading-relaxed">Dispatched via our Express Dispatch Partner strictly to your shared GPS pin across Srinagar (in-person receipt; if a delivery attempt fails, customer must collect manually from our Live Vending Center in Malabagh).</p>
               </div>
             </div>
           </div>
@@ -845,7 +845,7 @@ export default async function HomePage() {
               </h2>
             </div>
             <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfaceVariant, maxWidth: "420px", lineHeight: 1.7, borderLeft: "2px solid rgba(114,221,253,0.3)", paddingLeft: "1.25rem", fontSize: "0.95rem" }}>
-              Clean borewell water, zero preventive antibiotics, live netting, and 100% free cold-chain express delivery across Srinagar (up to 16km) in 2 hours.
+              Clean borewell water, zero preventive antibiotics, live netting, food-grade biodegradable packaging (0% ice), and 100% free express delivery across Srinagar (up to 16km) in 2 hours.
             </p>
           </div>
 

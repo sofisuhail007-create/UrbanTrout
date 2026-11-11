@@ -182,7 +182,7 @@ const PRESET_TEMPLATES: MarketingTemplate[] = [
     category: "dinner",
     tag: "Last Dispatch",
     title: "Evening craving rescue squad! 🌙🐟",
-    body: "Last delivery slot closing soon for Srinagar! Lock in your fresh catch before our chilled dispatch vans roll out.",
+    body: "Last delivery slot closing soon for Srinagar! Lock in your fresh catch before our final express dispatch rolls out.",
     url: "/shop",
   },
 
@@ -231,11 +231,11 @@ const PRESET_TEMPLATES: MarketingTemplate[] = [
   // ── 5. Flash Urgency & Scarcity ──
   {
     id: "fomo-1",
-    name: "7 AM Live Harvest ❄️",
-    icon: "❄️",
+    name: "7 AM Live Harvest 🐟",
+    icon: "🐟",
     category: "fomo",
     tag: "Hyper-Fresh",
-    title: "Swimming in chilled RAS tanks at 7 AM ❄️",
+    title: "Swimming in pure 10°C RAS tanks at 7 AM 🐟",
     body: "On your dining table by 1 PM! You can't get fresher than this anywhere in Srinagar. Morning batch selling fast.",
     url: "/shop",
   },

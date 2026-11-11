@@ -11,7 +11,7 @@ import { getLiveAquariumStock } from "@/lib/aquariumStock";
 export const metadata: Metadata = {
   title: "Shop Fresh Rainbow Trout Online in Srinagar",
   description:
-    "Order live-harvested whole (₹540/kg) and cleaned & gutted (₹580/kg) Rainbow Trout online in Srinagar. Chilled cold-chain express delivery within 2 hours across our 16km farm perimeter.",
+    "Order live-harvested whole (₹540/kg) and cleaned & gutted (₹580/kg) Rainbow Trout online in Srinagar. Fast express delivery packed in food-grade biodegradable polythene (0% ice) within 2 hours across our 16km farm perimeter.",
   alternates: {
     canonical: "https://urbantrout.in/shop",
   },
@@ -49,7 +49,7 @@ const PRODUCT_META: Record<string, { img: string; label: string; desc: string }>
   "gutted-trout": {
     img: "/images/gutted_trout_premium.webp",
     label: "CLEANED & GUTTED",
-    desc: "Expertly cleaned, gutted, and ready to cook. Harvested fresh to order and chilled for delivery.",
+    desc: "Expertly cleaned, gutted, and ready to cook. Harvested fresh to order and packed in 100% food-grade biodegradable polythene (0% ice) for express delivery.",
   },
   "whole-trout": {
     img: "/images/whole_trout.jpg",
@@ -215,7 +215,7 @@ export default async function ShopPage() {
               }}>
                 <span className="text-xs">🛵</span>
                 <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "11px", fontWeight: 700, letterSpacing: "0.05em", color: "#34d399", textTransform: "uppercase" }}>
-                  Cold-Chain Express Delivery (16km Zone)
+                  Express Delivery (16km Zone)
                 </span>
               </div>
               <div style={{
@@ -267,7 +267,7 @@ export default async function ShopPage() {
               </svg>
             </div>
             <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: "0.95rem", color: C.onSurface }}>Harvested to Order</span>
-            <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.82rem", color: C.onSurfVar, lineHeight: 1.65 }}>Freshly harvested to order and packed in clean food-grade packs.</span>
+            <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.82rem", color: C.onSurfVar, lineHeight: 1.65 }}>Freshly harvested to order and packed in 100% food-grade biodegradable polythene (0% ice).</span>
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
@@ -280,7 +280,7 @@ export default async function ShopPage() {
               </svg>
             </div>
             <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: "0.95rem", color: C.onSurface }}>Pin-Point GPS Delivery</span>
-            <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.82rem", color: C.onSurfVar, lineHeight: 1.65 }}>Delivered chilled within 2 hours to your shared GPS location across our 16km zone.</span>
+            <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.82rem", color: C.onSurfVar, lineHeight: 1.65 }}>Delivered fresh within 2 hours to your shared GPS location across our 16km zone.</span>
           </div>
         </div>
       </section>

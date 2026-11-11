@@ -759,7 +759,7 @@ export default function CustomerAccountPage() {
                     ))}
                   </select>
                   <p className="text-[10px] text-cyan-400/90 mt-1.5 font-medium">
-                    📍 Cold-Chain Express Delivery is available within 16km of our Malabagh farm across 4 zones (to shared GPS pin; in-person receipt). Vending center pickup is available for all areas.
+                    📍 Express Delivery is available within 16km of our Malabagh farm across 4 zones (packed in food-grade biodegradable polythene, 0% ice; delivered strictly to shared GPS pin with in-person receipt). Vending center pickup is available for all areas.
                   </p>
                 </div>
 
@@ -878,7 +878,7 @@ export default function CustomerAccountPage() {
                   </li>
                   <li className="flex items-center gap-2">
                     <span>🛵</span>
-                    <span><strong>Live Dispatch:</strong> Alerts when your order leaves Malabagh chilled.</span>
+                    <span><strong>Live Dispatch:</strong> Alerts when your fresh harvest leaves Malabagh.</span>
                   </li>
                   <li className="flex items-center gap-2">
                     <span>⚡</span>

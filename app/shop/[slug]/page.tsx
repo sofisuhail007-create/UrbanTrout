@@ -37,7 +37,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const title = data?.product_name || (slug === "gutted-trout" ? "Cleaned & Gutted Rainbow Trout" : "Whole Fresh Rainbow Trout");
   const price = data?.price_per_kg ? `₹${data.price_per_kg}/Kg` : (slug === "gutted-trout" ? "₹580/Kg" : "₹540/Kg");
-  const desc = `Order fresh ${title} (${price}) harvested live to order in Malabagh, Srinagar. Chilled 2-hour cold-chain express delivery across Srinagar 16km farm zone.`;
+  const desc = `Order fresh ${title} (${price}) harvested live to order in Malabagh, Srinagar. Fresh 2-hour express delivery in food-grade biodegradable polythene (0% ice) across Srinagar 16km farm zone.`;
   const canonicalUrl = `https://urbantrout.in/shop/${slug}`;
 
   return {
@@ -489,7 +489,7 @@ export default async function DynamicProductPage({ params }: Props) {
               >
                 <span style={{ fontSize: "18px" }}>🛵</span>
                 <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.82rem", color: "#a7f3d0", margin: 0, fontWeight: 600 }}>
-                  <strong style={{ color: "#34d399" }}>Cold-Chain Express Delivery</strong> across Srinagar (16km Zone). Harvested live to order &amp; delivered chilled to your shared GPS pin within 2 hours. Free delivery tiers available!
+                  <strong style={{ color: "#34d399" }}>Pin-Point Express Delivery</strong> across Srinagar (16km Zone). Harvested live to order, packed in food-grade biodegradable polythene (0% ice), &amp; delivered to your shared GPS pin within 2 hours. Free delivery tiers available!
                 </p>
               </div>
 

@@ -50,7 +50,7 @@ export default async function OurFarmPage() {
               <span style={{ color: "#63cfee", textShadow: "0 0 30px rgba(99,207,238,0.4)" }}>Fresh Harvest.</span>
             </h1>
             <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "1.05rem", color: C.onSurfVar, lineHeight: 1.75, margin: "0 0 2.5rem", maxWidth: "480px" }}>
-              Located in Srinagar at Malabagh, our farm raises Rainbow Trout in clean, continuously filtered cold water. We farm with care, harvest only when you order, and deliver chilled to your shared GPS location within 2 hours.
+              Located in Srinagar at Malabagh, our farm raises Rainbow Trout in clean, continuously filtered cold water. We farm with care, harvest only when you order, pack in food-grade biodegradable polythene (0% ice), and deliver fresh to your shared GPS location within 2 hours.
             </p>
             <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
               <Link href="/shop" style={{ padding: "13px 28px", borderRadius: "10px", background: C.primaryCont, color: C.onPrimCont, fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: "0.875rem", textDecoration: "none", boxShadow: "0 0 20px rgba(58,173,204,0.3)" }}>
@@ -135,7 +135,7 @@ export default async function OurFarmPage() {
               </div>
               <h3 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "1.2rem", fontWeight: 700, color: C.onSurface, margin: 0 }}>Harvested to Order</h3>
               <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfVar, lineHeight: 1.7, fontSize: "0.88rem", margin: 0 }}>
-                We don&apos;t keep fish sitting in cold storage. Once you confirm your order, we harvest, clean, pack in clean food-grade packs, and deliver directly.
+                We don&apos;t keep fish sitting in cold storage. Once you confirm your order, we harvest, clean, pack in food-grade biodegradable polythene (0% ice), and deliver directly.
               </p>
             </div>
           </div>
@@ -158,7 +158,7 @@ export default async function OurFarmPage() {
               {[
                 { title: "No Muddy Odor", desc: "Filtered water means clean gills and fresh, sweet flesh without riverbed taint." },
                 { title: "Firm, Flaky Texture", desc: "Continuous swimming currents ensure firm muscle structure that flakes perfectly." },
-                { title: "Same-Day Delivery in Srinagar", desc: "Delivered chilled within hours of harvest to preserve original moisture and flavor." },
+                { title: "Same-Day Delivery in Srinagar", desc: "Packed in food-grade biodegradable polythene (0% ice) and delivered fresh within hours of harvest to preserve original moisture and flavor." },
                 { title: "FSSAI Registered Food Business", desc: "Reg. No: 21026414000392 (Dept. of Health & Medical Education, J&K). Full compliance with national food hygiene standards." },
               ].map(item => (
                 <div key={item.title} style={{ display: "flex", gap: "12px", alignItems: "flex-start" }}>
@@ -205,7 +205,7 @@ export default async function OurFarmPage() {
         <div className="max-w-7xl mx-auto">
           <div style={{ textAlign: "center", marginBottom: "3rem" }}>
             <h2 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "2.5rem", fontWeight: 800, letterSpacing: "-0.03em", color: C.onSurface, margin: "0 0 0.5rem" }}>Taste the Difference</h2>
-            <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfVar, fontSize: "0.95rem" }}>Order today and get fresh catch delivered chilled to your shared GPS location.</p>
+            <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfVar, fontSize: "0.95rem" }}>Order today and get fresh catch packed in food-grade biodegradable polythene (0% ice) delivered to your shared GPS location.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
             {[

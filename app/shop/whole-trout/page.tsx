@@ -12,7 +12,7 @@ import { getGoogleReviewsData } from "@/lib/reviews";
 export const metadata: Metadata = {
   title: "Whole Fresh Rainbow Trout (₹540/Kg)",
   description:
-    "Fresh whole cold-water Rainbow Trout from our Srinagar farm in Malabagh. Chilled 2-hour cold-chain express delivery across Srinagar 16km farm zone.",
+    "Fresh whole cold-water Rainbow Trout from our Srinagar farm in Malabagh. Fresh 2-hour express delivery in food-grade biodegradable polythene (0% ice) across Srinagar 16km farm zone.",
   alternates: {
     canonical: "https://urbantrout.in/shop/whole-trout",
   },
@@ -358,7 +358,7 @@ export default async function WholeTroutPage() {
               <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.9rem", color: C.onSurfVar, lineHeight: 1.75, margin: 0 }}>
                 Fresh, whole rainbow trout directly from our tanks in Srinagar. Perfect for whole-roasting,
                 clay oven tandoor, barbecue grills, or traditional Kashmiri trout recipes.
-                Harvested to order and packed chilled.
+                Harvested to order and packed fresh in food-grade biodegradable polythene (0% ice).
               </p>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem", marginTop: "1rem" }}>
                 {[
@@ -650,7 +650,7 @@ export default async function WholeTroutPage() {
                 </h3>
               </div>
               <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "1rem", color: C.onSurfVar, lineHeight: 1.75, maxWidth: "640px", marginBottom: "2rem" }}>
-                Raised in clean, continuously filtered cold water right here in Srinagar. Harvested only when you order, immediately packed in clean food-grade packs, and delivered chilled to your shared GPS location across our 16km Srinagar express zone.
+                Raised in clean, continuously filtered cold water right here in Srinagar. Harvested only when you order, immediately packed fresh in food-grade biodegradable polythene (0% ice), and delivered to your shared GPS location across our 16km Srinagar express zone.
               </p>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "1.5rem" }}>
                 {[

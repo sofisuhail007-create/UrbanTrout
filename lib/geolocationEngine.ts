@@ -189,7 +189,7 @@ export function resolveLocationFromText(inputText: string, weightKg: number = 2)
         source: "known_core",
         isDeliverable: false,
         deliveryFee: 0,
-        message: `${outArea.name} is beyond our express cold-chain perimeter. Available for Live Vending Centre pickup at Malabagh Farm.`
+        message: `${outArea.name} is beyond our 16 km express delivery perimeter. Available for Live Vending Centre pickup at Malabagh Farm.`
       };
     }
   }
@@ -320,7 +320,7 @@ function buildResult(name: string, dist: number, source: GeocodeResult["source"]
       source,
       isDeliverable: false,
       deliveryFee: 0,
-      message: `~${dist} km from Malabagh Farm Hub • Outside 16 km express cold-chain delivery perimeter. Available for Live Vending Center pickup.`
+      message: `~${dist} km from Malabagh Farm Hub • Outside 16 km express delivery perimeter. Available for Live Vending Center pickup.`
     };
   }
 }

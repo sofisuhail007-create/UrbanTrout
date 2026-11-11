@@ -248,7 +248,7 @@ export async function POST(req: NextRequest) {
               phone: customerPhone,
               customerName: customerName || "Valued Customer",
               status: "payment_confirmed",
-              messageText: `✅ *Payment Received & Order Confirmed!* 🐟\n\nThank you${safeName}! Your payment of *₹${amount}* has been verified successfully.\n\n📋 *Order Details:*\n• *Order Ref:* #${orderRef}\n• *Items:* ${itemsSummary}\n• *Payment ID:* ${paymentId}\n• *Status:* Live Harvest Scheduled\n\nOur farm team at Malabagh is preparing your fresh harvest for chilled express delivery within 2 hours via our Cold-Chain Dispatch Partner.\n\n📌 *Pin-Point Delivery Policy:* Please share your WhatsApp Location Pin or Google Maps link if not shared already. Delivery is strictly to your shared GPS location (not house numbers), handed over in person. Please keep your phone reachable — due to active multi-order cold-chain routes, no second delivery attempt can be made if unreachable.`,
+              messageText: `✅ *Payment Received & Order Confirmed!* 🐟\n\nThank you${safeName}! Your payment of *₹${amount}* has been verified successfully.\n\n📋 *Order Details:*\n• *Order Ref:* #${orderRef}\n• *Items:* ${itemsSummary}\n• *Payment ID:* ${paymentId}\n• *Status:* Live Harvest Scheduled\n\nOur farm team at Malabagh is preparing your fresh harvest, packed in food-grade biodegradable polythene (0% ice), for express delivery within 2 hours via our Express Dispatch Partner.\n\n📌 *Pin-Point Delivery Policy:* Please share your WhatsApp Location Pin or Google Maps link if not shared already. Delivery is strictly to your shared GPS location (not house numbers), handed over in person. Please keep your phone reachable — due to active multi-order routes, no second delivery attempt can be made, and if a delivery attempt fails, you will have to collect your package manually from our Live Vending Center in Malabagh.`,
             });
           } catch (waErr) {
             console.error("WhatsApp notification error for payment_link.paid:", waErr);
@@ -381,7 +381,7 @@ export async function POST(req: NextRequest) {
         : notes.channel === "WHATSAPP_AI_AGENT"
         ? "🤖 WhatsApp AI Agent"
         : isRiderCod
-        ? "🛵 Cold-Chain Express Dispatch (Razorpay QR)"
+        ? "🛵 Express Dispatch (Razorpay QR)"
         : isHomeDelivery
         ? "🛵 Home Delivery (Razorpay Link)"
         : isPos

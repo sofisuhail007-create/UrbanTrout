@@ -884,10 +884,10 @@ export default function FarmVisitsPage() {
             style={{ fontFamily: '"Space Grotesk", sans-serif' }}
             className="text-xl sm:text-2xl font-bold text-white mb-2"
           >
-            Need Same-Day Fresh Trout Delivered Chilled?
+            Need Same-Day Fresh Trout Delivered?
           </h3>
           <p style={{ fontFamily: '"Manrope", sans-serif' }} className="text-xs sm:text-sm text-slate-300 max-w-lg mx-auto mb-6">
-            Skip the visit and order fresh chilled Rainbow Trout harvested to order with cold-chain express delivery to your shared GPS location across our 16km zone within 2 hours.
+            Skip the visit and order fresh Rainbow Trout harvested to order, packed in food-grade biodegradable polythene (0% ice) with express delivery to your shared GPS location across our 16km zone within 2 hours.
           </p>
           <Link
             href="/shop"

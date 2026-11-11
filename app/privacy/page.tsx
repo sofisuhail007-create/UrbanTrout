@@ -30,7 +30,7 @@ const sections = [
   },
   {
     title: "2. How We Use Your Information",
-    body: "Your information is used strictly to provide you with the best farm-to-table service:\n• Processing, harvesting, and scheduling pin-point cold-chain deliveries in Srinagar.\n• Dispatching real-time harvest and order tracking alerts via WhatsApp / SMS.\n• Responding to customer inquiries and processing customer service or refund requests.\n• Improving our farm logistics and product availability in your area.\n• We do NOT sell, rent, or trade your personal information to third parties for marketing purposes.",
+    body: "Your information is used strictly to provide you with the best farm-to-table service:\n• Processing, harvesting, and scheduling pin-point express deliveries in Srinagar.\n• Dispatching real-time harvest and order tracking alerts via WhatsApp / SMS.\n• Responding to customer inquiries and processing customer service or refund requests.\n• Improving our farm logistics and product availability in your area.\n• We do NOT sell, rent, or trade your personal information to third parties for marketing purposes.",
   },
   {
     title: "3. Payment Gateway & Card Data Security",

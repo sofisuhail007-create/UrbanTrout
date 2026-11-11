@@ -4,14 +4,14 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "Bulk & Wholesale Trout Supply in Srinagar",
   description:
-    "Direct producer wholesale supply of fresh Rainbow Trout for Srinagar restaurants, hotels, weddings, and caterers. GST invoices, cold-chain delivery, and bulk rates from 10 kg.",
+    "Direct producer wholesale supply of fresh Rainbow Trout for Srinagar restaurants, hotels, weddings, and caterers. GST invoices, express delivery, food-grade biodegradable packaging (0% ice), and bulk rates from 10 kg.",
   alternates: {
     canonical: "https://urbantrout.in/bulk",
   },
   openGraph: {
     title: "Bulk & Wholesale Trout Supply in Srinagar | Urban Trout",
     description:
-      "Farm-direct wholesale Rainbow Trout supply for Srinagar restaurants and caterers. Guaranteed live harvest, GST invoicing, and early morning cold-chain delivery.",
+      "Farm-direct wholesale Rainbow Trout supply for Srinagar restaurants and caterers. Guaranteed live harvest, GST invoicing, and early morning express delivery in food-grade biodegradable packaging (0% ice).",
     url: "https://urbantrout.in/bulk",
     siteName: "Urban Trout",
     images: [
@@ -83,7 +83,7 @@ export default function BulkSupplyPage() {
             style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfVar }}
             className="text-base md:text-lg leading-relaxed"
           >
-            Direct commercial cold-water aquaculture partnership for Srinagar restaurateurs, hotel chefs, wazwan caterers, and wedding planners. Freshly harvested to schedule with guaranteed cold-chain temperature control and GST invoicing.
+            Direct commercial aquaculture partnership for Srinagar restaurateurs, hotel chefs, wazwan caterers, and wedding planners. Freshly harvested live to schedule from pure 10°C borewell water, packed in food-grade biodegradable polythene (0% ice) with GST invoicing.
           </p>
         </header>
 
@@ -104,10 +104,10 @@ export default function BulkSupplyPage() {
             </p>
           </div>
           <div className="p-6 rounded-2xl bg-slate-900/80 border border-slate-800">
-            <span className="text-2xl">❄️</span>
-            <h2 className="text-base font-bold text-white font-['Space_Grotesk'] mt-3 mb-1">0°C–4°C Dry Cold Chain</h2>
+            <span className="text-2xl">🌿</span>
+            <h2 className="text-base font-bold text-white font-['Space_Grotesk'] mt-3 mb-1">Biodegradable Pack (0% Ice)</h2>
             <p className="text-xs text-slate-400 font-sans leading-relaxed">
-              Packed in food-grade insulated tubs with clean food-grade packaging. Zero messy water pooling or flesh degradation.
+              Packed immediately after live harvest in sealed food-grade biodegradable polythene packaging with 0% ice. Zero messy melting water or flesh degradation.
             </p>
           </div>
         </div>

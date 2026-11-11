@@ -442,7 +442,7 @@ function CalculatorInner() {
     if (isFreeDelivery) {
       return {
         isFree: true,
-        text: "🎉 You have unlocked 100% FREE Cold-Chain Express Delivery on this order!",
+        text: "🎉 You have unlocked 100% FREE Express Delivery on this order!",
       };
     }
     if (tier === "zone1" && weightKg < 2) {
@@ -512,9 +512,9 @@ function CalculatorInner() {
       `📍 Location: ${selectedPlace?.name || searchQuery} (~${distance} km from Malabagh Farm Hub)\n` +
       `📦 Order: ${weightKg} kg × ${cutName}\n` +
       `💵 Fish Price: ₹${fishCost} (@ ₹${ratePerKg}/kg)\n` +
-      `🚚 Cold-Chain Express Delivery: ${deliveryFee === 0 ? "100% FREE DELIVERY ✓" : `₹${deliveryFee} only`}\n` +
+      `🚚 Express Delivery: ${deliveryFee === 0 ? "100% FREE DELIVERY ✓" : `₹${deliveryFee} only`}\n` +
       `✅ Total Payable: ₹${totalAmount} (UPI / Card / Net Banking)\n\n` +
-      `📌 Pin-Point Delivery Policy: Please share a Google Maps link or WhatsApp Location Pin. Our Cold-Chain Dispatch Partner delivers strictly to the shared GPS pin (not house numbers), and orders must be collected in person. Kindly keep your phone reachable — no second attempt can be made if unreachable.\n\n` +
+      `📌 Pin-Point Delivery Policy: Packed fresh in food-grade biodegradable polythene (0% ice). Please share a Google Maps link or WhatsApp Location Pin. Our Express Dispatch Partner delivers strictly to the shared GPS pin (not house numbers), and orders must be collected in person. Kindly keep your phone reachable — if a delivery attempt fails, no second attempt can be made and you will have to collect your package manually from our Live Vending Center in Malabagh.\n\n` +
       `🔗 View quote or modify order:\n${link}`
     );
   };
@@ -553,7 +553,7 @@ function CalculatorInner() {
           </Link>
           <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-[#10212c] border border-white/5 text-[#9fadb8]">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            Live Cold-Chain Engine v4.0
+            Live Delivery Engine v4.0
           </span>
         </div>
 
@@ -563,7 +563,7 @@ function CalculatorInner() {
             Srinagar Delivery Calculator
           </h1>
           <p className="text-sm sm:text-base text-[#9fadb8] max-w-2xl mx-auto">
-            Instant transparent delivery rates, distance calculation from our Malabagh Farm Hub, and cold-chain express delivery across Srinagar.
+            Instant transparent delivery rates, distance calculation from our Malabagh Farm Hub, and fresh express delivery in food-grade biodegradable polythene (0% ice) across Srinagar.
           </p>
         </div>
 
@@ -829,9 +829,9 @@ function CalculatorInner() {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-[#9fadb8] block">Cold-Chain Express Delivery:</span>
+                  <span className="text-[#9fadb8] block">Express Delivery:</span>
                   <span className="text-[11px] text-[#5a6b77]">
-                    Food-grade packaging (double polythene sealed)
+                    Food-grade biodegradable polythene (0% ice)
                   </span>
                 </div>
                 <div className="text-right">
@@ -885,7 +885,7 @@ function CalculatorInner() {
             {/* Out of zone note */}
             {isOutOfZone && (
               <div className="mt-4 p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs sm:text-sm">
-                <strong>📍 Walk-In Counter Pickup at Malabagh Farm:</strong> This location is beyond our 16 km express cold-chain perimeter. You are warmly welcome to visit our Malabagh farm tanks to pick up live catch directly with ZERO delivery fee!
+                <strong>📍 Walk-In Counter Pickup at Malabagh Farm:</strong> This location is beyond our 16 km express delivery perimeter. You are warmly welcome to visit our Malabagh farm tanks to pick up live catch directly with ZERO delivery fee!
               </div>
             )}
           </div>
@@ -1002,11 +1002,11 @@ function CalculatorInner() {
         {/* Customer Transparency Guide: How Delivery Works */}
         <div className="rounded-2xl bg-[#0a1924]/60 border border-white/5 p-6 sm:p-8">
           <h2 className="text-xl sm:text-2xl font-bold text-white mb-2">
-            Transparent Zone-Based Cold-Chain Express Delivery
+            Transparent Zone-Based Express Delivery
           </h2>
           <p className="text-sm text-[#9fadb8] mb-6 leading-relaxed">
             Unlike retail supermarket fish that sits dead in frozen displays,{" "}
-            <strong className="text-white">Urban Trout is 100% farm-live harvested</strong>. Every order is swimming in fresh flowing spring water at Malabagh until you confirm your order. It is immediately prepped, packed in clean food-grade packaging (double polythene), and dispatched via our Cold-Chain Dispatch Partner strictly to your shared GPS location pin within 90–120 minutes (in-person handover; please keep your phone reachable as no second attempt is available).
+            <strong className="text-white">Urban Trout is 100% farm-live harvested</strong>. Every order is swimming in fresh flowing spring water at Malabagh until you confirm your order. It is immediately prepped, packed fresh in 100% food-grade biodegradable polythene (two polythenes, 0% ice), and dispatched via our Express Dispatch Partner strictly to your shared GPS location pin within 90–120 minutes (in-person handover; please keep your phone reachable — no second attempt is made, and if a delivery attempt fails, customer must collect the package manually from our Live Vending Center in Malabagh).
           </p>
 
           {/* 4-Tier Breakdown Cards */}
