@@ -80,7 +80,7 @@ const faqs = [
   },
   {
     q: "What is the minimum order quantity and how does pin-point delivery work?",
-    a: "Cold-chain express delivery is 100% Free based on distance from our Malabagh farm: minimum 2 kg for Zone 1 (0–4 km), 3 kg for Zone 2 (4–7 km), 3 kg for Zone 3 (7–11.5 km), and 5 kg for Zone 4 (11.5–16 km). Smaller orders carry standard express delivery fees (from ₹35 in Zone 1), or can be picked up directly from our farm counter with zero charges. Simply share a Google Maps link or WhatsApp Location Pin — our Cold-Chain Dispatch Partner delivers strictly to that shared GPS pin (not house numbers), handed over in person; please keep your phone reachable as no second attempt can be made if unreachable.",
+    a: "Cold-chain express delivery is 100% Free based on distance from our Malabagh farm: minimum 2 kg for Zone 1 (0–4 km), 3 kg for Zone 2 (4–7 km), 3 kg for Zone 3 (7–11.5 km), and 5 kg for Zone 4 (11.5–16 km). Smaller orders carry standard express delivery fees (from ₹45 in Zone 1), or can be picked up directly from our farm counter with zero charges. Simply share a Google Maps link or WhatsApp Location Pin — our Cold-Chain Dispatch Partner delivers strictly to that shared GPS pin (not house numbers), handed over in person; please keep your phone reachable as no second attempt can be made if unreachable.",
   },
   {
     q: "What payment methods do you accept?",

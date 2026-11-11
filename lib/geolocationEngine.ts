@@ -246,7 +246,7 @@ export function resolveLocationFromCoords(lat: number, lng: number, weightKg: nu
 function buildResult(name: string, dist: number, source: GeocodeResult["source"], weightKg: number, lat?: number, lng?: number): GeocodeResult {
   if (dist <= 4.0) {
     const minKg = 2;
-    const fee = weightKg >= minKg ? 0 : 35;
+    const fee = weightKg >= minKg ? 0 : 45;
     return {
       status: "IN_ZONE",
       name,
@@ -262,7 +262,7 @@ function buildResult(name: string, dist: number, source: GeocodeResult["source"]
     };
   } else if (dist <= 7.0) {
     const minKg = 3;
-    const fee = weightKg >= 3 ? 0 : (weightKg >= 2 ? 55 : 65);
+    const fee = weightKg >= 3 ? 0 : (weightKg >= 2 ? 55 : 75);
     return {
       status: "IN_ZONE",
       name,
@@ -278,7 +278,7 @@ function buildResult(name: string, dist: number, source: GeocodeResult["source"]
     };
   } else if (dist <= 11.5) {
     const minKg = 3;
-    const fee = weightKg >= 3 ? 0 : (weightKg >= 2 ? 89 : 99);
+    const fee = weightKg >= 3 ? 0 : (weightKg >= 2 ? 89 : 130);
     return {
       status: "IN_ZONE",
       name,
@@ -294,7 +294,7 @@ function buildResult(name: string, dist: number, source: GeocodeResult["source"]
     };
   } else if (dist <= 16.0) {
     const minKg = 5;
-    const fee = weightKg >= 5 ? 0 : (weightKg >= 4 ? 109 : (weightKg >= 3 ? 129 : (weightKg >= 2 ? 139 : 149)));
+    const fee = weightKg >= 5 ? 0 : (weightKg >= 4 ? 109 : (weightKg >= 3 ? 129 : (weightKg >= 2 ? 139 : 190)));
     return {
       status: "IN_ZONE",
       name,

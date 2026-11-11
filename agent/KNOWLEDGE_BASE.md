@@ -179,8 +179,8 @@ However, all of our farm-raised trout is sold fresh at our Live Vending Center i
 - We offer chilled cold-chain express delivery up to **16.0 km** across Srinagar!
 - **TIER 1: NEARBY AREAS (0 to 4.0 km from Malabagh — Core Srinagar Area):**
   • **100% FREE Express Delivery MOQ:** Minimum order is **2 kg** (Whole ₹1080 / Gutted ₹1160).
-  • **1 KG Starter Pack Express Delivery Fee:**
-    - Only **₹35 fee** (Total ₹615 Gutted / ₹575 Whole; +₹40 during 4–8 PM evening rush).
+  • **1 KG Starter Pack Express Delivery Fee (Full Standard Delivery Fee):**
+    - **₹45 fee** (Total ₹625 Gutted / ₹585 Whole; +₹40 during 4–8 PM evening rush).
   • Express delivery is **100% FREE** on 2 kg or more!
   • Customers can also pick up live from our Live Vending Center in Malabagh without any delivery charge.
   • In-zone localities: Malabagh, Mirza Bagh, Naseem Bagh, Habak, Hazratbal, Zakura, Batapora, Buchpora, Soura/SKIMS, Ahmad Nagar, 90 Feet Road, Illahi Bagh, Nowshera, Zadibal, Lal Bazar, Botakadal, Saderbal, Nigeen, Pandach, Zoonimar, Umer Colony, Bakhshi Pora, Gassu, etc.
@@ -188,15 +188,15 @@ However, all of our farm-raised trout is sold fresh at our Live Vending Center i
 - **TIER 2: MID SRINAGAR (4.0 to 7.0 km from Malabagh):**
   • **100% FREE Express Delivery MOQ:** Minimum order is **3 kg** (Whole ₹1620 / Gutted ₹1740).
   • **2 KG Express Delivery Fee:** Only **₹55 fee** (Total ₹1,215 Gutted / ₹1,135 Whole; +₹40 during 4–8 PM rush).
-  • **1 KG Starter Pack Express Delivery:** Only **₹65 fee** (Total ₹645 Gutted / ₹605 Whole; +₹40 during 4–8 PM rush).
-  • Upfront pitch: Pitch 3 kg for 100% FREE delivery, or 2 kg at ₹55 delivery fee!
+  • **1 KG Starter Pack Express Delivery:** **₹75 fee** (Total ₹655 Gutted / ₹615 Whole; +₹40 during 4–8 PM rush).
+  • Upfront pitch: Pitch 3 kg for 100% FREE delivery, or 2 kg at ₹55 delivery fee (cheaper delivery than 1 kg)!
   • In-zone localities: Gulab Bagh, Rose Colony, Hawal, Badamwari, Alamgari Bazar, Saida Kadal, Nagbal, Kathi Darwaza, Tailbal, Rainawari, Khanyar, Nowhatta, Gojwara, Shalimar, Eidgah, Safakadal, Ali Kadal, Bakura, Shuhama, Sangam, etc.
 
 - **TIER 3: GREATER SRINAGAR (7.0 to 11.5 km from Malabagh):**
   • **100% FREE Express Delivery MOQ:** Minimum order is **3 kg** (Whole ₹1620 / Gutted ₹1740).
   • **2 KG Express Delivery Fee:** Only **₹89 fee** (Total ₹1,249 Gutted / ₹1,169 Whole; +₹40 during 4–8 PM rush).
-  • **1 KG Starter Pack Express Delivery:** Only **₹99 fee** (Total ₹679 Gutted / ₹639 Whole; +₹40 during 4–8 PM rush).
-  • Upfront pitch: Pitch 3 kg for 100% FREE delivery, or 2 kg at ₹89 delivery fee!
+  • **1 KG Starter Pack Express Delivery:** **₹130 fee** (Total ₹710 Gutted / ₹670 Whole; +₹40 during 4–8 PM rush).
+  • Upfront pitch: Pitch 3 kg for 100% FREE delivery, or 2 kg at ₹89 delivery fee (saves ₹41 on delivery vs 1 kg)!
   • In-zone localities: Karan Nagar, Lal Chowk (~10.8km), Khayam / Khayyam (~8.2km), Dalgate (~9.3km), Qamarwari (~8.9km), Nishat (~7.6km), Brein (~11.0km), Balgarden (~9.9km).
 
 - **TIER 4: SOUTH SRINAGAR & OUTER CORRIDOR (11.5 to 16.0 km from Malabagh):**
@@ -204,7 +204,7 @@ However, all of our farm-raised trout is sold fresh at our Live Vending Center i
   • **4 KG Express Delivery Fee:** Only **₹109 fee** (Total ₹2,429 Gutted / ₹2,269 Whole; +₹40 evening rush).
   • **3 KG Express Delivery Fee:** Only **₹129 fee** (Total ₹1,869 Gutted / ₹1,749 Whole; +₹40 evening rush).
   • **2 KG Express Delivery Fee:** Only **₹139 fee** (Total ₹1,299 Gutted / ₹1,219 Whole; +₹40 during 4–8 PM rush).
-  • **1 KG Starter Pack Express Delivery:** Only **₹149 fee** (Total ₹729 Gutted / ₹689 Whole; +₹40 during 4–8 PM rush).
+  • **1 KG Starter Pack Express Delivery:** **₹190 fee** (Total ₹770 Gutted / ₹730 Whole; +₹40 during 4–8 PM rush).
   • Upfront pitch: Pitch 5 kg for 100% FREE delivery, or 2–4 kg with express cold-chain delivery!
   • In-zone localities: Barzulla (~14.2km), Baghat Barzulla (~15km), Rambagh / Solina (~14.3km), Gogji Bagh (~13.6km), Wazir Bagh (~12.7km), Tulsi Bagh (~13km), Hazuri Bagh (~12km), Iqbal Park (~12.5km), Sonwar (~12.9km), Batamaloo (~11.8km), Bemina (~12.5km), Rajbagh (~12km), Jawahar Nagar (~11.8km), Alochi Bagh (~11.8km), Magarmal Bagh (~11.6km), Sanat Nagar (~13.5km), Rawalpora (~14km), Hyderpora (~14.5km), Chanapora (~13km), Natipora (~12.5km), Peerbagh (~14.5km), Airport Road / Humhama (~15km), Bagh-e-Mehtab (~14km), Kralpora (~15.5km), Rangreth (~15.5km), Lasjan (~14km), Nowgam (~14.5km), Padshahi Bagh (~13km), Pantha Chowk (~14km), Soiteng (~13.5km), Pandrathan (~13km), Athwajan (~13.5km), Pohru, Mochu.
 
@@ -235,10 +235,10 @@ However, all of our farm-raised trout is sold fresh at our Live Vending Center i
   • South & Cross-City Corridor (11.5 to 16.0 km — Rajbagh, Jawahar Nagar, Batamaloo, Sanat Nagar, Peerbagh, Airport Rd, Nowgam, etc.): Free for orders of 5 kg or more.
 - **Standard Express Delivery Fee (For Smaller Orders Below Free MOQ — STRICTLY REACTIVE, NEVER UPFRONT):**
   • ⚠️ HARD MANDATE: Quote the Area Free Delivery MOQ (2 kg / 3 kg / 5 kg) first. ONLY if the customer asks for a smaller quantity, gladly offer express delivery with the applicable fee or free counter pickup.
-  • Nearby Areas (1 kg): ₹35 fee (Total ₹615 Gutted)
-  • Mid Srinagar (2 kg): ₹55 fee (Total ₹1,215 Gutted) | 1 kg: ₹65 fee (Total ₹645 Gutted)
-  • Greater Srinagar (2 kg): ₹89 fee (Total ₹1,249 Gutted) | 1 kg: ₹99 fee (Total ₹679 Gutted)
-  • South/Cross-City Corridor (4 kg): ₹109 fee (Total ₹2,429 Gutted) | 3 kg: ₹129 fee (Total ₹1,869) | 2 kg: ₹139 fee (Total ₹1,299) | 1 kg: ₹149 fee (Total ₹729)
+  • Nearby Areas (1 kg): ₹45 fee (Total ₹625 Gutted)
+  • Mid Srinagar (2 kg): ₹55 fee (Total ₹1,215 Gutted) | 1 kg: ₹75 fee (Total ₹655 Gutted)
+  • Greater Srinagar (2 kg): ₹89 fee (Total ₹1,249 Gutted) | 1 kg: ₹130 fee (Total ₹710 Gutted)
+  • South/Cross-City Corridor (4 kg): ₹109 fee (Total ₹2,429 Gutted) | 3 kg: ₹129 fee (Total ₹1,869) | 2 kg: ₹139 fee (Total ₹1,299) | 1 kg: ₹190 fee (Total ₹770)
 - **Express Turnaround:** Live-harvested upon confirmed payment and delivered chilled to your shared GPS location pin within 2 hours (8:00 AM – 8:00 PM, Saturday to Thursday). Orders are received in person at the shared location pin only.
 
 ---
@@ -418,7 +418,7 @@ However, all of our farm-raised trout is sold fresh at our Live Vending Center i
 - **The Summary Mentions Everything Clearly:**
   1. **Order:** Exact weight and cut type (*Cleaned & Gutted* or *Whole Fresh Trout*).
   2. **Fish Price:** Official rate per kg (₹580/kg for Gutted / ₹540/kg for Whole) and the calculated fish total.
-  3. **Cold-Chain Express Delivery:** Stated clearly as either **100% FREE** or the exact **Express Delivery fee** (e.g. ₹35, ₹55, ₹65, ₹89, ₹99, ₹109, ₹129, ₹139, ₹149).
+  3. **Cold-Chain Express Delivery:** Stated clearly as either **100% FREE** or the exact **Express Delivery fee** (e.g. ₹45, ₹55, ₹75, ₹89, ₹109, ₹129, ₹130, ₹139, ₹190).
   4. **Packaging:** Clean food-grade double packaging (Zero Ice, No Melting Mess).
   5. **Destination Address:** Area name and approximate distance from Malabagh Farm Hub.
   6. **Total Payable:** The exact sum total that matches the payment link.

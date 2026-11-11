@@ -47,13 +47,13 @@ export const DELIVERY_ZONES: Record<string, ZoneConfig> = {
     rangeKm: "0 – 4.0 km",
     minKgFree: 2,
     minOrderFreeText: "2 kg",
-    specialDeliveryFee: 35,
+    specialDeliveryFee: 45,
     deliveryTime: "Within 90–120 mins",
     color: "#22c55e",
     badgeBg: "rgba(34, 197, 94, 0.15)",
     badgeBorder: "rgba(34, 197, 94, 0.35)",
     badgeText: "#4ade80",
-    description: "100% FREE express delivery on min 2 kg (or ₹35 delivery fee for 1 kg).",
+    description: "100% FREE express delivery on min 2 kg (or ₹45 delivery fee for 1 kg).",
   },
   zone2: {
     id: "zone2",
@@ -68,7 +68,7 @@ export const DELIVERY_ZONES: Record<string, ZoneConfig> = {
     badgeBg: "rgba(56, 189, 248, 0.15)",
     badgeBorder: "rgba(56, 189, 248, 0.35)",
     badgeText: "#7dd3fc",
-    description: "100% FREE express delivery on min 3 kg (or ₹55 delivery fee for 2 kg, ₹65 for 1 kg).",
+    description: "100% FREE express delivery on min 3 kg (or ₹55 delivery fee for 2 kg, ₹75 for 1 kg).",
   },
   zone3: {
     id: "zone3",
@@ -83,7 +83,7 @@ export const DELIVERY_ZONES: Record<string, ZoneConfig> = {
     badgeBg: "rgba(168, 85, 247, 0.15)",
     badgeBorder: "rgba(168, 85, 247, 0.35)",
     badgeText: "#c084fc",
-    description: "100% FREE express delivery on min 3 kg (or ₹89 delivery fee for 2 kg, ₹99 for 1 kg).",
+    description: "100% FREE express delivery on min 3 kg (or ₹89 delivery fee for 2 kg, ₹130 for 1 kg).",
   },
   zone4: {
     id: "zone4",
@@ -98,7 +98,7 @@ export const DELIVERY_ZONES: Record<string, ZoneConfig> = {
     badgeBg: "rgba(245, 158, 11, 0.15)",
     badgeBorder: "rgba(245, 158, 11, 0.35)",
     badgeText: "#fbbf24",
-    description: "100% FREE express delivery on 5 kg family pack (or ₹109 for 4 kg, ₹129 for 3 kg, ₹139 for 2 kg, ₹149 for 1 kg).",
+    description: "100% FREE express delivery on 5 kg family pack (or ₹109 for 4 kg, ₹129 for 3 kg, ₹139 for 2 kg, ₹190 for 1 kg).",
   },
   out_of_zone: {
     id: "out_of_zone",
@@ -327,9 +327,9 @@ export function evaluateDeliveryZone(params: {
   if (!isDeliverable) {
     fee = 0;
   } else if (tierId === "zone1") {
-    fee = weightKg >= 2 ? 0 : 35;
+    fee = weightKg >= 2 ? 0 : 45;
     if (fee > 0) {
-      upgradeAdvice = `Add +${2 - weightKg} kg to get 100% FREE express delivery and save ₹35!`;
+      upgradeAdvice = `Add +${2 - weightKg} kg to get 100% FREE express delivery and save ₹45!`;
       savingsAmount = fee;
     }
   } else if (tierId === "zone2") {
@@ -340,8 +340,8 @@ export function evaluateDeliveryZone(params: {
       upgradeAdvice = `Add +1 kg to get 100% FREE express delivery and save ₹55!`;
       savingsAmount = fee;
     } else {
-      fee = 65;
-      upgradeAdvice = `Upgrade to 2 kg for just ₹55 delivery fee, or 3 kg for 100% FREE delivery!`;
+      fee = 75;
+      upgradeAdvice = `Upgrade to 2 kg for lower ₹55 delivery fee, or 3 kg for 100% FREE delivery!`;
       savingsAmount = fee;
     }
   } else if (tierId === "zone3") {
@@ -352,8 +352,8 @@ export function evaluateDeliveryZone(params: {
       upgradeAdvice = `Add +1 kg to get 100% FREE express delivery and save ₹89!`;
       savingsAmount = fee;
     } else {
-      fee = 99;
-      upgradeAdvice = `Upgrade to 2 kg for just ₹89 delivery fee, or 3 kg for 100% FREE delivery!`;
+      fee = 130;
+      upgradeAdvice = `Upgrade to 2 kg for lower ₹89 delivery fee, or 3 kg for 100% FREE delivery!`;
       savingsAmount = fee;
     }
   } else if (tierId === "zone4") {
@@ -372,8 +372,8 @@ export function evaluateDeliveryZone(params: {
       upgradeAdvice = `Upgrade to 5 kg family pack for 100% FREE delivery!`;
       savingsAmount = fee;
     } else {
-      fee = 149;
-      upgradeAdvice = `Upgrade to 2 kg (₹139 fee) or 5 kg family pack for 100% FREE delivery!`;
+      fee = 190;
+      upgradeAdvice = `Upgrade to 2 kg (lower ₹139 fee) or 5 kg family pack for 100% FREE delivery!`;
       savingsAmount = fee;
     }
   }
@@ -416,21 +416,21 @@ export function evaluateDeliveryZone(params: {
       : `✓ Mid-City Delivery — Free from 3 kg (~${dist.toFixed(1)} km)`;
     deliveryMessage = isRush && fee > 0
       ? `Deliverable within 2 hours to your shared GPS location. Free on 3+ kg, or ₹${fee} express delivery fee for ${weightKg} kg (includes ₹40 evening rush surcharge 4–8 PM).`
-      : `Deliverable within 2 hours to your shared GPS location. Free on 3+ kg, or express delivery fee (₹55 for 2 kg / ₹65 for 1 kg).`;
+      : `Deliverable within 2 hours to your shared GPS location. Free on 3+ kg, or express delivery fee (₹55 for 2 kg / ₹75 for 1 kg).`;
   } else if (tierId === "zone3") {
     statusHeadline = isRush && fee > 0
       ? `✓ Greater Srinagar Delivery — Free from 3 kg (~${dist.toFixed(1)} km) · ⚡ Evening Rush Express`
       : `✓ Greater Srinagar Delivery — Free from 3 kg (~${dist.toFixed(1)} km)`;
     deliveryMessage = isRush && fee > 0
       ? `Deliverable within 2 hours to your shared GPS location. Free on 3+ kg, or ₹${fee} express delivery fee for ${weightKg} kg (includes ₹40 evening rush surcharge 4–8 PM).`
-      : `Deliverable within 2 hours to your shared GPS location with cold-chain packaging. Free on 3+ kg, or express delivery fee (₹89 for 2 kg / ₹99 for 1 kg).`;
+      : `Deliverable within 2 hours to your shared GPS location with cold-chain packaging. Free on 3+ kg, or express delivery fee (₹89 for 2 kg / ₹130 for 1 kg).`;
   } else if (tierId === "zone4") {
     statusHeadline = isRush && fee > 0
       ? `✓ South Corridor Delivery — Free on 5 kg (~${dist.toFixed(1)} km) · ⚡ Evening Rush Express`
       : `✓ South Corridor Delivery — Free on 5 kg (~${dist.toFixed(1)} km)`;
     deliveryMessage = isRush && fee > 0
       ? `Deliverable within 2 hours to your shared GPS location. 100% Free on 5 kg family pack, or ₹${fee} express delivery fee for ${weightKg} kg (includes ₹40 evening rush surcharge 4–8 PM).`
-      : `Deliverable within 2 hours to your shared GPS location in clean food-grade packaging. 100% Free on 5 kg family pack, or express delivery fee (₹109 for 4 kg / ₹129 for 3 kg / ₹139 for 2 kg / ₹149 for 1 kg).`;
+      : `Deliverable within 2 hours to your shared GPS location in clean food-grade packaging. 100% Free on 5 kg family pack, or express delivery fee (₹109 for 4 kg / ₹129 for 3 kg / ₹139 for 2 kg / ₹190 for 1 kg).`;
   } else {
     statusHeadline = `📍 Outside 16 km Express Delivery Perimeter (~${dist.toFixed(1)} km)`;
     deliveryMessage = `To ensure live-harvest cold chain integrity within 2 hours, cold-chain express delivery is restricted to 16 km. You are warmly welcome to pick up fresh live catch directly from our Live Vending Center in Malabagh with ZERO delivery fee!`;

@@ -109,26 +109,26 @@ function getTierFromDistance(dist: number): "zone1" | "zone2" | "zone3" | "zone4
 
 function computeDeliveryFee(tier: string, weightKg: number): number {
   if (tier === "zone1") {
-    return weightKg >= 2 ? 0 : 35;
+    return weightKg >= 2 ? 0 : 45;
   }
   if (tier === "zone2") {
     if (weightKg >= 3) return 0;
     if (weightKg >= 2) return 55;
-    return 65;
+    return 75;
   }
   if (tier === "zone3") {
     if (weightKg >= 3) return 0;
     if (weightKg >= 2) return 89;
-    return 99;
+    return 130;
   }
   if (tier === "zone4") {
     if (weightKg >= 5) return 0;
     if (weightKg >= 4) return 109;
     if (weightKg >= 3) return 129;
     if (weightKg >= 2) return 139;
-    return 149;
+    return 190;
   }
-  return 0; // out of zone has no doorstep delivery fee (counter pickup)
+  return 0; // out of zone has no location delivery fee (counter pickup)
 }
 
 function CalculatorInner() {
@@ -448,7 +448,7 @@ function CalculatorInner() {
     if (tier === "zone1" && weightKg < 2) {
       return {
         isFree: false,
-        text: `Add +${2 - weightKg} kg to unlock 100% FREE express delivery (Save ₹35)!`,
+        text: `Add +${2 - weightKg} kg to unlock 100% FREE express delivery (Save ₹45)!`,
       };
     }
     if (tier === "zone2" && weightKg < 3) {
@@ -1023,7 +1023,7 @@ function CalculatorInner() {
               </p>
               <div className="text-xs text-white font-medium bg-black/30 p-2 rounded-lg">
                 • <strong className="text-emerald-300">100% Free Delivery</strong> on 2+ kg<br />
-                • Nominal ₹35 express delivery fee on 1 kg
+                • ₹45 express delivery fee on 1 kg
               </div>
             </div>
 
@@ -1039,7 +1039,7 @@ function CalculatorInner() {
               </p>
               <div className="text-xs text-white font-medium bg-black/30 p-2 rounded-lg">
                 • <strong className="text-sky-300">100% Free Delivery</strong> on 3+ kg<br />
-                • ₹55 on 2 kg | ₹65 on 1 kg
+                • ₹55 on 2 kg | ₹75 on 1 kg
               </div>
             </div>
 
@@ -1055,7 +1055,7 @@ function CalculatorInner() {
               </p>
               <div className="text-xs text-white font-medium bg-black/30 p-2 rounded-lg">
                 • <strong className="text-indigo-300">100% Free Delivery</strong> on 3+ kg<br />
-                • ₹89 on 2 kg | ₹99 on 1 kg
+                • ₹89 on 2 kg | ₹130 on 1 kg
               </div>
             </div>
 
@@ -1071,7 +1071,7 @@ function CalculatorInner() {
               </p>
               <div className="text-xs text-white font-medium bg-black/30 p-2 rounded-lg">
                 • <strong className="text-amber-300">100% Free Delivery</strong> on 5 kg Family Pack<br />
-                • ₹109 on 4 kg | ₹129 on 3 kg | ₹139 on 2 kg | ₹149 on 1 kg
+                • ₹109 on 4 kg | ₹129 on 3 kg | ₹139 on 2 kg | ₹190 on 1 kg
               </div>
             </div>
           </div>
