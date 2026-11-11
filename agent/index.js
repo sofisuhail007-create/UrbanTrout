@@ -953,20 +953,53 @@ function formatOrderSummaryCard({
 
   // Parse weight if specified in desc (e.g. "2 kg Cleaned & Gutted" -> 2)
   const weightMatch = (desc || "").match(/(\d+(?:\.\d+)?)\s*(?:kg|kilos?)/i);
-  let weightKg = weightMatch ? parseFloat(weightMatch[1]) : null;
+  const weightKg = weightMatch ? parseFloat(weightMatch[1]) : null;
+  const baseUnitRate = isWhole ? 540 : 580;
+
+  // Strip redundant inline (+₹149 Delivery) / (+Express Delivery) suffix from Order title cleanly
+  const cleanTitleDesc = (desc || "")
+    .replace(/\s*\(\s*\+?\s*(?:₹\s*\d+\s*)?(?:Special\s+|Express\s+)?Delivery\s*\)/gi, "")
+    .trim();
 
   const orderTitle = weightKg
     ? `${weightKg} kg × ${cutName}`
-    : (desc && !/^(?:fresh\s+trout\s+order\s*\(\s*₹?\d+\s*\)|\d+)$/i.test(desc) ? desc : `${cutName} Trout`);
+    : (cleanTitleDesc && !/^(?:fresh\s+trout\s+order\s*\(\s*₹?\d+\s*\)|\d+)$/i.test(cleanTitleDesc) ? cleanTitleDesc : `${cutName} Trout`);
 
-  // Destination / locality
-  const rawPlace = localityName || (deliveryArea && !deliveryArea.includes("Within") && !deliveryArea.includes("Doorstep Delivery") && !deliveryArea.includes("Cold-Chain Delivery") && !deliveryArea.includes("Express Delivery") ? deliveryArea.replace(/\s*\([^)]*\)\s*/g, "").trim() : "Srinagar");
-  const cleanPlace = rawPlace && !/^(?:srinagar|kashmir)$/i.test(rawPlace) ? rawPlace : "Srinagar";
+  // Resolve effective delivery fee from explicit arg, description tag, OR total vs base weight price
+  const descFeeMatch = (desc || "").match(/\(\s*\+\s*₹?\s*(\d+)\s*(?:Special\s+|Express\s+)?Delivery\s*\)/i);
+  let effectiveDeliveryFee = Number(deliveryFee) > 0
+    ? Number(deliveryFee)
+    : (descFeeMatch ? parseInt(descFeeMatch[1], 10) : 0);
+  if (effectiveDeliveryFee === 0 && weightKg && Number(amount) > 0) {
+    const baseExpected = Math.round(weightKg * baseUnitRate);
+    if (Number(amount) > baseExpected + 5) {
+      effectiveDeliveryFee = Number(amount) - baseExpected;
+    }
+  }
 
-  const isSpecialDeliveryOrder = Number(deliveryFee) > 0 || /\(\+(?:Special|Express) Delivery\)/i.test(desc || "");
-  const deliveryDisplay = isSpecialDeliveryOrder
-    ? (Number(deliveryFee) > 0 ? `${cleanPlace} (+₹${deliveryFee} Express Delivery)` : `${cleanPlace} (Express Delivery)`)
-    : `${cleanPlace} (100% FREE)`;
+  // Destination / locality (avoid ugly placeholders like "Valued Customer ()")
+  const rawPlace = localityName || (deliveryArea && !deliveryArea.includes("Within") && !deliveryArea.includes("Doorstep Delivery") && !deliveryArea.includes("Cold-Chain Delivery") && !deliveryArea.includes("Express Delivery") ? deliveryArea.replace(/\s*\([^)]*\)\s*/g, "").trim() : "");
+  const sanitizedPlace = (rawPlace || "").replace(/\(\s*\)/g, "").trim();
+  const isGenericPlace = !sanitizedPlace || /^(?:srinagar|kashmir|area pending|valued\s*customer|customer|express\s*delivery)$/i.test(sanitizedPlace);
+  const cleanPlace = isGenericPlace ? "" : sanitizedPlace;
+
+  const isExplicitPaidTag = effectiveDeliveryFee > 0 || /\(\s*\+?\s*(?:₹\s*\d+\s*)?(?:Special|Express)\s*Delivery\s*\)/i.test(desc || "") || /\(\s*\+\s*₹?\s*\d+\s*Delivery\s*\)/i.test(desc || "");
+  const isAmbiguousCustomTotal = !isExplicitPaidTag && !weightKg && Number(amount) > 0 && (Number(amount) % 580 !== 0) && (Number(amount) % 540 !== 0);
+
+  let deliveryDisplay;
+  if (isExplicitPaidTag) {
+    if (effectiveDeliveryFee > 0) {
+      deliveryDisplay = cleanPlace
+        ? `${cleanPlace} (+₹${effectiveDeliveryFee} Express Delivery)`
+        : `Express Delivery (+₹${effectiveDeliveryFee})`;
+    } else {
+      deliveryDisplay = cleanPlace ? `${cleanPlace} (Express Delivery)` : "Express Delivery";
+    }
+  } else if (isAmbiguousCustomTotal) {
+    deliveryDisplay = cleanPlace ? `${cleanPlace} (Express Delivery)` : "Express Delivery Included";
+  } else {
+    deliveryDisplay = `${cleanPlace || "Srinagar"} (100% FREE)`;
+  }
 
   const slotDisplay = scheduledSlot || "Harvested live, packed in food-grade biodegradable polythene (0% ice) & dispatched within 2 hours of payment";
 
@@ -3674,11 +3707,15 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
             const urgencyNote = (isNightAfter9PM || isEarlyPreDawn)
               ? `\n\n⏰ *Delivery Slot:* ${scheduledSlot}\n(Live harvest commences at 8:00 AM sharp)`
               : "\n\n🛵 *Express Delivery:* Live harvested from our cold-water tanks & dispatched within 2 hours of payment!";
+            const vipW = (desc || "").match(/(\d+(?:\.\d+)?)\s*(?:kg|kilos?)/i);
+            const vipRate = /\b(?:whole|sabut)\b/i.test(desc || "") ? 540 : 580;
+            const vipFee = vipW ? Math.max(0, amount - Math.round(parseFloat(vipW[1]) * vipRate)) : 0;
             const orderCard = formatOrderSummaryCard({
               orderRef: payObj.orderRef || payObj.ref,
               amount,
               desc,
               deliveryArea: vipProfile?.locality ? `${vipProfile.locality} (~${custDist} km)` : (savedLoc?.localityName ? `${savedLoc.localityName} (~${custDist} km)` : null),
+              deliveryFee: vipFee,
               distanceKm: custDist,
               localityName: vipProfile?.locality || savedLoc?.localityName,
               scheduledSlot,
@@ -4580,8 +4617,8 @@ async function startBot() {
     return false;
   }
 
-  // Helper to parse quick order commands (#link 2kg, #qr 2kg, #qr 1740, #link 3kg +200, etc.)
-  function parseQuickOrderParams(text, defaultPhone = null) {
+  // Shared helper to parse quick owner order commands (#link 2kg +149, #2kg +149, #qr 2kg +149, #qr 1740, etc.)
+  function parseQuickOrderParams(text, defaultPhone = null, { defaultWeightIfMissing = null } = {}) {
     let deliveryFee = 0;
     const plusFeeMatch = text.match(/\+\s*(?:rs\.?|inr|₹)?\s*(\d+)/i);
     const delFeeMatch = text.match(/(?:delivery|del|d|shipping|charge|charges|fee)\s*(?:fee|charges?)?\s*(?:is|=|:|\+)?\s*(?:rs\.?|inr|₹)?\s*(\d+)/i);
@@ -4595,23 +4632,26 @@ async function startBot() {
       deliveryFee = parseInt(numDelFeeMatch[1], 10) || 0;
     }
 
-    // Direct total amount (e.g. #qr 1740, #link 1740, #1740, #pay 1740)
+    // Direct flat amount ONLY if not attached to kg/kilos and >= 300 (e.g. #qr 1740, #link 1309, #1309)
     let directTotalAmount = null;
-    const directAmtMatch = text.match(/(?:#qr|#scanner|#link|#pay|#order|#amount|#total|#)\s*(?:rs\.?|inr|₹)?\s*(\d{3,6})\b/i);
-    if (directAmtMatch && !text.match(new RegExp(`${directAmtMatch[1]}\s*(?:kg|kilos?|kgs)`, 'i'))) {
+    const directAmtMatch = text.match(/(?:#\s*(?:qr|scanner|link|pay|order|amount|total)?)\s*(?:rs\.?|inr|₹)?\s*(\d{3,6})\b(?!\s*(?:kg|kilos?|kgs)\b)/i);
+    if (directAmtMatch) {
       const possibleAmt = parseInt(directAmtMatch[1], 10);
       if (possibleAmt >= 300 && !/\b[6-9]\d{9}\b/.test(directAmtMatch[1])) {
         directTotalAmount = possibleAmt;
       }
     }
 
-    // Weight: e.g. 2kg, 2.5kg, 3 kilos, 3 kgs, or explicit weight number
+    // Parse weight: matches e.g. 2kg, 2 kg, 2.5kg, 3 kilos, or #2 +149 (excluding +fee and 10-digit phone numbers)
     let weightKg = null;
     const weightMatchWithUnit = text.match(/(\d+(?:\.\d+)?)\s*(?:kg|kilos?|kgs)\b/i);
     if (weightMatchWithUnit) {
       weightKg = Math.round(parseFloat(weightMatchWithUnit[1]) * 100) / 100;
     } else if (!directTotalAmount) {
-      const smallNumMatch = text.match(/#?(?:qr|scanner|link|order|pay)?\s*(\d+(?:\.\d+)?)\b/i);
+      const withoutFeesAndPhones = text
+        .replace(/\+\s*(?:rs\.?|inr|₹)?\s*\d+/gi, " ")
+        .replace(/\b[6-9]\d{9}\b/g, " ");
+      const smallNumMatch = withoutFeesAndPhones.match(/#?\s*(?:qr|scanner|link|order|pay)?\s*(\d+(?:\.\d+)?)\b/i);
       if (smallNumMatch) {
         const val = parseFloat(smallNumMatch[1]);
         if (val > 0 && val <= 50) {
@@ -4620,19 +4660,23 @@ async function startBot() {
       }
     }
 
-    // Fallback delivery fee if typed e.g. "#qr 3kg 200" without + sign
+    if (!weightKg && !directTotalAmount && defaultWeightIfMissing) {
+      weightKg = defaultWeightIfMissing;
+    }
+
+    // Fallback standalone delivery fee if owner typed e.g. "#2kg 149" or "#qr 2kg 149" without '+' sign
     if (deliveryFee === 0 && weightKg && !directTotalAmount) {
       const stripped = text
-        .replace(new RegExp(`\b${weightKg}\s*(?:kg|kilos?|kgs)?\b`, "gi"), "")
+        .replace(new RegExp(`\\b${weightKg}\\s*(?:kg|kilos?|kgs)?\\b`, "gi"), "")
         .replace(/\b[6-9]\d{9}\b/g, "")
-        .replace(/#(?:qr|scanner|link|order|pay)?/gi, "");
-      const standaloneFee = stripped.match(/\b([5-9]0|[1-5]\d{2})\b/);
+        .replace(/#\s*(?:qr|scanner|link|order|pay)?/gi, "");
+      const standaloneFee = stripped.match(/\b([3-9]\d|[1-5]\d{2})\b/);
       if (standaloneFee) {
         deliveryFee = parseInt(standaloneFee[1], 10) || 0;
       }
     }
 
-    // Cut type: Whole vs Gutted
+    // Cut type: Whole vs Gutted (Cleaned & Gutted is default Hero Product)
     const isWhole = /\b(?:whole|sabut)\b/i.test(text);
     const rate = isWhole ? 540 : 580;
     const prodType = isWhole ? "Whole Fresh Trout" : "Cleaned & Gutted (Pan-ready)";
@@ -4643,14 +4687,14 @@ async function startBot() {
     if (directTotalAmount) {
       totalAmount = directTotalAmount;
       if (weightKg) {
-        itemDesc = `${weightKg}kg ${prodType}${deliveryFee > 0 ? ` (+₹${deliveryFee} Delivery)` : ""}`;
+        itemDesc = `${weightKg} kg ${prodType}${deliveryFee > 0 ? ` (+₹${deliveryFee} Express Delivery)` : ""}`;
       } else {
         itemDesc = `${prodType} Order`;
       }
     } else if (weightKg) {
       const fishTotal = Math.round(weightKg * rate);
       totalAmount = fishTotal + deliveryFee;
-      itemDesc = `${weightKg}kg ${prodType}${deliveryFee > 0 ? ` (+₹${deliveryFee} Delivery)` : ""}`;
+      itemDesc = `${weightKg} kg ${prodType}${deliveryFee > 0 ? ` (+₹${deliveryFee} Express Delivery)` : ""}`;
     }
 
     // 10-digit customer phone
@@ -4664,21 +4708,27 @@ async function startBot() {
       targetCustPhone = defaultPhone.slice(-10);
     }
 
-    // Customer Name / Notes
+    // Customer / Area Notes
     let notesText = text
-      .replace(/#(?:qr|scanner|link|order|pay)?/gi, "")
+      .replace(/#\s*(?:qr|scanner|link|order|pay|amount|total)?/gi, "")
       .replace(/\b\d+(?:\.\d+)?\s*(?:kg|kilos?|kgs)\b/gi, "")
       .replace(/\b(?:cleaned|gutted|whole|sabut|kg|kilos?|kgs)\b/gi, "")
       .replace(/\b[6-9]\d{9}\b/g, "")
-      .replace(/\+\s*(?:rs\.?|inr|₹)?\s*\d+/gi, "")
+      .replace(/\+\s*(?:rs\.?|inr|₹)?\s*\d+\s*(?:rs\.?|inr|₹)?/gi, "")
       .replace(/(?:delivery|del|d|shipping|charge|charges|fee)\s*(?:fee|charges?)?\s*(?:is|=|:|\+)?\s*(?:rs\.?|inr|₹)?\s*\d+/gi, "")
       .replace(/\b\d+\s*(?:rs\.?|inr|₹)?\s*(?:delivery|del|shipping)\b/gi, "")
-      .replace(/\b([5-9]0|[1-5]\d{2})\b/g, "")
+      .replace(/\b([3-9]\d|[1-5]\d{2})\b/g, "")
       .replace(/\b\d{3,6}\b/g, "")
       .replace(/\s+/g, " ")
       .trim();
 
-    const targetCustName = notesText.length > 1 ? notesText : (targetCustPhone ? `Customer (+91 ${targetCustPhone})` : "Customer");
+    if (weightKg && notesText === String(weightKg)) {
+      notesText = "";
+    }
+
+    const targetCustName = notesText.length > 1
+      ? notesText
+      : (targetCustPhone ? `Customer (+91 ${targetCustPhone})` : "Valued Customer");
 
     return {
       explicitPhone,
@@ -4691,11 +4741,12 @@ async function startBot() {
       totalAmount,
       itemDesc,
       targetCustPhone,
-      targetCustName
+      targetCustName,
+      notesText
     };
   }
 
-  async function dispatchLockedQrImage(sock, remoteJid, { cleanPhone, raw10, customerName, forceAmount, forceRef, forceDesc, bypassLocationGuard = false, chatHist = [] }) {
+  async function dispatchLockedQrImage(sock, remoteJid, { cleanPhone, raw10, customerName, forceAmount, forceRef, forceDesc, forceDeliveryFee = 0, bypassLocationGuard = false, chatHist = [] }) {
     try {
       const ordersFilePath = path.join(__dirname, "customer_orders.json");
       let orders = {};
@@ -4788,14 +4839,32 @@ async function startBot() {
         throw new Error("Failed to generate QR image buffer");
       }
 
+      const qrFeeMatch = (itemsDesc || "").match(/\(\s*\+\s*₹?\s*(\d+)\s*(?:Special\s+|Express\s+)?Delivery\s*\)/i);
+      const qrIsWhole = /\b(?:whole|sabut)\b/i.test(itemsDesc || "");
+      const qrWeightMatch = (itemsDesc || "").match(/(\d+(?:\.\d+)?)\s*(?:kg|kilos?)/i);
+      let effectiveQrFee = Number(forceDeliveryFee) > 0
+        ? Number(forceDeliveryFee)
+        : (qrFeeMatch ? parseInt(qrFeeMatch[1], 10) : (Number(targetOrder?.deliveryFee) || 0));
+      if (effectiveQrFee === 0 && qrWeightMatch) {
+        const expectedBase = Math.round(parseFloat(qrWeightMatch[1]) * (qrIsWhole ? 540 : 580));
+        if (amt > expectedBase + 5) effectiveQrFee = amt - expectedBase;
+      }
+
       const cleanItemDesc = (itemsDesc || "Cleaned & Gutted Trout")
         .replace(/\s*\(Pan-Ready\)/i, "")
         .replace(/\s*\(Family Pack\)/i, "")
-        .replace(/\s*\(Starter Pack\)/i, "");
+        .replace(/\s*\(Starter Pack\)/i, "")
+        .replace(/\s*\(\s*\+?\s*(?:₹\s*\d+\s*)?(?:Special\s+|Express\s+)?Delivery\s*\)/gi, "")
+        .trim();
+
+      const deliveryQrLine = effectiveQrFee > 0
+        ? `• *Delivery Fee:* +₹${effectiveQrFee} (Express Delivery)\n`
+        : "";
 
       const caption = `🐟 *URBAN TROUT • UPI QR CODE*\n` +
         `• *Order:* ${cleanItemDesc}\n` +
-        `• *Amount:* *₹${amt}* (Pre-filled & Locked)\n` +
+        deliveryQrLine +
+        `• *Amount:* *₹${amt.toLocaleString("en-IN")}* (Pre-filled & Locked)\n` +
         `• *Ref:* #${orderRef}\n\n` +
         `👉 *Scan & Pay with any UPI app:* PhonePe, Google Pay, Paytm, or J&K Bank mPay.\n` +
         `_Packed fresh in 100% food-grade biodegradable polythene (0% ice). Delivered strictly to shared GPS pin (in-person receipt; if a delivery attempt fails, customer must collect manually from our Live Vending Center in Malabagh)._ 🚀`;
@@ -4821,7 +4890,9 @@ async function startBot() {
 
       console.log(`📷 [${isRazorpayQr ? "Razorpay" : "UPI"} Locked QR Dispatched Directly] Sent ₹${amt} locked QR image to ${formatPhoneDisplay(cleanPhone || raw10)} for #${orderRef}`);
 
-      // Update orders store
+      // Update orders store (never preserve stale payUrl from a previous order with a different amount)
+      const prevOrderAmt = targetOrder?.amount ? parseInt(String(targetOrder.amount).replace(/\D/g, ""), 10) : null;
+      const isSameAmountAsPrev = prevOrderAmt !== null && prevOrderAmt === Math.round(amt);
       const updatedOrder = {
         ...(targetOrder || {}),
         orderRef,
@@ -4830,8 +4901,9 @@ async function startBot() {
         name: customerName || targetOrder?.name || "Customer",
         items: itemsDesc,
         amount: `₹${amt}`,
+        deliveryFee: effectiveQrFee,
         status: targetOrder?.status?.includes("Paid") ? targetOrder.status : "Payment Link & QR Sent",
-        payUrl: targetOrder?.payUrl || null,
+        payUrl: isSameAmountAsPrev ? (targetOrder?.payUrl || null) : null,
         razorpayQrId: rzpQrId,
         razorpayQrUrl: rzpQrUrl,
         updatedAt: new Date().toISOString()
@@ -5091,11 +5163,13 @@ async function startBot() {
             `• *#delivered 9876543210* (Mark order delivered by phone or ref)\n` +
             `• *#qr 2kg* (Cleaned & Gutted @ ₹580 * 2 = ₹1,160 locked UPI QR)\n` +
             `• *#qr 1740* (Direct flat ₹1,740 locked UPI QR)\n` +
+            `• *#qr 2kg +149* (2kg Gutted + ₹149 delivery = ₹1,309 locked QR)\n` +
             `• *#qr 3kg +200* (3kg Gutted + ₹200 delivery = ₹1,940 QR)\n` +
             `• *#qr 2.5kg whole* (Whole Fresh @ ₹540 * 2.5 = ₹1,350 QR)\n` +
             `• *#qr 2kg 9876543210* (Send locked QR image directly to customer)\n` +
             `• *#qr* (Drop locked QR for current active order)\n\n` +
             `⚡ *Instant Payment Link Shortcuts:*\n` +
+            `• *#2kg +149* (2kg Gutted + ₹149 delivery = ₹1,309)\n` +
             `• *#3kg +200* (3kg Gutted + ₹200 delivery = ₹1,940)\n` +
             `• *#link 3kg +200* (3kg Gutted + ₹200 delivery)\n` +
             `• *#link 3kg gutted +200* (Cleaned & Gutted @ ₹580 + ₹200)\n` +
@@ -5176,15 +5250,15 @@ async function startBot() {
         return;
       }
 
-      // Owner Command: #qr or #scanner - Send locked QR image into customer chat (#qr 2kg, #qr 1740, etc.)
+      // Owner Command: #qr or #scanner - Send locked QR image into customer chat (#qr 2kg +149, #qr 1740, etc.)
       if (lower.startsWith("#qr") || lower.startsWith("#scanner")) {
-        const parsed = parseQuickOrderParams(text, cleanPhone || raw10);
-        
+        const parsed = parseQuickOrderParams(text, cleanPhone || raw10, { defaultWeightIfMissing: null });
+
         let targetJid = null;
         let targetPhone = null;
 
         if (parsed.explicitPhone) {
-          // Explicit phone passed in command (e.g. #qr 2kg 7006604148 or #qr 1740 9876543210)
+          // Explicit phone passed in command (e.g. #qr 2kg +149 7006604148 or #qr 1740 9876543210)
           targetPhone = parsed.explicitPhone;
           targetJid = `91${targetPhone}@s.whatsapp.net`;
         } else {
@@ -5196,13 +5270,20 @@ async function startBot() {
         const chatHist = chatHistories.get(targetJid) || [];
         const finalAmt = parsed.totalAmount || null;
         const finalDesc = parsed.itemDesc || null;
+        const storedMetaName = (targetJid && chatMetadata[targetJid]?.pushName) ||
+          (targetPhone && chatMetadata[targetPhone]?.pushName) ||
+          null;
+        const resolvedCustName = parsed.explicitPhone
+          ? parsed.targetCustName
+          : (storedMetaName || parsed.targetCustName);
 
         const success = await dispatchLockedQrImage(sock, targetJid, {
           cleanPhone: targetPhone,
           raw10: targetPhone,
-          customerName: parsed.targetCustName || customerName || "Customer",
+          customerName: resolvedCustName || "Customer",
           forceAmount: finalAmt,
           forceDesc: finalDesc,
+          forceDeliveryFee: parsed.deliveryFee || 0,
           bypassLocationGuard: true,
           chatHist
         });
@@ -5210,8 +5291,11 @@ async function startBot() {
         if (success) {
           humanOverrides.set(targetJid, Date.now() + 30 * 60 * 1000);
           if (targetJid !== remoteJid) {
+            const nameNote = (resolvedCustName && !/^(?:Customer|Valued Customer)(?:\s*\(|$)/i.test(resolvedCustName))
+              ? ` (${resolvedCustName})`
+              : "";
             await sock.sendMessage(remoteJid, {
-              text: `✅ *Locked QR Code Dispatched!* 🐟\nDelivered ${finalAmt ? `*₹${finalAmt.toLocaleString("en-IN")}*` : "locked"} QR image directly to ${formatPhoneDisplay(targetPhone)}${parsed.targetCustName && parsed.targetCustName !== "Customer" ? ` (${parsed.targetCustName})` : ""}.`
+              text: `✅ *Locked QR Code Dispatched!* 🐟\nDelivered ${finalAmt ? `*₹${finalAmt.toLocaleString("en-IN")}*` : "locked"}${parsed.deliveryFee > 0 ? ` (incl. +₹${parsed.deliveryFee} delivery)` : ""} QR image directly to ${formatPhoneDisplay(targetPhone)}${nameNote}.`
             });
           }
         }
@@ -5310,12 +5394,15 @@ async function startBot() {
           const orderRef = existingOrder?.orderRef || `UT-WA-${Date.now().toString().slice(-8)}`;
           const itemsDesc = existingOrder?.items || (paidAmt >= 1700 ? "3 kg Cleaned & Gutted" : "2 kg Cleaned & Gutted");
 
+          const metaCustName = (targetJid && chatMetadata[targetJid]?.pushName) ||
+            (targetPhone && chatMetadata[targetPhone]?.pushName) ||
+            null;
           const updatedOrder = {
             ...(existingOrder || {}),
             orderRef,
             chatId: targetJid,
             phone: targetPhone,
-            name: existingOrder?.name || customerName || "Customer",
+            name: existingOrder?.name || metaCustName || "Customer",
             items: itemsDesc,
             amount: `₹${paidAmt} (Manual Payment Verified)`,
             status: "Paid & Confirmed (Live Harvest Pending)",
@@ -5418,108 +5505,21 @@ async function startBot() {
       }
 
       // 3. Owner Quick Payment Link & WhatsApp Summary Card Generator
-      const isQuickLink = lower.startsWith("#link") || lower.startsWith("#order") || lower.startsWith("#pay") || /^#\d+/i.test(lower);
+      const isQuickLink = lower.startsWith("#link") || lower.startsWith("#order") || lower.startsWith("#pay") || /^#\s*\d+/i.test(lower);
       if (isQuickLink) {
         try {
-          // Parse explicit delivery fee (e.g. +200, + 200, +₹200, delivery 200, del 200, d200, 200 delivery)
-          let deliveryFee = 0;
-          const plusFeeMatch = text.match(/\+\s*(?:rs\.?|inr|₹)?\s*(\d+)/i);
-          const delFeeMatch = text.match(/(?:delivery|del|d|shipping|charge|charges|fee)\s*(?:fee|charges?)?\s*(?:is|=|:|\+)?\s*(?:rs\.?|inr|₹)?\s*(\d+)/i);
-          const numDelFeeMatch = text.match(/(\d+)\s*(?:rs\.?|inr|₹)?\s*(?:delivery|del|shipping)/i);
-
-          if (plusFeeMatch) {
-            deliveryFee = parseInt(plusFeeMatch[1], 10) || 0;
-          } else if (delFeeMatch) {
-            deliveryFee = parseInt(delFeeMatch[1], 10) || 0;
-          } else if (numDelFeeMatch) {
-            deliveryFee = parseInt(numDelFeeMatch[1], 10) || 0;
-          }
-
-          // Parse optional direct total amount if owner typed e.g. #link 1940 or #pay 1940 or #1940
-          let directTotalAmount = null;
-          const directAmtMatch = text.match(/(?:#link|#pay|#order|#amount|#total|#)\s*(?:rs\.?|inr|₹)?\s*(\d{3,6})\b/i);
-          if (directAmtMatch && !text.match(new RegExp(`${directAmtMatch[1]}\\s*(?:kg|kilos?|kgs)`, 'i'))) {
-            const possibleAmt = parseInt(directAmtMatch[1], 10);
-            if (possibleAmt >= 400 && !/\b[6-9]\d{9}\b/.test(directAmtMatch[1])) {
-              directTotalAmount = possibleAmt;
-            }
-          }
-
-          // Parse weight: matches e.g. 3kg, 3.5kg, 3 kilos, 3 kgs, or explicit weight
-          let weightKg = null;
-          const weightMatchWithUnit = text.match(/(\d+(?:\.\d+)?)\s*(?:kg|kilos?|kgs)\b/i);
-          if (weightMatchWithUnit) {
-            weightKg = Math.round(parseFloat(weightMatchWithUnit[1]) * 100) / 100;
-          } else if (!directTotalAmount) {
-            const smallNumMatch = text.match(/#?(?:link|order|pay)?\s*(\d+(?:\.\d+)?)\b/i);
-            if (smallNumMatch) {
-              const val = parseFloat(smallNumMatch[1]);
-              if (val > 0 && val <= 50) {
-                weightKg = Math.round(val * 100) / 100;
-              }
-            }
-          }
-
-          if (!weightKg && !directTotalAmount) {
-            weightKg = 2.0; // default 2kg if nothing specified
-          }
-
-          // Fallback delivery fee: if user typed e.g. "#3kg 200" without + sign
-          if (deliveryFee === 0 && weightKg && !directTotalAmount) {
-            const stripped = text
-              .replace(new RegExp(`\\b${weightKg}\\s*(?:kg|kilos?|kgs)?\\b`, "gi"), "")
-              .replace(/\b[6-9]\d{9}\b/g, "")
-              .replace(/#(?:link|order|pay)?/gi, "");
-            const standaloneFee = stripped.match(/\b([5-9]0|[1-5]\d{2})\b/);
-            if (standaloneFee) {
-              deliveryFee = parseInt(standaloneFee[1], 10) || 0;
-            }
-          }
-
-          // Parse cut type (Whole vs Gutted)
-          const isWhole = /\b(?:whole|sabut)\b/i.test(text);
-          const rate = isWhole ? 540 : 580;
-          const prodType = isWhole ? "Whole Fresh Trout" : "Cleaned & Gutted (Pan-ready)";
-
-          let totalAmount;
-          let itemDesc;
-
-          if (directTotalAmount) {
-            totalAmount = directTotalAmount;
-            if (weightKg) {
-              itemDesc = `${weightKg}kg ${prodType}${deliveryFee > 0 ? ` (+₹${deliveryFee} Delivery)` : ""}`;
-            } else {
-              itemDesc = `${prodType} Order`;
-            }
-          } else {
-            const fishTotal = Math.round(weightKg * rate);
-            totalAmount = fishTotal + deliveryFee;
-            itemDesc = `${weightKg}kg ${prodType}${deliveryFee > 0 ? ` (+₹${deliveryFee} Delivery)` : ""}`;
-          }
-
-          // Parse optional 10-digit customer phone
-          let targetCustPhone = null;
-          const phoneMatch = text.match(/\b([6-9]\d{9})\b/);
-          if (phoneMatch) {
-            targetCustPhone = phoneMatch[1];
-          } else if (!isSelfChat && cleanPhone && cleanPhone.length >= 10) {
-            targetCustPhone = cleanPhone.slice(-10);
-          }
-
-          // Parse customer name / notes
-          let notesText = text
-            .replace(/#(?:link|order|pay)?/gi, "")
-            .replace(new RegExp(`\\b${weightKg || ""}\\s*(?:kg|kilos?|kgs)?\\b`, "gi"), "")
-            .replace(/\b(?:cleaned|gutted|whole|sabut|kg|kilos?|kgs)\b/gi, "")
-            .replace(/\b[6-9]\d{9}\b/g, "")
-            .replace(/\+\s*(?:rs\.?|inr|₹)?\s*\d+/gi, "")
-            .replace(/(?:delivery|del|d|shipping|charge|charges|fee)\s*(?:fee|charges?)?\s*(?:is|=|:|\+)?\s*(?:rs\.?|inr|₹)?\s*\d+/gi, "")
-            .replace(/\b\d+\s*(?:rs\.?|inr|₹)?\s*(?:delivery|del|shipping)\b/gi, "")
-            .replace(/\b([5-9]0|[1-5]\d{2})\b/g, "")
-            .replace(/\s+/g, " ")
-            .trim();
-
-          const targetCustName = notesText || (targetCustPhone ? `Customer (+91 ${targetCustPhone})` : "Valued Customer");
+          const parsed = parseQuickOrderParams(text, !isSelfChat ? (cleanPhone || raw10) : null, { defaultWeightIfMissing: 2.0 });
+          const {
+            explicitPhone,
+            deliveryFee,
+            weightKg,
+            prodType,
+            totalAmount,
+            itemDesc,
+            targetCustPhone,
+            targetCustName,
+            notesText
+          } = parsed;
 
           console.log(`\n⚡ [Owner Quick-Link] Generating link for ${targetCustName}: ${itemDesc} @ ₹${totalAmount} (Delivery: ₹${deliveryFee})`);
 
@@ -5544,18 +5544,23 @@ async function startBot() {
             name: targetCustName,
             items: itemDesc,
             amount: `₹${totalAmount}`,
+            deliveryFee,
             status: "Payment Link Sent — Awaiting Confirmation",
-            deliveryArea: deliveryFee > 0 ? "Extended Express Delivery" : "Express Delivery",
+            deliveryArea: deliveryFee > 0 ? "Express Delivery" : "Express Delivery",
             deliveryTime: "Immediate / Scheduled",
             payUrl: payObj.url,
             createdBy: "OWNER_WHATSAPP_COMMAND"
           });
 
-          // Clean WhatsApp summary card with delivery breakdown
-          const fishAmount = weightKg ? Math.round(weightKg * rate) : (totalAmount - deliveryFee);
-          const deliveryLine = deliveryFee > 0
-            ? `• *Delivery Fee:* 🛵 ₹${deliveryFee} (Express Delivery)`
-            : `• *Delivery:* 🛵 *100% FREE Express Delivery*`;
+          // Use customer's known locality from metadata (if any) or notesText; avoid generic "Valued Customer ()"
+          const knownMetaLocality = (customerJid && chatMetadata[customerJid]?.localityName) ||
+            (targetCustPhone && chatMetadata[targetCustPhone]?.localityName) ||
+            (cleanPhone && chatMetadata[cleanPhone]?.localityName) ||
+            null;
+          const cleanKnownArea = (knownMetaLocality && !/^(?:srinagar|kashmir|area pending)$/i.test(knownMetaLocality))
+            ? knownMetaLocality
+            : null;
+          const resolvedLocalityForCard = (!explicitPhone && cleanKnownArea) ? cleanKnownArea : (notesText && notesText.length > 1 ? notesText : null);
 
           const orderCard = formatOrderSummaryCard({
             orderRef: payObj.ref,
@@ -5563,13 +5568,13 @@ async function startBot() {
             desc: `${weightKg ? `${weightKg} kg ` : ""}${prodType}${deliveryFee > 0 ? ` (+₹${deliveryFee} Express Delivery)` : ""}`,
             deliveryFee,
             distanceKm: null,
-            localityName: targetCustName ? `${targetCustName} (${formatPhoneDisplay(targetCustPhone)})` : null,
+            localityName: resolvedLocalityForCard,
             scheduledSlot: "Within 90–120 Minutes of Payment",
             payUrl: payObj.url
           });
 
           // If customer phone was explicitly provided and differs from the current chat, dispatch to customer!
-          if (phoneMatch && customerJid && customerJid !== remoteJid) {
+          if (explicitPhone && customerJid && customerJid !== remoteJid) {
             try {
               await sock.sendMessage(customerJid, { text: orderCard });
               humanOverrides.set(customerJid, Date.now() + 30 * 60 * 1000);
@@ -5578,6 +5583,7 @@ async function startBot() {
                 text: `✅ *Order #${payObj.ref} Generated & Dispatched!* 🚀\n\n` +
                   `• *Customer:* ${targetCustName} (+91 ${targetCustPhone})\n` +
                   `• *Item:* ${weightKg ? `${weightKg} kg ${prodType}` : itemDesc}\n` +
+                  (deliveryFee > 0 ? `• *Express Delivery Fee:* +₹${deliveryFee}\n` : "") +
                   `• *Total Payable:* *₹${totalAmount}*\n` +
                   `• *Payment Link:* ${payObj.url}\n\n` +
                   `📩 *Order summary and payment link delivered directly to customer (+91 ${targetCustPhone}) on WhatsApp!*`
@@ -5596,7 +5602,7 @@ async function startBot() {
         } catch (linkErr) {
           console.error(`❌ [Owner Quick-Link Error]:`, linkErr);
           await sock.sendMessage(remoteJid, {
-            text: `❌ *Error Generating Payment Link:*\n${linkErr.message}\n\nPlease try again (e.g. *#link 3kg +200* or *#3kg +200*).`
+            text: `❌ *Error Generating Payment Link:*\n${linkErr.message}\n\nPlease try again (e.g. *#2kg +149* or *#link 3kg +200*).`
           });
           return;
         }
