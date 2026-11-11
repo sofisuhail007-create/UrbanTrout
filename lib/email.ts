@@ -245,7 +245,7 @@ export async function sendOrderStatusUpdateEmail(order: {
     },
     out_for_delivery: {
       title: "Your Fresh Catch is Out for Delivery! 🚚",
-      subtitle: "Your trout has been harvested fresh from our farm tanks, packed in clean food-grade packaging, and handed over to our delivery rider for express delivery to your doorstep.",
+      subtitle: "Your trout has been harvested fresh from our farm tanks, packed in clean food-grade packaging, and dispatched via our Cold-Chain Dispatch Partner strictly to your shared GPS location pin (in-person receipt required; please keep your phone reachable as no second attempt can be made if unreachable).",
       icon: "🛵",
       color: "#38bdf8",
       subject: `🚚 Out for Delivery: Order #${order.orderNumber} is on its way! - Urban Trout`,

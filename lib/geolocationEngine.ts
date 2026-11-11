@@ -258,7 +258,7 @@ function buildResult(name: string, dist: number, source: GeocodeResult["source"]
       source,
       isDeliverable: true,
       deliveryFee: fee,
-      message: `Zone 1 (~${dist} km from Malabagh Farm) • ${fee === 0 ? "100% Free Doorstep Delivery ✓" : `₹${fee} Subsidized Courier Fee (Free from ${minKg} kg)`}`
+      message: `Zone 1 (~${dist} km from Malabagh Farm) • ${fee === 0 ? "100% Free Express Delivery ✓" : `₹${fee} Express Delivery Fee (Free from ${minKg} kg)`}`
     };
   } else if (dist <= 7.0) {
     const minKg = 3;
@@ -274,7 +274,7 @@ function buildResult(name: string, dist: number, source: GeocodeResult["source"]
       source,
       isDeliverable: true,
       deliveryFee: fee,
-      message: `Zone 2 (~${dist} km from Malabagh Farm) • ${fee === 0 ? "100% Free Doorstep Delivery ✓" : `₹${fee} Subsidized Courier Fee (Free from ${minKg} kg)`}`
+      message: `Zone 2 (~${dist} km from Malabagh Farm) • ${fee === 0 ? "100% Free Express Delivery ✓" : `₹${fee} Express Delivery Fee (Free from ${minKg} kg)`}`
     };
   } else if (dist <= 11.5) {
     const minKg = 3;
@@ -290,7 +290,7 @@ function buildResult(name: string, dist: number, source: GeocodeResult["source"]
       source,
       isDeliverable: true,
       deliveryFee: fee,
-      message: `Zone 3 (~${dist} km from Malabagh Farm) • ${fee === 0 ? "100% Free Doorstep Delivery ✓" : `₹${fee} Subsidized Courier Fee (Free from ${minKg} kg)`}`
+      message: `Zone 3 (~${dist} km from Malabagh Farm) • ${fee === 0 ? "100% Free Express Delivery ✓" : `₹${fee} Express Delivery Fee (Free from ${minKg} kg)`}`
     };
   } else if (dist <= 16.0) {
     const minKg = 5;
@@ -306,7 +306,7 @@ function buildResult(name: string, dist: number, source: GeocodeResult["source"]
       source,
       isDeliverable: true,
       deliveryFee: fee,
-      message: `Zone 4 (~${dist} km from Malabagh Farm) • ${fee === 0 ? "100% Free Doorstep Delivery (5 kg Family Pack) ✓" : `₹${fee} Subsidized Courier Fee (Free on 5 kg)`}`
+      message: `Zone 4 (~${dist} km from Malabagh Farm) • ${fee === 0 ? "100% Free Express Delivery (5 kg Family Pack) ✓" : `₹${fee} Express Delivery Fee (Free on 5 kg)`}`
     };
   } else {
     return {
@@ -320,7 +320,7 @@ function buildResult(name: string, dist: number, source: GeocodeResult["source"]
       source,
       isDeliverable: false,
       deliveryFee: 0,
-      message: `~${dist} km from Malabagh Farm Hub • Outside 16 km live doorstep delivery perimeter. Available for Live Vending Center pickup.`
+      message: `~${dist} km from Malabagh Farm Hub • Outside 16 km express cold-chain delivery perimeter. Available for Live Vending Center pickup.`
     };
   }
 }

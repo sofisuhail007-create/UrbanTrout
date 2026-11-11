@@ -3,13 +3,13 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Shipping & Delivery Policy",
-  description: "Official delivery coverage, tiered 100% Free doorstep delivery within 16km perimeter of Malabagh farm, cold-chain packaging, and operating hours.",
+  description: "Official delivery coverage, tiered 100% Free cold-chain express delivery within 16km perimeter of Malabagh farm, pin-point GPS handover, and operating hours.",
   alternates: {
     canonical: "https://urbantrout.in/shipping-policy",
   },
   openGraph: {
     title: "Shipping & Delivery Policy | Urban Trout Srinagar",
-    description: "Tiered 100% Free doorstep delivery within 16km perimeter of our Malabagh farm within 2 hours of harvest. Food-grade packaging.",
+    description: "Tiered 100% Free cold-chain express delivery to your shared GPS location within 16km perimeter of our Malabagh farm within 2 hours of harvest.",
     url: "https://urbantrout.in/shipping-policy",
     siteName: "Urban Trout",
   },
@@ -26,28 +26,28 @@ const C = {
 
 const sections = [
   {
-    title: "1. Service Area & Delivery Coverage (16km Farm Perimeter & 4 Subsidized Zones)",
-    body: "• 16km Express Delivery Perimeter: To guarantee peak live-harvest freshness and an unbroken cold chain within 90–120 minutes, Urban Trout delivers across a 16.0 km perimeter from our aquaculture farm base in Malabagh, Srinagar.\n• Zone 1 (0 to 4.0 km — Core Farm Zone): Malabagh, Hazratbal, Habak, Naseem Bagh, Zakura, Lal Bazar, Soura (SKIMS), Bachpora, Illahibagh, Nowshera, Ahmad Nagar, Zadibal, etc. 100% FREE Doorstep Delivery on min 2 kg (or ₹35 subsidized courier fee for 1 kg).\n• Zone 2 (4.0 to 7.0 km — Mid-City Zone): Hawal, Khanyar, Rainawari, Badamwari, Alamgari Bazar, Saida Kadal, Eidgah, Safakadal, Shalimar, Nagbal, etc. 100% FREE Doorstep Delivery on min 3 kg (or ₹55 on 2 kg / ₹65 on 1 kg).\n• Zone 3 (7.0 to 11.5 km — Greater Srinagar Zone): Lal Chowk, Dalgate, Boulevard, Qamarwari, Khayyam, Nishat, Karan Nagar, etc. 100% FREE Doorstep Delivery on min 3 kg (or ₹89 on 2 kg / ₹99 on 1 kg).\n• Zone 4 (11.5 to 16.0 km — South & Cross-City Corridor): Sanat Nagar, Peerbagh, Airport Road / Humhama, Nowgam, Rajbagh, Jawahar Nagar, Batamaloo, Bemina, Sonwar, Wazir Bagh, Chanapora, Hyderpora, Rawalpora, Lasjan, Pantha Chowk, Athwajan, Rangreth, HMT / Zainakote, etc. 100% FREE Doorstep Delivery on our 5 kg Family Pack (or ₹109 on 4 kg / ₹129 on 3 kg / ₹139 on 2 kg / ₹149 on 1 kg).\n• Beyond 16.0 km & Outer Districts: Outside our doorstep express delivery perimeter. We operate doorstep deliveries strictly within Srinagar areas. Customers located in outer districts or beyond 16 km (e.g. Ganderbal, Pampore, Chadoora, Budgam town, Baramulla) are warmly invited to place an order for live harvest pickup directly from our dedicated Live Trout Vending Center at our Malabagh farm.",
+    title: "1. Service Area & Delivery Coverage (16km Farm Perimeter & 4 Delivery Zones)",
+    body: "• 16km Cold-Chain Express Perimeter: To guarantee peak live-harvest freshness and an unbroken cold chain within 90–120 minutes, Urban Trout delivers across a 16.0 km perimeter from our aquaculture farm base in Malabagh, Srinagar.\n• Zone 1 (0 to 4.0 km — Core Farm Zone): Malabagh, Hazratbal, Habak, Naseem Bagh, Zakura, Lal Bazar, Soura (SKIMS), Bachpora, Illahibagh, Nowshera, Ahmad Nagar, Zadibal, etc. 100% FREE Express Delivery on min 2 kg (or ₹35 delivery fee for 1 kg).\n• Zone 2 (4.0 to 7.0 km — Mid-City Zone): Hawal, Khanyar, Rainawari, Badamwari, Alamgari Bazar, Saida Kadal, Eidgah, Safakadal, Shalimar, Nagbal, etc. 100% FREE Express Delivery on min 3 kg (or ₹55 on 2 kg / ₹65 on 1 kg).\n• Zone 3 (7.0 to 11.5 km — Greater Srinagar Zone): Lal Chowk, Dalgate, Boulevard, Qamarwari, Khayyam, Nishat, Karan Nagar, etc. 100% FREE Express Delivery on min 3 kg (or ₹89 on 2 kg / ₹99 on 1 kg).\n• Zone 4 (11.5 to 16.0 km — South & Cross-City Corridor): Sanat Nagar, Peerbagh, Airport Road / Humhama, Nowgam, Rajbagh, Jawahar Nagar, Batamaloo, Bemina, Sonwar, Wazir Bagh, Chanapora, Hyderpora, Rawalpora, Lasjan, Pantha Chowk, Athwajan, Rangreth, HMT / Zainakote, etc. 100% FREE Express Delivery on our 5 kg Family Pack (or ₹109 on 4 kg / ₹129 on 3 kg / ₹139 on 2 kg / ₹149 on 1 kg).\n• Beyond 16.0 km & Outer Districts: Outside our 16 km cold-chain express perimeter. Customers located in outer districts or beyond 16 km (e.g. Ganderbal, Pampore, Chadoora, Budgam town, Baramulla) are warmly invited to place an order for live harvest pickup directly from our dedicated Live Trout Vending Center at our Malabagh farm.",
   },
   {
     title: "2. Harvest-to-Order & Delivery Timelines",
-    body: "• Farm-Fresh Quality: Every order is freshly harvested live from our cold-water aquaculture tanks upon order confirmation to ensure maximum freshness and taste.\n• Rapid Delivery Timeframe: Orders within our 16km perimeter are freshly harvested to order, cleaned/gutted if requested, packed in clean food-grade packaging (double polythene), and delivered to your doorstep within 90–120 minutes.\n• Operating Delivery Hours: Saturday to Thursday between 8:00 AM and 8:00 PM IST (Closed on Fridays for scheduled Farm Maintenance).",
+    body: "• Farm-Fresh Quality: Every order is freshly harvested live from our cold-water aquaculture tanks upon order confirmation to ensure maximum freshness and taste.\n• Rapid Delivery Timeframe: Orders within our 16km perimeter are freshly harvested to order, cleaned/gutted if requested, packed in clean food-grade packaging (double polythene), and dispatched chilled to your shared GPS location within 90–120 minutes.\n• Operating Delivery Hours: Saturday to Thursday between 8:00 AM and 8:00 PM IST (Closed on Fridays for scheduled Farm Maintenance).",
   },
   {
-    title: "3. 100% Free Shipping & Subsidized Delivery Policy",
-    body: "• 100% FREE Doorstep Delivery for Zone 1 (min 2 kg), Zone 2 (min 3 kg), Zone 3 (min 3 kg), and Zone 4 (min 5 kg Family Pack).\n• Urban Trout subsidizes 30% of express courier costs on all sub-minimum orders (customer pays 70% share, as low as ₹35 in Zone 1).\n• Product pricing includes clean food-grade packaging (two polythenes). There are zero hidden packing charges or surprise fees at checkout.",
+    title: "3. 100% Free Delivery Tiers & Express Delivery Fees",
+    body: "• 100% FREE Cold-Chain Express Delivery for Zone 1 (min 2 kg), Zone 2 (min 3 kg), Zone 3 (min 3 kg), and Zone 4 (min 5 kg Family Pack).\n• For orders below the free delivery threshold in each zone, standard location-based express delivery charges apply (from ₹35 in Zone 1 to ₹109–₹149 in Zone 4).\n• Product pricing includes clean food-grade packaging (two polythenes). There are zero hidden packing charges or surprise fees at checkout.",
   },
   {
-    title: "4. Fresh Food-Grade Packaging & Hygiene",
-    body: "• Freshness is our top priority. Every fish is packed immediately following harvest in clean, food-grade double packaging (two polythenes).\n• Delivered straight to your kitchen within 90–120 minutes of live harvest, ensuring peak natural taste, firmness, and freshness without messy melting ice water.",
+    title: "4. Pin-Point Shared GPS Delivery Policy (No House-Number Search)",
+    body: "• Google Maps Link or WhatsApp Location Pin Required: Every delivery requires an accurate Google Maps location link or WhatsApp Location Pin for pin-point navigation.\n• Strictly Shared-Location Delivery Only: Our Urban Trout Cold-Chain Dispatch Partner navigates strictly to the exact GPS location point shared with your order — we do NOT search house numbers or knock on doors.\n• In-Person Handover Mandatory: Customers (or a designated recipient) must collect the chilled package in person at the shared GPS location pin.",
   },
   {
-    title: "5. Order Tracking & WhatsApp Notifications",
-    body: "• Once your order is harvested and handed over to our delivery rider, you will receive an instant dispatch alert and rider contact details via WhatsApp and SMS.\n• Our delivery agent will contact you on the registered mobile number prior to doorstep delivery.",
+    title: "5. Phone Reachability & Single-Attempt Cold-Chain Routing",
+    body: "• Multiple Active Cold-Chain Orders: Our Cold-Chain Dispatch Partner carries multiple time-sensitive, live-harvested orders along an active scheduled route.\n• No Second Delivery Attempt: Please ensure your registered mobile number remains switched on and reachable at delivery time. We cannot arrange a second delivery attempt if your phone goes unanswered or is switched off upon arrival at the shared location.",
   },
   {
-    title: "6. Customer Responsibilities at Delivery",
-    body: "• Please ensure the recipient or a family representative is available at the provided delivery address to receive the perishable package.\n• We strongly advise transferring the fresh fish into refrigeration (or cooking immediately) upon receipt.\n• If there is an unexpected delay due to extreme weather or road conditions in Srinagar, our support team will keep you updated promptly.",
+    title: "6. Fresh Food-Grade Packaging & Notifications",
+    body: "• Sealed Food-Grade Hygiene: Every fish is packed immediately following harvest in clean, food-grade double packaging (two polythenes) with zero messy melting ice.\n• WhatsApp & SMS Updates: You will receive harvest and dispatch updates via WhatsApp/SMS prior to our Cold-Chain Dispatch Partner's arrival at your shared location pin.",
   },
   {
     title: "7. Delivery Support & Inquiries",

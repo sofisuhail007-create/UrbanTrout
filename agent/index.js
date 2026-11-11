@@ -26,10 +26,10 @@ process.on("unhandledRejection", (reason) => {
 // ============================================================================
 // URBAN TROUT SALES AGENT — BUILD & VERSION TRACKING
 // ============================================================================
-const BOT_VERSION = "2.8.2";
-const BOT_LAST_UPDATED = "10-Nov-2026, 11:34 PM IST";
-const BOT_RELEASE_TITLE = "Hostinger Cloud VPS Edition (#location Lookup & 8 PM Name-Location Scan)";
-const BOT_RELEASE_NOTES = "#location Delivery Rate Lookup • 8 PM Full Chat Scan (Name - Location) • 5kg Free Zone 4 Corridor • 70/30 Courier Split • Landmark Escalation Guard";
+const BOT_VERSION = "2.9.0";
+const BOT_LAST_UPDATED = "11-Nov-2026, 07:30 PM IST";
+const BOT_RELEASE_TITLE = "Hostinger Cloud VPS Edition (GPS Pin Stability & Pin-Point Cold-Chain Delivery Policy)";
+const BOT_RELEASE_NOTES = "GPS Pin Crash Fix (TDZ & Multi-Hop Maps Resolution) • User-Only Weight Matching • Pin-Point Shared-Location & In-Person Delivery Policy • Customer Confidentiality Guard";
 
 // ============================================================================
 // STRICT VVIP MANUAL-ONLY LIST (AI MUST NEVER TEXT UNDER ANY CIRCUMSTANCE)
@@ -117,44 +117,73 @@ function getInnerMessage(msg) {
   return cur;
 }
 
-// Follow redirects for Google Maps shortlinks (maps.app.goo.gl, goo.gl/maps) to extract destination URL
-async function resolveGoogleMapsUrl(urlStr) {
-  return new Promise((resolve) => {
-    try {
-      const client = urlStr.startsWith("https") ? https : http;
-      const req = client.get(urlStr, { headers: { "User-Agent": "Mozilla/5.0" }, timeout: 3500 }, (res) => {
-        if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-          resolve(res.headers.location);
-        } else {
-          resolve(urlStr);
-        }
-      });
-      req.on("error", () => resolve(urlStr));
-      req.on("timeout", () => { req.destroy(); resolve(urlStr); });
-    } catch {
-      resolve(urlStr);
+// Follow multi-hop redirects (and fallback HTML coordinate metadata) for Google Maps shortlinks
+async function resolveGoogleMapsUrl(urlStr, maxHops = 4) {
+  let currentUrl = urlStr;
+  for (let hop = 0; hop < maxHops; hop++) {
+    const hopResult = await new Promise((resolve) => {
+      try {
+        const client = currentUrl.startsWith("https") ? https : http;
+        const req = client.get(currentUrl, { headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" }, timeout: 4500 }, (res) => {
+          if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+            res.resume();
+            let nextUrl = res.headers.location;
+            if (nextUrl.startsWith("/")) {
+              try { nextUrl = new URL(nextUrl, currentUrl).toString(); } catch {}
+            }
+            return resolve({ redirect: nextUrl, body: "" });
+          }
+          let body = "";
+          res.setEncoding("utf8");
+          res.on("data", (chunk) => {
+            if (body.length < 32768) body += chunk;
+          });
+          res.on("end", () => resolve({ redirect: null, body }));
+        });
+        req.on("error", () => resolve({ redirect: null, body: "" }));
+        req.on("timeout", () => { req.destroy(); resolve({ redirect: null, body: "" }); });
+      } catch {
+        resolve({ redirect: null, body: "" });
+      }
+    });
+
+    if (hopResult.redirect) {
+      currentUrl = hopResult.redirect;
+      if (extractCoordinates(currentUrl)) return currentUrl;
+      continue;
     }
-  });
+
+    if (hopResult.body) {
+      const embeddedCoords = extractCoordinates(hopResult.body);
+      if (embeddedCoords) {
+        return `${currentUrl}#coords=${embeddedCoords.lat},${embeddedCoords.lng}`;
+      }
+    }
+    break;
+  }
+  return currentUrl;
 }
 
 // Extract GPS latitude and longitude from URL strings, query params, or raw text coordinates
 function extractCoordinates(text) {
   if (!text) return null;
+  let decoded = text;
+  try { decoded = decodeURIComponent(text); } catch {}
 
   // 1. Google Maps @lat,lng format
-  const atMatch = text.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+  const atMatch = decoded.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
   if (atMatch) return { lat: parseFloat(atMatch[1]), lng: parseFloat(atMatch[2]) };
 
-  // 2. Query param q=lat,lng or ll=lat,lng
-  const qMatch = text.match(/[?&](?:q|ll)=(-?\d+\.\d+),(-?\d+\.\d+)/);
+  // 2. Query param q=lat,lng, ll=lat,lng, center=lat,lng, or #coords=lat,lng
+  const qMatch = decoded.match(/(?:[?&](?:q|ll|center|sll)|#coords)=(-?\d+\.\d+)[,\s]+(-?\d+\.\d+)/);
   if (qMatch) return { lat: parseFloat(qMatch[1]), lng: parseFloat(qMatch[2]) };
 
   // 3. Google Maps data string !3dlat!4dlng
-  const dataMatch = text.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+  const dataMatch = decoded.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
   if (dataMatch) return { lat: parseFloat(dataMatch[1]), lng: parseFloat(dataMatch[2]) };
 
   // 4. Raw lat, lng in text: e.g. 34.144556, 74.824501
-  const rawMatch = text.match(/\b([1-8]?\d(?:\.\d+)?|90(?:\.0+)?)[,\s]+(-?(?:180(?:\.0+)?|(?:1[0-7]\d|\d{1,2})(?:\.\d+)?))\b/);
+  const rawMatch = decoded.match(/\b([1-8]?\d(?:\.\d+)?|90(?:\.0+)?)[,\s]+(-?(?:180(?:\.0+)?|(?:1[0-7]\d|\d{1,2})(?:\.\d+)?))\b/);
   if (rawMatch) {
     const lat = parseFloat(rawMatch[1]);
     const lng = parseFloat(rawMatch[2]);
@@ -173,7 +202,7 @@ async function getCoordinatesFromText(text) {
 
   const urlMatch = text.match(/https?:\/\/(?:maps\.app\.goo\.gl|goo\.gl\/maps|maps\.google\.[a-z.]+|www\.google\.[a-z.]+\/maps)[^\s]+/i);
   if (urlMatch) {
-    const originalUrl = urlMatch[0];
+    const originalUrl = urlMatch[0].replace(/[),.;]+$/, "");
     const resolvedUrl = await resolveGoogleMapsUrl(originalUrl);
     coords = extractCoordinates(resolvedUrl);
     if (coords) return coords;
@@ -722,7 +751,7 @@ async function createRazorpayPaymentLink({ amount, customerPhone, customerName, 
     if (hasDelivery) {
       rzpTitle += " (+ Express Delivery)";
     } else if (isFreeDelivery) {
-      rzpTitle += " (Free Doorstep Delivery)";
+      rzpTitle += " (Free Cold-Chain Delivery)";
     }
   } else {
     // DIRECT AMOUNT LINK (No explicit weight specified, e.g. #link 1650)
@@ -913,6 +942,7 @@ function formatOrderSummaryCard({
   amount,
   desc,
   deliveryArea,
+  deliveryFee = 0,
   distanceKm,
   localityName,
   scheduledSlot,
@@ -930,12 +960,12 @@ function formatOrderSummaryCard({
     : (desc && !/^(?:fresh\s+trout\s+order\s*\(\s*₹?\d+\s*\)|\d+)$/i.test(desc) ? desc : `${cutName} Trout`);
 
   // Destination / locality
-  const rawPlace = localityName || (deliveryArea && !deliveryArea.includes("Within") && !deliveryArea.includes("Doorstep Delivery") ? deliveryArea.replace(/\s*\([^)]*\)\s*/g, "").trim() : "Srinagar");
+  const rawPlace = localityName || (deliveryArea && !deliveryArea.includes("Within") && !deliveryArea.includes("Doorstep Delivery") && !deliveryArea.includes("Cold-Chain Delivery") && !deliveryArea.includes("Express Delivery") ? deliveryArea.replace(/\s*\([^)]*\)\s*/g, "").trim() : "Srinagar");
   const cleanPlace = rawPlace && !/^(?:srinagar|kashmir)$/i.test(rawPlace) ? rawPlace : "Srinagar";
 
-  const isSpecialDeliveryOrder = /\(\+(?:Special|Express) Delivery\)/i.test(desc || "");
+  const isSpecialDeliveryOrder = Number(deliveryFee) > 0 || /\(\+(?:Special|Express) Delivery\)/i.test(desc || "");
   const deliveryDisplay = isSpecialDeliveryOrder
-    ? `${cleanPlace}`
+    ? (Number(deliveryFee) > 0 ? `${cleanPlace} (+₹${deliveryFee} Express Delivery)` : `${cleanPlace} (Express Delivery)`)
     : `${cleanPlace} (100% FREE)`;
 
   const slotDisplay = scheduledSlot || "Harvested live & dispatched within 2 hours of payment";
@@ -949,7 +979,8 @@ function formatOrderSummaryCard({
 ${payUrl}
 
 📷 _Prefer UPI QR? Reply *"Send QR"* to receive your locked QR image._
-🕒 _${slotDisplay}_`;
+🕒 _${slotDisplay}_
+📍 _Delivered strictly to shared GPS pin (in-person receipt; keep phone reachable)._`;
 }
 
 // Fetch status of Razorpay payment link directly from Razorpay API
@@ -1616,15 +1647,17 @@ async function checkPendingRazorpayPayments(sock) {
         const hasGps = Boolean(order.latitude || (chatMetadata[targetJid] && chatMetadata[targetJid].latitude));
         let pinPrompt = "";
         if (!hasGps) {
-          pinPrompt = `\n\n📍 *Quick Dispatch Note:*\nPlease share your WhatsApp location pin (tap 📎 ➔ Location ➔ Send current location) or Google Maps link so our delivery rider can navigate directly to your gate without calling for directions! 🛵`;
+          pinPrompt = `\n\n📍 *Important Pin-Point Delivery Instructions:*\nPlease share your *WhatsApp Location Pin* (tap 📎 ➔ Location ➔ Send current location) or *Google Maps link* right now so our *Urban Trout Cold-Chain Dispatch Partner* navigates to your exact spot.\n• Delivery is made *strictly to the shared GPS location pin* (no house-number search or knocking on doors).\n• Please collect your chilled package *in person* at the shared location and keep your phone reachable — as our cold-chain executive carries multiple live-harvest orders on an active route, *no second delivery attempt* can be made if your number is unreachable or switched off.`;
+        } else {
+          pinPrompt = `\n\n📍 *Cold-Chain Dispatch Instructions:*\nOur *Urban Trout Cold-Chain Dispatch Partner* will deliver *strictly to your shared GPS location pin* (no house-number search). Kindly receive your package *in person* at the location point and keep your phone reachable — due to scheduled multi-order cold-chain routes, *no second delivery attempt* can be made if your number goes unanswered or is switched off.`;
         }
 
         const isTomorrowOrder = /(?:tomorrow|kal|saturday|advance)/i.test(order.deliveryTime || "");
         let deliveryCommitment = "";
         if (isTomorrowOrder) {
-          deliveryCommitment = `Our farm team at Malabagh will harvest your trout live from our crystal-clear oxygenated cold water tanks and deliver it fresh during your scheduled slot: *${order.deliveryTime}*!`;
+          deliveryCommitment = `Our farm team at Malabagh will harvest your trout live from our crystal-clear oxygenated cold water tanks and dispatch it fresh via our cold-chain team during your scheduled slot: *${order.deliveryTime}*!`;
         } else {
-          deliveryCommitment = `Our farm team at Malabagh is now preparing your fresh live harvest from our crystal-clear oxygen-saturated cold water tanks. We will deliver it fresh to your doorstep within 2 hours!`;
+          deliveryCommitment = `Our farm team at Malabagh is now preparing your fresh live harvest from our crystal-clear oxygen-saturated cold water tanks for chilled express delivery to your shared location within 2 hours!`;
         }
 
         const receiptMsg = `✅ *Payment Received & Order Confirmed!* 🐟\n\nThank you! Your payment of *₹${pAmt}* has been verified successfully.\n\n📋 *Order Summary:*\n• *Order Ref:* #${targetOrderRef}\n• *Items:* ${targetItems}\n• *Delivery Slot:* ${order.deliveryTime || "Within 2 Hours (Today)"}\n• *Status:* Confirmed (Live Harvest Scheduled)\n\n${deliveryCommitment}${pinPrompt}`;
@@ -1916,9 +1949,9 @@ function buildLocationRateQuote({ name, dist, status }) {
     return (
       `📍 *Urban Trout Delivery Check — ${name}*\n` +
       (distDisplay
-        ? `_(Approx. ${distDisplay} km from our Malabagh Farm — Outside 16.0 km Doorstep Perimeter)_\n\n`
-        : `_(Outside our 16.0 km Srinagar Doorstep Delivery Perimeter)_\n\n`) +
-      `To guarantee peak live-harvest freshness within 90–120 minutes, doorstep delivery operates strictly within *16.0 km* across Srinagar.\n\n` +
+        ? `_(Approx. ${distDisplay} km from our Malabagh Farm — Outside 16.0 km Express Delivery Perimeter)_\n\n`
+        : `_(Outside our 16.0 km Srinagar Express Delivery Perimeter)_\n\n`) +
+      `To guarantee peak live-harvest freshness within 90–120 minutes, cold-chain express delivery operates strictly within *16.0 km* across Srinagar.\n\n` +
       `🏪 *Fresh Live Counter Pickup Available at Malabagh:*\n` +
       `• *Cleaned, Gutted & Pan-Ready Pieces:* ₹580 / kg\n` +
       `• *Location:* Live Vending Center, Near R.P. School Girls Wing, Malabagh, Srinagar\n` +
@@ -1955,9 +1988,9 @@ function buildLocationRateQuote({ name, dist, status }) {
     if (isEveningNow) {
       const feeEve = feeDay + 40;
       const totalEve = (kg * 580 + feeEve).toLocaleString("en-IN");
-      return `• *${kg} kg:* ₹${fishPrice} + ₹${feeEve} courier *(evening rush)* = *₹${totalEve} total* _(Daytime: +₹${feeDay} = ₹${totalDay})_`;
+      return `• *${kg} kg:* ₹${fishPrice} + ₹${feeEve} delivery *(evening rush)* = *₹${totalEve} total* _(Daytime: +₹${feeDay} = ₹${totalDay})_`;
     }
-    return `• *${kg} kg:* ₹${fishPrice} + ₹${feeDay} courier = *₹${totalDay} total*`;
+    return `• *${kg} kg:* ₹${fishPrice} + ₹${feeDay} delivery = *₹${totalDay} total*`;
   }).join("\n");
 
   return (
@@ -1965,12 +1998,12 @@ function buildLocationRateQuote({ name, dist, status }) {
     (distDisplay ? `_(Approx. ${distDisplay} km from our Malabagh Farm)_\n\n` : `\n`) +
     `🐟 *Fresh Live-Harvested Trout (Cleaned, Gutted & Cut into Pan-Ready Pieces):*\n` +
     `• *Rate:* ₹580 / kg\n\n` +
-    `🛵 *100% FREE Doorstep Delivery:*\n` +
+    `🛵 *100% FREE Cold-Chain Express Delivery:*\n` +
     `• *${freeMinKg} kg & above:* FREE Delivery (*₹${freeTotal}* total for ${freeMinKg} kg)\n\n` +
-    `📦 *Express Doorstep Delivery (Orders below ${freeMinKg} kg):*\n` +
+    `📦 *Standard Express Delivery (Orders below ${freeMinKg} kg):*\n` +
     `${belowLines}\n\n` +
-    `⚡ _Note: Evening rush hours (4:00 PM – 8:00 PM) carry a +₹40 courier surcharge on subsidized orders below ${freeMinKg} kg; ${freeMinKg} kg+ remains 100% FREE._\n\n` +
-    `Reply with your preferred quantity (in kg) and address/location pin to book fresh live-harvest delivery within 90–120 minutes! 🐟`
+    `⚡ _Note: Evening rush hours (4:00 PM – 8:00 PM) carry a +₹40 express fee surcharge on orders below ${freeMinKg} kg; ${freeMinKg} kg+ remains 100% FREE._\n\n` +
+    `📌 *Pin-Point Delivery Policy:* Please share your *WhatsApp Location Pin or Google Maps link* to book. Our Cold-Chain Dispatch Partner delivers strictly to the shared GPS pin (not house numbers), and orders must be received in person. Kindly keep your phone reachable — due to scheduled multi-order cold-chain routes, no second delivery attempt can be made if unreachable or switched off. 🐟`
   );
 }
 
@@ -2688,93 +2721,93 @@ CRITICAL VIP REORDERING & GREETING INSTRUCTIONS:
       if (detectedLoc.dist <= 4.0) {
         localityContext = `\n======================================================
 📍 SMART LOCALITY DETECTED: Customer mentioned "${detectedLoc.name}" (~${detectedLoc.dist} km from Malabagh).
-⚠️ STRICT MANDATE: NEVER MENTION "Zone 1" OR ANY ZONE NUMBERS TO THE CUSTOMER! Speak naturally: "We deliver express right to your doorstep in ${detectedLoc.name}!".
-CRITICAL DELIVERY & PRICING INSTRUCTIONS:${isEveningSurge ? "\n⚡ CURRENT TIME: EVENING RUSH HOUR (4:00 PM – 8:00 PM IST) — +₹40 evening rush courier surge applies to subsidized 1 kg orders. 2 kg+ is 100% FREE!" : ""}
-• Doorstep Delivery: 100% FREE on 2 kg or more (within 2 hours)!
+⚠️ STRICT MANDATE: NEVER MENTION "Zone 1", ZONE NUMBERS, "doorstep", "subsidized", "70%", "30%", OR "Rapido"! Speak naturally: "We offer express cold-chain delivery to your shared location in ${detectedLoc.name}!".
+CRITICAL DELIVERY & PRICING INSTRUCTIONS:${isEveningSurge ? "\n⚡ CURRENT TIME: EVENING RUSH HOUR (4:00 PM – 8:00 PM IST) — +₹40 evening rush fee surcharge applies to 1 kg orders. 2 kg+ is 100% FREE!" : ""}
+• Cold-Chain Express Delivery: 100% FREE on 2 kg or more (within 2 hours)!
 • Rates: Cleaned & Gutted = ₹580/kg | Whole Fresh = ₹540/kg
 • 2 kg Cleaned & Gutted = *₹1,160 total* (100% FREE delivery)
 • ⚠️ STRICT MOQ FIRST POLICY: Pitch 2 kg minimum order for free delivery upfront!
 • Pitch for ${detectedLoc.name}:
-  "Great! ${detectedLoc.name} is right in our core delivery zone! Doorstep delivery is 100% FREE within 2 hours (minimum order 2 kg, gives 4–5 pan-ready trout for ₹1,160 total). How many Kgs of Cleaned & Gutted trout would you like for your family?"
+  "Great! ${detectedLoc.name} is right in our core service area! Express delivery to your shared location is 100% FREE within 2 hours (minimum order 2 kg, gives 4–5 pan-ready trout for ₹1,160 total). How many Kgs of Cleaned & Gutted trout would you like, and please share a WhatsApp location pin or Google Maps link for pin-point delivery?"
 • IF CUSTOMER ASKS FOR 1 KG:
-  "Doorstep delivery is 100% FREE on 2 kg (₹1,160 total). If you'd like just 1 kg as a starter pack to taste today, we can dispatch it express for ₹580 + ₹${35 + surgeAdd} courier fee (₹${615 + surgeAdd} total), or you can visit our Live Vending Center in Malabagh with zero delivery fee. Which works better for you?"
+  "Express delivery is 100% FREE on 2 kg (₹1,160 total). If you'd like just 1 kg as a starter pack to taste today, we can dispatch it express for ₹580 + ₹${35 + surgeAdd} delivery fee (₹${615 + surgeAdd} total), or you can visit our Live Vending Center in Malabagh with zero delivery fee. Which works better for you?"
 • When customer confirms 2 kg Cleaned & Gutted: output [PAY_LINK: 1160 : 2 kg Cleaned & Gutted]
 • When customer confirms 1 kg Cleaned & Gutted: output [PAY_LINK: ${615 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
-DO NOT ask them for a WhatsApp GPS location pin!
+Ask for a WhatsApp location pin or Google Maps link for pin-point delivery (never house numbers).
 ======================================================`;
       } else if (detectedLoc.dist <= 7.0) {
         localityContext = `\n======================================================
 📍 SMART LOCALITY DETECTED: Customer mentioned "${detectedLoc.name}" (~${detectedLoc.dist} km from Malabagh).
-⚠️ STRICT MANDATE: NEVER MENTION "Zone 2" OR ANY ZONE NUMBERS TO THE CUSTOMER! Speak naturally: "We deliver express right to your doorstep in ${detectedLoc.name}!".
-CRITICAL DELIVERY & PRICING INSTRUCTIONS:${isEveningSurge ? "\n⚡ CURRENT TIME: EVENING RUSH HOUR (4:00 PM – 8:00 PM IST) — +₹40 evening rush courier surge applies to subsidized courier orders. 3 kg+ is 100% FREE!" : ""}
-• Doorstep Delivery: 100% FREE on 3 kg or more!
-• 2 kg Order: Available with a nominal subsidized express courier fee of only *₹${55 + surgeAdd}* (₹1,160 + ₹${55 + surgeAdd} = *₹${1215 + surgeAdd} total* for Cleaned & Gutted).
-• 1 kg Starter Pack: Available with subsidized courier fee of *₹${65 + surgeAdd}* (₹580 + ₹${65 + surgeAdd} = *₹${645 + surgeAdd} total*).
+⚠️ STRICT MANDATE: NEVER MENTION "Zone 2", ZONE NUMBERS, "doorstep", "subsidized", "70%", "30%", OR "Rapido"! Speak naturally: "We offer express cold-chain delivery to your shared location in ${detectedLoc.name}!".
+CRITICAL DELIVERY & PRICING INSTRUCTIONS:${isEveningSurge ? "\n⚡ CURRENT TIME: EVENING RUSH HOUR (4:00 PM – 8:00 PM IST) — +₹40 evening rush fee surcharge applies to orders below 3 kg. 3 kg+ is 100% FREE!" : ""}
+• Cold-Chain Express Delivery: 100% FREE on 3 kg or more!
+• 2 kg Order: Available with a nominal express delivery fee of only *₹${55 + surgeAdd}* (₹1,160 + ₹${55 + surgeAdd} = *₹${1215 + surgeAdd} total* for Cleaned & Gutted).
+• 1 kg Starter Pack: Available with express delivery fee of *₹${65 + surgeAdd}* (₹580 + ₹${65 + surgeAdd} = *₹${645 + surgeAdd} total*).
 • Rates: Cleaned & Gutted = ₹580/kg | Whole Fresh = ₹540/kg
 • Pitch for ${detectedLoc.name}:
-  "Great! We deliver express to ${detectedLoc.name}! Doorstep delivery is 100% FREE on 3 kg (gives 6–7 fresh trout at ₹1,740 total). Or we can send 2 kg for just a nominal ₹${55 + surgeAdd} courier fee (₹${1215 + surgeAdd} total). How many Kgs would you like for your family?"
+  "Great! We deliver express to ${detectedLoc.name}! Cold-chain delivery to your shared location is 100% FREE on 3 kg (gives 6–7 fresh trout at ₹1,740 total). Or we can send 2 kg for just a nominal ₹${55 + surgeAdd} delivery fee (₹${1215 + surgeAdd} total). How many Kgs would you like, and kindly share your WhatsApp location pin or Google Maps link?"
 • IF CUSTOMER ASKS FOR 2 KG:
-  Gladly confirm! "Sure, we'd be happy to send 2 kg! It comes to ₹1,160 fish + ₹${55 + surgeAdd} subsidized courier = ₹${1215 + surgeAdd} total. Shall I send your payment link?"
+  Gladly confirm! "Sure, we'd be happy to send 2 kg! It comes to ₹1,160 fish + ₹${55 + surgeAdd} express delivery = ₹${1215 + surgeAdd} total. Please share your WhatsApp location pin or Google Maps link (we deliver strictly to the shared pin) and confirm so I can send your payment link!"
 • IF CUSTOMER ASKS FOR 1 KG:
-  "Doorstep delivery is 100% FREE on 3 kg (or ₹${55 + surgeAdd} on 2 kg). If you'd prefer just 1 kg starter pack to taste today, we can dispatch it express for ₹580 + ₹${65 + surgeAdd} courier fee (₹${645 + surgeAdd} total). Which would you like?"
+  "Express delivery is 100% FREE on 3 kg (or ₹${55 + surgeAdd} on 2 kg). If you'd prefer just 1 kg starter pack to taste today, we can dispatch it express for ₹580 + ₹${65 + surgeAdd} delivery fee (₹${645 + surgeAdd} total). Which would you like?"
 • When customer confirms 3 kg Cleaned & Gutted: output [PAY_LINK: 1740 : 3 kg Cleaned & Gutted]
 • When customer confirms 2 kg Cleaned & Gutted: output [PAY_LINK: ${1215 + surgeAdd} : 2 kg Cleaned & Gutted (+Express Delivery)]
 • When customer confirms 1 kg Cleaned & Gutted: output [PAY_LINK: ${645 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
-DO NOT ask them for a WhatsApp GPS location pin!
+Ask for a WhatsApp location pin or Google Maps link for pin-point delivery (never house numbers).
 ======================================================`;
       } else if (detectedLoc.dist <= 11.5) {
         localityContext = `\n======================================================
 📍 SMART LOCALITY DETECTED: Customer mentioned "${detectedLoc.name}" (~${detectedLoc.dist} km from Malabagh).
-⚠️ STRICT MANDATE: NEVER MENTION "Zone 3" OR ANY ZONE NUMBERS TO THE CUSTOMER! Speak naturally: "We deliver express right to your doorstep in ${detectedLoc.name}!".
-CRITICAL DELIVERY & PRICING INSTRUCTIONS:${isEveningSurge ? "\n⚡ CURRENT TIME: EVENING RUSH HOUR (4:00 PM – 8:00 PM IST) — +₹40 evening rush courier surge applies to subsidized courier orders. 3 kg+ is 100% FREE!" : ""}
-• Doorstep Delivery: 100% FREE on 3 kg or more!
-• 2 kg Order: Available with a nominal subsidized express courier fee of only *₹${89 + surgeAdd}* (₹1,160 + ₹${89 + surgeAdd} = *₹${1249 + surgeAdd} total* for Cleaned & Gutted).
-• 1 kg Starter Pack: Available with subsidized courier fee of *₹${99 + surgeAdd}* (₹580 + ₹${99 + surgeAdd} = *₹${679 + surgeAdd} total*).
+⚠️ STRICT MANDATE: NEVER MENTION "Zone 3", ZONE NUMBERS, "doorstep", "subsidized", "70%", "30%", OR "Rapido"! Speak naturally: "We offer express cold-chain delivery to your shared location in ${detectedLoc.name}!".
+CRITICAL DELIVERY & PRICING INSTRUCTIONS:${isEveningSurge ? "\n⚡ CURRENT TIME: EVENING RUSH HOUR (4:00 PM – 8:00 PM IST) — +₹40 evening rush fee surcharge applies to orders below 3 kg. 3 kg+ is 100% FREE!" : ""}
+• Cold-Chain Express Delivery: 100% FREE on 3 kg or more!
+• 2 kg Order: Available with a nominal express delivery fee of only *₹${89 + surgeAdd}* (₹1,160 + ₹${89 + surgeAdd} = *₹${1249 + surgeAdd} total* for Cleaned & Gutted).
+• 1 kg Starter Pack: Available with express delivery fee of *₹${99 + surgeAdd}* (₹580 + ₹${99 + surgeAdd} = *₹${679 + surgeAdd} total*).
 • Rates: Cleaned & Gutted = ₹580/kg | Whole Fresh = ₹540/kg
 • Pitch for ${detectedLoc.name}:
-  "Great! We deliver express to ${detectedLoc.name}! Doorstep delivery is 100% FREE on 3 kg (gives 6–7 fresh trout at ₹1,740 total). Or we can send 2 kg with just a subsidized ₹${89 + surgeAdd} courier fee (₹${1249 + surgeAdd} total). How many Kgs would you like for your family?"
+  "Great! We deliver express to ${detectedLoc.name}! Cold-chain delivery to your shared location is 100% FREE on 3 kg (gives 6–7 fresh trout at ₹1,740 total). Or we can send 2 kg with an express delivery fee of ₹${89 + surgeAdd} (₹${1249 + surgeAdd} total). How many Kgs would you like, and kindly share your WhatsApp location pin or Google Maps link?"
 • IF CUSTOMER ASKS FOR 2 KG:
-  Gladly confirm! "Sure, let's do it! We'd be happy to send 2 kg to ${detectedLoc.name}. It comes to ₹1,160 fish + ₹${89 + surgeAdd} subsidized courier fee = ₹${1249 + surgeAdd} total. Shall I send your payment link?"
+  Gladly confirm! "Sure, let's do it! We'd be happy to send 2 kg to ${detectedLoc.name}. It comes to ₹1,160 fish + ₹${89 + surgeAdd} express delivery fee = ₹${1249 + surgeAdd} total. Please share your WhatsApp location pin or Google Maps link for pin-point delivery — shall I send your payment link?"
 • IF CUSTOMER ASKS FOR 1 KG:
-  "Doorstep delivery is 100% FREE on 3 kg (or ₹${89 + surgeAdd} on 2 kg). If you'd prefer just 1 kg starter pack to taste today, we can dispatch it express for ₹580 + ₹${99 + surgeAdd} courier fee (₹${679 + surgeAdd} total). Which works best for you?"
+  "Express delivery is 100% FREE on 3 kg (or ₹${89 + surgeAdd} on 2 kg). If you'd prefer just 1 kg starter pack to taste today, we can dispatch it express for ₹580 + ₹${99 + surgeAdd} delivery fee (₹${679 + surgeAdd} total). Which works best for you?"
 • When customer confirms 3 kg Cleaned & Gutted: output [PAY_LINK: 1740 : 3 kg Cleaned & Gutted]
 • When customer confirms 2 kg Cleaned & Gutted: output [PAY_LINK: ${1249 + surgeAdd} : 2 kg Cleaned & Gutted (+Express Delivery)]
 • When customer confirms 1 kg Cleaned & Gutted: output [PAY_LINK: ${679 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
-DO NOT ask them for a WhatsApp GPS location pin!
+Ask for a WhatsApp location pin or Google Maps link for pin-point delivery (never house numbers).
 ======================================================`;
       } else if (detectedLoc.dist <= 16.0) {
         localityContext = `\n======================================================
 📍 SMART LOCALITY DETECTED: Customer mentioned "${detectedLoc.name}" (~${detectedLoc.dist} km from Malabagh).
-⚠️ STRICT MANDATE: NEVER MENTION "Zone 4", ANY ZONE NUMBERS, OR KM RANGES LIKE "(11.5–16 km)" TO THE CUSTOMER! Speak naturally: "We deliver express right to your doorstep in ${detectedLoc.name}!".
-CRITICAL DELIVERY & PRICING INSTRUCTIONS:${isEveningSurge ? "\n⚡ CURRENT TIME: EVENING RUSH HOUR (4:00 PM – 8:00 PM IST) — +₹40 evening rush courier surge applies to subsidized courier orders. 5 kg family pack remains 100% FREE!" : ""}
-• Doorstep Delivery: 100% FREE on 5 kg family pack (gives 10–12 fresh trout at *₹2,900 total*)!
-• 4 kg Order: Available with a nominal subsidized courier fee of *₹${109 + surgeAdd}* (₹2,320 + ₹${109 + surgeAdd} = *₹${2429 + surgeAdd} total*).
-• 3 kg Order: Available with a nominal subsidized courier fee of *₹${129 + surgeAdd}* (₹1,740 + ₹${129 + surgeAdd} = *₹${1869 + surgeAdd} total*).
-• 2 kg Order: Available with a nominal subsidized courier fee of *₹${139 + surgeAdd}* (₹1,160 + ₹${139 + surgeAdd} = *₹${1299 + surgeAdd} total*).
-• 1 kg Starter Pack: Available with subsidized courier fee of *₹${149 + surgeAdd}* (₹580 + ₹${149 + surgeAdd} = *₹${729 + surgeAdd} total*).
+⚠️ STRICT MANDATE: NEVER MENTION "Zone 4", ANY ZONE NUMBERS, KM RANGES LIKE "(11.5–16 km)", "doorstep", "subsidized", "70%", "30%", OR "Rapido"! Speak naturally: "We offer express cold-chain delivery to your shared location in ${detectedLoc.name}!".
+CRITICAL DELIVERY & PRICING INSTRUCTIONS:${isEveningSurge ? "\n⚡ CURRENT TIME: EVENING RUSH HOUR (4:00 PM – 8:00 PM IST) — +₹40 evening rush fee surcharge applies to orders below 5 kg. 5 kg family pack remains 100% FREE!" : ""}
+• Cold-Chain Express Delivery: 100% FREE on 5 kg family pack (gives 10–12 fresh trout at *₹2,900 total*)!
+• 4 kg Order: Available with a nominal express delivery fee of *₹${109 + surgeAdd}* (₹2,320 + ₹${109 + surgeAdd} = *₹${2429 + surgeAdd} total*).
+• 3 kg Order: Available with a nominal express delivery fee of *₹${129 + surgeAdd}* (₹1,740 + ₹${129 + surgeAdd} = *₹${1869 + surgeAdd} total*).
+• 2 kg Order: Available with a nominal express delivery fee of *₹${139 + surgeAdd}* (₹1,160 + ₹${139 + surgeAdd} = *₹${1299 + surgeAdd} total*).
+• 1 kg Starter Pack: Available with express delivery fee of *₹${149 + surgeAdd}* (₹580 + ₹${149 + surgeAdd} = *₹${729 + surgeAdd} total*).
 • Rates: Cleaned & Gutted = ₹580/kg | Whole Fresh = ₹540/kg
 • Pitch for ${detectedLoc.name}:
-  "Great! We deliver express to ${detectedLoc.name}! Doorstep delivery is 100% FREE for our 5 kg family pack (gives 10–12 fresh trout at ₹2,900 total). We can also send 2 kg for just ₹${139 + surgeAdd} express courier fee (₹${1299 + surgeAdd} total), 3 kg for ₹${129 + surgeAdd} courier fee (₹${1869 + surgeAdd} total), or 4 kg for ₹${109 + surgeAdd} courier fee (₹${2429 + surgeAdd} total). Which would you like for your home?"
+  "Great! We deliver express to ${detectedLoc.name}! Cold-chain delivery to your shared location is 100% FREE for our 5 kg family pack (gives 10–12 fresh trout at ₹2,900 total). We can also send 2 kg for just ₹${139 + surgeAdd} delivery fee (₹${1299 + surgeAdd} total), 3 kg for ₹${129 + surgeAdd} (₹${1869 + surgeAdd} total), or 4 kg for ₹${109 + surgeAdd} (₹${2429 + surgeAdd} total). Which would you like, and kindly share your WhatsApp location pin or Google Maps link?"
 • IF CUSTOMER ASKS FOR 2 KG:
-  Gladly confirm! "Sure, let's do it! We can send 2 kg to ${detectedLoc.name} express for ₹1,160 fish + ₹${139 + surgeAdd} subsidized courier fee = ₹${1299 + surgeAdd} total. Shall I send your payment link?"
+  Gladly confirm! "Sure, let's do it! We can send 2 kg to ${detectedLoc.name} express for ₹1,160 fish + ₹${139 + surgeAdd} delivery fee = ₹${1299 + surgeAdd} total. Please share your WhatsApp location pin or Google Maps link for pin-point delivery — shall I send your payment link?"
 • IF CUSTOMER ASKS FOR 3 KG:
-  "Sure! 3 kg to ${detectedLoc.name} is ₹1,740 fish + ₹${129 + surgeAdd} subsidized courier fee = ₹${1869 + surgeAdd} total. Shall I send your payment link?"
+  "Sure! 3 kg to ${detectedLoc.name} is ₹1,740 fish + ₹${129 + surgeAdd} delivery fee = ₹${1869 + surgeAdd} total. Please share your WhatsApp location pin or Google Maps link — shall I send your payment link?"
 • IF CUSTOMER ASKS FOR 4 KG:
-  "Sure! 4 kg to ${detectedLoc.name} is ₹2,320 fish + ₹${109 + surgeAdd} subsidized courier fee = ₹${2429 + surgeAdd} total (or upgrade to 5 kg for ₹2,900 with 100% FREE delivery!). Shall I send your payment link?"
+  "Sure! 4 kg to ${detectedLoc.name} is ₹2,320 fish + ₹${109 + surgeAdd} delivery fee = ₹${2429 + surgeAdd} total (or upgrade to 5 kg for ₹2,900 with 100% FREE delivery!). Shall I send your payment link?"
 • IF CUSTOMER ASKS FOR 1 KG:
-  "Doorstep delivery is 100% FREE on 5 kg (or ₹${139 + surgeAdd} on 2 kg). If you'd like just 1 kg as a starter pack, we can send it express for ₹580 + ₹${149 + surgeAdd} courier fee (₹${729 + surgeAdd} total), or you can visit our Live Vending Center in Malabagh with zero delivery fee. Which would you prefer?"
+  "Express delivery is 100% FREE on 5 kg (or ₹${139 + surgeAdd} on 2 kg). If you'd like just 1 kg as a starter pack, we can send it express for ₹580 + ₹${149 + surgeAdd} delivery fee (₹${729 + surgeAdd} total), or you can visit our Live Vending Center in Malabagh with zero delivery fee. Which would you prefer?"
 • When customer confirms 5 kg Cleaned & Gutted: output [PAY_LINK: 2900 : 5 kg Cleaned & Gutted]
 • When customer confirms 4 kg Cleaned & Gutted: output [PAY_LINK: ${2429 + surgeAdd} : 4 kg Cleaned & Gutted (+Express Delivery)]
 • When customer confirms 3 kg Cleaned & Gutted: output [PAY_LINK: ${1869 + surgeAdd} : 3 kg Cleaned & Gutted (+Express Delivery)]
 • When customer confirms 2 kg Cleaned & Gutted: output [PAY_LINK: ${1299 + surgeAdd} : 2 kg Cleaned & Gutted (+Express Delivery)]
 • When customer confirms 1 kg Cleaned & Gutted: output [PAY_LINK: ${729 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
-DO NOT ask them for a WhatsApp GPS location pin!
+Ask for a WhatsApp location pin or Google Maps link for pin-point delivery (never house numbers).
 ======================================================`;
       }
     } else if (detectedLoc.status === "OUT_ZONE") {
       localityContext = `\n======================================================
 📍 SMART LOCALITY DETECTED: Customer mentioned "${detectedLoc.name}", which is OUTSIDE our 16 km delivery perimeter.
-CRITICAL INSTRUCTION: Inform them politely that doorstep delivery is restricted to 16 km across Srinagar to preserve cold chain freshness. You MUST include this exact phrase:
+CRITICAL INSTRUCTION: Inform them politely that cold-chain express delivery is restricted to 16 km across Srinagar to preserve live-harvest freshness (NEVER say "doorstep"). You MUST include this exact phrase:
 "However, you are warmly welcome to visit our Live Vending Center in Malabagh (Near R. P. School Girls Wing, open Saturday to Thursday) where you can pick live trout and get it cleaned on the spot!" (Maps: https://maps.app.goo.gl/6FT5iLk5n8mbKSRU9)
 ======================================================`;
     }
@@ -2786,43 +2819,43 @@ CRITICAL INSTRUCTION: Inform them politely that doorstep delivery is restricted 
       if (sDist <= 4.0) {
         localityContext = `\n======================================================
 📍 CUSTOMER DISTANCE ON FILE: ~${sDist} km (Nearby Srinagar: 0–4 km).
-⚠️ STRICT MANDATE: NEVER SAY "ZONE 1" TO CUSTOMER!
-• Doorstep Delivery: 100% FREE on 2 kg or more (Cleaned & Gutted ₹1,160).
-• 1 kg starter pack: ₹580 + ₹${35 + surgeAdd} courier fee = ₹${615 + surgeAdd} total.
+⚠️ STRICT MANDATE: NEVER SAY "ZONE 1", "doorstep", "subsidized", "70%", "30%", OR "Rapido" TO CUSTOMER!
+• Express Delivery: 100% FREE on 2 kg or more (Cleaned & Gutted ₹1,160).
+• 1 kg starter pack: ₹580 + ₹${35 + surgeAdd} delivery fee = ₹${615 + surgeAdd} total.
 • If confirmed 2 kg: [PAY_LINK: 1160 : 2 kg Cleaned & Gutted]
 • If confirmed 1 kg: [PAY_LINK: ${615 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
 ======================================================`;
       } else if (sDist <= 7.0) {
         localityContext = `\n======================================================
-📍 CUSTOMER DISTANCE ON FILE: ~${sDist} km (Mid Srinagar: 4–7 km).${isEveningSurge ? "\n⚡ EVENING RUSH HOUR (4–8 PM): +₹40 evening rush courier surge applies to subsidized orders. 3 kg+ is 100% FREE!" : ""}
-⚠️ STRICT MANDATE: NEVER SAY "ZONE 2" TO CUSTOMER!
-• Doorstep Delivery: 100% FREE on 3 kg or more (Cleaned & Gutted ₹1,740).
-• 2 kg: ₹1,160 + ₹${55 + surgeAdd} subsidized courier fee = ₹${1215 + surgeAdd} total.
-• 1 kg: ₹580 + ₹${65 + surgeAdd} subsidized courier fee = ₹${645 + surgeAdd} total.
+📍 CUSTOMER DISTANCE ON FILE: ~${sDist} km (Mid Srinagar: 4–7 km).${isEveningSurge ? "\n⚡ EVENING RUSH HOUR (4–8 PM): +₹40 evening rush fee applies below 3 kg. 3 kg+ is 100% FREE!" : ""}
+⚠️ STRICT MANDATE: NEVER SAY "ZONE 2", "doorstep", "subsidized", "70%", "30%", OR "Rapido" TO CUSTOMER!
+• Express Delivery: 100% FREE on 3 kg or more (Cleaned & Gutted ₹1,740).
+• 2 kg: ₹1,160 + ₹${55 + surgeAdd} express delivery fee = ₹${1215 + surgeAdd} total.
+• 1 kg: ₹580 + ₹${65 + surgeAdd} express delivery fee = ₹${645 + surgeAdd} total.
 • If confirmed 3 kg: [PAY_LINK: 1740 : 3 kg Cleaned & Gutted]
 • If confirmed 2 kg: [PAY_LINK: ${1215 + surgeAdd} : 2 kg Cleaned & Gutted (+Express Delivery)]
 • If confirmed 1 kg: [PAY_LINK: ${645 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
 ======================================================`;
       } else if (sDist <= 11.5) {
         localityContext = `\n======================================================
-📍 CUSTOMER DISTANCE ON FILE: ~${sDist} km (Greater Srinagar: 7–11.5 km).${isEveningSurge ? "\n⚡ EVENING RUSH HOUR (4–8 PM): +₹40 evening rush courier surge applies to subsidized orders. 3 kg+ is 100% FREE!" : ""}
-⚠️ STRICT MANDATE: NEVER SAY "ZONE 3" TO CUSTOMER!
-• Doorstep Delivery: 100% FREE on 3 kg or more (Cleaned & Gutted ₹1,740).
-• 2 kg: ₹1,160 + ₹${89 + surgeAdd} subsidized courier fee = ₹${1249 + surgeAdd} total.
-• 1 kg: ₹580 + ₹${99 + surgeAdd} subsidized courier fee = ₹${679 + surgeAdd} total.
+📍 CUSTOMER DISTANCE ON FILE: ~${sDist} km (Greater Srinagar: 7–11.5 km).${isEveningSurge ? "\n⚡ EVENING RUSH HOUR (4–8 PM): +₹40 evening rush fee applies below 3 kg. 3 kg+ is 100% FREE!" : ""}
+⚠️ STRICT MANDATE: NEVER SAY "ZONE 3", "doorstep", "subsidized", "70%", "30%", OR "Rapido" TO CUSTOMER!
+• Express Delivery: 100% FREE on 3 kg or more (Cleaned & Gutted ₹1,740).
+• 2 kg: ₹1,160 + ₹${89 + surgeAdd} express delivery fee = ₹${1249 + surgeAdd} total.
+• 1 kg: ₹580 + ₹${99 + surgeAdd} express delivery fee = ₹${679 + surgeAdd} total.
 • If confirmed 3 kg: [PAY_LINK: 1740 : 3 kg Cleaned & Gutted]
 • If confirmed 2 kg: [PAY_LINK: ${1249 + surgeAdd} : 2 kg Cleaned & Gutted (+Express Delivery)]
 • If confirmed 1 kg: [PAY_LINK: ${679 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
 ======================================================`;
       } else if (sDist <= 16.0) {
         localityContext = `\n======================================================
-📍 CUSTOMER DISTANCE ON FILE: ~${sDist} km (Outer Corridor: 11.5–16 km).${isEveningSurge ? "\n⚡ EVENING RUSH HOUR (4–8 PM): +₹40 evening rush courier surge applies to subsidized orders. 5 kg family pack remains 100% FREE!" : ""}
-⚠️ STRICT MANDATE: NEVER SAY "ZONE 4" TO CUSTOMER!
-• Doorstep Delivery: 100% FREE on 5 kg family pack (Cleaned & Gutted ₹2,900).
-• 4 kg: ₹2,320 + ₹${109 + surgeAdd} subsidized courier fee = ₹${2429 + surgeAdd} total.
-• 3 kg: ₹1,740 + ₹${129 + surgeAdd} subsidized courier fee = ₹${1869 + surgeAdd} total.
-• 2 kg: ₹1,160 + ₹${139 + surgeAdd} subsidized courier fee = ₹${1299 + surgeAdd} total.
-• 1 kg: ₹580 + ₹${149 + surgeAdd} subsidized courier fee = ₹${729 + surgeAdd} total.
+📍 CUSTOMER DISTANCE ON FILE: ~${sDist} km (Outer Corridor: 11.5–16 km).${isEveningSurge ? "\n⚡ EVENING RUSH HOUR (4–8 PM): +₹40 evening rush fee applies below 5 kg. 5 kg family pack remains 100% FREE!" : ""}
+⚠️ STRICT MANDATE: NEVER SAY "ZONE 4", "doorstep", "subsidized", "70%", "30%", OR "Rapido" TO CUSTOMER!
+• Express Delivery: 100% FREE on 5 kg family pack (Cleaned & Gutted ₹2,900).
+• 4 kg: ₹2,320 + ₹${109 + surgeAdd} express delivery fee = ₹${2429 + surgeAdd} total.
+• 3 kg: ₹1,740 + ₹${129 + surgeAdd} express delivery fee = ₹${1869 + surgeAdd} total.
+• 2 kg: ₹1,160 + ₹${139 + surgeAdd} express delivery fee = ₹${1299 + surgeAdd} total.
+• 1 kg: ₹580 + ₹${149 + surgeAdd} express delivery fee = ₹${729 + surgeAdd} total.
 • If confirmed 5 kg: [PAY_LINK: 2900 : 5 kg Cleaned & Gutted]
 • If confirmed 4 kg: [PAY_LINK: ${2429 + surgeAdd} : 4 kg Cleaned & Gutted (+Express Delivery)]
 • If confirmed 3 kg: [PAY_LINK: ${1869 + surgeAdd} : 3 kg Cleaned & Gutted (+Express Delivery)]
@@ -2832,7 +2865,7 @@ CRITICAL INSTRUCTION: Inform them politely that doorstep delivery is restricted 
       } else {
         localityContext = `\n======================================================
 📍 CUSTOMER DISTANCE ON FILE: ~${sDist} km (OUTSIDE delivery perimeter > 16 km).
-• Doorstep delivery NOT available beyond 16 km. Strictly invite to Live Vending Center in Malabagh.
+• Express delivery NOT available beyond 16 km. Strictly invite to Live Vending Center in Malabagh.
 ======================================================`;
       }
     } else {
@@ -2843,9 +2876,9 @@ CRITICAL REVENUE PROTECTION MANDATE (ZERO BLIND DISCARDING):
 NEVER ASSUME OR GUESS THAT AN UNFAMILIAR LOCALITY IS OUTSIDE OUR DELIVERY ZONE!
 NEVER tell the customer that their area is outside our delivery zone unless it is a confirmed outside city!
 ⚠️ STRICT LOCATION-FIRST LAW: DO NOT OUTPUT [PAY_LINK: ...]!
-Payment links and QR codes CANNOT be generated until the customer's delivery area in Srinagar is identified.
-INSTRUCTION: If the customer is inquiring about delivery, or asked for fish/price without mentioning their location, state our rates (₹580/kg Cleaned & Gutted) and politely ask for their area or location pin:
-"Which area, locality, or landmark in Srinagar should we deliver to (e.g. Soura, Lal Chowk, Rajbagh, Hyderpora)? Or you can drop a quick WhatsApp location pin so our system can verify your delivery terms and send your official payment link / QR code right away! 🐟"
+Payment links and QR codes CANNOT be generated until the customer's delivery area / location pin in Srinagar is identified.
+INSTRUCTION: If the customer is inquiring about delivery, or asked for fish/price without mentioning their location, state our rates (₹580/kg Cleaned & Gutted) and politely ask for their area AND WhatsApp location pin or Google Maps link:
+"Which area in Srinagar should we deliver to (e.g. Soura, Lal Chowk, Rajbagh, Hyderpora)? Please share your WhatsApp location pin or Google Maps link so our system can calculate delivery details for pin-point cold-chain delivery and send your payment link right away! 🐟"
 ======================================================`;
     }
   }
@@ -2862,9 +2895,9 @@ CRITICAL INSTRUCTION: Answer ONLY what is required (keep it brief and organized)
 • Cleaned & Gutted: *₹580/kg* (Pan-ready, scaled & cleaned)
 • Whole Fresh: *₹540/kg*
 
-🛵 *Doorstep delivery is 100% FREE* on eligible orders across Srinagar (min 2 kg for nearby areas like Malabagh, Soura, Hazratbal, Lal Bazar; 3–5 kg for other Srinagar areas; subsidized express courier on smaller orders)!
+🛵 *Cold-chain express delivery is 100% FREE* on eligible orders across Srinagar (min 2 kg for nearby areas like Malabagh, Soura, Hazratbal, Lal Bazar; 3–5 kg for other Srinagar areas; standard delivery fee on smaller orders)!
 
-Which area in Srinagar would you like delivery to, or would you like to visit our Live Vending Center in Malabagh?
+Which area in Srinagar would you like delivery to (or drop your WhatsApp location pin / Google Maps link), or would you like to visit our Live Vending Center in Malabagh?
 ======================================================`;
   } else if (
     /\b(?:discount|bargain|kam\s*karo|kuch\s*kam|rate\s*kam|price\s*kam|concession|less\s*karo|thoda\s*kam|koi\s*offer|offer\s*hai|cheaper|sasta)\b/i.test(trimmedLower) ||
@@ -2873,12 +2906,12 @@ Which area in Srinagar would you like delivery to, or would you like to visit ou
     intentContext = `\n======================================================
 💡 QUERY INTENT DECODED: Customer is asking for a discount ("${userMessage.trim()}").
 CRITICAL DIRECTIVE ON DISCOUNTS (BE POLITE, CHARMING & CLOSE FORWARD — MAXIMUM 3 SHORT LINES):
-- NEVER say "we have a strict policy on rates" or sound blunt!
+- NEVER say "we have a strict policy on rates" or sound blunt! NEVER use the word "doorstep"!
 - DO NOT send the customer backwards to the top of funnel (do NOT ask "Which cut do you want?").
-- Reframe free delivery as the discount, suggest 2 kg upgrade, and close forward:
-"We completely understand! Our prices hold firm because every fish is harvested alive just for you — no ice, no preservatives — and we absorb the full delivery cost.
+- Reframe free delivery as the savings, suggest 2 kg upgrade, and close forward:
+"We completely understand! Our prices stay consistent because every fish is harvested alive only upon confirmation — zero ice, zero preservatives.
 
-The good news: upgrading to 2 kg (₹1,160 total) makes doorstep delivery 100% FREE — you save the delivery fee right there!
+The good news: ordering 2 kg (₹1,160 total) unlocks *100% FREE cold-chain delivery* in core Srinagar areas — saving you the delivery fee right there!
 
 Shall I send your payment link for 2 kg?"
 ======================================================`;
@@ -2891,13 +2924,13 @@ CRITICAL IDENTITY DIRECTIVE (BRIEF, PROUD & COURTEOUS):
 Flex that Urban Trout is Jammu & Kashmir’s very first startup to integrate an AI sales assistant with WhatsApp:
 "I am Urban Trout's AI sales assistant—proudly Jammu & Kashmir’s first startup to integrate AI on WhatsApp! 🚀
 
-Our human farm team in Malabagh handles the live harvesting, cleaning, and express delivery directly to your kitchen.
+Our dedicated Malabagh farm and Cold-Chain Dispatch teams handle the live harvesting, cleaning, and chilled express delivery directly to your shared GPS location.
 
-How can I help you today? Would you like Cleaned & Gutted (₹580/kg) or Whole Fresh (₹540/kg) delivered to your home?"
+How can I help you today? Would you like Cleaned & Gutted trout (₹580/kg)?"
 ======================================================`;
   }
 
-  // ─── 1 KG QUERY INTENT DECODER (4-TIER AWARE PRICING & SUBSIDIZED COURIER) ───
+  // ─── 1 KG QUERY INTENT DECODER (4-TIER AWARE PRICING & EXPRESS DELIVERY) ───
   const is1KgIntent = /\b(?:(?:can\s*(?:i|we)\s*order|order|want|give|send|bhej\s*do|deliver|pack|price|rate|chahiye|mangwana|how\s*much\s*for)\s*)?(?:1|one)\s*(?:kg|kilo|kgs)\b/i.test(trimmedLower) || /^(?:1|one)\s*(?:kg|kilo|kgs)$/i.test(trimmedLower);
   if (is1KgIntent) {
     const locDist = detectedLoc?.dist ?? (chatMetadata[chatId]?.distanceKm ?? null);
@@ -2906,51 +2939,51 @@ How can I help you today? Would you like Cleaned & Gutted (₹580/kg) or Whole F
     if (locDist !== null && locDist > 11.5 && locDist <= 16.0) {
       intentContext += `\n======================================================
 💡 QUERY INTENT DECODED: Customer inquired about 1 kg for ${locName} (~${locDist} km from farm).
-⚠️ STRICT MANDATE: NEVER MENTION "ZONE 4" OR ANY ZONE LABELS TO THE CUSTOMER!
-• Doorstep delivery is 100% FREE on our 5 kg family pack (₹2,900 total).
-• If customer wants 1 kg starter pack: ₹580 + ₹${149 + surgeAdd} courier fee = *₹${729 + surgeAdd} total*.
-• If customer wants 2 kg: ₹1,160 + ₹${139 + surgeAdd} courier fee = *₹${1299 + surgeAdd} total*.
+⚠️ STRICT MANDATE: NEVER MENTION "ZONE 4", ZONE LABELS, "doorstep", "subsidized", "70%", "30%", OR "Rapido"!
+• Cold-chain express delivery is 100% FREE on our 5 kg family pack (₹2,900 total).
+• If customer wants 1 kg starter pack: ₹580 + ₹${149 + surgeAdd} delivery fee = *₹${729 + surgeAdd} total*.
+• If customer wants 2 kg: ₹1,160 + ₹${139 + surgeAdd} delivery fee = *₹${1299 + surgeAdd} total*.
 • When customer confirms 1 kg: output [PAY_LINK: ${729 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
 • When customer confirms 2 kg: output [PAY_LINK: ${1299 + surgeAdd} : 2 kg Cleaned & Gutted (+Express Delivery)]
 ======================================================`;
     } else if (locDist !== null && locDist > 7.0 && locDist <= 11.5) {
       intentContext += `\n======================================================
 💡 QUERY INTENT DECODED: Customer inquired about 1 kg for ${locName} (~${locDist} km from farm).
-⚠️ STRICT MANDATE: NEVER MENTION "ZONE 3" OR ANY ZONE LABELS TO THE CUSTOMER!
-• Doorstep delivery is 100% FREE on 3 kg (₹1,740 total).
-• If customer wants 1 kg starter pack: ₹580 + ₹${99 + surgeAdd} courier fee = *₹${679 + surgeAdd} total*.
-• If customer wants 2 kg: ₹1,160 + ₹${89 + surgeAdd} courier fee = *₹${1249 + surgeAdd} total*.
+⚠️ STRICT MANDATE: NEVER MENTION "ZONE 3", ZONE LABELS, "doorstep", "subsidized", "70%", "30%", OR "Rapido"!
+• Cold-chain express delivery is 100% FREE on 3 kg (₹1,740 total).
+• If customer wants 1 kg starter pack: ₹580 + ₹${99 + surgeAdd} delivery fee = *₹${679 + surgeAdd} total*.
+• If customer wants 2 kg: ₹1,160 + ₹${89 + surgeAdd} delivery fee = *₹${1249 + surgeAdd} total*.
 • When customer confirms 1 kg: output [PAY_LINK: ${679 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
 • When customer confirms 2 kg: output [PAY_LINK: ${1249 + surgeAdd} : 2 kg Cleaned & Gutted (+Express Delivery)]
 ======================================================`;
     } else if (locDist !== null && locDist > 4.0 && locDist <= 7.0) {
       intentContext += `\n======================================================
 💡 QUERY INTENT DECODED: Customer inquired about 1 kg for ${locName} (~${locDist} km from farm).
-⚠️ STRICT MANDATE: NEVER MENTION "ZONE 2" OR ANY ZONE LABELS TO THE CUSTOMER!
-• Doorstep delivery is 100% FREE on 3 kg (₹1,740 total).
-• If customer wants 1 kg starter pack: ₹580 + ₹${65 + surgeAdd} courier fee = *₹${645 + surgeAdd} total*.
-• If customer wants 2 kg: ₹1,160 + ₹${55 + surgeAdd} courier fee = *₹${1215 + surgeAdd} total*.
+⚠️ STRICT MANDATE: NEVER MENTION "ZONE 2", ZONE LABELS, "doorstep", "subsidized", "70%", "30%", OR "Rapido"!
+• Cold-chain express delivery is 100% FREE on 3 kg (₹1,740 total).
+• If customer wants 1 kg starter pack: ₹580 + ₹${65 + surgeAdd} delivery fee = *₹${645 + surgeAdd} total*.
+• If customer wants 2 kg: ₹1,160 + ₹${55 + surgeAdd} delivery fee = *₹${1215 + surgeAdd} total*.
 • When customer confirms 1 kg: output [PAY_LINK: ${645 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
 • When customer confirms 2 kg: output [PAY_LINK: ${1215 + surgeAdd} : 2 kg Cleaned & Gutted (+Express Delivery)]
 ======================================================`;
     } else if (locDist !== null && locDist <= 4.0) {
       intentContext += `\n======================================================
 💡 QUERY INTENT DECODED: Customer inquired about 1 kg for ${locName} (~${locDist} km from farm).
-⚠️ STRICT MANDATE: NEVER MENTION "ZONE 1" OR ANY ZONE LABELS TO THE CUSTOMER!
-• Doorstep delivery is 100% FREE on 2 kg (₹1,160 total).
-• If customer prefers just 1 kg as a starter pack: ₹580 + ₹${35 + surgeAdd} courier fee = *₹${615 + surgeAdd} total* (or free counter pickup at our Live Vending Center in Malabagh with zero delivery fee).
+⚠️ STRICT MANDATE: NEVER MENTION "ZONE 1", ZONE LABELS, "doorstep", "subsidized", "70%", "30%", OR "Rapido"!
+• Cold-chain express delivery is 100% FREE on 2 kg (₹1,160 total).
+• If customer prefers just 1 kg as a starter pack: ₹580 + ₹${35 + surgeAdd} delivery fee = *₹${615 + surgeAdd} total* (or free counter pickup at our Live Vending Center in Malabagh with zero delivery fee).
 • When customer confirms 1 kg: output [PAY_LINK: ${615 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
 • When customer confirms 2 kg: output [PAY_LINK: 1160 : 2 kg Cleaned & Gutted]
 ======================================================`;
     } else {
       intentContext += `\n======================================================
 💡 QUERY INTENT DECODED: Customer inquired about 1 kg, but their locality in Srinagar is NOT yet known.
-⚠️ ABSOLUTE MANDATE: NEVER MENTION "ZONE 1" OR ANY ZONE NUMBERS! DO NOT ASSUME THEIR AREA!
+⚠️ ABSOLUTE MANDATE: NEVER MENTION "ZONE 1" OR ANY ZONE NUMBERS, "doorstep", "subsidized", "70%", "30%", OR "Rapido"! DO NOT ASSUME THEIR AREA!
 • Explain warmly:
-  "Great! For 1 kg, doorstep delivery is available with a nominal subsidized express courier fee (e.g. ₹${35 + surgeAdd} for nearby areas like Malabagh, Soura, Hazratbal, Lal Bazar; ₹${65 + surgeAdd}–₹${149 + surgeAdd} across other Srinagar localities).
-  Alternatively, doorstep delivery is *100% FREE* on 2 kg+ in nearby areas (3–5 kg across wider Srinagar), or you can pick up 1 kg fresh with zero delivery fee at our Live Vending Center in Malabagh.
-  Which area in Srinagar shall we deliver to?"
-• Always ask for their area so our system can calculate the exact delivery distance!
+  "For 1 kg, cold-chain express delivery to your shared location is available with a nominal express delivery fee (e.g. ₹${35 + surgeAdd} for nearby areas like Malabagh, Soura, Hazratbal, Lal Bazar; ₹${65 + surgeAdd}–₹${149 + surgeAdd} across other Srinagar localities).
+  Alternatively, express delivery is *100% FREE* on 2 kg+ in nearby areas (3–5 kg across wider Srinagar), or you can pick up 1 kg fresh with zero delivery fee at our Live Vending Center in Malabagh.
+  Which area in Srinagar shall we deliver to, and kindly share your WhatsApp location pin or Google Maps link?"
+• Always ask for their area / location pin so our system can calculate the exact delivery distance!
 ======================================================`;
     }
   }
@@ -3030,7 +3063,7 @@ You can choose live swimming trout from our counter tanks, watch it harvested li
   if (isFridayToday && !/\b(?:saturday|advance|hafta)\b/i.test(trimmedLower)) {
     const isFridayInquiry = /(?:deliver|order|open|aaj|today|now|abhi|right\s*now|available|bhej|chahiye|rate|visit|kahan|hai\s*kya|trout|fish|rate|price|cost|timing)/i.test(trimmedLower);
     if (isFridayInquiry) {
-      const deterministicFridayReply = `Our Live Vending Center and doorstep delivery operations are strictly closed today (Friday) for weekly RAS bio-security maintenance, filtration backwashing, and staff weekly off.
+      const deterministicFridayReply = `Our Live Vending Center and cold-chain express delivery operations are strictly closed today (Friday) for weekly bio-security maintenance, filtration backwashing, and staff weekly off.
 
 However, we are actively taking advance bookings for tomorrow, Saturday!
 • 🕗 *Morning Slot:* 8:00 AM – 11:00 AM (Harvest starts 8:00 AM)
@@ -3040,7 +3073,7 @@ However, we are actively taking advance bookings for tomorrow, Saturday!
 • Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero prep)
 • Whole Fresh: *₹540/kg*
 
-🛵 *Doorstep delivery is 100% FREE* on eligible orders (2 kg for 0–4 km, 3 kg for 4–11.5 km, 5 kg for 11.5–16 km & South Srinagar; subsidized courier on smaller orders)!
+🛵 *Cold-chain express delivery is 100% FREE* on eligible orders (2 kg for 0–4 km, 3 kg for 4–11.5 km, 5 kg for 11.5–16 km & South Srinagar; standard delivery fee on smaller orders)!
 
 Would you like us to schedule a fresh live-harvest delivery for you tomorrow (Saturday)?`;
 
@@ -3056,16 +3089,16 @@ Would you like us to schedule a fresh live-harvest delivery for you tomorrow (Sa
   // ─── THURSDAY HARD LOCK FOR FRIDAY / TOMORROW INQUIRIES ───
   const isAskingTomorrowOnThursday = isThursdayToday && /\b(?:tomorrow|kal|friday|jumma|juma|jummah)\b/i.test(trimmedLower);
   if (isAskingTomorrowOnThursday && /(?:available|deliver|delivery|open|bhej|chahiye|order|mil\s*jayega|mil\s*sakega|ho\s*(?:sakta|jayega)|send|timing|slot)/i.test(trimmedLower)) {
-    const deterministicThuForFriReply = `Tomorrow is Friday, and our farm and delivery operations are strictly closed on Fridays for scheduled RAS bio-security maintenance and filtration backwashing (zero counter walk-ins and zero doorstep deliveries on Friday).
+    const deterministicThuForFriReply = `Tomorrow is Friday, and our farm and delivery operations are strictly closed on Fridays for scheduled bio-security maintenance and filtration backwashing (zero counter walk-ins and zero express deliveries on Friday).
 
 We would be delighted to schedule your fresh live-harvest delivery for:
-1️⃣ *Today (Thursday):* Delivered within 2 hours to your doorstep (we are open until 8:00 PM)!
+1️⃣ *Today (Thursday):* Chilled express delivery to your shared location pin within 2 hours (we are open until 8:00 PM)!
 2️⃣ *Saturday:* Advance booking with your preferred slot:
 • 🕗 *Morning:* 8:00 AM – 11:00 AM
 • 🕛 *Afternoon:* 12:00 PM – 3:00 PM
 • 🕔 *Evening:* 4:00 PM – 7:00 PM
 
-🛵 *Doorstep delivery is 100% FREE* on eligible orders (2 kg for 0–4 km, 3 kg for 4–11.5 km, 5 kg for 11.5–16 km & South Srinagar; subsidized courier on smaller orders)!
+🛵 *Cold-chain express delivery is 100% FREE* on eligible orders (2 kg for 0–4 km, 3 kg for 4–11.5 km, 5 kg for 11.5–16 km & South Srinagar; standard delivery fee on smaller orders)!
 
 Would you prefer fresh delivery today (Thursday) within 2 hours, or an advance booking for Saturday?`;
 
@@ -3086,26 +3119,26 @@ Would you prefer fresh delivery today (Thursday) within 2 hours, or an advance b
     let deterministicNightReply = "";
     if (existingOrder && !existingOrder.notFound && /(?:paid|confirmed|harvest|dispatch)/i.test(existingOrder.status || "")) {
       deterministicNightReply = isThursdayToday
-        ? `Our deliveries for tonight closed at 8:00 PM. Please note our farm is strictly closed on Fridays for weekly RAS filtration and bio-security maintenance.
+        ? `Our deliveries for tonight closed at 8:00 PM. Please note our farm is strictly closed on Fridays for weekly filtration and bio-security maintenance.
 
-Your order (*#${existingOrder.orderRef}* - ${existingOrder.items || "Fresh Rainbow Trout"}) is confirmed! It is scheduled for fresh morning live harvest and express dispatch on *Saturday morning between 8:00 AM and 11:00 AM*.
+Your order (*#${existingOrder.orderRef}* - ${existingOrder.items || "Fresh Rainbow Trout"}) is confirmed! It is scheduled for fresh morning live harvest and express dispatch via our Cold-Chain Dispatch Partner on *Saturday morning between 8:00 AM and 11:00 AM*.
 
-We will deliver it fresh to your doorstep!`
+Please keep your phone reachable to collect your package in person at your shared location pin!`
         : `Our deliveries for tonight closed at 8:00 PM. We start fresh orders from 8:00 AM every morning!
 
-Your order (*#${existingOrder.orderRef}* - ${existingOrder.items || "Fresh Rainbow Trout"}) is confirmed! It is scheduled for fresh morning live harvest from our crystal-clear oxygen-saturated cold water tanks and express dispatch tomorrow morning between *8:00 AM and 11:00 AM*.
+Your order (*#${existingOrder.orderRef}* - ${existingOrder.items || "Fresh Rainbow Trout"}) is confirmed! It is scheduled for fresh morning live harvest from our crystal-clear oxygen-saturated cold water tanks and express dispatch via our Cold-Chain Dispatch Partner tomorrow morning between *8:00 AM and 11:00 AM*.
 
-We will deliver it fresh to your doorstep!`;
+Please keep your phone reachable to collect your package in person at your shared location pin!`;
     } else {
       deterministicNightReply = isThursdayToday
-        ? `Our deliveries for tonight closed at 8:00 PM. Please note that our farm is strictly closed on Fridays for weekly RAS filtration and bio-security maintenance (zero counter walk-ins and zero doorstep deliveries on Friday).
+        ? `Our deliveries for tonight closed at 8:00 PM. Please note that our farm is strictly closed on Fridays for weekly filtration and bio-security maintenance (zero counter walk-ins and zero express deliveries on Friday).
 
 We start taking fresh live-harvest orders from 8:00 AM every Saturday morning! We would be delighted to schedule your delivery for Saturday:
 • 🕗 *Morning Slot:* 8:00 AM – 11:00 AM (Harvest starts 8:00 AM)
 • 🕛 *Afternoon Slot:* 12:00 PM – 3:00 PM
 • 🕔 *Evening Slot:* 4:00 PM – 7:00 PM
 
-🛵 *Doorstep delivery is 100% FREE* on eligible orders (2 kg for 0–4 km, 3 kg for 4–11.5 km, 5 kg for 11.5–16 km & South Srinagar; subsidized courier on smaller orders)!
+🛵 *Cold-chain express delivery is 100% FREE* on eligible orders (2 kg for 0–4 km, 3 kg for 4–11.5 km, 5 kg for 11.5–16 km & South Srinagar; standard delivery fee on smaller orders)!
 
 Which slot on Saturday works best for your delivery, and how many Kgs of Cleaned & Gutted trout (₹580/kg, pan-ready) shall I book for you?`
         : `Our deliveries for tonight closed at 8:00 PM. We start taking fresh live-harvest orders from 8:00 AM every morning!
@@ -3115,7 +3148,7 @@ We would be delighted to schedule your fresh live-harvest delivery for tomorrow:
 • 🕛 *Afternoon Slot:* 12:00 PM – 3:00 PM
 • 🕔 *Evening Slot:* 4:00 PM – 7:00 PM
 
-🛵 *Doorstep delivery is 100% FREE* on eligible orders (2 kg for 0–4 km, 3 kg for 4–11.5 km, 5 kg for 11.5–16 km & South Srinagar; subsidized courier on smaller orders)!
+🛵 *Cold-chain express delivery is 100% FREE* on eligible orders (2 kg for 0–4 km, 3 kg for 4–11.5 km, 5 kg for 11.5–16 km & South Srinagar; standard delivery fee on smaller orders)!
 
 Which slot tomorrow works best for your delivery, and how many Kgs of Cleaned & Gutted trout (₹580/kg, pan-ready) shall I book for you?`;
     }
@@ -3135,9 +3168,9 @@ Which slot tomorrow works best for your delivery, and how many Kgs of Cleaned & 
     if (existingOrder && !existingOrder.notFound && /(?:paid|confirmed|harvest|dispatch)/i.test(existingOrder.status || "")) {
       deterministicEarlyReply = `Good morning! We start taking live orders and harvesting from 8:00 AM sharp today!
 
-Your order (*#${existingOrder.orderRef}* - ${existingOrder.items || "Fresh Rainbow Trout"}) is confirmed! It is scheduled for today's first fresh live harvest and express morning dispatch between *8:00 AM and 11:00 AM*.
+Your order (*#${existingOrder.orderRef}* - ${existingOrder.items || "Fresh Rainbow Trout"}) is confirmed! It is scheduled for today's first fresh live harvest and express morning dispatch via our Cold-Chain Dispatch Partner between *8:00 AM and 11:00 AM*.
 
-We will deliver it fresh straight to your doorstep! 🐟`;
+Please keep your phone reachable to collect your package in person at your shared location pin! 🐟`;
     } else {
       deterministicEarlyReply = `Good morning! We start taking live orders and harvesting from 8:00 AM sharp today!
 
@@ -3147,7 +3180,7 @@ We would be delighted to schedule your fresh live-harvest delivery for this morn
 • 🕔 *Evening Slot:* 4:00 PM – 7:00 PM
 
 • Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — descaled, zero kitchen mess, straight to pan)
-🛵 *Doorstep delivery is 100% FREE* on eligible orders (2 kg for 0–4 km, 3 kg for 4–11.5 km, 5 kg for 11.5–16 km & South Srinagar; subsidized courier on smaller orders)!
+🛵 *Cold-chain express delivery is 100% FREE* on eligible orders (2 kg for 0–4 km, 3 kg for 4–11.5 km, 5 kg for 11.5–16 km & South Srinagar; standard delivery fee on smaller orders)!
 
 Which slot today works best for you, and how many Kgs would you like for your family? 🐟`;
     }
@@ -3162,26 +3195,26 @@ Which slot today works best for you, and how many Kgs would you like for your fa
 
   const fridayOperatingNote = isFridayToday
     ? `CRITICAL ALERT: TODAY IS FRIDAY — WE ARE 100% CLOSED TODAY:
-   - BOTH our Live Vending Center counter in Malabagh AND doorstep delivery operations are STRICTLY CLOSED today for weekly farm bio-security maintenance, RAS filtration backwashing, and staff weekly off.
+   - BOTH our Live Vending Center counter in Malabagh AND cold-chain express delivery operations are STRICTLY CLOSED today for weekly farm bio-security maintenance, filtration backwashing, and staff weekly off.
    - ZERO live harvesting and ZERO dispatches today. Under NO circumstances should you promise or confirm delivery today!
    - If a customer asks for trout today or asks if we are open today, explain politely that we are closed on Fridays, and offer advance bookings for SATURDAY (Morning 8–11 AM, Afternoon 12–3 PM, Evening 4–7 PM).
    - Advance bookings and payment links for SATURDAY or later are warmly welcomed!`
     : isThursdayToday
     ? `CRITICAL ALERT: TODAY IS THURSDAY — TOMORROW IS FRIDAY (100% CLOSED):
    - We are OPEN for orders and deliveries TODAY (Thursday) until 8:00 PM (delivered within 2 hours).
-   - ABSOLUTE LAW: TOMORROW IS FRIDAY — WE ARE 100% CLOSED TOMORROW! Both our Live Vending Center counter AND doorstep deliveries are strictly closed on Fridays for farm RAS filtration and bio-security maintenance.
+   - ABSOLUTE LAW: TOMORROW IS FRIDAY — WE ARE 100% CLOSED TOMORROW! Both our Live Vending Center counter AND cold-chain deliveries are strictly closed on Fridays for farm filtration and bio-security maintenance.
    - ZERO dispatches and ZERO counter walk-ins on Friday!
    - NEVER promise, confirm, or accept orders for tomorrow (Friday).
    - If a customer asks about delivery for tomorrow or Friday, explain Friday closure and offer delivery TODAY (within 2 hours) or advance booking for SATURDAY!`
     : `STORE & DELIVERY HOURS:
-   - Doorstep Delivery: 8:00 AM to 8:00 PM, Saturday through Thursday (delivered within 2 hours). STRICTLY CLOSED ON FRIDAYS.
-   - Live Vending Center in Malabagh: Open 8:00 AM to 8:00 PM, Saturday to Thursday (strictly closed Fridays for scheduled RAS filtration and bio-security maintenance).
+   - Cold-Chain Express Delivery: 8:00 AM to 8:00 PM, Saturday through Thursday (delivered to shared GPS pin within 2 hours). STRICTLY CLOSED ON FRIDAYS.
+   - Live Vending Center in Malabagh: Open 8:00 AM to 8:00 PM, Saturday to Thursday (strictly closed Fridays for scheduled filtration and bio-security maintenance).
    ⚠️ NOTE: Today is ${todayDayName}. Tomorrow is ${tomorrowDayName}. We are 100% OPEN today and tomorrow! Do NOT mention Friday or Saturday closure unless today is Thursday or Friday!`;
 
   let timeStatusDetail = "";
   if (isFridayToday) {
     timeStatusDetail = `🛑 CURRENT STATUS: FRIDAY — ENTIRE FACILITY & DELIVERIES 100% CLOSED TODAY!
-- We are completely closed today (Friday) for weekly RAS filtration bio-security maintenance.
+- We are completely closed today (Friday) for weekly filtration bio-security maintenance.
 - Zero live harvesting and zero dispatches today.
 - We resume fresh operations tomorrow, Saturday morning at 8:00 AM!
 - ALWAYS offer advance bookings for SATURDAY (Morning 8-11 AM, Afternoon 12-3 PM, Evening 4-7 PM).`;
@@ -3192,8 +3225,8 @@ Which slot today works best for you, and how many Kgs would you like for your fa
     timeStatusDetail = `✅ CURRENT STATUS: OPEN & ACTIVELY ACCEPTING ORDERS (8:00 AM - 8:00 PM)!
 - We start taking fresh live-harvest orders from 8:00 AM every single day (except Friday)!
 - We are currently open and actively taking orders for TODAY (${todayDayName}) right now!
-- Live-harvested Rainbow Trout delivered straight to the customer's doorstep WITHIN 2 HOURS (or at their preferred scheduled time slot today up to 8:00 PM).
-- Minimum order for FREE delivery: 2 kg for 0–4 km, 3 kg for 4–11.5 km, 5 kg for 11.5–16 km (Rajbagh, Jawahar Nagar, Batamaloo, Sanat Nagar, Peerbagh, Airport Rd, Nowgam, Hyderpora, etc.); subsidized 70/30 courier on smaller orders.
+- Live-harvested Rainbow Trout delivered chilled to the customer's shared GPS location pin WITHIN 2 HOURS (or at their preferred scheduled time slot today up to 8:00 PM).
+- Minimum order for FREE delivery: 2 kg for 0–4 km, 3 kg for 4–11.5 km, 5 kg for 11.5–16 km (Rajbagh, Jawahar Nagar, Batamaloo, Sanat Nagar, Peerbagh, Airport Rd, Nowgam, Hyderpora, etc.); standard express delivery fee on smaller orders.
 - ABSOLUTELY NEVER say "deliveries wrapped up" or "book for tomorrow" during daytime (8:00 AM - 8:00 PM)! Offer live delivery TODAY within 2 hours!${thuNote}`;
   } else if (isNightAfter9PM) {
     if (isThursdayToday) {
@@ -3302,20 +3335,19 @@ CRITICAL READABILITY & MAXIMUM BREVITY MANDATE (ANSWER ONLY WHAT IS REQUIRED):
    • Whole Fresh Trout (*₹540/kg*, uncleaned/round) is an unadvertised on-demand fallback option. ONLY reveal it if the customer specifically asks: "bina saaf kiye", "whole fish", "sabut", "uncleaned", or pushes hard on price.
    • When customer asks about whole/uncleaned: "Yes, we also offer Whole Fresh Trout (uncleaned/round) at ₹540/kg if you prefer cleaning it at home. However, most families choose our Cleaned & Gutted (₹580/kg) because it arrives completely descaled, gutted, and cut into pan-ready steaks with zero kitchen mess. Which would you prefer?"
 6. DELIVERY CALLOUT LINE (SEPARATE LINE BELOW RATES):
-   🛵 *Doorstep delivery is 100% FREE* on eligible orders across Srinagar (min 2 kg for nearby areas, 3–5 kg for wider Srinagar areas; subsidized express courier on smaller orders)!
+   🛵 *Cold-chain express delivery is 100% FREE* on eligible orders across Srinagar (min 2 kg for nearby areas, 3–5 kg for wider Srinagar areas; standard express fee on smaller orders)!
 7. TERMINOLOGY: Always use "Live Vending Center" (located in Malabagh). NEVER say "Malabagh Vending Center".
-8. STRICT PROHIBITION: NEVER MENTION ZONE NUMBERS (ZONE 1, 2, 3, 4) OR KM RANGES TO CUSTOMERS:
-   • Internal delivery zones are for backend fee calculations ONLY. Customers find zone labels confusing, cold, and robotic!
-   • ABSOLUTELY NEVER say: "Zone 1", "Zone 2", "Zone 3", "Zone 4", "(Zone 1)", "in your area (Zone 1)", "Zone 3 area", or "(11.5–16 km)"!
-   • ALWAYS speak naturally using locality names: "Great! We deliver express right to your doorstep in [Locality]!" or "for nearby areas like Malabagh, Soura, Hazratbal".
-   • State the free delivery policy warmly: e.g. "For Hyderpora, doorstep delivery is 100% FREE on 5 kg or more!"
+8. STRICT PROHIBITION: NEVER MENTION ZONE NUMBERS (ZONE 1, 2, 3, 4), KM RANGES, "doorstep", "subsidized", "subsidy", "70%", "30%", "Rapido", OR "third-party" TO CUSTOMERS!
+   • Internal delivery zones and cost splits are strictly confidential. Customers find zone labels confusing and want simple pricing + trusted in-house cold-chain handling!
+   • ALWAYS speak naturally using locality names: "Great! We deliver express to your shared location in [Locality] via our Cold-Chain Dispatch Partner!" or "for nearby areas like Malabagh, Soura, Hazratbal".
+   • State the free delivery policy warmly: e.g. "For Hyderpora, cold-chain express delivery is 100% FREE on 5 kg or more!"
 
 9. STRICT MOQ-FIRST POLICY (ZERO PROACTIVE 1 KG DOWNSELLING):
    • When greeting a new lead, sharing prices, or confirming a delivery locality: ALWAYS state or ask for the Area Minimum Order Quantity (MOQ: 2 kg for nearby areas like Malabagh/Soura/Hazratbal, 3 kg for mid/central Srinagar, 5 kg for South Corridor, Rajbagh, Jawahar Nagar, Batamaloo, Sanat Nagar, Peerbagh, Airport Road, Nowgam, etc.).
    • NEVER volunteer 1 kg or mention delivery fees upfront! Pitching 1 kg upfront hurts basket size and causes customer confusion.
    • ONLY when a customer explicitly asks: "Can I get 1 kg?", "1 kg kitne ka hai?", "1kg chahiye", or asks for an amount below the Area MOQ:
      - Step 1: Explain that the Area MOQ gives 100% free delivery.
-     - Step 2: Gladly accommodate them with our subsidized express courier (30% subsidized by Urban Trout: +₹35 for nearby areas, +₹55 to +₹149 across Srinagar) or free counter pickup at our Live Vending Center in Malabagh.
+     - Step 2: Gladly accommodate them with express cold-chain delivery (+₹35 for nearby areas, +₹55 to +₹149 across Srinagar) or free counter pickup at our Live Vending Center in Malabagh.
      - Step 3: When customer confirms, generate the payment link immediately.
 
 10. MANDATORY LIVE-HARVEST WEIGHING & VISCERAL LOSS DISCLOSURE LAW:
@@ -3327,56 +3359,60 @@ CRITICAL READABILITY & MAXIMUM BREVITY MANDATE (ANSWER ONLY WHAT IS REQUIRED):
    • If customer asks: "Will it be 1kg meat only?", "Saaf karke kitna bachega?", "Net weight kya hoga?":
      Always answer with 100% transparency: Live harvest is weighed whole (1.0 kg); expert gutting/descaling has a natural 15-20% visceral loss (yielding ~800-850g net steaks). If they want 1 kg of net meat on their scale, offer a 1.25 kg live harvest (₹725).
 
-11. PRICE-LOCK & NO BAIT-AND-SWITCH GUARANTEE:
-   • Once an order price or courier fee has been quoted to a customer for their area (e.g. "2 kg Batamaloo = ₹1,299"), that quote is 100% LOCKED IN for that order!
-   • When the customer shares their WhatsApp location pin or exact colony name, NEVER recalculate or increase the courier fee! The GPS pin is solely for our delivery rider's navigation.
-   • If a customer inquired before 4:00 PM and confirms during evening rush hours (4:00 PM – 8:00 PM), ALWAYS honor the original daytime quote without adding rush surcharges. Bait-and-switch pricing destroys customer trust.
+11. PRICE-LOCK & PIN-POINT LOCATION POLICY:
+   • Once an order price or delivery fee has been quoted to a customer for their area (e.g. "2 kg Batamaloo = ₹1,299"), that quote is 100% LOCKED IN for that order!
+   • When the customer shares their WhatsApp location pin or Google Maps link, NEVER recalculate or increase the quoted delivery fee!
+   • Always explain pin-point delivery expectations clearly when confirming / scheduling delivery:
+     - Ask customers to share their **Google Maps link or WhatsApp Location Pin** for accurate pin-point delivery.
+     - Our **Cold-Chain Dispatch Partner** reaches strictly the **exact shared GPS location pin** (not by searching house numbers or knocking on doors).
+     - The chilled package must be received **in person** by the customer at the shared location.
+     - Ask customers to keep their **phone reachable** — because the dispatch executive carries multiple live-harvest orders on an active cold-chain route, **no second delivery attempt** can be made if the phone is unreachable or switched off.
 
 CONVERSATION FLOW & GREETING RULE:
 ${stageInstruction}
 
 SPECIAL SYSTEM CAPABILITY (RAZORPAY PAYMENT LINK GENERATOR):
-4-TIER DELIVERY DISTANCES & PRICING (70% Customer / 30% Urban Trout Subsidy):${isEveningSurge ? "\n⚡ CURRENT TIME: EVENING RUSH HOUR ACTIVE (4:00 PM – 8:00 PM IST) — +₹40 evening rush courier surge is included in all subsidized courier tags below. Eligible free delivery packs (2 kg / 3 kg / 5 kg) remain 100% FREE!" : ""}
+4-TIER DELIVERY DISTANCES & EXPRESS FEE PRICING:${isEveningSurge ? "\n⚡ CURRENT TIME: EVENING RUSH HOUR ACTIVE (4:00 PM – 8:00 PM IST) — +₹40 evening rush surcharge is included in all delivery tags below. Eligible free delivery packs (2 kg / 3 kg / 5 kg) remain 100% FREE!" : ""}
 1. NEARBY AREAS (0 to 4.0 km from Malabagh — Core Area: Malabagh, Soura, Hazratbal, Lal Bazar, Zakura):
    - Free Delivery MOQ: 2 KG or more
    - Cleaned & Gutted: 2 kg = ₹1,160 | 3 kg = ₹1,740 | 4 kg = ₹2,320 | 5 kg = ₹2,900 (100% FREE delivery)
-   - 1 KG Starter Pack: ₹580 + ₹${35 + surgeAdd} subsidized courier fee = ₹${615 + surgeAdd} total:
+   - 1 KG Starter Pack: ₹580 + ₹${35 + surgeAdd} express delivery fee = ₹${615 + surgeAdd} total:
      [PAY_LINK: ${615 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
    - Confirmed 2 kg: [PAY_LINK: 1160 : 2 kg Cleaned & Gutted]
 
 2. MID SRINAGAR (4.0 to 7.0 km from Malabagh — Hawal, Khanyar, Rainawari, Nowhatta, Eidgah):
    - Free Delivery MOQ: 3 KG or more (3 kg Gutted = ₹1,740 total)
-   - 2 KG Order: Subsidized express courier fee of only ₹${55 + surgeAdd} (₹1,160 + ₹${55 + surgeAdd} = ₹${1215 + surgeAdd} total):
+   - 2 KG Order: Express delivery fee of only ₹${55 + surgeAdd} (₹1,160 + ₹${55 + surgeAdd} = ₹${1215 + surgeAdd} total):
      [PAY_LINK: ${1215 + surgeAdd} : 2 kg Cleaned & Gutted (+Express Delivery)]
-   - 1 KG Starter Pack: ₹580 + ₹${65 + surgeAdd} courier fee = ₹${645 + surgeAdd} total:
+   - 1 KG Starter Pack: ₹580 + ₹${65 + surgeAdd} delivery fee = ₹${645 + surgeAdd} total:
      [PAY_LINK: ${645 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
    - Confirmed 3 kg: [PAY_LINK: 1740 : 3 kg Cleaned & Gutted]
 
 3. GREATER SRINAGAR (7.0 to 11.5 km from Malabagh — Lal Chowk, Karan Nagar, Dalgate, Khayam, Qamarwari, Nishat, Balgarden):
    - Free Delivery MOQ: 3 KG or more (3 kg Gutted = ₹1,740 total)
-   - 2 KG Order: Subsidized express courier fee of only ₹${89 + surgeAdd} (₹1,160 + ₹${89 + surgeAdd} = ₹${1249 + surgeAdd} total):
+   - 2 KG Order: Express delivery fee of only ₹${89 + surgeAdd} (₹1,160 + ₹${89 + surgeAdd} = ₹${1249 + surgeAdd} total):
      [PAY_LINK: ${1249 + surgeAdd} : 2 kg Cleaned & Gutted (+Express Delivery)]
-   - 1 KG Starter Pack: ₹580 + ₹${99 + surgeAdd} courier fee = ₹${679 + surgeAdd} total:
+   - 1 KG Starter Pack: ₹580 + ₹${99 + surgeAdd} delivery fee = ₹${679 + surgeAdd} total:
      [PAY_LINK: ${679 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
    - Confirmed 3 kg: [PAY_LINK: 1740 : 3 kg Cleaned & Gutted]
 
 4. SOUTH SRINAGAR & CROSS-CITY CORRIDOR (11.5 to 16.0 km from Malabagh — Rajbagh, Jawahar Nagar, Batamaloo, Sanat Nagar, Peerbagh, Airport Road/Humhama, Nowgam, Hyderpora, Rawalpora, Barzulla, Baghat, Rambagh, Chanapora, Natipora, Sonwar, Bemina, Gogji Bagh, Wazir Bagh, Pantha Chowk, Lasjan):
    - Free Delivery MOQ: 5 KG family bulk pack (5 kg Gutted = ₹2,900 total):
      [PAY_LINK: 2900 : 5 kg Cleaned & Gutted]
-   - 4 KG Order: Subsidized courier fee of only ₹${109 + surgeAdd} (₹2,320 + ₹${109 + surgeAdd} = ₹${2429 + surgeAdd} total):
+   - 4 KG Order: Express delivery fee of only ₹${109 + surgeAdd} (₹2,320 + ₹${109 + surgeAdd} = ₹${2429 + surgeAdd} total):
      [PAY_LINK: ${2429 + surgeAdd} : 4 kg Cleaned & Gutted (+Express Delivery)]
-   - 3 KG Order: Subsidized courier fee of only ₹${129 + surgeAdd} (₹1,740 + ₹${129 + surgeAdd} = ₹${1869 + surgeAdd} total):
+   - 3 KG Order: Express delivery fee of only ₹${129 + surgeAdd} (₹1,740 + ₹${129 + surgeAdd} = ₹${1869 + surgeAdd} total):
      [PAY_LINK: ${1869 + surgeAdd} : 3 kg Cleaned & Gutted (+Express Delivery)]
-   - 2 KG Order: Subsidized courier fee of only ₹${139 + surgeAdd} (₹1,160 + ₹${139 + surgeAdd} = ₹${1299 + surgeAdd} total):
+   - 2 KG Order: Express delivery fee of only ₹${139 + surgeAdd} (₹1,160 + ₹${139 + surgeAdd} = ₹${1299 + surgeAdd} total):
      [PAY_LINK: ${1299 + surgeAdd} : 2 kg Cleaned & Gutted (+Express Delivery)]
-   - 1 KG Starter Pack: ₹580 + ₹${149 + surgeAdd} courier fee = ₹${729 + surgeAdd} total:
+   - 1 KG Starter Pack: ₹580 + ₹${149 + surgeAdd} delivery fee = ₹${729 + surgeAdd} total:
      [PAY_LINK: ${729 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
 
 5. BEYOND 16.0 KM (Outer Districts — Bagati Kanipora / BK Pora, Pampore, Chadoora, Harwan, HMT/Lawaypora, Budgam, Jammu):
-   - Doorstep delivery is not feasible beyond 16 km to maintain cold chain. Direct them to visit Live Vending Center in Malabagh.
+   - Cold-chain express delivery is not feasible beyond 16 km to maintain freshness. Direct them to visit Live Vending Center in Malabagh.
 
 HOW TO HANDLE 1 KG – 4 KG INQUIRIES BELOW FREE DELIVERY MOQ (VALUE-UPGRADE FIRST — ZERO STICKER SHOCK):
-• Always highlight the free delivery threshold first, but warmly welcome smaller orders with our subsidized courier fee.
+• Always highlight the free delivery threshold first, but warmly welcome smaller orders with our standard express delivery fee.
 • When customer confirms, NEVER re-pitch MOQ! Immediately output the exact [PAY_LINK: ...] tag!
 - Nearby Areas (1 kg): [PAY_LINK: ${615 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
 - Mid Srinagar (2 kg): [PAY_LINK: ${1215 + surgeAdd} : 2 kg Cleaned & Gutted (+Express Delivery)]
@@ -3432,12 +3468,12 @@ ${fridayOperatingNote}
 
      Or lock your slot via Razorpay — takes 30 seconds. Which works better for you?"
 4. DELIVERY RADIUS & 4-TIER MOQ MANDATE:
-   - Doorstep deliveries are offered up to 16 km across Srinagar!
-   - TIER 1 (0 to 4.0 km): 100% FREE on 2 kg+ (Cleaned & Gutted ₹1,160). 1 kg via express courier = ₹615 (₹35 fee).
+   - Cold-chain express deliveries are offered up to 16 km across Srinagar!
+   - TIER 1 (0 to 4.0 km): 100% FREE on 2 kg+ (Cleaned & Gutted ₹1,160). 1 kg express delivery = ₹615 (₹35 fee).
      Confirmed areas: Malabagh, Mirza Bagh, Naseem Bagh, Hazratbal, Habak, Zakura, Batapora, Gulab Bagh, Buchpora, Soura, Ahmad Nagar, 90 Feet Road, Illahi Bagh, Nowshera, Bagh Ali Mardan Khan, Zadibal, Lal Bazar, Botakadal, Saderbal, Kanitar, Nigeen, Ashaie Bagh, Umer Colony, Usman Colony, Bilal Colony, Zoonimar, Pandach.
-   - TIER 2 (4.0 to 7.0 km): 100% FREE on 3 kg+ (Cleaned & Gutted ₹1,740). 2 kg = ₹1,215 (₹55 courier fee). 1 kg = ₹645 (₹65 fee).
+   - TIER 2 (4.0 to 7.0 km): 100% FREE on 3 kg+ (Cleaned & Gutted ₹1,740). 2 kg = ₹1,215 (₹55 fee). 1 kg = ₹645 (₹65 fee).
      Confirmed areas: Hawal, Badamwari, Madin Sahib, Alamgari Bazar, Saida Kadal, Nagbal, Kathi Darwaza, Mirak Shah Colony, Tailbal, Rainawari, Khanyar, Nowhatta, Gojwara, Shalimar, Eidgah, Safakadal, Ali Kadal, Bakura, Shuhama, Sangam.
-   - TIER 3 (7.0 to 11.5 km): 100% FREE on 3 kg+ (Cleaned & Gutted ₹1,740). 2 kg = ₹1,249 (₹89 courier fee). 1 kg = ₹679 (₹99 fee).
+   - TIER 3 (7.0 to 11.5 km): 100% FREE on 3 kg+ (Cleaned & Gutted ₹1,740). 2 kg = ₹1,249 (₹89 fee). 1 kg = ₹679 (₹99 fee).
      Confirmed areas: Karan Nagar, Lal Chowk, Khayam, Dalgate, Qamarwari, Nishat, Brein, Balgarden.
    - TIER 4 (11.5 to 16.0 km — South & Cross-City Corridor): 100% FREE on 5 kg family bulk pack (Cleaned & Gutted ₹2,900). 4 kg = ₹2,429 (₹109 fee). 3 kg = ₹1,869 (₹129 fee). 2 kg = ₹1,299 (₹139 fee). 1 kg = ₹729 (₹149 fee).
      Confirmed areas: Rajbagh, Jawahar Nagar, Batamaloo, Sanat Nagar, Peerbagh, Airport Road / Humhama, Nowgam, Hyderpora, Rawalpora, Barzulla, Baghat Barzulla, Rambagh, Solina, Gogji Bagh, Wazir Bagh, Tulsi Bagh, Hazuri Bagh, Iqbal Park, Sonwar, Bemina, Alochi Bagh, Magarmal Bagh, Chanapora, Natipora, Bagh-e-Mehtab, Kralpora, Rangreth, Lasjan, Padshahi Bagh, Pantha Chowk, Soiteng, Pandrathan, Athwajan, Pohru, Mochu, HMT, Zainakote, Umerabad.
@@ -3446,8 +3482,8 @@ ${fridayOperatingNote}
    - CRITICAL REVENUE PROTECTION RULE (NEVER BLINDLY DISCARD LEADS):
      If a customer mentions a locality, colony, or address that is NOT on the confirmed lists, NEVER ASSUME OR GUESS IT IS OUTSIDE ZONE!
      DO NOT reject them or send the outside-zone message!
-     Instead, politely ask for their area name, landmark, or WhatsApp location pin / Google Maps link so our automated system can verify their distance:
-     "Could you kindly share your area name, nearest landmark, or drop a quick WhatsApp location pin / Google Maps link? Our system will verify your exact distance right away to confirm express doorstep delivery! 🐟"
+     Instead, politely ask for their area name and WhatsApp location pin / Google Maps link so our automated system can verify their distance:
+     "Could you kindly share your WhatsApp location pin or Google Maps link (tap 📎 ➔ Location)? Our system will verify your exact distance right away for pin-point cold-chain delivery! 🐟"
    - For customers confirmed OUTSIDE our delivery zone (>16 km or confirmed out-zone list), you MUST include this exact welcoming phrase:
      "However, you are warmly welcome to visit our Live Vending Center in Malabagh (Near R. P. School Girls Wing, open Saturday to Thursday) where you can pick live trout and get it cleaned on the spot!"
 5. LIVE VENDING CENTER vs. FARM (RAS PRODUCTION FACILITY):
@@ -3463,20 +3499,20 @@ However, all of our farm-raised trout is sold fresh at our Live Vending Center i
 • Counter Hours: 8:00 AM to 8:00 PM (Saturday to Thursday, closed Fridays)
 • Live Counter: You can pick live swimming trout from our holding tanks and get it cleaned on the spot!
 • Maps: https://maps.app.goo.gl/6FT5iLk5n8mbKSRU9"
-6. 4-TIER LOCATION STRATEGY & PIN VERIFICATION RULES:
-   - RULE 1: ZERO FRICTION FOR KNOWN SRINAGAR LOCALITIES (e.g. Lal Chowk, Jawahar Nagar, Rajbagh, Soura, Sanat Nagar, Hazratbal, Bemina, Batamaloo, Khanyar, etc.):
-     * The system recognizes over 450+ Srinagar localities. If the customer mentions any known area, DO NOT ASK FOR A WHATSAPP LOCATION PIN OR GOOGLE MAPS LINK UPFRONT!
-     * Immediately confirm doorstep delivery, state the free delivery MOQ / pricing, and ask for their house/landmark details to prepare the order.
-   - RULE 2: UNKNOWN AREAS, UNNAMED LOCALITIES OR AMBIGUOUS NAMES ("Near Masjid", "Main Chowk"):
-     * Ask flexibly without friction: "Which area or landmark in Srinagar should we deliver to (e.g. Jawahar Nagar, Lal Chowk)? Or you can share your WhatsApp location pin / Google Maps link so our system can verify your delivery terms right away! 🐟"
-   - RULE 3: OUTER BOUNDARY & FRINGE LOCALITIES (13 km to 18 km — e.g. Wadwan, Budgam outskirts, Pampore, Narbal, Harwan):
-     * Because 1–2 km decides whether the address is within our strict 16 km cold-chain radius, politely request verification:
-       "To make sure our express live-harvest rider can reach your doorstep within our 16 km cold-chain delivery zone, could you share your WhatsApp location pin (tap 📎 ➔ Location) or Google Maps link?"
-   - RULE 4: POST-PAYMENT LOCATION PIN COLLECTION:
-     * Never create upfront friction by forcing pin sharing before the customer has paid.
-     * Once payment is confirmed, the automated receipt invites the customer to share their pin for rider navigation.
-   - RULE 5: PREVIOUSLY VERIFIED SESSIONS:
-     * If chat history shows the customer already shared a pin or address verified [IN RANGE (<=16km)], NEVER ask for it again. Proceed directly with confirming quantity and payment.
+6. PIN-POINT SHARED LOCATION DELIVERY PROTOCOL & CONFIDENTIALITY RULES (STRICT MANDATE):
+   - NEVER use the terms "doorstep delivery", "to your door", "house number search", "Rapido", "third-party delivery", "subsidized", "subsidised", "subsidy", "70%", or "30%"!
+   - Always refer to delivery logistics as our *Urban Trout Cold-Chain Dispatch Partner* and fees simply as *express delivery fee*.
+   - RULE 1 (KNOWN SRINAGAR LOCALITIES):
+     * Instantly confirm express delivery, quote the free delivery MOQ / pricing, and ask them to share a **Google Maps link or WhatsApp location pin** (never house numbers) so our Cold-Chain Dispatch Partner can navigate directly.
+   - RULE 2 (PIN-POINT LOCATION, IN-PERSON RECEIPT & PHONE REACHABILITY):
+     * Whenever explaining delivery terms, confirming an order, or answering how delivery works:
+       - Delivery is strictly to the **exact GPS location / Google Maps pin shared on WhatsApp** — our dispatch executive does NOT search house numbers or knock on doors.
+       - The chilled package must be **collected in person** by the customer at the shared location point.
+       - Customers must keep their **phone reachable and switched on** — because our Cold-Chain Dispatch Partner carries multiple time-sensitive orders on an active cold-chain route, **no second delivery attempt** can be made if the number goes unreachable or switched off.
+   - RULE 3 (UNKNOWN / OUTER FRINGE LOCALITIES):
+     * Ask politely for their **WhatsApp location pin (tap 📎 ➔ Location) or Google Maps link** so our system can calculate exact distance and verify pin-point cold-chain delivery.
+   - RULE 4 (PREVIOUSLY VERIFIED SESSIONS):
+     * If chat history shows the customer already shared a pin [IN RANGE (<=16km)], NEVER ask for the pin again — proceed directly with quantity and payment.
 7. HARVEST LOCK & NO-REFUND POLICY:
    - Orders can ONLY be cancelled BEFORE the fish is harvested from tanks.
    - Once fish is HARVESTED (status: "Harvested Live & Packed"), the order is locked and CANNOT be cancelled, returned, or refunded under any circumstances, because live swimming trout is slaughtered specifically upon confirmed payment and cannot be returned to tanks.
@@ -3494,7 +3530,7 @@ However, all of our farm-raised trout is sold fresh at our Live Vending Center i
 • Harvest: Live from pure crystal-clear oxygenated cold water tanks upon order
 • Note: We do not operate a restaurant or serve cooked meals.
 
-Would you like Cleaned & Gutted delivered fresh to your home?"
+Would you like Cleaned & Gutted delivered chilled via our Cold-Chain Dispatch Partner?"
 10. PHONE NUMBER SHARING (CUSTOMER SHARING THEIR CONTACT NUMBER):
    - If a customer sends their 10-digit mobile number (e.g. while planning a store visit or asking questions):
    - NEVER assume they have an existing order or claim an order is confirmed or on file!
@@ -3502,7 +3538,7 @@ Would you like Cleaned & Gutted delivered fresh to your home?"
       "Thank you for sharing your contact number!
 
 We look forward to welcoming you to our Live Vending Center in Malabagh (Near R. P. School Girls Wing, open Sat–Thu)."
-   - If they are inquiring about delivery, ask for their preferred quantity (min 2 kg) and cut preference instead.
+   - If they are inquiring about delivery, ask for their preferred quantity (min 2 kg) and WhatsApp location pin / Google Maps link instead.
 11. INTERNET & SOCIAL SLANG DECODER ("pp", "pp?", "hm", "rate", "daam"):
    - When customers (especially Gen Z, young buyers, or Instagram/Facebook leads) text short queries like "pp", "pp?", "PP", "price plz", "rate?", "hm", "how much":
    - Understand immediately: "pp" = "Price Please" (asking for price per kg). "hm" = "How much".
@@ -3511,21 +3547,21 @@ We look forward to welcoming you to our Live Vending Center in Malabagh (Near R.
      "Here are our fresh live-harvested trout rates:
 
 • Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — descaled, zero kitchen prep)
-🛵 *Doorstep delivery is 100% FREE* on eligible orders (2 kg for 0–4 km, 3 kg for 4–11.5 km, 5 kg for 11.5–16 km & South Srinagar; subsidized courier on smaller orders)!
+🛵 *Cold-chain express delivery is 100% FREE* on eligible orders (2 kg for 0–4 km, 3 kg for 4–11.5 km, 5 kg for 11.5–16 km & South Srinagar; standard delivery fee on smaller orders)!
 
-Which area in Srinagar would you like delivery to?"
+Which area in Srinagar would you like delivery to, or please drop your WhatsApp location pin / Google Maps link?"
 12. DISCOUNT & BARGAINING INQUIRIES ("kam karo", "discount please", "500 me do", "any concession?"):
    - When a customer asks for a discount or price reduction:
    - NEVER say "we have a strict policy on rates" or sound rigid/blunt!
-   - Be polite and warm: highlight that we offer 100% FREE doorstep delivery for their complete convenience (zero delivery fees, zero packing fees).
+   - Be polite and warm: highlight that eligible orders enjoy 100% FREE cold-chain express delivery (zero packing fees).
    - Tell them courteously that our fish tastes completely different from ordinary market fish because it is swimming live in crystal-clear oxygen-saturated cold water tanks until ordered (never kept dead on ice with preservatives). They will truly taste the difference!
 13. IDENTITY & AI DISCLOSURE ("Who are you?", "Are you AI or human?", "Bot ho ya insaan?"):
    - Flex proudly that Urban Trout is Jammu & Kashmir’s very first startup to integrate an AI sales assistant on WhatsApp!
    - Explain that you are Urban Trout’s digital sales assistant, working 24/7 alongside our farm and harvesting team in Malabagh, Srinagar.
-   - State that our human aquaculture team handles the live harvest, cleaning, and express delivery directly to the customer's kitchen.
+   - State that our dedicated Malabagh farm and Cold-Chain Dispatch teams handle live harvest, cleaning, and chilled express delivery directly to the customer's shared GPS location.
 14. QUANTITY (KG) VS FISH SIZE DIRECTIVE (CRITICAL):
    - We sell STRICTLY by total weight / quantity in kilograms (Kg) (Cleaned & Gutted at ₹580/kg).
-   - NEVER ask the customer "Which size do you want?" or "What size?"! Always ask for quantity in kilograms (e.g. "How many kilograms would you like to order? Minimum 2 kg for free doorstep delivery").
+   - NEVER ask the customer "Which size do you want?" or "What size?"! Always ask for quantity in kilograms (e.g. "How many kilograms would you like to order? Minimum 2 kg for free express delivery").
    - If a customer mentions "King size", "large fish", "badi machli", or asks about size:
      Clarify politely: "Our live Rainbow Trout are premium table-sized fish (each fish weighs approx 350g–500g, so a 2 kg order gives ~4–5 pan-ready fish). We prepare and bill orders strictly by weight in kilograms (Kg), not individual fish sizes. How many kilograms (kg) would you like harvested fresh?"
 STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines and bullet points, professional, and courteous. NEVER write a dense continuous paragraph. NEVER use the word "Janab".`;
@@ -3819,23 +3855,23 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
                 console.log(`[Link Guard] Blocked payment link for ${chatId} - location is UNVERIFIED. Asking for area name or pin.`);
                 rawReply = rawReply.replace(payMatch[0], "").trim();
                 rawReply = rawReply.replace(/(?:^|\n)\s*(?:🧾\s*)?(?:URBAN TROUT\s*[•·-]\s*)?(?:Order Summary|ORDER SUMMARY)[\s\S]*/i, "").trim();
-                rawReply = rawReply.replace(/(?:^|\n)\s*[•\-\*]\s*(?:Order|Rate|Fish Amount|Doorstep Delivery|Express Courier|Packaging|Total Payable):[^\n]*/gi, "");
+                rawReply = rawReply.replace(/(?:^|\n)\s*[•\-\*]\s*(?:Order|Rate|Fish Amount|Doorstep Delivery|Cold-Chain Delivery|Express Delivery|Express Courier|Packaging|Total Payable):[^\n]*/gi, "");
                 rawReply = rawReply.replace(/(?:^|\n)\s*[•\-\*]?\s*Total Payable:\s*₹[\d,]+/gi, "");
                 rawReply = rawReply.replace(/\n{3,}/g, "\n\n").trim();
-                const locPrompt = `📍 *To confirm your doorstep delivery:* Which area or landmark in Srinagar should we deliver to (e.g. Soura, Lal Chowk, Rajbagh, Hyderpora)? Or you can drop a WhatsApp location pin so our system can verify your delivery terms and send your official order summary & payment link right away! 🐟`;
+                const locPrompt = `📍 *To confirm your cold-chain express delivery:* Which area in Srinagar should we deliver to (e.g. Soura, Lal Chowk, Rajbagh, Hyderpora)? Please share your *WhatsApp Location Pin or Google Maps link* so our Cold-Chain Dispatch Partner can reach your exact shared location! 🐟`;
                 rawReply = rawReply ? `${rawReply}\n\n${locPrompt}` : locPrompt;
               } else if ((custDist !== null && custDist > 16.0) || isFarOutZone) {
                 console.log(`[Link Guard] Blocked payment link for ${chatId} - location ${custDist}km is OUTSIDE delivery perimeter (>16km).`);
                 rawReply = rawReply.replace(
                   payMatch[0],
-                  `📍 *Outside Delivery Zone:* Doorstep delivery is not available for your location (~${custDist ? custDist.toFixed(1) : "far"} km). You are warmly welcome to visit our Live Vending Center in Malabagh (Near R. P. School Girls Wing, open Saturday to Thursday) where you can pick live trout on the spot! 🐟\nMaps: https://maps.app.goo.gl/6FT5iLk5n8mbKSRU9`
+                  `📍 *Outside Delivery Zone:* Express delivery is not available for your location (~${custDist ? custDist.toFixed(1) : "far"} km). You are warmly welcome to visit our Live Vending Center in Malabagh (Near R. P. School Girls Wing, open Saturday to Thursday) where you can pick live trout on the spot! 🐟\nMaps: https://maps.app.goo.gl/6FT5iLk5n8mbKSRU9`
                 );
               } else if (!isSpecialDeliveryOrder && custDist !== null && custDist > 11.5 && custDist <= 16.0 && (orderWeight < 4.95 || amount < 2700)) {
                 console.log(`[Link Guard] Blocked <5kg free-delivery payment link for ${chatId} - zone 4 requires 5kg MOQ for free delivery.`);
                 const sGuard = isEveningSurge ? 40 : 0;
                 rawReply = rawReply.replace(
                   payMatch[0],
-                  `🛵 *Delivery Note (South & Cross-City Srinagar Zone):*\nYour address is ~${custDist ? custDist.toFixed(1) : "12–16"} km from our farm. Doorstep delivery is 100% FREE for our *5 kg* family pack (₹2,900 Cleaned & Gutted / ₹2,700 Whole).\n\nSmaller orders are also gladly delivered with subsidized express courier:\n• 4 kg: ₹${2429 + sGuard} total (₹${109 + sGuard} courier fee)\n• 3 kg: ₹${1869 + sGuard} total (₹${129 + sGuard} courier fee)\n• 2 kg: ₹${1299 + sGuard} total (₹${139 + sGuard} courier fee)\n• 1 kg: ₹${729 + sGuard} total (₹${149 + sGuard} courier fee)\n\nWhich option would you like? 🐟`
+                  `🛵 *Delivery Note (South & Cross-City Srinagar):*\nYour location is ~${custDist ? custDist.toFixed(1) : "12–16"} km from our farm. Cold-chain express delivery is 100% FREE for our *5 kg* family pack (₹2,900 Cleaned & Gutted / ₹2,700 Whole).\n\nSmaller orders are also gladly delivered via our Cold-Chain Dispatch Partner:\n• 4 kg: ₹${2429 + sGuard} total (₹${109 + sGuard} delivery fee)\n• 3 kg: ₹${1869 + sGuard} total (₹${129 + sGuard} delivery fee)\n• 2 kg: ₹${1299 + sGuard} total (₹${139 + sGuard} delivery fee)\n• 1 kg: ₹${729 + sGuard} total (₹${149 + sGuard} delivery fee)\n\nWhich option would you like? 🐟`
                 );
               } else if (!isSpecialDeliveryOrder && custDist !== null && custDist > 4.0 && custDist <= 11.5 && (orderWeight < 2.95 || amount < 1620)) {
                 console.log(`[Link Guard] Blocked <3kg free-delivery payment link for ${chatId} - zone 2/3 requires 3kg MOQ for free delivery.`);
@@ -3847,7 +3883,7 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
                 const tot1kg = 580 + fee1kg;
                 rawReply = rawReply.replace(
                   payMatch[0],
-                  `🛵 *Delivery Note:*\nYour address is ~${custDist.toFixed(1)} km from our farm. For 100% FREE doorstep delivery, our minimum order is *3 kg* (₹1,740 Cleaned & Gutted / ₹1,620 Whole Fresh).\n\nSmaller orders are also gladly delivered express:\n• 2 kg: ₹${tot2kg} total (₹${fee2kg} courier fee)\n• 1 kg: ₹${tot1kg} total (₹${fee1kg} courier fee)\n\nWhich option would you prefer? 🐟`
+                  `🛵 *Delivery Note:*\nYour location is ~${custDist.toFixed(1)} km from our farm. For 100% FREE express delivery, our minimum order is *3 kg* (₹1,740 Cleaned & Gutted / ₹1,620 Whole Fresh).\n\nSmaller orders are also gladly delivered express:\n• 2 kg: ₹${tot2kg} total (₹${fee2kg} delivery fee)\n• 1 kg: ₹${tot1kg} total (₹${fee1kg} delivery fee)\n\nWhich option would you prefer? 🐟`
                 );
               } else if (
                 (isThursdayToday && /\b(?:tomorrow|kal|friday|jumma|juma)\b/i.test(userMessage) && !/\b(?:saturday|hafta|aaj|today|tonight)\b/i.test(userMessage)) ||
@@ -3937,11 +3973,14 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
                     ? `\n\n🕒 *Complete payment to lock your fresh live-harvest slot* — slots fill up fast!` 
                     : ``;
                   const destLocality = activeLocalityName || (detectedLocMatch && detectedLocMatch.status === "IN_ZONE" ? detectedLocMatch.name : (savedLoc?.localityName || null));
+                  const parsedW = (desc || "").match(/(\d+(?:\.\d+)?)\s*(?:kg|kilos?)/i);
+                  const inferredFee = parsedW ? Math.max(0, amount - Math.round(parseFloat(parsedW[1]) * (/\b(?:whole|sabut)\b/i.test(desc || "") ? 540 : 580))) : 0;
                   const orderCard = formatOrderSummaryCard({
                     orderRef: payObj.ref || payObj.orderRef,
                     amount,
                     desc,
                     deliveryArea: destLocality,
+                    deliveryFee: inferredFee,
                     distanceKm: custDist,
                     localityName: destLocality,
                     scheduledSlot,
@@ -3949,7 +3988,7 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
                   });
                   // Clean up duplicate bullet points generated by AI prior to the order card
                   let introText = rawReply.replace(payMatch[0], "").trim();
-                  introText = introText.replace(/(?:^|\n)\s*[•\-\*]\s*(?:Order|Rate|Fish Amount|Doorstep Delivery|Express Courier|Packaging|Total Payable):[^\n]*/gi, "");
+                  introText = introText.replace(/(?:^|\n)\s*[•\-\*]\s*(?:Order|Rate|Fish Amount|Doorstep Delivery|Cold-Chain Delivery|Express Delivery|Express Courier|Packaging|Total Payable):[^\n]*/gi, "");
                   introText = introText.replace(/(?:^|\n)\s*[•\-\*]?\s*Total Payable:\s*₹[\d,]+/gi, "");
                   introText = introText.replace(/\n{3,}/g, "\n\n").trim();
 
@@ -4011,7 +4050,7 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
 
         // Strict day guards against accidental delivery claims on Friday or Thursday for Friday
         if (isThursdayToday) {
-          rawReply = rawReply.replace(/\b(?:fully\s+open\s+for\s+doorstep\s+deliveries\s+tomorrow|open\s+for\s+deliveries\s+tomorrow|open\s+tomorrow)\b/gi, "closed tomorrow (Friday) for weekly maintenance, but open Saturday");
+          rawReply = rawReply.replace(/\b(?:fully\s+open\s+for\s+(?:doorstep|express)\s+deliveries\s+tomorrow|open\s+for\s+deliveries\s+tomorrow|open\s+tomorrow)\b/gi, "closed tomorrow (Friday) for weekly maintenance, but open Saturday");
         }
         if (isFridayToday) {
           rawReply = rawReply.replace(/\b(?:fully\s+open\s+today|deliver\s+today|delivery\s+today|within\s+2\s+hours\s+today)\b/gi, "scheduled for delivery tomorrow (Saturday)");
@@ -4021,7 +4060,7 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
           rawReply = rawReply.replace(/\btomorrow\s*\(\s*saturday\s*\)/gi, `tomorrow (${tomorrowDayName})`);
           rawReply = rawReply.replace(/\btomorrow,\s*saturday\b/gi, `tomorrow, ${tomorrowDayName}`);
           rawReply = rawReply.replace(/\bstarting\s+Saturday\s+morning\s+at\s+[78](?::00)?\s*AM\b/gi, `tomorrow (${tomorrowDayName}) morning at 8:00 AM`);
-          rawReply = rawReply.replace(/\bdelivered\s+to\s+your\s+home\s+on\s+Saturday\b/gi, `delivered to your home tomorrow (${tomorrowDayName})`);
+          rawReply = rawReply.replace(/\bdelivered\s+to\s+your\s+home\s+on\s+Saturday\b/gi, `delivered to your location tomorrow (${tomorrowDayName})`);
           rawReply = rawReply.replace(/\bharvest\s+fresh\s+for\s+you\s+on\s+Saturday\b/gi, `harvest fresh for you tomorrow (${tomorrowDayName})`);
           rawReply = rawReply.replace(/\bready\s+to\s+take\s+your\s+fresh\s+live-harvest\s+order\s+starting\s+Saturday\s+morning\b/gi, `ready to take your fresh live-harvest order tomorrow (${tomorrowDayName}) morning`);
         }
@@ -4048,6 +4087,26 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
         rawReply = rawReply.replace(/\b(?:in\s+)?Zone\s*2\b/gi, "mid Srinagar");
         rawReply = rawReply.replace(/\b(?:in\s+)?Zone\s*3\b/gi, "greater Srinagar");
         rawReply = rawReply.replace(/\b(?:in\s+)?Zone\s*4\b/gi, "outer Srinagar");
+        // ─── STRICT CUSTOMER CONFIDENTIALITY & PIN-POINT LOCATION SANITIZER ───
+        rawReply = rawReply
+          .replace(/\(\s*70\s*%[^)]*30\s*%[^)]*\)/gi, "")
+          .replace(/\b70\s*%\s*(?:customer\s*)?(?:\/|-|and)\s*30\s*%(?:\s*(?:urban\s*trout\s*)?(?:subsidy|split|share))?/gi, "")
+          .replace(/\b(?:30\s*%\s*(?:subsidized|subsidised|subsidy)(?:\s*by\s*urban\s*trout)?|70\s*%\s*(?:paid\s*by\s*)?customer\s*(?:share)?)\b/gi, "")
+          .replace(/\b(?:70|30)\s*%/gi, "")
+          .replace(/\b(?:subsidized|subsidised)\s+by\s+urban\s+trout\b/gi, "")
+          .replace(/\b(?:subsidized|subsidised)\s+(?:express\s+)?(?:courier|delivery)\s+(?:fee|charge|rates?)/gi, "express delivery fee")
+          .replace(/\b(?:subsidized|subsidised)\s+(?:express\s+)?(?:courier|delivery)/gi, "express delivery")
+          .replace(/\b(?:subsidized|subsidised|subsidy)\b/gi, "standard")
+          .replace(/\b(?:rapido|third[- ]party\s*(?:courier|delivery|rider|bike)?)\b/gi, "Cold-Chain Dispatch Partner")
+          .replace(/\bright\s+to\s+your\s+doorstep\b/gi, "to your shared GPS location")
+          .replace(/\bto\s+your\s+doorstep\b/gi, "to your shared location")
+          .replace(/\bat\s+your\s+doorstep\b/gi, "at your shared location")
+          .replace(/\byour\s+doorstep\b/gi, "your shared location")
+          .replace(/\bdoorstep\s+deliver(?:y|ies)\b/gi, "express delivery")
+          .replace(/\bstraight\s+to\s+your\s+door\b/gi, "directly to your shared location")
+          .replace(/\bto\s+your\s+door\b/gi, "to your shared location")
+          .replace(/\bdoorstep\b/gi, "location-based")
+          .replace(/\ba\s+(express\b)/gi, "an $1");
         rawReply = rawReply.replace(/\([ \t]*\)/g, "");
         rawReply = rawReply.replace(/[ \t]{2,}/g, " ");
         rawReply = rawReply.replace(/\s+([,.:;!?])/g, "$1");
@@ -4065,10 +4124,10 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
           if (hadOrderSummary) {
             console.log(`[Location Guard] Stripped unverified order summary / total payable from reply to ${chatId}`);
             rawReply = rawReply.replace(/(?:^|\n)\s*(?:🧾\s*)?(?:URBAN TROUT\s*[•·-]\s*)?(?:Order Summary|ORDER SUMMARY)[\s\S]*/i, "").trim();
-            rawReply = rawReply.replace(/(?:^|\n)\s*[•\-\*]\s*(?:Order|Rate|Fish Amount|Doorstep Delivery|Express Courier|Packaging|Total Payable):[^\n]*/gi, "");
+            rawReply = rawReply.replace(/(?:^|\n)\s*[•\-\*]\s*(?:Order|Rate|Fish Amount|Doorstep Delivery|Cold-Chain Delivery|Express Delivery|Express Courier|Packaging|Total Payable):[^\n]*/gi, "");
             rawReply = rawReply.replace(/(?:^|\n)\s*[•\-\*]?\s*Total Payable:\s*₹[\d,]+/gi, "");
             rawReply = rawReply.replace(/\n{3,}/g, "\n\n").trim();
-            const locAsk = `📍 *To confirm your doorstep delivery:* Which area or landmark in Srinagar should we deliver to (e.g. Soura, Lal Chowk, Rajbagh, Hyderpora)? Or you can drop a WhatsApp location pin so our system can verify your delivery terms and send your official order summary & payment link right away! 🐟`;
+            const locAsk = `📍 *To confirm your cold-chain express delivery:* Which area in Srinagar should we deliver to (e.g. Soura, Lal Chowk, Rajbagh, Hyderpora)? Please share your *WhatsApp Location Pin or Google Maps link* so our Cold-Chain Dispatch Partner can reach your exact shared location! 🐟`;
             rawReply = rawReply ? `${rawReply}\n\n${locAsk}` : locAsk;
           }
         }
@@ -4092,10 +4151,10 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
   if (isFirstMessage) {
     const isCustomerSalam = /\b(?:assalam(?:u|-o)?[\s-]?[aA]laikum|assalamualaykum|assalamualikum|assalamu\s*alaikum|asalam\s*alaykum|salam\s*(?:u\s*)?alaikum|salam|salaam|aoa)\b/i.test(userMessage.trim());
     const greetingPrefix = isCustomerSalam ? "Walaikum Assalam! " : "Hello! ";
-    const welcomeFallback = `${greetingPrefix}Welcome to Urban Trout 🐟 — Srinagar's only live-harvest farm delivering fresh trout straight to your kitchen within 2 hours, harvested live the moment you order from our crystal-clear oxygen-saturated cold water tanks.
+    const welcomeFallback = `${greetingPrefix}Welcome to Urban Trout 🐟 — Srinagar's only live-harvest farm delivering fresh trout chilled to your shared GPS location within 2 hours, harvested live the moment you order from our crystal-clear oxygen-saturated cold water tanks.
 
 • Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — descaled, zero kitchen mess, straight to pan)
-🛵 *Express doorstep delivery* across Srinagar (100% FREE delivery available: min 2 kg for nearby areas, 3–5 kg for wider Srinagar areas; subsidized express courier on smaller orders). Which area in Srinagar shall we deliver to?`;
+🛵 *Cold-chain express delivery* across Srinagar (100% FREE delivery available: min 2 kg for nearby areas, 3–5 kg for wider Srinagar areas; standard delivery fee on smaller orders). Please share your area & WhatsApp location pin / Google Maps link!`;
     history.push({ role: "user", text: userMessage });
     history.push({ role: "model", text: welcomeFallback });
     if (history.length > 16) history.splice(0, history.length - 16);
@@ -5250,12 +5309,14 @@ async function startBot() {
           const hasGps = Boolean(updatedOrder.latitude || (chatMetadata[targetJid] && chatMetadata[targetJid].latitude));
           let pinPrompt = "";
           if (!hasGps) {
-            pinPrompt = `\n\n📍 *Quick Dispatch Note:*\nPlease share your WhatsApp location pin (tap 📎 ➔ Location ➔ Send current location) or Google Maps link so our delivery rider can navigate directly to your gate without calling for directions! 🛵`;
+            pinPrompt = `\n\n📍 *Important Pin-Point Delivery Instructions:*\nPlease share your *WhatsApp Location Pin* (tap 📎 ➔ Location ➔ Send current location) or *Google Maps link* right now so our *Urban Trout Cold-Chain Dispatch Partner* navigates directly to your shared spot.\n• Delivery is made *strictly to the shared GPS location pin* (not by searching house numbers or knocking on doors).\n• Please collect your chilled package *in person* at the shared location and keep your phone reachable — as our cold-chain executive carries multiple live-harvest orders on an active route, *no second delivery attempt* can be made if your number is unreachable or switched off.`;
+          } else {
+            pinPrompt = `\n\n📍 *Cold-Chain Dispatch Instructions:*\nOur *Urban Trout Cold-Chain Dispatch Partner* will deliver *strictly to your shared GPS location pin* (no house-number search). Kindly receive your package *in person* at the shared location point and keep your phone reachable — due to scheduled multi-order cold-chain routes, *no second delivery attempt* can be made if your number goes unanswered or is switched off.`;
           }
           const isTomorrowManual = /(?:tomorrow|kal|saturday|advance)/i.test(updatedOrder.deliveryTime || "");
           const deliveryCommitmentManual = isTomorrowManual
-            ? `Our farm team at Malabagh will harvest your trout live from our crystal-clear oxygenated cold water tanks and deliver it fresh during your scheduled slot: *${updatedOrder.deliveryTime}*!`
-            : `Our farm team at Malabagh is now preparing your fresh live harvest from our crystal-clear oxygen-saturated cold water tanks. We will deliver it fresh to your doorstep within 2 hours!`;
+            ? `Our farm team at Malabagh will harvest your trout live from our crystal-clear oxygenated cold water tanks and dispatch it fresh via our cold-chain team during your scheduled slot: *${updatedOrder.deliveryTime}*!`
+            : `Our farm team at Malabagh is now preparing your fresh live harvest from our crystal-clear oxygen-saturated cold water tanks for chilled express delivery to your shared location within 2 hours!`;
 
           const receiptMsg = `✅ *Payment Received & Order Confirmed!* 🐟\n\nThank you! Your payment of *₹${paidAmt}* has been verified successfully.\n\n📋 *Order Summary:*\n• *Order Ref:* #${orderRef}\n• *Items:* ${itemsDesc}\n• *Delivery Slot:* ${updatedOrder.deliveryTime || "Within 2 Hours (Today)"}\n• *Status:* Confirmed (Live Harvest Scheduled)\n\n${deliveryCommitmentManual}${pinPrompt}`;
 
@@ -5463,7 +5524,7 @@ async function startBot() {
             items: itemDesc,
             amount: `₹${totalAmount}`,
             status: "Payment Link Sent — Awaiting Confirmation",
-            deliveryArea: deliveryFee > 0 ? "Extended Doorstep Delivery" : "Doorstep Delivery",
+            deliveryArea: deliveryFee > 0 ? "Extended Cold-Chain Delivery" : "Cold-Chain Express Delivery",
             deliveryTime: "Immediate / Scheduled",
             payUrl: payObj.url,
             createdBy: "OWNER_WHATSAPP_COMMAND"
@@ -5472,13 +5533,14 @@ async function startBot() {
           // Clean WhatsApp summary card with delivery breakdown
           const fishAmount = weightKg ? Math.round(weightKg * rate) : (totalAmount - deliveryFee);
           const deliveryLine = deliveryFee > 0
-            ? `• *Delivery Fee:* 🛵 ₹${deliveryFee} (Special Express Delivery)`
-            : `• *Delivery:* 🛵 *100% FREE Doorstep Delivery*`;
+            ? `• *Delivery Fee:* 🛵 ₹${deliveryFee} (Express Cold-Chain Delivery)`
+            : `• *Delivery:* 🛵 *100% FREE Cold-Chain Express Delivery*`;
 
           const orderCard = formatOrderSummaryCard({
             orderRef: payObj.ref,
             amount: totalAmount,
-            desc: `${weightKg ? `${weightKg} kg ` : ""}${prodType}${deliveryFee > 0 ? ` (+₹${deliveryFee} Delivery)` : ""}`,
+            desc: `${weightKg ? `${weightKg} kg ` : ""}${prodType}${deliveryFee > 0 ? ` (+₹${deliveryFee} Express Delivery)` : ""}`,
+            deliveryFee,
             distanceKm: null,
             localityName: targetCustName ? `${targetCustName} (${formatPhoneDisplay(targetCustPhone)})` : null,
             scheduledSlot: "Within 90–120 Minutes of Payment",
@@ -5649,6 +5711,15 @@ async function startBot() {
       }
     }
 
+    // Detect locality up-front so it is initialized before BOTH GPS pin handling and text handling (prevents TDZ crashes)
+    const rawLocText = [text, locMsg?.name, locMsg?.address].filter(Boolean).join(" ").trim();
+    const locDetected = rawLocText ? detectSrinagarLocality(rawLocText) : null;
+    const savedMetaLoc = chatMetadata[remoteJid]?.localityName || (raw10 ? chatMetadata[raw10]?.localityName : null) || null;
+    const detectedLocalityName =
+      (locDetected && locDetected.status === "IN_ZONE" ? locDetected.name : null) ||
+      (isGpsCheck && detectedLat !== null && detectedLng !== null ? resolveNearestLocalityName(detectedLat, detectedLng) : null) ||
+      (savedMetaLoc && !/^(?:srinagar|kashmir)$/i.test(savedMetaLoc) ? savedMetaLoc : null);
+
     if (isGpsCheck && detectedLat !== null && detectedLng !== null) {
       const dist = calculateDistance(FARM_LAT, FARM_LNG, detectedLat, detectedLng);
       const distRounded = dist.toFixed(1);
@@ -5658,17 +5729,21 @@ async function startBot() {
       console.log(`\n┌──────────────────────────────────────────────────────────────────────────`);
       console.log(`│ 📍 [LOCATION PIN RECEIVED] 📅 ${istDate} • ⏰ ${istTime}`);
       console.log(`│ 👤 Name: ${customerName}${msg.pushName ? ` (WA: "${msg.pushName}")` : ""} | 📞 Phone: ${displayPhone}`);
-      console.log(`│ 🌐 Coords: ${detectedLat}, ${detectedLng} | 📏 Distance to Farm: ${distRounded} km`);
+      console.log(`│ 🌐 Coords: ${detectedLat}, ${detectedLng} | 📏 Distance to Farm: ${distRounded} km | 📍 Area: ${detectedLocalityName || "Srinagar"}`);
 
       // Auto-learn colony or landmark from WhatsApp location pin name/address or recent chat
-      autoLearnColonyFromLocation({
-        lat: detectedLat,
-        lng: detectedLng,
-        distKm: Number(distRounded),
-        locName: locMsg?.name || locMsg?.address,
-        locAddress: locMsg?.address,
-        recentUserText: text
-      });
+      try {
+        autoLearnColonyFromLocation({
+          lat: detectedLat,
+          lng: detectedLng,
+          distKm: Number(distRounded),
+          locName: locMsg?.name || locMsg?.address,
+          locAddress: locMsg?.address,
+          recentUserText: text
+        });
+      } catch (learnErr) {
+        console.error("⚠️ [autoLearnColonyFromLocation Error]:", learnErr.message);
+      }
 
       let locReply = "";
       let historyNote = "";
@@ -5683,196 +5758,213 @@ async function startBot() {
       const isEveningGps = gpsHour >= 16 && gpsHour < 20;
       const surgeGps = isEveningGps ? 40 : 0;
 
-      // ALWAYS save verified coordinates and mapsUrl in chatMetadata regardless of distance!
-      if (!chatMetadata[remoteJid]) chatMetadata[remoteJid] = {};
-      chatMetadata[remoteJid].latitude = detectedLat;
-      chatMetadata[remoteJid].longitude = detectedLng;
-      chatMetadata[remoteJid].distanceKm = distNum;
-      chatMetadata[remoteJid].googleMapsUrl = mapsUrl;
-      chatMetadata[remoteJid].locationUpdatedAt = new Date().toISOString();
-      if (cleanPhone) {
-        if (!chatMetadata[cleanPhone]) chatMetadata[cleanPhone] = {};
-        chatMetadata[cleanPhone].latitude = detectedLat;
-        chatMetadata[cleanPhone].longitude = detectedLng;
-        chatMetadata[cleanPhone].distanceKm = distNum;
-        chatMetadata[cleanPhone].googleMapsUrl = mapsUrl;
-        chatMetadata[cleanPhone].locationUpdatedAt = new Date().toISOString();
-      }
-      saveChatMetadata();
-
-      // Check if this customer has an ACTIVE pending order (unfulfilled)
-      let orders = {};
       try {
-        const ordersFilePath = path.join(__dirname, "customer_orders.json");
-        if (fs.existsSync(ordersFilePath)) orders = JSON.parse(fs.readFileSync(ordersFilePath, "utf8"));
-      } catch (_) {}
-
-      const activeOrder = findActiveCustomerOrder(orders, cleanPhone || raw10, remoteJid);
-      const isAlreadyPaid = activeOrder && isOrderActiveAndPaid(activeOrder);
-
-      // Save GPS coordinates to active order record for delivery rider navigation
-      if (activeOrder) {
-        activeOrder.latitude = detectedLat;
-        activeOrder.longitude = detectedLng;
-        activeOrder.googleMapsUrl = mapsUrl;
-        activeOrder.distanceKm = distNum;
-        recordNewCustomerOrder(cleanPhone || raw10, activeOrder);
-      }
-
-      if (activeOrder && isAlreadyPaid) {
-        // ── STRICT PAID ORDER SHIELD ──
-        // Customer has ALREADY paid! Order is genuine and active.
-        console.log(`│ 🛡️ [PAID ORDER SHIELD] Customer ${cleanPhone || customerName} already paid for active order #${activeOrder.orderRef}. Locking coordinates for rider!`);
-        locReply = `📍 *Delivery Location Received & Coordinates Locked!* ✅\n\nThank you! We have updated your exact delivery location coordinates for our dispatch rider.\n\nYour order (*#${activeOrder.orderRef}*) is paid & confirmed! Our Malabagh farm team has it scheduled for fresh live harvest! 🐟\n\n📍 Maps: ${mapsUrl}`;
-        historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. Active order #${activeOrder.orderRef} is PAID. Coordinates locked for delivery rider.]`;
-
-        // If distance happens to be > 16.0 km on a paid order, notify owner immediately on Telegram for personal handling
-        if (distNum > 16.0) {
-          try {
-            sendTelegramMessage(
-              `⚠️ <b>PAID ORDER OUTER-ZONE GPS PIN ALERT</b>\n` +
-              `━━━━━━━━━━━━━━━━━━━━━━\n` +
-              `👤 <b>Customer:</b> ${activeOrder.name || customerName || "Customer"} (<code>${cleanPhone || raw10}</code>)\n` +
-              `📦 <b>Order Ref:</b> #${activeOrder.orderRef} (${activeOrder.items || "Fresh Trout"})\n` +
-              `💰 <b>Amount Paid:</b> ${activeOrder.amount}\n` +
-              `📏 <b>Pin Distance:</b> <b>${distRounded} km</b> from Malabagh farm\n` +
-              `📍 <a href="${mapsUrl}"><b>Open Google Maps Pin</b></a>\n\n` +
-              `💡 <i>Action: Bot locked coordinates for rider. Dispatch rider or coordinate directly with customer!</i>`
-            ).catch(() => {});
-          } catch (_) {}
+        // ALWAYS save verified coordinates and mapsUrl in chatMetadata regardless of distance!
+        if (!chatMetadata[remoteJid]) chatMetadata[remoteJid] = {};
+        chatMetadata[remoteJid].latitude = detectedLat;
+        chatMetadata[remoteJid].longitude = detectedLng;
+        chatMetadata[remoteJid].distanceKm = distNum;
+        chatMetadata[remoteJid].googleMapsUrl = mapsUrl;
+        chatMetadata[remoteJid].locationUpdatedAt = new Date().toISOString();
+        if (detectedLocalityName) chatMetadata[remoteJid].localityName = detectedLocalityName;
+        if (cleanPhone) {
+          if (!chatMetadata[cleanPhone]) chatMetadata[cleanPhone] = {};
+          chatMetadata[cleanPhone].latitude = detectedLat;
+          chatMetadata[cleanPhone].longitude = detectedLng;
+          chatMetadata[cleanPhone].distanceKm = distNum;
+          chatMetadata[cleanPhone].googleMapsUrl = mapsUrl;
+          chatMetadata[cleanPhone].locationUpdatedAt = new Date().toISOString();
+          if (detectedLocalityName) chatMetadata[cleanPhone].localityName = detectedLocalityName;
         }
-      } else if (activeOrder && !isAlreadyPaid) {
-        // ── STRICT UNPAID ACTIVE ORDER SHIELD ──
-        // Order link/card exists, but customer has NOT paid yet!
-        // DO NOT say confirmed! DO NOT say scheduled for harvest!
-        console.log(`│ ⏳ [UNPAID ORDER PIN RECEIVED] Customer ${cleanPhone || customerName} sent GPS pin for unpaid order #${activeOrder.orderRef}. Coordinates locked, awaiting payment.`);
-        locReply = `📍 *Delivery Location Received & Coordinates Locked!* ✅\n\n🛵 We have locked your exact delivery coordinates for our dispatch rider!\n\n⚠️ *Your order (#${activeOrder.orderRef}) is currently pending payment confirmation.* Live harvest from our cold-water tanks begins immediately once payment is completed.\n\nPlease complete payment using the official Razorpay link above so our team can harvest your trout live from the tanks and dispatch immediately! 🐟\n\n📍 Maps: ${mapsUrl}`;
-        historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. Order #${activeOrder.orderRef} is PENDING PAYMENT. Coordinates locked. Awaiting payment before harvest.]`;
-      } else if (distNum <= 16.0) {
-        const hasExistingPaymentLink = chatHist.some(m => m.text && (m.text.includes("rzp.io") || m.text.includes("Official Razorpay Payment Link")));
-        const hasAgreedOrder = chatHist.some(m => m.text && (/\b(?:2\s*kg|3\s*kg|4\s*kg|5\s*kg|1\s*kg|gutted|whole|starter\s*pack|family\s*pack)\b/i.test(m.text)));
+        saveChatMetadata();
 
-        if (hasExistingPaymentLink) {
-          locReply = isNightGps
-            ? `📍 *Location Received & Saved!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n🛵 We have saved your exact location coordinates for our delivery rider.\n\nDeliveries for tonight closed at 8:00 PM. Please complete payment using the official Razorpay link above so our team can schedule your morning harvest in our 8:00 AM – 11:00 AM slot tomorrow! 🐟`
-            : isEarlyGps
-            ? `📍 *Location Received & Saved!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n🛵 We have saved your exact location coordinates for our delivery rider.\n\nGood morning! Our live harvest for today starts at 8:00 AM sharp! Please complete payment using the official Razorpay link above so our team can schedule your morning harvest in our 8:00 AM – 11:00 AM slot today! 🐟`
-            : `📍 *Location Received & Saved!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n🛵 We have saved your exact location coordinates for our delivery rider.\n\nPlease complete payment using the official Razorpay link above so our team can harvest your trout live from the tanks and dispatch immediately! 🐟`;
-          historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. IN RANGE (<=16 km). Payment link already provided, awaiting payment completion.]`;
-        } else if (hasAgreedOrder) {
-          // PRICE LOCK: Customer already requested/discussed an order. Lock in coordinates and generate payment link right now!
-          let orderWeight = 2;
-          let isWhole = false;
-          for (let i = chatHist.length - 1; i >= 0; i--) {
-            const m = chatHist[i];
-            if (m.text) {
-              const wMatch = m.text.match(/(\d+(?:\.\d+)?)\s*(?:kg|kilo|kgs)/i);
-              if (wMatch) { orderWeight = parseFloat(wMatch[1]); }
-              if (/\b(?:whole|sabut)\b/i.test(m.text)) { isWhole = true; }
-              if (wMatch) break;
+        // Check if this customer has an ACTIVE pending order (unfulfilled)
+        let orders = {};
+        try {
+          const ordersFilePath = path.join(__dirname, "customer_orders.json");
+          if (fs.existsSync(ordersFilePath)) orders = JSON.parse(fs.readFileSync(ordersFilePath, "utf8"));
+        } catch (_) {}
+
+        const activeOrder = findActiveCustomerOrder(orders, cleanPhone || raw10, remoteJid);
+        const isAlreadyPaid = activeOrder && isOrderActiveAndPaid(activeOrder);
+
+        // Save GPS coordinates to active order record for Cold-Chain Dispatch navigation
+        if (activeOrder) {
+          activeOrder.latitude = detectedLat;
+          activeOrder.longitude = detectedLng;
+          activeOrder.googleMapsUrl = mapsUrl;
+          activeOrder.distanceKm = distNum;
+          recordNewCustomerOrder(cleanPhone || raw10, activeOrder);
+        }
+
+        const pinPolicyNote = `\n\n📌 *Pin-Point Delivery Reminder:*\nOur *Cold-Chain Dispatch Partner* will deliver strictly to this shared GPS pin (not by house numbers). Please collect your order *in person* at this location and keep your phone reachable — as the dispatch partner carries multiple live-harvest orders on route, *no second delivery attempt* can be made if unreachable or switched off.`;
+
+        if (activeOrder && isAlreadyPaid) {
+          // ── STRICT PAID ORDER SHIELD ──
+          // Customer has ALREADY paid! Order is genuine and active.
+          console.log(`│ 🛡️ [PAID ORDER SHIELD] Customer ${cleanPhone || customerName} already paid for active order #${activeOrder.orderRef}. Locking coordinates for Cold-Chain Dispatch!`);
+          locReply = `📍 *Delivery Location Received & Coordinates Locked!* ✅\n\nThank you! We have locked your exact GPS coordinates for our *Urban Trout Cold-Chain Dispatch Partner*.\n\nYour order (*#${activeOrder.orderRef}*) is paid & confirmed! Our Malabagh farm team has it scheduled for fresh live harvest.${pinPolicyNote}\n\n📍 Maps: ${mapsUrl}`;
+          historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. Active order #${activeOrder.orderRef} is PAID. Coordinates locked for Cold-Chain Dispatch.]`;
+
+          // If distance happens to be > 16.0 km on a paid order, notify owner immediately on Telegram for personal handling
+          if (distNum > 16.0) {
+            try {
+              sendTelegramMessage(
+                `⚠️ <b>PAID ORDER OUTER-ZONE GPS PIN ALERT</b>\n` +
+                `━━━━━━━━━━━━━━━━━━━━━━\n` +
+                `👤 <b>Customer:</b> ${activeOrder.name || customerName || "Customer"} (<code>${cleanPhone || raw10}</code>)\n` +
+                `📦 <b>Order Ref:</b> #${activeOrder.orderRef} (${activeOrder.items || "Fresh Trout"})\n` +
+                `💰 <b>Amount Paid:</b> ${activeOrder.amount}\n` +
+                `📏 <b>Pin Distance:</b> <b>${distRounded} km</b> from Malabagh farm\n` +
+                `📍 <a href="${mapsUrl}"><b>Open Google Maps Pin</b></a>\n\n` +
+                `💡 <i>Action: Bot locked coordinates. Dispatch cold-chain partner or coordinate directly with customer!</i>`
+              ).catch(() => {});
+            } catch (_) {}
+          }
+        } else if (activeOrder && !isAlreadyPaid) {
+          // ── STRICT UNPAID ACTIVE ORDER SHIELD ──
+          console.log(`│ ⏳ [UNPAID ORDER PIN RECEIVED] Customer ${cleanPhone || customerName} sent GPS pin for unpaid order #${activeOrder.orderRef}. Coordinates locked, awaiting payment.`);
+          locReply = `📍 *Delivery Location Received & Coordinates Locked!* ✅\n\n🛵 We have locked your exact GPS coordinates for our *Cold-Chain Dispatch Partner*!\n\n⚠️ *Your order (#${activeOrder.orderRef}) is currently pending payment confirmation.* Live harvest from our cold-water tanks begins immediately once payment is completed.${pinPolicyNote}\n\nPlease complete payment using the official Razorpay link above! 🐟\n📍 Maps: ${mapsUrl}`;
+          historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. Order #${activeOrder.orderRef} is PENDING PAYMENT. Coordinates locked. Awaiting payment before harvest.]`;
+        } else if (distNum <= 16.0) {
+          const hasExistingPaymentLink = chatHist.some(m => m.text && (m.text.includes("rzp.io") || m.text.includes("Official Razorpay Payment Link")));
+          // Check ONLY actual customer messages (never match the bot's own upsell examples like "5 kg")
+          const userOnlyHist = chatHist.filter(m =>
+            m.role === "user" &&
+            m.text &&
+            !/^\[(?:Customer shared location|Customer sent)/i.test(m.text.trim())
+          );
+          const hasAgreedOrder = userOnlyHist.some(m =>
+            /\b(?:\d+(?:\.\d+)?\s*(?:kg|kilo|kgs)|gutted|whole|starter\s*pack|family\s*pack)\b/i.test(m.text)
+          );
+
+          if (hasExistingPaymentLink) {
+            locReply = isNightGps
+              ? `📍 *Location Received & Saved!* ✅\n\nYour shared location is approximately *${distRounded} km* from our Malabagh farm.\n\n🛵 Coordinates saved for our *Urban Trout Cold-Chain Dispatch Partner*.\n\nDeliveries for tonight closed at 8:00 PM. Please complete payment using the link above to schedule morning harvest (8:00 AM – 11:00 AM tomorrow)!${pinPolicyNote}`
+              : isEarlyGps
+              ? `📍 *Location Received & Saved!* ✅\n\nYour shared location is approximately *${distRounded} km* from our Malabagh farm.\n\n🛵 Coordinates saved for our *Urban Trout Cold-Chain Dispatch Partner*.\n\nGood morning! Our live harvest starts at 8:00 AM sharp today. Please complete payment using the link above to schedule today's morning harvest (8:00 AM – 11:00 AM)!${pinPolicyNote}`
+              : `📍 *Location Received & Saved!* ✅\n\nYour shared location is approximately *${distRounded} km* from our Malabagh farm.\n\n🛵 Coordinates saved for our *Urban Trout Cold-Chain Dispatch Partner*.\n\nPlease complete payment using the link above so our team can harvest your trout live and dispatch immediately!${pinPolicyNote}`;
+            historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. IN RANGE (<=16 km). Payment link already provided, awaiting payment completion.]`;
+          } else if (hasAgreedOrder) {
+            // PRICE LOCK: Customer already requested/discussed an order. Lock in coordinates and generate payment link right now!
+            let orderWeight = 2;
+            let isWhole = false;
+            for (let i = userOnlyHist.length - 1; i >= 0; i--) {
+              const m = userOnlyHist[i];
+              if (m.text) {
+                const wMatch = m.text.match(/(\d+(?:\.\d+)?)\s*(?:kg|kilo|kgs)\b/i);
+                if (wMatch) { orderWeight = parseFloat(wMatch[1]); }
+                if (/\b(?:whole|sabut)\b/i.test(m.text)) { isWhole = true; }
+                if (wMatch) break;
+              }
             }
-          }
-          const rate = isWhole ? 540 : 580;
-          const fishCost = orderWeight * rate;
-          let courierFee = getDeliveryFeeForDistance(distNum, orderWeight, isEveningGps);
+            const rate = isWhole ? 540 : 580;
+            const fishCost = Math.round(orderWeight * rate);
+            let courierFee = getDeliveryFeeForDistance(distNum, orderWeight, isEveningGps);
 
-          // PRICE LOCK: If bot previously quoted a specific courier fee in chat, honor the quoted price
-          if (chatHist.some(m => m.role === "model" && m.text && (m.text.includes("₹55") || m.text.includes("₹1215")))) {
-            courierFee = Math.min(courierFee, 55 + surgeGps);
-          }
-          const totalPayable = fishCost + courierFee;
-          const itemsDesc = `${orderWeight} kg × ${isWhole ? "Whole Fresh Trout" : "Cleaned & Gutted (Pan-Ready)"}`;
-          const randSuffix = Math.floor(10 + Math.random() * 90);
-          const orderRef = `UT-WA-${Date.now().toString().slice(-6)}${randSuffix}`;
-
-          let generatedPayUrl = "https://urbantrout.in";
-          try {
-            const reusablePin = TodayOrderPool.findReusablePaymentLink(cleanPhone || raw10, remoteJid, totalPayable);
-            if (reusablePin) {
-              console.log(`[Link Reuse Pin] Reusing single active payment link ${reusablePin.url} for ${cleanPhone || raw10}`);
-              generatedPayUrl = reusablePin.url || reusablePin.short_url;
-            } else {
-              const rzpRes = await createRazorpayPaymentLink({
-                amount: totalPayable,
-                customerPhone: cleanPhone,
-                customerName: customerName,
-                orderRef: orderRef,
-                description: itemsDesc
-              });
-              generatedPayUrl = rzpRes.url || rzpRes.short_url || "https://urbantrout.in";
+            // PRICE LOCK: If bot previously quoted a specific fee in chat, honor the quoted price
+            if (chatHist.some(m => m.role === "model" && m.text && (m.text.includes("₹55") || m.text.includes("₹1215")))) {
+              courierFee = Math.min(courierFee, 55 + surgeGps);
             }
-          } catch (plErr) {
-            console.error("Razorpay link generation failed on location pin:", plErr.message);
-          }
+            const totalPayable = fishCost + courierFee;
+            const itemsDesc = `${orderWeight} kg × ${isWhole ? "Whole Fresh Trout" : "Cleaned & Gutted (Pan-Ready)"}${courierFee > 0 ? " (+Express Delivery)" : ""}`;
+            const randSuffix = Math.floor(10 + Math.random() * 90);
+            const orderRef = `UT-WA-${Date.now().toString().slice(-6)}${randSuffix}`;
 
-          const card = formatOrderSummaryCard({
-            orderRef,
-            amount: totalPayable,
-            desc: itemsDesc,
-            deliveryArea: detectedLocalityName || "Srinagar",
-            distanceKm: distRounded,
-            localityName: detectedLocalityName || "Srinagar",
-            scheduledSlot: isNightGps ? "Tomorrow Morning (8:00 AM – 11:00 AM)" : (isEarlyGps ? "Today Morning (8:00 AM – 11:00 AM)" : "Within 90–120 Minutes (Today)"),
-            payUrl: generatedPayUrl
-          });
+            let generatedPayUrl = "https://urbantrout.in";
+            try {
+              const reusablePin = TodayOrderPool.findReusablePaymentLink(cleanPhone || raw10, remoteJid, totalPayable);
+              if (reusablePin) {
+                console.log(`[Link Reuse Pin] Reusing single active payment link ${reusablePin.url} for ${cleanPhone || raw10}`);
+                generatedPayUrl = reusablePin.url || reusablePin.short_url;
+              } else {
+                const rzpRes = await createRazorpayPaymentLink({
+                  amount: totalPayable,
+                  customerPhone: cleanPhone,
+                  customerName: customerName,
+                  orderRef: orderRef,
+                  description: itemsDesc
+                });
+                generatedPayUrl = rzpRes.url || rzpRes.short_url || "https://urbantrout.in";
+              }
+            } catch (plErr) {
+              console.error("Razorpay link generation failed on location pin:", plErr.message);
+            }
 
-          locReply = `📍 *Location Received & Coordinates Locked!* ✅\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n🛵 Saved for our express delivery rider!\n\n${card}`;
-          historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. Order generated: ${itemsDesc} (₹${totalPayable}). Official payment link: ${generatedPayUrl}]`;
+            const card = formatOrderSummaryCard({
+              orderRef,
+              amount: totalPayable,
+              desc: itemsDesc,
+              deliveryArea: detectedLocalityName || "Srinagar",
+              deliveryFee: courierFee,
+              distanceKm: distRounded,
+              localityName: detectedLocalityName || "Srinagar",
+              scheduledSlot: isNightGps ? "Tomorrow Morning (8:00 AM – 11:00 AM)" : (isEarlyGps ? "Today Morning (8:00 AM – 11:00 AM)" : "Within 90–120 Minutes (Today)"),
+              payUrl: generatedPayUrl
+            });
 
-          recordNewCustomerOrder(cleanPhone || raw10, {
-            orderRef,
-            chatId: remoteJid,
-            phone: cleanPhone || raw10,
-            name: customerName,
-            items: itemsDesc,
-            amount: `₹${totalPayable}`,
-            status: "Payment Link Sent (Awaiting Upfront Payment)",
-            payUrl: generatedPayUrl,
-            latitude: detectedLat,
-            longitude: detectedLng,
-            googleMapsUrl: mapsUrl,
-            deliveryArea: detectedLocalityName || "Srinagar",
-            distanceKm: distRounded,
-            deliveryFee: courierFee,
-            createdAt: new Date().toISOString()
-          });
-        } else {
-          // First time inquiry via location pin (no order discussed yet) - show tier pricing for their distance
-          if (distNum <= 4.0) {
-            locReply = isNightGps
-              ? `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep delivery is 100% FREE* (min order 2 kg, zero delivery or packing fees)!\nDeliveries for tonight closed at 8:00 PM. We can schedule your express live-harvest delivery for tomorrow (Morning 8–11 AM, Afternoon 12–3 PM, or Evening 4–7 PM).\n\nWhich cut, quantity, and slot tomorrow would you prefer? 🐟`
-              : isEarlyGps
-              ? `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep delivery is 100% FREE* (min order 2 kg, zero extra delivery or packing fees)!\nGood morning! Our live harvest begins at 8:00 AM sharp today. We can schedule your delivery for today's morning harvest (8:00 AM – 11:00 AM).\n\nWhich cut and quantity would you like to order today? 🐟`
-              : `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep delivery is 100% FREE* within 2 Hours of payment confirmation (min order 2 kg, zero extra delivery or packing fees)!\n\nWhich cut and quantity would you like to order? 🐟`;
-            historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. Minimum order for free delivery is 2 kg.]`;
-          } else if (distNum <= 7.0) {
-            locReply = isNightGps
-              ? `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on 3 kg (₹1,740 total)! We can also send 2 kg for just a subsidized ₹${55 + surgeGps} courier fee (₹${1215 + surgeGps} total).\nDeliveries for tonight closed at 8:00 PM. We can schedule your express live-harvest delivery for tomorrow morning!\n\nWould you like 3 kg free delivery or 2 kg scheduled for tomorrow? 🐟`
-              : isEarlyGps
-              ? `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on 3 kg (₹1,740 total)! We can also send 2 kg for just a subsidized ₹${55 + surgeGps} courier fee (₹${1215 + surgeGps} total).\nGood morning! Our live harvest begins at 8:00 AM sharp today. We can schedule your delivery for today's morning slot (8:00 AM – 11:00 AM)!\n\nWould you like 3 kg free delivery or 2 kg for today's morning harvest? 🐟`
-              : `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on 3 kg (₹1,740 total)! We can also send 2 kg for just a subsidized ₹${55 + surgeGps} courier fee (₹${1215 + surgeGps} total)${isEveningGps ? " (includes ₹40 evening rush surcharge)" : ""}.\n\nWould you like 3 kg free delivery or 2 kg delivered fresh to your door? 🐟`;
-            historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. Free delivery on 3 kg+ (₹1740); 2 kg has ₹${55 + surgeGps} courier fee (₹${1215 + surgeGps}); 1 kg has ₹${65 + surgeGps} fee (₹${645 + surgeGps}).]`;
-          } else if (distNum <= 11.5) {
-            locReply = isNightGps
-              ? `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on 3 kg (₹1,740 total)! We can also send 2 kg for just a subsidized ₹${89 + surgeGps} courier fee (₹${1249 + surgeGps} total).\nDeliveries for tonight closed at 8:00 PM. We can schedule your express live-harvest delivery for tomorrow morning!\n\nWould you like 3 kg free delivery or 2 kg scheduled for tomorrow? 🐟`
-              : isEarlyGps
-              ? `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on 3 kg (₹1,740 total)! We can also send 2 kg for just a subsidized ₹${89 + surgeGps} courier fee (₹${1249 + surgeGps} total).\nGood morning! Our live harvest begins at 8:00 AM sharp today. We can schedule your delivery for today's morning slot (8:00 AM – 11:00 AM)!\n\nWould you like 3 kg free delivery or 2 kg for today's morning harvest? 🐟`
-              : `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on 3 kg (₹1,740 total)! We can also send 2 kg for just a subsidized ₹${89 + surgeGps} courier fee (₹${1249 + surgeGps} total)${isEveningGps ? " (includes ₹40 evening rush surcharge)" : ""}.\n\nWould you like 3 kg free delivery or 2 kg delivered fresh to your door? 🐟`;
-            historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. Free delivery on 3 kg+ (₹1740); 2 kg has ₹${89 + surgeGps} courier fee (₹${1249 + surgeGps}); 1 kg has ₹${99 + surgeGps} fee (₹${679 + surgeGps}).]`;
+            locReply = `📍 *Location Received & Coordinates Locked!* ✅\nYour shared location is approximately *${distRounded} km* from our Malabagh farm.\n🛵 Coordinates saved for our *Urban Trout Cold-Chain Dispatch Partner*!${pinPolicyNote}\n\n${card}`;
+            historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. Order generated: ${itemsDesc} (₹${totalPayable}). Official payment link: ${generatedPayUrl}]`;
+
+            recordNewCustomerOrder(cleanPhone || raw10, {
+              orderRef,
+              chatId: remoteJid,
+              phone: cleanPhone || raw10,
+              name: customerName,
+              items: itemsDesc,
+              amount: `₹${totalPayable}`,
+              status: "Payment Link Sent (Awaiting Upfront Payment)",
+              payUrl: generatedPayUrl,
+              latitude: detectedLat,
+              longitude: detectedLng,
+              googleMapsUrl: mapsUrl,
+              deliveryArea: detectedLocalityName || "Srinagar",
+              distanceKm: distRounded,
+              deliveryFee: courierFee,
+              createdAt: new Date().toISOString()
+            });
           } else {
-            locReply = isNightGps
-              ? `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on our 5 kg family pack (₹2,900 total)! We can also send 2 kg for just ₹${139 + surgeGps} express courier fee (₹${1299 + surgeGps} total), 3 kg for ₹${129 + surgeGps} (₹${1869 + surgeGps} total), or 4 kg for ₹${109 + surgeGps} (₹${2429 + surgeGps} total).\nDeliveries for tonight closed at 8:00 PM. We can schedule your express live-harvest delivery for tomorrow morning!\n\nWould you like 5 kg free delivery or 2 kg scheduled for tomorrow? 🐟`
-              : isEarlyGps
-              ? `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on our 5 kg family pack (₹2,900 total)! We can also send 2 kg for just ₹${139 + surgeGps} express courier fee (₹${1299 + surgeGps} total), 3 kg for ₹${129 + surgeGps} (₹${1869 + surgeGps} total), or 4 kg for ₹${109 + surgeGps} (₹${2429 + surgeGps} total).\nGood morning! Our live harvest begins at 8:00 AM sharp today. We can schedule your delivery for today's morning slot (8:00 AM – 11:00 AM)!\n\nWould you like 5 kg free delivery or 2 kg for today's morning harvest? 🐟`
-              : `📍 *Location Received & Verified!* ✅\n\nYour address is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Doorstep Delivery:* 100% FREE on our 5 kg family pack (₹2,900 total)! We can also send 2 kg for just ₹${139 + surgeGps} express courier fee (₹${1299 + surgeGps} total), 3 kg for ₹${129 + surgeGps} (₹${1869 + surgeGps} total), or 4 kg for ₹${109 + surgeGps} (₹${2429 + surgeGps} total)${isEveningGps ? " (includes ₹40 evening rush courier surcharge)" : ""}.\n\nWould you like to confirm 5 kg free delivery or 2 kg for doorstep delivery? 🐟`;
-            historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. Free delivery on 5 kg family pack (₹2900); 4 kg has ₹${109 + surgeGps} fee (₹${2429 + surgeGps}); 3 kg has ₹${129 + surgeGps} fee (₹${1869 + surgeGps}); 2 kg has ₹${139 + surgeGps} fee (₹${1299 + surgeGps}); 1 kg has ₹${149 + surgeGps} fee (₹${729 + surgeGps}).]`;
+            // First time inquiry via location pin (no order discussed yet) - show tier pricing for their distance
+            if (distNum <= 4.0) {
+              locReply = isNightGps
+                ? `📍 *Location Received & Verified!* ✅\n\nYour shared location is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Cold-chain express delivery is 100% FREE* (min order 2 kg, zero extra fees)!\n📌 _Delivered strictly to this shared GPS pin (in-person receipt; keep phone reachable)._\nDeliveries for tonight closed at 8:00 PM. We can schedule your harvest for tomorrow (Morning 8–11 AM, Afternoon 12–3 PM, or Evening 4–7 PM).\n\nHow many Kgs and which slot tomorrow would you prefer? 🐟`
+                : isEarlyGps
+                ? `📍 *Location Received & Verified!* ✅\n\nYour shared location is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Cold-chain express delivery is 100% FREE* (min order 2 kg, zero extra fees)!\n📌 _Delivered strictly to this shared GPS pin (in-person receipt; keep phone reachable)._\nGood morning! Live harvest begins at 8:00 AM sharp today (Morning slot: 8:00 AM – 11:00 AM).\n\nHow many Kgs would you like to order today? 🐟`
+                : `📍 *Location Received & Verified!* ✅\n\nYour shared location is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Cold-chain express delivery is 100% FREE* within 2 hours of payment confirmation (min order 2 kg, zero extra fees)!\n📌 _Delivered strictly to this shared GPS pin (in-person receipt; keep phone reachable)._\n\nHow many Kgs would you like to order? 🐟`;
+              historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. Minimum order for free delivery is 2 kg.]`;
+            } else if (distNum <= 7.0) {
+              locReply = isNightGps
+                ? `📍 *Location Received & Verified!* ✅\n\nYour shared location is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Express Cold-Chain Delivery:* 100% FREE on 3 kg (₹1,740 total)! We can also send 2 kg for just a ₹${55 + surgeGps} delivery fee (₹${1215 + surgeGps} total).\n📌 _Delivered strictly to this shared GPS pin (in-person receipt; keep phone reachable)._\nDeliveries for tonight closed at 8:00 PM. We can schedule tomorrow morning!\n\nWould you like 3 kg free delivery or 2 kg scheduled for tomorrow? 🐟`
+                : isEarlyGps
+                ? `📍 *Location Received & Verified!* ✅\n\nYour shared location is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Express Cold-Chain Delivery:* 100% FREE on 3 kg (₹1,740 total)! We can also send 2 kg for just a ₹${55 + surgeGps} delivery fee (₹${1215 + surgeGps} total).\n📌 _Delivered strictly to this shared GPS pin (in-person receipt; keep phone reachable)._\nGood morning! Harvest begins at 8:00 AM sharp today (Morning slot: 8:00 AM – 11:00 AM).\n\nWould you like 3 kg free delivery or 2 kg for today's morning harvest? 🐟`
+                : `📍 *Location Received & Verified!* ✅\n\nYour shared location is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Express Cold-Chain Delivery:* 100% FREE on 3 kg (₹1,740 total)! We can also send 2 kg for just a ₹${55 + surgeGps} delivery fee (₹${1215 + surgeGps} total)${isEveningGps ? " (includes ₹40 evening rush surcharge)" : ""}.\n📌 _Delivered strictly to this shared GPS pin (in-person receipt; keep phone reachable)._\n\nWould you like 3 kg free delivery or 2 kg? 🐟`;
+              historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. Free delivery on 3 kg+ (₹1740); 2 kg has ₹${55 + surgeGps} fee (₹${1215 + surgeGps}); 1 kg has ₹${65 + surgeGps} fee (₹${645 + surgeGps}).]`;
+            } else if (distNum <= 11.5) {
+              locReply = isNightGps
+                ? `📍 *Location Received & Verified!* ✅\n\nYour shared location is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Express Cold-Chain Delivery:* 100% FREE on 3 kg (₹1,740 total)! We can also send 2 kg for just a ₹${89 + surgeGps} delivery fee (₹${1249 + surgeGps} total).\n📌 _Delivered strictly to this shared GPS pin (in-person receipt; keep phone reachable)._\nDeliveries for tonight closed at 8:00 PM. We can schedule tomorrow morning!\n\nWould you like 3 kg free delivery or 2 kg scheduled for tomorrow? 🐟`
+                : isEarlyGps
+                ? `📍 *Location Received & Verified!* ✅\n\nYour shared location is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Express Cold-Chain Delivery:* 100% FREE on 3 kg (₹1,740 total)! We can also send 2 kg for just a ₹${89 + surgeGps} delivery fee (₹${1249 + surgeGps} total).\n📌 _Delivered strictly to this shared GPS pin (in-person receipt; keep phone reachable)._\nGood morning! Harvest begins at 8:00 AM sharp today (Morning slot: 8:00 AM – 11:00 AM).\n\nWould you like 3 kg free delivery or 2 kg for today's morning harvest? 🐟`
+                : `📍 *Location Received & Verified!* ✅\n\nYour shared location is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Express Cold-Chain Delivery:* 100% FREE on 3 kg (₹1,740 total)! We can also send 2 kg for just a ₹${89 + surgeGps} delivery fee (₹${1249 + surgeGps} total)${isEveningGps ? " (includes ₹40 evening rush surcharge)" : ""}.\n📌 _Delivered strictly to this shared GPS pin (in-person receipt; keep phone reachable)._\n\nWould you like 3 kg free delivery or 2 kg? 🐟`;
+              historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. Free delivery on 3 kg+ (₹1740); 2 kg has ₹${89 + surgeGps} fee (₹${1249 + surgeGps}); 1 kg has ₹${99 + surgeGps} fee (₹${679 + surgeGps}).]`;
+            } else {
+              locReply = isNightGps
+                ? `📍 *Location Received & Verified!* ✅\n\nYour shared location is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Express Cold-Chain Delivery:* 100% FREE on our 5 kg family pack (₹2,900 total)! We can also send 2 kg for ₹${139 + surgeGps} delivery fee (₹${1299 + surgeGps} total), 3 kg for ₹${129 + surgeGps} (₹${1869 + surgeGps} total), or 4 kg for ₹${109 + surgeGps} (₹${2429 + surgeGps} total).\n📌 _Delivered strictly to this shared GPS pin (in-person receipt; keep phone reachable)._\nDeliveries for tonight closed at 8:00 PM. We can schedule tomorrow morning!\n\nWould you like 5 kg free delivery or 2 kg scheduled for tomorrow? 🐟`
+                : isEarlyGps
+                ? `📍 *Location Received & Verified!* ✅\n\nYour shared location is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Express Cold-Chain Delivery:* 100% FREE on our 5 kg family pack (₹2,900 total)! We can also send 2 kg for ₹${139 + surgeGps} delivery fee (₹${1299 + surgeGps} total), 3 kg for ₹${129 + surgeGps} (₹${1869 + surgeGps} total), or 4 kg for ₹${109 + surgeGps} (₹${2429 + surgeGps} total).\n📌 _Delivered strictly to this shared GPS pin (in-person receipt; keep phone reachable)._\nGood morning! Harvest begins at 8:00 AM sharp today (Morning slot: 8:00 AM – 11:00 AM).\n\nWould you like 5 kg free delivery or 2 kg for today's morning harvest? 🐟`
+                : `📍 *Location Received & Verified!* ✅\n\nYour shared location is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Express Cold-Chain Delivery:* 100% FREE on our 5 kg family pack (₹2,900 total)! We can also send 2 kg for ₹${139 + surgeGps} delivery fee (₹${1299 + surgeGps} total), 3 kg for ₹${129 + surgeGps} (₹${1869 + surgeGps} total), or 4 kg for ₹${109 + surgeGps} (₹${2429 + surgeGps} total)${isEveningGps ? " (includes ₹40 evening rush surcharge)" : ""}.\n📌 _Delivered strictly to this shared GPS pin (in-person receipt; keep phone reachable)._\n\nWould you like to confirm 5 kg free delivery or 2 kg? 🐟`;
+              historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. Free delivery on 5 kg family pack (₹2900); 4 kg has ₹${109 + surgeGps} fee (₹${2429 + surgeGps}); 3 kg has ₹${129 + surgeGps} fee (₹${1869 + surgeGps}); 2 kg has ₹${139 + surgeGps} fee (₹${1299 + surgeGps}); 1 kg has ₹${149 + surgeGps} fee (₹${729 + surgeGps}).]`;
+            }
           }
+          console.log(`│ ✅ IN RANGE (<=16km, ${distRounded} km) — Saved: ${mapsUrl}`);
+        } else {
+          locReply = `📍 *Location Check: Outside Delivery Perimeter* ⚠️\n\nYour location is *${distRounded} km* from our Malabagh farm. To guarantee live-harvest freshness without ice or chemicals, cold-chain express delivery is limited to 16 km across Srinagar.\n\nHowever, you are warmly welcome to visit our Live Vending Center in Malabagh (Near R. P. School Girls Wing, open Saturday to Thursday) where you can pick live trout and get it cleaned on the spot! 🐟\n📍 Maps: https://maps.app.goo.gl/6FT5iLk5n8mbKSRU9`;
+          historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. OUTSIDE 16km perimeter. Express delivery not possible. Direct them to visit Live Vending Center in Malabagh.]`;
+          console.log(`│ ⚠️ OUTSIDE 16km (${distRounded} km) — Directed to visit Live Vending Center in Malabagh`);
         }
-        console.log(`│ ✅ IN RANGE (<=16km, ${distRounded} km) — Saved: ${mapsUrl}`);
-      } else {
-        locReply = `📍 *Location Check: Outside Delivery Perimeter* ⚠️\n\nYour location is *${distRounded} km* from our Malabagh farm. To guarantee live-harvest freshness without ice or chemicals, doorstep delivery is limited to 16 km across Srinagar.\n\nHowever, you are warmly welcome to visit our Live Vending Center in Malabagh (Near R. P. School Girls Wing, open Saturday to Thursday) where you can pick live trout and get it cleaned on the spot! 🐟\n📍 Maps: https://maps.app.goo.gl/6FT5iLk5n8mbKSRU9`;
-        historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. OUTSIDE 16km perimeter. Doorstep delivery not possible. Direct them to visit Live Vending Center in Malabagh.]`;
-        console.log(`│ ⚠️ OUTSIDE 16km (${distRounded} km) — Directed to visit Live Vending Center in Malabagh`);
+      } catch (gpsErr) {
+        console.error(`❌ [GPS Pin Handler Error] ${gpsErr?.stack || gpsErr}`);
+        locReply = `📍 *Location Received!* ✅\n\nYour shared location is approximately *${distRounded} km* from our Malabagh farm.\n\nHow many Kgs of *Cleaned & Gutted* fresh Rainbow Trout (₹580/kg) would you like to order? Our *Urban Trout Cold-Chain Dispatch Partner* delivers strictly to your shared GPS pin (in-person receipt; please keep phone reachable). 🐟`;
+        historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm.]`;
       }
       console.log(`└─────────────────────────────────────────────────────────────`);
 
@@ -5900,7 +5992,7 @@ async function startBot() {
       const isVoiceNote = Boolean(innerMessage.audioMessage);
       if (isVoiceNote && !isOwner) {
         console.log(`🎙️ [Voice Note Received] Customer sent an audio note (${remoteJid}). Sending friendly text prompt.`);
-        const voiceReply = `Hello! Thank you for reaching out to Urban Trout Aquaculture! 🐟\n\nWe received your voice note. Our automated system cannot listen to voice notes just yet. Could you kindly reply with a short text message with your delivery locality or order quantity (1 kg / 2 kg / 3 kg)?\n\nOur team in Malabagh will assist you immediately! 😊`;
+        const voiceReply = `Hello! Thank you for reaching out to Urban Trout Aquaculture! 🐟\n\nWe received your voice note. Our automated system cannot listen to voice notes just yet. Could you kindly reply with a short text message with your delivery locality / WhatsApp location pin and order quantity (1 kg / 2 kg / 3 kg)?\n\nOur team in Malabagh will assist you immediately! 😊`;
         try {
           await sock.sendMessage(remoteJid, { text: voiceReply });
           appendDailyChatLog({
@@ -5922,9 +6014,7 @@ async function startBot() {
       return;
     }
 
-    // Detect locality from user message
-    const locDetected = detectSrinagarLocality(text);
-    const detectedLocalityName = locDetected && locDetected.status === "IN_ZONE" ? locDetected.name : null;
+    // Locality already resolved above (prior to GPS pin handler)
 
     // Track user message in metadata
     if (!chatMetadata[remoteJid]) chatMetadata[remoteJid] = {};

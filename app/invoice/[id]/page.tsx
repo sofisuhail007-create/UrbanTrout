@@ -857,7 +857,7 @@ export default function PublicInvoicePage() {
                       <span>₹{invoice.refundAmount.toLocaleString("en-IN")}</span>
                     </div>
                     <p className="text-[10.5px] font-sans font-medium text-emerald-800 mt-1 leading-tight">
-                      Rider Handover Note: Delivery executive will return ₹{invoice.refundAmount} in cash or UPI at your doorstep.
+                      Handover Note: Our Cold-Chain Dispatch Partner will return ₹{invoice.refundAmount} via UPI or cash upon in-person receipt at your shared GPS location.
                     </p>
                   </div>
                 </div>

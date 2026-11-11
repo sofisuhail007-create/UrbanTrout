@@ -366,9 +366,9 @@ export default function StoreClosedBanner({
               </>
             ) : isFridayNow ? (
               <>
-                Our Vending Center and doorstep delivery operations are completely closed on Fridays for scheduled RAS maintenance, filtration backwashing, and biosecurity sanitation.
+                Our Vending Center and cold-chain express delivery operations are completely closed on Fridays for scheduled RAS maintenance, filtration backwashing, and biosecurity sanitation.
                 <br />
-                <strong style={{ color: C.onSurface }}>Fresh live harvest &amp; doorstep delivery resume {nextOpenLabel || "tomorrow (Saturday) at 8:00 AM"}.</strong>
+                <strong style={{ color: C.onSurface }}>Fresh live harvest &amp; express delivery resume {nextOpenLabel || "tomorrow (Saturday) at 8:00 AM"}.</strong>
               </>
             ) : (
               <>

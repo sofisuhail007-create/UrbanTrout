@@ -30,7 +30,7 @@ const sections = [
   },
   {
     title: "2. Service Area & Eligibility",
-    body: "Urban Trout operates a modern cold-water aquaculture farm in Malabagh, Srinagar and fulfills fresh doorstep deliveries within an authorized 16km perimeter across 4 designated delivery zones from our farm. Orders outside this 16km zone are eligible for live harvest pickup from our Malabagh farm vending center.",
+    body: "Urban Trout operates a modern cold-water aquaculture farm in Malabagh, Srinagar and fulfills chilled cold-chain express deliveries within an authorized 16km perimeter across 4 designated delivery zones from our farm. Orders outside this 16km zone are eligible for live harvest pickup from our Malabagh farm vending center.",
   },
   {
     title: "3. Fresh Harvest Order Process & Weight Verification",
@@ -41,8 +41,8 @@ const sections = [
     body: "• All prices are quoted in Indian Rupees (₹ / INR) inclusive of applicable taxes unless stated otherwise.\n• We accept online payments securely via Razorpay Payment Gateway (UPI, Debit/Credit Cards, Net Banking). Because every trout is harvested live to order specifically for each customer, Cash on Delivery (COD) is not supported to prevent dead fish wastage.\n• Urban Trout reserves the right to revise pricing per kilogram based on seasonal farm yield and feed costs without prior notice.",
   },
   {
-    title: "5. Shipping, Delivery & Packaging",
-    body: "• Doorstep deliveries are packed in clean, food-grade packaging (two polythenes) and dispatched straight to your kitchen within 90–120 minutes.\n• Deliveries within our authorized 16km farm delivery zones are fulfilled with free delivery on minimum thresholds (2 kg for Zone 1, 3 kg for Zone 2 and Zone 3, 4 kg Family Pack for Zone 4), with heavily subsidized courier rates on smaller orders.\n• Detailed terms regarding delivery timelines and zones are governed by our Shipping & Delivery Policy.",
+    title: "5. Shipping, Pin-Point GPS Delivery & Packaging",
+    body: "• Orders are packed in clean, food-grade packaging (two polythenes) and dispatched via our Cold-Chain Dispatch Partner strictly to the customer's shared Google Maps / WhatsApp GPS location pin within 90–120 minutes (not by searching house numbers).\n• Customers must receive the chilled order in person at the shared location point and keep their phone reachable — no second delivery attempt can be made if the number is unreachable or switched off.\n• Deliveries within our authorized 16km farm delivery zones include 100% free delivery on minimum thresholds (2 kg for Zone 1, 3 kg for Zone 2 and Zone 3, 5 kg Family Pack for Zone 4), with standard express delivery fees on smaller orders.\n• Detailed terms regarding delivery timelines and zones are governed by our Shipping & Delivery Policy.",
   },
   {
     title: "6. Cancellation, Return & Refund Policy",

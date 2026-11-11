@@ -143,7 +143,7 @@ export default function CustomerLiveMap({
         .addTo(map)
         .bindPopup(`
           <div style="font-family: sans-serif; font-size: 12px; color: #000; padding: 2px;">
-            <strong>Your Doorstep</strong><br/>
+            <strong>Shared Delivery Pin</strong><br/>
             ${localityName || "Verified GPS Pin"}<br/>
             <span style="color: ${isInZone ? "#16a34a" : "#dc2626"}; font-weight: bold;">
               ${distanceKm ? `${distanceKm.toFixed(1)} km from Urban Trout Aquaculture Farm` : ""}

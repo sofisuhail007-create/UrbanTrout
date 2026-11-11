@@ -50,7 +50,7 @@ export default async function OurFarmPage() {
               <span style={{ color: "#63cfee", textShadow: "0 0 30px rgba(99,207,238,0.4)" }}>Fresh Harvest.</span>
             </h1>
             <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "1.05rem", color: C.onSurfVar, lineHeight: 1.75, margin: "0 0 2.5rem", maxWidth: "480px" }}>
-              Located in Srinagar at Malabagh, our farm raises Rainbow Trout in clean, continuously filtered cold water. We farm with care, harvest only when you order, and deliver fresh to your door within 2 hours.
+              Located in Srinagar at Malabagh, our farm raises Rainbow Trout in clean, continuously filtered cold water. We farm with care, harvest only when you order, and deliver chilled to your shared GPS location within 2 hours.
             </p>
             <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
               <Link href="/shop" style={{ padding: "13px 28px", borderRadius: "10px", background: C.primaryCont, color: C.onPrimCont, fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: "0.875rem", textDecoration: "none", boxShadow: "0 0 20px rgba(58,173,204,0.3)" }}>
@@ -205,7 +205,7 @@ export default async function OurFarmPage() {
         <div className="max-w-7xl mx-auto">
           <div style={{ textAlign: "center", marginBottom: "3rem" }}>
             <h2 style={{ fontFamily: '"Space Grotesk", sans-serif', fontSize: "2.5rem", fontWeight: 800, letterSpacing: "-0.03em", color: C.onSurface, margin: "0 0 0.5rem" }}>Taste the Difference</h2>
-            <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfVar, fontSize: "0.95rem" }}>Order today and get fresh catch delivered to your doorstep.</p>
+            <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfVar, fontSize: "0.95rem" }}>Order today and get fresh catch delivered chilled to your shared GPS location.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
             {[

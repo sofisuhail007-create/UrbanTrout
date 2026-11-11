@@ -115,7 +115,7 @@ export default function DeliveryZoneChecker() {
                 </span>
               </div>
               <h3 className="text-base sm:text-lg font-extrabold text-white mt-1 tracking-tight" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
-                Check Doorstep Delivery for Your Srinagar Area
+                Check Express Cold-Chain Delivery for Your Srinagar Area
               </h3>
             </div>
           </div>

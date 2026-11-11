@@ -442,31 +442,31 @@ function CalculatorInner() {
     if (isFreeDelivery) {
       return {
         isFree: true,
-        text: "🎉 You have unlocked 100% FREE Doorstep Delivery on this order!",
+        text: "🎉 You have unlocked 100% FREE Cold-Chain Express Delivery on this order!",
       };
     }
     if (tier === "zone1" && weightKg < 2) {
       return {
         isFree: false,
-        text: `Add +${2 - weightKg} kg to unlock 100% FREE doorstep delivery (Save ₹35)!`,
+        text: `Add +${2 - weightKg} kg to unlock 100% FREE express delivery (Save ₹35)!`,
       };
     }
     if (tier === "zone2" && weightKg < 3) {
       return {
         isFree: false,
-        text: `Add +${3 - weightKg} kg to unlock 100% FREE doorstep delivery (Save ₹${deliveryFee})!`,
+        text: `Add +${3 - weightKg} kg to unlock 100% FREE express delivery (Save ₹${deliveryFee})!`,
       };
     }
     if (tier === "zone3" && weightKg < 3) {
       return {
         isFree: false,
-        text: `Add +${3 - weightKg} kg to unlock 100% FREE doorstep delivery (Save ₹${deliveryFee})!`,
+        text: `Add +${3 - weightKg} kg to unlock 100% FREE express delivery (Save ₹${deliveryFee})!`,
       };
     }
     if (tier === "zone4" && weightKg < 5) {
       return {
         isFree: false,
-        text: `Upgrade to our 5 kg Family Pack for 100% FREE doorstep delivery (Save ₹${deliveryFee})!`,
+        text: `Upgrade to our 5 kg Family Pack for 100% FREE express delivery (Save ₹${deliveryFee})!`,
       };
     }
     return null;
@@ -481,10 +481,9 @@ function CalculatorInner() {
       `📍 Location: ${selectedPlace?.name || searchQuery}\n` +
       `📏 Distance: ~${distance} km (${tierBadges[tier]?.label.split("•")[0].trim()})\n` +
       `🐟 Item: ${weightKg} kg × ${cutName} (@ ₹${ratePerKg}/kg = ₹${fishCost})\n` +
-      `🚚 Subsidized Courier Fee: ${deliveryFee === 0 ? "₹0 (100% FREE)" : `₹${deliveryFee}`}\n` +
-      (subsidyAmount > 0 ? `🤝 Urban Trout Contribution: −₹${subsidyAmount} (Subsidized)\n` : "") +
+      `🚚 Express Delivery Fee: ${deliveryFee === 0 ? "₹0 (100% FREE)" : `₹${deliveryFee}`}\n` +
       `💰 Total Payable: ₹${totalAmount}\n\n` +
-      `Please confirm my delivery slot today.`
+      `I will share my WhatsApp Location Pin / Google Maps link for pin-point delivery.`
   );
 
   const whatsappUrl = `https://wa.me/${WHATSAPP_PHONE}?text=${whatsappMessage}`;
@@ -513,10 +512,9 @@ function CalculatorInner() {
       `📍 Location: ${selectedPlace?.name || searchQuery} (~${distance} km from Malabagh Farm Hub)\n` +
       `📦 Order: ${weightKg} kg × ${cutName}\n` +
       `💵 Fish Price: ₹${fishCost} (@ ₹${ratePerKg}/kg)\n` +
-      `🚚 Express Doorstep Courier: ${deliveryFee === 0 ? "100% FREE DOORSTEP DELIVERY ✓" : `₹${deliveryFee} only`}\n` +
-      (subsidyAmount > 0 ? `🤝 Urban Trout Contribution: −₹${subsidyAmount} (Subsidized for you)\n` : "") +
-      `✅ Total Payable at Doorstep: ₹${totalAmount} (Cash or UPI)\n\n` +
-      `⚡ Farm-Harvested Guarantee: Fish is swimming in cold water until you order, prepped fresh and dispatched in food-grade packs within 90–120 minutes.\n\n` +
+      `🚚 Cold-Chain Express Delivery: ${deliveryFee === 0 ? "100% FREE DELIVERY ✓" : `₹${deliveryFee} only`}\n` +
+      `✅ Total Payable: ₹${totalAmount} (UPI / Card / Net Banking)\n\n` +
+      `📌 Pin-Point Delivery Policy: Please share a Google Maps link or WhatsApp Location Pin. Our Cold-Chain Dispatch Partner delivers strictly to the shared GPS pin (not house numbers), and orders must be collected in person. Kindly keep your phone reachable — no second attempt can be made if unreachable.\n\n` +
       `🔗 View quote or modify order:\n${link}`
     );
   };
@@ -565,7 +563,7 @@ function CalculatorInner() {
             Srinagar Delivery Calculator
           </h1>
           <p className="text-sm sm:text-base text-[#9fadb8] max-w-2xl mx-auto">
-            Instant transparent delivery rates, distance calculation from our Malabagh Farm Hub, and subsidized doorstep courier across Srinagar.
+            Instant transparent delivery rates, distance calculation from our Malabagh Farm Hub, and cold-chain express delivery across Srinagar.
           </p>
         </div>
 
@@ -831,7 +829,7 @@ function CalculatorInner() {
 
               <div className="flex items-center justify-between">
                 <div>
-                  <span className="text-[#9fadb8] block">Express Doorstep Courier:</span>
+                  <span className="text-[#9fadb8] block">Cold-Chain Express Delivery:</span>
                   <span className="text-[11px] text-[#5a6b77]">
                     Food-grade packaging (double polythene sealed)
                   </span>
@@ -839,39 +837,29 @@ function CalculatorInner() {
                 <div className="text-right">
                   {isOutOfZone ? (
                     <span className="text-xs font-semibold text-rose-400">
-                      Outside Doorstep Zone (Pickup Only)
+                      Outside Express Delivery Zone (Pickup Only)
                     </span>
                   ) : isFreeDelivery ? (
                     <span className="text-emerald-400 font-bold flex items-center gap-1 justify-end">
-                      <span>✓</span> 100% FREE DOORSTEP
+                      <span>✓</span> 100% FREE EXPRESS DELIVERY
                     </span>
                   ) : (
                     <div>
                       <span className="font-bold text-white">₹{deliveryFee}</span>
-                      <span className="text-[11px] text-[#72ddfd] block">Subsidized courier</span>
+                      <span className="text-[11px] text-[#72ddfd] block">Express delivery fee</span>
                     </div>
                   )}
                 </div>
               </div>
-
-              {/* Urban Trout Contribution Line Item */}
-              {!isOutOfZone && subsidyAmount > 0 && (
-                <div className="flex items-center justify-between text-xs py-2 px-3.5 rounded-xl bg-gradient-to-r from-[#72ddfd]/10 to-teal-500/10 border border-[#72ddfd]/25 text-[#72ddfd]">
-                  <span className="font-semibold flex items-center gap-1.5">
-                    <span>🤝</span> Urban Trout Contribution:
-                  </span>
-                  <span className="font-bold">−₹{subsidyAmount} (Subsidized by Urban Trout)</span>
-                </div>
-              )}
             </div>
 
             {/* Total Payable Box */}
             <div className="pt-4 border-t border-white/10 flex items-center justify-between">
               <div>
                 <span className="text-xs text-[#9fadb8] block uppercase tracking-wider font-mono">
-                  Total Payable on Delivery
+                  Total Payable
                 </span>
-                <span className="text-[11px] text-[#5a6b77]">Cash on Delivery or UPI on Doorstep</span>
+                <span className="text-[11px] text-[#5a6b77]">Prepaid Online (UPI, Cards, Net Banking) · Pin-Point Handover</span>
               </div>
               <div className="text-right">
                 <span className="text-2xl sm:text-3xl font-extrabold text-[#72ddfd]">
@@ -1014,11 +1002,11 @@ function CalculatorInner() {
         {/* Customer Transparency Guide: How Delivery Works */}
         <div className="rounded-2xl bg-[#0a1924]/60 border border-white/5 p-6 sm:p-8">
           <h2 className="text-xl sm:text-2xl font-bold text-white mb-2">
-            Why Our Srinagar Delivery Is Transparent & Subsidized
+            Transparent Zone-Based Cold-Chain Express Delivery
           </h2>
           <p className="text-sm text-[#9fadb8] mb-6 leading-relaxed">
             Unlike retail supermarket fish that sits dead in frozen displays,{" "}
-            <strong className="text-white">Urban Trout is 100% farm-live harvested</strong>. Every order is swimming in fresh flowing spring water at Malabagh until you confirm your order. It is immediately prepped, packed in clean food-grade packaging (double polythene), and dispatched directly to your kitchen in 90–120 minutes.
+            <strong className="text-white">Urban Trout is 100% farm-live harvested</strong>. Every order is swimming in fresh flowing spring water at Malabagh until you confirm your order. It is immediately prepped, packed in clean food-grade packaging (double polythene), and dispatched via our Cold-Chain Dispatch Partner strictly to your shared GPS location pin within 90–120 minutes (in-person handover; please keep your phone reachable as no second attempt is available).
           </p>
 
           {/* 4-Tier Breakdown Cards */}
@@ -1035,7 +1023,7 @@ function CalculatorInner() {
               </p>
               <div className="text-xs text-white font-medium bg-black/30 p-2 rounded-lg">
                 • <strong className="text-emerald-300">100% Free Delivery</strong> on 2+ kg<br />
-                • Nominal ₹35 courier fee on 1 kg
+                • Nominal ₹35 express delivery fee on 1 kg
               </div>
             </div>
 
@@ -1051,7 +1039,7 @@ function CalculatorInner() {
               </p>
               <div className="text-xs text-white font-medium bg-black/30 p-2 rounded-lg">
                 • <strong className="text-sky-300">100% Free Delivery</strong> on 3+ kg<br />
-                • ₹55 on 2 kg | ₹65 on 1 kg (30% Subsidized)
+                • ₹55 on 2 kg | ₹65 on 1 kg
               </div>
             </div>
 
@@ -1067,7 +1055,7 @@ function CalculatorInner() {
               </p>
               <div className="text-xs text-white font-medium bg-black/30 p-2 rounded-lg">
                 • <strong className="text-indigo-300">100% Free Delivery</strong> on 3+ kg<br />
-                • ₹89 on 2 kg | ₹99 on 1 kg (30% Subsidized)
+                • ₹89 on 2 kg | ₹99 on 1 kg
               </div>
             </div>
 

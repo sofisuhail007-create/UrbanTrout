@@ -11,7 +11,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Bulk & Wholesale Trout Supply in Srinagar | Urban Trout",
     description:
-      "Farm-direct wholesale Rainbow Trout supply for Srinagar restaurants and caterers. Guaranteed live harvest, GST invoicing, and early morning doorstep delivery.",
+      "Farm-direct wholesale Rainbow Trout supply for Srinagar restaurants and caterers. Guaranteed live harvest, GST invoicing, and early morning cold-chain delivery.",
     url: "https://urbantrout.in/bulk",
     siteName: "Urban Trout",
     images: [

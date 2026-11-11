@@ -4,7 +4,7 @@ import DeliveryCalculatorClient from "./DeliveryCalculatorClient";
 export const metadata: Metadata = {
   title: "Delivery Calculator & Cold-Chain Zone Checker | Urban Trout Srinagar",
   description:
-    "Calculate instant delivery fees, cold-chain courier rates, distance from Malabagh Farm Hub, and free doorstep delivery thresholds across Srinagar.",
+    "Calculate instant delivery fees, cold-chain express rates, distance from Malabagh Farm Hub, and free express delivery thresholds across Srinagar.",
   robots: {
     index: false,
     follow: false,

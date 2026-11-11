@@ -26,7 +26,7 @@ const C = {
 const sections = [
   {
     title: "1. Policy Overview",
-    body: "At Urban Trout (operated by Skindar Mohd Sideeq), we are committed to delivering the freshest farm-harvested Rainbow Trout directly from our farm in Srinagar to your doorstep. Due to the perishable nature of fresh fish, this policy outlines the terms and conditions governing order cancellations, returns, and refunds in compliance with Indian consumer protection regulations.",
+    body: "At Urban Trout (operated by Skindar Mohd Sideeq), we are committed to delivering the freshest farm-harvested Rainbow Trout from our Malabagh farm across Srinagar. Due to the perishable nature of fresh fish, this policy outlines the terms and conditions governing order cancellations, returns, and refunds in compliance with Indian consumer protection regulations.",
   },
   {
     title: "2. Order Cancellation Policy",

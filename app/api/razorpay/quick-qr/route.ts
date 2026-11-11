@@ -60,7 +60,7 @@ export async function GET(req: NextRequest) {
       description: desc,
       notes: {
         channel: "RIDER_COD_QR",
-        customer_name: "Doorstep COD Customer",
+        customer_name: "Pin-Point Delivery Customer",
         rider: rider.slice(0, 30),
       },
     });

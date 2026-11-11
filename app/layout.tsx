@@ -52,7 +52,7 @@ export const metadata: Metadata = {
     template: "%s | Urban Trout",
   },
   description:
-    "Live-harvested Rainbow Trout in Srinagar. Fresh from ₹540/kg, delivered chilled in 2 hrs. Free doorstep delivery across Srinagar 16km express zone. Order now.",
+    "Live-harvested Rainbow Trout in Srinagar. Fresh from ₹540/kg, delivered chilled in 2 hrs. Free cold-chain express delivery across Srinagar 16km zone. Order now.",
   keywords: [
     "Rainbow Trout Srinagar",
     "Buy fresh trout Srinagar",
@@ -67,7 +67,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Fresh Rainbow Trout in Srinagar from ₹540/kg | Urban Trout",
     description:
-      "Live-harvested Rainbow Trout in Srinagar. Fresh from ₹540/kg, delivered chilled in 2 hrs. Free doorstep delivery across Srinagar 16km express zone. Order now.",
+      "Live-harvested Rainbow Trout in Srinagar. Fresh from ₹540/kg, delivered chilled in 2 hrs. Free cold-chain express delivery across Srinagar 16km zone. Order now.",
     url: "https://urbantrout.in",
     siteName: "Urban Trout",
     images: [
@@ -86,7 +86,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Buy Fresh Rainbow Trout in Srinagar | Urban Trout",
-    description: "Farm-fresh Rainbow Trout harvested to order in Srinagar. Chilled 2-hour doorstep delivery within our 16km express farm zone.",
+    description: "Farm-fresh Rainbow Trout harvested to order in Srinagar. Chilled 2-hour cold-chain express delivery within our 16km farm zone.",
     images: ["https://urbantrout.in/og-image.jpg"],
   },
   robots: {

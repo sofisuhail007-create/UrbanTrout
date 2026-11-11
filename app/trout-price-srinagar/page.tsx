@@ -4,7 +4,7 @@ import Link from "next/link";
 export const metadata: Metadata = {
   title: "Rainbow Trout Price Per Kg in Srinagar (2026 Live Rates)",
   description:
-    "Official 2026 Rainbow Trout rates in Srinagar. Whole trout at ₹540/kg, cleaned & gutted at ₹580/kg with express doorstep delivery. Compare direct farm rates vs retail markets.",
+    "Official 2026 Rainbow Trout rates in Srinagar. Whole trout at ₹540/kg, cleaned & gutted at ₹580/kg with chilled cold-chain express delivery. Compare direct farm rates vs retail markets.",
   keywords: [
     "Rainbow Trout Price Srinagar",
     "Trout Price in Srinagar",
@@ -49,7 +49,7 @@ const C = {
 const priceFaqs = [
   {
     q: "What is the current rate of Rainbow Trout per kg in Srinagar for 2026?",
-    a: "At Urban Trout farm in Malabagh, Srinagar, fresh Whole Rainbow Trout is priced at ₹540 per kg, and Premium Cleaned & Gutted Trout is ₹580 per kg. Both include chilled doorstep delivery across our 16km farm perimeter (free from 2 kg in Zone 1, 3 kg in Zone 2 and Zone 3, and 5 kg Family Pack in Zone 4) within 90–120 minutes of harvest.",
+    a: "At Urban Trout farm in Malabagh, Srinagar, fresh Whole Rainbow Trout is priced at ₹540 per kg, and Premium Cleaned & Gutted Trout is ₹580 per kg. Both include chilled cold-chain express delivery to your shared GPS location across our 16km farm perimeter (free from 2 kg in Zone 1, 3 kg in Zone 2 and Zone 3, and 5 kg Family Pack in Zone 4) within 90–120 minutes of harvest.",
   },
   {
     q: "Why are market fish and IndiaMART rates higher than Urban Trout?",
@@ -57,15 +57,15 @@ const priceFaqs = [
   },
   {
     q: "What is the minimum order quantity for free delivery?",
-    a: "Free doorstep delivery starts from 2 kg in Zone 1 (0–4 km), 3 kg in Zone 2 (4–7 km), 3 kg in Zone 3 (7–11.5 km), and 5 kg Family Pack in Zone 4 (11.5–16 km). For smaller quantities, we subsidize 30% of the express courier fee (you pay only 70%).",
+    a: "Cold-chain express delivery is free starting from 2 kg in Zone 1 (0–4 km), 3 kg in Zone 2 (4–7 km), 3 kg in Zone 3 (7–11.5 km), and 5 kg Family Pack in Zone 4 (11.5–16 km). For smaller quantities, standard location-based express delivery fees apply.",
   },
   {
-    q: "Is there any extra charge for descaling, gutting, or doorstep delivery?",
-    a: "No hidden charges whatsoever. Doorstep delivery across our 16km farm delivery zones is transparent and fast. Our Cleaned & Gutted option (₹580/kg) arrives 100% pan-ready with scales and viscera removed.",
+    q: "Is there any extra charge for descaling, gutting, or express delivery?",
+    a: "No hidden charges whatsoever. Pin-point cold-chain delivery across our 16km farm delivery zones is transparent and fast. Our Cleaned & Gutted option (₹580/kg) arrives 100% pan-ready with scales and viscera removed.",
   },
   {
     q: "Why choose hyper-local Srinagar farm trout over fish transported from outer districts?",
-    a: "Trout sourced from distant outer districts travels 4 to 8 hours over highway traffic on melting ice, causing flesh to soften and lose its natural resilience. Urban Trout is farmed right here in Malabagh, Srinagar. Your fish swims in cold deep borewell groundwater until your order is confirmed, arriving at your doorstep in 90–120 minutes packed in clean food-grade packaging with peak freshness intact.",
+    a: "Trout sourced from distant outer districts travels 4 to 8 hours over highway traffic on melting ice, causing flesh to soften and lose its natural resilience. Urban Trout is farmed right here in Malabagh, Srinagar. Your fish swims in cold deep borewell groundwater until your order is confirmed, arriving chilled at your shared GPS location pin in 90–120 minutes packed in clean food-grade packaging with peak freshness intact.",
   },
 ];
 
@@ -152,7 +152,7 @@ export default function TroutPriceSrinagarPage() {
             <ul className="text-xs text-slate-300 space-y-2 mb-6 font-sans">
               <li>✓ 100% natural weight (gills, scales, and head intact)</li>
               <li>✓ Netted live from Malabagh tanks upon order confirmation</li>
-              <li>✓ Chilled doorstep delivery across 16km farm perimeter (Tiered)</li>
+              <li>✓ Chilled cold-chain express delivery across 16km perimeter (Tiered)</li>
               <li>✓ Minimum order: 2 Kg</li>
             </ul>
             <Link
@@ -173,7 +173,7 @@ export default function TroutPriceSrinagarPage() {
             <ul className="text-xs text-slate-300 space-y-2 mb-6 font-sans">
               <li>✓ Descaled, cleaned, and gutted by farm specialists</li>
               <li>✓ Washed in cold borewell water, zero kitchen mess</li>
-              <li>✓ Chilled doorstep delivery across 16km farm perimeter (Tiered)</li>
+              <li>✓ Chilled cold-chain express delivery across 16km perimeter (Tiered)</li>
               <li>✓ Single central spine, effortless to debone (child-friendly)</li>
             </ul>
             <Link
@@ -244,7 +244,7 @@ export default function TroutPriceSrinagarPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-sans text-slate-300 mt-4">
               <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800">
                 <span className="text-cyan-300 font-bold text-sm block mb-1">⏱️ Harvested Live to Order (90–120 Min Delivery)</span>
-                We do not maintain dead storage inventory. Your trout is netted from our Malabagh tanks only after your order is confirmed, immediately packed in food-grade packaging, and delivered to your doorstep within 90–120 minutes.
+                We do not maintain dead storage inventory. Your trout is netted from our Malabagh tanks only after your order is confirmed, immediately packed in food-grade packaging, and delivered chilled via our Cold-Chain Dispatch Partner to your shared GPS location within 90–120 minutes.
               </div>
               <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800">
                 <span className="text-emerald-300 font-bold text-sm block mb-1">💧 Deep Borewell Himalayan Groundwater</span>
