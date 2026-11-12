@@ -26,10 +26,10 @@ process.on("unhandledRejection", (reason) => {
 // ============================================================================
 // URBAN TROUT SALES AGENT — BUILD & VERSION TRACKING
 // ============================================================================
-const BOT_VERSION = "2.9.4";
-const BOT_LAST_UPDATED = "12-Nov-2026, 11:20 AM IST";
-const BOT_RELEASE_TITLE = "Hostinger Cloud VPS Edition (Real-Time Weather Radar & Smart Anti-Repeat Advisory)";
-const BOT_RELEASE_NOTES = "Open-Meteo Real-Time Srinagar Weather • Anti-Repeat Weather Hold & Delay Replies on Acknowledgements • Rain/Snow >6 km Pause + 0–6 km Delay Notice";
+const BOT_VERSION = "2.9.5";
+const BOT_LAST_UPDATED = "12-Nov-2026, 11:00 PM IST";
+const BOT_RELEASE_TITLE = "Hostinger Cloud VPS Edition (Smart Next-Day Rain Scheduling, Proactive Auto-QR & Universal Font Normalization)";
+const BOT_RELEASE_NOTES = "Unicode Font & Diacritic Normalization • Next-Day Morning Scheduling for Rain Hold Areas • Proactive Locked UPI QR with Order Summary • Skinning & mPay Intelligence";
 
 // ============================================================================
 // STRICT VVIP MANUAL-ONLY LIST (AI MUST NEVER TEXT UNDER ANY CIRCUMSTANCE)
@@ -360,11 +360,13 @@ function evaluateWeatherDeliveryPolicy(distanceKm = null) {
     return (
       `${weatherIcon} *Weather Delivery Advisory${cleanArea ? ` — ${cleanArea}` : ""}*\n\n` +
       distLine +
-      `Due to active *${weatherNoun}* in Srinagar right now, express delivery is temporarily paused beyond *${WEATHER_RESTRICT_RADIUS_KM} km* from our Malabagh farm to protect live-harvest freshness (*0% ice* in food-grade biodegradable polythene) and rider safety.\n\n` +
+      `Due to active *${weatherNoun}* in Srinagar right now, same-day 2-hour express delivery is temporarily paused beyond *${WEATHER_RESTRICT_RADIUS_KM} km* from our Malabagh farm to protect live-harvest freshness (*0% ice* in food-grade biodegradable polythene) and rider safety.\n\n` +
       `☀️ Express delivery to *${cleanArea || "your area"}* resumes automatically as soon as the weather clears!\n\n` +
-      `🏪 *Fresh Live Counter Pickup Available Now at Malabagh:*\n` +
-      `However, you are warmly welcome to visit our Live Vending Center in Malabagh (Near R. P. School Girls Wing, open Saturday to Thursday) where you can pick live trout and get it cleaned on the spot!\n` +
-      `📍 Maps: https://maps.app.goo.gl/6FT5iLk5n8mbKSRU9`
+      `📅 *Schedule for Tomorrow Morning or Counter Pickup:*\n` +
+      `1️⃣ We can gladly schedule your fresh live harvest for *tomorrow morning (8:00 AM – 11:00 AM)* once roads are clear.\n` +
+      `2️⃣ Or you are warmly welcome to visit our *Live Vending Center in Malabagh* (Near R. P. School Girls Wing, open Saturday to Thursday) where you can pick live trout and get it cleaned on the spot!\n` +
+      `📍 Maps: https://maps.app.goo.gl/6FT5iLk5n8mbKSRU9\n\n` +
+      `Reply *"Tomorrow"* if you'd like to lock in a morning delivery slot!`
     );
   };
 
@@ -374,9 +376,10 @@ function evaluateWeatherDeliveryPolicy(distanceKm = null) {
       : null;
     const distTag = dist != null && !isNaN(Number(dist)) ? ` (~${Number(dist).toFixed(1)} km)` : "";
     return (
-      `${weatherIcon} As noted earlier, express delivery to *${cleanArea || "your area"}*${distTag} stays temporarily paused beyond *${WEATHER_RESTRICT_RADIUS_KM} km* during active *${weatherNoun}*, so we cannot dispatch or issue a delivery payment link right now.\n\n` +
-      `☀️ Delivery resumes automatically once the weather clears — or you're warmly welcome at our *Live Vending Center in Malabagh* (Sat–Thu) for live fresh pickup!\n` +
-      `📍 Maps: https://maps.app.goo.gl/6FT5iLk5n8mbKSRU9`
+      `${weatherIcon} As noted earlier, same-day 2-hour express delivery to *${cleanArea || "your area"}*${distTag} stays temporarily paused beyond *${WEATHER_RESTRICT_RADIUS_KM} km* during active *${weatherNoun}*.\n\n` +
+      `📅 We can gladly schedule your fresh live-harvest delivery for *tomorrow morning (8:00 AM – 11:00 AM)*, or you're warmly welcome at our *Live Vending Center in Malabagh* (Sat–Thu) for live fresh pickup!\n` +
+      `📍 Maps: https://maps.app.goo.gl/6FT5iLk5n8mbKSRU9\n\n` +
+      `Reply *"Tomorrow"* if you'd like us to book tomorrow morning's slot!`
     );
   };
 
@@ -461,7 +464,8 @@ function buildWeatherHoldPromptContext({ areaName, distKm, weatherPolicy, alread
   const displayArea = areaName || "Your Area";
   const distText = distKm != null && !isNaN(Number(distKm)) ? `~${Number(distKm)} km` : `>${WEATHER_RESTRICT_RADIUS_KM} km`;
   const header = `${weatherPolicy.weatherIcon} ACTIVE WEATHER HOLD (${weatherPolicy.weatherTitle.toUpperCase()}): Customer ${sourceLabel} "${displayArea}" (${distText} from Malabagh), which is BEYOND our ${WEATHER_RESTRICT_RADIUS_KM} km wet-weather delivery limit during active ${weatherPolicy.weatherNoun}.
-🛑 STRICT OVERRIDE: DO NOT PROMISE DELIVERY TO "${displayArea}" RIGHT NOW AND DO NOT OUTPUT [PAY_LINK: ...] OR QUOTE DELIVERY FEES AS AVAILABLE TODAY!
+🛑 STRICT OVERRIDE: SAME-DAY 2-HOUR DISPATCH TO "${displayArea}" IS TEMPORARILY PAUSED TODAY DUE TO ACTIVE ${weatherPolicy.weatherNoun.toUpperCase()}.
+📅 NEXT-DAY / ADVANCE SCHEDULE EXCEPTION: If the customer requests delivery for TOMORROW or asks to schedule ("tomorrow", "kal", "morning", "afternoon", "Saturday"), WE GLADLY SCHEDULE FOR TOMORROW MORNING (8:00 AM – 11:00 AM)! Quote standard delivery terms and output [PAY_LINK: ...] for tomorrow's scheduled harvest!
 ⚠️ CONFIDENTIALITY: NEVER mention "Rapido", "third-party", "doorstep", "cold-chain", "chilled", "subsidized", "70%", OR "30%"!`;
 
   if (alreadyAdvised) {
@@ -469,8 +473,9 @@ function buildWeatherHoldPromptContext({ areaName, distKm, weatherPolicy, alread
 ${header}
 ℹ️ ALREADY NOTIFIED: You ALREADY sent the full *Weather Delivery Advisory* to this customer earlier in this chat!
 CRITICAL ANTI-REPEAT INSTRUCTION: DO NOT repeat the full multi-paragraph *Weather Delivery Advisory* or Live Vending Center Maps block verbatim again!
-• If customer just replied with a short acknowledgement ("Ok", "Thanks", "Noted", "👍"), reply warmly in 1–2 brief sentences (confirming delivery stays paused until weather clears and welcoming them to Malabagh Sat–Thu if needed).
-• If they asked a specific question (rates, Malabagh hours, tomorrow), answer briefly in 1–3 short lines WITHOUT offering delivery today or outputting [PAY_LINK: ...].
+• If customer wants to schedule for tomorrow or asks about tomorrow/Saturday, GLADLY CONFIRM! We schedule their fresh live harvest for tomorrow morning (8:00 AM – 11:00 AM), quote standard delivery terms, and output [PAY_LINK: ...].
+• If customer just replied with a short acknowledgement ("Ok", "Thanks", "Noted", "👍"), reply warmly in 1–2 brief sentences (confirming same-day delivery stays paused until weather clears, inviting them to reserve tomorrow morning or visit Malabagh Sat–Thu).
+• If they asked a specific question (rates, Malabagh hours, tomorrow), answer briefly in 1–3 short lines without offering same-day delivery.
 ======================================================`;
   }
 
@@ -727,7 +732,7 @@ const KNOWN_IN_ZONE_AREAS = [
   { pattern: /\b(?:jawahar\s*nagar|jawaharnagar)\b/i, name: "Jawahar Nagar", dist: 11.8, minKg: 5 },
   { pattern: /\b(?:al[ol]+chi\s*bagh|al[ol]+chi|alochi|allochi|aloochi|elachi\s*bagh)\b/i, name: "Alochi Bagh", dist: 11.8, minKg: 5 },
   { pattern: /\b(?:magarmal\s*bagh|magarmal)\b/i, name: "Magarmal Bagh", dist: 11.6, minKg: 5 },
-  { pattern: /\b(?:sanat\s*nagar|sanatnagar)\b/i, name: "Sanat Nagar", dist: 13.5, minKg: 5 },
+  { pattern: /\b(?:sanat\s*nagar|sanatnagar|sanat\s*ghar)\b/i, name: "Sanat Nagar", dist: 13.5, minKg: 5 },
   { pattern: /\b(?:rawalpora|rawapora)\b/i, name: "Rawalpora", dist: 14.0, minKg: 5 },
   { pattern: /\b(?:hyder|haider|huder|hadir|heydar)\s*pora\b/i, name: "Hyderpora", dist: 14.5, minKg: 5 },
   { pattern: /\b(?:chanapora|chanpora)\b/i, name: "Chanapora", dist: 13.0, minKg: 5 },
@@ -755,7 +760,7 @@ const KNOWN_OUT_ZONE_AREAS = [
   { pattern: /\b(?:pampore)\b/i, name: "Pampore" },
   { pattern: /\b(?:chadoora|chadure)\b/i, name: "Chadoora" },
   { pattern: /\b(?:lawaypora|lawapora|laway\s*pora|lawa\s*pora)\b/i, name: "Lawaypora" },
-  { pattern: /\b(?:hmt|zainakote|mustafabad)\b/i, name: "HMT" },
+  { pattern: /\b(?:hmt|zainakote?|mustafabad|umerabad|umarabad)\b/i, name: "HMT" },
   { pattern: /\b(?:harwan)\b/i, name: "Harwan" },
   { pattern: /\b(?:budgam)\b/i, name: "Budgam" },
   { pattern: /\b(?:ompora)\b/i, name: "Ompora" },
@@ -797,8 +802,16 @@ try {
 
 const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY || "";
 
+function normalizeCustomerText(input = "") {
+  if (!input) return "";
+  return String(input)
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim();
+}
+
 function isMalabaghStoreReference(text = "") {
-  const s = String(text || "").trim();
+  const s = normalizeCustomerText(text);
   if (!s || !/\bmalabagh\b/i.test(s)) return false;
   if (/\b(?:deliver(?:y)?\s*(?:to|at|in|near)|dispatch\s*(?:to|at|in|near)|send\s*(?:to|at|in|near)|i\s*(?:live|stay|am\s*(?:in|at|from)))\s*malabagh\b/i.test(s)) {
     return false;
@@ -808,12 +821,13 @@ function isMalabaghStoreReference(text = "") {
 
 function detectSrinagarLocality(text) {
   if (!text) return null;
-  const ignoreMalabaghStore = isMalabaghStoreReference(text);
+  const cleanText = normalizeCustomerText(text);
+  const ignoreMalabaghStore = isMalabaghStoreReference(cleanText);
 
   // 1. High-priority hardcoded localities
   for (const item of KNOWN_IN_ZONE_AREAS) {
     if (ignoreMalabaghStore && /^malabagh$/i.test(item.name)) continue;
-    if (item.pattern.test(text)) {
+    if (item.pattern.test(cleanText)) {
       const minKg = item.minKg || (item.dist <= 4.0 ? 2 : item.dist <= 11.5 ? 3 : 5);
       const tier = item.dist <= 4.0 ? "0-4km" : item.dist <= 7.0 ? "4-7km" : item.dist <= 11.5 ? "7-11.5km" : "11.5-16km";
       return { status: "IN_ZONE", name: item.name, dist: item.dist, minKg, tier };
@@ -825,7 +839,7 @@ function detectSrinagarLocality(text) {
     if (ignoreMalabaghStore && /^malabagh$/i.test(cName.trim())) continue;
     if (/^(?:police\s*station|hospital|masjid|mosque|bank|chowk|bridge|kadal|school|college|gate|petrol\s*pump|post\s*office|complex|bazar|market|stop|stand)$/i.test(cName.trim())) continue;
     const escaped = cName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    if (new RegExp(`\\b${escaped}\\b`, "i").test(text)) {
+    if (new RegExp(`\\b${escaped}\\b`, "i").test(cleanText)) {
       const dist = cData.dist;
       const minKg = dist <= 4.0 ? 2 : dist <= 11.5 ? 3 : 5;
       const tier = dist <= 4.0 ? "0-4km" : dist <= 7.0 ? "4-7km" : dist <= 11.5 ? "7-11.5km" : "11.5-16km";
@@ -840,7 +854,7 @@ function detectSrinagarLocality(text) {
       if (!place.name || place.name.length < 4) continue;
       if (ignoreMalabaghStore && /^malabagh$/i.test(place.name.trim())) continue;
       const escaped = place.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      if (new RegExp(`\\b${escaped}\\b`, "i").test(text)) {
+      if (new RegExp(`\\b${escaped}\\b`, "i").test(cleanText)) {
         const dist = parseFloat(place.distance_km.toFixed(1));
         const minKg = dist <= 4.0 ? 2 : dist <= 11.5 ? 3 : 5;
         const tier = dist <= 4.0 ? "0-4km" : dist <= 7.0 ? "4-7km" : dist <= 11.5 ? "7-11.5km" : "11.5-16km";
@@ -852,7 +866,7 @@ function detectSrinagarLocality(text) {
 
   // 4. Known out of zone areas
   for (const item of KNOWN_OUT_ZONE_AREAS) {
-    if (item.pattern.test(text)) {
+    if (item.pattern.test(cleanText)) {
       return { status: "OUT_ZONE", name: item.name };
     }
   }
@@ -3579,6 +3593,33 @@ TEMPORAL REALITY DIRECTIVE:
 ======================================================`;
   }
 
+  // ─── SKIN REMOVAL / SKINNED TROUT INTENT DECODER ───
+  const isSkinRemovalIntent = /\b(?:remove\s*(?:the\s*)?skin|skin\s*remove|skin\s*less|skinless|skin\s*nikal|chamdi\s*nikal|skin\s*utarna|bina\s*skin)\b/i.test(trimmedLower);
+  if (isSkinRemovalIntent) {
+    intentContext += `\n======================================================
+💡 QUERY INTENT DECODED: Customer is asking for SKIN REMOVAL ("${userMessage.trim()}").
+CRITICAL DIRECTIVE ON TROUT SKIN:
+• Explain politely:
+  "Rainbow trout has very fine, delicate, edible skin with zero coarse scales (unlike carp/river fish), which crisps up deliciously and melts easily in pan-frying!
+  Our standard pan-ready cut is descaled, gutted steaks with skin on.
+  However, if you strictly prefer skinless pieces, we will gladly add a special butchering note for our Malabagh farm team upon live harvest to skin your trout!"
+• Confirm their preferred quantity and delivery area!
+======================================================`;
+  }
+
+  // ─── MPAY / DIRECT SCANNER INQUIRY INTENT DECODER ───
+  const isMpayIntent = /\b(?:mpay|m-pay|m\s*pay|jkb\s*mpay|jk\s*bank\s*mpay|scanner|upi\s*id|direct\s*transfer|google\s*pay\s*number|phonepe\s*number)\b/i.test(trimmedLower);
+  if (isMpayIntent) {
+    intentContext += `\n======================================================
+💡 QUERY INTENT DECODED: Customer is asking about J&K Bank mPay or scanner ("${userMessage.trim()}").
+CRITICAL DIRECTIVE ON MPAY & SCANNER:
+• Reassure immediately:
+  "Yes! We accept J&K Bank mPay, Google Pay, PhonePe, and Paytm.
+  Our system generates an official locked-amount UPI QR code scanner image that you can scan directly using your J&K Bank mPay app or any UPI app, or pay via our official J&K Bank merchant UPI ID: JKBMERC00828895@jkb."
+• Ask for their delivery area and quantity if not already confirmed so we can generate their locked QR scanner right away!
+======================================================`;
+  }
+
   // (Real-time IST Clock moved to top of generateGeminiReply)
 
   // ─── STORE VISIT / EXACT LOCATION INTENT DECODER ───
@@ -4422,6 +4463,10 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
               const isFarOutZone = /(?:pampore|chadoora|lawaypora|hmt|harwan|budgam|ompora|baramulla|anantnag|jammu|kanipora|bk\s*pora|bagati\s*kanipora|narbal|magam|pulwama)/i.test(recentContextForOutZone);
               const payWeatherPolicy = evaluateWeatherDeliveryPolicy(custDist);
 
+              const combinedTextPre = (rawReply + " " + userMessage + " " + history.filter(h => h.role === "user").map(h => h.text).join(" ")).toLowerCase();
+              const isExplicitTomorrowPre = /\b(?:tomorrow|tomm?or?ro?w|tmrw|2moro|kal|subah\s*kal|kal\s*subah|saturday|advance|hafta)\b/i.test(combinedTextPre);
+              const isAdvanceScheduledOrder = isExplicitTomorrowPre || isNightAfter9PM || isFridayToday;
+
               if (custDist === null) {
                 console.log(`[Link Guard] Blocked payment link for ${chatId} - location is UNVERIFIED. Asking for area name or pin.`);
                 rawReply = rawReply.replace(payMatch[0], "").trim();
@@ -4437,7 +4482,7 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
                   payMatch[0],
                   `📍 *Outside Delivery Zone:* Express delivery is not available for your location (~${custDist ? custDist.toFixed(1) : "far"} km). You are warmly welcome to visit our Live Vending Center in Malabagh (Near R. P. School Girls Wing, open Saturday to Thursday) where you can pick live trout on the spot! 🐟\nMaps: https://maps.app.goo.gl/6FT5iLk5n8mbKSRU9`
                 );
-              } else if (payWeatherPolicy.blockedByWeather) {
+              } else if (payWeatherPolicy.blockedByWeather && !isAdvanceScheduledOrder) {
                 console.log(`[Link Guard] Blocked payment link for ${chatId} - ${custDist}km > ${WEATHER_RESTRICT_RADIUS_KM}km during active ${payWeatherPolicy.weather.condition}.`);
                 const linkAreaName = activeLocalityName || savedLoc?.localityName || "Your Area";
                 rawReply = hasRecentWeatherAdvisory(history, linkAreaName)
@@ -4716,7 +4761,9 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
           /(?:rzp\.io|\[PAY_LINK|Total Payable|ORDER SUMMARY|express delivery fee|delivery fee|we (?:can|will) deliver|delivery(?:\s+to\s+[^\n]+)?\s+is\s+(?:available|active|possible)|deliver(?:ing|y)? (?:within \d|today|right away|in 2 hours)|dispatch(?:ed|ing)? (?:within|today|right away))/i.test(rawReply) &&
           !/(?:temporarily\s*paused|paused\s*beyond|not\s*deliver|cannot\s*deliver|unavailable|resumes?\s*automatically|weather\s*clears)/i.test(rawReply);
 
-        if (!isVisitLocationIntent) {
+        const isScheduledTomorrowOrSat = /(?:tomorrow|kal|saturday|advance|schedule)\b/i.test(userMessage) ||
+                                         /(?:Tomorrow\s*(?:Morning|Afternoon|Evening)|Saturday\s*(?:Morning|Afternoon|Evening))/i.test(rawReply);
+        if (!isVisitLocationIntent && !isScheduledTomorrowOrSat) {
           if (postWeatherPolicy.blockedByWeather) {
             if (!alreadyAdvisedHold) {
               if (!/(?:temporarily\s*paused|live\s*vending\s*center|weather\s*clears)/i.test(rawReply) || offersDeliveryOrPayment) {
@@ -5543,7 +5590,7 @@ async function startBot() {
     const innerMessage = getInnerMessage(msg);
     if (!innerMessage) return;
 
-    const text = (
+    const rawInputText = (
       explicitText !== null
         ? explicitText
         : (
@@ -5553,6 +5600,8 @@ async function startBot() {
             ""
           )
     ).trim();
+
+    const text = normalizeCustomerText(rawInputText);
 
     const cleanPhone = resolveCustomerPhone(remoteJid);
     const isOwner = msg.key.fromMe || cleanPhone.endsWith("7006604148") || String(remoteJid).includes("174637916885151");
@@ -6669,6 +6718,29 @@ async function startBot() {
         text: locReply,
         meta: { gpsVerified: true, distanceKm: distRounded }
       });
+
+      // Proactive auto-QR dispatch when order summary card is generated on GPS pin
+      if (locReply.includes("ORDER SUMMARY") && locReply.includes("Total Payable")) {
+        try {
+          const mAmt = locReply.match(/(?:Total Payable:\s*\*?₹?\s*)(\d{3,5})/i);
+          const fAmt = mAmt ? parseInt(mAmt[1], 10) : null;
+          const mR = locReply.match(/(?:#|Ref:\s*#?)(UT-WA-\d+)/i);
+          const fR = mR ? mR[1] : null;
+          setTimeout(async () => {
+            try {
+              await dispatchLockedQrImage(sock, remoteJid, {
+                cleanPhone,
+                raw10,
+                customerName,
+                forceAmount: fAmt,
+                forceRef: fR,
+                bypassLocationGuard: true,
+                chatHist
+              });
+            } catch (_) {}
+          }, 800);
+        } catch (_) {}
+      }
       return;
     }
 
@@ -6789,6 +6861,38 @@ async function startBot() {
         text: aiReply,
         meta: { responseMs: responseTimeMs, locality: activeLocality }
       });
+
+      // ─── PROACTIVE AUTO-QR DISPATCH ALONGSIDE ORDER SUMMARY ───
+      // Automatically dispatch the locked UPI QR code image whenever an order summary card is generated,
+      // so customers receive BOTH tap-to-pay web link AND scan-to-pay QR image without having to ask!
+      const hasOrderSummaryInReply = /(?:🧾\s*)?(?:URBAN TROUT\s*[•·-]\s*)?(?:Order Summary|ORDER SUMMARY)/i.test(aiReply) &&
+                                     /(?:Total Payable|rzp\.io)/i.test(aiReply);
+      if (hasOrderSummaryInReply && !isCustomerRequestingQr(text, chatHist)) {
+        try {
+          const amtMatch = aiReply.match(/(?:Total Payable:\s*\*?₹?\s*|Amount:\s*\*?₹?\s*)(\d{3,5})/i);
+          const forceAmount = amtMatch ? parseInt(amtMatch[1], 10) : null;
+          const refMatch = aiReply.match(/(?:#|Ref:\s*#?)(UT-WA-\d+)/i);
+          const forceRef = refMatch ? refMatch[1] : null;
+
+          setTimeout(async () => {
+            try {
+              await dispatchLockedQrImage(sock, remoteJid, {
+                cleanPhone,
+                raw10,
+                customerName,
+                forceAmount,
+                forceRef,
+                bypassLocationGuard: true,
+                chatHist: chatHistories.get(remoteJid) || []
+              });
+            } catch (autoQrErr) {
+              console.warn("Notice: Proactive auto-QR dispatch error:", autoQrErr.message);
+            }
+          }, 800);
+        } catch (autoQrPrepErr) {
+          console.warn("Notice: Proactive auto-QR prep notice:", autoQrPrepErr.message);
+        }
+      }
 
       // Track bot response in metadata
       chatMetadata[remoteJid].lastBotMsgTime = Date.now();
