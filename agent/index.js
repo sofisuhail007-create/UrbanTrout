@@ -26,10 +26,10 @@ process.on("unhandledRejection", (reason) => {
 // ============================================================================
 // URBAN TROUT SALES AGENT — BUILD & VERSION TRACKING
 // ============================================================================
-const BOT_VERSION = "2.9.5";
-const BOT_LAST_UPDATED = "12-Nov-2026, 11:00 PM IST";
-const BOT_RELEASE_TITLE = "Hostinger Cloud VPS Edition (Smart Next-Day Rain Scheduling, Proactive Auto-QR & Universal Font Normalization)";
-const BOT_RELEASE_NOTES = "Unicode Font & Diacritic Normalization • Next-Day Morning Scheduling for Rain Hold Areas • Proactive Locked UPI QR with Order Summary • Skinning & mPay Intelligence";
+const BOT_VERSION = "2.9.6";
+const BOT_LAST_UPDATED = "13-Nov-2026, 12:00 AM IST";
+const BOT_RELEASE_TITLE = "Hostinger Cloud VPS Edition (Razorpay QR-Only Primary Checkout, Machine-Descaled Pan-Ready Policy & J&K Bank mPay Details)";
+const BOT_RELEASE_NOTES = "Strict Machine-Descaled Pan-Ready Cut Policy (No Boneless/Skinless) • Razorpay QR-Only Primary Checkout • J&K Bank Official Account Details for mPay • Complete Removal of JKBMERC VPA";
 
 // ============================================================================
 // STRICT VVIP MANUAL-ONLY LIST (AI MUST NEVER TEXT UNDER ANY CIRCUMSTANCE)
@@ -1429,10 +1429,10 @@ function formatOrderSummaryCard({
 • *Delivery:* ${deliveryDisplay}
 • *Total Payable:* *₹${amount.toLocaleString("en-IN")}*
 
-💳 *Tap to Pay Online (UPI / GPay / Cards):*
-${payUrl}
+📷 *Scan the locked UPI QR Code below to pay:*
+Supports Google Pay, PhonePe, Paytm, or J&K Bank mPay.
+*(Live harvest begins immediately upon payment confirmation)*
 
-📷 _Prefer UPI QR? Reply *"Send QR"* to receive your locked QR image._
 🕒 _${slotDisplay}_${weatherCardLine}
 📍 _Delivered strictly to shared GPS pin (in-person receipt; keep phone reachable — if a delivery attempt fails, customer must collect manually from our Live Vending Center in Malabagh)._`;
 }
@@ -3593,30 +3593,36 @@ TEMPORAL REALITY DIRECTIVE:
 ======================================================`;
   }
 
-  // ─── SKIN REMOVAL / SKINNED TROUT INTENT DECODER ───
-  const isSkinRemovalIntent = /\b(?:remove\s*(?:the\s*)?skin|skin\s*remove|skin\s*less|skinless|skin\s*nikal|chamdi\s*nikal|skin\s*utarna|bina\s*skin)\b/i.test(trimmedLower);
-  if (isSkinRemovalIntent) {
+  // ─── CUTTING / BONELESS / SKINLESS POLICY INTENT DECODER ───
+  const isCutPreferenceIntent = /\b(?:boneless|bone\s*less|bina\s*kaant[ae]|without\s*bone|remove\s*(?:the\s*)?skin|skin\s*remove|skin\s*less|skinless|skin\s*nikal|chamdi\s*nikal|skin\s*utarna|bina\s*skin|fillet)\b/i.test(trimmedLower);
+  if (isCutPreferenceIntent) {
     intentContext += `\n======================================================
-💡 QUERY INTENT DECODED: Customer is asking for SKIN REMOVAL ("${userMessage.trim()}").
-CRITICAL DIRECTIVE ON TROUT SKIN:
-• Explain politely:
-  "Rainbow trout has very fine, delicate, edible skin with zero coarse scales (unlike carp/river fish), which crisps up deliciously and melts easily in pan-frying!
-  Our standard pan-ready cut is descaled, gutted steaks with skin on.
-  However, if you strictly prefer skinless pieces, we will gladly add a special butchering note for our Malabagh farm team upon live harvest to skin your trout!"
+💡 QUERY INTENT DECODED: Customer is asking for BONELESS or SKINLESS cut ("${userMessage.trim()}").
+CRITICAL DIRECTIVE ON BUTCHERING & CUTTING POLICY:
+• State firmly, clearly, and politely:
+  "We do not offer boneless or skinless trout cuts.
+  At Urban Trout, every fish is descaled using our precision machinery, and our professional farm butchers cut clean, pan-ready steaks (bone-in with skin on).
+  Trout skin is extremely delicate, naturally scale-free after our machine descaling, and crisps deliciously in a pan without peeling or curling."
 • Confirm their preferred quantity and delivery area!
 ======================================================`;
   }
 
-  // ─── MPAY / DIRECT SCANNER INQUIRY INTENT DECODER ───
-  const isMpayIntent = /\b(?:mpay|m-pay|m\s*pay|jkb\s*mpay|jk\s*bank\s*mpay|scanner|upi\s*id|direct\s*transfer|google\s*pay\s*number|phonepe\s*number)\b/i.test(trimmedLower);
+  // ─── MPAY / BANK ACCOUNT DETAILS INTENT DECODER ───
+  const isMpayIntent = /\b(?:mpay|m-pay|m\s*pay|jkb\s*mpay|jk\s*bank\s*mpay|account\s*(?:no|number|details)|bank\s*transfer|ifsc|direct\s*transfer|google\s*pay\s*number|phonepe\s*number)\b/i.test(trimmedLower);
   if (isMpayIntent) {
     intentContext += `\n======================================================
-💡 QUERY INTENT DECODED: Customer is asking about J&K Bank mPay or scanner ("${userMessage.trim()}").
-CRITICAL DIRECTIVE ON MPAY & SCANNER:
-• Reassure immediately:
-  "Yes! We accept J&K Bank mPay, Google Pay, PhonePe, and Paytm.
-  Our system generates an official locked-amount UPI QR code scanner image that you can scan directly using your J&K Bank mPay app or any UPI app, or pay via our official J&K Bank merchant UPI ID: JKBMERC00828895@jkb."
-• Ask for their delivery area and quantity if not already confirmed so we can generate their locked QR scanner right away!
+💡 QUERY INTENT DECODED: Customer is asking about J&K Bank mPay, direct bank transfer, or account details ("${userMessage.trim()}").
+CRITICAL DIRECTIVE ON MPAY & BANK ACCOUNT DETAILS:
+• STRICT NEGATIVE CONSTRAINT: NEVER share or mention "JKBMERC00828895@jkb".
+• Provide the official J&K Bank account details directly:
+  "Yes! For direct J&K Bank mPay or bank transfer, here are our official details:
+  • Account Number: 0724010100000499
+  • IFSC Code: JAKA0MALBAG
+  • Account Name: Urban Trout Aquaculture
+  • Bank: J&K Bank, Malabagh Branch
+
+  📸 *Please share your payment screenshot here once transferred!* Our Malabagh farm team will verify it within 5 minutes and immediately initiate your live harvest!"
+• Also reassure them that scanning our locked Razorpay UPI QR code image with the J&K Bank mPay app works seamlessly and instantly!
 ======================================================`;
   }
 
@@ -4031,8 +4037,9 @@ Example (Mid / Greater Srinagar, 3 kg):
 Example (South / Cross-City Corridor, 5 kg):
 [PAY_LINK: 2900 : 5 kg Cleaned & Gutted]
 
-Our payment engine will automatically replace that tag with an official, organized order summary card breaking down all charges (fish price, delivery fee, clean double packaging, total amount) and a secure Razorpay payment link.
-NEVER write any raw UPI ID, bank details, or generic payment methods in text. ONLY output the [PAY_LINK: ...] tag!
+Our payment engine will automatically replace that tag with an official, organized order summary card breaking down all charges (fish price, delivery fee, clean double packaging, total amount) and immediately dispatches a locked Razorpay UPI QR code image directly to the customer's WhatsApp chat.
+NEVER write any unverified payment methods or old VPAs in text. ONLY output the [PAY_LINK: ...] tag!
+If a customer specifically requests J&K Bank mPay account details or direct bank transfer: provide Account Number 0724010100000499, IFSC JAKA0MALBAG, Name: Urban Trout Aquaculture, and ask them to share their payment screenshot for 5-minute farm team verification. STRICT NEGATIVE CONSTRAINT: Under NO circumstances should you EVER mention, send, or use JKBMERC00828895@jkb!
 
 SCANNER & QR CODE REQUEST HANDLING ("SEND QR" / "SCANNER BHEJO" / "SEND QR CODE"):
 • Customers often prefer scanning a QR code with PhonePe, Google Pay, or J&K Bank mPay.
@@ -4052,16 +4059,16 @@ ${fridayOperatingNote}
    - Customers CAN schedule deliveries for ANY preferred future date & time slot between 8:00 AM and 8:00 PM.
    - NEVER tell a customer that we do not offer scheduled future deliveries! We happily take scheduled orders.
 3. 100% UPFRONT PAYMENT LAW & STRICT PRE-PAYMENT HARVEST RULE:
-   - We harvest live swimming fish ONLY upon upfront payment confirmation via locked Razorpay link. We do NOT stock dead fish or freeze pre-harvested fish.
-   - CRITICAL PRE-PAYMENT HARVEST RULE: NEVER say "I've prepared your order", "Your order is confirmed", or imply live harvest or delivery dispatch has started before payment! An order is NOT confirmed and fish is NEVER harvested until payment confirmation is received. When providing payment links or summaries, frame it clearly: "Here is your official order summary and secure payment link. Live harvest begins immediately upon payment confirmation so your trout is 100% fresh from our oxygenated tanks."
-   - TRUST-BUILDER WHEN CUSTOMER ASKS FOR COD, CASH, POD, OR HESITATES TO PAY VIA LINK:
+   - We harvest live swimming fish ONLY upon upfront payment confirmation via locked Razorpay QR code image or verified mPay screenshot. We do NOT stock dead fish or freeze pre-harvested fish.
+   - CRITICAL PRE-PAYMENT HARVEST RULE: NEVER say "I've prepared your order", "Your order is confirmed", or imply live harvest or delivery dispatch has started before payment! An order is NOT confirmed and fish is NEVER harvested until payment confirmation is received. When providing order summaries and locked QR, frame it clearly: "Here is your official order summary. Please scan the locked UPI QR code below with GPay, PhonePe, Paytm, or J&K Bank mPay — live harvest begins immediately upon payment confirmation so your trout is 100% fresh from our oxygenated tanks."
+   - TRUST-BUILDER WHEN CUSTOMER ASKS FOR COD, CASH, POD, OR HESITATES TO PAY:
      Explain concisely (maximum 4 lines):
-     "We completely understand! Here is why we operate strictly via secure upfront link:
+     "We completely understand! Here is why we operate strictly via secure upfront digital payment:
      ✅ Fish is ALIVE in our tanks right now — harvested fresh ONLY after you confirm.
      ✅ Govt-approved facility (Dept of Fisheries, J&K) in Malabagh.
      ✅ Prefer cash? You are warmly welcome to visit our Live Vending Center in Malabagh to pick live trout in person!
 
-     Or lock your slot via Razorpay — takes 30 seconds. Which works better for you?"
+     Or scan the locked QR code below — takes 30 seconds. Which works better for you?"
 4. DELIVERY RADIUS & 4-TIER MOQ MANDATE:
    - Fast express deliveries (packed in 100% food-grade biodegradable polythene with 0% ice) are offered up to 16 km across Srinagar!
    - TIER 1 (0 to 4.0 km): 100% FREE on 2 kg+ (Cleaned & Gutted ₹1,160). 1 kg express delivery = ₹625 (₹45 fee).
@@ -4110,15 +4117,20 @@ However, all of our farm-raised trout is sold fresh at our Live Vending Center i
      * Ask politely for their *WhatsApp location pin (tap 📎 ➔ Location) or Google Maps link* so our system can calculate exact distance and verify pin-point express delivery.
    - RULE 4 (PREVIOUSLY VERIFIED SESSIONS):
      * If chat history shows the customer already shared a pin [IN RANGE (<=16km)], NEVER ask for the pin again — proceed directly with quantity and payment.
-7. HARVEST LOCK & NO-REFUND POLICY:
+7. STRICT BUTCHERING & CUTTING POLICY (NO BONELESS / NO SKINLESS):
+   - We do NOT offer boneless or skinless trout cuts under any circumstances!
+   - At Urban Trout, every single fish is descaled using our precision machinery, and our professional farm butchers cut clean, pan-ready steaks (bone-in with skin on).
+   - Rainbow trout has very fine, delicate, edible skin with zero coarse scales (unlike carp/river fish), which crisps up deliciously and melts easily in pan-frying without peeling or curling.
+   - If a customer asks for boneless, fillet, or skinless pieces: politely and firmly inform them of our machine descaling + pan-ready steak cut policy. NEVER promise or accept skinless or boneless requests.
+8. HARVEST LOCK & NO-REFUND POLICY:
    - Orders can ONLY be cancelled BEFORE the fish is harvested from tanks.
    - Once fish is HARVESTED (status: "Harvested Live & Packed"), the order is locked and CANNOT be cancelled, returned, or refunded under any circumstances, because live swimming trout is slaughtered specifically upon confirmed payment and cannot be returned to tanks.
    - If a customer whose order has already been harvested asks for a cancellation or refund, explain this policy politely but firmly.
-8. B2B, COMMERCIAL, CAFETERIA, HOTEL & BULK WHOLESALE INQUIRIES:
+9. B2B, COMMERCIAL, CAFETERIA, HOTEL & BULK WHOLESALE INQUIRIES:
    - If a customer asks about B2B rates, cafeteria supply, restaurant/hotel bulk orders, or reselling discounts:
    - NEVER say "we don't do that" or bluntly refuse discounts!
    - Instead, reply: "For commercial B2B rates, cafeteria supply, and bulk wholesale inquiries, please reach out directly to our Commercial Desk at +91 7006604148 (Call / WhatsApp). Our team will assist you with custom business pricing and scheduled harvest logistics."
-9. COOKED VS RAW FISH INQUIRIES ("Is it cooked/fried?", "Are you a restaurant?"):
+10. COOKED VS RAW FISH INQUIRIES ("Is it cooked/fried?", "Are you a restaurant?"):
    - If a customer asks if the trout is cooked, fried, or ready-to-eat:
    - Clarify soberly and professionally with clean line breaks:
      "We specialize exclusively in 100% farm-fresh, live-harvested raw Rainbow Trout for home cooking, barbecue, or grill.
@@ -4129,7 +4141,7 @@ However, all of our farm-raised trout is sold fresh at our Live Vending Center i
 • Note: We do not operate a restaurant or serve cooked meals.
 
 Would you like Cleaned & Gutted delivered fresh via our Express Dispatch Partner?"
-10. PHONE NUMBER SHARING (CUSTOMER SHARING THEIR CONTACT NUMBER):
+11. PHONE NUMBER SHARING (CUSTOMER SHARING THEIR CONTACT NUMBER):
    - If a customer sends their 10-digit mobile number (e.g. while planning a store visit or asking questions):
    - NEVER assume they have an existing order or claim an order is confirmed or on file!
    - Thank them politely and acknowledge with clean spacing:
@@ -4137,7 +4149,7 @@ Would you like Cleaned & Gutted delivered fresh via our Express Dispatch Partner
 
 We look forward to welcoming you to our Live Vending Center in Malabagh (Near R. P. School Girls Wing, open Sat–Thu)."
    - If they are inquiring about delivery, ask for their preferred quantity (min 2 kg) and WhatsApp location pin / Google Maps link instead.
-11. INTERNET & SOCIAL SLANG DECODER ("pp", "pp?", "hm", "rate", "daam"):
+12. INTERNET & SOCIAL SLANG DECODER ("pp", "pp?", "hm", "rate", "daam"):
    - When customers (especially Gen Z, young buyers, or Instagram/Facebook leads) text short queries like "pp", "pp?", "PP", "price plz", "rate?", "hm", "how much":
    - Understand immediately: "pp" = "Price Please" (asking for price per kg). "hm" = "How much".
    - NEVER say "What is pp?" or give a confusing reply!
@@ -4464,8 +4476,9 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
               const payWeatherPolicy = evaluateWeatherDeliveryPolicy(custDist);
 
               const combinedTextPre = (rawReply + " " + userMessage + " " + history.filter(h => h.role === "user").map(h => h.text).join(" ")).toLowerCase();
-              const isExplicitTomorrowPre = /\b(?:tomorrow|tomm?or?ro?w|tmrw|2moro|kal|subah\s*kal|kal\s*subah|saturday|advance|hafta)\b/i.test(combinedTextPre);
-              const isAdvanceScheduledOrder = isExplicitTomorrowPre || isNightAfter9PM || isFridayToday;
+              const isExplicitTomorrowPre = /\b(?:tomorrow|tomm?or?ro?w|tmrw|2moro|kal|subah\s*kal|kal\s*subah|saturday|advance|hafta|schedule)\b/i.test(combinedTextPre) &&
+                                            !/\b(?:today|tonight|aaj|abhi|right\s*now)\b/i.test(userMessage);
+              const isAdvanceScheduledOrder = isExplicitTomorrowPre;
 
               if (custDist === null) {
                 console.log(`[Link Guard] Blocked payment link for ${chatId} - location is UNVERIFIED. Asking for area name or pin.`);
@@ -4761,8 +4774,9 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
           /(?:rzp\.io|\[PAY_LINK|Total Payable|ORDER SUMMARY|express delivery fee|delivery fee|we (?:can|will) deliver|delivery(?:\s+to\s+[^\n]+)?\s+is\s+(?:available|active|possible)|deliver(?:ing|y)? (?:within \d|today|right away|in 2 hours)|dispatch(?:ed|ing)? (?:within|today|right away))/i.test(rawReply) &&
           !/(?:temporarily\s*paused|paused\s*beyond|not\s*deliver|cannot\s*deliver|unavailable|resumes?\s*automatically|weather\s*clears)/i.test(rawReply);
 
-        const isScheduledTomorrowOrSat = /(?:tomorrow|kal|saturday|advance|schedule)\b/i.test(userMessage) ||
-                                         /(?:Tomorrow\s*(?:Morning|Afternoon|Evening)|Saturday\s*(?:Morning|Afternoon|Evening))/i.test(rawReply);
+        const userWantsAdvance = /(?:tomorrow|kal|saturday|advance|schedule)\b/i.test(userMessage);
+        const isAdvanceOrderCard = /(?:ORDER SUMMARY|rzp\.io|\[PAY_LINK)/i.test(rawReply) && /(?:Tomorrow|Saturday)/i.test(rawReply);
+        const isScheduledTomorrowOrSat = !userSentBriefAck && (userWantsAdvance || isAdvanceOrderCard);
         if (!isVisitLocationIntent && !isScheduledTomorrowOrSat) {
           if (postWeatherPolicy.blockedByWeather) {
             if (!alreadyAdvisedHold) {
@@ -5466,9 +5480,9 @@ async function startBot() {
         rzpQrId = rzpQr.qrId;
         rzpQrUrl = rzpQr.imageUrl;
       } catch (rzpQrErr) {
-        console.warn("Could not create Razorpay QR, falling back to local UPI QR:", rzpQrErr.message);
-        const upiPayUri = `upi://pay?pa=JKBMERC00828895@jkb&pn=Urban%20Trout%20Aquaculture&am=${amt.toFixed(2)}&cu=INR&tn=Order-${orderRef}`;
-        qrBuffer = await QRCode.toBuffer(upiPayUri, {
+        console.warn("Could not create Razorpay dynamic QR, falling back to secure payment URL QR:", rzpQrErr.message);
+        const fallbackUrl = targetOrder?.payUrl || "https://rzp.io";
+        qrBuffer = await QRCode.toBuffer(fallbackUrl, {
           width: 600,
           margin: 2,
           color: { dark: "#000000", light: "#ffffff" }
