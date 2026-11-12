@@ -26,10 +26,10 @@ process.on("unhandledRejection", (reason) => {
 // ============================================================================
 // URBAN TROUT SALES AGENT — BUILD & VERSION TRACKING
 // ============================================================================
-const BOT_VERSION = "2.9.3";
-const BOT_LAST_UPDATED = "12-Nov-2026, 09:45 AM IST";
-const BOT_RELEASE_TITLE = "Hostinger Cloud VPS Edition (Real-Time Weather Radar & <= 6 km Rain/Snow Policy)";
-const BOT_RELEASE_NOTES = "Open-Meteo Real-Time Srinagar Weather • Rain/Snow >6 km Pause + 0–6 km Delay Advisory • #weather Controls • 0% Ice Biodegradable Packing";
+const BOT_VERSION = "2.9.4";
+const BOT_LAST_UPDATED = "12-Nov-2026, 11:20 AM IST";
+const BOT_RELEASE_TITLE = "Hostinger Cloud VPS Edition (Real-Time Weather Radar & Smart Anti-Repeat Advisory)";
+const BOT_RELEASE_NOTES = "Open-Meteo Real-Time Srinagar Weather • Anti-Repeat Weather Hold & Delay Replies on Acknowledgements • Rain/Snow >6 km Pause + 0–6 km Delay Notice";
 
 // ============================================================================
 // STRICT VVIP MANUAL-ONLY LIST (AI MUST NEVER TEXT UNDER ANY CIRCUMSTANCE)
@@ -368,6 +368,25 @@ function evaluateWeatherDeliveryPolicy(distanceKm = null) {
     );
   };
 
+  const buildConciseWeatherHoldReminder = (placeName = null, dist = d) => {
+    const cleanArea = (placeName && !/^(?:srinagar|kashmir|your\s*area)$/i.test(String(placeName).trim()))
+      ? String(placeName).trim()
+      : null;
+    const distTag = dist != null && !isNaN(Number(dist)) ? ` (~${Number(dist).toFixed(1)} km)` : "";
+    return (
+      `${weatherIcon} As noted earlier, express delivery to *${cleanArea || "your area"}*${distTag} stays temporarily paused beyond *${WEATHER_RESTRICT_RADIUS_KM} km* during active *${weatherNoun}*, so we cannot dispatch or issue a delivery payment link right now.\n\n` +
+      `☀️ Delivery resumes automatically once the weather clears — or you're warmly welcome at our *Live Vending Center in Malabagh* (Sat–Thu) for live fresh pickup!\n` +
+      `📍 Maps: https://maps.app.goo.gl/6FT5iLk5n8mbKSRU9`
+    );
+  };
+
+  const buildBriefWeatherAckReply = (placeName = null) => {
+    const cleanArea = (placeName && !/^(?:srinagar|kashmir|your\s*area)$/i.test(String(placeName).trim()))
+      ? String(placeName).trim()
+      : null;
+    return `You're welcome! Delivery to *${cleanArea || "your area"}* stays paused until the *${weatherNoun}* clears — feel free to drop by our *Live Vending Center in Malabagh* anytime (Sat–Thu), or message us anytime! 🐟`;
+  };
+
   return {
     weather: w,
     distanceKm: d,
@@ -379,8 +398,87 @@ function evaluateWeatherDeliveryPolicy(distanceKm = null) {
     deliverWithDelayWarning,
     delayWarningText,
     shortDelayNote,
-    buildWetWeatherOutOfZoneMessage
+    buildWetWeatherOutOfZoneMessage,
+    buildConciseWeatherHoldReminder,
+    buildBriefWeatherAckReply
   };
+}
+
+function isBriefAcknowledgement(text = "") {
+  const trimmed = String(text || "").trim();
+  if (!trimmed || trimmed.length > 48) return false;
+  if (/^[\s👍👌🙏🤝✅❤️😊🙂🐟.,!?]+$/u.test(trimmed)) return true;
+  return /^(?:ok(?:ay)?|kk?|alright|all\s*right|noted|got\s*it|understood|fine|good|cool|great|sure|thanks?(?:\s*(?:you|u|a\s*lot|so\s*much|ji))?|thx|ty|shukriya|jazakallah(?:\s*khair)?|ji(?:\s*ok(?:ay)?|\s*shukriya|\s*thanks?)?|theek\s*hai|thik\s*hai|no\s*problem|np)(?:\s+(?:ok(?:ay)?|thanks?(?:\s*(?:you|u))?|ji|thx|noted|shukriya))?[\s👍👌🙏🤝✅❤️😊🙂🐟.,!?]*$/iu.test(trimmed);
+}
+
+function hasRecentWeatherAdvisory(chatHistory, targetAreaName = null, lookback = 12) {
+  if (!Array.isArray(chatHistory) || chatHistory.length === 0) return false;
+  const recent = chatHistory.slice(-Math.max(1, lookback));
+  const cleanTarget = (targetAreaName && !/^(?:srinagar|kashmir|your\s*area)$/i.test(String(targetAreaName).trim()))
+    ? String(targetAreaName).trim().toLowerCase()
+    : null;
+
+  for (let i = recent.length - 1; i >= 0; i--) {
+    const entry = recent[i];
+    if (!entry || entry.role !== "model") continue;
+    const txt = String(entry.text || "");
+    const isAdvisory =
+      /Weather Delivery Advisory/i.test(txt) ||
+      (/temporarily paused beyond \*?\d+(?:\.\d+)?\s*km\*?/i.test(txt) && /Live Vending Center in Malabagh/i.test(txt));
+    if (!isAdvisory) continue;
+
+    if (cleanTarget) {
+      const headerMatch =
+        txt.match(/Weather Delivery Advisory(?:\s*[—–-]\s*([^\n*]+))?/i) ||
+        txt.match(/express delivery to \*([^*]+)\*(?:\s*\([^)]+\))?\s+(?:remains|stays)\s+(?:temporarily\s+)?paused/i) ||
+        txt.match(/Express delivery to \*([^*]+)\* resumes/i);
+      const advisedArea = (headerMatch && headerMatch[1]) ? headerMatch[1].trim().toLowerCase() : "";
+      if (
+        advisedArea &&
+        !/^(?:srinagar|kashmir|your\s*area)$/i.test(advisedArea) &&
+        !advisedArea.includes(cleanTarget) &&
+        !cleanTarget.includes(advisedArea)
+      ) {
+        continue;
+      }
+    }
+    return true;
+  }
+  return false;
+}
+
+function hasRecentDelayNotice(chatHistory, lookback = 4) {
+  if (!Array.isArray(chatHistory) || chatHistory.length === 0) return false;
+  const recent = chatHistory.slice(-Math.max(1, lookback));
+  return recent.some(entry =>
+    entry &&
+    entry.role === "model" &&
+    /\*?Weather Delivery Notice:?\*?|slightly delayed (?:because of|due to) (?:the )?(?:weather|active)/i.test(String(entry.text || ""))
+  );
+}
+
+function buildWeatherHoldPromptContext({ areaName, distKm, weatherPolicy, alreadyAdvised, sourceLabel = "mentioned" }) {
+  const displayArea = areaName || "Your Area";
+  const distText = distKm != null && !isNaN(Number(distKm)) ? `~${Number(distKm)} km` : `>${WEATHER_RESTRICT_RADIUS_KM} km`;
+  const header = `${weatherPolicy.weatherIcon} ACTIVE WEATHER HOLD (${weatherPolicy.weatherTitle.toUpperCase()}): Customer ${sourceLabel} "${displayArea}" (${distText} from Malabagh), which is BEYOND our ${WEATHER_RESTRICT_RADIUS_KM} km wet-weather delivery limit during active ${weatherPolicy.weatherNoun}.
+🛑 STRICT OVERRIDE: DO NOT PROMISE DELIVERY TO "${displayArea}" RIGHT NOW AND DO NOT OUTPUT [PAY_LINK: ...] OR QUOTE DELIVERY FEES AS AVAILABLE TODAY!
+⚠️ CONFIDENTIALITY: NEVER mention "Rapido", "third-party", "doorstep", "cold-chain", "chilled", "subsidized", "70%", OR "30%"!`;
+
+  if (alreadyAdvised) {
+    return `\n======================================================
+${header}
+ℹ️ ALREADY NOTIFIED: You ALREADY sent the full *Weather Delivery Advisory* to this customer earlier in this chat!
+CRITICAL ANTI-REPEAT INSTRUCTION: DO NOT repeat the full multi-paragraph *Weather Delivery Advisory* or Live Vending Center Maps block verbatim again!
+• If customer just replied with a short acknowledgement ("Ok", "Thanks", "Noted", "👍"), reply warmly in 1–2 brief sentences (confirming delivery stays paused until weather clears and welcoming them to Malabagh Sat–Thu if needed).
+• If they asked a specific question (rates, Malabagh hours, tomorrow), answer briefly in 1–3 short lines WITHOUT offering delivery today or outputting [PAY_LINK: ...].
+======================================================`;
+  }
+
+  return `\n======================================================
+${header}
+CRITICAL INSTRUCTION: Reply warmly with this exact message (you may keep it concise and verbatim):
+${weatherPolicy.buildWetWeatherOutOfZoneMessage(displayArea, distKm)}
+======================================================`;
 }
 
 function calculateDistance(lat1, lon1, lat2, lon2) {
@@ -699,11 +797,22 @@ try {
 
 const GOOGLE_MAPS_API_KEY = process.env.GOOGLE_MAPS_API_KEY || "";
 
+function isMalabaghStoreReference(text = "") {
+  const s = String(text || "").trim();
+  if (!s || !/\bmalabagh\b/i.test(s)) return false;
+  if (/\b(?:deliver(?:y)?\s*(?:to|at|in|near)|dispatch\s*(?:to|at|in|near)|send\s*(?:to|at|in|near)|i\s*(?:live|stay|am\s*(?:in|at|from)))\s*malabagh\b/i.test(s)) {
+    return false;
+  }
+  return /\b(?:malabagh\s*(?:farm|counter|vending|center|centre|store|shop|outlet|timing|timings|hours|open|close|closing|opening|location|address|map|pickup|pick\s*up)|(?:live\s*vending\s*center|farm|counter|store|shop|outlet|visit|come\s*to|collect\s*(?:from|at)|pick\s*(?:up\s*)?(?:from|at)|self\s*pick\s*up|timings?|hours)\b[^.!?\n]*\bmalabagh|malabagh\b[^.!?\n]*\b(?:timings?|hours|open|closed|farm|counter|vending|center|centre|store|shop|pickup|visit|collect))\b/i.test(s);
+}
+
 function detectSrinagarLocality(text) {
   if (!text) return null;
+  const ignoreMalabaghStore = isMalabaghStoreReference(text);
 
   // 1. High-priority hardcoded localities
   for (const item of KNOWN_IN_ZONE_AREAS) {
+    if (ignoreMalabaghStore && /^malabagh$/i.test(item.name)) continue;
     if (item.pattern.test(text)) {
       const minKg = item.minKg || (item.dist <= 4.0 ? 2 : item.dist <= 11.5 ? 3 : 5);
       const tier = item.dist <= 4.0 ? "0-4km" : item.dist <= 7.0 ? "4-7km" : item.dist <= 11.5 ? "7-11.5km" : "11.5-16km";
@@ -713,6 +822,7 @@ function detectSrinagarLocality(text) {
 
   // 2. Custom & auto-discovered colonies (custom_areas.json)
   for (const [cName, cData] of Object.entries(customAreas)) {
+    if (ignoreMalabaghStore && /^malabagh$/i.test(cName.trim())) continue;
     if (/^(?:police\s*station|hospital|masjid|mosque|bank|chowk|bridge|kadal|school|college|gate|petrol\s*pump|post\s*office|complex|bazar|market|stop|stand)$/i.test(cName.trim())) continue;
     const escaped = cName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     if (new RegExp(`\\b${escaped}\\b`, "i").test(text)) {
@@ -728,6 +838,7 @@ function detectSrinagarLocality(text) {
   if (deliveryZoneDb && deliveryZoneDb.length > 0) {
     for (const place of deliveryZoneDb) {
       if (!place.name || place.name.length < 4) continue;
+      if (ignoreMalabaghStore && /^malabagh$/i.test(place.name.trim())) continue;
       const escaped = place.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       if (new RegExp(`\\b${escaped}\\b`, "i").test(text)) {
         const dist = parseFloat(place.distance_km.toFixed(1));
@@ -2930,7 +3041,9 @@ async function generateGeminiReply(chatId, userMessage, customerPhone, customerN
       } else {
         const vipAffWeather = evaluateWeatherDeliveryPolicy(vipProfile.distanceKm);
         if (vipAffWeather.blockedByWeather) {
-          fastReorderReply = vipAffWeather.buildWetWeatherOutOfZoneMessage(vipProfile.locality, vipProfile.distanceKm);
+          fastReorderReply = hasRecentWeatherAdvisory(history, vipProfile.locality)
+            ? vipAffWeather.buildConciseWeatherHoldReminder(vipProfile.locality, vipProfile.distanceKm)
+            : vipAffWeather.buildWetWeatherOutOfZoneMessage(vipProfile.locality, vipProfile.distanceKm);
         } else {
           const timeNote = isNightAfter9PM
             ? (isThursdayToday ? "scheduled for Saturday morning (8:00 AM – 11:00 AM)" : "scheduled for tomorrow morning (8:00 AM – 11:00 AM)")
@@ -2973,7 +3086,9 @@ async function generateGeminiReply(chatId, userMessage, customerPhone, customerN
       } else {
         const vipQtyWeather = evaluateWeatherDeliveryPolicy(targetDist);
         if (vipQtyWeather.blockedByWeather) {
-          fastReorderReply = vipQtyWeather.buildWetWeatherOutOfZoneMessage(targetLocality, targetDist);
+          fastReorderReply = hasRecentWeatherAdvisory(history, targetLocality)
+            ? vipQtyWeather.buildConciseWeatherHoldReminder(targetLocality, targetDist)
+            : vipQtyWeather.buildWetWeatherOutOfZoneMessage(targetLocality, targetDist);
         } else {
           const pricing = calculateReorderPricing(reqWeight, reqCut, targetDist, isEveningSurge);
 
@@ -2995,7 +3110,9 @@ async function generateGeminiReply(chatId, userMessage, customerPhone, customerN
   if (vipProfile && !existingOrder && !fastReorderReply && isPureInquiry && !isFridayToday) {
     const vipGreetWeather = evaluateWeatherDeliveryPolicy(vipProfile.distanceKm);
     if (vipGreetWeather.blockedByWeather) {
-      const fastWeatherGreeting = `Hello! Welcome back to Urban Trout. 🐟\n\n${vipGreetWeather.buildWetWeatherOutOfZoneMessage(vipProfile.locality, vipProfile.distanceKm)}`;
+      const fastWeatherGreeting = hasRecentWeatherAdvisory(history, vipProfile.locality)
+        ? vipGreetWeather.buildConciseWeatherHoldReminder(vipProfile.locality, vipProfile.distanceKm)
+        : `Hello! Welcome back to Urban Trout. 🐟\n\n${vipGreetWeather.buildWetWeatherOutOfZoneMessage(vipProfile.locality, vipProfile.distanceKm)}`;
       history.push({ role: "user", text: userMessage });
       history.push({ role: "model", text: fastWeatherGreeting });
       if (history.length > 16) history.splice(0, history.length - 16);
@@ -3109,13 +3226,13 @@ CRITICAL VIP REORDERING & GREETING INSTRUCTIONS:
 
       const detectedWeatherPolicy = evaluateWeatherDeliveryPolicy(detectedLoc.dist);
       if (detectedWeatherPolicy.blockedByWeather) {
-        localityContext = `\n======================================================
-${detectedWeatherPolicy.weatherIcon} ACTIVE WEATHER HOLD (${detectedWeatherPolicy.weatherTitle.toUpperCase()}): Customer mentioned "${detectedLoc.name}" (~${detectedLoc.dist} km from Malabagh), which is BEYOND our ${WEATHER_RESTRICT_RADIUS_KM} km wet-weather delivery limit during active ${detectedWeatherPolicy.weatherNoun}.
-🛑 STRICT OVERRIDE: DO NOT PROMISE DELIVERY TO "${detectedLoc.name}" RIGHT NOW AND DO NOT OUTPUT [PAY_LINK: ...] OR QUOTE DELIVERY FEES AS AVAILABLE TODAY!
-⚠️ CONFIDENTIALITY: NEVER mention "Rapido", "third-party", "doorstep", "cold-chain", "chilled", "subsidized", "70%", OR "30%"!
-CRITICAL INSTRUCTION: Reply warmly with this exact message (you may keep it concise and verbatim):
-${detectedWeatherPolicy.buildWetWeatherOutOfZoneMessage(detectedLoc.name, detectedLoc.dist)}
-======================================================`;
+        localityContext = buildWeatherHoldPromptContext({
+          areaName: detectedLoc.name,
+          distKm: detectedLoc.dist,
+          weatherPolicy: detectedWeatherPolicy,
+          alreadyAdvised: hasRecentWeatherAdvisory(history, detectedLoc.name),
+          sourceLabel: "mentioned"
+        });
       } else {
         if (detectedLoc.dist <= 4.0) {
         localityContext = `\n======================================================
@@ -3221,12 +3338,13 @@ CRITICAL INSTRUCTION: Inform them politely that express delivery (packed fresh i
       const sDist = savedLoc.distanceKm;
       const savedWeatherPolicy = evaluateWeatherDeliveryPolicy(sDist);
       if (savedWeatherPolicy.blockedByWeather) {
-        localityContext = `\n======================================================
-${savedWeatherPolicy.weatherIcon} ACTIVE WEATHER HOLD (${savedWeatherPolicy.weatherTitle.toUpperCase()}): Customer distance on file is ~${sDist} km (${savedLoc.localityName || "Srinagar"}), which is BEYOND our ${WEATHER_RESTRICT_RADIUS_KM} km wet-weather delivery limit during active ${savedWeatherPolicy.weatherNoun}.
-🛑 STRICT OVERRIDE: DO NOT PROMISE DELIVERY TO THIS LOCATION RIGHT NOW AND DO NOT OUTPUT [PAY_LINK: ...] OR QUOTE DELIVERY FEES AS AVAILABLE TODAY!
-Reply warmly with this exact message:
-${savedWeatherPolicy.buildWetWeatherOutOfZoneMessage(savedLoc.localityName || "Your Area", sDist)}
-======================================================`;
+        localityContext = buildWeatherHoldPromptContext({
+          areaName: savedLoc.localityName || "Your Area",
+          distKm: sDist,
+          weatherPolicy: savedWeatherPolicy,
+          alreadyAdvised: hasRecentWeatherAdvisory(history, savedLoc.localityName || null),
+          sourceLabel: "distance on file is"
+        });
       } else {
         if (sDist <= 4.0) {
         localityContext = `\n======================================================
@@ -3356,7 +3474,7 @@ How can I help you today? Would you like Cleaned & Gutted trout (₹580/kg)?"
 
     if (locDist !== null && kgWeatherPolicy.blockedByWeather) {
       intentContext += `\n======================================================
-${kgWeatherPolicy.weatherIcon} WEATHER HOLD OVERRIDE FOR 1 KG (${locName}, ~${locDist} km): Express delivery is paused beyond ${WEATHER_RESTRICT_RADIUS_KM} km during active ${kgWeatherPolicy.weatherNoun}. DO NOT output [PAY_LINK: ...]. Invite the customer to our Live Vending Center in Malabagh or wait for weather to clear!
+${kgWeatherPolicy.weatherIcon} WEATHER HOLD OVERRIDE FOR 1 KG (${locName}, ~${locDist} km): Express delivery is paused beyond ${WEATHER_RESTRICT_RADIUS_KM} km during active ${kgWeatherPolicy.weatherNoun}. DO NOT output [PAY_LINK: ...]. Invite the customer to our Live Vending Center in Malabagh or wait for weather to clear${hasRecentWeatherAdvisory(history, locName) ? " (keep your reply brief since the full Weather Delivery Advisory was already shared earlier in this chat)" : ""}!
 ======================================================`;
     } else if (locDist !== null && locDist > 11.5 && locDist <= 16.0) {
       intentContext += `\n======================================================
@@ -4067,7 +4185,10 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
         const vipPayWeather = evaluateWeatherDeliveryPolicy(custDist);
         if (vipPayWeather.blockedByWeather) {
           console.log(`[Link Guard VIP] Blocked payment link for ${chatId} - ${custDist}km > ${WEATHER_RESTRICT_RADIUS_KM}km during ${vipPayWeather.weather.condition}.`);
-          rawReply = vipPayWeather.buildWetWeatherOutOfZoneMessage(vipProfile?.locality || savedLoc?.localityName || "Your Area", custDist);
+          const vipAreaName = vipProfile?.locality || savedLoc?.localityName || "Your Area";
+          rawReply = hasRecentWeatherAdvisory(history, vipAreaName)
+            ? vipPayWeather.buildConciseWeatherHoldReminder(vipAreaName, custDist)
+            : vipPayWeather.buildWetWeatherOutOfZoneMessage(vipAreaName, custDist);
         } else {
         let scheduledSlot = "Within 2 Hours (Today)";
         if (isFridayToday) {
@@ -4318,7 +4439,10 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
                 );
               } else if (payWeatherPolicy.blockedByWeather) {
                 console.log(`[Link Guard] Blocked payment link for ${chatId} - ${custDist}km > ${WEATHER_RESTRICT_RADIUS_KM}km during active ${payWeatherPolicy.weather.condition}.`);
-                rawReply = payWeatherPolicy.buildWetWeatherOutOfZoneMessage(activeLocalityName || savedLoc?.localityName || "Your Area", custDist);
+                const linkAreaName = activeLocalityName || savedLoc?.localityName || "Your Area";
+                rawReply = hasRecentWeatherAdvisory(history, linkAreaName)
+                  ? payWeatherPolicy.buildConciseWeatherHoldReminder(linkAreaName, custDist)
+                  : payWeatherPolicy.buildWetWeatherOutOfZoneMessage(linkAreaName, custDist);
               } else if (!isSpecialDeliveryOrder && custDist !== null && custDist > 11.5 && custDist <= 16.0 && (orderWeight < 4.95 || amount < 2700)) {
                 console.log(`[Link Guard] Blocked <5kg free-delivery payment link for ${chatId} - zone 4 requires 5kg MOQ for free delivery.`);
                 const sGuard = isEveningSurge ? 40 : 0;
@@ -4585,17 +4709,34 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
           : (chatMetadata[chatId]?.distanceKm ?? (customerPhone ? chatMetadata[customerPhone]?.distanceKm : null) ?? null);
         const postLocName = detectedLoc?.name || chatMetadata[chatId]?.localityName || (customerPhone ? chatMetadata[customerPhone]?.localityName : null) || "Your Area";
         const postWeatherPolicy = evaluateWeatherDeliveryPolicy(postLocDist);
+        const alreadyAdvisedHold = hasRecentWeatherAdvisory(history, postLocName);
+        const alreadyGotDelayNotice = hasRecentDelayNotice(history, 4);
+        const userSentBriefAck = isBriefAcknowledgement(userMessage);
+        const offersDeliveryOrPayment =
+          /(?:rzp\.io|\[PAY_LINK|Total Payable|ORDER SUMMARY|express delivery fee|delivery fee|we (?:can|will) deliver|delivery(?:\s+to\s+[^\n]+)?\s+is\s+(?:available|active|possible)|deliver(?:ing|y)? (?:within \d|today|right away|in 2 hours)|dispatch(?:ed|ing)? (?:within|today|right away))/i.test(rawReply) &&
+          !/(?:temporarily\s*paused|paused\s*beyond|not\s*deliver|cannot\s*deliver|unavailable|resumes?\s*automatically|weather\s*clears)/i.test(rawReply);
+
         if (!isVisitLocationIntent) {
           if (postWeatherPolicy.blockedByWeather) {
-            if (!/(?:temporarily\s*paused|live\s*vending\s*center|weather\s*clears)/i.test(rawReply)) {
-              rawReply = postWeatherPolicy.buildWetWeatherOutOfZoneMessage(postLocName, postLocDist);
+            if (!alreadyAdvisedHold) {
+              if (!/(?:temporarily\s*paused|live\s*vending\s*center|weather\s*clears)/i.test(rawReply) || offersDeliveryOrPayment) {
+                rawReply = postWeatherPolicy.buildWetWeatherOutOfZoneMessage(postLocName, postLocDist);
+              }
+            } else if (userSentBriefAck) {
+              if (offersDeliveryOrPayment || /Weather Delivery Advisory/i.test(rawReply) || (rawReply.length > 260 && /temporarily\s*paused\s*beyond/i.test(rawReply))) {
+                rawReply = postWeatherPolicy.buildBriefWeatherAckReply(postLocName);
+              }
+            } else if (offersDeliveryOrPayment || /Weather Delivery Advisory/i.test(rawReply)) {
+              rawReply = postWeatherPolicy.buildConciseWeatherHoldReminder(postLocName, postLocDist);
             }
           } else if (
             postLocDist !== null &&
             postWeatherPolicy.deliverWithDelayWarning &&
             postWeatherPolicy.delayWarningText &&
             /(?:deliver|express|dispatch|location\s*pin|google\s*maps|payment\s*link|₹\d+)/i.test(rawReply) &&
-            !/(?:weather|rain|snow|drizzle|delay)/i.test(rawReply)
+            !/(?:weather|rain|snow|drizzle|delay)/i.test(rawReply) &&
+            (!alreadyGotDelayNotice || /(?:rzp\.io|ORDER SUMMARY|Total Payable)/i.test(rawReply)) &&
+            !(userSentBriefAck && alreadyGotDelayNotice)
           ) {
             rawReply = `${rawReply}\n\n${postWeatherPolicy.delayWarningText}`;
           }
@@ -5217,9 +5358,11 @@ async function startBot() {
 
       if (!bypassLocationGuard && qrWeatherPolicy.blockedByWeather) {
         console.log(`[QR Guard] Blocked QR dispatch for ${remoteJid} — ${locDetails.distanceKm}km > ${WEATHER_RESTRICT_RADIUS_KM}km during active ${qrWeatherPolicy.weather.condition}.`);
-        await sock.sendMessage(remoteJid, {
-          text: qrWeatherPolicy.buildWetWeatherOutOfZoneMessage(locDetails.localityName || "Your Area", locDetails.distanceKm)
-        });
+        const qrAreaName = locDetails.localityName || "Your Area";
+        const qrHoldMsg = hasRecentWeatherAdvisory(chatHist, qrAreaName)
+          ? qrWeatherPolicy.buildConciseWeatherHoldReminder(qrAreaName, locDetails.distanceKm)
+          : qrWeatherPolicy.buildWetWeatherOutOfZoneMessage(qrAreaName, locDetails.distanceKm);
+        await sock.sendMessage(remoteJid, { text: qrHoldMsg });
         return true; // Handled
       }
 
@@ -6931,6 +7074,9 @@ if (require.main === module) {
     refreshSrinagarWeather,
     getEffectiveSrinagarWeather,
     evaluateWeatherDeliveryPolicy,
+    hasRecentWeatherAdvisory,
+    hasRecentDelayNotice,
+    isBriefAcknowledgement,
     setWeatherOverrideMode,
     classifyWeatherMetrics,
     buildLocationRateQuote,
