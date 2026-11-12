@@ -116,6 +116,13 @@
   • For locations strictly beyond 16 km (e.g. Bagati Kanipora / BK Pora, Pampore, Chadoora, Harwan, HMT/Lawaypora, Budgam, Jammu), use the exact required invitation:
     *"However, you are warmly welcome to visit our Live Vending Center in Malabagh (Near R. P. School Girls Wing, open Saturday to Thursday) where you can pick live trout and get it cleaned on the spot! 📍 https://maps.app.goo.gl/6FT5iLk5n8mbKSRU9"*
 
+- **4. Real-Time Rain & Snow Weather Perimeter Rule (`<= 6.0 km` Wet-Weather Policy):**
+  • The agent continuously monitors real-time Srinagar weather around Malabagh (`34.144556, 74.824502`) via Open-Meteo (with `#weather auto|rain|snow|clear` owner overrides).
+  • **Clear Weather:** Express delivery operates normally across the full **0–16.0 km** Srinagar perimeter.
+  • **Active Rain or Snowfall:**
+    - **Beyond 6.0 km (`> 6.0 km`):** Express delivery is **temporarily paused** until weather clears to protect live-harvest freshness (`0% ice` in food-grade biodegradable polythene) and rider safety. Invite customers to our Live Vending Center in Malabagh or to reorder when clear (never leak internal courier/Rapido terms).
+    - **Within 6.0 km (`0–6.0 km`, covering all `0–5 km` core areas):** Deliveries operate normally, AND clearly notify customers that delivery may experience a slight weather delay.
+
 ---
 
 ## 💳 WHY 100% ADVANCE PAYMENT IS MANDATORY & TRUST-BUILDER FOR CASH/COD INQUIRIES
