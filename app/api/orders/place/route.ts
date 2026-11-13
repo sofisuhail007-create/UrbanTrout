@@ -180,36 +180,36 @@ export async function POST(req: NextRequest) {
       console.warn("[orders/place] Failed to upsert customer:", err);
     }
 
-    // 9. Dispatch Telegram Notification
-    try {
-      const origin = req.nextUrl.origin || "https://urbantrout.in";
-      fetch(`${origin}/api/telegram-notify`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          type: "new_order",
-          data: {
-            orderNumber: String(insertedOrder.order_number || "UT-" + Math.floor(1000 + Math.random() * 9000)),
-            customerName: orderPayload.customer_name,
-            phone: cleanPhone,
-            locality: orderPayload.customer_locality,
-            address: orderPayload.customer_address,
-            pincode: orderPayload.customer_pincode,
-            items: orderPayload.items,
-            subtotal: orderPayload.subtotal,
-            deliveryFee: orderPayload.delivery_fee,
-            total: orderPayload.total,
-            status: "confirmed",
-            paymentMethod: "Razorpay",
-            razorpayPaymentId: razorpay_payment_id,
-            razorpayOrderId: razorpay_order_id,
-            isScheduled,
-            scheduledDate,
-            scheduledSlot,
-          },
-        }),
-      }).catch(() => {});
-    } catch {}
+    // 9. Dispatch Telegram Notification (Only for non-Razorpay / offline orders to avoid double alerts, since Razorpay webhook sends the single official confirmation card)
+    if (!razorpay_payment_id) {
+      try {
+        const origin = req.nextUrl.origin || "https://urbantrout.in";
+        fetch(`${origin}/api/telegram-notify`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            type: "new_order",
+            data: {
+              orderNumber: String(insertedOrder.order_number || "UT-" + Math.floor(1000 + Math.random() * 9000)),
+              customerName: orderPayload.customer_name,
+              phone: cleanPhone,
+              locality: orderPayload.customer_locality,
+              address: orderPayload.customer_address,
+              pincode: orderPayload.customer_pincode,
+              items: orderPayload.items,
+              subtotal: orderPayload.subtotal,
+              deliveryFee: orderPayload.delivery_fee,
+              total: orderPayload.total,
+              status: "confirmed",
+              paymentMethod: "Manual / COD",
+              isScheduled,
+              scheduledDate,
+              scheduledSlot,
+            },
+          }),
+        }).catch(() => {});
+      } catch {}
+    }
 
     return NextResponse.json({
       success: true,

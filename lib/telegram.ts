@@ -823,43 +823,52 @@ export async function notifyRazorpayPayment(params: {
     (params.orderId && params.orderId.startsWith("UT-WA-")) ||
     (params.description && params.description.toLowerCase().includes("whatsapp"));
 
-  let msg: string;
-  if (isWhatsAppAgent) {
-    msg = `🐟 <b>NEW CONFIRMED ORDER (WHATSAPP SALES AGENT)</b> ⚡
-━━━━━━━━━━━━━━━━━━━━
-📋 <b>Order Ref:</b> <code>#${orderRef}</code>
-👤 <b>Customer Name:</b> <b>${escapeHtml(name)}</b>
-📞 <b>Contact Number:</b> ${cleanPhone ? `<a href="tel:+91${cleanPhone}">+91 ${cleanPhone}</a> | <a href="https://wa.me/91${cleanPhone}">💬 WhatsApp</a>` : "N/A"}
-🗓️ <b>Date & Time:</b> <b>${istDateTime} IST</b>
-🛒 <b>Items / Summary:</b> <b>${escapeHtml(params.description || "Fresh Rainbow Trout Harvest")}</b>
-💰 <b>Amount Paid:</b> <b>₹${Number(params.amount || 0).toLocaleString("en-IN")}</b> (PAID ✓)
-💳 <b>Payment Source:</b> ${sourceText}
-💸 <b>Gateway Fee:</b> ${feeText}
-💵 <b>Net Settled:</b> ${netText}
-💳 <b>Payment ID:</b> <code>${params.paymentId}</code>
-🤖 <b>Channel:</b> WhatsApp AI Sales Agent
-📍 <b>Delivery Location:</b>
-${resolvedMapsUrl ? `🗺️ <a href="${resolvedMapsUrl}"><b>Click here for 1-Tap Google Maps Navigation</b> ↗</a>${distanceInfo}` : `<i>Customer confirmed in-zone via WhatsApp (no GPS pin shared)</i>`}
-━━━━━━━━━━━━━━━━━━━━
-⚡ <i>Payment auto-captured & verified. Ready for live harvest!</i>`;
-  } else {
-    const gpsLine = resolvedMapsUrl
-      ? `\n📍 <b>GPS Pinpoint:</b> <a href="${resolvedMapsUrl}">Open in Google Maps</a>${distanceInfo}`
-      : "";
+  // 1. Resolve Payment Mode & UPI ID / VPA
+  const mRaw = (params.method || "").toLowerCase();
+  let paymentModeText = "Online Payment";
+  let vpaLine = "";
 
-    msg = `💰 <b>RAZORPAY PAYMENT RECEIVED!</b> ⚡
-━━━━━━━━━━━━━━━━━━━━
-<b>Amount Paid:</b> <b>₹${Number(params.amount || 0).toLocaleString("en-IN")}</b> (PAID ✓)
-<b>Customer:</b> ${escapeHtml(name)}
-${cleanPhone ? `<b>Phone:</b> <a href="tel:+91${cleanPhone}">+91 ${cleanPhone}</a>\n` : ""}${params.customerEmail ? `<b>Email:</b> ${escapeHtml(params.customerEmail)}\n` : ""}💳 <b>Payment Source:</b> ${sourceText}
-💸 <b>Gateway Fee:</b> ${feeText}
-💵 <b>Net Settled:</b> ${netText}
-<b>Txn Ref:</b> <code>${params.paymentId}</code>
-${params.orderId ? `<b>Order ID:</b> <code>${params.orderId}</code>\n` : ""}${params.description ? `<b>Desc:</b> ${escapeHtml(params.description)}\n` : ""}<b>Channel:</b> <b>${escapeHtml(channel)}</b>${gpsLine}
-<b>Time:</b> ${istDateTime} IST
-━━━━━━━━━━━━━━━━━━━━
-⚡ <i>Payment auto-captured & verified</i>`;
+  if (mRaw.includes("upi")) {
+    paymentModeText = "UPI";
+    if (params.vpa) {
+      vpaLine = `🆔 <b>UPI ID:</b> <code>${escapeHtml(params.vpa)}</code>\n`;
+    }
+  } else if (mRaw.includes("netbanking") || mRaw === "nb") {
+    const bankCode = (params.bank || "").toUpperCase();
+    const bankName = BANK_NAME_MAP[bankCode] || bankCode || "Net Banking";
+    paymentModeText = `Net Banking (${escapeHtml(bankName)})`;
+  } else if (mRaw.includes("card")) {
+    const network = (params.card?.network || "").toUpperCase();
+    const type = (params.card?.type || "Card").toUpperCase();
+    const last4 = params.card?.last4 ? ` ending •••• ${params.card.last4}` : "";
+    paymentModeText = `Card (${escapeHtml(network)} ${escapeHtml(type)}${last4})`.trim();
+  } else if (mRaw.includes("wallet")) {
+    paymentModeText = `Wallet (${escapeHtml(params.wallet || "")})`;
+  } else if (params.method) {
+    paymentModeText = params.method.toUpperCase();
   }
+
+  // 2. Resolve Quantity & Items
+  const itemsText = params.description || "Fresh Rainbow Trout";
+
+  // 3. Resolve Navigation & Location
+  const locationLine = resolvedMapsUrl
+    ? `📍 <b>Delivery:</b> <a href="${resolvedMapsUrl}">1-Tap Google Maps Navigation ↗</a>${distanceInfo}\n`
+    : "";
+
+  const channelText = isWhatsAppAgent ? "WhatsApp AI Agent" : "Website Checkout";
+
+  // Brief, high-signal order summary (no fee/tax clutter)
+  const msg = `🐟 <b>ORDER CONFIRMED</b> ✅
+━━━━━━━━━━━━━━━━━━━━
+📦 <b>Order Number:</b> <code>#${orderRef}</code>
+⚖️ <b>Quantity:</b> <b>${escapeHtml(itemsText)}</b>
+👤 <b>Customer:</b> ${escapeHtml(name)} (<a href="tel:+91${cleanPhone}">+91 ${cleanPhone}</a>)
+💳 <b>Payment Mode:</b> <b>${paymentModeText}</b>
+${vpaLine}💰 <b>Total Amount:</b> <b>₹${Number(params.amount || 0).toLocaleString("en-IN")}</b> [PAID ✅]
+🤖 <b>Channel:</b> ${channelText}
+${locationLine}━━━━━━━━━━━━━━━━━━━━
+👉 <a href="https://wa.me/91${cleanPhone}"><b>Open WhatsApp Chat with Customer</b></a>`;
 
   const buttons: InlineKeyboardButton[][] = [];
   if (resolvedMapsUrl) {

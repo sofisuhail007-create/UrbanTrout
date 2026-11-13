@@ -4787,7 +4787,7 @@
     "group": "Landmark",
     "lat": 34.0997028,
     "lon": 74.8225331,
-    "distance_km": 5.0,
+    "distance_km": 5,
     "driving_km": 7.822,
     "tier": "Zone 2 (4-6km, MOQ 3kg)",
     "borderline": false
@@ -6117,5 +6117,25 @@
     "driving_km": 8.319,
     "tier": "Zone 2 (4-6km, MOQ 3kg)",
     "borderline": true
+  },
+  {
+    "name": "Khayyam Chowk",
+    "name_ur": "خیام چوک",
+    "aliases": [
+      "Khayam",
+      "Khayyam",
+      "Khyam",
+      "Khayam Chowk",
+      "Khayyam Chowk",
+      "Khayam Cinema"
+    ],
+    "type": "junction",
+    "group": "Landmark",
+    "lat": 34.0815,
+    "lon": 74.8185,
+    "distance_km": 7.2,
+    "driving_km": 7.2,
+    "tier": "Zone 3 (6-8km, MOQ 4kg)",
+    "borderline": false
   }
 ]

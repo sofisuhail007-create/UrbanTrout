@@ -99,7 +99,7 @@ export const CORE_IN_ZONE_AREAS: Array<{ pattern: RegExp; name: string; dist: nu
   { pattern: /\b(?:saraf\s*kadal|sarafkadal)\b/i, name: "Saraf Kadal", dist: 6.5 },
   { pattern: /\b(?:bohri\s*kadal|bohrikadal|bhori\s*kadal|bhorikadal)\b/i, name: "Bohri Kadal", dist: 6.8 },
 
-  // ── Zone 3: Greater Srinagar (7–11.5 km, Free on 3 kg) ──
+  // ── Zone 3: Central & City Srinagar (7–11.5 km, Free on 3 kg) ──
   { pattern: /\b(?:zaina\s*kadal|zainakadal|zaina\s*kadel|new\s*zaina\s*kadal)\b/i, name: "Zaina Kadal", dist: 7.8, minKg: 3 },
   { pattern: /\b(?:maharaj\s*gunj|maharajgunj|maharaj\s*ganj|maharajganj)\b/i, name: "Maharaj Gunj", dist: 7.8, minKg: 3 },
   { pattern: /\b(?:fateh\s*kadal|fatehkadal|fateh\s*kadel|fatehkadel|astaan\s*syed\s*ali\s*akbar)\b/i, name: "Fateh Kadal", dist: 8.8, minKg: 3 },
@@ -107,7 +107,7 @@ export const CORE_IN_ZONE_AREAS: Array<{ pattern: RegExp; name: string; dist: nu
   { pattern: /\b(?:lal\s*chowk|lalchowk)\b/i, name: "Lal Chowk", dist: 8.0, minKg: 3 },
   { pattern: /\b(?:dalgate|dal\s*gate)\b/i, name: "Dalgate", dist: 7.5, minKg: 3 },
   { pattern: /\b(?:khay+am|khyam|khaiam)(?:\s*(?:chowk|road|cinema))?\b/i, name: "Khayam", dist: 7.2, minKg: 3 },
-  { pattern: /\b(?:khyber\s*hospital|khyber)\b/i, name: "Khayam (Khyber Hospital)", dist: 7.2, minKg: 3 },
+  { pattern: /\b(?:khyber\s*hospital|khyber)\b/i, name: "Khayam", dist: 7.2, minKg: 3 },
   { pattern: /\b(?:sonwar|sonawar|sona\s*war)\b/i, name: "Sonwar", dist: 8.0, minKg: 3 },
   { pattern: /\b(?:qamarwari|qamar\s*wari|kamarwari)\b/i, name: "Qamarwari", dist: 9.5, minKg: 3 },
   { pattern: /\b(?:habba\s*kadal|habbakadal)\b/i, name: "Habba Kadal", dist: 9.0, minKg: 3 },

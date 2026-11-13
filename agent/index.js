@@ -781,7 +781,7 @@ const KNOWN_IN_ZONE_AREAS = [
   { pattern: /\b(?:saraf\s*kadal|sarafkadal)\b/i, name: "Saraf Kadal", dist: 6.5 },
   { pattern: /\b(?:bohri\s*kadal|bohrikadal|bhori\s*kadal|bhorikadal)\b/i, name: "Bohri Kadal", dist: 6.8 },
   { pattern: /\b(?:khalamul)\b/i, name: "Khalamul", dist: 5.9 },
-  // ── Zone 3: Greater Srinagar (7.0 to 11.5 km, Free Delivery on 3 kg+, 2 kg +₹89 fee / 1 kg +₹130 fee) ──
+  // ── Zone 3: Central & City Srinagar (7.0 to 11.5 km, Free Delivery on 3 kg+, 2 kg +₹89 fee / 1 kg +₹130 fee) ──
   { pattern: /\b(?:zaina\s*kadal|zainakadal|zaina\s*kadel|new\s*zaina\s*kadal)\b/i, name: "Zaina Kadal", dist: 7.8, minKg: 3 },
   { pattern: /\b(?:maharaj\s*gunj|maharajgunj|maharaj\s*ganj|maharajganj)\b/i, name: "Maharaj Gunj", dist: 7.8, minKg: 3 },
   { pattern: /\b(?:fateh\s*kadal|fatehkadal|fateh\s*kadel|fatehkadel|astaan\s*syed\s*ali\s*akbar)\b/i, name: "Fateh Kadal", dist: 8.8, minKg: 3 },
@@ -790,7 +790,7 @@ const KNOWN_IN_ZONE_AREAS = [
   { pattern: /\b(?:lal\s*chowk|lalchowk)\b/i, name: "Lal Chowk", dist: 11.0, minKg: 3 },
   { pattern: /\b(?:dalgate|dal\s*gate)\b/i, name: "Dalgate", dist: 9.5, minKg: 3 },
   { pattern: /\b(?:khay+am|khyam|khaiam)(?:\s*(?:chowk|road|cinema))?\b/i, name: "Khayam", dist: 8.5, minKg: 3 },
-  { pattern: /\b(?:khyber\s*(?:hospital|medical|institute)|hospital\s*khyber)\b/i, name: "Khayam (Khyber Hospital)", dist: 8.5, minKg: 3 },
+  { pattern: /\b(?:khyber\s*(?:hospital|medical|institute)|hospital\s*khyber)\b/i, name: "Khayam", dist: 8.5, minKg: 3 },
   { pattern: /\b(?:qamarwari|qamar\s*wari|kamarwari)\b/i, name: "Qamarwari", dist: 9.5, minKg: 3 },
   { pattern: /\b(?:balgarden|bal\s*garden)\b/i, name: "Balgarden", dist: 9.8, minKg: 3 },
   { pattern: /\b(?:brein|brain)\b/i, name: "Brein (Nishat)", dist: 11.0, minKg: 3 },
@@ -2008,28 +2008,44 @@ function fetchRecentRazorpayPayments(count = 15) {
 }
 
 // Send Instant Telegram Dispatch Card to Owner for Live Harvest & Delivery Routing
+const notifiedTelegramOrderRefs = new Set();
+
 async function sendTelegramDispatchCard(order, paymentInfo = {}) {
+  const orderRef = order.orderRef || "LIVE";
+  if (notifiedTelegramOrderRefs.has(orderRef)) {
+    console.log(`[Telegram Dedup] Skipping duplicate dispatch card for #${orderRef}`);
+    return;
+  }
+  notifiedTelegramOrderRefs.add(orderRef);
+
   const phone = order.phone || paymentInfo.phone || "Customer";
   const name = order.name || "Customer";
   const amt = paymentInfo.amount || (order.amount ? String(order.amount).replace(/\D/g, "") : "");
   const mapsLink = order.googleMapsUrl || (order.latitude && order.longitude ? `https://maps.google.com/?q=${order.latitude},${order.longitude}` : null);
   const clean10 = String(phone).replace(/\D/g, "").slice(-10);
+  const modeText = paymentInfo.mode || "J&K Bank mPay / Direct Transfer";
+  const vpaLine = paymentInfo.vpa ? `🆔 <b>UPI ID:</b> <code>${paymentInfo.vpa}</code>\n` : "";
+  const locationLine = mapsLink
+    ? `📍 <b>Delivery:</b> <a href="${mapsLink}">1-Tap Google Maps Navigation ↗</a>\n`
+    : (order.deliveryArea ? `📍 <b>Delivery Area:</b> ${order.deliveryArea}\n` : "");
 
-  const html = `🚨 <b>NEW CONFIRMED ORDER TO HARVEST &amp; DISPATCH!</b> 🐟\n` +
-    `━━━━━━━━━━━━━━━━━━━━━━\n` +
-    `📦 <b>Order Ref:</b> #${order.orderRef || "LIVE"}\n` +
-    `👤 <b>Customer:</b> ${name} (<code>+91 ${clean10}</code>)\n` +
-    `🐟 <b>Items:</b> ${order.items || "Fresh Rainbow Trout"}\n` +
-    `💰 <b>Amount Paid:</b> ₹${amt || "Paid"} [PAID ✅]\n` +
-    `📍 <b>Delivery Area:</b> ${order.deliveryArea || "Srinagar"}\n` +
-    `🕒 <b>Slot:</b> ${order.deliveryTime || "Within 90–120 Minutes"}\n` +
-    (mapsLink ? `🗺️ <a href="${mapsLink}"><b>Open Google Maps Navigation</b></a>\n` : `📍 <i>Awaiting GPS Location Pin from customer</i>\n`) +
-    `━━━━━━━━━━━━━━━━━━━━━━\n` +
+  const html = `🐟 <b>ORDER CONFIRMED</b> ✅\n` +
+    `━━━━━━━━━━━━━━━━━━━━\n` +
+    `📦 <b>Order Number:</b> <code>#${orderRef}</code>\n` +
+    `⚖️ <b>Quantity:</b> <b>${order.items || "Fresh Rainbow Trout"}</b>\n` +
+    `👤 <b>Customer:</b> ${name} (<a href="tel:+91${clean10}">+91 ${clean10}</a>)\n` +
+    `💳 <b>Payment Mode:</b> <b>${modeText}</b>\n` +
+    vpaLine +
+    `💰 <b>Total Amount:</b> <b>₹${amt || "Paid"}</b> [PAID ✅]\n` +
+    `🤖 <b>Channel:</b> WhatsApp AI Sales Agent\n` +
+    locationLine +
+    (order.deliveryTime ? `⏰ <b>Delivery Slot:</b> ${order.deliveryTime}\n` : "") +
+    `━━━━━━━━━━━━━━━━━━━━\n` +
     `👉 <a href="https://wa.me/91${clean10}"><b>Open WhatsApp Chat with Customer</b></a>`;
 
   try {
     await sendTelegramMessage(html);
-    console.log(`📢 [Telegram Dispatch Card Sent] Dispatched order card for #${order.orderRef} to Telegram.`);
+    console.log(`📢 [Telegram Dispatch Card Sent] Dispatched brief order card for #${orderRef} to Telegram.`);
   } catch (tgErr) {
     console.error("Failed to send Telegram dispatch alert:", tgErr.message);
   }
@@ -2225,8 +2241,9 @@ async function checkPendingRazorpayPayments(sock) {
         }
       }
 
-      // Send instant Telegram Dispatch Card to Suhail
-      await sendTelegramDispatchCard(order, { amount: pAmt, phone: targetPhone });
+      // Razorpay Webhook on Vercel sends the single official confirmed order card to Telegram with exact UPI ID & payment details.
+      // To prevent sending TWO duplicate Telegram alerts when an order is confirmed, mark as notified and skip duplicate card.
+      notifiedTelegramOrderRefs.add(targetOrderRef);
 
       // Auto-settle Khata in Supabase if customer has an open balance
       if (targetPhone && pAmt > 0) {
@@ -2478,6 +2495,17 @@ function resolveNearestLocalityName(lat, lng) {
   let bestScore = Infinity;
   for (const p of deliveryZoneDb) {
     if (p.lat == null || p.lon == null || !p.name) continue;
+
+    // Filter out institutional POIs (hospitals, clinics, fuel/petrol pumps, banks, schools, police)
+    // so we return actual residential neighborhoods / junctions to customers!
+    const pType = String(p.type || "").toLowerCase();
+    if (/^(?:hospital|clinic|fuel|bank|school|driving_school|police|blood_bank)$/.test(pType)) continue;
+
+    // Never return competitor/institutional names like Khyber
+    const pName = String(p.name || "").toLowerCase();
+    if (pName.includes("khyber")) continue;
+    if (Array.isArray(p.aliases) && p.aliases.some(a => String(a).toLowerCase().includes("khyber"))) continue;
+
     const d = calculateDistance(lat, lng, Number(p.lat), Number(p.lon));
     const hasAlias = Array.isArray(p.aliases) && p.aliases.length > 0;
     const penalty = hasAlias ? 0 : 0.25;
@@ -2488,7 +2516,9 @@ function resolveNearestLocalityName(lat, lng) {
   }
   if (!best || best.rawKm > 2.5) return null;
   const p = best.place;
-  return (Array.isArray(p.aliases) && p.aliases[0]) ? p.aliases[0] : p.name;
+  const resolved = (Array.isArray(p.aliases) && p.aliases[0]) ? p.aliases[0] : p.name;
+  if (/khyber/i.test(resolved)) return "Khayam";
+  return resolved;
 }
 
 // Customer-shareable, copy-paste ready #location delivery rate quote formatter (Cleaned & Gutted pan-ready pieces only)
@@ -3476,8 +3506,8 @@ CRITICAL INSTRUCTION: Inform them politely that express delivery (packed fresh i
 ======================================================`;
         } else if (sDist <= 11.5) {
         localityContext = `\n======================================================
-📍 CUSTOMER DISTANCE ON FILE: ~${sDist} km (Greater Srinagar: 7–11.5 km).${isEveningSurge ? "\n⚡ EVENING RUSH HOUR (4–8 PM): +₹40 evening rush fee applies below 3 kg. 3 kg+ is 100% FREE!" : ""}
-⚠️ STRICT MANDATE: NEVER SAY "ZONE 3", "doorstep", "cold-chain", "chilled", "subsidized", "70%", "30%", OR "Rapido" TO CUSTOMER!
+📍 CUSTOMER DISTANCE ON FILE: ~${sDist} km (Central/City Srinagar: 7–11.5 km).${isEveningSurge ? "\n⚡ EVENING RUSH HOUR (4–8 PM): +₹40 evening rush fee applies below 3 kg. 3 kg+ is 100% FREE!" : ""}
+⚠️ STRICT MANDATE: NEVER SAY "GREATER SRINAGAR", "ZONE 3", "ZONE", "doorstep", "cold-chain", "chilled", "subsidized", "70%", "30%", OR "Rapido" TO CUSTOMER! Refer directly to the customer's locality or simply say "in Srinagar".
 • Express Delivery: 100% FREE on 3 kg or more (Cleaned & Gutted ₹1,740).
 • 2 kg: ₹1,160 + ₹${89 + surgeAdd} express delivery fee = ₹${1249 + surgeAdd} total.
 • 1 kg: ₹580 + ₹${130 + surgeAdd} express delivery fee = ₹${710 + surgeAdd} total.
@@ -4121,7 +4151,7 @@ SPECIAL SYSTEM CAPABILITY (RAZORPAY PAYMENT LINK GENERATOR):
      [PAY_LINK: ${655 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
    - Confirmed 3 kg: [PAY_LINK: 1740 : 3 kg Cleaned & Gutted]
 
-3. GREATER SRINAGAR (7.0 to 11.5 km from Malabagh — Lal Chowk, Karan Nagar, Dalgate, Khayam, Qamarwari, Nishat, Balgarden):
+3. CENTRAL & CITY SRINAGAR (7.0 to 11.5 km from Malabagh — Lal Chowk, Karan Nagar, Dalgate, Khayam, Qamarwari, Nishat, Gupkar, Balgarden):
    - Free Delivery MOQ: 3 KG or more (3 kg Gutted = ₹1,740 total)
    - 2 KG Order: Express delivery fee of only ₹${89 + surgeAdd} (₹1,160 + ₹${89 + surgeAdd} = ₹${1249 + surgeAdd} total):
      [PAY_LINK: ${1249 + surgeAdd} : 2 kg Cleaned & Gutted (+Express Delivery)]
@@ -4150,8 +4180,8 @@ HOW TO HANDLE 1 KG – 4 KG INQUIRIES BELOW FREE DELIVERY MOQ (VALUE-UPGRADE FIR
 - Nearby Areas (1 kg): [PAY_LINK: ${625 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
 - Mid Srinagar (2 kg): [PAY_LINK: ${1215 + surgeAdd} : 2 kg Cleaned & Gutted (+Express Delivery)]
 - Mid Srinagar (1 kg): [PAY_LINK: ${655 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
-- Greater Srinagar (2 kg): [PAY_LINK: ${1249 + surgeAdd} : 2 kg Cleaned & Gutted (+Express Delivery)]
-- Greater Srinagar (1 kg): [PAY_LINK: ${710 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
+- Central Srinagar (2 kg): [PAY_LINK: ${1249 + surgeAdd} : 2 kg Cleaned & Gutted (+Express Delivery)]
+- Central Srinagar (1 kg): [PAY_LINK: ${710 + surgeAdd} : 1 kg Cleaned & Gutted (+Express Delivery)]
 - South/Cross-City Corridor (4 kg): [PAY_LINK: ${2429 + surgeAdd} : 4 kg Cleaned & Gutted (+Express Delivery)]
 - South/Cross-City Corridor (3 kg): [PAY_LINK: ${1869 + surgeAdd} : 3 kg Cleaned & Gutted (+Express Delivery)]
 - South/Cross-City Corridor (2 kg): [PAY_LINK: ${1299 + surgeAdd} : 2 kg Cleaned & Gutted (+Express Delivery)]
@@ -4847,12 +4877,14 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
         rawReply = rawReply.replace(/\b(?:min(?:imum)?\s*order\s*)?2\s*kg\s*for\s*Zone\s*1[^,\n)]*,\s*3\s*kg\s*for\s*Zone\s*2[^,\n)]*,\s*4\s*kg\s*for\s*Zone\s*4\b/gi, "min 2 kg for nearby areas, 3–5 kg for wider Srinagar areas");
         rawReply = rawReply.replace(/\bZone\s*1\s*\((?:0[-–]4\s*km|core\s*zone)\)/gi, "nearby areas");
         rawReply = rawReply.replace(/\bZone\s*2\s*\(4[-–]7\s*km\)/gi, "mid Srinagar areas");
-        rawReply = rawReply.replace(/\bZone\s*3\s*\(7[-–]11\.5\s*km\)/gi, "greater Srinagar areas");
+        rawReply = rawReply.replace(/\bZone\s*3\s*\(7[-–]11\.5\s*km\)/gi, "central Srinagar areas");
         rawReply = rawReply.replace(/\bZone\s*4\s*\(11\.5[-–]16\s*km\)/gi, "outer corridor areas");
         rawReply = rawReply.replace(/\b(?:in\s+)?Zone\s*1\b/gi, "nearby areas");
         rawReply = rawReply.replace(/\b(?:in\s+)?Zone\s*2\b/gi, "mid Srinagar");
-        rawReply = rawReply.replace(/\b(?:in\s+)?Zone\s*3\b/gi, "greater Srinagar");
+        rawReply = rawReply.replace(/\b(?:in\s+)?Zone\s*3\b/gi, "central Srinagar");
         rawReply = rawReply.replace(/\b(?:in\s+)?Zone\s*4\b/gi, "outer Srinagar");
+        rawReply = rawReply.replace(/\b(?:in\s+)?greater\s+srinagar\s*(?:areas?|zone)?\b/gi, "Srinagar");
+        rawReply = rawReply.replace(/\(\s*greater\s+srinagar\s*(?:area)?\s*\)/gi, "");
         // ─── STRICT CUSTOMER CONFIDENTIALITY & PIN-POINT LOCATION SANITIZER ───
         rawReply = rawReply
           .replace(/\(\s*70\s*%[^)]*30\s*%[^)]*\)/gi, "")
@@ -7392,6 +7424,7 @@ if (require.main === module) {
     setWeatherOverrideMode,
     classifyWeatherMetrics,
     buildLocationRateQuote,
+    resolveNearestLocalityName,
     resolveConfirmedCustomerLocationDetails,
     isCustomerDeliveryLocationConfirmed,
     __setLiveWeatherCacheForTest

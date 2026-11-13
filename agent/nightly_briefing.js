@@ -286,7 +286,7 @@ async function generateExecutiveBriefing(targetDateStr = null) {
   const zoneStats = {
     zone1: 0, // 0 - 4km (Nearby)
     zone2: 0, // 4 - 7km (Mid-Srinagar)
-    zone3: 0, // 7 - 11.5km (Greater Srinagar)
+    zone3: 0, // 7 - 11.5km (Central Srinagar)
     zone4: 0, // 11.5 - 16km (Outer Corridor)
     outOfZone: 0, // > 16km (Outer Districts)
     unspecified: 0
