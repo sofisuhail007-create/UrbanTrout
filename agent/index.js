@@ -27,9 +27,9 @@ process.on("unhandledRejection", (reason) => {
 // URBAN TROUT SALES AGENT — BUILD & VERSION TRACKING
 // ============================================================================
 const BOT_VERSION = "2.9.8";
-const BOT_LAST_UPDATED = "13-Nov-2026, 08:00 AM IST";
-const BOT_RELEASE_TITLE = "Blinkit/Zomato Weather Statement, Rich QR Tracking by Default & On-Demand Payment Link Handler";
-const BOT_RELEASE_NOTES = "Default locked UPI QR code image with embedded order metadata & tracking, on-demand secure payment link handler, official J&K Bank mPay/account details, and customer-first Blinkit/Zomato wet-weather statements";
+const BOT_LAST_UPDATED = "13-Nov-2026, 08:05 AM IST";
+const BOT_RELEASE_TITLE = "Friday Website Pairing (#friday on/off), Blinkit/Zomato Rain Statements & Default Rich QR";
+const BOT_RELEASE_NOTES = "Bi-directional Friday operations sync with website (allow_friday_orders in Supabase), default locked UPI QR with rich tracking metadata, on-demand payment links & modern wet-weather statements";
 
 // ============================================================================
 // STRICT VVIP MANUAL-ONLY LIST (AI MUST NEVER TEXT UNDER ANY CIRCUMSTANCE)
@@ -149,6 +149,8 @@ function saveFridayOverrideState() {
   } catch (_) {}
 }
 
+let websiteFridayAllowed = false;
+
 function setFridayOverrideMode(mode, updatedBy = "Suhail") {
   const normMode = (mode === "open" || mode === "on" || mode === "enable" || mode === "start")
     ? "open"
@@ -161,10 +163,41 @@ function setFridayOverrideMode(mode, updatedBy = "Suhail") {
     updatedBy
   };
   saveFridayOverrideState();
+
+  // 🌐 PAIR WITH WEBSITE: Sync immediately with Supabase app_settings (allow_friday_orders)
+  // When Friday is OPEN, allow_friday_orders is "true", unlocking the website store & checkout.
+  // When Friday is CLOSED or AUTO, allow_friday_orders is "false", restoring standard Friday maintenance mode.
+  const allowFridayOnWebsite = normMode === "open" ? "true" : "false";
+  if (typeof updateSupabaseAppSettings === "function") {
+    try {
+      updateSupabaseAppSettings("allow_friday_orders", allowFridayOnWebsite)
+        .then((ok) => {
+          if (ok) console.log(`🌐 [Website Sync] Updated allow_friday_orders=${allowFridayOnWebsite} in Supabase app_settings`);
+        })
+        .catch((err) => console.warn("🌐 [Website Sync Notice]:", err?.message || err));
+    } catch (_) {}
+  }
+
+  // Also sync local .app_settings_cache.json in urban-trout-app if available in workspace
+  try {
+    const webCacheCandidates = [
+      path.resolve(__dirname, "../urban-trout-app/.app_settings_cache.json"),
+      path.resolve(__dirname, ".app_settings_cache.json")
+    ];
+    for (const cPath of webCacheCandidates) {
+      if (fs.existsSync(cPath)) {
+        const cache = JSON.parse(fs.readFileSync(cPath, "utf8"));
+        cache.allow_friday_orders = allowFridayOnWebsite;
+        fs.writeFileSync(cPath, JSON.stringify(cache, null, 2), "utf8");
+      }
+    }
+  } catch (_) {}
 }
 
 function isFridayOperationsOpen() {
-  return fridayOverride.mode === "open";
+  if (fridayOverride.mode === "open") return true;
+  if (fridayOverride.mode === "closed") return false;
+  return websiteFridayAllowed === true;
 }
 
 let liveWeatherCache = {
@@ -1809,15 +1842,22 @@ async function pollWhatsAppDispatchQueue(sock) {
   if (isPollingQueue) return;
   isPollingQueue = true;
   try {
-    const res = await querySupabase("app_settings?key=eq.whatsapp_dispatch_queue&select=value");
-    if (!res || !res[0] || !res[0].value) {
+    const res = await querySupabase("app_settings?key=in.(whatsapp_dispatch_queue,allow_friday_orders)&select=key,value");
+    if (Array.isArray(res) && res.length > 0) {
+      const friRow = res.find(r => r.key === "allow_friday_orders");
+      if (friRow) {
+        websiteFridayAllowed = (friRow.value === "true");
+      }
+    }
+    const qRow = Array.isArray(res) ? res.find(r => r.key === "whatsapp_dispatch_queue") : null;
+    if (!qRow || !qRow.value) {
       isPollingQueue = false;
       return;
     }
 
     let queue = [];
     try {
-      queue = JSON.parse(res[0].value);
+      queue = JSON.parse(qRow.value);
     } catch (_) {
       isPollingQueue = false;
       return;
@@ -6013,33 +6053,37 @@ async function startBot() {
           setFridayOverrideMode("open", cleanPhone || "Suhail");
           await sock.sendMessage(ownerDeskJid, {
             text: `🟢 *FRIDAY OPERATIONS ACTIVATED (OPEN)* 🐟\n\n` +
-              `• *Business Status:* Friday operations are now **ACTIVE & OPEN**!\n` +
+              `• *AI Agent Status:* Friday operations are now **ACTIVE & OPEN**!\n` +
+              `• *Website Status:* **Synced to Website!** (allow_friday_orders = true: online checkout & same-day express delivery unlocked)\n` +
               `• *Live Counter:* Malabagh Live Vending Center open 8:00 AM – 8:00 PM.\n` +
               `• *Express Delivery:* Same-day 2-hour delivery active across Srinagar.\n` +
               `• *AI Agent:* Confirms Friday orders, quotes standard rates, and issues locked Razorpay QR codes!\n\n` +
               `_To revert back to standard Friday closure, send *#friday off* or *#friday auto*._`
           });
-          console.log(`🟢 [Owner #friday] Friday operations forced OPEN by ${cleanPhone || "Suhail"}`);
+          console.log(`🟢 [Owner #friday] Friday operations forced OPEN by ${cleanPhone || "Suhail"} (Synced to Website)`);
           return;
         } else if (["closed", "close", "off", "disable", "stop", "auto"].includes(arg)) {
           setFridayOverrideMode(arg === "auto" ? "auto" : "closed", cleanPhone || "Suhail");
           await sock.sendMessage(ownerDeskJid, {
             text: `🔴 *FRIDAY OPERATIONS CLOSED (STANDARD)* 🐟\n\n` +
-              `• *Business Status:* Friday operations are **CLOSED** (Standard maintenance & filtration backwash policy).\n` +
+              `• *AI Agent Status:* Friday operations are **CLOSED** (Standard maintenance & filtration backwash policy).\n` +
+              `• *Website Status:* **Synced to Website!** (allow_friday_orders = false: website shows Friday maintenance banner & pre-orders for Saturday).\n` +
               `• *AI Agent:* Informs customers Friday is closed for maintenance, and books advance delivery for Saturday morning!\n\n` +
               `_To activate Friday operations, send *#friday on* or *#friday open*._`
           });
-          console.log(`🔴 [Owner #friday] Friday operations reset to CLOSED/AUTO by ${cleanPhone || "Suhail"}`);
+          console.log(`🔴 [Owner #friday] Friday operations reset to CLOSED/AUTO by ${cleanPhone || "Suhail"} (Synced to Website)`);
           return;
         } else {
           const isOpen = isFridayOperationsOpen();
           await sock.sendMessage(ownerDeskJid, {
             text: `🕌 *FRIDAY OPERATIONS STATUS*\n\n` +
               `• *Current Setting:* *${isOpen ? "🟢 OPEN (Special Operations Active)" : "🔴 CLOSED (Standard Weekly Maintenance)"}*\n` +
+              `• *AI Agent:* ${isOpen ? "Accepting live Friday orders & issuing QR codes" : "Offering advance bookings for Saturday morning"}\n` +
+              `• *Website:* ${isOpen ? "🟢 OPEN (Live checkout & same-day express dispatch active)" : "🔴 CLOSED (Friday maintenance banner active, pre-orders for Saturday)"}\n` +
               `• *Operating Hours:* ${isOpen ? "8:00 AM – 8:00 PM (Live Harvest & Express Delivery Active)" : "Zero Deliveries (Filtration Backwash & Weekly Bio-security)"}\n\n` +
               `👉 *Commands:*\n` +
-              `• *#friday on* or *#friday open* — Turn operations ON for Friday\n` +
-              `• *#friday off* or *#friday closed* — Turn operations OFF (Standard Friday closure)\n` +
+              `• *#friday on* or *#friday open* — Turn operations ON (Agent + Website)\n` +
+              `• *#friday off* or *#friday closed* — Turn operations OFF (Agent + Website)\n` +
               `• *#friday auto* — Restore default calendar mode`
           });
           return;
