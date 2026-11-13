@@ -59,7 +59,8 @@ export interface EntrySellRateBreakdown {
   workerIncentiveRatePerKg: number;
   workerIncentiveTotal: number;
   netRealizedTotal: number;
-  finalSellRatePerKg: number;
+  customerRatePerKg: number; // Rate given to customer (excludes Mohd Amin deduction)
+  finalSellRatePerKg: number; // Net farm rate after Mohd Amin deduction
 }
 
 /** Computes net realized sell rate per kg starting from base rate, delivery cost, and worker gutting incentive. */
@@ -95,6 +96,12 @@ export const computeEntrySellRateBreakdown = (params: {
     ? (params.amountPaid > 0 ? params.amountPaid + (Number(params.balanceAmount) || 0) : expectedGrossWithDel)
     : params.amountPaid;
 
+  const customerGrossTotal = Math.max(0, grossFishPlusDel - deliveryRiderPayout);
+  const customerRatePerKg =
+    w > 0
+      ? customerGrossTotal / w
+      : Math.max(0, baseRatePerKg + deliveryPerKgDelta);
+
   const netRealizedTotal = Math.max(0, grossFishPlusDel - deliveryRiderPayout - workerIncentiveTotal);
   const finalSellRatePerKg =
     w > 0
@@ -110,6 +117,7 @@ export const computeEntrySellRateBreakdown = (params: {
     workerIncentiveRatePerKg,
     workerIncentiveTotal,
     netRealizedTotal,
+    customerRatePerKg,
     finalSellRatePerKg,
   };
 };
@@ -2974,6 +2982,7 @@ export default function VendingCenterLoggerPage() {
   // ─── Handle Save Entry ───
   const handleSubmitEntry = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (saving) return;
     const w = parseFloat(formWeight);
     const amt = parseFloat(formAmount);
 
@@ -3311,6 +3320,7 @@ export default function VendingCenterLoggerPage() {
   // ─── Staff Incentive Payout Handlers ───
   const handleRecordPayout = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (savingPayout) return;
     const amount = parseFloat(payoutFormAmount);
     if (!amount || isNaN(amount) || amount <= 0) {
       alert("Please enter a valid payout amount greater than ₹0.");
@@ -3368,6 +3378,7 @@ export default function VendingCenterLoggerPage() {
   // ─── Aquarium Stock Log Handlers ───
   const handleAddStockEntry = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (savingStock) return;
     const w = parseFloat(stockFormWeight);
     const cost = parseFloat(stockFormCost);
 
@@ -3459,6 +3470,7 @@ export default function VendingCenterLoggerPage() {
   // ─── Aquarium Mortality Handlers ───
   const handleAddMortalityEntry = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (savingMortality) return;
     const w = parseFloat(mortalityFormWeight);
     if (!w || isNaN(w) || w <= 0) {
       alert("Please enter a valid mortality weight in Kg.");
@@ -3907,6 +3919,7 @@ export default function VendingCenterLoggerPage() {
 
   const handleAddSalaryPayment = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (savingSalary) return;
     const amount = parseFloat(salaryFormAmount);
     if (!amount || isNaN(amount) || amount <= 0) {
       alert("Please enter a valid salary amount greater than ₹0.");
@@ -4513,6 +4526,7 @@ export default function VendingCenterLoggerPage() {
 
   const handleSaveExpense = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (savingExpense) return;
     const amt = parseFloat(expenseFormAmount);
     if (isNaN(amt) || amt <= 0) {
       alert("Please enter a valid expense amount greater than 0");
@@ -7715,18 +7729,43 @@ export default function VendingCenterLoggerPage() {
                             Base ₹{e.rate_per_kg}/Kg
                           </span>
                           {(isDelivery || rowRateBreakdown.workerIncentiveTotal > 0 || Math.abs(effRate - rate) > 0.1) && (
-                            <span
-                              className={`text-[9.5px] font-mono font-bold ${
-                                effRate < rate - 0.5
-                                  ? "text-amber-300"
-                                  : effRate > rate + 0.5
-                                  ? "text-cyan-300"
-                                  : "text-emerald-300"
-                              }`}
-                              title={`Base ₹${rate}/Kg${isDelivery && rowRateBreakdown.deliveryRiderPayout > 0 ? ` | Del ${rowRateBreakdown.deliveryNetDelta < 0 ? "-" : "+"}₹${Math.abs(rowRateBreakdown.deliveryPerKgDelta).toFixed(1)}/Kg` : ""}${rowRateBreakdown.workerIncentiveRatePerKg > 0 ? ` | Amin -₹${rowRateBreakdown.workerIncentiveRatePerKg}/Kg` : ""}`}
-                            >
-                              Final: ₹{effRate % 1 === 0 ? effRate.toFixed(0) : effRate.toFixed(1)}/Kg
-                            </span>
+                            <div className="flex flex-col items-end gap-0.5">
+                              {rowRateBreakdown.workerIncentiveRatePerKg > 0 ? (
+                                <>
+                                  <span
+                                    className="text-[9.5px] font-mono font-bold text-cyan-300"
+                                    title={`Customer Rate (before Amin incentive): ₹${rowRateBreakdown.customerRatePerKg.toFixed(1)}/Kg`}
+                                  >
+                                    Cust: ₹{rowRateBreakdown.customerRatePerKg % 1 === 0 ? rowRateBreakdown.customerRatePerKg.toFixed(0) : rowRateBreakdown.customerRatePerKg.toFixed(1)}/Kg
+                                  </span>
+                                  <span
+                                    className={`text-[9px] font-mono font-semibold ${
+                                      effRate < rate - 0.5
+                                        ? "text-amber-300"
+                                        : effRate > rate + 0.5
+                                        ? "text-cyan-300"
+                                        : "text-emerald-300"
+                                    }`}
+                                    title={`Net Realized Farm Rate (after Amin cut): ₹${effRate.toFixed(1)}/Kg`}
+                                  >
+                                    Net: ₹{effRate % 1 === 0 ? effRate.toFixed(0) : effRate.toFixed(1)}/Kg
+                                  </span>
+                                </>
+                              ) : (
+                                <span
+                                  className={`text-[9.5px] font-mono font-bold ${
+                                    effRate < rate - 0.5
+                                      ? "text-amber-300"
+                                      : effRate > rate + 0.5
+                                      ? "text-cyan-300"
+                                      : "text-emerald-300"
+                                  }`}
+                                  title={`Base ₹${rate}/Kg${isDelivery && rowRateBreakdown.deliveryRiderPayout > 0 ? ` | Del ${rowRateBreakdown.deliveryNetDelta < 0 ? "-" : "+"}₹${Math.abs(rowRateBreakdown.deliveryPerKgDelta).toFixed(1)}/Kg` : ""}`}
+                                >
+                                  Final: ₹{effRate % 1 === 0 ? effRate.toFixed(0) : effRate.toFixed(1)}/Kg
+                                </span>
+                              )}
+                            </div>
                           )}
                           {(isDelivery && rowRateBreakdown.deliveryNetDelta !== 0) || rowRateBreakdown.workerIncentiveRatePerKg > 0 ? (
                             <span className="text-[8.5px] font-mono text-slate-400">
@@ -8189,17 +8228,34 @@ export default function VendingCenterLoggerPage() {
                           <div className="flex items-center justify-between">
                             <span className="text-slate-400 flex items-center gap-1">
                               <span className="material-symbols-outlined text-[12px] text-teal-400">price_change</span>
-                              Final Sell Rate:
+                              {mobRateBreakdown.workerIncentiveRatePerKg > 0 ? "Effective Rates:" : "Final Sell Rate:"}
                             </span>
-                          <div className="flex items-center gap-1.5">
-                            <span
-                              className={`font-black ${
-                                isCreditSale ? "text-purple-300" : isLoss ? "text-amber-300" : isGain ? "text-cyan-300" : "text-emerald-400"
-                              }`}
-                            >
-                              ₹{effRate.toFixed(1)}/Kg
-                            </span>
-                            {isCreditSale ? (
+                            <div className="flex items-center gap-1.5">
+                              {mobRateBreakdown.workerIncentiveRatePerKg > 0 ? (
+                                <div className="flex items-center gap-1.5">
+                                  <span className="text-cyan-300 font-bold" title="Customer Rate (Excl Amin)">
+                                    Cust: ₹{mobRateBreakdown.customerRatePerKg.toFixed(1)}/Kg
+                                  </span>
+                                  <span className="text-slate-600">|</span>
+                                  <span
+                                    className={`font-black ${
+                                      isCreditSale ? "text-purple-300" : isLoss ? "text-amber-300" : isGain ? "text-cyan-300" : "text-emerald-400"
+                                    }`}
+                                    title="Net Farm Rate (After Amin)"
+                                  >
+                                    Net: ₹{effRate.toFixed(1)}/Kg
+                                  </span>
+                                </div>
+                              ) : (
+                                <span
+                                  className={`font-black ${
+                                    isCreditSale ? "text-purple-300" : isLoss ? "text-amber-300" : isGain ? "text-cyan-300" : "text-emerald-400"
+                                  }`}
+                                >
+                                  ₹{effRate.toFixed(1)}/Kg
+                                </span>
+                              )}
+                              {isCreditSale ? (
                               <span className="text-[9.5px] text-purple-400 font-medium">
                                 (Credit)
                               </span>
@@ -9333,46 +9389,82 @@ export default function VendingCenterLoggerPage() {
 
                         {/* Twin metric display */}
                         <div className="grid grid-cols-2 gap-2">
-                          <div className="p-2.5 rounded-xl bg-black/90 border border-[#222222]">
-                            <span className="text-[9.5px] uppercase font-bold text-slate-400 block font-mono">
-                              Final Sell Rate / Kg
-                            </span>
-                            <div className="flex items-baseline gap-1 mt-0.5">
-                              <span
-                                className={`text-lg font-black tracking-tight ${
-                                  rateLossPerKg > 0.5
-                                    ? "text-amber-300"
-                                    : rateLossPerKg < -0.5
-                                    ? "text-cyan-300"
-                                    : "text-emerald-400"
-                                }`}
-                              >
-                                ₹{effectiveRate.toFixed(1)}
+                          <div className="p-2.5 rounded-xl bg-black/90 border border-[#222222] space-y-1.5">
+                            <div className="flex items-center justify-between gap-1">
+                              <span className="text-[9.5px] uppercase font-bold text-slate-400 block font-mono">
+                                Effective Rates
                               </span>
-                              <span className="text-[10px] font-sans text-slate-400">/ Kg</span>
+                              {modalRateBreakdown.workerIncentiveRatePerKg > 0 && (
+                                <span className="text-[8px] font-mono px-1 py-0.2 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30">
+                                  -₹{modalRateBreakdown.workerIncentiveRatePerKg} Amin
+                                </span>
+                              )}
                             </div>
-                            <span className="text-[9px] text-slate-400 block mt-0.5 leading-snug">
-                              Base ₹{formRate}
-                              {isDel && riderCost > 0
-                                ? ` ${modalRateBreakdown.deliveryNetDelta < 0 ? "−" : "+"} Del ₹${Math.abs(modalRateBreakdown.deliveryPerKgDelta).toFixed(1)}`
-                                : ""}
-                              {modalRateBreakdown.workerIncentiveRatePerKg > 0
-                                ? ` − Amin ₹${modalRateBreakdown.workerIncentiveRatePerKg}`
-                                : ""}
-                            </span>
-                            {rateLossPerKg > 0.5 ? (
-                              <span className="text-[9px] text-rose-400 font-medium block mt-0.5">
-                                -₹{rateLossPerKg.toFixed(1)}/Kg vs ₹{defaultStandardRate} std
+
+                            {/* Dual Rate Pills: To Customer vs Net Farm */}
+                            <div className="grid grid-cols-2 gap-1.5">
+                              {/* Rate given to customer */}
+                              <div className="p-1.5 rounded-lg bg-slate-900/90 border border-cyan-500/30">
+                                <span className="text-[8px] uppercase font-bold text-cyan-400 block font-mono leading-none">
+                                  To Customer
+                                </span>
+                                <div className="flex items-baseline gap-0.5 mt-1">
+                                  <span className="text-base font-black tracking-tight text-cyan-300">
+                                    ₹{modalRateBreakdown.customerRatePerKg.toFixed(1)}
+                                  </span>
+                                  <span className="text-[8.5px] font-sans text-slate-400">/Kg</span>
+                                </div>
+                                <span className="text-[7.5px] text-slate-400 block font-mono mt-0.5">
+                                  Excl. Amin
+                                </span>
+                              </div>
+
+                              {/* Net farm rate after Amin */}
+                              <div className="p-1.5 rounded-lg bg-slate-900/90 border border-emerald-500/30">
+                                <span className="text-[8px] uppercase font-bold text-emerald-400 block font-mono leading-none">
+                                  Net Farm
+                                </span>
+                                <div className="flex items-baseline gap-0.5 mt-1">
+                                  <span
+                                    className={`text-base font-black tracking-tight ${
+                                      rateLossPerKg > 0.5
+                                        ? "text-amber-300"
+                                        : rateLossPerKg < -0.5
+                                        ? "text-cyan-300"
+                                        : "text-emerald-400"
+                                    }`}
+                                  >
+                                    ₹{effectiveRate.toFixed(1)}
+                                  </span>
+                                  <span className="text-[8.5px] font-sans text-slate-400">/Kg</span>
+                                </div>
+                                <span className="text-[7.5px] text-slate-400 block font-mono mt-0.5">
+                                  After Amin
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="pt-0.5 text-[8.5px] font-mono leading-snug">
+                              <span className="text-slate-400 block">
+                                Base ₹{formRate}
+                                {isDel && riderCost > 0
+                                  ? ` ${modalRateBreakdown.deliveryNetDelta < 0 ? "−" : "+"} Del ₹${Math.abs(modalRateBreakdown.deliveryPerKgDelta).toFixed(1)}`
+                                  : ""}
                               </span>
-                            ) : rateLossPerKg < -0.5 ? (
-                              <span className="text-[9px] text-cyan-400 font-medium block mt-0.5">
-                                +₹{Math.abs(rateLossPerKg).toFixed(1)}/Kg premium
-                              </span>
-                            ) : (
-                              <span className="text-[9px] text-emerald-400/80 block mt-0.5">
-                                100% Full Standard Price
-                              </span>
-                            )}
+                              {rateLossPerKg > 0.5 ? (
+                                <span className="text-rose-400 font-medium block">
+                                  -₹{rateLossPerKg.toFixed(1)}/Kg vs ₹{defaultStandardRate} std
+                                </span>
+                              ) : rateLossPerKg < -0.5 ? (
+                                <span className="text-cyan-400 font-medium block">
+                                  +₹{Math.abs(rateLossPerKg).toFixed(1)}/Kg premium
+                                </span>
+                              ) : (
+                                <span className="text-emerald-400/80 block">
+                                  100% Full Standard Price
+                                </span>
+                              )}
+                            </div>
                           </div>
 
                           <div className="p-2.5 rounded-xl bg-black/90 border border-[#222222] text-right">
@@ -9958,10 +10050,21 @@ export default function VendingCenterLoggerPage() {
                 <button
                   type="submit"
                   disabled={saving}
-                  className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-sm uppercase tracking-wider transition-all shadow-xl shadow-emerald-500/20 cursor-pointer flex items-center justify-center gap-2"
+                  className={`w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-400 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-black text-sm uppercase tracking-wider transition-all shadow-xl shadow-emerald-500/20 flex items-center justify-center gap-2.5 ${
+                    saving ? "opacity-75 cursor-not-allowed pointer-events-none" : "cursor-pointer active:scale-[0.99]"
+                  }`}
                 >
-                  <span className="material-symbols-outlined text-lg">check_circle</span>
-                  {saving ? "Saving Entry…" : editingEntry ? "Update Entry" : "Save Sales Entry (✓)"}
+                  {saving ? (
+                    <>
+                      <span className="w-5 h-5 border-[2.5px] border-slate-950 border-t-transparent animate-spin rounded-full inline-block shrink-0" />
+                      <span className="animate-pulse tracking-wide font-black">Saving Entry…</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-lg">check_circle</span>
+                      <span>{editingEntry ? "Update Entry" : "Save Sales Entry (✓)"}</span>
+                    </>
+                  )}
                 </button>
               </div>
             </form>
@@ -10337,12 +10440,14 @@ export default function VendingCenterLoggerPage() {
                   <button
                     type="submit"
                     disabled={savingPayout}
-                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md disabled:opacity-50 flex items-center gap-1.5"
+                    className={`px-4 py-2 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs uppercase tracking-wider transition-all shadow-md flex items-center gap-2 ${
+                      savingPayout ? "opacity-70 cursor-not-allowed pointer-events-none" : "cursor-pointer active:scale-95"
+                    }`}
                   >
                     {savingPayout ? (
                       <>
-                        <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent animate-spin rounded-full" />
-                        <span>Recording...</span>
+                        <span className="w-4 h-4 border-2 border-white border-t-transparent animate-spin rounded-full inline-block shrink-0" />
+                        <span className="animate-pulse">Recording Payout…</span>
                       </>
                     ) : (
                       <>
@@ -10695,12 +10800,14 @@ export default function VendingCenterLoggerPage() {
                   <button
                     type="submit"
                     disabled={savingSalary}
-                    className="px-4 py-2 rounded-xl bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white font-bold text-xs uppercase tracking-wider transition-all cursor-pointer shadow-md disabled:opacity-50 flex items-center gap-1.5 active:scale-95"
+                    className={`px-4 py-2 rounded-xl bg-gradient-to-r from-sky-600 to-blue-600 hover:from-sky-500 hover:to-blue-500 text-white font-bold text-xs uppercase tracking-wider transition-all shadow-md flex items-center gap-2 ${
+                      savingSalary ? "opacity-70 cursor-not-allowed pointer-events-none" : "cursor-pointer active:scale-95"
+                    }`}
                   >
                     {savingSalary ? (
                       <>
-                        <span className="w-3.5 h-3.5 border-2 border-white border-t-transparent animate-spin rounded-full" />
-                        <span>Recording...</span>
+                        <span className="w-4 h-4 border-2 border-white border-t-transparent animate-spin rounded-full inline-block shrink-0" />
+                        <span className="animate-pulse">Recording Salary…</span>
                       </>
                     ) : (
                       <>
@@ -11337,14 +11444,21 @@ export default function VendingCenterLoggerPage() {
                 <button
                   type="submit"
                   disabled={savingStock}
-                  className="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white text-xs font-black uppercase tracking-wider transition-all disabled:opacity-60 cursor-pointer flex items-center justify-center gap-1.5 shadow-lg shadow-blue-500/20"
+                  className={`flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 ${
+                    savingStock ? "opacity-70 cursor-not-allowed pointer-events-none" : "cursor-pointer active:scale-95"
+                  }`}
                 >
                   {savingStock ? (
-                    <span className="w-4 h-4 border-2 border-white border-t-transparent animate-spin rounded-full" />
+                    <>
+                      <span className="w-4 h-4 border-2 border-white border-t-transparent animate-spin rounded-full inline-block shrink-0" />
+                      <span className="animate-pulse">Logging Stock…</span>
+                    </>
                   ) : (
-                    <span className="material-symbols-outlined text-sm">add</span>
+                    <>
+                      <span className="material-symbols-outlined text-sm">add</span>
+                      <span>Log Stock</span>
+                    </>
                   )}
-                  {savingStock ? "Saving…" : "Log Stock"}
                 </button>
               </div>
             </form>
@@ -11539,14 +11653,21 @@ export default function VendingCenterLoggerPage() {
                 <button
                   type="submit"
                   disabled={savingMortality}
-                  className="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-rose-600 to-red-500 hover:from-rose-500 hover:to-red-400 text-white text-xs font-black uppercase tracking-wider transition-all disabled:opacity-60 cursor-pointer flex items-center justify-center gap-1.5 shadow-lg shadow-rose-500/20"
+                  className={`flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-rose-600 to-red-500 hover:from-rose-500 hover:to-red-400 text-white text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-rose-500/20 flex items-center justify-center gap-2 ${
+                    savingMortality ? "opacity-70 cursor-not-allowed pointer-events-none" : "cursor-pointer active:scale-95"
+                  }`}
                 >
                   {savingMortality ? (
-                    <span className="w-4 h-4 border-2 border-white border-t-transparent animate-spin rounded-full" />
+                    <>
+                      <span className="w-4 h-4 border-2 border-white border-t-transparent animate-spin rounded-full inline-block shrink-0" />
+                      <span className="animate-pulse">Recording Mortality…</span>
+                    </>
                   ) : (
-                    <span className="material-symbols-outlined text-sm">emergency</span>
+                    <>
+                      <span className="material-symbols-outlined text-sm">emergency</span>
+                      <span>Record Mortality</span>
+                    </>
                   )}
-                  {savingMortality ? "Saving…" : "Record Mortality"}
                 </button>
               </div>
             </form>
@@ -11894,16 +12015,23 @@ export default function VendingCenterLoggerPage() {
                 <button
                   type="submit"
                   disabled={savingExpense}
-                  className="flex-1 py-2.5 px-5 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white text-xs font-black uppercase tracking-wider transition-all disabled:opacity-60 cursor-pointer flex items-center justify-center gap-2 shadow-lg shadow-rose-600/25 active:scale-95"
+                  className={`flex-1 py-2.5 px-5 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-rose-600/25 flex items-center justify-center gap-2 ${
+                    savingExpense ? "opacity-70 cursor-not-allowed pointer-events-none" : "cursor-pointer active:scale-95"
+                  }`}
                 >
                   {savingExpense ? (
-                    <span className="w-4 h-4 border-2 border-white border-t-transparent animate-spin rounded-full" />
+                    <>
+                      <span className="w-4 h-4 border-2 border-white border-t-transparent animate-spin rounded-full inline-block shrink-0" />
+                      <span className="animate-pulse">Saving Expense…</span>
+                    </>
                   ) : (
-                    <span className="material-symbols-outlined text-sm">
-                      {editingExpense ? "save" : "check"}
-                    </span>
+                    <>
+                      <span className="material-symbols-outlined text-sm">
+                        {editingExpense ? "save" : "check"}
+                      </span>
+                      <span>{editingExpense ? "Update Expense" : "Save Expense"}</span>
+                    </>
                   )}
-                  <span>{savingExpense ? "Saving…" : editingExpense ? "Update Expense" : "Save Expense"}</span>
                 </button>
               </div>
             </form>
