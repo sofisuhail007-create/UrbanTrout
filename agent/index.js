@@ -26,10 +26,10 @@ process.on("unhandledRejection", (reason) => {
 // ============================================================================
 // URBAN TROUT SALES AGENT — BUILD & VERSION TRACKING
 // ============================================================================
-const BOT_VERSION = "2.9.6";
-const BOT_LAST_UPDATED = "13-Nov-2026, 12:00 AM IST";
-const BOT_RELEASE_TITLE = "Hostinger Cloud VPS Edition (Razorpay QR-Only Primary Checkout, Machine-Descaled Pan-Ready Policy & J&K Bank mPay Details)";
-const BOT_RELEASE_NOTES = "Strict Machine-Descaled Pan-Ready Cut Policy (No Boneless/Skinless) • Razorpay QR-Only Primary Checkout • J&K Bank Official Account Details for mPay • Complete Removal of JKBMERC VPA";
+const BOT_VERSION = "2.9.7";
+const BOT_LAST_UPDATED = "13-Nov-2026, 07:30 AM IST";
+const BOT_RELEASE_TITLE = "Hostinger Cloud VPS Edition (Friday Operations Toggle (#friday on/off), Razorpay QR-Only Checkout & Zero-Fee UPI)";
+const BOT_RELEASE_NOTES = "Owner #friday on / #friday off Operations Command • Strict Machine-Descaled Pan-Ready Cut Policy • Razorpay Locked UPI QR • J&K Bank mPay Details";
 
 // ============================================================================
 // STRICT VVIP MANUAL-ONLY LIST (AI MUST NEVER TEXT UNDER ANY CIRCUMSTANCE)
@@ -121,6 +121,50 @@ function saveWeatherOverrideState() {
   try {
     fs.writeFileSync(WEATHER_STATE_FILE, JSON.stringify(weatherOverride, null, 2));
   } catch (_) {}
+}
+
+// ============================================================================
+// FRIDAY BUSINESS OPERATIONS OVERRIDE (Control via #friday on / #friday off)
+// Standard policy: Closed on Friday for bio-security & filtration maintenance.
+// Owner override: Forces business operations OPEN on Friday (8:00 AM - 8:00 PM).
+// ============================================================================
+const FRIDAY_STATE_FILE = path.join(__dirname, "friday_state.json");
+let fridayOverride = { mode: "auto", updatedAt: null, updatedBy: null };
+try {
+  if (fs.existsSync(FRIDAY_STATE_FILE)) {
+    const savedFri = JSON.parse(fs.readFileSync(FRIDAY_STATE_FILE, "utf8"));
+    if (savedFri && ["auto", "open", "closed"].includes(savedFri.mode)) {
+      fridayOverride = {
+        mode: savedFri.mode,
+        updatedAt: savedFri.updatedAt || null,
+        updatedBy: savedFri.updatedBy || null
+      };
+    }
+  }
+} catch (_) {}
+
+function saveFridayOverrideState() {
+  try {
+    fs.writeFileSync(FRIDAY_STATE_FILE, JSON.stringify(fridayOverride, null, 2));
+  } catch (_) {}
+}
+
+function setFridayOverrideMode(mode, updatedBy = "Suhail") {
+  const normMode = (mode === "open" || mode === "on" || mode === "enable" || mode === "start")
+    ? "open"
+    : (mode === "closed" || mode === "close" || mode === "off" || mode === "disable" || mode === "stop")
+    ? "closed"
+    : "auto";
+  fridayOverride = {
+    mode: normMode,
+    updatedAt: new Date().toISOString(),
+    updatedBy
+  };
+  saveFridayOverrideState();
+}
+
+function isFridayOperationsOpen() {
+  return fridayOverride.mode === "open";
 }
 
 let liveWeatherCache = {
@@ -3007,7 +3051,9 @@ async function generateGeminiReply(chatId, userMessage, customerPhone, customerN
     year: "numeric"
   });
   const isThursdayToday = (todayDay === 4);
-  const isFridayToday = (todayDay === 5);
+  const isFridayNormally = (todayDay === 5);
+  const isFridayOpen = isFridayOperationsOpen();
+  const isFridayToday = isFridayNormally && !isFridayOpen;
 
   let timeOfDayDesc = "Morning";
   if (istHour >= 12 && istHour < 16) timeOfDayDesc = "Afternoon";
@@ -3622,6 +3668,7 @@ CRITICAL DIRECTIVE ON MPAY & BANK ACCOUNT DETAILS:
   • Bank: J&K Bank, Malabagh Branch
 
   📸 *Please share your payment screenshot here once transferred!* Our Malabagh farm team will verify it within 5 minutes and immediately initiate your live harvest!"
+• You MUST explicitly state: "verification takes 5 minutes for our Malabagh farm team".
 • Also reassure them that scanning our locked Razorpay UPI QR code image with the J&K Bank mPay app works seamlessly and instantly!
 ======================================================`;
   }
@@ -3633,6 +3680,8 @@ CRITICAL DIRECTIVE ON MPAY & BANK ACCOUNT DETAILS:
   if (isVisitLocationIntent) {
     const counterHoursNote = isFridayToday
       ? "Counter Hours: STRICTLY CLOSED TODAY (FRIDAY) for weekly maintenance. Re-opens Saturday at 8:00 AM!"
+      : (isFridayOpen && isFridayNormally)
+      ? "Counter Hours: 8:00 AM to 8:00 PM (SPECIAL OPENING TODAY, FRIDAY)"
       : "Counter Hours: 8:00 AM to 8:00 PM (Saturday to Thursday, strictly closed Fridays)";
     intentContext += `\n======================================================
 💡 QUERY INTENT DECODED: Customer asked to visit or wants our exact location ("${userMessage.trim()}").
@@ -3648,7 +3697,7 @@ You can choose live swimming trout from our counter tanks, watch it harvested li
   }
 
   // ─── FRIDAY DETERMINISTIC HARD LOCK (ENTIRE OPERATION 100% CLOSED) ───
-  if (isFridayToday && !/\b(?:saturday|advance|hafta)\b/i.test(trimmedLower)) {
+  if (isFridayToday && !/\b(?:saturday|advance|hafta)\b/i.test(trimmedLower) && !isCutPreferenceIntent && !isMpayIntent) {
     const isFridayInquiry = /(?:deliver|order|open|aaj|today|now|abhi|right\s*now|available|bhej|chahiye|rate|visit|kahan|hai\s*kya|trout|fish|rate|price|cost|timing)/i.test(trimmedLower);
     if (isFridayInquiry) {
       const deterministicFridayReply = `Our Live Vending Center and express delivery operations are strictly closed today (Friday) for weekly bio-security maintenance, filtration backwashing, and staff weekly off.
@@ -3675,7 +3724,7 @@ Would you like us to schedule a fresh live-harvest delivery for you tomorrow (Sa
   }
 
   // ─── THURSDAY HARD LOCK FOR FRIDAY / TOMORROW INQUIRIES ───
-  const isAskingTomorrowOnThursday = isThursdayToday && /\b(?:tomorrow|kal|friday|jumma|juma|jummah)\b/i.test(trimmedLower);
+  const isAskingTomorrowOnThursday = isThursdayToday && !isFridayOpen && /\b(?:tomorrow|kal|friday|jumma|juma|jummah)\b/i.test(trimmedLower);
   if (isAskingTomorrowOnThursday && /(?:available|deliver|delivery|open|bhej|chahiye|order|mil\s*jayega|mil\s*sakega|ho\s*(?:sakta|jayega)|send|timing|slot)/i.test(trimmedLower)) {
     const deterministicThuForFriReply = `Tomorrow is Friday, and our farm and delivery operations are strictly closed on Fridays for scheduled bio-security maintenance and filtration backwashing (zero counter walk-ins and zero express deliveries on Friday).
 
@@ -3787,7 +3836,14 @@ Which slot today works best for you, and how many Kgs would you like for your fa
    - ZERO live harvesting and ZERO dispatches today. Under NO circumstances should you promise or confirm delivery today!
    - If a customer asks for trout today or asks if we are open today, explain politely that we are closed on Fridays, and offer advance bookings for SATURDAY (Morning 8–11 AM, Afternoon 12–3 PM, Evening 4–7 PM).
    - Advance bookings and payment links for SATURDAY or later are warmly welcomed!`
-    : isThursdayToday
+    : (isFridayOpen && isFridayNormally)
+    ? `FRIDAY OPERATIONS STATUS: SPECIAL OPEN DAY (ACTIVE BY OWNER OVERRIDE):
+   - BOTH our Live Vending Center counter in Malabagh AND express delivery operations are 100% OPEN TODAY (FRIDAY)!
+   - Operating Hours Today: 8:00 AM to 8:00 PM.
+   - Live harvest begins immediately upon payment confirmation.
+   - Express delivery within Srinagar is running within 2 hours of payment!
+   - Welcome Friday orders and issue locked Razorpay QR codes immediately.`
+    : (isThursdayToday && !isFridayOpen)
     ? `CRITICAL ALERT: TODAY IS THURSDAY — TOMORROW IS FRIDAY (100% CLOSED):
    - We are OPEN for orders and deliveries TODAY (Thursday) until 8:00 PM (delivered within 2 hours).
    - ABSOLUTE LAW: TOMORROW IS FRIDAY — WE ARE 100% CLOSED TOMORROW! Both our Live Vending Center counter AND express deliveries are strictly closed on Fridays for farm filtration and bio-security maintenance.
@@ -3795,9 +3851,8 @@ Which slot today works best for you, and how many Kgs would you like for your fa
    - NEVER promise, confirm, or accept orders for tomorrow (Friday).
    - If a customer asks about delivery for tomorrow or Friday, explain Friday closure and offer delivery TODAY (within 2 hours) or advance booking for SATURDAY!`
     : `STORE & DELIVERY HOURS:
-   - Express Delivery: 8:00 AM to 8:00 PM, Saturday through Thursday (delivered to shared GPS pin within 2 hours). STRICTLY CLOSED ON FRIDAYS.
-   - Live Vending Center in Malabagh: Open 8:00 AM to 8:00 PM, Saturday to Thursday (strictly closed Fridays for scheduled filtration and bio-security maintenance).
-   ⚠️ NOTE: Today is ${todayDayName}. Tomorrow is ${tomorrowDayName}. We are 100% OPEN today and tomorrow! Do NOT mention Friday or Saturday closure unless today is Thursday or Friday!`;
+   - Express Delivery: 8:00 AM to 8:00 PM (delivered to shared GPS pin within 2 hours).
+   - Live Vending Center in Malabagh: Open 8:00 AM to 8:00 PM.`;
 
   let timeStatusDetail = "";
   if (isFridayToday) {
@@ -3807,17 +3862,19 @@ Which slot today works best for you, and how many Kgs would you like for your fa
 - We resume fresh operations tomorrow, Saturday morning at 8:00 AM!
 - ALWAYS offer advance bookings for SATURDAY (Morning 8-11 AM, Afternoon 12-3 PM, Evening 4-7 PM).`;
   } else if (isOperatingHours) {
-    const thuNote = isThursdayToday 
+    const thuNote = (isThursdayToday && !isFridayOpen)
       ? "\n⚠️ URGENT REMINDER: TODAY IS THURSDAY. TOMORROW (FRIDAY) IS 100% CLOSED! NEVER OFFER OR PROMISE DELIVERY FOR TOMORROW/FRIDAY! If customer asks about tomorrow/Friday, offer delivery TODAY or advance booking for SATURDAY!" 
+      : (isFridayOpen && isFridayNormally)
+      ? "\n🟢 SPECIAL NOTICE: FRIDAY OPERATIONS ARE CURRENTLY OPEN BY OWNER OVERRIDE! Offer live delivery TODAY (Friday) within 2 hours!"
       : `\n📅 TODAY IS: ${todayDayName}. Tomorrow is ${tomorrowDayName}. We are OPEN today until 8:00 PM, and we are OPEN tomorrow (${tomorrowDayName}) from 8:00 AM! Do NOT mention Friday closure or Saturday!`;
     timeStatusDetail = `✅ CURRENT STATUS: OPEN & ACTIVELY ACCEPTING ORDERS (8:00 AM - 8:00 PM)!
-- We start taking fresh live-harvest orders from 8:00 AM every single day (except Friday)!
+- We start taking fresh live-harvest orders from 8:00 AM every single day${isFridayOpen ? " (including Friday by special override)" : " (except Friday)"}!
 - We are currently open and actively taking orders for TODAY (${todayDayName}) right now!
 - Live-harvested Rainbow Trout packed fresh in food-grade biodegradable polythene (0% ice) and delivered to the customer's shared GPS location pin WITHIN 2 HOURS (or at their preferred scheduled time slot today up to 8:00 PM).
 - Minimum order for FREE delivery: 2 kg for 0–4 km, 3 kg for 4–11.5 km, 5 kg for 11.5–16 km (Rajbagh, Jawahar Nagar, Batamaloo, Sanat Nagar, Peerbagh, Airport Rd, Nowgam, Hyderpora, etc.); standard express delivery fee on smaller orders.
 - ABSOLUTELY NEVER say "deliveries wrapped up" or "book for tomorrow" during daytime (8:00 AM - 8:00 PM)! Offer live delivery TODAY within 2 hours!${thuNote}`;
   } else if (isNightAfter9PM) {
-    if (isThursdayToday) {
+    if (isThursdayToday && !isFridayOpen) {
       timeStatusDetail = `⚠️ CURRENT STATUS: THURSDAY NIGHT AFTER-HOURS (Current time in Srinagar is ${istTimeStr}).
 - Tonight's deliveries closed at 8:00 PM.
 - ⚠️ CRITICAL: TOMORROW IS FRIDAY — WE ARE 100% CLOSED TOMORROW!
@@ -4521,7 +4578,7 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
                   `🛵 *Delivery Note:*\nYour location is ~${custDist.toFixed(1)} km from our farm. For 100% FREE express delivery, our minimum order is *3 kg* (₹1,740 Cleaned & Gutted / ₹1,620 Whole Fresh).\n\nSmaller orders are also gladly delivered express:\n• 2 kg: ₹${tot2kg} total (₹${fee2kg} delivery fee)\n• 1 kg: ₹${tot1kg} total (₹${fee1kg} delivery fee)\n\nWhich option would you prefer? 🐟`
                 );
               } else if (
-                (isThursdayToday && /\b(?:tomorrow|kal|friday|jumma|juma)\b/i.test(userMessage) && !/\b(?:saturday|hafta|aaj|today|tonight)\b/i.test(userMessage)) ||
+                (isThursdayToday && !isFridayOpen && /\b(?:tomorrow|kal|friday|jumma|juma)\b/i.test(userMessage) && !/\b(?:saturday|hafta|aaj|today|tonight)\b/i.test(userMessage)) ||
                 (isFridayToday && 
                   !/\b(?:saturday|sat|advance|hafta|tomorrow|tomm?or?ro?w|tmrw|2moro|kal|morning|subah|afternoon|evening|slot|\d+\s*(?:am|pm)|yes|ok|sure|please|bhejo|book)\b/i.test(userMessage) &&
                   !/\b(?:advance\s*bookings?|saturday|closed\s*today\s*\(friday\)|bio-security)\b/i.test(history.filter(h => h.role === "model").pop()?.text || "")
@@ -4684,7 +4741,7 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
         }
 
         // Strict day guards against accidental delivery claims on Friday or Thursday for Friday
-        if (isThursdayToday) {
+        if (isThursdayToday && !isFridayOpen) {
           rawReply = rawReply.replace(/\b(?:fully\s+open\s+for\s+(?:doorstep|express)\s+deliveries\s+tomorrow|open\s+for\s+deliveries\s+tomorrow|open\s+tomorrow)\b/gi, "closed tomorrow (Friday) for weekly maintenance, but open Saturday");
         }
         if (isFridayToday) {
@@ -5242,16 +5299,20 @@ async function startBot() {
     if (!userText) return false;
     const clean = userText.trim();
 
+    // 0. Account Number / Bank Transfer exemption (handled by AI / mPay intent decoder)
+    const isAskingAccountDetails = /\b(?:account\s*(?:no|num|number|details)|bank\s*transfer|ifsc|direct\s*transfer|khata\s*(?:no|number)|mpay\s*(?:no|num|number|details|account)|m-pay\s*(?:no|num|number|details|account))\b/i.test(clean);
+    if (isAskingAccountDetails) return false;
+
     // 1. Explicit Direct Keywords
-    const directRegex = /\b(?:scanner|qr|qr\s*code|barcode|scan|scanner\s*bhejo|bhejo\s*scanner|send\s*scanner|send\s*qr|scanner\s*hai|qr\s*send|send\s*me\s*scanner|qr\s*please|plz\s*send\s*scanner|scanner\s*\?|scanner\s*chha|scanner\s*bhej|pay\s*via\s*scanner|qr\s*code\s*scanner|scanner\s*photo|scanner\s*image|m\s*pay|mpay)\b/i;
+    const directRegex = /\b(?:scanner|qr|qr\s*code|barcode|scan|scanner\s*bhejo|bhejo\s*scanner|send\s*scanner|send\s*qr|scanner\s*hai|qr\s*send|send\s*me\s*scanner|qr\s*please|plz\s*send\s*scanner|scanner\s*\?|scanner\s*chha|scanner\s*bhej|pay\s*via\s*scanner|qr\s*code\s*scanner|scanner\s*photo|scanner\s*image)\b/i;
     if (directRegex.test(clean)) return true;
 
-    // 2. Affirmative reply ("Yes", "Sure", "Bhejo", "Ok", etc.) after bot offered scanner or mPay
+    // 2. Affirmative reply ("Yes", "Sure", "Bhejo", "Ok", etc.) after bot offered scanner
     const affirmativeRegex = /^(?:yes|yep|yeah|sure|ok|okay|please|haan|han|hanji|bhejo|send|send\s*it|karo|bhej\s*do|bhej|send\s*please|plz|yes\s*please|done)\b/i;
     if (affirmativeRegex.test(clean) && Array.isArray(chatHist) && chatHist.length > 0) {
       const lastBotMsg = chatHist.filter(m => m.role === "model").pop();
       if (lastBotMsg && lastBotMsg.text) {
-        const offeredScanner = /\b(?:scanner|qr|m\s*pay|mpay)\b/i.test(lastBotMsg.text);
+        const offeredScanner = /\b(?:scanner|qr|qr\s*code)\b/i.test(lastBotMsg.text);
         if (offeredScanner) return true;
       }
     }
@@ -5751,6 +5812,7 @@ async function startBot() {
                 `• *This Chat AI Status:* ${chatStatus}\n` +
                 `• *Srinagar Weather:* ${statusWeather.weatherIcon} ${statusWeather.weather.label}${statusWeather.weather.tempC != null ? ` (${statusWeather.weather.tempC}°C)` : ""} • Mode: *${statusWeather.weather.mode.toUpperCase()}*\n` +
                 `• *Active Delivery Perimeter:* 0–${statusWeather.maxAllowedKm} km${statusWeather.weather.isBadWeather ? ` _(Paused >${WEATHER_RESTRICT_RADIUS_KM} km during ${statusWeather.weatherNoun})_` : " _(Full 4-Tier MOQ: 2kg/3kg/5kg)_"}\n` +
+                `• *Friday Operations:* ${isFridayOperationsOpen() ? "🟢 OPEN (Owner Override Active)" : "Standard (Closed Fridays)"}\n` +
                 `• *Active Conversations:* ${chatHistories.size}\n` +
                 `• *Google Contacts DB:* ${contactCount} Leads Synced\n` +
                 `• *Human Pause Window:* 30 minutes per manual intervention\n` +
@@ -5847,6 +5909,11 @@ async function startBot() {
             `• *#weather auto* (Enable automatic real-time weather switching)\n` +
             `• *#weather rain* / *#weather snow* (Force <=${WEATHER_RESTRICT_RADIUS_KM} km wet-weather hold & delay notice)\n` +
             `• *#weather clear* (Force full 16.0 km delivery perimeter)\n\n` +
+            `🕌 *Friday Operations Override (#friday):*\n` +
+            `• *#friday* (Check current Friday operating status)\n` +
+            `• *#friday on* or *#friday open* (Force business operations & deliveries OPEN on Friday)\n` +
+            `• *#friday off* or *#friday closed* (Keep Friday closed for standard weekly maintenance)\n` +
+            `• *#friday auto* (Automatic mode: closed on Fridays, open Saturday to Thursday)\n\n` +
             `⏸️ *AI Agent Controls:*\n` +
             `• *#pause* (Pause AI globally, or for 60m in customer chat)\n` +
             `• *#pause 30* (Pause for custom minutes)\n` +
@@ -5894,6 +5961,48 @@ async function startBot() {
         });
         console.log(`🌦️ [Owner #weather] Mode=${effW.mode} | Policy=${effPolicy.weatherTitle} | MaxRadius=${effPolicy.maxAllowedKm}km`);
         return;
+      }
+
+      // Owner Command: #friday - Control Friday business operations (open/on | closed/off/auto | status)
+      if (/^#friday\b/i.test(lower)) {
+        const ownerDeskJid = isOwnerAdminDesk ? remoteJid : "917006604148@s.whatsapp.net";
+        const arg = lower.replace(/^#friday\b/i, "").trim().split(/\s+/)[0] || "status";
+
+        if (["open", "on", "enable", "start"].includes(arg)) {
+          setFridayOverrideMode("open", cleanPhone || "Suhail");
+          await sock.sendMessage(ownerDeskJid, {
+            text: `🟢 *FRIDAY OPERATIONS ACTIVATED (OPEN)* 🐟\n\n` +
+              `• *Business Status:* Friday operations are now **ACTIVE & OPEN**!\n` +
+              `• *Live Counter:* Malabagh Live Vending Center open 8:00 AM – 8:00 PM.\n` +
+              `• *Express Delivery:* Same-day 2-hour delivery active across Srinagar.\n` +
+              `• *AI Agent:* Confirms Friday orders, quotes standard rates, and issues locked Razorpay QR codes!\n\n` +
+              `_To revert back to standard Friday closure, send *#friday off* or *#friday auto*._`
+          });
+          console.log(`🟢 [Owner #friday] Friday operations forced OPEN by ${cleanPhone || "Suhail"}`);
+          return;
+        } else if (["closed", "close", "off", "disable", "stop", "auto"].includes(arg)) {
+          setFridayOverrideMode(arg === "auto" ? "auto" : "closed", cleanPhone || "Suhail");
+          await sock.sendMessage(ownerDeskJid, {
+            text: `🔴 *FRIDAY OPERATIONS CLOSED (STANDARD)* 🐟\n\n` +
+              `• *Business Status:* Friday operations are **CLOSED** (Standard maintenance & filtration backwash policy).\n` +
+              `• *AI Agent:* Informs customers Friday is closed for maintenance, and books advance delivery for Saturday morning!\n\n` +
+              `_To activate Friday operations, send *#friday on* or *#friday open*._`
+          });
+          console.log(`🔴 [Owner #friday] Friday operations reset to CLOSED/AUTO by ${cleanPhone || "Suhail"}`);
+          return;
+        } else {
+          const isOpen = isFridayOperationsOpen();
+          await sock.sendMessage(ownerDeskJid, {
+            text: `🕌 *FRIDAY OPERATIONS STATUS*\n\n` +
+              `• *Current Setting:* *${isOpen ? "🟢 OPEN (Special Operations Active)" : "🔴 CLOSED (Standard Weekly Maintenance)"}*\n` +
+              `• *Operating Hours:* ${isOpen ? "8:00 AM – 8:00 PM (Live Harvest & Express Delivery Active)" : "Zero Deliveries (Filtration Backwash & Weekly Bio-security)"}\n\n` +
+              `👉 *Commands:*\n` +
+              `• *#friday on* or *#friday open* — Turn operations ON for Friday\n` +
+              `• *#friday off* or *#friday closed* — Turn operations OFF (Standard Friday closure)\n` +
+              `• *#friday auto* — Restore default calendar mode`
+          });
+          return;
+        }
       }
 
       // Owner Command: #location / #loc / #zone - Admin-only GPS/locality rate lookup (never auto-sends to customers)
