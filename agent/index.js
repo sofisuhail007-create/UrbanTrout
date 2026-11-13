@@ -26,10 +26,10 @@ process.on("unhandledRejection", (reason) => {
 // ============================================================================
 // URBAN TROUT SALES AGENT — BUILD & VERSION TRACKING
 // ============================================================================
-const BOT_VERSION = "2.9.7";
-const BOT_LAST_UPDATED = "13-Nov-2026, 07:30 AM IST";
-const BOT_RELEASE_TITLE = "Hostinger Cloud VPS Edition (Friday Operations Toggle (#friday on/off), Razorpay QR-Only Checkout & Zero-Fee UPI)";
-const BOT_RELEASE_NOTES = "Owner #friday on / #friday off Operations Command • Strict Machine-Descaled Pan-Ready Cut Policy • Razorpay Locked UPI QR • J&K Bank mPay Details";
+const BOT_VERSION = "2.9.8";
+const BOT_LAST_UPDATED = "13-Nov-2026, 08:00 AM IST";
+const BOT_RELEASE_TITLE = "Blinkit/Zomato Weather Statement, Rich QR Tracking by Default & On-Demand Payment Link Handler";
+const BOT_RELEASE_NOTES = "Default locked UPI QR code image with embedded order metadata & tracking, on-demand secure payment link handler, official J&K Bank mPay/account details, and customer-first Blinkit/Zomato wet-weather statements";
 
 // ============================================================================
 // STRICT VVIP MANUAL-ONLY LIST (AI MUST NEVER TEXT UNDER ANY CIRCUMSTANCE)
@@ -388,10 +388,10 @@ function evaluateWeatherDeliveryPolicy(distanceKm = null) {
   const blockedByWeather = Boolean(w.isBadWeather && d !== null && d > WEATHER_RESTRICT_RADIUS_KM);
   const deliverWithDelayWarning = Boolean(w.isBadWeather && (d === null || d <= WEATHER_RESTRICT_RADIUS_KM));
   const delayWarningText = w.isBadWeather
-    ? `${weatherIcon} *Weather Delivery Notice:* Due to active *${weatherNoun}* in Srinagar, express delivery within *${WEATHER_RESTRICT_RADIUS_KM} km* is active — please allow a little extra transit time as our rider rides carefully with your fresh *0%-ice* live-harvest pack.`
+    ? `${weatherIcon} *${weatherNoun === "snowfall" ? "Snowfall" : "Rain"} in your area:* Deliveries within *${WEATHER_RESTRICT_RADIUS_KM} km* are active! Since our riders are navigating extra carefully on wet roads, please allow 15–20 minutes extra transit time for your live-harvested pack (0% ice).`
     : "";
   const shortDelayNote = w.isBadWeather
-    ? `${weatherIcon} _Weather Notice: Delivery within ${WEATHER_RESTRICT_RADIUS_KM} km may experience a slight delay due to active ${weatherNoun}._`
+    ? `${weatherIcon} _${weatherNoun === "snowfall" ? "Snowfall" : "Rain"} in your area: Deliveries within ${WEATHER_RESTRICT_RADIUS_KM} km are active. Please allow 15–20 min extra transit time for rider safety._`
     : "";
 
   const buildWetWeatherOutOfZoneMessage = (placeName = null, dist = d) => {
@@ -401,14 +401,17 @@ function evaluateWeatherDeliveryPolicy(distanceKm = null) {
     const distLine = dist != null && !isNaN(Number(dist))
       ? `Your location is approximately *${Number(dist).toFixed(1)} km* from our Malabagh farm.\n\n`
       : "";
+    const weatherHeadline = weatherNoun === "snowfall"
+      ? `❄️ *Snowfall Detected in Srinagar${cleanArea ? ` — ${cleanArea}` : ""}*`
+      : `🌧️ *Rain Detected in Nearby Areas${cleanArea ? ` — ${cleanArea}` : ""}*`;
     return (
-      `${weatherIcon} *Weather Delivery Advisory${cleanArea ? ` — ${cleanArea}` : ""}*\n\n` +
+      `${weatherHeadline}\n\n` +
       distLine +
-      `Due to active *${weatherNoun}* in Srinagar right now, same-day 2-hour express delivery is temporarily paused beyond *${WEATHER_RESTRICT_RADIUS_KM} km* from our Malabagh farm to protect live-harvest freshness (*0% ice* in food-grade biodegradable polythene) and rider safety.\n\n` +
-      `☀️ Express delivery to *${cleanArea || "your area"}* resumes automatically as soon as the weather clears!\n\n` +
+      `Our dispatch radar has detected active *${weatherNoun}* across Srinagar. To ensure rider safety on wet roads and keep your live-harvested trout 100% fresh (*0% ice* in food-grade biodegradable polythene), same-day 2-hour express delivery beyond *${WEATHER_RESTRICT_RADIUS_KM} km* is temporarily on hold.\n\n` +
+      `☀️ Express delivery to *${cleanArea || "your area"}* will resume the moment the ${weatherNoun} clears!\n\n` +
       `📅 *Schedule for Tomorrow Morning or Counter Pickup:*\n` +
       `1️⃣ We can gladly schedule your fresh live harvest for *tomorrow morning (8:00 AM – 11:00 AM)* once roads are clear.\n` +
-      `2️⃣ Or you are warmly welcome to visit our *Live Vending Center in Malabagh* (Near R. P. School Girls Wing, open Saturday to Thursday) where you can pick live trout and get it cleaned on the spot!\n` +
+      `2️⃣ Or you are warmly welcome to visit our *Live Vending Center in Malabagh* (Near R. P. School Girls Wing, open Saturday to Thursday) where you can pick live trout directly from our tanks and watch it cleaned on the spot!\n` +
       `📍 Maps: https://maps.app.goo.gl/6FT5iLk5n8mbKSRU9\n\n` +
       `Reply *"Tomorrow"* if you'd like to lock in a morning delivery slot!`
     );
@@ -420,7 +423,7 @@ function evaluateWeatherDeliveryPolicy(distanceKm = null) {
       : null;
     const distTag = dist != null && !isNaN(Number(dist)) ? ` (~${Number(dist).toFixed(1)} km)` : "";
     return (
-      `${weatherIcon} As noted earlier, same-day 2-hour express delivery to *${cleanArea || "your area"}*${distTag} stays temporarily paused beyond *${WEATHER_RESTRICT_RADIUS_KM} km* during active *${weatherNoun}*.\n\n` +
+      `${weatherIcon} As noted earlier, our dispatch radar has detected active *${weatherNoun}*, so same-day express delivery to *${cleanArea || "your area"}*${distTag} is temporarily on hold beyond *${WEATHER_RESTRICT_RADIUS_KM} km* for rider safety.\n\n` +
       `📅 We can gladly schedule your fresh live-harvest delivery for *tomorrow morning (8:00 AM – 11:00 AM)*, or you're warmly welcome at our *Live Vending Center in Malabagh* (Sat–Thu) for live fresh pickup!\n` +
       `📍 Maps: https://maps.app.goo.gl/6FT5iLk5n8mbKSRU9\n\n` +
       `Reply *"Tomorrow"* if you'd like us to book tomorrow morning's slot!`
@@ -431,7 +434,7 @@ function evaluateWeatherDeliveryPolicy(distanceKm = null) {
     const cleanArea = (placeName && !/^(?:srinagar|kashmir|your\s*area)$/i.test(String(placeName).trim()))
       ? String(placeName).trim()
       : null;
-    return `You're welcome! Delivery to *${cleanArea || "your area"}* stays paused until the *${weatherNoun}* clears — feel free to drop by our *Live Vending Center in Malabagh* anytime (Sat–Thu), or message us anytime! 🐟`;
+    return `You're welcome! Delivery to *${cleanArea || "your area"}* remains on hold until the *${weatherNoun}* clears — feel free to drop by our *Live Vending Center in Malabagh* anytime (Sat–Thu), or message us anytime! 🐟`;
   };
 
   return {
@@ -470,15 +473,15 @@ function hasRecentWeatherAdvisory(chatHistory, targetAreaName = null, lookback =
     if (!entry || entry.role !== "model") continue;
     const txt = String(entry.text || "");
     const isAdvisory =
-      /Weather Delivery Advisory/i.test(txt) ||
-      (/temporarily paused beyond \*?\d+(?:\.\d+)?\s*km\*?/i.test(txt) && /Live Vending Center in Malabagh/i.test(txt));
+      /(?:Weather Delivery Advisory|Rain Detected in Nearby Areas|Snowfall Detected in Srinagar)/i.test(txt) ||
+      (/(?:temporarily\s*(?:paused|on\s*hold)\s*beyond)\s*\*?\d+(?:\.\d+)?\s*km\*?/i.test(txt) && /Live Vending Center in Malabagh/i.test(txt));
     if (!isAdvisory) continue;
 
     if (cleanTarget) {
       const headerMatch =
-        txt.match(/Weather Delivery Advisory(?:\s*[—–-]\s*([^\n*]+))?/i) ||
-        txt.match(/express delivery to \*([^*]+)\*(?:\s*\([^)]+\))?\s+(?:remains|stays)\s+(?:temporarily\s+)?paused/i) ||
-        txt.match(/Express delivery to \*([^*]+)\* resumes/i);
+        txt.match(/(?:Weather Delivery Advisory|Rain Detected in Nearby Areas|Snowfall Detected in Srinagar)(?:\s*[—–-]\s*([^\n*]+))?/i) ||
+        txt.match(/express delivery to \*([^*]+)\*(?:\s*\([^)]+\))?\s+(?:remains|stays)\s+(?:temporarily\s+)?(?:paused|on\s*hold)/i) ||
+        txt.match(/Express delivery to \*([^*]+)\*\s+(?:will\s+)?resume/i);
       const advisedArea = (headerMatch && headerMatch[1]) ? headerMatch[1].trim().toLowerCase() : "";
       if (
         advisedArea &&
@@ -500,7 +503,7 @@ function hasRecentDelayNotice(chatHistory, lookback = 4) {
   return recent.some(entry =>
     entry &&
     entry.role === "model" &&
-    /\*?Weather Delivery Notice:?\*?|slightly delayed (?:because of|due to) (?:the )?(?:weather|active)/i.test(String(entry.text || ""))
+    (/\*?(?:Weather Delivery Notice|Rain in your area|Snowfall in your area):?\*?|slightly delayed (?:because of|due to) (?:the )?(?:weather|active|rain|snow)|allow 15[–-]20 min(?:utes)? extra/i.test(String(entry.text || "")))
   );
 }
 
@@ -1333,6 +1336,8 @@ async function createRazorpayQrCode({ amount, customerPhone, customerName, order
   const cleanPhone = String(customerPhone || "").replace(/\D/g, "").slice(-10);
   const randSuffix = Math.floor(10 + Math.random() * 90);
   const ref = orderRef || `UT-DEL-${Date.now().toString().slice(-6)}${randSuffix}`;
+  const qtyMatch = String(description || "").match(/(\d+(?:\.\d+)?)\s*(?:kg|kilos?)/i);
+  const qtyStr = qtyMatch ? `${qtyMatch[1]} kg` : "N/A";
 
   const payload = JSON.stringify({
     type: "upi_qr",
@@ -1346,7 +1351,9 @@ async function createRazorpayQrCode({ amount, customerPhone, customerName, order
       channel: "WHATSAPP_AI_AGENT",
       order_ref: ref,
       customer_name: (customerName || "Customer").slice(0, 40),
-      customer_phone: cleanPhone || "N/A",
+      customer_phone: cleanPhone ? `+91${cleanPhone}` : "N/A",
+      quantity: qtyStr,
+      amount_inr: String(numAmount),
       items_summary: (description || "Fresh Rainbow Trout").slice(0, 100)
     }
   });
@@ -3083,6 +3090,7 @@ async function generateGeminiReply(chatId, userMessage, customerPhone, customerN
   }
 
   const existingOrder = await lookupCustomerOrder(chatId, customerPhone, userMessage);
+  const todayOrderForCustomer = TodayOrderPool.getTodayOrder(cleanPhone, chatId);
   const vipProfile = lookupCustomerVipProfile(chatId, customerPhone);
   const isVipCustomer = Boolean(vipProfile && vipProfile.orderCount > 0);
 
@@ -3673,6 +3681,33 @@ CRITICAL DIRECTIVE ON MPAY & BANK ACCOUNT DETAILS:
 ======================================================`;
   }
 
+  // ─── PAYMENT LINK ON-DEMAND INTENT DECODER ───
+  const isPaymentLinkIntent = /\b(?:payment\s*link|pay\s*link|online\s*link|link\s*(?:please|bhejo|de\s*do|bhej\s*do|send|share|share\s*karo)|send\s*(?:me\s*)?(?:the\s*)?link|share\s*(?:me\s*)?(?:the\s*)?link|give\s*(?:me\s*)?(?:the\s*)?link|where\s*(?:is\s*)?(?:the\s*)?link|can\s*you\s*(?:send|give|share)\s*(?:the\s*)?link)\b/i.test(trimmedLower);
+  if (isPaymentLinkIntent) {
+    const activePayUrl = todayOrderForCustomer?.payUrl || existingOrder?.payUrl || null;
+    const activeOrderRef = todayOrderForCustomer?.orderRef || existingOrder?.orderRef || null;
+    const activeOrderAmt = todayOrderForCustomer?.amount || existingOrder?.amount || null;
+    if (activePayUrl) {
+      intentContext += `\n======================================================
+💡 QUERY INTENT DECODED: Customer explicitly requested an online payment link ("${userMessage.trim()}").
+CRITICAL DIRECTIVE: While we send a locked UPI QR Code image by default, the customer specifically requested an online payment link. Share their active payment link directly:
+"Here is your secure online payment link for Order #${activeOrderRef || 'LIVE'} (${activeOrderAmt || ''}):
+🔗 ${activePayUrl}
+
+You can pay securely via UPI, Credit/Debit Card, or Netbanking. Once payment is completed, your fresh live harvest will be immediately initiated at our Malabagh farm!"
+DO NOT alter price or create a duplicate order.
+======================================================`;
+    } else {
+      intentContext += `\n======================================================
+💡 QUERY INTENT DECODED: Customer requested a payment link ("${userMessage.trim()}"), but no confirmed order exists yet.
+CRITICAL DIRECTIVE: Inform the customer that we provide a secure payment link or locked UPI QR code once order details are confirmed. Ask them to confirm:
+1. Preferred quantity (e.g. 1 kg, 2 kg, 3 kg)
+2. Preferred cut: Cleaned & Gutted (₹580/kg, pan-ready) or Whole Fresh (₹540/kg)
+3. Delivery location / locality in Srinagar
+======================================================`;
+    }
+  }
+
   // (Real-time IST Clock moved to top of generateGeminiReply)
 
   // ─── STORE VISIT / EXACT LOCATION INTENT DECODER ───
@@ -3697,7 +3732,7 @@ You can choose live swimming trout from our counter tanks, watch it harvested li
   }
 
   // ─── FRIDAY DETERMINISTIC HARD LOCK (ENTIRE OPERATION 100% CLOSED) ───
-  if (isFridayToday && !/\b(?:saturday|advance|hafta)\b/i.test(trimmedLower) && !isCutPreferenceIntent && !isMpayIntent) {
+  if (isFridayToday && !/\b(?:saturday|advance|hafta)\b/i.test(trimmedLower) && !isCutPreferenceIntent && !isMpayIntent && !isPaymentLinkIntent) {
     const isFridayInquiry = /(?:deliver|order|open|aaj|today|now|abhi|right\s*now|available|bhej|chahiye|rate|visit|kahan|hai\s*kya|trout|fish|rate|price|cost|timing)/i.test(trimmedLower);
     if (isFridayInquiry) {
       const deterministicFridayReply = `Our Live Vending Center and express delivery operations are strictly closed today (Friday) for weekly bio-security maintenance, filtration backwashing, and staff weekly off.
@@ -4249,7 +4284,6 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
     activeTurnPrompt = `[🌅 EARLY MORNING ACTIVE: Today is ${todayDayName}. Current time in Srinagar is ${istTimeStr}. We start taking live orders and harvesting from 8:00 AM sharp TODAY! Schedule delivery for TODAY in the 8:00 AM – 11:00 AM morning slot. Under NO circumstances say 'tomorrow'! Today's harvest begins at 8:00 AM.]\n\n${activeTurnPrompt}`;
   }
   // ── Today's Dynamic Order Pool Awareness ──
-  const todayOrderForCustomer = TodayOrderPool.getTodayOrder(cleanPhone, chatId);
   if (todayOrderForCustomer) {
     if (TodayOrderPool.isOrderPaid(todayOrderForCustomer)) {
       activeTurnPrompt = `[⭐ TODAY'S ORDER ALREADY PAID & CONFIRMED: #${todayOrderForCustomer.orderRef} (${todayOrderForCustomer.items}, ${todayOrderForCustomer.amount}, Slot: ${todayOrderForCustomer.deliveryTime}). Customer is texting after payment. ABSOLUTELY NEVER ASK FOR PAYMENT. NEVER GENERATE A PAYMENT LINK OR TOTAL. Acknowledge that their order is paid, confirmed, and scheduled for harvest/delivery. If they shared address or pin, confirm it is received for rider.]\n\n${activeTurnPrompt}`;
@@ -5578,8 +5612,15 @@ async function startBot() {
 
       const qrWeatherLine = qrWeatherPolicy.shortDelayNote ? `\n${qrWeatherPolicy.shortDelayNote}` : "";
 
+      const custPhoneLine = (cleanPhone || raw10) ? `• *Customer Phone:* +91 ${cleanPhone || raw10}\n` : "";
+      const custNameLine = (customerName && !/^(?:Customer|Valued Customer)(?:\s*\(|$)/i.test(customerName))
+        ? `• *Name:* ${customerName}\n`
+        : "";
+
       const caption = `🐟 *URBAN TROUT • UPI QR CODE*\n` +
         `• *Order:* ${cleanItemDesc}\n` +
+        custNameLine +
+        custPhoneLine +
         deliveryQrLine +
         `• *Amount:* *₹${amt.toLocaleString("en-IN")}* (Pre-filled & Locked)\n` +
         `• *Ref:* #${orderRef}\n\n` +
@@ -6645,7 +6686,7 @@ async function startBot() {
         const gpsWeatherPolicy = evaluateWeatherDeliveryPolicy(distNum);
         const weatherPinNote = gpsWeatherPolicy.deliverWithDelayWarning ? `\n\n${gpsWeatherPolicy.delayWarningText}` : "";
         const paidWeatherPinNote = gpsWeatherPolicy.weather.isBadWeather
-          ? `\n\n${gpsWeatherPolicy.weatherIcon} *Weather Delivery Notice:* Due to active *${gpsWeatherPolicy.weatherNoun}* across Srinagar today, please allow a little extra transit time as our rider rides carefully with your fresh *0%-ice* live-harvest pack.`
+          ? `\n\n${gpsWeatherPolicy.weatherIcon} *${gpsWeatherPolicy.weatherNoun === "snowfall" ? "Snowfall" : "Rain"} in your area:* Deliveries are active! Since our riders are navigating extra carefully on wet roads, please allow 15–20 minutes extra transit time for your live-harvested pack (0% ice).`
           : "";
 
         if (activeOrder && isAlreadyPaid) {
