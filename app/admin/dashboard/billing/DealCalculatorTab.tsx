@@ -42,7 +42,7 @@ export interface BargainDealItem {
   discountAmount: number;
   discountPercent: number;
   lossPerKg: number;
-  qrEngine: "soundbox" | "razorpay";
+  qrEngine: "soundbox" | "razorpay" | "hdfc";
   qrId?: string | null;
   status: "PENDING" | "PAID";
   paymentId?: string | null;
@@ -190,7 +190,7 @@ export default function DealCalculatorTab({
   );
 
   // ─── 2. LOCKED QR ENGINE STATE (DEFAULT: J&K BANK SOUNDBOX) ───
-  const [qrEngine, setQrEngine] = useState<"soundbox" | "razorpay">(
+  const [qrEngine, setQrEngine] = useState<"soundbox" | "razorpay" | "hdfc">(
     initialDraft?.qrEngine || "soundbox"
   );
   const [rzpQrId, setRzpQrId] = useState<string | null>(null);
@@ -568,6 +568,16 @@ export default function DealCalculatorTab({
   const soundboxQrUrl = useMemo(
     () => generateFastQrDataUrl(soundboxUpiUri, { darkColor: "#020d12", margin: 2 }),
     [soundboxUpiUri]
+  );
+
+  // Derive HDFC UPI URI (urbantroutaquaculture@axl) for COMBINED deal total
+  const HDFC_DEAL_VPA = "urbantroutaquaculture@axl";
+  const hdfcDealUpiUri = combinedDealTotal > 0
+    ? `upi://pay?pa=${HDFC_DEAL_VPA}&pn=Urban%20Trout%20Aquaculture&am=${combinedDealTotal}&mam=${combinedDealTotal}&cu=INR&tn=Deal-${activeDealNumber || Date.now().toString().slice(-4)}`
+    : `upi://pay?pa=${HDFC_DEAL_VPA}&pn=Urban%20Trout%20Aquaculture&cu=INR`;
+  const hdfcDealQrUrl = useMemo(
+    () => generateFastQrDataUrl(hdfcDealUpiUri, { darkColor: "#020d12", margin: 2 }),
+    [hdfcDealUpiUri]
   );
 
   // ─── 5. INPUT SYNCHRONIZATION HELPERS ───
@@ -1600,6 +1610,18 @@ Naseem Bagh / Malabagh, Srinagar`;
                 >
                   ⚡ Razorpay (Auto)
                 </button>
+                <button
+                  type="button"
+                  onClick={() => setQrEngine("hdfc")}
+                  className={`px-2 py-0.5 rounded font-bold cursor-pointer transition-all ${
+                    qrEngine === "hdfc"
+                      ? "bg-indigo-500/20 text-indigo-200 border border-indigo-500/40 shadow-sm"
+                      : "text-zinc-400 hover:text-zinc-200"
+                  }`}
+                  title="Direct HDFC Bank locked UPI QR (urbantroutaquaculture@axl)"
+                >
+                  🏦 HDFC
+                </button>
               </div>
             </div>
 
@@ -1773,7 +1795,7 @@ Naseem Bagh / Malabagh, Srinagar`;
                         className="relative w-36 h-36 bg-white border-2 border-emerald-400/60 rounded-2xl shadow-xl overflow-hidden cursor-pointer group flex items-center justify-center p-1.5 transition-all hover:border-emerald-300"
                       >
                         <img
-                          src={qrEngine === "razorpay" && rzpQrImageUrl ? rzpQrImageUrl : soundboxQrUrl}
+                          src={qrEngine === "razorpay" && rzpQrImageUrl ? rzpQrImageUrl : qrEngine === "hdfc" ? hdfcDealQrUrl : soundboxQrUrl}
                           alt="Locked Deal QR"
                           className="w-full h-full object-contain select-none pointer-events-none"
                         />
@@ -2114,7 +2136,7 @@ Naseem Bagh / Malabagh, Srinagar`;
                   {/* Giant QR Box */}
                   <div className="w-56 h-56 sm:w-64 sm:h-64 bg-white border-2 border-emerald-400 rounded-3xl shadow-2xl overflow-hidden relative flex items-center justify-center p-3">
                     <img
-                      src={qrEngine === "razorpay" && rzpQrImageUrl ? rzpQrImageUrl : soundboxQrUrl}
+                      src={qrEngine === "razorpay" && rzpQrImageUrl ? rzpQrImageUrl : qrEngine === "hdfc" ? hdfcDealQrUrl : soundboxQrUrl}
                       alt="Locked Deal QR"
                       className="w-full h-full object-contain select-none pointer-events-none rounded-2xl"
                     />
@@ -2139,10 +2161,14 @@ Naseem Bagh / Malabagh, Srinagar`;
 
                     {/* UPI ID + Copy */}
                     <div className="flex items-center justify-center gap-1.5 text-[10px] text-slate-400 font-mono pt-1">
-                      <span>{upiId}</span>
+                      <span>{qrEngine === "hdfc" ? HDFC_DEAL_VPA : qrEngine === "razorpay" ? "Razorpay Smart QR" : upiId}</span>
                       <button
                         type="button"
-                        onClick={copyUpi}
+                        onClick={() => {
+                          navigator.clipboard.writeText(qrEngine === "hdfc" ? HDFC_DEAL_VPA : upiId);
+                          setCopiedUpi(true);
+                          setTimeout(() => setCopiedUpi(false), 2500);
+                        }}
                         className="text-[9px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 hover:text-emerald-400 cursor-pointer border border-[#333333] transition-colors"
                       >
                         {copiedUpi ? "✓ Copied" : "Copy"}

@@ -21,22 +21,33 @@ export interface PaymentChannel {
 
 const DEFAULT_PAYMENT_CHANNELS: PaymentChannel[] = [
   {
-    id: "razorpay_dynamic",
-    name: "Razorpay Dynamic Locked QR",
-    type: "razorpay",
-    description: "Auto-generated single-use locked QR via Razorpay API (HDFC Settlement)",
+    id: "jk_bank_mpay",
+    name: "J&K Bank Soundbox & mPay",
+    type: "bank_transfer",
+    accountNumber: "0724010100000499",
+    ifsc: "JAKA0MALBAG",
+    vpa: "JKBMERC00828895@jkb",
+    accountName: "Urban Trout Aquaculture",
+    branch: "Malabagh, Srinagar",
+    description: "Counter Soundbox (TERM00828895) & direct mPay transfers (Default)",
     enabled: true,
     isDefault: true,
   },
   {
-    id: "jk_bank_mpay",
-    name: "J&K Bank mPay & Transfer",
-    type: "bank_transfer",
-    accountNumber: "0724010100000499",
-    ifsc: "JAKA0MALBAG",
+    id: "razorpay_dynamic",
+    name: "Razorpay Dynamic Locked QR",
+    type: "razorpay",
+    description: "Auto-generated single-use smart QR with real-time payment auto-capture",
+    enabled: true,
+    isDefault: false,
+  },
+  {
+    id: "hdfc_counter_upi",
+    name: "HDFC Bank Locked UPI QR",
+    type: "upi_qr",
+    vpa: "urbantroutaquaculture@axl",
     accountName: "Urban Trout Aquaculture",
-    branch: "Malabagh, Srinagar",
-    description: "Direct mPay / NEFT transfer with 5-minute farm team verification",
+    description: "Counter POS locked QR for direct HDFC collections (urbantroutaquaculture@axl)",
     enabled: true,
     isDefault: false,
   },
@@ -98,7 +109,7 @@ const DEFAULT_STAFF: StaffMember[] = [
 ];
 
 export default function AdminSettingsPage() {
-  const [upiId, setUpiId] = useState("");
+  const [upiId, setUpiId] = useState("JKBMERC00828895@jkb");
   const [paymentChannels, setPaymentChannels] = useState<PaymentChannel[]>(DEFAULT_PAYMENT_CHANNELS);
   const [qrPreviewChannel, setQrPreviewChannel] = useState<PaymentChannel | null>(null);
   const [qrPreviewDataUrl, setQrPreviewDataUrl] = useState<string>("");
@@ -207,11 +218,7 @@ export default function AdminSettingsPage() {
             } catch (_) {}
           }
           if (map.upi_id) {
-            if (map.upi_id.includes("JKBMERC") || map.upi_id === "JKBMERC00828895@jkb" || map.upi_id === "50200105872271@hdfcbank" || map.upi_id === "7006604148@okbizaxis") {
-              setUpiId("");
-            } else {
-              setUpiId(map.upi_id);
-            }
+            setUpiId(map.upi_id);
           }
           if (map.jk_bank_account_number !== undefined) setJkBankAccountNumber(map.jk_bank_account_number);
           if (map.jk_bank_ifsc) setJkBankIfsc(map.jk_bank_ifsc);
@@ -252,11 +259,7 @@ export default function AdminSettingsPage() {
             } catch (_) {}
           }
           if (map.upi_id) {
-            if (map.upi_id.includes("JKBMERC") || map.upi_id === "JKBMERC00828895@jkb" || map.upi_id === "50200105872271@hdfcbank" || map.upi_id === "7006604148@okbizaxis") {
-              setUpiId("");
-            } else {
-              setUpiId(map.upi_id);
-            }
+            setUpiId(map.upi_id);
           }
           if (map.jk_bank_account_number !== undefined) setJkBankAccountNumber(map.jk_bank_account_number);
           if (map.jk_bank_ifsc) setJkBankIfsc(map.jk_bank_ifsc);

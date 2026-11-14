@@ -17,25 +17,36 @@ const DEFAULT_SETTINGS: Record<string, string> = {
   delivery_fee_outside_5km: "40",
   allow_outside_radius_delivery: "false",
   max_dispatch_mins: "60",
-  upi_id: "",
+  upi_id: "JKBMERC00828895@jkb",
   payment_channels: JSON.stringify([
     {
-      id: "razorpay_dynamic",
-      name: "Razorpay Dynamic Locked QR",
-      type: "razorpay",
-      description: "Auto-generated single-use locked QR via Razorpay API (HDFC Settlement)",
+      id: "jk_bank_mpay",
+      name: "J&K Bank Soundbox & mPay",
+      type: "bank_transfer",
+      accountNumber: "0724010100000499",
+      ifsc: "JAKA0MALBAG",
+      vpa: "JKBMERC00828895@jkb",
+      accountName: "Urban Trout Aquaculture",
+      branch: "Malabagh, Srinagar",
+      description: "Counter Soundbox (TERM00828895) & direct mPay transfers (Default)",
       enabled: true,
       isDefault: true,
     },
     {
-      id: "jk_bank_mpay",
-      name: "J&K Bank mPay & Transfer",
-      type: "bank_transfer",
-      accountNumber: "0724010100000499",
-      ifsc: "JAKA0MALBAG",
+      id: "razorpay_dynamic",
+      name: "Razorpay Dynamic Locked QR",
+      type: "razorpay",
+      description: "Auto-generated single-use smart QR with real-time payment auto-capture",
+      enabled: true,
+      isDefault: false,
+    },
+    {
+      id: "hdfc_counter_upi",
+      name: "HDFC Bank Locked UPI QR",
+      type: "upi_qr",
+      vpa: "urbantroutaquaculture@axl",
       accountName: "Urban Trout Aquaculture",
-      branch: "Malabagh, Srinagar",
-      description: "Direct mPay / NEFT transfer with 5-minute farm team verification",
+      description: "Counter POS locked QR for direct HDFC collections (urbantroutaquaculture@axl)",
       enabled: true,
       isDefault: false,
     },
@@ -99,9 +110,8 @@ export async function GET() {
       // Supabase table not created yet, use local cache
     }
 
-    // Sanitize any legacy deprecated JKB merchant ID or removed default VPAs
-    if (settingsMap.upi_id && (settingsMap.upi_id.includes("JKBMERC") || settingsMap.upi_id === "JKBMERC00828895@jkb" || settingsMap.upi_id === "50200105872271@hdfcbank" || settingsMap.upi_id === "7006604148@okbizaxis")) {
-      settingsMap.upi_id = "";
+    if (!settingsMap.upi_id) {
+      settingsMap.upi_id = "JKBMERC00828895@jkb";
     }
 
     if (settingsMap.payment_channels) {

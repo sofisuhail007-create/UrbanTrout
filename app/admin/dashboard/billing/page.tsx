@@ -85,11 +85,18 @@ export default function POSBillingPage() {
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerNotes, setCustomerNotes] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"JkBankSoundbox" | "RazorpayQR" | "WhatsAppLink" | "Cash">("JkBankSoundbox");
+  const [paymentMethod, setPaymentMethod] = useState<"JkBankSoundbox" | "RazorpayQR" | "HdfcUpi" | "WhatsAppLink" | "Cash">("JkBankSoundbox");
   const [upiId, setUpiId] = useState("JKBMERC00828895@jkb");
   const [soundboxPaid, setSoundboxPaid] = useState(false);
   const [soundboxQrGenerated, setSoundboxQrGenerated] = useState(false);
   const [lastSoundboxAmount, setLastSoundboxAmount] = useState<number>(0);
+
+  // HDFC Counter UPI State (urbantroutaquaculture@axl)
+  const HDFC_COUNTER_VPA = "urbantroutaquaculture@axl";
+  const [hdfcPaid, setHdfcPaid] = useState(false);
+  const [hdfcQrGenerated, setHdfcQrGenerated] = useState(false);
+  const [lastHdfcAmount, setLastHdfcAmount] = useState<number>(0);
+
   const [showInlineQr, setShowInlineQr] = useState(false);
 
   // Razorpay Dynamic QR State (Counter)
@@ -762,6 +769,15 @@ export default function POSBillingPage() {
     [upiPayUri]
   );
 
+  // Dynamic HDFC Bank Locked UPI URI & High-Res QR Code (urbantroutaquaculture@axl)
+  const hdfcUpiPayUri = grandTotal > 0
+    ? `upi://pay?pa=${HDFC_COUNTER_VPA}&pn=Urban%20Trout%20Aquaculture&am=${grandTotal}&cu=INR&tn=Urban%20Trout%20Counter%20POS`
+    : `upi://pay?pa=${HDFC_COUNTER_VPA}&pn=Urban%20Trout%20Aquaculture&cu=INR&tn=Urban%20Trout%20Counter%20POS`;
+  const hdfcQrCodeUrl = useMemo(
+    () => generateFastQrDataUrl(hdfcUpiPayUri, { darkColor: "#020d12", margin: 2 }),
+    [hdfcUpiPayUri]
+  );
+
   const copyUpi = () => {
     navigator.clipboard.writeText(upiId);
     setCopiedUpi(true);
@@ -1052,14 +1068,17 @@ export default function POSBillingPage() {
 
     const isRzpPaid = (paymentMethod === "RazorpayQR" || paymentMethod === "WhatsAppLink") && rzpPaid;
     const isSoundbox = paymentMethod === "JkBankSoundbox";
+    const isHdfc = paymentMethod === "HdfcUpi";
     const paymentStatus = balanceStatus === "waived_final"
       ? "PAID (FINAL SETTLEMENT)"
       : balanceStatus === "pending"
       ? (paidAmount > 0 ? "PARTIALLY PAID" : "PAYMENT DUE")
-      : (isRzpPaid || isSoundbox || paymentMethod === "Cash" || soundboxPaid) ? "PAID" : "PAYMENT DUE";
+      : (isRzpPaid || isSoundbox || isHdfc || paymentMethod === "Cash" || soundboxPaid || hdfcPaid) ? "PAID" : "PAYMENT DUE";
 
     const paymentMethodLabel = isSoundbox
       ? "J&K Bank Soundbox UPI"
+      : isHdfc
+      ? "HDFC Bank UPI (urbantroutaquaculture@axl)"
       : isRzpPaid
       ? (paymentMethod === "WhatsAppLink" ? "Razorpay Link (Verified)" : "Razorpay UPI (Verified)")
       : paymentMethod === "RazorpayQR"
@@ -1153,9 +1172,13 @@ export default function POSBillingPage() {
       paymentStatus,
       paymentId: rzpPaymentDetails?.id || null,
       notes: finalNotes,
-      upiId,
-      upiQrCodeUrl: (paymentMethod === "RazorpayQR" && rzpQrImageUrl) ? rzpQrImageUrl : upiQrCodeUrl,
-      upiPayUri,
+      upiId: paymentMethod === "HdfcUpi" ? HDFC_COUNTER_VPA : upiId,
+      upiQrCodeUrl: (paymentMethod === "RazorpayQR" && rzpQrImageUrl)
+        ? rzpQrImageUrl
+        : paymentMethod === "HdfcUpi"
+        ? hdfcQrCodeUrl
+        : upiQrCodeUrl,
+      upiPayUri: paymentMethod === "HdfcUpi" ? hdfcUpiPayUri : upiPayUri,
       invoicePublicUrl,
     };
 
@@ -1512,6 +1535,9 @@ Naseem Bagh / Malabagh, Srinagar`;
     setSoundboxPaid(false);
     setSoundboxQrGenerated(false);
     setLastSoundboxAmount(0);
+    setHdfcPaid(false);
+    setHdfcQrGenerated(false);
+    setLastHdfcAmount(0);
     setShowInlineQr(false);
     setEnlargeQrModal(false);
     const prods = getInitialProducts();
@@ -2882,7 +2908,7 @@ Helpline: +91 84910 06127`;
                     <div className="text-right">
                       <span className="text-[10px] text-zinc-400 block">{isCustomAmountMode ? "Direct QR" : `${totalWeight.toFixed(2)} Kg Trout`}</span>
                       <span className="text-[11px] text-zinc-300 font-medium">
-                        {paymentMethod === "JkBankSoundbox" ? "J&K Soundbox" : paymentMethod === "RazorpayQR" ? "Razorpay QR" : paymentMethod === "WhatsAppLink" ? "WhatsApp Link" : "Cash"}
+                        {paymentMethod === "JkBankSoundbox" ? "J&K Bank" : paymentMethod === "HdfcUpi" ? "HDFC Bank" : paymentMethod === "RazorpayQR" ? "Razorpay QR" : paymentMethod === "WhatsAppLink" ? "WhatsApp Link" : "Cash"}
                       </span>
                     </div>
                   </div>
@@ -3153,12 +3179,13 @@ Helpline: +91 84910 06127`;
             </div>
 
             {/* Payment Channel Selector */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 pt-0.5">
+            <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5 pt-0.5">
               {[
-                { id: "JkBankSoundbox", label: "J&K Soundbox", sub: "Instant Voice" },
-                { id: "RazorpayQR", label: "Razorpay QR", sub: "Auto-Verify" },
-                { id: "WhatsAppLink", label: "WhatsApp Link", sub: "Remote Pay" },
+                { id: "JkBankSoundbox", label: "J&K Bank", sub: "Default • Voice" },
+                { id: "RazorpayQR", label: "Razorpay QR", sub: "Auto-Detect" },
+                { id: "HdfcUpi", label: "HDFC Bank", sub: "Locked QR" },
                 { id: "Cash", label: "Cash", sub: "Counter" },
+                { id: "WhatsAppLink", label: "WhatsApp Link", sub: "Remote Pay" },
               ].map((channel) => {
                 const isSel = paymentMethod === channel.id;
                 return (
@@ -3172,6 +3199,8 @@ Helpline: +91 84910 06127`;
                           ? "bg-emerald-500/20 border-emerald-400 text-emerald-200 font-bold shadow-md shadow-emerald-500/10"
                           : channel.id === "RazorpayQR"
                           ? "bg-cyan-500/20 border-cyan-400 text-cyan-200 font-bold shadow-md shadow-cyan-500/10"
+                          : channel.id === "HdfcUpi"
+                          ? "bg-indigo-500/20 border-indigo-400 text-indigo-200 font-bold shadow-md shadow-indigo-500/10"
                           : channel.id === "WhatsAppLink"
                           ? "bg-sky-500/20 border-sky-400 text-sky-200 font-bold shadow-md shadow-sky-500/10"
                           : "bg-teal-500/20 border-teal-400 text-teal-200 font-bold shadow-md shadow-teal-500/10"
@@ -3179,7 +3208,7 @@ Helpline: +91 84910 06127`;
                     }`}
                   >
                     <div className="text-[11px] font-medium leading-tight truncate">{channel.label}</div>
-                    <span className="text-[9px] opacity-70 font-mono normal-case block mt-0.5">
+                    <span className="text-[9px] opacity-70 font-mono normal-case block mt-0.5 truncate">
                       {channel.sub}
                     </span>
                   </button>
@@ -3349,7 +3378,170 @@ Helpline: +91 84910 06127`;
               </div>
             )}
 
-            {/* 2. Razorpay Dynamic BharatQR Panel */}
+            {/* 2. HDFC Bank Locked UPI Panel (urbantroutaquaculture@axl) */}
+            {paymentMethod === "HdfcUpi" && grandTotal > 0 && (
+              <div className="p-3 rounded-xl bg-[#000000] border border-[#222222] flex flex-col items-center text-center space-y-2">
+                {hdfcPaid ? (
+                  <div className="w-full py-4 px-3 rounded-lg bg-[#0a0a0a] border border-[#333333] text-center space-y-2 animate-fadeIn">
+                    <div className="w-9 h-9 rounded-full bg-[#161616] border border-[#333333] text-indigo-400 flex items-center justify-center mx-auto text-lg font-bold">
+                      ✓
+                    </div>
+                    <div>
+                      <h4 className="text-base font-semibold text-white font-['Space_Grotesk']">
+                        HDFC Payment Confirmed: <span className="font-mono tabular-nums text-white">₹{grandTotal.toLocaleString("en-IN")}</span>
+                      </h4>
+                      <p className="text-xs text-zinc-400 font-mono mt-0.5">
+                        Transferred to {HDFC_COUNTER_VPA}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setHdfcPaid(false);
+                        setHdfcQrGenerated(true);
+                        setEnlargeQrModal(true);
+                      }}
+                      className="text-[10px] text-zinc-400 hover:text-white underline cursor-pointer pt-1"
+                    >
+                      Show QR Again
+                    </button>
+                  </div>
+                ) : !hdfcQrGenerated ? (
+                  <div className="w-full py-2.5 px-2 text-center space-y-3 animate-fadeIn">
+                    <div className="flex items-center justify-between w-full pb-1.5 border-b border-[#222222] text-[10px] font-mono">
+                      <span className="flex items-center gap-1.5 text-indigo-300 font-medium uppercase">
+                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 inline-block"></span>
+                        HDFC Bank Locked QR
+                      </span>
+                      <span className="text-zinc-500 font-mono truncate max-w-[150px]">{HDFC_COUNTER_VPA}</span>
+                    </div>
+
+                    <div className="w-10 h-10 rounded-lg bg-[#0a0a0a] border border-[#222222] text-indigo-300 flex items-center justify-center mx-auto text-xl">
+                      <span className="material-symbols-outlined text-xl">qr_code_2</span>
+                    </div>
+
+                    <div className="space-y-0.5">
+                      <span className="text-[10px] uppercase font-mono tracking-wider text-zinc-500 block">
+                        HDFC UPI Payment Ready
+                      </span>
+                      <div className="text-xl sm:text-2xl font-semibold text-white font-mono tabular-nums">
+                        ₹{grandTotal.toLocaleString("en-IN")}.00
+                      </div>
+                      <p className="text-[11px] text-zinc-400 font-mono">
+                        Direct locked payment to <code className="text-indigo-300 bg-slate-900 px-1 py-0.5 rounded">{HDFC_COUNTER_VPA}</code>
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setHdfcQrGenerated(true);
+                        setLastHdfcAmount(grandTotal);
+                        setEnlargeQrModal(true);
+                      }}
+                      className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-indigo-500 to-blue-600 hover:from-indigo-400 hover:to-blue-500 active:scale-[0.99] text-white font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-indigo-500/20 font-['Space_Grotesk']"
+                    >
+                      <span className="material-symbols-outlined text-base">qr_code_scanner</span>
+                      Generate HDFC QR (₹{grandTotal.toLocaleString("en-IN")})
+                    </button>
+                  </div>
+                ) : (
+                  <div className="w-full space-y-2.5 animate-fadeIn">
+                    <div className="flex items-center justify-between w-full pb-1 border-b border-[#222222] text-[10px] font-mono">
+                      <span className="flex items-center gap-1.5 text-indigo-300 font-medium uppercase">
+                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 inline-block"></span>
+                        HDFC Bank QR Ready
+                      </span>
+                      <span className="text-zinc-500 font-mono">{HDFC_COUNTER_VPA}</span>
+                    </div>
+
+                    <div className="space-y-0.5">
+                      <span className="text-[10px] uppercase font-mono tracking-wider text-zinc-500">Locked Amount</span>
+                      <div className="text-xl font-semibold text-white font-mono tabular-nums">
+                        ₹{grandTotal.toLocaleString("en-IN")}
+                      </div>
+                      <div className="text-[10px] text-zinc-400 font-mono flex items-center justify-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 inline-block" />
+                        <span>Ready for customer scan</span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 w-full">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLastHdfcAmount(grandTotal);
+                          setEnlargeQrModal(true);
+                        }}
+                        className="py-2.5 px-2 rounded-lg bg-zinc-100 hover:bg-white text-zinc-950 font-semibold text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-1 cursor-pointer font-['Space_Grotesk']"
+                      >
+                        <span className="material-symbols-outlined text-sm">fullscreen</span>
+                        {grandTotal !== lastHdfcAmount ? "Update QR" : "Open QR"}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setHdfcPaid(true);
+                          playSuccessChime();
+                          speakPaymentAnnouncement(grandTotal, "HDFC Bank", customerName);
+                        }}
+                        className="py-2.5 px-2 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 font-semibold text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-1 cursor-pointer font-['Space_Grotesk']"
+                      >
+                        <span className="material-symbols-outlined text-sm">check_circle</span>
+                        Mark Paid
+                      </button>
+                    </div>
+
+                    <div className="w-full pt-1 border-t border-[#222222]">
+                      <button
+                        type="button"
+                        onClick={() => setShowInlineQr(!showInlineQr)}
+                        className="text-[10px] text-zinc-400 hover:text-zinc-200 font-mono flex items-center justify-center gap-1 w-full py-1 cursor-pointer"
+                      >
+                        <span>{showInlineQr ? "Hide" : "Show"} inline QR on POS screen</span>
+                      </button>
+
+                      {showInlineQr && (
+                        <div className="pt-2 space-y-2 animate-fadeIn flex flex-col items-center">
+                          <div
+                            onClick={() => setEnlargeQrModal(true)}
+                            className="p-2 bg-white border border-[#333333] rounded-xl cursor-pointer hover:border-zinc-500 transition-colors group relative overflow-hidden"
+                            title="Click to open popup for customer"
+                          >
+                            <img
+                              src={hdfcQrCodeUrl}
+                              alt="HDFC Counter QR"
+                              className="w-32 h-32 rounded-lg object-contain"
+                            />
+                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex flex-col items-center justify-center text-white text-[11px] font-medium gap-1">
+                              <span>Open Popup</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-center gap-1.5 text-[10px] text-zinc-400 font-mono">
+                            <span>{HDFC_COUNTER_VPA}</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard.writeText(HDFC_COUNTER_VPA);
+                                setCopiedUpi(true);
+                                setTimeout(() => setCopiedUpi(false), 2500);
+                              }}
+                              className="text-[9px] px-1.5 py-0.5 rounded bg-[#161616] text-zinc-300 hover:text-white cursor-pointer border border-[#333333]"
+                            >
+                              {copiedUpi ? "Copied" : "Copy"}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 3. Razorpay Dynamic BharatQR Panel */}
             {paymentMethod === "RazorpayQR" && grandTotal > 0 && (
               <div className="p-3 rounded-xl bg-[#000000] border border-[#222222] flex flex-col items-center text-center space-y-2">
                 {rzpPaid ? (
@@ -3741,7 +3933,7 @@ Helpline: +91 84910 06127`;
                 <span>{isCustomAmountMode ? "Direct QR" : `${totalWeight.toFixed(2)} Kg`}</span>
                 <span>•</span>
                 <span className="text-zinc-300 font-medium truncate">
-                  {paymentMethod === "JkBankSoundbox" ? "Soundbox" : paymentMethod === "RazorpayQR" ? "Razorpay QR" : paymentMethod === "WhatsAppLink" ? "WhatsApp" : "Cash"}
+                  {paymentMethod === "JkBankSoundbox" ? "J&K Bank" : paymentMethod === "HdfcUpi" ? "HDFC Bank" : paymentMethod === "RazorpayQR" ? "Razorpay QR" : paymentMethod === "WhatsAppLink" ? "WhatsApp" : "Cash"}
                 </span>
               </div>
               <div className="text-base sm:text-lg font-bold text-white font-mono tabular-nums leading-tight">
@@ -3771,6 +3963,10 @@ Helpline: +91 84910 06127`;
                         generateRazorpayQr(grandTotal, true);
                       } else if (paymentMethod === "Cash") {
                         handleGenerateInvoice();
+                      } else if (paymentMethod === "HdfcUpi") {
+                        setHdfcQrGenerated(true);
+                        setLastHdfcAmount(grandTotal);
+                        setEnlargeQrModal(true);
                       } else {
                         setSoundboxQrGenerated(true);
                         setLastSoundboxAmount(grandTotal);
@@ -5087,7 +5283,7 @@ Helpline: +91 84910 06127`;
                       URBAN TROUT
                     </span>
                     <span className="text-[9px] uppercase font-mono font-bold tracking-widest px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                      {paymentMethod === "JkBankSoundbox" ? `Instant UPI QR • ${terminalId}` : "BharatQR"}
+                      {paymentMethod === "JkBankSoundbox" ? `Instant UPI QR • ${terminalId}` : paymentMethod === "HdfcUpi" ? "HDFC Bank Locked QR" : "BharatQR"}
                     </span>
                   </div>
                   <p className="text-[10px] text-slate-400 font-mono">
@@ -5106,7 +5302,7 @@ Helpline: +91 84910 06127`;
               </button>
             </div>
 
-            {(soundboxPaid || rzpPaid) ? (
+            {(soundboxPaid || rzpPaid || hdfcPaid) ? (
               /* ─── PAYMENT CONFIRMED CELEBRATION VIEW INSIDE MODAL ─── */
               <div className="w-full py-6 px-4 rounded-3xl bg-gradient-to-b from-emerald-950/60 to-slate-950 border-2 border-emerald-500/50 text-center space-y-4 animate-fadeIn">
                 <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 border-2 border-emerald-400 text-emerald-400 flex items-center justify-center mx-auto text-3xl font-black shadow-lg shadow-emerald-500/30">
@@ -5114,7 +5310,7 @@ Helpline: +91 84910 06127`;
                 </div>
                 <div className="space-y-1">
                   <span className="text-[11px] uppercase font-mono font-bold tracking-widest text-emerald-400 block">
-                    {rzpPaid ? "Razorpay UPI Payment Confirmed" : "Soundbox Payment Confirmed"}
+                    {rzpPaid ? "Razorpay UPI Payment Confirmed" : hdfcPaid ? "HDFC Bank Payment Confirmed" : "Soundbox Payment Confirmed"}
                   </span>
                   <h3 className="text-2xl sm:text-3xl font-black text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
                     ₹{(rzpPaymentDetails?.amount || grandTotal).toLocaleString("en-IN")}.00 PAID
@@ -5122,6 +5318,8 @@ Helpline: +91 84910 06127`;
                   <p className="text-xs text-emerald-300 font-mono">
                     {rzpPaid
                       ? `⚡ Verified via Razorpay • Ref: ${rzpPaymentDetails?.id || "pay_verified"}`
+                      : hdfcPaid
+                      ? `⚡ Collected directly to HDFC Bank (${HDFC_COUNTER_VPA})`
                       : `🔊 Voice announcement confirmed on counter soundbox (${terminalId})`}
                   </p>
                 </div>
@@ -5348,6 +5546,36 @@ Helpline: +91 84910 06127`;
 
                   {/* Modal Actions */}
                   <div className="pt-2">
+                    {paymentMethod === "HdfcUpi" && !hdfcPaid && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setHdfcPaid(true);
+                          playSuccessChime();
+                          speakPaymentAnnouncement(grandTotal, "HDFC Bank", customerName);
+                        }}
+                        className="w-full py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-500/20 font-['Space_Grotesk']"
+                      >
+                        <span className="material-symbols-outlined text-sm">check_circle</span>
+                        Mark HDFC Paid &amp; Announce
+                      </button>
+                    )}
+
+                    {paymentMethod === "JkBankSoundbox" && !soundboxPaid && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSoundboxPaid(true);
+                          playSuccessChime();
+                          speakPaymentAnnouncement(grandTotal, "J&K Bank Soundbox", customerName);
+                        }}
+                        className="w-full py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-500/20 font-['Space_Grotesk']"
+                      >
+                        <span className="material-symbols-outlined text-sm">check_circle</span>
+                        Mark Soundbox Paid &amp; Announce
+                      </button>
+                    )}
+
                     <button
                       type="button"
                       onClick={() => setEnlargeQrModal(false)}
@@ -5372,6 +5600,12 @@ Helpline: +91 84910 06127`;
                           transform: "scale(1.28)",
                         }}
                       />
+                    ) : paymentMethod === "HdfcUpi" ? (
+                      <img
+                        src={hdfcQrCodeUrl}
+                        alt="HDFC Bank Locked QR"
+                        className="w-full h-full object-contain select-none pointer-events-none rounded-2xl"
+                      />
                     ) : (
                       <img
                         src={upiQrCodeUrl}
@@ -5385,6 +5619,8 @@ Helpline: +91 84910 06127`;
                     <p className="text-xs font-bold text-white">
                       {paymentMethod === "JkBankSoundbox"
                         ? "Scan with J&K mPay Delight, Google Pay, PhonePe, or Paytm"
+                        : paymentMethod === "HdfcUpi"
+                        ? "Scan with Google Pay, PhonePe, Paytm, or Any UPI App"
                         : "Scan with Google Pay, PhonePe, Paytm, CRED, or BHIM"}
                     </p>
 
@@ -5402,10 +5638,15 @@ Helpline: +91 84910 06127`;
 
                     {/* UPI ID + Copy */}
                     <div className="flex items-center justify-center gap-1.5 text-[10px] text-slate-400 font-mono pt-1">
-                      <span>{upiId}</span>
+                      <span>{paymentMethod === "HdfcUpi" ? HDFC_COUNTER_VPA : paymentMethod === "RazorpayQR" ? "Razorpay Smart QR" : upiId}</span>
                       <button
                         type="button"
-                        onClick={copyUpi}
+                        onClick={() => {
+                          const target = paymentMethod === "HdfcUpi" ? HDFC_COUNTER_VPA : upiId;
+                          navigator.clipboard.writeText(target);
+                          setCopiedUpi(true);
+                          setTimeout(() => setCopiedUpi(false), 2500);
+                        }}
                         className="text-[9px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 hover:text-emerald-400 cursor-pointer border border-[#333333] transition-colors"
                       >
                         {copiedUpi ? "✓ Copied" : "Copy"}
