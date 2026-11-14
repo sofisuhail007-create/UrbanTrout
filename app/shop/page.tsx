@@ -34,9 +34,7 @@ export const metadata: Metadata = {
   },
 };
 
-// Enable ISR (Incremental Static Regeneration) - refreshed every 5 mins (300s)
-// Keeps page fast on CDN while keeping Vercel ISR writes well within free tier quota
-export const revalidate = 300;
+export const dynamic = "force-dynamic";
 
 const C = {
   bg: "#031018", bgLow: "#06151e", bgHigh: "#10212c", bgHighest: "#152834",

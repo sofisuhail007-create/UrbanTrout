@@ -236,8 +236,40 @@ export default function OrdersPage() {
   useEffect(() => {
     fetchOrders();
     fetchUpi();
+
+    // 1-second live ticking timer for countdowns
     const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
+
+    // 10-second silent background poller so incoming paid orders auto-pool
+    const poller = setInterval(() => {
+      fetchOrdersSilently();
+    }, 10000);
+
+    // Supabase Realtime subscription: auto-pool new orders & payment status instantly
+    let channel: any = null;
+    try {
+      channel = supabase
+        .channel("admin-orders-stream")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "orders" },
+          (payload) => {
+            fetchOrdersSilently();
+            if (payload.eventType === "INSERT") {
+              playSuccessChime();
+            }
+          }
+        )
+        .subscribe();
+    } catch (err) {
+      console.warn("Realtime stream setup:", err);
+    }
+
+    return () => {
+      clearInterval(timer);
+      clearInterval(poller);
+      if (channel) supabase.removeChannel(channel);
+    };
   }, []);
 
   async function fetchUpi() {
@@ -260,11 +292,37 @@ export default function OrdersPage() {
     setLoading(false);
   }
 
+  async function fetchOrdersSilently() {
+    try {
+      const { data } = await supabase.from("orders").select("*").order("created_at", { ascending: false });
+      if (data) setOrders(data);
+    } catch (_) {}
+  }
+
+  // Helper: check if order was placed today in IST (Asia/Kolkata)
+  function isOrderPlacedTodayIST(createdAt: string): boolean {
+    if (!createdAt) return false;
+    try {
+      const orderDate = new Date(createdAt);
+      const orderDateIST = orderDate.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+      const todayDateIST = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+      return orderDateIST === todayDateIST;
+    } catch (_) {
+      return true;
+    }
+  }
+
   // Active Dispatch Queue (Pending, Processing, Out for Delivery)
-  // Sorted chronologically: oldest orders at the top so urgent deadlines are first
+  // Filtered strictly to TODAY'S orders (since 12:00 AM midnight IST).
+  // Any order from previous days automatically drops off the 2-Hour Radar at 12:00 AM midnight,
+  // guaranteeing a clean slate every morning! (Historical orders remain archived in "All Orders Table").
   const activeDispatchOrders = useMemo(() => {
     return orders
-      .filter((o) => o.status === "processing" || o.status === "out_for_delivery" || o.status === "pending")
+      .filter(
+        (o) =>
+          isOrderPlacedTodayIST(o.created_at) &&
+          (o.status === "processing" || o.status === "out_for_delivery" || o.status === "pending")
+      )
       .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
   }, [orders]);
 
@@ -280,14 +338,14 @@ export default function OrdersPage() {
     return activeDispatchOrders.filter((o) => o.status === "out_for_delivery").length;
   }, [activeDispatchOrders]);
 
-  // 1-Tap Solo-Operator WhatsApp alerts & Stage transitions
+  // Professional Zomato/Blinkit-style 1-Tap WhatsApp alerts & Stage transitions
   const handleStartHarvest = async (order: Order) => {
     await updateStatus(order.id, "processing");
     playSuccessChime();
     const phone = String(order.customer_phone || "").replace(/\D/g, "").slice(-10);
     const name = order.customer_name || "Valued Customer";
     const orderNum = order.order_number;
-    const msg = `Assalamu Alaikum ${name}! 🐟\n\nHarvesting has just started for your fresh trout order (#UT-WA-${orderNum}) at Urban Trout Farm!\n\nOur team is now netting your live trout and preparing clean pan-ready steaks. Express delivery is on track within our 2-hour window! 🛵`;
+    const msg = `Assalamu Alaikum ${name}! 🐟\n\nYour fresh trout order (#UT-WA-${orderNum}) is now being prepared at Urban Trout Farm!\n\nOur farm team has initiated the live harvest from our oxygenated mountain spring tanks in Malabagh. Your trout is being cleaned and cut into fresh pan-ready steaks. Express delivery is on track within our 2-hour window! 🛵`;
     if (phone) window.open(`https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
@@ -298,7 +356,7 @@ export default function OrdersPage() {
     const name = order.customer_name || "Valued Customer";
     const orderNum = order.order_number;
     const locality = order.customer_locality || "your location";
-    const msg = `Assalamu Alaikum ${name}! 🛵\n\nYour fresh trout order (#UT-WA-${orderNum}) is freshly packed in 0% melted-ice insulation and is OUT FOR DELIVERY!\n\nOur rider Suhail is on the road heading towards ${locality}. Please keep your phone reachable for a smooth handover.\n\nSee you soon! 🐟`;
+    const msg = `Assalamu Alaikum ${name}! 🛵\n\nYour fresh trout order (#UT-WA-${orderNum}) is OUT FOR DELIVERY!\n\nYour package has been freshly packed in 0% melted-ice food-grade insulation and is en route to ${locality}.\n\nOur Express Delivery Executive is on the road. Please keep your phone reachable for a prompt, contactless handover.\n\nThank you for choosing Urban Trout! 🐟`;
     if (phone) window.open(`https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
@@ -308,7 +366,7 @@ export default function OrdersPage() {
     const phone = String(order.customer_phone || "").replace(/\D/g, "").slice(-10);
     const name = order.customer_name || "Valued Customer";
     const orderNum = order.order_number;
-    const msg = `Assalamu Alaikum ${name}! ✨\n\nYour fresh trout order (#UT-WA-${orderNum}) has been successfully delivered!\n\nWe hope you and your family enjoy the fresh catch. If you loved our service, please take 10 seconds to share your review on Google:\nhttps://g.page/r/CTVKEpV62HMmECE/review\n\nThank you for trusting Urban Trout! 🐟`;
+    const msg = `Assalamu Alaikum ${name}! ✨\n\nYour fresh trout order (#UT-WA-${orderNum}) has been successfully delivered!\n\nWe hope you and your family enjoy your fresh pan-ready trout. If you loved our service, please take 10 seconds to share your review on Google:\nhttps://g.page/r/CTVKEpV62HMmECE/review\n\nBon Appétit! — Urban Trout Aquaculture 🐟`;
     if (phone) window.open(`https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`, "_blank");
   };
 

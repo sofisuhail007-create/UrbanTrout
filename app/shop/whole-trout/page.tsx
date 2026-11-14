@@ -43,7 +43,7 @@ const C = {
   outlineVar: "#3d4a53",
 };
 
-export const revalidate = 30;
+export const dynamic = "force-dynamic";
 
 export default async function WholeTroutPage() {
   const reviewsData = await getGoogleReviewsData();

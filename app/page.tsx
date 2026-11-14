@@ -33,8 +33,7 @@ export const metadata: Metadata = {
   },
 };
 
-// Enable ISR (Incremental Static Regeneration) - cached at Edge CDN and refreshed every 60s
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 const C = {
   bg: "#031018",
