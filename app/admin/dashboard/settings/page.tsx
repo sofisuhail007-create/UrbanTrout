@@ -40,26 +40,6 @@ const DEFAULT_PAYMENT_CHANNELS: PaymentChannel[] = [
     enabled: true,
     isDefault: false,
   },
-  {
-    id: "suhail_personal_upi",
-    name: "Suhail Personal UPI (GPay / PhonePe)",
-    type: "upi_qr",
-    vpa: "7006604148@okbizaxis",
-    accountName: "Suhail",
-    description: "Direct personal UPI ID for manual / backup collections",
-    enabled: false,
-    isDefault: false,
-  },
-  {
-    id: "hdfc_business_upi",
-    name: "HDFC Current Account UPI",
-    type: "upi_qr",
-    vpa: "50200105872271@hdfcbank",
-    accountName: "Urban Trout Aquaculture",
-    description: "Direct Current Account UPI VPA",
-    enabled: false,
-    isDefault: false,
-  },
 ];
 
 export interface StaffMember {
@@ -118,7 +98,7 @@ const DEFAULT_STAFF: StaffMember[] = [
 ];
 
 export default function AdminSettingsPage() {
-  const [upiId, setUpiId] = useState("50200105872271@hdfcbank");
+  const [upiId, setUpiId] = useState("");
   const [paymentChannels, setPaymentChannels] = useState<PaymentChannel[]>(DEFAULT_PAYMENT_CHANNELS);
   const [qrPreviewChannel, setQrPreviewChannel] = useState<PaymentChannel | null>(null);
   const [qrPreviewDataUrl, setQrPreviewDataUrl] = useState<string>("");
@@ -216,23 +196,19 @@ export default function AdminSettingsPage() {
             try {
               const parsed = JSON.parse(map.payment_channels);
               if (Array.isArray(parsed) && parsed.length > 0) {
-                const existingIds = new Set(parsed.map((p: any) => p.id));
-                const merged = [...parsed];
+                const cleaned = parsed.filter((c: any) => c.id !== "suhail_personal_upi" && c.id !== "hdfc_business_upi");
+                const existingIds = new Set(cleaned.map((p: any) => p.id));
+                const merged = [...cleaned];
                 DEFAULT_PAYMENT_CHANNELS.forEach((def) => {
                   if (!existingIds.has(def.id)) merged.push(def);
-                });
-                merged.forEach((c) => {
-                  if (c.vpa && (c.vpa.includes("JKBMERC") || c.vpa === "JKBMERC00828895@jkb")) {
-                    c.vpa = "50200105872271@hdfcbank";
-                  }
                 });
                 setPaymentChannels(merged);
               }
             } catch (_) {}
           }
           if (map.upi_id) {
-            if (map.upi_id.includes("JKBMERC") || map.upi_id === "JKBMERC00828895@jkb") {
-              setUpiId("50200105872271@hdfcbank");
+            if (map.upi_id.includes("JKBMERC") || map.upi_id === "JKBMERC00828895@jkb" || map.upi_id === "50200105872271@hdfcbank" || map.upi_id === "7006604148@okbizaxis") {
+              setUpiId("");
             } else {
               setUpiId(map.upi_id);
             }
@@ -265,23 +241,19 @@ export default function AdminSettingsPage() {
             try {
               const parsed = JSON.parse(map.payment_channels);
               if (Array.isArray(parsed) && parsed.length > 0) {
-                const existingIds = new Set(parsed.map((p: any) => p.id));
-                const merged = [...parsed];
+                const cleaned = parsed.filter((c: any) => c.id !== "suhail_personal_upi" && c.id !== "hdfc_business_upi");
+                const existingIds = new Set(cleaned.map((p: any) => p.id));
+                const merged = [...cleaned];
                 DEFAULT_PAYMENT_CHANNELS.forEach((def) => {
                   if (!existingIds.has(def.id)) merged.push(def);
-                });
-                merged.forEach((c) => {
-                  if (c.vpa && (c.vpa.includes("JKBMERC") || c.vpa === "JKBMERC00828895@jkb")) {
-                    c.vpa = "50200105872271@hdfcbank";
-                  }
                 });
                 setPaymentChannels(merged);
               }
             } catch (_) {}
           }
           if (map.upi_id) {
-            if (map.upi_id.includes("JKBMERC") || map.upi_id === "JKBMERC00828895@jkb") {
-              setUpiId("50200105872271@hdfcbank");
+            if (map.upi_id.includes("JKBMERC") || map.upi_id === "JKBMERC00828895@jkb" || map.upi_id === "50200105872271@hdfcbank" || map.upi_id === "7006604148@okbizaxis") {
+              setUpiId("");
             } else {
               setUpiId(map.upi_id);
             }
@@ -825,48 +797,139 @@ export default function AdminSettingsPage() {
   };
 
   // ─── MULTI-UPI & PAYMENT CHANNEL MANAGEMENT ───
-  const handleTogglePaymentChannel = (id: string) => {
-    setPaymentChannels((prev) => {
-      const updated = prev.map((c) => (c.id === id ? { ...c, enabled: !c.enabled } : c));
-      const target = updated.find((c) => c.id === id);
-      // If default was turned off, assign default to first enabled channel
-      if (target && !target.enabled && target.isDefault) {
-        const firstEnabled = updated.find((c) => c.enabled);
-        if (firstEnabled) {
-          return updated.map((c) => ({
-            ...c,
-            isDefault: c.id === firstEnabled.id,
-          }));
-        }
+  const handleTogglePaymentChannel = async (id: string) => {
+    let targetChan: PaymentChannel | undefined;
+    const updated = paymentChannels.map((c) => {
+      if (c.id === id) {
+        targetChan = { ...c, enabled: !c.enabled };
+        return targetChan;
       }
-      return updated;
+      return c;
     });
-  };
 
-  const handleSetDefaultPaymentChannel = (id: string) => {
-    setPaymentChannels((prev) =>
-      prev.map((c) => ({
-        ...c,
-        isDefault: c.id === id,
-        enabled: c.id === id ? true : c.enabled,
-      }))
-    );
-    const chosen = paymentChannels.find((c) => c.id === id);
-    if (chosen?.vpa) {
-      setUpiId(chosen.vpa);
+    if (targetChan && !targetChan.enabled && targetChan.isDefault) {
+      const firstEnabled = updated.find((c) => c.enabled);
+      if (firstEnabled) {
+        updated.forEach((c) => {
+          c.isDefault = c.id === firstEnabled.id;
+        });
+      }
+    }
+
+    setPaymentChannels(updated);
+
+    try {
+      const updates = [
+        {
+          key: "payment_channels",
+          value: JSON.stringify(updated),
+          description: "Multi-channel payment routes, QR options, and toggles (Razorpay, J&K Bank, Custom UPI)",
+        },
+      ];
+      await adminFetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+      for (const item of updates) {
+        await supabase.from("app_settings").upsert(item, { onConflict: "key" });
+      }
+      try {
+        const localMap = JSON.parse(localStorage.getItem("urban_trout_store_settings") || "{}");
+        updates.forEach((u) => (localMap[u.key] = u.value));
+        localStorage.setItem("urban_trout_store_settings", JSON.stringify(localMap));
+      } catch (_) {}
+    } catch (err) {
+      console.warn("Toggle channel error:", err);
     }
   };
 
-  const handleDeletePaymentChannel = (id: string) => {
-    if (confirm("Remove this custom UPI / payment route?")) {
-      setPaymentChannels((prev) => prev.filter((c) => c.id !== id));
+  const handleSetDefaultPaymentChannel = async (id: string) => {
+    const updated = paymentChannels.map((c) => ({
+      ...c,
+      isDefault: c.id === id,
+      enabled: c.id === id ? true : c.enabled,
+    }));
+    setPaymentChannels(updated);
+
+    const chosen = updated.find((c) => c.id === id);
+    const newVpa = chosen?.vpa || "";
+    if (newVpa) {
+      setUpiId(newVpa);
+    }
+
+    try {
+      const updates: Array<{ key: string; value: string; description: string }> = [
+        {
+          key: "payment_channels",
+          value: JSON.stringify(updated),
+          description: "Multi-channel payment routes, QR options, and toggles (Razorpay, J&K Bank, Custom UPI)",
+        },
+      ];
+      if (newVpa) {
+        updates.push({
+          key: "upi_id",
+          value: newVpa,
+          description: "Primary fallback UPI VPA for customer direct checkout payments",
+        });
+      }
+      await adminFetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+      for (const item of updates) {
+        await supabase.from("app_settings").upsert(item, { onConflict: "key" });
+      }
+      try {
+        const localMap = JSON.parse(localStorage.getItem("urban_trout_store_settings") || "{}");
+        updates.forEach((u) => (localMap[u.key] = u.value));
+        localStorage.setItem("urban_trout_store_settings", JSON.stringify(localMap));
+      } catch (_) {}
+      setSavedMsg(`✓ Set "${chosen?.name}" as default collection route!`);
+      setTimeout(() => setSavedMsg(""), 3500);
+    } catch (err) {
+      console.warn("Set default channel error:", err);
     }
   };
 
-  const handleAddCustomPaymentChannel = (e: React.FormEvent) => {
+  const handleDeletePaymentChannel = async (id: string) => {
+    if (!confirm("Remove this custom UPI / payment route?")) return;
+    const updated = paymentChannels.filter((c) => c.id !== id);
+    setPaymentChannels(updated);
+
+    try {
+      const updates = [
+        {
+          key: "payment_channels",
+          value: JSON.stringify(updated),
+          description: "Multi-channel payment routes, QR options, and toggles (Razorpay, J&K Bank, Custom UPI)",
+        },
+      ];
+      await adminFetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+      for (const item of updates) {
+        await supabase.from("app_settings").upsert(item, { onConflict: "key" });
+      }
+      try {
+        const localMap = JSON.parse(localStorage.getItem("urban_trout_store_settings") || "{}");
+        updates.forEach((u) => (localMap[u.key] = u.value));
+        localStorage.setItem("urban_trout_store_settings", JSON.stringify(localMap));
+      } catch (_) {}
+      setSavedMsg("Payment channel removed successfully!");
+      setTimeout(() => setSavedMsg(""), 3500);
+    } catch (err) {
+      console.warn("Delete channel error:", err);
+    }
+  };
+
+  const handleAddCustomPaymentChannel = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newCustomName.trim() || !newCustomVpa.trim()) {
-      alert("Please provide both channel label and a valid UPI ID (e.g. 7006604148@okbizaxis).");
+      alert("Please provide both channel label and a valid UPI ID (e.g. user@okaxis).");
       return;
     }
     const cleanVpa = newCustomVpa.trim().toLowerCase();
@@ -880,11 +943,39 @@ export default function AdminSettingsPage() {
       enabled: true,
       isDefault: false,
     };
-    setPaymentChannels((prev) => [...prev, newChan]);
+    const updated = [...paymentChannels, newChan];
+    setPaymentChannels(updated);
     setNewCustomName("");
     setNewCustomVpa("");
     setNewCustomNotes("");
     setShowAddCustomModal(false);
+
+    try {
+      const updates = [
+        {
+          key: "payment_channels",
+          value: JSON.stringify(updated),
+          description: "Multi-channel payment routes, QR options, and toggles (Razorpay, J&K Bank, Custom UPI)",
+        },
+      ];
+      await adminFetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+      for (const item of updates) {
+        await supabase.from("app_settings").upsert(item, { onConflict: "key" });
+      }
+      try {
+        const localMap = JSON.parse(localStorage.getItem("urban_trout_store_settings") || "{}");
+        updates.forEach((u) => (localMap[u.key] = u.value));
+        localStorage.setItem("urban_trout_store_settings", JSON.stringify(localMap));
+      } catch (_) {}
+      setSavedMsg(`✓ Added custom UPI route "${newChan.name}"!`);
+      setTimeout(() => setSavedMsg(""), 3500);
+    } catch (err) {
+      console.warn("Add custom channel error:", err);
+    }
   };
 
   const handleOpenEditChannel = (chan: PaymentChannel) => {
@@ -2149,7 +2240,7 @@ export default function AdminSettingsPage() {
                                 ? "bg-blue-500/15 text-blue-400 border border-blue-500/30"
                                 : chan.type === "bank_transfer"
                                 ? "bg-amber-500/15 text-amber-400 border border-amber-500/30"
-                                : chan.id === "suhail_personal_upi"
+                                : chan.type === "custom"
                                 ? "bg-purple-500/15 text-purple-400 border border-purple-500/30"
                                 : "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
                             }`}

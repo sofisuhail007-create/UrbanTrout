@@ -17,7 +17,7 @@ const DEFAULT_SETTINGS: Record<string, string> = {
   delivery_fee_outside_5km: "40",
   allow_outside_radius_delivery: "false",
   max_dispatch_mins: "60",
-  upi_id: "50200105872271@hdfcbank",
+  upi_id: "",
   payment_channels: JSON.stringify([
     {
       id: "razorpay_dynamic",
@@ -37,26 +37,6 @@ const DEFAULT_SETTINGS: Record<string, string> = {
       branch: "Malabagh, Srinagar",
       description: "Direct mPay / NEFT transfer with 5-minute farm team verification",
       enabled: true,
-      isDefault: false,
-    },
-    {
-      id: "suhail_personal_upi",
-      name: "Suhail Personal UPI (GPay / PhonePe)",
-      type: "upi_qr",
-      vpa: "7006604148@okbizaxis",
-      accountName: "Suhail",
-      description: "Personal UPI ID for manual / direct payments",
-      enabled: true,
-      isDefault: false,
-    },
-    {
-      id: "hdfc_business_upi",
-      name: "HDFC Current Account UPI",
-      type: "upi_qr",
-      vpa: "50200105872271@hdfcbank",
-      accountName: "Urban Trout Aquaculture",
-      description: "Direct Current Account UPI VPA",
-      enabled: false,
       isDefault: false,
     },
   ]),
@@ -119,25 +99,17 @@ export async function GET() {
       // Supabase table not created yet, use local cache
     }
 
-    // Sanitize any legacy deprecated JKB merchant ID
-    if (settingsMap.upi_id && (settingsMap.upi_id.includes("JKBMERC") || settingsMap.upi_id === "JKBMERC00828895@jkb")) {
-      settingsMap.upi_id = "50200105872271@hdfcbank";
+    // Sanitize any legacy deprecated JKB merchant ID or removed default VPAs
+    if (settingsMap.upi_id && (settingsMap.upi_id.includes("JKBMERC") || settingsMap.upi_id === "JKBMERC00828895@jkb" || settingsMap.upi_id === "50200105872271@hdfcbank" || settingsMap.upi_id === "7006604148@okbizaxis")) {
+      settingsMap.upi_id = "";
     }
 
     if (settingsMap.payment_channels) {
       try {
-        const channels = JSON.parse(settingsMap.payment_channels);
+        let channels = JSON.parse(settingsMap.payment_channels);
         if (Array.isArray(channels)) {
-          let cleaned = false;
-          channels.forEach((c: any) => {
-            if (c.vpa && c.vpa.includes("JKBMERC")) {
-              c.vpa = "50200105872271@hdfcbank";
-              cleaned = true;
-            }
-          });
-          if (cleaned) {
-            settingsMap.payment_channels = JSON.stringify(channels);
-          }
+          channels = channels.filter((c: any) => c.id !== "suhail_personal_upi" && c.id !== "hdfc_business_upi");
+          settingsMap.payment_channels = JSON.stringify(channels);
         }
       } catch (_) {}
     }
