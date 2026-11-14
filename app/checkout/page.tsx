@@ -358,7 +358,7 @@ export default function CheckoutPage() {
   const [allowOutsideRadius, setAllowOutsideRadius] = useState<boolean>(false);
 
   // ─── Payment & Settings State ───
-  const [upiId, setUpiId] = useState("JKBMERC00828895@jkb");
+  const [upiId, setUpiId] = useState("50200105872271@hdfcbank");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState<any>(null);
   const [razorpayError, setRazorpayError] = useState("");

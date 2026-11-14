@@ -24,7 +24,7 @@ function QuickQrContent() {
   }, [urlAm, urlOrd]);
 
   const numAmount = parseFloat(amount) || 0;
-  const upiId = "JKBMERC00828895@jkb";
+  const upiId = "50200105872271@hdfcbank";
   const noteText = orderRef ? `Order ${orderRef}` : "Urban Trout Fresh Fish";
   const upiUri = numAmount > 0
     ? `upi://pay?pa=${upiId}&pn=Urban%20Trout%20Aquaculture&am=${numAmount.toFixed(2)}&cu=INR&tn=${encodeURIComponent(noteText)}`

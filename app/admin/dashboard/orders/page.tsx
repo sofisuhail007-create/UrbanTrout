@@ -157,15 +157,62 @@ function playSuccessChime() {
   } catch (_) {}
 }
 
+export interface DispatchCountdown {
+  isScheduled: boolean;
+  schedText?: string;
+  diffMs: number;
+  isOverdue: boolean;
+  formatted: string;
+  elapsedMins: number;
+  percent: number;
+  urgency: "overdue" | "critical" | "expedite" | "ontrack";
+}
+
+function getDispatchCountdown(order: any, currentNow: number): DispatchCountdown {
+  const sched = getScheduledInfo(order);
+  const createdMs = new Date(order.created_at).getTime();
+  const deadlineMs = createdMs + 120 * 60 * 1000; // 2 hour promise
+  const diffMs = deadlineMs - currentNow;
+  const isOverdue = diffMs < 0;
+  const absMs = Math.abs(diffMs);
+  const hours = Math.floor(absMs / (1000 * 60 * 60));
+  const mins = Math.floor((absMs % (1000 * 60 * 60)) / (1000 * 60));
+  const secs = Math.floor((absMs % (1000 * 60)) / 1000);
+  const formatted = `${String(hours).padStart(2, "0")}:${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+
+  const elapsedMs = Math.max(0, currentNow - createdMs);
+  const elapsedMins = Math.floor(elapsedMs / (60 * 1000));
+  const percent = Math.min(100, Math.round((elapsedMs / (120 * 60 * 1000)) * 100));
+
+  let urgency: "overdue" | "critical" | "expedite" | "ontrack" = "ontrack";
+  if (isOverdue) urgency = "overdue";
+  else if (diffMs <= 30 * 60 * 1000) urgency = "critical";
+  else if (diffMs <= 60 * 60 * 1000) urgency = "expedite";
+  else urgency = "ontrack";
+
+  return {
+    isScheduled: sched.isScheduled,
+    schedText: sched.text,
+    diffMs,
+    isOverdue,
+    formatted,
+    elapsedMins,
+    percent,
+    urgency,
+  };
+}
+
 export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
+  const [viewMode, setViewMode] = useState<"radar" | "table">("radar");
+  const [now, setNow] = useState<number>(Date.now());
   const [expanded, setExpanded] = useState<string | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
   const [selectedOrderIds, setSelectedOrderIds] = useState<Set<string>>(new Set());
   const [printModalOrders, setPrintModalOrders] = useState<Order[] | null>(null);
-  const [upiId, setUpiId] = useState<string>("JKBMERC00828895@jkb");
+  const [upiId, setUpiId] = useState<string>("50200105872271@hdfcbank");
 
   // Catch-Weight Scale Modal State
   const [scaleModalOrder, setScaleModalOrder] = useState<Order | null>(null);
@@ -189,6 +236,8 @@ export default function OrdersPage() {
   useEffect(() => {
     fetchOrders();
     fetchUpi();
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
   }, []);
 
   async function fetchUpi() {
@@ -210,6 +259,58 @@ export default function OrdersPage() {
     setOrders(data ?? []);
     setLoading(false);
   }
+
+  // Active Dispatch Queue (Pending, Processing, Out for Delivery)
+  // Sorted chronologically: oldest orders at the top so urgent deadlines are first
+  const activeDispatchOrders = useMemo(() => {
+    return orders
+      .filter((o) => o.status === "processing" || o.status === "out_for_delivery" || o.status === "pending")
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+  }, [orders]);
+
+  const overdueCount = useMemo(() => {
+    return activeDispatchOrders.filter((o) => getDispatchCountdown(o, now).urgency === "overdue").length;
+  }, [activeDispatchOrders, now]);
+
+  const criticalCount = useMemo(() => {
+    return activeDispatchOrders.filter((o) => getDispatchCountdown(o, now).urgency === "critical").length;
+  }, [activeDispatchOrders, now]);
+
+  const onTheRoadCount = useMemo(() => {
+    return activeDispatchOrders.filter((o) => o.status === "out_for_delivery").length;
+  }, [activeDispatchOrders]);
+
+  // 1-Tap Solo-Operator WhatsApp alerts & Stage transitions
+  const handleStartHarvest = async (order: Order) => {
+    await updateStatus(order.id, "processing");
+    playSuccessChime();
+    const phone = String(order.customer_phone || "").replace(/\D/g, "").slice(-10);
+    const name = order.customer_name || "Valued Customer";
+    const orderNum = order.order_number;
+    const msg = `Assalamu Alaikum ${name}! 🐟\n\nHarvesting has just started for your fresh trout order (#UT-WA-${orderNum}) at Urban Trout Farm!\n\nOur team is now netting your live trout and preparing clean pan-ready steaks. Express delivery is on track within our 2-hour window! 🛵`;
+    if (phone) window.open(`https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`, "_blank");
+  };
+
+  const handleOutForDelivery = async (order: Order) => {
+    await updateStatus(order.id, "out_for_delivery");
+    playSuccessChime();
+    const phone = String(order.customer_phone || "").replace(/\D/g, "").slice(-10);
+    const name = order.customer_name || "Valued Customer";
+    const orderNum = order.order_number;
+    const locality = order.customer_locality || "your location";
+    const msg = `Assalamu Alaikum ${name}! 🛵\n\nYour fresh trout order (#UT-WA-${orderNum}) is freshly packed in 0% melted-ice insulation and is OUT FOR DELIVERY!\n\nOur rider Suhail is on the road heading towards ${locality}. Please keep your phone reachable for a smooth handover.\n\nSee you soon! 🐟`;
+    if (phone) window.open(`https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`, "_blank");
+  };
+
+  const handleMarkDelivered = async (order: Order) => {
+    await updateStatus(order.id, "delivered");
+    playSuccessChime();
+    const phone = String(order.customer_phone || "").replace(/\D/g, "").slice(-10);
+    const name = order.customer_name || "Valued Customer";
+    const orderNum = order.order_number;
+    const msg = `Assalamu Alaikum ${name}! ✨\n\nYour fresh trout order (#UT-WA-${orderNum}) has been successfully delivered!\n\nWe hope you and your family enjoy the fresh catch. If you loved our service, please take 10 seconds to share your review on Google:\nhttps://g.page/r/CTVKEpV62HMmECE/review\n\nThank you for trusting Urban Trout! 🐟`;
+    if (phone) window.open(`https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`, "_blank");
+  };
 
   const openScaleModal = (order: Order) => {
     const isPaid = order.status === "processing" || order.status === "out_for_delivery" || order.status === "delivered";
@@ -550,13 +651,54 @@ export default function OrdersPage() {
 
   return (
     <div className="p-4 sm:p-6 max-w-6xl mx-auto space-y-4">
+      {/* Top Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl sm:text-2xl font-semibold text-white font-['Space_Grotesk']">Orders</h1>
-          <p className="text-zinc-400 text-xs mt-0.5">{orders.length} total orders</p>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-semibold text-white font-['Space_Grotesk']">
+              Dispatch Command &amp; Orders
+            </h1>
+            <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-mono text-[11px] font-bold">
+              ⚡ 2-Hour Express
+            </span>
+          </div>
+          <p className="text-zinc-400 text-xs mt-0.5 font-mono">
+            Solo Operator Radar • Live ticking timers, harvest status &amp; 1-tap route actions
+          </p>
         </div>
 
+        {/* View Switcher & 4-Up Print */}
         <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center bg-[#111111] p-1 rounded-xl border border-zinc-800">
+            <button
+              type="button"
+              onClick={() => setViewMode("radar")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold font-mono transition-all cursor-pointer ${
+                viewMode === "radar"
+                  ? "bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20 font-bold"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              <span className="material-symbols-outlined text-sm">schedule</span>
+              <span>2-Hour Radar ({activeDispatchOrders.length})</span>
+              {criticalCount + overdueCount > 0 && (
+                <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+              )}
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("table")}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold font-mono transition-all cursor-pointer ${
+                viewMode === "table"
+                  ? "bg-zinc-200 text-zinc-950 shadow-sm font-bold"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              <span className="material-symbols-outlined text-sm">table_rows</span>
+              <span>All Orders Table ({filtered.length})</span>
+            </button>
+          </div>
+
           {/* Quick Active Deliveries 4-Up button */}
           <button
             type="button"
@@ -574,7 +716,7 @@ export default function OrdersPage() {
             title="Print all active deliveries on Canon MF244dw (4 slips per A4 sheet)"
           >
             <span className="material-symbols-outlined text-xs">print</span>
-            <span>Print Active Deliveries (4-Up)</span>
+            <span>Print Active (4-Up)</span>
           </button>
 
           {/* Batch Print Selected Button */}
@@ -589,7 +731,7 @@ export default function OrdersPage() {
               title="Print selected orders on Canon MF244dw (4 slips per A4 sheet)"
             >
               <span className="material-symbols-outlined text-xs">print</span>
-              <span>Print Selected ({selectedOrderIds.size}) (4-Up)</span>
+              <span>Print Selected ({selectedOrderIds.size})</span>
             </button>
           )}
 
@@ -605,7 +747,369 @@ export default function OrdersPage() {
         </div>
       </div>
 
-      {/* Filter tabs */}
+      {viewMode === "radar" ? (
+        <div className="space-y-4">
+          {/* Dispatch Metrics Bar */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="p-3.5 rounded-2xl bg-[#0e0e0e] border border-zinc-800/80 space-y-1">
+              <span className="text-[11px] font-mono text-zinc-400 uppercase tracking-wider block">Active in Queue</span>
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl font-bold font-mono text-white">{activeDispatchOrders.length}</span>
+                <span className="text-xs text-zinc-500 font-mono">orders</span>
+              </div>
+            </div>
+
+            <div
+              className={`p-3.5 rounded-2xl border transition-all space-y-1 ${
+                criticalCount + overdueCount > 0
+                  ? "bg-rose-950/20 border-rose-500/60 shadow-[0_0_15px_rgba(244,63,94,0.15)]"
+                  : "bg-[#0e0e0e] border-zinc-800/80"
+              }`}
+            >
+              <span className="text-[11px] font-mono text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
+                {criticalCount + overdueCount > 0 && <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />}
+                Critical (&lt; 30m) / Overdue
+              </span>
+              <div className="flex items-baseline gap-2">
+                <span className={`text-2xl font-bold font-mono ${criticalCount + overdueCount > 0 ? "text-rose-400 font-extrabold" : "text-zinc-300"}`}>
+                  {criticalCount + overdueCount}
+                </span>
+                <span className="text-xs text-zinc-500 font-mono">urgent</span>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-[#0e0e0e] border border-zinc-800/80 space-y-1">
+              <span className="text-[11px] font-mono text-zinc-400 uppercase tracking-wider block">Rider on Road</span>
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl font-bold font-mono text-cyan-400">{onTheRoadCount}</span>
+                <span className="text-xs text-zinc-500 font-mono">in transit</span>
+              </div>
+            </div>
+
+            <div className="p-3.5 rounded-2xl bg-[#0e0e0e] border border-zinc-800/80 space-y-1">
+              <span className="text-[11px] font-mono text-zinc-400 uppercase tracking-wider block">Express Promise</span>
+              <div className="flex items-baseline gap-2">
+                <span className="text-base sm:text-lg font-bold font-mono text-emerald-400">120 Mins</span>
+                <span className="text-[10px] text-zinc-500 font-mono">0% Ice Polybag</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Radar Orders Queue */}
+          {loading ? (
+            <div className="text-center text-zinc-500 py-20 font-mono text-xs">Loading live dispatch queue...</div>
+          ) : activeDispatchOrders.length === 0 ? (
+            <div className="text-center text-zinc-400 py-16 px-4 bg-[#0a0a0a] rounded-2xl border border-zinc-800/80 space-y-3">
+              <span className="text-4xl block">✨🐟</span>
+              <h3 className="text-base font-bold text-white font-['Space_Grotesk']">All Caught Up! Zero Pending Deliveries</h3>
+              <p className="text-xs text-zinc-500 max-w-md mx-auto font-mono">
+                All customer orders have been harvested, steak-prepped, and delivered within the 2-hour window. New incoming WhatsApp and checkout orders will appear here automatically with live countdown timers.
+              </p>
+              <button
+                type="button"
+                onClick={() => setViewMode("table")}
+                className="px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-mono font-medium transition-all cursor-pointer"
+              >
+                Browse All Order History
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {activeDispatchOrders.map((order) => {
+                const countdown = getDispatchCountdown(order, now);
+                const primaryItem = (order.items?.[0] as any) || {};
+                const orderedWt = primaryItem.orderedWeight || primaryItem.orderedWeightKg || parseFloat(primaryItem.quantity) || 1.0;
+                const scaleWt = primaryItem.actualWeight || primaryItem.weightKg || orderedWt;
+                const mapsUrl = getOrderMapsUrl(order);
+                const cleanPhone = String(order.customer_phone || "").replace(/\D/g, "").slice(-10);
+
+                return (
+                  <div
+                    key={order.id}
+                    className={`rounded-2xl border transition-all overflow-hidden flex flex-col justify-between ${
+                      countdown.urgency === "overdue"
+                        ? "bg-gradient-to-b from-rose-950/30 via-[#0a0a0a] to-[#0a0a0a] border-rose-500/80 shadow-[0_0_25px_rgba(244,63,94,0.18)]"
+                        : countdown.urgency === "critical"
+                        ? "bg-gradient-to-b from-amber-950/25 via-[#0a0a0a] to-[#0a0a0a] border-amber-500/70 shadow-[0_0_15px_rgba(245,158,11,0.15)]"
+                        : countdown.urgency === "expedite"
+                        ? "bg-gradient-to-b from-yellow-950/20 via-[#0a0a0a] to-[#0a0a0a] border-yellow-500/50"
+                        : "bg-gradient-to-b from-emerald-950/15 via-[#0a0a0a] to-[#0a0a0a] border-emerald-500/40"
+                    }`}
+                  >
+                    {/* Urgency Ticker Header */}
+                    <div
+                      className={`px-4 py-2.5 flex items-center justify-between border-b ${
+                        countdown.urgency === "overdue"
+                          ? "bg-rose-500/15 border-rose-500/30 text-rose-300"
+                          : countdown.urgency === "critical"
+                          ? "bg-amber-500/15 border-amber-500/30 text-amber-300"
+                          : countdown.urgency === "expedite"
+                          ? "bg-yellow-500/10 border-yellow-500/25 text-yellow-300"
+                          : "bg-emerald-500/10 border-emerald-500/20 text-emerald-300"
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`w-2.5 h-2.5 rounded-full ${
+                            countdown.urgency === "overdue" || countdown.urgency === "critical"
+                              ? "bg-rose-500 animate-ping"
+                              : "bg-emerald-400"
+                          }`}
+                        />
+                        <span className="text-xs font-mono font-bold uppercase tracking-wider">
+                          {countdown.isOverdue
+                            ? `⚠️ OVERDUE BY ${countdown.formatted}`
+                            : `${countdown.urgency === "critical" ? "🔥 CRITICAL" : countdown.urgency === "expedite" ? "⚡ EXPEDITE" : "🟢 ON TRACK"}: ${countdown.formatted} LEFT`}
+                        </span>
+                      </div>
+                      <span className="text-[11px] font-mono opacity-80">
+                        {countdown.elapsedMins}m / 120m elapsed
+                      </span>
+                    </div>
+
+                    {/* Elapsed Progress Bar */}
+                    <div className="w-full bg-zinc-900 h-1">
+                      <div
+                        className={`h-full transition-all duration-1000 ${
+                          countdown.urgency === "overdue"
+                            ? "bg-rose-500"
+                            : countdown.urgency === "critical"
+                            ? "bg-amber-500"
+                            : countdown.urgency === "expedite"
+                            ? "bg-yellow-400"
+                            : "bg-emerald-400"
+                        }`}
+                        style={{ width: `${countdown.percent}%` }}
+                      />
+                    </div>
+
+                    {/* Card Body */}
+                    <div className="p-4 sm:p-5 space-y-4 flex-1">
+                      {/* Customer & Location */}
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-xs font-mono font-bold text-zinc-400">#UT-WA-{order.order_number}</span>
+                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold border ${statusStyle(order.status)}`}>
+                              {statusLabel(order.status)}
+                            </span>
+                            {countdown.isScheduled && (
+                              <span className="px-2 py-0.5 rounded-md bg-purple-500/15 text-purple-300 border border-purple-500/30 text-[10px] font-mono font-bold">
+                                📅 {countdown.schedText}
+                              </span>
+                            )}
+                          </div>
+                          <h3 className="text-base font-bold text-white mt-1">{order.customer_name}</h3>
+                          <div className="flex items-center gap-1.5 text-xs text-zinc-400 mt-0.5">
+                            <span className="material-symbols-outlined text-xs text-cyan-400">location_on</span>
+                            <span className="text-zinc-300 font-medium">{order.customer_locality || "Srinagar Locality"}</span>
+                            {order.customer_address && (
+                              <span className="text-zinc-500 truncate max-w-[200px]" title={order.customer_address}>
+                                • {order.customer_address.replace(/\[SCHEDULED DELIVERY:[^\]]+\]/i, "").trim()}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Total & Paid status */}
+                        <div className="text-right">
+                          <span className="text-base sm:text-lg font-bold font-mono text-cyan-300 block">
+                            ₹{Number(order.total || 0).toLocaleString("en-IN")}
+                          </span>
+                          <span
+                            className={`text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded font-bold inline-block mt-0.5 ${
+                              (order as any).payment_status === "PAID" || order.status === "processing" || order.status === "out_for_delivery"
+                                ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"
+                                : "bg-amber-500/15 text-amber-300 border border-amber-500/30"
+                            }`}
+                          >
+                            {(order as any).payment_status === "PAID" || order.status === "processing" || order.status === "out_for_delivery" ? "✓ PAID" : "COD / COLLECT"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Items & Scale Weight details */}
+                      <div className="p-3 rounded-xl bg-black/60 border border-zinc-800/80 text-xs space-y-1.5 font-mono">
+                        <div className="flex items-center justify-between">
+                          <span className="text-zinc-300 font-semibold">{primaryItem.name || "Fresh Rainbow Trout"}</span>
+                          <span className="text-cyan-400 font-bold">₹{primaryItem.price || 580}/Kg</span>
+                        </div>
+                        <div className="flex items-center justify-between text-zinc-400 text-[11px]">
+                          <span>
+                            Ordered Wt: <strong className="text-zinc-200">{Number(orderedWt).toFixed(2)} Kg</strong>
+                          </span>
+                          <span>
+                            Scale Catch Wt:{" "}
+                            <strong className={primaryItem.actualWeight ? "text-emerald-300" : "text-zinc-500"}>
+                              {primaryItem.actualWeight ? `${Number(scaleWt).toFixed(2)} Kg` : "Awaiting Scale"}
+                            </strong>
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* 4-Stage Visual Pipeline */}
+                      <div className="grid grid-cols-4 gap-1 text-center font-mono text-[10px]">
+                        <div
+                          className={`p-1.5 rounded-lg border ${
+                            order.status === "pending" || order.status === "processing" || order.status === "out_for_delivery" || order.status === "delivered"
+                              ? "bg-zinc-800 text-zinc-200 border-zinc-700"
+                              : "bg-zinc-900/40 text-zinc-600 border-zinc-800"
+                          }`}
+                        >
+                          1. Placed
+                        </div>
+                        <div
+                          className={`p-1.5 rounded-lg border ${
+                            order.status === "processing"
+                              ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/40 font-bold"
+                              : order.status === "out_for_delivery" || order.status === "delivered"
+                              ? "bg-zinc-800 text-zinc-200 border-zinc-700"
+                              : "bg-zinc-900/40 text-zinc-600 border-zinc-800"
+                          }`}
+                        >
+                          2. Harvest &amp; Steaks
+                        </div>
+                        <div
+                          className={`p-1.5 rounded-lg border ${
+                            order.status === "out_for_delivery"
+                              ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/40 font-bold"
+                              : order.status === "delivered"
+                              ? "bg-zinc-800 text-zinc-200 border-zinc-700"
+                              : "bg-zinc-900/40 text-zinc-600 border-zinc-800"
+                          }`}
+                        >
+                          3. Loaded on Bike
+                        </div>
+                        <div
+                          className={`p-1.5 rounded-lg border ${
+                            order.status === "delivered"
+                              ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40 font-bold"
+                              : "bg-zinc-900/40 text-zinc-600 border-zinc-800"
+                          }`}
+                        >
+                          4. Delivered
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Card Actions Bottom */}
+                    <div className="p-4 bg-zinc-950/80 border-t border-zinc-800/80 space-y-2.5">
+                      {/* Primary 1-Tap Workflow Transition Button */}
+                      <div className="flex gap-2">
+                        {order.status === "pending" && (
+                          <button
+                            type="button"
+                            onClick={() => handleStartHarvest(order)}
+                            className="flex-1 py-2.5 px-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-mono text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            <span>🐟</span>
+                            <span>Start Harvest &amp; Steaks (Notify WhatsApp)</span>
+                          </button>
+                        )}
+
+                        {order.status === "processing" && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => openScaleModal(order)}
+                              className="py-2.5 px-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 font-mono text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer"
+                              title="Enter exact weight from weighing scale"
+                            >
+                              <span>⚖️</span>
+                              <span>Catch Weight</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleOutForDelivery(order)}
+                              className="flex-1 py-2.5 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-mono text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
+                            >
+                              <span>🛵</span>
+                              <span>Pack in 0% Ice &amp; Dispatch (Out for Delivery)</span>
+                            </button>
+                          </>
+                        )}
+
+                        {order.status === "out_for_delivery" && (
+                          <button
+                            type="button"
+                            onClick={() => handleMarkDelivered(order)}
+                            className="flex-1 py-2.5 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-mono text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            <span>✓</span>
+                            <span>Mark Delivered &amp; Send Review Link</span>
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Driver Quick Utilities */}
+                      <div className="flex items-center gap-1.5 flex-wrap text-xs font-mono">
+                        {mapsUrl && (
+                          <a
+                            href={mapsUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-2.5 py-1.5 rounded-lg bg-blue-500/15 hover:bg-blue-500/25 text-blue-400 border border-blue-500/30 flex items-center gap-1 transition-all"
+                            title="Open Google Maps Turn-by-Turn Navigation"
+                          >
+                            <span className="material-symbols-outlined text-xs">navigation</span>
+                            <span>Maps Route</span>
+                          </a>
+                        )}
+
+                        {order.customer_phone && (
+                          <a
+                            href={`tel:${order.customer_phone}`}
+                            className="px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 flex items-center gap-1 transition-all"
+                            title="Direct call customer"
+                          >
+                            <span className="material-symbols-outlined text-xs">call</span>
+                            <span>Call</span>
+                          </a>
+                        )}
+
+                        {cleanPhone && (
+                          <a
+                            href={`https://wa.me/91${cleanPhone}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="px-2.5 py-1.5 rounded-lg bg-green-500/15 hover:bg-green-500/25 text-green-400 border border-green-500/30 flex items-center gap-1 transition-all"
+                            title="Chat on WhatsApp"
+                          >
+                            <span className="material-symbols-outlined text-xs">chat</span>
+                            <span>Chat</span>
+                          </a>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => handleOpenOrderQr(order)}
+                          className="px-2.5 py-1.5 rounded-lg bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 border border-purple-500/30 flex items-center gap-1 transition-all cursor-pointer"
+                          title="Generate Locked UPI QR for customer"
+                        >
+                          <span className="material-symbols-outlined text-xs">qr_code</span>
+                          <span>Locked QR</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setPrintModalOrders([order])}
+                          className="px-2.5 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 flex items-center gap-1 transition-all cursor-pointer"
+                          title="Print 4-Up Slip"
+                        >
+                          <span className="material-symbols-outlined text-xs">print</span>
+                          <span>Slip</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {/* Filter tabs */}
       <div className="flex gap-1.5 flex-wrap">
         {[{ value: "all", label: "All" }, ...STATUSES].map((s) => (
           <button
@@ -968,6 +1472,8 @@ export default function OrdersPage() {
         />
       </>
     )}
+  </div>
+)}
 
       {/* ─── CATCH-WEIGHT RECONCILIATION MODAL ─── */}
       {scaleModalOrder && (

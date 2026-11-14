@@ -3,6 +3,64 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { adminFetch } from "@/lib/adminClient";
 import { getBusinessHoursInfo } from "@/lib/businessHours";
+import { generateFastQrDataUrl } from "@/lib/qrCode";
+
+export interface PaymentChannel {
+  id: string;
+  name: string;
+  type: "razorpay" | "bank_transfer" | "upi_qr" | "custom";
+  vpa?: string;
+  accountNumber?: string;
+  ifsc?: string;
+  accountName?: string;
+  branch?: string;
+  description?: string;
+  enabled: boolean;
+  isDefault: boolean;
+}
+
+const DEFAULT_PAYMENT_CHANNELS: PaymentChannel[] = [
+  {
+    id: "razorpay_dynamic",
+    name: "Razorpay Dynamic Locked QR",
+    type: "razorpay",
+    description: "Auto-generated single-use locked QR via Razorpay API (HDFC Settlement)",
+    enabled: true,
+    isDefault: true,
+  },
+  {
+    id: "jk_bank_mpay",
+    name: "J&K Bank mPay & Transfer",
+    type: "bank_transfer",
+    accountNumber: "0724010100000499",
+    ifsc: "JAKA0MALBAG",
+    accountName: "Urban Trout Aquaculture",
+    branch: "Malabagh, Srinagar",
+    description: "Direct mPay / NEFT transfer with 5-minute farm team verification",
+    enabled: true,
+    isDefault: false,
+  },
+  {
+    id: "suhail_personal_upi",
+    name: "Suhail Personal UPI (GPay / PhonePe)",
+    type: "upi_qr",
+    vpa: "7006604148@okbizaxis",
+    accountName: "Suhail",
+    description: "Direct personal UPI ID for manual / backup collections",
+    enabled: false,
+    isDefault: false,
+  },
+  {
+    id: "hdfc_business_upi",
+    name: "HDFC Current Account UPI",
+    type: "upi_qr",
+    vpa: "50200105872271@hdfcbank",
+    accountName: "Urban Trout Aquaculture",
+    description: "Direct Current Account UPI VPA",
+    enabled: false,
+    isDefault: false,
+  },
+];
 
 export interface StaffMember {
   email: string;
@@ -60,7 +118,14 @@ const DEFAULT_STAFF: StaffMember[] = [
 ];
 
 export default function AdminSettingsPage() {
-  const [upiId, setUpiId] = useState("JKBMERC00828895@jkb");
+  const [upiId, setUpiId] = useState("50200105872271@hdfcbank");
+  const [paymentChannels, setPaymentChannels] = useState<PaymentChannel[]>(DEFAULT_PAYMENT_CHANNELS);
+  const [qrPreviewChannel, setQrPreviewChannel] = useState<PaymentChannel | null>(null);
+  const [qrPreviewDataUrl, setQrPreviewDataUrl] = useState<string>("");
+  const [showAddCustomModal, setShowAddCustomModal] = useState(false);
+  const [newCustomName, setNewCustomName] = useState("");
+  const [newCustomVpa, setNewCustomVpa] = useState("");
+  const [newCustomNotes, setNewCustomNotes] = useState("");
   const [jkBankAccountNumber, setJkBankAccountNumber] = useState("");
   const [jkBankIfsc, setJkBankIfsc] = useState("JAKA0MALBAG");
   const [jkBankAccountName, setJkBankAccountName] = useState("Urban Trout Aquaculture");
@@ -137,6 +202,14 @@ export default function AdminSettingsPage() {
         const local = localStorage.getItem("urban_trout_store_settings");
         if (local) {
           const map = JSON.parse(local);
+          if (map.payment_channels) {
+            try {
+              const parsed = JSON.parse(map.payment_channels);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                setPaymentChannels(parsed);
+              }
+            } catch (_) {}
+          }
           if (map.upi_id) setUpiId(map.upi_id);
           if (map.jk_bank_account_number !== undefined) setJkBankAccountNumber(map.jk_bank_account_number);
           if (map.jk_bank_ifsc) setJkBankIfsc(map.jk_bank_ifsc);
@@ -162,6 +235,14 @@ export default function AdminSettingsPage() {
         if (res.ok) {
           const json = await res.json();
           const map = json.settingsMap || {};
+          if (map.payment_channels) {
+            try {
+              const parsed = JSON.parse(map.payment_channels);
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                setPaymentChannels(parsed);
+              }
+            } catch (_) {}
+          }
           if (map.upi_id) setUpiId(map.upi_id);
           if (map.jk_bank_account_number !== undefined) setJkBankAccountNumber(map.jk_bank_account_number);
           if (map.jk_bank_ifsc) setJkBankIfsc(map.jk_bank_ifsc);
@@ -604,6 +685,11 @@ export default function AdminSettingsPage() {
       { key: "allow_friday_orders", value: String(allowFridayOrders), description: "Allow customer online orders on Fridays" },
       { key: "force_store_open", value: String(forceStoreOpen), description: "Force store open override" },
       { key: "upi_id", value: upiId.trim(), description: "Primary UPI ID for customer direct checkout payments" },
+      {
+        key: "payment_channels",
+        value: JSON.stringify(paymentChannels),
+        description: "Multi-channel payment routes, QR options, and toggles (Razorpay, J&K Bank, Personal UPI, HDFC)",
+      },
       { key: "jk_bank_account_number", value: jkBankAccountNumber.trim(), description: "J&K Bank account number for direct mPay and IMPS/NEFT transfers" },
       { key: "jk_bank_ifsc", value: jkBankIfsc.trim(), description: "J&K Bank IFSC Code" },
       { key: "jk_bank_account_name", value: jkBankAccountName.trim(), description: "J&K Bank account beneficiary holder name" },
@@ -693,6 +779,82 @@ export default function AdminSettingsPage() {
     } finally {
       setIsTestingTelegramAlert(false);
       setTimeout(() => setTestAlertFeedback(null), 5000);
+    }
+  };
+
+  // ─── MULTI-UPI & PAYMENT CHANNEL MANAGEMENT ───
+  const handleTogglePaymentChannel = (id: string) => {
+    setPaymentChannels((prev) => {
+      const updated = prev.map((c) => (c.id === id ? { ...c, enabled: !c.enabled } : c));
+      const target = updated.find((c) => c.id === id);
+      // If default was turned off, assign default to first enabled channel
+      if (target && !target.enabled && target.isDefault) {
+        const firstEnabled = updated.find((c) => c.enabled);
+        if (firstEnabled) {
+          return updated.map((c) => ({
+            ...c,
+            isDefault: c.id === firstEnabled.id,
+          }));
+        }
+      }
+      return updated;
+    });
+  };
+
+  const handleSetDefaultPaymentChannel = (id: string) => {
+    setPaymentChannels((prev) =>
+      prev.map((c) => ({
+        ...c,
+        isDefault: c.id === id,
+        enabled: c.id === id ? true : c.enabled,
+      }))
+    );
+    const chosen = paymentChannels.find((c) => c.id === id);
+    if (chosen?.vpa) {
+      setUpiId(chosen.vpa);
+    }
+  };
+
+  const handleDeletePaymentChannel = (id: string) => {
+    if (confirm("Remove this custom UPI / payment route?")) {
+      setPaymentChannels((prev) => prev.filter((c) => c.id !== id));
+    }
+  };
+
+  const handleAddCustomPaymentChannel = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newCustomName.trim() || !newCustomVpa.trim()) {
+      alert("Please provide both channel label and a valid UPI ID (e.g. 7006604148@okbizaxis).");
+      return;
+    }
+    const cleanVpa = newCustomVpa.trim().toLowerCase();
+    const newChan: PaymentChannel = {
+      id: `custom_${Date.now()}`,
+      name: newCustomName.trim(),
+      type: "custom",
+      vpa: cleanVpa,
+      accountName: "Urban Trout Aquaculture",
+      description: newCustomNotes.trim() || `Direct collection via ${cleanVpa}`,
+      enabled: true,
+      isDefault: false,
+    };
+    setPaymentChannels((prev) => [...prev, newChan]);
+    setNewCustomName("");
+    setNewCustomVpa("");
+    setNewCustomNotes("");
+    setShowAddCustomModal(false);
+  };
+
+  const handlePreviewChannelQr = async (channel: PaymentChannel) => {
+    const vpa = channel.vpa || (channel.accountNumber ? `${channel.accountNumber}@jkb` : "50200105872271@hdfcbank");
+    const sampleUri = `upi://pay?pa=${encodeURIComponent(vpa)}&pn=Urban%20Trout%20Aquaculture&cu=INR&tn=Fresh%20Trout%20Order`;
+    try {
+      const qrData = await generateFastQrDataUrl(sampleUri);
+      setQrPreviewDataUrl(qrData);
+      setQrPreviewChannel(channel);
+    } catch (err) {
+      console.error("QR generation failed:", err);
+      alert("Failed to render QR preview.");
     }
   };
 
@@ -1788,38 +1950,177 @@ export default function AdminSettingsPage() {
               SECTION 2: STORE & PAYMENT SETTINGS
               ══════════════════════════════════════════════════════════ */}
           <form onSubmit={handleSave} className="space-y-6">
-            {/* Payment Settings Card */}
-            <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 md:p-8 space-y-5">
-              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+            {/* Payment Settings Card — Multi-Channel UPI & QR Routes */}
+            <div className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 md:p-8 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-800">
                 <div>
                   <h2 className="text-lg font-bold text-cyan-400 flex items-center gap-2" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
-                    <span className="material-symbols-outlined text-base">account_balance</span>
-                    UPI &amp; J&amp;K Bank Settlement Configuration
+                    <span className="material-symbols-outlined text-base">qr_code_scanner</span>
+                    Multi-UPI &amp; Payment Channel Manager
                   </h2>
                   <p className="text-xs text-slate-400 mt-0.5">
-                    Configure your UPI Merchant ID and J&amp;K Bank details for instant direct WhatsApp bill settlements (0-day wait, zero gateway fees).
+                    Toggle payment channels ON/OFF, set the primary collection route, and add personal or business UPI IDs with live QR generation.
                   </p>
                 </div>
-                <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono text-[10px] font-bold">
-                  ⚡ 0-Day Settlement
-                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddCustomModal(true)}
+                    className="px-3 py-1.5 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/40 text-cyan-300 font-mono text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-sm">add</span>
+                    <span>+ Add Custom UPI ID</span>
+                  </button>
+                  <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-mono text-[10px] font-bold">
+                    ⚡ {paymentChannels.filter((c) => c.enabled).length} Active Routes
+                  </span>
+                </div>
               </div>
 
-              {/* UPI ID */}
-              <div className="space-y-2">
+              {/* Payment Channels Grid */}
+              <div className="space-y-3">
+                {paymentChannels.map((chan) => (
+                  <div
+                    key={chan.id}
+                    className={`p-4 rounded-2xl border transition-all ${
+                      chan.isDefault
+                        ? "bg-slate-950/80 border-cyan-500/50 shadow-[0_0_20px_rgba(6,182,212,0.12)]"
+                        : chan.enabled
+                        ? "bg-slate-950/50 border-slate-800 hover:border-slate-700"
+                        : "bg-slate-950/30 border-slate-900 opacity-60"
+                    }`}
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      {/* Left: Info */}
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span
+                            className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-bold uppercase tracking-wider ${
+                              chan.type === "razorpay"
+                                ? "bg-blue-500/15 text-blue-400 border border-blue-500/30"
+                                : chan.type === "bank_transfer"
+                                ? "bg-amber-500/15 text-amber-400 border border-amber-500/30"
+                                : chan.id === "suhail_personal_upi"
+                                ? "bg-purple-500/15 text-purple-400 border border-purple-500/30"
+                                : "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
+                            }`}
+                          >
+                            {chan.type === "razorpay"
+                              ? "⚡ Razorpay Dynamic QR"
+                              : chan.type === "bank_transfer"
+                              ? "🏦 J&K Bank Direct mPay"
+                              : chan.type === "custom"
+                              ? "🔖 Custom UPI Route"
+                              : "📱 Direct UPI VPA"}
+                          </span>
+
+                          <h3 className="text-sm font-bold text-white font-mono">{chan.name}</h3>
+
+                          {chan.isDefault && (
+                            <span className="px-2 py-0.5 rounded-md bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-[10px] font-mono font-bold flex items-center gap-1">
+                              <span>★</span> Default Collection Route
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="text-xs text-slate-300 font-mono">
+                          {chan.vpa && (
+                            <span className="mr-3">
+                              VPA: <code className="text-cyan-300 bg-slate-900 px-1.5 py-0.5 rounded">{chan.vpa}</code>
+                            </span>
+                          )}
+                          {chan.accountNumber && (
+                            <span className="mr-3">
+                              A/C: <code className="text-emerald-300 bg-slate-900 px-1.5 py-0.5 rounded">{chan.accountNumber}</code> ({chan.ifsc})
+                            </span>
+                          )}
+                          <span className="text-slate-500 text-[11px] block sm:inline mt-0.5 sm:mt-0">
+                            {chan.description}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Right: Actions */}
+                      <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                        {/* QR Preview Button */}
+                        {(chan.vpa || chan.accountNumber) && (
+                          <button
+                            type="button"
+                            onClick={() => handlePreviewChannelQr(chan)}
+                            className="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-mono flex items-center gap-1 transition-all cursor-pointer"
+                            title="Preview UPI QR Code"
+                          >
+                            <span className="material-symbols-outlined text-sm">qr_code</span>
+                            <span>Preview QR</span>
+                          </button>
+                        )}
+
+                        {/* Set as Default Button */}
+                        {!chan.isDefault && (
+                          <button
+                            type="button"
+                            onClick={() => handleSetDefaultPaymentChannel(chan.id)}
+                            className="px-2.5 py-1.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-400 border border-cyan-500/30 text-xs font-mono font-medium transition-all cursor-pointer"
+                          >
+                            Set Default
+                          </button>
+                        )}
+
+                        {/* Toggle ON/OFF */}
+                        <button
+                          type="button"
+                          onClick={() => handleTogglePaymentChannel(chan.id)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer border ${
+                            chan.enabled
+                              ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30"
+                              : "bg-slate-800/80 text-slate-400 border-slate-700 hover:bg-slate-800"
+                          }`}
+                        >
+                          {chan.enabled ? "● ENABLED" : "○ DISABLED"}
+                        </button>
+
+                        {/* Delete Custom Channel */}
+                        {chan.type === "custom" && (
+                          <button
+                            type="button"
+                            onClick={() => handleDeletePaymentChannel(chan.id)}
+                            className="p-1.5 rounded-lg text-rose-400 hover:bg-rose-500/20 border border-transparent hover:border-rose-500/30 transition-all cursor-pointer"
+                            title="Remove custom UPI"
+                          >
+                            <span className="material-symbols-outlined text-base">delete</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Active Default UPI Quick-Reference Field */}
+              <div className="pt-2 border-t border-slate-800/80 space-y-2">
                 <label className="block text-xs uppercase tracking-wider font-bold text-slate-400 font-mono">
-                  Primary UPI ID for Checkout &amp; POS <span className="text-red-400">*</span>
+                  Primary Fallback UPI VPA for POS &amp; Remote Links <span className="text-red-400">*</span>
                 </label>
-                <input
-                  type="text"
-                  value={upiId}
-                  onChange={(e) => setUpiId(e.target.value)}
-                  required
-                  placeholder="e.g. JKBMERC00828895@jkb"
-                  className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white font-mono focus:outline-none focus:border-cyan-400"
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={upiId}
+                    onChange={(e) => setUpiId(e.target.value)}
+                    required
+                    placeholder="e.g. 50200105872271@hdfcbank"
+                    className="flex-1 bg-slate-950/80 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-cyan-400"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => handlePreviewChannelQr({ id: "manual", name: "Current Input UPI", type: "upi_qr", vpa: upiId, enabled: true, isDefault: false })}
+                    className="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-mono flex items-center gap-1.5 transition-all cursor-pointer"
+                  >
+                    <span className="material-symbols-outlined text-sm">visibility</span>
+                    Test QR
+                  </button>
+                </div>
                 <p className="text-xs text-slate-500 font-mono">
-                  Used to generate dynamic QR codes in customer checkout, public invoices, and WhatsApp bills. Default: <code className="text-cyan-300">JKBMERC00828895@jkb</code>
+                  Synced with the selected active default route above. Active settlement target: <code className="text-cyan-300">{upiId}</code>
                 </p>
               </div>
 
@@ -1839,7 +2140,7 @@ export default function AdminSettingsPage() {
                       type="text"
                       value={jkBankAccountNumber}
                       onChange={(e) => setJkBankAccountNumber(e.target.value)}
-                      placeholder="e.g. 0082040100001234"
+                      placeholder="e.g. 0724010100000499"
                       className="w-full bg-slate-950/80 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-emerald-400"
                     />
                     <p className="text-[11px] text-slate-500 font-mono">
@@ -1891,6 +2192,147 @@ export default function AdminSettingsPage() {
                 </div>
               </div>
             </div>
+
+            {/* QR Preview Modal */}
+            {qrPreviewChannel && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+                <div className="bg-slate-900 border border-cyan-500/40 rounded-3xl p-6 sm:p-8 max-w-sm w-full space-y-4 shadow-2xl relative text-center">
+                  <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                    <div className="text-left">
+                      <h3 className="text-base font-bold text-white font-mono">{qrPreviewChannel.name}</h3>
+                      <p className="text-xs text-slate-400 font-mono">{qrPreviewChannel.vpa || qrPreviewChannel.accountNumber}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setQrPreviewChannel(null)}
+                      className="w-8 h-8 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-sm"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <div className="bg-white p-4 rounded-2xl mx-auto inline-block shadow-inner">
+                    {qrPreviewDataUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={qrPreviewDataUrl} alt="UPI QR" className="w-56 h-56 object-contain" />
+                    ) : (
+                      <div className="w-56 h-56 flex items-center justify-center text-slate-500 text-xs">Generating QR...</div>
+                    )}
+                  </div>
+
+                  <div className="space-y-1 text-xs text-slate-400 font-mono">
+                    <p>Scan with any UPI app (Google Pay, PhonePe, Paytm, mPay)</p>
+                    <code className="text-cyan-300 block bg-slate-950 py-1 px-2 rounded break-all border border-slate-800">
+                      {qrPreviewChannel.vpa || `${qrPreviewChannel.accountNumber}@jkb`}
+                    </code>
+                  </div>
+
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const targetVpa = qrPreviewChannel.vpa || qrPreviewChannel.accountNumber || "";
+                        navigator.clipboard.writeText(targetVpa);
+                        alert(`Copied "${targetVpa}" to clipboard!`);
+                      }}
+                      className="flex-1 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-mono font-medium transition-all"
+                    >
+                      Copy VPA
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setQrPreviewChannel(null)}
+                      className="flex-1 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-mono font-bold transition-all"
+                    >
+                      Done
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Add Custom UPI Route Modal */}
+            {showAddCustomModal && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+                <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 sm:p-8 max-w-md w-full space-y-4 shadow-2xl relative">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                    <h3 className="text-base font-bold text-white flex items-center gap-2" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                      <span className="material-symbols-outlined text-cyan-400 text-lg">add_card</span>
+                      Add Custom UPI Payment Route
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={() => setShowAddCustomModal(false)}
+                      className="w-8 h-8 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-sm"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleAddCustomPaymentChannel} className="space-y-4">
+                    <div className="space-y-1">
+                      <label className="block text-xs uppercase tracking-wider font-bold text-slate-400 font-mono">
+                        Route Label / Name <span className="text-red-400">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={newCustomName}
+                        onChange={(e) => setNewCustomName(e.target.value)}
+                        required
+                        placeholder="e.g. Suhail Personal Axis / Mohd Amin Counter"
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-cyan-400"
+                      />
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="block text-xs uppercase tracking-wider font-bold text-slate-400 font-mono">
+                        UPI ID / VPA <span className="text-red-400">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={newCustomVpa}
+                        onChange={(e) => setNewCustomVpa(e.target.value)}
+                        required
+                        placeholder="e.g. 7006604148@okbizaxis or user@okhdfcbank"
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-cyan-400"
+                      />
+                      <p className="text-[11px] text-slate-500 font-mono">
+                        Supports Google Pay, PhonePe, Paytm, or any UPI banking handle.
+                      </p>
+                    </div>
+
+                    <div className="space-y-1">
+                      <label className="block text-xs uppercase tracking-wider font-bold text-slate-400 font-mono">
+                        Internal Note / Purpose
+                      </label>
+                      <input
+                        type="text"
+                        value={newCustomNotes}
+                        onChange={(e) => setNewCustomNotes(e.target.value)}
+                        placeholder="e.g. Emergency backup UPI when gateway undergoes banking maintenance"
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-cyan-400"
+                      />
+                    </div>
+
+                    <div className="flex gap-2 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowAddCustomModal(false)}
+                        className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono font-medium"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="flex-1 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-mono font-bold shadow-md"
+                      >
+                        Save Route
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
 
             {/* ══════════════════════════════════════════════════════════
                 SECTION 3: DELIVERY RADIUS & GOOGLE MAPS RADAR
