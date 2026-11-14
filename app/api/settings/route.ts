@@ -119,6 +119,29 @@ export async function GET() {
       // Supabase table not created yet, use local cache
     }
 
+    // Sanitize any legacy deprecated JKB merchant ID
+    if (settingsMap.upi_id && (settingsMap.upi_id.includes("JKBMERC") || settingsMap.upi_id === "JKBMERC00828895@jkb")) {
+      settingsMap.upi_id = "50200105872271@hdfcbank";
+    }
+
+    if (settingsMap.payment_channels) {
+      try {
+        const channels = JSON.parse(settingsMap.payment_channels);
+        if (Array.isArray(channels)) {
+          let cleaned = false;
+          channels.forEach((c: any) => {
+            if (c.vpa && c.vpa.includes("JKBMERC")) {
+              c.vpa = "50200105872271@hdfcbank";
+              cleaned = true;
+            }
+          });
+          if (cleaned) {
+            settingsMap.payment_channels = JSON.stringify(channels);
+          }
+        }
+      } catch (_) {}
+    }
+
     const rows = Object.entries(settingsMap).map(([key, value]) => ({
       key,
       value,

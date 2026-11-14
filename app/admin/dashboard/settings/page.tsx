@@ -126,6 +126,16 @@ export default function AdminSettingsPage() {
   const [newCustomName, setNewCustomName] = useState("");
   const [newCustomVpa, setNewCustomVpa] = useState("");
   const [newCustomNotes, setNewCustomNotes] = useState("");
+
+  // Edit payment channel modal state
+  const [editingChannel, setEditingChannel] = useState<PaymentChannel | null>(null);
+  const [editChanName, setEditChanName] = useState("");
+  const [editChanVpa, setEditChanVpa] = useState("");
+  const [editChanAccountName, setEditChanAccountName] = useState("");
+  const [editChanAccountNumber, setEditChanAccountNumber] = useState("");
+  const [editChanIfsc, setEditChanIfsc] = useState("");
+  const [editChanBranch, setEditChanBranch] = useState("");
+  const [editChanDescription, setEditChanDescription] = useState("");
   const [jkBankAccountNumber, setJkBankAccountNumber] = useState("");
   const [jkBankIfsc, setJkBankIfsc] = useState("JAKA0MALBAG");
   const [jkBankAccountName, setJkBankAccountName] = useState("Urban Trout Aquaculture");
@@ -206,11 +216,27 @@ export default function AdminSettingsPage() {
             try {
               const parsed = JSON.parse(map.payment_channels);
               if (Array.isArray(parsed) && parsed.length > 0) {
-                setPaymentChannels(parsed);
+                const existingIds = new Set(parsed.map((p: any) => p.id));
+                const merged = [...parsed];
+                DEFAULT_PAYMENT_CHANNELS.forEach((def) => {
+                  if (!existingIds.has(def.id)) merged.push(def);
+                });
+                merged.forEach((c) => {
+                  if (c.vpa && (c.vpa.includes("JKBMERC") || c.vpa === "JKBMERC00828895@jkb")) {
+                    c.vpa = "50200105872271@hdfcbank";
+                  }
+                });
+                setPaymentChannels(merged);
               }
             } catch (_) {}
           }
-          if (map.upi_id) setUpiId(map.upi_id);
+          if (map.upi_id) {
+            if (map.upi_id.includes("JKBMERC") || map.upi_id === "JKBMERC00828895@jkb") {
+              setUpiId("50200105872271@hdfcbank");
+            } else {
+              setUpiId(map.upi_id);
+            }
+          }
           if (map.jk_bank_account_number !== undefined) setJkBankAccountNumber(map.jk_bank_account_number);
           if (map.jk_bank_ifsc) setJkBankIfsc(map.jk_bank_ifsc);
           if (map.jk_bank_account_name) setJkBankAccountName(map.jk_bank_account_name);
@@ -239,11 +265,27 @@ export default function AdminSettingsPage() {
             try {
               const parsed = JSON.parse(map.payment_channels);
               if (Array.isArray(parsed) && parsed.length > 0) {
-                setPaymentChannels(parsed);
+                const existingIds = new Set(parsed.map((p: any) => p.id));
+                const merged = [...parsed];
+                DEFAULT_PAYMENT_CHANNELS.forEach((def) => {
+                  if (!existingIds.has(def.id)) merged.push(def);
+                });
+                merged.forEach((c) => {
+                  if (c.vpa && (c.vpa.includes("JKBMERC") || c.vpa === "JKBMERC00828895@jkb")) {
+                    c.vpa = "50200105872271@hdfcbank";
+                  }
+                });
+                setPaymentChannels(merged);
               }
             } catch (_) {}
           }
-          if (map.upi_id) setUpiId(map.upi_id);
+          if (map.upi_id) {
+            if (map.upi_id.includes("JKBMERC") || map.upi_id === "JKBMERC00828895@jkb") {
+              setUpiId("50200105872271@hdfcbank");
+            } else {
+              setUpiId(map.upi_id);
+            }
+          }
           if (map.jk_bank_account_number !== undefined) setJkBankAccountNumber(map.jk_bank_account_number);
           if (map.jk_bank_ifsc) setJkBankIfsc(map.jk_bank_ifsc);
           if (map.jk_bank_account_name) setJkBankAccountName(map.jk_bank_account_name);
@@ -843,6 +885,113 @@ export default function AdminSettingsPage() {
     setNewCustomVpa("");
     setNewCustomNotes("");
     setShowAddCustomModal(false);
+  };
+
+  const handleOpenEditChannel = (chan: PaymentChannel) => {
+    setEditingChannel(chan);
+    setEditChanName(chan.name || "");
+    setEditChanVpa(chan.vpa || "");
+    setEditChanAccountName(chan.accountName || "");
+    setEditChanAccountNumber(chan.accountNumber || "");
+    setEditChanIfsc(chan.ifsc || "");
+    setEditChanBranch(chan.branch || "");
+    setEditChanDescription(chan.description || "");
+  };
+
+  const handleSaveEditChannel = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingChannel) return;
+    if (!editChanName.trim()) {
+      alert("Please provide a channel name / label.");
+      return;
+    }
+
+    const cleanVpa = editChanVpa.trim().toLowerCase();
+    const updatedChannels = paymentChannels.map((c) => {
+      if (c.id !== editingChannel.id) return c;
+      return {
+        ...c,
+        name: editChanName.trim(),
+        vpa: cleanVpa || undefined,
+        accountName: editChanAccountName.trim() || undefined,
+        accountNumber: editChanAccountNumber.trim() || undefined,
+        ifsc: editChanIfsc.trim().toUpperCase() || undefined,
+        branch: editChanBranch.trim() || undefined,
+        description: editChanDescription.trim(),
+      };
+    });
+
+    setPaymentChannels(updatedChannels);
+
+    // Sync upiId if this channel is default or matches current upiId
+    if (cleanVpa && (editingChannel.isDefault || upiId === editingChannel.vpa)) {
+      setUpiId(cleanVpa);
+    }
+
+    // Sync J&K bank details if edited
+    if (editingChannel.id === "jk_bank_mpay") {
+      if (editChanAccountNumber.trim()) setJkBankAccountNumber(editChanAccountNumber.trim());
+      if (editChanIfsc.trim()) setJkBankIfsc(editChanIfsc.trim().toUpperCase());
+      if (editChanAccountName.trim()) setJkBankAccountName(editChanAccountName.trim());
+      if (editChanBranch.trim()) setJkBankBranch(editChanBranch.trim());
+    }
+
+    // Auto-save to server & Supabase & LocalStorage
+    try {
+      const updates: Array<{ key: string; value: string; description: string }> = [
+        {
+          key: "payment_channels",
+          value: JSON.stringify(updatedChannels),
+          description: "Multi-channel payment routes, QR options, and toggles (Razorpay, J&K Bank, Personal UPI, HDFC)",
+        },
+      ];
+      if (cleanVpa && (editingChannel.isDefault || upiId === editingChannel.vpa)) {
+        updates.push({
+          key: "upi_id",
+          value: cleanVpa,
+          description: "Primary UPI ID for customer direct checkout payments",
+        });
+      }
+      if (editingChannel.id === "jk_bank_mpay") {
+        if (editChanAccountNumber.trim()) {
+          updates.push({
+            key: "jk_bank_account_number",
+            value: editChanAccountNumber.trim(),
+            description: "J&K Bank account number for direct mPay and IMPS/NEFT transfers",
+          });
+        }
+        if (editChanIfsc.trim()) {
+          updates.push({
+            key: "jk_bank_ifsc",
+            value: editChanIfsc.trim().toUpperCase(),
+            description: "J&K Bank IFSC Code",
+          });
+        }
+      }
+
+      await adminFetch("/api/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      });
+
+      for (const item of updates) {
+        await supabase.from("app_settings").upsert(item, { onConflict: "key" });
+      }
+
+      try {
+        const localMap = JSON.parse(localStorage.getItem("urban_trout_store_settings") || "{}");
+        updates.forEach((u) => (localMap[u.key] = u.value));
+        localStorage.setItem("urban_trout_store_settings", JSON.stringify(localMap));
+      } catch (_) {}
+
+      setSavedMsg(`✓ Updated "${editChanName.trim()}" successfully!`);
+      setTimeout(() => setSavedMsg(""), 3500);
+    } catch (err) {
+      console.warn("Auto-save channel edit error:", err);
+    }
+
+    setEditingChannel(null);
   };
 
   const handlePreviewChannelQr = async (channel: PaymentChannel) => {
@@ -2042,6 +2191,17 @@ export default function AdminSettingsPage() {
 
                       {/* Right: Actions */}
                       <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
+                        {/* Edit Channel Details Button */}
+                        <button
+                          type="button"
+                          onClick={() => handleOpenEditChannel(chan)}
+                          className="px-2.5 py-1.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-xs font-mono flex items-center gap-1 transition-all cursor-pointer"
+                          title={`Edit ${chan.name} details & VPA`}
+                        >
+                          <span className="material-symbols-outlined text-sm">edit</span>
+                          <span>Edit</span>
+                        </button>
+
                         {/* QR Preview Button */}
                         {(chan.vpa || chan.accountNumber) && (
                           <button
@@ -2327,6 +2487,138 @@ export default function AdminSettingsPage() {
                         className="flex-1 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-mono font-bold shadow-md"
                       >
                         Save Route
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {/* Edit Payment Channel Modal */}
+            {editingChannel && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+                <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 sm:p-8 max-w-lg w-full space-y-4 shadow-2xl relative">
+                  <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                    <div>
+                      <h3 className="text-base font-bold text-white flex items-center gap-2" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
+                        <span className="material-symbols-outlined text-cyan-400 text-lg">edit</span>
+                        Edit Payment Channel
+                      </h3>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        Update VPA, account name, or notes for {editingChannel.name}
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setEditingChannel(null)}
+                      className="w-8 h-8 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center text-sm cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                  </div>
+
+                  <form onSubmit={handleSaveEditChannel} className="space-y-4">
+                    <div className="space-y-1">
+                      <label className="block text-xs uppercase tracking-wider font-bold text-slate-400 font-mono">
+                        Channel Name / Label <span className="text-red-400">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={editChanName}
+                        onChange={(e) => setEditChanName(e.target.value)}
+                        required
+                        placeholder="e.g. Suhail Personal UPI (GPay / PhonePe)"
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-cyan-400"
+                      />
+                    </div>
+
+                    {editingChannel.type !== "bank_transfer" && (
+                      <div className="space-y-1">
+                        <label className="block text-xs uppercase tracking-wider font-bold text-slate-400 font-mono">
+                          UPI ID / VPA {editingChannel.type !== "razorpay" && <span className="text-red-400">*</span>}
+                        </label>
+                        <input
+                          type="text"
+                          value={editChanVpa}
+                          onChange={(e) => setEditChanVpa(e.target.value)}
+                          placeholder="e.g. 7006604148@okbizaxis or 50200105872271@hdfcbank"
+                          className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-cyan-400"
+                        />
+                        <p className="text-[11px] text-slate-500 font-mono">
+                          Direct handle for Google Pay, PhonePe, Paytm, HDFC, or any UPI app.
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="space-y-1">
+                      <label className="block text-xs uppercase tracking-wider font-bold text-slate-400 font-mono">
+                        Beneficiary / Account Holder Name
+                      </label>
+                      <input
+                        type="text"
+                        value={editChanAccountName}
+                        onChange={(e) => setEditChanAccountName(e.target.value)}
+                        placeholder="e.g. Suhail or Urban Trout Aquaculture"
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-cyan-400"
+                      />
+                    </div>
+
+                    {editingChannel.type === "bank_transfer" && (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-1">
+                          <label className="block text-xs uppercase tracking-wider font-bold text-slate-400 font-mono">
+                            Account Number
+                          </label>
+                          <input
+                            type="text"
+                            value={editChanAccountNumber}
+                            onChange={(e) => setEditChanAccountNumber(e.target.value)}
+                            placeholder="e.g. 0724010100000499"
+                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono focus:outline-none focus:border-cyan-400"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label className="block text-xs uppercase tracking-wider font-bold text-slate-400 font-mono">
+                            IFSC Code
+                          </label>
+                          <input
+                            type="text"
+                            value={editChanIfsc}
+                            onChange={(e) => setEditChanIfsc(e.target.value.toUpperCase())}
+                            placeholder="e.g. JAKA0MALBAG"
+                            className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white font-mono uppercase focus:outline-none focus:border-cyan-400"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="space-y-1">
+                      <label className="block text-xs uppercase tracking-wider font-bold text-slate-400 font-mono">
+                        Internal Note / Description
+                      </label>
+                      <input
+                        type="text"
+                        value={editChanDescription}
+                        onChange={(e) => setEditChanDescription(e.target.value)}
+                        placeholder="e.g. Personal UPI ID for manual / backup collections"
+                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-cyan-400"
+                      />
+                    </div>
+
+                    <div className="flex gap-2 pt-2">
+                      <button
+                        type="button"
+                        onClick={() => setEditingChannel(null)}
+                        className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-mono font-medium transition-all cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        className="flex-1 py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-mono font-bold shadow-md flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                      >
+                        <span className="material-symbols-outlined text-sm">check</span>
+                        Save Changes
                       </button>
                     </div>
                   </form>
