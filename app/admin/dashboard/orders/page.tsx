@@ -345,7 +345,7 @@ export default function OrdersPage() {
     const phone = String(order.customer_phone || "").replace(/\D/g, "").slice(-10);
     const name = order.customer_name || "Valued Customer";
     const orderNum = order.order_number;
-    const msg = `Assalamu Alaikum ${name}! 🐟\n\nYour fresh trout order (#UT-WA-${orderNum}) is now being prepared at Urban Trout Farm!\n\nOur farm team has initiated the live harvest from our oxygenated mountain spring tanks in Malabagh. Your trout is being cleaned and cut into fresh pan-ready steaks. Express delivery is on track within our 2-hour window! 🛵`;
+    const msg = `Hello ${name}! 🐟\n\nYour fresh trout order (#UT-WA-${orderNum}) is now being prepared at Urban Trout Farm!\n\nOur farm team has initiated the live harvest from our oxygenated mountain spring tanks in Malabagh. Your trout is being cleaned and cut into fresh pan-ready steaks. Express delivery is on track within our 2-hour window! 🛵`;
     if (phone) window.open(`https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
@@ -356,7 +356,7 @@ export default function OrdersPage() {
     const name = order.customer_name || "Valued Customer";
     const orderNum = order.order_number;
     const locality = order.customer_locality || "your location";
-    const msg = `Assalamu Alaikum ${name}! 🛵\n\nYour fresh trout order (#UT-WA-${orderNum}) is OUT FOR DELIVERY!\n\nYour package has been freshly packed in 0% melted-ice food-grade insulation and is en route to ${locality}.\n\nOur Express Delivery Executive is on the road. Please keep your phone reachable for a prompt, contactless handover.\n\nThank you for choosing Urban Trout! 🐟`;
+    const msg = `Hello ${name}! 🛵\n\nYour fresh trout order (#UT-WA-${orderNum}) is OUT FOR DELIVERY!\n\nYour package has been freshly packed in food-grade biodegradable polythene packaging (zero ice) and is en route to ${locality}.\n\nOur Express Delivery Executive is on the road. Please keep your phone reachable for a prompt handover.\n\nThank you for choosing Urban Trout! 🐟`;
     if (phone) window.open(`https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
@@ -366,7 +366,7 @@ export default function OrdersPage() {
     const phone = String(order.customer_phone || "").replace(/\D/g, "").slice(-10);
     const name = order.customer_name || "Valued Customer";
     const orderNum = order.order_number;
-    const msg = `Assalamu Alaikum ${name}! ✨\n\nYour fresh trout order (#UT-WA-${orderNum}) has been successfully delivered!\n\nWe hope you and your family enjoy your fresh pan-ready trout. If you loved our service, please take 10 seconds to share your review on Google:\nhttps://g.page/r/CTVKEpV62HMmECE/review\n\nBon Appétit! — Urban Trout Aquaculture 🐟`;
+    const msg = `Hello ${name}! ✨\n\nYour fresh trout order (#UT-WA-${orderNum}) has been successfully delivered!\n\nWe hope you and your family enjoy your fresh pan-ready trout. If you loved our service, please take 10 seconds to share your review on Google:\nhttps://g.page/r/CTVKEpV62HMmECE/review\n\nBon Appétit! — Urban Trout Aquaculture 🐟`;
     if (phone) window.open(`https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
@@ -848,7 +848,7 @@ export default function OrdersPage() {
               <span className="text-[11px] font-mono text-zinc-400 uppercase tracking-wider block">Express Promise</span>
               <div className="flex items-baseline gap-2">
                 <span className="text-base sm:text-lg font-bold font-mono text-emerald-400">120 Mins</span>
-                <span className="text-[10px] text-zinc-500 font-mono">0% Ice Polybag</span>
+                <span className="text-[10px] text-zinc-500 font-mono">Biodegradable Polythene (Zero Ice)</span>
               </div>
             </div>
           </div>
@@ -1082,7 +1082,7 @@ export default function OrdersPage() {
                               className="flex-1 py-2.5 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-mono text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
                             >
                               <span>🛵</span>
-                              <span>Pack in 0% Ice &amp; Dispatch (Out for Delivery)</span>
+                              <span>Pack Fresh (Polythene) &amp; Dispatch (Out for Delivery)</span>
                             </button>
                           </>
                         )}
