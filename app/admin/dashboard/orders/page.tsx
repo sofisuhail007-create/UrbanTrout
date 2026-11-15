@@ -7,6 +7,14 @@ import PaginationBar from "@/components/PaginationBar";
 import FourUpInvoiceSheet, { InvoiceSlipData } from "@/components/FourUpInvoiceSheet";
 import { generateFastQrDataUrl } from "@/lib/qrCode";
 
+function getOrderRefLabel(order: any): string {
+  if (order?.customer_address) {
+    const m = String(order.customer_address).match(/Ref:\s*#?(UT-[A-Za-z0-9_-]+)/i);
+    if (m && m[1]) return m[1].startsWith("UT-") ? `#${m[1]}` : `#UT-${m[1]}`;
+  }
+  return `#UT-WA-${order?.order_number || ""}`;
+}
+
 function orderToSlipData(order: Order, upi: string): InvoiceSlipData {
   let totalOrderedWeight = 0;
   let totalActualWeight = 0;
@@ -51,7 +59,7 @@ function orderToSlipData(order: Order, upi: string): InvoiceSlipData {
   const balanceAmount = grandTotal > paidAmount ? grandTotal - paidAmount : (isPaid ? 0 : grandTotal);
 
   return {
-    invoiceNumber: String(order.order_number),
+    invoiceNumber: getOrderRefLabel(order).replace(/^#/, "") || String(order.order_number),
     orderNumber: order.order_number,
     customerName: order.customer_name || "Valued Customer",
     customerPhone: order.customer_phone || "",
@@ -83,9 +91,11 @@ const STATUSES: { value: OrderStatus; label: string; color: string }[] = [
 ];
 
 function statusStyle(s: string) {
+  if (s === "confirmed") return "bg-[#161616] text-zinc-300 border-[#333333]";
   return STATUSES.find((x) => x.value === s)?.color ?? "bg-slate-700 text-slate-400 border-slate-600";
 }
 function statusLabel(s: string) {
+  if (s === "confirmed") return "Confirmed";
   return STATUSES.find((x) => x.value === s)?.label ?? s;
 }
 
@@ -321,7 +331,7 @@ export default function OrdersPage() {
       .filter(
         (o) =>
           isOrderPlacedTodayIST(o.created_at) &&
-          (o.status === "processing" || o.status === "out_for_delivery" || o.status === "pending")
+          (o.status === "processing" || o.status === "out_for_delivery" || o.status === "pending" || (o.status as any) === "confirmed")
       )
       .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
   }, [orders]);
@@ -344,8 +354,8 @@ export default function OrdersPage() {
     playSuccessChime();
     const phone = String(order.customer_phone || "").replace(/\D/g, "").slice(-10);
     const name = order.customer_name || "Valued Customer";
-    const orderNum = order.order_number;
-    const msg = `Hello ${name}! 🐟\n\nYour fresh trout order (#UT-WA-${orderNum}) is now being prepared at Urban Trout Farm!\n\nOur farm team has initiated the live harvest from our oxygenated mountain spring tanks in Malabagh. Your trout is being cleaned and cut into fresh pan-ready steaks. Express delivery is on track within our 2-hour window! 🛵`;
+    const orderRefDisplay = getOrderRefLabel(order);
+    const msg = `Hello ${name}! 🐟\n\nYour fresh trout order (${orderRefDisplay}) is now being prepared at Urban Trout Farm!\n\nOur farm team has initiated the live harvest from our oxygenated mountain spring tanks in Malabagh. Your trout is being cleaned and cut into fresh pan-ready steaks. Express delivery is on track within our 2-hour window! 🛵`;
     if (phone) window.open(`https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
@@ -354,9 +364,9 @@ export default function OrdersPage() {
     playSuccessChime();
     const phone = String(order.customer_phone || "").replace(/\D/g, "").slice(-10);
     const name = order.customer_name || "Valued Customer";
-    const orderNum = order.order_number;
+    const orderRefDisplay = getOrderRefLabel(order);
     const locality = order.customer_locality || "your location";
-    const msg = `Hello ${name}! 🛵\n\nYour fresh trout order (#UT-WA-${orderNum}) is OUT FOR DELIVERY!\n\nYour package has been freshly packed in food-grade biodegradable polythene packaging (zero ice) and is en route to ${locality}.\n\nOur Express Delivery Executive is on the road. Please keep your phone reachable for a prompt handover.\n\nThank you for choosing Urban Trout! 🐟`;
+    const msg = `Hello ${name}! 🛵\n\nYour fresh trout order (${orderRefDisplay}) is OUT FOR DELIVERY!\n\nYour package has been freshly packed in food-grade biodegradable polythene packaging (zero ice) and is en route to ${locality}.\n\nOur Express Delivery Executive is on the road. Please keep your phone reachable for a prompt handover.\n\nThank you for choosing Urban Trout! 🐟`;
     if (phone) window.open(`https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
@@ -365,8 +375,8 @@ export default function OrdersPage() {
     playSuccessChime();
     const phone = String(order.customer_phone || "").replace(/\D/g, "").slice(-10);
     const name = order.customer_name || "Valued Customer";
-    const orderNum = order.order_number;
-    const msg = `Hello ${name}! ✨\n\nYour fresh trout order (#UT-WA-${orderNum}) has been successfully delivered!\n\nWe hope you and your family enjoy your fresh pan-ready trout. If you loved our service, please take 10 seconds to share your review on Google:\nhttps://g.page/r/CTVKEpV62HMmECE/review\n\nBon Appétit! — Urban Trout Aquaculture 🐟`;
+    const orderRefDisplay = getOrderRefLabel(order);
+    const msg = `Hello ${name}! ✨\n\nYour fresh trout order (${orderRefDisplay}) has been successfully delivered!\n\nWe hope you and your family enjoy your fresh pan-ready trout. If you loved our service, please take 10 seconds to share your review on Google:\nhttps://g.page/r/CTVKEpV62HMmECE/review\n\nBon Appétit! — Urban Trout Aquaculture 🐟`;
     if (phone) window.open(`https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
@@ -947,7 +957,7 @@ export default function OrdersPage() {
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-xs font-mono font-bold text-zinc-400">#UT-WA-{order.order_number}</span>
+                            <span className="text-xs font-mono font-bold text-cyan-400">{getOrderRefLabel(order)}</span>
                             <span className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-semibold border ${statusStyle(order.status)}`}>
                               {statusLabel(order.status)}
                             </span>
@@ -1018,7 +1028,7 @@ export default function OrdersPage() {
                         </div>
                         <div
                           className={`p-1.5 rounded-lg border ${
-                            order.status === "processing"
+                            order.status === "processing" || (order.status as any) === "confirmed"
                               ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/40 font-bold"
                               : order.status === "out_for_delivery" || order.status === "delivered"
                               ? "bg-zinc-800 text-zinc-200 border-zinc-700"
@@ -1231,7 +1241,7 @@ export default function OrdersPage() {
                   className="w-4 h-4 rounded border-[#333333] bg-[#0a0a0a] text-zinc-200 focus:ring-zinc-600 cursor-pointer flex-shrink-0"
                   title="Select for batch 4-up printing"
                 />
-                <span className="text-zinc-500 text-xs font-mono w-10 flex-shrink-0">#{order.order_number}</span>
+                <span className="text-zinc-400 text-xs font-mono font-medium flex-shrink-0" title={`Order #${order.order_number}`}>{getOrderRefLabel(order)}</span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium text-white truncate">{order.customer_name}</p>

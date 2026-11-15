@@ -109,6 +109,125 @@ async function isDuplicatePayment(keys: string | (string | null | undefined)[]):
   }
 }
 
+/**
+ * Auto-pool confirmed WhatsApp/Remote orders into Supabase `orders` table
+ * so they instantly appear on the 2-Hour Express Dispatch Radar dashboard.
+ */
+async function autoPoolOrderToSupabase({
+  paymentId,
+  orderRef,
+  amount,
+  customerName,
+  customerPhone,
+  itemsSummary,
+  channel,
+  description,
+  googleMapsUrl,
+  latitude,
+  longitude,
+  notes,
+}: {
+  paymentId: string;
+  orderRef?: string | null;
+  amount: number;
+  customerName: string;
+  customerPhone: string;
+  itemsSummary?: string | null;
+  channel?: string | null;
+  description?: string | null;
+  googleMapsUrl?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  notes?: any;
+}) {
+  if (channel === "POS_BILLING" || (description && description.includes("POS Invoice"))) {
+    return; // POS billing is managed at the counter, not on the delivery dispatch radar
+  }
+
+  try {
+    const cleanRef = String(orderRef || "").replace(/^#/, "");
+    const cleanPId = String(paymentId || "");
+    const cleanPhone = customerPhone ? String(customerPhone).replace(/\D/g, "").slice(-10) : "";
+
+    // Check if order already exists in Supabase orders table
+    if (cleanRef || cleanPId) {
+      const orFilter = cleanRef && cleanPId
+        ? `customer_address.ilike.%${cleanRef}%,customer_address.ilike.%${cleanPId}%`
+        : cleanRef
+        ? `customer_address.ilike.%${cleanRef}%`
+        : `customer_address.ilike.%${cleanPId}%`;
+      const { data: existingOrd } = await supabase
+        .from("orders")
+        .select("id, order_number")
+        .or(orFilter)
+        .maybeSingle();
+
+      if (existingOrd) {
+        console.log(`[webhook] Order ${cleanRef || cleanPId} already exists in orders table (#${existingOrd.order_number}).`);
+        return;
+      }
+    }
+
+    const desc = String(itemsSummary || description || "Fresh Rainbow Trout");
+    const weightMatch = desc.match(/(\d+(?:\.\d+)?)\s*(?:kg|kilos?)/i);
+    const weightKg = weightMatch ? parseFloat(weightMatch[1]) : 2.0;
+    const isGutted = desc.toLowerCase().includes("gutted") || !desc.toLowerCase().includes("whole");
+    const rate = isGutted ? 580 : 540;
+    const calculatedSubtotal = Math.round(weightKg * rate);
+    const calculatedDeliveryFee = Number(notes?.delivery_fee) || (amount > calculatedSubtotal ? Math.round(amount - calculatedSubtotal) : 0);
+
+    const itemsArray = [
+      {
+        id: isGutted ? "gutted-trout" : "whole-trout",
+        name: isGutted ? "Premium Gutted Rainbow Trout" : "Whole Fresh Rainbow Trout",
+        unit: "Kg",
+        image: "/images/gutted_trout_premium.webp",
+        price: rate,
+        quantity: weightKg,
+        orderedWeightKg: weightKg,
+        actualWeight: weightKg,
+      },
+    ];
+
+    const deliveryLocality = notes?.delivery_area || notes?.locality || "Srinagar";
+    const mapsStr = googleMapsUrl || (latitude && longitude ? `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}` : "");
+    let addrStr = deliveryLocality;
+    if (cleanRef || cleanPId) {
+      addrStr += ` (Ref: #${cleanRef}${cleanRef && cleanPId ? ", " : ""}${cleanPId ? `Razorpay: ${cleanPId}` : ""})`;
+    }
+    const slot = notes?.delivery_time || notes?.delivery_slot;
+    if (slot) {
+      addrStr += ` | Slot: ${slot}`;
+    }
+    if (mapsStr) {
+      addrStr += ` | 📍 Exact GPS: ${mapsStr}`;
+    }
+
+    const { data: createdOrd, error: createErr } = await supabase.from("orders").insert({
+      customer_name: customerName,
+      customer_phone: cleanPhone,
+      customer_address: addrStr,
+      customer_locality: deliveryLocality.replace(/\s*\(~.*?\)/, "").trim(),
+      customer_pincode: "190001",
+      items: itemsArray,
+      subtotal: calculatedSubtotal,
+      delivery_fee: calculatedDeliveryFee,
+      total: amount,
+      delivery_zone: "express_delivery",
+      status: "processing", // Live harvest & steak prep in 2-Hour Express Radar!
+      created_at: new Date().toISOString(),
+    }).select("id, order_number").single();
+
+    if (createErr) {
+      console.error("[webhook] Error auto-pooling WhatsApp order:", createErr);
+    } else if (createdOrd) {
+      console.log(`[webhook] ✅ WhatsApp Order #${createdOrd.order_number} (${cleanRef}) auto-pooled into orders dashboard!`);
+    }
+  } catch (err) {
+    console.error("[webhook] Exception auto-pooling order:", err);
+  }
+}
+
 
 
 /**
@@ -255,6 +374,22 @@ export async function POST(req: NextRequest) {
           }
         }
       }
+
+      // Auto-pool order into Supabase orders table for live 2-Hour Dispatch Radar
+      await autoPoolOrderToSupabase({
+        paymentId,
+        orderRef,
+        amount,
+        customerName,
+        customerPhone: cleanPhone || customerPhone,
+        itemsSummary,
+        channel: notes?.channel,
+        description: paymentLink?.description,
+        googleMapsUrl,
+        latitude,
+        longitude,
+        notes,
+      });
 
       // 4. Vending log is 100% manually maintained by farm staff at the vending counter.
       // Invoicing, remote links, and catch-weight must never affect or auto-insert into vending_sales_log.
@@ -445,19 +580,36 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // 2. Update matching order in Supabase if linked
-      if (matchedOrder && matchedOrder.status !== "confirmed" && matchedOrder.status !== "processing") {
-        try {
-          await supabase
-            .from("orders")
-            .update({
-              status: "processing",
-              razorpay_payment_id: paymentId,
-            })
-            .eq("id", matchedOrder.id);
-        } catch (dbErr) {
-          console.warn("Webhook order sync notice:", dbErr);
+      // 2. Update matching order in Supabase if linked, or auto-pool if new
+      if (matchedOrder) {
+        if (matchedOrder.status !== "confirmed" && matchedOrder.status !== "processing") {
+          try {
+            await supabase
+              .from("orders")
+              .update({
+                status: "processing",
+                razorpay_payment_id: paymentId,
+              })
+              .eq("id", matchedOrder.id);
+          } catch (dbErr) {
+            console.warn("Webhook order sync notice:", dbErr);
+          }
         }
+      } else {
+        await autoPoolOrderToSupabase({
+          paymentId,
+          orderRef: orderRef || notes?.order_ref || null,
+          amount,
+          customerName,
+          customerPhone: cleanPhone || customerPhone,
+          itemsSummary: notes?.items_summary || description,
+          channel: notes?.channel,
+          description,
+          googleMapsUrl,
+          latitude,
+          longitude,
+          notes,
+        });
       }
 
       // 3. Update matching invoice in Supabase if POS Invoice
