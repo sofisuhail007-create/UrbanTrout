@@ -175,7 +175,7 @@ export interface DispatchCountdown {
   formatted: string;
   elapsedMins: number;
   percent: number;
-  urgency: "overdue" | "critical" | "expedite" | "ontrack";
+  urgency: "overdue" | "critical" | "expedite" | "ontrack" | "delivered";
 }
 
 function getDispatchCountdown(order: any, currentNow: number): DispatchCountdown {
@@ -194,8 +194,9 @@ function getDispatchCountdown(order: any, currentNow: number): DispatchCountdown
   const elapsedMins = Math.floor(elapsedMs / (60 * 1000));
   const percent = Math.min(100, Math.round((elapsedMs / (120 * 60 * 1000)) * 100));
 
-  let urgency: "overdue" | "critical" | "expedite" | "ontrack" = "ontrack";
-  if (isOverdue) urgency = "overdue";
+  let urgency: "overdue" | "critical" | "expedite" | "ontrack" | "delivered" = "ontrack";
+  if (order.status === "delivered") urgency = "delivered";
+  else if (isOverdue) urgency = "overdue";
   else if (diffMs <= 30 * 60 * 1000) urgency = "critical";
   else if (diffMs <= 60 * 60 * 1000) urgency = "expedite";
   else urgency = "ontrack";
@@ -217,6 +218,7 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"radar" | "table">("radar");
+  const [includeDeliveredToday, setIncludeDeliveredToday] = useState<boolean>(false);
   const [now, setNow] = useState<number>(Date.now());
   const [expanded, setExpanded] = useState<string | null>(null);
   const [updating, setUpdating] = useState<string | null>(null);
@@ -328,30 +330,57 @@ export default function OrdersPage() {
   // guaranteeing a clean slate every morning! (Historical orders remain archived in "All Orders Table").
   const activeDispatchOrders = useMemo(() => {
     return orders
-      .filter(
-        (o) =>
-          isOrderPlacedTodayIST(o.created_at) &&
-          (o.status === "processing" || o.status === "out_for_delivery" || o.status === "pending" || (o.status as any) === "confirmed")
-      )
+      .filter((o) => {
+        if (!isOrderPlacedTodayIST(o.created_at)) return false;
+        if (includeDeliveredToday) {
+          return (
+            o.status === "processing" ||
+            o.status === "out_for_delivery" ||
+            o.status === "pending" ||
+            (o.status as any) === "confirmed" ||
+            o.status === "delivered"
+          );
+        }
+        return (
+          o.status === "processing" ||
+          o.status === "out_for_delivery" ||
+          o.status === "pending" ||
+          (o.status as any) === "confirmed"
+        );
+      })
       .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+  }, [orders, includeDeliveredToday]);
+
+  const activeQueueCount = useMemo(() => {
+    return orders.filter(
+      (o) =>
+        isOrderPlacedTodayIST(o.created_at) &&
+        (o.status === "processing" || o.status === "out_for_delivery" || o.status === "pending" || (o.status as any) === "confirmed")
+    ).length;
   }, [orders]);
 
   const overdueCount = useMemo(() => {
-    return activeDispatchOrders.filter((o) => getDispatchCountdown(o, now).urgency === "overdue").length;
+    return activeDispatchOrders.filter((o) => o.status !== "delivered" && getDispatchCountdown(o, now).urgency === "overdue").length;
   }, [activeDispatchOrders, now]);
 
   const criticalCount = useMemo(() => {
-    return activeDispatchOrders.filter((o) => getDispatchCountdown(o, now).urgency === "critical").length;
+    return activeDispatchOrders.filter((o) => o.status !== "delivered" && getDispatchCountdown(o, now).urgency === "critical").length;
   }, [activeDispatchOrders, now]);
 
   const onTheRoadCount = useMemo(() => {
     return activeDispatchOrders.filter((o) => o.status === "out_for_delivery").length;
   }, [activeDispatchOrders]);
 
+  const deliveredTodayCount = useMemo(() => {
+    return orders.filter((o) => isOrderPlacedTodayIST(o.created_at) && o.status === "delivered").length;
+  }, [orders]);
+
   // Professional Zomato/Blinkit-style 1-Tap WhatsApp alerts & Stage transitions
-  const handleStartHarvest = async (order: Order) => {
+  // Can be called at any time from any state, with optional WhatsApp launch
+  const handleStartHarvest = async (order: Order, sendWhatsApp: boolean = true) => {
     await updateStatus(order.id, "processing");
     playSuccessChime();
+    if (!sendWhatsApp) return;
     const phone = String(order.customer_phone || "").replace(/\D/g, "").slice(-10);
     const name = order.customer_name || "Valued Customer";
     const orderRefDisplay = getOrderRefLabel(order);
@@ -359,9 +388,10 @@ export default function OrdersPage() {
     if (phone) window.open(`https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
-  const handleOutForDelivery = async (order: Order) => {
+  const handleOutForDelivery = async (order: Order, sendWhatsApp: boolean = true) => {
     await updateStatus(order.id, "out_for_delivery");
     playSuccessChime();
+    if (!sendWhatsApp) return;
     const phone = String(order.customer_phone || "").replace(/\D/g, "").slice(-10);
     const name = order.customer_name || "Valued Customer";
     const orderRefDisplay = getOrderRefLabel(order);
@@ -370,9 +400,10 @@ export default function OrdersPage() {
     if (phone) window.open(`https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
-  const handleMarkDelivered = async (order: Order) => {
+  const handleMarkDelivered = async (order: Order, sendWhatsApp: boolean = true) => {
     await updateStatus(order.id, "delivered");
     playSuccessChime();
+    if (!sendWhatsApp) return;
     const phone = String(order.customer_phone || "").replace(/\D/g, "").slice(-10);
     const name = order.customer_name || "Valued Customer";
     const orderRefDisplay = getOrderRefLabel(order);
@@ -765,6 +796,23 @@ export default function OrdersPage() {
               <span className="material-symbols-outlined text-sm">table_rows</span>
               <span>All Orders Table ({filtered.length})</span>
             </button>
+            {viewMode === "radar" && (
+              <button
+                type="button"
+                onClick={() => setIncludeDeliveredToday((prev) => !prev)}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold font-mono transition-all cursor-pointer ${
+                  includeDeliveredToday
+                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm"
+                    : "text-zinc-400 hover:text-white"
+                }`}
+                title="Toggle display of orders delivered today on live radar"
+              >
+                <span className="material-symbols-outlined text-xs">
+                  {includeDeliveredToday ? "check_circle" : "history"}
+                </span>
+                <span>Delivered ({deliveredTodayCount})</span>
+              </button>
+            )}
           </div>
 
           {/* Quick Active Deliveries 4-Up button */}
@@ -822,8 +870,8 @@ export default function OrdersPage() {
             <div className="p-3.5 rounded-2xl bg-[#0e0e0e] border border-zinc-800/80 space-y-1">
               <span className="text-[11px] font-mono text-zinc-400 uppercase tracking-wider block">Active in Queue</span>
               <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-bold font-mono text-white">{activeDispatchOrders.length}</span>
-                <span className="text-xs text-zinc-500 font-mono">orders</span>
+                <span className="text-2xl font-bold font-mono text-white">{activeQueueCount}</span>
+                <span className="text-xs text-zinc-500 font-mono">pending</span>
               </div>
             </div>
 
@@ -895,7 +943,9 @@ export default function OrdersPage() {
                   <div
                     key={order.id}
                     className={`rounded-2xl border transition-all overflow-hidden flex flex-col justify-between ${
-                      countdown.urgency === "overdue"
+                      countdown.urgency === "delivered"
+                        ? "bg-gradient-to-b from-emerald-950/20 via-[#0a0a0a] to-[#0a0a0a] border-emerald-500/50 shadow-sm"
+                        : countdown.urgency === "overdue"
                         ? "bg-gradient-to-b from-rose-950/30 via-[#0a0a0a] to-[#0a0a0a] border-rose-500/80 shadow-[0_0_25px_rgba(244,63,94,0.18)]"
                         : countdown.urgency === "critical"
                         ? "bg-gradient-to-b from-amber-950/25 via-[#0a0a0a] to-[#0a0a0a] border-amber-500/70 shadow-[0_0_15px_rgba(245,158,11,0.15)]"
@@ -907,7 +957,9 @@ export default function OrdersPage() {
                     {/* Urgency Ticker Header */}
                     <div
                       className={`px-4 py-2.5 flex items-center justify-between border-b ${
-                        countdown.urgency === "overdue"
+                        countdown.urgency === "delivered"
+                          ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-300"
+                          : countdown.urgency === "overdue"
                           ? "bg-rose-500/15 border-rose-500/30 text-rose-300"
                           : countdown.urgency === "critical"
                           ? "bg-amber-500/15 border-amber-500/30 text-amber-300"
@@ -917,21 +969,34 @@ export default function OrdersPage() {
                       }`}
                     >
                       <div className="flex items-center gap-2">
-                        <span
-                          className={`w-2.5 h-2.5 rounded-full ${
-                            countdown.urgency === "overdue" || countdown.urgency === "critical"
-                              ? "bg-rose-500 animate-ping"
-                              : "bg-emerald-400"
-                          }`}
-                        />
-                        <span className="text-xs font-mono font-bold uppercase tracking-wider">
-                          {countdown.isOverdue
-                            ? `⚠️ OVERDUE BY ${countdown.formatted}`
-                            : `${countdown.urgency === "critical" ? "🔥 CRITICAL" : countdown.urgency === "expedite" ? "⚡ EXPEDITE" : "🟢 ON TRACK"}: ${countdown.formatted} LEFT`}
-                        </span>
+                        {countdown.urgency === "delivered" ? (
+                          <>
+                            <span className="material-symbols-outlined text-sm text-emerald-400">check_circle</span>
+                            <span className="text-xs font-mono font-bold uppercase tracking-wider text-emerald-300">
+                              DELIVERED &amp; COMPLETED
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <span
+                              className={`w-2.5 h-2.5 rounded-full ${
+                                countdown.urgency === "overdue" || countdown.urgency === "critical"
+                                  ? "bg-rose-500 animate-ping"
+                                  : "bg-emerald-400"
+                              }`}
+                            />
+                            <span className="text-xs font-mono font-bold uppercase tracking-wider">
+                              {countdown.isOverdue
+                                ? `⚠️ OVERDUE BY ${countdown.formatted}`
+                                : `${countdown.urgency === "critical" ? "🔥 CRITICAL" : countdown.urgency === "expedite" ? "⚡ EXPEDITE" : "🟢 ON TRACK"}: ${countdown.formatted} LEFT`}
+                            </span>
+                          </>
+                        )}
                       </div>
                       <span className="text-[11px] font-mono opacity-80">
-                        {countdown.elapsedMins}m / 120m elapsed
+                        {countdown.urgency === "delivered"
+                          ? `Completed in ${countdown.elapsedMins}m`
+                          : `${countdown.elapsedMins}m / 120m elapsed`}
                       </span>
                     </div>
 
@@ -939,7 +1004,9 @@ export default function OrdersPage() {
                     <div className="w-full bg-zinc-900 h-1">
                       <div
                         className={`h-full transition-all duration-1000 ${
-                          countdown.urgency === "overdue"
+                          countdown.urgency === "delivered"
+                            ? "bg-emerald-400"
+                            : countdown.urgency === "overdue"
                             ? "bg-rose-500"
                             : countdown.urgency === "critical"
                             ? "bg-amber-500"
@@ -947,7 +1014,7 @@ export default function OrdersPage() {
                             ? "bg-yellow-400"
                             : "bg-emerald-400"
                         }`}
-                        style={{ width: `${countdown.percent}%` }}
+                        style={{ width: countdown.urgency === "delivered" ? "100%" : `${countdown.percent}%` }}
                       />
                     </div>
 
@@ -1015,102 +1082,132 @@ export default function OrdersPage() {
                         </div>
                       </div>
 
-                      {/* 4-Stage Visual Pipeline */}
-                      <div className="grid grid-cols-4 gap-1 text-center font-mono text-[10px]">
-                        <div
-                          className={`p-1.5 rounded-lg border ${
-                            order.status === "pending" || order.status === "processing" || order.status === "out_for_delivery" || order.status === "delivered"
-                              ? "bg-zinc-800 text-zinc-200 border-zinc-700"
-                              : "bg-zinc-900/40 text-zinc-600 border-zinc-800"
-                          }`}
-                        >
-                          1. Placed
+                      {/* 4-Stage Interactive Visual Pipeline (Silent Status Switcher) */}
+                      <div className="space-y-1 font-mono">
+                        <div className="flex items-center justify-between text-[10px] text-zinc-400">
+                          <span className="uppercase tracking-wider">Order Stage Toggle</span>
+                          <span className="text-[10px] text-zinc-500">Tap to switch stage directly</span>
                         </div>
-                        <div
-                          className={`p-1.5 rounded-lg border ${
-                            order.status === "processing" || (order.status as any) === "confirmed"
-                              ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/40 font-bold"
-                              : order.status === "out_for_delivery" || order.status === "delivered"
-                              ? "bg-zinc-800 text-zinc-200 border-zinc-700"
-                              : "bg-zinc-900/40 text-zinc-600 border-zinc-800"
-                          }`}
-                        >
-                          2. Harvest &amp; Steaks
-                        </div>
-                        <div
-                          className={`p-1.5 rounded-lg border ${
-                            order.status === "out_for_delivery"
-                              ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/40 font-bold"
-                              : order.status === "delivered"
-                              ? "bg-zinc-800 text-zinc-200 border-zinc-700"
-                              : "bg-zinc-900/40 text-zinc-600 border-zinc-800"
-                          }`}
-                        >
-                          3. Loaded on Bike
-                        </div>
-                        <div
-                          className={`p-1.5 rounded-lg border ${
-                            order.status === "delivered"
-                              ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40 font-bold"
-                              : "bg-zinc-900/40 text-zinc-600 border-zinc-800"
-                          }`}
-                        >
-                          4. Delivered
+                        <div className="grid grid-cols-4 gap-1 text-center font-mono text-[10px]">
+                          <button
+                            type="button"
+                            onClick={() => updateStatus(order.id, "pending")}
+                            className={`p-2 rounded-lg border transition-all cursor-pointer font-bold ${
+                              order.status === "pending"
+                                ? "bg-amber-500/25 text-amber-200 border-amber-500/60 shadow-sm"
+                                : "bg-zinc-900/60 text-zinc-400 border-zinc-800 hover:bg-zinc-800 hover:text-zinc-200"
+                            }`}
+                            title="Switch status to 1. Placed"
+                          >
+                            1. Placed
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => updateStatus(order.id, "processing")}
+                            className={`p-2 rounded-lg border transition-all cursor-pointer font-bold ${
+                              order.status === "processing" || (order.status as any) === "confirmed"
+                                ? "bg-cyan-500/25 text-cyan-200 border-cyan-500/60 shadow-sm"
+                                : "bg-zinc-900/60 text-zinc-400 border-zinc-800 hover:bg-zinc-800 hover:text-zinc-200"
+                            }`}
+                            title="Switch status to 2. Harvest & Steaks"
+                          >
+                            2. Harvest
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => updateStatus(order.id, "out_for_delivery")}
+                            className={`p-2 rounded-lg border transition-all cursor-pointer font-bold ${
+                              order.status === "out_for_delivery"
+                                ? "bg-blue-500/25 text-blue-200 border-blue-500/60 shadow-sm"
+                                : "bg-zinc-900/60 text-zinc-400 border-zinc-800 hover:bg-zinc-800 hover:text-zinc-200"
+                            }`}
+                            title="Switch status to 3. Loaded on Bike"
+                          >
+                            3. On Bike
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => updateStatus(order.id, "delivered")}
+                            className={`p-2 rounded-lg border transition-all cursor-pointer font-bold ${
+                              order.status === "delivered"
+                                ? "bg-emerald-500/25 text-emerald-200 border-emerald-500/60 shadow-sm"
+                                : "bg-zinc-900/60 text-zinc-400 border-zinc-800 hover:bg-zinc-800 hover:text-zinc-200"
+                            }`}
+                            title="Switch status to 4. Delivered"
+                          >
+                            4. Delivered
+                          </button>
                         </div>
                       </div>
                     </div>
 
                     {/* Card Actions Bottom */}
-                    <div className="p-4 bg-zinc-950/80 border-t border-zinc-800/80 space-y-2.5">
-                      {/* Primary 1-Tap Workflow Transition Button */}
-                      <div className="flex gap-2">
-                        {order.status === "pending" && (
+                    <div className="p-4 bg-zinc-950/80 border-t border-zinc-800/80 space-y-3">
+                      {/* 1-Tap Customer WhatsApp Alerts (Independently triggerable anytime from any state) */}
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between text-[11px] font-mono text-zinc-400">
+                          <span className="uppercase tracking-wider font-semibold flex items-center gap-1.5 text-zinc-300">
+                            <span>⚡</span>
+                            <span>1-Tap WhatsApp Alerts</span>
+                          </span>
+                          <span className="text-[10px] text-cyan-400">Tap anytime to notify customer</span>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                           <button
                             type="button"
-                            onClick={() => handleStartHarvest(order)}
-                            className="flex-1 py-2.5 px-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-mono text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
+                            onClick={() => handleStartHarvest(order, true)}
+                            className={`py-2 px-2 rounded-xl font-mono text-xs font-semibold flex items-center justify-center gap-1.5 transition-all border cursor-pointer ${
+                              order.status === "processing" || (order.status as any) === "confirmed"
+                                ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/50 shadow-sm"
+                                : "bg-[#111111] hover:bg-[#1a1a1a] text-zinc-300 border-zinc-700/80 hover:border-zinc-500"
+                            }`}
+                            title="Set status to Processing & send 'Live Harvest Initiated' WhatsApp message"
                           >
                             <span>🐟</span>
-                            <span>Start Harvest &amp; Steaks (Notify WhatsApp)</span>
+                            <span>Harvesting Alert</span>
                           </button>
-                        )}
 
-                        {order.status === "processing" && (
-                          <>
-                            <button
-                              type="button"
-                              onClick={() => openScaleModal(order)}
-                              className="py-2.5 px-3 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 font-mono text-xs font-semibold flex items-center gap-1 transition-all cursor-pointer"
-                              title="Enter exact weight from weighing scale"
-                            >
-                              <span>⚖️</span>
-                              <span>Catch Weight</span>
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => handleOutForDelivery(order)}
-                              className="flex-1 py-2.5 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-mono text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
-                            >
-                              <span>🛵</span>
-                              <span>Pack Fresh (Polythene) &amp; Dispatch (Out for Delivery)</span>
-                            </button>
-                          </>
-                        )}
-
-                        {order.status === "out_for_delivery" && (
                           <button
                             type="button"
-                            onClick={() => handleMarkDelivered(order)}
-                            className="flex-1 py-2.5 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-mono text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1.5 cursor-pointer"
+                            onClick={() => handleOutForDelivery(order, true)}
+                            className={`py-2 px-2 rounded-xl font-mono text-xs font-semibold flex items-center justify-center gap-1.5 transition-all border cursor-pointer ${
+                              order.status === "out_for_delivery"
+                                ? "bg-blue-500/20 text-blue-300 border-blue-500/50 shadow-sm"
+                                : "bg-[#111111] hover:bg-[#1a1a1a] text-zinc-300 border-zinc-700/80 hover:border-zinc-500"
+                            }`}
+                            title="Set status to Out for Delivery & send 'Rider En Route' WhatsApp message"
+                          >
+                            <span>🛵</span>
+                            <span>Out for Delivery</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleMarkDelivered(order, true)}
+                            className={`py-2 px-2 rounded-xl font-mono text-xs font-bold flex items-center justify-center gap-1.5 transition-all border cursor-pointer ${
+                              order.status === "delivered"
+                                ? "bg-emerald-500/25 text-emerald-300 border-emerald-500/50 shadow-sm"
+                                : "bg-emerald-600/80 hover:bg-emerald-500 text-slate-950 border-emerald-500"
+                            }`}
+                            title="Set status to Delivered & send Google Review WhatsApp message"
                           >
                             <span>✓</span>
-                            <span>Mark Delivered &amp; Send Review Link</span>
+                            <span>Delivered Alert</span>
                           </button>
-                        )}
+                        </div>
                       </div>
 
                       {/* Driver Quick Utilities */}
-                      <div className="flex items-center gap-1.5 flex-wrap text-xs font-mono">
+                      <div className="flex items-center gap-1.5 flex-wrap text-xs font-mono pt-1 border-t border-zinc-800/60">
+                        <button
+                          type="button"
+                          onClick={() => openScaleModal(order)}
+                          className="px-2.5 py-1.5 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 flex items-center gap-1 transition-all cursor-pointer"
+                          title="Enter exact weight from weighing scale"
+                        >
+                          <span>⚖️</span>
+                          <span>Catch Wt</span>
+                        </button>
                         {mapsUrl && (
                           <a
                             href={mapsUrl}
