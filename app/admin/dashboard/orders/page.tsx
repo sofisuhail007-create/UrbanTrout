@@ -1103,37 +1103,37 @@ export default function OrdersPage() {
                           </button>
                           <button
                             type="button"
-                            onClick={() => updateStatus(order.id, "processing")}
+                            onClick={() => handleStartHarvest(order, true)}
                             className={`p-2 rounded-lg border transition-all cursor-pointer font-bold ${
                               order.status === "processing" || (order.status as any) === "confirmed"
                                 ? "bg-cyan-500/25 text-cyan-200 border-cyan-500/60 shadow-sm"
                                 : "bg-zinc-900/60 text-zinc-400 border-zinc-800 hover:bg-zinc-800 hover:text-zinc-200"
                             }`}
-                            title="Switch status to 2. Harvest & Steaks"
+                            title="Switch status to 2. Harvest & Steaks & Notify Customer"
                           >
                             2. Harvest
                           </button>
                           <button
                             type="button"
-                            onClick={() => updateStatus(order.id, "out_for_delivery")}
+                            onClick={() => handleOutForDelivery(order, true)}
                             className={`p-2 rounded-lg border transition-all cursor-pointer font-bold ${
                               order.status === "out_for_delivery"
                                 ? "bg-blue-500/25 text-blue-200 border-blue-500/60 shadow-sm"
                                 : "bg-zinc-900/60 text-zinc-400 border-zinc-800 hover:bg-zinc-800 hover:text-zinc-200"
                             }`}
-                            title="Switch status to 3. Loaded on Bike"
+                            title="Switch status to 3. Loaded on Bike & Notify Customer"
                           >
                             3. On Bike
                           </button>
                           <button
                             type="button"
-                            onClick={() => updateStatus(order.id, "delivered")}
+                            onClick={() => handleMarkDelivered(order, true)}
                             className={`p-2 rounded-lg border transition-all cursor-pointer font-bold ${
                               order.status === "delivered"
                                 ? "bg-emerald-500/25 text-emerald-200 border-emerald-500/60 shadow-sm"
                                 : "bg-zinc-900/60 text-zinc-400 border-zinc-800 hover:bg-zinc-800 hover:text-zinc-200"
                             }`}
-                            title="Switch status to 4. Delivered"
+                            title="Switch status to 4. Delivered & Send Review WhatsApp"
                           >
                             4. Delivered
                           </button>
@@ -1528,16 +1528,33 @@ export default function OrdersPage() {
 
                   {/* Status updater */}
                   <div>
-                    <p className="text-xs text-slate-600 uppercase tracking-widest mb-2">Update Status</p>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs text-slate-400 uppercase tracking-widest font-mono flex items-center gap-1.5">
+                        <span>⚡</span>
+                        <span>Update Status (Auto-Prepares WhatsApp Notification)</span>
+                      </p>
+                      <span className="text-[10px] text-cyan-400 font-mono">1-Tap Customer WhatsApp Alert</span>
+                    </div>
                     <div className="flex flex-wrap gap-2">
                       {STATUSES.map((s) => (
                         <button
                           key={s.value}
-                          disabled={order.status === s.value || updating === order.id}
-                          onClick={() => updateStatus(order.id, s.value)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all disabled:opacity-40 ${
-                            order.status === s.value ? s.color + " opacity-100" : "bg-slate-800 text-slate-400 border-[#333333] hover:border-slate-500"
+                          disabled={updating === order.id}
+                          onClick={() => {
+                            if (s.value === "delivered") {
+                              handleMarkDelivered(order, true);
+                            } else if (s.value === "out_for_delivery") {
+                              handleOutForDelivery(order, true);
+                            } else if (s.value === "processing" || (s.value as any) === "confirmed") {
+                              handleStartHarvest(order, true);
+                            } else {
+                              updateStatus(order.id, s.value);
+                            }
+                          }}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all disabled:opacity-40 cursor-pointer ${
+                            order.status === s.value ? s.color + " opacity-100 shadow-sm" : "bg-slate-800 text-slate-400 border-[#333333] hover:border-slate-500"
                           }`}
+                          title={`Switch to ${s.label} & notify customer via WhatsApp`}
                         >
                           {s.label}
                         </button>
@@ -1545,9 +1562,54 @@ export default function OrdersPage() {
                     </div>
                   </div>
 
-                  {/* Actions (Weigh/Scale + Print 4-Up + Navigate + WhatsApp + Delete) */}
-                  <div className="flex items-center justify-between pt-2 border-t border-[#222222]/80 flex-wrap gap-2">
+                  {/* Actions (1-Tap WhatsApp Alerts + Weigh/Scale + Print 4-Up + Navigate + Delete) */}
+                  <div className="space-y-2 pt-2 border-t border-[#222222]/80">
                     <div className="flex items-center gap-2 flex-wrap">
+                      <button
+                        type="button"
+                        onClick={() => handleStartHarvest(order, true)}
+                        className={`py-1.5 px-3 rounded-lg font-mono text-xs font-semibold flex items-center gap-1.5 border transition-all cursor-pointer ${
+                          order.status === "processing" || (order.status as any) === "confirmed"
+                            ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/50 shadow-sm"
+                            : "bg-[#141414] hover:bg-zinc-800 text-zinc-300 border-zinc-700"
+                        }`}
+                        title="Set status to Processing & send 'Live Harvest Initiated' WhatsApp message"
+                      >
+                        <span>🐟</span>
+                        <span>Harvest Alert</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleOutForDelivery(order, true)}
+                        className={`py-1.5 px-3 rounded-lg font-mono text-xs font-semibold flex items-center gap-1.5 border transition-all cursor-pointer ${
+                          order.status === "out_for_delivery"
+                            ? "bg-blue-500/20 text-blue-300 border-blue-500/50 shadow-sm"
+                            : "bg-[#141414] hover:bg-zinc-800 text-zinc-300 border-zinc-700"
+                        }`}
+                        title="Set status to Out for Delivery & send 'Rider En Route' WhatsApp message"
+                      >
+                        <span>🛵</span>
+                        <span>Out for Delivery</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleMarkDelivered(order, true)}
+                        className={`py-1.5 px-3 rounded-lg font-mono text-xs font-bold flex items-center gap-1.5 border transition-all cursor-pointer ${
+                          order.status === "delivered"
+                            ? "bg-emerald-500/25 text-emerald-300 border-emerald-500/50 shadow-sm"
+                            : "bg-emerald-600/80 hover:bg-emerald-500 text-slate-950 border-emerald-500"
+                        }`}
+                        title="Set status to Delivered & send Google Review WhatsApp message"
+                      >
+                        <span>✓</span>
+                        <span>Delivered Alert</span>
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between flex-wrap gap-2 pt-1">
+                      <div className="flex items-center gap-2 flex-wrap">
                       <button
                         type="button"
                         onClick={() => handleOpenOrderQr(order)}
@@ -1622,6 +1684,7 @@ export default function OrdersPage() {
                     </button>
                   </div>
                 </div>
+              </div>
               )}
             </div>
           ))}
