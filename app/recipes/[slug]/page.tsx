@@ -28,10 +28,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 
   const pageUrl = `https://urbantrout.in/recipes/${recipe.slug}`;
-  const ogImg =
-    recipe.id === 1
-      ? `https://urbantrout.in/images/recipes/${recipe.slug}.webp`
-      : `https://urbantrout.in/images/gutted_trout_premium.webp`;
+  const ogImg = `https://urbantrout.in/images/recipes/${recipe.slug}.webp`;
 
   return {
     title: `${recipe.title} Recipe | Authentic Himalayan Rainbow Trout`,
@@ -105,10 +102,7 @@ export default async function RecipePage({ params }: Props) {
         "@type": "Recipe",
         name: recipe.title,
         description: recipe.subtitle,
-        image:
-          recipe.id === 1
-            ? `https://urbantrout.in/images/recipes/${recipe.slug}.webp`
-            : "https://urbantrout.in/images/gutted_trout_premium.webp",
+        image: `https://urbantrout.in/images/recipes/${recipe.slug}.webp`,
         author: {
           "@type": "Organization",
           name: "Urban Trout Culinary Team",
