@@ -12,12 +12,11 @@ interface Props {
 
 export default function RecipeDetailClient({ recipe, relatedRecipes }: Props) {
   const [servings, setServings] = useState<number>(recipe.servings || 4);
-  const [checkedIngredients, setCheckedIngredients] = useState<Record<string, boolean>>({});
-  const [activeTab, setActiveTab] = useState<"instructions" | "nutrition" | "tips">("instructions");
+  const [copied, setCopied] = useState(false);
 
   const scaleFactor = servings / (recipe.servings || 4);
 
-  // Helper to scale numeric quantities in ingredient lines
+  // Helper to dynamically scale numeric quantities in ingredient lines
   const scaleIngredient = (text: string) => {
     if (scaleFactor === 1) return text;
     return text.replace(/(\d+(?:\.\d+)?|\d+\/\d+)/g, (match) => {
@@ -29,20 +28,29 @@ export default function RecipeDetailClient({ recipe, relatedRecipes }: Props) {
         val = parseFloat(match);
       }
       const scaled = val * scaleFactor;
-      // Format cleanly
       if (Number.isInteger(scaled)) return scaled.toString();
       return scaled.toFixed(1).replace(/\.0$/, "");
     });
   };
 
-  const toggleIngredient = (key: string) => {
-    setCheckedIngredients((prev) => ({ ...prev, [key]: !prev[key] }));
+  const handleShare = () => {
+    if (typeof window !== "undefined") {
+      navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2500);
+    }
   };
 
-  // WhatsApp order link
+  const handlePrint = () => {
+    if (typeof window !== "undefined") {
+      window.print();
+    }
+  };
+
+  // WhatsApp express order calculation
   const orderWeightKg = Math.max(1, Math.round((servings / 4) * 2));
   const waOrderText = encodeURIComponent(
-    `Hello Urban Trout! I'm cooking "${recipe.title}" for ${servings} people. I'd like to order ${orderWeightKg} kg of Cleaned & Gutted Pan-Ready Trout (400-500g fish) for express delivery.`
+    `Hello Urban Trout! I am cooking "${recipe.title}" for ${servings} people. I would like to order ${orderWeightKg} kg of Cleaned & Gutted Pan-Ready Trout (400–500g fish) for express delivery.`
   );
   const waOrderUrl = `https://wa.me/919419900004?text=${waOrderText}`;
 
@@ -51,49 +59,70 @@ export default function RecipeDetailClient({ recipe, relatedRecipes }: Props) {
   );
 
   return (
-    <div className="min-h-screen bg-[#031018] text-[#dfedf9] pt-24 pb-24 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-5xl mx-auto">
-        {/* Breadcrumb Navigation */}
-        <nav className="flex items-center text-xs text-[#9fadb8] mb-6 space-x-2">
-          <Link href="/" className="hover:text-[#72ddfd] transition-colors">
-            Home
-          </Link>
-          <span>/</span>
-          <Link href="/recipes" className="hover:text-[#72ddfd] transition-colors">
-            Recipes
-          </Link>
-          <span>/</span>
-          <span className="text-[#9fadb8]">{recipe.category}</span>
-          <span>/</span>
-          <span className="text-[#72ddfd] font-medium truncate max-w-[200px] sm:max-w-none">
-            {recipe.title}
-          </span>
-        </nav>
+    <div className="min-h-screen bg-[#031018] text-[#dfedf9] pt-24 pb-28 px-4 sm:px-6 lg:px-8 selection:bg-[#72ddfd]/20 selection:text-[#72ddfd]">
+      <div className="max-w-6xl mx-auto">
+        {/* Top Header Utilities */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-[#122838]">
+          {/* Breadcrumb Navigation */}
+          <nav className="flex items-center text-xs text-[#9fadb8] space-x-2">
+            <Link href="/" className="hover:text-[#72ddfd] transition-colors">
+              Home
+            </Link>
+            <span>/</span>
+            <Link href="/recipes" className="hover:text-[#72ddfd] transition-colors">
+              Recipes
+            </Link>
+            <span>/</span>
+            <span className="text-[#9fadb8]">{recipe.category}</span>
+            <span>/</span>
+            <span className="text-[#72ddfd] font-medium truncate max-w-[180px] sm:max-w-xs">
+              {recipe.title}
+            </span>
+          </nav>
 
-        {/* Recipe Title & Hero Header */}
+          {/* Action Utilities (Share & Print) */}
+          <div className="flex items-center gap-2 self-start sm:self-auto">
+            <button
+              onClick={handleShare}
+              className="px-3 py-1.5 rounded-xl bg-[#091d2c] hover:bg-[#122d42] border border-[#17384e] text-xs font-semibold text-[#dfedf9] hover:text-[#72ddfd] transition-all flex items-center gap-1.5 shadow-sm"
+              title="Share Recipe Link"
+            >
+              <span>{copied ? "✓ Copied!" : "🔗 Share"}</span>
+            </button>
+            <button
+              onClick={handlePrint}
+              className="px-3 py-1.5 rounded-xl bg-[#091d2c] hover:bg-[#122d42] border border-[#17384e] text-xs font-semibold text-[#dfedf9] hover:text-[#72ddfd] transition-all flex items-center gap-1.5 shadow-sm"
+              title="Print Recipe"
+            >
+              <span>🖨️ Print</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Recipe Title & Hero Meta */}
         <header className="mb-8">
-          <div className="flex flex-wrap items-center gap-2 mb-3">
-            <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-[#102434] text-[#72ddfd] border border-[#72ddfd]/30">
+          <div className="flex flex-wrap items-center gap-2 mb-3.5">
+            <span className="px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-[#102434] text-[#72ddfd] border border-[#72ddfd]/30 shadow-sm">
               {recipe.category}
             </span>
-            <span className="px-2.5 py-1 rounded-full text-xs font-medium bg-[#091a26] text-[#dfedf9] border border-[#1b3446]">
+            <span className="px-3 py-1 rounded-full text-[11px] font-semibold bg-[#091a26] text-[#dfedf9] border border-[#1b3446]">
               {recipe.cookingMethod}
             </span>
-            <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-950/40 text-emerald-300 border border-emerald-500/30">
+            <span className="px-3 py-1 rounded-full text-[11px] font-semibold bg-emerald-950/40 text-emerald-300 border border-emerald-500/30">
               ⏱️ {recipe.totalTime}
             </span>
-            <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-cyan-950/40 text-cyan-300 border border-cyan-500/30">
+            <span className="px-3 py-1 rounded-full text-[11px] font-semibold bg-cyan-950/40 text-cyan-300 border border-cyan-500/30">
               👥 {servings} Servings
             </span>
           </div>
 
           {recipe.kashmiriName && (
-            <span className="text-sm sm:text-base font-semibold text-[#72ddfd]/90 block mb-1">
-              {recipe.kashmiriName}
+            <span className="text-sm sm:text-base font-semibold text-[#72ddfd] tracking-wide block mb-1">
+              Traditional: {recipe.kashmiriName}
             </span>
           )}
 
-          <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight mb-4">
+          <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-tight mb-3">
             {recipe.title}
           </h1>
 
@@ -102,11 +131,11 @@ export default function RecipeDetailClient({ recipe, relatedRecipes }: Props) {
           </p>
         </header>
 
-        {/* Hero Visual & Quick Order Box */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-12 items-start">
-          {/* Main Dish Image */}
+        {/* Hero Visual & Fresh Trout Order Card */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-10 items-stretch">
+          {/* Main Dish Photography */}
           <div className="lg:col-span-7">
-            <div className="relative aspect-[16/11] w-full rounded-2xl overflow-hidden bg-[#091d2c] border border-[#132838] shadow-2xl">
+            <div className="relative aspect-[16/11] w-full rounded-2xl overflow-hidden bg-[#091d2c] border border-[#162e40] shadow-2xl">
               <Image
                 src={heroImage}
                 alt={recipe.title}
@@ -116,189 +145,186 @@ export default function RecipeDetailClient({ recipe, relatedRecipes }: Props) {
                 className="object-cover"
                 onError={() => setHeroImage("/images/gutted_trout_premium.webp")}
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#031018]/90 via-transparent to-transparent" />
-              <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between text-xs text-white/90">
-                <span className="bg-[#031018]/80 backdrop-blur-md px-3 py-1 rounded-lg border border-white/10">
-                  ⚡ 100% Pan-Ready (Cleaned & Gutted)
+              <div className="absolute inset-0 bg-gradient-to-t from-[#031018]/90 via-transparent to-transparent opacity-90" />
+              <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between text-xs text-white/95">
+                <span className="bg-[#031018]/85 backdrop-blur-md px-3 py-1 rounded-xl border border-white/10 font-medium">
+                  ✨ 100% Pan-Ready (Cleaned &amp; Gutted)
                 </span>
-                <span className="bg-[#031018]/80 backdrop-blur-md px-3 py-1 rounded-lg border border-white/10">
-                  🏔️ Cold-Water Farm Fresh
+                <span className="bg-[#031018]/85 backdrop-blur-md px-3 py-1 rounded-xl border border-white/10 font-medium">
+                  🏔️ Cold-Water Spring Harvest
                 </span>
               </div>
             </div>
           </div>
 
-          {/* WhatsApp Express Order Card */}
-          <div className="lg:col-span-5 flex flex-col justify-between h-full bg-gradient-to-b from-[#061e2c] to-[#041520] border border-[#72ddfd]/30 rounded-2xl p-6 shadow-xl">
+          {/* Farm-Direct Fresh Catch Booking Card */}
+          <div className="lg:col-span-5 flex flex-col justify-between bg-gradient-to-b from-[#061e2c] via-[#051926] to-[#04131d] border border-[#72ddfd]/30 rounded-2xl p-6 sm:p-7 shadow-2xl relative overflow-hidden">
+            <div className="absolute -top-12 -right-12 w-36 h-36 bg-[#72ddfd]/10 rounded-full blur-2xl pointer-events-none" />
+
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">
-                  Live Harvest In Stock
+                <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider">
+                  Live Harvest Available Today
                 </span>
               </div>
 
-              <h2 className="text-lg font-bold text-white mb-2">
-                Cook this dish with Live-Harvested Trout
+              <h2 className="text-xl font-bold text-white mb-2 leading-snug">
+                Cook with Fresh Himalayan Trout
               </h2>
 
-              <p className="text-xs text-[#9fadb8] leading-relaxed mb-4">
-                Delivered across Srinagar within 90–120 minutes. Packed in food-grade biodegradable packaging (0% ice) with zero muddy odor.
+              <p className="text-xs text-[#9fadb8] leading-relaxed mb-5">
+                Delivered across Srinagar in 90–120 mins of live harvest. Packed in 100% food-grade packaging (0% ice) with sweet, delicate meat and zero muddy odor.
               </p>
 
-              {/* Requirement pill */}
-              <div className="p-3.5 rounded-xl bg-[#091d2c] border border-[#153448] mb-5 space-y-1">
-                <span className="text-[11px] text-[#5f7384] uppercase tracking-wider block">
+              {/* Requirement Summary Box */}
+              <div className="p-4 rounded-xl bg-[#091d2c]/90 border border-[#16364c] mb-6 space-y-1.5 shadow-inner">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-[#72ddfd] block">
                   Recommended For {servings} Servings:
                 </span>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-white">
-                    {orderWeightKg} kg Cleaned & Gutted Trout
+                  <span className="text-sm font-bold text-white">
+                    {orderWeightKg} kg Cleaned &amp; Gutted Trout
                   </span>
-                  <span className="text-sm font-bold text-[#72ddfd]">
+                  <span className="text-base font-extrabold text-[#72ddfd]">
                     ₹{orderWeightKg * 580}
                   </span>
                 </div>
-                <span className="text-[10px] text-[#9fadb8] block">
-                  ({orderWeightKg * 2} x 400-500g pan-ready fish)
+                <span className="text-[11px] text-[#9fadb8] block">
+                  ({orderWeightKg * 2} x 400–500g pan-ready gutted fish • 100% meat yield)
                 </span>
               </div>
             </div>
 
-            <div className="space-y-2.5 pt-2">
+            <div className="space-y-3">
               <a
                 href={waOrderUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full py-3.5 px-4 rounded-xl bg-[#25D366] hover:bg-[#20ba5a] text-[#031018] font-bold text-sm transition-all shadow-lg hover:shadow-green-500/25 flex items-center justify-center gap-2 text-center"
               >
-                <span>💬 Order Pan-Ready Trout on WhatsApp</span>
+                <span>💬 Order Fresh Trout on WhatsApp</span>
               </a>
               <Link
                 href="/shop/gutted-trout"
-                className="w-full py-2.5 px-4 rounded-xl bg-[#091d2c] hover:bg-[#10293d] text-[#72ddfd] text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 border border-[#17384e] text-center"
+                className="w-full py-2.5 px-4 rounded-xl bg-[#091a26] hover:bg-[#102434] text-[#72ddfd] text-xs font-semibold transition-colors flex items-center justify-center gap-1.5 border border-[#153448] text-center"
               >
-                <span>🛒 View in Online Store</span>
+                <span>🛒 View in Store</span>
               </Link>
             </div>
           </div>
         </div>
 
-        {/* Quick Nutrition & Specs Bar */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 mb-12">
-          <div className="p-3.5 rounded-xl bg-[#06151f] border border-[#132838] text-center">
-            <span className="text-[10px] uppercase tracking-wider text-[#5f7384] block mb-0.5">
+        {/* Quick Culinary Metric Tiles */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-3 mb-10">
+          <div className="p-4 rounded-xl bg-[#06151f] border border-[#132838] text-center">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-[#5f7384] block mb-1">
               Prep Time
             </span>
-            <span className="text-sm font-bold text-white">{recipe.prepTime}</span>
+            <span className="text-sm sm:text-base font-bold text-white">{recipe.prepTime}</span>
           </div>
-          <div className="p-3.5 rounded-xl bg-[#06151f] border border-[#132838] text-center">
-            <span className="text-[10px] uppercase tracking-wider text-[#5f7384] block mb-0.5">
+          <div className="p-4 rounded-xl bg-[#06151f] border border-[#132838] text-center">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-[#5f7384] block mb-1">
               Cook Time
             </span>
-            <span className="text-sm font-bold text-white">{recipe.cookTime}</span>
+            <span className="text-sm sm:text-base font-bold text-white">{recipe.cookTime}</span>
           </div>
-          <div className="p-3.5 rounded-xl bg-[#06151f] border border-[#132838] text-center">
-            <span className="text-[10px] uppercase tracking-wider text-[#5f7384] block mb-0.5">
+          <div className="p-4 rounded-xl bg-[#06151f] border border-[#132838] text-center">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-[#5f7384] block mb-1">
               Difficulty
             </span>
-            <span className="text-sm font-bold text-[#72ddfd]">{recipe.difficulty}</span>
+            <span className="text-sm sm:text-base font-bold text-[#72ddfd]">{recipe.difficulty}</span>
           </div>
-          <div className="p-3.5 rounded-xl bg-[#06151f] border border-[#132838] text-center">
-            <span className="text-[10px] uppercase tracking-wider text-[#5f7384] block mb-0.5">
+          <div className="p-4 rounded-xl bg-[#06151f] border border-[#132838] text-center">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-[#5f7384] block mb-1">
               Calories
             </span>
-            <span className="text-sm font-bold text-white">{recipe.nutrition.calories} kcal</span>
+            <span className="text-sm sm:text-base font-bold text-white">{recipe.nutrition.calories} kcal</span>
           </div>
-          <div className="p-3.5 rounded-xl bg-[#06151f] border border-[#132838] text-center">
-            <span className="text-[10px] uppercase tracking-wider text-[#5f7384] block mb-0.5">
+          <div className="p-4 rounded-xl bg-[#06151f] border border-[#132838] text-center">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-[#5f7384] block mb-1">
               Protein
             </span>
-            <span className="text-sm font-bold text-emerald-400">{recipe.nutrition.protein}</span>
+            <span className="text-sm sm:text-base font-bold text-emerald-400">{recipe.nutrition.protein}</span>
           </div>
-          <div className="p-3.5 rounded-xl bg-[#06151f] border border-[#132838] text-center">
-            <span className="text-[10px] uppercase tracking-wider text-[#5f7384] block mb-0.5">
+          <div className="p-4 rounded-xl bg-[#06151f] border border-[#132838] text-center">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-[#5f7384] block mb-1">
               Omega-3
             </span>
-            <span className="text-sm font-bold text-cyan-300">{recipe.nutrition.omega3}</span>
+            <span className="text-sm sm:text-base font-bold text-cyan-300">{recipe.nutrition.omega3}</span>
           </div>
         </div>
 
-        {/* Editorial Story & Brand Context */}
-        <section className="mb-12 p-6 sm:p-8 rounded-2xl bg-[#06151f] border border-[#132838]">
-          <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-            <span>About this Recipe</span>
-            <span className="text-xs font-normal text-[#72ddfd] bg-[#102434] px-2.5 py-0.5 rounded-full border border-[#72ddfd]/20">
-              Chef-Crafted
+        {/* Editorial Culinary Context */}
+        <section className="mb-12 p-6 sm:p-8 rounded-2xl bg-[#06151f] border border-[#132838] shadow-lg">
+          <h2 className="text-lg sm:text-xl font-bold text-white mb-4 flex items-center gap-2">
+            <span>Culinary Background &amp; Technique</span>
+            <span className="text-[11px] font-semibold text-[#72ddfd] bg-[#102434] px-2.5 py-0.5 rounded-full border border-[#72ddfd]/25">
+              Chef Insight
             </span>
           </h2>
-          <div className="text-sm sm:text-base text-[#9fadb8] leading-relaxed space-y-4">
+          <div className="text-sm sm:text-base text-[#9fadb8] leading-relaxed space-y-3.5">
             {recipe.description.split("\n\n").map((para, i) => (
               <p key={i}>{para}</p>
             ))}
           </div>
         </section>
 
-        {/* Main Content Layout: Ingredients (Left) & Instructions (Right) */}
+        {/* WORKSPACE: Ingredients (Left 40%) & Method/Tips (Right 60%) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-16 items-start">
-          {/* INGREDIENTS COLUMN (Interactive Scaler + Checklist) */}
-          <div className="lg:col-span-5 bg-[#06151f] border border-[#132838] rounded-2xl p-6 shadow-lg">
-            <div className="flex items-center justify-between pb-4 mb-4 border-b border-[#112738]">
+          {/* LEFT: THE PANTRY & INGREDIENTS (Clean, No Checkboxes, No Strikethroughs) */}
+          <div className="lg:col-span-5 bg-[#06151f] border border-[#162e40] rounded-2xl p-6 sm:p-7 shadow-xl">
+            {/* Header + Modern Servings Scaler */}
+            <div className="flex items-center justify-between pb-4 mb-6 border-b border-[#142e40]">
               <div>
-                <h3 className="text-lg font-bold text-white">Ingredients</h3>
-                <span className="text-[11px] text-[#5f7384]">Tap item to cross off</span>
+                <h3 className="text-xl font-black text-white">Ingredients</h3>
+                <span className="text-[11px] text-[#5f7384]">Adjust portions below</span>
               </div>
 
-              {/* Portion Scaler Selector */}
-              <div className="flex items-center gap-1 bg-[#091a26] p-1 rounded-xl border border-[#152e3f]">
-                {[2, 4, 6, 8].map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => setServings(s)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
-                      servings === s
-                        ? "bg-[#72ddfd] text-[#031018]"
-                        : "text-[#7a8e9e] hover:text-white"
-                    }`}
-                  >
-                    {s}P
-                  </button>
-                ))}
+              {/* Minimalist Portion Counter: [-] 4 [+] */}
+              <div className="flex items-center gap-2 bg-[#091a26] px-3 py-1.5 rounded-xl border border-[#153448]">
+                <button
+                  onClick={() => setServings((prev) => Math.max(2, prev - 2))}
+                  disabled={servings <= 2}
+                  className="w-6 h-6 rounded-lg bg-[#102434] hover:bg-[#153448] disabled:opacity-40 text-[#72ddfd] font-bold text-xs flex items-center justify-center transition-colors"
+                  aria-label="Decrease servings"
+                >
+                  −
+                </button>
+                <span className="text-xs font-bold text-white min-w-[50px] text-center">
+                  {servings} Servings
+                </span>
+                <button
+                  onClick={() => setServings((prev) => Math.min(12, prev + 2))}
+                  disabled={servings >= 12}
+                  className="w-6 h-6 rounded-lg bg-[#102434] hover:bg-[#153448] disabled:opacity-40 text-[#72ddfd] font-bold text-xs flex items-center justify-center transition-colors"
+                  aria-label="Increase servings"
+                >
+                  +
+                </button>
               </div>
             </div>
 
-            {/* Ingredients by Section */}
+            {/* Structured Ingredient Sections */}
             <div className="space-y-6">
               {recipe.ingredients.map((sec, secIdx) => (
-                <div key={secIdx}>
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-[#72ddfd] mb-3">
-                    {sec.section}
-                  </h4>
-                  <ul className="space-y-2.5">
+                <div key={secIdx} className="space-y-2.5">
+                  <div className="flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#72ddfd]" />
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-[#72ddfd]">
+                      {sec.section}
+                    </h4>
+                  </div>
+                  <ul className="space-y-2 pl-3 border-l border-[#132c3f]">
                     {sec.items.map((item, itemIdx) => {
-                      const key = `${secIdx}-${itemIdx}`;
-                      const isChecked = !!checkedIngredients[key];
                       const scaledItem = scaleIngredient(item);
                       return (
                         <li
                           key={itemIdx}
-                          onClick={() => toggleIngredient(key)}
-                          className={`flex items-start gap-2.5 text-xs sm:text-sm cursor-pointer select-none transition-colors ${
-                            isChecked
-                              ? "text-[#4b5d6b] line-through"
-                              : "text-[#dfedf9] hover:text-[#72ddfd]"
-                          }`}
+                          className="text-xs sm:text-sm text-[#dfedf9] leading-snug flex items-start gap-2 py-0.5"
                         >
-                          <span
-                            className={`w-4 h-4 mt-0.5 rounded flex items-center justify-center flex-shrink-0 border text-[10px] ${
-                              isChecked
-                                ? "bg-[#72ddfd] border-[#72ddfd] text-[#031018]"
-                                : "border-[#1c384e] bg-[#091a26]"
-                            }`}
-                          >
-                            {isChecked && "✓"}
-                          </span>
-                          <span className="leading-snug">{scaledItem}</span>
+                          <span className="text-[#72ddfd] text-xs select-none">•</span>
+                          <span>{scaledItem}</span>
                         </li>
                       );
                     })}
@@ -307,65 +333,41 @@ export default function RecipeDetailClient({ recipe, relatedRecipes }: Props) {
               ))}
             </div>
 
-            {/* In-Recipe WhatsApp Order CTA */}
-            <div className="mt-8 pt-6 border-t border-[#112738]">
+            {/* Bottom In-Card Order CTA */}
+            <div className="mt-8 pt-6 border-t border-[#142e40]">
               <a
                 href={waOrderUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full py-2.5 px-3 rounded-xl bg-[#25D366]/15 hover:bg-[#25D366] text-[#25D366] hover:text-[#031018] border border-[#25D366]/30 font-bold text-xs transition-colors flex items-center justify-center gap-1.5 text-center"
+                className="w-full py-3 px-4 rounded-xl bg-[#25D366]/15 hover:bg-[#25D366] text-[#25D366] hover:text-[#031018] border border-[#25D366]/30 font-bold text-xs transition-colors flex items-center justify-center gap-1.5 text-center shadow-sm"
               >
                 <span>🛒 Order {orderWeightKg}kg Trout For This Dish</span>
               </a>
             </div>
           </div>
 
-          {/* INSTRUCTIONS COLUMN */}
-          <div className="lg:col-span-7 bg-[#06151f] border border-[#132838] rounded-2xl p-6 sm:p-8 shadow-lg">
-            {/* View Tabs */}
-            <div className="flex items-center gap-2 mb-6 border-b border-[#112738] pb-3 text-xs sm:text-sm">
-              <button
-                onClick={() => setActiveTab("instructions")}
-                className={`pb-2 font-bold transition-colors ${
-                  activeTab === "instructions"
-                    ? "text-[#72ddfd] border-b-2 border-[#72ddfd]"
-                    : "text-[#9fadb8] hover:text-white"
-                }`}
-              >
-                Cooking Steps ({recipe.instructions.length})
-              </button>
-              <button
-                onClick={() => setActiveTab("tips")}
-                className={`pb-2 font-bold transition-colors ${
-                  activeTab === "tips"
-                    ? "text-[#72ddfd] border-b-2 border-[#72ddfd]"
-                    : "text-[#9fadb8] hover:text-white"
-                }`}
-              >
-                Chef Pro-Tips ({recipe.chefTips.length})
-              </button>
-              <button
-                onClick={() => setActiveTab("nutrition")}
-                className={`pb-2 font-bold transition-colors ${
-                  activeTab === "nutrition"
-                    ? "text-[#72ddfd] border-b-2 border-[#72ddfd]"
-                    : "text-[#9fadb8] hover:text-white"
-                }`}
-              >
-                Nutritional Facts
-              </button>
-            </div>
+          {/* RIGHT: STEP-BY-STEP METHOD & CULINARY EXECUTION */}
+          <div className="lg:col-span-7 space-y-8">
+            {/* Steps Timeline Card */}
+            <div className="bg-[#06151f] border border-[#162e40] rounded-2xl p-6 sm:p-8 shadow-xl">
+              <div className="flex items-center justify-between pb-4 mb-6 border-b border-[#142e40]">
+                <h3 className="text-xl font-black text-white">Cooking Method</h3>
+                <span className="text-xs font-semibold text-[#72ddfd] bg-[#091a26] px-3 py-1 rounded-xl border border-[#142e40]">
+                  {recipe.instructions.length} Steps
+                </span>
+              </div>
 
-            {/* TAB: Instructions */}
-            {activeTab === "instructions" && (
+              {/* Numbered Steps */}
               <div className="space-y-6">
                 {recipe.instructions.map((step, idx) => (
-                  <div key={idx} className="flex gap-4 items-start">
-                    <span className="w-8 h-8 rounded-xl bg-[#102434] border border-[#72ddfd]/30 text-[#72ddfd] font-bold text-sm flex items-center justify-center flex-shrink-0">
-                      {step.step || idx + 1}
+                  <div key={idx} className="relative flex gap-4 items-start group">
+                    {/* Step Number Circle */}
+                    <span className="w-8 h-8 rounded-full bg-[#102434] border border-[#72ddfd]/40 text-[#72ddfd] font-bold text-xs flex items-center justify-center flex-shrink-0 group-hover:border-[#72ddfd] transition-colors shadow-sm">
+                      {String(step.step || idx + 1).padStart(2, "0")}
                     </span>
-                    <div className="flex-1">
-                      <h4 className="text-sm sm:text-base font-bold text-white mb-1.5">
+
+                    <div className="flex-1 pb-2">
+                      <h4 className="text-sm sm:text-base font-bold text-white mb-1.5 leading-snug">
                         {step.title}
                       </h4>
                       <p className="text-xs sm:text-sm text-[#9fadb8] leading-relaxed">
@@ -375,72 +377,99 @@ export default function RecipeDetailClient({ recipe, relatedRecipes }: Props) {
                   </div>
                 ))}
               </div>
-            )}
+            </div>
 
-            {/* TAB: Chef Tips */}
-            {activeTab === "tips" && (
-              <div className="space-y-4">
-                <div className="p-4 rounded-xl bg-amber-950/20 border border-amber-500/30 text-amber-200 text-xs mb-4">
-                  💡 Pro-tips from master Kashmiri & international chefs for cooking fresh trout.
+            {/* Chef's Pro-Tips Box (Always visible, prominent amber card) */}
+            {recipe.chefTips.length > 0 && (
+              <div className="bg-gradient-to-br from-[#1c1809] to-[#120f06] border border-amber-500/35 rounded-2xl p-6 sm:p-7 shadow-xl">
+                <div className="flex items-center gap-2.5 mb-4">
+                  <span className="text-xl">💡</span>
+                  <h4 className="text-base font-bold text-amber-200">
+                    Master Chef Secrets &amp; Pro-Tips
+                  </h4>
                 </div>
-                {recipe.chefTips.map((tip, idx) => (
-                  <div
-                    key={idx}
-                    className="p-4 rounded-xl bg-[#091a26] border border-[#152e3f] flex items-start gap-3"
-                  >
-                    <span className="text-amber-400 text-base">✦</span>
-                    <p className="text-xs sm:text-sm text-[#dfedf9] leading-relaxed">{tip}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* TAB: Nutrition */}
-            {activeTab === "nutrition" && (
-              <div className="space-y-4">
-                <p className="text-xs text-[#9fadb8] mb-4">
-                  Estimated values per serving (based on {servings} servings with fresh Rainbow Trout):
-                </p>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                  <div className="p-3 rounded-xl bg-[#091a26] border border-[#152e3f]">
-                    <span className="text-[10px] text-[#5f7384] uppercase block">Calories</span>
-                    <span className="text-base font-bold text-white">{recipe.nutrition.calories} kcal</span>
-                  </div>
-                  <div className="p-3 rounded-xl bg-[#091a26] border border-[#152e3f]">
-                    <span className="text-[10px] text-[#5f7384] uppercase block">Protein</span>
-                    <span className="text-base font-bold text-emerald-400">{recipe.nutrition.protein}</span>
-                  </div>
-                  <div className="p-3 rounded-xl bg-[#091a26] border border-[#152e3f]">
-                    <span className="text-[10px] text-[#5f7384] uppercase block">Healthy Fats</span>
-                    <span className="text-base font-bold text-white">{recipe.nutrition.fat}</span>
-                  </div>
-                  <div className="p-3 rounded-xl bg-[#091a26] border border-[#152e3f]">
-                    <span className="text-[10px] text-[#5f7384] uppercase block">Omega-3</span>
-                    <span className="text-base font-bold text-cyan-300">{recipe.nutrition.omega3}</span>
-                  </div>
-                  <div className="p-3 rounded-xl bg-[#091a26] border border-[#152e3f]">
-                    <span className="text-[10px] text-[#5f7384] uppercase block">Carbohydrates</span>
-                    <span className="text-base font-bold text-white">{recipe.nutrition.carbs}</span>
-                  </div>
-                  <div className="p-3 rounded-xl bg-[#091a26] border border-[#152e3f]">
-                    <span className="text-[10px] text-[#5f7384] uppercase block">Fiber</span>
-                    <span className="text-base font-bold text-white">{recipe.nutrition.fiber}</span>
-                  </div>
+                <div className="space-y-3">
+                  {recipe.chefTips.map((tip, idx) => (
+                    <div key={idx} className="flex items-start gap-2.5 text-xs sm:text-sm text-amber-100/90 leading-relaxed">
+                      <span className="text-amber-400 font-bold select-none">✦</span>
+                      <p>{tip}</p>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
+
+            {/* Nutritional Matrix Box */}
+            <div className="bg-[#06151f] border border-[#162e40] rounded-2xl p-6 sm:p-7 shadow-xl">
+              <h4 className="text-base font-bold text-white mb-3">
+                Nutritional Breakdown (Per Serving)
+              </h4>
+              <p className="text-xs text-[#9fadb8] mb-4">
+                Nutrient analysis based on fresh cold-water Rainbow Trout:
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div className="p-3.5 rounded-xl bg-[#091a26] border border-[#142e40]">
+                  <span className="text-[10px] text-[#5f7384] uppercase font-bold block mb-0.5">
+                    Calories
+                  </span>
+                  <span className="text-sm sm:text-base font-bold text-white">
+                    {recipe.nutrition.calories} kcal
+                  </span>
+                </div>
+                <div className="p-3.5 rounded-xl bg-[#091a26] border border-[#142e40]">
+                  <span className="text-[10px] text-[#5f7384] uppercase font-bold block mb-0.5">
+                    Protein
+                  </span>
+                  <span className="text-sm sm:text-base font-bold text-emerald-400">
+                    {recipe.nutrition.protein}
+                  </span>
+                </div>
+                <div className="p-3.5 rounded-xl bg-[#091a26] border border-[#142e40]">
+                  <span className="text-[10px] text-[#5f7384] uppercase font-bold block mb-0.5">
+                    Healthy Fats
+                  </span>
+                  <span className="text-sm sm:text-base font-bold text-white">
+                    {recipe.nutrition.fat}
+                  </span>
+                </div>
+                <div className="p-3.5 rounded-xl bg-[#091a26] border border-[#142e40]">
+                  <span className="text-[10px] text-[#5f7384] uppercase font-bold block mb-0.5">
+                    Omega-3
+                  </span>
+                  <span className="text-sm sm:text-base font-bold text-cyan-300">
+                    {recipe.nutrition.omega3}
+                  </span>
+                </div>
+                <div className="p-3.5 rounded-xl bg-[#091a26] border border-[#142e40]">
+                  <span className="text-[10px] text-[#5f7384] uppercase font-bold block mb-0.5">
+                    Carbohydrates
+                  </span>
+                  <span className="text-sm sm:text-base font-bold text-white">
+                    {recipe.nutrition.carbs}
+                  </span>
+                </div>
+                <div className="p-3.5 rounded-xl bg-[#091a26] border border-[#142e40]">
+                  <span className="text-[10px] text-[#5f7384] uppercase font-bold block mb-0.5">
+                    Dietary Fiber
+                  </span>
+                  <span className="text-sm sm:text-base font-bold text-white">
+                    {recipe.nutrition.fiber}
+                  </span>
+                </div>
+              </div>
+            </div>
 
             {/* Serving Accompaniments */}
             {recipe.pairings.length > 0 && (
-              <div className="mt-8 pt-6 border-t border-[#112738]">
+              <div className="bg-[#06151f] border border-[#162e40] rounded-2xl p-5 sm:p-6 shadow-xl">
                 <h4 className="text-xs font-bold uppercase tracking-wider text-[#72ddfd] mb-3">
-                  What Goes With It
+                  What to Serve With It
                 </h4>
                 <div className="flex flex-wrap gap-2">
                   {recipe.pairings.map((pair, idx) => (
                     <span
                       key={idx}
-                      className="px-3 py-1.5 rounded-xl bg-[#091a26] border border-[#152e3f] text-xs text-[#dfedf9]"
+                      className="px-3 py-1.5 rounded-xl bg-[#091a26] border border-[#142e40] text-xs text-[#dfedf9] font-medium"
                     >
                       🍚 {pair}
                     </span>
@@ -453,10 +482,10 @@ export default function RecipeDetailClient({ recipe, relatedRecipes }: Props) {
 
         {/* Related Recipes Section */}
         {relatedRecipes.length > 0 && (
-          <section className="mt-16 pt-12 border-t border-[#112738]">
+          <section className="mt-16 pt-10 border-t border-[#122838]">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold text-white">
-                More {recipe.category} Recipes
+                More {recipe.category} Dishes
               </h3>
               <Link
                 href="/recipes"
@@ -471,7 +500,7 @@ export default function RecipeDetailClient({ recipe, relatedRecipes }: Props) {
                 <Link
                   key={rel.slug}
                   href={`/recipes/${rel.slug}`}
-                  className="group rounded-2xl bg-[#06151f] border border-[#132838] hover:border-[#72ddfd]/40 p-4 transition-all"
+                  className="group rounded-2xl bg-[#06151f] border border-[#132838] hover:border-[#72ddfd]/40 p-4 transition-all shadow-md hover:shadow-cyan-950/20"
                 >
                   <span className="text-[10px] font-bold text-[#72ddfd] uppercase tracking-wider block mb-1">
                     {rel.cookingMethod}
@@ -488,6 +517,22 @@ export default function RecipeDetailClient({ recipe, relatedRecipes }: Props) {
             </div>
           </section>
         )}
+      </div>
+
+      {/* Floating Mobile Bottom Booking Bar */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 p-3.5 bg-[#031018]/95 backdrop-blur-md border-t border-[#16364c] z-40 flex items-center justify-between gap-3 shadow-2xl">
+        <div className="flex flex-col">
+          <span className="text-[10px] text-[#9fadb8]">Fresh Trout for {servings}P</span>
+          <span className="text-xs font-bold text-white">{orderWeightKg} kg (₹{orderWeightKg * 580})</span>
+        </div>
+        <a
+          href={waOrderUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="py-2.5 px-4 rounded-xl bg-[#25D366] text-[#031018] font-bold text-xs flex items-center gap-1.5 shadow-lg"
+        >
+          <span>💬 Order on WhatsApp</span>
+        </a>
       </div>
     </div>
   );

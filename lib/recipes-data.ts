@@ -94,8 +94,7 @@ export const RECIPES_DATA: RecipeItem[] = [
           "1/2 teaspoon turmeric powder",
           "1 teaspoon ginger powder",
           "2 teaspoons fennel powder",
-          "1 teaspoon ver masala (Kashmiri spice",
-          "blend)",
+          "1 teaspoon ver masala (Kashmiri spice blend)",
           "1/2 teaspoon black cumin",
           "1 teaspoon asafoetida (hing)"
         ]
@@ -120,45 +119,52 @@ export const RECIPES_DATA: RecipeItem[] = [
     "instructions": [
       {
         "step": 1,
-        "title": "Prep the fish",
+        "title": "Prep The Fish",
         "instruction": "Cut the trout into pieces and gently sprinkle turmeric all over. Don't rub it in - just let it sit there."
       },
       {
         "step": 2,
-        "title": "Handle the lotus stems",
-        "instruction": "Cut the lotus stems into diagonal pieces about 2 inches long. Soak them in salted water for 30 minutes, then rinse with cold water. This gets rid of any bitter taste."
+        "title": "Handle The Lotus Stems",
+        "instruction": "Cut the lotus stems into diagonal pieces about inches long. Soak them in salted water for minutes, then rinse with cold water. This gets rid of any bitter taste."
       },
       {
         "step": 3,
-        "title": "Fry everything",
+        "title": "Fry Everything",
         "instruction": "Heat the oil in a deep pan. Fry the lotus stems first until they're light brown. Take them out and set aside. In the same oil, fry the fish pieces until they're dark brown and crispy."
       },
       {
         "step": 4,
-        "title": "Start the curry base",
-        "instruction": "Use about 100ml of that same frying oil in a heavy-bottomed pot. Add all the whole spices and let them crackle for a few seconds. Build the flavor: Add the asafoetida, salt, red chili 05 powder, and 2 cups of water. Bring it to a boil and keep stirring until you see oil floating on top."
+        "title": "Start The Curry Base",
+        "instruction": "Use about 100ml of that same frying oil in a heavy-bottomed pot. Add all the whole spices and let them crackle for a few seconds."
+      },
+      {
+        "step": 5,
+        "title": "Build The Flavor",
+        "instruction": "Add the asafoetida, salt, red chili powder, and cups of water. Bring it to a boil and keep stirring until you see oil floating on top."
       },
       {
         "step": 6,
-        "title": "Add more liquid and spices",
-        "instruction": "Pour in 2 more cups of water, then add the fennel powder, ginger powder, turmeric, and any remaining spice mix. Mix well. Bring it together: Gently add the fried fish and 07 lotus stems to the bubbling curry. Turn the heat down low and let it cook for 10-15 minutes."
+        "title": "Add More Liquid And Spices",
+        "instruction": "Pour in more cups of water, then add the fennel powder, ginger powder, turmeric, and any remaining spice mix. Mix well."
+      },
+      {
+        "step": 7,
+        "title": "Bring It Together",
+        "instruction": "Gently add the fried fish and lotus stems to the bubbling curry. Turn the heat down low and let it cook for - minutes."
       },
       {
         "step": 8,
-        "title": "Final touch",
-        "instruction": "Mix the ver masala with 2 tablespoons of water and stir it in. Let everything simmer for another 10 minutes until the gravy thickens up nicely."
+        "title": "Final Touch",
+        "instruction": "Mix the ver masala with tablespoons of water and stir it in. Let everything simmer for another minutes until the gravy thickens up nicely."
       }
     ],
     "chefTips": [
-      "Don't stir the fish once it's in the curry",
-      "- it'll fall apart",
-      "Make sure you rinse those lotus stems",
-      "well or they'll taste bitter"
+      "Don't stir the fish once it's in the curry it'll fall apart",
+      "Make sure you rinse those lotus stems well or they'll taste bitter"
     ],
     "pairings": [
-      "2 people",
       "Plain basmati rice",
-      "10 min Simple yogurt on the side"
+      "Simple yogurt on the side"
     ],
     "image": "/images/recipes/kashmiri-trout-lotus-stem-te-nadir.webp",
     "imagePrompt": "Ultra-realistic Michelin-star culinary food photography of Kashmiri Trout with Lotus Stem (Te Nadir). Presentation: Pan-Fried Trout with Crispy Lotus Root in Aromatic Kashmiri Gravy. Glistening pan-ready Himalayan rainbow trout steaks, garnished with fresh herbs, served on an authentic artisanal ceramic plate or rustic Kashmiri tableware. Warm dramatic restaurant lighting, shallow depth of field, 8k resolution, award-winning food editorial photography."
@@ -192,9 +198,8 @@ export const RECIPES_DATA: RecipeItem[] = [
     },
     "ingredients": [
       {
-        "section": "Main Ingredients",
+        "section": "For Marinating The Fish",
         "items": [
-          "For Marinating the Fish",
           "1-2 Urban Trout Rainbow Trout (400–500g each, cleaned & gutted) fillets",
           "1/2 teaspoon turmeric powder",
           "Salt as needed",
@@ -204,8 +209,7 @@ export const RECIPES_DATA: RecipeItem[] = [
       {
         "section": "For The Curry",
         "items": [
-          "60ml mustard oil (about 4",
-          "tablespoons)",
+          "60ml mustard oil (about 4 tablespoons)",
           "1/2 cup homemade tomato puree",
           "1 teaspoon tamarind pulp",
           "Spice Mix",
@@ -235,55 +239,53 @@ export const RECIPES_DATA: RecipeItem[] = [
     "instructions": [
       {
         "step": 1,
-        "title": "Marinate the fish",
+        "title": "Marinate The Fish",
         "instruction": "Rub the trout fillets all over with lemon juice, turmeric, and salt. Don't be gentle - make sure every bit is covered."
       },
       {
         "step": 2,
-        "title": "Let it drain",
+        "title": "Let It Drain",
         "instruction": "Put the fillets in a colander for 10-15 minutes. This gets rid of extra water and any fishy smell."
       },
       {
         "step": 3,
-        "title": "Fry the fish",
+        "title": "Fry The Fish",
         "instruction": "Heat the mustard oil in a heavy pan until it's smoking hot. Carefully slide in the fish fillets and fry both sides until golden brown. Take them out and set aside - don't worry if they're not fully cooked yet."
       },
       {
         "step": 4,
-        "title": "Start the curry base",
+        "title": "Start The Curry Base",
         "instruction": "In the same oil (don't clean the pan), add the cloves, black cardamom, and asafoetida. Wait for them to sizzle and smell good."
       },
       {
         "step": 5,
-        "title": "Add the tomato base",
+        "title": "Add The Tomato Base",
         "instruction": "Pour in the tomato puree along with the ginger powder, fennel powder, and red chili powder. Stir it all together and cook until you see oil starting to separate from the mixture."
       },
       {
         "step": 6,
-        "title": "Season it up",
+        "title": "Season It Up",
         "instruction": "Add the garam masala and taste for salt. Adjust as needed."
       },
       {
         "step": 7,
-        "title": "Make it a curry",
+        "title": "Make It A Curry",
         "instruction": "Add enough water to make a thick curry consistency. Gently slide the fried fish back into the curry."
       },
       {
         "step": 8,
-        "title": "Let it all come together",
-        "instruction": "Bring everything to a boil, then turn the heat down and let it simmer for 5 minutes. The fish will finish cooking and soak up all those flavors. 09 Turn off the heat, sprinkle with fresh coriander, and serve while it's still bubbling hot."
+        "title": "Let It All Come Together",
+        "instruction": "Bring everything to a boil, then turn the heat down and let it simmer for minutes. The fish will finish cooking and soak up all those flavors. 09 Turn off the heat, sprinkle with fresh coriander, and serve while it's still bubbling hot."
       }
     ],
     "chefTips": [
-      "Use the freshest fish you can find - it",
-      "really shows",
+      "Use the freshest fish you can find - it really shows",
       "Don't fully cook the fish when frying -",
       "If your curry gets too thick, add a bit"
     ],
     "pairings": [
-      "4 people",
       "Steamed basmati rice (this is a must)",
-      "10 min Mixed green salad",
+      "Mixed green salad",
       "Some naan if you're really hungry"
     ],
     "image": "/images/recipes/kashmiri-trout-tomato-curry-te-tamatar.webp",
@@ -324,8 +326,12 @@ export const RECIPES_DATA: RecipeItem[] = [
           "1 tablespoon turmeric powder",
           "(for marinating)",
           "Salt for marinating",
-          "100ml mustard oil",
-          "The Apple Component",
+          "100ml mustard oil"
+        ]
+      },
+      {
+        "section": "The Apple Component",
+        "items": [
           "2 green apples, peeled and chopped",
           "Spice Mix",
           "1 tablespoon fennel powder",
@@ -363,55 +369,53 @@ export const RECIPES_DATA: RecipeItem[] = [
     "instructions": [
       {
         "step": 1,
-        "title": "Prep the fish",
-        "instruction": "Wash and drain the trout fillets well. Rub them all over with turmeric powder and salt. Let them sit for 10 minutes."
+        "title": "Prep The Fish",
+        "instruction": "Wash and drain the trout fillets well. Rub them all over with turmeric powder and salt. Let them sit for minutes."
       },
       {
         "step": 2,
-        "title": "Clean the fish",
+        "title": "Clean The Fish",
         "instruction": "Rinse the fillets under cold water and drain them really well. You want them as dry as possible for frying."
       },
       {
         "step": 3,
-        "title": "Fry the fish",
+        "title": "Fry The Fish",
         "instruction": "Heat the mustard oil in a deep pan and fry the trout fillets until golden. Don't worry about cooking them completely - they'll finish in the curry. Set aside."
       },
       {
         "step": 4,
-        "title": "Fry the apples",
+        "title": "Fry The Apples",
         "instruction": "In the same oil, fry the apple pieces. Turn them once so both sides get a bit golden. Set aside with the fish."
       },
       {
         "step": 5,
-        "title": "Start the curry base",
-        "instruction": "Reduce the oil to about 80ml (remove the extra). Add the whole spices and asafoetida, then add the red chili powder and 2 cups of water. Let this boil for 10 minutes."
+        "title": "Start The Curry Base",
+        "instruction": "Reduce the oil to about 80ml (remove the extra). Add the whole spices and asafoetida, then add the red chili powder and cups of water. Let this boil for minutes."
       },
       {
         "step": 6,
-        "title": "Add the spice mix",
-        "instruction": "Stir in all the powdered spices (fennel, garam masala, cumin, coriander). Let it boil for another 5 minutes."
+        "title": "Add The Spice Mix",
+        "instruction": "Stir in all the powdered spices (fennel, garam masala, cumin, coriander). Let it boil for another minutes."
       },
       {
         "step": 7,
-        "title": "Bring it together",
-        "instruction": "Add the fried fish and apples back in. Cover the pan and cook for 10 minutes, going from high heat down to low heat."
+        "title": "Bring It Together",
+        "instruction": "Add the fried fish and apples back in. Cover the pan and cook for minutes, going from high heat down to low heat."
       },
       {
         "step": 8,
-        "title": "Final touches",
+        "title": "Final Touches",
         "instruction": "When the gravy has reduced and thickened, gently mix in the shallot paste and ver masala. Taste and adjust salt and spices. 09 Garnish with chopped coriander and almond flakes. Serve hot with plain rice."
       }
     ],
     "chefTips": [
-      "Don't overcook the fish - it should stay",
-      "moist and flaky",
+      "Don't overcook the fish - it should stay moist and flaky",
       "The apples will break down a bit and",
       "Use tart green apples - they balance"
     ],
     "pairings": [
-      "4 people",
       "Plain basmati rice (the best choice)",
-      "30 min Simple roasted vegetables",
+      "Simple roasted vegetables",
       "A dollop of yogurt to cool things down"
     ],
     "image": "/images/recipes/kashmiri-trout-spiced-apples-te-choont.webp",
@@ -454,8 +458,7 @@ export const RECIPES_DATA: RecipeItem[] = [
       {
         "section": "The Marinade",
         "items": [
-          "2 tablespoons Kashmiri red chili",
-          "powder",
+          "2 tablespoons Kashmiri red chili powder",
           "1 teaspoon garam masala",
           "1 teaspoon cumin powder",
           "1 teaspoon coriander powder",
@@ -467,13 +470,21 @@ export const RECIPES_DATA: RecipeItem[] = [
           "2 brown cardamom pods",
           "3 green cardamom pods",
           "2 cinnamon sticks",
-          "3 black peppercorns",
-          "The Almond Coating",
+          "3 black peppercorns"
+        ]
+      },
+      {
+        "section": "The Almond Coating",
+        "items": [
           "1 cup ground almonds",
           "100ml ghee or oil",
           "1 teaspoon Kashmiri red chili powder",
-          "Salt to taste",
-          "For Frying and Garnish",
+          "Salt to taste"
+        ]
+      },
+      {
+        "section": "For Frying And Garnish",
+        "items": [
           "Oil for frying",
           "Fresh coriander leaves for garnish",
           "Sliced almonds for extra garnish"
@@ -483,50 +494,48 @@ export const RECIPES_DATA: RecipeItem[] = [
     "instructions": [
       {
         "step": 1,
-        "title": "Prep the marinade",
-        "instruction": "Mix together the 2 tablespoons of red chili powder, garam masala, cumin powder, coriander powder, ginger paste, garlic paste, black pepper, and salt in a bowl."
+        "title": "Prep The Marinade",
+        "instruction": "Mix together the tablespoons of red chili powder, garam masala, cumin powder, coriander powder, ginger paste, garlic paste, black pepper, and salt in a bowl."
       },
       {
         "step": 2,
-        "title": "Marinate the fish",
-        "instruction": "Add the trout fillets to the spice mix and coat them well. Let them marinate for at least 30 minutes, or up to 2 hours in the fridge if you have time. Longer is better for flavor."
+        "title": "Marinate The Fish",
+        "instruction": "Add the trout fillets to the spice mix and coat them well. Let them marinate for at least minutes, or up to hours in the fridge if you have time. Longer is better for flavor."
       },
       {
         "step": 3,
-        "title": "Make the coating",
+        "title": "Make The Coating",
         "instruction": "In another bowl, mix the ground almonds, ghee (or oil), the remaining teaspoon of red chili powder, and a pinch of salt. It should hold together when pressed."
       },
       {
         "step": 4,
-        "title": "Coat the fish",
+        "title": "Coat The Fish",
         "instruction": "Take the marinated fillets out and let excess marinade drip off. Press the almond mixture onto each fillet, making sure it sticks well but don't go overboard - you want crispy, not thick and doughy."
       },
       {
         "step": 5,
-        "title": "Get ready to fry",
+        "title": "Get Ready To Fry",
         "instruction": "Heat oil in a large skillet over medium-high heat. You want enough oil to come halfway up the fish."
       },
       {
         "step": 6,
-        "title": "Fry to perfection",
+        "title": "Fry To Perfection",
         "instruction": "Carefully place the coated fillets in the hot oil. Fry for 3-4 minutes per side until they're golden brown and crispy. Don't overcrowd the pan."
       },
       {
         "step": 7,
-        "title": "Drain and rest",
+        "title": "Drain And Rest",
         "instruction": "Put the fried fish on paper towels to drain excess oil. 08 Serve immediately while still hot and crispy, garnished with fresh coriander and some sliced almonds if you want to be fancy."
       }
     ],
     "chefTips": [
-      "Don't make the almond coating too",
-      "thick - it'll be chewy instead of crispy",
+      "Don't make the almond coating too thick - it'll be chewy instead of crispy",
       "The fish is best served right away while",
       "If your almond mixture isn't sticking,"
     ],
     "pairings": [
-      "6 people",
       "Mixed greens salad (cuts through the richness)",
-      "25 min Kashmiri-style rice",
+      "Kashmiri-style rice",
       "Simple yogurt with mint"
     ],
     "image": "/images/recipes/crispy-almond-crusted-kashmiri-trout-talith-te-badam.webp",
@@ -563,8 +572,7 @@ export const RECIPES_DATA: RecipeItem[] = [
       {
         "section": "For The Fish",
         "items": [
-          "1-2 Urban Trout Rainbow Trout (400–500g each, cleaned & gutted) fillets, cleaned and cut into",
-          "chunks",
+          "1-2 Urban Trout Rainbow Trout (400–500g each, cleaned & gutted) fillets, cleaned and cut into chunks",
           "Turmeric powder (for coating the fish)",
           "Salt (for coating the fish)",
           "Mustard oil (enough for frying)",
@@ -572,8 +580,7 @@ export const RECIPES_DATA: RecipeItem[] = [
           "1 cup dried turnip, chopped up",
           "2 garlic cloves, minced small",
           "1 teaspoon ginger paste",
-          "1 tablespoon brown onion paste (or",
-          "shallot paste)"
+          "1 tablespoon brown onion paste (or shallot paste)"
         ]
       },
       {
@@ -583,10 +590,8 @@ export const RECIPES_DATA: RecipeItem[] = [
           "1 tablespoon regular red chili powder",
           "1 teaspoon garam masala",
           "1 tablespoon fennel powder",
-          "2 tablespoons sun-dried tomato",
-          "powder",
-          "1 tablespoon ver masala (Kashmiri",
-          "spice blend)"
+          "2 tablespoons sun-dried tomato powder",
+          "1 tablespoon ver masala (Kashmiri spice blend)"
         ]
       },
       {
@@ -598,8 +603,7 @@ export const RECIPES_DATA: RecipeItem[] = [
           "4 cloves",
           "6 black peppercorns",
           "Special Ingredients",
-          "1 cup cockscomb flower water (or",
-          "regular water if you can't find it)",
+          "1 cup cockscomb flower water (or regular water if you can't find it)",
           "Fresh cilantro for topping",
           "Salt to taste"
         ]
@@ -608,50 +612,48 @@ export const RECIPES_DATA: RecipeItem[] = [
     "instructions": [
       {
         "step": 1,
-        "title": "Get the fish ready",
+        "title": "Get The Fish Ready",
         "instruction": "Rub the trout pieces with turmeric and salt. Let them sit while you do everything else."
       },
       {
         "step": 2,
-        "title": "Deal with the turnips",
+        "title": "Deal With The Turnips",
         "instruction": "Boil the dried turnips until they're soft. When they're cool enough to touch, peel off the tough skin."
       },
       {
         "step": 3,
-        "title": "Fry everything",
+        "title": "Fry Everything",
         "instruction": "Heat up mustard oil in a deep pan. Fry the fish pieces until they're golden and crispy. Take them out and set aside. Use the same oil to fry the turnips until they look good."
       },
       {
         "step": 4,
-        "title": "Start the curry base",
+        "title": "Start The Curry Base",
         "instruction": "In a heavy pot, heat some oil. Toss in all the whole spices and let them sizzle for a bit. Add the ginger-garlic paste with a cup of water."
       },
       {
         "step": 5,
-        "title": "Add the heat",
-        "instruction": "Mix in the red chili powder and ver paste with half a cup of water. Let this cook for about 5 minutes, stirring so it doesn't stick."
+        "title": "Add The Heat",
+        "instruction": "Mix in the red chili powder and ver paste with half a cup of water. Let this cook for about minutes, stirring so it doesn't stick."
       },
       {
         "step": 6,
-        "title": "Build the curry",
+        "title": "Build The Curry",
         "instruction": "Add all the other spice powders, the onion paste, and the cockscomb water. Stir in the tomato powder. Taste it and add salt if needed."
       },
       {
         "step": 7,
-        "title": "Put it all together",
-        "instruction": "Add the fried fish and turnips back in. Turn the heat down low and let everything simmer together for 15 minutes so the flavors mix. 08 Serve it hot with fresh cilantro on top. If you've got fried shallots, throw those on too."
+        "title": "Put It All Together",
+        "instruction": "Add the fried fish and turnips back in. Turn the heat down low and let everything simmer together for minutes so the flavors mix. 08 Serve it hot with fresh cilantro on top. If you've got fried shallots, throw those on too."
       }
     ],
     "chefTips": [
-      "Use the freshest trout you can get your",
-      "hands on",
+      "Use the freshest trout you can get your hands on",
       "Start with less chili powder if you don't",
       "If you can't find cockscomb flower"
     ],
     "pairings": [
-      "6 people",
       "Any kind of bread (roti, naan, whatever you like)",
-      "25 min A simple salad",
+      "A simple salad",
       "Kashmiri tea if you're feeling fancy"
     ],
     "image": "/images/recipes/kashmiri-trout-dried-turnips-te-gogji-aer.webp",
@@ -690,8 +692,7 @@ export const RECIPES_DATA: RecipeItem[] = [
         "items": [
           "1-2 Urban Trout Rainbow Trout (400–500g each, cleaned & gutted) fillets, cleaned",
           "1 cup plums, chopped (remove pits!)",
-          "20ml mustard oil (about 1.5",
-          "tablespoons)",
+          "20ml mustard oil (about 1.5 tablespoons)",
           "1 onion, finely chopped",
           "2 garlic cloves, minced",
           "1 teaspoon ginger paste",
@@ -720,45 +721,43 @@ export const RECIPES_DATA: RecipeItem[] = [
     "instructions": [
       {
         "step": 1,
-        "title": "Prep everything",
+        "title": "Prep Everything",
         "instruction": "Clean the trout fillets well and pat dry. Chop your plums evenly (make sure to remove all the pits). Get all your spices ready."
       },
       {
         "step": 2,
-        "title": "Start the base",
+        "title": "Start The Base",
         "instruction": "Heat the mustard oil in a heavy- bottomed pan. Add the chopped onion and cook until it's soft and translucent. Add the minced garlic and ginger paste, cooking for another minute until fragrant."
       },
       {
         "step": 3,
-        "title": "Add the good stuff",
-        "instruction": "Toss in the chopped plums, all the whole spices, red chili powder, garam masala, and a good pinch of salt. Pour in 2 cups of water and give everything a good stir."
+        "title": "Add The Good Stuff",
+        "instruction": "Toss in the chopped plums, all the whole spices, red chili powder, garam masala, and a good pinch of salt. Pour in cups of water and give everything a good stir."
       },
       {
         "step": 4,
-        "title": "Let the plums do their magic",
+        "title": "Let The Plums Do Their Magic",
         "instruction": "Bring everything to a simmer and let it cook until the plums start breaking down and getting tender. This takes about 8-10 minutes."
       },
       {
         "step": 5,
-        "title": "Add the fish",
+        "title": "Add The Fish",
         "instruction": "Gently slide in the trout fillets. Let them simmer in the plum sauce until cooked through - about 5-7 minutes. The fish should flake easily when done."
       },
       {
         "step": 6,
-        "title": "Taste and adjust",
+        "title": "Taste And Adjust",
         "instruction": "Check the seasoning and add more salt if needed. The sauce should be sweet- tart and flavorful. 07 Garnish with fresh coriander leaves and serve hot while the plums are still bubbling."
       }
     ],
     "chefTips": [
-      "Choose plums that are ripe but still firm",
-      "- they'll break down perfectly",
+      "Choose plums that are ripe but still firm they'll break down perfectly",
       "Adjust the plum amount based on how",
       "Mustard oil gives the authentic Kashmiri"
     ],
     "pairings": [
-      "6 people",
       "Plain basmati rice (soaks up that amazing",
-      "25 min Soft naan or roti",
+      "Soft naan or roti",
       "Simple steamed vegetables"
     ],
     "image": "/images/recipes/kashmiri-trout-plums-te-aer.webp",
@@ -796,16 +795,18 @@ export const RECIPES_DATA: RecipeItem[] = [
         "section": "For The Fish",
         "items": [
           "1-2 Urban Trout Rainbow Trout (400–500g each, cleaned & gutted) fillets, cleaned",
-          "1 cup morel mushrooms, cleaned",
-          "and sliced",
+          "1 cup morel mushrooms, cleaned and sliced",
           "2 onions, chopped",
-          "120ml mustard oil (about 1/2 cup)",
-          "The Aromatics",
+          "120ml mustard oil (about 1/2 cup)"
+        ]
+      },
+      {
+        "section": "The Aromatics",
+        "items": [
           "2 garlic cloves, minced",
           "1 tablespoon ginger paste",
           "Spice Blend",
-          "2 tablespoons Kashmiri qorma",
-          "masala powder",
+          "2 tablespoons Kashmiri qorma masala powder",
           "1 teaspoon cumin powder",
           "1 teaspoon coriander powder",
           "1/2 teaspoon turmeric powder",
@@ -820,13 +821,16 @@ export const RECIPES_DATA: RecipeItem[] = [
           "3 green cardamom pods",
           "2 cinnamon sticks",
           "3 black peppercorns",
-          "3 cloves",
-          "The Creamy Base",
+          "3 cloves"
+        ]
+      },
+      {
+        "section": "The Creamy Base",
+        "items": [
           "1 cup yogurt",
           "1/2 cup heavy cream",
           "1/4 cup almonds or cashews, chopped",
-          "1 cup cockscomb-infused water (or",
-          "regular water)",
+          "1 cup cockscomb-infused water (or regular water)",
           "Finishing Touches",
           "Salt to taste",
           "Fresh cilantro for garnish"
@@ -836,50 +840,58 @@ export const RECIPES_DATA: RecipeItem[] = [
     "instructions": [
       {
         "step": 1,
-        "title": "Prep everything",
+        "title": "Prep Everything",
         "instruction": "Clean the trout fillets and pat them dry. Clean the morel mushrooms carefully - they can be sandy. Slice them into nice pieces."
       },
       {
         "step": 2,
-        "title": "Make the spice mix",
-        "instruction": "Combine the qorma masala powder, cumin, coriander, and turmeric in a bowl. Set aside. Build the base: Heat the mustard oil in a heavy- 03 bottomed pan. Add the whole spices and let them sizzle. Add the chopped onions and cook until they're golden brown - this takes patience but gives great flavor. Add aromatics: Stir in the minced garlic and 04 ginger paste. Cook for about a minute until fragrant."
+        "title": "Make The Spice Mix",
+        "instruction": "Combine the qorma masala powder, cumin, coriander, and turmeric in a bowl. Set aside."
+      },
+      {
+        "step": 3,
+        "title": "Build The Base",
+        "instruction": "Heat the mustard oil in a heavy- bottomed pan. Add the whole spices and let them sizzle. Add the chopped onions and cook until they're golden brown - this takes patience but gives great flavor."
+      },
+      {
+        "step": 4,
+        "title": "Add Aromatics",
+        "instruction": "Stir in the minced garlic and ginger paste. Cook for about a minute until fragrant."
       },
       {
         "step": 5,
-        "title": "Brown the fish and mushrooms",
+        "title": "Brown The Fish And Mushrooms",
         "instruction": "Add the trout fillets and morel mushrooms to the pan. Cook gently until both are lightly browned. Be careful not to break the fish."
       },
       {
         "step": 6,
-        "title": "Create the curry base",
+        "title": "Create The Curry Base",
         "instruction": "Mix the yogurt with your spice blend until smooth. Add this to the pan along with the cockscomb water (or regular water). Stir constantly to prevent the yogurt from curdling."
       },
       {
         "step": 7,
-        "title": "Let it develop",
+        "title": "Let It Develop",
         "instruction": "Cook for 5-7 minutes, stirring regularly. The sauce should start coming together."
       },
       {
         "step": 8,
-        "title": "Make it luxurious",
+        "title": "Make It Luxurious",
         "instruction": "Add the cream and chopped nuts. Let everything simmer gently for 10-15 minutes until the sauce thickens and all the flavors meld together."
       },
       {
         "step": 9,
-        "title": "Final seasoning",
+        "title": "Final Seasoning",
         "instruction": "Taste and add salt as needed. 10 Serve hot with a garnish of fresh cilantro and maybe a swirl of cream if you're feeling fancy."
       }
     ],
     "chefTips": [
-      "Fresh morels are worth seeking out -",
-      "they're what makes this dish special",
+      "Fresh morels are worth seeking out - they're what makes this dish special",
       "Don't rush the onions - golden",
       "Stir constantly when adding yogurt"
     ],
     "pairings": [
-      "4 people",
       "Kashmiri pulao (the classic pairing)",
-      "30 min Cool cucumber raita",
+      "Cool cucumber raita",
       "Soft naan or roti"
     ],
     "image": "/images/recipes/kashmiri-trout-morel-mushroom-kanguch-qorma.webp",
@@ -936,63 +948,65 @@ export const RECIPES_DATA: RecipeItem[] = [
           "1 teaspoon black pepper powder",
           "3 black peppercorns",
           "Salt to taste",
-          "60ml mustard oil (for the masala",
-          "paste)"
+          "60ml mustard oil (for the masala paste)"
         ]
       }
     ],
     "instructions": [
       {
         "step": 1,
-        "title": "Toast the whole spices",
+        "title": "Toast The Whole Spices",
         "instruction": "Heat a dry pan and add coriander seeds, cumin seeds, and fennel seeds. Toast them on medium heat until they release their aroma and turn slightly golden. Don't let them burn - keep stirring."
       },
       {
         "step": 2,
-        "title": "Cool and grind",
+        "title": "Cool And Grind",
         "instruction": "Let the toasted spices cool completely. Add them to a grinder along with the dried red chilies, black peppercorns, and turmeric. Grind to a coarse powder."
       },
       {
         "step": 3,
-        "title": "Make the paste",
-        "instruction": "Add the grated ginger, minced garlic, and salt to the spice powder. Gradually add the 60ml mustard oil and mix everything into a thick, aromatic paste. This is your anchari masala. Clean and prep: Make sure your trout fillets are 04 thoroughly cleaned and patted dry. Any excess moisture will prevent good marination."
+        "title": "Make The Paste",
+        "instruction": "Add the grated ginger, minced garlic, and salt to the spice powder. Gradually add the 60ml mustard oil and mix everything into a thick, aromatic paste. This is your anchari masala."
+      },
+      {
+        "step": 4,
+        "title": "Clean And Prep",
+        "instruction": "Make sure your trout fillets are thoroughly cleaned and patted dry. Any excess moisture will prevent good marination."
       },
       {
         "step": 5,
         "title": "Marinate",
-        "instruction": "Rub the anchari masala all over the fish fillets. Don't hold back - coat them generously. Let them marinate for at least 30 minutes at room temperature. The longer, the better for flavor."
+        "instruction": "Rub the anchari masala all over the fish fillets. Don't hold back - coat them generously. Let them marinate for at least minutes at room temperature. The longer, the better for flavor."
       },
       {
         "step": 6,
-        "title": "Heat the pan",
-        "instruction": "Use a heavy-bottomed or non-stick pan. Heat 2 tablespoons of mustard oil until it's hot but not smoking."
+        "title": "Heat The Pan",
+        "instruction": "Use a heavy-bottomed or non-stick pan. Heat tablespoons of mustard oil until it's hot but not smoking."
       },
       {
         "step": 7,
-        "title": "Add aromatics",
-        "instruction": "Drop in the cardamom seeds and cinnamon pieces. Let them sizzle for 30 seconds until fragrant."
+        "title": "Add Aromatics",
+        "instruction": "Drop in the cardamom seeds and cinnamon pieces. Let them sizzle for seconds until fragrant."
       },
       {
         "step": 8,
-        "title": "Cook the fish",
+        "title": "Cook The Fish",
         "instruction": "Gently place the marinated trout fillets in the pan. Cook for 4-5 minutes on the first side without moving them - let that beautiful crust form."
       },
       {
         "step": 9,
-        "title": "Flip carefully",
+        "title": "Flip Carefully",
         "instruction": "Turn the fillets over and cook for another 3-4 minutes. The fish should flake easily when done. 10 Remove from heat, sprinkle with fresh coriander leaves, and serve immediately with lemon wedges on the side."
       }
     ],
     "chefTips": [
-      "Fresh trout makes all the difference ask",
-      "your fishmonger for the freshest catch",
+      "Fresh trout makes all the difference ask your fishmonger for the freshest catch",
       "Don't skip the toasting step for the",
       "A non-stick pan is your friend here -"
     ],
     "pairings": [
-      "4 people",
       "Kashmiri Dum Aloo (those perfectly spiced",
-      "30 min Cool cucumber raita to balance the heat",
+      "Cool cucumber raita to balance the heat",
       "Fragrant saffron pulao"
     ],
     "image": "/images/recipes/pickle-spiced-kashmiri-achari-trout.webp",
@@ -1027,16 +1041,17 @@ export const RECIPES_DATA: RecipeItem[] = [
     },
     "ingredients": [
       {
-        "section": "Main Ingredients",
+        "section": "For The Fish Paste",
         "items": [
-          "For the Fish Paste",
-          "500g Urban Trout Rainbow Trout (cleaned & gutted, pan-ready) meat (filleted,",
-          "skinned)",
+          "500g Urban Trout Rainbow Trout (cleaned & gutted, pan-ready) meat (filleted, skinned)",
           "80g lamb fat (or substitute with butter)",
-          "10 green cardamom pods (seeds only,",
-          "divided)",
-          "Salt to taste",
-          "For the Aromatic Broth",
+          "10 green cardamom pods (seeds only, divided)",
+          "Salt to taste"
+        ]
+      },
+      {
+        "section": "For The Aromatic Broth",
+        "items": [
           "3 cups rich mutton stock (or fish stock)",
           "5 whole cloves",
           "2 garlic cloves, minced",
@@ -1059,73 +1074,69 @@ export const RECIPES_DATA: RecipeItem[] = [
         "section": "For Garnish",
         "items": [
           "Fresh coriander leaves, chopped",
-          "A swirl of fresh cream (optional, but",
-          "traditional)"
+          "A swirl of fresh cream (optional, but traditional)"
         ]
       }
     ],
     "instructions": [
       {
         "step": 1,
-        "title": "Clean and prep the fish",
+        "title": "Clean And Prep The Fish",
         "instruction": "Make sure your trout fillets are completely clean, skinned, and free of any bones. Pat them completely dry - any moisture will affect the texture."
       },
       {
         "step": 2,
-        "title": "The traditional pounding",
+        "title": "The Traditional Pounding",
         "instruction": "Place the fish on a clean, smooth stone surface (or use a very clean cutting board as substitute). Using a wooden mallet, start pounding the fish gently but consistently. This isn't aggressive - think of it as a rhythmic, meditative process."
       },
       {
         "step": 3,
-        "title": "First stage",
-        "instruction": "Add 3 green cardamom seeds and a pinch of salt. Keep pounding until you see the fish meat start to change color - it should become lighter and more paste-like."
+        "title": "First Stage",
+        "instruction": "Add green cardamom seeds and a pinch of salt. Keep pounding until you see the fish meat start to change color - it should become lighter and more paste-like."
       },
       {
         "step": 4,
-        "title": "Add the fat",
+        "title": "Add The Fat",
         "instruction": "When the fish has lightened considerably, add the lamb fat and remaining cardamom seeds. Continue pounding, turning the mixture with one hand while pounding with the other. The texture should become incredibly smooth and light in color."
       },
       {
         "step": 5,
-        "title": "Final seasoning",
+        "title": "Final Seasoning",
         "instruction": "Add salt and pound until everything is well incorporated. The final paste should be silky, light-colored, and almost mousse-like in texture."
       },
       {
         "step": 6,
-        "title": "Wet your hands",
+        "title": "Wet Your Hands",
         "instruction": "This prevents sticking. Take portions of the fish paste and roll them into balls the size of large limes. Set them aside on a clean plate."
       },
       {
         "step": 7,
-        "title": "Prepare the cooking liquid",
+        "title": "Prepare The Cooking Liquid",
         "instruction": "In a wide, heavy- bottomed pan, combine the mutton stock, whole cloves, turmeric, fennel powder, coriander powder, mustard oil, minced garlic, and praan paste."
       },
       {
         "step": 8,
-        "title": "Add the aromatics",
+        "title": "Add The Aromatics",
         "instruction": "Stir in the red chili powder and bring the mixture to a gentle boil. The liquid should be aromatic and beautifully colored."
       },
       {
         "step": 9,
-        "title": "Cook the ristas",
+        "title": "Cook The Ristas",
         "instruction": "Carefully slide the fish balls into the simmering broth. Don't overcrowd the pan. Cover and cook for 8-10 minutes, turning them gently once halfway through."
       },
       {
         "step": 10,
-        "title": "The final flourish",
-        "instruction": "Add the saffron strands, cockscomb flower water (if using), freshly ground black pepper, and adjust salt to taste. Let it simmer for another 10 minutes until the ristas are cooked through and the gravy has a soup-like consistency."
+        "title": "The Final Flourish",
+        "instruction": "Add the saffron strands, cockscomb flower water (if using), freshly ground black pepper, and adjust salt to taste. Let it simmer for another minutes until the ristas are cooked through and the gravy has a soup-like consistency."
       }
     ],
     "chefTips": [
-      "don't rush this step. The traditional",
-      "method creates a texture you can't",
-      "Serve the trout fillets hot, achieve any other way",
-      "straight from the pan."
+      "don't rush this step. The traditional method creates a texture you can't",
+      "Serve the trout fillets hot, achieve any other way straight from the pan."
     ],
     "pairings": [
-      "6 people",
       "Perfectly steamed basmati rice (essential for",
-      "25 min Soft naan or Kashmiri bread",
+      "Soft naan or Kashmiri bread",
       "Fresh mixed greens salad with yogurt"
     ],
     "image": "/images/recipes/traditional-trout-meatballs-saffron-broth-gade-rista.webp",
@@ -1160,13 +1171,10 @@ export const RECIPES_DATA: RecipeItem[] = [
     },
     "ingredients": [
       {
-        "section": "Main Ingredients",
+        "section": "For The Kebab Base",
         "items": [
-          "For the Kebab Base",
-          "500g Urban Trout Rainbow Trout (cleaned & gutted, pan-ready) meat (cleaned,",
-          "filleted, minced)",
-          "100g chana dal (split Bengal gram),",
-          "soaked and cooked",
+          "500g Urban Trout Rainbow Trout (cleaned & gutted, pan-ready) meat (cleaned, filleted, minced)",
+          "100g chana dal (split Bengal gram), soaked and cooked",
           "1 large onion, finely chopped",
           "2 garlic cloves, minced",
           "1 tablespoon fresh ginger paste",
@@ -1182,8 +1190,12 @@ export const RECIPES_DATA: RecipeItem[] = [
           "Whole Spices for Depth",
           "2 black cardamom pods (seeds only)",
           "3 green cardamom pods (seeds only)",
-          "2 small cinnamon sticks, ground",
-          "For Coating and Frying",
+          "2 small cinnamon sticks, ground"
+        ]
+      },
+      {
+        "section": "For Coating And Frying",
+        "items": [
           "1 large egg, beaten",
           "200g fine breadcrumbs",
           "160ml mustard oil (for shallow frying)"
@@ -1193,75 +1205,82 @@ export const RECIPES_DATA: RecipeItem[] = [
     "instructions": [
       {
         "step": 1,
-        "title": "Cook the dal",
+        "title": "Cook The Dal",
         "instruction": "If you haven't already, cook the chana dal until very soft and mashable. Drain well and mash into a smooth paste. Let it cool completely."
       },
       {
         "step": 2,
-        "title": "Prep the fish",
+        "title": "Prep The Fish",
         "instruction": "Make sure your trout is completely clean, filleted, and finely minced. You want a consistent texture without any lumps."
       },
       {
         "step": 3,
-        "title": "Grind the whole spices",
+        "title": "Grind The Whole Spices",
         "instruction": "Crush the cardamom seeds and cinnamon into a fine powder. This releases maximum flavor."
       },
       {
         "step": 4,
-        "title": "Combine the base",
-        "instruction": "In a large mixing bowl, combine the minced trout, cooled chana dal paste, chopped onion, minced garlic, ginger paste, and green chilies. Add the spices: Mix in all the ground spices - the red chili 05 powder, garam masala, cumin powder, coriander powder, turmeric, asafoetida, and your freshly ground whole spices. Add salt to taste."
+        "title": "Combine The Base",
+        "instruction": "In a large mixing bowl, combine the minced trout, cooled chana dal paste, chopped onion, minced garlic, ginger paste, and green chilies."
+      },
+      {
+        "step": 5,
+        "title": "Add The Spices",
+        "instruction": "Mix in all the ground spices - the red chili powder, garam masala, cumin powder, coriander powder, turmeric, asafoetida, and your freshly ground whole spices. Add salt to taste."
       },
       {
         "step": 6,
-        "title": "Mix gently",
+        "title": "Mix Gently",
         "instruction": "Using clean hands, mix everything together until just combined. Don't overwork the mixture - you want the kebabs to stay tender."
       },
       {
         "step": 7,
-        "title": "Test the seasoning",
-        "instruction": "Take a small portion and shallow fry it to check the flavor. Adjust spices as needed. Shape the patties: With wet hands (this is important to 08 prevent sticking), take portions of the mixture and shape into small, round patties about the size of your palm. They should be about 1/2 inch thick."
+        "title": "Test The Seasoning",
+        "instruction": "Take a small portion and shallow fry it to check the flavor. Adjust spices as needed."
+      },
+      {
+        "step": 8,
+        "title": "Shape The Patties",
+        "instruction": "With wet hands (this is important to prevent sticking), take portions of the mixture and shape into small, round patties about the size of your palm. They should be about / inch thick."
       },
       {
         "step": 9,
-        "title": "Set up your coating station",
+        "title": "Set Up Your Coating Station",
         "instruction": "Have your beaten egg in one shallow dish and breadcrumbs in another."
       },
       {
         "step": 10,
-        "title": "Double coat for crispiness",
+        "title": "Double Coat For Crispiness",
         "instruction": "Dip each patty first in the beaten egg, making sure it's completely coated, then roll in breadcrumbs, pressing gently so they adhere well."
       },
       {
         "step": 11,
-        "title": "Heat the oil right",
+        "title": "Heat The Oil Right",
         "instruction": "In a heavy-bottomed pan, heat the mustard oil to medium-high temperature. It should sizzle when you drop in a breadcrumb, but not smoke."
       },
       {
         "step": 12,
-        "title": "Fry in batches",
+        "title": "Fry In Batches",
         "instruction": "Don't overcrowd the pan. Gently slide in 3-4 kebabs at a time. Fry for 3-4 minutes on the first side until golden brown."
       },
       {
         "step": 13,
-        "title": "Flip carefully",
+        "title": "Flip Carefully",
         "instruction": "Turn them over gently - they're delicate at this stage. Fry for another 3-4 minutes until both sides are beautifully golden and crispy."
       },
       {
         "step": 14,
-        "title": "Drain properly",
+        "title": "Drain Properly",
         "instruction": "Remove to a paper towel-lined plate to drain excess oil."
       }
     ],
     "chefTips": [
-      "cool before mixing - warm dal will make",
-      "the mixture too soft",
-      "Serve the trout fillets hot, Wet hands are essential for shaping -",
-      "straight from the pan."
+      "cool before mixing - warm dal will make the mixture too soft",
+      "Serve the trout fillets hot, Wet hands are essential for shaping - straight from the pan."
     ],
     "pairings": [
-      "6 people",
       "Fresh mint chutney (the cooling effect is",
-      "23 min Creamy cucumber raita",
+      "Creamy cucumber raita",
       "Fragrant zeera rice or simple steamed rice"
     ],
     "image": "/images/recipes/crispy-kashmiri-trout-shami-kebabs.webp",
@@ -1298,8 +1317,7 @@ export const RECIPES_DATA: RecipeItem[] = [
       {
         "section": "For The Fish",
         "items": [
-          "500g Urban Trout Rainbow Trout (cleaned & gutted, pan-ready), cleaned and cut into",
-          "pieces"
+          "500g Urban Trout Rainbow Trout (cleaned & gutted, pan-ready), cleaned and cut into pieces"
         ]
       },
       {
@@ -1316,8 +1334,7 @@ export const RECIPES_DATA: RecipeItem[] = [
         "section": "For The Curry",
         "items": [
           "2 tablespoons mustard oil",
-          "2 onions, chopped (small sambar onions",
-          "work best)",
+          "2 onions, chopped (small sambar onions work best)",
           "1 tablespoon ginger-garlic paste",
           "1 tomato, chopped",
           "1 teaspoon garam masala powder",
@@ -1330,45 +1347,52 @@ export const RECIPES_DATA: RecipeItem[] = [
     "instructions": [
       {
         "step": 1,
-        "title": "Marinate the fish",
+        "title": "Marinate The Fish",
         "instruction": "Put the cleaned trout pieces in a bowl. Add the crushed black peppercorns, yogurt, ginger-garlic paste, lemon juice, and salt. Mix well and set aside while you prep everything else. The longer it sits, the better the flavor."
       },
       {
         "step": 2,
-        "title": "Start the base",
+        "title": "Start The Base",
         "instruction": "Heat mustard oil in a deep pan. Add the chopped onions and sauté for about a minute until they start sizzling."
       },
       {
         "step": 3,
-        "title": "Add aromatics",
+        "title": "Add Aromatics",
         "instruction": "Stir in the ginger-garlic paste and keep cooking until the onions turn soft and slightly golden."
       },
       {
         "step": 4,
-        "title": "Build the gravy",
-        "instruction": "Add the chopped tomatoes and cook until they break down and get all soft and mushy. This is important - don't rush it. Spice it up: Add the garam masala powder and salt. Give 05 it a quick stir for a few seconds to let the spices bloom."
+        "title": "Build The Gravy",
+        "instruction": "Add the chopped tomatoes and cook until they break down and get all soft and mushy. This is important - don't rush it."
+      },
+      {
+        "step": 5,
+        "title": "Spice It Up",
+        "instruction": "Add the garam masala powder and salt. Give it a quick stir for a few seconds to let the spices bloom."
       },
       {
         "step": 6,
-        "title": "Cook the fish",
-        "instruction": "Add the marinated trout pieces along with all that marinade. Cook on medium heat for 6-8 minutes. The fish cooks pretty quickly, so keep an eye on it. Adjust consistency: Add water if you want more gravy - 07 it should be thick but saucy enough to coat rice."
+        "title": "Cook The Fish",
+        "instruction": "Add the marinated trout pieces along with all that marinade. Cook on medium heat for - minutes. The fish cooks pretty quickly, so keep an eye on it."
+      },
+      {
+        "step": 7,
+        "title": "Adjust Consistency",
+        "instruction": "Add water if you want more gravy - it should be thick but saucy enough to coat rice."
       },
       {
         "step": 8,
-        "title": "Final touches",
+        "title": "Final Touches",
         "instruction": "Toss in the curry leaves and chopped coriander. Give it a quick stir and turn off the heat. 09 Let the curry rest for at least 10-15 minutes before serving. This resting time lets the fish soak up all those flavors."
       }
     ],
     "chefTips": [
-      "Small sambar onions give the best",
-      "authentic flavor",
-      "adding fish - it makes a huge difference",
+      "Small sambar onions give the best authentic flavor adding fish - it makes a huge difference",
       "Don't skip the resting time after cooking"
     ],
     "pairings": [
-      "4 people",
       "Steamed white rice (the classic choice)",
-      "15 min Dosa or uttapam",
+      "Dosa or uttapam",
       "Soft appam (rice pancakes)"
     ],
     "image": "/images/recipes/south-indian-chettinad-spiced-trout-curry.webp",
@@ -1408,8 +1432,12 @@ export const RECIPES_DATA: RecipeItem[] = [
           "500g Urban Trout Rainbow Trout (cleaned & gutted, pan-ready), cleaned and cut into pieces",
           "1/2 teaspoon salt",
           "1/2 teaspoon turmeric powder",
-          "1 tablespoon lime juice",
-          "For the Spice Paste",
+          "1 tablespoon lime juice"
+        ]
+      },
+      {
+        "section": "For The Spice Paste",
+        "items": [
           "2 tablespoons whole coriander seeds",
           "2 teaspoons cumin seeds",
           "10 Kashmiri dry red chilies (remove stems)",
@@ -1442,55 +1470,52 @@ export const RECIPES_DATA: RecipeItem[] = [
     "instructions": [
       {
         "step": 1,
-        "title": "Marinate the fish",
-        "instruction": "Wash and drain the trout pieces well. Put them in a bowl with salt, turmeric powder, and lime juice. Mix to coat everything evenly. Set aside for 15 minutes."
+        "title": "Marinate The Fish",
+        "instruction": "Wash and drain the trout pieces well. Put them in a bowl with salt, turmeric powder, and lime juice. Mix to coat everything evenly. Set aside for minutes."
       },
       {
         "step": 2,
-        "title": "Make the spice paste",
+        "title": "Make The Spice Paste",
         "instruction": "While the fish marinates, add coriander seeds, cumin seeds, dried red chilies, ginger, garlic paste, and tamarind paste to a blender. Add 3/4 cup water and blend until smooth."
       },
       {
         "step": 3,
-        "title": "Fry the fish",
+        "title": "Fry The Fish",
         "instruction": "Heat oil in a large skillet over medium-high heat. When hot, arrange the marinated fish in a single layer. Fry for 2-3 minutes on each side until lightly golden. Remove and set aside."
       },
       {
         "step": 4,
-        "title": "Build the base",
+        "title": "Build The Base",
         "instruction": "In the same oil, add the slit green chilies, chopped onions, and tomatoes. Sprinkle in the Kashmiri red chili powder and fry until the vegetables soften."
       },
       {
         "step": 5,
-        "title": "Add the magic",
-        "instruction": "Pour in the ground spice paste you made earlier, along with 1 cup of water. Mix well, cover with a lid, and cook for 6-8 minutes. You'll know it's ready when oil starts separating on the sides."
+        "title": "Add The Magic",
+        "instruction": "Pour in the ground spice paste you made earlier, along with cup of water. Mix well, cover with a lid, and cook for 6-8 minutes. You'll know it's ready when oil starts separating on the sides."
       },
       {
         "step": 6,
-        "title": "Make it creamy",
-        "instruction": "Add the coconut milk and 2 more cups of water. Mix everything together."
+        "title": "Make It Creamy",
+        "instruction": "Add the coconut milk and more cups of water. Mix everything together."
       },
       {
         "step": 7,
-        "title": "Finish the curry",
+        "title": "Finish The Curry",
         "instruction": "Add the fried fish back in along with salt. Bring everything to a boil, then reduce heat to low and simmer for 3-4 minutes."
       },
       {
         "step": 8,
-        "title": "Final touches",
+        "title": "Final Touches",
         "instruction": "Taste and adjust salt if needed. The curry should be tangy, spicy, and creamy all at once. 09 Garnish with fresh coriander and serve steaming hot."
       }
     ],
     "chefTips": [
-      "The tamarind gives that signature Goan",
-      "tang - don't skip it",
-      "juice or vinegar works in a pinch",
+      "The tamarind gives that signature Goan tang - don't skip it juice or vinegar works in a pinch",
       "Any coconut milk works - canned, tetra-"
     ],
     "pairings": [
-      "4 people",
       "Steamed white rice (the classic)",
-      "10 min Sannas (steamed rice cakes)",
+      "Sannas (steamed rice cakes)",
       "Plain appam"
     ],
     "image": "/images/recipes/coastal-goan-spicy-coconut-trout-curry.webp",
@@ -1528,23 +1553,33 @@ export const RECIPES_DATA: RecipeItem[] = [
         "section": "For The Fish",
         "items": [
           "700g trout, cleaned and cut into chunks",
-          "Salt and pepper to taste",
-          "For the Curry Base",
+          "Salt and pepper to taste"
+        ]
+      },
+      {
+        "section": "For The Curry Base",
+        "items": [
           "45ml vegetable oil (about 3 tablespoons)",
           "2 onions, finely chopped",
           "1 tablespoon garlic paste",
           "1 tablespoon ginger paste",
-          "280g tomatoes, chopped (about 2",
-          "medium tomatoes)",
+          "280g tomatoes, chopped (about 2 medium tomatoes)",
           "2 tablespoons curry powder",
-          "12g balti masala mix (about 1.5",
-          "tablespoons)",
-          "The Green Sauce",
+          "12g balti masala mix (about 1.5 tablespoons)"
+        ]
+      },
+      {
+        "section": "The Green Sauce",
+        "items": [
           "5 sprigs fresh coriander (leaves and stems)",
           "3 green chili peppers",
           "Juice of 2 limes",
-          "A splash of water if needed",
-          "For Finishing",
+          "A splash of water if needed"
+        ]
+      },
+      {
+        "section": "For Finishing",
+        "items": [
           "2 tablespoons yogurt"
         ]
       }
@@ -1552,50 +1587,52 @@ export const RECIPES_DATA: RecipeItem[] = [
     "instructions": [
       {
         "step": 1,
-        "title": "Prep the fish",
-        "instruction": "Clean the trout and cut it into bite-sized cubes. Pat dry and season lightly with salt. Set aside. Build the base: Heat the oil in a large balti pan or wok 02 over medium-high heat. Add the chopped onions and fry for about 10 minutes until they're golden and caramelized. This step is important - don't rush it."
+        "title": "Prep The Fish",
+        "instruction": "Clean the trout and cut it into bite-sized cubes. Pat dry and season lightly with salt. Set aside."
+      },
+      {
+        "step": 2,
+        "title": "Build The Base",
+        "instruction": "Heat the oil in a large balti pan or wok over medium-high heat. Add the chopped onions and fry for about minutes until they're golden and caramelized. This step is important - don't rush it."
       },
       {
         "step": 3,
-        "title": "Add aromatics",
-        "instruction": "Stir in the ginger and garlic paste. Cook for another 2 minutes until the raw smell disappears and everything smells amazing."
+        "title": "Add Aromatics",
+        "instruction": "Stir in the ginger and garlic paste. Cook for another minutes until the raw smell disappears and everything smells amazing."
       },
       {
         "step": 4,
-        "title": "Create the tomato base",
+        "title": "Create The Tomato Base",
         "instruction": "Add the chopped tomatoes and balti masala mix. Cook until the tomatoes break down and get soft."
       },
       {
         "step": 5,
-        "title": "Steam the fish",
+        "title": "Steam The Fish",
         "instruction": "Lay the fish pieces on top of the curry base. Don't stir - let them steam while you make the green sauce. This keeps the fish from breaking apart."
       },
       {
         "step": 6,
-        "title": "Make the magic sauce",
+        "title": "Make The Magic Sauce",
         "instruction": "While the fish steams, put the coriander (leaves and stems), lime juice, and green chilies in a small blender. Blend until smooth and liquid. Add a tiny splash of water if it's too thick to blend."
       },
       {
         "step": 7,
-        "title": "Bring it together",
+        "title": "Bring It Together",
         "instruction": "Pour the green coriander mixture over the fish. Now add the yogurt, one tablespoon at a time, stirring gently and continuously to prevent curdling."
       },
       {
         "step": 8,
-        "title": "Season and finish",
+        "title": "Season And Finish",
         "instruction": "Sprinkle with salt and pepper to taste. Give it a gentle stir to combine everything. 09 Taste for seasoning and adjust if needed. The curry should be rich, tangy, and have a beautiful green color from the coriander."
       }
     ],
     "chefTips": [
-      "Don't skip caramelizing the onions -",
-      "that's where the flavor comes from",
-      "stirring to keep it intact",
+      "Don't skip caramelizing the onions - that's where the flavor comes from stirring to keep it intact",
       "Add yogurt slowly while stirring to"
     ],
     "pairings": [
-      "4 people",
       "Soft naan bread (perfect for scooping)",
-      "10 min Cooling cucumber raita",
+      "Cooling cucumber raita",
       "Simple onion and tomato salad"
     ],
     "image": "/images/recipes/aromatic-wok-tossed-balti-trout-curry.webp",
@@ -1633,10 +1670,8 @@ export const RECIPES_DATA: RecipeItem[] = [
         "section": "Main Ingredients",
         "items": [
           "1-2 Urban Trout Rainbow Trout (400–500g each, cleaned & gutted), cleaned and cut into pieces",
-          "4 tablespoons mustard paste (the key",
-          "ingredient)",
-          "10ml mustard oil, plus 1 tablespoon for",
-          "finishing",
+          "4 tablespoons mustard paste (the key ingredient)",
+          "10ml mustard oil, plus 1 tablespoon for finishing",
           "1 tomato, cut into wedges",
           "6 hot green chilies, slit lengthwise",
           "Seasonings",
@@ -1655,50 +1690,47 @@ export const RECIPES_DATA: RecipeItem[] = [
     "instructions": [
       {
         "step": 1,
-        "title": "Prep the fish",
+        "title": "Prep The Fish",
         "instruction": "Cut the cleaned trout into your preferred size pieces. Rub them with 1/4 teaspoon each of turmeric and salt. Set aside while you prepare the sauce."
       },
       {
         "step": 2,
-        "title": "Start the mustard base",
+        "title": "Start The Mustard Base",
         "instruction": "Heat the 10ml of mustard oil in a heavy-bottomed steel pan. Add the mustard paste and stir well for about a minute - it should smell sharp and pungent."
       },
       {
         "step": 3,
-        "title": "Create the sauce",
+        "title": "Create The Sauce",
         "instruction": "Pour in hot water (enough to create a sauce that will cover the fish). Bring everything to a boil. Add the remaining turmeric and salt."
       },
       {
         "step": 4,
-        "title": "Poach the fish",
+        "title": "Poach The Fish",
         "instruction": "Carefully place the trout pieces in a single layer in the simmering sauce. Tuck the slit green chilies and tomato wedges between the fish pieces."
       },
       {
         "step": 5,
-        "title": "Let it cook gently",
+        "title": "Let It Cook Gently",
         "instruction": "Reduce heat to low-medium and let it simmer for 10-12 minutes until the fish is cooked through. The fish should be tender and flaky."
       },
       {
         "step": 6,
-        "title": "Keep it moving",
+        "title": "Keep It Moving",
         "instruction": "Flip the fish pieces once during cooking and give the pan a gentle shake now and then to prevent sticking. Don't stir aggressively or the fish will break."
       },
       {
         "step": 7,
-        "title": "Final touch",
+        "title": "Final Touch",
         "instruction": "Taste the sauce and adjust salt if needed. Drizzle that extra tablespoon of raw mustard oil over everything for authentic Bengali flavor. 08 Garnish with fresh coriander leaves and serve immediately with plain steamed rice."
       }
     ],
     "chefTips": [
-      "Heat mustard oil until it smokes, then",
-      "cool slightly - this removes the",
-      "Don't skip that final drizzle of raw",
-      "mustard oil - it's what makes it Bengali"
+      "Heat mustard oil until it smokes, then cool slightly - this removes the",
+      "Don't skip that final drizzle of raw mustard oil - it's what makes it Bengali"
     ],
     "pairings": [
-      "3 people",
       "Plain steamed white rice (non-negotiable",
-      "15 min Simple sautéed greens or vegetables",
+      "Simple sautéed greens or vegetables",
       "Dal on the side"
     ],
     "image": "/images/recipes/bengali-shorshe-mustard-poached-trout.webp",
@@ -1736,17 +1768,23 @@ export const RECIPES_DATA: RecipeItem[] = [
         "section": "Main Ingredients",
         "items": [
           "1-2 Urban Trout Rainbow Trout (400–500g each, cleaned & gutted) (about 800g-1kg), cleaned",
-          "140ml mustard oil (divided - most for",
-          "marinade, some for grilling)",
-          "100g hung curd (thick yogurt - drain",
-          "regular yogurt for 30 minutes)",
-          "The Marinade Spices",
+          "140ml mustard oil (divided - most for marinade, some for grilling)",
+          "100g hung curd (thick yogurt - drain regular yogurt for 30 minutes)"
+        ]
+      },
+      {
+        "section": "The Marinade Spices",
+        "items": [
           "1 tablespoon tandoori masala",
           "1 garlic clove, finely chopped or minced",
           "1 teaspoon ground cumin",
           "1 teaspoon garam masala",
-          "1/2 teaspoon ground turmeric",
-          "For Serving",
+          "1/2 teaspoon ground turmeric"
+        ]
+      },
+      {
+        "section": "For Serving",
+        "items": [
           "2 lemons, cut into wedges",
           "Fresh coriander leaves for garnish"
         ]
@@ -1755,50 +1793,47 @@ export const RECIPES_DATA: RecipeItem[] = [
     "instructions": [
       {
         "step": 1,
-        "title": "Prep the fish",
+        "title": "Prep The Fish",
         "instruction": "Clean the trout thoroughly and pat it dry. Make 3-4 deep diagonal slashes on both sides of the fish. This helps the marinade penetrate and cooks the fish evenly."
       },
       {
         "step": 2,
-        "title": "Make the marinade",
+        "title": "Make The Marinade",
         "instruction": "In a bowl, mix together the hung curd, most of the mustard oil (reserve some for grilling), tandoori masala, chopped garlic, ground cumin, garam masala, and turmeric. Mix until smooth."
       },
       {
         "step": 3,
-        "title": "Marinate thoroughly",
-        "instruction": "Rub the marinade all over the fish - inside the cavity, on both sides, and really work it into those slashes. Let it marinate for at least 45 minutes, or up to 2 hours in the fridge. Longer is better."
+        "title": "Marinate Thoroughly",
+        "instruction": "Rub the marinade all over the fish - inside the cavity, on both sides, and really work it into those slashes. Let it marinate for at least minutes, or up to hours in the fridge. Longer is better."
       },
       {
         "step": 4,
-        "title": "Set up your grill",
+        "title": "Set Up Your Grill",
         "instruction": "Get your barbecue or grill going. You want medium-high heat. Oil the fish rack or grill grates well so the fish doesn't stick."
       },
       {
         "step": 5,
-        "title": "Grill the fish",
+        "title": "Grill The Fish",
         "instruction": "Place the marinated trout on the oiled rack. Cook for about 15-18 minutes per side, depending on the size. The fish is ready when it's charred on the outside and the flesh flakes easily."
       },
       {
         "step": 6,
-        "title": "Keep it moist",
+        "title": "Keep It Moist",
         "instruction": "Drizzle the reserved mustard oil over the fish as it cooks to keep it from drying out and to add extra flavor."
       },
       {
         "step": 7,
-        "title": "Check for doneness",
+        "title": "Check For Doneness",
         "instruction": "The fish should be charred and smoky on the outside, and the flesh should be opaque and flake easily when tested with a fork. 08 Transfer to a serving platter, garnish with fresh coriander and lemon wedges. Serve immediately while it's hot and smoky."
       }
     ],
     "chefTips": [
-      "Don't skip the slashing - it's crucial for",
-      "even cooking and flavor penetration",
-      "hours is even better",
+      "Don't skip the slashing - it's crucial for even cooking and flavor penetration hours is even better",
       "Oil the grill rack really well to prevent"
     ],
     "pairings": [
-      "4 people",
       "Basmati rice (plain or jeera rice)",
-      "5 min Mango chutney for sweetness",
+      "Mango chutney for sweetness",
       "Naan or roti"
     ],
     "image": "/images/recipes/char-grilled-tandoori-spiced-whole-trout.webp",
@@ -1833,18 +1868,20 @@ export const RECIPES_DATA: RecipeItem[] = [
     },
     "ingredients": [
       {
-        "section": "Main Ingredients",
+        "section": "For The Trout",
         "items": [
-          "For the Trout",
           "450g trout (whole or fillets)",
           "1/8 teaspoon paprika",
           "Salt to taste",
-          "Cracked black pepper to taste",
-          "For the Korean Marinade",
+          "Cracked black pepper to taste"
+        ]
+      },
+      {
+        "section": "For The Korean Marinade",
+        "items": [
           "1/4 cup tomato sauce",
           "1 tablespoon chili sauce",
-          "1/4 teaspoon dried parsley (plus extra",
-          "for garnish)",
+          "1/4 teaspoon dried parsley (plus extra for garnish)",
           "1 garlic clove, crushed",
           "1/4 teaspoon Dijon mustard"
         ]
@@ -1853,27 +1890,37 @@ export const RECIPES_DATA: RecipeItem[] = [
     "instructions": [
       {
         "step": 1,
-        "title": "Preheat the oven",
+        "title": "Preheat The Oven",
         "instruction": "Set your oven to 400°F (200°C). This high heat will cook the fish quickly while keeping it moist."
       },
       {
         "step": 2,
-        "title": "Season the fish",
-        "instruction": "Pat the trout dry with paper towels. Season both sides generously with salt, cracked black pepper, and paprika. The paprika adds a subtle smokiness and beautiful color. Prep your baking tray: Line a baking tray with 03 parchment paper or aluminum foil. This makes cleanup easy and prevents sticking."
+        "title": "Season The Fish",
+        "instruction": "Pat the trout dry with paper towels. Season both sides generously with salt, cracked black pepper, and paprika. The paprika adds a subtle smokiness and beautiful color."
+      },
+      {
+        "step": 3,
+        "title": "Prep Your Baking Tray",
+        "instruction": "Line a baking tray with parchment paper or aluminum foil. This makes cleanup easy and prevents sticking."
       },
       {
         "step": 4,
-        "title": "Combine the ingredients",
-        "instruction": "In a small saucepan, combine the tomato sauce, chili sauce, crushed garlic, dried parsley, and Dijon mustard. Stir well to mix everything together. Simmer briefly: Place the pan over medium heat and let 05 the sauce simmer for 3-4 minutes, stirring occasionally. This allows the flavors to meld together and the garlic to cook slightly. The sauce should be smooth and aromatic but not too thick."
+        "title": "Combine The Ingredients",
+        "instruction": "In a small saucepan, combine the tomato sauce, chili sauce, crushed garlic, dried parsley, and Dijon mustard. Stir well to mix everything together."
+      },
+      {
+        "step": 5,
+        "title": "Simmer Briefly",
+        "instruction": "Place the pan over medium heat and let the sauce simmer for - minutes, stirring occasionally. This allows the flavors to meld together and the garlic to cook slightly. The sauce should be smooth and aromatic but not too thick."
       },
       {
         "step": 6,
-        "title": "Arrange the fish",
+        "title": "Arrange The Fish",
         "instruction": "Place the seasoned trout on the prepared baking tray. If using whole fish, you can score the sides to help the sauce penetrate."
       },
       {
         "step": 7,
-        "title": "Coat with sauce",
+        "title": "Coat With Sauce",
         "instruction": "Pour the warm tomato-chilli sauce over the trout, making sure it's coated evenly. Use a spoon to spread it over all surfaces, getting into any crevices."
       },
       {
@@ -1883,15 +1930,12 @@ export const RECIPES_DATA: RecipeItem[] = [
       }
     ],
     "chefTips": [
-      "Use the freshest trout you can find - quality",
-      "matters with simple preparations",
-      "Serve the trout fillets hot, Don't overmix the sauce - gentle stirring",
-      "straight from the pan."
+      "Use the freshest trout you can find - quality matters with simple preparations",
+      "Serve the trout fillets hot, Don't overmix the sauce - gentle stirring straight from the pan."
     ],
     "pairings": [
-      "4 people",
       "Crusty bread or garlic bread (essential for",
-      "20 min Roasted vegetables (zucchini, bell peppers,",
+      "Roasted vegetables (zucchini, bell peppers,",
       "cherry tomatoes)"
     ],
     "image": "/images/recipes/oven-baked-trout-spicy-tomato-herb-sauce.webp",
@@ -1931,69 +1975,86 @@ export const RECIPES_DATA: RecipeItem[] = [
           "500g Urban Trout Rainbow Trout (cleaned & gutted, pan-ready), cut into chunky pieces",
           "100g green beans, trimmed and halved",
           "1/3 cup ghee (about 75ml)",
-          "450ml coconut cream (or coconut milk)",
-          "The Aromatic Base",
+          "450ml coconut cream (or coconut milk)"
+        ]
+      },
+      {
+        "section": "The Aromatic Base",
+        "items": [
           "1 onion, peeled and roughly chopped",
-          "40g fresh ginger (about 1.5 inch piece),",
-          "peeled",
-          "40g fresh garlic (about 10-12 cloves),",
-          "peeled",
+          "40g fresh ginger (about 1.5 inch piece), peeled",
+          "40g fresh garlic (about 10-12 cloves), peeled",
           "2 tomatoes, roughly chopped",
           "Spice Mix",
           "3 teaspoons turmeric powder",
           "1 teaspoon chili powder",
           "2 teaspoons coriander powder",
           "1 teaspoon cumin powder",
-          "2 teaspoons garam masala",
-          "For Finishing",
+          "2 teaspoons garam masala"
+        ]
+      },
+      {
+        "section": "For Finishing",
+        "items": [
           "Salt to taste",
-          "Fresh coriander leaves, chopped for",
-          "garnish"
+          "Fresh coriander leaves, chopped for garnish"
         ]
       }
     ],
     "instructions": [
       {
         "step": 1,
-        "title": "Make the pastes",
+        "title": "Make The Pastes",
         "instruction": "Blend the ginger and garlic together into a smooth paste. Set aside. Separately, blend the onion until smooth. Then blend the tomatoes. Keep all three separate - you'll add them at different times."
       },
       {
         "step": 2,
-        "title": "Prep the fish and vegetables",
-        "instruction": "Cut the trout into chunky, bite-sized pieces. Trim the green beans and cut them in half. Start slow: Heat the ghee in a medium pot over low 03 heat. Add the blended onion and cook gently for about 10 minutes, stirring occasionally. You want it soft and translucent, not browned. Add aromatics: Stir in the ginger-garlic paste and 04 cook for another 10 minutes on low heat. Keep stirring with a wooden spoon so nothing burns or gets too dark."
+        "title": "Prep The Fish And Vegetables",
+        "instruction": "Cut the trout into chunky, bite-sized pieces. Trim the green beans and cut them in half."
+      },
+      {
+        "step": 3,
+        "title": "Start Slow",
+        "instruction": "Heat the ghee in a medium pot over low heat. Add the blended onion and cook gently for about minutes, stirring occasionally. You want it soft and translucent, not browned."
+      },
+      {
+        "step": 4,
+        "title": "Add Aromatics",
+        "instruction": "Stir in the ginger-garlic paste and cook for another minutes on low heat. Keep stirring with a wooden spoon so nothing burns or gets too dark."
       },
       {
         "step": 5,
-        "title": "Build the spice base",
+        "title": "Build The Spice Base",
         "instruction": "Add all your spices (turmeric, chili powder, coriander powder, cumin powder, and garam masala) to the pot. Cook for a couple of minutes until everything smells amazing."
       },
       {
         "step": 6,
-        "title": "Add tomatoes",
-        "instruction": "Pour in the blended tomatoes and cook for 5 minutes on low heat, stirring regularly. Make it creamy: Add the coconut cream and let 07 everything simmer together for about 10 minutes. This reduces and thickens the curry base while blending all the flavors."
+        "title": "Add Tomatoes",
+        "instruction": "Pour in the blended tomatoes and cook for minutes on low heat, stirring regularly."
+      },
+      {
+        "step": 7,
+        "title": "Make It Creamy",
+        "instruction": "Add the coconut cream and let everything simmer together for about minutes. This reduces and thickens the curry base while blending all the flavors."
       },
       {
         "step": 8,
-        "title": "Cook the fish",
+        "title": "Cook The Fish",
         "instruction": "Add the trout pieces and green beans. Simmer gently for 4-6 minutes, depending on how big your fish pieces are. The trout cooks quickly, so don't overdo it."
       },
       {
         "step": 9,
-        "title": "Final touches",
+        "title": "Final Touches",
         "instruction": "Once the fish is cooked through and flaky, taste the sauce and add salt as needed. Stir in the fresh chopped coriander. 10 Serve hot (but not piping hot) so you can really taste all those layers of flavor."
       }
     ],
     "chefTips": [
-      "Slow cooking is the secret - don't rush",
-      "the base",
-      "but coconut oil works too",
+      "Slow cooking is the secret - don't rush the base but coconut oil works too",
       "Don't overcook the fish - it should be"
     ],
     "pairings": [
-      "4 people",
       "Steamed basmati rice (essential for",
-      "10 min Crispy papadum on the side",
+      "Crispy papadum on the side",
       "Soft naan or paratha"
     ],
     "image": "/images/recipes/creamy-kerala-coconut-trout-curry.webp",
@@ -2035,8 +2096,12 @@ export const RECIPES_DATA: RecipeItem[] = [
           "1 tablespoon semolina (rava)",
           "1 tablespoon rice flour",
           "20ml oil (plus extra for frying)",
-          "1 lemon for serving",
-          "The Green Masala Paste",
+          "1 lemon for serving"
+        ]
+      },
+      {
+        "section": "The Green Masala Paste",
+        "items": [
           "1 cup fresh coriander leaves (packed)",
           "6 green chilies",
           "5 garlic cloves",
@@ -2051,50 +2116,57 @@ export const RECIPES_DATA: RecipeItem[] = [
     "instructions": [
       {
         "step": 1,
-        "title": "Prep the fish",
+        "title": "Prep The Fish",
         "instruction": "Clean the trout and make a deep slit along the side of each fish. The opening should be wide enough to stuff the masala paste inside. Pat the fish completely dry with a kitchen towel."
       },
       {
         "step": 2,
-        "title": "Season the fish",
-        "instruction": "Rub salt all over the fish - outside and inside the cavity. Let it sit for 5-10 minutes while you make the masala. Make the green masala: Put all the green masala 03 ingredients (coriander, green chilies, garlic, ginger, lemon juice, ajwain, chaat masala, and garam masala) in a blender. Blend into a smooth, thick paste. You want it thick so it doesn't drip out."
+        "title": "Season The Fish",
+        "instruction": "Rub salt all over the fish - outside and inside the cavity. Let it sit for - minutes while you make the masala."
+      },
+      {
+        "step": 3,
+        "title": "Make The Green Masala",
+        "instruction": "Put all the green masala ingredients (coriander, green chilies, garlic, ginger, lemon juice, ajwain, chaat masala, and garam masala) in a blender. Blend into a smooth, thick paste. You want it thick so it doesn't drip out."
       },
       {
         "step": 4,
-        "title": "Stuff the fish",
+        "title": "Stuff The Fish",
         "instruction": "Take the green masala paste and carefully stuff it into the slit and deep into the cavity of each trout. Pack it in well but don't overstuff."
       },
       {
         "step": 5,
-        "title": "Coat the fish",
+        "title": "Coat The Fish",
         "instruction": "Mix the semolina and rice flour together. Dust this mixture all over both sides of the fish. This coating prevents sticking and creates a crispy crust."
       },
       {
         "step": 6,
-        "title": "Get the pan ready",
+        "title": "Get The Pan Ready",
         "instruction": "Heat a large pan with 2-3 tablespoons of oil over medium heat. Make sure the pan is hot enough before adding the fish."
       },
       {
         "step": 7,
-        "title": "Fry carefully",
-        "instruction": "Place the stuffed fish in the hot pan. Fry on medium-low heat for about 5 minutes without moving it. This lets the coating get crispy."
+        "title": "Fry Carefully",
+        "instruction": "Place the stuffed fish in the hot pan. Fry on medium-low heat for about minutes without moving it. This lets the coating get crispy."
       },
       {
         "step": 8,
-        "title": "Flip gently",
-        "instruction": "Carefully flip the fish using a spatula (or two spatulas for extra support). Fry for another 4-5 minutes until golden and crispy on the second side. Check for doneness: The fish should be golden brown 09 and crispy outside, and the flesh should flake easily when tested. 10 Remove from the pan, squeeze fresh lemon juice over the top, and serve immediately while crispy."
+        "title": "Flip Gently",
+        "instruction": "Carefully flip the fish using a spatula (or two spatulas for extra support). Fry for another - minutes until golden and crispy on the second side."
+      },
+      {
+        "step": 9,
+        "title": "Check For Doneness",
+        "instruction": "The fish should be golden brown and crispy outside, and the flesh should flake easily when tested. Remove from the pan, squeeze fresh lemon juice over the top, and serve immediately while crispy."
       }
     ],
     "chefTips": [
-      "Pat the fish really dry before stuffing -",
-      "moisture makes the coating soggy",
-      "fish - it burns easily",
+      "Pat the fish really dry before stuffing - moisture makes the coating soggy fish - it burns easily",
       "Use firm, fresh trout so it holds together"
     ],
     "pairings": [
-      "2 people",
       "Steamed rice",
-      "10 min Fresh salad with onions and tomatoes",
+      "Fresh salad with onions and tomatoes",
       "Lime wedges"
     ],
     "image": "/images/recipes/goan-green-masala-stuffed-trout-fry.webp",
@@ -2135,8 +2207,12 @@ export const RECIPES_DATA: RecipeItem[] = [
           "1 teaspoon turmeric powder",
           "1 teaspoon red chili powder",
           "Salt to taste",
-          "40ml oil for frying",
-          "For the Gravy",
+          "40ml oil for frying"
+        ]
+      },
+      {
+        "section": "For The Gravy",
+        "items": [
           "2 tablespoons butter",
           "1 tablespoon ginger-garlic paste",
           "1 cup tomato puree",
@@ -2159,45 +2235,47 @@ export const RECIPES_DATA: RecipeItem[] = [
     "instructions": [
       {
         "step": 1,
-        "title": "Marinate the fish",
-        "instruction": "Mix the trout pieces with turmeric powder, red chili powder, and salt. Let them sit while you prep everything else - even 10 minutes helps."
+        "title": "Marinate The Fish",
+        "instruction": "Mix the trout pieces with turmeric powder, red chili powder, and salt. Let them sit while you prep everything else - even minutes helps."
       },
       {
         "step": 2,
-        "title": "Fry the fish",
-        "instruction": "Heat oil in a pan and fry the marinated trout pieces until golden brown on both sides. Remove and set aside. Don't worry about cooking them completely - they'll finish in the gravy. Start with butter: In the same pan (don't clean it - those 03 flavors are gold), add the butter. When it melts, add the ginger-garlic paste and sauté until fragrant, about a minute."
+        "title": "Fry The Fish",
+        "instruction": "Heat oil in a pan and fry the marinated trout pieces until golden brown on both sides. Remove and set aside. Don't worry about cooking them completely - they'll finish in the gravy."
+      },
+      {
+        "step": 3,
+        "title": "Start With Butter",
+        "instruction": "In the same pan (don't clean it - those flavors are gold), add the butter. When it melts, add the ginger-garlic paste and sauté until fragrant, about a minute."
       },
       {
         "step": 4,
-        "title": "Build the base",
+        "title": "Build The Base",
         "instruction": "Add the tomato puree and cashew paste. Cook this mixture, stirring regularly, until you see oil separating from the sides. This takes about 5-7 minutes and is crucial for the right flavor."
       },
       {
         "step": 5,
-        "title": "Add the spices",
+        "title": "Add The Spices",
         "instruction": "Stir in the red chili powder, garam masala, and salt. Mix well and cook for another minute."
       },
       {
         "step": 6,
-        "title": "Create the gravy consistency",
-        "instruction": "Add 1/2 to 1 cup of water depending on how thick you want your gravy. Bring everything to a boil, then reduce heat and let it simmer for a few minutes."
+        "title": "Create The Gravy Consistency",
+        "instruction": "Add 1/2 to cup of water depending on how thick you want your gravy. Bring everything to a boil, then reduce heat and let it simmer for a few minutes."
       },
       {
         "step": 7,
-        "title": "Finish with fish",
-        "instruction": "Gently add the fried trout pieces to the gravy. Simmer for another 5 minutes so the fish absorbs all those flavors. 08 Drizzle with fresh cream, garnish with coriander leaves and julienned ginger if using. The cream swirled on top is classic makhani presentation."
+        "title": "Finish With Fish",
+        "instruction": "Gently add the fried trout pieces to the gravy. Simmer for another minutes so the fish absorbs all those flavors. 08 Drizzle with fresh cream, garnish with coriander leaves and julienned ginger if using. The cream swirled on top is classic makhani presentation."
       }
     ],
     "chefTips": [
-      "Don't skip frying the fish first - it adds",
-      "flavor and helps it hold together",
-      "separates - that's the sign it's ready",
+      "Don't skip frying the fish first - it adds flavor and helps it hold together separates - that's the sign it's ready",
       "For extra richness, add another spoonful"
     ],
     "pairings": [
-      "2 people",
       "Steamed basmati rice",
-      "10 min Jeera rice (cumin rice)",
+      "Jeera rice (cumin rice)",
       "Cooling cucumber raita"
     ],
     "image": "/images/recipes/rich-tomato-butter-trout-makhani.webp",
@@ -2236,8 +2314,7 @@ export const RECIPES_DATA: RecipeItem[] = [
         "items": [
           "1-2 Urban Trout Rainbow Trout (400–500g each, cleaned & gutted) fillets",
           "1/2 teaspoon salt",
-          "1 teaspoon turmeric powder (for",
-          "marinating)",
+          "1 teaspoon turmeric powder (for marinating)",
           "1/2 teaspoon chili powder (for marinating)",
           "1/2 teaspoon lemon juice",
           "40ml refined oil"
@@ -2267,45 +2344,52 @@ export const RECIPES_DATA: RecipeItem[] = [
     "instructions": [
       {
         "step": 1,
-        "title": "Marinate the fish",
-        "instruction": "Mix the trout fillets with salt, 1 teaspoon turmeric powder, 1/2 teaspoon chili powder, and lemon juice. Let them marinate for 10 minutes."
+        "title": "Marinate The Fish",
+        "instruction": "Mix the trout fillets with salt, teaspoon turmeric powder, 1/2 teaspoon chili powder, and lemon juice. Let them marinate for minutes."
       },
       {
         "step": 2,
-        "title": "Fry the fish",
-        "instruction": "Heat oil in a handi (or heavy-bottomed pot). Fry the marinated trout fillets until browned on both sides. They don't need to be fully cooked - just golden. Remove and set aside. Cook the onions: In the same oil, fry the sliced onions 03 until they turn transparent and start caramelizing. This brings out their natural sweetness - don't rush this step."
+        "title": "Fry The Fish",
+        "instruction": "Heat oil in a handi (or heavy-bottomed pot). Fry the marinated trout fillets until browned on both sides. They don't need to be fully cooked - just golden. Remove and set aside."
+      },
+      {
+        "step": 3,
+        "title": "Cook The Onions",
+        "instruction": "In the same oil, fry the sliced onions until they turn transparent and start caramelizing. This brings out their natural sweetness - don't rush this step."
       },
       {
         "step": 4,
-        "title": "Add aromatics",
-        "instruction": "Add the ginger-garlic paste and vinegar. Cook until the raw smell disappears, about 2- 3 minutes. Build the tomato base: Add the tomato puree (or 05 chopped tomatoes), the remaining turmeric powder, chili powder, and salt. Cook until the tomatoes break down completely and oil starts separating from the masala."
+        "title": "Add Aromatics",
+        "instruction": "Add the ginger-garlic paste and vinegar. Cook until the raw smell disappears, about - minutes."
+      },
+      {
+        "step": 5,
+        "title": "Build The Tomato Base",
+        "instruction": "Add the tomato puree (or chopped tomatoes), the remaining turmeric powder, chili powder, and salt. Cook until the tomatoes break down completely and oil starts separating from the masala."
       },
       {
         "step": 6,
-        "title": "Add finishing spices",
+        "title": "Add Finishing Spices",
         "instruction": "Stir in the garam masala powder and black pepper powder. Mix everything well to combine all the flavors."
       },
       {
         "step": 7,
-        "title": "Bring it together",
+        "title": "Bring It Together",
         "instruction": "Carefully add the fried trout pieces back into the gravy. If the gravy looks too thick or dry, sprinkle a little water to loosen it up."
       },
       {
         "step": 8,
-        "title": "Final cooking",
+        "title": "Final Cooking",
         "instruction": "Very gently coat the fish with the masala, being careful not to break the fillets. Let everything cook together for 3-4 minutes so the fish absorbs the flavors. 09 Garnish with freshly chopped coriander and serve hot straight from the handi."
       }
     ],
     "chefTips": [
-      "Caramelize those onions well - that's",
-      "where the sweetness comes from",
-      "tang that makes the dish special",
+      "Caramelize those onions well - that's where the sweetness comes from tang that makes the dish special",
       "Be gentle when coating the fish to keep"
     ],
     "pairings": [
-      "4 people",
       "Soft naan bread for scooping",
-      "25 min Roti or paratha",
+      "Roti or paratha",
       "Simple raita to cool things down"
     ],
     "image": "/images/recipes/traditional-double-onion-trout-handi-dopiaza.webp",
@@ -2342,8 +2426,7 @@ export const RECIPES_DATA: RecipeItem[] = [
       {
         "section": "For The Fish",
         "items": [
-          "1-2 Urban Trout Rainbow Trout (400–500g each, cleaned & gutted), deboned and cut into small",
-          "pieces or shredded",
+          "1-2 Urban Trout Rainbow Trout (400–500g each, cleaned & gutted), deboned and cut into small pieces or shredded",
           "1 tablespoon paprika powder",
           "1 tablespoon chili powder",
           "1 teaspoon cumin powder",
@@ -2369,27 +2452,27 @@ export const RECIPES_DATA: RecipeItem[] = [
     "instructions": [
       {
         "step": 1,
-        "title": "Make the marinade",
-        "instruction": "In a bowl, mix together 2 tablespoons of lime juice, paprika powder, chili powder, cumin powder, a tablespoon of olive oil, salt, and pepper."
+        "title": "Make The Marinade",
+        "instruction": "In a bowl, mix together tablespoons of lime juice, paprika powder, chili powder, cumin powder, a tablespoon of olive oil, salt, and pepper."
       },
       {
         "step": 2,
-        "title": "Marinate the fish",
+        "title": "Marinate The Fish",
         "instruction": "Add the trout pieces to the marinade and coat well. Let it sit while you prep the toppings - even a few minutes helps."
       },
       {
         "step": 3,
-        "title": "Prep your toppings",
+        "title": "Prep Your Toppings",
         "instruction": "Chop the tomatoes, cilantro, and slice the onions. Dice the cheese. Get everything ready so assembly is quick."
       },
       {
         "step": 4,
-        "title": "Cook the fish",
+        "title": "Cook The Fish",
         "instruction": "Heat the remaining olive oil in a pan over medium-high heat. Add the marinated trout and cook for about 4-5 minutes, flipping occasionally, until the fish is cooked through and slightly crispy on the edges."
       },
       {
         "step": 5,
-        "title": "Warm the tortillas",
+        "title": "Warm The Tortillas",
         "instruction": "While the fish cooks, warm your corn tortillas in a dry pan or directly over a gas flame for a few seconds on each side. Wrap them in a clean towel to keep warm."
       },
       {
@@ -2399,20 +2482,17 @@ export const RECIPES_DATA: RecipeItem[] = [
       },
       {
         "step": 7,
-        "title": "Add the finishing touches",
+        "title": "Add The Finishing Touches",
         "instruction": "Squeeze fresh lime juice over each taco and drizzle generously with sour cream. 08 Serve immediately while the fish is hot and the tortillas are still warm. Have extra lime wedges on the side for squeezing."
       }
     ],
     "chefTips": [
-      "Don't overload the tortillas - too much",
-      "filling makes them soggy and hard to eat",
-      "and aren't as tasty",
+      "Don't overload the tortillas - too much filling makes them soggy and hard to eat and aren't as tasty",
       "Pat the fish dry before marinating for"
     ],
     "pairings": [
-      "2 people",
       "Cilantro lime rice",
-      "10 min Mexican street corn (elote)",
+      "Mexican street corn (elote)",
       "Refried beans"
     ],
     "image": "/images/recipes/pan-seared-rainbow-trout-tacos-fresh-slaw.webp",
@@ -2447,25 +2527,31 @@ export const RECIPES_DATA: RecipeItem[] = [
     },
     "ingredients": [
       {
-        "section": "Main Ingredients",
+        "section": "For The Mashed Trout",
         "items": [
-          "For the Mashed Trout",
           "1-2 Urban Trout Rainbow Trout (400–500g each, cleaned & gutted) fillets, cooked and cooled",
           "20g butter, softened",
           "3 teaspoons lemon juice",
           "1/4 cup fresh parsley, chopped",
-          "Salt and pepper to taste",
-          "For the Potato Chips",
+          "Salt and pepper to taste"
+        ]
+      },
+      {
+        "section": "For The Potato Chips",
+        "items": [
           "2 large potatoes",
           "Oil for frying",
-          "Salt to taste",
-          "For the Mashed Trout",
+          "Salt to taste"
+        ]
+      },
+      {
+        "section": "For The Mashed Trout",
+        "items": [
           "1 cup plain yogurt",
           "2 tablespoons mayonnaise",
           "1/4 cup fresh basil, chopped",
           "1/4 cup fresh coriander, chopped",
-          "1/4 cup cucumber, grated and",
-          "squeezed dry",
+          "1/4 cup cucumber, grated and squeezed dry",
           "1 tablespoon onion, finely chopped",
           "2 teaspoons lemon juice",
           "2 garlic cloves, minced",
@@ -2477,13 +2563,23 @@ export const RECIPES_DATA: RecipeItem[] = [
     "instructions": [
       {
         "step": 1,
-        "title": "Flake the fish",
-        "instruction": "In a bowl, flake the cooked trout fillets with a fork, removing any bones. Add butter and seasonings: Add the softened butter, 3 02 teaspoons of lemon juice, salt, and pepper. Mix gently until combined. Add herbs: Stir in 1/4 cup of chopped parsley. Set aside at 03 room temperature or refrigerate if making ahead."
+        "title": "Flake The Fish",
+        "instruction": "In a bowl, flake the cooked trout fillets with a fork, removing any bones."
+      },
+      {
+        "step": 2,
+        "title": "Add Butter And Seasonings",
+        "instruction": "Add the softened butter, teaspoons of lemon juice, salt, and pepper. Mix gently until combined."
+      },
+      {
+        "step": 3,
+        "title": "Add Herbs",
+        "instruction": "Stir in / cup of chopped parsley. Set aside at room temperature or refrigerate if making ahead."
       },
       {
         "step": 4,
-        "title": "Combine ingredients",
-        "instruction": "In a bowl, mix together yogurt, mayonnaise, basil, coriander, grated cucumber (squeeze out excess water first), onion, 2 teaspoons of lemon juice, minced garlic, the remaining 1/4 cup parsley, salt, and pepper."
+        "title": "Combine Ingredients",
+        "instruction": "In a bowl, mix together yogurt, mayonnaise, basil, coriander, grated cucumber (squeeze out excess water first), onion, teaspoons of lemon juice, minced garlic, the remaining 1/4 cup parsley, salt, and pepper."
       },
       {
         "step": 5,
@@ -2492,25 +2588,22 @@ export const RECIPES_DATA: RecipeItem[] = [
       },
       {
         "step": 6,
-        "title": "Prep the potatoes",
+        "title": "Prep The Potatoes",
         "instruction": "Peel the potatoes if desired. Boil them in salted water until just tender but not falling apart, about 10-15 minutes. Drain and let cool slightly."
       },
       {
         "step": 7,
-        "title": "Slice and fry",
+        "title": "Slice And Fry",
         "instruction": "Slice the boiled potatoes into thick chips or wedges. Heat oil in a deep pan to 350°F (175°C). Fry the potato slices until golden and crispy, about 5-7 minutes. Drain on paper towels and season with salt immediately. 08 Arrange the mashed trout on plates alongside the crispy potato chips. Top with generous dollops of the chilled herb yogurt sauce."
       }
     ],
     "chefTips": [
       "crispy outside and fluffy inside",
-      "Squeeze excess water from grated cucumber",
-      "or the sauce will be watery Serve the trout fillets hot,",
-      "straight from the pan."
+      "Squeeze excess water from grated cucumber or the sauce will be watery Serve the trout fillets hot, straight from the pan."
     ],
     "pairings": [
-      "3 people",
       "Steamed vegetables (broccoli, green beans)",
-      "30 min Simple green salad",
+      "Simple green salad",
       "Crackers or bread"
     ],
     "image": "/images/recipes/flaked-trout-crispy-potato-crisps-herb-yogurt.webp",
@@ -2550,8 +2643,12 @@ export const RECIPES_DATA: RecipeItem[] = [
           "1-2 Urban Trout Rainbow Trout (400–500g each, cleaned & gutted) fillets, cut into strips",
           "1 tablespoon sea salt",
           "2 teaspoons freshly ground black pepper",
-          "80ml olive oil (divided)",
-          "The Honey Garlic Sauce",
+          "80ml olive oil (divided)"
+        ]
+      },
+      {
+        "section": "The Honey Garlic Sauce",
+        "items": [
           "8 sun-dried tomatoes, diced",
           "1 scallion (green onion), sliced",
           "Few sprigs fresh thyme, finely chopped",
@@ -2574,40 +2671,37 @@ export const RECIPES_DATA: RecipeItem[] = [
     "instructions": [
       {
         "step": 1,
-        "title": "Prep the fish",
+        "title": "Prep The Fish",
         "instruction": "Cut the trout fillets into finger-sized strips. Season both sides generously with salt and pepper."
       },
       {
         "step": 2,
-        "title": "Cook the fish",
+        "title": "Cook The Fish",
         "instruction": "Heat half the olive oil in a cast iron skillet over medium-high heat. Add the trout strips and cook for 2-3 minutes per side until the fish flakes easily and has a nice golden color. Remove and set aside."
       },
       {
         "step": 3,
-        "title": "Prepare the base",
+        "title": "Prepare The Base",
         "instruction": "In a bowl, combine the diced sun- dried tomatoes, sliced scallion, chopped thyme, minced garlic, lemon juice, lemon zest, and Italian seasoning."
       },
       {
         "step": 4,
-        "title": "Add oil and liquid",
+        "title": "Add Oil And Liquid",
         "instruction": "Drizzle the remaining olive oil over the mixture and toss. Add the chicken broth and cream, stirring to combine."
       },
       {
         "step": 5,
-        "title": "Make it creamy",
+        "title": "Make It Creamy",
         "instruction": "Transfer the mixture to a pan over medium heat (you can use the same skillet you cooked the fish in). Stir in the grated Parmesan cheese and cook until it melts and creates a smooth, creamy sauce. 06 Arrange the cooked trout on plates and spoon the warm sun-dried tomato sauce generously over the top. Garnish with fresh chopped herbs."
       }
     ],
     "chefTips": [
-      "Use good quality sun-dried tomatoes",
-      "packed in oil - drain them well before dicing",
-      "tomatoes dry if they're oily",
+      "Use good quality sun-dried tomatoes packed in oil - drain them well before dicing tomatoes dry if they're oily",
       "Fresh thyme makes a big difference over"
     ],
     "pairings": [
-      "4 people",
       "Garlic mashed potatoes",
-      "20 min asparagus)",
+      "asparagus)",
       "Sautéed or grilled spinach"
     ],
     "image": "/images/recipes/mediterranean-pan-seared-trout-garlic-lemon.webp",
@@ -2654,8 +2748,12 @@ export const RECIPES_DATA: RecipeItem[] = [
           "Large pinch of saffron threads",
           "2 shallots, finely chopped",
           "Small pinch of sugar",
-          "Salt to taste",
-          "For the Pearl Couscous",
+          "Salt to taste"
+        ]
+      },
+      {
+        "section": "For The Pearl Couscous",
+        "items": [
           "1 cup pearl couscous",
           "1 cup vegetable stock",
           "1/2 cup lemon juice",
@@ -2674,50 +2772,47 @@ export const RECIPES_DATA: RecipeItem[] = [
     "instructions": [
       {
         "step": 1,
-        "title": "Start the saffron sauce",
+        "title": "Start The Saffron Sauce",
         "instruction": "In a saucepan, combine orange juice, saffron threads, sugar, and chopped shallots. Bring to a boil over high heat."
       },
       {
         "step": 2,
-        "title": "Let it simmer",
-        "instruction": "Once boiling, reduce heat and simmer for 5 minutes. The saffron will infuse and turn everything golden."
+        "title": "Let It Simmer",
+        "instruction": "Once boiling, reduce heat and simmer for minutes. The saffron will infuse and turn everything golden."
       },
       {
         "step": 3,
-        "title": "Blend it smooth",
+        "title": "Blend It Smooth",
         "instruction": "Pour the mixture into a blender and blend until completely smooth. Return to the saucepan, add salt to taste, and set aside."
       },
       {
         "step": 4,
-        "title": "Get it going",
+        "title": "Get It Going",
         "instruction": "In a separate saucepan, bring the vegetable stock to a boil. Add the pearl couscous, reduce heat to low, cover, and simmer for 15-20 minutes until tender."
       },
       {
         "step": 5,
-        "title": "Season it up",
-        "instruction": "Fluff the cooked couscous with a fork. Stir in chopped parsley, the lemon juice, 2 tablespoons of olive oil, salt, and pepper."
+        "title": "Season It Up",
+        "instruction": "Fluff the cooked couscous with a fork. Stir in chopped parsley, the lemon juice, tablespoons of olive oil, salt, and pepper."
       },
       {
         "step": 6,
-        "title": "Heat the pan",
-        "instruction": "Heat the remaining 5ml of olive oil in a large skillet over high heat. Add the minced garlic and sliced Thai chili. Let them sizzle for about 30 seconds."
+        "title": "Heat The Pan",
+        "instruction": "Heat the remaining 5ml of olive oil in a large skillet over high heat. Add the minced garlic and sliced Thai chili. Let them sizzle for about seconds."
       },
       {
         "step": 7,
-        "title": "Sear the trout",
+        "title": "Sear The Trout",
         "instruction": "Place the trout fillets skin-side down in the hot skillet. Cook over medium-high heat for 2-3 minutes per side until the skin is crispy and the fish is cooked through. Season with salt and pepper. 08 Spoon the herbed couscous onto plates. Place the seared trout on top. Drizzle generously with the warm orange-saffron sauce and garnish with fresh parsley."
       }
     ],
     "chefTips": [
-      "Use good quality saffron - it's expensive",
-      "but a little goes a long way",
-      "pan - let that skin get crispy",
+      "Use good quality saffron - it's expensive but a little goes a long way pan - let that skin get crispy",
       "The sauce can be made ahead and gently"
     ],
     "pairings": [
-      "2 people",
       "Steamed green beans",
-      "20 min couscous)",
+      "couscous)",
       "Roasted asparagus or Brussels sprouts"
     ],
     "image": "/images/recipes/seared-trout-orange-citrus-glaze-warm-spices.webp",
@@ -2754,68 +2849,64 @@ export const RECIPES_DATA: RecipeItem[] = [
       {
         "section": "For The Fish",
         "items": [
-          "4 smoked trout fillets (cold-smoked or",
-          "hot-smoked)",
-          "For the Remoulade Sauce",
+          "4 smoked trout fillets (cold-smoked or hot-smoked)"
+        ]
+      },
+      {
+        "section": "For The Remoulade Sauce",
+        "items": [
           "75ml mayonnaise",
-          "50g gherkins (small pickles), finely",
-          "chopped",
-          "20g scallions (green onions), finely",
-          "chopped",
+          "50g gherkins (small pickles), finely chopped",
+          "20g scallions (green onions), finely chopped",
           "1/2 tablespoon capers, chopped",
           "1 tablespoon fresh parsley, chopped",
-          "1 tablespoon mixed fresh herbs (like",
-          "tarragon, chervil, dill), finely chopped",
+          "1 tablespoon mixed fresh herbs (like tarragon, chervil, dill), finely chopped",
           "1 teaspoon Worcestershire sauce",
           "2 tablespoons lemon juice",
           "1/4 teaspoon fennel seeds, crushed",
-          "Salt and freshly ground black pepper",
-          "to taste"
+          "Salt and freshly ground black pepper to taste"
         ]
       }
     ],
     "instructions": [
       {
         "step": 1,
-        "title": "Prep your trout",
+        "title": "Prep Your Trout",
         "instruction": "If using cold-smoked trout that needs cooking, take it out of the fridge to come to room temperature. If using hot-smoked (already fully cooked) trout, you can skip the grilling step."
       },
       {
         "step": 2,
-        "title": "Make the remoulade",
+        "title": "Make The Remoulade",
         "instruction": "In a bowl, combine the mayonnaise, chopped gherkins, chopped scallions, Worcestershire sauce, parsley, capers, crushed fennel seeds, and the mixed fresh herbs. Mix everything together until well combined."
       },
       {
         "step": 3,
-        "title": "Add the citrus",
-        "instruction": "Start with 1 tablespoon of lemon juice, mix, and taste. Add the remaining tablespoon if you want it tangier."
+        "title": "Add The Citrus",
+        "instruction": "Start with tablespoon of lemon juice, mix, and taste. Add the remaining tablespoon if you want it tangier."
       },
       {
         "step": 4,
-        "title": "Season it",
+        "title": "Season It",
         "instruction": "Add salt and freshly ground black pepper to taste. Remember that the gherkins and capers are already salty, so go easy."
       },
       {
         "step": 5,
-        "title": "Heat the grill",
+        "title": "Heat The Grill",
         "instruction": "Preheat your grill to high heat."
       },
       {
         "step": 6,
-        "title": "Grill briefly",
+        "title": "Grill Briefly",
         "instruction": "If your smoked trout needs cooking, grill it for 2-3 minutes per side just to warm through and get some char. Hot-smoked trout is already cooked, so you're just warming it. 07 Arrange the smoked trout on plates and spoon the remoulade sauce generously alongside or over the top. That's it - simple but impressive."
       }
     ],
     "chefTips": [
-      "Use high-quality smoked trout - it's the",
-      "star of the show",
-      "and stored in the fridge",
+      "Use high-quality smoked trout - it's the star of the show and stored in the fridge",
       "Fresh herbs make a huge difference -"
     ],
     "pairings": [
-      "4 people",
       "Toasted baguette slices or crackers",
-      "15 min Pickled vegetables",
+      "Pickled vegetables",
       "Boiled new potatoes"
     ],
     "image": "/images/recipes/classic-french-style-pan-fried-trout-meuniere.webp",
@@ -2852,8 +2943,12 @@ export const RECIPES_DATA: RecipeItem[] = [
       {
         "section": "For The Fish",
         "items": [
-          "1-2 Urban Trout Rainbow Trout (400–500g each, cleaned & gutted), cleaned and butterflied",
-          "For the Stuffing",
+          "1-2 Urban Trout Rainbow Trout (400–500g each, cleaned & gutted), cleaned and butterflied"
+        ]
+      },
+      {
+        "section": "For The Stuffing",
+        "items": [
           "1/2 cup pitted olives, sliced",
           "1/4 cup feta cheese, crumbled",
           "1 cup tomatoes, diced",
@@ -2862,8 +2957,12 @@ export const RECIPES_DATA: RecipeItem[] = [
           "Zest from 1 lemon",
           "Juice from 1 lemon",
           "2 tablespoons fresh parsley, chopped",
-          "2 tablespoons fresh basil, chopped",
-          "For Roasting",
+          "2 tablespoons fresh basil, chopped"
+        ]
+      },
+      {
+        "section": "For Roasting",
+        "items": [
           "1 cup cherry tomatoes, halved",
           "60ml olive oil",
           "Salt and pepper to taste",
@@ -2875,39 +2974,41 @@ export const RECIPES_DATA: RecipeItem[] = [
       {
         "step": 1,
         "title": "Preheat",
-        "instruction": "Set your oven to 400°F (200°C). Place a baking tray in the oven to heat up. Make the stuffing: In a bowl, combine the sliced olives, 02 crumbled feta, diced tomatoes, sliced onion, minced garlic, lemon zest, and half the chopped parsley and basil. Mix gently."
+        "instruction": "Set your oven to 400°F (200°C). Place a baking tray in the oven to heat up."
+      },
+      {
+        "step": 2,
+        "title": "Make The Stuffing",
+        "instruction": "In a bowl, combine the sliced olives, crumbled feta, diced tomatoes, sliced onion, minced garlic, lemon zest, and half the chopped parsley and basil. Mix gently."
       },
       {
         "step": 3,
-        "title": "Stuff the fish",
+        "title": "Stuff The Fish",
         "instruction": "Open each butterflied trout like a book. Place the olive-feta mixture on one half of each fillet. Squeeze a bit of lemon juice over the filling, then fold the other half over to close."
       },
       {
         "step": 4,
-        "title": "Prepare for baking",
+        "title": "Prepare For Baking",
         "instruction": "Line a baking sheet with parchment paper or lightly oil it. Place the stuffed trout on the sheet. Drizzle olive oil over the top and season with salt and pepper."
       },
       {
         "step": 5,
         "title": "Bake",
-        "instruction": "Put the tray in the oven and bake for 15 minutes."
+        "instruction": "Put the tray in the oven and bake for minutes."
       },
       {
         "step": 6,
-        "title": "Add tomatoes",
-        "instruction": "After 15 minutes, scatter the halved cherry tomatoes around the fish. Continue baking for another 5-10 minutes until the fish is cooked through and flakes easily. The skin should be lightly browned. 07 Remove from the oven, garnish with the remaining chopped parsley and basil. Serve with lemon wedges and extra olives on the side."
+        "title": "Add Tomatoes",
+        "instruction": "After minutes, scatter the halved cherry tomatoes around the fish. Continue baking for another 5-10 minutes until the fish is cooked through and flakes easily. The skin should be lightly browned. 07 Remove from the oven, garnish with the remaining chopped parsley and basil. Serve with lemon wedges and extra olives on the side."
       }
     ],
     "chefTips": [
-      "Don't overstuff - the filling should stay",
-      "inside when you fold the fish",
-      "olives for best flavor",
+      "Don't overstuff - the filling should stay inside when you fold the fish olives for best flavor",
       "The fish is done when it flakes easily"
     ],
     "pairings": [
-      "2 people",
       "Roasted vegetables (zucchini, bell peppers,",
-      "15 min Quinoa or brown rice",
+      "Quinoa or brown rice",
       "Mixed greens salad with vinaigrette"
     ],
     "image": "/images/recipes/mediterranean-stuffed-baked-trout-herbs-feta.webp",
@@ -2959,13 +3060,10 @@ export const RECIPES_DATA: RecipeItem[] = [
           "1 tablespoon unsalted butter",
           "2 tablespoons olive oil",
           "2 tablespoons apple cider vinegar",
-          "4 tablespoons unsalted butter, cut",
-          "into cubes",
-          "2 tablespoons sweet corn (canned",
-          "and drained)",
+          "4 tablespoons unsalted butter, cut into cubes",
+          "2 tablespoons sweet corn (canned and drained)",
           "2.5 cups fresh spinach",
-          "1 tablespoon salt and pepper",
-          "combined"
+          "1 tablespoon salt and pepper combined"
         ]
       }
     ],
@@ -2973,16 +3071,21 @@ export const RECIPES_DATA: RecipeItem[] = [
       {
         "step": 1,
         "title": "Preheat",
-        "instruction": "Set your oven to 220°C (430°F). Line a baking tray with parchment paper. Prep the fish: Pat the cleaned trout completely dry with 02 paper towels. Season the inside cavity of each fish with salt and pepper."
+        "instruction": "Set your oven to 220°C (430°F). Line a baking tray with parchment paper."
+      },
+      {
+        "step": 2,
+        "title": "Prep The Fish",
+        "instruction": "Pat the cleaned trout completely dry with paper towels. Season the inside cavity of each fish with salt and pepper."
       },
       {
         "step": 3,
-        "title": "Stuff the fish",
-        "instruction": "Cut the lemons into thick slices, then halve them. Tuck 3 lemon halves into each fish cavity along with parsley sprigs and crushed garlic cloves."
+        "title": "Stuff The Fish",
+        "instruction": "Cut the lemons into thick slices, then halve them. Tuck lemon halves into each fish cavity along with parsley sprigs and crushed garlic cloves."
       },
       {
         "step": 4,
-        "title": "Season and oil",
+        "title": "Season And Oil",
         "instruction": "Drizzle olive oil over the top of each fish and season with salt."
       },
       {
@@ -2992,40 +3095,37 @@ export const RECIPES_DATA: RecipeItem[] = [
       },
       {
         "step": 6,
-        "title": "Start the base",
-        "instruction": "While the fish bakes, place a skillet over medium heat. Add 1 tablespoon of butter and 1 teaspoon of olive oil."
+        "title": "Start The Base",
+        "instruction": "While the fish bakes, place a skillet over medium heat. Add tablespoon of butter and teaspoon of olive oil."
       },
       {
         "step": 7,
-        "title": "Cook the onions",
-        "instruction": "When the butter melts, add the diced onion and a pinch of salt. Cook for about 2 minutes until translucent."
+        "title": "Cook The Onions",
+        "instruction": "When the butter melts, add the diced onion and a pinch of salt. Cook for about minutes until translucent."
       },
       {
         "step": 8,
-        "title": "Add vinegar",
+        "title": "Add Vinegar",
         "instruction": "Increase the heat and pour in the apple cider vinegar. Let it bubble for a few seconds."
       },
       {
         "step": 9,
-        "title": "Finish the sauce",
+        "title": "Finish The Sauce",
         "instruction": "Remove from heat and stir in the cubed butter and sweet corn until the butter melts completely."
       },
       {
         "step": 10,
-        "title": "Wilt the spinach",
+        "title": "Wilt The Spinach",
         "instruction": "Add the fresh spinach leaves and stir until they wilt into the sauce. 11 Remove the fish from the oven. Serve each whole trout over a bed of the buttery spinach sauce."
       }
     ],
     "chefTips": [
-      "Pat the fish really dry before stuffing -",
-      "moisture prevents browning",
-      "easily but not fall apart",
+      "Pat the fish really dry before stuffing - moisture prevents browning easily but not fall apart",
       "The butter sauce comes together fast,"
     ],
     "pairings": [
-      "2 people",
       "Simple roasted vegetables",
-      "5 min Extra lemon wedges for squeezing",
+      "Extra lemon wedges for squeezing",
       "Crusty bread to soak up the sauce"
     ],
     "image": "/images/recipes/whole-baked-trout-creamy-butter-spinach-veloute.webp",
@@ -3063,12 +3163,9 @@ export const RECIPES_DATA: RecipeItem[] = [
         "section": "Main Ingredients",
         "items": [
           "2 whole rainbow trout, cleaned",
-          "4 potatoes, peeled and cut into",
-          "wedges or thick slices",
-          "5 spring garlic stalks (or 3-4 regular",
-          "garlic cloves if unavailable)",
-          "1 tablespoon olive oil (plus extra for",
-          "cooking)",
+          "4 potatoes, peeled and cut into wedges or thick slices",
+          "5 spring garlic stalks (or 3-4 regular garlic cloves if unavailable)",
+          "1 tablespoon olive oil (plus extra for cooking)",
           "Seasonings",
           "1/2 teaspoon salt",
           "A pinch of black pepper",
@@ -3082,45 +3179,47 @@ export const RECIPES_DATA: RecipeItem[] = [
     "instructions": [
       {
         "step": 1,
-        "title": "Prep the potatoes",
-        "instruction": "Peel, wash, and cut the potatoes into chunky wedges or thick slices - about 1/2 inch thick works well. Season the fish: Season the cleaned trout inside and out 02 with salt and pepper. Tuck some fresh herbs and a little garlic inside the cavity."
+        "title": "Prep The Potatoes",
+        "instruction": "Peel, wash, and cut the potatoes into chunky wedges or thick slices - about / inch thick works well."
+      },
+      {
+        "step": 2,
+        "title": "Season The Fish",
+        "instruction": "Season the cleaned trout inside and out with salt and pepper. Tuck some fresh herbs and a little garlic inside the cavity."
       },
       {
         "step": 3,
-        "title": "Prep the garlic",
+        "title": "Prep The Garlic",
         "instruction": "Finely chop or paste the spring garlic. Set aside to add near the end."
       },
       {
         "step": 4,
-        "title": "Start the potatoes",
-        "instruction": "Heat a non-stick pan over medium heat. When hot, drizzle with olive oil and add the potato slices in a single layer. Cover the pan and cook for at least 10 minutes on one side without moving them. Lower the heat to medium-low. They're ready to flip when they no longer stick to the pan."
+        "title": "Start The Potatoes",
+        "instruction": "Heat a non-stick pan over medium heat. When hot, drizzle with olive oil and add the potato slices in a single layer. Cover the pan and cook for at least minutes on one side without moving them. Lower the heat to medium-low. They're ready to flip when they no longer stick to the pan."
       },
       {
         "step": 5,
-        "title": "Start the fish (4-5 minutes later)",
-        "instruction": "About 5 minutes after starting the potatoes, heat a second pan with a drizzle of oil over medium-high heat. Place the trout in the pan. Cook for 5-6 minutes on the first side until the skin is crispy."
+        "title": "Start The Fish (4-5 Minutes Later)",
+        "instruction": "About minutes after starting the potatoes, heat a second pan with a drizzle of oil over medium-high heat. Place the trout in the pan. Cook for 5-6 minutes on the first side until the skin is crispy."
       },
       {
         "step": 6,
-        "title": "Flip both",
+        "title": "Flip Both",
         "instruction": "Carefully flip the potatoes once they're golden and crispy. Gently flip the fish as well and cook for another 5-6 minutes on medium heat."
       },
       {
         "step": 7,
-        "title": "Add garlic",
+        "title": "Add Garlic",
         "instruction": "In the last minute of cooking, add the chopped spring garlic to both the potatoes and the fish. Taste and add more salt if needed. 08 Turn off the heat and serve immediately. Garnish with fresh coriander leaves. Drizzle with cider vinegar if you like that extra tang."
       }
     ],
     "chefTips": [
-      "Don't cover the fish while cooking - it'll",
-      "steam instead of getting crispy",
-      "splattering everywhere",
+      "Don't cover the fish while cooking - it'll steam instead of getting crispy splattering everywhere",
       "Start with high heat, then lower it for"
     ],
     "pairings": [
-      "4 people",
       "Steamed asparagus",
-      "5 min Garlic bread",
+      "Garlic bread",
       "Roasted vegetables"
     ],
     "image": "/images/recipes/pan-seared-trout-crispy-roasted-herb-potatoes.webp",
@@ -3159,27 +3258,41 @@ export const RECIPES_DATA: RecipeItem[] = [
         "items": [
           "1-2 Urban Trout Rainbow Trout (400–500g each, cleaned & gutted) (or 4 fillets)",
           "10ml olive oil",
-          "Sea salt and freshly ground pepper",
-          "For the Horseradish Remoulade",
+          "Sea salt and freshly ground pepper"
+        ]
+      },
+      {
+        "section": "For The Horseradish Remoulade",
+        "items": [
           "1 celeriac root",
           "Juice from 1/2 lemon",
           "1 garlic clove",
           "150g yogurt",
           "1 thumb-sized piece fresh horseradish root",
-          "A pinch of salt",
-          "For the Butter Potatoes",
+          "A pinch of salt"
+        ]
+      },
+      {
+        "section": "For The Butter Potatoes",
+        "items": [
           "500g potatoes",
           "45g butter",
-          "A handful of flat-leaf parsley,",
-          "finely chopped",
-          "Salt and pepper",
-          "For the Greens",
-          "300g sprout tops (or Brussels",
-          "sprouts leaves)",
+          "A handful of flat-leaf parsley, finely chopped",
+          "Salt and pepper"
+        ]
+      },
+      {
+        "section": "For The Greens",
+        "items": [
+          "300g sprout tops (or Brussels sprouts leaves)",
           "200g broccoli florets",
           "1 tablespoon olive oil",
-          "Salt and pepper",
-          "For Serving",
+          "Salt and pepper"
+        ]
+      },
+      {
+        "section": "For Serving",
+        "items": [
           "Remaining 1/2 lemon, cut into wedges",
           "Extra horseradish for grating"
         ]
@@ -3188,50 +3301,52 @@ export const RECIPES_DATA: RecipeItem[] = [
     "instructions": [
       {
         "step": 1,
-        "title": "Boil the potatoes",
+        "title": "Boil The Potatoes",
         "instruction": "Fill a large pan with water, add a pinch of salt, and bring to a boil. Scrub the potatoes and chop into bite-sized chunks. Add to boiling water and simmer for 15-20 minutes until tender."
       },
       {
         "step": 2,
-        "title": "Prep the celeriac",
+        "title": "Prep The Celeriac",
         "instruction": "While potatoes cook, peel the celeriac and coarsely grate it into a bowl. Squeeze in the juice from half a lemon."
       },
       {
         "step": 3,
-        "title": "Build the sauce",
+        "title": "Build The Sauce",
         "instruction": "Peel and finely grate in the garlic. Add the yogurt and a pinch of salt. Peel and finely grate the horseradish into the mixture. Stir well, taste, and add more horseradish if you want more heat. Set aside."
       },
       {
         "step": 4,
-        "title": "Ready the vegetables",
+        "title": "Ready The Vegetables",
         "instruction": "Finely chop the parsley. Separate sprout top leaves and trim woody stalks. Shred the leaves. Steam or blanch the broccoli until just tender. Set aside."
       },
       {
         "step": 5,
-        "title": "Prepare for grilling",
-        "instruction": "Set your grill to high. Line a baking tray with foil and arrange trout fillets skin-side up. Rub with olive oil, salt, and pepper. Cook the greens: Heat 1 tablespoon of oil in a frying pan 06 over medium heat. Add sprout tops with salt and pepper. Fry for 1-2 minutes, stirring. Add 2 tablespoons of water and steam for another 2 minutes until tender."
+        "title": "Prepare For Grilling",
+        "instruction": "Set your grill to high. Line a baking tray with foil and arrange trout fillets skin-side up. Rub with olive oil, salt, and pepper."
+      },
+      {
+        "step": 6,
+        "title": "Cook The Greens",
+        "instruction": "Heat tablespoon of oil in a frying pan over medium heat. Add sprout tops with salt and pepper. Fry for - minutes, stirring. Add tablespoons of water and steam for another minutes until tender."
       },
       {
         "step": 7,
-        "title": "Grill the trout",
+        "title": "Grill The Trout",
         "instruction": "While greens cook, slide the trout under the grill. Cook for 3-4 minutes until just cooked through with crispy skin."
       },
       {
         "step": 8,
-        "title": "Make them buttery",
+        "title": "Make Them Buttery",
         "instruction": "Drain the cooked potatoes and let them steam dry for a minute. Add butter, chopped parsley, salt, and pepper. Toss to coat. 08 Arrange butter potatoes, greens, and a spoonful of celeriac remoulade on each plate. Top with grilled trout. Serve with lemon wedges and extra grated horseradish."
       }
     ],
     "chefTips": [
-      "Fresh horseradish is much better",
-      "than jarred - it's worth finding",
-      "special",
+      "Fresh horseradish is much better than jarred - it's worth finding special",
       "Don't overcook the trout - it should"
     ],
     "pairings": [
-      "2 people",
       "Steamed green beans",
-      "20 min Garlic bread",
+      "Garlic bread",
       "A crisp white wine"
     ],
     "image": "/images/recipes/char-grilled-trout-tangy-horseradish-herb-sauce.webp",
@@ -3271,12 +3386,15 @@ export const RECIPES_DATA: RecipeItem[] = [
           "2 thick trout fillets, skinless",
           "1 tablespoon extra virgin olive oil (divided)",
           "1 tablespoon salted butter (divided)",
-          "Salt and freshly ground black pepper",
-          "For the Creamy Spinach",
+          "Salt and freshly ground black pepper"
+        ]
+      },
+      {
+        "section": "For The Creamy Spinach",
+        "items": [
           "1 cup red bell pepper, chopped",
           "2 garlic cloves, minced",
-          "4 ounces fresh baby spinach (about 2 large",
-          "handfuls)",
+          "4 ounces fresh baby spinach (about 2 large handfuls)",
           "2 ounces reduced-fat cream cheese",
           "1/4 cup half-and-half cream",
           "3 tablespoons Parmesan cheese, grated",
@@ -3287,45 +3405,42 @@ export const RECIPES_DATA: RecipeItem[] = [
     "instructions": [
       {
         "step": 1,
-        "title": "Start the base",
-        "instruction": "Heat a large skillet over medium heat. Add 1/2 tablespoon olive oil and 1/2 tablespoon butter. When the butter melts, add the chopped red bell pepper and minced garlic. Cook for about 4 minutes until softened and fragrant."
+        "title": "Start The Base",
+        "instruction": "Heat a large skillet over medium heat. Add 1/2 tablespoon olive oil and 1/2 tablespoon butter. When the butter melts, add the chopped red bell pepper and minced garlic. Cook for about minutes until softened and fragrant."
       },
       {
         "step": 2,
-        "title": "Wilt the spinach",
+        "title": "Wilt The Spinach",
         "instruction": "Add the fresh spinach and season with a pinch of salt and pepper. Stir until the spinach wilts down completely, about 2-3 minutes."
       },
       {
         "step": 3,
-        "title": "Make it creamy",
+        "title": "Make It Creamy",
         "instruction": "Add the cream cheese, half-and-half, and Parmesan cheese. Stir well until the cream cheese melts completely and the mixture looks like creamed spinach. Keep warm on low heat."
       },
       {
         "step": 4,
-        "title": "Get the pan hot",
+        "title": "Get The Pan Hot",
         "instruction": "Heat a separate skillet over medium- high heat. Add the remaining 1/2 tablespoon oil and 1/2 tablespoon butter."
       },
       {
         "step": 5,
-        "title": "Season and sear",
+        "title": "Season And Sear",
         "instruction": "Season both sides of the trout fillets generously with salt and pepper. Place them in the hot pan."
       },
       {
         "step": 6,
-        "title": "Cook through",
-        "instruction": "Cook for 6 minutes on the first side without moving the fish. Flip carefully and cook for another 5 minutes on the other side until cooked through, browned, and the fish flakes easily with a fork. 07 Divide the creamy spinach mixture between two plates, spreading it as a base. Place a trout fillet on top of each portion of spinach. Serve immediately."
+        "title": "Cook Through",
+        "instruction": "Cook for minutes on the first side without moving the fish. Flip carefully and cook for another minutes on the other side until cooked through, browned, and the fish flakes easily with a fork. 07 Divide the creamy spinach mixture between two plates, spreading it as a base. Place a trout fillet on top of each portion of spinach. Serve immediately."
       }
     ],
     "chefTips": [
-      "Use reduced-fat cream cheese to keep it",
-      "lighter without sacrificing creaminess",
-      "lot but wilts down significantly",
+      "Use reduced-fat cream cheese to keep it lighter without sacrificing creaminess lot but wilts down significantly",
       "Let the fish develop a nice crust by not"
     ],
     "pairings": [
-      "2 people",
       "Garlic bread for soaking up the sauce",
-      "5 min Roasted potatoes",
+      "Roasted potatoes",
       "A crisp white wine"
     ],
     "image": "/images/recipes/pan-seared-trout-creamy-garlic-fettuccine.webp",
@@ -3380,13 +3495,13 @@ export const RECIPES_DATA: RecipeItem[] = [
     "instructions": [
       {
         "step": 1,
-        "title": "Make the marinade",
+        "title": "Make The Marinade",
         "instruction": "In a medium bowl, mix together the honey, soy sauce, minced garlic, toasted sesame oil, Chinese five spice, and chili flakes until well combined."
       },
       {
         "step": 2,
-        "title": "Marinate the fish",
-        "instruction": "Place the trout fillets in the bowl and coat them thoroughly with the honey-soy mixture. Cover and refrigerate for at least 2 hours. This lets all those flavors really sink in."
+        "title": "Marinate The Fish",
+        "instruction": "Place the trout fillets in the bowl and coat them thoroughly with the honey-soy mixture. Cover and refrigerate for at least hours. This lets all those flavors really sink in."
       },
       {
         "step": 3,
@@ -3400,20 +3515,17 @@ export const RECIPES_DATA: RecipeItem[] = [
       },
       {
         "step": 5,
-        "title": "Check for doneness",
+        "title": "Check For Doneness",
         "instruction": "The glaze should be sticky and slightly caramelized, and the fish should be opaque and tender. 06 Serve the trout hot with that flavorful glaze spooned over the top."
       }
     ],
     "chefTips": [
-      "Don't skip the marinating time - 2 hours",
-      "minimum makes a real difference",
-      "the marinade",
+      "Don't skip the marinating time - 2 hours minimum makes a real difference the marinade",
       "Watch the glaze in the last few minutes -"
     ],
     "pairings": [
-      "2 people",
       "Steamed jasmine rice (perfect for soaking up",
-      "5 min Stir-fried Asian greens (bok choy, gai lan)",
+      "Stir-fried Asian greens (bok choy, gai lan)",
       "Roasted sweet potatoes"
     ],
     "image": "/images/recipes/sweet-soy-ginger-glazed-baked-rainbow-trout.webp",
@@ -3450,8 +3562,12 @@ export const RECIPES_DATA: RecipeItem[] = [
       {
         "section": "For The Fish",
         "items": [
-          "1-2 Urban Trout Rainbow Trout (400–500g each, cleaned & gutted) fillets",
-          "For the Roasted Vegetables",
+          "1-2 Urban Trout Rainbow Trout (400–500g each, cleaned & gutted) fillets"
+        ]
+      },
+      {
+        "section": "For The Roasted Vegetables",
+        "items": [
           "1 butternut squash, cut into 8 wedges",
           "2 sweet potatoes, halved lengthwise",
           "20ml extra virgin olive oil",
@@ -3466,8 +3582,7 @@ export const RECIPES_DATA: RecipeItem[] = [
           "1 red or green chili, finely chopped",
           "2 tablespoons soy sauce",
           "1/2 cup orange juice",
-          "1/4 cup lime juice (note: original listed 1",
-          "cup which is excessive)",
+          "1/4 cup lime juice (note: original listed 1 cup which is excessive)",
           "1 teaspoon honey",
           "1/2 teaspoon salt and black pepper"
         ]
@@ -3475,8 +3590,7 @@ export const RECIPES_DATA: RecipeItem[] = [
       {
         "section": "For Assembly",
         "items": [
-          "1.5 tablespoons hemp oil or extra virgin",
-          "olive oil",
+          "1.5 tablespoons hemp oil or extra virgin olive oil",
           "Zest of 1 unwaxed lemon",
           "10g spinach leaves",
           "10g watercress leaves",
@@ -3494,27 +3608,27 @@ export const RECIPES_DATA: RecipeItem[] = [
       },
       {
         "step": 2,
-        "title": "Roast the vegetables",
+        "title": "Roast The Vegetables",
         "instruction": "Place butternut squash wedges and sweet potato halves on a baking tray. Drizzle with olive oil, season with salt and pepper, and toss to coat. Roast for 35-40 minutes until tender and caramelized."
       },
       {
         "step": 3,
-        "title": "Make the marinade",
+        "title": "Make The Marinade",
         "instruction": "In a small bowl, mix together the grated ginger, crushed garlic, chopped chili, soy sauce, orange juice, lime juice, honey, salt, and black pepper."
       },
       {
         "step": 4,
         "title": "Marinate",
-        "instruction": "Place trout fillets in an oven-proof dish lined with parchment paper. Pour the marinade over the fish and let it sit for 10 minutes."
+        "instruction": "Place trout fillets in an oven-proof dish lined with parchment paper. Pour the marinade over the fish and let it sit for minutes."
       },
       {
         "step": 5,
-        "title": "Pan-sear",
+        "title": "Pan-Sear",
         "instruction": "Heat a skillet over medium-high heat. Remove trout from marinade (save any leftover marinade) and pan-sear for 2-3 minutes per side until cooked through and the fish flakes easily."
       },
       {
         "step": 6,
-        "title": "Make lemon oil",
+        "title": "Make Lemon Oil",
         "instruction": "Mix the hemp oil (or olive oil) with the grated lemon zest."
       },
       {
@@ -3529,15 +3643,12 @@ export const RECIPES_DATA: RecipeItem[] = [
       }
     ],
     "chefTips": [
-      "Test vegetables with a knife - they should be",
-      "tender all the way through",
-      "can dry out",
+      "Test vegetables with a knife - they should be tender all the way through can dry out",
       "The original recipe listed 1 cup lime juice which"
     ],
     "pairings": [
-      "4 people",
       "Steamed jasmine rice",
-      "25 min Stir-fried bok choy",
+      "Stir-fried bok choy",
       "Miso soup"
     ],
     "image": "/images/recipes/citrus-soy-marinated-trout-caramelized-vegetables.webp",
@@ -3582,14 +3693,22 @@ export const RECIPES_DATA: RecipeItem[] = [
           "Salt to taste",
           "1 teaspoon freshly ground black pepper",
           "2 tablespoons butter",
-          "2 tablespoons vegetable oil",
-          "For the Wilted Asian Slaw",
+          "2 tablespoons vegetable oil"
+        ]
+      },
+      {
+        "section": "For The Wilted Asian Slaw",
+        "items": [
           "1 small Napa cabbage, shredded",
           "1 cup snow peas, blanched and sliced",
           "1 mango, julienned",
           "1/2 cup red bell pepper, julienned",
-          "1 cup fresh coriander leaves, chopped",
-          "For the Asian Dressing",
+          "1 cup fresh coriander leaves, chopped"
+        ]
+      },
+      {
+        "section": "For The Asian Dressing",
+        "items": [
           "2 tablespoons soy sauce",
           "20ml sesame oil",
           "1 tablespoon rice vinegar",
@@ -3603,50 +3722,47 @@ export const RECIPES_DATA: RecipeItem[] = [
     "instructions": [
       {
         "step": 1,
-        "title": "Set up breading station",
+        "title": "Set Up Breading Station",
         "instruction": "Place flour mixed with salt and pepper in one bowl. Whisk eggs and milk together in a second bowl. Put breadcrumbs in a third bowl."
       },
       {
         "step": 2,
-        "title": "Bread the fish",
+        "title": "Bread The Fish",
         "instruction": "Lightly dust each fillet in flour, shaking off excess. Dip in egg mixture, then coat thoroughly with breadcrumbs. Set aside."
       },
       {
         "step": 3,
-        "title": "Prep the slaw",
+        "title": "Prep The Slaw",
         "instruction": "Combine shredded cabbage, blanched snow peas, julienned mango, red pepper, and half the chopped coriander in a large bowl."
       },
       {
         "step": 4,
-        "title": "Make the dressing",
+        "title": "Make The Dressing",
         "instruction": "In a small bowl, whisk together soy sauce, sesame oil, rice vinegar, olive oil, sugar, and lime juice. Season with salt and pepper."
       },
       {
         "step": 5,
-        "title": "Fry the fish",
-        "instruction": "Heat butter and oil in a large non-stick skillet over medium-high heat. Fry the breaded fillets for about 2 minutes per side until golden brown and crispy. Remove and keep warm."
+        "title": "Fry The Fish",
+        "instruction": "Heat butter and oil in a large non-stick skillet over medium-high heat. Fry the breaded fillets for about minutes per side until golden brown and crispy. Remove and keep warm."
       },
       {
         "step": 6,
-        "title": "Wilt the slaw",
+        "title": "Wilt The Slaw",
         "instruction": "Heat a large sauté pan over medium heat. Add the slaw mixture and toss for 2-3 minutes until the cabbage just begins to wilt but vegetables still have some crunch."
       },
       {
         "step": 7,
-        "title": "Season the slaw",
+        "title": "Season The Slaw",
         "instruction": "Remove from heat and toss with a few tablespoons of the Asian dressing. Taste and adjust seasoning. 08 Place a portion of warm slaw on each plate. Top with a crispy trout fillet. Drizzle with more Asian dressing and garnish with remaining fresh coriander."
       }
     ],
     "chefTips": [
-      "Use panko breadcrumbs for extra crunch -",
-      "they're lighter than regular breadcrumbs",
-      "once breaded",
+      "Use panko breadcrumbs for extra crunch - they're lighter than regular breadcrumbs once breaded",
       "The slaw should be slightly wilted but still"
     ],
     "pairings": [
-      "4 people",
       "Steamed jasmine rice",
-      "25 min Pickled ginger",
+      "Pickled ginger",
       "Steamed edamame"
     ],
     "image": "/images/recipes/panko-crusted-crispy-trout-wok-tossed-asian-vegetables.webp",
@@ -3683,8 +3799,7 @@ export const RECIPES_DATA: RecipeItem[] = [
       {
         "section": "For The Fish",
         "items": [
-          "1-2 Urban Trout Rainbow Trout (400–500g each, cleaned & gutted) (about 400-500g each),",
-          "cleaned and gutted"
+          "1-2 Urban Trout Rainbow Trout (400–500g each, cleaned & gutted) (about 400-500g each), cleaned and gutted"
         ]
       },
       {
@@ -3696,8 +3811,7 @@ export const RECIPES_DATA: RecipeItem[] = [
           "2 garlic cloves, peeled",
           "1-inch piece fresh ginger, peeled",
           "Chili flakes to taste",
-          "Salt and freshly ground black pepper",
-          "to taste"
+          "Salt and freshly ground black pepper to taste"
         ]
       },
       {
@@ -3711,60 +3825,57 @@ export const RECIPES_DATA: RecipeItem[] = [
     "instructions": [
       {
         "step": 1,
-        "title": "Make the marinade",
+        "title": "Make The Marinade",
         "instruction": "Peel the garlic cloves and ginger. Cut the ginger into smaller pieces. Add everything to a blender - garlic, ginger, sesame oil, soy sauce, brown sugar, a pinch of salt and pepper, and chili flakes. Blend on high until completely smooth."
       },
       {
         "step": 2,
-        "title": "Prepare the trout",
+        "title": "Prepare The Trout",
         "instruction": "Make sure your trout are completely clean and pat them dry with paper towels. Score the fish on both sides with 3-4 diagonal cuts - this helps the marinade penetrate deeper."
       },
       {
         "step": 3,
-        "title": "Coat thoroughly",
+        "title": "Coat Thoroughly",
         "instruction": "Place the trout on a large, flat dish or tray. Pour the marinade over both fish, making sure to cover the top, bottom, and especially inside the cavity. Rub the marinade into those scored cuts."
       },
       {
         "step": 4,
-        "title": "Let it rest",
-        "instruction": "Cover and refrigerate for at least 30 minutes. If you have time, 2 hours is even better - the fish will absorb more flavor."
+        "title": "Let It Rest",
+        "instruction": "Cover and refrigerate for at least minutes. If you have time, hours is even better - the fish will absorb more flavor."
       },
       {
         "step": 5,
-        "title": "Preheat low and slow",
+        "title": "Preheat Low And Slow",
         "instruction": "Set your oven to 100°C (212°F). This low temperature is key to keeping the fish incredibly moist."
       },
       {
         "step": 6,
-        "title": "Prep your baking setup",
+        "title": "Prep Your Baking Setup",
         "instruction": "Line a baking tray with parchment paper or a silicone baking mat. Place the marinated trout on the tray, pouring any remaining marinade over the top."
       },
       {
         "step": 7,
-        "title": "Into the oven",
-        "instruction": "Slide the tray into the preheated oven and set your timer for 30 minutes."
+        "title": "Into The Oven",
+        "instruction": "Slide the tray into the preheated oven and set your timer for minutes."
       },
       {
         "step": 8,
-        "title": "The crucial basting",
+        "title": "The Crucial Basting",
         "instruction": "At the 15-minute mark, open the oven and carefully baste the fish with the juices that have collected in the tray."
       },
       {
         "step": 9,
-        "title": "Check for doneness",
-        "instruction": "After 30 minutes, the fish should be cooked through - the flesh will flake easily with a fork and look opaque. 10 Transfer the trout to a serving platter while still steaming. Drizzle some of that glorious pan sauce over the top, then garnish generously with chopped chives and toasted sesame seeds."
+        "title": "Check For Doneness",
+        "instruction": "After minutes, the fish should be cooked through - the flesh will flake easily with a fork and look opaque. 10 Transfer the trout to a serving platter while still steaming. Drizzle some of that glorious pan sauce over the top, then garnish generously with chopped chives and toasted sesame seeds."
       }
     ],
     "chefTips": [
-      "Don't skip scoring the fish - those diagonal",
-      "cuts are highways for flavor",
-      "helps the marinade stick better",
+      "Don't skip scoring the fish - those diagonal cuts are highways for flavor helps the marinade stick better",
       "If you can't find whole trout, this works with"
     ],
     "pairings": [
-      "4 people",
       "Steamed bok choy with garlic",
-      "10 min Pickled ginger",
+      "Pickled ginger",
       "Simple cucumber salad with rice vinegar"
     ],
     "image": "/images/recipes/slow-baked-whole-trout-sweet-mirin-soy-glaze.webp",
@@ -3799,26 +3910,30 @@ export const RECIPES_DATA: RecipeItem[] = [
     },
     "ingredients": [
       {
-        "section": "Main Ingredients",
+        "section": "For The Salad Base",
         "items": [
-          "For the Salad Base",
-          "100g Asian salad leaves (mizuna, bok",
-          "choy, or mixed Asian greens)",
+          "100g Asian salad leaves (mizuna, bok choy, or mixed Asian greens)",
           "1/4 cup shredded lettuce",
           "1/4 cup shredded carrot",
           "1/4 cup thinly sliced onion",
           "1/4 cup chopped green onion",
-          "1/2 cup gherkins, sliced",
-          "For the Protein and Toppings",
-          "200g smoked trout ribbons (or flaked",
-          "smoked trout)",
+          "1/2 cup gherkins, sliced"
+        ]
+      },
+      {
+        "section": "For The Protein And Toppings",
+        "items": [
+          "200g smoked trout ribbons (or flaked smoked trout)",
           "1 gem avocado, peeled and thinly sliced",
           "30g pickled ginger",
           "30g roasted peanuts, roughly chopped",
-          "1 tablespoon toasted sesame seeds",
-          "For the Dressing",
-          "2 tablespoons vinegar (rice vinegar",
-          "preferred)",
+          "1 tablespoon toasted sesame seeds"
+        ]
+      },
+      {
+        "section": "For The Dressing",
+        "items": [
+          "2 tablespoons vinegar (rice vinegar preferred)",
           "1/4 cup ponzu sauce",
           "Juice of 1/2 lemon",
           "Salt to taste",
@@ -3828,73 +3943,69 @@ export const RECIPES_DATA: RecipeItem[] = [
       {
         "section": "For Garnish",
         "items": [
-          "1/4 cup fresh coriander leaves,",
-          "chopped"
+          "1/4 cup fresh coriander leaves, chopped"
         ]
       }
     ],
     "instructions": [
       {
         "step": 1,
-        "title": "Prep the vegetables",
+        "title": "Prep The Vegetables",
         "instruction": "Wash and dry the Asian salad leaves and lettuce thoroughly. Shred the lettuce and carrot finely. Thinly slice the onion and chop the green onion. Slice the gherkins."
       },
       {
         "step": 2,
-        "title": "Slice the avocado",
+        "title": "Slice The Avocado",
         "instruction": "Cut the avocado just before serving to prevent browning. Slice thinly and set aside."
       },
       {
         "step": 3,
-        "title": "Prepare the trout",
+        "title": "Prepare The Trout",
         "instruction": "Keep the smoked trout ribbons refrigerated until ready to use. If using whole smoked trout, flake it into ribbons."
       },
       {
         "step": 4,
-        "title": "Toast if needed",
+        "title": "Toast If Needed",
         "instruction": "If your sesame seeds aren't already toasted, quickly toast them in a dry pan until golden and fragrant."
       },
       {
         "step": 5,
-        "title": "Make the base",
+        "title": "Make The Base",
         "instruction": "In a large mixing bowl, combine the Asian salad leaves, shredded lettuce, and shredded carrot."
       },
       {
         "step": 6,
-        "title": "Add aromatics",
+        "title": "Add Aromatics",
         "instruction": "Toss in the sliced onion and chopped green onion."
       },
       {
         "step": 7,
-        "title": "Dress the salad",
-        "instruction": "Pour 3 tablespoons of ponzu sauce over the salad mix. Add a splash of vinegar to taste and toss well to ensure everything is evenly coated. Sprinkle a pinch of salt over the mixture."
+        "title": "Dress The Salad",
+        "instruction": "Pour tablespoons of ponzu sauce over the salad mix. Add a splash of vinegar to taste and toss well to ensure everything is evenly coated. Sprinkle a pinch of salt over the mixture."
       },
       {
         "step": 8,
-        "title": "Build the layers",
+        "title": "Build The Layers",
         "instruction": "Transfer the tossed salad onto a serving platter or individual plates. Arrange the thinly sliced avocado on top of the salad in an attractive pattern."
       },
       {
         "step": 9,
-        "title": "Add the fish",
+        "title": "Add The Fish",
         "instruction": "Place the smoked trout ribbons over the salad and avocado. Tuck in the pickled ginger and gherkins around the trout for even distribution."
       },
       {
         "step": 10,
-        "title": "Final dressing",
-        "instruction": "Drizzle the remaining 1 tablespoon of ponzu sauce over everything. Squeeze the juice of half a lemon over the salad. 11 Sprinkle the toasted sesame seeds and chopped peanuts over the entire salad for crunch. Top with chopped coriander leaves for freshness. Add a light sprinkle of freshly ground black pepper to taste. Serve immediately while the salad is crisp."
+        "title": "Final Dressing",
+        "instruction": "Drizzle the remaining tablespoon of ponzu sauce over everything. Squeeze the juice of half a lemon over the salad. 11 Sprinkle the toasted sesame seeds and chopped peanuts over the entire salad for crunch. Top with chopped coriander leaves for freshness. Add a light sprinkle of freshly ground black pepper to taste. Serve immediately while the salad is crisp."
       }
     ],
     "chefTips": [
-      "Keep the smoked trout refrigerated until the",
-      "last minute to maintain its texture",
-      "prevent browning",
+      "Keep the smoked trout refrigerated until the last minute to maintain its texture prevent browning",
       "Don't overdress the salad - you can always"
     ],
     "pairings": [
-      "3 people",
       "Sushi rice or warm jasmine rice",
-      "15 min Miso soup",
+      "Miso soup",
       "Pickled vegetables"
     ],
     "image": "/images/recipes/crisp-asian-greens-flaked-smoked-trout-ponzu.webp",
@@ -3932,15 +4043,17 @@ export const RECIPES_DATA: RecipeItem[] = [
         "section": "Main Ingredients",
         "items": [
           "For the Sesame-Crusted Trout",
-          "1-2 Urban Trout Rainbow Trout (400–500g each, cleaned & gutted) (filleted) or 1-2 Urban Trout Rainbow Trout (400–500g each, cleaned & gutted)",
-          "fillets",
-          "1/2 cup mixed sesame seeds (white",
-          "and black)",
+          "1-2 Urban Trout Rainbow Trout (400–500g each, cleaned & gutted) (filleted) or 1-2 Urban Trout Rainbow Trout (400–500g each, cleaned & gutted) fillets",
+          "1/2 cup mixed sesame seeds (white and black)",
           "1/2 cup Southeast Asian spice blend",
           "40ml olive oil (plus extra for cooking)",
           "1/4 teaspoon salt",
-          "Freshly ground black pepper to taste",
-          "For the Garlic Rice",
+          "Freshly ground black pepper to taste"
+        ]
+      },
+      {
+        "section": "For The Garlic Rice",
+        "items": [
           "1 cup jasmine rice",
           "2 cups water",
           "2 garlic cloves, finely chopped",
@@ -3950,10 +4063,13 @@ export const RECIPES_DATA: RecipeItem[] = [
           "20g butter",
           "2 tablespoons olive oil",
           "2 teaspoons soy sauce",
-          "1/4 teaspoon salt",
-          "For Garnish and Finishing",
-          "1/4 cup roasted cashews, roughly",
-          "chopped",
+          "1/4 teaspoon salt"
+        ]
+      },
+      {
+        "section": "For Garnish And Finishing",
+        "items": [
+          "1/4 cup roasted cashews, roughly chopped",
           "2 tablespoons Japanese dressing",
           "1/4 cup green onion, chopped"
         ]
@@ -3962,70 +4078,67 @@ export const RECIPES_DATA: RecipeItem[] = [
     "instructions": [
       {
         "step": 1,
-        "title": "Prep the aromatics",
+        "title": "Prep The Aromatics",
         "instruction": "Finely chop the garlic and grate the ginger. Thinly slice the onion and chop the green onion. Cut the broccoli into small florets."
       },
       {
         "step": 2,
-        "title": "Pat the fish dry",
+        "title": "Pat The Fish Dry",
         "instruction": "Use paper towels to thoroughly dry the trout fillets. This helps the sesame crust stick better."
       },
       {
         "step": 3,
-        "title": "Make the crust mixture",
+        "title": "Make The Crust Mixture",
         "instruction": "On a large plate, combine the Southeast Asian spice blend, mixed sesame seeds, and salt. Mix well."
       },
       {
         "step": 4,
-        "title": "Start the aromatics",
-        "instruction": "In a large saucepan, melt 20g of butter with a dash of olive oil over medium heat. Add the chopped garlic and grated ginger. Cook until fragrant, about 1 minute."
+        "title": "Start The Aromatics",
+        "instruction": "In a large saucepan, melt 20g of butter with a dash of olive oil over medium heat. Add the chopped garlic and grated ginger. Cook until fragrant, about minute."
       },
       {
         "step": 5,
-        "title": "Cook the vegetables",
+        "title": "Cook The Vegetables",
         "instruction": "Add the sliced onions and cook until softened, about 3-4 minutes. Add the broccoli florets and cook until they start to turn bright green and tender, about 3-5 minutes."
       },
       {
         "step": 6,
-        "title": "Add the liquids",
+        "title": "Add The Liquids",
         "instruction": "Pour in the water and add a generous pinch of salt. Bring to a boil."
       },
       {
         "step": 7,
-        "title": "Cook the rice",
-        "instruction": "Add the jasmine rice and soy sauce. Stir well, then cover with a tight-fitting lid. Reduce heat to low and cook for 12 minutes."
+        "title": "Cook The Rice",
+        "instruction": "Add the jasmine rice and soy sauce. Stir well, then cover with a tight-fitting lid. Reduce heat to low and cook for minutes."
       },
       {
         "step": 8,
-        "title": "Let it rest",
+        "title": "Let It Rest",
         "instruction": "Remove the pan from heat but keep it covered. Let it sit for 10-15 minutes until the rice is tender and all the water is absorbed."
       },
       {
         "step": 9,
-        "title": "Coat the trout",
+        "title": "Coat The Trout",
         "instruction": "While the rice is resting, drizzle the trout fillets with olive oil and season with salt and pepper. Press the trout firmly into the sesame-spice mixture to coat both sides evenly. Be gentle but make sure the seeds stick well."
       },
       {
         "step": 10,
-        "title": "Heat the pan",
+        "title": "Heat The Pan",
         "instruction": "Return a large frying pan to medium-high heat with a drizzle of olive oil. Let it get hot - you should see a shimmer on the surface."
       },
       {
         "step": 11,
-        "title": "Cook the trout",
-        "instruction": "When the oil is hot, place the trout skin- side down first. Cook until the crust is golden and crispy, 3- 5 minutes. Carefully flip and cook the other side for another 3-5 minutes until just cooked through. The fish should flake easily with a fork. 12 Fluff the garlic rice with a fork and place a generous portion on each plate. Top with the sesame-crusted trout fillet. Drizzle with Japanese dressing, then garnish with roasted cashews and chopped green onions. Serve immediately while the crust is at its crispiest."
+        "title": "Cook The Trout",
+        "instruction": "When the oil is hot, place the trout skin- side down first. Cook until the crust is golden and crispy, 3- minutes. Carefully flip and cook the other side for another 3-5 minutes until just cooked through. The fish should flake easily with a fork. 12 Fluff the garlic rice with a fork and place a generous portion on each plate. Top with the sesame-crusted trout fillet. Drizzle with Japanese dressing, then garnish with roasted cashews and chopped green onions. Serve immediately while the crust is at its crispiest."
       }
     ],
     "chefTips": [
-      "Press the sesame seeds onto the trout gently",
-      "but firmly - you want them to stick without",
-      "Pat the fish completely dry before coating -",
-      "moisture is the enemy of a crispy crust"
+      "Press the sesame seeds onto the trout gently but firmly - you want them to stick without",
+      "Pat the fish completely dry before coating - moisture is the enemy of a crispy crust"
     ],
     "pairings": [
-      "2 people",
       "Steamed bok choy with oyster sauce",
-      "10 min Roasted vegetables (bell peppers,",
+      "Roasted vegetables (bell peppers,",
       "zucchini, eggplant)"
     ],
     "image": "/images/recipes/crunchy-sesame-crusted-trout-fragrant-garlic-rice.webp",
@@ -4060,15 +4173,18 @@ export const RECIPES_DATA: RecipeItem[] = [
     },
     "ingredients": [
       {
-        "section": "Main Ingredients",
+        "section": "For The Sushi Rice",
         "items": [
-          "For the Sushi Rice",
           "1 cup sushi rice",
           "1 cup water",
           "2 tablespoons rice vinegar",
           "2 teaspoons sugar",
-          "1/2 teaspoon salt",
-          "For the Trout",
+          "1/2 teaspoon salt"
+        ]
+      },
+      {
+        "section": "For The Trout",
+        "items": [
           "200g fresh trout fillet (sushi-grade)",
           "Salt for curing"
         ]
@@ -4076,10 +4192,8 @@ export const RECIPES_DATA: RecipeItem[] = [
       {
         "section": "For Assembly",
         "items": [
-          "6 bamboo leaves (or parchment paper",
-          "as substitute)",
-          "Round mold or deep dish (about 6-8",
-          "inches diameter)",
+          "6 bamboo leaves (or parchment paper as substitute)",
+          "Round mold or deep dish (about 6-8 inches diameter)",
           "Weight for pressing (about 500g/1lb)"
         ]
       }
@@ -4087,75 +4201,72 @@ export const RECIPES_DATA: RecipeItem[] = [
     "instructions": [
       {
         "step": 1,
-        "title": "Prepare the rice",
+        "title": "Prepare The Rice",
         "instruction": "Rinse the sushi rice under cold water until the water runs clear. This removes excess starch and prevents mushy rice. Cook using a rice cooker or stovetop according to package instructions."
       },
       {
         "step": 2,
-        "title": "Make the seasoning",
+        "title": "Make The Seasoning",
         "instruction": "In a small bowl, mix rice vinegar, sugar, and salt. Stir until completely dissolved."
       },
       {
         "step": 3,
-        "title": "Season the rice",
+        "title": "Season The Rice",
         "instruction": "Once the rice is cooked, transfer it to a wide bowl. Gently fold in the vinegar mixture while fanning the rice to cool it. Use a cutting motion rather than stirring to avoid breaking the grains. The rice should be glossy and at room temperature."
       },
       {
         "step": 4,
-        "title": "Salt cure",
-        "instruction": "Sprinkle salt generously over both sides of the trout fillet. Let it sit for 30 minutes at room temperature. This firms up the fish and draws out excess moisture."
+        "title": "Salt Cure",
+        "instruction": "Sprinkle salt generously over both sides of the trout fillet. Let it sit for minutes at room temperature. This firms up the fish and draws out excess moisture."
       },
       {
         "step": 5,
-        "title": "Rinse and dry",
+        "title": "Rinse And Dry",
         "instruction": "Rinse off all the salt under cold water and pat the fish completely dry with paper towels."
       },
       {
         "step": 6,
-        "title": "Slice uniformly",
+        "title": "Slice Uniformly",
         "instruction": "Cut the trout into thin fillets, keeping them as uniform as possible for even layering. Aim for about 1/4 inch thickness."
       },
       {
         "step": 7,
-        "title": "Prep your mold",
+        "title": "Prep Your Mold",
         "instruction": "Line a round mold or deep dish with bamboo leaves, allowing them to overlap and extend well beyond the edges. If using parchment paper, ensure it's large enough to fold over completely."
       },
       {
         "step": 8,
-        "title": "Layer the trout",
+        "title": "Layer The Trout",
         "instruction": "Arrange the trout fillets in a circular pattern on the bottom of the mold, slightly overlapping each piece. This will become the top when you flip it."
       },
       {
         "step": 9,
-        "title": "Add the rice",
+        "title": "Add The Rice",
         "instruction": "Spread the seasoned sushi rice evenly over the trout, pressing it down gently with wet hands or a rice paddle. Aim for an even layer about 1-2 inches thick."
       },
       {
         "step": 10,
-        "title": "Wrap it up",
+        "title": "Wrap It Up",
         "instruction": "Fold the bamboo leaves over the rice, covering it completely. Make sure everything is sealed."
       },
       {
         "step": 11,
-        "title": "Apply pressure",
+        "title": "Apply Pressure",
         "instruction": "Place a flat plate or wooden press that fits inside the mold directly on top of the wrapped sushi. Add a weight of about 500g (1lb) - canned goods or a heavy pot work perfectly."
       },
       {
         "step": 12,
-        "title": "Let it rest",
-        "instruction": "Refrigerate and press for at least 4 hours. Overnight is even better - this melds all the flavors together and creates that firm, sliceable texture."
+        "title": "Let It Rest",
+        "instruction": "Refrigerate and press for at least hours. Overnight is even better - this melds all the flavors together and creates that firm, sliceable texture."
       }
     ],
     "chefTips": [
-      "Use sushi-grade fish only - freshness is",
-      "crucial for raw preparations",
-      "vinegar to prevent mushiness",
+      "Use sushi-grade fish only - freshness is crucial for raw preparations vinegar to prevent mushiness",
       "Don't skip the salt cure - it firms up the fish"
     ],
     "pairings": [
-      "3 people",
       "Hot miso soup",
-      "45 min Wasabi and soy sauce for dipping",
+      "Wasabi and soy sauce for dipping",
       "Edamame"
     ],
     "image": "/images/recipes/traditional-pressed-trout-sushi-oshi-zushi.webp",
@@ -4190,9 +4301,8 @@ export const RECIPES_DATA: RecipeItem[] = [
     },
     "ingredients": [
       {
-        "section": "Main Ingredients",
+        "section": "For The Trout",
         "items": [
-          "For the Trout",
           "1-2 Urban Trout Rainbow Trout (400–500g each, cleaned & gutted) fillets (about 150-180g each)"
         ]
       },
@@ -4204,57 +4314,61 @@ export const RECIPES_DATA: RecipeItem[] = [
           "2 teaspoons maple syrup",
           "2 tablespoons sugar",
           "2 tablespoons fresh ginger, grated",
-          "2 garlic cloves, minced",
-          "For Cooking and Finishing",
-          "20ml sesame oil (divided: 10ml for",
-          "cooking, 10ml for drizzling)",
-          "Sesame seeds for garnish (white or",
-          "mixed)"
+          "2 garlic cloves, minced"
+        ]
+      },
+      {
+        "section": "For Cooking And Finishing",
+        "items": [
+          "20ml sesame oil (divided: 10ml for cooking, 10ml for drizzling)",
+          "Sesame seeds for garnish (white or mixed)"
         ]
       }
     ],
     "instructions": [
       {
         "step": 1,
-        "title": "Make the marinade",
+        "title": "Make The Marinade",
         "instruction": "In a bowl, combine soy sauce, rice vinegar, maple syrup, sugar, grated ginger, and minced garlic. Whisk until the sugar is completely dissolved and everything is well combined."
       },
       {
         "step": 2,
-        "title": "Marinate the trout",
-        "instruction": "Place the trout fillets in a shallow dish large enough to hold them in a single layer. Pour the marinade over the fillets, making sure each piece is well coated. Turn them once to ensure even coverage. Let it rest: Cover the dish with plastic wrap and 03 refrigerate for at least 30 minutes. If you have time, up to 2 hours will give you even deeper flavor."
+        "title": "Marinate The Trout",
+        "instruction": "Place the trout fillets in a shallow dish large enough to hold them in a single layer. Pour the marinade over the fillets, making sure each piece is well coated. Turn them once to ensure even coverage."
+      },
+      {
+        "step": 3,
+        "title": "Let It Rest",
+        "instruction": "Cover the dish with plastic wrap and refrigerate for at least minutes. If you have time, up to hours will give you even deeper flavor."
       },
       {
         "step": 4,
-        "title": "Preheat your cooking surface",
+        "title": "Preheat Your Cooking Surface",
         "instruction": "Heat a grill or large skillet over medium-high heat. You want it hot but not smoking. Add 10ml of sesame oil and let it heat until shimmering."
       },
       {
         "step": 5,
-        "title": "Cook the trout",
+        "title": "Cook The Trout",
         "instruction": "Remove the trout fillets from the marinade, letting excess drip off. Place them in the hot pan, skin-side down if they have skin. Cook for 3-4 minutes without moving them - this creates a beautiful caramelized surface."
       },
       {
         "step": 6,
-        "title": "Flip and finish",
+        "title": "Flip And Finish",
         "instruction": "Carefully flip the fillets and cook for another 3-4 minutes until cooked through. The fish should flake easily with a fork and be opaque throughout."
       },
       {
         "step": 7,
-        "title": "Heat the sizzler plate",
-        "instruction": "While the fish is cooking, heat your sizzler plate (or a cast-iron plate) until it's smoking hot. This usually takes about 5 minutes over high heat. 08 Carefully transfer the cooked trout fillets to the smoking hot sizzler plate - it should sizzle dramatically when the fish hits the surface. Immediately drizzle with the remaining 10ml of sesame oil and sprinkle generously with sesame seeds. Serve immediately while it's still sizzling and smoking."
+        "title": "Heat The Sizzler Plate",
+        "instruction": "While the fish is cooking, heat your sizzler plate (or a cast-iron plate) until it's smoking hot. This usually takes about minutes over high heat. 08 Carefully transfer the cooked trout fillets to the smoking hot sizzler plate - it should sizzle dramatically when the fish hits the surface. Immediately drizzle with the remaining 10ml of sesame oil and sprinkle generously with sesame seeds. Serve immediately while it's still sizzling and smoking."
       }
     ],
     "chefTips": [
-      "Use the freshest trout fillets you can find -",
-      "quality matters here",
-      "minimum for flavor penetration",
+      "Use the freshest trout fillets you can find - quality matters here minimum for flavor penetration",
       "Pat the fish dry before cooking if you want"
     ],
     "pairings": [
-      "4 people",
       "Steamed jasmine rice or sushi rice",
-      "10 min Hot miso soup",
+      "Hot miso soup",
       "Stir-fried bok choy"
     ],
     "image": "/images/recipes/sweet-savory-japanese-trout-steakhouse-sizzler.webp",
@@ -4289,19 +4403,19 @@ export const RECIPES_DATA: RecipeItem[] = [
     },
     "ingredients": [
       {
-        "section": "Main Ingredients",
+        "section": "For The Trout",
         "items": [
-          "For the Trout",
           "1-2 Urban Trout Rainbow Trout (400–500g each, cleaned & gutted) fillets (about 150-180g each)",
-          "Salt and freshly ground black pepper",
-          "to taste",
-          "Olive oil for frying",
-          "For the Noodles",
-          "1 cup noodles (egg or rice noodles,",
-          "dry weight)",
+          "Salt and freshly ground black pepper to taste",
+          "Olive oil for frying"
+        ]
+      },
+      {
+        "section": "For The Noodles",
+        "items": [
+          "1 cup noodles (egg or rice noodles, dry weight)",
           "3 cups water for boiling",
-          "Few drops of olive oil (for boiling",
-          "water)",
+          "Few drops of olive oil (for boiling water)",
           "10ml olive oil (for cooking)",
           "1 garlic clove, minced",
           "1 tablespoon fresh ginger, grated",
@@ -4311,8 +4425,7 @@ export const RECIPES_DATA: RecipeItem[] = [
       {
         "section": "For Garnish",
         "items": [
-          "Green garlic (or green onions),",
-          "chopped",
+          "Green garlic (or green onions), chopped",
           "Lemon wedges for serving"
         ]
       }
@@ -4320,55 +4433,57 @@ export const RECIPES_DATA: RecipeItem[] = [
     "instructions": [
       {
         "step": 1,
-        "title": "Prep the aromatics",
-        "instruction": "Mince the garlic clove finely and grate the ginger. Chop the green garlic or green onions for garnish. Set everything aside. Season the fish: Pat the trout fillets dry with paper 02 towels. Season both sides generously with salt and freshly ground black pepper."
+        "title": "Prep The Aromatics",
+        "instruction": "Mince the garlic clove finely and grate the ginger. Chop the green garlic or green onions for garnish. Set everything aside."
+      },
+      {
+        "step": 2,
+        "title": "Season The Fish",
+        "instruction": "Pat the trout fillets dry with paper towels. Season both sides generously with salt and freshly ground black pepper."
       },
       {
         "step": 3,
-        "title": "Boil the water",
-        "instruction": "Bring 3 cups of water to a rolling boil in a large pot. Add a few drops of olive oil to prevent sticking."
+        "title": "Boil The Water",
+        "instruction": "Bring cups of water to a rolling boil in a large pot. Add a few drops of olive oil to prevent sticking."
       },
       {
         "step": 4,
-        "title": "Cook the noodles",
-        "instruction": "Once the water boils, add the noodles and cook for about 5 minutes or according to package instructions until tender but still with a slight bite. Don't overcook."
+        "title": "Cook The Noodles",
+        "instruction": "Once the water boils, add the noodles and cook for about minutes or according to package instructions until tender but still with a slight bite. Don't overcook."
       },
       {
         "step": 5,
-        "title": "Drain and set aside",
+        "title": "Drain And Set Aside",
         "instruction": "Drain the noodles in a colander and set aside. Give them a quick rinse with cold water to stop the cooking."
       },
       {
         "step": 6,
-        "title": "Fry the trout",
+        "title": "Fry The Trout",
         "instruction": "Heat a drizzle of olive oil in a large pan over medium-high heat. When the oil is hot and shimmering, add the trout fillets skin-side down if they have skin. Cook for 3-4 minutes per side until golden brown and cooked through. The fish should flake easily with a fork. Remove from the pan and set aside on a warm plate."
       },
       {
         "step": 7,
-        "title": "Build the sauce",
-        "instruction": "In the same pan (don't clean it - those fish flavors are gold), add 10ml of olive oil. Add the minced garlic and grated ginger. Stir-fry for about 1 minute until fragrant but not browned."
+        "title": "Build The Sauce",
+        "instruction": "In the same pan (don't clean it - those fish flavors are gold), add 10ml of olive oil. Add the minced garlic and grated ginger. Stir-fry for about minute until fragrant but not browned."
       },
       {
         "step": 8,
-        "title": "Add the soy sauce",
+        "title": "Add The Soy Sauce",
         "instruction": "Pour in the soy sauce and stir well, scraping up any browned bits from the bottom of the pan."
       },
       {
         "step": 9,
-        "title": "Toss the noodles",
-        "instruction": "Add the cooked noodles to the pan and toss them in the sauce for about 5 minutes, making sure every strand is coated. The noodles should absorb the flavors and become glossy. 10 Twirl a portion of noodles onto each plate using tongs or chopsticks for an elegant presentation. Top with a pan- seared trout fillet. Garnish with chopped green garlic and serve with lemon wedges on the side for squeezing over the fish."
+        "title": "Toss The Noodles",
+        "instruction": "Add the cooked noodles to the pan and toss them in the sauce for about minutes, making sure every strand is coated. The noodles should absorb the flavors and become glossy. 10 Twirl a portion of noodles onto each plate using tongs or chopsticks for an elegant presentation. Top with a pan- seared trout fillet. Garnish with chopped green garlic and serve with lemon wedges on the side for squeezing over the fish."
       }
     ],
     "chefTips": [
-      "Use fresh ginger and garlic - dried just won't",
-      "give you that aromatic punch",
-      "cooking when tossed in the hot sauce",
+      "Use fresh ginger and garlic - dried just won't give you that aromatic punch cooking when tossed in the hot sauce",
       "Keep the cooked fish warm while you prepare"
     ],
     "pairings": [
-      "4 people",
       "Steamed bok choy or broccoli",
-      "8 min Fresh lemon wedges (essential)",
+      "Fresh lemon wedges (essential)",
       "Garlic bread for soaking up the sauce"
     ],
     "image": "/images/recipes/pan-seared-trout-silky-garlic-ginger-noodles.webp",
@@ -4403,15 +4518,17 @@ export const RECIPES_DATA: RecipeItem[] = [
     },
     "ingredients": [
       {
-        "section": "Main Ingredients",
+        "section": "For The Trout",
         "items": [
-          "For the Trout",
-          "1-2 Urban Trout Rainbow Trout (400–500g each, cleaned & gutted) fillets (about 150-180g each)",
-          "For the Korean Marinade",
+          "1-2 Urban Trout Rainbow Trout (400–500g each, cleaned & gutted) fillets (about 150-180g each)"
+        ]
+      },
+      {
+        "section": "For The Korean Marinade",
+        "items": [
           "1/4 cup Korean chili paste (gochujang)",
           "2 tablespoons soy sauce",
-          "20ml sesame oil (plus extra for",
-          "drizzling)",
+          "20ml sesame oil (plus extra for drizzling)",
           "2 garlic cloves, minced",
           "1 tablespoon fresh ginger, grated",
           "1 tablespoon brown sugar",
@@ -4430,50 +4547,52 @@ export const RECIPES_DATA: RecipeItem[] = [
     "instructions": [
       {
         "step": 1,
-        "title": "Make the marinade",
+        "title": "Make The Marinade",
         "instruction": "In a bowl, combine the Korean chili paste, soy sauce, sesame oil, minced garlic, grated ginger, brown sugar, and sesame seeds. Mix thoroughly until well combined and the sugar has dissolved. The marinade should be thick and glossy."
       },
       {
         "step": 2,
-        "title": "Prep the fish",
-        "instruction": "Pat the trout fillets dry with paper towels. This helps the marinade stick better. Marinate: Place the trout fillets in a shallow dish or large 03 ziplock bag. Pour the marinade over them, turning to ensure they're coated evenly on all sides. Make sure to get some marinade on the flesh side where it will penetrate best."
+        "title": "Prep The Fish",
+        "instruction": "Pat the trout fillets dry with paper towels. This helps the marinade stick better."
+      },
+      {
+        "step": 3,
+        "title": "Marinate",
+        "instruction": "Place the trout fillets in a shallow dish or large ziplock bag. Pour the marinade over them, turning to ensure they're coated evenly on all sides. Make sure to get some marinade on the flesh side where it will penetrate best."
       },
       {
         "step": 4,
-        "title": "Let it rest",
-        "instruction": "Cover the dish or seal the bag and refrigerate for at least 30 minutes. If you have time, up to 2 hours will give you deeper flavor, but don't go longer or the fish might get too soft."
+        "title": "Let It Rest",
+        "instruction": "Cover the dish or seal the bag and refrigerate for at least minutes. If you have time, up to hours will give you deeper flavor, but don't go longer or the fish might get too soft."
       },
       {
         "step": 5,
-        "title": "Heat the pan",
+        "title": "Heat The Pan",
         "instruction": "Heat a large non-stick pan or well- seasoned cast-iron skillet over medium-high heat. Don't add oil yet - there's enough in the marinade."
       },
       {
         "step": 6,
-        "title": "Cook the trout",
+        "title": "Cook The Trout",
         "instruction": "Remove the fillets from the marinade, letting excess drip off but keeping a good coating. Place them in the hot pan, skin-side down if they have skin. Cook for 3-4 minutes without moving them - you want that caramelized crust to form."
       },
       {
         "step": 7,
-        "title": "Flip carefully",
+        "title": "Flip Carefully",
         "instruction": "Turn the fillets gently and cook for another 3-4 minutes until just cooked through. The fish should flake easily with a fork. Watch the heat - the sugar in the marinade can burn quickly, so reduce heat if needed."
       },
       {
         "step": 8,
-        "title": "Check for doneness",
+        "title": "Check For Doneness",
         "instruction": "The fish is done when it's opaque throughout and flakes easily. Don't overcook or it will dry out. 09 Transfer the trout fillets to warmed plates. Garnish generously with chopped green onions and toasted sesame seeds. Finish with a light drizzle of sesame oil for extra aroma and shine."
       }
     ],
     "chefTips": [
-      "Don't overcook the fish - trout dries out",
-      "quickly, so cook just until done",
-      "you want the flavors",
+      "Don't overcook the fish - trout dries out quickly, so cook just until done you want the flavors",
       "If you like it spicier, add a pinch of Korean chili"
     ],
     "pairings": [
-      "4 people",
       "Steamed white rice (essential for soaking up the",
-      "10 min Kimchi (the tangy funk balances the sweet heat)",
+      "Kimchi (the tangy funk balances the sweet heat)",
       "Pickled vegetables (danmuji, pickled radish)"
     ],
     "image": "/images/recipes/fiery-korean-gochujang-glazed-seared-trout.webp",
@@ -4518,10 +4637,13 @@ export const RECIPES_DATA: RecipeItem[] = [
         "section": "For The Fish And Mushrooms",
         "items": [
           "1-2 Urban Trout Rainbow Trout (400–500g each, cleaned & gutted) fillets (about 150-180g each)",
-          "1 cup morel mushrooms, cleaned",
-          "and sliced",
-          "Salt to taste",
-          "For the Base",
+          "1 cup morel mushrooms, cleaned and sliced",
+          "Salt to taste"
+        ]
+      },
+      {
+        "section": "For The Base",
+        "items": [
           "2 tablespoons mustard oil",
           "1 green onion, chopped",
           "2 garlic cloves, minced",
@@ -4543,55 +4665,57 @@ export const RECIPES_DATA: RecipeItem[] = [
     "instructions": [
       {
         "step": 1,
-        "title": "Soak the poppy seeds",
-        "instruction": "Place the poppy seeds in a bowl and cover with water. Let them soak for 30 minutes - this softens them and makes grinding easier."
+        "title": "Soak The Poppy Seeds",
+        "instruction": "Place the poppy seeds in a bowl and cover with water. Let them soak for minutes - this softens them and makes grinding easier."
       },
       {
         "step": 2,
-        "title": "Make the posto paste",
-        "instruction": "Drain the soaked poppy seeds and transfer to a blender or food processor. Grind into a smooth paste, adding a tablespoon or two of water if needed. The paste should be creamy and uniform. Prep the ingredients: While the seeds soak, clean and 03 slice the morel mushrooms. Chop the green onion, mince the garlic, and grate the ginger. Pat the trout fillets dry"
+        "title": "Make The Posto Paste",
+        "instruction": "Drain the soaked poppy seeds and transfer to a blender or food processor. Grind into a smooth paste, adding a tablespoon or two of water if needed. The paste should be creamy and uniform."
+      },
+      {
+        "step": 3,
+        "title": "Prep The Ingredients",
+        "instruction": "While the seeds soak, clean and slice the morel mushrooms. Chop the green onion, mince the garlic, and grate the ginger. Pat the trout fillets dry"
       },
       {
         "step": 4,
-        "title": "Heat the mustard oil",
-        "instruction": "In a large pan, heat 2 tablespoons of mustard oil over medium heat until it just begins to smoke slightly. This is important for authentic flavor - mustard oil needs to be heated well."
+        "title": "Heat The Mustard Oil",
+        "instruction": "In a large pan, heat tablespoons of mustard oil over medium heat until it just begins to smoke slightly. This is important for authentic flavor - mustard oil needs to be heated well."
       },
       {
         "step": 5,
-        "title": "Build the base",
+        "title": "Build The Base",
         "instruction": "Add the chopped green onion, minced garlic, and grated ginger. Sauté for 2-3 minutes until softened and fragrant. Don't let the garlic brown."
       },
       {
         "step": 6,
-        "title": "Cook the morels",
+        "title": "Cook The Morels",
         "instruction": "Add the sliced morel mushrooms to the pan and cook for 5-6 minutes until they're tender and have released their moisture. Morels have a wonderful meaty texture when cooked properly."
       },
       {
         "step": 7,
-        "title": "Add the trout",
+        "title": "Add The Trout",
         "instruction": "Gently place the trout fillets in the pan. Cook for 3-4 minutes per side until almost done - they'll finish cooking in the sauce."
       },
       {
         "step": 8,
-        "title": "Create the sauce",
+        "title": "Create The Sauce",
         "instruction": "Mix in the poppy seed paste and salt to taste. Stir gently to coat everything. Add a splash of water if the sauce seems too thick."
       },
       {
         "step": 9,
-        "title": "Simmer and meld",
+        "title": "Simmer And Meld",
         "instruction": "Reduce heat to low and simmer for 5-7 minutes until the sauce thickens slightly and all the flavors come together. The posto should coat the fish beautifully. 10 Arrange the trout fillets on warmed plates with the morels and creamy posto sauce spooned over. Garnish with chopped fresh coriander, cherry tomatoes, and asparagus spears. Sprinkle with sliced almonds, drizzle with olive oil, and finish with a squeeze of fresh lemon juice."
       }
     ],
     "chefTips": [
-      "Use mustard oil for authentic Bengali flavor",
-      "- it's not the same with other oils",
-      "Serve the trout fillets hot, Don't overcook the trout - it should be just",
-      "straight from the pan."
+      "Use mustard oil for authentic Bengali flavor it's not the same with other oils",
+      "Serve the trout fillets hot, Don't overcook the trout - it should be just straight from the pan."
     ],
     "pairings": [
-      "4 people",
       "Steamed basmati rice (essential for soaking up",
-      "30 min Hot roti or paratha",
+      "Hot roti or paratha",
       "Simple cucumber raita"
     ],
     "image": "/images/recipes/bengali-style-trout-morel-mushrooms-poppy-seed-posto.webp",
@@ -4626,17 +4750,20 @@ export const RECIPES_DATA: RecipeItem[] = [
     },
     "ingredients": [
       {
-        "section": "Main Ingredients",
+        "section": "For The Trout Marinade",
         "items": [
-          "For the Trout Marinade",
           "400g trout fillets, cut into medium cubes",
           "1/4 cup coconut milk",
           "2 tablespoons soy sauce",
           "1 tablespoon honey",
           "1 teaspoon fresh ginger, grated",
           "1/2 teaspoon turmeric powder",
-          "1/4 teaspoon paprika",
-          "For the Trout Marinade",
+          "1/4 teaspoon paprika"
+        ]
+      },
+      {
+        "section": "For The Trout Marinade",
+        "items": [
           "1/2 cup creamy peanut butter",
           "1/4 cup coconut milk",
           "2 tablespoons soy sauce",
@@ -4648,13 +4775,15 @@ export const RECIPES_DATA: RecipeItem[] = [
           "1/4 teaspoon cayenne pepper",
           "1/4 teaspoon coriander powder",
           "1/4 teaspoon turmeric powder",
-          "1/4 teaspoon cumin powder",
-          "For Assembly and Garnish",
-          "Bamboo skewers (soaked in water",
-          "for 30 minutes)",
+          "1/4 teaspoon cumin powder"
+        ]
+      },
+      {
+        "section": "For Assembly And Garnish",
+        "items": [
+          "Bamboo skewers (soaked in water for 30 minutes)",
           "Oil for brushing",
-          "2 tablespoons fresh coriander,",
-          "chopped",
+          "2 tablespoons fresh coriander, chopped",
           "6 lime wedges",
           "1/2 cup roasted peanuts, crushed"
         ]
@@ -4663,65 +4792,68 @@ export const RECIPES_DATA: RecipeItem[] = [
     "instructions": [
       {
         "step": 1,
-        "title": "Prep the fish",
+        "title": "Prep The Fish",
         "instruction": "Clean the trout fillets and cut them into medium cubes (about 1.5 inches). Try to keep them uniform in size for even cooking."
       },
       {
         "step": 2,
-        "title": "Make the marinade",
+        "title": "Make The Marinade",
         "instruction": "In a bowl, whisk together coconut milk, soy sauce, honey, grated ginger, turmeric, and paprika until well combined."
       },
       {
         "step": 3,
-        "title": "Marinate the trout",
-        "instruction": "Add the trout cubes to the marinade and mix gently to coat. Cover and refrigerate for 30 minutes to 1 hour. Don't go longer or the fish can become mushy."
+        "title": "Marinate The Trout",
+        "instruction": "Add the trout cubes to the marinade and mix gently to coat. Cover and refrigerate for minutes to hour. Don't go longer or the fish can become mushy."
       },
       {
         "step": 4,
-        "title": "Soak the skewers",
-        "instruction": "While the fish marinates, soak bamboo skewers in water for at least 30 minutes. This prevents them from burning on the grill. Combine everything: In a bowl, whisk together the 05 peanut butter, coconut milk, soy sauce, honey, lime juice, brown sugar, grated ginger, minced garlic, cayenne pepper, coriander powder, turmeric powder, and cumin powder."
+        "title": "Soak The Skewers",
+        "instruction": "While the fish marinates, soak bamboo skewers in water for at least minutes. This prevents them from burning on the grill."
+      },
+      {
+        "step": 5,
+        "title": "Combine Everything",
+        "instruction": "In a bowl, whisk together the peanut butter, coconut milk, soy sauce, honey, lime juice, brown sugar, grated ginger, minced garlic, cayenne pepper, coriander powder, turmeric powder, and cumin powder."
       },
       {
         "step": 6,
-        "title": "Adjust consistency",
+        "title": "Adjust Consistency",
         "instruction": "If the sauce is too thick, add a tablespoon of water at a time until you reach a smooth, pourable consistency. It should be like thick cream."
       },
       {
         "step": 7,
-        "title": "Taste and adjust",
+        "title": "Taste And Adjust",
         "instruction": "Check the balance of sweet, salty, and spicy. Add more lime juice for tang, honey for sweetness, or cayenne for heat."
       },
       {
         "step": 8,
-        "title": "Thread the skewers",
+        "title": "Thread The Skewers",
         "instruction": "Remove the trout from the marinade and thread the cubes onto the soaked bamboo skewers, leaving a small space between each piece. This ensures even cooking"
       },
       {
         "step": 9,
-        "title": "Preheat the grill",
+        "title": "Preheat The Grill",
         "instruction": "Heat a grill or grill pan to medium-high. You want it hot enough to get nice grill marks but not so hot that the fish burns."
       },
       {
         "step": 10,
-        "title": "Brush and grill",
+        "title": "Brush And Grill",
         "instruction": "Brush the skewers lightly with oil. Place them on the grill and cook for 3-4 minutes per side. The fish should be golden with nice char marks and cooked through but still moist."
       },
       {
         "step": 11,
-        "title": "Watch carefully",
+        "title": "Watch Carefully",
         "instruction": "Trout cooks quickly, so don't walk away. The fish is done when it flakes easily and is opaque throughout. 12 Arrange the grilled satays on a serving platter. Drizzle or brush with some of the peanut sauce. Garnish with chopped fresh coriander and crushed roasted peanuts. Serve with lime wedges for squeezing and the remaining peanut sauce on the side for dipping."
       }
     ],
     "chefTips": [
       "Don't over-marinate the trout - 30 minutes",
-      "Soak bamboo skewers to prevent burning -",
-      "it really makes a difference",
+      "Soak bamboo skewers to prevent burning - it really makes a difference",
       "Serve the trout fillets hot, Keep the fish cubes uniform in size for even"
     ],
     "pairings": [
-      "6 people",
       "Steamed jasmine rice or coconut rice",
-      "37 min Grilled vegetables (bell peppers, zucchini)",
+      "Grilled vegetables (bell peppers, zucchini)",
       "Pickled vegetables"
     ],
     "image": "/images/recipes/grilled-trout-satay-skewers-rich-coconut-peanut-sauce.webp",
@@ -4756,20 +4888,26 @@ export const RECIPES_DATA: RecipeItem[] = [
     },
     "ingredients": [
       {
-        "section": "Main Ingredients",
+        "section": "For The Filling",
         "items": [
-          "For the Filling",
           "1-2 Urban Trout Rainbow Trout (400–500g each, cleaned & gutted) fillets (about 400-450g), minced",
           "1/2 cup heavy cream (malai)",
           "1 tablespoon ginger paste",
           "2 tablespoons garlic paste",
           "1/2 teaspoon garam masala",
-          "Salt to taste",
-          "For Wrapping",
-          "20-24 dimsum wrappers (store-bought",
-          "or homemade)",
-          "Small bowl of water for sealing",
-          "For Cooking",
+          "Salt to taste"
+        ]
+      },
+      {
+        "section": "For Wrapping",
+        "items": [
+          "20-24 dimsum wrappers (store-bought or homemade)",
+          "Small bowl of water for sealing"
+        ]
+      },
+      {
+        "section": "For Cooking",
+        "items": [
           "10ml oil (for pan-frying)",
           "Splash of water (for steaming)"
         ]
@@ -4777,8 +4915,7 @@ export const RECIPES_DATA: RecipeItem[] = [
       {
         "section": "For Garnish",
         "items": [
-          "2 tablespoons heavy cream mixed with 1",
-          "teaspoon garlic paste",
+          "2 tablespoons heavy cream mixed with 1 teaspoon garlic paste",
           "Few saffron strands"
         ]
       }
@@ -4786,32 +4923,37 @@ export const RECIPES_DATA: RecipeItem[] = [
     "instructions": [
       {
         "step": 1,
-        "title": "Prep the fish",
+        "title": "Prep The Fish",
         "instruction": "Mince the trout fillets finely using a sharp knife or pulse briefly in a food processor. You want a texture that holds together but isn't completely pureed."
       },
       {
         "step": 2,
-        "title": "Make the filling",
-        "instruction": "In a bowl, combine the minced trout, heavy cream, ginger paste, garlic paste, garam masala, and salt to taste. Mix well until all ingredients are thoroughly combined. The mixture should be creamy but not runny. Set up your station: Arrange the dimsum wrappers on a 03 clean surface, covered with a damp towel to prevent drying. Have a small bowl of water nearby for sealing."
+        "title": "Make The Filling",
+        "instruction": "In a bowl, combine the minced trout, heavy cream, ginger paste, garlic paste, garam masala, and salt to taste. Mix well until all ingredients are thoroughly combined. The mixture should be creamy but not runny."
+      },
+      {
+        "step": 3,
+        "title": "Set Up Your Station",
+        "instruction": "Arrange the dimsum wrappers on a clean surface, covered with a damp towel to prevent drying. Have a small bowl of water nearby for sealing."
       },
       {
         "step": 4,
-        "title": "Fill the wrappers",
-        "instruction": "Place a small spoonful (about 1 tablespoon) of the trout filling in the center of each wrapper. Don't overfill - less is more here."
+        "title": "Fill The Wrappers",
+        "instruction": "Place a small spoonful (about tablespoon) of the trout filling in the center of each wrapper. Don't overfill - less is more here."
       },
       {
         "step": 5,
-        "title": "Seal them up",
+        "title": "Seal Them Up",
         "instruction": "Dip your finger in water and run it along the edges of the wrapper. This acts as glue. Gather the edges up around the filling and pleat them together at the top, creating a pouch shape. Press firmly to seal. The bottom should be flat so they can stand upright."
       },
       {
         "step": 6,
-        "title": "Keep them covered",
+        "title": "Keep Them Covered",
         "instruction": "As you work, keep finished dimsums covered with a damp cloth to prevent the wrappers from drying out."
       },
       {
         "step": 7,
-        "title": "Prep the steamer",
+        "title": "Prep The Steamer",
         "instruction": "Line a bamboo or metal steamer basket with parchment paper to prevent sticking. Arrange the dimsums in the steamer, leaving space between each one."
       },
       {
@@ -4821,30 +4963,28 @@ export const RECIPES_DATA: RecipeItem[] = [
       },
       {
         "step": 9,
-        "title": "Start with a sear",
+        "title": "Start With A Sear",
         "instruction": "Heat 10ml of oil in a non-stick pan over medium heat. Place the dimsums flat-side down and cook for 2-3 minutes until the bottom is golden brown and crispy."
       },
       {
         "step": 10,
-        "title": "Steam-fry",
+        "title": "Steam-Fry",
         "instruction": "Add a splash of water (about 2-3 tablespoons) to the pan and immediately cover with a lid. The steam will cook the tops while the bottoms stay crispy. Steam for 2-3 minutes."
       },
       {
         "step": 11,
-        "title": "Check for doneness",
+        "title": "Check For Doneness",
         "instruction": "Remove the lid and let any remaining water evaporate. The dimsums should be crispy on the bottom and tender on top. 12 Arrange the hot dimsums on a serving platter. Drizzle with the garlic-cream mixture and garnish with saffron strands for that luxurious touch. Serve immediately while they're hot and the wrappers are at their best texture."
       }
     ],
     "chefTips": [
       "Don't overfill the wrappers - they'll burst",
-      "Keep wrappers covered with a damp towel",
-      "while working to prevent drying",
+      "Keep wrappers covered with a damp towel while working to prevent drying",
       "Serve the trout fillets hot, Press edges firmly to seal - poorly sealed"
     ],
     "pairings": [
-      "5 people",
       "Chilled mint chutney (the cooling effect is",
-      "15 min Cilantro-lime sauce",
+      "Cilantro-lime sauce",
       "Spicy soy-vinegar dipping sauce"
     ],
     "image": "/images/recipes/delicate-trout-malai-dimsums-himalayan-spices.webp",
@@ -4879,19 +5019,21 @@ export const RECIPES_DATA: RecipeItem[] = [
     },
     "ingredients": [
       {
-        "section": "Main Ingredients",
+        "section": "For The Fish Cakes",
         "items": [
-          "For the Fish Cakes",
           "200g cooked trout, flaked and mashed",
           "1/2 cup walnuts, chopped",
-          "1 cup breadcrumbs (plus extra for",
-          "coating if desired)",
+          "1 cup breadcrumbs (plus extra for coating if desired)",
           "1 large egg, beaten",
           "4 garlic cloves, finely chopped",
           "1-inch piece fresh ginger, finely chopped",
           "1 tablespoon lemon juice",
-          "Salt to taste",
-          "For Cooking",
+          "Salt to taste"
+        ]
+      },
+      {
+        "section": "For Cooking",
+        "items": [
           "40ml olive oil (or more as needed)",
           "15g butter"
         ]
@@ -4900,70 +5042,67 @@ export const RECIPES_DATA: RecipeItem[] = [
     "instructions": [
       {
         "step": 1,
-        "title": "Prep the trout",
+        "title": "Prep The Trout",
         "instruction": "If starting with cooked trout, flake it into small pieces and mash it slightly with a fork. Remove any bones you find."
       },
       {
         "step": 2,
-        "title": "Chop the add-ins",
+        "title": "Chop The Add-Ins",
         "instruction": "Finely chop the walnuts - they should be in small pieces but not ground to powder. Finely chop the garlic and ginger."
       },
       {
         "step": 3,
-        "title": "Make the mixture",
+        "title": "Make The Mixture",
         "instruction": "In a large bowl, combine the flaked trout, chopped walnuts, breadcrumbs, beaten egg, chopped garlic, chopped ginger, lemon juice, and salt to taste. Mix well until all ingredients are evenly distributed and the mixture holds together when pressed."
       },
       {
         "step": 4,
-        "title": "Test the consistency",
+        "title": "Test The Consistency",
         "instruction": "The mixture should be moist enough to hold together but not wet. If too dry, add a splash of water or another beaten egg. If too wet, add more breadcrumbs."
       },
       {
         "step": 5,
-        "title": "Form the patties",
-        "instruction": "Take portions of the mixture and shape them into patties or cake shapes about 3 inches wide and 1/2 inch thick. You should get about 8-10 cakes."
+        "title": "Form The Patties",
+        "instruction": "Take portions of the mixture and shape them into patties or cake shapes about inches wide and 1/2 inch thick. You should get about 8-10 cakes."
       },
       {
         "step": 6,
-        "title": "Seal the edges",
+        "title": "Seal The Edges",
         "instruction": "Press the edges firmly to seal them properly. This prevents the filling from breaking apart while cooking."
       },
       {
         "step": 7,
-        "title": "Let them rest",
-        "instruction": "Place the shaped cakes on a plate and refrigerate for 10 minutes if you have time. This helps them hold together better during cooking."
+        "title": "Let Them Rest",
+        "instruction": "Place the shaped cakes on a plate and refrigerate for minutes if you have time. This helps them hold together better during cooking."
       },
       {
         "step": 8,
-        "title": "Heat the pan",
+        "title": "Heat The Pan",
         "instruction": "Heat olive oil and butter in a large non- stick pan over medium heat. The combination gives you both flavor and a higher smoke point."
       },
       {
         "step": 9,
-        "title": "Fry the cakes",
+        "title": "Fry The Cakes",
         "instruction": "Place the trout cakes in the pan, being careful not to overcrowd. Cook for 4-6 minutes per side until golden brown and crispy."
       },
       {
         "step": 10,
-        "title": "Flip carefully",
+        "title": "Flip Carefully",
         "instruction": "Turn the cakes gently using a spatula. They're delicate, so handle with care. Cook the other side until equally golden and crispy."
       },
       {
         "step": 11,
-        "title": "Check for doneness",
+        "title": "Check For Doneness",
         "instruction": "The cakes should be heated through with a crispy, golden-brown exterior on both sides. 12 Transfer the hot fish cakes to a serving platter lined with paper towels to drain excess oil briefly, then move to warmed plates. Serve immediately with lemon wedges for squeezing and your choice of accompaniments."
       }
     ],
     "chefTips": [
       "keeps the texture light",
-      "Make sure the trout is fully cooked before",
-      "starting (leftover fish works great) Serve the trout fillets hot,",
-      "straight from the pan."
+      "Make sure the trout is fully cooked before starting (leftover fish works great) Serve the trout fillets hot, straight from the pan."
     ],
     "pairings": [
-      "6 people",
       "Fresh lemon wedges (essential)",
-      "25 min Steamed vegetables (broccoli, green beans,",
+      "Steamed vegetables (broccoli, green beans,",
       "asparagus)"
     ],
     "image": "/images/recipes/crispy-pan-fried-trout-kashmiri-walnut-cakes.webp",
@@ -4998,9 +5137,8 @@ export const RECIPES_DATA: RecipeItem[] = [
     },
     "ingredients": [
       {
-        "section": "Main Ingredients",
+        "section": "For The Crispy Trout Strips",
         "items": [
-          "For the Crispy Trout Strips",
           "200g trout fillets, cut into thin strips",
           "1 cup all-purpose flour",
           "1/2 teaspoon paprika",
@@ -5028,75 +5166,77 @@ export const RECIPES_DATA: RecipeItem[] = [
     "instructions": [
       {
         "step": 1,
-        "title": "Prep the fish",
+        "title": "Prep The Fish",
         "instruction": "Cut the trout fillets into thin strips about 1/2 inch wide and 3-4 inches long. Pat them completely dry with paper towels - this is crucial for the coating to stick."
       },
       {
         "step": 2,
-        "title": "Set up coating station",
-        "instruction": "Arrange three shallow bowls. In the first, mix flour, paprika, cayenne pepper, salt, and black pepper. In the second, beat the eggs. In the third, place the breadcrumbs. Prep the vegetables: Wash and dry the lettuce. Slice 03 the tomatoes, onion, gherkins, cucumber, and olives. Arrange them on a platter for easy assembly."
+        "title": "Set Up Coating Station",
+        "instruction": "Arrange three shallow bowls. In the first, mix flour, paprika, cayenne pepper, salt, and black pepper. In the second, beat the eggs. In the third, place the breadcrumbs."
+      },
+      {
+        "step": 3,
+        "title": "Prep The Vegetables",
+        "instruction": "Wash and dry the lettuce. Slice the tomatoes, onion, gherkins, cucumber, and olives. Arrange them on a platter for easy assembly."
       },
       {
         "step": 4,
-        "title": "Warm the croissants",
-        "instruction": "If your croissants aren't fresh from the bakery, warm them briefly in a low oven (300°F for 5 minutes) to restore their flakiness."
+        "title": "Warm The Croissants",
+        "instruction": "If your croissants aren't fresh from the bakery, warm them briefly in a low oven (300°F for minutes) to restore their flakiness."
       },
       {
         "step": 5,
-        "title": "First coat - flour",
+        "title": "First Coat - Flour",
         "instruction": "Dip each trout strip into the seasoned flour mixture, coating evenly. Shake off excess flour."
       },
       {
         "step": 6,
-        "title": "Second coat - egg",
+        "title": "Second Coat - Egg",
         "instruction": "Dip the floured strips into the beaten eggs, making sure they're fully coated. Let excess drip off."
       },
       {
         "step": 7,
-        "title": "Final coat - breadcrumbs",
+        "title": "Final Coat - Breadcrumbs",
         "instruction": "Roll the egg-coated strips in breadcrumbs, pressing gently to help the crumbs adhere. Set the coated strips on a plate."
       },
       {
         "step": 8,
-        "title": "Heat the oil",
+        "title": "Heat The Oil",
         "instruction": "Heat oil in a large frying pan over medium- high heat. The oil should be hot but not smoking - test with a breadcrumb; it should sizzle immediately."
       },
       {
         "step": 9,
-        "title": "Fry in batches",
+        "title": "Fry In Batches",
         "instruction": "Place trout strips in the pan without crowding - work in batches if needed. Fry for 2-3 minutes per side until golden brown and crispy."
       },
       {
         "step": 10,
-        "title": "Drain properly",
+        "title": "Drain Properly",
         "instruction": "Transfer fried strips to a paper towel-lined plate to drain excess oil. Keep them warm while you finish frying remaining batches."
       },
       {
         "step": 11,
-        "title": "Slice the croissants",
+        "title": "Slice The Croissants",
         "instruction": "Cut each croissant in half horizontally, creating a top and bottom."
       },
       {
         "step": 12,
-        "title": "Build the sandwich",
+        "title": "Build The Sandwich",
         "instruction": "On the bottom half, layer lettuce leaves first (this prevents the croissant from getting soggy). Add the crispy trout strips, then top with tomato slices, cucumber, onion, gherkins, and olives."
       },
       {
         "step": 13,
-        "title": "Close and serve",
+        "title": "Close And Serve",
         "instruction": "Place the top half of the croissant over the filling. Serve immediately while the fish is still hot and crispy."
       }
     ],
     "chefTips": [
       "moisture is the enemy of crispiness",
-      "Don't overcrowd the pan while frying - this",
-      "lowers the oil temperature and makes soggy fish Serve the trout fillets hot,",
-      "straight from the pan."
+      "Don't overcrowd the pan while frying - this lowers the oil temperature and makes soggy fish Serve the trout fillets hot, straight from the pan."
     ],
     "pairings": [
-      "4 people",
       "Mixed greens salad with vinaigrette",
-      "20 min Lemon-dill sauce or tartar sauce for dipping",
+      "Lemon-dill sauce or tartar sauce for dipping",
       "Coleslaw"
     ],
     "image": "/images/recipes/golden-crispy-trout-fillet-buttery-flaky-croissant.webp",
@@ -5131,16 +5271,19 @@ export const RECIPES_DATA: RecipeItem[] = [
     },
     "ingredients": [
       {
-        "section": "Main Ingredients",
+        "section": "For The Trout Cheese Balls",
         "items": [
-          "For the Trout Cheese Balls",
           "200g cooked trout, flaked",
           "100g cream cheese, softened",
           "1/4 cup Parmesan cheese, grated",
           "1/2 cup fresh parsley, chopped (divided)",
           "1/2 teaspoon lemon zest",
-          "Salt and pepper to taste",
-          "For the Walnut Sauce",
+          "Salt and pepper to taste"
+        ]
+      },
+      {
+        "section": "For The Walnut Sauce",
+        "items": [
           "1/2 cup walnuts, chopped",
           "2 garlic cloves, minced",
           "1 medium onion, finely chopped",
@@ -5158,47 +5301,47 @@ export const RECIPES_DATA: RecipeItem[] = [
     "instructions": [
       {
         "step": 1,
-        "title": "Prep the trout",
+        "title": "Prep The Trout",
         "instruction": "If starting with cooked trout, flake it finely and check for any bones. Let it cool completely if freshly cooked."
       },
       {
         "step": 2,
-        "title": "Soften the cream cheese",
-        "instruction": "Take the cream cheese out of the fridge 30 minutes before starting, or microwave for 10-15 seconds to soften."
+        "title": "Soften The Cream Cheese",
+        "instruction": "Take the cream cheese out of the fridge minutes before starting, or microwave for 10-15 seconds to soften."
       },
       {
         "step": 3,
-        "title": "Chop the herbs",
+        "title": "Chop The Herbs",
         "instruction": "Finely chop the parsley - you'll need 1/2 cup for the balls and 1/4 cup for the sauce. Zest the lemon."
       },
       {
         "step": 4,
-        "title": "Mix the base",
+        "title": "Mix The Base",
         "instruction": "In a bowl, combine the flaked trout, softened cream cheese, grated Parmesan, 1/4 cup chopped parsley, lemon zest, salt, and pepper. Mix gently until just combined - don't overmix or the texture becomes dense."
       },
       {
         "step": 5,
-        "title": "Shape the balls",
-        "instruction": "With slightly damp hands, take small portions (about 1 tablespoon) and roll into balls about 1 inch in diameter. Place them on a parchment-lined plate."
+        "title": "Shape The Balls",
+        "instruction": "With slightly damp hands, take small portions (about tablespoon) and roll into balls about inch in diameter. Place them on a parchment-lined plate."
       },
       {
         "step": 6,
-        "title": "Chill to firm",
-        "instruction": "Refrigerate for at least 30 minutes. This helps them hold their shape and makes them easier to handle."
+        "title": "Chill To Firm",
+        "instruction": "Refrigerate for at least minutes. This helps them hold their shape and makes them easier to handle."
       },
       {
         "step": 7,
-        "title": "Toast the walnuts",
+        "title": "Toast The Walnuts",
         "instruction": "In a dry pan, toast the chopped walnuts over medium heat for 2-3 minutes until fragrant. This enhances their flavor significantly. Let them cool slightly."
       },
       {
         "step": 8,
-        "title": "Make the base paste",
+        "title": "Make The Base Paste",
         "instruction": "In a blender, combine the toasted walnuts, minced garlic, lemon juice, and olive oil. Blend until you have a coarse paste."
       },
       {
         "step": 9,
-        "title": "Add remaining ingredients",
+        "title": "Add Remaining Ingredients",
         "instruction": "Add the finely chopped onion, flour, milk, chopped parsley, chili flakes, and lemon zest to the blender. Blend until well combined and relatively smooth. The sauce should be thick but pourable."
       },
       {
@@ -5209,14 +5352,11 @@ export const RECIPES_DATA: RecipeItem[] = [
     ],
     "chefTips": [
       "mixing keeps them light",
-      "Toast the walnuts before making the sauce - it",
-      "transforms the flavor Serve the trout fillets hot,",
-      "straight from the pan."
+      "Toast the walnuts before making the sauce - it transforms the flavor Serve the trout fillets hot, straight from the pan."
     ],
     "pairings": [
-      "5 people",
       "Assorted crackers",
-      "40 min Fresh fruit (grapes, apple slices)",
+      "Fresh fruit (grapes, apple slices)",
       "Crudités (cucumber, bell pepper strips)"
     ],
     "image": "/images/recipes/velvety-trout-cream-cheese-bites-walnut-gravy.webp",
@@ -5251,9 +5391,8 @@ export const RECIPES_DATA: RecipeItem[] = [
     },
     "ingredients": [
       {
-        "section": "Main Ingredients",
+        "section": "For The Shorba Base",
         "items": [
-          "For the Shorba Base",
           "1-2 Urban Trout Rainbow Trout (400–500g each, cleaned & gutted) fillets (about 200-250g total)",
           "4 cups vegetable stock",
           "2 tomatoes, chopped",
@@ -5266,8 +5405,12 @@ export const RECIPES_DATA: RecipeItem[] = [
           "2 bay leaves",
           "1 teaspoon cumin powder",
           "15ml olive oil",
-          "Salt to taste",
-          "For Finishing",
+          "Salt to taste"
+        ]
+      },
+      {
+        "section": "For Finishing",
+        "items": [
           "A handful of fresh mint leaves, chopped",
           "2 tablespoons lemon juice",
           "For the Tadka (Tempering)",
@@ -5281,33 +5424,33 @@ export const RECIPES_DATA: RecipeItem[] = [
     "instructions": [
       {
         "step": 1,
-        "title": "Prep the ingredients",
+        "title": "Prep The Ingredients",
         "instruction": "Grate the ginger, chop the tomatoes, and roughly chop the mint leaves. Keep the whole spices (cloves, peppercorns, cardamom, cinnamon) ready. Check the trout fillets for any bones."
       },
       {
         "step": 2,
-        "title": "Measure everything",
+        "title": "Measure Everything",
         "instruction": "Have your vegetable stock measured and ready. This soup comes together quickly once you start cooking."
       },
       {
         "step": 3,
-        "title": "Build the aromatics",
+        "title": "Build The Aromatics",
         "instruction": "In a large pot, heat 15ml of olive oil over medium heat. Add the grated ginger, cloves, peppercorns, green cardamom, and cinnamon stick. Sauté for 1-2 minutes until fragrant and the spices start releasing their oils."
       },
       {
         "step": 4,
-        "title": "Add tomatoes",
+        "title": "Add Tomatoes",
         "instruction": "Add the chopped tomatoes and sauté for 3-4 minutes until they soften and start breaking down."
       },
       {
         "step": 5,
-        "title": "Cook the fish",
+        "title": "Cook The Fish",
         "instruction": "Add the trout fillets to the pot and sauté gently for 2-3 minutes, just until they start to cook on the outside. Handle them carefully - they'll finish cooking in the broth."
       },
       {
         "step": 6,
-        "title": "Add the stock",
-        "instruction": "Pour in the 4 cups of vegetable stock and bring to a boil. Add the cumin powder, bay leaves, whole green chilies, and salt to taste."
+        "title": "Add The Stock",
+        "instruction": "Pour in the cups of vegetable stock and bring to a boil. Add the cumin powder, bay leaves, whole green chilies, and salt to taste."
       },
       {
         "step": 7,
@@ -5316,35 +5459,32 @@ export const RECIPES_DATA: RecipeItem[] = [
       },
       {
         "step": 8,
-        "title": "Finish with freshness",
+        "title": "Finish With Freshness",
         "instruction": "Add the chopped mint leaves and lemon juice. Stir gently and turn off the heat. Taste and adjust salt if needed."
       },
       {
         "step": 9,
-        "title": "Heat the oil",
-        "instruction": "In a small pan, heat 2 tablespoons of olive oil over medium-high heat until hot but not smoking."
+        "title": "Heat The Oil",
+        "instruction": "In a small pan, heat tablespoons of olive oil over medium-high heat until hot but not smoking."
       },
       {
         "step": 10,
-        "title": "Add the spices",
+        "title": "Add The Spices",
         "instruction": "Add the cumin seeds and let them sizzle for a few seconds. Add the chopped green chilies and a pinch of asafoetida. Cook for just a few seconds until fragrant - don't let them burn."
       },
       {
         "step": 11,
-        "title": "Pour immediately",
+        "title": "Pour Immediately",
         "instruction": "Pour this hot tadka over the soup just before serving. The sizzling sound and aroma are part of the experience. 12 Ladle the hot shorba into warmed bowls, making sure each serving gets some fish. Pour the sizzling tadka over the top and serve immediately while the aromatics are at their peak."
       }
     ],
     "chefTips": [
       "cooked through and still tender",
-      "The tadka must be poured hot for maximum",
-      "aroma and flavor Serve the trout fillets hot,",
-      "straight from the pan."
+      "The tadka must be poured hot for maximum aroma and flavor Serve the trout fillets hot, straight from the pan."
     ],
     "pairings": [
-      "4 people",
       "Steamed basmati rice",
-      "15 min Garlic bread for dipping",
+      "Garlic bread for dipping",
       "Roasted vegetables"
     ],
     "image": "/images/recipes/aromatic-kashmiri-trout-shorba-fresh-mountain-herbs.webp",
@@ -5416,47 +5556,47 @@ export const RECIPES_DATA: RecipeItem[] = [
     "instructions": [
       {
         "step": 1,
-        "title": "Prep the rice",
+        "title": "Prep The Rice",
         "instruction": "Cook rice and grind it to a paste consistency. Set aside."
       },
       {
         "step": 2,
-        "title": "Prepare the fish",
+        "title": "Prepare The Fish",
         "instruction": "Clean and debone the trout completely. Set aside."
       },
       {
         "step": 3,
-        "title": "Fry the onions",
+        "title": "Fry The Onions",
         "instruction": "Fry chopped onions in oil until golden and crispy. Set aside some for garnish."
       },
       {
         "step": 4,
-        "title": "Start the base",
+        "title": "Start The Base",
         "instruction": "Heat mustard oil in a large, heavy- bottomed pot over medium heat. Add the fried onions."
       },
       {
         "step": 5,
-        "title": "Add whole spices",
-        "instruction": "Add cardamom, cloves, cinnamon stick, and coriander powder. Cook for 1 minute until fragrant."
+        "title": "Add Whole Spices",
+        "instruction": "Add cardamom, cloves, cinnamon stick, and coriander powder. Cook for minute until fragrant."
       },
       {
         "step": 6,
-        "title": "Add fennel",
+        "title": "Add Fennel",
         "instruction": "Stir in fennel seeds and cook for another minute."
       },
       {
         "step": 7,
-        "title": "Add rice paste",
+        "title": "Add Rice Paste",
         "instruction": "Add the ground cooked rice to the pot and stir to coat with the spice mixture."
       },
       {
         "step": 8,
-        "title": "Add liquids",
+        "title": "Add Liquids",
         "instruction": "Pour in the water and bring to a boil."
       },
       {
         "step": 9,
-        "title": "Add fish",
+        "title": "Add Fish",
         "instruction": "Reduce heat to low and add the deboned trout. Pour in the milk and drizzle with desi ghee."
       },
       {
@@ -5466,20 +5606,17 @@ export const RECIPES_DATA: RecipeItem[] = [
       },
       {
         "step": 11,
-        "title": "The long stir",
-        "instruction": "Cook on medium heat, stirring every 2 minutes to prevent sticking. Keep using the spatula to scrape the bottom. This takes about 45 minutes until the mixture thickens and oil starts separating from the sides. 12 Serve hot garnished with sliced almonds, crispy fried onions, and a drizzle of ghee on top."
+        "title": "The Long Stir",
+        "instruction": "Cook on medium heat, stirring every minutes to prevent sticking. Keep using the spatula to scrape the bottom. This takes about minutes until the mixture thickens and oil starts separating from the sides. 12 Serve hot garnished with sliced almonds, crispy fried onions, and a drizzle of ghee on top."
       }
     ],
     "chefTips": [
       "away from the pot",
-      "The mixture should be thick and porridge-like,",
-      "not soupy Serve the trout fillets hot,",
-      "straight from the pan."
+      "The mixture should be thick and porridge-like, not soupy Serve the trout fillets hot, straight from the pan."
     ],
     "pairings": [
-      "6 people",
       "Kashmiri roti (traditional flatbread)",
-      "20 min Lemon wedges for squeezing",
+      "Lemon wedges for squeezing",
       "Pickles"
     ],
     "image": "/images/recipes/slow-cooked-kashmiri-trout-harissa-porridge.webp",
@@ -5514,12 +5651,10 @@ export const RECIPES_DATA: RecipeItem[] = [
     },
     "ingredients": [
       {
-        "section": "Main Ingredients",
+        "section": "For The Salad",
         "items": [
-          "For the Salad",
           "1-2 Urban Trout Rainbow Trout (400–500g each, cleaned & gutted) fillets, grilled or pan-seared",
-          "1 lotus stem (lotus root), peeled and",
-          "thinly sliced",
+          "1 lotus stem (lotus root), peeled and thinly sliced",
           "1 cup cherry tomatoes, halved",
           "1/2 cup cucumber, sliced",
           "1/4 cup red onion, thinly sliced",
@@ -5542,50 +5677,48 @@ export const RECIPES_DATA: RecipeItem[] = [
     "instructions": [
       {
         "step": 1,
-        "title": "Prep the lotus stem",
+        "title": "Prep The Lotus Stem",
         "instruction": "Peel and slice the lotus stem thinly. Immediately soak the slices in warm water with a squeeze of lemon juice to prevent them from browning. Let sit while you prep everything else."
       },
       {
         "step": 2,
-        "title": "Cook the fish",
+        "title": "Cook The Fish",
         "instruction": "Grill or pan-sear the trout fillets until cooked through, about 3-4 minutes per side. Let cool slightly, then flake into bite-sized pieces."
       },
       {
         "step": 3,
-        "title": "Prep the vegetables",
+        "title": "Prep The Vegetables",
         "instruction": "Slice the cherry tomatoes, cucumber, and red onion. Grate the carrots. Chop the green onions, parsley, coriander, and green chilies."
       },
       {
         "step": 4,
-        "title": "Combine vegetables",
+        "title": "Combine Vegetables",
         "instruction": "In a large bowl, combine cherry tomatoes, cucumber, red onion, carrots, green onions, parsley, and green chilies."
       },
       {
         "step": 5,
-        "title": "Add lotus stem and fish",
+        "title": "Add Lotus Stem And Fish",
         "instruction": "Drain the lotus stem slices and add them to the bowl along with the flaked trout."
       },
       {
         "step": 6,
-        "title": "Make the dressing",
+        "title": "Make The Dressing",
         "instruction": "In a small bowl, whisk together lemon juice, tahini, minced garlic, olive oil, salt, and pepper until smooth and well combined."
       },
       {
         "step": 7,
-        "title": "Toss the salad",
+        "title": "Toss The Salad",
         "instruction": "Drizzle the dressing over the salad and toss gently to combine, being careful not to break up the fish too much. 08 Garnish with sliced olives and extra chopped coriander. Serve immediately."
       }
     ],
     "chefTips": [
       "after slicing to prevent oxidation",
       "Use fresh, high-quality trout for the best flavor",
-      "The tahini dressing should be smooth - whisk Serve the trout fillets hot,",
-      "straight from the pan."
+      "The tahini dressing should be smooth - whisk Serve the trout fillets hot, straight from the pan."
     ],
     "pairings": [
-      "3 people",
       "Toasted pita or crusty bread",
-      "20 min Brown rice or quinoa for a heartier meal",
+      "Brown rice or quinoa for a heartier meal",
       "Hummus and crackers"
     ],
     "image": "/images/recipes/warm-charred-trout-crispy-lotus-stem-nadroo-salad.webp",
@@ -5620,15 +5753,18 @@ export const RECIPES_DATA: RecipeItem[] = [
     },
     "ingredients": [
       {
-        "section": "Main Ingredients",
+        "section": "For The Marinated Trout",
         "items": [
-          "For the Marinated Trout",
           "1-2 Urban Trout Rainbow Trout (400–500g each, cleaned & gutted) fillets (about 150-180g each)",
           "1/2 cup plain yogurt",
           "2 tablespoons lemon juice",
           "Salt and black pepper to taste",
-          "1 cup mustard oil (for frying)",
-          "For the Spicy Yogurt Sauce",
+          "1 cup mustard oil (for frying)"
+        ]
+      },
+      {
+        "section": "For The Spicy Yogurt Sauce",
+        "items": [
           "1/2 cup plain yogurt",
           "1/2 cup radish, grated",
           "2 tablespoons Kashmiri red chili powder"
@@ -5637,8 +5773,7 @@ export const RECIPES_DATA: RecipeItem[] = [
       {
         "section": "For Assembly",
         "items": [
-          "4 Kashmiri lavas (or any flatbread",
-          "like naan or roti)",
+          "4 Kashmiri lavas (or any flatbread like naan or roti)",
           "2 tablespoons ghee"
         ]
       },
@@ -5654,60 +5789,67 @@ export const RECIPES_DATA: RecipeItem[] = [
     "instructions": [
       {
         "step": 1,
-        "title": "Make the marinade",
-        "instruction": "In a bowl, mix 1/2 cup yogurt, lemon juice, salt, and black pepper until well combined. Marinate the fish: Add the trout fillets to the marinade, 02 turning to coat them evenly. Cover and refrigerate for at least 30 minutes, or up to 2 hours for deeper flavor. Prep the garnishes: While the fish marinates, slice the 03 cucumber and gherkins, chop the coriander, and grate the radish. Set aside."
+        "title": "Make The Marinade",
+        "instruction": "In a bowl, mix / cup yogurt, lemon juice, salt, and black pepper until well combined."
+      },
+      {
+        "step": 2,
+        "title": "Marinate The Fish",
+        "instruction": "Add the trout fillets to the marinade, turning to coat them evenly. Cover and refrigerate for at least minutes, or up to hours for deeper flavor."
+      },
+      {
+        "step": 3,
+        "title": "Prep The Garnishes",
+        "instruction": "While the fish marinates, slice the cucumber and gherkins, chop the coriander, and grate the radish. Set aside."
       },
       {
         "step": 4,
-        "title": "Make the spicy sauce",
+        "title": "Make The Spicy Sauce",
         "instruction": "In a small bowl, mix 1/2 cup yogurt, grated radish, and red chili powder. Stir well and set aside."
       },
       {
         "step": 5,
-        "title": "Fry the trout",
+        "title": "Fry The Trout",
         "instruction": "Heat mustard oil in a large skillet over medium-high heat until hot but not smoking. Remove the trout from the marinade, letting excess drip off. Fry the fillets for 3-4 minutes per side until golden brown and crispy. The coating should be beautifully crisped. Drain on paper towels."
       },
       {
         "step": 6,
-        "title": "Warm the lavas",
-        "instruction": "Heat the lavas on a griddle or in a pan for 30 seconds per side until warm and pliable. Keep them covered to stay soft."
+        "title": "Warm The Lavas",
+        "instruction": "Heat the lavas on a griddle or in a pan for seconds per side until warm and pliable. Keep them covered to stay soft."
       },
       {
         "step": 7,
-        "title": "Spread the sauce",
+        "title": "Spread The Sauce",
         "instruction": "Lay each lava flat and spread the spicy yogurt-radish sauce all over one side, leaving a small border at the edges."
       },
       {
         "step": 8,
-        "title": "Add the fish",
+        "title": "Add The Fish",
         "instruction": "Place a crispy trout fillet in the center of each lava."
       },
       {
         "step": 9,
-        "title": "Add garnishes",
+        "title": "Add Garnishes",
         "instruction": "Top with sliced cucumber, gherkins, and chopped coriander."
       },
       {
         "step": 10,
-        "title": "Roll tightly",
+        "title": "Roll Tightly",
         "instruction": "Fold the sides in slightly, then roll the lava tightly from bottom to top, like a burrito. The filling should be snugly wrapped inside."
       },
       {
         "step": 11,
-        "title": "Grill the rolls",
+        "title": "Grill The Rolls",
         "instruction": "Heat a griddle or pan over medium heat. Place the filled lavas seam-side down and grill for 2-3 minutes per side until the outside is crispy and lightly charred in spots. 12 Cut each lava roll in half on the diagonal to show the beautiful layers inside. Drizzle with ghee if desired. Serve immediately while hot and crispy."
       }
     ],
     "chefTips": [
       "the fish and builds flavor",
-      "Use mustard oil for authentic Kashmiri flavor,",
-      "but any neutral oil works Serve the trout fillets hot,",
-      "straight from the pan."
+      "Use mustard oil for authentic Kashmiri flavor, but any neutral oil works Serve the trout fillets hot, straight from the pan."
     ],
     "pairings": [
-      "6 people",
       "Cooling cucumber raita",
-      "40 min Fresh onion and tomato salad",
+      "Fresh onion and tomato salad",
       "Masala chai"
     ],
     "image": "/images/recipes/crispy-spiced-trout-wrapped-kashmiri-lavas-flatbread.webp",
