@@ -1,10 +1,11 @@
 import type { MetadataRoute } from "next";
+import { RECIPES_DATA } from "@/lib/recipes-data";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = "https://urbantrout.in";
   const now = new Date();
 
-  return [
+  const coreRoutes: MetadataRoute.Sitemap = [
     {
       url: baseUrl,
       lastModified: now,
@@ -15,6 +16,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: `${baseUrl}/shop`,
       lastModified: now,
       changeFrequency: "daily",
+      priority: 0.9,
+    },
+    {
+      url: `${baseUrl}/recipes`,
+      lastModified: now,
+      changeFrequency: "weekly",
       priority: 0.9,
     },
     {
@@ -96,4 +103,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.3,
     },
   ];
+
+  const recipeRoutes: MetadataRoute.Sitemap = RECIPES_DATA.map((r) => ({
+    url: `${baseUrl}/recipes/${r.slug}`,
+    lastModified: now,
+    changeFrequency: "monthly",
+    priority: 0.8,
+  }));
+
+  return [...coreRoutes, ...recipeRoutes];
 }

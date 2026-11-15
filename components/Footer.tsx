@@ -119,6 +119,7 @@ export default function Footer() {
           <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "10px" }}>
             {[
               { href: "/shop", label: "Shop Fresh Catch" },
+              { href: "/recipes", label: "50 Trout Recipes Hub" },
               { href: "/our-farm", label: "About Our Farm" },
               { href: "/trout-price-srinagar", label: "Trout Rates (2026 Guide)" },
               { href: "/kashmiri-trout-recipe", label: "Kashmiri Trout Recipes" },
