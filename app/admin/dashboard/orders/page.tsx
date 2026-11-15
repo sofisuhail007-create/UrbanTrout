@@ -375,6 +375,26 @@ export default function OrdersPage() {
     return orders.filter((o) => isOrderPlacedTodayIST(o.created_at) && o.status === "delivered").length;
   }, [orders]);
 
+  // Helper to cleanly extract customer greeting name (strips (Rainawari) or phone numbers)
+  const getCleanCustomerGreetingName = (rawName?: string) => {
+    if (!rawName) return "Valued Customer";
+    const cleaned = rawName.replace(/\s*\([^)]*\)/g, "").replace(/\+?\d[\d\s-]{8,}/g, "").trim();
+    return cleaned || "Valued Customer";
+  };
+
+  // Launch WhatsApp directly without passing through wa.me's 302 redirect (which corrupts emojis into \uFFFD replacement characters)
+  const launchWhatsApp = (phone: string, text: string) => {
+    const cleanPhone = String(phone || "").replace(/\D/g, "").slice(-10);
+    if (!cleanPhone) return;
+    const isMobile = typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const encoded = encodeURIComponent(text);
+    // On desktop, targeting web.whatsapp.com directly opens WhatsApp Web with emojis preserved and skips interstitial screen
+    const url = isMobile
+      ? `https://api.whatsapp.com/send?phone=91${cleanPhone}&text=${encoded}`
+      : `https://web.whatsapp.com/send?phone=91${cleanPhone}&text=${encoded}`;
+    window.open(url, "_blank");
+  };
+
   // Professional Zomato/Blinkit-style 1-Tap WhatsApp alerts & Stage transitions
   // Can be called at any time from any state, with optional WhatsApp launch
   const handleStartHarvest = async (order: Order, sendWhatsApp: boolean = true) => {
@@ -382,10 +402,10 @@ export default function OrdersPage() {
     playSuccessChime();
     if (!sendWhatsApp) return;
     const phone = String(order.customer_phone || "").replace(/\D/g, "").slice(-10);
-    const name = order.customer_name || "Valued Customer";
+    const name = getCleanCustomerGreetingName(order.customer_name);
     const orderRefDisplay = getOrderRefLabel(order);
     const msg = `Hello ${name}! 🐟\n\nYour fresh trout order (${orderRefDisplay}) is now being prepared at Urban Trout Farm!\n\nOur farm team has initiated the live harvest from our oxygenated mountain spring tanks in Malabagh. Your trout is being cleaned and cut into fresh pan-ready steaks. Express delivery is on track within our 2-hour window! 🛵`;
-    if (phone) window.open(`https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`, "_blank");
+    launchWhatsApp(phone, msg);
   };
 
   const handleOutForDelivery = async (order: Order, sendWhatsApp: boolean = true) => {
@@ -393,11 +413,11 @@ export default function OrdersPage() {
     playSuccessChime();
     if (!sendWhatsApp) return;
     const phone = String(order.customer_phone || "").replace(/\D/g, "").slice(-10);
-    const name = order.customer_name || "Valued Customer";
+    const name = getCleanCustomerGreetingName(order.customer_name);
     const orderRefDisplay = getOrderRefLabel(order);
     const locality = order.customer_locality || "your location";
     const msg = `Hello ${name}! 🛵\n\nYour fresh trout order (${orderRefDisplay}) is OUT FOR DELIVERY!\n\nYour package has been freshly packed in food-grade biodegradable polythene packaging (zero ice) and is en route to ${locality}.\n\nOur Express Delivery Executive is on the road. Please keep your phone reachable for a prompt handover.\n\nThank you for choosing Urban Trout! 🐟`;
-    if (phone) window.open(`https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`, "_blank");
+    launchWhatsApp(phone, msg);
   };
 
   const handleMarkDelivered = async (order: Order, sendWhatsApp: boolean = true) => {
@@ -405,10 +425,10 @@ export default function OrdersPage() {
     playSuccessChime();
     if (!sendWhatsApp) return;
     const phone = String(order.customer_phone || "").replace(/\D/g, "").slice(-10);
-    const name = order.customer_name || "Valued Customer";
+    const name = getCleanCustomerGreetingName(order.customer_name);
     const orderRefDisplay = getOrderRefLabel(order);
     const msg = `Hello ${name}! ✨\n\nYour fresh trout order (${orderRefDisplay}) has been successfully delivered!\n\nWe hope you and your family enjoy your fresh pan-ready trout. If you loved our service, please take 10 seconds to share your review on Google:\nhttps://g.page/r/CTVKEpV62HMmECE/review\n\nBon Appétit! — Urban Trout Aquaculture 🐟`;
-    if (phone) window.open(`https://wa.me/91${phone}?text=${encodeURIComponent(msg)}`, "_blank");
+    launchWhatsApp(phone, msg);
   };
 
   const openScaleModal = (order: Order) => {
@@ -664,11 +684,9 @@ export default function OrdersPage() {
     if (!qrModalOrder) return;
     const cleanPhone = String(qrModalOrder.customer_phone || "").replace(/\D/g, "").slice(-10);
     const amountStr = `₹${parsedQrAmount.toLocaleString("en-IN")}`;
-    const msg = `Hi ${qrModalOrder.customer_name}! 🐟\n\nYour Urban Trout Order #${qrModalOrder.order_number} is ready.\n\n*Amount Due: ${amountStr}* (Amount is locked)\n\nTap to pay with any UPI App (GPay / PhonePe / Paytm / mPay):\n${directUpiUri}\n\nOur UPI ID: ${upiId}\n\nThank you for choosing Urban Trout!`;
-    const waUrl = cleanPhone.length === 10
-      ? `https://wa.me/91${cleanPhone}?text=${encodeURIComponent(msg)}`
-      : `https://wa.me/?text=${encodeURIComponent(msg)}`;
-    window.open(waUrl, "_blank");
+    const name = getCleanCustomerGreetingName(qrModalOrder.customer_name);
+    const msg = `Hi ${name}! 🐟\n\nYour Urban Trout Order #${qrModalOrder.order_number} is ready.\n\n*Amount Due: ${amountStr}* (Amount is locked)\n\nTap to pay with any UPI App (GPay / PhonePe / Paytm / mPay):\n${directUpiUri}\n\nOur UPI ID: ${upiId}\n\nThank you for choosing Urban Trout!`;
+    launchWhatsApp(cleanPhone, msg);
   };
 
   const toggleSelectOrder = (id: string, e?: React.MouseEvent) => {
@@ -1233,16 +1251,15 @@ export default function OrdersPage() {
                         )}
 
                         {cleanPhone && (
-                          <a
-                            href={`https://wa.me/91${cleanPhone}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="px-2.5 py-1.5 rounded-lg bg-green-500/15 hover:bg-green-500/25 text-green-400 border border-green-500/30 flex items-center gap-1 transition-all"
+                          <button
+                            type="button"
+                            onClick={() => launchWhatsApp(cleanPhone, "")}
+                            className="px-2.5 py-1.5 rounded-lg bg-green-500/15 hover:bg-green-500/25 text-green-400 border border-green-500/30 flex items-center gap-1 transition-all cursor-pointer"
                             title="Chat on WhatsApp"
                           >
                             <span className="material-symbols-outlined text-xs">chat</span>
                             <span>Chat</span>
-                          </a>
+                          </button>
                         )}
 
                         <button
@@ -1658,18 +1675,17 @@ export default function OrdersPage() {
 
                       {(() => {
                         const cleanPhone = String(order.customer_phone || "").replace(/\D/g, "").slice(-10);
-                        const text = encodeURIComponent(`Hi ${order.customer_name}! Your Urban Trout order #${order.order_number} update:`);
-                        const waUrl = cleanPhone.length === 10 ? `https://wa.me/91${cleanPhone}?text=${text}` : `https://wa.me/?text=${text}`;
+                        const name = getCleanCustomerGreetingName(order.customer_name);
+                        const text = `Hi ${name}! Your Urban Trout order #${order.order_number} update:`;
                         return (
-                          <a
-                            href={waUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/15 text-green-400 border border-green-500/30 rounded-lg text-xs font-medium hover:bg-green-500/25 transition-colors"
+                          <button
+                            type="button"
+                            onClick={() => launchWhatsApp(cleanPhone, text)}
+                            className="inline-flex items-center gap-2 px-4 py-2 bg-green-500/15 text-green-400 border border-green-500/30 rounded-lg text-xs font-medium hover:bg-green-500/25 transition-colors cursor-pointer"
                           >
                             <span className="material-symbols-outlined text-base">chat</span>
                             WhatsApp Customer
-                          </a>
+                          </button>
                         );
                       })()}
                     </div>
