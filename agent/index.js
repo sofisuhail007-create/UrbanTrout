@@ -1518,7 +1518,7 @@ Supports Google Pay, PhonePe, Paytm, or J&K Bank mPay.
 *(Live harvest begins immediately upon payment confirmation)*
 
 🕒 _${slotDisplay}_${weatherCardLine}
-📍 _Delivered strictly to shared GPS pin (in-person receipt; keep phone reachable — if a delivery attempt fails, customer must collect manually from our Live Vending Center in Malabagh)._`;
+📍 _Delivered directly to your shared GPS pin. Please keep your phone reachable — our Express Dispatch Partner calls prior to arrival for a prompt doorstep handover._`;
 }
 
 // Fetch status of Razorpay payment link directly from Razorpay API
@@ -1745,6 +1745,137 @@ async function patchSupabase(endpoint, body) {
     req.write(payload);
     req.end();
   });
+}
+
+// Helper to POST (insert) into Supabase REST API
+async function insertSupabase(endpoint, body) {
+  if (!SUPABASE_URL || !SUPABASE_KEY) return null;
+  const payload = JSON.stringify(body);
+  try {
+    return await new Promise((resolve) => {
+      const req = https.request(`${SUPABASE_URL}/rest/v1/${endpoint}`, {
+        method: "POST",
+        headers: {
+          "apikey": SUPABASE_KEY,
+          "Authorization": `Bearer ${SUPABASE_KEY}`,
+          "Content-Type": "application/json",
+          "Prefer": "return=representation"
+        },
+        timeout: 6000
+      }, (res) => {
+        let data = "";
+        res.on("data", chunk => data += chunk);
+        res.on("end", () => {
+          try {
+            resolve(JSON.parse(data));
+          } catch {
+            resolve(null);
+          }
+        });
+      });
+      req.on("error", () => resolve(null));
+      req.on("timeout", () => { req.destroy(); resolve(null); });
+      req.write(payload);
+      req.end();
+    });
+  } catch (err) {
+    console.error("insertSupabase error:", err?.message || err);
+    return null;
+  }
+}
+
+// Auto-sync confirmed WhatsApp orders into Supabase `orders` table
+async function syncWhatsAppOrderToSupabase(order, paymentId) {
+  if (!SUPABASE_URL || !SUPABASE_KEY || !order) return null;
+  try {
+    const ref = order.orderRef || "";
+    const pId = paymentId || order.paymentId || "";
+    const cleanPhone = String(order.phone || "").replace(/\D/g, "").slice(-10);
+
+    // 1. Check if already exists in Supabase orders
+    if (ref || pId) {
+      const filter = ref && pId 
+        ? `or=(customer_address.ilike.%25${encodeURIComponent(ref)}%25,customer_address.ilike.%25${encodeURIComponent(pId)}%25)`
+        : ref 
+        ? `customer_address.ilike.%25${encodeURIComponent(ref)}%25` 
+        : `customer_address.ilike.%25${encodeURIComponent(pId)}%25`;
+      const existing = await querySupabase(`orders?${filter}&limit=1`);
+      if (Array.isArray(existing) && existing.length > 0) {
+        // If GPS location was updated, update existing order
+        const existingOrd = existing[0];
+        const mapsLink = order.googleMapsUrl || (order.latitude && order.longitude ? `https://www.google.com/maps/dir/?api=1&destination=${order.latitude},${order.longitude}` : "");
+        if (mapsLink && !existingOrd.customer_address?.includes("Exact GPS")) {
+          const newAddr = `${existingOrd.customer_address} | 📍 Exact GPS: ${mapsLink}`;
+          await patchSupabase(`orders?id=eq.${existingOrd.id}`, { customer_address: newAddr });
+          console.log(`📍 [Supabase Order Sync] Added GPS pin to existing Order #${existingOrd.order_number}`);
+        }
+        return existingOrd;
+      }
+    }
+
+    // 2. Parse items and weights
+    const itemsText = String(order.items || "2 kg Cleaned & Gutted");
+    const weightMatch = itemsText.match(/(\d+(?:\.\d+)?)\s*(?:kg|kilos?)/i);
+    const weightKg = weightMatch ? parseFloat(weightMatch[1]) : 2.0;
+    const isGutted = itemsText.toLowerCase().includes("gutted") || !itemsText.toLowerCase().includes("whole");
+    const rate = isGutted ? 580 : 540;
+    const subtotal = Math.round(weightKg * rate);
+
+    const rawAmt = typeof order.amount === "number" ? order.amount : parseFloat(String(order.amount || "").replace(/[^0-9.]/g, "")) || (subtotal + (order.deliveryFee || 0));
+    const deliveryFee = Number(order.deliveryFee) || (rawAmt > subtotal ? Math.round(rawAmt - subtotal) : 0);
+    const total = rawAmt;
+
+    const itemsPayload = [
+      {
+        id: isGutted ? "gutted-trout" : "whole-trout",
+        name: isGutted ? "Premium Gutted Rainbow Trout" : "Whole Fresh Rainbow Trout",
+        unit: "Kg",
+        price: rate,
+        quantity: weightKg,
+        orderedWeightKg: weightKg,
+        actualWeight: weightKg,
+        image: "/images/gutted_trout_premium.webp"
+      }
+    ];
+
+    // Build customer address
+    const mapsLink = order.googleMapsUrl || (order.latitude && order.longitude ? `https://www.google.com/maps/dir/?api=1&destination=${order.latitude},${order.longitude}` : "");
+    const deliveryArea = order.deliveryArea || "Srinagar";
+    let addressStr = deliveryArea;
+    if (ref || pId) {
+      addressStr += ` (Ref: #${ref}${ref && pId ? ", " : ""}${pId ? `Razorpay: ${pId}` : ""})`;
+    }
+    if (order.deliveryTime) {
+      addressStr += ` | Slot: ${order.deliveryTime}`;
+    }
+    if (mapsLink) {
+      addressStr += ` | 📍 Exact GPS: ${mapsLink}`;
+    }
+
+    const payload = {
+      customer_name: order.name || "WhatsApp Customer",
+      customer_phone: cleanPhone,
+      customer_address: addressStr,
+      customer_locality: deliveryArea.replace(/\s*\(~.*?\)/, "").trim(),
+      customer_pincode: "190001",
+      items: itemsPayload,
+      subtotal: subtotal,
+      delivery_fee: deliveryFee,
+      total: total,
+      delivery_zone: "express_delivery",
+      status: "processing", // Live harvest & steak preparation active in 2-hour queue!
+      created_at: order.paidAt || new Date().toISOString()
+    };
+
+    const inserted = await insertSupabase("orders", payload);
+    if (inserted && Array.isArray(inserted) && inserted[0]) {
+      console.log(`✅ [Supabase Order Sync] Successfully inserted WhatsApp Order #${inserted[0].order_number} for ${cleanPhone} into Supabase orders table!`);
+      return inserted[0];
+    }
+  } catch (err) {
+    console.error("[Supabase Order Sync] Error syncing WhatsApp order:", err.message);
+  }
+  return null;
 }
 
 // Auto-settle Khata in Supabase if customer has an open balance
@@ -2191,6 +2322,11 @@ async function checkPendingRazorpayPayments(sock) {
       recordNewCustomerOrder(matchedKey, order);
       markPaymentProcessed(p.id);
 
+      // Instantly pool confirmed WhatsApp order into Supabase orders table for live 2-Hour Dispatch Radar
+      syncWhatsAppOrderToSupabase(order, p.id).catch((syncErr) => {
+        console.warn("[Supabase Order Sync Notice]:", syncErr?.message || syncErr);
+      });
+
       let targetJid = order.chatId;
       if (!targetJid && targetPhone) {
         for (const [jid, meta] of Object.entries(chatMetadata)) {
@@ -2208,9 +2344,9 @@ async function checkPendingRazorpayPayments(sock) {
         const hasGps = Boolean(order.latitude || (chatMetadata[targetJid] && chatMetadata[targetJid].latitude));
         let pinPrompt = "";
         if (!hasGps) {
-          pinPrompt = `\n\n📍 *Important Pin-Point Delivery Instructions:*\nPlease share your *WhatsApp Location Pin* (tap 📎 ➔ Location ➔ Send current location) or *Google Maps link* right now so our *Urban Trout Express Dispatch Partner* navigates to your exact spot.\n• Your fish is packed fresh in *100% food-grade biodegradable polythene (0% ice)*.\n• Delivery is made *strictly to the shared GPS location pin* (no house-number search or knocking on doors).\n• Please collect your package *in person* at the shared location and keep your phone reachable — as our express dispatch executive carries multiple live-harvest orders on an active route, *no second delivery attempt* can be made and if a delivery attempt fails, you will have to collect the package manually from our *Live Vending Center in Malabagh*.`;
+          pinPrompt = `\n\n📍 *Important Pin-Point Delivery Instructions:*\nPlease share your *WhatsApp Location Pin* (tap 📎 ➔ Location ➔ Send current location) or *Google Maps link* right now so our *Urban Trout Express Dispatch Partner* navigates directly to your shared spot.\n• Your fish is packed fresh in *100% food-grade biodegradable polythene (0% ice)*.\n• Delivery is made *strictly to the shared GPS location pin* (not by searching house numbers or knocking on doors).\n• Our Express Dispatch Partner navigates directly to your shared pin and calls prior to arrival. Please keep your phone reachable for a prompt, smooth doorstep handover.`;
         } else {
-          pinPrompt = `\n\n📍 *Express Dispatch Instructions:*\nYour fish is packed fresh in *100% food-grade biodegradable polythene (0% ice)*. Our *Urban Trout Express Dispatch Partner* will deliver *strictly to your shared GPS location pin* (no house-number search). Kindly receive your package *in person* at the location point and keep your phone reachable — due to scheduled multi-order routes, *no second delivery attempt* can be made and if a delivery attempt fails, you will have to collect the package manually from our *Live Vending Center in Malabagh*.`;
+          pinPrompt = `\n\n📍 *Express Dispatch Instructions:*\nYour fish is packed fresh in *100% food-grade biodegradable polythene (0% ice)*. Our *Urban Trout Express Dispatch Partner* will deliver *strictly to your shared GPS location pin* (not house numbers). Kindly keep your phone reachable — our rider calls prior to arrival for a prompt, smooth doorstep handover.`;
         }
 
         const isTomorrowOrder = /(?:tomorrow|kal|saturday|advance)/i.test(order.deliveryTime || "");
@@ -2496,14 +2632,15 @@ function resolveNearestLocalityName(lat, lng) {
   for (const p of deliveryZoneDb) {
     if (p.lat == null || p.lon == null || !p.name) continue;
 
-    // Filter out institutional POIs (hospitals, clinics, fuel/petrol pumps, banks, schools, police)
-    // so we return actual residential neighborhoods / junctions to customers!
+    // Filter out institutional POIs (places of worship/mosques, hospitals, clinics, hotels, fuel, banks, schools, police)
+    // so we return actual residential neighborhoods / settlements / junctions to customers!
     const pType = String(p.type || "").toLowerCase();
-    if (/^(?:hospital|clinic|fuel|bank|school|driving_school|police|blood_bank)$/.test(pType)) continue;
+    if (/^(?:place_of_worship|hospital|clinic|hotel|school|college|bank|fuel|supermarket|mall|police|blood_bank|bus_stop|bus_station|driving_school)$/.test(pType)) continue;
 
-    // Never return competitor/institutional names like Khyber
+    // Never return competitor, religious, or institutional building names (e.g. Masjid, Hospital, Khyber)
     const pName = String(p.name || "").toLowerCase();
     if (pName.includes("khyber")) continue;
+    if (/^(?:masjid|mosque|shrine|ziyarat|ziarat|astana|mandir|temple|gurudwara|church|hotel|hospital|clinic|nursing\s*home)\b/i.test(pName)) continue;
     if (Array.isArray(p.aliases) && p.aliases.some(a => String(a).toLowerCase().includes("khyber"))) continue;
 
     const d = calculateDistance(lat, lng, Number(p.lat), Number(p.lon));
@@ -2595,7 +2732,7 @@ function buildLocationRateQuote({ name, dist, status }) {
     `📦 *Standard Express Delivery (Orders below ${freeMinKg} kg):*\n` +
     `${belowLines}\n\n` +
     `⚡ _Note: Evening rush hours (4:00 PM – 8:00 PM) carry a +₹40 express fee surcharge on orders below ${freeMinKg} kg; ${freeMinKg} kg+ remains 100% FREE._\n\n` +
-    `📌 *Pin-Point Delivery Policy:* Please share your *WhatsApp Location Pin or Google Maps link* to book. Our Express Dispatch Partner delivers strictly to the shared GPS pin (not house numbers), and orders must be received in person. Kindly keep your phone reachable — no second delivery attempt can be made, and if a delivery attempt fails, you will have to collect your package manually from our Live Vending Center in Malabagh. 🐟`
+    `📌 *Pin-Point Delivery Policy:* Please share your *WhatsApp Location Pin or Google Maps link* to book. Our Express Dispatch Partner delivers directly to your shared GPS pin (not house numbers). Kindly keep your phone reachable so our rider can call prior to arrival for a prompt, seamless doorstep handover. 🐟`
   );
 }
 
@@ -2761,7 +2898,8 @@ function isOrderDeliveredOrClosed(ord) {
 
 // Helper to check if an order is ACTIVE & PENDING (not completed/delivered/cancelled)
 function isOrderActivePending(ord) {
-  if (!ord || !ord.orderRef) return false;
+  if (!ord) return false;
+  if (!ord.orderRef && !ord.amount && !ord.payUrl) return false;
   return !isOrderDeliveredOrClosed(ord);
 }
 
@@ -2823,8 +2961,21 @@ const TodayOrderPool = {
       const paidDate = ord.paidAt ? new Date(ord.paidAt).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }) : null;
       const createdDate = ord.createdAt ? new Date(ord.createdAt).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }) : null;
       const updatedDate = ord.updatedAt ? new Date(ord.updatedAt).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }) : null;
-      if (paidDate === today || createdDate === today || updatedDate === today || (isOrderActivePending(ord) && ord.deliveryTime && ord.deliveryTime.includes("Today"))) {
-        todayMap[k] = ord;
+      
+      if (this.isOrderPaid(ord)) {
+        if (paidDate === today || updatedDate === today || (ord.deliveryTime && ord.deliveryTime.includes("Today"))) {
+          todayMap[k] = ord;
+        }
+      } else {
+        // UNPAID ORDERS: Only treat as an active order for today if created TODAY strictly within the last 3.5 hours!
+        // Razorpay payment links expire in 4 hours; stale unpaid quotes from past days or earlier hours have dead links
+        // and must NEVER be treated as active pending orders.
+        if (createdDate === today) {
+          const orderAgeMin = (Date.now() - new Date(ord.createdAt || ord.updatedAt || 0).getTime()) / (60 * 1000);
+          if (orderAgeMin < 210) {
+            todayMap[k] = ord;
+          }
+        }
       }
     }
     return todayMap;
@@ -2846,8 +2997,12 @@ const TodayOrderPool = {
     }
     const orderAmt = Number(String(activeOrder.amount || "").replace(/\D/g, ""));
     if (orderAmt && orderAmt === Number(requiredAmount)) {
-      const orderAgeMin = (Date.now() - new Date(activeOrder.createdAt || activeOrder.updatedAt || 0).getTime()) / (60 * 1000);
-      if (orderAgeMin < 210) { // Valid under 3.5 hours (Razorpay links expire in 4 hours)
+      const orderDate = new Date(activeOrder.createdAt || activeOrder.updatedAt || 0);
+      const today = this.getTodayDateIst();
+      const orderDay = orderDate.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+      const orderAgeMin = (Date.now() - orderDate.getTime()) / (60 * 1000);
+      // Valid strictly under 3.5 hours AND strictly created today in IST (Razorpay links expire in 4 hours)
+      if (orderAgeMin < 210 && orderDay === today) {
         return {
           url: activeOrder.payUrl,
           short_url: activeOrder.payUrl,
@@ -3577,29 +3732,41 @@ Which area in Srinagar would you like delivery to (or drop your WhatsApp locatio
     /\b(?:500|520|530|550)\s*(?:me|mai|de\s*do|karo)\b/i.test(trimmedLower)
   ) {
     intentContext = `\n======================================================
-💡 QUERY INTENT DECODED: Customer is asking for a discount ("${userMessage.trim()}").
-CRITICAL DIRECTIVE ON DISCOUNTS (BE POLITE, CHARMING & CLOSE FORWARD — MAXIMUM 3 SHORT LINES):
-- NEVER say "we have a strict policy on rates" or sound blunt! NEVER use the word "doorstep", "cold-chain", or "chilled"!
-- DO NOT send the customer backwards to the top of funnel (do NOT ask "Which cut do you want?").
-- Reframe free delivery as the savings, suggest 2 kg upgrade, and close forward:
-"We completely understand! Our prices stay consistent because every fish is harvested alive only upon confirmation and packed fresh in food-grade biodegradable polythene (0% ice, zero preservatives).
+💡 QUERY INTENT DECODED: Customer is asking for a discount / bargaining ("${userMessage.trim()}").
+CRITICAL DIRECTIVE ON NON-NEGOTIABLE GENUINE PRICING:
+• Urban Trout has a STRICT NO NEGOTIATION POLICY. We do NOT negotiate on rates with any customer.
+• We already provide the most genuine, transparent, and direct farm rates in the entire Kashmir Valley for pure cold-water live-harvest Rainbow Trout (₹580/kg Cleaned & Gutted).
+• Politely, respectfully, and firmly explain:
+"We completely understand! Our prices are standardized, fixed, and genuine for all customers across the entire Kashmir Valley. Every trout is swimming live in our pure cold-water spring tanks until ordered, and harvested fresh with zero ice, zero preservatives, and zero chemicals. Because we provide direct farm-to-table quality at true economics, our rates are non-negotiable.
 
-The good news: ordering 2 kg (₹1,160 total) unlocks *100% FREE express delivery* in core Srinagar areas — saving you the delivery fee right there!
+The best value: ordering 2 kg (₹1,160 total in nearby areas, or our zone MOQ) unlocks *100% FREE express delivery*, saving you the delivery fee completely!
 
-Shall I send your payment link for 2 kg?"
+Shall I reserve your fresh live harvest for 2 kg?"
+======================================================`;
+  } else if (
+    /\b(?:previous(?:ly)?\s*(?:paid|charge|charged|rate|fee|less)|last\s*time\s*(?:i\s*paid|it\s*was|charged|less)|pichli\s*baar\s*(?:kam|diya|tha)|pehle\s*(?:kam\s*tha|to\s*kam|rate\s*kam)|why\s*(?:delivery|charge|rate)\s*(?:increased|more|high|extra)|delivery\s*zyada\s*kyun|rates\s*badh\s*gaye)\b/i.test(trimmedLower)
+  ) {
+    intentContext = `\n======================================================
+💡 QUERY INTENT DECODED: Customer mentions paying less previously or asks about revised delivery rates ("${userMessage.trim()}").
+CRITICAL DIRECTIVE ON REVISED DELIVERY RATES (BE COURTEOUS, PROFESSIONAL & REASSURING):
+• Do NOT be blunt or defensive! Explain politely and warmly:
+"We truly appreciate your continued trust in Urban Trout! To maintain our dedicated cold-chain live harvest delivery economics and ensure our riders navigate directly to your shared GPS location within 90–120 minutes with 0% ice packaging, our delivery rates across Srinagar have been updated to standard actual transit costs.
+
+You can also enjoy 100% FREE express delivery by ordering our zone MOQ (e.g. 2 kg for nearby areas, 3 kg / 5 kg for wider Srinagar), which completely waives the delivery fee!
+
+Would you like us to schedule your fresh live-harvest delivery today?"
 ======================================================`;
   } else if (
     /\b(?:who\s*are\s*you|are\s*you\s*(?:a\s*)?(?:human|bot|ai|robot|machine|real\s*person)|kon\s*ho|tum\s*kon\s*ho|aap\s*kon\s*ho|bot\s*ho\s*ya|insaan\s*ho|ai\s*ho|digital\s*agent|computer\s*ho|kya\s*aap\s*ai\s*ho|what\s*are\s*you)\b/i.test(trimmedLower)
   ) {
     intentContext = `\n======================================================
 💡 QUERY INTENT DECODED: Customer is asking about your identity ("${userMessage.trim()}").
-CRITICAL IDENTITY DIRECTIVE (BRIEF, PROUD & COURTEOUS):
-Flex that Urban Trout is Jammu & Kashmir’s very first startup to integrate an AI sales assistant with WhatsApp:
-"I am Urban Trout's AI sales assistant—proudly Jammu & Kashmir’s first startup to integrate AI on WhatsApp! 🚀
+CRITICAL IDENTITY DIRECTIVE (BRIEF, PROFESSIONAL & HELPFUL):
+"Yes! I am Urban Trout's digital sales assistant, here to assist with your live-harvest orders 24/7. 🐟
 
-Our dedicated Malabagh farm and Express Dispatch teams handle the live harvesting, cleaning, food-grade biodegradable packaging (0% ice), and fast delivery directly to your shared GPS location.
+Our dedicated Malabagh farm team handles the live harvesting, cleaning, food-grade biodegradable packaging (0% ice), and fast delivery directly to your shared GPS location.
 
-How can I help you today? Would you like Cleaned & Gutted trout (₹580/kg)?"
+How many kilograms (kg) would you like to order today, and which area in Srinagar shall we deliver to?"
 ======================================================`;
   }
 
@@ -3754,9 +3921,22 @@ CRITICAL DIRECTIVE ON MPAY & BANK ACCOUNT DETAILS:
   // ─── PAYMENT LINK ON-DEMAND INTENT DECODER ───
   const isPaymentLinkIntent = /\b(?:payment\s*link|pay\s*link|online\s*link|link\s*(?:please|bhejo|de\s*do|bhej\s*do|send|share|share\s*karo)|send\s*(?:me\s*)?(?:the\s*)?link|share\s*(?:me\s*)?(?:the\s*)?link|give\s*(?:me\s*)?(?:the\s*)?link|where\s*(?:is\s*)?(?:the\s*)?link|can\s*you\s*(?:send|give|share)\s*(?:the\s*)?link)\b/i.test(trimmedLower);
   if (isPaymentLinkIntent) {
-    const activePayUrl = todayOrderForCustomer?.payUrl || existingOrder?.payUrl || null;
-    const activeOrderRef = todayOrderForCustomer?.orderRef || existingOrder?.orderRef || null;
-    const activeOrderAmt = todayOrderForCustomer?.amount || existingOrder?.amount || null;
+    const isOrderLinkValid = (ord) => {
+      if (!ord || !ord.payUrl || isHistoricalOrderPaid(ord)) return false;
+      const d = new Date(ord.createdAt || ord.updatedAt || 0);
+      const isToday = d.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }) === TodayOrderPool.getTodayDateIst();
+      const ageMin = (Date.now() - d.getTime()) / (60 * 1000);
+      return isToday && ageMin < 210; // Valid under 3.5 hours and created today
+    };
+
+    const validOrderForLink = isOrderLinkValid(todayOrderForCustomer)
+      ? todayOrderForCustomer
+      : (isOrderLinkValid(existingOrder) ? existingOrder : null);
+
+    const activePayUrl = validOrderForLink?.payUrl || null;
+    const activeOrderRef = validOrderForLink?.orderRef || null;
+    const activeOrderAmt = validOrderForLink?.amount || null;
+
     if (activePayUrl) {
       intentContext += `\n======================================================
 💡 QUERY INTENT DECODED: Customer explicitly requested an online payment link ("${userMessage.trim()}").
@@ -3769,11 +3949,11 @@ DO NOT alter price or create a duplicate order.
 ======================================================`;
     } else {
       intentContext += `\n======================================================
-💡 QUERY INTENT DECODED: Customer requested a payment link ("${userMessage.trim()}"), but no confirmed order exists yet.
-CRITICAL DIRECTIVE: Inform the customer that we provide a secure payment link or locked UPI QR code once order details are confirmed. Ask them to confirm:
-1. Preferred quantity (e.g. 1 kg, 2 kg, 3 kg)
-2. Preferred cut: Cleaned & Gutted (₹580/kg, pan-ready) or Whole Fresh (₹540/kg)
-3. Delivery location / locality in Srinagar
+💡 QUERY INTENT DECODED: Customer requested a payment link ("${userMessage.trim()}"), but no active unexpired order link exists.
+CRITICAL DIRECTIVE: Any payment link older than 3.5 hours or from a previous day has EXPIRED. If this is a returning lead, calculate their order with current updated delivery rates. Inform the customer:
+1. Confirm their preferred quantity (e.g. 1 kg, 2 kg, 3 kg)
+2. Delivery location in Srinagar (or drop GPS pin)
+We will immediately generate a fresh payment link and locked UPI QR code!
 ======================================================`;
     }
   }
@@ -3865,12 +4045,12 @@ Would you prefer fresh delivery today (Thursday) within 2 hours, or an advance b
 
 Your order (*#${existingOrder.orderRef}* - ${existingOrder.items || "Fresh Rainbow Trout"}) is confirmed! It is scheduled for fresh morning live harvest, packed in food-grade biodegradable polythene (0% ice), and express dispatch via our Express Dispatch Partner on *Saturday morning between 8:00 AM and 11:00 AM*.
 
-Please keep your phone reachable to collect your package in person at your shared location pin (if a delivery attempt fails, customer must collect the package manually from our Live Vending Center in Malabagh)!`
+Please keep your phone reachable — our Express Dispatch Partner calls prior to arrival for a prompt doorstep handover!`
         : `Our deliveries for tonight closed at 8:00 PM. We start fresh orders from 8:00 AM every morning!
 
 Your order (*#${existingOrder.orderRef}* - ${existingOrder.items || "Fresh Rainbow Trout"}) is confirmed! It is scheduled for fresh morning live harvest from our crystal-clear oxygen-saturated cold water tanks, packed in food-grade biodegradable polythene (0% ice), and express dispatch via our Express Dispatch Partner tomorrow morning between *8:00 AM and 11:00 AM*.
 
-Please keep your phone reachable to collect your package in person at your shared location pin (if a delivery attempt fails, customer must collect the package manually from our Live Vending Center in Malabagh)!`;
+Please keep your phone reachable — our Express Dispatch Partner calls prior to arrival for a prompt doorstep handover!`;
     } else {
       deterministicNightReply = isThursdayToday
         ? `Our deliveries for tonight closed at 8:00 PM. Please note that our farm is strictly closed on Fridays for weekly filtration and bio-security maintenance (zero counter walk-ins and zero express deliveries on Friday).
@@ -3912,7 +4092,7 @@ Which slot tomorrow works best for your delivery, and how many Kgs of Cleaned & 
 
 Your order (*#${existingOrder.orderRef}* - ${existingOrder.items || "Fresh Rainbow Trout"}) is confirmed! It is scheduled for today's first fresh live harvest, packed in food-grade biodegradable polythene (0% ice), and express morning dispatch via our Express Dispatch Partner between *8:00 AM and 11:00 AM*.
 
-Please keep your phone reachable to collect your package in person at your shared location pin (if a delivery attempt fails, customer must collect the package manually from our Live Vending Center in Malabagh)! 🐟`;
+Please keep your phone reachable — our Express Dispatch Partner calls prior to arrival for a prompt doorstep handover! 🐟`;
     } else {
       deterministicEarlyReply = `Good morning! We start taking live orders and harvesting from 8:00 AM sharp today!
 
@@ -4128,8 +4308,7 @@ CRITICAL READABILITY & MAXIMUM BREVITY MANDATE (ANSWER ONLY WHAT IS REQUIRED):
      - Ask customers to share their *Google Maps link or WhatsApp Location Pin* for accurate pin-point delivery.
      - Explain our fresh packaging accurately if asked: packed fresh in *100% food-grade biodegradable polythene (two polythenes) with 0% ice* (NEVER say cold-chain or chilled).
      - Our *Express Dispatch Partner* reaches strictly the *exact shared GPS location pin* (not by searching house numbers or knocking on doors).
-     - The package must be received *in person* by the customer at the shared location.
-     - Ask customers to keep their *phone reachable* — because the dispatch executive carries multiple live-harvest orders on an active route, *no second delivery attempt* can be made if unreachable, and *if a delivery attempt fails, the customer will have to collect their package manually from our Live Vending Center in Malabagh*.
+     - Our Express Dispatch Partner navigates directly to the shared GPS pin and calls prior to arrival. Ask customers to keep their phone reachable for a prompt, smooth doorstep handover.
 
 CONVERSATION FLOW & GREETING RULE:
 ${stageInstruction}
@@ -4193,7 +4372,7 @@ In your response when confirmed, include this EXACT tag on its own line:
 Example (Nearby Area, 2 kg):
 [PAY_LINK: 1160 : 2 kg Cleaned & Gutted]
 
-Example (Mid / Greater Srinagar, 3 kg):
+Example (Central Srinagar, 3 kg):
 [PAY_LINK: 1740 : 3 kg Cleaned & Gutted]
 
 Example (South / Cross-City Corridor, 5 kg):
@@ -4273,8 +4452,7 @@ However, all of our farm-raised trout is sold fresh at our Live Vending Center i
    - RULE 2 (PIN-POINT LOCATION, IN-PERSON RECEIPT & FAILED ATTEMPT PICKUP RULE):
      * Whenever explaining delivery terms, confirming an order, or answering how delivery works:
        - Delivery is strictly to the *exact GPS location / Google Maps pin shared on WhatsApp* — our dispatch executive does NOT search house numbers or knock on doors.
-       - The sealed biodegradable package (0% ice) must be *collected in person* by the customer at the shared location point.
-       - Customers must keep their *phone reachable and switched on* — because our Express Dispatch Partner carries multiple live-harvest orders on an active route, *no second delivery attempt* can be made. If a delivery attempt fails (unreachable phone, switched off, or nobody collects at the pin), the customer will have to collect their package manually from our *Live Vending Center in Malabagh*.
+       - Our Express Dispatch Partner navigates directly to the shared GPS pin and calls prior to arrival. Customers must keep their phone reachable for a prompt, smooth doorstep handover.
    - RULE 3 (UNKNOWN / OUTER FRINGE LOCALITIES):
      * Ask politely for their *WhatsApp location pin (tap 📎 ➔ Location) or Google Maps link* so our system can calculate exact distance and verify pin-point express delivery.
    - RULE 4 (PREVIOUSLY VERIFIED SESSIONS):
@@ -4322,20 +4500,24 @@ We look forward to welcoming you to our Live Vending Center in Malabagh (Near R.
 🛵 *Express delivery is 100% FREE* on eligible orders (min 2 kg for nearby areas, 3–5 kg for wider Srinagar areas; standard express delivery fee on smaller orders)!
 
 Which area in Srinagar would you like delivery to, or please drop your WhatsApp location pin / Google Maps link?"
-12. DISCOUNT & BARGAINING INQUIRIES ("kam karo", "discount please", "500 me do", "any concession?"):
-   - When a customer asks for a discount or price reduction:
-   - NEVER say "we have a strict policy on rates" or sound rigid/blunt!
-   - Be polite and warm: highlight that eligible orders enjoy 100% FREE express delivery (zero packing fees; packed fresh in food-grade biodegradable polythene with 0% ice).
-   - Tell them courteously that our fish tastes completely different from ordinary market fish because it is swimming live in crystal-clear oxygen-saturated cold water tanks until ordered (never kept dead on ice with preservatives). They will truly taste the difference!
+12. STRICT NO NEGOTIATION POLICY & DISCOUNT INQUIRIES ("kam karo", "discount please", "500 me do", "any concession?"):
+   - Urban Trout has a STRICT NO NEGOTIATION POLICY. We do NOT negotiate on rates with any customer.
+   - We already provide the most genuine, transparent, and direct farm rates across the entire Kashmir Valley for pure cold-water live-harvest Rainbow Trout (₹580/kg Cleaned & Gutted).
+   - Politely, warmly, and firmly explain that our rates are standardized, fixed, and completely genuine for all customers across Kashmir. Every trout is harvested alive strictly from our pure cold-water tanks upon order confirmation with zero ice and zero preservatives.
+   - Highlight that eligible orders (2 kg for nearby areas, 3–5 kg for wider Srinagar) enjoy 100% FREE express delivery, which provides the maximum value savings!
 13. IDENTITY & AI DISCLOSURE ("Who are you?", "Are you AI or human?", "Bot ho ya insaan?"):
-   - Flex proudly that Urban Trout is Jammu & Kashmir’s very first startup to integrate an AI sales assistant on WhatsApp!
-   - Explain that you are Urban Trout’s digital sales assistant, working 24/7 alongside our farm and harvesting team in Malabagh, Srinagar.
-   - State that our dedicated Malabagh farm and Express Dispatch teams handle live harvest, cleaning, food-grade biodegradable packaging (0% ice), and fast express delivery directly to the customer's shared GPS location.
+   - When asked directly about your identity, explain politely that you are Urban Trout’s digital sales assistant, working 24/7 alongside our farm and harvesting team in Malabagh, Srinagar.
+   - Reassure the customer that our dedicated Malabagh farm team handles live harvesting, cleaning, food-grade biodegradable packaging (0% ice), and fast express delivery directly to their shared GPS location.
 14. QUANTITY (KG) VS FISH SIZE DIRECTIVE (CRITICAL):
    - We sell STRICTLY by total weight / quantity in kilograms (Kg) (Cleaned & Gutted at ₹580/kg).
+   - Our stock is ALWAYS 400–500 grams per fish.
    - NEVER ask the customer "Which size do you want?" or "What size?"! Always ask for quantity in kilograms (e.g. "How many kilograms would you like to order? Minimum 2 kg for free express delivery").
    - If a customer mentions "King size", "large fish", "badi machli", or asks about size:
-     Clarify politely: "Our live Rainbow Trout are premium table-sized fish (each fish weighs approx 350g–500g, so a 2 kg order gives ~4–5 pan-ready fish). We prepare and bill orders strictly by weight in kilograms (Kg), not individual fish sizes. How many kilograms (kg) would you like harvested fresh?"
+     Clarify politely: "Our live Rainbow Trout are premium table-sized fish (each fish weighs approx 400g–500g, so a 2 kg order gives ~4–5 pan-ready fish). We prepare and bill orders strictly by weight in kilograms (Kg), not individual fish sizes. How many kilograms (kg) would you like harvested fresh?"
+15. REVISED DELIVERY RATES DIRECTIVE (CUSTOMER MENTIONS PAYING LESS PREVIOUSLY):
+   - If a customer or returning buyer mentions having paid a lower delivery fee previously or asks about delivery rates:
+   - NEVER be blunt or defensive! Explain politely and respectfully: "To maintain our pure cold-chain live harvest delivery economics and ensure our riders navigate directly to your shared GPS pin within 90–120 minutes with 0% ice packaging, our delivery rates across Srinagar have been revised to standard actual transit costs."
+   - Remind them that orders meeting the zone minimum (2 kg for nearby areas, 3–5 kg for wider Srinagar) enjoy 100% FREE express delivery!
 STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines and bullet points, professional, and courteous. NEVER write a dense continuous paragraph. NEVER use the word "Janab".`;
 
   // Format history for Gemini using native system_instruction
@@ -4361,7 +4543,11 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
       activeTurnPrompt = `[⭐ TODAY'S ORDER PENDING PAYMENT: #${todayOrderForCustomer.orderRef} (${todayOrderForCustomer.items}, ${todayOrderForCustomer.amount}, Slot: ${todayOrderForCustomer.deliveryTime}). Payment link is already generated: ${todayOrderForCustomer.payUrl}. If customer asks for payment or link, provide this exact link. DO NOT change price or generate a different link.]\n\n${activeTurnPrompt}`;
     }
   } else if (existingOrder && !existingOrder.notFound) {
-    activeTurnPrompt = `[⭐ EXISTING ORDER ON FILE: #${existingOrder.orderRef} (${existingOrder.items}, ${existingOrder.amount}, Status: ${existingOrder.status}, Slot: ${existingOrder.deliveryTime}). Customer is asking about their order/delivery. DO NOT GENERATE A PAYMENT LINK. Provide their order status and timing directly.]\n\n${activeTurnPrompt}`;
+    if (isHistoricalOrderPaid(existingOrder)) {
+      activeTurnPrompt = `[⭐ EXISTING CONFIRMED ORDER ON FILE: #${existingOrder.orderRef} (${existingOrder.items}, ${existingOrder.amount}, Status: ${existingOrder.status}, Slot: ${existingOrder.deliveryTime}). Customer is asking about their confirmed order/delivery. Provide their order status and timing directly.]\n\n${activeTurnPrompt}`;
+    } else {
+      activeTurnPrompt = `[ℹ️ RETURNING LEAD / PREVIOUS UNPAID QUOTE: Customer had an older quote #${existingOrder.orderRef}. ANY PREVIOUS PAYMENT LINK HAS EXPIRED. Do NOT resend dead payment links! Always apply current updated delivery rates for their area. If they ask to proceed or pay, generate a fresh order summary with updated rates.]\n\n${activeTurnPrompt}`;
+    }
   }
 
   contents.push({
@@ -4883,8 +5069,18 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
         rawReply = rawReply.replace(/\b(?:in\s+)?Zone\s*2\b/gi, "mid Srinagar");
         rawReply = rawReply.replace(/\b(?:in\s+)?Zone\s*3\b/gi, "central Srinagar");
         rawReply = rawReply.replace(/\b(?:in\s+)?Zone\s*4\b/gi, "outer Srinagar");
-        rawReply = rawReply.replace(/\b(?:in\s+)?greater\s+srinagar\s*(?:areas?|zone)?\b/gi, "Srinagar");
+        rawReply = rawReply.replace(/\b(?:in\s+our\s+|in\s+)?greater\s+srinagar\s*(?:express\s*delivery\s*zone|delivery\s*zone|areas?|zone)?\b/gi, "Srinagar");
+        rawReply = rawReply.replace(/\bgreater\s+srinagar\b/gi, "Srinagar");
         rawReply = rawReply.replace(/\(\s*greater\s+srinagar\s*(?:area)?\s*\)/gi, "");
+        rawReply = rawReply.replace(/\b(?:khyber\s*hospital|masjid\s*aishan\s*sahab\s*sarfi)\b/gi, "Srinagar");
+        // ─── STRICT PROHIBITION ON "AI FLEX" & BOT BOASTING ───
+        rawReply = rawReply
+          .replace(/[-–—]?\s*(?:Jammu\s*&\s*Kashmir(?:’s|'s)?\s*(?:very\s*)?first\s*startup\s*(?:to\s*integrate|integrating|featuring|with|to\s*deliver)?\s*(?:an\s*)?(?:AI(?:\s*sales)?\s*assistant|AI|fresh)?(?:\s*on\s*WhatsApp)?)[!.,\s–—\-]*/gi, "")
+          .replace(/[-–—]?\s*(?:Jammu\s*&\s*Kashmir(?:’s|'s)?\s*(?:very\s*)?first\s*startup)[!.,\s–—\-]*/gi, "")
+          .replace(/\b(?:I\s*am\s*Urban\s*Trout(?:'s|’s)?\s*AI\s*(?:sales\s*)?assistant)[!.,\s–—\-]*/gi, "We are Urban Trout")
+          .replace(/\b(?:our\s*AI\s*(?:sales\s*)?assistant|an\s*AI\s*sales\s*assistant)\b/gi, "our farm team")
+          .replace(/\b(?:integrating\s*AI\s*on\s*WhatsApp|utilizing\s*AI\s*assistance\s*on\s*WhatsApp)\b/gi, "")
+          .replace(/\b(?:with\s+an\s+AI\s+assistant|featuring\s+an\s+AI\s+assistant)\b/gi, "");
         // ─── STRICT CUSTOMER CONFIDENTIALITY & PIN-POINT LOCATION SANITIZER ───
         rawReply = rawReply
           .replace(/\(\s*70\s*%[^)]*30\s*%[^)]*\)/gi, "")
@@ -5354,6 +5550,25 @@ async function startBot() {
         console.warn("Contact sync notice on launch:", e.message);
       }
 
+      // Auto-sync today's paid orders from customer_orders.json to Supabase orders table
+      try {
+        const ordersFilePath = path.join(__dirname, "customer_orders.json");
+        if (fs.existsSync(ordersFilePath)) {
+          const allOrders = JSON.parse(fs.readFileSync(ordersFilePath, "utf-8"));
+          const todayIst = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+          for (const ord of Object.values(allOrders)) {
+            if (ord && (ord.status?.includes("Paid") || ord.status?.includes("Confirmed"))) {
+              const ordDate = (ord.paidAt || ord.updatedAt) ? new Date(ord.paidAt || ord.updatedAt).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }) : "";
+              if (ordDate === todayIst) {
+                syncWhatsAppOrderToSupabase(ord, ord.paymentId).catch(() => {});
+              }
+            }
+          }
+        }
+      } catch (syncErr) {
+        console.warn("Startup order sync notice:", syncErr.message);
+      }
+
       // Clear existing intervals/timeouts if reconnecting to prevent duplication
       if (pollInterval) { clearTimeout(pollInterval); clearInterval(pollInterval); }
       if (paymentInterval) clearInterval(paymentInterval);
@@ -5406,20 +5621,20 @@ async function startBot() {
     const clean = userText.trim();
 
     // 0. Account Number / Bank Transfer exemption (handled by AI / mPay intent decoder)
-    const isAskingAccountDetails = /\b(?:account\s*(?:no|num|number|details)|bank\s*transfer|ifsc|direct\s*transfer|khata\s*(?:no|number)|mpay\s*(?:no|num|number|details|account)|m-pay\s*(?:no|num|number|details|account))\b/i.test(clean);
+    const isAskingAccountDetails = /\b(?:account\s*(?:no|num|number|details)|bank\s*transfer|ifsc|direct\s*transfer|khata\s*(?:no|number)|mpay\s*(?:no|num|number|details|account)|m-pay\s*(?:no|num|number|details|account)|(?:google\s*pay|gpay|phonepe)\s*(?:number|no|num))\b/i.test(clean);
     if (isAskingAccountDetails) return false;
 
-    // 1. Explicit Direct Keywords
-    const directRegex = /\b(?:scanner|qr|qr\s*code|barcode|scan|scanner\s*bhejo|bhejo\s*scanner|send\s*scanner|send\s*qr|scanner\s*hai|qr\s*send|send\s*me\s*scanner|qr\s*please|plz\s*send\s*scanner|scanner\s*\?|scanner\s*chha|scanner\s*bhej|pay\s*via\s*scanner|qr\s*code\s*scanner|scanner\s*photo|scanner\s*image)\b/i;
+    // 1. Explicit Direct Keywords (QR, Scanner, Payment Link, How to pay, GPay/PhonePe/Paytm/UPI)
+    const directRegex = /\b(?:scanner|qr|qr\s*code|barcode|scan|scanner\s*bhejo|bhejo\s*scanner|send\s*scanner|send\s*qr|scanner\s*hai|qr\s*send|send\s*me\s*scanner|qr\s*please|plz\s*send\s*scanner|scanner\s*\?|scanner\s*chha|scanner\s*bhej|pay\s*via\s*scanner|qr\s*code\s*scanner|scanner\s*photo|scanner\s*image|how\s*to\s*pay|pay\s*online|kahan\s*(?:pay|transfer)|kaise\s*pay|payment\s*(?:link|qr|details|mode|karna\s*hai)|send\s*(?:payment\s*)?(?:link|qr|scanner|details)|bhejo\s*(?:payment|link|qr)|gpay|phonepe|paytm|upi)\b/i;
     if (directRegex.test(clean)) return true;
 
-    // 2. Affirmative reply ("Yes", "Sure", "Bhejo", "Ok", etc.) after bot offered scanner
+    // 2. Affirmative reply ("Yes", "Sure", "Bhejo", "Ok", etc.) after bot offered scanner or order summary
     const affirmativeRegex = /^(?:yes|yep|yeah|sure|ok|okay|please|haan|han|hanji|bhejo|send|send\s*it|karo|bhej\s*do|bhej|send\s*please|plz|yes\s*please|done)\b/i;
     if (affirmativeRegex.test(clean) && Array.isArray(chatHist) && chatHist.length > 0) {
       const lastBotMsg = chatHist.filter(m => m.role === "model").pop();
       if (lastBotMsg && lastBotMsg.text) {
-        const offeredScanner = /\b(?:scanner|qr|qr\s*code)\b/i.test(lastBotMsg.text);
-        if (offeredScanner) return true;
+        const offeredPayment = /\b(?:scanner|qr|qr\s*code|rzp\.io|order\s*summary|total\s*payable|payment\s*link)\b/i.test(lastBotMsg.text);
+        if (offeredPayment) return true;
       }
     }
 
@@ -5429,12 +5644,12 @@ async function startBot() {
   // Shared helper to parse quick owner order commands (#link 2kg +149, #2kg +149, #qr 2kg +149, #qr 1740, etc.)
   function parseQuickOrderParams(text, defaultPhone = null, { defaultWeightIfMissing = null } = {}) {
     let deliveryFee = 0;
-    const plusFeeMatch = text.match(/\+\s*(?:rs\.?|inr|₹)?\s*(\d+)/i);
+    const plusDelMatch = text.match(/\+\s*(?:delivery|del|charge|charges|fee)?\s*(?:charge|charges|fee)?\s*(?:rs\.?|inr|₹)?\s*(\d+)/i);
     const delFeeMatch = text.match(/(?:delivery|del|d|shipping|charge|charges|fee)\s*(?:fee|charges?)?\s*(?:is|=|:|\+)?\s*(?:rs\.?|inr|₹)?\s*(\d+)/i);
-    const numDelFeeMatch = text.match(/(\d+)\s*(?:rs\.?|inr|₹)?\s*(?:delivery|del|shipping)/i);
+    const numDelFeeMatch = text.match(/(\d+)\s*(?:rs\.?|inr|₹)?\s*(?:delivery|del|shipping|charges?|fee)/i);
 
-    if (plusFeeMatch) {
-      deliveryFee = parseInt(plusFeeMatch[1], 10) || 0;
+    if (plusDelMatch) {
+      deliveryFee = parseInt(plusDelMatch[1], 10) || 0;
     } else if (delFeeMatch) {
       deliveryFee = parseInt(delFeeMatch[1], 10) || 0;
     } else if (numDelFeeMatch) {
@@ -5451,14 +5666,14 @@ async function startBot() {
       }
     }
 
-    // Parse weight: matches e.g. 2kg, 2 kg, 2.5kg, 3 kilos, or #2 +149 (excluding +fee and 10-digit phone numbers)
+    // Parse weight: matches e.g. 2kg, 2 kg, 2.5kg, 3 kilos, or #2 +89 (excluding +fee and 10-digit phone numbers)
     let weightKg = null;
     const weightMatchWithUnit = text.match(/(\d+(?:\.\d+)?)\s*(?:kg|kilos?|kgs)\b/i);
     if (weightMatchWithUnit) {
       weightKg = Math.round(parseFloat(weightMatchWithUnit[1]) * 100) / 100;
     } else if (!directTotalAmount) {
       const withoutFeesAndPhones = text
-        .replace(/\+\s*(?:rs\.?|inr|₹)?\s*\d+/gi, " ")
+        .replace(/\+\s*(?:delivery|del|charge|fee)?\s*(?:rs\.?|inr|₹)?\s*\d+/gi, " ")
         .replace(/\b[6-9]\d{9}\b/g, " ");
       const smallNumMatch = withoutFeesAndPhones.match(/#?\s*(?:qr|scanner|link|order|pay)?\s*(\d+(?:\.\d+)?)\b/i);
       if (smallNumMatch) {
@@ -5473,7 +5688,7 @@ async function startBot() {
       weightKg = defaultWeightIfMissing;
     }
 
-    // Fallback standalone delivery fee if owner typed e.g. "#2kg 149" or "#qr 2kg 149" without '+' sign
+    // Fallback standalone delivery fee if owner typed e.g. "#2kg 149" or "#qr 2kg 89" without '+' sign
     if (deliveryFee === 0 && weightKg && !directTotalAmount) {
       const stripped = text
         .replace(new RegExp(`\\b${weightKg}\\s*(?:kg|kilos?|kgs)?\\b`, "gi"), "")
@@ -5523,11 +5738,13 @@ async function startBot() {
       .replace(/\b\d+(?:\.\d+)?\s*(?:kg|kilos?|kgs)\b/gi, "")
       .replace(/\b(?:cleaned|gutted|whole|sabut|kg|kilos?|kgs)\b/gi, "")
       .replace(/\b[6-9]\d{9}\b/g, "")
-      .replace(/\+\s*(?:rs\.?|inr|₹)?\s*\d+\s*(?:rs\.?|inr|₹)?/gi, "")
+      .replace(/\+\s*(?:delivery|del|charge|charges|fee)?\s*(?:rs\.?|inr|₹)?\s*\d+\s*(?:rs\.?|inr|₹)?/gi, "")
       .replace(/(?:delivery|del|d|shipping|charge|charges|fee)\s*(?:fee|charges?)?\s*(?:is|=|:|\+)?\s*(?:rs\.?|inr|₹)?\s*\d+/gi, "")
-      .replace(/\b\d+\s*(?:rs\.?|inr|₹)?\s*(?:delivery|del|shipping)\b/gi, "")
+      .replace(/\b\d+\s*(?:rs\.?|inr|₹)?\s*(?:delivery|del|shipping|charge|charges|fee)\b/gi, "")
+      .replace(/\b(?:delivery|charge|charges|fee|shipping|express)\b/gi, "")
       .replace(/\b([3-9]\d|[1-5]\d{2})\b/g, "")
       .replace(/\b\d{3,6}\b/g, "")
+      .replace(/[+*#]/g, " ")
       .replace(/\s+/g, " ")
       .trim();
 
@@ -5594,34 +5811,64 @@ async function startBot() {
         return true; // Handled
       }
 
-      // 1. Resolve numeric amount
-      let amt = forceAmount;
+      // 1. Resolve requested weight & cut type up-front (prevents circular quantity/rate errors)
+      let detectedWeightKg = null;
+      const descWeight = (forceDesc || targetOrder?.items || "").match(/(\d+(?:\.\d+)?)\s*(?:kg|kilos?)/i);
+      if (descWeight) {
+        detectedWeightKg = parseFloat(descWeight[1]);
+      } else if (Array.isArray(chatHist)) {
+        for (let i = chatHist.length - 1; i >= 0; i--) {
+          const msgText = chatHist[i].text || "";
+          const wm = msgText.match(/(?:need|want|send|order|pack|give|for)?\s*(\d+(?:\.\d+)?)\s*(?:kg|kilos?|kgs)\b/i);
+          if (wm) {
+            const w = parseFloat(wm[1]);
+            if (w >= 0.5 && w <= 50) {
+              detectedWeightKg = w;
+              break;
+            }
+          }
+        }
+      }
+
+      const isWhole = /\b(?:whole|sabut)\b/i.test(forceDesc || targetOrder?.items || (Array.isArray(chatHist) && chatHist.slice(-4).map(h => h.text).join(" ")) || "");
+      const baseUnitRate = isWhole ? 540 : 580;
+      const minExpectedBase = detectedWeightKg ? Math.round(detectedWeightKg * baseUnitRate) : 0;
+
+      // 2. Resolve numeric amount
+      let amt = forceAmount ? parseInt(String(forceAmount).replace(/,/g, ""), 10) : null;
       if (!amt && targetOrder && targetOrder.amount) {
-        const m = String(targetOrder.amount).match(/(\d+)/);
+        const m = String(targetOrder.amount).replace(/,/g, "").match(/(\d+)/);
         if (m) amt = parseFloat(m[1]);
       }
       if (!amt && Array.isArray(chatHist)) {
         for (let i = chatHist.length - 1; i >= 0; i--) {
           const t = chatHist[i].text || "";
-          const mPayable = t.match(/(?:total(?:\s*payable)?|amount|pay)[:\s*]*\*?₹?\s*(\d{3,5})\b/i);
-          if (mPayable) { amt = parseFloat(mPayable[1]); break; }
-          const mTotal = t.match(/₹\s*(\d{3,5})\s*total\b/i);
-          if (mTotal) { amt = parseFloat(mTotal[1]); break; }
-          const mFixed = t.match(/₹\s*(1[1-9]\d{2}|2\d{3}|6\d{2}|7\d{2}|8\d{2})\b(?!\s*\/\s*kg)/i);
-          if (mFixed) { amt = parseFloat(mFixed[1]); break; }
+          // Extract explicit total / payable amounts (ignoring unit rates like ₹580/kg or ₹540/kg and supporting commas)
+          const mPayable = t.match(/(?:Total\s*Payable|Total\s*Amount|Amount|Total)[^0-9\n\r]{0,25}?₹?\s*([\d,]{3,7})\b(?!\s*\/\s*kg)/i);
+          if (mPayable) { amt = parseFloat(mPayable[1].replace(/,/g, "")); break; }
         }
       }
+
+      // 🛡️ HARD QUANTITY & AMOUNT INTEGRITY GUARD:
+      // If customer requested e.g. 2 kg, total amount CANNOT be below base cost (2 * 540 = 1080 / 2 * 580 = 1160)!
+      if (detectedWeightKg && detectedWeightKg >= 1.5 && amt && amt < minExpectedBase) {
+        console.error(`🚨 [CRITICAL AMOUNT MISMATCH GUARD] Resolved amt ₹${amt} is below minimum price for ${detectedWeightKg}kg (${minExpectedBase}). Auto-correcting based on requested weight!`);
+        amt = minExpectedBase + (Number(forceDeliveryFee) || 0);
+      }
       if (!amt || amt <= 0) {
-        amt = 1160; // Standard 2 kg Cleaned & Gutted
+        amt = detectedWeightKg ? (minExpectedBase + (Number(forceDeliveryFee) || 0)) : 1160; // Standard 2 kg Cleaned & Gutted
       }
 
-      // 2. Resolve order reference
+      // 3. Resolve order reference
       const orderRef = forceRef || targetOrder?.orderRef || `UT-WA-${Date.now().toString().slice(-8)}`;
 
-      // 3. Resolve items description
+      // 4. Resolve items description
       let itemsDesc = forceDesc || targetOrder?.items;
       if (!itemsDesc) {
-        if (amt >= 2850) itemsDesc = "5 kg Cleaned & Gutted (Family Bulk Pack)";
+        const cutName = isWhole ? "Whole Fresh Trout" : "Cleaned & Gutted";
+        if (detectedWeightKg) {
+          itemsDesc = `${detectedWeightKg} kg × ${cutName}`;
+        } else if (amt >= 2850) itemsDesc = "5 kg Cleaned & Gutted (Family Bulk Pack)";
         else if (amt >= 2300) itemsDesc = "4 kg Cleaned & Gutted";
         else if (amt >= 1700) itemsDesc = "3 kg Cleaned & Gutted (Pan-Ready)";
         else if (amt >= 1160) itemsDesc = "2 kg Cleaned & Gutted (Pan-Ready)";
@@ -5647,13 +5894,32 @@ async function startBot() {
         rzpQrId = rzpQr.qrId;
         rzpQrUrl = rzpQr.imageUrl;
       } catch (rzpQrErr) {
-        console.warn("Could not create Razorpay dynamic QR, falling back to secure payment URL QR:", rzpQrErr.message);
-        const fallbackUrl = targetOrder?.payUrl || "https://rzp.io";
-        qrBuffer = await QRCode.toBuffer(fallbackUrl, {
-          width: 600,
-          margin: 2,
-          color: { dark: "#000000", light: "#ffffff" }
-        });
+        console.warn("Could not create Razorpay dynamic QR, falling back to secure Razorpay payment link QR:", rzpQrErr.message);
+        let fallbackUrl = targetOrder?.payUrl;
+        if (!fallbackUrl) {
+          try {
+            const payObj = await createRazorpayPaymentLink({
+              amount: amt,
+              customerPhone: cleanPhone || raw10,
+              customerName: customerName || targetOrder?.name || "Customer",
+              description: itemsDesc
+            });
+            fallbackUrl = payObj.url;
+            if (targetOrder) {
+              targetOrder.payUrl = fallbackUrl;
+              targetOrder.paymentLinkId = payObj.id;
+            }
+          } catch (linkFallbackErr) {
+            console.error("Failed to generate fallback Razorpay payment link:", linkFallbackErr.message);
+          }
+        }
+        if (fallbackUrl) {
+          qrBuffer = await QRCode.toBuffer(fallbackUrl, {
+            width: 600,
+            margin: 2,
+            color: { dark: "#000000", light: "#ffffff" }
+          });
+        }
       }
 
       if (!qrBuffer) {
@@ -5697,7 +5963,7 @@ async function startBot() {
         `• *Amount:* *₹${amt.toLocaleString("en-IN")}* (Pre-filled & Locked)\n` +
         `• *Ref:* #${orderRef}\n\n` +
         `👉 *Scan & Pay with any UPI app:* PhonePe, Google Pay, Paytm, or J&K Bank mPay.\n` +
-        `_Packed fresh in 100% food-grade biodegradable polythene (0% ice). Delivered strictly to shared GPS pin (in-person receipt; if a delivery attempt fails, customer must collect manually from our Live Vending Center in Malabagh)._${qrWeatherLine} 🚀`;
+        `_Packed fresh in 100% food-grade biodegradable polythene (0% ice). Delivered directly to your shared GPS pin (our rider calls prior to arrival for a prompt doorstep handover)._${qrWeatherLine} 🚀`;
 
       const qrMsg = await sock.sendMessage(remoteJid, {
         image: qrBuffer,
@@ -5726,6 +5992,7 @@ async function startBot() {
       const updatedOrder = {
         ...(targetOrder || {}),
         orderRef,
+        paymentLinkId: targetOrder?.paymentLinkId || null,
         chatId: remoteJid,
         phone: cleanPhone || raw10,
         name: customerName || targetOrder?.name || "Customer",
@@ -6342,14 +6609,17 @@ async function startBot() {
           };
 
           recordNewCustomerOrder(targetPhone, updatedOrder);
+          syncWhatsAppOrderToSupabase(updatedOrder, updatedOrder.paymentId).catch((syncErr) => {
+            console.warn("[Supabase Order Sync Notice]:", syncErr?.message || syncErr);
+          });
 
           // 1. Send official WhatsApp confirmation receipt to customer
           const hasGps = Boolean(updatedOrder.latitude || (chatMetadata[targetJid] && chatMetadata[targetJid].latitude));
           let pinPrompt = "";
           if (!hasGps) {
-            pinPrompt = `\n\n📍 *Important Pin-Point Delivery Instructions:*\nPlease share your *WhatsApp Location Pin* (tap 📎 ➔ Location ➔ Send current location) or *Google Maps link* right now so our *Urban Trout Express Dispatch Partner* navigates directly to your shared spot.\n• Your fish is packed fresh in *100% food-grade biodegradable polythene (0% ice)*.\n• Delivery is made *strictly to the shared GPS location pin* (not by searching house numbers or knocking on doors).\n• Please collect your package *in person* at the shared location and keep your phone reachable — as our express dispatch executive carries multiple live-harvest orders on an active route, *no second delivery attempt* can be made and if a delivery attempt fails, you will have to collect the package manually from our *Live Vending Center in Malabagh*.`;
+            pinPrompt = `\n\n📍 *Important Pin-Point Delivery Instructions:*\nPlease share your *WhatsApp Location Pin* (tap 📎 ➔ Location ➔ Send current location) or *Google Maps link* right now so our *Urban Trout Express Dispatch Partner* navigates directly to your shared spot.\n• Your fish is packed fresh in *100% food-grade biodegradable polythene (0% ice)*.\n• Delivery is made *strictly to the shared GPS location pin* (not by searching house numbers or knocking on doors).\n• Our Express Dispatch Partner navigates directly to your shared pin and calls prior to arrival. Please keep your phone reachable for a prompt, smooth doorstep handover.`;
           } else {
-            pinPrompt = `\n\n📍 *Express Dispatch Instructions:*\nYour fish is packed fresh in *100% food-grade biodegradable polythene (0% ice)*. Our *Urban Trout Express Dispatch Partner* will deliver *strictly to your shared GPS location pin* (no house-number search). Kindly receive your package *in person* at the shared location point and keep your phone reachable — due to scheduled multi-order routes, *no second delivery attempt* can be made and if a delivery attempt fails, you will have to collect the package manually from our *Live Vending Center in Malabagh*.`;
+            pinPrompt = `\n\n📍 *Express Dispatch Instructions:*\nYour fish is packed fresh in *100% food-grade biodegradable polythene (0% ice)*. Our *Urban Trout Express Dispatch Partner* will deliver *strictly to your shared GPS location pin* (not house numbers). Kindly keep your phone reachable — our rider calls prior to arrival for a prompt, smooth doorstep handover.`;
           }
           const isTomorrowManual = /(?:tomorrow|kal|saturday|advance)/i.test(updatedOrder.deliveryTime || "");
           const manualWeatherPolicy = evaluateWeatherDeliveryPolicy(updatedOrder?.distanceKm);
@@ -6513,6 +6783,26 @@ async function startBot() {
               await sock.sendMessage(customerJid, { text: orderCard });
               humanOverrides.set(customerJid, Date.now() + 30 * 60 * 1000);
               console.log(`✅ [Direct WhatsApp Link Sent] Delivered directly to customer ${customerJid}!`);
+
+              // Auto-dispatch locked UPI QR image directly to customer
+              setTimeout(async () => {
+                try {
+                  await dispatchLockedQrImage(sock, customerJid, {
+                    cleanPhone: targetCustPhone,
+                    raw10: targetCustPhone,
+                    customerName: targetCustName,
+                    forceAmount: totalAmount,
+                    forceRef: payObj.ref,
+                    forceDesc: itemDesc,
+                    forceDeliveryFee: deliveryFee,
+                    bypassLocationGuard: true,
+                    chatHist: chatHistories.get(customerJid) || []
+                  });
+                } catch (qrErr) {
+                  console.warn("Notice: Companion QR dispatch to customer error:", qrErr.message);
+                }
+              }, 800);
+
               await sock.sendMessage(remoteJid, {
                 text: `✅ *Order #${payObj.ref} Generated & Dispatched!* 🚀\n\n` +
                   `• *Customer:* ${targetCustName} (+91 ${targetCustPhone})\n` +
@@ -6520,7 +6810,7 @@ async function startBot() {
                   (deliveryFee > 0 ? `• *Express Delivery Fee:* +₹${deliveryFee}\n` : "") +
                   `• *Total Payable:* *₹${totalAmount}*\n` +
                   `• *Payment Link:* ${payObj.url}\n\n` +
-                  `📩 *Order summary and payment link delivered directly to customer (+91 ${targetCustPhone}) on WhatsApp!*`
+                  `📩 *Order summary and locked QR code delivered directly to customer (+91 ${targetCustPhone}) on WhatsApp!*`
               });
               return;
             } catch (custSendErr) {
@@ -6532,6 +6822,25 @@ async function startBot() {
           humanOverrides.set(remoteJid, Date.now() + 30 * 60 * 1000);
           await sock.sendMessage(remoteJid, { text: orderCard });
           console.log(`✅ [Direct Link in Current Chat] Order #${payObj.ref} sent to ${remoteJid}`);
+
+          // Auto-dispatch locked UPI QR image in current chat
+          setTimeout(async () => {
+            try {
+              await dispatchLockedQrImage(sock, remoteJid, {
+                cleanPhone: targetCustPhone,
+                raw10: targetCustPhone,
+                customerName: targetCustName,
+                forceAmount: totalAmount,
+                forceRef: payObj.ref,
+                forceDesc: itemDesc,
+                forceDeliveryFee: deliveryFee,
+                bypassLocationGuard: true,
+                chatHist: chatHistories.get(remoteJid) || []
+              });
+            } catch (qrErr) {
+              console.warn("Notice: Companion QR dispatch in current chat error:", qrErr.message);
+            }
+          }, 800);
           return;
         } catch (linkErr) {
           console.error(`❌ [Owner Quick-Link Error]:`, linkErr);
@@ -6758,17 +7067,29 @@ async function startBot() {
           recordNewCustomerOrder(cleanPhone || raw10, activeOrder);
         }
 
-        const pinPolicyNote = `\n\n📌 *Pin-Point Delivery Reminder:*\nPacked fresh in *food-grade biodegradable polythene (0% ice)* — our *Express Dispatch Partner* delivers strictly to this shared GPS pin (not by house numbers). Please collect your order *in person* at this location and keep your phone reachable — as the dispatch partner carries multiple live-harvest orders on route, *no second delivery attempt* can be made and if a delivery attempt fails, you will have to collect your package manually from our *Live Vending Center in Malabagh*.`;
+        const pinPolicyNote = `\n\n📌 *Pin-Point Delivery Reminder:*\nPacked fresh in *food-grade biodegradable polythene (0% ice)* — our *Express Dispatch Partner* delivers strictly to this shared GPS pin (not by house numbers). Please keep your phone reachable so our rider can call prior to arrival for a prompt, smooth doorstep handover.`;
         const gpsWeatherPolicy = evaluateWeatherDeliveryPolicy(distNum);
         const weatherPinNote = gpsWeatherPolicy.deliverWithDelayWarning ? `\n\n${gpsWeatherPolicy.delayWarningText}` : "";
         const paidWeatherPinNote = gpsWeatherPolicy.weather.isBadWeather
           ? `\n\n${gpsWeatherPolicy.weatherIcon} *${gpsWeatherPolicy.weatherNoun === "snowfall" ? "Snowfall" : "Rain"} in your area:* Deliveries are active! Since our riders are navigating extra carefully on wet roads, please allow 15–20 minutes extra transit time for your live-harvested pack (0% ice).`
           : "";
 
+        const hasExplicitTomorrowSchedule =
+          Boolean(activeOrder?.scheduledSlot) ||
+          chatHist.slice(-4).some(m => m.text && /\b(?:scheduled slot:\s*tomorrow|slot for tomorrow|delivery for tomorrow|tomorrow morning|tomorrow\s*(?:\([^)]+\)\s*)?(?:8\s*[-–]\s*11|10\s*am|11\s*am|12\s*[-–]\s*3|4\s*[-–]\s*7))\b/i.test(m.text));
+
         if (activeOrder && isAlreadyPaid) {
           // ── STRICT PAID ORDER SHIELD ──
           // Customer has ALREADY paid! Order is genuine and active.
           console.log(`│ 🛡️ [PAID ORDER SHIELD] Customer ${cleanPhone || customerName} already paid for active order #${activeOrder.orderRef}. Locking coordinates for Express Dispatch!`);
+          activeOrder.latitude = detectedLat;
+          activeOrder.longitude = detectedLng;
+          activeOrder.googleMapsUrl = mapsUrl;
+          if (detectedLocalityName) activeOrder.deliveryArea = detectedLocalityName;
+          recordNewCustomerOrder(cleanPhone || raw10, activeOrder);
+          syncWhatsAppOrderToSupabase(activeOrder, activeOrder.paymentId).catch((syncErr) => {
+            console.warn("[Supabase Location Sync Notice]:", syncErr?.message || syncErr);
+          });
           locReply = `📍 *Delivery Location Received & Coordinates Locked!* ✅\n\nThank you! We have locked your exact GPS coordinates for our *Urban Trout Express Dispatch Partner*.\n\nYour order (*#${activeOrder.orderRef}*) is paid & confirmed! Our Malabagh farm team has it scheduled for fresh live harvest.${paidWeatherPinNote}${pinPolicyNote}\n\n📍 Maps: ${mapsUrl}`;
           historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. Active order #${activeOrder.orderRef} is PAID. Coordinates locked for Express Dispatch.]`;
 
@@ -6787,7 +7108,7 @@ async function startBot() {
               ).catch(() => {});
             } catch (_) {}
           }
-        } else if (gpsWeatherPolicy.blockedByWeather) {
+        } else if (gpsWeatherPolicy.blockedByWeather && !hasExplicitTomorrowSchedule) {
           console.log(`│ ${gpsWeatherPolicy.weatherIcon} [WEATHER HOLD >${WEATHER_RESTRICT_RADIUS_KM}km] Verified pin (${distRounded} km) paused during active ${gpsWeatherPolicy.weather.condition}.`);
           locReply = gpsWeatherPolicy.buildWetWeatherOutOfZoneMessage(detectedLocalityName || "Your Area", distRounded);
           historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. ACTIVE ${gpsWeatherPolicy.weatherTitle.toUpperCase()} HOLD (>${WEATHER_RESTRICT_RADIUS_KM} km). Express delivery paused until weather clears; invited to Live Vending Center in Malabagh.]`;
@@ -6895,7 +7216,7 @@ async function startBot() {
             });
           } else {
             // First time inquiry via location pin (no order discussed yet) - show tier pricing for their distance
-            const gpsPolicyLine = `📌 _Packed fresh in food-grade biodegradable polythene (0% ice). Delivered strictly to this shared GPS pin (in-person receipt; keep phone reachable — if a delivery attempt fails, customer must collect the package manually from our Live Vending Center in Malabagh)._`;
+            const gpsPolicyLine = `📌 _Packed fresh in food-grade biodegradable polythene (0% ice). Delivered directly to your shared GPS pin. Please keep your phone reachable — our rider calls prior to arrival for a prompt doorstep handover._`;
             if (distNum <= 4.0) {
               locReply = isNightGps
                 ? `📍 *Location Received & Verified!* ✅\n\nYour shared location is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Express delivery is 100% FREE* (min order 2 kg, zero extra fees)!\n${gpsPolicyLine}\nDeliveries for tonight closed at 8:00 PM. We can schedule your harvest for tomorrow (Morning 8–11 AM, Afternoon 12–3 PM, or Evening 4–7 PM).\n\nHow many Kgs and which slot tomorrow would you prefer? 🐟`
@@ -6937,7 +7258,7 @@ async function startBot() {
         }
       } catch (gpsErr) {
         console.error(`❌ [GPS Pin Handler Error] ${gpsErr?.stack || gpsErr}`);
-        locReply = `📍 *Location Received!* ✅\n\nYour shared location is approximately *${distRounded} km* from our Malabagh farm.\n\nHow many Kgs of *Cleaned & Gutted* fresh Rainbow Trout (₹580/kg) would you like to order? Packed in food-grade biodegradable polythene (0% ice) and delivered by our *Urban Trout Express Dispatch Partner* strictly to your shared GPS pin (in-person receipt; if a delivery attempt fails, customer must collect the package manually from our Live Vending Center in Malabagh). 🐟`;
+        locReply = `📍 *Location Received!* ✅\n\nYour shared location is approximately *${distRounded} km* from our Malabagh farm.\n\nHow many Kgs of *Cleaned & Gutted* fresh Rainbow Trout (₹580/kg) would you like to order? Packed in food-grade biodegradable polythene (0% ice) and delivered by our *Urban Trout Express Dispatch Partner* directly to your shared GPS pin (please keep phone reachable — our rider calls prior to arrival for a prompt doorstep handover). 🐟`;
         historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm.]`;
       }
       console.log(`└─────────────────────────────────────────────────────────────`);
@@ -6960,12 +7281,17 @@ async function startBot() {
       });
 
       // Proactive auto-QR dispatch when order summary card is generated on GPS pin
-      if (locReply.includes("ORDER SUMMARY") && locReply.includes("Total Payable")) {
+      if (locReply.includes("ORDER SUMMARY") && (locReply.includes("Total Payable") || /Total\s*Payable/i.test(locReply))) {
         try {
-          const mAmt = locReply.match(/(?:Total Payable:\s*\*?₹?\s*)(\d{3,5})/i);
-          const fAmt = mAmt ? parseInt(mAmt[1], 10) : null;
+          const mAmt = locReply.match(/(?:Total\s*Payable|Total\s*Amount|Amount|Total)[^0-9\n\r]{0,25}?₹?\s*([\d,]{3,7})\b(?!\s*\/\s*kg)/i);
+          const fAmt = mAmt ? parseInt(mAmt[1].replace(/,/g, ""), 10) : null;
           const mR = locReply.match(/(?:#|Ref:\s*#?)(UT-WA-\d+)/i);
           const fR = mR ? mR[1] : null;
+          const mItem = locReply.match(/[•\-\*]\s*(?:Item|Order):\s*([^\n•]+)/i);
+          const fDesc = mItem ? mItem[1].replace(/\*/g, "").trim() : null;
+          const mFee = locReply.match(/(?:Delivery(?: Fee)?|Express Courier):\s*(?:[^\n]*?\+?\s*₹?\s*([\d,]+)|\+₹?([\d,]+))/i);
+          const fFee = mFee ? parseInt((mFee[1] || mFee[2]).replace(/,/g, ""), 10) : 0;
+
           setTimeout(async () => {
             try {
               await dispatchLockedQrImage(sock, remoteJid, {
@@ -6974,6 +7300,8 @@ async function startBot() {
                 customerName,
                 forceAmount: fAmt,
                 forceRef: fR,
+                forceDesc: fDesc,
+                forceDeliveryFee: fFee,
                 bypassLocationGuard: true,
                 chatHist
               });
@@ -7102,17 +7430,24 @@ async function startBot() {
         meta: { responseMs: responseTimeMs, locality: activeLocality }
       });
 
-      // ─── PROACTIVE AUTO-QR DISPATCH ALONGSIDE ORDER SUMMARY ───
-      // Automatically dispatch the locked UPI QR code image whenever an order summary card is generated,
+      // ─── PROACTIVE AUTO-QR DISPATCH ALONGSIDE PAYMENT LINKS & ORDER SUMMARY ───
+      // Automatically dispatch the locked UPI QR code image whenever a payment link or order summary is generated,
       // so customers receive BOTH tap-to-pay web link AND scan-to-pay QR image without having to ask!
-      const hasOrderSummaryInReply = /(?:🧾\s*)?(?:URBAN TROUT\s*[•·-]\s*)?(?:Order Summary|ORDER SUMMARY)/i.test(aiReply) &&
-                                     /(?:Total Payable|rzp\.io)/i.test(aiReply);
-      if (hasOrderSummaryInReply && !isCustomerRequestingQr(text, chatHist)) {
+      const hasPaymentInReply = (
+        /(?:rzp\.io|https:\/\/rzp\.io|payment link|UPI QR)/i.test(aiReply) ||
+        /(?:🧾\s*)?(?:URBAN TROUT\s*[•·-]\s*)?(?:Order Summary|ORDER SUMMARY)/i.test(aiReply) ||
+        /(?:Total Payable:\s*\*?₹?\s*\d+)/i.test(aiReply)
+      ) && !aiReply.includes("✅ *Payment Received") && !aiReply.includes("OUT FOR DELIVERY");
+      if (hasPaymentInReply && !isCustomerRequestingQr(text, chatHist)) {
         try {
-          const amtMatch = aiReply.match(/(?:Total Payable:\s*\*?₹?\s*|Amount:\s*\*?₹?\s*)(\d{3,5})/i);
-          const forceAmount = amtMatch ? parseInt(amtMatch[1], 10) : null;
+          const amtMatch = aiReply.match(/(?:Total\s*Payable|Total\s*Amount|Amount|Total)[^0-9\n\r]{0,25}?₹?\s*([\d,]{3,7})\b(?!\s*\/\s*kg)/i);
+          const forceAmount = amtMatch ? parseInt(amtMatch[1].replace(/,/g, ""), 10) : null;
           const refMatch = aiReply.match(/(?:#|Ref:\s*#?)(UT-WA-\d+)/i);
           const forceRef = refMatch ? refMatch[1] : null;
+          const itemMatch = aiReply.match(/[•\-\*]\s*(?:Item|Order):\s*([^\n•]+)/i);
+          const forceDesc = itemMatch ? itemMatch[1].replace(/\*/g, "").trim() : null;
+          const feeMatch = aiReply.match(/(?:Delivery(?: Fee)?|Express Courier):\s*(?:[^\n]*?\+?\s*₹?\s*([\d,]+)|\+₹?([\d,]+))/i);
+          const forceDeliveryFee = feeMatch ? parseInt((feeMatch[1] || feeMatch[2]).replace(/,/g, ""), 10) : 0;
 
           setTimeout(async () => {
             try {
@@ -7122,6 +7457,8 @@ async function startBot() {
                 customerName,
                 forceAmount,
                 forceRef,
+                forceDesc,
+                forceDeliveryFee,
                 bypassLocationGuard: true,
                 chatHist: chatHistories.get(remoteJid) || []
               });
