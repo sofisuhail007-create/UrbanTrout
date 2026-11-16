@@ -73,6 +73,7 @@ const GEMINI_API_KEYS = rawGeminiKeys
 console.log(`🔑 [Gemini Key Pool] Loaded ${GEMINI_API_KEYS.length} active account key(s) with automatic failover.`);
 
 let activeKeyIndex = 0;
+let lastActiveGeminiModel = "gemini-flash-lite-latest";
 function getActiveGeminiKey() {
   if (GEMINI_API_KEYS.length === 0) return "";
   return GEMINI_API_KEYS[activeKeyIndex % GEMINI_API_KEYS.length];
@@ -4762,6 +4763,7 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
       }
 
       if (rawReply) {
+        lastActiveGeminiModel = model;
 
         // Check for [PAY_LINK: amount : desc] tag in reply
         const payMatch = rawReply.match(/\[PAY_LINK:\s*(\d+)\s*:\s*([^\]]+)\]/i);
@@ -5221,6 +5223,7 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
   }
 
   console.error(`[CRITICAL AI OUTAGE] All Gemini models failed for ${chatId}. Sending graceful safety response.`);
+  lastActiveGeminiModel = "Safety Fallback (All Models Down)";
   if (isFirstMessage) {
     const isCustomerSalam = /\b(?:assalam(?:u|-o)?[\s-]?[aA]laikum|assalamualaykum|assalamualikum|assalamu\s*alaikum|asalam\s*alaykum|salam\s*(?:u\s*)?alaikum|salam|salaam|aoa)\b/i.test(userMessage.trim());
     const greetingPrefix = isCustomerSalam ? "Walaikum Assalam! " : "Hello! ";
@@ -7477,7 +7480,7 @@ async function startBot() {
       console.log(`│ 📍 Area: ${activeLocality}`);
       console.log(`│ 📩 Customer: "${text}"`);
       console.log(`├──────────────────────────────────────────────────────────────────────────`);
-      console.log(`│ 🤖 [AI SALES AGENT] Model: gemini-2.5-flash | Key #${activeKeyNum} | ⚡ Speed: ${responseTimeMs}ms (${responseTimeSec}s)`);
+      console.log(`│ 🤖 [AI SALES AGENT] Model: ${lastActiveGeminiModel} | Key #${activeKeyNum} | ⚡ Speed: ${responseTimeMs}ms (${responseTimeSec}s)`);
       console.log(`│ 📤 Reply: "${aiReply.replace(/\n+/g, ' ')}"`);
       console.log(`└──────────────────────────────────────────────────────────────────────────\n`);
 
