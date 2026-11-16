@@ -291,6 +291,51 @@ export default function DashboardPage() {
     };
   }, [loadData]);
 
+
+  const launchWhatsApp = (phone: string, text: string) => {
+    const cleanPhone = String(phone || "").replace(/\D/g, "").slice(-10);
+    if (!cleanPhone) return;
+    const isMobile = typeof navigator !== "undefined" && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const encoded = encodeURIComponent(text);
+    const url = isMobile
+      ? `https://api.whatsapp.com/send?phone=91${cleanPhone}&text=${encoded}`
+      : `https://web.whatsapp.com/send?phone=91${cleanPhone}&text=${encoded}`;
+    window.open(url, "_blank");
+  };
+
+  const handleStaffOrderStatus = async (
+    orderId: string,
+    status: string,
+    orderNumber: number,
+    rawName: string,
+    phone: string,
+    action: "harvest" | "rider" | "delivered" | "chat"
+  ) => {
+    const cleanName = rawName ? rawName.replace(/\s*\([^)]*\)/g, "").replace(/\+?\d[\d\s-]{8,}/g, "").trim() : "Valued Customer";
+    try {
+      if (action !== "chat") {
+        await adminFetch("/api/order-status", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderId, status }),
+        });
+        setOrders((prev) => prev.map((o) => (o.id === orderId ? { ...o, status: status as any } : o)));
+      }
+
+      let msg = `Hi ${cleanName}! Your Urban Trout order #${orderNumber} update:`;
+      if (action === "harvest") {
+        msg = `Hello ${cleanName}! 🐟\n\nYour fresh trout order (#${orderNumber}) is now being prepared at Urban Trout Farm!\n\nOur team has initiated live harvest from our oxygenated mountain spring tanks in Malabagh. Express delivery is on track within our 2-hour window! 🛵`;
+      } else if (action === "rider") {
+        msg = `Hello ${cleanName}! 🛵\n\nYour fresh trout order (#${orderNumber}) has been prepped, packed, and loaded onto our delivery bike!\n\nOur rider is en route to your location. Please ensure you are reachable on your phone.`;
+      } else if (action === "delivered") {
+        msg = `Hello ${cleanName}! ✨\n\nYour Urban Trout order (#${orderNumber}) has been delivered! We hope you enjoy the farm-fresh mountain trout.\n\nPlease take a moment to share your review on Google:\nhttps://g.page/r/CU9oD5sY40EIEBM/review\n\nThank you for choosing Urban Trout! 🐟`;
+      }
+      launchWhatsApp(phone, msg);
+    } catch (err) {
+      console.warn("Status update error:", err);
+    }
+  };
+
   const today = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Kolkata",
     year: "numeric",
@@ -555,12 +600,14 @@ export default function DashboardPage() {
             value={`₹${balanceSummary.totalPendingAmount.toLocaleString("en-IN")}`}
             sub={balanceSummary.pendingRecordsCount > 0 ? `${balanceSummary.pendingRecordsCount} unpaid bills` : "All clear ✓"}
           />
-          <StatCard
-            icon="point_of_sale"
-            label="Counter Status"
-            value="Active"
-            sub="POS Billing Ready"
-          />
+          <Link href="/admin/dashboard/orders" className="block hover:opacity-90 transition-opacity">
+            <StatCard
+              icon="schedule"
+              label="Open Orders"
+              value={orders.length}
+              sub={orders.length > 0 ? `${orders.length} awaiting dispatch` : "All clear ✓"}
+            />
+          </Link>
         </div>
       )}
 
@@ -785,13 +832,158 @@ export default function DashboardPage() {
           )}
         </div>
       ) : (
-        <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl overflow-hidden">
-          <div className="flex items-center justify-between px-4 sm:px-5 py-3.5 border-b border-zinc-800/80">
-            <div className="flex items-center gap-2">
-              <span className="material-symbols-outlined text-cyan-400 text-lg">receipt_long</span>
-              <h2 className="font-semibold text-zinc-100 text-sm font-['Space_Grotesk']">
-                Today's Counter Entries ({todayVendingEntries.length})
-              </h2>
+        <div className="space-y-4">
+          {/* Active Open Orders Dispatch Radar for Staff (Mohd Amin) */}
+          <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl overflow-hidden">
+            <div className="flex items-center justify-between px-4 sm:px-5 py-3.5 border-b border-zinc-800/80 bg-cyan-950/20">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-lg bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-base">schedule</span>
+                </div>
+                <div>
+                  <h2 className="font-semibold text-white text-sm font-['Space_Grotesk'] flex items-center gap-2">
+                    <span>Open Orders Dispatch Radar</span>
+                    <span className="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 text-[10px] font-mono font-bold">
+                      {orders.length} Active
+                    </span>
+                  </h2>
+                  <p className="text-[11px] text-zinc-400 font-mono">
+                    Live orders requiring harvest, preparation, and rider delivery
+                  </p>
+                </div>
+              </div>
+              <Link
+                href="/admin/dashboard/orders"
+                className="px-3 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs transition-colors flex items-center gap-1 font-mono shadow-sm"
+              >
+                <span>Full Radar Page</span>
+                <span>→</span>
+              </Link>
+            </div>
+
+            {loading ? (
+              <div className="p-8 text-center text-zinc-500 text-sm font-mono">Loading open orders…</div>
+            ) : orders.length === 0 ? (
+              <div className="p-6 text-center text-zinc-400 text-sm space-y-2">
+                <span className="material-symbols-outlined text-3xl block text-emerald-400">task_alt</span>
+                <p className="font-semibold text-zinc-200">All customer delivery orders are fulfilled &amp; completed!</p>
+                <p className="text-xs text-zinc-500 font-mono">New incoming orders will appear here automatically.</p>
+                <Link
+                  href="/admin/dashboard/orders"
+                  className="inline-block mt-1 px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-mono border border-zinc-700"
+                >
+                  Open Orders Page
+                </Link>
+              </div>
+            ) : (
+              <div className="divide-y divide-zinc-800/60">
+                {orders.map((o) => {
+                  const cleanPhone = (o.customer_phone || "").replace(/\D/g, "").slice(-10);
+                  return (
+                    <div key={o.id} className="p-4 hover:bg-zinc-800/30 transition-colors space-y-2.5">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-mono font-bold text-cyan-400 text-sm">#{o.order_number}</span>
+                          <span className="font-bold text-white text-sm">{o.customer_name}</span>
+                          {o.customer_locality && (
+                            <span className="text-xs text-zinc-300 flex items-center gap-1 font-mono">
+                              <span className="material-symbols-outlined text-xs text-cyan-400">location_on</span>
+                              {o.customer_locality}
+                            </span>
+                          )}
+                          <span className={`text-[10px] px-2 py-0.5 rounded font-mono font-bold ${STATUS_COLOR[o.status] ?? "bg-zinc-800 text-zinc-400"}`}>
+                            {STATUS_LABEL[o.status] ?? o.status}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 font-mono">
+                          <span className="text-base font-bold text-emerald-400">
+                            ₹{Number(o.total || 0).toLocaleString("en-IN")}
+                          </span>
+                          <span className="text-xs text-zinc-500">
+                            {new Date(o.created_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* 1-Tap Quick Action Buttons */}
+                      <div className="flex items-center gap-2 flex-wrap pt-1 text-xs font-mono">
+                        <button
+                          type="button"
+                          onClick={() => handleStaffOrderStatus(o.id, "processing", o.order_number, o.customer_name, cleanPhone, "harvest")}
+                          className={`px-2.5 py-1.5 rounded-lg border flex items-center gap-1 transition-all cursor-pointer font-semibold ${
+                            o.status === "processing"
+                              ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/50 shadow-sm"
+                              : "bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border-zinc-700"
+                          }`}
+                          title="Set to Harvesting & Send WhatsApp"
+                        >
+                          <span>🐟</span>
+                          <span>Harvest Alert</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleStaffOrderStatus(o.id, "out_for_delivery", o.order_number, o.customer_name, cleanPhone, "rider")}
+                          className={`px-2.5 py-1.5 rounded-lg border flex items-center gap-1 transition-all cursor-pointer font-semibold ${
+                            o.status === "out_for_delivery"
+                              ? "bg-blue-500/20 text-blue-300 border-blue-500/50 shadow-sm"
+                              : "bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border-zinc-700"
+                          }`}
+                          title="Set to On Bike & Send Rider En Route WhatsApp"
+                        >
+                          <span>🛵</span>
+                          <span>Rider Alert</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleStaffOrderStatus(o.id, "delivered", o.order_number, o.customer_name, cleanPhone, "delivered")}
+                          className={`px-2.5 py-1.5 rounded-lg border flex items-center gap-1 transition-all cursor-pointer font-bold ${
+                            o.status === "delivered"
+                              ? "bg-emerald-500/25 text-emerald-300 border-emerald-500/40 shadow-sm"
+                              : "bg-emerald-600 hover:bg-emerald-500 text-slate-950 border-emerald-500"
+                          }`}
+                          title="Mark Delivered & Send Google Review WhatsApp"
+                        >
+                          <span>✓</span>
+                          <span>Delivered Alert</span>
+                        </button>
+
+                        {cleanPhone && (
+                          <button
+                            type="button"
+                            onClick={() => handleStaffOrderStatus(o.id, o.status, o.order_number, o.customer_name, cleanPhone, "chat")}
+                            className="px-2.5 py-1.5 rounded-lg bg-green-500/15 hover:bg-green-500/25 text-green-400 border border-green-500/30 flex items-center gap-1 transition-all cursor-pointer"
+                            title="Open WhatsApp Chat with customer"
+                          >
+                            <span className="material-symbols-outlined text-xs">chat</span>
+                            <span>WhatsApp</span>
+                          </button>
+                        )}
+
+                        <Link
+                          href="/admin/dashboard/orders"
+                          className="ml-auto text-zinc-400 hover:text-cyan-300 text-xs flex items-center gap-1"
+                        >
+                          <span>Open Locked QR &amp; Details</span>
+                          <span>→</span>
+                        </Link>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Today's Counter Entries */}
+          <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl overflow-hidden">
+            <div className="flex items-center justify-between px-4 sm:px-5 py-3.5 border-b border-zinc-800/80">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-cyan-400 text-lg">receipt_long</span>
+                <h2 className="font-semibold text-zinc-100 text-sm font-['Space_Grotesk']">
+                  Today's Counter Entries ({todayVendingEntries.length})
+                </h2>
             </div>
             <div className="flex items-center gap-2">
               <Link
@@ -855,6 +1047,7 @@ export default function DashboardPage() {
               ))}
             </div>
           )}
+        </div>
         </div>
       )}
 

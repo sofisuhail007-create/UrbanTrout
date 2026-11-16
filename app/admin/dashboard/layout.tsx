@@ -275,6 +275,37 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       setAdminEmail(userEmail);
       setAdminRole(userRole);
       setAdminName(resolveStaffName(userEmail));
+
+      // Dynamically fetch and sync latest permissions from DB on session restore
+      supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "staff_permissions")
+        .maybeSingle()
+        .then(({ data: staffRow }) => {
+          if (staffRow?.value) {
+            try {
+              const list = JSON.parse(staffRow.value);
+              const member = list.find((s: any) => s.email?.toLowerCase().trim() === userEmail);
+              if (member?.permissions) {
+                const perms = { ...member.permissions };
+                if (userEmail === "work.suhail007@gmail.com" || userEmail === "worksuhail007@gmail.com") {
+                  perms.orders = true;
+                  perms.billing = true;
+                }
+                setPermissions(perms);
+                localStorage.setItem("ut_admin_permissions", JSON.stringify(perms));
+                sessionStorage.setItem("ut_admin_permissions", JSON.stringify(perms));
+                return;
+              }
+            } catch (_) {}
+          }
+          if (userEmail === "work.suhail007@gmail.com" || userEmail === "worksuhail007@gmail.com") {
+            const perms = { billing: true, orders: true };
+            setPermissions((prev) => ({ ...prev, ...perms }));
+            localStorage.setItem("ut_admin_permissions", JSON.stringify(perms));
+          }
+        });
     }).catch(() => {
       router.replace("/admin");
     });
@@ -292,6 +323,37 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         }
         setAdminEmail(userEmail);
         setAdminName(resolveStaffName(userEmail));
+
+      // Dynamically fetch and sync latest permissions from DB on session restore
+      supabase
+        .from("app_settings")
+        .select("value")
+        .eq("key", "staff_permissions")
+        .maybeSingle()
+        .then(({ data: staffRow }) => {
+          if (staffRow?.value) {
+            try {
+              const list = JSON.parse(staffRow.value);
+              const member = list.find((s: any) => s.email?.toLowerCase().trim() === userEmail);
+              if (member?.permissions) {
+                const perms = { ...member.permissions };
+                if (userEmail === "work.suhail007@gmail.com" || userEmail === "worksuhail007@gmail.com") {
+                  perms.orders = true;
+                  perms.billing = true;
+                }
+                setPermissions(perms);
+                localStorage.setItem("ut_admin_permissions", JSON.stringify(perms));
+                sessionStorage.setItem("ut_admin_permissions", JSON.stringify(perms));
+                return;
+              }
+            } catch (_) {}
+          }
+          if (userEmail === "work.suhail007@gmail.com" || userEmail === "worksuhail007@gmail.com") {
+            const perms = { billing: true, orders: true };
+            setPermissions((prev) => ({ ...prev, ...perms }));
+            localStorage.setItem("ut_admin_permissions", JSON.stringify(perms));
+          }
+        });
       } else if (event === "SIGNED_OUT") {
         localStorage.removeItem("ut_admin_auth");
         localStorage.removeItem("ut_admin_email");
@@ -308,8 +370,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     const storedPerms = localStorage.getItem("ut_admin_permissions") || sessionStorage.getItem("ut_admin_permissions");
     if (storedPerms) {
       try {
-        setPermissions(JSON.parse(storedPerms));
+        const parsed = JSON.parse(storedPerms);
+        const em = (localStorage.getItem("ut_admin_email") || "").toLowerCase().trim();
+        if (em === "work.suhail007@gmail.com" || em === "worksuhail007@gmail.com") {
+          parsed.orders = true;
+          parsed.billing = true;
+        }
+        setPermissions(parsed);
       } catch {}
+    } else {
+      const em = (localStorage.getItem("ut_admin_email") || "").toLowerCase().trim();
+      if (em === "work.suhail007@gmail.com" || em === "worksuhail007@gmail.com") {
+        setPermissions((prev) => ({ ...prev, orders: true, billing: true }));
+      }
     }
 
     return () => {
@@ -361,6 +434,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   const isOwnerUser = adminEmail === "sofisuhail007@gmail.com" || adminEmail === "info.urbantrout@gmail.com";
+  const isMohdAmin = adminEmail === "work.suhail007@gmail.com" || adminEmail === "worksuhail007@gmail.com";
 
   // Filter Nav Groups according to staff permissions & owner-only access
   const visibleGroups = NAV_GROUPS.map((group) => ({
@@ -368,6 +442,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     items: group.items.filter((item) => {
       if (item.ownerOnly && !isOwnerUser) return false;
       if (!item.permKey) return true;
+      if (isMohdAmin && (item.permKey === "orders" || item.permKey === "billing")) return true;
       return permissions[item.permKey as keyof StaffPermissions] !== false;
     }),
   })).filter((group) => group.items.length > 0);
@@ -379,7 +454,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   );
   const isRouteBlocked =
     Boolean(currentNav?.ownerOnly && !isOwnerUser) ||
-    Boolean(currentNav?.permKey && permissions[currentNav.permKey as keyof StaffPermissions] === false);
+    Boolean(
+      currentNav?.permKey &&
+      !(isMohdAmin && (currentNav.permKey === "orders" || currentNav.permKey === "billing")) &&
+      permissions[currentNav.permKey as keyof StaffPermissions] === false
+    );
 
   const isItemActive = (href: string) => {
     if (href === "/admin/dashboard") {
