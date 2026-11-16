@@ -1,13 +1,50 @@
 import { NextRequest } from "next/server";
 import { ImageResponse } from "next/og";
 import QRCode from "qrcode";
+import sharp from "sharp";
 import React from "react";
 import fs from "fs";
 import path from "path";
 
 export const dynamic = "force-dynamic";
 
+// In-memory cache for master template assets so generation takes < 25ms
+let cachedCleanTemplate: Buffer | null = null;
+let cachedBadge: Buffer | null = null;
 let cachedTroutDataUri = "";
+
+function getMasterAssets() {
+  try {
+    if (!cachedCleanTemplate) {
+      const templatePath = path.join(
+        process.cwd(),
+        "public",
+        "images",
+        "hdfc_standee_master_clean.jpg"
+      );
+      if (fs.existsSync(templatePath)) {
+        cachedCleanTemplate = fs.readFileSync(templatePath);
+      }
+    }
+
+    if (!cachedBadge) {
+      const badgePath = path.join(
+        process.cwd(),
+        "public",
+        "images",
+        "qr_center_badge.png"
+      );
+      if (fs.existsSync(badgePath)) {
+        cachedBadge = fs.readFileSync(badgePath);
+      }
+    }
+  } catch (e) {
+    console.warn("Could not read template files for HDFC QR:", e);
+  }
+
+  return { cleanTemplate: cachedCleanTemplate, badge: cachedBadge };
+}
+
 function getTroutLogoUri(): string {
   if (cachedTroutDataUri) return cachedTroutDataUri;
   try {
@@ -22,11 +59,51 @@ function getTroutLogoUri(): string {
   return cachedTroutDataUri;
 }
 
+function createAmountBoxSvg(numAmount: number, customLabel?: string | null): Buffer {
+  const formattedAmount = Number(numAmount).toLocaleString("en-IN", {
+    minimumFractionDigits: Number.isInteger(numAmount) ? 0 : 2,
+    maximumFractionDigits: 2,
+  });
+
+  const label =
+    customLabel || (numAmount > 0 ? "Amount (Locked)" : "Direct Payment");
+
+  // Center calculation for Rupee icon + Amount text in right compartment (x=175 to 427, center=301)
+  const charCount = formattedAmount.length;
+  const estTextWidth = charCount * 14.5;
+  const totalAmountWidth = 24 + 6 + estTextWidth;
+  const groupStartX = Math.max(185, Math.round(301 - totalAmountWidth / 2));
+
+  return Buffer.from(`
+    <svg width="427" height="52" viewBox="0 0 427 52" xmlns="http://www.w3.org/2000/svg">
+      <rect width="427" height="52" rx="16" fill="#eef9fd" stroke="#bde6ef" stroke-width="1.5" />
+      
+      <!-- Left Label -->
+      <text x="88" y="32" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="15" font-weight="600" fill="#334155" text-anchor="middle">${label}</text>
+      
+      <!-- Divider -->
+      <line x1="175" y1="13" x2="175" y2="39" stroke="#cbd5e1" stroke-width="1.5" />
+      
+      <!-- Right Amount Group -->
+      <g transform="translate(${groupStartX}, 13)">
+        <svg x="0" y="3" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0f6266" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 3h12M6 8h12M6 13l8.5 8M6 13h3a4.5 4.5 0 0 0 0-9H6" />
+        </svg>
+        <text x="28" y="21" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif" font-size="25" font-weight="800" fill="#0f6266">${formattedAmount}</text>
+      </g>
+    </svg>
+  `);
+}
+
 /**
  * GET /api/hdfc-qr?amount=580
- * Generates an executive, branded HDFC Bank SmartHub Vyapar merchant standee poster (PNG)
- * with pure-vector SVG QR code, official HDFC Bank identity, PayZapp & UPI app badges,
- * and high-contrast locked amount formatted for Apple Shortcuts Quick Look.
+ * Generates the official, photorealistic Urban Trout x HDFC Bank SmartHub Vyapar
+ * standee poster matching the master design uploaded by the management, with:
+ * - Alpine lake and underwater rainbow trout mountain artwork
+ * - Pure vector high-error-correction QR code locked to exact amount
+ * - Center trout emblem inside QR
+ * - Dynamic locked amount box and instant HDFC Soundbox announcement note
+ * - Instant full-screen display for Apple Shortcuts Quick Look
  */
 export async function GET(req: NextRequest) {
   try {
@@ -34,7 +111,8 @@ export async function GET(req: NextRequest) {
     const rawAmountStr = searchParams.get("amount") || searchParams.get("am") || "0";
     const cleanedAmountStr = rawAmountStr.replace(/,/g, "").trim();
     const numAmount = parseFloat(cleanedAmountStr) || 0;
-    const format = searchParams.get("format"); // "image" (default) | "raw" | "json"
+    const format = (searchParams.get("format") || "jpeg").toLowerCase();
+    const customLabel = searchParams.get("label");
     const note = searchParams.get("note") || searchParams.get("tn") || "Urban Trout Fresh Fish";
 
     // Official HDFC SmartHub Vyapar credentials
@@ -85,7 +163,50 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Generate pure vector QR path (H-level error correction: 100% scannable even with center logo)
+    // Attempt high-fidelity sharp composite onto the master design template
+    const { cleanTemplate, badge } = getMasterAssets();
+
+    if (cleanTemplate && badge) {
+      // 1. Generate 310x310 pure QR code buffer with H-level error correction
+      const qrBuffer = await QRCode.toBuffer(upiUri, {
+        errorCorrectionLevel: "H",
+        margin: 1,
+        width: 310,
+        color: { dark: "#000000", light: "#ffffff" },
+      });
+
+      // 2. Generate vector SVG amount box
+      const amountSvg = createAmountBoxSvg(numAmount, customLabel);
+
+      // 3. Composite into the final master standee image
+      let sharpPipeline = sharp(cleanTemplate).composite([
+        { input: qrBuffer, top: 315, left: 186 },
+        { input: badge, top: 445, left: 315 },
+        { input: amountSvg, top: 625, left: 133 },
+      ]);
+
+      if (format === "png") {
+        const pngOutput = await sharpPipeline.png().toBuffer();
+        return new Response(new Uint8Array(pngOutput), {
+          status: 200,
+          headers: {
+            "Content-Type": "image/png",
+            "Cache-Control": "no-store, no-cache, must-revalidate",
+          },
+        });
+      }
+
+      const jpegOutput = await sharpPipeline.jpeg({ quality: 95 }).toBuffer();
+      return new Response(new Uint8Array(jpegOutput), {
+        status: 200,
+        headers: {
+          "Content-Type": "image/jpeg",
+          "Cache-Control": "no-store, no-cache, must-revalidate",
+        },
+      });
+    }
+
+    // Fallback: If template file is unavailable, use next/og pure vector ImageResponse
     const qrObj = QRCode.create(upiUri, { errorCorrectionLevel: "H" });
     const modules = qrObj.modules;
     const size = modules.size;
@@ -108,22 +229,6 @@ export async function GET(req: NextRequest) {
 
     const troutLogoUri = getTroutLogoUri();
 
-    const rupeeSvg = (
-      <svg
-        width="36"
-        height="42"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="#38bdf8"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        style={{ marginRight: 6, display: "flex" }}
-      >
-        <path d="M6 3h12M6 8h12M6 13l8.5 8M6 13h3a4.5 4.5 0 0 0 0-9H6" />
-      </svg>
-    );
-
     return new ImageResponse(
       (
         <div
@@ -139,7 +244,6 @@ export async function GET(req: NextRequest) {
             fontFamily: "sans-serif",
           }}
         >
-          {/* Top Brand & Amount Card */}
           <div
             style={{
               display: "flex",
@@ -150,18 +254,9 @@ export async function GET(req: NextRequest) {
               border: "2px solid #0284c7",
               borderRadius: "22px",
               padding: "14px 20px",
-              boxShadow: "0 8px 30px rgba(0,0,0,0.6)",
             }}
           >
-            {/* HDFC Bank Official Brand Identity */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-              }}
-            >
-              {/* Iconic HDFC Bank Emblem */}
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <div
                 style={{
                   display: "flex",
@@ -183,98 +278,29 @@ export async function GET(req: NextRequest) {
                   }}
                 />
               </div>
-
-              <span
-                style={{
-                  fontSize: 22,
-                  fontWeight: 900,
-                  color: "#ffffff",
-                  letterSpacing: "1px",
-                }}
-              >
+              <span style={{ fontSize: 22, fontWeight: 900, color: "#ffffff" }}>
                 HDFC BANK
               </span>
-
               <span
                 style={{
                   fontSize: 12,
                   fontWeight: 800,
                   color: "#38bdf8",
                   backgroundColor: "#0c334d",
-                  border: "1px solid #0284c7",
                   borderRadius: 6,
                   padding: "2px 8px",
-                  letterSpacing: "0.5px",
                 }}
               >
                 SmartHub Vyapar
               </span>
             </div>
-
-            <div
-              style={{
-                display: "flex",
-                fontSize: 11,
-                color: "#38bdf8",
-                fontWeight: 800,
-                textTransform: "uppercase",
-                letterSpacing: "1.5px",
-                marginTop: 6,
-              }}
-            >
-              Official Soundbox Partner • Urban Trout
-            </div>
-
-            {/* Locked Amount Row */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                marginTop: 6,
-              }}
-            >
-              {rupeeSvg}
-              <span
-                style={{
-                  fontSize: 50,
-                  fontWeight: 900,
-                  color: "#ffffff",
-                  letterSpacing: "-1px",
-                }}
-              >
-                {formattedAmount}
-              </span>
-            </div>
-
-            {/* Locked Badge */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                backgroundColor: "#064e3b",
-                border: "1.5px solid #10b981",
-                borderRadius: "999px",
-                padding: "3px 14px",
-                marginTop: 4,
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: 800,
-                  color: "#a7f3d0",
-                  letterSpacing: "0.5px",
-                }}
-              >
-                {numAmount > 0
-                  ? "EXACT AMOUNT LOCKED IN HDFC SOUNDBOX QR"
-                  : "DIRECT HDFC SOUNDBOX UPI PAYMENT"}
+            <div style={{ display: "flex", marginTop: 8 }}>
+              <span style={{ fontSize: 48, fontWeight: 900, color: "#ffffff" }}>
+                ₹ {formattedAmount}
               </span>
             </div>
           </div>
 
-          {/* Center Elevated Standee Card */}
           <div
             style={{
               display: "flex",
@@ -284,210 +310,35 @@ export async function GET(req: NextRequest) {
               borderRadius: "24px",
               backgroundColor: "#ffffff",
               alignItems: "center",
-              justifyContent: "space-between",
-              padding: "22px 20px",
-              boxShadow: "0 15px 40px rgba(0,0,0,0.5)",
+              justifyContent: "center",
+              position: "relative",
             }}
           >
-            {/* Card Header */}
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                width: "100%",
-                alignItems: "center",
-                borderBottom: "1.5px solid #e2e8f0",
-                paddingBottom: 10,
-              }}
+            <svg
+              viewBox={`0 0 ${viewBoxSize} ${viewBoxSize}`}
+              width="480"
+              height="480"
+              style={{ display: "flex" }}
             >
-              <div style={{ display: "flex", flexDirection: "column" }}>
-                <span style={{ fontSize: 18, fontWeight: 900, color: "#0f172a" }}>
-                  Urban Trout Aquaculture
-                </span>
-                <span style={{ fontSize: 11, color: "#64748b", fontWeight: 600 }}>
-                  Pioneering Kashmir&apos;s Cold-Water RAS Aquaculture • Live Harvested
-                </span>
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "6px",
-                  padding: "4px 10px",
-                  borderRadius: 8,
-                  backgroundColor: "#eff6ff",
-                  border: "1px solid #bfdbfe",
-                }}
-              >
-                <span style={{ fontSize: 11, fontWeight: 900, color: "#1d4ed8" }}>
-                  BHIM | UPI
-                </span>
-              </div>
-            </div>
-
-            {/* Vector QR Code with Center Trout Logo */}
-            <div
-              style={{
-                display: "flex",
-                position: "relative",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <svg
-                viewBox={`0 0 ${viewBoxSize} ${viewBoxSize}`}
-                width="480"
-                height="480"
-                style={{ display: "flex" }}
-              >
-                <path fill="#000000" d={qrPath} />
-              </svg>
-              {troutLogoUri ? (
-                <img
-                  src={troutLogoUri}
-                  width={80}
-                  height={80}
-                  style={{
-                    position: "absolute",
-                    borderRadius: 16,
-                    border: "4px solid #ffffff",
-                  }}
-                />
-              ) : null}
-            </div>
-
-            {/* Voice Soundbox Alert Banner */}
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: "100%",
-                backgroundColor: "#f0fdf4",
-                border: "1px solid #86efac",
-                borderRadius: "10px",
-                padding: "8px 12px",
-                gap: "8px",
-              }}
-            >
-              <span style={{ fontSize: 15 }}>🔊</span>
-              <span
-                style={{
-                  fontSize: 12,
-                  fontWeight: 800,
-                  color: "#166534",
-                  letterSpacing: "0.2px",
-                }}
-              >
-                HDFC Soundbox will instantly announce payment of ₹{formattedAmount}
-              </span>
-            </div>
-
-            {/* Supported UPI Apps */}
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                alignItems: "center",
-                width: "100%",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: 800,
-                  color: "#475569",
-                  letterSpacing: "1.5px",
-                }}
-              >
-                SCAN &amp; PAY WITH ANY UPI APP
-              </span>
-              <div
-                style={{
-                  display: "flex",
-                  gap: "8px",
-                  marginTop: "8px",
-                  alignItems: "center",
-                }}
-              >
-                <span
-                  style={{
-                    padding: "4px 10px",
-                    borderRadius: 6,
-                    backgroundColor: "#f8fafc",
-                    border: "1px solid #cbd5e1",
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: "#1e293b",
-                  }}
-                >
-                  GPay
-                </span>
-                <span
-                  style={{
-                    padding: "4px 10px",
-                    borderRadius: 6,
-                    backgroundColor: "#f8fafc",
-                    border: "1px solid #cbd5e1",
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: "#5b21b6",
-                  }}
-                >
-                  PhonePe
-                </span>
-                <span
-                  style={{
-                    padding: "4px 10px",
-                    borderRadius: 6,
-                    backgroundColor: "#f8fafc",
-                    border: "1px solid #cbd5e1",
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: "#0284c7",
-                  }}
-                >
-                  Paytm
-                </span>
-                <span
-                  style={{
-                    padding: "4px 10px",
-                    borderRadius: 6,
-                    backgroundColor: "#004c8f",
-                    fontSize: 11,
-                    fontWeight: 800,
-                    color: "#ffffff",
-                  }}
-                >
-                  PayZapp
-                </span>
-                <span
-                  style={{
-                    padding: "4px 10px",
-                    borderRadius: 6,
-                    backgroundColor: "#f8fafc",
-                    border: "1px solid #cbd5e1",
-                    fontSize: 11,
-                    fontWeight: 700,
-                    color: "#047857",
-                  }}
-                >
-                  BHIM
-                </span>
-              </div>
-            </div>
+              <path fill="#000000" d={qrPath} />
+            </svg>
+            {troutLogoUri ? (
+              <img
+                src={troutLogoUri}
+                width={80}
+                height={80}
+                style={{ position: "absolute", borderRadius: 16 }}
+              />
+            ) : null}
           </div>
 
-          {/* Footer */}
           <div
             style={{
               display: "flex",
               justifyContent: "space-between",
               width: "100%",
-              padding: "0 8px",
               fontSize: 11,
               color: "#64748b",
-              fontWeight: 600,
             }}
           >
             <span>UPI ID: {upiId}</span>
@@ -498,9 +349,7 @@ export async function GET(req: NextRequest) {
       {
         width: 720,
         height: 1280,
-        headers: {
-          "Cache-Control": "no-store, no-cache, must-revalidate",
-        },
+        headers: { "Cache-Control": "no-store, no-cache, must-revalidate" },
       }
     );
   } catch (err: any) {
