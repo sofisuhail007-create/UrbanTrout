@@ -122,7 +122,6 @@ export default function Footer() {
               { href: "/recipes", label: "50 Trout Recipes Hub" },
               { href: "/our-farm", label: "About Our Farm" },
               { href: "/trout-price-srinagar", label: "Trout Rates (2026 Guide)" },
-              { href: "/kashmiri-trout-recipe", label: "Kashmiri Trout Recipes" },
               { href: "/fresh-trout-guide", label: "Freshness & Species Guide" },
               { href: "/bulk", label: "Bulk Wholesale Supply" },
               { href: "/shop/gutted-trout", label: "Cleaned & Gutted Trout" },

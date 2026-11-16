@@ -297,10 +297,10 @@ export default function TroutPriceSrinagarPage() {
           </div>
           <div className="flex items-center gap-3">
             <Link
-              href="/kashmiri-trout-recipe"
+              href="/recipes"
               className="py-2.5 px-5 rounded-lg text-xs font-bold font-['Space_Grotesk'] bg-slate-800 text-cyan-300 hover:bg-slate-700 transition-colors"
             >
-              Recipe Guide →
+              50 Trout Recipes →
             </Link>
             <Link
               href="/shop"

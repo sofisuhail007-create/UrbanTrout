@@ -1072,8 +1072,8 @@ export default async function HomePage() {
                   </li>
                 </ul>
               </div>
-              <Link href="/kashmiri-trout-recipe" className="inline-flex items-center gap-1.5 text-xs text-cyan-400 font-bold hover:underline pt-2">
-                <span>Explore Full Kashmiri Trout Recipes &amp; Step-by-Step Cooking</span>
+              <Link href="/recipes" className="inline-flex items-center gap-1.5 text-xs text-cyan-400 font-bold hover:underline pt-2">
+                <span>Explore All 50 Trout Recipes &amp; Step-by-Step Cooking Guides</span>
                 <span>→</span>
               </Link>
             </div>

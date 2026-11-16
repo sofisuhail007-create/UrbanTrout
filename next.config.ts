@@ -88,6 +88,11 @@ const nextConfig: NextConfig = {
   async redirects() {
     return [
       {
+        source: "/kashmiri-trout-recipe",
+        destination: "/recipes",
+        permanent: true,
+      },
+      {
         source: "/about",
         destination: "/our-farm",
         permanent: true,
