@@ -26,10 +26,10 @@ process.on("unhandledRejection", (reason) => {
 // ============================================================================
 // URBAN TROUT SALES AGENT — BUILD & VERSION TRACKING
 // ============================================================================
-const BOT_VERSION = "2.9.8";
-const BOT_LAST_UPDATED = "13-Nov-2026, 08:05 AM IST";
-const BOT_RELEASE_TITLE = "Friday Website Pairing (#friday on/off), Blinkit/Zomato Rain Statements & Default Rich QR";
-const BOT_RELEASE_NOTES = "Bi-directional Friday operations sync with website (allow_friday_orders in Supabase), default locked UPI QR with rich tracking metadata, on-demand payment links & modern wet-weather statements";
+const BOT_VERSION = "3.0.0";
+const BOT_LAST_UPDATED = "16-Nov-2026, 07:45 PM IST";
+const BOT_RELEASE_TITLE = "Comprehensive Bug Audit Patch & Hard Quantity/Location Integrity";
+const BOT_RELEASE_NOTES = "Strict quantity unit validation (no accidental 5kg on '5 PM'), strict auto-QR amounts, decimal GPS coordinates, medical inquiry safety filter, and payment screenshot reception alerts";
 
 // ============================================================================
 // STRICT VVIP MANUAL-ONLY LIST (AI MUST NEVER TEXT UNDER ANY CIRCUMSTANCE)
