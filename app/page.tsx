@@ -473,6 +473,7 @@ export default async function HomePage() {
           <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: "1rem" }}>
             <Link
               href="/shop"
+              className="hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer select-none"
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -488,7 +489,6 @@ export default async function HomePage() {
                 textTransform: "uppercase",
                 letterSpacing: "0.05em",
                 boxShadow: "0 0 30px rgba(58,173,204,0.45), 0 4px 20px rgba(0,0,0,0.3)",
-                transition: "all 0.3s",
               }}
             >
               Order Fresh Trout
@@ -502,6 +502,7 @@ export default async function HomePage() {
               href={whatsappOrderUrl}
               target="_blank"
               rel="noopener noreferrer"
+              className="hover:scale-105 active:scale-95 transition-all duration-200 cursor-pointer select-none"
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -516,7 +517,6 @@ export default async function HomePage() {
                 fontSize: "0.95rem",
                 textDecoration: "none",
                 backdropFilter: "blur(8px)",
-                transition: "all 0.3s",
               }}
             >
               <span>Order on WhatsApp ⚡</span>

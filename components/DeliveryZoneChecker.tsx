@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useRef, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   DELIVERY_ZONES,
   SRINAGAR_LOCALITY_CATALOG,
@@ -12,13 +13,32 @@ import {
 } from "@/lib/deliveryZones";
 
 export default function DeliveryZoneChecker() {
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
+  const [isNavigatingToShop, setIsNavigatingToShop] = useState(false);
   const [activeZoneTab, setActiveZoneTab] = useState<"all" | "zone1" | "zone2" | "zone3" | "zone4" | "out_of_zone">("all");
   const [checkResult, setCheckResult] = useState<DeliveryCheckResult | null>(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Prefetch /shop for instant navigation & reset loading state on browser back/forward
+  useEffect(() => {
+    try {
+      router.prefetch("/shop");
+    } catch {
+      // ignore
+    }
+    const handlePopState = () => setIsNavigatingToShop(false);
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, [router]);
+
+  // Reset navigating state whenever query or checkResult changes
+  useEffect(() => {
+    setIsNavigatingToShop(false);
+  }, [checkResult, query]);
 
   // Close dropdown on click outside
   useEffect(() => {
@@ -170,7 +190,7 @@ export default function DeliveryZoneChecker() {
                 type="button"
                 onClick={handleDetectGPS}
                 disabled={isLocating}
-                className="px-3.5 py-3 rounded-xl bg-slate-900 border border-slate-700 hover:border-cyan-400 text-xs font-bold text-slate-200 hover:text-cyan-300 transition-all flex items-center justify-center gap-1.5 shrink-0 disabled:opacity-50 cursor-pointer shadow-md"
+                className="px-3.5 py-3 rounded-xl bg-slate-900 border border-slate-700 hover:border-cyan-400 text-xs font-bold text-slate-200 hover:text-cyan-300 transition-all duration-150 flex items-center justify-center gap-1.5 shrink-0 disabled:opacity-50 cursor-pointer shadow-md active:scale-95 select-none"
                 title="Detect delivery zone using device GPS"
               >
                 {isLocating ? (
@@ -189,7 +209,7 @@ export default function DeliveryZoneChecker() {
               <button
                 type="submit"
                 disabled={isSearching || !query.trim()}
-                className="px-5 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-cyan-400 hover:from-cyan-400 hover:to-cyan-300 text-slate-950 font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 shrink-0 disabled:opacity-50 shadow-lg shadow-cyan-500/30 cursor-pointer"
+                className="px-5 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-cyan-400 hover:from-cyan-400 hover:to-cyan-300 text-slate-950 font-bold text-xs uppercase tracking-wider transition-all duration-150 flex items-center justify-center gap-1.5 shrink-0 disabled:opacity-50 shadow-lg shadow-cyan-500/30 cursor-pointer active:scale-95 select-none"
               >
                 <span>Check Zone</span>
                 <span>→</span>
@@ -287,9 +307,48 @@ export default function DeliveryZoneChecker() {
                 {checkResult.isDeliverable ? (
                   <Link
                     href="/shop"
-                    className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-cyan-400 hover:from-emerald-400 hover:to-cyan-300 text-slate-950 font-bold text-xs uppercase tracking-wider text-center shadow-lg transition-all"
+                    onClick={() => setIsNavigatingToShop(true)}
+                    className={`group relative overflow-hidden w-full sm:w-auto px-5 py-2.5 rounded-xl font-extrabold text-xs uppercase tracking-wider text-center shadow-lg transition-all duration-200 flex items-center justify-center gap-2 select-none active:scale-95 cursor-pointer ${
+                      isNavigatingToShop
+                        ? "bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-300 text-slate-950 shadow-[0_0_25px_rgba(52,211,153,0.7)] ring-2 ring-emerald-300 animate-pulse pointer-events-none"
+                        : "bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 hover:from-emerald-400 hover:via-teal-300 hover:to-cyan-300 text-slate-950 hover:scale-[1.03] hover:shadow-[0_0_22px_rgba(56,189,248,0.5)] shadow-emerald-500/20 active:brightness-90"
+                    }`}
                   >
-                    Order Fresh Trout →
+                    {/* Shimmer sweep effect */}
+                    <span className="absolute inset-0 -translate-x-full group-hover:translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent transition-transform duration-700 ease-out pointer-events-none" />
+
+                    {isNavigatingToShop ? (
+                      <>
+                        <svg
+                          className="animate-spin h-3.5 w-3.5 text-slate-950 shrink-0"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          />
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          />
+                        </svg>
+                        <span className="font-black tracking-wider">Opening Shop...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Order Fresh Trout</span>
+                        <span className="transition-transform duration-200 group-hover:translate-x-1 font-black text-sm">
+                          →
+                        </span>
+                      </>
+                    )}
                   </Link>
                 ) : (
                   <a
