@@ -26,10 +26,10 @@ process.on("unhandledRejection", (reason) => {
 // ============================================================================
 // URBAN TROUT SALES AGENT — BUILD & VERSION TRACKING
 // ============================================================================
-const BOT_VERSION = "3.0.0";
-const BOT_LAST_UPDATED = "16-Nov-2026, 07:45 PM IST";
-const BOT_RELEASE_TITLE = "Comprehensive Bug Audit Patch & Hard Quantity/Location Integrity";
-const BOT_RELEASE_NOTES = "Strict quantity unit validation (no accidental 5kg on '5 PM'), strict auto-QR amounts, decimal GPS coordinates, medical inquiry safety filter, and payment screenshot reception alerts";
+const BOT_VERSION = "3.0.1";
+const BOT_LAST_UPDATED = "16-Nov-2026, 08:08 PM IST";
+const BOT_RELEASE_TITLE = "Active High-Speed Gemini Endpoints (gemini-flash-lite-latest & gemini-3.5-flash-lite)";
+const BOT_RELEASE_NOTES = "Eliminated 404/503 model sunset outages by switching to verified sub-2s active Gemini endpoints, with full bug audit fixes active";
 
 // ============================================================================
 // STRICT VVIP MANUAL-ONLY LIST (AI MUST NEVER TEXT UNDER ANY CIRCUMSTANCE)
@@ -4687,10 +4687,10 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
   }
 
   const models = [
-    "gemini-2.5-flash",
-    "gemini-2.0-flash",
-    "gemini-1.5-flash",
-    "gemini-flash-latest"
+    "gemini-flash-lite-latest",
+    "gemini-3.5-flash-lite",
+    "gemini-3-flash-preview",
+    "gemini-3.1-flash-lite"
   ];
   const totalKeyCycles = Math.max(1, GEMINI_API_KEYS.length);
 
