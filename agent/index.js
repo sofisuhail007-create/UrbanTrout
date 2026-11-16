@@ -656,8 +656,8 @@ function extractCoordinates(text) {
   const dataMatch = decoded.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
   if (dataMatch) return { lat: parseFloat(dataMatch[1]), lng: parseFloat(dataMatch[2]) };
 
-  // 4. Raw lat, lng in text: e.g. 34.144556, 74.824501
-  const rawMatch = decoded.match(/\b([1-8]?\d(?:\.\d+)?|90(?:\.0+)?)[,\s]+(-?(?:180(?:\.0+)?|(?:1[0-7]\d|\d{1,2})(?:\.\d+)?))\b/);
+  // 4. Raw lat, lng in text: e.g. 34.144556, 74.824501 (Requires decimal precision to avoid integers like '2, 3 pieces' being treated as GPS coords!)
+  const rawMatch = decoded.match(/\b(-?\d{1,2}\.\d{3,8})[,\s]+(-?\d{1,3}\.\d{3,8})\b/);
   if (rawMatch) {
     const lat = parseFloat(rawMatch[1]);
     const lng = parseFloat(rawMatch[2]);
@@ -692,7 +692,7 @@ const KNOWN_IN_ZONE_AREAS = [
   { pattern: /\b(?:naseem\s*bagh|nasim\s*bagh|nasimbagh|naseembagh|nasim\s*garden)\b/i, name: "Naseem Bagh", dist: 0.3 },
   { pattern: /\b(?:mirza\s*bagh|mirzabagh)\b/i, name: "Mirza Bagh", dist: 0.5 },
   { pattern: /\b(?:hafiz\s*bagh|hafizabagh)\b/i, name: "Hafiz Bagh", dist: 0.7 },
-  { pattern: /\b(?:baghati\s*shoora|baghati)\b/i, name: "Baghati Shoora", dist: 1.0 },
+  { pattern: /\b(?:baghati\s*shoora)\b/i, name: "Baghati Shoora", dist: 1.0 },
   { pattern: /\b(?:shah\s*faisal\s*colony)\b/i, name: "Shah Faisal Colony", dist: 1.1 },
   { pattern: /\b(?:tajdar\s*colony)\b/i, name: "Tajdar Colony", dist: 1.2 },
   { pattern: /\b(?:hamza\s*colony)\b/i, name: "Hamza Colony", dist: 1.2 },
@@ -793,7 +793,7 @@ const KNOWN_IN_ZONE_AREAS = [
   { pattern: /\b(?:khyber\s*(?:hospital|medical|institute)|hospital\s*khyber)\b/i, name: "Khayam", dist: 8.5, minKg: 3 },
   { pattern: /\b(?:qamarwari|qamar\s*wari|kamarwari)\b/i, name: "Qamarwari", dist: 9.5, minKg: 3 },
   { pattern: /\b(?:balgarden|bal\s*garden)\b/i, name: "Balgarden", dist: 9.8, minKg: 3 },
-  { pattern: /\b(?:brein|brain)\b/i, name: "Brein (Nishat)", dist: 11.0, minKg: 3 },
+  { pattern: /\b(?:brein(?:\s*nishat)?|brain\s*nishat)\b/i, name: "Brein (Nishat)", dist: 11.0, minKg: 3 },
   { pattern: /\b(?:nishat)\b/i, name: "Nishat", dist: 8.0, minKg: 3 },
 
   // ── Zone 4: South Srinagar & Cross-City Outer Corridor (11.5 to 16.0 km, Free Delivery on 5 kg+, 2–4 kg 70/30 Split, 1 kg Full Fee ₹190) ──
@@ -1102,7 +1102,9 @@ function saveChatHistories() {
     for (const [k, v] of chatHistories.entries()) {
       obj[k] = v;
     }
-    fs.writeFileSync(historiesFilePath, JSON.stringify(obj, null, 2), "utf-8");
+    const tmpPath = `${historiesFilePath}.tmp`;
+    fs.writeFileSync(tmpPath, JSON.stringify(obj, null, 2), "utf-8");
+    fs.renameSync(tmpPath, historiesFilePath);
   } catch (e) {
     console.error("Error writing chat_histories.json:", e.message);
   }
@@ -1641,7 +1643,16 @@ function detectCustomerEscalation(text) {
   }
 
   // 3. Product quality / Rotten / Spoiled / Sickness / Food safety
-  if (/\b(?:spoiled|stale|kharab|sadi\s*hui|sada\s*hua|bad\s*smell|smelling|stinking|rotten|vomit|vomiting|food\s*poisoning|poison|sick|bimar|hospitalized|hospitalised|in\s*hospital|admitted\s*(?:to|in)\s*hospital|pet\s*kharab|loose\s*motion|unhygienic|gandi\s*fish|insects|worm)\b/i.test(sanitizedForThreat)) {
+  // Guard against pre-order freshness/dietary questions (e.g. "Is it fresh or stale?", "Does fresh trout smell?", "Doctor suggested trout after sickness")
+  const isDietaryOrFreshnessInquiry =
+    /^(?:is\s*(?:it|the\s*fish|the\s*trout|your|fresh)|does\s*(?:it|the\s*fish|fresh)|can\s*(?:we|i|he|she|they|a\s*patient|someone)|kya\s*(?:yeh|fish|trout)|doctor\s*(?:suggested|advised|recommended)|good\s*for|patient|recovery|diet)\b/i.test(t) ||
+    /\b(?:can|should|could|is\s*it\s*safe|safe\s*to)\s*(?:we|i|he|she|they|a\s*patient|someone)?\s*(?:eat|have|take|consume|order)\b/i.test(t) ||
+    /\b(?:fresh\s*or\s*stale|bad\s*smell\s*\?|doctor|protein|prescribed|recommended\s*(?:by|trout|fish))\b/i.test(t);
+
+  const hasDefiniteFoodComplaint = /\b(?:vomit|vomiting|food\s*poisoning|stinking|rotten|sadi\s*hui|sada\s*hua|pet\s*kharab|insects|worm|kharab\s*(?:nikli|nikla|aayi|bheji)|smell\s*aa\s*rahi|bad\s*quality\s*fish)\b/i.test(sanitizedForThreat);
+  const hasContextualFoodComplaint = /\b(?:spoiled|stale|kharab|bad\s*smell|smelling|sick|bimar|hospitalized|hospitalised|in\s*hospital|unhygienic|gandi\s*fish)\b/i.test(sanitizedForThreat);
+
+  if (hasDefiniteFoodComplaint || (hasContextualFoodComplaint && !isDietaryOrFreshnessInquiry)) {
     return {
       severity: "CRITICAL",
       category: "Food Safety / Quality Escalation",
@@ -1690,7 +1701,9 @@ function recordNewCustomerOrder(phone, orderData) {
       pastOrders,
       updatedAt: new Date().toISOString()
     };
-    fs.writeFileSync(ordersFilePath, JSON.stringify(orders, null, 2), "utf-8");
+    const tmpPath = `${ordersFilePath}.tmp`;
+    fs.writeFileSync(tmpPath, JSON.stringify(orders, null, 2), "utf-8");
+    fs.renameSync(tmpPath, ordersFilePath);
   } catch (e) {
     console.error("Error saving customer order:", e);
   }
@@ -2835,12 +2848,17 @@ function parseCustomerQuantityRequest(userMessage) {
   }
 
   let weightKg = null;
-  const numMatch = msg.match(/\b(\d+(?:\.\d+)?)\s*(?:kgs?|kilos?|kg)?\b/i);
+  // 1. Explicit number with mandatory kg unit (prevents 'deliver at 5 PM', 'house 4' from being parsed as kg!)
+  const numWithUnit = msg.match(/\b(\d+(?:\.\d+)?)\s*(?:kgs?|kilos?|kg)\b/i);
+  // 2. Number words (ek, do, teen, one, two, three...)
   const wordNumMatch = msg.match(/\b(ek|do|teen|chaar|char|paanch|panch|one|two|three|four|five)\s*(?:kgs?|kilos?|kg)?\b/i);
+  // 3. Standalone number ONLY if paired with an explicit order verb or trout cut (excluding time/currency/address words)
+  const contextNum = msg.match(/(?:send|order|pack|need|want|bhej|bhejo|chahiye|give)\s+(\d+(?:\.\d+)?)(?!\s*(?:pm|am|o'?clock|baje|hours?|mins?|minutes?|rs|inr|₹|hundred|thousand|flat|lane|house|sector|ward|road))\b/i) ||
+                     msg.match(/\b(\d+(?:\.\d+)?)\s+(?:cleaned|gutted|whole|steaks?|pieces?)\b/i);
 
-  if (numMatch && numMatch[1]) {
-    const parsed = parseFloat(numMatch[1]);
-    if (parsed >= 1 && parsed <= 25) {
+  if (numWithUnit && numWithUnit[1]) {
+    const parsed = parseFloat(numWithUnit[1]);
+    if (parsed >= 0.5 && parsed <= 50) {
       weightKg = parsed;
     }
   } else if (wordNumMatch) {
@@ -2852,14 +2870,19 @@ function parseCustomerQuantityRequest(userMessage) {
       paanch: 5, panch: 5, five: 5
     };
     weightKg = wordMap[wordNumMatch[1].toLowerCase()] || null;
+  } else if (contextNum && contextNum[1]) {
+    const parsed = parseFloat(contextNum[1]);
+    if (parsed >= 0.5 && parsed <= 50) {
+      weightKg = parsed;
+    }
   }
 
   if (!weightKg) return null;
 
   const isOrderIntent = /^(?:send|bhej|bhejo|deliver|pack|book|order|chahiye|need|want|give|lao|kar\s*do|bhej\s*do|deliver\s*karo|do\s*mujhe)\b/i.test(msg) ||
                         /\b(?:send|bhej|bhejo|deliver|pack|book|order|chahiye|need|want|give|lao|kar\s*do|bhej\s*do|deliver\s*karo)\b/i.test(msg) ||
-                        /^(?:[0-9]+(?:\.[0-9]+)?\s*(?:kg|kgs|kilos?|kilo)?(?:\s+(?:cleaned|gutted|whole|fresh|steaks|curry|cut))?)[!.,\s]*$/i.test(msg) ||
-                        /\b(?:can\s*(?:i|you)\s*(?:get|send|have|order)|please\s*(?:send|deliver)|send\s*link|pay\s*link)\b/i.test(msg);
+                        /^(?:ek|do|teen|chaar|char|paanch|panch|one|two|three|four|five|[0-9]+(?:\.[0-9]+)?)\s*(?:kg|kgs|kilos?|kilo)?(?:\s+(?:cleaned|gutted|whole|fresh|steaks|curry|cut))?(?:\s+(?:please|plz|bhai|sahib|janab))?[!.,\s]*$/i.test(msg) ||
+                        /\b(?:can\s*(?:i|you)\s*(?:get|send|have|order)|please\s*(?:send|deliver)|send\s*link|pay\s*link|please|plz)\b/i.test(msg);
 
   if (!isOrderIntent) return null;
 
@@ -4664,11 +4687,10 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
   }
 
   const models = [
-    "gemini-3.5-flash-lite",
-    "gemini-flash-lite-latest",
-    "gemini-3.1-flash-lite",
-    "gemini-3.8-flash",
-    "gemini-3.6-flash"
+    "gemini-2.5-flash",
+    "gemini-2.0-flash",
+    "gemini-1.5-flash",
+    "gemini-flash-latest"
   ];
   const totalKeyCycles = Math.max(1, GEMINI_API_KEYS.length);
 
@@ -5624,8 +5646,14 @@ async function startBot() {
     const isAskingAccountDetails = /\b(?:account\s*(?:no|num|number|details)|bank\s*transfer|ifsc|direct\s*transfer|khata\s*(?:no|number)|mpay\s*(?:no|num|number|details|account)|m-pay\s*(?:no|num|number|details|account)|(?:google\s*pay|gpay|phonepe)\s*(?:number|no|num))\b/i.test(clean);
     if (isAskingAccountDetails) return false;
 
-    // 1. Explicit Direct Keywords (QR, Scanner, Payment Link, How to pay, GPay/PhonePe/Paytm/UPI)
-    const directRegex = /\b(?:scanner|qr|qr\s*code|barcode|scan|scanner\s*bhejo|bhejo\s*scanner|send\s*scanner|send\s*qr|scanner\s*hai|qr\s*send|send\s*me\s*scanner|qr\s*please|plz\s*send\s*scanner|scanner\s*\?|scanner\s*chha|scanner\s*bhej|pay\s*via\s*scanner|qr\s*code\s*scanner|scanner\s*photo|scanner\s*image|how\s*to\s*pay|pay\s*online|kahan\s*(?:pay|transfer)|kaise\s*pay|payment\s*(?:link|qr|details|mode|karna\s*hai)|send\s*(?:payment\s*)?(?:link|qr|scanner|details)|bhejo\s*(?:payment|link|qr)|gpay|phonepe|paytm|upi)\b/i;
+    // 0b. General payment question or failure exemption -> Pass to Gemini to answer properly!
+    const isQuestionOrProblem = /\b(?:do\s*you\s*(?:accept|take|have)|is\s*(?:it|there|upi|gpay|phonepe|cash|online)|kya\s*(?:upi|gpay|phonepe|cash|online)|accept\s*kart?e|chalega|chalta\s*hai|available|possible|failed|error|rejected|decline|nahi\s*chal\s*raha|dont\s*have|not\s*have|later|baad\s*mein|cash\s*on\s*delivery|cod)\b/i.test(clean);
+    if (isQuestionOrProblem && !/\b(?:send|bhej|share)\s*(?:qr|scanner|link)\b/i.test(clean)) {
+      return false;
+    }
+
+    // 1. Explicit Direct Actionable Request for QR / Scanner / Payment Link
+    const directRegex = /\b(?:(?:send|bhej|bhejo|share|give|provide)\s*(?:me\s*)?(?:the\s*)?(?:qr|scanner|barcode|upi|gpay|phonepe|paytm|payment\s*link)|(?:scanner|qr\s*code|qr)\s*(?:bhejo|bhej|send|please|plz|photo|image|pic|code|hai|\?)?|pay\s*(?:via|through|using)\s*(?:qr|scanner|upi|gpay|phonepe|paytm)|how\s*to\s*pay|kaise\s*pay\s*(?:kare|karein|karna)|kahan\s*pay\s*(?:kare|karein|karna)|payment\s*(?:link|qr|scanner|karna\s*hai))\b/i;
     if (directRegex.test(clean)) return true;
 
     // 2. Affirmative reply ("Yes", "Sure", "Bhejo", "Ok", etc.) after bot offered scanner or order summary
@@ -7321,6 +7349,37 @@ async function startBot() {
     }
 
     if (!text || text.trim().length === 0) {
+      // Check if customer sent an image / payment screenshot
+      const isImage = Boolean(innerMessage.imageMessage);
+      if (isImage && !isOwner) {
+        console.log(`📸 [Image / Screenshot Received] Customer sent an image (${remoteJid}). Sending friendly confirmation.`);
+        const imageReply = `Thank you! We have received your screenshot / image. 📸\n\nOur Malabagh farm team is reviewing it right now. If this is a payment confirmation for J&K Bank mPay or HDFC Soundbox QR, our team will verify the transaction and schedule your fresh live harvest right away! 🐟`;
+        try {
+          await sock.sendMessage(remoteJid, { text: imageReply });
+          appendDailyChatLog({
+            jid: remoteJid,
+            phone: cleanPhone || raw10,
+            name: customerName,
+            role: "ai_bot",
+            text: imageReply,
+            meta: { imageReceipt: true }
+          });
+          let chatHist = chatHistories.get(remoteJid) || [];
+          chatHist.push({ role: "user", text: "[Customer sent an image / payment screenshot]" });
+          chatHist.push({ role: "model", text: imageReply });
+          if (chatHist.length > 8) chatHist.splice(0, chatHist.length - 8);
+          chatHistories.set(remoteJid, chatHist);
+          saveChatHistories();
+
+          // Dispatch an alert to Telegram so Suhail can verify the payment screenshot!
+          try {
+            const tgAlert = `📸 <b>NEW PAYMENT / IMAGE SCREENSHOT RECEIVED</b>\n━━━━━━━━━━━━━━━━━━━━━\n👤 <b>Customer:</b> ${customerName || "Customer"} (<code>${displayPhone}</code>)\n📍 <b>Chat:</b> <a href="https://wa.me/${cleanPhone || raw10}">Open WhatsApp Chat</a>\n\n👉 Customer shared a photo/screenshot on WhatsApp. Please check and send <code>#paid</code> to confirm!`;
+            await sendTelegramMessage(tgAlert);
+          } catch (_) {}
+        } catch (_) {}
+        return;
+      }
+
       // Check if customer sent an audio / voice note
       const isVoiceNote = Boolean(innerMessage.audioMessage);
       if (isVoiceNote && !isOwner) {
@@ -7439,17 +7498,21 @@ async function startBot() {
       });
 
       // ─── PROACTIVE AUTO-QR DISPATCH ALONGSIDE PAYMENT LINKS & ORDER SUMMARY ───
-      // Automatically dispatch the locked UPI QR code image whenever a payment link or order summary is generated,
-      // so customers receive BOTH tap-to-pay web link AND scan-to-pay QR image without having to ask!
+      // Automatically dispatch the locked UPI QR code image ONLY when an actual payment link or official order summary card
+      // with a verified total amount is present! NEVER dispatch on conversational mentions of 'payment link' or 'UPI QR'!
+      const amtMatch = aiReply.match(/(?:Total\s*Payable|Total\s*Amount|Amount|Total)[^0-9\n\r]{0,25}?₹?\s*([\d,]{3,7})\b(?!\s*\/\s*kg)/i);
+      const forceAmount = amtMatch ? parseInt(amtMatch[1].replace(/,/g, ""), 10) : null;
+      const hasRealPayLink = /(?:https?:\/\/)?rzp\.io\/\S+/i.test(aiReply);
+      const hasOfficialOrderSummary = /(?:🧾\s*)?(?:URBAN TROUT\s*[•·-]\s*)?(?:Order Summary|ORDER SUMMARY)/i.test(aiReply);
+
       const hasPaymentInReply = (
-        /(?:rzp\.io|https:\/\/rzp\.io|payment link|UPI QR)/i.test(aiReply) ||
-        /(?:🧾\s*)?(?:URBAN TROUT\s*[•·-]\s*)?(?:Order Summary|ORDER SUMMARY)/i.test(aiReply) ||
-        /(?:Total Payable:\s*\*?₹?\s*\d+)/i.test(aiReply)
+        (hasRealPayLink || hasOfficialOrderSummary) &&
+        forceAmount !== null &&
+        forceAmount >= 300
       ) && !aiReply.includes("✅ *Payment Received") && !aiReply.includes("OUT FOR DELIVERY");
+
       if (hasPaymentInReply && !isCustomerRequestingQr(text, chatHist)) {
         try {
-          const amtMatch = aiReply.match(/(?:Total\s*Payable|Total\s*Amount|Amount|Total)[^0-9\n\r]{0,25}?₹?\s*([\d,]{3,7})\b(?!\s*\/\s*kg)/i);
-          const forceAmount = amtMatch ? parseInt(amtMatch[1].replace(/,/g, ""), 10) : null;
           const refMatch = aiReply.match(/(?:#|Ref:\s*#?)(UT-WA-\d+)/i);
           const forceRef = refMatch ? refMatch[1] : null;
           const itemMatch = aiReply.match(/[•\-\*]\s*(?:Item|Order):\s*([^\n•]+)/i);
