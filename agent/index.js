@@ -5817,9 +5817,13 @@ async function startBot() {
       if (descWeight) {
         detectedWeightKg = parseFloat(descWeight[1]);
       } else if (Array.isArray(chatHist)) {
+        // 🔴 CRITICAL FIX: ONLY search CUSTOMER (user role) messages for the requested weight.
+        // Bot (model role) messages contain "2 kg" in pitches like "minimum order 2 kg" or
+        // "2 kg Cleaned & Gutted = ₹1,160" which must NEVER override the customer's actual ask.
         for (let i = chatHist.length - 1; i >= 0; i--) {
+          if (chatHist[i].role !== "user") continue; // ← SKIP ALL BOT MESSAGES
           const msgText = chatHist[i].text || "";
-          const wm = msgText.match(/(?:need|want|send|order|pack|give|for)?\s*(\d+(?:\.\d+)?)\s*(?:kg|kilos?|kgs)\b/i);
+          const wm = msgText.match(/(?:need|want|send|order|pack|give|for|chahiye|chahie)?\s*(\d+(?:\.\d+)?)\s*(?:kg|kilos?|kgs)\b/i);
           if (wm) {
             const w = parseFloat(wm[1]);
             if (w >= 0.5 && w <= 50) {
@@ -5841,9 +5845,13 @@ async function startBot() {
         if (m) amt = parseFloat(m[1]);
       }
       if (!amt && Array.isArray(chatHist)) {
+        // 🔴 CRITICAL FIX: ONLY search USER messages for stated amounts.
+        // Bot messages contain "Total Payable: ₹1,160" for the PREVIOUS 2 kg pitch —
+        // using those would set amt=1160 for a customer who actually asked for 1 kg.
         for (let i = chatHist.length - 1; i >= 0; i--) {
+          if (chatHist[i].role !== "user") continue; // ← SKIP ALL BOT MESSAGES
           const t = chatHist[i].text || "";
-          // Extract explicit total / payable amounts (ignoring unit rates like ₹580/kg or ₹540/kg and supporting commas)
+          // Extract explicit total / payable amounts stated by the CUSTOMER (ignoring unit rates like ₹580/kg)
           const mPayable = t.match(/(?:Total\s*Payable|Total\s*Amount|Amount|Total)[^0-9\n\r]{0,25}?₹?\s*([\d,]{3,7})\b(?!\s*\/\s*kg)/i);
           if (mPayable) { amt = parseFloat(mPayable[1].replace(/,/g, "")); break; }
         }
