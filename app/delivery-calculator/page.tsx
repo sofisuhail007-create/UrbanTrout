@@ -4,7 +4,7 @@ import DeliveryCalculatorClient from "./DeliveryCalculatorClient";
 export const metadata: Metadata = {
   title: "Delivery Calculator & Zone Checker | Urban Trout Srinagar",
   description:
-    "Calculate instant delivery fees, express delivery rates, distance from Malabagh Farm Hub, and free express delivery thresholds across Srinagar.",
+    "Calculate instant delivery fees, express delivery rates, distance from Malabagh Farm Hub, and express delivery thresholds across Srinagar.",
   robots: {
     index: false,
     follow: false,

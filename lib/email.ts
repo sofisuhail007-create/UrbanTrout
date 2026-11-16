@@ -126,7 +126,7 @@ export async function sendOrderConfirmationEmail(order: {
             </div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px; color: #9fadb8;">
               <span>Delivery Fee:</span>
-              <span style="color: #4ade80; font-weight: 600;">${order.deliveryFee === 0 ? "FREE (Farm Fresh Express)" : "₹" + order.deliveryFee}</span>
+              <span style="color: #4ade80; font-weight: 600;">${order.deliveryFee === 0 ? "INCLUDED (Farm Fresh Express)" : "₹" + order.deliveryFee}</span>
             </div>
             <div style="display: flex; justify-content: space-between; font-size: 16px; font-weight: 800; color: #72ddfd; border-top: 1px solid #1a2e3b; padding-top: 8px;">
               <span>Total Paid:</span>

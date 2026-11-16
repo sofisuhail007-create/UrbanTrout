@@ -46,8 +46,8 @@ const C = {
 const PRODUCT_META: Record<string, { img: string; label: string; desc: string }> = {
   "gutted-trout": {
     img: "/images/gutted_trout_premium.webp",
-    label: "CLEANED & GUTTED",
-    desc: "Expertly cleaned, gutted, and ready to cook. Harvested fresh to order and packed in 100% food-grade biodegradable polythene (0% ice) for express delivery.",
+    label: "CLEANED & CHEF-CUT",
+    desc: "Expertly descaled, gutted, and pre-cut into pan-ready chef portions by default. Harvested fresh to order and packed in 100% food-grade biodegradable polythene (0% ice) for express delivery.",
   },
   "whole-trout": {
     img: "/images/whole_trout.jpg",
@@ -200,7 +200,7 @@ export default async function ShopPage() {
             <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfVar, maxWidth: "380px", lineHeight: 1.75, fontSize: "1rem", margin: 0 }}>
               Sustainably farmed in the icy currents of the Himalayas. Delivered within 2 hours of harvest.
             </p>
-            {/* Free Delivery & Business hours indicators */}
+            {/* Fresh Delivery & Business hours indicators */}
             <div className="flex flex-wrap items-center gap-2">
               <div style={{
                 display: "flex",

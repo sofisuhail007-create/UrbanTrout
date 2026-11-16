@@ -49,15 +49,15 @@ const C = {
 const priceFaqs = [
   {
     q: "What is the current rate of Rainbow Trout per kg in Srinagar for 2026?",
-    a: "At Urban Trout farm in Malabagh, Srinagar, fresh Whole Rainbow Trout is priced at ₹540 per kg, and Premium Cleaned & Gutted Trout is ₹580 per kg. Both are packed fresh in 100% food-grade biodegradable polythene (0% ice) with fast express delivery to your shared GPS location across our 16km farm perimeter (free from 2 kg in Zone 1, 3 kg in Zone 2 and Zone 3, and 5 kg Family Pack in Zone 4) within 90–120 minutes of harvest.",
+    a: "At Urban Trout farm in Malabagh, Srinagar, fresh Whole Rainbow Trout is priced at ₹540 per kg, and Premium Cleaned & Gutted Trout is ₹580 per kg. Both are packed fresh in 100% food-grade biodegradable polythene (0% ice) with fast express delivery to your shared GPS location across our 16km farm perimeter (express delivery included from 2 kg in Zone 1, 3 kg in Zone 2 and Zone 3, and 5 kg Family Pack in Zone 4) within 90–120 minutes of harvest.",
   },
   {
     q: "Why are market fish and IndiaMART rates higher than Urban Trout?",
     a: "Market fish sellers and IndiaMART brokers operate through multiple layers of middlemen, transit freight, and packaging surcharges, charging between ₹650 and ₹1,000 per kg. Because Urban Trout harvests directly from our Malabagh cold-water RAS tanks and fulfills through our dedicated Srinagar vending center, there are zero middleman commissions or freight overheads.",
   },
   {
-    q: "What is the minimum order quantity for free delivery?",
-    a: "Express delivery is free starting from 2 kg in Zone 1 (0–4 km), 3 kg in Zone 2 (4–7 km), 3 kg in Zone 3 (7–11.5 km), and 5 kg Family Pack in Zone 4 (11.5–16 km). For smaller quantities, standard location-based express delivery fees apply.",
+    q: "What is the minimum order quantity for express delivery?",
+    a: "Express direct farm delivery is available starting from 2 kg in Zone 1 (0–4 km), 3 kg in Zone 2 (4–7 km), 3 kg in Zone 3 (7–11.5 km), and 5 kg Family Pack in Zone 4 (11.5–16 km). For smaller quantities, standard location-based express delivery fees apply.",
   },
   {
     q: "Is there any extra charge for descaling, gutting, or express delivery?",

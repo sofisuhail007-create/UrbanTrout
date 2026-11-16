@@ -436,37 +436,37 @@ function CalculatorInner() {
     },
   };
 
-  // Next free delivery advice
+  // Next delivery advice
   const getFreeDeliveryAdvice = () => {
     if (isOutOfZone) return null;
     if (isFreeDelivery) {
       return {
         isFree: true,
-        text: "🎉 You have unlocked 100% FREE Express Delivery on this order!",
+        text: "🎉 You have unlocked Express Farm Delivery on this order!",
       };
     }
     if (tier === "zone1" && weightKg < 2) {
       return {
         isFree: false,
-        text: `Add +${2 - weightKg} kg to unlock 100% FREE express delivery (Save ₹45)!`,
+        text: `Add +${2 - weightKg} kg to unlock Express Farm Delivery (Save ₹45)!`,
       };
     }
     if (tier === "zone2" && weightKg < 3) {
       return {
         isFree: false,
-        text: `Add +${3 - weightKg} kg to unlock 100% FREE express delivery (Save ₹${deliveryFee})!`,
+        text: `Add +${3 - weightKg} kg to unlock Express Farm Delivery (Save ₹${deliveryFee})!`,
       };
     }
     if (tier === "zone3" && weightKg < 3) {
       return {
         isFree: false,
-        text: `Add +${3 - weightKg} kg to unlock 100% FREE express delivery (Save ₹${deliveryFee})!`,
+        text: `Add +${3 - weightKg} kg to unlock Express Farm Delivery (Save ₹${deliveryFee})!`,
       };
     }
     if (tier === "zone4" && weightKg < 5) {
       return {
         isFree: false,
-        text: `Upgrade to our 5 kg Family Pack for 100% FREE express delivery (Save ₹${deliveryFee})!`,
+        text: `Upgrade to our 5 kg Family Pack for Express Farm Delivery (Save ₹${deliveryFee})!`,
       };
     }
     return null;
@@ -481,7 +481,7 @@ function CalculatorInner() {
       `📍 Location: ${selectedPlace?.name || searchQuery}\n` +
       `📏 Distance: ~${distance} km (${tierBadges[tier]?.label.split("•")[0].trim()})\n` +
       `🐟 Item: ${weightKg} kg × ${cutName} (@ ₹${ratePerKg}/kg = ₹${fishCost})\n` +
-      `🚚 Express Delivery Fee: ${deliveryFee === 0 ? "₹0 (100% FREE)" : `₹${deliveryFee}`}\n` +
+      `🚚 Express Delivery Fee: ${deliveryFee === 0 ? "₹0 (Included)" : `₹${deliveryFee}`}\n` +
       `💰 Total Payable: ₹${totalAmount}\n\n` +
       `I will share my WhatsApp Location Pin / Google Maps link for pin-point delivery.`
   );
@@ -512,7 +512,7 @@ function CalculatorInner() {
       `📍 Location: ${selectedPlace?.name || searchQuery} (~${distance} km from Malabagh Farm Hub)\n` +
       `📦 Order: ${weightKg} kg × ${cutName}\n` +
       `💵 Fish Price: ₹${fishCost} (@ ₹${ratePerKg}/kg)\n` +
-      `🚚 Express Delivery: ${deliveryFee === 0 ? "100% FREE DELIVERY ✓" : `₹${deliveryFee} only`}\n` +
+      `🚚 Express Delivery: ${deliveryFee === 0 ? "Express Delivery Included ✓" : `₹${deliveryFee} only`}\n` +
       `✅ Total Payable: ₹${totalAmount} (UPI / Card / Net Banking)\n\n` +
       `📌 Pin-Point Delivery Policy: Packed fresh in food-grade biodegradable polythene (0% ice). Please share a Google Maps link or WhatsApp Location Pin. Our Express Dispatch Partner delivers strictly to the shared GPS pin (not house numbers), and orders must be collected in person. Kindly keep your phone reachable — if a delivery attempt fails, no second attempt can be made and you will have to collect your package manually from our Live Vending Center in Malabagh.\n\n` +
       `🔗 View quote or modify order:\n${link}`
@@ -841,7 +841,7 @@ function CalculatorInner() {
                     </span>
                   ) : isFreeDelivery ? (
                     <span className="text-emerald-400 font-bold flex items-center gap-1 justify-end">
-                      <span>✓</span> 100% FREE EXPRESS DELIVERY
+                      <span>✓</span> EXPRESS DELIVERY INCLUDED
                     </span>
                   ) : (
                     <div>
@@ -868,7 +868,7 @@ function CalculatorInner() {
               </div>
             </div>
 
-            {/* Smart Upsell / Free Delivery Advice Banner */}
+            {/* Smart Upsell / Delivery Advice Banner */}
             {freeDeliveryAdvice && (
               <div
                 className={`mt-4 p-3 rounded-xl border text-xs sm:text-sm font-medium flex items-center gap-2.5 ${
@@ -1022,7 +1022,7 @@ function CalculatorInner() {
                 Malabagh, Naseem Bagh, Lal Bazar, Hazratbal, Soura, Bachpora, Zakura, Ahmad Nagar, Illahibagh.
               </p>
               <div className="text-xs text-white font-medium bg-black/30 p-2 rounded-lg">
-                • <strong className="text-emerald-300">100% Free Delivery</strong> on 2+ kg<br />
+                • <strong className="text-emerald-300">Express Delivery Included</strong> on 2+ kg<br />
                 • ₹45 express delivery fee on 1 kg
               </div>
             </div>
@@ -1038,7 +1038,7 @@ function CalculatorInner() {
                 Hawal, Khanyar, Rainawari, Nowhatta, Badamwari, Eidgah, Safakadal, Shalimar, Saida Kadal.
               </p>
               <div className="text-xs text-white font-medium bg-black/30 p-2 rounded-lg">
-                • <strong className="text-sky-300">100% Free Delivery</strong> on 3+ kg<br />
+                • <strong className="text-sky-300">Express Delivery Included</strong> on 3+ kg<br />
                 • ₹55 on 2 kg | ₹75 on 1 kg
               </div>
             </div>
@@ -1054,7 +1054,7 @@ function CalculatorInner() {
                 Lal Chowk, Dalgate, Boulevard, Karan Nagar, Khayyam, Qamarwari, Nishat.
               </p>
               <div className="text-xs text-white font-medium bg-black/30 p-2 rounded-lg">
-                • <strong className="text-indigo-300">100% Free Delivery</strong> on 3+ kg<br />
+                • <strong className="text-indigo-300">Express Delivery Included</strong> on 3+ kg<br />
                 • ₹89 on 2 kg | ₹130 on 1 kg
               </div>
             </div>
@@ -1070,7 +1070,7 @@ function CalculatorInner() {
                 Sanat Nagar, Peerbagh, Airport Road, Nowgam, Rajbagh, Jawahar Nagar, Batamaloo, Bemina, Sonwar, Hyderpora, Rawalpora, Lasjan, Pantha Chowk, Rangreth.
               </p>
               <div className="text-xs text-white font-medium bg-black/30 p-2 rounded-lg">
-                • <strong className="text-amber-300">100% Free Delivery</strong> on 5 kg Family Pack<br />
+                • <strong className="text-amber-300">Express Delivery Included</strong> on 5 kg Family Pack<br />
                 • ₹109 on 4 kg | ₹129 on 3 kg | ₹139 on 2 kg | ₹190 on 1 kg
               </div>
             </div>

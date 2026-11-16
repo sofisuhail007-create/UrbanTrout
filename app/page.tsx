@@ -63,7 +63,7 @@ const faqs = [
   },
   {
     q: "What is the price of Rainbow Trout per Kg in Srinagar?",
-    a: "Our fresh Whole Rainbow Trout is ₹540 per Kg, and our Premium Cleaned & Gutted Trout is ₹580 per Kg. Unlike marketplace suppliers who charge extra for packing and delivery, our prices include 100% Free express delivery in food-grade biodegradable polythene (0% ice) within our delivery zones (up to 16km) in Srinagar based on order tier.",
+    a: "Our fresh Whole Rainbow Trout is ₹540 per Kg, and our Premium Cleaned & Gutted Trout is ₹580 per Kg. Unlike marketplace suppliers who charge extra for packing and delivery, our prices include express cold-chain delivery in food-grade biodegradable polythene (0% ice) within our delivery zones (up to 16km) in Srinagar based on order tier.",
   },
   {
     q: "Do you clean and gut the trout before delivery?",
@@ -71,7 +71,7 @@ const faqs = [
   },
   {
     q: "Which areas in Srinagar do you deliver to?",
-    a: "To ensure peak live-harvest freshness with 0% ice packaging, we deliver across Srinagar up to 16 km from our Malabagh farm across 4 transparent tiers: Zone 1 (0–4 km: Malabagh, Soura, Hazratbal, Zakura, Lal Bazar — Free from 2 kg), Zone 2 (4–7 km: Hawal, Eidgah, Khanyar, Rainawari, Shalimar — Free from 3 kg), Zone 3 (7–11.5 km: Lal Chowk, Dalgate, Boulevard, Qamarwari, Nishat — Free from 3 kg), and Zone 4 (11.5–16 km: Sanat Nagar, Peerbagh, Airport Road, Nowgam, Rajbagh, Jawahar Nagar, Batamaloo, Bemina, Sonwar, Hyderpora, Rawalpora, Lasjan, Pantha Chowk — Free on 5 kg Family Pack). Standard express delivery charges apply for smaller orders. For locations beyond 16 km, fresh live-harvest counter pickup is available at our Live Vending Center in Malabagh.",
+    a: "To ensure peak live-harvest freshness with 0% ice packaging, we deliver across Srinagar up to 16 km from our Malabagh farm across 4 transparent tiers: Zone 1 (0–4 km: Malabagh, Soura, Hazratbal, Zakura, Lal Bazar — Available from 2 kg), Zone 2 (4–7 km: Hawal, Eidgah, Khanyar, Rainawari, Shalimar — Available from 3 kg), Zone 3 (7–11.5 km: Lal Chowk, Dalgate, Boulevard, Qamarwari, Nishat — Available from 3 kg), and Zone 4 (11.5–16 km: Sanat Nagar, Peerbagh, Airport Road, Nowgam, Rajbagh, Jawahar Nagar, Batamaloo, Bemina, Sonwar, Hyderpora, Rawalpora, Lasjan, Pantha Chowk — Available on 5 kg Family Pack). Standard express delivery charges apply for smaller orders. For locations beyond 16 km, fresh live-harvest counter pickup is available at our Live Vending Center in Malabagh.",
   },
   {
     q: "How fresh is Urban Trout compared to market fish?",
@@ -79,7 +79,7 @@ const faqs = [
   },
   {
     q: "What is the minimum order quantity and how does pin-point delivery work?",
-    a: "Express delivery is 100% Free based on distance from our Malabagh farm: minimum 2 kg for Zone 1 (0–4 km), 3 kg for Zone 2 (4–7 km), 3 kg for Zone 3 (7–11.5 km), and 5 kg for Zone 4 (11.5–16 km). Smaller orders carry standard express delivery fees (from ₹45 in Zone 1), or can be picked up directly from our farm counter with zero charges. Simply share a Google Maps link or WhatsApp Location Pin — our Express Dispatch Partner delivers strictly to that shared GPS pin (not house numbers), handed over in person; please keep your phone reachable as no second attempt can be made, and if a delivery attempt fails, customer must collect the package manually from our Live Vending Center in Malabagh.",
+    a: "Express direct farm delivery is available based on distance from our Malabagh farm: minimum 2 kg for Zone 1 (0–4 km), 3 kg for Zone 2 (4–7 km), 3 kg for Zone 3 (7–11.5 km), and 5 kg for Zone 4 (11.5–16 km). Smaller orders carry standard express delivery fees (from ₹45 in Zone 1), or can be picked up directly from our farm counter with zero charges. Simply share a Google Maps link or WhatsApp Location Pin — our Express Dispatch Partner delivers strictly to that shared GPS pin (not house numbers), handed over in person; please keep your phone reachable as no second attempt can be made, and if a delivery attempt fails, customer must collect the package manually from our Live Vending Center in Malabagh.",
   },
   {
     q: "What payment methods do you accept?",
@@ -564,7 +564,7 @@ export default async function HomePage() {
               Today&apos;s Fresh Rainbow Trout Rates
             </h2>
             <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfaceVariant, fontSize: "0.95rem", marginTop: "0.5rem", maxWidth: "680px", margin: "0.5rem auto 0" }}>
-              Harvested live from cold 10°C borewell water in Malabagh. 100% Free express delivery in food-grade biodegradable polythene (0% ice) across Srinagar up to 16 km based on order tier, or direct farm counter pickup.
+              Harvested live from cold 10°C borewell water in Malabagh. Fresh express delivery in food-grade biodegradable polythene (0% ice) across Srinagar up to 16 km based on order tier, or direct farm counter pickup.
             </p>
           </div>
 
@@ -683,7 +683,7 @@ export default async function HomePage() {
                   <td className="p-4 md:p-5 text-slate-400">Dine-in only (no raw fish supply).</td>
                 </tr>
                 <tr className="hover:bg-slate-900/30 transition-colors">
-                  <td className="p-4 md:p-5 font-medium text-white">Minimum Order for Free Delivery</td>
+                  <td className="p-4 md:p-5 font-medium text-white">Minimum Order for Express Delivery</td>
                   <td className="p-4 md:p-5 text-white bg-cyan-950/30 border-x border-cyan-500/20 font-medium">Tiered (2 kg / 3 kg / 5 kg)</td>
                   <td className="p-4 md:p-5 text-slate-400">1 Kg</td>
                   <td className="p-4 md:p-5 text-slate-400">5 – 10 Kg minimum commercial lot</td>
@@ -713,7 +713,7 @@ export default async function HomePage() {
 
           <div className="mt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 text-xs text-slate-400">
             <span className="max-w-2xl leading-relaxed">
-              Rates verified across Srinagar retail channels (March 2026). Urban Trout rates include 100% free express delivery packed in 100% food-grade biodegradable polythene (0% ice) across Srinagar delivery zones (up to 16km). Sourced via direct market surveys (Batamaloo &amp; Maharaj Gunj stalls), verified B2B listings, and restaurant menus.
+              Rates verified across Srinagar retail channels (March 2026). Urban Trout rates include express cold-chain delivery packed in 100% food-grade biodegradable polythene (0% ice) across Srinagar delivery zones (up to 16km). Sourced via direct market surveys (Batamaloo &amp; Maharaj Gunj stalls), verified B2B listings, and restaurant menus.
             </span>
             <Link href="/trout-price-srinagar" className="inline-flex items-center gap-1.5 text-cyan-400 font-bold hover:underline whitespace-nowrap">
               <span>Read Full Srinagar Trout Price Guide</span>
@@ -844,7 +844,7 @@ export default async function HomePage() {
               </h2>
             </div>
             <p style={{ fontFamily: '"Manrope", sans-serif', color: C.onSurfaceVariant, maxWidth: "420px", lineHeight: 1.7, borderLeft: "2px solid rgba(114,221,253,0.3)", paddingLeft: "1.25rem", fontSize: "0.95rem" }}>
-              Clean borewell water, zero preventive antibiotics, live netting, food-grade biodegradable packaging (0% ice), and 100% free express delivery across Srinagar (up to 16km) in 2 hours.
+              Clean borewell water, zero preventive antibiotics, live netting, food-grade biodegradable packaging (0% ice), and express cold-chain delivery across Srinagar (up to 16km) in 2 hours.
             </p>
           </div>
 
@@ -1198,7 +1198,7 @@ export default async function HomePage() {
                       <td className="p-3.5 text-cyan-300 font-mono">4 Kg – 6 Kg (Zone 2/3)</td>
                       <td className="p-3.5">10 to 15 fresh trout</td>
                       <td className="p-3.5 font-bold text-emerald-400">8 – 14 Adults</td>
-                      <td className="p-3.5 text-slate-400">Family celebrations, Herath gatherings, or Mujh Gaad pots. Free express delivery.</td>
+                      <td className="p-3.5 text-slate-400">Family celebrations, Herath gatherings, or Mujh Gaad pots. Fast express delivery.</td>
                     </tr>
                   </tbody>
                 </table>
@@ -1321,7 +1321,7 @@ export default async function HomePage() {
                 <circle cx="18.5" cy="18.5" r="2.5" />
               </svg>
             </div>
-            <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: "0.95rem", color: C.onSurface }}>100% Free Express Delivery</span>
+            <span style={{ fontFamily: '"Space Grotesk", sans-serif', fontWeight: 700, fontSize: "0.95rem", color: C.onSurface }}>Fresh Express Delivery</span>
             <span style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.8rem", color: C.onSurfaceVariant }}>Delivered to your GPS pin across Srinagar (up to 16km)</span>
           </div>
 

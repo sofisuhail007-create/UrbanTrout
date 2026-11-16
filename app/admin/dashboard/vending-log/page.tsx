@@ -8889,7 +8889,7 @@ export default function VendingCenterLoggerPage() {
                               </div>
                               <div className="text-xl font-black text-emerald-300 mt-1">₹{custShare}</div>
                               <div className="text-[9px] text-emerald-400/80 mt-0.5">
-                                {totCost > 0 ? `${custPct}% of ride cost paid by customer` : "Free Delivery"}
+                                {totCost > 0 ? `${custPct}% of ride cost paid by customer` : "Included Delivery"}
                               </div>
                             </div>
 

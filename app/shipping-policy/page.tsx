@@ -3,13 +3,13 @@ import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Shipping & Delivery Policy",
-  description: "Official delivery coverage, tiered 100% Free express delivery within 16km perimeter of Malabagh farm in food-grade biodegradable polythene (0% ice), pin-point GPS handover, and operating hours.",
+  description: "Official delivery coverage, tiered express delivery within 16km perimeter of Malabagh farm in food-grade biodegradable polythene (0% ice), pin-point GPS handover, and operating hours.",
   alternates: {
     canonical: "https://urbantrout.in/shipping-policy",
   },
   openGraph: {
     title: "Shipping & Delivery Policy | Urban Trout Srinagar",
-    description: "Tiered 100% Free express delivery to your shared GPS location within 16km perimeter of our Malabagh farm within 2 hours of harvest (packed fresh in food-grade biodegradable polythene, 0% ice).",
+    description: "Tiered express delivery to your shared GPS location within 16km perimeter of our Malabagh farm within 2 hours of harvest (packed fresh in food-grade biodegradable polythene, 0% ice).",
     url: "https://urbantrout.in/shipping-policy",
     siteName: "Urban Trout",
   },
@@ -27,15 +27,15 @@ const C = {
 const sections = [
   {
     title: "1. Service Area & Delivery Coverage (16km Farm Perimeter & 4 Delivery Zones)",
-    body: "• 16km Express Delivery Perimeter: To guarantee peak live-harvest freshness within 90–120 minutes using 0% ice packaging, Urban Trout delivers across a 16.0 km perimeter from our aquaculture farm base in Malabagh, Srinagar.\n• Zone 1 (0 to 4.0 km — Core Farm Zone): Malabagh, Hazratbal, Habak, Naseem Bagh, Zakura, Lal Bazar, Soura (SKIMS), Bachpora, Illahibagh, Nowshera, Ahmad Nagar, Zadibal, etc. 100% FREE Express Delivery on min 2 kg (or ₹45 delivery fee for 1 kg).\n• Zone 2 (4.0 to 7.0 km — Mid-City Zone): Hawal, Khanyar, Rainawari, Badamwari, Alamgari Bazar, Saida Kadal, Eidgah, Safakadal, Shalimar, Nagbal, etc. 100% FREE Express Delivery on min 3 kg (or ₹55 on 2 kg / ₹75 on 1 kg).\n• Zone 3 (7.0 to 11.5 km — Greater Srinagar Zone): Lal Chowk, Dalgate, Boulevard, Qamarwari, Khayyam, Nishat, Karan Nagar, etc. 100% FREE Express Delivery on min 3 kg (or ₹89 on 2 kg / ₹130 on 1 kg).\n• Zone 4 (11.5 to 16.0 km — South & Cross-City Corridor): Sanat Nagar, Peerbagh, Airport Road / Humhama, Nowgam, Rajbagh, Jawahar Nagar, Batamaloo, Bemina, Sonwar, Wazir Bagh, Chanapora, Hyderpora, Rawalpora, Lasjan, Pantha Chowk, Athwajan, Rangreth, HMT / Zainakote, etc. 100% FREE Express Delivery on our 5 kg Family Pack (or ₹109 on 4 kg / ₹129 on 3 kg / ₹139 on 2 kg / ₹190 on 1 kg).\n• Beyond 16.0 km & Outer Districts: Outside our 16 km express perimeter. Customers located in outer districts or beyond 16 km (e.g. Ganderbal, Pampore, Chadoora, Budgam town, Baramulla) are warmly invited to place an order for live harvest pickup directly from our dedicated Live Trout Vending Center at our Malabagh farm.",
+    body: "• 16km Express Delivery Perimeter: To guarantee peak live-harvest freshness within 90–120 minutes using 0% ice packaging, Urban Trout delivers across a 16.0 km perimeter from our aquaculture farm base in Malabagh, Srinagar.\n• Zone 1 (0 to 4.0 km — Core Farm Zone): Malabagh, Hazratbal, Habak, Naseem Bagh, Zakura, Lal Bazar, Soura (SKIMS), Bachpora, Illahibagh, Nowshera, Ahmad Nagar, Zadibal, etc. Express Delivery Included on min 2 kg (or ₹45 delivery fee for 1 kg).\n• Zone 2 (4.0 to 7.0 km — Mid-City Zone): Hawal, Khanyar, Rainawari, Badamwari, Alamgari Bazar, Saida Kadal, Eidgah, Safakadal, Shalimar, Nagbal, etc. Express Delivery Included on min 3 kg (or ₹55 on 2 kg / ₹75 on 1 kg).\n• Zone 3 (7.0 to 11.5 km — Greater Srinagar Zone): Lal Chowk, Dalgate, Boulevard, Qamarwari, Khayyam, Nishat, Karan Nagar, etc. Express Delivery Included on min 3 kg (or ₹89 on 2 kg / ₹130 on 1 kg).\n• Zone 4 (11.5 to 16.0 km — South & Cross-City Corridor): Sanat Nagar, Peerbagh, Airport Road / Humhama, Nowgam, Rajbagh, Jawahar Nagar, Batamaloo, Bemina, Sonwar, Wazir Bagh, Chanapora, Hyderpora, Rawalpora, Lasjan, Pantha Chowk, Athwajan, Rangreth, HMT / Zainakote, etc. Express Delivery Included on our 5 kg Family Pack (or ₹109 on 4 kg / ₹129 on 3 kg / ₹139 on 2 kg / ₹190 on 1 kg).\n• Beyond 16.0 km & Outer Districts: Outside our 16 km express perimeter. Customers located in outer districts or beyond 16 km (e.g. Ganderbal, Pampore, Chadoora, Budgam town, Baramulla) are warmly invited to place an order for live harvest pickup directly from our dedicated Live Trout Vending Center at our Malabagh farm.",
   },
   {
     title: "2. Harvest-to-Order & Delivery Timelines",
     body: "• Farm-Fresh Quality: Every order is freshly harvested live from our pure cold-water aquaculture tanks upon order confirmation to ensure maximum freshness and taste.\n• Rapid Delivery Timeframe: Orders within our 16km perimeter are freshly harvested to order, cleaned/gutted if requested, packed in 100% food-grade biodegradable polythene (two polythenes, 0% ice), and dispatched fresh to your shared GPS location within 90–120 minutes.\n• Operating Delivery Hours: Saturday to Thursday between 8:00 AM and 8:00 PM IST (Closed on Fridays for scheduled Farm Maintenance).",
   },
   {
-    title: "3. 100% Free Delivery Tiers & Express Delivery Fees",
-    body: "• 100% FREE Express Delivery for Zone 1 (min 2 kg), Zone 2 (min 3 kg), Zone 3 (min 3 kg), and Zone 4 (min 5 kg Family Pack).\n• For orders below the free delivery threshold in each zone, standard location-based express delivery charges apply (from ₹45 in Zone 1 to ₹109–₹190 in Zone 4).\n• Product pricing includes 100% food-grade biodegradable double polythene packaging (0% ice). There are zero hidden packing charges or surprise fees at checkout.",
+    title: "3. Express Delivery Tiers & Delivery Fees",
+    body: "• Express Delivery Included for Zone 1 (min 2 kg), Zone 2 (min 3 kg), Zone 3 (min 3 kg), and Zone 4 (min 5 kg Family Pack).\n• For orders below the included delivery threshold in each zone, standard location-based express delivery charges apply (from ₹45 in Zone 1 to ₹109–₹190 in Zone 4).\n• Product pricing includes 100% food-grade biodegradable double polythene packaging (0% ice). There are zero hidden packing charges or surprise fees at checkout.",
   },
   {
     title: "4. Pin-Point Shared GPS Delivery Policy (No House-Number Search)",

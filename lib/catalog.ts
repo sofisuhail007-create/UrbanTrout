@@ -3,8 +3,8 @@ import { products, Product } from "@/lib/data";
 
 const PRODUCT_META: Record<string, { label: string; desc: string; img: string }> = {
   "gutted-trout": {
-    label: "CLEANED & GUTTED",
-    desc: "Expertly cleaned, gutted, and pan-ready. Delivered in clean food-grade packaging across Srinagar within 2 hours of harvest.",
+    label: "CLEANED & CHEF-CUT",
+    desc: "Expertly descaled, gutted, and pre-cut into pan-ready chef portions by default. Delivered in clean food-grade packaging across Srinagar within 2 hours of harvest.",
     img: "/images/gutted_trout_premium.webp",
   },
   "whole-trout": {

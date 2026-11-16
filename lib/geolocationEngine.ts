@@ -99,7 +99,7 @@ export const CORE_IN_ZONE_AREAS: Array<{ pattern: RegExp; name: string; dist: nu
   { pattern: /\b(?:saraf\s*kadal|sarafkadal)\b/i, name: "Saraf Kadal", dist: 6.5 },
   { pattern: /\b(?:bohri\s*kadal|bohrikadal|bhori\s*kadal|bhorikadal)\b/i, name: "Bohri Kadal", dist: 6.8 },
 
-  // ── Zone 3: Central & City Srinagar (7–11.5 km, Free on 3 kg) ──
+  // ── Zone 3: Central & City Srinagar (7–11.5 km, Included on 3 kg) ──
   { pattern: /\b(?:zaina\s*kadal|zainakadal|zaina\s*kadel|new\s*zaina\s*kadal)\b/i, name: "Zaina Kadal", dist: 7.8, minKg: 3 },
   { pattern: /\b(?:maharaj\s*gunj|maharajgunj|maharaj\s*ganj|maharajganj)\b/i, name: "Maharaj Gunj", dist: 7.8, minKg: 3 },
   { pattern: /\b(?:fateh\s*kadal|fatehkadal|fateh\s*kadel|fatehkadel|astaan\s*syed\s*ali\s*akbar)\b/i, name: "Fateh Kadal", dist: 8.8, minKg: 3 },
@@ -115,7 +115,7 @@ export const CORE_IN_ZONE_AREAS: Array<{ pattern: RegExp; name: string; dist: nu
   { pattern: /\b(?:brein|brain)\b/i, name: "Brein/Nishat", dist: 11.0, minKg: 3 },
   { pattern: /\b(?:harwan|harwan\s*garden)\b/i, name: "Harwan", dist: 9.5, minKg: 3 },
 
-  // ── Zone 4: South Corridor, Rajbagh, Jawahar Nagar, Batamaloo, Sanat Nagar, Peerbagh, Airport Rd, Nowgam (11.5–16 km, Free on 5 kg) ──
+  // ── Zone 4: South Corridor, Rajbagh, Jawahar Nagar, Batamaloo, Sanat Nagar, Peerbagh, Airport Rd, Nowgam (11.5–16 km, Included on 5 kg) ──
   { pattern: /\b(?:batamaloo|batmaloo)\b/i, name: "Batamaloo", dist: 11.8, minKg: 5 },
   { pattern: /\b(?:jawahar\s*nagar|jawaharnagar)\b/i, name: "Jawahar Nagar", dist: 11.8, minKg: 5 },
   { pattern: /\b(?:raj\s*bagh|rajbagh)\b/i, name: "Rajbagh", dist: 12.0, minKg: 5 },
@@ -258,7 +258,7 @@ function buildResult(name: string, dist: number, source: GeocodeResult["source"]
       source,
       isDeliverable: true,
       deliveryFee: fee,
-      message: `Zone 1 (~${dist} km from Malabagh Farm) • ${fee === 0 ? "100% Free Express Delivery ✓" : `₹${fee} Express Delivery Fee (Free from ${minKg} kg)`}`
+      message: `Zone 1 (~${dist} km from Malabagh Farm) • ${fee === 0 ? "Express Delivery Included ✓" : `₹${fee} Express Delivery Fee (Included from ${minKg} kg)`}`
     };
   } else if (dist <= 7.0) {
     const minKg = 3;
@@ -274,7 +274,7 @@ function buildResult(name: string, dist: number, source: GeocodeResult["source"]
       source,
       isDeliverable: true,
       deliveryFee: fee,
-      message: `Zone 2 (~${dist} km from Malabagh Farm) • ${fee === 0 ? "100% Free Express Delivery ✓" : `₹${fee} Express Delivery Fee (Free from ${minKg} kg)`}`
+      message: `Zone 2 (~${dist} km from Malabagh Farm) • ${fee === 0 ? "Express Delivery Included ✓" : `₹${fee} Express Delivery Fee (Included from ${minKg} kg)`}`
     };
   } else if (dist <= 11.5) {
     const minKg = 3;
@@ -290,7 +290,7 @@ function buildResult(name: string, dist: number, source: GeocodeResult["source"]
       source,
       isDeliverable: true,
       deliveryFee: fee,
-      message: `Zone 3 (~${dist} km from Malabagh Farm) • ${fee === 0 ? "100% Free Express Delivery ✓" : `₹${fee} Express Delivery Fee (Free from ${minKg} kg)`}`
+      message: `Zone 3 (~${dist} km from Malabagh Farm) • ${fee === 0 ? "Express Delivery Included ✓" : `₹${fee} Express Delivery Fee (Included from ${minKg} kg)`}`
     };
   } else if (dist <= 16.0) {
     const minKg = 5;
@@ -306,7 +306,7 @@ function buildResult(name: string, dist: number, source: GeocodeResult["source"]
       source,
       isDeliverable: true,
       deliveryFee: fee,
-      message: `Zone 4 (~${dist} km from Malabagh Farm) • ${fee === 0 ? "100% Free Express Delivery (5 kg Family Pack) ✓" : `₹${fee} Express Delivery Fee (Free on 5 kg)`}`
+      message: `Zone 4 (~${dist} km from Malabagh Farm) • ${fee === 0 ? "Express Delivery Included (5 kg Family Pack) ✓" : `₹${fee} Express Delivery Fee (Included on 5 kg)`}`
     };
   } else {
     return {

@@ -775,8 +775,8 @@ export default function CheckoutPage() {
           setLocationMsg(
             `${dist.toFixed(1)} km from Urban Trout Hub • ${evalRes.zoneConfig.title} • ${
               evalRes.deliveryFee === 0
-                ? "100% Free Express Delivery ✓"
-                : `₹${evalRes.deliveryFee} Express Delivery (Free from ${evalRes.zoneConfig.minKgFree} kg)`
+                ? "Express Delivery Included ✓"
+                : `₹${evalRes.deliveryFee} Express Delivery (Included from ${evalRes.zoneConfig.minKgFree} kg)`
             }`
           );
         } else {
@@ -879,8 +879,8 @@ export default function CheckoutPage() {
         setLocationMsg(
           `${dist.toFixed(1)} km from Urban Trout Hub • ${evalRes.zoneConfig.title} • ${
             evalRes.deliveryFee === 0
-              ? "100% Free Express Delivery ✓"
-              : `₹${evalRes.deliveryFee} Express Delivery (Free from ${evalRes.zoneConfig.minKgFree} kg)`
+              ? "Express Delivery Included ✓"
+              : `₹${evalRes.deliveryFee} Express Delivery (Included from ${evalRes.zoneConfig.minKgFree} kg)`
           }`
         );
       } else {
@@ -906,8 +906,8 @@ export default function CheckoutPage() {
           setLocationMsg(
             `${dist.toFixed(1)} km from Urban Trout Hub • ${evalRes.zoneConfig.title} • ${
               evalRes.deliveryFee === 0
-                ? "100% Free Express Delivery ✓"
-                : `₹${evalRes.deliveryFee} Express Delivery (Free from ${evalRes.zoneConfig.minKgFree} kg)`
+                ? "Express Delivery Included ✓"
+                : `₹${evalRes.deliveryFee} Express Delivery (Included from ${evalRes.zoneConfig.minKgFree} kg)`
             }`
           );
         } else {
@@ -938,7 +938,7 @@ export default function CheckoutPage() {
                 setLocationMsg(
                   `${dist.toFixed(1)} km from Urban Trout Hub • ${geo.tier} • ${
                     geo.deliveryFee === 0
-                      ? "100% Free Express Delivery ✓"
+                      ? "Express Delivery Included ✓"
                       : `₹${geo.deliveryFee} Express Delivery`
                   }`
                 );
@@ -994,8 +994,8 @@ export default function CheckoutPage() {
       setLocationMsg(
         `${dist.toFixed(1)} km from Urban Trout Hub • ${evalRes.zoneConfig.title} • ${
           evalRes.deliveryFee === 0
-            ? "100% Free Express Delivery ✓"
-            : `₹${evalRes.deliveryFee} Express Delivery (Free from ${evalRes.zoneConfig.minKgFree} kg)`
+            ? "Express Delivery Included ✓"
+            : `₹${evalRes.deliveryFee} Express Delivery (Included from ${evalRes.zoneConfig.minKgFree} kg)`
         }`
       );
     } else {
@@ -1599,7 +1599,7 @@ export default function CheckoutPage() {
                 <div className="flex justify-between text-slate-400">
                   <span>Farm-Fresh Delivery:</span>
                   <span className={`font-semibold ${orderSuccess.deliveryFee > 0 ? "text-amber-400" : "text-emerald-400"}`}>
-                    {orderSuccess.deliveryFee > 0 ? `₹${orderSuccess.deliveryFee} Express Delivery` : "FREE (Farm Delivery Zone)"}
+                    {orderSuccess.deliveryFee > 0 ? `₹${orderSuccess.deliveryFee} Express Delivery` : "INCLUDED (Farm Delivery Zone)"}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm font-extrabold text-white pt-2 border-t border-slate-800">
@@ -2404,7 +2404,7 @@ export default function CheckoutPage() {
                     </button>
                   </div>
                   <p className="text-[11px] text-center text-slate-400 font-mono">
-                    🔒 Instant lead recovery • 100% Free Express Delivery inside 16km (Tiered) • Pin-Point GPS Delivery • Instant UPI &amp; Cards
+                    🔒 Instant lead recovery • Express Delivery inside 16km (Tiered) • Pin-Point GPS Delivery • Instant UPI &amp; Cards
                   </p>
                 </form>
               </div>
@@ -2876,17 +2876,17 @@ export default function CheckoutPage() {
                     {/* CASE 1: IN-ZONE -> DELIVERY STATUS & PROCEED TO STEP 3 */}
                     {deliveryMode === "under5" && (
                       <div className="space-y-4 pt-2">
-                        {/* Dynamic Delivery Fee / Free Delivery Card */}
+                        {/* Dynamic Delivery Fee / Fresh Delivery Card */}
                         {deliveryFee === 0 ? (
                           <div className="p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 flex items-center justify-between gap-3 text-xs">
                             <div className="flex items-center gap-2 text-emerald-300">
                               <span className="text-base">✓</span>
                               <span>
-                                <strong>100% FREE Express Delivery Applied:</strong> Your order ({totalWeightKg} kg) qualifies for free express delivery in {currentZoneEvaluation.zoneConfig.title}!
+                                <strong>Fresh Express Delivery Applied:</strong> Your order ({totalWeightKg} kg) qualifies for express farm delivery in {currentZoneEvaluation.zoneConfig.title}!
                               </span>
                             </div>
                             <span className="font-mono font-bold text-emerald-400 bg-emerald-950 px-2.5 py-1 rounded-md border border-emerald-500/30 flex-shrink-0">
-                              FREE DELIVERY
+                              INCLUDED
                             </span>
                           </div>
                         ) : (
@@ -2898,9 +2898,9 @@ export default function CheckoutPage() {
                               </div>
                               <p className="text-slate-300 text-[11px] m-0">
                                 {currentZoneEvaluation.tier === "zone3" ? (
-                                  <>💡 <strong>Family Pack Recommendation:</strong> Order <strong>3+ kg</strong> for 100% FREE express delivery, or proceed with ₹{deliveryFee} delivery fee.</>
+                                  <>💡 <strong>Family Pack Recommendation:</strong> Order <strong>3+ kg</strong> for express farm delivery included, or proceed with ₹{deliveryFee} delivery fee.</>
                                 ) : (
-                                  <>💡 <strong>Free Delivery Tip:</strong> Add <strong>+{Math.max(1, currentZoneEvaluation.minKgFree - totalWeightKg)} kg</strong> more trout to your cart to unlock <strong>100% FREE Express Delivery</strong> and save ₹{deliveryFee}!</>
+                                  <>💡 <strong>Savings Tip:</strong> Add <strong>+{Math.max(1, currentZoneEvaluation.minKgFree - totalWeightKg)} kg</strong> more trout to your cart to unlock <strong>Express Farm Delivery</strong> and save ₹{deliveryFee}!</>
                                 )}
                               </p>
                             </div>
@@ -3153,11 +3153,11 @@ export default function CheckoutPage() {
                         fontSize: "0.9rem",
                       }}
                     >
-                      {currentZoneEvaluation.zoneConfig.title} ({currentZoneEvaluation.zoneConfig.rangeKm}) — {deliveryFee === 0 ? "Free Delivery ✓" : `₹${deliveryFee} Special Delivery`}
+                      {currentZoneEvaluation.zoneConfig.title} ({currentZoneEvaluation.zoneConfig.rangeKm}) — {deliveryFee === 0 ? "Express Delivery Included ✓" : `₹${deliveryFee} Special Delivery`}
                     </p>
                     {calculatedDistance !== null && (
                       <p className="text-[11px] font-mono text-cyan-300/80 m-0">
-                        ~{calculatedDistance.toFixed(1)} km from Malabagh Farm {deliveryFee > 0 && `• Free on ${currentZoneEvaluation.zoneConfig.minKgFree}+ kg`}
+                        ~{calculatedDistance.toFixed(1)} km from Malabagh Farm {deliveryFee > 0 && `• Included on ${currentZoneEvaluation.zoneConfig.minKgFree}+ kg`}
                       </p>
                     )}
                   </div>
@@ -3692,7 +3692,7 @@ export default function CheckoutPage() {
                         : deliveryMode === "unavailable"
                         ? `Outside ${deliveryRadiusKm}km`
                         : deliveryFee === 0
-                        ? "FREE ✓"
+                        ? "INCLUDED ✓"
                         : `+₹${deliveryFee}`}
                     </span>
                   </div>

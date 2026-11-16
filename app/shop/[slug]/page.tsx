@@ -395,7 +395,7 @@ export default async function DynamicProductPage({ params }: Props) {
                     whiteSpace: "nowrap",
                   }}
                 >
-                  🛵 FREE DELIVERY
+                  🛵 FRESH DELIVERY
                 </span>
               </div>
             </div>
@@ -474,7 +474,7 @@ export default async function DynamicProductPage({ params }: Props) {
 
             {/* Add to cart */}
             <div>
-              {/* Free Delivery Callout Banner */}
+              {/* Express Delivery Callout Banner */}
               <div
                 style={{
                   display: "flex",
@@ -489,7 +489,7 @@ export default async function DynamicProductPage({ params }: Props) {
               >
                 <span style={{ fontSize: "18px" }}>🛵</span>
                 <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.82rem", color: "#a7f3d0", margin: 0, fontWeight: 600 }}>
-                  <strong style={{ color: "#34d399" }}>Pin-Point Express Delivery</strong> across Srinagar (16km Zone). Harvested live to order, packed in food-grade biodegradable polythene (0% ice), &amp; delivered to your shared GPS pin within 2 hours. Free delivery tiers available!
+                  <strong style={{ color: "#34d399" }}>Pin-Point Express Delivery</strong> across Srinagar (16km Zone). Harvested live to order, packed in food-grade biodegradable polythene (0% ice), &amp; delivered to your shared GPS pin within 2 hours. Fresh express cold-chain dispatch!
                 </p>
               </div>
 
@@ -529,7 +529,7 @@ export default async function DynamicProductPage({ params }: Props) {
                 { label: "Origin", value: "Srinagar" },
                 { label: "Harvest", value: "To Order" },
                 { label: "Antibiotics", value: "Zero" },
-                { label: "Delivery", value: "FREE • 2 Hours" },
+                { label: "Delivery", value: "Express • 2 Hours" },
               ].map((stat) => (
                 <div
                   key={stat.label}

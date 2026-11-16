@@ -10,15 +10,15 @@ import { getLiveAquariumStock } from "@/lib/aquariumStock";
 import { getGoogleReviewsData } from "@/lib/reviews";
 
 export const metadata: Metadata = {
-  title: "Premium Cleaned & Gutted Rainbow Trout (₹580/Kg)",
+  title: "Premium Gutted & Chef-Cut Rainbow Trout (₹580/Kg)",
   description:
-    "Expertly cleaned, scaled, gutted, and prepared for immediate cooking. Farmed in Malabagh, Srinagar. Fresh 2-hour express delivery in food-grade biodegradable polythene (0% ice) across Srinagar 16km farm zone.",
+    "Expertly descaled, gutted, and pre-cut into pan-ready chef portions by default. Farmed in Malabagh, Srinagar. Fresh 2-hour express delivery in food-grade biodegradable polythene (0% ice) across Srinagar 16km farm zone.",
   alternates: {
     canonical: "https://urbantrout.in/shop/gutted-trout",
   },
   openGraph: {
-    title: "Cleaned & Gutted Fresh Rainbow Trout | Urban Trout Srinagar",
-    description: "Pan-ready, 100% fresh cleaned Rainbow Trout farmed in Srinagar. Delivered within 2 hours in clean food-grade packaging.",
+    title: "Cleaned, Gutted & Chef-Cut Fresh Rainbow Trout | Urban Trout Srinagar",
+    description: "Pan-ready, 100% fresh cleaned & chef-cut Rainbow Trout farmed in Srinagar. Delivered within 2 hours in clean food-grade packaging.",
     url: "https://urbantrout.in/shop/gutted-trout",
     siteName: "Urban Trout",
     images: [
@@ -100,9 +100,9 @@ export default async function GuttedTroutPage() {
   const productJsonLd = {
     "@context": "https://schema.org/",
     "@type": "Product",
-    "name": "Premium Gutted Rainbow Trout",
+    "name": "Premium Gutted & Chef-Cut Rainbow Trout",
     "image": ["https://urbantrout.in/images/gutted_trout_premium.png"],
-    "description": "Expertly cleaned, gutted, and prepared for immediate cooking. Farmed locally in Srinagar and delivered fresh.",
+    "description": "Expertly cleaned, gutted, and pre-cut into pan-ready chef portions by default. Farmed locally in Srinagar and delivered fresh.",
     "sku": "UT-GUTTED-TROUT",
     "mpn": "UT-GUTTED-TROUT",
     "brand": {
@@ -342,7 +342,7 @@ export default async function GuttedTroutPage() {
                   margin: 0,
                 }}
               >
-                Premium Gutted<br />Rainbow Trout
+                Premium Gutted &amp; Chef-Cut<br />Rainbow Trout
               </h1>
             </div>
 
@@ -356,7 +356,7 @@ export default async function GuttedTroutPage() {
               }}
             >
               <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.9rem", color: C.onSurfVar, lineHeight: 1.75, margin: 0 }}>
-                Expertly scaled, cleaned, and gutted so it is pan-ready the moment it arrives.
+                Expertly scaled, gutted, and sliced into pan-ready chef-cut pieces by default so it is ready to cook the moment it arrives.
                 Harvested from our fresh water tanks and packed in clean food-grade packs to retain peak firmness
                 and delicate, mild flavor.
               </p>
@@ -405,7 +405,7 @@ export default async function GuttedTroutPage() {
                   </p>
                   <AddToCartButton
                     productId="gutted-trout"
-                    productName="Premium Gutted Rainbow Trout"
+                    productName="Premium Gutted & Chef-Cut Rainbow Trout"
                     price={price}
                     originalPrice={originalPrice}
                     unit="Kg"

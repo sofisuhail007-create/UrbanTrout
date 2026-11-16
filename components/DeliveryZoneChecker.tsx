@@ -390,7 +390,7 @@ export default function DeliveryZoneChecker() {
                 <span className="text-[10px] font-mono font-bold text-emerald-400 uppercase">Zone 1 (0–4 km)</span>
                 <span className="text-xs">🟢</span>
               </div>
-              <div className="font-extrabold text-white text-xs mt-1">FREE from 2 kg</div>
+              <div className="font-extrabold text-white text-xs mt-1">Express from 2 kg</div>
               <div className="text-[10px] text-slate-400 mt-0.5">₹35 fee for 1 kg</div>
             </button>
 
@@ -408,7 +408,7 @@ export default function DeliveryZoneChecker() {
                 <span className="text-[10px] font-mono font-bold text-sky-400 uppercase">Zone 2 (4–7 km)</span>
                 <span className="text-xs">🔵</span>
               </div>
-              <div className="font-extrabold text-white text-xs mt-1">FREE from 3 kg</div>
+              <div className="font-extrabold text-white text-xs mt-1">Express from 3 kg</div>
               <div className="text-[10px] text-slate-400 mt-0.5">₹55 on 2kg / ₹65 on 1kg</div>
             </button>
 
@@ -426,7 +426,7 @@ export default function DeliveryZoneChecker() {
                 <span className="text-[10px] font-mono font-bold text-indigo-400 uppercase">Zone 3 (7–11.5 km)</span>
                 <span className="text-xs">🟣</span>
               </div>
-              <div className="font-extrabold text-white text-xs mt-1">FREE from 3 kg</div>
+              <div className="font-extrabold text-white text-xs mt-1">Express from 3 kg</div>
               <div className="text-[10px] text-slate-400 mt-0.5">₹89 on 2kg / ₹99 on 1kg</div>
             </button>
 
@@ -444,7 +444,7 @@ export default function DeliveryZoneChecker() {
                 <span className="text-[10px] font-mono font-bold text-amber-400 uppercase">Zone 4 (11.5–16 km)</span>
                 <span className="text-xs">🟡</span>
               </div>
-              <div className="font-extrabold text-white text-xs mt-1">FREE from 5 kg</div>
+              <div className="font-extrabold text-white text-xs mt-1">Express from 5 kg</div>
               <div className="text-[10px] text-slate-400 mt-0.5">₹109 on 4kg / ₹139 on 2kg</div>
             </button>
 
@@ -474,13 +474,13 @@ export default function DeliveryZoneChecker() {
                 {activeZoneTab === "all"
                   ? "Key Localities Across All Srinagar Zones (Click any to test)"
                   : activeZoneTab === "zone1"
-                  ? "Zone 1 Localities (0–4 km — 100% Free on 2 kg+)"
+                  ? "Zone 1 Localities (0–4 km — Express Delivery from 2 kg+)"
                   : activeZoneTab === "zone2"
-                  ? "Zone 2 Localities (4–7 km — 100% Free on 3 kg+)"
+                  ? "Zone 2 Localities (4–7 km — Express Delivery from 3 kg+)"
                   : activeZoneTab === "zone3"
-                  ? "Zone 3 Localities (7–11.5 km — 100% Free on 3 kg+)"
+                  ? "Zone 3 Localities (7–11.5 km — Express Delivery from 3 kg+)"
                   : activeZoneTab === "zone4"
-                  ? "Zone 4 South & Cross-City Corridor (11.5–16 km — 100% Free on 5 kg+)"
+                  ? "Zone 4 South & Cross-City Corridor (11.5–16 km — Express Delivery on 5 kg+)"
                   : "Beyond 16 km Localities (Counter Pickup at Malabagh Farm Hub)"}
               </span>
               {activeZoneTab !== "all" && (

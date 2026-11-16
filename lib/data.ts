@@ -20,12 +20,12 @@ export type Product = {
 export const products: Product[] = [
   {
     id: "gutted-trout",
-    name: "Premium Gutted Rainbow Trout",
+    name: "Premium Gutted Rainbow Trout (Chef-Cut Pieces)",
     price: 580,
     originalPrice: 650,
     unit: "Kg",
-    label: "CLEANED & GUTTED",
-    desc: "Expertly cleaned, gutted, and ready to cook. Harvested fresh to order and packed in 100% food-grade biodegradable polythene (0% ice) for express delivery.",
+    label: "CLEANED & CHEF-CUT",
+    desc: "Expertly descaled, gutted, and pre-cut into pan-ready chef portions by default. Harvested fresh to order and packed in 100% food-grade biodegradable polythene (0% ice) for express delivery.",
     img: "/images/gutted_trout_premium.webp",
     minQuantity: 1,
   },

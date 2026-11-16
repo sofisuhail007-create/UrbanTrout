@@ -484,7 +484,7 @@ export default function DeliveryProfitCalculatorPage() {
               step="any"
               inputMode="numeric"
               value={customerShareStr}
-              placeholder="0 if Free Delivery"
+              placeholder="0 if Included"
               onFocus={(e) => e.target.select()}
               onChange={(e) => setCustomerShareStr(e.target.value)}
               className="w-full h-10 bg-slate-950 border border-slate-700 rounded-xl px-3 text-xs font-black text-emerald-300 focus:outline-none focus:border-emerald-400"
@@ -492,7 +492,7 @@ export default function DeliveryProfitCalculatorPage() {
             {/* Quick chips */}
             <div className="flex items-center gap-1 flex-wrap pt-0.5">
               {[
-                { label: "Free (₹0)", v: "0" },
+                { label: "Included (₹0)", v: "0" },
                 { label: "+₹45 (1kg Z1)", v: "45" },
                 { label: "+₹55 (2kg Z2)", v: "55" },
                 { label: "+₹75 (1kg Z2)", v: "75" },

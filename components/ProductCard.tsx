@@ -113,12 +113,12 @@ export default function ProductCard({ p }: { p: Product }) {
               </span>
             )}
 
-            {/* Free Delivery badge */}
+            {/* Fresh Delivery badge */}
             <span
               className="px-2 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider backdrop-blur-md bg-emerald-500/20 border border-emerald-400/40 text-emerald-300 whitespace-nowrap"
               style={{ fontFamily: '"Space Grotesk", sans-serif' }}
             >
-              🛵 Free Delivery
+              🛵 Fresh Delivery
             </span>
           </div>
 
@@ -215,7 +215,7 @@ export default function ProductCard({ p }: { p: Product }) {
           </span>
         </div>
 
-        {/* Free Delivery Reassurance */}
+        {/* Fresh Delivery Reassurance */}
         <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-400">
           <span>🛵</span>
           <span>Express Chilled Delivery (16km Srinagar Zone)</span>
