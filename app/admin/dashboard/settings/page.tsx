@@ -95,7 +95,7 @@ const DEFAULT_STAFF: StaffMember[] = [
     role: "sales_staff",
     permissions: {
       billing: true,
-      orders: false,
+      orders: true,
       leads: false,
       inventory: false,
       customers: false,

@@ -233,10 +233,17 @@ export default function OrdersPage() {
   const [scalePaymentMode, setScalePaymentMode] = useState<"prepaid" | "cod">("prepaid");
   const [scaleSaving, setScaleSaving] = useState(false);
 
-  // Instant Locked QR Modal State
+  // User Session & Staff Permissions (Owner vs Mohd Amin)
+  const [isOwner, setIsOwner] = useState<boolean>(true);
+  const [staffName, setStaffName] = useState<string>("");
+  const [userEmail, setUserEmail] = useState<string>("");
+
+  // Instant Locked QR Modal State (HDFC SmartHub Vyapar default)
+  const HDFC_COUNTER_VPA = "Vyapar.178760132267@hdfcbank";
+  const HDFC_MERCHANT_REF = "STQU178760132267";
   const [qrModalOrder, setQrModalOrder] = useState<Order | null>(null);
   const [qrAmount, setQrAmount] = useState<string>("0");
-  const [qrMode, setQrMode] = useState<"razorpay" | "direct_upi">("razorpay");
+  const [qrMode, setQrMode] = useState<"hdfc" | "razorpay" | "direct_upi">("hdfc");
   const [qrLoading, setQrLoading] = useState<boolean>(false);
   const [posQrData, setPosQrData] = useState<{ qr_id: string; image_url: string; amount: number } | null>(null);
   const [posQrPaid, setPosQrPaid] = useState<boolean>(false);
@@ -246,6 +253,52 @@ export default function OrdersPage() {
   const [markingPaid, setMarkingPaid] = useState<boolean>(false);
 
   useEffect(() => {
+    // 1. Immediate check from storage for zero layout shift
+    try {
+      const localEmail = (
+        localStorage.getItem("ut_admin_email") ||
+        sessionStorage.getItem("ut_admin_email") ||
+        ""
+      ).toLowerCase().trim();
+      const localName = localStorage.getItem("ut_admin_name") || "";
+      if (localEmail) {
+        setUserEmail(localEmail);
+        const owner = [
+          "sofisuhail007@gmail.com",
+          "info.urbantrout@gmail.com",
+          "founder@urbantrout.in",
+          "admin@urbantrout.in",
+        ].includes(localEmail);
+        setIsOwner(owner);
+        setStaffName(localName || (owner ? "Suhail" : "Mohd Amin"));
+      }
+    } catch (_) {}
+
+    // 2. Validate session via Supabase Auth
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      const email = (
+        session?.user?.email ||
+        localStorage.getItem("ut_admin_email") ||
+        sessionStorage.getItem("ut_admin_email") ||
+        ""
+      ).toLowerCase().trim();
+      if (email) {
+        setUserEmail(email);
+        const owner = [
+          "sofisuhail007@gmail.com",
+          "info.urbantrout@gmail.com",
+          "founder@urbantrout.in",
+          "admin@urbantrout.in",
+        ].includes(email);
+        setIsOwner(owner);
+        setStaffName(
+          session?.user?.user_metadata?.full_name ||
+          localStorage.getItem("ut_admin_name") ||
+          (owner ? "Suhail" : "Mohd Amin")
+        );
+      }
+    });
+
     fetchOrders();
     fetchUpi();
 
@@ -325,12 +378,21 @@ export default function OrdersPage() {
   }
 
   // Active Dispatch Queue (Pending, Processing, Out for Delivery)
-  // Filtered strictly to TODAY'S orders (since 12:00 AM midnight IST).
-  // Any order from previous days automatically drops off the 2-Hour Radar at 12:00 AM midnight,
-  // guaranteeing a clean slate every morning! (Historical orders remain archived in "All Orders Table").
+  // For Staff (Mohd Amin): strictly show OPEN orders needing fulfillment (pending, processing, confirmed, out_for_delivery).
+  // Historical delivered and cancelled orders are hidden from staff.
+  // For Owner: filtered to TODAY'S orders on 2-Hour Radar, with optional delivered toggle.
   const activeDispatchOrders = useMemo(() => {
     return orders
       .filter((o) => {
+        if (!isOwner) {
+          // Mohd Amin staff view: strictly open orders
+          return (
+            o.status === "processing" ||
+            o.status === "out_for_delivery" ||
+            o.status === "pending" ||
+            (o.status as any) === "confirmed"
+          );
+        }
         if (!isOrderPlacedTodayIST(o.created_at)) return false;
         if (includeDeliveredToday) {
           return (
@@ -349,15 +411,27 @@ export default function OrdersPage() {
         );
       })
       .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-  }, [orders, includeDeliveredToday]);
+  }, [orders, includeDeliveredToday, isOwner]);
 
   const activeQueueCount = useMemo(() => {
-    return orders.filter(
-      (o) =>
+    return orders.filter((o) => {
+      if (!isOwner) {
+        return (
+          o.status === "processing" ||
+          o.status === "out_for_delivery" ||
+          o.status === "pending" ||
+          (o.status as any) === "confirmed"
+        );
+      }
+      return (
         isOrderPlacedTodayIST(o.created_at) &&
-        (o.status === "processing" || o.status === "out_for_delivery" || o.status === "pending" || (o.status as any) === "confirmed")
-    ).length;
-  }, [orders]);
+        (o.status === "processing" ||
+          o.status === "out_for_delivery" ||
+          o.status === "pending" ||
+          (o.status as any) === "confirmed")
+      );
+    }).length;
+  }, [orders, isOwner]);
 
   const overdueCount = useMemo(() => {
     return activeDispatchOrders.filter((o) => o.status !== "delivered" && getDispatchCountdown(o, now).urgency === "overdue").length;
@@ -529,14 +603,13 @@ export default function OrdersPage() {
 
     setQrModalOrder(order);
     setQrAmount(String(initialAmount));
-    setQrMode("razorpay");
+    // Default to HDFC SmartHub Vyapar (Instant, Soundbox, 0% fee)
+    setQrMode("hdfc");
     setQrError(null);
     setPosQrData(null);
     setPosQrPaid(false);
     setPosQrPayment(null);
     setCopiedLink(false);
-
-    generateRazorpayQr(initialAmount, order);
   };
 
   const generateRazorpayQr = async (amt: number, ord: Order) => {
@@ -565,12 +638,12 @@ export default function OrdersPage() {
           amount: data.amount,
         });
       } else {
-        setQrMode("direct_upi");
-        setQrError(data.error || "Razorpay Dynamic QR not available. Switched to Direct J&K Bank UPI.");
+        setQrMode("hdfc");
+        setQrError(data.error || "Razorpay Dynamic QR unavailable. Showing HDFC SmartHub Soundbox QR.");
       }
     } catch (err: any) {
-      setQrMode("direct_upi");
-      setQrError("Connection issue. Switched to Direct J&K Bank UPI.");
+      setQrMode("hdfc");
+      setQrError("Connection issue. Showing HDFC SmartHub Soundbox QR.");
     } finally {
       setQrLoading(false);
     }
@@ -639,6 +712,39 @@ export default function OrdersPage() {
     };
   }, [qrModalOrder, posQrData?.qr_id, posQrPaid, qrMode]);
 
+  const handleConfirmHdfcPaid = async () => {
+    if (!qrModalOrder) return;
+    setMarkingPaid(true);
+    const amt = parseFloat(qrAmount) || Number(qrModalOrder.total) || 0;
+    const newStatus = qrModalOrder.status === "pending" ? "processing" : qrModalOrder.status;
+    try {
+      await adminFetch("/api/order-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId: qrModalOrder.id,
+          status: newStatus,
+          paid_amount: amt,
+          payment_status: "PAID",
+          notes: `Paid ₹${amt} via HDFC Bank SmartHub Soundbox (${HDFC_COUNTER_VPA})`,
+        }),
+      });
+      playSuccessChime();
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.id === qrModalOrder.id
+            ? ({ ...o, status: newStatus as OrderStatus, paid_amount: amt } as any)
+            : o
+        )
+      );
+      setPosQrPaid(true);
+    } catch (err: any) {
+      alert(`Could not mark order as paid: ${err?.message || err}`);
+    } finally {
+      setMarkingPaid(false);
+    }
+  };
+
   const handleConfirmDirectUpiPaid = async () => {
     if (!qrModalOrder) return;
     setMarkingPaid(true);
@@ -673,6 +779,16 @@ export default function OrdersPage() {
   };
 
   const parsedQrAmount = parseFloat(qrAmount) || (qrModalOrder ? Number(qrModalOrder.total) : 0);
+
+  // Dynamic HDFC SmartHub Vyapar Locked UPI URI & Fast QR
+  const hdfcUpiUri = qrModalOrder
+    ? `upi://pay?pa=${HDFC_COUNTER_VPA}&pn=Urban%20Trout%20Aquaculture&mc=8999&tr=${HDFC_MERCHANT_REF}&am=${parsedQrAmount.toFixed(2)}&cu=INR&tn=Order%20${qrModalOrder.order_number}`
+    : "";
+  const hdfcUpiQrUrl = hdfcUpiUri
+    ? generateFastQrDataUrl(hdfcUpiUri, { darkColor: "#000000", margin: 2 })
+    : "";
+
+  // Dynamic J&K Bank Soundbox Locked UPI URI & Fast QR
   const directUpiUri = qrModalOrder
     ? `upi://pay?pa=${upiId}&pn=Urban%20Trout%20Aquaculture&tr=TERM${String(qrModalOrder.order_number)}&am=${parsedQrAmount.toFixed(2)}&cu=INR&tn=Order%20${qrModalOrder.order_number}`
     : "";
@@ -685,7 +801,18 @@ export default function OrdersPage() {
     const cleanPhone = String(qrModalOrder.customer_phone || "").replace(/\D/g, "").slice(-10);
     const amountStr = `₹${parsedQrAmount.toLocaleString("en-IN")}`;
     const name = getCleanCustomerGreetingName(qrModalOrder.customer_name);
-    const msg = `Hi ${name}! 🐟\n\nYour Urban Trout Order #${qrModalOrder.order_number} is ready.\n\n*Amount Due: ${amountStr}* (Amount is locked)\n\nTap to pay with any UPI App (GPay / PhonePe / Paytm / mPay):\n${directUpiUri}\n\nOur UPI ID: ${upiId}\n\nThank you for choosing Urban Trout!`;
+
+    let payLink = hdfcUpiUri;
+    let bankNote = `HDFC Bank SmartHub UPI: ${HDFC_COUNTER_VPA}`;
+    if (qrMode === "direct_upi") {
+      payLink = directUpiUri;
+      bankNote = `J&K Bank UPI ID: ${upiId}`;
+    } else if (qrMode === "razorpay") {
+      payLink = posQrData?.image_url ? `https://rzp.io/l/urbantrout` : hdfcUpiUri;
+      bankNote = `Razorpay Auto-Verify UPI`;
+    }
+
+    const msg = `Hi ${name}! 🐟\n\nYour Urban Trout Order #${qrModalOrder.order_number} is ready.\n\n*Amount Due: ${amountStr}* (Amount is locked in UPI)\n\nTap to pay with any UPI App (Google Pay / PhonePe / Paytm / PayZapp / mPay):\n${payLink}\n\n${bankNote}\n\nThank you for choosing Urban Trout!`;
     launchWhatsApp(cleanPhone, msg);
   };
 
@@ -753,7 +880,22 @@ export default function OrdersPage() {
     }
   }
 
-  const filtered = filter === "all" ? orders : orders.filter((o) => o.status === filter);
+  // Open orders pool for Staff (Mohd Amin): strictly open orders needing fulfillment
+  const openOrdersPool = useMemo(() => {
+    return orders.filter(
+      (o) =>
+        o.status === "pending" ||
+        o.status === "processing" ||
+        (o.status as any) === "confirmed" ||
+        o.status === "out_for_delivery"
+    );
+  }, [orders]);
+
+  const filtered = useMemo(() => {
+    const baseOrders = !isOwner ? openOrdersPool : orders;
+    if (filter === "all") return baseOrders;
+    return baseOrders.filter((o) => o.status === filter);
+  }, [isOwner, openOrdersPool, orders, filter]);
 
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -779,8 +921,17 @@ export default function OrdersPage() {
               ⚡ 2-Hour Express
             </span>
           </div>
-          <p className="text-zinc-400 text-xs mt-0.5 font-mono">
-            Solo Operator Radar • Live ticking timers, harvest status &amp; 1-tap route actions
+          <p className="text-zinc-400 text-xs mt-0.5 font-mono flex items-center gap-2 flex-wrap">
+            <span>
+              {isOwner
+                ? "Solo Operator Radar • Live ticking timers, harvest status & 1-tap route actions"
+                : `Open Orders Dispatch Radar • ${staffName || "Mohd Amin"}`}
+            </span>
+            {!isOwner && (
+              <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold">
+                Active Staff
+              </span>
+            )}
           </p>
         </div>
 
@@ -812,9 +963,9 @@ export default function OrdersPage() {
               }`}
             >
               <span className="material-symbols-outlined text-sm">table_rows</span>
-              <span>All Orders Table ({filtered.length})</span>
+              <span>{isOwner ? "All Orders Table" : "Open Orders Table"} ({filtered.length})</span>
             </button>
-            {viewMode === "radar" && (
+            {viewMode === "radar" && isOwner && (
               <button
                 type="button"
                 onClick={() => setIncludeDeliveredToday((prev) => !prev)}
@@ -1293,19 +1444,32 @@ export default function OrdersPage() {
         <div className="space-y-4">
           {/* Filter tabs */}
       <div className="flex gap-1.5 flex-wrap">
-        {[{ value: "all", label: "All" }, ...STATUSES].map((s) => (
-          <button
-            key={s.value}
-            onClick={() => setFilter(s.value)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
-              filter === s.value
-                ? "bg-[#161616] text-zinc-100 border-zinc-600 shadow-sm"
-                : "bg-[#0a0a0a] text-zinc-400 border-[#222222] hover:border-[#333333] hover:text-zinc-200"
-            }`}
-          >
-            {s.label} {s.value !== "all" && `(${orders.filter((o) => o.status === s.value).length})`}
-          </button>
-        ))}
+        {(isOwner
+          ? [{ value: "all", label: "All" }, ...STATUSES]
+          : [
+              { value: "all", label: "All Open" },
+              { value: "pending", label: "Pending" },
+              { value: "processing", label: "Harvesting" },
+              { value: "out_for_delivery", label: "Out for Delivery" },
+            ]
+        ).map((s) => {
+          const count = s.value === "all"
+            ? (isOwner ? orders.length : openOrdersPool.length)
+            : (!isOwner ? openOrdersPool : orders).filter((o) => o.status === s.value).length;
+          return (
+            <button
+              key={s.value}
+              onClick={() => setFilter(s.value)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
+                filter === s.value
+                  ? "bg-[#161616] text-zinc-100 border-zinc-600 shadow-sm"
+                  : "bg-[#0a0a0a] text-zinc-400 border-[#222222] hover:border-[#333333] hover:text-zinc-200"
+              }`}
+            >
+              {s.label} ({count})
+            </button>
+          );
+        })}
       </div>
 
       {/* Select All on Page bar */}
@@ -1690,14 +1854,16 @@ export default function OrdersPage() {
                       })()}
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteOrder(order.id, order.order_number)}
-                      className="inline-flex items-center gap-1.5 px-3 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/25 rounded-lg text-xs font-semibold transition-colors"
-                    >
-                      <span className="material-symbols-outlined text-base">delete</span>
-                      Delete Order
-                    </button>
+                    {isOwner && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteOrder(order.id, order.order_number)}
+                        className="inline-flex items-center gap-1.5 px-3 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/25 rounded-lg text-xs font-semibold transition-colors"
+                      >
+                        <span className="material-symbols-outlined text-base">delete</span>
+                        Delete Order
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -2105,7 +2271,19 @@ export default function OrdersPage() {
             </div>
 
             {/* Mode Tabs */}
-            <div className="flex gap-2 mt-4 p-1 bg-black/70 border border-[#222222] rounded-xl">
+            <div className="grid grid-cols-3 gap-1.5 mt-4 p-1 bg-black/70 border border-[#222222] rounded-xl">
+              <button
+                type="button"
+                onClick={() => setQrMode("hdfc")}
+                className={`py-2 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
+                  qrMode === "hdfc"
+                    ? "bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-md font-black"
+                    : "text-slate-400 hover:text-white"
+                }`}
+              >
+                <span>🏛️ HDFC</span>
+                <span className="text-[9px] font-mono opacity-80">Default Soundbox</span>
+              </button>
               <button
                 type="button"
                 onClick={() => {
@@ -2114,24 +2292,26 @@ export default function OrdersPage() {
                     generateRazorpayQr(parsedQrAmount, qrModalOrder);
                   }
                 }}
-                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                className={`py-2 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
                   qrMode === "razorpay"
                     ? "bg-cyan-500 text-slate-950 shadow-md font-black"
                     : "text-slate-400 hover:text-white"
                 }`}
               >
-                <span>⚡ Auto-Verify POS QR</span>
+                <span>⚡ Razorpay</span>
+                <span className="text-[9px] font-mono opacity-80">Auto-Detect</span>
               </button>
               <button
                 type="button"
                 onClick={() => setQrMode("direct_upi")}
-                className={`flex-1 py-1.5 px-3 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                className={`py-2 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
                   qrMode === "direct_upi"
-                    ? "bg-emerald-500 text-slate-950 shadow-md font-black"
+                    ? "bg-blue-600 text-white shadow-md font-black"
                     : "text-slate-400 hover:text-white"
                 }`}
               >
-                <span>🏦 Direct J&K Bank (0% Fee)</span>
+                <span>🏦 J&amp;K Bank</span>
+                <span className="text-[9px] font-mono opacity-80">0% Fee UPI</span>
               </button>
             </div>
 
@@ -2140,10 +2320,10 @@ export default function OrdersPage() {
               <div>
                 <span className="text-[11px] text-slate-400 block font-medium uppercase tracking-wider">Locked Pay Amount</span>
                 <div className="flex items-center gap-1.5 mt-0.5">
-                  <span className="text-xl font-black text-cyan-400 font-mono">
+                  <span className="text-xl font-black text-emerald-400 font-mono">
                     ₹{parsedQrAmount.toLocaleString("en-IN")}
                   </span>
-                  <span className="text-[10px] bg-cyan-950/80 text-cyan-300 border border-cyan-800/60 px-1.5 py-0.5 rounded-full font-bold">
+                  <span className="text-[10px] bg-emerald-950/80 text-emerald-300 border border-emerald-800/60 px-1.5 py-0.5 rounded-full font-bold">
                     🔒 Locked
                   </span>
                 </div>
@@ -2185,7 +2365,7 @@ export default function OrdersPage() {
                     ✓
                   </div>
                   <div>
-                    <h4 className="text-lg font-black text-emerald-400">Payment Received & Verified!</h4>
+                    <h4 className="text-lg font-black text-emerald-400">Payment Received &amp; Verified!</h4>
                     <p className="text-xs text-slate-300 mt-1 font-mono">
                       ₹{parsedQrAmount.toLocaleString("en-IN")} Captured Successfully
                     </p>
@@ -2194,7 +2374,7 @@ export default function OrdersPage() {
                     )}
                   </div>
                   <div className="p-2.5 bg-emerald-950/40 border border-emerald-500/30 rounded-xl text-xs text-emerald-200">
-                    Order #{qrModalOrder.order_number} marked as Paid & Verified in database.
+                    Order #{qrModalOrder.order_number} marked as Paid &amp; Verified in database.
                   </div>
                 </div>
               ) : qrLoading ? (
@@ -2207,7 +2387,9 @@ export default function OrdersPage() {
                   <div className="p-2 bg-white rounded-xl shadow-lg shadow-black/40">
                     <img
                       src={
-                        qrMode === "razorpay" && posQrData?.image_url
+                        qrMode === "hdfc"
+                          ? hdfcUpiQrUrl
+                          : qrMode === "razorpay" && posQrData?.image_url
                           ? posQrData.image_url
                           : directUpiQrUrl
                       }
@@ -2217,15 +2399,25 @@ export default function OrdersPage() {
                   </div>
 
                   {/* Mode-specific status indicator */}
-                  {qrMode === "razorpay" ? (
+                  {qrMode === "hdfc" ? (
+                    <div className="mt-3 flex flex-col items-center gap-1 text-center">
+                      <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-950/70 border border-emerald-500/40 text-xs text-emerald-300">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span>HDFC SmartHub Soundbox · ₹{parsedQrAmount.toLocaleString("en-IN")} locked</span>
+                      </div>
+                      <span className="text-[10px] text-zinc-400 font-mono">
+                        Direct to {HDFC_COUNTER_VPA} • Soundbox will speak
+                      </span>
+                    </div>
+                  ) : qrMode === "razorpay" ? (
                     <div className="mt-3 flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyan-950/70 border border-cyan-500/30 text-xs text-cyan-300">
                       <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
                       <span>Waiting for customer scan... (Auto-detects)</span>
                     </div>
                   ) : (
-                    <div className="mt-3 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-950/60 border border-emerald-500/30 text-xs text-emerald-300">
+                    <div className="mt-3 flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-blue-950/60 border border-blue-500/30 text-xs text-blue-300">
                       <span className="material-symbols-outlined text-sm">lock</span>
-                      <span>Direct J&K Bank · ₹{parsedQrAmount} locked in app</span>
+                      <span>Direct J&amp;K Bank · ₹{parsedQrAmount.toLocaleString("en-IN")} locked in app</span>
                     </div>
                   )}
 
@@ -2262,7 +2454,8 @@ export default function OrdersPage() {
                 <button
                   type="button"
                   onClick={() => {
-                    navigator.clipboard.writeText(directUpiUri);
+                    const payUri = qrMode === "hdfc" ? hdfcUpiUri : qrMode === "direct_upi" ? directUpiUri : (posQrData?.image_url || hdfcUpiUri);
+                    navigator.clipboard.writeText(payUri);
                     setCopiedLink(true);
                     setTimeout(() => setCopiedLink(false), 2000);
                   }}
@@ -2275,16 +2468,28 @@ export default function OrdersPage() {
                 </button>
               </div>
 
-              {/* Direct UPI manual confirmation button */}
+              {/* Direct UPI manual confirmation button (HDFC or J&K Bank) */}
+              {qrMode === "hdfc" && !posQrPaid && (
+                <button
+                  type="button"
+                  onClick={handleConfirmHdfcPaid}
+                  disabled={markingPaid}
+                  className="w-full py-2.5 px-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-500/20 active:scale-95 cursor-pointer disabled:opacity-50"
+                >
+                  <span>✓</span>
+                  <span>{markingPaid ? "Updating Order..." : `HDFC Soundbox Spoke ₹${parsedQrAmount.toLocaleString("en-IN")} (Confirm & Mark Paid)`}</span>
+                </button>
+              )}
+
               {qrMode === "direct_upi" && !posQrPaid && (
                 <button
                   type="button"
                   onClick={handleConfirmDirectUpiPaid}
                   disabled={markingPaid}
-                  className="w-full py-2.5 px-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-500/20 active:scale-95 cursor-pointer disabled:opacity-50"
+                  className="w-full py-2.5 px-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-black rounded-xl text-xs transition-all flex items-center justify-center gap-1.5 shadow-lg shadow-blue-500/20 active:scale-95 cursor-pointer disabled:opacity-50"
                 >
                   <span>✓</span>
-                  <span>{markingPaid ? "Updating Order..." : `Customer Paid ₹${parsedQrAmount} (Confirm & Mark Paid)`}</span>
+                  <span>{markingPaid ? "Updating Order..." : `J&K Soundbox Spoke ₹${parsedQrAmount.toLocaleString("en-IN")} (Confirm & Mark Paid)`}</span>
                 </button>
               )}
 

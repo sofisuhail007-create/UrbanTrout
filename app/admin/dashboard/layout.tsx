@@ -87,7 +87,7 @@ const NAV_GROUPS: NavGroup[] = [
     title: "Management",
     items: [
       { href: "/admin/dashboard", icon: "dashboard", label: "Dashboard", permKey: null },
-      { href: "/admin/dashboard/orders", icon: "receipt_long", label: "Orders", permKey: "orders", ownerOnly: true },
+      { href: "/admin/dashboard/orders", icon: "receipt_long", label: "Orders", permKey: "orders" },
       { href: "/admin/dashboard/visits", icon: "calendar_month", label: "Farm Visits", permKey: "farm" },
       { href: "/admin/dashboard/leads", icon: "phone_callback", label: "Leads & Abandoned", permKey: "leads", ownerOnly: true },
     ],

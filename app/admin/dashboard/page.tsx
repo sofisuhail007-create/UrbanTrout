@@ -206,8 +206,13 @@ export default function DashboardPage() {
           }
         }
       } else {
-        // Sales Staff (Mohd Amin): strictly zero online orders, zero leads, zero customer data
-        setOrders([]);
+        // Sales Staff (Mohd Amin): view open orders only to fulfill & dispatch; zero leads & customer ledger access
+        const { data: openOrdersData } = await supabase
+          .from("orders")
+          .select("*")
+          .in("status", ["pending", "processing", "confirmed", "out_for_delivery"])
+          .order("created_at", { ascending: false });
+        setOrders((openOrdersData as Order[]) ?? []);
         setCustomers(0);
         setRecentLeads([]);
 
