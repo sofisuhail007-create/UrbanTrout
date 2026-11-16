@@ -85,14 +85,15 @@ export default function POSBillingPage() {
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerNotes, setCustomerNotes] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"JkBankSoundbox" | "RazorpayQR" | "HdfcUpi" | "WhatsAppLink" | "Cash">("JkBankSoundbox");
+  const [paymentMethod, setPaymentMethod] = useState<"HdfcUpi" | "RazorpayQR" | "JkBankSoundbox" | "Cash" | "WhatsAppLink">("HdfcUpi");
   const [upiId, setUpiId] = useState("JKBMERC00828895@jkb");
   const [soundboxPaid, setSoundboxPaid] = useState(false);
   const [soundboxQrGenerated, setSoundboxQrGenerated] = useState(false);
   const [lastSoundboxAmount, setLastSoundboxAmount] = useState<number>(0);
 
-  // HDFC Counter UPI State (urbantroutaquaculture@axl)
-  const HDFC_COUNTER_VPA = "urbantroutaquaculture@axl";
+  // HDFC Counter SmartHub Vyapar Soundbox UPI State
+  const HDFC_COUNTER_VPA = "Vyapar.178760132267@hdfcbank";
+  const HDFC_MERCHANT_REF = "STQU178760132267";
   const [hdfcPaid, setHdfcPaid] = useState(false);
   const [hdfcQrGenerated, setHdfcQrGenerated] = useState(false);
   const [lastHdfcAmount, setLastHdfcAmount] = useState<number>(0);
@@ -769,10 +770,10 @@ export default function POSBillingPage() {
     [upiPayUri]
   );
 
-  // Dynamic HDFC Bank Locked UPI URI & High-Res QR Code (urbantroutaquaculture@axl)
+  // Dynamic HDFC Bank SmartHub Vyapar Soundbox Locked UPI URI & High-Res QR Code
   const hdfcUpiPayUri = grandTotal > 0
-    ? `upi://pay?pa=${HDFC_COUNTER_VPA}&pn=Urban%20Trout%20Aquaculture&am=${grandTotal}&cu=INR&tn=Urban%20Trout%20Counter%20POS`
-    : `upi://pay?pa=${HDFC_COUNTER_VPA}&pn=Urban%20Trout%20Aquaculture&cu=INR&tn=Urban%20Trout%20Counter%20POS`;
+    ? `upi://pay?pa=${HDFC_COUNTER_VPA}&pn=Urban%20Trout%20Aquaculture&mc=8999&tr=${HDFC_MERCHANT_REF}&am=${grandTotal}&cu=INR&tn=Urban%20Trout%20POS`
+    : `upi://pay?pa=${HDFC_COUNTER_VPA}&pn=Urban%20Trout%20Aquaculture&mc=8999&tr=${HDFC_MERCHANT_REF}&cu=INR&tn=Urban%20Trout%20POS`;
   const hdfcQrCodeUrl = useMemo(
     () => generateFastQrDataUrl(hdfcUpiPayUri, { darkColor: "#020d12", margin: 2 }),
     [hdfcUpiPayUri]
@@ -1075,10 +1076,10 @@ export default function POSBillingPage() {
       ? (paidAmount > 0 ? "PARTIALLY PAID" : "PAYMENT DUE")
       : (isRzpPaid || isSoundbox || isHdfc || paymentMethod === "Cash" || soundboxPaid || hdfcPaid) ? "PAID" : "PAYMENT DUE";
 
-    const paymentMethodLabel = isSoundbox
+    const paymentMethodLabel = isHdfc
+      ? "HDFC Bank (SmartHub Vyapar)"
+      : isSoundbox
       ? "J&K Bank Soundbox UPI"
-      : isHdfc
-      ? "HDFC Bank UPI (urbantroutaquaculture@axl)"
       : isRzpPaid
       ? (paymentMethod === "WhatsAppLink" ? "Razorpay Link (Verified)" : "Razorpay UPI (Verified)")
       : paymentMethod === "RazorpayQR"
@@ -2908,7 +2909,7 @@ Helpline: +91 84910 06127`;
                     <div className="text-right">
                       <span className="text-[10px] text-zinc-400 block">{isCustomAmountMode ? "Direct QR" : `${totalWeight.toFixed(2)} Kg Trout`}</span>
                       <span className="text-[11px] text-zinc-300 font-medium">
-                        {paymentMethod === "JkBankSoundbox" ? "J&K Bank" : paymentMethod === "HdfcUpi" ? "HDFC Bank" : paymentMethod === "RazorpayQR" ? "Razorpay QR" : paymentMethod === "WhatsAppLink" ? "WhatsApp Link" : "Cash"}
+                        {paymentMethod === "HdfcUpi" ? "HDFC Bank (SmartHub)" : paymentMethod === "RazorpayQR" ? "Razorpay QR" : paymentMethod === "JkBankSoundbox" ? "J&K Bank" : paymentMethod === "WhatsAppLink" ? "WhatsApp Link" : "Cash"}
                       </span>
                     </div>
                   </div>
@@ -3179,13 +3180,12 @@ Helpline: +91 84910 06127`;
             </div>
 
             {/* Payment Channel Selector */}
-            <div className="grid grid-cols-3 sm:grid-cols-5 gap-1.5 pt-0.5">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 pt-0.5">
               {[
-                { id: "JkBankSoundbox", label: "J&K Bank", sub: "Default • Voice" },
+                { id: "HdfcUpi", label: "HDFC Bank", sub: "SmartHub Vyapar • Default" },
                 { id: "RazorpayQR", label: "Razorpay QR", sub: "Auto-Detect" },
-                { id: "HdfcUpi", label: "HDFC Bank", sub: "Locked QR" },
+                { id: "JkBankSoundbox", label: "J&K Bank", sub: "Soundbox • Voice" },
                 { id: "Cash", label: "Cash", sub: "Counter" },
-                { id: "WhatsAppLink", label: "WhatsApp Link", sub: "Remote Pay" },
               ].map((channel) => {
                 const isSel = paymentMethod === channel.id;
                 return (
@@ -3195,14 +3195,12 @@ Helpline: +91 84910 06127`;
                     onClick={() => setPaymentMethod(channel.id as any)}
                     className={`py-2 px-1 rounded-xl text-center transition-all border cursor-pointer ${
                       isSel
-                        ? channel.id === "JkBankSoundbox"
+                        ? channel.id === "HdfcUpi"
                           ? "bg-emerald-500/20 border-emerald-400 text-emerald-200 font-bold shadow-md shadow-emerald-500/10"
                           : channel.id === "RazorpayQR"
                           ? "bg-cyan-500/20 border-cyan-400 text-cyan-200 font-bold shadow-md shadow-cyan-500/10"
-                          : channel.id === "HdfcUpi"
-                          ? "bg-indigo-500/20 border-indigo-400 text-indigo-200 font-bold shadow-md shadow-indigo-500/10"
-                          : channel.id === "WhatsAppLink"
-                          ? "bg-sky-500/20 border-sky-400 text-sky-200 font-bold shadow-md shadow-sky-500/10"
+                          : channel.id === "JkBankSoundbox"
+                          ? "bg-blue-500/20 border-blue-400 text-blue-200 font-bold shadow-md shadow-blue-500/10"
                           : "bg-teal-500/20 border-teal-400 text-teal-200 font-bold shadow-md shadow-teal-500/10"
                         : "bg-black text-zinc-400 border-[#222222] hover:border-[#333333] hover:text-zinc-200"
                     }`}
@@ -3218,177 +3216,17 @@ Helpline: +91 84910 06127`;
 
             {/* ─── PAYMENT CHANNEL PANELS ─── */}
 
-            {/* 1. J&K Bank Soundbox Panel (Default) */}
-            {paymentMethod === "JkBankSoundbox" && grandTotal > 0 && (
+            {/* 1. HDFC Bank SmartHub Vyapar Soundbox Panel (Default) */}
+            {paymentMethod === "HdfcUpi" && grandTotal > 0 && (
               <div className="p-3 rounded-xl bg-[#000000] border border-[#222222] flex flex-col items-center text-center space-y-2">
-                {soundboxPaid ? (
+                {hdfcPaid ? (
                   <div className="w-full py-4 px-3 rounded-lg bg-[#0a0a0a] border border-[#333333] text-center space-y-2 animate-fadeIn">
                     <div className="w-9 h-9 rounded-full bg-[#161616] border border-[#333333] text-emerald-400 flex items-center justify-center mx-auto text-lg font-bold">
                       ✓
                     </div>
                     <div>
                       <h4 className="text-base font-semibold text-white font-['Space_Grotesk']">
-                        Soundbox Payment Confirmed: <span className="font-mono tabular-nums text-white">₹{grandTotal.toLocaleString("en-IN")}</span>
-                      </h4>
-                      <p className="text-xs text-zinc-400 font-mono mt-0.5">
-                        Voice announcement confirmed on counter soundbox
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSoundboxPaid(false);
-                        setSoundboxQrGenerated(true);
-                        setEnlargeQrModal(true);
-                      }}
-                      className="text-[10px] text-zinc-400 hover:text-white underline cursor-pointer pt-1"
-                    >
-                      Show QR Again
-                    </button>
-                  </div>
-                ) : !soundboxQrGenerated ? (
-                  /* ─── READY STATE: ON-DEMAND BUTTON TO GENERATE QR ─── */
-                  <div className="w-full py-2.5 px-2 text-center space-y-3 animate-fadeIn">
-                    <div className="flex items-center justify-between w-full pb-1.5 border-b border-[#222222] text-[10px] font-mono">
-                      <span className="flex items-center gap-1.5 text-zinc-300 font-medium uppercase">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block"></span>
-                        J&amp;K Bank Soundbox
-                      </span>
-                      <span className="text-zinc-500">{terminalId} Active</span>
-                    </div>
-
-                    <div className="w-10 h-10 rounded-lg bg-[#0a0a0a] border border-[#222222] text-zinc-300 flex items-center justify-center mx-auto text-xl">
-                      <span className="material-symbols-outlined text-xl">qr_code_2</span>
-                    </div>
-
-                    <div className="space-y-0.5">
-                      <span className="text-[10px] uppercase font-mono tracking-wider text-zinc-500 block">
-                        Counter UPI Payment Ready
-                      </span>
-                      <div className="text-xl sm:text-2xl font-semibold text-white font-mono tabular-nums">
-                        ₹{grandTotal.toLocaleString("en-IN")}.00
-                      </div>
-                      <p className="text-[11px] text-zinc-400 font-mono">
-                        {isCustomAmountMode
-                          ? (customNote || "Catch-Weight Direct Payment")
-                          : billItems.length === 1
-                          ? `${billItems[0].name.toLowerCase().includes("gutted") ? "Gutted Trout" : billItems[0].name.toLowerCase().includes("whole") ? "Whole Trout" : billItems[0].name} (${billItems[0].weightKg.toFixed(2)} Kg @ ₹${billItems[0].pricePerKg}/Kg)`
-                          : `${billItems.length} Fish Catch Items • ${totalWeight.toFixed(2)} Kg`}
-                      </p>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSoundboxQrGenerated(true);
-                        setLastSoundboxAmount(grandTotal);
-                        setEnlargeQrModal(true);
-                      }}
-                      className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 active:scale-[0.99] text-slate-950 font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-500/20 font-['Space_Grotesk']"
-                    >
-                      <span className="material-symbols-outlined text-base">qr_code_scanner</span>
-                      Generate QR Code (₹{grandTotal.toLocaleString("en-IN")})
-                    </button>
-
-                    <div className="p-2 rounded-lg bg-[#0a0a0a]/60 border border-[#222222]/80 text-[10px] text-zinc-400 leading-relaxed text-left flex items-start gap-1.5 w-full">
-                      <span className="material-symbols-outlined text-xs text-zinc-400 mt-0.5">lock</span>
-                      <span>
-                        <strong className="text-zinc-300 font-medium">Customer Privacy Protected:</strong> Clicking opens the clean customer-facing QR popup. Internal POS controls, margins &amp; customer database stay hidden.
-                      </span>
-                    </div>
-                  </div>
-                ) : (
-                  /* ─── ACTIVE STATE: QR HAS BEEN GENERATED ─── */
-                  <div className="w-full space-y-2.5 animate-fadeIn">
-                    <div className="flex items-center justify-between w-full pb-1 border-b border-[#222222] text-[10px] font-mono">
-                      <span className="flex items-center gap-1.5 text-zinc-300 font-medium uppercase">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block"></span>
-                        J&amp;K Bank Soundbox QR Ready
-                      </span>
-                      <span className="text-zinc-500">{terminalId}</span>
-                    </div>
-
-                    <div className="space-y-0.5">
-                      <span className="text-[10px] uppercase font-mono tracking-wider text-zinc-500">Locked Amount</span>
-                      <div className="text-xl font-semibold text-white font-mono tabular-nums">
-                        ₹{grandTotal.toLocaleString("en-IN")}
-                      </div>
-                      <div className="text-[10px] text-zinc-400 font-mono flex items-center justify-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
-                        <span>Listening for customer UPI payment</span>
-                      </div>
-                    </div>
-
-                    <div className="w-full">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setLastSoundboxAmount(grandTotal);
-                          setEnlargeQrModal(true);
-                        }}
-                        className="w-full py-2.5 px-3 rounded-lg bg-zinc-100 hover:bg-white text-zinc-950 font-semibold text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-sm font-['Space_Grotesk']"
-                      >
-                        <span className="material-symbols-outlined text-base">fullscreen</span>
-                        {grandTotal !== lastSoundboxAmount ? "Update & Open QR" : "Open QR Popup"}
-                      </button>
-                    </div>
-
-                    {/* Optional Collapsible Inline QR for Cashier Internal View */}
-                    <div className="w-full pt-1 border-t border-[#222222]">
-                      <button
-                        type="button"
-                        onClick={() => setShowInlineQr(!showInlineQr)}
-                        className="text-[10px] text-zinc-400 hover:text-zinc-200 font-mono flex items-center justify-center gap-1 w-full py-1 cursor-pointer"
-                      >
-                        <span>{showInlineQr ? "Hide" : "Show"} inline QR on POS screen</span>
-                      </button>
-
-                      {showInlineQr && (
-                        <div className="pt-2 space-y-2 animate-fadeIn flex flex-col items-center">
-                          <div
-                            onClick={() => setEnlargeQrModal(true)}
-                            className="p-2 bg-white border border-[#333333] rounded-xl cursor-pointer hover:border-zinc-500 transition-colors group relative overflow-hidden"
-                            title="Click to open popup for customer"
-                          >
-                            <img
-                              src={upiQrCodeUrl}
-                              alt="Counter UPI QR"
-                              className="w-32 h-32 rounded-lg object-contain"
-                            />
-                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex flex-col items-center justify-center text-white text-[11px] font-medium gap-1">
-                              <span>Open Popup</span>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center justify-center gap-1.5 text-[10px] text-zinc-400 font-mono">
-                            <span>{upiId}</span>
-                            <button
-                              type="button"
-                              onClick={copyUpi}
-                              className="text-[9px] px-1.5 py-0.5 rounded bg-[#161616] text-zinc-300 hover:text-white cursor-pointer border border-[#333333]"
-                            >
-                              {copiedUpi ? "Copied" : "Copy"}
-                            </button>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* 2. HDFC Bank Locked UPI Panel (urbantroutaquaculture@axl) */}
-            {paymentMethod === "HdfcUpi" && grandTotal > 0 && (
-              <div className="p-3 rounded-xl bg-[#000000] border border-[#222222] flex flex-col items-center text-center space-y-2">
-                {hdfcPaid ? (
-                  <div className="w-full py-4 px-3 rounded-lg bg-[#0a0a0a] border border-[#333333] text-center space-y-2 animate-fadeIn">
-                    <div className="w-9 h-9 rounded-full bg-[#161616] border border-[#333333] text-indigo-400 flex items-center justify-center mx-auto text-lg font-bold">
-                      ✓
-                    </div>
-                    <div>
-                      <h4 className="text-base font-semibold text-white font-['Space_Grotesk']">
-                        HDFC Payment Confirmed: <span className="font-mono tabular-nums text-white">₹{grandTotal.toLocaleString("en-IN")}</span>
+                        HDFC SmartHub Payment Confirmed: <span className="font-mono tabular-nums text-white">₹{grandTotal.toLocaleString("en-IN")}</span>
                       </h4>
                       <p className="text-xs text-zinc-400 font-mono mt-0.5">
                         Transferred to {HDFC_COUNTER_VPA}
@@ -3409,26 +3247,26 @@ Helpline: +91 84910 06127`;
                 ) : !hdfcQrGenerated ? (
                   <div className="w-full py-2.5 px-2 text-center space-y-3 animate-fadeIn">
                     <div className="flex items-center justify-between w-full pb-1.5 border-b border-[#222222] text-[10px] font-mono">
-                      <span className="flex items-center gap-1.5 text-indigo-300 font-medium uppercase">
-                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 inline-block"></span>
-                        HDFC Bank Locked QR
+                      <span className="flex items-center gap-1.5 text-emerald-300 font-medium uppercase">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block"></span>
+                        HDFC Bank (SmartHub Vyapar)
                       </span>
                       <span className="text-zinc-500 font-mono truncate max-w-[150px]">{HDFC_COUNTER_VPA}</span>
                     </div>
 
-                    <div className="w-10 h-10 rounded-lg bg-[#0a0a0a] border border-[#222222] text-indigo-300 flex items-center justify-center mx-auto text-xl">
+                    <div className="w-10 h-10 rounded-lg bg-[#0a0a0a] border border-[#222222] text-emerald-300 flex items-center justify-center mx-auto text-xl">
                       <span className="material-symbols-outlined text-xl">qr_code_2</span>
                     </div>
 
                     <div className="space-y-0.5">
                       <span className="text-[10px] uppercase font-mono tracking-wider text-zinc-500 block">
-                        HDFC UPI Payment Ready
+                        HDFC SmartHub Soundbox QR Ready
                       </span>
                       <div className="text-xl sm:text-2xl font-semibold text-white font-mono tabular-nums">
                         ₹{grandTotal.toLocaleString("en-IN")}.00
                       </div>
                       <p className="text-[11px] text-zinc-400 font-mono">
-                        Direct locked payment to <code className="text-indigo-300 bg-slate-900 px-1 py-0.5 rounded">{HDFC_COUNTER_VPA}</code>
+                        Direct locked payment to <code className="text-emerald-300 bg-slate-900 px-1 py-0.5 rounded">{HDFC_COUNTER_VPA}</code>
                       </p>
                     </div>
 
@@ -3439,7 +3277,7 @@ Helpline: +91 84910 06127`;
                         setLastHdfcAmount(grandTotal);
                         setEnlargeQrModal(true);
                       }}
-                      className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-indigo-500 to-blue-600 hover:from-indigo-400 hover:to-blue-500 active:scale-[0.99] text-white font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-indigo-500/20 font-['Space_Grotesk']"
+                      className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 active:scale-[0.99] text-slate-950 font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-500/20 font-['Space_Grotesk']"
                     >
                       <span className="material-symbols-outlined text-base">qr_code_scanner</span>
                       Generate HDFC QR (₹{grandTotal.toLocaleString("en-IN")})
@@ -3448,9 +3286,9 @@ Helpline: +91 84910 06127`;
                 ) : (
                   <div className="w-full space-y-2.5 animate-fadeIn">
                     <div className="flex items-center justify-between w-full pb-1 border-b border-[#222222] text-[10px] font-mono">
-                      <span className="flex items-center gap-1.5 text-indigo-300 font-medium uppercase">
-                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 inline-block"></span>
-                        HDFC Bank QR Ready
+                      <span className="flex items-center gap-1.5 text-emerald-300 font-medium uppercase">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block"></span>
+                        HDFC SmartHub QR Ready
                       </span>
                       <span className="text-zinc-500 font-mono">{HDFC_COUNTER_VPA}</span>
                     </div>
@@ -3461,8 +3299,8 @@ Helpline: +91 84910 06127`;
                         ₹{grandTotal.toLocaleString("en-IN")}
                       </div>
                       <div className="text-[10px] text-zinc-400 font-mono flex items-center justify-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 inline-block" />
-                        <span>Ready for customer scan</span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
+                        <span>Ready for customer scan • SmartHub Soundbox</span>
                       </div>
                     </div>
 
@@ -3484,7 +3322,7 @@ Helpline: +91 84910 06127`;
                         onClick={() => {
                           setHdfcPaid(true);
                           playSuccessChime();
-                          speakPaymentAnnouncement(grandTotal, "HDFC Bank", customerName);
+                          speakPaymentAnnouncement(grandTotal, "HDFC Bank SmartHub Vyapar", customerName);
                         }}
                         className="py-2.5 px-2 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 font-semibold text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-1 cursor-pointer font-['Space_Grotesk']"
                       >
@@ -3541,7 +3379,7 @@ Helpline: +91 84910 06127`;
               </div>
             )}
 
-            {/* 3. Razorpay Dynamic BharatQR Panel */}
+            {/* 2. Razorpay Dynamic BharatQR Panel */}
             {paymentMethod === "RazorpayQR" && grandTotal > 0 && (
               <div className="p-3 rounded-xl bg-[#000000] border border-[#222222] flex flex-col items-center text-center space-y-2">
                 {rzpPaid ? (
@@ -3633,14 +3471,6 @@ Helpline: +91 84910 06127`;
                         </button>
                       </div>
                     </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setPaymentMethod("WhatsAppLink")}
-                      className="text-[10px] text-zinc-400 hover:text-zinc-200 underline font-mono cursor-pointer pt-0.5"
-                    >
-                      Delivering to customer home? Send WhatsApp Payment Link instead →
-                    </button>
                   </>
                 ) : (
                   /* ─── READY STATE: ON-DEMAND BUTTON TO GENERATE QR ─── */
@@ -3665,13 +3495,172 @@ Helpline: +91 84910 06127`;
                       <span className="material-symbols-outlined text-base">qr_code_scanner</span>
                       Generate Customer QR (₹{grandTotal.toLocaleString("en-IN")})
                     </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 3. J&K Bank Soundbox Panel */}
+            {paymentMethod === "JkBankSoundbox" && grandTotal > 0 && (
+              <div className="p-3 rounded-xl bg-[#000000] border border-[#222222] flex flex-col items-center text-center space-y-2">
+                {soundboxPaid ? (
+                  <div className="w-full py-4 px-3 rounded-lg bg-[#0a0a0a] border border-[#333333] text-center space-y-2 animate-fadeIn">
+                    <div className="w-9 h-9 rounded-full bg-[#161616] border border-[#333333] text-emerald-400 flex items-center justify-center mx-auto text-lg font-bold">
+                      ✓
+                    </div>
+                    <div>
+                      <h4 className="text-base font-semibold text-white font-['Space_Grotesk']">
+                        Soundbox Payment Confirmed: <span className="font-mono tabular-nums text-white">₹{grandTotal.toLocaleString("en-IN")}</span>
+                      </h4>
+                      <p className="text-xs text-zinc-400 font-mono mt-0.5">
+                        Voice announcement confirmed on counter soundbox
+                      </p>
+                    </div>
                     <button
                       type="button"
-                      onClick={() => setPaymentMethod("WhatsAppLink")}
-                      className="text-[10px] text-zinc-400 hover:text-zinc-200 underline font-mono cursor-pointer block mx-auto pt-1"
+                      onClick={() => {
+                        setSoundboxPaid(false);
+                        setSoundboxQrGenerated(true);
+                        setEnlargeQrModal(true);
+                      }}
+                      className="text-[10px] text-zinc-400 hover:text-white underline cursor-pointer pt-1"
                     >
-                      Delivering home? Send WhatsApp Payment Link instead →
+                      Show QR Again
                     </button>
+                  </div>
+                ) : !soundboxQrGenerated ? (
+                  /* ─── READY STATE: ON-DEMAND BUTTON TO GENERATE QR ─── */
+                  <div className="w-full py-2.5 px-2 text-center space-y-3 animate-fadeIn">
+                    <div className="flex items-center justify-between w-full pb-1.5 border-b border-[#222222] text-[10px] font-mono">
+                      <span className="flex items-center gap-1.5 text-blue-300 font-medium uppercase">
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-400 inline-block"></span>
+                        J&amp;K Bank Soundbox
+                      </span>
+                      <span className="text-zinc-500">{terminalId} Active</span>
+                    </div>
+
+                    <div className="w-10 h-10 rounded-lg bg-[#0a0a0a] border border-[#222222] text-blue-300 flex items-center justify-center mx-auto text-xl">
+                      <span className="material-symbols-outlined text-xl">qr_code_2</span>
+                    </div>
+
+                    <div className="space-y-0.5">
+                      <span className="text-[10px] uppercase font-mono tracking-wider text-zinc-500 block">
+                        J&amp;K Bank UPI Payment Ready
+                      </span>
+                      <div className="text-xl sm:text-2xl font-semibold text-white font-mono tabular-nums">
+                        ₹{grandTotal.toLocaleString("en-IN")}.00
+                      </div>
+                      <p className="text-[11px] text-zinc-400 font-mono">
+                        {isCustomAmountMode
+                          ? (customNote || "Catch-Weight Direct Payment")
+                          : billItems.length === 1
+                          ? `${billItems[0].name.toLowerCase().includes("gutted") ? "Gutted Trout" : billItems[0].name.toLowerCase().includes("whole") ? "Whole Trout" : billItems[0].name} (${billItems[0].weightKg.toFixed(2)} Kg @ ₹${billItems[0].pricePerKg}/Kg)`
+                          : `${billItems.length} Fish Catch Items • ${totalWeight.toFixed(2)} Kg`}
+                      </p>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSoundboxQrGenerated(true);
+                        setLastSoundboxAmount(grandTotal);
+                        setEnlargeQrModal(true);
+                      }}
+                      className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 active:scale-[0.99] text-white font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-blue-500/20 font-['Space_Grotesk']"
+                    >
+                      <span className="material-symbols-outlined text-base">qr_code_scanner</span>
+                      Generate J&amp;K Bank QR (₹{grandTotal.toLocaleString("en-IN")})
+                    </button>
+                  </div>
+                ) : (
+                  /* ─── ACTIVE STATE: QR HAS BEEN GENERATED ─── */
+                  <div className="w-full space-y-2.5 animate-fadeIn">
+                    <div className="flex items-center justify-between w-full pb-1 border-b border-[#222222] text-[10px] font-mono">
+                      <span className="flex items-center gap-1.5 text-blue-300 font-medium uppercase">
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-400 inline-block"></span>
+                        J&amp;K Bank Soundbox QR Ready
+                      </span>
+                      <span className="text-zinc-500">{terminalId}</span>
+                    </div>
+
+                    <div className="space-y-0.5">
+                      <span className="text-[10px] uppercase font-mono tracking-wider text-zinc-500">Locked Amount</span>
+                      <div className="text-xl font-semibold text-white font-mono tabular-nums">
+                        ₹{grandTotal.toLocaleString("en-IN")}
+                      </div>
+                      <div className="text-[10px] text-zinc-400 font-mono flex items-center justify-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-400 inline-block" />
+                        <span>Listening for customer UPI payment</span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 w-full">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setLastSoundboxAmount(grandTotal);
+                          setEnlargeQrModal(true);
+                        }}
+                        className="py-2.5 px-2 rounded-lg bg-zinc-100 hover:bg-white text-zinc-950 font-semibold text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-1 cursor-pointer font-['Space_Grotesk']"
+                      >
+                        <span className="material-symbols-outlined text-sm">fullscreen</span>
+                        {grandTotal !== lastSoundboxAmount ? "Update QR" : "Open QR"}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSoundboxPaid(true);
+                          playSuccessChime();
+                          speakPaymentAnnouncement(grandTotal, "J&K Bank Soundbox", customerName);
+                        }}
+                        className="py-2.5 px-2 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 font-semibold text-xs uppercase tracking-wider transition-colors flex items-center justify-center gap-1 cursor-pointer font-['Space_Grotesk']"
+                      >
+                        <span className="material-symbols-outlined text-sm">check_circle</span>
+                        Mark Paid
+                      </button>
+                    </div>
+
+                    {/* Optional Collapsible Inline QR for Cashier Internal View */}
+                    <div className="w-full pt-1 border-t border-[#222222]">
+                      <button
+                        type="button"
+                        onClick={() => setShowInlineQr(!showInlineQr)}
+                        className="text-[10px] text-zinc-400 hover:text-zinc-200 font-mono flex items-center justify-center gap-1 w-full py-1 cursor-pointer"
+                      >
+                        <span>{showInlineQr ? "Hide" : "Show"} inline QR on POS screen</span>
+                      </button>
+
+                      {showInlineQr && (
+                        <div className="pt-2 space-y-2 animate-fadeIn flex flex-col items-center">
+                          <div
+                            onClick={() => setEnlargeQrModal(true)}
+                            className="p-2 bg-white border border-[#333333] rounded-xl cursor-pointer hover:border-zinc-500 transition-colors group relative overflow-hidden"
+                            title="Click to open popup for customer"
+                          >
+                            <img
+                              src={upiQrCodeUrl}
+                              alt="Counter UPI QR"
+                              className="w-32 h-32 rounded-lg object-contain"
+                            />
+                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex flex-col items-center justify-center text-white text-[11px] font-medium gap-1">
+                              <span>Open Popup</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-center gap-1.5 text-[10px] text-zinc-400 font-mono">
+                            <span>{upiId}</span>
+                            <button
+                              type="button"
+                              onClick={copyUpi}
+                              className="text-[9px] px-1.5 py-0.5 rounded bg-[#161616] text-zinc-300 hover:text-white cursor-pointer border border-[#333333]"
+                            >
+                              {copiedUpi ? "Copied" : "Copy"}
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
               </div>
@@ -3933,7 +3922,7 @@ Helpline: +91 84910 06127`;
                 <span>{isCustomAmountMode ? "Direct QR" : `${totalWeight.toFixed(2)} Kg`}</span>
                 <span>•</span>
                 <span className="text-zinc-300 font-medium truncate">
-                  {paymentMethod === "JkBankSoundbox" ? "J&K Bank" : paymentMethod === "HdfcUpi" ? "HDFC Bank" : paymentMethod === "RazorpayQR" ? "Razorpay QR" : paymentMethod === "WhatsAppLink" ? "WhatsApp" : "Cash"}
+                  {paymentMethod === "HdfcUpi" ? "HDFC Bank (SmartHub)" : paymentMethod === "RazorpayQR" ? "Razorpay QR" : paymentMethod === "JkBankSoundbox" ? "J&K Bank" : paymentMethod === "WhatsAppLink" ? "WhatsApp" : "Cash"}
                 </span>
               </div>
               <div className="text-base sm:text-lg font-bold text-white font-mono tabular-nums leading-tight">
@@ -3959,18 +3948,18 @@ Helpline: +91 84910 06127`;
                     type="button"
                     onClick={() => {
                       if (grandTotal <= 0) return;
-                      if (paymentMethod === "RazorpayQR") {
-                        generateRazorpayQr(grandTotal, true);
-                      } else if (paymentMethod === "Cash") {
-                        handleGenerateInvoice();
-                      } else if (paymentMethod === "HdfcUpi") {
+                      if (paymentMethod === "HdfcUpi") {
                         setHdfcQrGenerated(true);
                         setLastHdfcAmount(grandTotal);
                         setEnlargeQrModal(true);
-                      } else {
+                      } else if (paymentMethod === "RazorpayQR") {
+                        generateRazorpayQr(grandTotal, true);
+                      } else if (paymentMethod === "JkBankSoundbox") {
                         setSoundboxQrGenerated(true);
                         setLastSoundboxAmount(grandTotal);
                         setEnlargeQrModal(true);
+                      } else {
+                        handleGenerateInvoice();
                       }
                     }}
                     disabled={grandTotal <= 0}
@@ -5283,7 +5272,7 @@ Helpline: +91 84910 06127`;
                       URBAN TROUT
                     </span>
                     <span className="text-[9px] uppercase font-mono font-bold tracking-widest px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                      {paymentMethod === "JkBankSoundbox" ? `Instant UPI QR • ${terminalId}` : paymentMethod === "HdfcUpi" ? "HDFC Bank Locked QR" : "BharatQR"}
+                      {paymentMethod === "HdfcUpi" ? "HDFC Bank SmartHub Vyapar • Soundbox" : paymentMethod === "JkBankSoundbox" ? `Instant UPI QR • ${terminalId}` : "BharatQR"}
                     </span>
                   </div>
                   <p className="text-[10px] text-slate-400 font-mono">
@@ -5310,7 +5299,7 @@ Helpline: +91 84910 06127`;
                 </div>
                 <div className="space-y-1">
                   <span className="text-[11px] uppercase font-mono font-bold tracking-widest text-emerald-400 block">
-                    {rzpPaid ? "Razorpay UPI Payment Confirmed" : hdfcPaid ? "HDFC Bank Payment Confirmed" : "Soundbox Payment Confirmed"}
+                    {rzpPaid ? "Razorpay UPI Payment Confirmed" : hdfcPaid ? "HDFC SmartHub Vyapar Payment Confirmed" : "Soundbox Payment Confirmed"}
                   </span>
                   <h3 className="text-2xl sm:text-3xl font-black text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
                     ₹{(rzpPaymentDetails?.amount || grandTotal).toLocaleString("en-IN")}.00 PAID
@@ -5319,7 +5308,7 @@ Helpline: +91 84910 06127`;
                     {rzpPaid
                       ? `⚡ Verified via Razorpay • Ref: ${rzpPaymentDetails?.id || "pay_verified"}`
                       : hdfcPaid
-                      ? `⚡ Collected directly to HDFC Bank (${HDFC_COUNTER_VPA})`
+                      ? `⚡ Collected on HDFC SmartHub Vyapar Soundbox (${HDFC_COUNTER_VPA})`
                       : `🔊 Voice announcement confirmed on counter soundbox (${terminalId})`}
                   </p>
                 </div>
@@ -5552,12 +5541,12 @@ Helpline: +91 84910 06127`;
                         onClick={() => {
                           setHdfcPaid(true);
                           playSuccessChime();
-                          speakPaymentAnnouncement(grandTotal, "HDFC Bank", customerName);
+                          speakPaymentAnnouncement(grandTotal, "HDFC Bank SmartHub Vyapar", customerName);
                         }}
                         className="w-full py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-lg shadow-emerald-500/20 font-['Space_Grotesk']"
                       >
                         <span className="material-symbols-outlined text-sm">check_circle</span>
-                        Mark HDFC Paid &amp; Announce
+                        Mark HDFC SmartHub Paid &amp; Announce
                       </button>
                     )}
 
@@ -5603,7 +5592,7 @@ Helpline: +91 84910 06127`;
                     ) : paymentMethod === "HdfcUpi" ? (
                       <img
                         src={hdfcQrCodeUrl}
-                        alt="HDFC Bank Locked QR"
+                        alt="HDFC Bank SmartHub Vyapar QR"
                         className="w-full h-full object-contain select-none pointer-events-none rounded-2xl"
                       />
                     ) : (
@@ -5617,10 +5606,10 @@ Helpline: +91 84910 06127`;
 
                   <div className="space-y-1.5 w-full text-center">
                     <p className="text-xs font-bold text-white">
-                      {paymentMethod === "JkBankSoundbox"
+                      {paymentMethod === "HdfcUpi"
+                        ? "Scan with Google Pay, PhonePe, Paytm, PayZapp, or Any UPI App"
+                        : paymentMethod === "JkBankSoundbox"
                         ? "Scan with J&K mPay Delight, Google Pay, PhonePe, or Paytm"
-                        : paymentMethod === "HdfcUpi"
-                        ? "Scan with Google Pay, PhonePe, Paytm, or Any UPI App"
                         : "Scan with Google Pay, PhonePe, Paytm, CRED, or BHIM"}
                     </p>
 

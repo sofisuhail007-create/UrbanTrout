@@ -570,11 +570,12 @@ export default function DealCalculatorTab({
     [soundboxUpiUri]
   );
 
-  // Derive HDFC UPI URI (urbantroutaquaculture@axl) for COMBINED deal total
-  const HDFC_DEAL_VPA = "urbantroutaquaculture@axl";
+  // Derive HDFC UPI URI (Vyapar.178760132267@hdfcbank) for COMBINED deal total
+  const HDFC_DEAL_VPA = "Vyapar.178760132267@hdfcbank";
+  const HDFC_DEAL_REF = "STQU178760132267";
   const hdfcDealUpiUri = combinedDealTotal > 0
-    ? `upi://pay?pa=${HDFC_DEAL_VPA}&pn=Urban%20Trout%20Aquaculture&am=${combinedDealTotal}&mam=${combinedDealTotal}&cu=INR&tn=Deal-${activeDealNumber || Date.now().toString().slice(-4)}`
-    : `upi://pay?pa=${HDFC_DEAL_VPA}&pn=Urban%20Trout%20Aquaculture&cu=INR`;
+    ? `upi://pay?pa=${HDFC_DEAL_VPA}&pn=Urban%20Trout%20Aquaculture&mc=8999&tr=${HDFC_DEAL_REF}&am=${combinedDealTotal}&mam=${combinedDealTotal}&cu=INR&tn=Deal-${activeDealNumber || Date.now().toString().slice(-4)}`
+    : `upi://pay?pa=${HDFC_DEAL_VPA}&pn=Urban%20Trout%20Aquaculture&mc=8999&tr=${HDFC_DEAL_REF}&cu=INR`;
   const hdfcDealQrUrl = useMemo(
     () => generateFastQrDataUrl(hdfcDealUpiUri, { darkColor: "#020d12", margin: 2 }),
     [hdfcDealUpiUri]
@@ -1618,7 +1619,7 @@ Naseem Bagh / Malabagh, Srinagar`;
                       ? "bg-indigo-500/20 text-indigo-200 border border-indigo-500/40 shadow-sm"
                       : "text-zinc-400 hover:text-zinc-200"
                   }`}
-                  title="Direct HDFC Bank locked UPI QR (urbantroutaquaculture@axl)"
+                  title="Direct HDFC Bank SmartHub locked UPI QR (Vyapar.178760132267@hdfcbank)"
                 >
                   🏦 HDFC
                 </button>

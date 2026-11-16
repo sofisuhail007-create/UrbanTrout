@@ -43,13 +43,13 @@ const DEFAULT_PAYMENT_CHANNELS: PaymentChannel[] = [
   },
   {
     id: "hdfc_counter_upi",
-    name: "HDFC Bank Locked UPI QR",
+    name: "HDFC Bank (SmartHub Vyapar)",
     type: "upi_qr",
-    vpa: "urbantroutaquaculture@axl",
+    vpa: "Vyapar.178760132267@hdfcbank",
     accountName: "Urban Trout Aquaculture",
-    description: "Counter POS locked QR for direct HDFC collections (urbantroutaquaculture@axl)",
+    description: "Counter POS locked QR for direct HDFC collections (Vyapar.178760132267@hdfcbank)",
     enabled: true,
-    isDefault: false,
+    isDefault: true,
   },
 ];
 
