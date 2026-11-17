@@ -163,7 +163,19 @@ export default function DailySalesHistogram({
       }
       map[dStr].ordersCount += 1;
 
-      if (payMethod.includes("upi") || payMethod.includes("razorpay") || payMethod.includes("card") || payMethod.includes("online")) {
+      // Handle Split vs Cash vs Online revenue accurately for cash drawer reflection
+      const isSplit = payMethod.includes("split") || Boolean(e.custom_fields?.is_split);
+      if (isSplit && rev > 0) {
+        let cashPart = Number(e.custom_fields?.cash_portion);
+        if (isNaN(cashPart) || cashPart <= 0) {
+          const cashMatch = (e.notes || "").match(/cash[:\s]+[₹Rs.]*(\d+)/i);
+          cashPart = cashMatch ? Number(cashMatch[1]) : Math.round(rev / 2);
+        }
+        cashPart = Math.min(rev, Math.max(0, cashPart));
+        const onlinePart = Math.max(0, rev - cashPart);
+        map[dStr].cashRevenue += cashPart;
+        map[dStr].onlineRevenue += onlinePart;
+      } else if (payMethod.includes("upi") || payMethod.includes("razorpay") || payMethod.includes("card") || payMethod.includes("online")) {
         map[dStr].onlineRevenue += rev;
       } else {
         map[dStr].cashRevenue += rev;

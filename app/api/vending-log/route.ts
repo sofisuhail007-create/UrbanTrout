@@ -245,7 +245,35 @@ function computeKpis(entries: VendingSalesEntry[]) {
     const rate = Number(e.rate_per_kg) || 0;
     const expected = e.expected_amount !== undefined ? Number(e.expected_amount) : Math.round(weight * rate);
     const loss = Math.max(0, expected - amount);
-    const isCash = (e.payment_mode || "").toLowerCase().trim() === "cash";
+    const modeStr = (e.payment_mode || "").toLowerCase().trim();
+    const isSplit = modeStr.includes("split") || Boolean(e.custom_fields?.is_split);
+    let cashAmt = 0;
+    let onlineAmt = 0;
+    let hasCash = false;
+    let hasOnline = false;
+
+    if (isSplit && amount > 0) {
+      let cPart = Number(e.custom_fields?.cash_portion);
+      if (isNaN(cPart) || cPart <= 0) {
+        const cashMatch = (e.notes || "").match(/cash[:\s]+[₹Rs.]*(\d+)/i);
+        cPart = cashMatch ? Number(cashMatch[1]) : Math.round(amount / 2);
+      }
+      cashAmt = Math.min(amount, Math.max(0, cPart));
+      onlineAmt = Math.max(0, amount - cashAmt);
+      hasCash = cashAmt > 0;
+      hasOnline = onlineAmt > 0;
+    } else if (modeStr.includes("cash")) {
+      cashAmt = amount;
+      onlineAmt = 0;
+      hasCash = true;
+      hasOnline = false;
+    } else {
+      cashAmt = 0;
+      onlineAmt = amount;
+      hasCash = false;
+      hasOnline = true;
+    }
+
     const eDate = new Date(e.entry_date);
     const isGutted = (e.product_type || "").toLowerCase().includes("gutted") && !(e.product_type || "").toLowerCase().includes("non");
 
@@ -255,13 +283,10 @@ function computeKpis(entries: VendingSalesEntry[]) {
     kpis.allTime.expectedRevenue += expected;
     kpis.allTime.totalLoss += loss;
     kpis.allTime.count += 1;
-    if (isCash) {
-      kpis.allTime.cashRevenue += amount;
-      kpis.allTime.cashCount += 1;
-    } else {
-      kpis.allTime.onlineRevenue += amount;
-      kpis.allTime.onlineCount += 1;
-    }
+    kpis.allTime.cashRevenue += cashAmt;
+    kpis.allTime.onlineRevenue += onlineAmt;
+    if (hasCash) kpis.allTime.cashCount += 1;
+    if (hasOnline) kpis.allTime.onlineCount += 1;
 
     // Today
     if (e.entry_date === todayStr) {
@@ -273,13 +298,10 @@ function computeKpis(entries: VendingSalesEntry[]) {
       if (isGutted) kpis.today.guttedKg = Math.round((kpis.today.guttedKg + weight) * 1000) / 1000;
       else kpis.today.nonGuttedKg = Math.round((kpis.today.nonGuttedKg + weight) * 1000) / 1000;
 
-      if (isCash) {
-        kpis.today.cashRevenue += amount;
-        kpis.today.cashCount += 1;
-      } else {
-        kpis.today.onlineRevenue += amount;
-        kpis.today.onlineCount += 1;
-      }
+      kpis.today.cashRevenue += cashAmt;
+      kpis.today.onlineRevenue += onlineAmt;
+      if (hasCash) kpis.today.cashCount += 1;
+      if (hasOnline) kpis.today.onlineCount += 1;
     }
 
     // Week
@@ -292,13 +314,10 @@ function computeKpis(entries: VendingSalesEntry[]) {
       if (isGutted) kpis.week.guttedKg = Math.round((kpis.week.guttedKg + weight) * 1000) / 1000;
       else kpis.week.nonGuttedKg = Math.round((kpis.week.nonGuttedKg + weight) * 1000) / 1000;
 
-      if (isCash) {
-        kpis.week.cashRevenue += amount;
-        kpis.week.cashCount += 1;
-      } else {
-        kpis.week.onlineRevenue += amount;
-        kpis.week.onlineCount += 1;
-      }
+      kpis.week.cashRevenue += cashAmt;
+      kpis.week.onlineRevenue += onlineAmt;
+      if (hasCash) kpis.week.cashCount += 1;
+      if (hasOnline) kpis.week.onlineCount += 1;
     }
 
     // Month
@@ -311,13 +330,10 @@ function computeKpis(entries: VendingSalesEntry[]) {
       if (isGutted) kpis.month.guttedKg = Math.round((kpis.month.guttedKg + weight) * 1000) / 1000;
       else kpis.month.nonGuttedKg = Math.round((kpis.month.nonGuttedKg + weight) * 1000) / 1000;
 
-      if (isCash) {
-        kpis.month.cashRevenue += amount;
-        kpis.month.cashCount += 1;
-      } else {
-        kpis.month.onlineRevenue += amount;
-        kpis.month.onlineCount += 1;
-      }
+      kpis.month.cashRevenue += cashAmt;
+      kpis.month.onlineRevenue += onlineAmt;
+      if (hasCash) kpis.month.cashCount += 1;
+      if (hasOnline) kpis.month.onlineCount += 1;
     }
 
     // Payment Mode

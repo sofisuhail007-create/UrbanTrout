@@ -189,9 +189,9 @@ export default function DealCalculatorTab({
     initialDraft?.customerPhone || ""
   );
 
-  // ─── 2. LOCKED QR ENGINE STATE (DEFAULT: J&K BANK SOUNDBOX) ───
+  // ─── 2. LOCKED QR ENGINE STATE (DEFAULT: HDFC BANK SMARTHUB) ───
   const [qrEngine, setQrEngine] = useState<"soundbox" | "razorpay" | "hdfc">(
-    initialDraft?.qrEngine || "soundbox"
+    initialDraft?.qrEngine || "hdfc"
   );
   const [rzpQrId, setRzpQrId] = useState<string | null>(null);
   const [rzpQrImageUrl, setRzpQrImageUrl] = useState<string | null>(null);
@@ -320,7 +320,7 @@ export default function DealCalculatorTab({
     setFlatDiscountStr("");
     setCustomerName("");
     setCustomerPhone("");
-    setQrEngine("soundbox");
+    setQrEngine("hdfc");
     setActiveDealNumber("");
     setIsDealPaid(false);
     setDealPaymentRef(null);
@@ -982,7 +982,7 @@ Here is your agreed locked deal invoice summary:
 ${detailsSection}
 
 *TAP TO PAY SECURELY*
-${payUrl || "Scan our J&K Bank Counter QR upon collection"}
+${payUrl || "Scan our HDFC Bank Counter QR upon collection"}
 
 *View & Download Invoice:*
 https://urbantrout.in/invoice/${dealNum}
@@ -1585,8 +1585,20 @@ Naseem Bagh / Malabagh, Srinagar`;
                 </h3>
               </div>
 
-              {/* QR Engine Switcher (Default: J&K Soundbox) */}
+              {/* QR Engine Switcher (Default: HDFC Bank SmartHub) */}
               <div className="flex items-center gap-1 bg-[#000000] p-0.5 rounded-md border border-[#222222] text-[10px] font-mono">
+                <button
+                  type="button"
+                  onClick={() => setQrEngine("hdfc")}
+                  className={`px-2 py-0.5 rounded font-bold cursor-pointer transition-all ${
+                    qrEngine === "hdfc"
+                      ? "bg-indigo-500/20 text-indigo-200 border border-indigo-500/40 shadow-sm"
+                      : "text-zinc-400 hover:text-zinc-200"
+                  }`}
+                  title="Direct HDFC Bank SmartHub locked UPI QR (Vyapar.178760132267@hdfcbank) (Default)"
+                >
+                  🏦 HDFC Bank (Default)
+                </button>
                 <button
                   type="button"
                   onClick={() => setQrEngine("soundbox")}
@@ -1595,7 +1607,7 @@ Naseem Bagh / Malabagh, Srinagar`;
                       ? "bg-emerald-500/20 text-emerald-200 border border-emerald-500/40 shadow-sm"
                       : "text-zinc-400 hover:text-zinc-200"
                   }`}
-                  title="Direct J&K Soundbox locked UPI QR (Default)"
+                  title="Direct J&K Soundbox locked UPI QR"
                 >
                   🔊 J&amp;K Soundbox
                 </button>
@@ -1610,18 +1622,6 @@ Naseem Bagh / Malabagh, Srinagar`;
                   title="Single-use amount locked BharatQR with real-time auto capture"
                 >
                   ⚡ Razorpay (Auto)
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setQrEngine("hdfc")}
-                  className={`px-2 py-0.5 rounded font-bold cursor-pointer transition-all ${
-                    qrEngine === "hdfc"
-                      ? "bg-indigo-500/20 text-indigo-200 border border-indigo-500/40 shadow-sm"
-                      : "text-zinc-400 hover:text-zinc-200"
-                  }`}
-                  title="Direct HDFC Bank SmartHub locked UPI QR (Vyapar.178760132267@hdfcbank)"
-                >
-                  🏦 HDFC
                 </button>
               </div>
             </div>

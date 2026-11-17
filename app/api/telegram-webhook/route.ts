@@ -76,13 +76,31 @@ async function generateStatusReport(): Promise<string> {
     const p = Number(e.amount_paid || 0);
     storeKg += w;
     storeRevenue += p;
-    const isCash = (e.payment_mode || "").toLowerCase().includes("cash");
-    if (isCash) {
+    const modeStr = (e.payment_mode || "").toLowerCase();
+    const isSplit = modeStr.includes("split") || Boolean(e.custom_fields?.is_split);
+    let payIcon = "📱 Online";
+
+    if (isSplit && p > 0) {
+      let cPart = Number(e.custom_fields?.cash_portion);
+      if (isNaN(cPart) || cPart <= 0) {
+        const cashMatch = (e.notes || "").match(/cash[:\s]+[₹Rs.]*(\d+)/i);
+        cPart = cashMatch ? Number(cashMatch[1]) : Math.round(p / 2);
+      }
+      cPart = Math.min(p, Math.max(0, cPart));
+      const oPart = Math.max(0, p - cPart);
+      storeCash += cPart;
+      storeOnline += oPart;
+      if (cPart > 0) storeCashCount++;
+      if (oPart > 0) storeOnlineCount++;
+      payIcon = `⚡ Split (💵 ₹${cPart.toLocaleString("en-IN")} + 📱 ₹${oPart.toLocaleString("en-IN")})`;
+    } else if (modeStr.includes("cash")) {
       storeCash += p;
       storeCashCount++;
+      payIcon = "💵 Cash";
     } else {
       storeOnline += p;
       storeOnlineCount++;
+      payIcon = "📱 Online";
     }
 
     const t = e.entry_time || (e.created_at ? new Date(e.created_at).toLocaleTimeString("en-IN", {
@@ -91,7 +109,6 @@ async function generateStatusReport(): Promise<string> {
       minute: "2-digit",
       hour12: true,
     }) : "");
-    const payIcon = isCash ? "💵 Cash" : "📱 Online";
     const cust = e.custom_fields?.customer_name ? ` (${escapeHtml(String(e.custom_fields.customer_name))})` : "";
     const prod = e.product_type || "Gutted";
     return `  ${i + 1}. <i>${t}</i> — <b>${w.toFixed(2)} Kg</b> ${escapeHtml(prod)}${cust} • <b>₹${p.toLocaleString("en-IN")}</b> [${payIcon}]`;

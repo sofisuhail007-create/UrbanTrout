@@ -1861,7 +1861,12 @@ export default function VendingCenterLoggerPage() {
       // Split vs Cash vs Online accounting
       const isSplit = modeStr.includes("split") || Boolean(e.custom_fields?.is_split);
       if (isSplit && rev > 0) {
-        const cashPart = Number(e.custom_fields?.cash_portion) || 0;
+        let cashPart = Number(e.custom_fields?.cash_portion);
+        if (isNaN(cashPart) || cashPart <= 0) {
+          const cashMatch = (e.notes || "").match(/cash[:\s]+[₹Rs.]*(\d+)/i);
+          cashPart = cashMatch ? Number(cashMatch[1]) : Math.round(rev / 2);
+        }
+        cashPart = Math.min(rev, Math.max(0, cashPart));
         const onlinePart = Number(e.custom_fields?.online_portion) || Math.max(0, rev - cashPart);
         cashRevenue += cashPart;
         onlineRevenue += onlinePart;
@@ -3631,7 +3636,12 @@ export default function VendingCenterLoggerPage() {
 
       const isSplit = modeStr.includes("split") || Boolean(e.custom_fields?.is_split);
       if (isSplit && rev > 0) {
-        const cashPart = Number(e.custom_fields?.cash_portion) || 0;
+        let cashPart = Number(e.custom_fields?.cash_portion);
+        if (isNaN(cashPart) || cashPart <= 0) {
+          const cashMatch = (e.notes || "").match(/cash[:\s]+[₹Rs.]*(\d+)/i);
+          cashPart = cashMatch ? Number(cashMatch[1]) : Math.round(rev / 2);
+        }
+        cashPart = Math.min(rev, Math.max(0, cashPart));
         const onlinePart = Number(e.custom_fields?.online_portion) || Math.max(0, rev - cashPart);
         cashRevenue += cashPart;
         onlineRevenue += onlinePart;
@@ -3797,7 +3807,12 @@ export default function VendingCenterLoggerPage() {
 
       const isSplit = modeStr.includes("split") || Boolean(e.custom_fields?.is_split);
       if (isSplit && rev > 0) {
-        const cashPart = Number(e.custom_fields?.cash_portion) || 0;
+        let cashPart = Number(e.custom_fields?.cash_portion);
+        if (isNaN(cashPart) || cashPart <= 0) {
+          const cashMatch = (e.notes || "").match(/cash[:\s]+[₹Rs.]*(\d+)/i);
+          cashPart = cashMatch ? Number(cashMatch[1]) : Math.round(rev / 2);
+        }
+        cashPart = Math.min(rev, Math.max(0, cashPart));
         const onlinePart = Number(e.custom_fields?.online_portion) || Math.max(0, rev - cashPart);
         cashRevenue += cashPart;
         onlineRevenue += onlinePart;

@@ -85,6 +85,8 @@ export async function POST(request: Request) {
     if (body.notes !== undefined) updatePayload.notes = body.notes;
     if (body.paid_amount !== undefined) updatePayload.paid_amount = body.paid_amount;
     if (body.payment_status !== undefined) updatePayload.payment_status = body.payment_status;
+    if (body.customer_name !== undefined) updatePayload.customer_name = body.customer_name;
+    if (body.customer_phone !== undefined) updatePayload.customer_phone = body.customer_phone;
 
     let query = client
       .from("orders")

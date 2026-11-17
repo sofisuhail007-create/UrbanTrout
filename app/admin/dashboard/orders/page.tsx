@@ -252,6 +252,14 @@ export default function OrdersPage() {
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
   const [markingPaid, setMarkingPaid] = useState<boolean>(false);
 
+  // Copy Alert Text feedback state (no popup / tab)
+  const [copiedAlertKey, setCopiedAlertKey] = useState<string | null>(null);
+
+  // Inline Contact Renaming State (Mohd Amin, Suhail, or staff)
+  const [editingCustomerOrderId, setEditingCustomerOrderId] = useState<string | null>(null);
+  const [editingCustomerName, setEditingCustomerName] = useState<string>("");
+  const [isRenamingSaving, setIsRenamingSaving] = useState<boolean>(false);
+
   useEffect(() => {
     // 1. Immediate check from storage for zero layout shift
     try {
@@ -470,15 +478,100 @@ export default function OrdersPage() {
   };
 
   // Professional Zomato/Blinkit-style 1-Tap WhatsApp alerts & Stage transitions
+  const getHarvestAlertText = (order: Order) => {
+    const name = getCleanCustomerGreetingName(order.customer_name);
+    const orderRefDisplay = getOrderRefLabel(order);
+    return `Hello ${name}! 🐟\n\nYour fresh trout order (${orderRefDisplay}) is now being prepared at Urban Trout Farm!\n\nOur farm team has initiated the live harvest from our oxygenated mountain spring tanks in Malabagh. Your trout is being cleaned and cut into fresh pan-ready steaks. Express delivery is on track within our 2-hour window! 🛵`;
+  };
+
+  const getDeliveryAlertText = (order: Order) => {
+    const name = getCleanCustomerGreetingName(order.customer_name);
+    const orderRefDisplay = getOrderRefLabel(order);
+    const locality = order.customer_locality || "your location";
+    return `Hello ${name}! 🛵\n\nYour fresh trout order (${orderRefDisplay}) is OUT FOR DELIVERY!\n\nYour package has been freshly packed in food-grade biodegradable polythene packaging (zero ice) and is en route to ${locality}.\n\nOur Express Delivery Executive is on the road. Please keep your phone reachable for a prompt handover.\n\nThank you for choosing Urban Trout! 🐟`;
+  };
+
+  const getDeliveredAlertText = (order: Order) => {
+    const name = getCleanCustomerGreetingName(order.customer_name);
+    const orderRefDisplay = getOrderRefLabel(order);
+    return `Hello ${name}! ✨\n\nYour fresh trout order (${orderRefDisplay}) has been successfully delivered!\n\nWe hope you and your family enjoy your fresh pan-ready trout. If you loved our service, please take 10 seconds to share your review on Google:\nhttps://g.page/r/CTVKEpV62HMmECE/review\n\nBon Appétit! — Urban Trout Aquaculture 🐟`;
+  };
+
+  // Copy alert text without opening WhatsApp / new tab (perfect on Mohd Amin's laptop)
+  const copyAlertText = async (e: React.MouseEvent, text: string, alertKey: string) => {
+    e.stopPropagation();
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+      } else {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textarea);
+      }
+      setCopiedAlertKey(alertKey);
+      setTimeout(() => setCopiedAlertKey(null), 2500);
+    } catch (err) {
+      console.error("Failed to copy alert text:", err);
+    }
+  };
+
+  // Inline Contact Renaming: instant local reactive update + DB persistence
+  const startEditingContactName = (e: React.MouseEvent, order: Order) => {
+    e.stopPropagation();
+    setEditingCustomerOrderId(order.id);
+    setEditingCustomerName(order.customer_name || "");
+  };
+
+  const cancelEditingContactName = (e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setEditingCustomerOrderId(null);
+    setEditingCustomerName("");
+  };
+
+  const saveEditingContactName = async (e: React.MouseEvent | React.FormEvent, orderId: string) => {
+    e.stopPropagation();
+    if (e.preventDefault) e.preventDefault();
+    const trimmed = editingCustomerName.trim();
+    if (!trimmed) {
+      cancelEditingContactName();
+      return;
+    }
+
+    setIsRenamingSaving(true);
+    // 1. Optimistic real-time UI update across state immediately
+    setOrders((prev) =>
+      prev.map((o) => (o.id === orderId ? { ...o, customer_name: trimmed } : o))
+    );
+    setEditingCustomerOrderId(null);
+
+    // 2. Persist to Supabase backend via /api/order-status
+    try {
+      const res = await fetch("/api/order-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId, customer_name: trimmed }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        console.warn("Failed to persist customer rename:", data?.error);
+      }
+    } catch (err) {
+      console.error("Error saving customer contact name:", err);
+    } finally {
+      setIsRenamingSaving(false);
+    }
+  };
+
   // Can be called at any time from any state, with optional WhatsApp launch
   const handleStartHarvest = async (order: Order, sendWhatsApp: boolean = true) => {
     await updateStatus(order.id, "processing");
     playSuccessChime();
     if (!sendWhatsApp) return;
     const phone = String(order.customer_phone || "").replace(/\D/g, "").slice(-10);
-    const name = getCleanCustomerGreetingName(order.customer_name);
-    const orderRefDisplay = getOrderRefLabel(order);
-    const msg = `Hello ${name}! 🐟\n\nYour fresh trout order (${orderRefDisplay}) is now being prepared at Urban Trout Farm!\n\nOur farm team has initiated the live harvest from our oxygenated mountain spring tanks in Malabagh. Your trout is being cleaned and cut into fresh pan-ready steaks. Express delivery is on track within our 2-hour window! 🛵`;
+    const msg = getHarvestAlertText(order);
     launchWhatsApp(phone, msg);
   };
 
@@ -487,10 +580,7 @@ export default function OrdersPage() {
     playSuccessChime();
     if (!sendWhatsApp) return;
     const phone = String(order.customer_phone || "").replace(/\D/g, "").slice(-10);
-    const name = getCleanCustomerGreetingName(order.customer_name);
-    const orderRefDisplay = getOrderRefLabel(order);
-    const locality = order.customer_locality || "your location";
-    const msg = `Hello ${name}! 🛵\n\nYour fresh trout order (${orderRefDisplay}) is OUT FOR DELIVERY!\n\nYour package has been freshly packed in food-grade biodegradable polythene packaging (zero ice) and is en route to ${locality}.\n\nOur Express Delivery Executive is on the road. Please keep your phone reachable for a prompt handover.\n\nThank you for choosing Urban Trout! 🐟`;
+    const msg = getDeliveryAlertText(order);
     launchWhatsApp(phone, msg);
   };
 
@@ -499,9 +589,7 @@ export default function OrdersPage() {
     playSuccessChime();
     if (!sendWhatsApp) return;
     const phone = String(order.customer_phone || "").replace(/\D/g, "").slice(-10);
-    const name = getCleanCustomerGreetingName(order.customer_name);
-    const orderRefDisplay = getOrderRefLabel(order);
-    const msg = `Hello ${name}! ✨\n\nYour fresh trout order (${orderRefDisplay}) has been successfully delivered!\n\nWe hope you and your family enjoy your fresh pan-ready trout. If you loved our service, please take 10 seconds to share your review on Google:\nhttps://g.page/r/CTVKEpV62HMmECE/review\n\nBon Appétit! — Urban Trout Aquaculture 🐟`;
+    const msg = getDeliveredAlertText(order);
     launchWhatsApp(phone, msg);
   };
 
@@ -1203,7 +1291,51 @@ export default function OrdersPage() {
                               </span>
                             )}
                           </div>
-                          <h3 className="text-base font-bold text-white mt-1">{order.customer_name}</h3>
+                          {editingCustomerOrderId === order.id ? (
+                            <div className="mt-1.5 flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                              <input
+                                type="text"
+                                value={editingCustomerName}
+                                onChange={(e) => setEditingCustomerName(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") saveEditingContactName(e, order.id);
+                                  if (e.key === "Escape") cancelEditingContactName();
+                                }}
+                                className="bg-black border border-cyan-500 rounded-lg px-2 py-1 text-sm text-white font-semibold focus:outline-none focus:ring-1 focus:ring-cyan-400 w-full max-w-[220px]"
+                                autoFocus
+                                placeholder="Customer name"
+                              />
+                              <button
+                                type="button"
+                                onClick={(e) => saveEditingContactName(e, order.id)}
+                                disabled={isRenamingSaving}
+                                className="p-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer"
+                                title="Save name"
+                              >
+                                <span className="material-symbols-outlined text-[16px] leading-none">check</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={cancelEditingContactName}
+                                className="p-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 cursor-pointer"
+                                title="Cancel"
+                              >
+                                <span className="material-symbols-outlined text-[16px] leading-none">close</span>
+                              </button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-1.5 mt-1 group">
+                              <h3 className="text-base font-bold text-white">{order.customer_name}</h3>
+                              <button
+                                type="button"
+                                onClick={(e) => startEditingContactName(e, order)}
+                                className="opacity-60 group-hover:opacity-100 hover:text-cyan-400 text-zinc-400 p-0.5 rounded transition-all cursor-pointer"
+                                title="Rename customer contact (real-time for alerts & receipts)"
+                              >
+                                <span className="material-symbols-outlined text-[15px] leading-none">edit</span>
+                              </button>
+                            </div>
+                          )}
                           <div className="flex items-center gap-1.5 text-xs text-zinc-400 mt-0.5">
                             <span className="material-symbols-outlined text-xs text-cyan-400">location_on</span>
                             <span className="text-zinc-300 font-medium">{order.customer_locality || "Srinagar Locality"}</span>
@@ -1322,47 +1454,98 @@ export default function OrdersPage() {
                           <span className="text-[10px] text-cyan-400">Tap anytime to notify customer</span>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                          <button
-                            type="button"
-                            onClick={() => handleStartHarvest(order, true)}
-                            className={`py-2 px-2 rounded-xl font-mono text-xs font-semibold flex items-center justify-center gap-1.5 transition-all border cursor-pointer ${
-                              order.status === "processing" || (order.status as any) === "confirmed"
-                                ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/50 shadow-sm"
-                                : "bg-[#111111] hover:bg-[#1a1a1a] text-zinc-300 border-zinc-700/80 hover:border-zinc-500"
-                            }`}
-                            title="Set status to Processing & send 'Live Harvest Initiated' WhatsApp message"
-                          >
-                            <span>🐟</span>
-                            <span>Harvesting Alert</span>
-                          </button>
+                          {/* Harvest Alert + Copy Button */}
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => handleStartHarvest(order, true)}
+                              className={`flex-1 py-2 px-2 rounded-xl font-mono text-xs font-semibold flex items-center justify-center gap-1.5 transition-all border cursor-pointer ${
+                                order.status === "processing" || (order.status as any) === "confirmed"
+                                  ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/50 shadow-sm"
+                                  : "bg-[#111111] hover:bg-[#1a1a1a] text-zinc-300 border-zinc-700/80 hover:border-zinc-500"
+                              }`}
+                              title="Set status to Processing & send 'Live Harvest Initiated' WhatsApp message in new tab"
+                            >
+                              <span>🐟</span>
+                              <span className="truncate">Harvest Alert</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => copyAlertText(e, getHarvestAlertText(order), `card-harvest-${order.id}`)}
+                              className={`p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-center flex-shrink-0 ${
+                                copiedAlertKey === `card-harvest-${order.id}`
+                                  ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/50"
+                                  : "bg-[#111111] hover:bg-zinc-800 text-zinc-400 hover:text-white border-zinc-700/80"
+                              }`}
+                              title="Copy Harvest Alert text to clipboard without opening WhatsApp"
+                            >
+                              <span className="material-symbols-outlined text-[15px] leading-none">
+                                {copiedAlertKey === `card-harvest-${order.id}` ? "done" : "content_copy"}
+                              </span>
+                            </button>
+                          </div>
 
-                          <button
-                            type="button"
-                            onClick={() => handleOutForDelivery(order, true)}
-                            className={`py-2 px-2 rounded-xl font-mono text-xs font-semibold flex items-center justify-center gap-1.5 transition-all border cursor-pointer ${
-                              order.status === "out_for_delivery"
-                                ? "bg-blue-500/20 text-blue-300 border-blue-500/50 shadow-sm"
-                                : "bg-[#111111] hover:bg-[#1a1a1a] text-zinc-300 border-zinc-700/80 hover:border-zinc-500"
-                            }`}
-                            title="Set status to Out for Delivery & send 'Rider En Route' WhatsApp message"
-                          >
-                            <span>🛵</span>
-                            <span>Out for Delivery</span>
-                          </button>
+                          {/* Out for Delivery Alert + Copy Button */}
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => handleOutForDelivery(order, true)}
+                              className={`flex-1 py-2 px-2 rounded-xl font-mono text-xs font-semibold flex items-center justify-center gap-1.5 transition-all border cursor-pointer ${
+                                order.status === "out_for_delivery"
+                                  ? "bg-blue-500/20 text-blue-300 border-blue-500/50 shadow-sm"
+                                  : "bg-[#111111] hover:bg-[#1a1a1a] text-zinc-300 border-zinc-700/80 hover:border-zinc-500"
+                              }`}
+                              title="Set status to Out for Delivery & send 'Rider En Route' WhatsApp message in new tab"
+                            >
+                              <span>🛵</span>
+                              <span className="truncate">Out for Delivery</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => copyAlertText(e, getDeliveryAlertText(order), `card-delivery-${order.id}`)}
+                              className={`p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-center flex-shrink-0 ${
+                                copiedAlertKey === `card-delivery-${order.id}`
+                                  ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/50"
+                                  : "bg-[#111111] hover:bg-zinc-800 text-zinc-400 hover:text-white border-zinc-700/80"
+                              }`}
+                              title="Copy Out for Delivery Alert text to clipboard without opening WhatsApp"
+                            >
+                              <span className="material-symbols-outlined text-[15px] leading-none">
+                                {copiedAlertKey === `card-delivery-${order.id}` ? "done" : "content_copy"}
+                              </span>
+                            </button>
+                          </div>
 
-                          <button
-                            type="button"
-                            onClick={() => handleMarkDelivered(order, true)}
-                            className={`py-2 px-2 rounded-xl font-mono text-xs font-bold flex items-center justify-center gap-1.5 transition-all border cursor-pointer ${
-                              order.status === "delivered"
-                                ? "bg-emerald-500/25 text-emerald-300 border-emerald-500/50 shadow-sm"
-                                : "bg-emerald-600/80 hover:bg-emerald-500 text-slate-950 border-emerald-500"
-                            }`}
-                            title="Set status to Delivered & send Google Review WhatsApp message"
-                          >
-                            <span>✓</span>
-                            <span>Delivered Alert</span>
-                          </button>
+                          {/* Delivered Alert + Copy Button */}
+                          <div className="flex items-center gap-1">
+                            <button
+                              type="button"
+                              onClick={() => handleMarkDelivered(order, true)}
+                              className={`flex-1 py-2 px-2 rounded-xl font-mono text-xs font-bold flex items-center justify-center gap-1.5 transition-all border cursor-pointer ${
+                                order.status === "delivered"
+                                  ? "bg-emerald-500/25 text-emerald-300 border-emerald-500/50 shadow-sm"
+                                  : "bg-emerald-600/80 hover:bg-emerald-500 text-slate-950 border-emerald-500"
+                              }`}
+                              title="Set status to Delivered & send Google Review WhatsApp message in new tab"
+                            >
+                              <span>✓</span>
+                              <span className="truncate">Delivered Alert</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => copyAlertText(e, getDeliveredAlertText(order), `card-delivered-${order.id}`)}
+                              className={`p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-center flex-shrink-0 ${
+                                copiedAlertKey === `card-delivered-${order.id}`
+                                  ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/50"
+                                  : "bg-[#111111] hover:bg-zinc-800 text-zinc-400 hover:text-white border-zinc-700/80"
+                              }`}
+                              title="Copy Delivered Alert & Google Review text to clipboard without opening WhatsApp"
+                            >
+                              <span className="material-symbols-outlined text-[15px] leading-none">
+                                {copiedAlertKey === `card-delivered-${order.id}` ? "done" : "content_copy"}
+                              </span>
+                            </button>
+                          </div>
                         </div>
                       </div>
 
@@ -1522,7 +1705,51 @@ export default function OrdersPage() {
                 <span className="text-zinc-400 text-xs font-mono font-medium flex-shrink-0" title={`Order #${order.order_number}`}>{getOrderRefLabel(order)}</span>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-white truncate">{order.customer_name}</p>
+                    {editingCustomerOrderId === order.id ? (
+                      <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
+                        <input
+                          type="text"
+                          value={editingCustomerName}
+                          onChange={(e) => setEditingCustomerName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") saveEditingContactName(e, order.id);
+                            if (e.key === "Escape") cancelEditingContactName();
+                          }}
+                          className="bg-black border border-cyan-500 rounded px-2 py-0.5 text-xs text-white font-medium focus:outline-none focus:ring-1 focus:ring-cyan-400 w-44"
+                          autoFocus
+                          placeholder="Customer name"
+                        />
+                        <button
+                          type="button"
+                          onClick={(e) => saveEditingContactName(e, order.id)}
+                          disabled={isRenamingSaving}
+                          className="p-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer"
+                          title="Save name"
+                        >
+                          <span className="material-symbols-outlined text-[14px] leading-none">check</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={cancelEditingContactName}
+                          className="p-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 cursor-pointer"
+                          title="Cancel"
+                        >
+                          <span className="material-symbols-outlined text-[14px] leading-none">close</span>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1.5 group/name">
+                        <p className="text-sm font-medium text-white truncate">{order.customer_name}</p>
+                        <button
+                          type="button"
+                          onClick={(e) => startEditingContactName(e, order)}
+                          className="opacity-40 group-hover/name:opacity-100 hover:text-cyan-400 text-zinc-400 p-0.5 rounded transition-all cursor-pointer"
+                          title="Rename contact name (real-time for alerts & receipts)"
+                        >
+                          <span className="material-symbols-outlined text-[13px] leading-none">edit</span>
+                        </button>
+                      </div>
+                    )}
                     {(() => {
                       const item = order.items?.[0] as any;
                       if (!item?.actualWeight || !item?.orderedWeight) return null;
@@ -1743,50 +1970,101 @@ export default function OrdersPage() {
                     </div>
                   </div>
 
-                  {/* Actions (1-Tap WhatsApp Alerts + Weigh/Scale + Print 4-Up + Navigate + Delete) */}
+                  {/* Actions (1-Tap WhatsApp Alerts + Copy Alert Text + Weigh/Scale + Print 4-Up + Navigate + Delete) */}
                   <div className="space-y-2 pt-2 border-t border-[#222222]/80">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <button
-                        type="button"
-                        onClick={() => handleStartHarvest(order, true)}
-                        className={`py-1.5 px-3 rounded-lg font-mono text-xs font-semibold flex items-center gap-1.5 border transition-all cursor-pointer ${
-                          order.status === "processing" || (order.status as any) === "confirmed"
-                            ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/50 shadow-sm"
-                            : "bg-[#141414] hover:bg-zinc-800 text-zinc-300 border-zinc-700"
-                        }`}
-                        title="Set status to Processing & send 'Live Harvest Initiated' WhatsApp message"
-                      >
-                        <span>🐟</span>
-                        <span>Harvest Alert</span>
-                      </button>
+                      {/* Harvest Alert + Copy */}
+                      <div className="flex items-center">
+                        <button
+                          type="button"
+                          onClick={() => handleStartHarvest(order, true)}
+                          className={`py-1.5 px-2.5 rounded-l-lg font-mono text-xs font-semibold flex items-center gap-1.5 border transition-all cursor-pointer ${
+                            order.status === "processing" || (order.status as any) === "confirmed"
+                              ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/50 shadow-sm"
+                              : "bg-[#141414] hover:bg-zinc-800 text-zinc-300 border-zinc-700"
+                          }`}
+                          title="Set status to Processing & send 'Live Harvest Initiated' WhatsApp message in new tab"
+                        >
+                          <span>🐟</span>
+                          <span>Harvest Alert</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => copyAlertText(e, getHarvestAlertText(order), `table-harvest-${order.id}`)}
+                          className={`py-1.5 px-2 rounded-r-lg border-y border-r transition-all cursor-pointer flex items-center justify-center ${
+                            copiedAlertKey === `table-harvest-${order.id}`
+                              ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/50"
+                              : "bg-[#141414] hover:bg-zinc-800 text-zinc-400 hover:text-white border-zinc-700"
+                          }`}
+                          title="Copy Harvest Alert text to clipboard without opening WhatsApp"
+                        >
+                          <span className="material-symbols-outlined text-[14px] leading-none">
+                            {copiedAlertKey === `table-harvest-${order.id}` ? "done" : "content_copy"}
+                          </span>
+                        </button>
+                      </div>
 
-                      <button
-                        type="button"
-                        onClick={() => handleOutForDelivery(order, true)}
-                        className={`py-1.5 px-3 rounded-lg font-mono text-xs font-semibold flex items-center gap-1.5 border transition-all cursor-pointer ${
-                          order.status === "out_for_delivery"
-                            ? "bg-blue-500/20 text-blue-300 border-blue-500/50 shadow-sm"
-                            : "bg-[#141414] hover:bg-zinc-800 text-zinc-300 border-zinc-700"
-                        }`}
-                        title="Set status to Out for Delivery & send 'Rider En Route' WhatsApp message"
-                      >
-                        <span>🛵</span>
-                        <span>Out for Delivery</span>
-                      </button>
+                      {/* Out for Delivery Alert + Copy */}
+                      <div className="flex items-center">
+                        <button
+                          type="button"
+                          onClick={() => handleOutForDelivery(order, true)}
+                          className={`py-1.5 px-2.5 rounded-l-lg font-mono text-xs font-semibold flex items-center gap-1.5 border transition-all cursor-pointer ${
+                            order.status === "out_for_delivery"
+                              ? "bg-blue-500/20 text-blue-300 border-blue-500/50 shadow-sm"
+                              : "bg-[#141414] hover:bg-zinc-800 text-zinc-300 border-zinc-700"
+                          }`}
+                          title="Set status to Out for Delivery & send 'Rider En Route' WhatsApp message in new tab"
+                        >
+                          <span>🛵</span>
+                          <span>Out for Delivery</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => copyAlertText(e, getDeliveryAlertText(order), `table-delivery-${order.id}`)}
+                          className={`py-1.5 px-2 rounded-r-lg border-y border-r transition-all cursor-pointer flex items-center justify-center ${
+                            copiedAlertKey === `table-delivery-${order.id}`
+                              ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/50"
+                              : "bg-[#141414] hover:bg-zinc-800 text-zinc-400 hover:text-white border-zinc-700"
+                          }`}
+                          title="Copy Out for Delivery Alert text to clipboard without opening WhatsApp"
+                        >
+                          <span className="material-symbols-outlined text-[14px] leading-none">
+                            {copiedAlertKey === `table-delivery-${order.id}` ? "done" : "content_copy"}
+                          </span>
+                        </button>
+                      </div>
 
-                      <button
-                        type="button"
-                        onClick={() => handleMarkDelivered(order, true)}
-                        className={`py-1.5 px-3 rounded-lg font-mono text-xs font-bold flex items-center gap-1.5 border transition-all cursor-pointer ${
-                          order.status === "delivered"
-                            ? "bg-emerald-500/25 text-emerald-300 border-emerald-500/50 shadow-sm"
-                            : "bg-emerald-600/80 hover:bg-emerald-500 text-slate-950 border-emerald-500"
-                        }`}
-                        title="Set status to Delivered & send Google Review WhatsApp message"
-                      >
-                        <span>✓</span>
-                        <span>Delivered Alert</span>
-                      </button>
+                      {/* Delivered Alert + Copy */}
+                      <div className="flex items-center">
+                        <button
+                          type="button"
+                          onClick={() => handleMarkDelivered(order, true)}
+                          className={`py-1.5 px-2.5 rounded-l-lg font-mono text-xs font-bold flex items-center gap-1.5 border transition-all cursor-pointer ${
+                            order.status === "delivered"
+                              ? "bg-emerald-500/25 text-emerald-300 border-emerald-500/50 shadow-sm"
+                              : "bg-emerald-600/80 hover:bg-emerald-500 text-slate-950 border-emerald-500"
+                          }`}
+                          title="Set status to Delivered & send Google Review WhatsApp message in new tab"
+                        >
+                          <span>✓</span>
+                          <span>Delivered Alert</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => copyAlertText(e, getDeliveredAlertText(order), `table-delivered-${order.id}`)}
+                          className={`py-1.5 px-2 rounded-r-lg border-y border-r transition-all cursor-pointer flex items-center justify-center ${
+                            copiedAlertKey === `table-delivered-${order.id}`
+                              ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/50"
+                              : "bg-[#141414] hover:bg-zinc-800 text-zinc-400 hover:text-white border-zinc-700"
+                          }`}
+                          title="Copy Delivered Alert & Google Review text to clipboard without opening WhatsApp"
+                        >
+                          <span className="material-symbols-outlined text-[14px] leading-none">
+                            {copiedAlertKey === `table-delivered-${order.id}` ? "done" : "content_copy"}
+                          </span>
+                        </button>
+                      </div>
                     </div>
 
                     <div className="flex items-center justify-between flex-wrap gap-2 pt-1">

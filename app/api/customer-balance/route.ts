@@ -834,6 +834,10 @@ export async function PATCH(request: Request) {
             updatedMode = current.payment_method?.includes("Razorpay")
               ? "Split (Cash + Razorpay)"
               : "Split (Cash + JK Bank)";
+            cf.is_split = true;
+            const existingCash = Number(vslMatch.amount_paid || 0);
+            cf.cash_portion = existingCash > 0 ? existingCash : Math.round(updatedAmountPaid / 2);
+            cf.online_portion = Math.max(0, updatedAmountPaid - cf.cash_portion);
           } else if (current.payment_method) {
             updatedMode = current.payment_method;
           }
