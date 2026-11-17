@@ -7661,13 +7661,13 @@ export default function VendingCenterLoggerPage() {
                                 AQUARIUM STOCK INTAKE
                               </span>
                               <span className="text-white font-bold text-xs">
-                                {stock.supplier_name || "Khyber Aquaculture"}
+                                {isSuperAdmin ? (stock.supplier_name || "Khyber Aquaculture") : "Farm Consignment"}
                               </span>
                               <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 font-mono">
                                 Live Fish
                               </span>
                             </div>
-                            {stock.batch_notes && (
+                            {isSuperAdmin && stock.batch_notes && (
                               <div className="text-[11px] text-cyan-300/80 italic line-clamp-2 max-w-xl font-sans">
                                 &ldquo;{stock.batch_notes}&rdquo;
                               </div>
@@ -7682,9 +7682,11 @@ export default function VendingCenterLoggerPage() {
                               <span>+{formatKg(stock.weight_kg)}</span>
                               <span className="text-xs text-cyan-400 font-normal">Kg</span>
                             </div>
-                            <div className="text-[10.5px] text-slate-400">
-                              @ ₹{stock.cost_per_kg || 435}/Kg
-                            </div>
+                            {isSuperAdmin && (
+                              <div className="text-[10.5px] text-slate-400">
+                                @ ₹{stock.cost_per_kg || 435}/Kg
+                              </div>
+                            )}
                             {(stock.stock_before_kg !== undefined || stock.stock_after_kg !== undefined) && (
                               <div className="text-[9.5px] text-cyan-300/90 font-mono mt-0.5 bg-cyan-950/70 rounded px-1.5 py-0.5 border border-cyan-500/30 flex items-center gap-1">
                                 <span>Tank: {stock.stock_before_kg ?? 0}</span>
@@ -7695,12 +7697,21 @@ export default function VendingCenterLoggerPage() {
                           </div>
                         </td>
 
-                        {/* 5. Cost / Outflow */}
+                        {/* 5. Cost / Outflow (Strictly Super Admin Only) */}
                         <td className={`${cellPad} text-right align-middle whitespace-nowrap font-mono`}>
-                          <div className="text-sm font-bold text-amber-300">
-                            -₹{(stock.total_cost || Math.round(Number(stock.weight_kg || 0) * (stock.cost_per_kg || 435))).toLocaleString("en-IN")}
-                          </div>
-                          <div className="text-[9.5px] text-slate-400">Procurement Outflow</div>
+                          {isSuperAdmin ? (
+                            <>
+                              <div className="text-sm font-bold text-amber-300">
+                                -₹{(stock.total_cost || Math.round(Number(stock.weight_kg || 0) * (stock.cost_per_kg || 435))).toLocaleString("en-IN")}
+                              </div>
+                              <div className="text-[9.5px] text-slate-400">Procurement Outflow</div>
+                            </>
+                          ) : (
+                            <>
+                              <div className="text-xs font-bold text-cyan-300/70">—</div>
+                              <div className="text-[9.5px] text-slate-500">Stock Intake</div>
+                            </>
+                          )}
                         </td>
 
                         {/* 6. Payment & Status */}
@@ -7710,16 +7721,18 @@ export default function VendingCenterLoggerPage() {
                               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                               Stock Replenished
                             </span>
-                            <span className="text-[9.5px] text-slate-400 font-sans">
-                              Supplier Ledger Credit
-                            </span>
+                            {isSuperAdmin && (
+                              <span className="text-[9.5px] text-slate-400 font-sans">
+                                Supplier Ledger Credit
+                              </span>
+                            )}
                           </div>
                         </td>
 
                         {/* 7. Actions */}
                         <td className={`${cellPad} text-right whitespace-nowrap align-middle w-24`}>
                           <div className="flex items-center justify-end gap-1">
-                            {isAdmin && (
+                            {isSuperAdmin && (
                               <button
                                 type="button"
                                 onClick={() => {
@@ -8237,7 +8250,7 @@ export default function VendingCenterLoggerPage() {
                       <div>
                         <div className="text-base font-bold text-white tracking-wide flex items-center gap-1.5">
                           <span className="material-symbols-outlined text-sm text-cyan-300">water</span>
-                          {stock.supplier_name || "Khyber Aquaculture"}
+                          {isSuperAdmin ? (stock.supplier_name || "Khyber Aquaculture") : "Farm Consignment"}
                         </div>
                         <div className="text-xs text-slate-400 font-sans">Fresh Live Trout Consignment</div>
                       </div>
@@ -8245,10 +8258,12 @@ export default function VendingCenterLoggerPage() {
                         <div className="text-xl font-black font-mono text-cyan-300">
                           +{formatKg(stock.weight_kg)} <span className="text-xs font-normal text-cyan-400">Kg</span>
                         </div>
-                        <div className="text-xs font-mono text-amber-300">
-                          -₹{(stock.total_cost || Math.round(Number(stock.weight_kg || 0) * (stock.cost_per_kg || 435))).toLocaleString("en-IN")}
-                          <span className="text-[10px] text-slate-400 ml-1">(@ ₹{stock.cost_per_kg || 435}/Kg)</span>
-                        </div>
+                        {isSuperAdmin && (
+                          <div className="text-xs font-mono text-amber-300">
+                            -₹{(stock.total_cost || Math.round(Number(stock.weight_kg || 0) * (stock.cost_per_kg || 435))).toLocaleString("en-IN")}
+                            <span className="text-[10px] text-slate-400 ml-1">(@ ₹{stock.cost_per_kg || 435}/Kg)</span>
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -8265,7 +8280,7 @@ export default function VendingCenterLoggerPage() {
                       </div>
                     )}
 
-                    {stock.batch_notes && (
+                    {isSuperAdmin && stock.batch_notes && (
                       <div className="text-[11px] text-cyan-200/80 italic bg-black/40 rounded-lg p-2 border border-cyan-500/10 font-sans">
                         &ldquo;{stock.batch_notes}&rdquo;
                       </div>
@@ -8278,19 +8293,21 @@ export default function VendingCenterLoggerPage() {
                       <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
                       Aquarium Replenished
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setStockLogOpen(true);
-                        setTimeout(() => {
-                          document.getElementById("stock-procurement-ledger")?.scrollIntoView({ behavior: "smooth", block: "center" });
-                        }, 120);
-                      }}
-                      className="text-cyan-400 hover:text-cyan-300 text-xs font-mono flex items-center gap-1 cursor-pointer"
-                    >
-                      <span>Ledger</span>
-                      <span className="material-symbols-outlined text-xs">arrow_forward</span>
-                    </button>
+                    {isSuperAdmin && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setStockLogOpen(true);
+                          setTimeout(() => {
+                            document.getElementById("stock-procurement-ledger")?.scrollIntoView({ behavior: "smooth", block: "center" });
+                          }, 120);
+                        }}
+                        className="text-cyan-400 hover:text-cyan-300 text-xs font-mono flex items-center gap-1 cursor-pointer"
+                      >
+                        <span>Ledger</span>
+                        <span className="material-symbols-outlined text-xs">arrow_forward</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               );

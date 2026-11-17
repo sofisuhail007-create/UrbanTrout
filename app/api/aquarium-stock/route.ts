@@ -103,10 +103,14 @@ export async function GET(req: NextRequest) {
     ]);
     const liveSummary = await getLiveAquariumStock();
 
-    // Check if request is from an authenticated admin
-    const { requireAdminAuth } = await import("@/lib/adminAuth");
-    const authError = await requireAdminAuth(req);
+    // Check if request is from an authenticated admin / super admin
+    const { requireAdminAuth, requireSuperAdminAuth } = await import("@/lib/adminAuth");
+    const [authError, superAdminError] = await Promise.all([
+      requireAdminAuth(req),
+      requireSuperAdminAuth(req),
+    ]);
     const isAdmin = authError === null;
+    const isSuperAdmin = superAdminError === null;
 
     if (!isAdmin) {
       // 🔒 Public visitor or client: NEVER expose supplier names, costs, or procurement history!
@@ -130,13 +134,31 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // 🛡️ Authorized Admin: Return full procurement ledger
+    // 🛡️ Authorized Admin / Staff:
+    // Strictly strip procurement costs (cost_per_kg, total_cost) and financial notes for non-Super-Admin staff!
     const entries: AquariumStockEntry[] = (data || []).map((row: any) => {
       const m = meta[row.id];
       const stockBefore = m?.stock_before_kg !== undefined ? Number(m.stock_before_kg) : undefined;
       const stockAfter = m?.stock_after_kg !== undefined
         ? Number(m.stock_after_kg)
         : (stockBefore !== undefined ? Math.round((stockBefore + Number(row.weight_kg || 0)) * 1000) / 1000 : undefined);
+
+      if (!isSuperAdmin) {
+        return {
+          id: row.id,
+          stock_date: row.stock_date,
+          stock_time: row.stock_time,
+          supplier_name: "Farm Consignment",
+          product_type: row.product_type,
+          weight_kg: Number(row.weight_kg || 0),
+          cost_per_kg: 0,
+          total_cost: 0,
+          stock_before_kg: stockBefore,
+          stock_after_kg: stockAfter,
+          logged_by: row.logged_by,
+          created_at: row.created_at,
+        };
+      }
 
       return {
         ...row,
