@@ -26,10 +26,10 @@ process.on("unhandledRejection", (reason) => {
 // ============================================================================
 // URBAN TROUT SALES AGENT — BUILD & VERSION TRACKING
 // ============================================================================
-const BOT_VERSION = "3.0.1";
-const BOT_LAST_UPDATED = "16-Nov-2026, 08:08 PM IST";
-const BOT_RELEASE_TITLE = "Active High-Speed Gemini Endpoints (gemini-flash-lite-latest & gemini-3.5-flash-lite)";
-const BOT_RELEASE_NOTES = "Eliminated 404/503 model sunset outages by switching to verified sub-2s active Gemini endpoints, with full bug audit fixes active";
+const BOT_VERSION = "3.0.2";
+const BOT_LAST_UPDATED = "17-Nov-2026, 01:10 PM IST";
+const BOT_RELEASE_TITLE = "Brand Shield QR Crop & 100% Free Delivery Regex Fix";
+const BOT_RELEASE_NOTES = "Cleanly cropped personal proprietor name from Razorpay QR card; fixed 100% FREE regex that previously parsed 100 as delivery fee";
 
 // ============================================================================
 // STRICT VVIP MANUAL-ONLY LIST (AI MUST NEVER TEXT UNDER ANY CIRCUMSTANCE)
@@ -1428,7 +1428,32 @@ async function createRazorpayQrCode({ amount, customerPhone, customerName, order
   console.log(`[Razorpay QR Generated] ID: ${qrData.id} for Order #${ref} (₹${numAmount})`);
 
   // Download the official high-resolution Razorpay QR PNG image
-  const imageBuffer = await downloadImageBuffer(`https://api.razorpay.com/v1/l/qrcode/${qrData.id}`);
+  let imageBuffer = await downloadImageBuffer(`https://api.razorpay.com/v1/l/qrcode/${qrData.id}`);
+
+  // 🛡️ BRAND SHIELD: Crop out personal proprietor name (e.g. SKINDAR MOHD SIDEEQ)
+  // Cleanly crops at y = 1180 right below GPay / PhonePe / Paytm logos, producing a compact, 100% professional branded card
+  try {
+    const { PNG } = require("pngjs");
+    const parsedPng = PNG.sync.read(imageBuffer);
+    if (parsedPng && parsedPng.height > 1200) {
+      const cropHeight = 1180;
+      const croppedPng = new PNG({ width: parsedPng.width, height: cropHeight });
+      for (let y = 0; y < cropHeight; y++) {
+        for (let x = 0; x < parsedPng.width; x++) {
+          const srcIdx = (parsedPng.width * y + x) << 2;
+          const dstIdx = (croppedPng.width * y + x) << 2;
+          croppedPng.data[dstIdx] = parsedPng.data[srcIdx];
+          croppedPng.data[dstIdx + 1] = parsedPng.data[srcIdx + 1];
+          croppedPng.data[dstIdx + 2] = parsedPng.data[srcIdx + 2];
+          croppedPng.data[dstIdx + 3] = parsedPng.data[srcIdx + 3];
+        }
+      }
+      imageBuffer = PNG.sync.write(croppedPng);
+      console.log(`🛡️ [Brand Shield] Cleanly cropped personal name from QR. Compact branded card: ${parsedPng.width}x${cropHeight}px`);
+    }
+  } catch (cropErr) {
+    console.warn("[Brand Shield] Notice: Failed to crop QR image, using original:", cropErr.message);
+  }
 
   return {
     qrId: qrData.id,
@@ -5975,6 +6000,11 @@ async function startBot() {
         const expectedBase = Math.round(parseFloat(qrWeightMatch[1]) * (qrIsWhole ? 540 : 580));
         if (amt > expectedBase + 5) effectiveQrFee = amt - expectedBase;
       }
+      // 🛡️ ZERO-FEE HARD GUARD: If total payable equals or is less than the base fish cost (e.g. ₹1,160 for 2kg), delivery fee is strictly 0!
+      if (qrWeightMatch) {
+        const expectedBase = Math.round(parseFloat(qrWeightMatch[1]) * (qrIsWhole ? 540 : 580));
+        if (amt <= expectedBase) effectiveQrFee = 0;
+      }
 
       const cleanItemDesc = (itemsDesc || "Cleaned & Gutted Trout")
         .replace(/\s*\(Pan-Ready\)/i, "")
@@ -7328,8 +7358,12 @@ async function startBot() {
           const fR = mR ? mR[1] : null;
           const mItem = locReply.match(/[•\-\*]\s*(?:Item|Order):\s*([^\n•]+)/i);
           const fDesc = mItem ? mItem[1].replace(/\*/g, "").trim() : null;
-          const mFee = locReply.match(/(?:Delivery(?: Fee)?|Express Courier):\s*(?:[^\n]*?\+?\s*₹?\s*([\d,]+)|\+₹?([\d,]+))/i);
-          const fFee = mFee ? parseInt((mFee[1] || mFee[2]).replace(/,/g, ""), 10) : 0;
+          const deliveryLineMatch = locReply.match(/[•\-\*]?\s*(?:Delivery(?: Fee)?|Express Courier):[^\n]*/i);
+          let fFee = 0;
+          if (deliveryLineMatch && !/\b(?:100%\s*FREE|FREE|Zero|0%)\b/i.test(deliveryLineMatch[0])) {
+            const mFee = deliveryLineMatch[0].match(/(?:\+|₹)\s*₹?\s*([\d,]+)/i);
+            if (mFee) fFee = parseInt(mFee[1].replace(/,/g, ""), 10);
+          }
 
           setTimeout(async () => {
             try {
@@ -7520,8 +7554,12 @@ async function startBot() {
           const forceRef = refMatch ? refMatch[1] : null;
           const itemMatch = aiReply.match(/[•\-\*]\s*(?:Item|Order):\s*([^\n•]+)/i);
           const forceDesc = itemMatch ? itemMatch[1].replace(/\*/g, "").trim() : null;
-          const feeMatch = aiReply.match(/(?:Delivery(?: Fee)?|Express Courier):\s*(?:[^\n]*?\+?\s*₹?\s*([\d,]+)|\+₹?([\d,]+))/i);
-          const forceDeliveryFee = feeMatch ? parseInt((feeMatch[1] || feeMatch[2]).replace(/,/g, ""), 10) : 0;
+          const deliveryLineMatch = aiReply.match(/[•\-\*]?\s*(?:Delivery(?: Fee)?|Express Courier):[^\n]*/i);
+          let forceDeliveryFee = 0;
+          if (deliveryLineMatch && !/\b(?:100%\s*FREE|FREE|Zero|0%)\b/i.test(deliveryLineMatch[0])) {
+            const feeMatch = deliveryLineMatch[0].match(/(?:\+|₹)\s*₹?\s*([\d,]+)/i);
+            if (feeMatch) forceDeliveryFee = parseInt(feeMatch[1].replace(/,/g, ""), 10);
+          }
 
           setTimeout(async () => {
             try {
