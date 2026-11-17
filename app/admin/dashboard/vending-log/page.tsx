@@ -1706,7 +1706,7 @@ export default function VendingCenterLoggerPage() {
 
     for (const item of timeline) {
       if (item.type === "procurement") {
-        if (item.id === latestBatchId && item.stock_after_kg !== undefined && !isNaN(item.stock_after_kg)) {
+        if (item.stock_after_kg !== undefined && !isNaN(item.stock_after_kg)) {
           runningStock = Math.round(item.stock_after_kg * 1000) / 1000;
         } else if (item.stock_before_kg === 0) {
           runningStock = item.weight;

@@ -235,8 +235,8 @@ export async function getLiveAquariumStock(customClient?: any): Promise<Aquarium
     for (const item of timeline) {
       if (item.type === "procurement") {
         // True physical biomass flow:
-        // 1. If this is the active latest batch and has a verified stock_after_kg baseline, anchor directly to it
-        if (item.id === latestBatchId && item.stock_after_kg !== undefined && !isNaN(item.stock_after_kg)) {
+        // 1. If this procurement has a verified stock_after_kg baseline, anchor directly to it
+        if (item.stock_after_kg !== undefined && !isNaN(item.stock_after_kg)) {
           runningStock = Math.round(item.stock_after_kg * 1000) / 1000;
         } else if (item.stock_before_kg === 0) {
           // When tank was verified empty before intake (e.g. initial setup or 80kg batch on Oct 10):
