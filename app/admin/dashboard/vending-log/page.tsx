@@ -1687,13 +1687,17 @@ export default function VendingCenterLoggerPage() {
 
     timeline.sort((a, b) => {
       if (a.date !== b.date) return a.date.localeCompare(b.date);
-      const tA = parseTimeToMinutes(a.time);
-      const tB = parseTimeToMinutes(b.time);
-      if (tA !== tB) return tA - tB;
       if (a.type === "sale" && a.notes?.toLowerCase().includes("syed adil") && b.type === "procurement") return -1;
       if (b.type === "sale" && b.notes?.toLowerCase().includes("syed adil") && a.type === "procurement") return 1;
+
+      // On the same business date, fresh live fish procured on that day replenishes the tanks
+      // for that day's sales (procurement -> mortality -> sales). This prevents false phantom surplus
+      // if staff logs the intake in the afternoon/evening while sales happened earlier on that day.
       const order = { procurement: 1, mortality: 2, sale: 3 };
-      return (order[a.type] || 2) - (order[b.type] || 2);
+      if ((order[a.type] || 2) !== (order[b.type] || 2)) {
+        return (order[a.type] || 2) - (order[b.type] || 2);
+      }
+      return parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time);
     });
 
     let runningStock = 0;
@@ -11276,12 +11280,32 @@ export default function VendingCenterLoggerPage() {
                     className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                   />
                 </div>
-                <TimePickerInput
-                  label="Time"
-                  value={stockFormTime}
-                  onChange={setStockFormTime}
-                  accentColor="blue"
-                />
+                <div>
+                  <TimePickerInput
+                    label="Time"
+                    value={stockFormTime}
+                    onChange={setStockFormTime}
+                    accentColor="blue"
+                  />
+                  <div className="flex items-center gap-1.5 mt-1">
+                    <button
+                      type="button"
+                      onClick={() => setStockFormTime("10:00 am")}
+                      className="text-[9.5px] px-1.5 py-0.5 rounded bg-blue-500/10 hover:bg-blue-500/20 text-blue-300 border border-blue-500/20 font-mono transition-colors cursor-pointer"
+                      title="Set to standard morning batch arrival (10:00 AM)"
+                    >
+                      🌅 Morning (10 AM)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setStockFormTime(getIstCurrentTime())}
+                      className="text-[9.5px] px-1.5 py-0.5 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 border border-zinc-700 font-mono transition-colors cursor-pointer"
+                      title="Set to current clock time"
+                    >
+                      ⏱ Now
+                    </button>
+                  </div>
+                </div>
               </div>
 
               {/* Supplier */}

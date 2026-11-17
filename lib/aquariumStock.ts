@@ -215,14 +215,18 @@ export async function getLiveAquariumStock(customClient?: any): Promise<Aquarium
 
     timeline.sort((a, b) => {
       if (a.date !== b.date) return a.date.localeCompare(b.date);
-      const tA = parseTimeToMinutes(a.time);
-      const tB = parseTimeToMinutes(b.time);
-      if (tA !== tB) return tA - tB;
       // If sale and procurement coincide (e.g. Syed Adil taking the final fish right before the 80kg truck arrived):
       if (a.type === "sale" && a.notes?.toLowerCase().includes("syed adil") && b.type === "procurement") return -1;
       if (b.type === "sale" && b.notes?.toLowerCase().includes("syed adil") && a.type === "procurement") return 1;
+
+      // On the same business date, fresh live fish procured on that day replenishes the tanks
+      // for that day's sales (procurement -> mortality -> sales). This prevents false phantom surplus
+      // if staff logs the intake in the afternoon/evening while sales happened earlier on that day.
       const order = { procurement: 1, mortality: 2, sale: 3 };
-      return (order[a.type] || 2) - (order[b.type] || 2);
+      if ((order[a.type] || 2) !== (order[b.type] || 2)) {
+        return (order[a.type] || 2) - (order[b.type] || 2);
+      }
+      return parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time);
     });
 
     let runningStock = 0;
