@@ -219,14 +219,13 @@ export async function getLiveAquariumStock(customClient?: any): Promise<Aquarium
       if (a.type === "sale" && a.notes?.toLowerCase().includes("syed adil") && b.type === "procurement") return -1;
       if (b.type === "sale" && b.notes?.toLowerCase().includes("syed adil") && a.type === "procurement") return 1;
 
-      // On the same business date, fresh live fish procured on that day replenishes the tanks
-      // for that day's sales (procurement -> mortality -> sales). This prevents false phantom surplus
-      // if staff logs the intake in the afternoon/evening while sales happened earlier on that day.
+      // Chronological time comparison: earlier events happen before later events
+      const timeDiff = parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time);
+      if (timeDiff !== 0) return timeDiff;
+
+      // Tie-breaker when both happen at the exact same minute: procurement first, then mortality, then sales
       const order = { procurement: 1, mortality: 2, sale: 3 };
-      if ((order[a.type] || 2) !== (order[b.type] || 2)) {
-        return (order[a.type] || 2) - (order[b.type] || 2);
-      }
-      return parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time);
+      return (order[a.type] || 2) - (order[b.type] || 2);
     });
 
     let runningStock = 0;
@@ -431,7 +430,7 @@ export async function getAquariumStockAtTimestamp(
       }
 
       if (item.type === "procurement") {
-        if (item.id === latestBatchId && item.stock_after_kg !== undefined && !isNaN(item.stock_after_kg)) {
+        if (item.stock_after_kg !== undefined && !isNaN(item.stock_after_kg)) {
           runningStock = Math.round(item.stock_after_kg * 1000) / 1000;
         } else if (item.stock_before_kg === 0) {
           runningStock = item.weight;

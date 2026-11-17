@@ -1690,14 +1690,13 @@ export default function VendingCenterLoggerPage() {
       if (a.type === "sale" && a.notes?.toLowerCase().includes("syed adil") && b.type === "procurement") return -1;
       if (b.type === "sale" && b.notes?.toLowerCase().includes("syed adil") && a.type === "procurement") return 1;
 
-      // On the same business date, fresh live fish procured on that day replenishes the tanks
-      // for that day's sales (procurement -> mortality -> sales). This prevents false phantom surplus
-      // if staff logs the intake in the afternoon/evening while sales happened earlier on that day.
+      // Chronological time comparison: earlier events happen before later events
+      const timeDiff = parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time);
+      if (timeDiff !== 0) return timeDiff;
+
+      // Tie-breaker when both happen at the exact same minute: procurement first, then mortality, then sales
       const order = { procurement: 1, mortality: 2, sale: 3 };
-      if ((order[a.type] || 2) !== (order[b.type] || 2)) {
-        return (order[a.type] || 2) - (order[b.type] || 2);
-      }
-      return parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time);
+      return (order[a.type] || 2) - (order[b.type] || 2);
     });
 
     let runningStock = 0;
@@ -6605,7 +6604,7 @@ export default function VendingCenterLoggerPage() {
               <div className="mt-3 text-[11px] text-slate-400 font-mono border-t border-[#222222]/80 pt-2 space-y-1">
                 {isAdmin && aquariumStock.surplusKg > 0 && (
                   <div className="flex items-center justify-between text-[10.5px] bg-emerald-500/15 border border-emerald-500/30 rounded px-1.5 py-0.5 text-emerald-300 font-bold shadow-sm">
-                    <span>🎁 Surplus Dispatched:</span>
+                    <span>🎁 All-Time Surplus Dispatched:</span>
                     <span>+{formatKg(aquariumStock.surplusKg)} Kg (+₹{aquariumStock.surplusPureProfit.toLocaleString("en-IN")})</span>
                   </div>
                 )}
