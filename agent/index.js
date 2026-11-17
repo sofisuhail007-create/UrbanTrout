@@ -26,10 +26,10 @@ process.on("unhandledRejection", (reason) => {
 // ============================================================================
 // URBAN TROUT SALES AGENT — BUILD & VERSION TRACKING
 // ============================================================================
-const BOT_VERSION = "3.0.2";
-const BOT_LAST_UPDATED = "17-Nov-2026, 01:10 PM IST";
-const BOT_RELEASE_TITLE = "Brand Shield QR Crop & 100% Free Delivery Regex Fix";
-const BOT_RELEASE_NOTES = "Cleanly cropped personal proprietor name from Razorpay QR card; fixed 100% FREE regex that previously parsed 100 as delivery fee";
+const BOT_VERSION = "3.0.3";
+const BOT_LAST_UPDATED = "17-Nov-2026, 04:30 PM IST";
+const BOT_RELEASE_TITLE = "Zone 4 Perimeter Guard & Auto-QR Shield Fix";
+const BOT_RELEASE_NOTES = "Fixed contradictory Outside Delivery Zone message for verified in-perimeter Zone 4 locations (11.5–16km like Nowgam/Rawalpora/Sanat Nagar); prevented auto-QR dispatch on rejected locations";
 
 // ============================================================================
 // STRICT VVIP MANUAL-ONLY LIST (AI MUST NEVER TEXT UNDER ANY CIRCUMSTANCE)
@@ -4885,12 +4885,15 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
                 rawReply = rawReply.replace(/\n{3,}/g, "\n\n").trim();
                 const locPrompt = `📍 *To confirm your express delivery:* Which area in Srinagar should we deliver to (e.g. Soura, Lal Chowk, Rajbagh, Hyderpora)? Please share your *WhatsApp Location Pin or Google Maps link* so our Express Dispatch Partner can reach your exact shared location! 🐟`;
                 rawReply = rawReply ? `${rawReply}\n\n${locPrompt}` : locPrompt;
-              } else if ((custDist !== null && custDist > 16.0) || isFarOutZone) {
+              } else if (custDist !== null ? custDist > 16.0 : isFarOutZone) {
                 console.log(`[Link Guard] Blocked payment link for ${chatId} - location ${custDist}km is OUTSIDE delivery perimeter (>16km).`);
-                rawReply = rawReply.replace(
-                  payMatch[0],
-                  `📍 *Outside Delivery Zone:* Express delivery is not available for your location (~${custDist ? custDist.toFixed(1) : "far"} km). You are warmly welcome to visit our Live Vending Center in Malabagh (Near R. P. School Girls Wing, open Saturday to Thursday) where you can pick live trout on the spot! 🐟\nMaps: https://maps.app.goo.gl/6FT5iLk5n8mbKSRU9`
-                );
+                rawReply = rawReply.replace(payMatch[0], "").trim();
+                rawReply = rawReply.replace(/(?:^|\n)\s*(?:🧾\s*)?(?:URBAN TROUT\s*[•·-]\s*)?(?:Order Summary|ORDER SUMMARY)[\s\S]*/i, "").trim();
+                rawReply = rawReply.replace(/(?:^|\n)\s*[•\-\*]\s*(?:Order|Rate|Fish Amount|Doorstep Delivery|Cold-Chain Delivery|Express Delivery|Express Courier|Packaging|Total Payable):[^\n]*/gi, "");
+                rawReply = rawReply.replace(/(?:^|\n)\s*[•\-\*]?\s*Total Payable:\s*₹[\d,]+/gi, "");
+                rawReply = rawReply.replace(/\n{3,}/g, "\n\n").trim();
+                const outZoneNotice = `📍 *Outside Delivery Zone:* Express delivery is not available for your location (~${custDist ? custDist.toFixed(1) : "far"} km). You are warmly welcome to visit our Live Vending Center in Malabagh (Near R. P. School Girls Wing, open Saturday to Thursday) where you can pick live trout on the spot! 🐟\nMaps: https://maps.app.goo.gl/6FT5iLk5n8mbKSRU9`;
+                rawReply = rawReply ? `${rawReply}\n\n${outZoneNotice}` : outZoneNotice;
               } else if (payWeatherPolicy.blockedByWeather && !isAdvanceScheduledOrder) {
                 console.log(`[Link Guard] Blocked payment link for ${chatId} - ${custDist}km > ${WEATHER_RESTRICT_RADIUS_KM}km during active ${payWeatherPolicy.weather.condition}.`);
                 const linkAreaName = activeLocalityName || savedLoc?.localityName || "Your Area";
@@ -7542,11 +7545,13 @@ async function startBot() {
       const hasRealPayLink = /(?:https?:\/\/)?rzp\.io\/\S+/i.test(aiReply);
       const hasOfficialOrderSummary = /(?:🧾\s*)?(?:URBAN TROUT\s*[•·-]\s*)?(?:Order Summary|ORDER SUMMARY)/i.test(aiReply);
 
+      const isRejectedDelivery = /(?:Outside Delivery Zone|Express delivery is not available|Doorstep delivery is not available|harvest quota for today is fully committed)/i.test(aiReply);
+
       const hasPaymentInReply = (
         (hasRealPayLink || hasOfficialOrderSummary) &&
         forceAmount !== null &&
         forceAmount >= 300
-      ) && !aiReply.includes("✅ *Payment Received") && !aiReply.includes("OUT FOR DELIVERY");
+      ) && !aiReply.includes("✅ *Payment Received") && !aiReply.includes("OUT FOR DELIVERY") && !isRejectedDelivery;
 
       if (hasPaymentInReply && !isCustomerRequestingQr(text, chatHist)) {
         try {
