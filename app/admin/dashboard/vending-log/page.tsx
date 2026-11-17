@@ -1721,18 +1721,14 @@ export default function VendingCenterLoggerPage() {
           continue;
         }
 
-        if (item.isSurplusMarked || runningStock <= 0) {
+        // Only recognize surplus if an entry is explicitly marked as surplus by staff.
+        // Never auto-invent phantom surplus from historical batch timing or scale variance.
+        if (item.isSurplusMarked) {
           map.set(item.id, { regularKg: 0, surplusKg: w, isSurplus: true, isPureSurplus: true });
           totalSurplusKg = Math.round((totalSurplusKg + w) * 1000) / 1000;
-        } else if (runningStock >= w) {
-          map.set(item.id, { regularKg: w, surplusKg: 0, isSurplus: false, isPureSurplus: false });
-          runningStock = Math.round((runningStock - w) * 1000) / 1000;
         } else {
-          const reg = runningStock;
-          const sur = Math.round((w - reg) * 1000) / 1000;
-          runningStock = 0;
-          map.set(item.id, { regularKg: reg, surplusKg: sur, isSurplus: true, isPureSurplus: false });
-          totalSurplusKg = Math.round((totalSurplusKg + sur) * 1000) / 1000;
+          map.set(item.id, { regularKg: w, surplusKg: 0, isSurplus: false, isPureSurplus: false });
+          runningStock = Math.max(0, Math.round((runningStock - w) * 1000) / 1000);
         }
       }
     }
@@ -5074,9 +5070,9 @@ export default function VendingCenterLoggerPage() {
       )}
 
       {/* ══════════════════════════════════════════════════════════
-          AQUARIUM OUT-OF-STOCK & PROCUREMENT SURPLUS PROFIT BANNER (Admin Only)
+          PROCUREMENT SURPLUS PROFIT BANNER (Admin Only — Explicit Surplus Only)
           ══════════════════════════════════════════════════════════ */}
-      {isAdmin && (aquariumStock.isOutOfStock || allTimeSurplusKg > 0 || kpis.periodTotalSurplusKg > 0) && (
+      {isAdmin && (allTimeSurplusKg > 0 || kpis.periodTotalSurplusKg > 0) && (
         <div className="p-3.5 sm:p-4 rounded-2xl bg-gradient-to-r from-emerald-950/60 via-slate-900/90 to-teal-950/50 border border-emerald-500/40 shadow-xl shadow-emerald-950/20 flex flex-col md:flex-row md:items-center justify-between gap-3 text-xs animate-fadeIn">
           <div className="flex items-start sm:items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0 text-xl">

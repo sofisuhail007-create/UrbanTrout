@@ -248,14 +248,10 @@ export async function getLiveAquariumStock(customClient?: any): Promise<Aquarium
         runningStock = Math.max(0, Math.round((runningStock - item.weight) * 1000) / 1000);
       } else if (item.type === "sale") {
         const w = item.weight;
-        if (item.isSurplusMarked || runningStock <= 0) {
+        if (item.isSurplusMarked) {
           totalSurplusKg = Math.round((totalSurplusKg + w) * 1000) / 1000;
-        } else if (runningStock >= w) {
-          runningStock = Math.round((runningStock - w) * 1000) / 1000;
         } else {
-          const sur = Math.round((w - runningStock) * 1000) / 1000;
-          runningStock = 0;
-          totalSurplusKg = Math.round((totalSurplusKg + sur) * 1000) / 1000;
+          runningStock = Math.max(0, Math.round((runningStock - w) * 1000) / 1000);
         }
       }
     }
