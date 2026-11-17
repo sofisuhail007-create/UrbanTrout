@@ -2930,6 +2930,92 @@ export default function VendingCenterLoggerPage() {
     });
   }, [filteredEntriesByPeriod, filterType, filterPayment, searchQuery, sortField, sortDirection]);
 
+  // ─── Filtered Stock Intake Batches by Active Period ───
+  const filteredStockEntriesByPeriod = useMemo(() => {
+    const todayStr = getTodayDate();
+    const yesterdayStr = getIstYesterdayDate();
+    const parts = todayStr.split("-").map(Number);
+    const currDate =
+      parts.length === 3 && parts[0] && parts[1] && parts[2]
+        ? new Date(parts[0], parts[1] - 1, parts[2])
+        : new Date();
+
+    const sevenDaysAgo = new Date(currDate.getFullYear(), currDate.getMonth(), currDate.getDate() - 6);
+    sevenDaysAgo.setHours(0, 0, 0, 0);
+
+    return (stockEntries || []).filter((s) => {
+      if (!s.stock_date) return false;
+      const [ey, em, ed] = s.stock_date.split("-").map(Number);
+      const eDate = new Date(ey, em - 1, ed);
+      if (period === "today") return s.stock_date === todayStr;
+      if (period === "yesterday") return s.stock_date === yesterdayStr;
+      if (period === "date") return s.stock_date === selectedDate;
+      if (period === "week") return eDate >= sevenDaysAgo;
+      if (period === "month") {
+        const targetMonth = selectedMonth || todayStr.slice(0, 7);
+        return s.stock_date.startsWith(targetMonth);
+      }
+      if (period === "custom") {
+        if (customStartDate && s.stock_date < customStartDate) return false;
+        if (customEndDate && s.stock_date > customEndDate) return false;
+        return true;
+      }
+      return true;
+    });
+  }, [stockEntries, period, selectedMonth, customStartDate, customEndDate, selectedDate, getTodayDate]);
+
+  // ─── Matching Stock Batches (Search & Type Filters) ───
+  const matchingStockEntries = useMemo(() => {
+    if (filterPayment !== "all") return [];
+    if (filterType !== "all" && filterType !== "stock-intake") return [];
+    return filteredStockEntriesByPeriod.filter((s) => {
+      if (!searchQuery.trim()) return true;
+      const q = searchQuery.toLowerCase();
+      const inDate = (s.stock_date || "").includes(q);
+      const inTime = (s.stock_time || "").toLowerCase().includes(q);
+      const inSup = (s.supplier_name || "").toLowerCase().includes(q);
+      const inNotes = (s.batch_notes || "").toLowerCase().includes(q);
+      const inLogged = (s.logged_by || "").toLowerCase().includes(q);
+      const inWeight = String(s.weight_kg || "").includes(q);
+      const inIntake = "stock".includes(q) || "intake".includes(q) || "procurement".includes(q) || "replenish".includes(q);
+      return inDate || inTime || inSup || inNotes || inLogged || inWeight || inIntake;
+    });
+  }, [filteredStockEntriesByPeriod, filterPayment, filterType, searchQuery]);
+
+  // ─── Unified Chronological Timeline (Sales + Stock Intakes) ───
+  type TimelineRowItem =
+    | { kind: "sale"; id: string; date: string; time: string; created_at?: string; entry: VendingSalesEntry }
+    | { kind: "stock"; id: string; date: string; time: string; created_at?: string; stock: AquariumStockEntry };
+
+  const unifiedTimelineEntries = useMemo(() => {
+    const items: TimelineRowItem[] = [];
+    if (filterType !== "stock-intake") {
+      displayEntries.forEach((e) => {
+        items.push({ kind: "sale", id: e.id, date: e.entry_date, time: e.entry_time, created_at: e.created_at, entry: e });
+      });
+    }
+    matchingStockEntries.forEach((s) => {
+      items.push({ kind: "stock", id: s.id, date: s.stock_date, time: s.stock_time, created_at: s.created_at, stock: s });
+    });
+
+    return items.sort((a, b) => {
+      const dateDiff = (b.date || "").localeCompare(a.date || "");
+      if (dateDiff !== 0) return sortDirection === "desc" ? dateDiff : -dateDiff;
+
+      const timeDiff = parseTimeToMinutes(b.time) - parseTimeToMinutes(a.time);
+      if (timeDiff !== 0) return sortDirection === "desc" ? timeDiff : -timeDiff;
+
+      // Tie-breaker for exact same minute: in chronological time, procurement precedes sales.
+      // Therefore when descending (newest first), sales appear above the intake row.
+      const order = { sale: 3, stock: 1 };
+      const ordDiff = (order[b.kind] || 2) - (order[a.kind] || 2);
+      if (ordDiff !== 0) return sortDirection === "desc" ? ordDiff : -ordDiff;
+
+      const createdDiff = (b.created_at || "").localeCompare(a.created_at || "");
+      return sortDirection === "desc" ? createdDiff : -createdDiff;
+    });
+  }, [displayEntries, matchingStockEntries, filterType, sortDirection]);
+
   // ─── 50-Item Pagination States ───
   const [salesPage, setSalesPage] = useState(1);
   const [stockPage, setStockPage] = useState(1);
@@ -2938,12 +3024,12 @@ export default function VendingCenterLoggerPage() {
   // Auto-reset sales page to 1 when filters, search or sort change
   useEffect(() => {
     setSalesPage(1);
-  }, [displayEntries]);
+  }, [unifiedTimelineEntries]);
 
-  const paginatedSalesEntries = useMemo(() => {
+  const paginatedTimelineEntries = useMemo(() => {
     const start = (salesPage - 1) * 50;
-    return displayEntries.slice(start, start + 50);
-  }, [displayEntries, salesPage]);
+    return unifiedTimelineEntries.slice(start, start + 50);
+  }, [unifiedTimelineEntries, salesPage]);
 
   const paginatedStockEntries = useMemo(() => {
     const start = (stockPage - 1) * 50;
@@ -6780,7 +6866,7 @@ export default function VendingCenterLoggerPage() {
 
           {/* Procurement Log Table (collapsible) */}
           {stockLogOpen && (
-            <div className="bg-[#0a0a0a]/60 border border-[#222222] rounded-2xl overflow-hidden animate-in fade-in duration-200">
+            <div id="stock-procurement-ledger" className="bg-[#0a0a0a]/60 border border-[#222222] rounded-2xl overflow-hidden animate-in fade-in duration-200">
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead>
@@ -7375,6 +7461,7 @@ export default function VendingCenterLoggerPage() {
             <option value="gutted">Gutted (Worker Incentive)</option>
             <option value="self-cleaned">⚡ Gutted (Self Cleaned / No Inc.)</option>
             <option value="non-gutted">Non Gutted</option>
+            <option value="stock-intake">🚚 Stock Intakes Only</option>
           </select>
         </div>
 
@@ -7496,11 +7583,11 @@ export default function VendingCenterLoggerPage() {
           <div className="w-9 h-9 border-2 border-emerald-400 border-t-transparent animate-spin rounded-full" />
           <span className="text-sm font-mono">Loading sales entries…</span>
         </div>
-      ) : displayEntries.length === 0 ? (
+      ) : unifiedTimelineEntries.length === 0 ? (
         <div className="py-16 flex flex-col items-center gap-3 text-slate-400 bg-[#0a0a0a]/60 rounded-3xl border border-[#222222]/70">
           <span className="material-symbols-outlined text-5xl text-slate-700">set_meal</span>
-          <p className="font-bold text-sm text-white">No sales entries found</p>
-          <p className="text-xs text-slate-500">Click &quot;Log Sale&quot; to record today&apos;s first counter dispatch.</p>
+          <p className="font-bold text-sm text-white">No sales or stock intake entries found</p>
+          <p className="text-xs text-slate-500">Click &quot;Log Sale&quot; or &quot;Log Stock&quot; to record today&apos;s entries.</p>
         </div>
       ) : viewMode === "table" ? (
         /* ────────────── VIEW 1: EXECUTIVE LEDGER TABLE ────────────── */
@@ -7532,7 +7619,131 @@ export default function VendingCenterLoggerPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#222222]/60">
-                {paginatedSalesEntries.map((e, index) => {
+                {paginatedTimelineEntries.map((item, index) => {
+                  if (item.kind === "stock") {
+                    const stock = item.stock;
+                    const cellPad = tableDensity === "compact" ? "py-1.5 px-2.5" : "py-2.5 px-3";
+                    return (
+                      <tr
+                        key={`stock-row-${stock.id}`}
+                        className="bg-gradient-to-r from-cyan-950/40 via-blue-950/20 to-transparent border-y-2 border-cyan-500/40 hover:bg-cyan-950/50 transition-colors shadow-inner"
+                      >
+                        {/* 1. # */}
+                        <td className={`${cellPad} text-center align-middle w-9`}>
+                          <span
+                            className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 text-[10px] font-bold shadow-sm"
+                            title="Aquarium Stock Intake / Procurement Batch"
+                          >
+                            🚚
+                          </span>
+                        </td>
+
+                        {/* 2. Time & Staff */}
+                        <td className={`${cellPad} whitespace-nowrap align-middle w-32`}>
+                          <div className="flex flex-col gap-0.5 leading-tight font-mono">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-cyan-200 font-bold text-xs">{stock.stock_time || "12:00 am"}</span>
+                              <span className="text-slate-400 text-[10px] font-sans">
+                                {formatIstDateDisplay(stock.stock_date) || stock.stock_date}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1 text-[10px] text-cyan-400/90 font-sans">
+                              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 flex-shrink-0 animate-pulse"></span>
+                              <span className="truncate max-w-[105px] font-medium">
+                                {formatStaffDisplayName(stock.logged_by) || "Admin"}
+                              </span>
+                            </div>
+                          </div>
+                        </td>
+
+                        {/* 3. Product & Details */}
+                        <td className={`${cellPad} align-middle`}>
+                          <div className="flex flex-col gap-1 min-w-0 leading-tight">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-cyan-500/25 text-cyan-200 border border-cyan-500/45 inline-flex items-center gap-1 shadow-sm">
+                                <span className="material-symbols-outlined text-[13px] text-cyan-300">water</span>
+                                AQUARIUM STOCK INTAKE
+                              </span>
+                              <span className="text-white font-bold text-xs">
+                                {stock.supplier_name || "Khyber Aquaculture"}
+                              </span>
+                              <span className="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 font-mono">
+                                Live Fish
+                              </span>
+                            </div>
+                            {stock.batch_notes && (
+                              <div className="text-[11px] text-cyan-300/80 italic line-clamp-2 max-w-xl font-sans">
+                                &ldquo;{stock.batch_notes}&rdquo;
+                              </div>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* 4. Weight / Rate & Tank Baseline */}
+                        <td className={`${cellPad} text-right align-middle whitespace-nowrap`}>
+                          <div className="font-mono flex flex-col items-end">
+                            <div className="text-sm font-black text-cyan-300 flex items-center justify-end gap-1">
+                              <span>+{formatKg(stock.weight_kg)}</span>
+                              <span className="text-xs text-cyan-400 font-normal">Kg</span>
+                            </div>
+                            <div className="text-[10.5px] text-slate-400">
+                              @ ₹{stock.cost_per_kg || 435}/Kg
+                            </div>
+                            {(stock.stock_before_kg !== undefined || stock.stock_after_kg !== undefined) && (
+                              <div className="text-[9.5px] text-cyan-300/90 font-mono mt-0.5 bg-cyan-950/70 rounded px-1.5 py-0.5 border border-cyan-500/30 flex items-center gap-1">
+                                <span>Tank: {stock.stock_before_kg ?? 0}</span>
+                                <span className="text-cyan-400">➔</span>
+                                <span className="text-emerald-300 font-bold">{stock.stock_after_kg ?? stock.weight_kg} Kg</span>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* 5. Cost / Outflow */}
+                        <td className={`${cellPad} text-right align-middle whitespace-nowrap font-mono`}>
+                          <div className="text-sm font-bold text-amber-300">
+                            -₹{(stock.total_cost || Math.round(Number(stock.weight_kg || 0) * (stock.cost_per_kg || 435))).toLocaleString("en-IN")}
+                          </div>
+                          <div className="text-[9.5px] text-slate-400">Procurement Outflow</div>
+                        </td>
+
+                        {/* 6. Payment & Status */}
+                        <td className={`${cellPad} align-middle whitespace-nowrap`}>
+                          <div className="flex flex-col gap-1 font-mono">
+                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold w-fit">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                              Stock Replenished
+                            </span>
+                            <span className="text-[9.5px] text-slate-400 font-sans">
+                              Supplier Ledger Credit
+                            </span>
+                          </div>
+                        </td>
+
+                        {/* 7. Actions */}
+                        <td className={`${cellPad} text-right whitespace-nowrap align-middle w-24`}>
+                          <div className="flex items-center justify-end gap-1">
+                            {isAdmin && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setStockLogOpen(true);
+                                  setTimeout(() => {
+                                    document.getElementById("stock-procurement-ledger")?.scrollIntoView({ behavior: "smooth", block: "center" });
+                                  }, 120);
+                                }}
+                                title="Open Procurement Stock Ledger"
+                                className="p-1.5 rounded-lg bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 transition-colors cursor-pointer"
+                              >
+                                <span className="material-symbols-outlined text-sm">inventory_2</span>
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  }
+                  const e = item.entry;
                   const sInfo = surplusInfoMap.get(e.id);
                   const isGutted =
                     (e.product_type || "").toLowerCase().includes("gutted") &&
@@ -7998,7 +8209,97 @@ export default function VendingCenterLoggerPage() {
       ) : (
         /* ────────────── VIEW 2: VISUAL CARD GRID ────────────── */
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5">
-          {paginatedSalesEntries.map((e, index) => {
+          {paginatedTimelineEntries.map((item, index) => {
+            if (item.kind === "stock") {
+              const stock = item.stock;
+              return (
+                <div
+                  key={`stock-card-${stock.id}`}
+                  className="p-4 rounded-2xl bg-gradient-to-br from-cyan-950/40 via-slate-900/90 to-slate-900 border border-cyan-500/40 shadow-xl shadow-cyan-950/20 relative overflow-hidden flex flex-col justify-between transition-all hover:border-cyan-400 gap-3"
+                >
+                  {/* Card Top: Index, Date/Time & Actions */}
+                  <div className="flex items-center justify-between border-b border-cyan-500/20 pb-2.5">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded-md bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-mono text-[10px] font-bold">
+                        🚚 STOCK INTAKE
+                      </span>
+                      <span className="text-slate-200 font-bold text-xs">
+                        {formatIstDateDisplay(stock.stock_date) || stock.stock_date}
+                      </span>
+                      <span className="text-cyan-400 text-[10.5px] font-mono">
+                        {stock.stock_time || "12:00 am"}
+                      </span>
+                    </div>
+                    <span className="text-[10px] text-cyan-400 font-mono">
+                      Logged by {formatStaffDisplayName(stock.logged_by) || "Admin"}
+                    </span>
+                  </div>
+
+                  {/* Card Body */}
+                  <div className="py-2 space-y-2.5">
+                    <div className="flex items-baseline justify-between">
+                      <div>
+                        <div className="text-base font-bold text-white tracking-wide flex items-center gap-1.5">
+                          <span className="material-symbols-outlined text-sm text-cyan-300">water</span>
+                          {stock.supplier_name || "Khyber Aquaculture"}
+                        </div>
+                        <div className="text-xs text-slate-400 font-sans">Fresh Live Trout Consignment</div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-xl font-black font-mono text-cyan-300">
+                          +{formatKg(stock.weight_kg)} <span className="text-xs font-normal text-cyan-400">Kg</span>
+                        </div>
+                        <div className="text-xs font-mono text-amber-300">
+                          -₹{(stock.total_cost || Math.round(Number(stock.weight_kg || 0) * (stock.cost_per_kg || 435))).toLocaleString("en-IN")}
+                          <span className="text-[10px] text-slate-400 ml-1">(@ ₹{stock.cost_per_kg || 435}/Kg)</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Tank Baseline Meter */}
+                    {(stock.stock_before_kg !== undefined || stock.stock_after_kg !== undefined) && (
+                      <div className="bg-slate-950/70 border border-cyan-500/20 rounded-xl p-2.5 flex items-center justify-between text-xs font-mono">
+                        <div className="text-slate-400">
+                          Tank Before: <span className="text-amber-300 font-bold">{stock.stock_before_kg ?? 0} Kg</span>
+                        </div>
+                        <span className="material-symbols-outlined text-cyan-400 text-sm">arrow_forward</span>
+                        <div className="text-slate-400">
+                          Tank After: <span className="text-emerald-300 font-bold">{stock.stock_after_kg ?? stock.weight_kg} Kg</span>
+                        </div>
+                      </div>
+                    )}
+
+                    {stock.batch_notes && (
+                      <div className="text-[11px] text-cyan-200/80 italic bg-black/40 rounded-lg p-2 border border-cyan-500/10 font-sans">
+                        &ldquo;{stock.batch_notes}&rdquo;
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Card Footer */}
+                  <div className="pt-2.5 border-t border-cyan-500/20 flex items-center justify-between text-xs">
+                    <span className="inline-flex items-center gap-1.5 text-cyan-300 font-bold">
+                      <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                      Aquarium Replenished
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setStockLogOpen(true);
+                        setTimeout(() => {
+                          document.getElementById("stock-procurement-ledger")?.scrollIntoView({ behavior: "smooth", block: "center" });
+                        }, 120);
+                      }}
+                      className="text-cyan-400 hover:text-cyan-300 text-xs font-mono flex items-center gap-1 cursor-pointer"
+                    >
+                      <span>Ledger</span>
+                      <span className="material-symbols-outlined text-xs">arrow_forward</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            }
+            const e = item.entry;
             const sInfo = surplusInfoMap.get(e.id);
             const isGutted =
               (e.product_type || "").toLowerCase().includes("gutted") &&
@@ -8473,7 +8774,7 @@ export default function VendingCenterLoggerPage() {
         return (
           <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 rounded-2xl bg-black/90 border border-[#222222]/80 font-mono text-xs font-bold mt-2 shadow-lg">
             <span className="text-slate-500 uppercase tracking-wider text-[10px]">
-              Visible Total — {displayEntries.length} entries
+              Visible Sales — {displayEntries.length} entries {matchingStockEntries.length > 0 && `(+${matchingStockEntries.length} stock intakes)`}
             </span>
             <div className="flex flex-wrap items-center gap-5 text-xs">
               <span className="text-slate-400">
@@ -8504,10 +8805,10 @@ export default function VendingCenterLoggerPage() {
       })()}
       <PaginationBar
         currentPage={salesPage}
-        totalItems={displayEntries.length}
+        totalItems={unifiedTimelineEntries.length}
         pageSize={50}
         onPageChange={setSalesPage}
-        itemLabel="sales records"
+        itemLabel="timeline records"
         themeColor="cyan"
       />
 
