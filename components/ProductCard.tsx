@@ -218,7 +218,7 @@ export default function ProductCard({ p }: { p: Product }) {
         {/* Fresh Delivery Reassurance */}
         <div className="flex items-center gap-1.5 text-[11px] font-bold text-emerald-400">
           <span>🛵</span>
-          <span>Express Chilled Delivery (16km Srinagar Zone)</span>
+          <span>Express Fresh Delivery (16km Srinagar Zone)</span>
         </div>
 
         {/* Divider */}

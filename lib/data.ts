@@ -26,7 +26,7 @@ export const products: Product[] = [
     unit: "Kg",
     label: "CLEANED & CHEF-CUT",
     desc: "Expertly descaled, gutted, and pre-cut into pan-ready chef portions by default. Harvested fresh to order and packed in 100% food-grade biodegradable polythene (0% ice) for express delivery.",
-    img: "/images/gutted_trout_premium.webp",
+    img: "/images/gutted-trout-v2.webp",
     minQuantity: 1,
   },
   {
@@ -37,7 +37,7 @@ export const products: Product[] = [
     unit: "Kg",
     label: "WHOLE FRESH FISH",
     desc: "Fresh whole trout straight from our farm. Ideal for pan-frying, roasting, grilling, or curries.",
-    img: "/images/whole_trout.jpg",
+    img: "/images/whole-trout-v2.webp",
     minQuantity: 1,
   },
 ];

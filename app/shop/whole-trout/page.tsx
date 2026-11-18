@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     siteName: "Urban Trout",
     images: [
       {
-        url: "https://urbantrout.in/images/whole_trout.jpg",
+        url: "https://urbantrout.in/images/whole-trout-v2.webp",
         width: 800,
         height: 600,
         alt: "Whole Fresh Rainbow Trout Srinagar",
@@ -104,7 +104,7 @@ export default async function WholeTroutPage() {
     "@context": "https://schema.org/",
     "@type": "Product",
     "name": "Whole Rainbow Trout",
-    "image": ["https://urbantrout.in/images/trout_pure_black.png"],
+    "image": ["https://urbantrout.in/images/whole-trout-v2.webp"],
     "description": "Fresh whole rainbow trout from our Srinagar farm in Malabagh. Ideal for roasting, whole baking, grilling, or traditional recipes.",
     "sku": "UT-WHOLE-TROUT",
     "mpn": "UT-WHOLE-TROUT",
@@ -258,7 +258,7 @@ export default async function WholeTroutPage() {
             >
               <img
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuCfyCpJNmCwVzBHTZw6kqPtCRfTVXNYWrm9Ixqy89okmBbaSGqKYMtEAZ5Jwv4MOwZIKpC3ugBZ1ISA5EfIUrq2lWmta28vvGV-ygjESie53QYIOJoDMgX9cJJWH5V960DeAviDBjjohZeT4WWrdrHC0tY2VnrZZsvftETpZ8ocCU2eupUdyTEoqKa8lgPe2dIHnERZTds7HMPfLKCtr56KHLPC08YZCzexEINcVe6nIrChDatBpMYRAOjGBVKCP2WsVyZicAZsG-kB"
+                src="/images/whole-trout-v2.webp"
                 alt="Whole Rainbow Trout"
               />
               <div
@@ -412,7 +412,7 @@ export default async function WholeTroutPage() {
                     price={price}
                     originalPrice={originalPrice}
                     unit="Kg"
-                    image="https://lh3.googleusercontent.com/aida-public/AB6AXuCfyCpJNmCwVzBHTZw6kqPtCRfTVXNYWrm9Ixqy89okmBbaSGqKYMtEAZ5Jwv4MOwZIKpC3ugBZ1ISA5EfIUrq2lWmta28vvGV-ygjESie53QYIOJoDMgX9cJJWH5V960DeAviDBjjohZeT4WWrdrHC0tY2VnrZZsvftETpZ8ocCU2eupUdyTEoqKa8lgPe2dIHnERZTds7HMPfLKCtr56KHLPC08YZCzexEINcVe6nIrChDatBpMYRAOjGBVKCP2WsVyZicAZsG-kB"
+                    image="/images/whole-trout-v2.webp"
                     showDynamicPrice={true}
                     minQuantity={minQuantity}
                     maxQuantity={aquariumStockKg !== undefined ? Math.floor(aquariumStockKg) : 99}

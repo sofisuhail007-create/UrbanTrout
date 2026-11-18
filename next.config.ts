@@ -10,7 +10,7 @@ const nextConfig: NextConfig = {
     formats: ["image/avif", "image/webp"],
     deviceSizes: [360, 480, 640, 750, 828, 1080, 1200, 1920],
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
-    minimumCacheTTL: 31536000,
+    minimumCacheTTL: 86400,
     remotePatterns: [
       {
         protocol: "https",
@@ -70,12 +70,21 @@ const nextConfig: NextConfig = {
         headers: [
           {
             key: "Cache-Control",
-            value: "public, max-age=31536000, immutable",
+            value: "public, max-age=86400, stale-while-revalidate=604800",
           },
         ],
       },
       {
-        source: "/:path*.(png|jpg|jpeg|webp|svg|ico|woff2)",
+        source: "/:path*.(png|jpg|jpeg|webp|svg|ico)",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=86400, stale-while-revalidate=604800",
+          },
+        ],
+      },
+      {
+        source: "/:path*.woff2",
         headers: [
           {
             key: "Cache-Control",

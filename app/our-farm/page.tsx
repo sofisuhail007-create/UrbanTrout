@@ -209,8 +209,8 @@ export default async function OurFarmPage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
             {[
-              { href: "/shop/gutted-trout", label: "CLEANED & GUTTED", title: "Premium Gutted Trout", img: "/images/gutted_trout_premium.webp" },
-              { href: "/shop/whole-trout", label: "WHOLE FISH", title: "Whole Rainbow Trout", img: "/images/whole_trout.jpg" },
+              { href: "/shop/gutted-trout", label: "CLEANED & GUTTED", title: "Premium Gutted Trout", img: "/images/gutted-trout-v2.webp" },
+              { href: "/shop/whole-trout", label: "WHOLE FISH", title: "Whole Rainbow Trout", img: "/images/whole-trout-v2.webp" },
             ].map(p => (
               <Link key={p.href} href={p.href} className="group relative rounded-2xl overflow-hidden block aspect-[16/10]" style={{ border: `1px solid rgba(61,74,83,0.5)`, textDecoration: "none" }}>
                 <img src={p.img} alt={p.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />

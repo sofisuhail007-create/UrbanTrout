@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     siteName: "Urban Trout",
     images: [
       {
-        url: "https://urbantrout.in/images/gutted_trout_premium.webp",
+        url: "https://urbantrout.in/images/gutted-trout-v2.webp",
         width: 800,
         height: 600,
         alt: "Cleaned and Gutted Fresh Rainbow Trout Srinagar",
@@ -104,7 +104,7 @@ export default async function GuttedTroutPage() {
     "@context": "https://schema.org/",
     "@type": "Product",
     "name": "Premium Gutted & Chef-Cut Rainbow Trout",
-    "image": ["https://urbantrout.in/images/gutted_trout_premium.png"],
+    "image": ["https://urbantrout.in/images/gutted-trout-v2.webp"],
     "description": "Expertly cleaned, gutted, and pre-cut into pan-ready chef portions by default. Farmed locally in Srinagar and delivered fresh.",
     "sku": "UT-GUTTED-TROUT",
     "mpn": "UT-GUTTED-TROUT",
@@ -258,7 +258,7 @@ export default async function GuttedTroutPage() {
             >
               <img
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.03]"
-                src="/images/gutted_trout_premium.png"
+                src="/images/gutted-trout-v2.webp"
                 alt="Premium Gutted Rainbow Trout"
               />
               <div
@@ -412,7 +412,7 @@ export default async function GuttedTroutPage() {
                     price={price}
                     originalPrice={originalPrice}
                     unit="Kg"
-                    image="/images/gutted_trout_premium.png"
+                    image="/images/gutted-trout-v2.webp"
                     showDynamicPrice={true}
                     minQuantity={minQuantity}
                     maxQuantity={aquariumStockKg !== undefined ? Math.floor(aquariumStockKg) : 99}

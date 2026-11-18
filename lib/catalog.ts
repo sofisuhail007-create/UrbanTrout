@@ -5,12 +5,12 @@ const PRODUCT_META: Record<string, { label: string; desc: string; img: string }>
   "gutted-trout": {
     label: "CLEANED & CHEF-CUT",
     desc: "Expertly descaled, gutted, and pre-cut into pan-ready chef portions by default. Delivered in clean food-grade packaging across Srinagar within 2 hours of harvest.",
-    img: "/images/gutted_trout_premium.webp",
+    img: "/images/gutted-trout-v2.webp",
   },
   "whole-trout": {
     label: "WHOLE FRESH FISH",
     desc: "Fresh whole rainbow trout straight from cold spring water. Ideal for grilling, frying, or roasting.",
-    img: "/images/whole_trout.jpg",
+    img: "/images/whole-trout-v2.webp",
   },
 };
 
