@@ -4259,10 +4259,16 @@ ${timeStatusDetail}
 ======================================================`;
 
   const stageInstruction = isFirstMessage
-    ? `NEW CONVERSATION INITIATION:
-- Begin with a friendly, brief greeting leading with our outcome and live-harvest hook.
+    ? `NEW CONVERSATION INITIATION (ULTRA-BRIEF & HIGH-CONVERSION):
+- Keep the opening welcome to 4–5 short, warm, scannable lines max!
 ${isVipCustomer ? `- 👑 VIP RETURNING CUSTOMER RULE: Address customer respectfully by name as indicated in their VIP profile (${vipProfile.salutation || "Valued Patron"}). Offer to repeat their usual order (${vipProfile.usualWeightKg} kg ${vipProfile.usualCut} to ${vipProfile.locality}).` : `- STRICT PROFESSIONAL RULE FOR NEW LEADS: NEVER address or call the customer by any personal name (e.g. no "Hello Munir!", "Dear Uzma,", "Hi Shahid,"). Greet neutrally.`}
-- Keep the message brief, to the point, and scannable in 3 seconds.
+- DO NOT mention "polythene", "biodegradable", "0% ice", "packaging", "shared GPS location", "Google Maps link", "location pin", or "3–5 kg" in the first welcome message! (Only explain biodegradable polythene / 0% ice if the customer specifically asks about packaging or ice, and only ask for a location pin once they confirm their area/order.)
+- Follow this crisp structure:
+  Hello! Welcome to Urban Trout 🐟
+  Fresh Himalayan Rainbow Trout, harvested live to order from our Malabagh farm and delivered across Srinagar within 2 hours!
+  • Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — descaled, zero kitchen mess)
+  🛵 *Express delivery across Srinagar* (FREE on eligible orders)
+  Which area in Srinagar are you in, and how many kg would you like?
 - NEVER use the word "Janab".
 - NEVER say "Malabagh Vending Center" — always use "Live Vending Center in Malabagh".`
     : `ONGOING FOLLOW-UP CONVERSATION:
@@ -4325,13 +4331,14 @@ CRITICAL READABILITY & MAXIMUM BREVITY MANDATE (ANSWER ONLY WHAT IS REQUIRED):
    • NEVER mention or push Whole Fresh Trout (*₹540/kg*) upfront!
    • Whole Fresh Trout (*₹540/kg*, uncleaned/round) is an unadvertised on-demand fallback option. ONLY reveal it if the customer specifically asks: "bina saaf kiye", "whole fish", "sabut", "uncleaned", or pushes hard on price.
    • When customer asks about whole/uncleaned: "Yes, we also offer Whole Fresh Trout (uncleaned/round) at ₹540/kg if you prefer cleaning it at home. However, most families choose our Cleaned & Gutted (₹580/kg) because it arrives completely descaled, gutted, and cut into pan-ready steaks with zero kitchen mess. Which would you prefer?"
-6. DELIVERY CALLOUT LINE (SEPARATE LINE BELOW RATES):
-   🛵 *Express delivery is 100% FREE* on eligible orders across Srinagar (min 2 kg for nearby areas, 3–5 kg for wider Srinagar areas; standard express fee on smaller orders)!
+6. DELIVERY CALLOUT LINE (SEPARATE LINE BELOW RATES — SHORT & ZERO STICKER SHOCK):
+   🛵 *Express delivery across Srinagar* (FREE on eligible orders)
+   • Do NOT put "3–5 kg" or "shared GPS location" in the opening welcome! Once they tell you their area, share their specific area's free delivery pack naturally.
 7. TERMINOLOGY: Always use "Live Vending Center" (located in Malabagh). NEVER say "Malabagh Vending Center".
 8. STRICT PROHIBITION: NEVER MENTION ZONE NUMBERS (ZONE 1, 2, 3, 4), KM RANGES, "doorstep", "cold-chain", "cold chain", "chilled", "subsidized", "subsidy", "70%", "30%", "Rapido", OR "third-party" TO CUSTOMERS!
-   • Internal delivery zones and cost splits are strictly confidential. Never say "cold-chain", "chilled delivery", or "chilled package" — we pack fresh exclusively in 100% food-grade biodegradable polythene (with 0% ice)!
-   • ALWAYS speak naturally using locality names: "Great! We deliver express to your shared location in [Locality] via our Express Dispatch Partner!" or "for nearby areas like Malabagh, Soura, Hazratbal".
-   • State the free delivery policy warmly: e.g. "For Hyderpora, express delivery is 100% FREE on 5 kg or more!"
+   • PACKAGING SILENCE RULE: NEVER volunteer "biodegradable polythene", "polythene", or "0% ice" in welcome messages or routine replies! ONLY explain "packed fresh in 100% food-grade biodegradable polythene (0% ice)" if the customer explicitly asks how it is packed or asks about ice/freshness.
+   • ALWAYS speak naturally using locality names: "Great! We deliver express to [Locality] within 2 hours!" or "for nearby areas like Malabagh, Soura, Hazratbal".
+   • State the free delivery policy warmly once you know their area: e.g. "For Hyderpora, express delivery is 100% FREE on 5 kg or more!"
 
 9. STRICT MOQ-FIRST POLICY (ZERO PROACTIVE 1 KG DOWNSELLING):
    • When greeting a new lead, sharing prices, or confirming a delivery locality: ALWAYS state or ask for the Area Minimum Order Quantity (MOQ: 2 kg for nearby areas like Malabagh/Soura/Hazratbal, 3 kg for mid/central Srinagar, 5 kg for South Corridor, Rajbagh, Jawahar Nagar, Batamaloo, Sanat Nagar, Peerbagh, Airport Road, Nowgam, etc.).
@@ -5155,9 +5162,9 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
           .replace(/\bcold[-\s]?chain\b/gi, "express")
           .replace(/\bchilled\s+express\s+deliver(?:y|ies)\b/gi, "fresh express delivery")
           .replace(/\bdelivered\s+chilled\b/gi, "delivered fresh")
-          .replace(/\bchilled\s+package\b/gi, "sealed biodegradable package")
+          .replace(/\bchilled\s+package\b/gi, "fresh sealed package")
           .replace(/\bchilled\b/gi, "fresh")
-          .replace(/\bright\s+to\s+your\s+doorstep\b/gi, "to your shared GPS location")
+          .replace(/\bright\s+to\s+your\s+doorstep\b/gi, "across Srinagar")
           .replace(/\bto\s+your\s+doorstep\b/gi, "to your shared location")
           .replace(/\bat\s+your\s+doorstep\b/gi, "at your shared location")
           .replace(/\byour\s+doorstep\b/gi, "your shared location")
@@ -5255,10 +5262,13 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
   if (isFirstMessage) {
     const isCustomerSalam = /\b(?:assalam(?:u|-o)?[\s-]?[aA]laikum|assalamualaykum|assalamualikum|assalamu\s*alaikum|asalam\s*alaykum|salam\s*(?:u\s*)?alaikum|salam|salaam|aoa)\b/i.test(userMessage.trim());
     const greetingPrefix = isCustomerSalam ? "Walaikum Assalam! " : "Hello! ";
-    const welcomeFallback = `${greetingPrefix}Welcome to Urban Trout 🐟 — Srinagar's only live-harvest farm delivering fresh trout packed in food-grade biodegradable polythene (0% ice) to your shared GPS location within 2 hours, harvested live the moment you order from our crystal-clear oxygen-saturated cold water tanks.
+    const welcomeFallback = `${greetingPrefix}Welcome to Urban Trout 🐟
+Fresh Himalayan Rainbow Trout, harvested live to order from our Malabagh farm and delivered across Srinagar within 2 hours!
 
-• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — descaled, zero kitchen mess, straight to pan)
-🛵 *Express delivery* across Srinagar (100% FREE delivery available: min 2 kg for nearby areas, 3–5 kg for wider Srinagar areas; standard delivery fee on smaller orders). Please share your area & WhatsApp location pin / Google Maps link!`;
+• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — descaled, zero kitchen mess)
+🛵 *Express delivery across Srinagar* (FREE on eligible orders)
+
+Which area in Srinagar are you in, and how many kg would you like?`;
     history.push({ role: "user", text: userMessage });
     history.push({ role: "model", text: welcomeFallback });
     if (history.length > 16) history.splice(0, history.length - 16);
