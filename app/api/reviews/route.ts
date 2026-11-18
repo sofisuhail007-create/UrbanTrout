@@ -122,10 +122,12 @@ export async function POST(request: Request) {
 
     let finalCount = reviewCount !== undefined ? parseInt(String(reviewCount), 10) : undefined;
     let finalRating = rating !== undefined ? parseFloat(String(rating)) : undefined;
+    let finalSummary: string | undefined = undefined;
+    let finalReviewsUri: string | undefined = undefined;
     let mergedReviews: GoogleReviewItem[] | null = null;
     let syncMessage = "";
 
-    // If action is 'sync', fetch LIVE rating, count, AND real reviews via Google Places API (New)
+    // If action is 'sync', fetch LIVE rating, count, summary, AND real reviews via Google Places API (New)
     if (action === "sync") {
       const activePlaceId = placeId || settingsMap.google_place_id || DEFAULT_REVIEWS.placeId;
       const activeKey = apiKey || settingsMap.google_places_api_key || process.env.GOOGLE_MAPS_API_KEY;
@@ -145,12 +147,16 @@ export async function POST(request: Request) {
         const live = await fetchLiveGooglePlacesReviews(activePlaceId, activeKey);
         if (live.reviewCount !== undefined) finalCount = live.reviewCount;
         if (live.rating !== undefined) finalRating = live.rating;
+        if (live.reviewSummary) finalSummary = live.reviewSummary;
+        if (live.reviewsUri) finalReviewsUri = live.reviewsUri;
 
         if (live.reviews.length > 0) {
           mergedReviews = mergeGoogleReviewItems(live.reviews, existingItems);
         }
 
-        syncMessage = `Synced live from Google Maps: ${finalRating} ★ (${finalCount} total reviews) • ${live.reviews.length} live reviews fetched (${mergedReviews?.length || existingItems.length} total in marquee)!`;
+        syncMessage = live.reviews.length > 0
+          ? `Synced live from Google Maps: ${finalRating} ★ (${finalCount} total reviews) • ${live.reviews.length} live reviews fetched!`
+          : `Synced live from Google Maps: ${finalRating} ★ (${finalCount} total verified reviews)${finalSummary ? " + live Google AI Review Summary!" : "!"}`;
       } catch (syncErr: any) {
         const rawErr = String(syncErr?.message || syncErr);
         const friendlyHint = rawErr.toLowerCase().includes("permission")
@@ -190,6 +196,25 @@ export async function POST(request: Request) {
         value: JSON.stringify(mergedReviews),
         description: "Synced & verified Google customer review items for dynamic homepage marquee",
       });
+    }
+
+    if (finalSummary) {
+      updates.push({
+        key: "google_review_summary",
+        value: finalSummary,
+        description: "Official live Google Maps AI Review Summary (Gemini)",
+      });
+    }
+
+    if (finalReviewsUri) {
+      updates.push({
+        key: "google_reviews_uri",
+        value: finalReviewsUri,
+        description: "Direct Google Maps Reviews tab URL",
+      });
+    }
+
+    if (action === "sync") {
       updates.push({
         key: "google_reviews_last_synced",
         value: new Date().toISOString(),

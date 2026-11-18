@@ -194,6 +194,13 @@ export default function AdminSettingsPage() {
   const [reviewTrackerSaving, setReviewTrackerSaving] = useState(false);
   const [reviewTrackerSavedMsg, setReviewTrackerSavedMsg] = useState("");
   const [isSyncingGoogle, setIsSyncingGoogle] = useState(false);
+  const [googleReviewSummary, setGoogleReviewSummary] = useState("");
+  const [marqueeReviews, setMarqueeReviews] = useState<Array<{ id: string; author: string; rating: number; text: string; locality?: string; relativeTime?: string }>>([]);
+  const [newRevAuthor, setNewRevAuthor] = useState("");
+  const [newRevLocality, setNewRevLocality] = useState("Srinagar, J&K");
+  const [newRevRating, setNewRevRating] = useState("5");
+  const [newRevText, setNewRevText] = useState("");
+  const [addingReview, setAddingReview] = useState(false);
 
 
   useEffect(() => {
@@ -306,6 +313,13 @@ export default function AdminSettingsPage() {
           if (map.google_maps_url) setGoogleMapsUrl(map.google_maps_url);
           if (map.google_place_id) setGooglePlaceId(map.google_place_id);
           if (map.google_places_api_key) setGooglePlacesApiKey(map.google_places_api_key);
+          if (map.google_review_summary) setGoogleReviewSummary(map.google_review_summary);
+          if (map.google_reviews_items) {
+            try {
+              const parsed = JSON.parse(map.google_reviews_items);
+              if (Array.isArray(parsed)) setMarqueeReviews(parsed);
+            } catch (_) {}
+          }
           localStorage.setItem("urban_trout_store_settings", JSON.stringify(map));
         }
       } catch (err) {
@@ -431,15 +445,68 @@ export default function AdminSettingsPage() {
       if (data.reviews) {
         setGoogleReviewsCount(String(data.reviews.reviewCount));
         setGoogleRating(String(data.reviews.rating));
+        if (data.reviews.reviewSummary) setGoogleReviewSummary(data.reviews.reviewSummary);
+        if (Array.isArray(data.reviews.items)) setMarqueeReviews(data.reviews.items);
       }
+      setReviewTrackerSavedMsg("✓ " + data.message);
+      setTimeout(() => setReviewTrackerSavedMsg(""), 6000);
+    } catch (err: any) {
+      setReviewTrackerSavedMsg("⚠️ " + (err.message || err));
+      setTimeout(() => setReviewTrackerSavedMsg(""), 6000);
+    } finally {
+      setIsSyncingGoogle(false);
+    }
+  };
+
+  const handleAddMarqueeReview = async () => {
+    if (!newRevAuthor.trim() || !newRevText.trim()) {
+      setReviewTrackerSavedMsg("⚠️ Please enter both Reviewer Name and Review Text.");
+      return;
+    }
+    setAddingReview(true);
+    setReviewTrackerSavedMsg("");
+    try {
+      const res = await adminFetch("/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "add_review",
+          customReview: {
+            author: newRevAuthor.trim(),
+            locality: newRevLocality.trim() || "Srinagar, J&K",
+            rating: Number(newRevRating) || 5,
+            text: newRevText.trim(),
+          },
+        }),
+      });
+      const data = await res.json();
+      if (!data.success) throw new Error(data.error || "Failed to add review");
+      if (data.reviews?.items) setMarqueeReviews(data.reviews.items);
+      setNewRevAuthor("");
+      setNewRevText("");
       setReviewTrackerSavedMsg("✓ " + data.message);
       setTimeout(() => setReviewTrackerSavedMsg(""), 5000);
     } catch (err: any) {
       setReviewTrackerSavedMsg("⚠️ " + (err.message || err));
-      setTimeout(() => setReviewTrackerSavedMsg(""), 5000);
     } finally {
-      setIsSyncingGoogle(false);
+      setAddingReview(false);
     }
+  };
+
+  const handleDeleteMarqueeReview = async (id: string) => {
+    try {
+      const res = await adminFetch("/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "delete_review", reviewId: id }),
+      });
+      const data = await res.json();
+      if (data.success && data.reviews?.items) {
+        setMarqueeReviews(data.reviews.items);
+        setReviewTrackerSavedMsg("✓ Review removed from marquee.");
+        setTimeout(() => setReviewTrackerSavedMsg(""), 4000);
+      }
+    } catch (_) {}
   };
 
   // Update new staff role preset permissions
@@ -1776,6 +1843,102 @@ export default function AdminSettingsPage() {
                 <span className="material-symbols-outlined text-base">open_in_new</span>
                 <span>Check Live Reviews on Google Search ↗</span>
               </a>
+            </div>
+
+            {/* Live Synced Google Gemini Summary Preview */}
+            {googleReviewSummary && (
+              <div className="p-4 rounded-2xl bg-cyan-950/30 border border-cyan-500/30 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-mono font-bold text-cyan-300 uppercase tracking-wider">
+                    ✨ Live Synced Google Maps AI Summary (Displayed on Homepage)
+                  </span>
+                  <span className="text-[10px] font-mono text-emerald-400">Live Connected</span>
+                </div>
+                <p className="text-xs text-slate-300 italic leading-relaxed">&ldquo;{googleReviewSummary}&rdquo;</p>
+              </div>
+            )}
+
+            {/* Floating Marquee Review Manager */}
+            <div className="pt-4 border-t border-slate-800 space-y-4">
+              <div>
+                <h4 className="text-xs font-bold text-white uppercase tracking-wider font-mono flex items-center gap-2">
+                  <span className="text-amber-400">★</span>
+                  <span>Floating Marquee Reviews ({marqueeReviews.length} Custom Added)</span>
+                </h4>
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  Paste any of your real Google Maps customer reviews below — they immediately appear in the moving floating marquee on the homepage.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <input
+                  type="text"
+                  value={newRevAuthor}
+                  onChange={(e) => setNewRevAuthor(e.target.value)}
+                  placeholder="Reviewer Name (e.g. Mudasir Ahmad)"
+                  className="px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-400"
+                />
+                <input
+                  type="text"
+                  value={newRevLocality}
+                  onChange={(e) => setNewRevLocality(e.target.value)}
+                  placeholder="Area / Tag (e.g. Srinagar, J&K)"
+                  className="px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-400"
+                />
+                <select
+                  value={newRevRating}
+                  onChange={(e) => setNewRevRating(e.target.value)}
+                  className="px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-amber-300 font-bold focus:outline-none focus:border-cyan-400"
+                >
+                  <option value="5">★★★★★ (5 Stars)</option>
+                  <option value="4">★★★★☆ (4 Stars)</option>
+                </select>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-2.5">
+                <textarea
+                  rows={2}
+                  value={newRevText}
+                  onChange={(e) => setNewRevText(e.target.value)}
+                  placeholder="Paste the exact Google Maps review text here..."
+                  className="flex-1 px-3 py-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-cyan-400"
+                />
+                <button
+                  type="button"
+                  onClick={handleAddMarqueeReview}
+                  disabled={addingReview}
+                  className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black text-xs uppercase tracking-wider transition-all cursor-pointer disabled:opacity-50 shrink-0"
+                >
+                  {addingReview ? "Adding..." : "+ Add to Marquee"}
+                </button>
+              </div>
+
+              {marqueeReviews.length > 0 && (
+                <div className="space-y-2 max-h-56 overflow-y-auto pr-1">
+                  {marqueeReviews.map((item) => (
+                    <div
+                      key={item.id}
+                      className="p-3 rounded-xl bg-slate-950/80 border border-slate-800 flex items-start justify-between gap-3"
+                    >
+                      <div className="min-w-0 space-y-0.5">
+                        <div className="flex items-center gap-2 text-xs">
+                          <span className="font-bold text-white">{item.author}</span>
+                          <span className="text-amber-400 text-[11px]">{"★".repeat(item.rating || 5)}</span>
+                          <span className="text-[10px] text-cyan-400 font-mono">{item.locality}</span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 line-clamp-2">&ldquo;{item.text}&rdquo;</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteMarqueeReview(item.id)}
+                        className="px-2 py-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 text-[10px] font-mono border border-rose-500/30 cursor-pointer shrink-0"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 

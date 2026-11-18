@@ -18,6 +18,8 @@ export interface GoogleReviewsData {
   reviewCount: number;
   reviewUrl: string;
   mapsUrl: string;
+  reviewsUri?: string;
+  reviewSummary?: string;
   placeId: string;
   items: GoogleReviewItem[];
   lastSyncedAt?: string;
@@ -100,14 +102,16 @@ export async function fetchLiveGooglePlacesReviews(
 ): Promise<{
   rating?: number;
   reviewCount?: number;
+  reviewSummary?: string;
+  reviewsUri?: string;
   reviews: GoogleReviewItem[];
 }> {
   const res = await fetch(
-    `https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}`,
+    `https://places.googleapis.com/v1/places/${encodeURIComponent(placeId)}?languageCode=en`,
     {
       headers: {
         "X-Goog-Api-Key": apiKey,
-        "X-Goog-FieldMask": "id,displayName,rating,userRatingCount,reviews",
+        "X-Goog-FieldMask": "id,displayName,rating,userRatingCount,reviews,reviewSummary,googleMapsLinks",
       },
       cache: "no-store",
     }
@@ -145,6 +149,8 @@ export async function fetchLiveGooglePlacesReviews(
   return {
     rating: data.rating !== undefined ? Number(data.rating) : undefined,
     reviewCount: data.userRatingCount !== undefined ? Number(data.userRatingCount) : undefined,
+    reviewSummary: data?.reviewSummary?.text?.text || undefined,
+    reviewsUri: data?.googleMapsLinks?.reviewsUri || data?.reviewSummary?.reviewsUri || undefined,
     reviews: parsedReviews,
   };
 }
@@ -201,6 +207,8 @@ export async function getGoogleReviewsData(): Promise<GoogleReviewsData> {
         "google_place_id",
         "google_reviews_items",
         "google_reviews_last_synced",
+        "google_review_summary",
+        "google_reviews_uri",
       ]);
 
     if (error || !rows || rows.length === 0) {
@@ -240,10 +248,12 @@ export async function getGoogleReviewsData(): Promise<GoogleReviewsData> {
       reviewCount: !isNaN(parsedCount) && parsedCount > 0 ? parsedCount : DEFAULT_REVIEWS.reviewCount,
       reviewUrl: map.google_review_url || DEFAULT_REVIEWS.reviewUrl,
       mapsUrl: map.google_maps_url || DEFAULT_REVIEWS.mapsUrl,
+      reviewsUri: map.google_reviews_uri || map.google_maps_url || DEFAULT_REVIEWS.mapsUrl,
+      reviewSummary: map.google_review_summary || undefined,
       placeId: map.google_place_id || DEFAULT_REVIEWS.placeId,
       items: finalItems,
       lastSyncedAt: map.google_reviews_last_synced || undefined,
-      isLiveSynced: hasLiveGoogleReviews,
+      isLiveSynced: hasLiveGoogleReviews || Boolean(map.google_review_summary),
     };
   } catch (err) {
     console.warn("Notice: could not load dynamic reviews from Supabase, using default:", err);

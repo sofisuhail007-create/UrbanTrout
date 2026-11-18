@@ -115,6 +115,7 @@ export default function GoogleReviewsMarquee({
 }) {
   const [isPaused, setIsPaused] = useState(false);
   const items = reviewsData.items && reviewsData.items.length > 0 ? reviewsData.items : [];
+  const targetReviewsUrl = reviewsData.reviewsUri || reviewsData.mapsUrl;
 
   // Repeat items so the marquee loop is always wide and completely seamless on ultrawide monitors
   const trackItems = items.length < 4 ? [...items, ...items] : items;
@@ -123,6 +124,37 @@ export default function GoogleReviewsMarquee({
 
   return (
     <div className="relative w-full">
+      {/* ─── Official Live Google Maps AI Review Summary (Synced via Places API New) ─── */}
+      {reviewsData.reviewSummary && (
+        <div className="max-w-3xl mx-auto px-4 mb-6">
+          <a
+            href={targetReviewsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-[#0c1d2c]/90 via-[#081520]/90 to-[#0a1622]/90 border border-cyan-400/25 hover:border-cyan-400/50 shadow-[0_8px_32px_rgba(0,0,0,0.4)] transition-all"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+              <div className="inline-flex items-center gap-2">
+                <GoogleGIcon className="w-4 h-4" />
+                <span className="text-xs font-bold text-white tracking-wide font-['Space_Grotesk']">
+                  Live Google Maps Consensus
+                </span>
+                <span className="text-amber-400 text-xs font-mono font-bold">
+                  {Number(reviewsData.rating).toFixed(1)} ★ ({reviewsData.reviewCount})
+                </span>
+              </div>
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-cyan-500/15 border border-cyan-400/30 text-[10px] font-mono text-cyan-300">
+                <span>✨</span>
+                <span>Summarized by Google Gemini</span>
+              </span>
+            </div>
+            <p className="text-xs sm:text-[13px] text-slate-200/90 leading-relaxed font-sans">
+              &ldquo;{reviewsData.reviewSummary}&rdquo;
+            </p>
+          </a>
+        </div>
+      )}
+
       {/* ─── Moving Floating Marquee Viewport with Soft Edge Fade Masks ─── */}
       <div
         className="relative w-full overflow-hidden py-4"
@@ -149,7 +181,7 @@ export default function GoogleReviewsMarquee({
             <ReviewCard
               key={`a-${review.id}-${idx}`}
               review={review}
-              mapsUrl={reviewsData.mapsUrl}
+              mapsUrl={targetReviewsUrl}
               floatVariant={idx % 2 === 0 ? "a" : "b"}
             />
           ))}
@@ -158,7 +190,7 @@ export default function GoogleReviewsMarquee({
             <ReviewCard
               key={`b-${review.id}-${idx}`}
               review={review}
-              mapsUrl={reviewsData.mapsUrl}
+              mapsUrl={targetReviewsUrl}
               floatVariant={idx % 2 === 0 ? "a" : "b"}
             />
           ))}
@@ -168,7 +200,7 @@ export default function GoogleReviewsMarquee({
       {/* ─── Bottom Controls & Verified Google Action Strip ─── */}
       <div className="mt-6 flex flex-wrap items-center justify-center gap-3 px-4">
         <a
-          href={reviewsData.mapsUrl}
+          href={targetReviewsUrl}
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/[0.04] hover:bg-white/[0.08] border border-white/15 text-slate-200 text-xs font-semibold transition-all"
