@@ -10,6 +10,7 @@ import { Toaster } from "react-hot-toast";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import AnalyticsDeferred from "@/components/AnalyticsDeferred";
+import GlobalClickFeedback from "@/components/GlobalClickFeedback";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -429,6 +430,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body suppressHydrationWarning className={`${manrope.className} ${spaceGrotesk.variable} ${manrope.variable} ${inter.variable} bg-[#031018] text-[#dfedf9] antialiased selection:bg-cyan-500/20 selection:text-cyan-300`}>
+        <GlobalClickFeedback />
         <CustomerAuthProvider>
           <CartProvider>
             <Toaster 
