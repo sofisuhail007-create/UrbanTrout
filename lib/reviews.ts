@@ -236,12 +236,7 @@ export async function getGoogleReviewsData(): Promise<GoogleReviewsData> {
     }
 
     const hasLiveGoogleReviews = storedItems.some((item) => item.source === "google");
-    const finalItems =
-      storedItems.length >= 4
-        ? storedItems
-        : storedItems.length > 0
-        ? mergeGoogleReviewItems(storedItems, FALLBACK_REVIEW_ITEMS)
-        : FALLBACK_REVIEW_ITEMS;
+    const finalItems = storedItems.length > 0 ? storedItems : FALLBACK_REVIEW_ITEMS;
 
     return {
       rating: !isNaN(parsedRating) && parsedRating > 0 ? parsedRating : DEFAULT_REVIEWS.rating,
