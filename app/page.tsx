@@ -6,6 +6,7 @@ import ProductCard from "@/components/ProductCard";
 import DeliveryZoneChecker from "@/components/DeliveryZoneChecker";
 import { supabase } from "@/lib/supabase";
 import { getGoogleReviewsData } from "@/lib/reviews";
+import GoogleReviewsMarquee from "@/components/GoogleReviewsMarquee";
 
 export const metadata: Metadata = {
   title: "Fresh Trout Fish in Srinagar from ₹540/kg | Urban Trout",
@@ -1208,10 +1209,10 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── Verified Local Reviews (E-E-A-T Social Proof) ── */}
-      <section style={{ padding: "5rem 1.5rem", background: C.bg }} aria-label="Customer Reviews and Testimonials">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center max-w-2xl mx-auto mb-12">
+      {/* ── Verified Local Reviews (Dynamic Floating Google Reviews Marquee) ── */}
+      <section style={{ padding: "5rem 0", background: C.bg }} aria-label="Customer Reviews and Testimonials">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6">
+          <div className="text-center max-w-2xl mx-auto mb-8">
             <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "10px", letterSpacing: "0.25em", textTransform: "uppercase", color: C.primary, fontWeight: 700 }}>
               Real Customer Feedback
             </span>
@@ -1232,25 +1233,10 @@ export default async function HomePage() {
               </a>
             </div>
           </div>
+        </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto">
-            {customerReviews.map((r, i) => (
-              <div key={i} className="p-6 rounded-2xl bg-slate-900/60 border border-slate-800 flex flex-col justify-between space-y-4">
-                <div className="space-y-3">
-                  <div className="flex items-center gap-1 text-amber-400 text-sm">
-                    {"★".repeat(r.rating)}
-                  </div>
-                  <p className="text-xs text-slate-300 leading-relaxed font-sans italic">
-                    &ldquo;{r.text}&rdquo;
-                  </p>
-                </div>
-                <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
-                  <span className="text-xs font-bold text-white font-['Space_Grotesk']">{r.name}</span>
-                  <span className="text-[11px] text-cyan-400 font-mono">{r.locality}</span>
-                </div>
-              </div>
-            ))}
-          </div>
+        <div className="max-w-[1480px] mx-auto">
+          <GoogleReviewsMarquee reviewsData={reviewsData} />
         </div>
       </section>
 

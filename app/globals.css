@@ -398,4 +398,44 @@ input[type="number"] {
   .ut-ripple-circle {
     display: none !important;
   }
+  .ut-reviews-marquee-track,
+  .ut-float-card-a,
+  .ut-float-card-b {
+    animation: none !important;
+  }
+}
+
+/* ─── Dynamic Floating Google Reviews Marquee ─── */
+.ut-reviews-marquee-track {
+  animation-name: utReviewsGlide;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+
+@keyframes utReviewsGlide {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.ut-float-card-a {
+  animation: utFloatBobA 5.5s ease-in-out infinite;
+}
+
+.ut-float-card-b {
+  animation: utFloatBobB 6.2s ease-in-out infinite;
+}
+
+@keyframes utFloatBobA {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-5px); }
+}
+
+@keyframes utFloatBobB {
+  0%, 100% { transform: translateY(-4px); }
+  50% { transform: translateY(3px); }
 }
