@@ -57,7 +57,7 @@ function playSuccessChime() {
 }
 
 export default function CustomerBalancesTab({
-  upiId = "JKBMERC00828895@jkb",
+  upiId = "Vyapar.178760132267@hdfcbank",
   onRefreshTrigger,
 }: CustomerBalancesTabProps) {
   const [records, setRecords] = useState<CustomerBalanceRecord[]>([]);

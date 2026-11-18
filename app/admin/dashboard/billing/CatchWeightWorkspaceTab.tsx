@@ -161,7 +161,7 @@ export default function CatchWeightWorkspaceTab({
         refundAmount,
         paymentStatus: isPrepaid ? (refundAmount > 0 ? "REFUND DUE" : "PAID") : "PAYMENT DUE",
         paymentMethod: isPrepaid ? "WhatsApp Advance / Online UPI" : "Cash on Delivery",
-        upiId: upiId || "JKBMERC00828895@jkb",
+        upiId: upiId || "Vyapar.178760132267@hdfcbank",
       };
 
       setGeneratedSlip(slipData);
@@ -198,7 +198,7 @@ export default function CatchWeightWorkspaceTab({
     if (isRefund) {
       outcomeText = `💵 *CASH REFUND / CASHBACK DUE TO YOU: ₹${slip.refundAmount}*\n(Our delivery rider will hand you ₹${slip.refundAmount} in cash or UPI at handover)`;
     } else if (isDue) {
-      outcomeText = `⚠️ *BALANCE DUE ON DELIVERY: ₹${slip.balanceAmount}*\n(A Locked J&K Bank Dynamic UPI QR is pre-filled on your bill for 1-tap payment)`;
+      outcomeText = `⚠️ *BALANCE DUE ON DELIVERY: ₹${slip.balanceAmount}*\n(A Locked HDFC Bank Dynamic UPI QR is pre-filled on your bill for 1-tap payment)`;
     } else {
       outcomeText = `✓ *VERIFIED PAID IN FULL (₹${slip.grandTotal})*\n(Do not pay any cash to delivery rider)`;
     }

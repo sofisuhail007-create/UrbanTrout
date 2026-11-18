@@ -82,7 +82,7 @@ export default function BalanceReminderModal({
 
   // Settlement Form State
   const [paymentAmount, setPaymentAmount] = useState<string>("");
-  const [paymentMode, setPaymentMode] = useState<string>("Cash at Counter");
+  const [paymentMode, setPaymentMode] = useState<string>("HDFC Bank Online");
   const [settlementNote, setSettlementNote] = useState<string>("");
   const [settling, setSettling] = useState(false);
   const [partialPaidSuccess, setPartialPaidSuccess] = useState<{ remainingBalance: number } | null>(null);
@@ -99,7 +99,7 @@ export default function BalanceReminderModal({
       setRzpPaid(record.status === "settled");
       setErrorMessage(null);
       setActiveTab(initialTab || (record.balance_amount > 0 ? "settle" : "remind"));
-      setPaymentMode("Cash at Counter");
+      setPaymentMode("HDFC Bank Online");
       setPartialPaidSuccess(null);
       setIsFinalSettlement(false);
 
@@ -854,8 +854,9 @@ Helpline: +91 84910 06127`;
                     <label className="text-[10px] uppercase font-bold text-slate-300 font-mono block mb-1.5">
                       Payment Received Via:
                     </label>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                       {[
+                        { id: "HDFC Bank Online", label: "🏦 HDFC Bank", sub: "SmartHub / UPI" },
                         { id: "Cash at Counter", label: "💵 Cash", sub: "Counter Drawer" },
                         { id: "JK Bank Online", label: "🏛️ JK Bank", sub: "mPay / Transfer" },
                         { id: "Razorpay Online", label: "⚡ Razorpay", sub: "QR / Soundbox" },
@@ -921,6 +922,7 @@ Helpline: +91 84910 06127`;
                         onChange={(e) => setPaymentMode(e.target.value)}
                         className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-white text-xs focus:border-amber-400 focus:outline-none"
                       >
+                        <option value="HDFC Bank Online">HDFC Bank Online (SmartHub UPI)</option>
                         <option value="Cash at Counter">Cash at Counter</option>
                         <option value="JK Bank Online">JK Bank Online (mPay)</option>
                         <option value="Razorpay Online">Razorpay Online (QR)</option>

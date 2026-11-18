@@ -69,12 +69,14 @@ function SingleInvoiceSlip({
   const isPaid = (data.paymentStatus === "PAID" || paidAmount >= data.grandTotal) && refundAmount <= 0;
 
   const cleanPhone = String(data.customerPhone || "").replace(/\D/g, "").slice(-10);
-  const upi = data.upiId || "JKBMERC00828895@jkb";
-
+  const upi = data.upiId || "Vyapar.178760132267@hdfcbank";
+  const isHdfcVpa = upi.toLowerCase().includes("@hdfcbank");
   const terminalId = upi.includes("@")
     ? `TERM${upi.split("@")[0].replace(/^JKBMERC/, "")}`
     : "TERM00828895";
-  const upiPayUri = `upi://pay?pa=${upi}&pn=Urban%20Trout%20Aquaculture&tr=${terminalId}&am=${remainingAmount.toFixed(2)}&cu=INR&tn=Inv-${data.invoiceNumber || data.orderNumber}`;
+  const upiPayUri = isHdfcVpa
+    ? `upi://pay?pa=${upi}&pn=Urban%20Trout%20Aquaculture&mc=8999&tr=STQU178760132267&am=${remainingAmount.toFixed(2)}&cu=INR&tn=Inv-${data.invoiceNumber || data.orderNumber}`
+    : `upi://pay?pa=${upi}&pn=Urban%20Trout%20Aquaculture&tr=${terminalId}&am=${remainingAmount.toFixed(2)}&cu=INR&tn=Inv-${data.invoiceNumber || data.orderNumber}`;
   const qrUrl = data.qrImageUrl || generateFastQrDataUrl(upiPayUri, { darkColor: "#000000", margin: 1 });
 
   const dateStr = data.createdAt

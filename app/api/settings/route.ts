@@ -17,18 +17,15 @@ const DEFAULT_SETTINGS: Record<string, string> = {
   delivery_fee_outside_5km: "40",
   allow_outside_radius_delivery: "false",
   max_dispatch_mins: "60",
-  upi_id: "JKBMERC00828895@jkb",
+  upi_id: "Vyapar.178760132267@hdfcbank",
   payment_channels: JSON.stringify([
     {
-      id: "jk_bank_mpay",
-      name: "J&K Bank Soundbox & mPay",
-      type: "bank_transfer",
-      accountNumber: "0724010100000499",
-      ifsc: "JAKA0MALBAG",
-      vpa: "JKBMERC00828895@jkb",
+      id: "hdfc_counter_upi",
+      name: "HDFC Bank (SmartHub Vyapar)",
+      type: "upi_qr",
+      vpa: "Vyapar.178760132267@hdfcbank",
       accountName: "Urban Trout Aquaculture",
-      branch: "Malabagh, Srinagar",
-      description: "Counter Soundbox (TERM00828895) & direct mPay transfers (Default)",
+      description: "Counter POS & Invoice locked QR for direct HDFC collections (Vyapar.178760132267@hdfcbank) (Default)",
       enabled: true,
       isDefault: true,
     },
@@ -41,14 +38,17 @@ const DEFAULT_SETTINGS: Record<string, string> = {
       isDefault: false,
     },
     {
-      id: "hdfc_counter_upi",
-      name: "HDFC Bank (SmartHub Vyapar)",
-      type: "upi_qr",
-      vpa: "Vyapar.178760132267@hdfcbank",
+      id: "jk_bank_mpay",
+      name: "J&K Bank Soundbox & mPay",
+      type: "bank_transfer",
+      accountNumber: "0724010100000499",
+      ifsc: "JAKA0MALBAG",
+      vpa: "JKBMERC00828895@jkb",
       accountName: "Urban Trout Aquaculture",
-      description: "Counter POS locked QR for direct HDFC collections (Vyapar.178760132267@hdfcbank)",
+      branch: "Malabagh, Srinagar",
+      description: "Counter Soundbox (TERM00828895) & direct mPay transfers",
       enabled: true,
-      isDefault: true,
+      isDefault: false,
     },
   ]),
   jk_bank_account_number: "0724010100000499",
@@ -111,7 +111,7 @@ export async function GET() {
     }
 
     if (!settingsMap.upi_id) {
-      settingsMap.upi_id = "JKBMERC00828895@jkb";
+      settingsMap.upi_id = "Vyapar.178760132267@hdfcbank";
     }
 
     if (settingsMap.payment_channels) {

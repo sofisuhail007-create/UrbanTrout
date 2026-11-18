@@ -86,7 +86,7 @@ export default function POSBillingPage() {
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerNotes, setCustomerNotes] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<"HdfcUpi" | "RazorpayQR" | "JkBankSoundbox" | "Cash" | "WhatsAppLink">("HdfcUpi");
-  const [upiId, setUpiId] = useState("JKBMERC00828895@jkb");
+  const [upiId, setUpiId] = useState("Vyapar.178760132267@hdfcbank");
   const [soundboxPaid, setSoundboxPaid] = useState(false);
   const [soundboxQrGenerated, setSoundboxQrGenerated] = useState(false);
   const [lastSoundboxAmount, setLastSoundboxAmount] = useState<number>(0);

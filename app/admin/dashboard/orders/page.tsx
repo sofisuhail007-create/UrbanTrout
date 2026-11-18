@@ -224,7 +224,7 @@ export default function OrdersPage() {
   const [updating, setUpdating] = useState<string | null>(null);
   const [selectedOrderIds, setSelectedOrderIds] = useState<Set<string>>(new Set());
   const [printModalOrders, setPrintModalOrders] = useState<Order[] | null>(null);
-  const [upiId, setUpiId] = useState<string>("50200105872271@hdfcbank");
+  const [upiId, setUpiId] = useState<string>("Vyapar.178760132267@hdfcbank");
 
   // Catch-Weight Scale Modal State
   const [scaleModalOrder, setScaleModalOrder] = useState<Order | null>(null);
@@ -2327,7 +2327,7 @@ export default function OrdersPage() {
                             <span>💵</span>
                             <span>Pay on Delivery (COD)</span>
                           </div>
-                          <p className="text-[10px] text-slate-400 mt-0.5">Collect via Locked J&K Bank QR on delivery</p>
+                          <p className="text-[10px] text-slate-400 mt-0.5">Collect via Locked HDFC Bank QR on delivery</p>
                         </button>
                       </div>
                     </div>
@@ -2416,7 +2416,7 @@ export default function OrdersPage() {
                           </p>
                           <div className="mt-2 pt-2 border-t border-amber-500/30 text-[11px] font-semibold text-amber-100 flex items-center gap-1.5">
                             <span>📱</span>
-                            <span>Printed on slip: <strong>Locked J&K Bank QR for ₹{balanceAmount}</strong></span>
+                            <span>Printed on slip: <strong>Locked HDFC Bank QR for ₹{balanceAmount}</strong></span>
                           </div>
                         </div>
                       )}
@@ -2445,7 +2445,7 @@ export default function OrdersPage() {
                             </span>
                           </div>
                           <p className="text-[11px] text-amber-200/90 leading-tight">
-                            Order is unpaid. 4-Up delivery bill will feature a <strong>Locked J&K Bank Dynamic UPI QR</strong> pre-filled with ₹{balanceAmount}.
+                            Order is unpaid. 4-Up delivery bill will feature a <strong>Locked HDFC Bank Dynamic UPI QR</strong> pre-filled with ₹{balanceAmount}.
                           </p>
                           <button
                             type="button"

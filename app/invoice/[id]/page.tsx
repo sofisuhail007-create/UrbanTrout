@@ -151,7 +151,7 @@ export default function PublicInvoicePage() {
   const rawParam = (params?.id as string) || "";
   const [invoice, setInvoice] = useState<DecodedInvoice | null>(null);
   const [loading, setLoading] = useState(true);
-  const [upiId, setUpiId] = useState("JKBMERC00828895@jkb");
+  const [upiId, setUpiId] = useState("Vyapar.178760132267@hdfcbank");
   const [copiedUpi, setCopiedUpi] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [viewMode, setViewMode] = useState<"standard" | "4up">("standard");
@@ -475,11 +475,20 @@ export default function PublicInvoicePage() {
     String(invoice.paymentMethod || "").toLowerCase().includes("razorpay") ||
     (Boolean(invoice.paymentLinkUrl) && (String(invoice.paymentLinkUrl).includes("rzp") || String(invoice.paymentLinkUrl).includes("razorpay")));
 
-  const activeUpiId = invoice.upiId || upiId;
+  const rawInvoiceUpi = invoice.upiId;
+  // For unpaid / balance-due invoices, always prefer the store's active HDFC default over legacy J&K Bank fallback
+  const activeUpiId =
+    !isPaidInvoice && (!rawInvoiceUpi || rawInvoiceUpi.toLowerCase().includes("@jkb"))
+      ? upiId
+      : (rawInvoiceUpi || upiId);
+  const isHdfcUpi = activeUpiId.toLowerCase().includes("@hdfcbank");
   const terminalId = activeUpiId.includes("@")
     ? `TERM${activeUpiId.split("@")[0].replace(/^JKBMERC/, "")}`
     : "TERM00828895";
-  const upiPayUri = `upi://pay?pa=${activeUpiId}&pn=Urban%20Trout%20Aquaculture&tr=${terminalId}&am=${remainingAmount}&cu=INR&tn=Invoice-${invoice.invoiceNumber}`;
+  const upiQueryParams = isHdfcUpi
+    ? `pa=${activeUpiId}&pn=Urban%20Trout%20Aquaculture&mc=8999&tr=STQU178760132267&am=${remainingAmount.toFixed(2)}&cu=INR&tn=Invoice-${invoice.invoiceNumber}`
+    : `pa=${activeUpiId}&pn=Urban%20Trout%20Aquaculture&tr=${terminalId}&am=${remainingAmount.toFixed(2)}&cu=INR&tn=Invoice-${invoice.invoiceNumber}`;
+  const upiPayUri = `upi://pay?${upiQueryParams}`;
   const upiQrCodeUrl = generateFastQrDataUrl(upiPayUri, { darkColor: "#020d12", margin: 2 });
 
   // 4-in-1 Sheet Mode (Canon MF244dw Laser Printer Optimized)
@@ -1017,7 +1026,7 @@ export default function PublicInvoicePage() {
                   </div>
                   <div className="space-y-1">
                     <div className="inline-block px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 text-[10px] font-bold uppercase tracking-wider">
-                      Instant Bank Settlement
+                      {isHdfcUpi ? "HDFC Bank SmartHub · Instant Settlement" : "Instant Bank Settlement"}
                     </div>
                     <h3 className="text-sm font-black text-slate-900">
                       Scan with any UPI App to Pay
@@ -1036,7 +1045,7 @@ export default function PublicInvoicePage() {
                       </button>
                     </p>
                     <p className="text-[10px] text-slate-500 font-sans">
-                      Supports Google Pay, PhonePe, Paytm, BHIM, and J&amp;K Bank mPay.
+                      Supports Google Pay, PhonePe, Paytm, BHIM, HDFC PayZapp, and all UPI Apps.
                     </p>
                   </div>
                 </div>
@@ -1048,25 +1057,25 @@ export default function PublicInvoicePage() {
                   </span>
                   <div className="grid grid-cols-2 gap-1.5">
                     <a
-                      href={`phonepe://pay?pa=${activeUpiId}&pn=Urban%20Trout&am=${remainingAmount.toFixed(2)}&cu=INR&tn=Invoice%20${invoice.invoiceNumber}`}
+                      href={`phonepe://pay?${upiQueryParams}`}
                       className="px-2.5 py-1.5 rounded-lg bg-[#5f259f] hover:bg-[#4d1e82] text-white text-[11px] font-bold flex items-center justify-center gap-1 transition-all active:scale-95"
                     >
                       <span>PhonePe</span>
                     </a>
                     <a
-                      href={`tez://upi/pay?pa=${activeUpiId}&pn=Urban%20Trout&am=${remainingAmount.toFixed(2)}&cu=INR&tn=Invoice%20${invoice.invoiceNumber}`}
+                      href={`tez://upi/pay?${upiQueryParams}`}
                       className="px-2.5 py-1.5 rounded-lg bg-[#1a73e8] hover:bg-[#1558b0] text-white text-[11px] font-bold flex items-center justify-center gap-1 transition-all active:scale-95"
                     >
                       <span>Google Pay</span>
                     </a>
                     <a
-                      href={`paytmmp://pay?pa=${activeUpiId}&pn=Urban%20Trout&am=${remainingAmount.toFixed(2)}&cu=INR&tn=Invoice%20${invoice.invoiceNumber}`}
+                      href={`paytmmp://pay?${upiQueryParams}`}
                       className="px-2.5 py-1.5 rounded-lg bg-[#00BAF2] hover:bg-[#0096c4] text-white text-[11px] font-bold flex items-center justify-center gap-1 transition-all active:scale-95"
                     >
                       <span>Paytm</span>
                     </a>
                     <a
-                      href={`upi://pay?pa=${activeUpiId}&pn=Urban%20Trout&am=${remainingAmount.toFixed(2)}&cu=INR&tn=Invoice%20${invoice.invoiceNumber}`}
+                      href={`upi://pay?${upiQueryParams}`}
                       className="px-2.5 py-1.5 rounded-lg bg-[#FF6600] hover:bg-[#cc5200] text-white text-[11px] font-bold flex items-center justify-center gap-1 transition-all active:scale-95"
                     >
                       <span>BHIM / All</span>
@@ -1132,6 +1141,32 @@ export default function PublicInvoicePage() {
                     <strong className="text-cyan-800 font-bold font-mono">{invoice.paymentLinkId}</strong>
                   </div>
                 )}
+              </div>
+            ) : isHdfcUpi ? (
+              <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-[10.5px] font-mono space-y-0.5">
+                <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-wider block font-sans">
+                  BANK DETAILS (HDFC BANK SMARTHUB VYAPAR)
+                </span>
+                <div className="flex justify-between text-slate-700">
+                  <span>Bank:</span>
+                  <strong className="text-slate-900">HDFC Bank Ltd</strong>
+                </div>
+                <div className="flex justify-between text-slate-700">
+                  <span>Branch:</span>
+                  <span className="text-slate-900">Srinagar, J&amp;K</span>
+                </div>
+                <div className="flex justify-between text-slate-700">
+                  <span>A/C Name:</span>
+                  <span className="text-slate-900">Urban Trout Aquaculture</span>
+                </div>
+                <div className="flex justify-between text-slate-700">
+                  <span>Settlement:</span>
+                  <strong className="text-emerald-700 font-bold">Instant Verified UPI</strong>
+                </div>
+                <div className="flex justify-between text-slate-700">
+                  <span>UPI ID:</span>
+                  <strong className="text-cyan-700 font-bold">{activeUpiId}</strong>
+                </div>
               </div>
             ) : (
               <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-[10.5px] font-mono space-y-0.5">

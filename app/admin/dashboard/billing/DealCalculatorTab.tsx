@@ -189,10 +189,8 @@ export default function DealCalculatorTab({
     initialDraft?.customerPhone || ""
   );
 
-  // ─── 2. LOCKED QR ENGINE STATE (DEFAULT: HDFC BANK SMARTHUB) ───
-  const [qrEngine, setQrEngine] = useState<"soundbox" | "razorpay" | "hdfc">(
-    initialDraft?.qrEngine || "hdfc"
-  );
+  // ─── 2. LOCKED QR ENGINE STATE (ALWAYS DEFAULT TO HDFC BANK SMARTHUB ON PAGE LOAD/REFRESH) ───
+  const [qrEngine, setQrEngine] = useState<"soundbox" | "razorpay" | "hdfc">("hdfc");
   const [rzpQrId, setRzpQrId] = useState<string | null>(null);
   const [rzpQrImageUrl, setRzpQrImageUrl] = useState<string | null>(null);
   const [rzpQrLoading, setRzpQrLoading] = useState<boolean>(false);

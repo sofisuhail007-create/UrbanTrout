@@ -24,10 +24,10 @@ function QuickQrContent() {
   }, [urlAm, urlOrd]);
 
   const numAmount = parseFloat(amount) || 0;
-  const upiId = "50200105872271@hdfcbank";
+  const upiId = "Vyapar.178760132267@hdfcbank";
   const noteText = orderRef ? `Order ${orderRef}` : "Urban Trout Fresh Fish";
   const upiUri = numAmount > 0
-    ? `upi://pay?pa=${upiId}&pn=Urban%20Trout%20Aquaculture&am=${numAmount.toFixed(2)}&cu=INR&tn=${encodeURIComponent(noteText)}`
+    ? `upi://pay?pa=${upiId}&pn=Urban%20Trout%20Aquaculture&mc=8999&tr=STQU178760132267&am=${numAmount.toFixed(2)}&cu=INR&tn=${encodeURIComponent(noteText)}`
     : "";
 
   const jkQrImageUrl = upiUri
@@ -153,7 +153,7 @@ function QuickQrContent() {
               : "text-slate-400 hover:text-white"
           }`}
         >
-          <span>🏦 J&K Bank (0% Fee)</span>
+          <span>🏦 HDFC Bank (0% Fee)</span>
         </button>
         <button
           type="button"
