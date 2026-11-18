@@ -191,6 +191,7 @@ export async function fetchLiveGooglePlacesReviews(
         "X-Goog-FieldMask": "id,displayName,rating,userRatingCount,reviews,reviewSummary,googleMapsLinks",
       },
       cache: "no-store",
+      signal: AbortSignal.timeout(4500),
     }
   );
 
@@ -291,7 +292,8 @@ export function mergeGoogleReviewItems(
  */
 export async function getGoogleReviewsData(): Promise<GoogleReviewsData> {
   try {
-    const { data: rows, error } = await supabase
+    const db = getServerWriteSupabase();
+    const { data: rows, error } = await db
       .from("app_settings")
       .select("key, value")
       .in("key", [
@@ -305,6 +307,8 @@ export async function getGoogleReviewsData(): Promise<GoogleReviewsData> {
         "google_review_summary",
         "google_reviews_uri",
         "featurable_widget_id",
+        "google_places_api_key",
+        "google_places_last_auto_sync",
       ]);
 
     const map: Record<string, string> = {};
@@ -317,6 +321,8 @@ export async function getGoogleReviewsData(): Promise<GoogleReviewsData> {
     }
 
     const widgetId = map.featurable_widget_id || DEFAULT_FEATURABLE_WIDGET_ID;
+    const placeId = map.google_place_id || DEFAULT_REVIEWS.placeId;
+    const googleApiKey = map.google_places_api_key || process.env.GOOGLE_MAPS_API_KEY || "";
 
     let storedItems: GoogleReviewItem[] = [];
     if (map.google_reviews_items) {
@@ -328,48 +334,71 @@ export async function getGoogleReviewsData(): Promise<GoogleReviewsData> {
       } catch (_) {}
     }
 
-    // Auto-fetch live Google Maps reviews + avatars + live rating/count from Featurable (hourly cached!)
-    let liveFeaturable: { rating?: number; reviewCount?: number; reviews: GoogleReviewItem[] } = {
-      reviews: [],
-    };
-    try {
-      liveFeaturable = await fetchLiveFeaturableReviews(widgetId);
-    } catch (featErr) {
-      console.warn("Notice: Featurable live fetch skipped, serving stored Google reviews:", featErr);
+    // Throttle Google Places API (New) auto-sync to once every 2 hours (max ~360 calls/month, well inside 1,000 FREE calls/month!)
+    const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+    const lastPlacesSyncTs = map.google_places_last_auto_sync ? Date.parse(map.google_places_last_auto_sync) : 0;
+    const shouldAutoSyncPlaces =
+      Boolean(googleApiKey) && (!lastPlacesSyncTs || isNaN(lastPlacesSyncTs) || Date.now() - lastPlacesSyncTs >= TWO_HOURS_MS);
+
+    // Fetch Featurable (hourly cached 5★ reviews + avatars) and Google Places API (2-hourly live count + Gemini summary) in parallel
+    const [featSettled, placesSettled] = await Promise.allSettled([
+      fetchLiveFeaturableReviews(widgetId),
+      shouldAutoSyncPlaces ? fetchLiveGooglePlacesReviews(placeId, googleApiKey) : Promise.resolve(null),
+    ]);
+
+    const liveFeaturable: { rating?: number; reviewCount?: number; reviews: GoogleReviewItem[] } =
+      featSettled.status === "fulfilled" && featSettled.value ? featSettled.value : { reviews: [] };
+    if (featSettled.status === "rejected") {
+      console.warn("Notice: Featurable live fetch skipped, serving stored Google reviews:", featSettled.reason);
+    }
+
+    const liveGoogle =
+      placesSettled.status === "fulfilled" && placesSettled.value ? placesSettled.value : null;
+    if (placesSettled.status === "rejected") {
+      console.warn("Notice: Google Places auto-sync skipped:", placesSettled.reason);
     }
 
     const dbCount = parseInt(map.google_reviews_count || "", 10);
     const dbRating = parseFloat(map.google_rating || "");
 
     const finalRating =
-      liveFeaturable.rating && liveFeaturable.rating > 0
+      liveGoogle?.rating && liveGoogle.rating > 0
+        ? liveGoogle.rating
+        : liveFeaturable.rating && liveFeaturable.rating > 0
         ? liveFeaturable.rating
         : !isNaN(dbRating) && dbRating > 0
         ? dbRating
         : DEFAULT_REVIEWS.rating;
 
-    const finalCount =
-      liveFeaturable.reviewCount && liveFeaturable.reviewCount > 0
-        ? Math.max(liveFeaturable.reviewCount, !isNaN(dbCount) ? dbCount : 0)
-        : !isNaN(dbCount) && dbCount > 0
-        ? dbCount
-        : DEFAULT_REVIEWS.reviewCount;
+    const maxLiveCount = Math.max(
+      liveGoogle?.reviewCount || 0,
+      liveFeaturable.reviewCount || 0,
+      !isNaN(dbCount) ? dbCount : 0
+    );
+    const finalCount = maxLiveCount > 0 ? maxLiveCount : DEFAULT_REVIEWS.reviewCount;
 
-    const mergedItems = mergeGoogleReviewItems(liveFeaturable.reviews, storedItems);
+    const finalSummary = liveGoogle?.reviewSummary || map.google_review_summary || undefined;
+    const finalReviewsUri = liveGoogle?.reviewsUri || map.google_reviews_uri || map.google_maps_url || DEFAULT_REVIEWS.mapsUrl;
+
+    const incomingLiveReviews = [
+      ...(liveGoogle?.reviews || []),
+      ...liveFeaturable.reviews,
+    ];
+    const mergedItems = mergeGoogleReviewItems(incomingLiveReviews, storedItems);
     const finalItems = mergedItems.length > 0 ? mergedItems : FALLBACK_REVIEW_ITEMS;
 
-    // ─── Permanent Auto-Archive Vault (Unlimited 5★ Reviews Forever on ₹0/mo Free Plan) ───
-    // Whenever Featurable delivers a brand-new 5★ review (or a Google avatar / fuller text / higher count),
-    // automatically archive it into Supabase so it never disappears when older reviews roll past Featurable's 15-review window.
-    if (liveFeaturable.reviews.length > 0 && mergedItems.length > 0) {
-      const normAuthor = (name: string) => (name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-      const storedMap = new Map<string, GoogleReviewItem>();
-      storedItems.forEach((s) => {
-        const k = normAuthor(s.author);
-        if (k) storedMap.set(k, s);
-      });
+    // ─── Permanent Auto-Archive Vault (Unlimited 5★ Reviews + Real-Time Count Forever at ₹0/mo) ───
+    // Automatically saves brand-new 5★ reviews, avatars, live count, and refreshed Gemini summary into Supabase.
+    const normAuthor = (name: string) => (name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    const storedMap = new Map<string, GoogleReviewItem>();
+    storedItems.forEach((s) => {
+      const k = normAuthor(s.author);
+      if (k) storedMap.set(k, s);
+    });
 
-      const hasNewOrUpgradedReview = mergedItems.some((m) => {
+    const hasNewOrUpgradedReview =
+      incomingLiveReviews.length > 0 &&
+      mergedItems.some((m) => {
         const prev = storedMap.get(normAuthor(m.author));
         if (!prev) return true;
         if (m.photoUrl && !prev.photoUrl) return true;
@@ -378,48 +407,75 @@ export async function getGoogleReviewsData(): Promise<GoogleReviewsData> {
         return false;
       });
 
-      const hasHigherCount = finalCount > (isNaN(dbCount) ? 0 : dbCount);
-      const hasRatingChange =
-        liveFeaturable.rating !== undefined &&
-        liveFeaturable.rating > 0 &&
-        (isNaN(dbRating) || Math.abs(liveFeaturable.rating - dbRating) >= 0.05);
+    const hasHigherCount = finalCount > (isNaN(dbCount) ? 0 : dbCount);
+    const hasRatingChange = isNaN(dbRating) || Math.abs(finalRating - dbRating) >= 0.05;
+    const hasSummaryChange = Boolean(liveGoogle?.reviewSummary && liveGoogle.reviewSummary !== map.google_review_summary);
 
-      if (hasNewOrUpgradedReview || hasHigherCount || hasRatingChange) {
-        try {
-          const writeDb = getServerWriteSupabase();
-          const nowIso = new Date().toISOString();
-          await writeDb.from("app_settings").upsert(
-            [
-              {
-                key: "google_reviews_items",
-                value: JSON.stringify(mergedItems),
-                description: "Auto-archived 5-star verified Google customer reviews for dynamic homepage marquee",
-                updated_at: nowIso,
-              },
-              {
-                key: "google_reviews_count",
-                value: String(finalCount),
-                description: "Total verified Google Reviews count",
-                updated_at: nowIso,
-              },
-              {
-                key: "google_rating",
-                value: String(finalRating),
-                description: "Google Reviews star rating",
-                updated_at: nowIso,
-              },
-              {
-                key: "google_reviews_last_synced",
-                value: nowIso,
-                description: "Last timestamp when live 5-star Google reviews were auto-archived",
-                updated_at: nowIso,
-              },
-            ],
-            { onConflict: "key" }
-          );
-        } catch (archiveErr) {
-          console.warn("Notice: auto-archive of 5-star reviews skipped:", archiveErr);
+    if (hasNewOrUpgradedReview || hasHigherCount || hasRatingChange || hasSummaryChange || Boolean(liveGoogle)) {
+      try {
+        const nowIso = new Date().toISOString();
+        const upserts: Array<{ key: string; value: string; description: string; updated_at: string }> = [];
+
+        if (hasNewOrUpgradedReview && mergedItems.length > 0) {
+          upserts.push({
+            key: "google_reviews_items",
+            value: JSON.stringify(mergedItems),
+            description: "Auto-archived 5-star verified Google customer reviews for dynamic homepage marquee",
+            updated_at: nowIso,
+          });
         }
+        if (hasHigherCount || hasRatingChange || hasNewOrUpgradedReview) {
+          upserts.push(
+            {
+              key: "google_reviews_count",
+              value: String(finalCount),
+              description: "Total verified Google Reviews count",
+              updated_at: nowIso,
+            },
+            {
+              key: "google_rating",
+              value: String(finalRating),
+              description: "Google Reviews star rating",
+              updated_at: nowIso,
+            },
+            {
+              key: "google_reviews_last_synced",
+              value: nowIso,
+              description: "Last timestamp when live 5-star Google reviews were auto-archived",
+              updated_at: nowIso,
+            }
+          );
+        }
+        if (liveGoogle) {
+          upserts.push({
+            key: "google_places_last_auto_sync",
+            value: nowIso,
+            description: "Last 2-hour auto-sync timestamp for Google Places API (New)",
+            updated_at: nowIso,
+          });
+          if (liveGoogle.reviewSummary) {
+            upserts.push({
+              key: "google_review_summary",
+              value: liveGoogle.reviewSummary,
+              description: "Official live Google Maps Gemini Review Summary",
+              updated_at: nowIso,
+            });
+          }
+          if (liveGoogle.reviewsUri) {
+            upserts.push({
+              key: "google_reviews_uri",
+              value: liveGoogle.reviewsUri,
+              description: "Direct Google Maps reviews link",
+              updated_at: nowIso,
+            });
+          }
+        }
+
+        if (upserts.length > 0) {
+          await db.from("app_settings").upsert(upserts, { onConflict: "key" });
+        }
+      } catch (archiveErr) {
+        console.warn("Notice: auto-archive of 5-star reviews skipped:", archiveErr);
       }
     }
 
@@ -428,13 +484,13 @@ export async function getGoogleReviewsData(): Promise<GoogleReviewsData> {
       reviewCount: finalCount,
       reviewUrl: map.google_review_url || DEFAULT_REVIEWS.reviewUrl,
       mapsUrl: map.google_maps_url || DEFAULT_REVIEWS.mapsUrl,
-      reviewsUri: map.google_reviews_uri || map.google_maps_url || DEFAULT_REVIEWS.mapsUrl,
-      reviewSummary: map.google_review_summary || undefined,
-      placeId: map.google_place_id || DEFAULT_REVIEWS.placeId,
+      reviewsUri: finalReviewsUri,
+      reviewSummary: finalSummary,
+      placeId,
       featurableWidgetId: widgetId,
       items: finalItems,
       lastSyncedAt: map.google_reviews_last_synced || undefined,
-      isLiveSynced: liveFeaturable.reviews.length > 0 || Boolean(map.google_review_summary),
+      isLiveSynced: incomingLiveReviews.length > 0 || Boolean(finalSummary),
     };
   } catch (err) {
     console.warn("Notice: could not load dynamic reviews, using default:", err);
