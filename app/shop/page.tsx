@@ -34,7 +34,7 @@ export const metadata: Metadata = {
   },
 };
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 const C = {
   bg: "#031018", bgLow: "#06151e", bgHigh: "#10212c", bgHighest: "#152834",
@@ -57,15 +57,45 @@ const PRODUCT_META: Record<string, { img: string; label: string; desc: string }>
 };
 
 export default async function ShopPage() {
-  // ── Business Hours & Store Overrides Check ────────────────────────────────
-  const { data: settingsRows } = await supabase
-    .from("app_settings")
-    .select("key, value")
-    .in("key", ["store_manually_closed", "farm_maintenance_active", "allow_friday_orders", "force_store_open"]);
+  // ── Fetch all shop data in ONE parallel batch (no sequential DB waterfalls) ──
+  const [settingsRes, invRes, metaRes, liveStockRes] = await Promise.all([
+    supabase
+      .from("app_settings")
+      .select("key, value")
+      .in("key", [
+        "store_manually_closed",
+        "farm_maintenance_active",
+        "allow_friday_orders",
+        "force_store_open",
+        "primary_phone",
+      ]),
+    supabase
+      .from("inventory")
+      .select("*")
+      .eq("available", true)
+      .order("product_name"),
+    supabase
+      .from("app_settings")
+      .select("*")
+      .like("key", "product_meta_%"),
+    getLiveAquariumStock().catch((err) => {
+      console.error("Failed to calculate live aquarium stock:", err);
+      return null;
+    }),
+  ]);
+
+  const settingsRows = settingsRes.data;
+  const invData = invRes.data;
+  const metaRows = metaRes.data;
 
   const overrides: Record<string, boolean> = {};
+  let primaryPhone = "+918491006127";
   settingsRows?.forEach((r) => {
-    overrides[r.key] = r.value === "true";
+    if (r.key === "primary_phone" && r.value) {
+      primaryPhone = r.value;
+    } else {
+      overrides[r.key] = r.value === "true";
+    }
   });
 
   const effectiveHoursInfo = getBusinessHoursInfo(new Date(), {
@@ -76,35 +106,8 @@ export default async function ShopPage() {
   });
   const isManuallyClosedFlag = Boolean(overrides.store_manually_closed);
 
-  // ── Fetch inventory data ──────────────────────────────────────────────────
-  const { data: invData } = await supabase
-    .from("inventory")
-    .select("*")
-    .eq("available", true)
-    .order("product_name");
-
-  const { data: metaRows } = await supabase
-    .from("app_settings")
-    .select("*")
-    .like("key", "product_meta_%");
-
-  // ── Fetch primary phone for WhatsApp CTA ─────────────────────────────────
-  const { data: phoneRow } = await supabase
-    .from("app_settings")
-    .select("value")
-    .eq("key", "primary_phone")
-    .single();
-  const primaryPhone = phoneRow?.value ?? "+918491006127";
-
-  // ── Fetch aquarium remaining live stock (shared pool for both products) ──
-  let aquariumStockKg: number | undefined;
-  try {
-    const liveStock = await getLiveAquariumStock();
-    aquariumStockKg = liveStock.remainingKg;
-  } catch (err) {
-    console.error("Failed to calculate live aquarium stock:", err);
-    aquariumStockKg = undefined;
-  }
+  // ── Aquarium remaining live stock (shared pool for both products) ──
+  const aquariumStockKg: number | undefined = liveStockRes ? liveStockRes.remainingKg : undefined;
 
   const metaMap: Record<string, any> = {};
   (metaRows || []).forEach((r) => {

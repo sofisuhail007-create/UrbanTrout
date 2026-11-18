@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { createClient } from "@supabase/supabase-js";
 import { requireAdminAuth } from "@/lib/adminAuth";
 
@@ -61,6 +62,13 @@ export async function POST(request: Request) {
         { status: 500 }
       );
     }
+
+    try {
+      revalidatePath("/");
+      revalidatePath("/shop");
+      revalidatePath("/shop/gutted-trout");
+      revalidatePath("/shop/whole-trout");
+    } catch (_) {}
 
     return NextResponse.json({
       success: true,

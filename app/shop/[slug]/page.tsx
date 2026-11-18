@@ -7,7 +7,6 @@ import StoreClosedBanner from "@/components/StoreClosedBanner";
 import { supabase } from "@/lib/supabase";
 import { products } from "@/lib/data";
 import { getBusinessHoursInfo } from "@/lib/businessHours";
-import { getGoogleReviewsData } from "@/lib/reviews";
 
 // Enable ISR (Incremental Static Regeneration) - cached at Edge CDN and refreshed every 60s
 export const revalidate = 60;
@@ -67,26 +66,39 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function DynamicProductPage({ params }: Props) {
   const { slug } = await params;
-  const reviewsData = await getGoogleReviewsData();
 
-  // 1. Fetch inventory record
-  const { data: invItem } = await supabase
-    .from("inventory")
-    .select("*")
-    .eq("product_id", slug)
-    .single();
+  // Fetch inventory + all product/store/rating settings in ONE parallel batch (no external HTTP blocking)
+  const [{ data: invItem }, { data: settingsRows }] = await Promise.all([
+    supabase.from("inventory").select("*").eq("product_id", slug).single(),
+    supabase
+      .from("app_settings")
+      .select("key, value")
+      .in("key", [
+        "product_meta_" + slug,
+        "google_rating",
+        "google_reviews_count",
+        "store_manually_closed",
+        "farm_maintenance_active",
+        "allow_friday_orders",
+        "force_store_open",
+        "primary_phone",
+      ]),
+  ]);
 
-  // 2. Fetch metadata from app_settings
-  const { data: metaRow } = await supabase
-    .from("app_settings")
-    .select("value")
-    .eq("key", "product_meta_" + slug)
-    .single();
+  const settingsMap: Record<string, string> = {};
+  settingsRows?.forEach((r) => {
+    if (r.key && r.value !== undefined) settingsMap[r.key] = r.value;
+  });
+
+  const reviewsData = {
+    rating: parseFloat(settingsMap.google_rating || "4.9") || 4.9,
+    reviewCount: parseInt(settingsMap.google_reviews_count || "49", 10) || 49,
+  };
 
   let savedMeta: Record<string, any> = {};
-  if (metaRow?.value) {
+  if (settingsMap["product_meta_" + slug]) {
     try {
-      savedMeta = JSON.parse(metaRow.value);
+      savedMeta = JSON.parse(settingsMap["product_meta_" + slug]);
     } catch (e) {}
   }
 
@@ -211,30 +223,15 @@ export default async function DynamicProductPage({ params }: Props) {
     },
   };
 
-  // ── Business Hours & Store Overrides Check ──────────────────────────
-  const { data: settingsRows } = await supabase
-    .from("app_settings")
-    .select("key, value")
-    .in("key", ["store_manually_closed", "farm_maintenance_active", "allow_friday_orders", "force_store_open"]);
-
-  const overrides: Record<string, boolean> = {};
-  settingsRows?.forEach((r) => {
-    overrides[r.key] = r.value === "true";
-  });
-
+  // ── Business Hours & Store Overrides Check (reusing parallel settingsMap) ──
   const effectiveHoursInfo = getBusinessHoursInfo(new Date(), {
-    storeManuallyClosed: overrides.store_manually_closed,
-    farmMaintenanceActive: overrides.farm_maintenance_active,
-    allowFridayOrders: overrides.allow_friday_orders,
-    forceStoreOpen: overrides.force_store_open,
+    storeManuallyClosed: settingsMap.store_manually_closed === "true",
+    farmMaintenanceActive: settingsMap.farm_maintenance_active === "true",
+    allowFridayOrders: settingsMap.allow_friday_orders === "true",
+    forceStoreOpen: settingsMap.force_store_open === "true",
   });
 
-  const { data: phoneRow } = await supabase
-    .from("app_settings")
-    .select("value")
-    .eq("key", "primary_phone")
-    .single();
-  const primaryPhone = phoneRow?.value ?? "+918491006127";
+  const primaryPhone = settingsMap.primary_phone || "+918491006127";
 
   return (
     <div style={{ background: C.bg, minHeight: "100vh" }}>

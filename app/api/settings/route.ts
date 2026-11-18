@@ -191,6 +191,9 @@ export async function POST(request: Request) {
     // Revalidate public pages so dynamic reviews and store settings take effect immediately
     try {
       revalidatePath("/");
+      revalidatePath("/shop");
+      revalidatePath("/shop/gutted-trout");
+      revalidatePath("/shop/whole-trout");
       revalidatePath("/our-farm");
       revalidatePath("/contact");
     } catch (_) {}

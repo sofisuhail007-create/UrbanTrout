@@ -7,7 +7,6 @@ import { supabase } from "@/lib/supabase";
 import { getCatalogProducts } from "@/lib/catalog";
 import { getBusinessHoursInfo } from "@/lib/businessHours";
 import { getLiveAquariumStock } from "@/lib/aquariumStock";
-import { getGoogleReviewsData } from "@/lib/reviews";
 
 export const metadata: Metadata = {
   title: "Whole Fresh Rainbow Trout (₹540/Kg)",
@@ -43,55 +42,59 @@ const C = {
   outlineVar: "#3d4a53",
 };
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export default async function WholeTroutPage() {
-  const reviewsData = await getGoogleReviewsData();
-  // ── Business Hours & Store Overrides Check ────────────────────────────────
-  const { data: settingsRows } = await supabase
-    .from("app_settings")
-    .select("key, value")
-    .in("key", ["store_manually_closed", "farm_maintenance_active", "allow_friday_orders", "force_store_open"]);
+  // ── Fetch all product page data in ONE parallel batch (zero external API blocking!) ──
+  const [settingsRes, invRes, liveStockRes] = await Promise.all([
+    supabase
+      .from("app_settings")
+      .select("key, value")
+      .in("key", [
+        "store_manually_closed",
+        "farm_maintenance_active",
+        "allow_friday_orders",
+        "force_store_open",
+        "primary_phone",
+        "google_rating",
+        "google_reviews_count",
+      ]),
+    supabase
+      .from("inventory")
+      .select("*")
+      .eq("product_id", "whole-trout")
+      .single(),
+    getLiveAquariumStock().catch(() => null),
+  ]);
 
-  const overrides: Record<string, boolean> = {};
-  settingsRows?.forEach((r) => {
-    overrides[r.key] = r.value === "true";
+  const settingsMap: Record<string, string> = {};
+  settingsRes.data?.forEach((r) => {
+    if (r.key && r.value !== undefined) settingsMap[r.key] = r.value;
   });
+
+  const reviewsData = {
+    rating: parseFloat(settingsMap.google_rating || "4.9") || 4.9,
+    reviewCount: parseInt(settingsMap.google_reviews_count || "49", 10) || 49,
+  };
 
   const effectiveHoursInfo = getBusinessHoursInfo(new Date(), {
-    storeManuallyClosed: overrides.store_manually_closed,
-    farmMaintenanceActive: overrides.farm_maintenance_active,
-    allowFridayOrders: overrides.allow_friday_orders,
-    forceStoreOpen: overrides.force_store_open,
+    storeManuallyClosed: settingsMap.store_manually_closed === "true",
+    farmMaintenanceActive: settingsMap.farm_maintenance_active === "true",
+    allowFridayOrders: settingsMap.allow_friday_orders === "true",
+    forceStoreOpen: settingsMap.force_store_open === "true",
   });
-  const isManuallyClosedFlag = Boolean(overrides.store_manually_closed);
+  const isManuallyClosedFlag = settingsMap.store_manually_closed === "true";
 
-  const { data } = await supabase
-    .from("inventory")
-    .select("*")
-    .eq("product_id", "whole-trout")
-    .single();
-
+  const data = invRes.data;
   const price = data ? data.price_per_kg : 540;
   const minQuantity = data?.min_order_kg ? Number(data.min_order_kg) : 2;
   const originalPrice = data?.original_price_per_kg ? Number(data.original_price_per_kg) : 600;
 
   // ── Aquarium Stock (shared pool) ────────────────────────────────────────
-  let aquariumStockKg: number | undefined;
-  try {
-    const liveStock = await getLiveAquariumStock();
-    aquariumStockKg = liveStock.remainingKg;
-  } catch {
-    aquariumStockKg = undefined;
-  }
+  const aquariumStockKg: number | undefined = liveStockRes ? liveStockRes.remainingKg : undefined;
 
   // ── Primary phone ───────────────────────────────────────────────────────
-  const { data: phoneRow } = await supabase
-    .from("app_settings")
-    .select("value")
-    .eq("key", "primary_phone")
-    .single();
-  const primaryPhone = phoneRow?.value ?? "+918491006127";
+  const primaryPhone = settingsMap.primary_phone || "+918491006127";
 
   const isOutOfStock = aquariumStockKg !== undefined && (aquariumStockKg <= 0 || aquariumStockKg < minQuantity);
   const canOrder = effectiveHoursInfo.isOpen && !isOutOfStock;
