@@ -26,10 +26,10 @@ process.on("unhandledRejection", (reason) => {
 // ============================================================================
 // URBAN TROUT SALES AGENT — BUILD & VERSION TRACKING
 // ============================================================================
-const BOT_VERSION = "3.0.3";
-const BOT_LAST_UPDATED = "17-Nov-2026, 04:30 PM IST";
-const BOT_RELEASE_TITLE = "Zone 4 Perimeter Guard & Auto-QR Shield Fix";
-const BOT_RELEASE_NOTES = "Fixed contradictory Outside Delivery Zone message for verified in-perimeter Zone 4 locations (11.5–16km like Nowgam/Rawalpora/Sanat Nagar); prevented auto-QR dispatch on rejected locations";
+const BOT_VERSION = "3.0.4";
+const BOT_LAST_UPDATED = "18-Nov-2026, 07:20 PM IST";
+const BOT_RELEASE_TITLE = "Brief Zero-Friction Welcome & Concise 1kg Replies";
+const BOT_RELEASE_NOTES = "Shortened opening greeting & 1kg price replies (3-4 clean lines); removed unasked biodegradable polythene/0% ice/GPS pin/3-5kg friction until area is known or customer asks";
 
 // ============================================================================
 // STRICT VVIP MANUAL-ONLY LIST (AI MUST NEVER TEXT UNDER ANY CIRCUMSTANCE)
@@ -3871,14 +3871,15 @@ ${kgWeatherPolicy.weatherIcon} WEATHER HOLD OVERRIDE FOR 1 KG (${locName}, ~${lo
 ======================================================`;
     } else {
       intentContext += `\n======================================================
-💡 QUERY INTENT DECODED: Customer inquired about 1 kg, but their locality in Srinagar is NOT yet known.
-⚠️ ABSOLUTE MANDATE: NEVER MENTION "ZONE 1" OR ANY ZONE NUMBERS, "doorstep", "cold-chain", "chilled", "subsidized", "70%", "30%", OR "Rapido"! DO NOT ASSUME THEIR AREA!
-• Explain warmly:
-  "For 1 kg, express delivery to your shared location is available with an express delivery fee (e.g. ₹${45 + surgeAdd} for nearby areas like Malabagh, Soura, Hazratbal, Lal Bazar; ₹${75 + surgeAdd}–₹${190 + surgeAdd} across other Srinagar localities).
-  Alternatively, express delivery is *100% FREE* on 2 kg+ in nearby areas (3–5 kg across wider Srinagar), or you can pick up 1 kg fresh with zero delivery fee at our Live Vending Center in Malabagh.
-  Which area in Srinagar shall we deliver to, and kindly share your WhatsApp location pin or Google Maps link?"
-${currentWeather.isBadWeather ? `• Also mention kindly that due to active ${globalWeatherPolicy.weatherNoun} today, express delivery currently serves up to ${WEATHER_RESTRICT_RADIUS_KM} km from Malabagh (with a possible weather delay).` : ""}
-• Always ask for their area / location pin so our system can calculate the exact delivery distance!
+💡 QUERY INTENT DECODED: Customer asked about 1 kg price/order, and their locality in Srinagar is NOT yet known.
+⚠️ STRICT BREVITY MANDATE (3 SHORT LINES MAX):
+• DO NOT dump delivery fee ranges (NO "₹85 for nearby, ₹115–₹230 for other areas"), DO NOT mention "2 kg+ / 3–5 kg", DO NOT mention "Live Vending Center", DO NOT mention "biodegradable polythene / 0% ice", and DO NOT ask for a WhatsApp location pin or Google Maps link yet!
+• Reply cleanly and concisely like this:
+  "${isFirstMessage ? "Hello! Welcome to Urban Trout 🐟\n\n" : ""}• Cleaned & Gutted (Pan-ready steaks): *₹580/kg*
+  🛵 Express delivery across Srinagar within 2 hours (FREE on eligible orders).
+
+  Which area in Srinagar are you in? I'll share your exact total right away!"
+${currentWeather.isBadWeather ? `• Note briefly: Due to active ${globalWeatherPolicy.weatherNoun}, express delivery currently covers up to ${WEATHER_RESTRICT_RADIUS_KM} km from Malabagh.` : ""}
 ======================================================`;
     }
   }
@@ -4262,12 +4263,14 @@ ${timeStatusDetail}
     ? `NEW CONVERSATION INITIATION (ULTRA-BRIEF & HIGH-CONVERSION):
 - Keep the opening welcome to 4–5 short, warm, scannable lines max!
 ${isVipCustomer ? `- 👑 VIP RETURNING CUSTOMER RULE: Address customer respectfully by name as indicated in their VIP profile (${vipProfile.salutation || "Valued Patron"}). Offer to repeat their usual order (${vipProfile.usualWeightKg} kg ${vipProfile.usualCut} to ${vipProfile.locality}).` : `- STRICT PROFESSIONAL RULE FOR NEW LEADS: NEVER address or call the customer by any personal name (e.g. no "Hello Munir!", "Dear Uzma,", "Hi Shahid,"). Greet neutrally.`}
-- DO NOT mention "polythene", "biodegradable", "0% ice", "packaging", "shared GPS location", "Google Maps link", "location pin", or "3–5 kg" in the first welcome message! (Only explain biodegradable polythene / 0% ice if the customer specifically asks about packaging or ice, and only ask for a location pin once they confirm their area/order.)
+- DO NOT mention "polythene", "biodegradable", "0% ice", "packaging", "shared GPS location", "Google Maps link", "location pin", delivery fee ranges (₹85–₹230), or "3–5 kg" in the first message! (Only explain biodegradable polythene / 0% ice if the customer specifically asks about packaging or ice, and only ask for a location pin once they confirm their area/order.)
 - Follow this crisp structure:
   Hello! Welcome to Urban Trout 🐟
   Fresh Himalayan Rainbow Trout, harvested live to order from our Malabagh farm and delivered across Srinagar within 2 hours!
+
   • Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — descaled, zero kitchen mess)
   🛵 *Express delivery across Srinagar* (FREE on eligible orders)
+
   Which area in Srinagar are you in, and how many kg would you like?
 - NEVER use the word "Janab".
 - NEVER say "Malabagh Vending Center" — always use "Live Vending Center in Malabagh".`
@@ -4310,10 +4313,10 @@ CRITICAL READABILITY & MAXIMUM BREVITY MANDATE (ANSWER ONLY WHAT IS REQUIRED):
    • Under NO circumstances should you EVER output [PAY_LINK: ...], generate an order summary card, or share a QR code UNLESS the customer's delivery locality or area in Srinagar is confirmed!
    • NEVER write order summary bullet points (e.g. "Order Summary", "Total Payable: ...", "Delivery Address: ...") before knowing their location!
    • Our delivery fees and minimum order quantities depend entirely on their delivery area (0–4 km, 4–7 km, 7–11.5 km, 11.5–16 km from Malabagh). Without knowing their area, the total payable amount CANNOT be calculated!
-   • If a customer says "Need 2 kg", "Send 1 kg", "Price", "Send QR", "Send scanner", "QR please", "Book order", "Confirm", or asks to pay, BUT has NOT mentioned their area, colony, or landmark in Srinagar:
-     - Acknowledge their requested quantity warmly.
-     - State the price (₹580/kg Cleaned & Gutted).
-     - STRICT MANDATE: Ask for their delivery area: "Which area, locality, or landmark in Srinagar should we deliver to (e.g. Soura, Lal Chowk, Rajbagh, Hyderpora)? Or you can share a quick WhatsApp location pin so our system can verify your delivery terms and generate your official order summary and payment link / QR code right away! 🐟"
+   • If a customer says "Need 2 kg", "Send 1 kg", "Price", "Cost of 1 kg", "Send QR", "Send scanner", "QR please", "Book order", "Confirm", or asks to pay, BUT has NOT mentioned their area, colony, or landmark in Srinagar:
+     - Keep it ULTRA-SHORT (3 short lines max! NO fee ranges, NO 3–5 kg essay, NO GPS pin request yet!).
+     - State the price (*₹580/kg* Cleaned & Gutted, pan-ready steaks) + 2-hour express delivery across Srinagar (FREE on eligible orders).
+     - Ask ONE effortless question: "Which area in Srinagar are you in? I'll share your exact total right away! 🐟"
      - DO NOT output an order summary or [PAY_LINK: ...] until their area or location pin is confirmed!
 
 0C. ISLAMIC GREETING MANDATE (WALAIKUM ASSALAM ONLY WHEN CUSTOMER SAYS SALAM):
@@ -4333,20 +4336,17 @@ CRITICAL READABILITY & MAXIMUM BREVITY MANDATE (ANSWER ONLY WHAT IS REQUIRED):
    • When customer asks about whole/uncleaned: "Yes, we also offer Whole Fresh Trout (uncleaned/round) at ₹540/kg if you prefer cleaning it at home. However, most families choose our Cleaned & Gutted (₹580/kg) because it arrives completely descaled, gutted, and cut into pan-ready steaks with zero kitchen mess. Which would you prefer?"
 6. DELIVERY CALLOUT LINE (SEPARATE LINE BELOW RATES — SHORT & ZERO STICKER SHOCK):
    🛵 *Express delivery across Srinagar* (FREE on eligible orders)
-   • Do NOT put "3–5 kg" or "shared GPS location" in the opening welcome! Once they tell you their area, share their specific area's free delivery pack naturally.
+   • Do NOT put "3–5 kg", fee ranges, or "shared GPS location" in the opening welcome or before knowing their area! Once they tell you their area, share their exact delivery terms cleanly.
 7. TERMINOLOGY: Always use "Live Vending Center" (located in Malabagh). NEVER say "Malabagh Vending Center".
 8. STRICT PROHIBITION: NEVER MENTION ZONE NUMBERS (ZONE 1, 2, 3, 4), KM RANGES, "doorstep", "cold-chain", "cold chain", "chilled", "subsidized", "subsidy", "70%", "30%", "Rapido", OR "third-party" TO CUSTOMERS!
    • PACKAGING SILENCE RULE: NEVER volunteer "biodegradable polythene", "polythene", or "0% ice" in welcome messages or routine replies! ONLY explain "packed fresh in 100% food-grade biodegradable polythene (0% ice)" if the customer explicitly asks how it is packed or asks about ice/freshness.
    • ALWAYS speak naturally using locality names: "Great! We deliver express to [Locality] within 2 hours!" or "for nearby areas like Malabagh, Soura, Hazratbal".
    • State the free delivery policy warmly once you know their area: e.g. "For Hyderpora, express delivery is 100% FREE on 5 kg or more!"
 
-9. STRICT MOQ-FIRST POLICY (ZERO PROACTIVE 1 KG DOWNSELLING):
-   • When greeting a new lead, sharing prices, or confirming a delivery locality: ALWAYS state or ask for the Area Minimum Order Quantity (MOQ: 2 kg for nearby areas like Malabagh/Soura/Hazratbal, 3 kg for mid/central Srinagar, 5 kg for South Corridor, Rajbagh, Jawahar Nagar, Batamaloo, Sanat Nagar, Peerbagh, Airport Road, Nowgam, etc.).
-   • NEVER volunteer 1 kg or mention delivery fees upfront! Pitching 1 kg upfront hurts basket size and causes customer confusion.
-   • ONLY when a customer explicitly asks: "Can I get 1 kg?", "1 kg kitne ka hai?", "1kg chahiye", or asks for an amount below the Area MOQ:
-     - Step 1: Explain that the Area MOQ gives 100% free delivery.
-     - Step 2: Gladly accommodate them with express delivery (+₹45 for nearby areas, +₹55 to +₹190 across Srinagar) or free counter pickup at our Live Vending Center in Malabagh.
-     - Step 3: When customer confirms, generate the payment link immediately.
+9. STRICT MOQ-FIRST POLICY (CONCISE & AREA-FIRST):
+   • NEVER volunteer 1 kg or delivery fee tables upfront before knowing the customer's area!
+   • If customer asks "price of 1 kg?" WITHOUT naming their area: quote ₹580/kg Cleaned & Gutted and ask which area in Srinagar they are in (3 short lines max — NEVER dump ₹45–₹230 ranges or 3–5 kg walls!).
+   • Once their area IS known and they explicitly asked for 1 kg: state their exact 1 kg total and briefly mention their area's free-delivery quantity (2–3 short lines max). When they confirm 1 kg, generate the payment link immediately.
 
 10. MANDATORY LIVE-HARVEST WEIGHING & VISCERAL LOSS DISCLOSURE LAW:
    • Live trout are swimming in pure cold-water tanks and harvested live upon order.
