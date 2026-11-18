@@ -182,16 +182,14 @@ _Fresh Himalayan Rainbow Trout · Srinagar_
 
 Dear *${customer.name}*,
 
-Thank you for choosing *Urban Trout*!
-We hope you loved your fresh Himalayan Rainbow Trout.
+Thank you for choosing *Urban Trout*! We hope you loved your fresh trout. 🐟
 
-Your feedback means the world to us and helps other trout lovers in Kashmir find us. If you enjoyed your order, please take 30 seconds to leave us a quick Google review:
+Your feedback is truly important to us and helps our local farm grow. If you enjoyed our quality & service, we would be grateful for a quick *5-star review* on Google — your review can even get *featured in the Testimonials section on urbantrout.in*! 🌟
 
-*Leave us a review on Google:*
+*Leave a 5-Star Review on Google:*
 ${reviewUrl}
 
-It makes a huge difference to our local farm! Thank you for your support.
-
+Thank you for your support!
 _Warm regards,_
 *Urban Trout Team, Srinagar*`;
 
@@ -925,7 +923,7 @@ _Warm regards,_
                 onClick={() => {
                   setBroadcastTemplate("review");
                   setBroadcastMessage(
-                    `*URBAN TROUT AQUACULTURE*\n_Fresh Himalayan Rainbow Trout · Srinagar_\n\nDear *{name}*,\n\nThank you for being a valued customer of *Urban Trout*!\n\nIf you have enjoyed our fresh trout, we would be deeply grateful for a quick Google review. It takes 30 seconds and helps other trout lovers in Kashmir find our farm:\n\n*Leave us a review on Google:*\n${googleReviewUrl || "https://g.page/r/CTVKEpV62HMmECE/review"}\n\nThank you for supporting local aquaculture!\n\n_Warm regards,_\n*Urban Trout Team, Srinagar*`
+                    `*URBAN TROUT AQUACULTURE*\n_Fresh Himalayan Rainbow Trout · Srinagar_\n\nDear *{name}*,\n\nThank you for being a valued customer of *Urban Trout*! 🐟\n\nYour feedback is truly important to us and helps our local farm grow. If you enjoyed our fresh trout, we would be grateful for a quick *5-star review* on Google — your review can even get *featured in the Testimonials section on urbantrout.in*! 🌟\n\n*Leave a 5-Star Review on Google:*\n${googleReviewUrl || "https://g.page/r/CTVKEpV62HMmECE/review"}\n\nThank you for your support!\n_Warm regards,_\n*Urban Trout Team, Srinagar*`
                   );
                   setBroadcastModalOpen(true);
                 }}
@@ -1853,7 +1851,7 @@ _Warm regards,_
                   onClick={() => {
                     setBroadcastTemplate("review");
                     setBroadcastMessage(
-                      `*URBAN TROUT AQUACULTURE*\n_Fresh Himalayan Rainbow Trout · Srinagar_\n\nDear *{name}*,\n\nThank you for choosing *Urban Trout*!\nWe hope you loved your fresh Himalayan Rainbow Trout.\n\nYour feedback means the world to us and helps other trout lovers in Kashmir find us. If you enjoyed your order, please take 30 seconds to leave us a quick Google review:\n\n*Leave us a review on Google:*\n${googleReviewUrl || "https://g.page/r/CTVKEpV62HMmECE/review"}\n\nIt makes a huge difference to our local farm! Thank you for your support.\n\n_Warm regards,_\n*Urban Trout Team, Srinagar*`
+                      `*URBAN TROUT AQUACULTURE*\n_Fresh Himalayan Rainbow Trout · Srinagar_\n\nDear *{name}*,\n\nThank you for choosing *Urban Trout*! We hope you loved your fresh trout. 🐟\n\nYour feedback is truly important to us and helps our local farm grow. If you enjoyed our quality & service, we would be grateful for a quick *5-star review* on Google — your review can even get *featured in the Testimonials section on urbantrout.in*! 🌟\n\n*Leave a 5-Star Review on Google:*\n${googleReviewUrl || "https://g.page/r/CTVKEpV62HMmECE/review"}\n\nThank you for your support!\n_Warm regards,_\n*Urban Trout Team, Srinagar*`
                     );
                   }}
                   className={`p-2 rounded-xl text-center text-xs font-mono transition-all cursor-pointer ${

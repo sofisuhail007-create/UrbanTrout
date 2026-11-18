@@ -1,4 +1,12 @@
+import { createClient } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
+
+function getServerWriteSupabase() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key) return supabase;
+  return createClient(url, key);
+}
 
 export interface GoogleReviewItem {
   id: string;
@@ -130,9 +138,10 @@ export async function fetchLiveFeaturableReviews(
   const rawReviews = Array.isArray(data.widget.reviews) ? data.widget.reviews : [];
   const parsed: GoogleReviewItem[] = rawReviews
     .filter((r: any) => {
-      const val = Number(r?.rating?.value ?? r?.rating ?? 5);
+      const val = Number(r?.rating?.value ?? r?.rating ?? 0);
       const txt = String(r?.text || "").trim();
-      return val >= 4 && txt.length >= 6;
+      // Only showcase & auto-archive verified 5-star written reviews
+      return val >= 5 && txt.length >= 6;
     })
     .map((r: any, idx: number) => {
       const author = normalizeDisplayName(r?.author?.name || "Google Reviewer");
@@ -194,7 +203,7 @@ export async function fetchLiveGooglePlacesReviews(
 
   const rawReviews = Array.isArray(data.reviews) ? data.reviews : [];
   const parsedReviews: GoogleReviewItem[] = rawReviews
-    .filter((r: any) => (r?.rating || 0) >= 4 && (r?.text?.text || r?.originalText?.text))
+    .filter((r: any) => (r?.rating || 0) >= 5 && (r?.text?.text || r?.originalText?.text))
     .map((r: any, idx: number) => {
       const author = normalizeDisplayName(r?.authorAttribution?.displayName || "Google Reviewer");
       const text = (r?.text?.text || r?.originalText?.text || "").trim();
@@ -234,32 +243,34 @@ export function mergeGoogleReviewItems(
 ): GoogleReviewItem[] {
   const byAuthor = new Map<string, GoogleReviewItem>();
   const normAuthor = (name: string) => (name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  const isFiveStar = (item: GoogleReviewItem) => Math.round(Number(item.rating ?? 5)) >= 5;
 
-  // Index existing reviews first so we can preserve authorUrl / Local Guide badges
+  // Index existing 5-star reviews first so we can preserve authorUrl / Local Guide badges
   const existingByAuthor = new Map<string, GoogleReviewItem>();
   for (const item of existing) {
-    if (!item.text?.trim()) continue;
+    if (!item.text?.trim() || !isFiveStar(item)) continue;
     const key = normAuthor(item.author);
     if (key) existingByAuthor.set(key, item);
   }
 
-  // Incoming fresh live reviews take priority (full untruncated text + real Google avatars + fresh relative dates)
+  // Incoming fresh live 5-star reviews take priority (full untruncated text + real Google avatars + fresh relative dates)
   for (const item of incoming) {
-    if (!item.text?.trim()) continue;
+    if (!item.text?.trim() || !isFiveStar(item)) continue;
     const key = normAuthor(item.author);
     const prev = key ? existingByAuthor.get(key) : undefined;
     byAuthor.set(key || item.id, {
       ...item,
       // Prefer longer text if one was fuller
       text: prev && prev.text.length > item.text.length + 15 ? prev.text : item.text,
+      photoUrl: item.photoUrl || prev?.photoUrl,
       authorUrl: item.authorUrl || prev?.authorUrl,
       locality: prev?.locality === "Google Local Guide" ? "Google Local Guide" : (item.locality || prev?.locality || "Google Maps Verified"),
     });
   }
 
-  // Append older historical verified reviews not in the latest Featurable top-15 window
+  // Append older historical verified 5-star reviews not in the latest Featurable top-15 window
   for (const item of existing) {
-    if (!item.text?.trim()) continue;
+    if (!item.text?.trim() || !isFiveStar(item)) continue;
     const key = normAuthor(item.author);
     if (!byAuthor.has(key || item.id)) {
       byAuthor.set(key || item.id, item);
@@ -346,6 +357,71 @@ export async function getGoogleReviewsData(): Promise<GoogleReviewsData> {
 
     const mergedItems = mergeGoogleReviewItems(liveFeaturable.reviews, storedItems);
     const finalItems = mergedItems.length > 0 ? mergedItems : FALLBACK_REVIEW_ITEMS;
+
+    // ─── Permanent Auto-Archive Vault (Unlimited 5★ Reviews Forever on ₹0/mo Free Plan) ───
+    // Whenever Featurable delivers a brand-new 5★ review (or a Google avatar / fuller text / higher count),
+    // automatically archive it into Supabase so it never disappears when older reviews roll past Featurable's 15-review window.
+    if (liveFeaturable.reviews.length > 0 && mergedItems.length > 0) {
+      const normAuthor = (name: string) => (name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+      const storedMap = new Map<string, GoogleReviewItem>();
+      storedItems.forEach((s) => {
+        const k = normAuthor(s.author);
+        if (k) storedMap.set(k, s);
+      });
+
+      const hasNewOrUpgradedReview = mergedItems.some((m) => {
+        const prev = storedMap.get(normAuthor(m.author));
+        if (!prev) return true;
+        if (m.photoUrl && !prev.photoUrl) return true;
+        if (m.text.length > (prev.text?.length || 0) + 15) return true;
+        if (m.publishTime && !prev.publishTime) return true;
+        return false;
+      });
+
+      const hasHigherCount = finalCount > (isNaN(dbCount) ? 0 : dbCount);
+      const hasRatingChange =
+        liveFeaturable.rating !== undefined &&
+        liveFeaturable.rating > 0 &&
+        (isNaN(dbRating) || Math.abs(liveFeaturable.rating - dbRating) >= 0.05);
+
+      if (hasNewOrUpgradedReview || hasHigherCount || hasRatingChange) {
+        try {
+          const writeDb = getServerWriteSupabase();
+          const nowIso = new Date().toISOString();
+          await writeDb.from("app_settings").upsert(
+            [
+              {
+                key: "google_reviews_items",
+                value: JSON.stringify(mergedItems),
+                description: "Auto-archived 5-star verified Google customer reviews for dynamic homepage marquee",
+                updated_at: nowIso,
+              },
+              {
+                key: "google_reviews_count",
+                value: String(finalCount),
+                description: "Total verified Google Reviews count",
+                updated_at: nowIso,
+              },
+              {
+                key: "google_rating",
+                value: String(finalRating),
+                description: "Google Reviews star rating",
+                updated_at: nowIso,
+              },
+              {
+                key: "google_reviews_last_synced",
+                value: nowIso,
+                description: "Last timestamp when live 5-star Google reviews were auto-archived",
+                updated_at: nowIso,
+              },
+            ],
+            { onConflict: "key" }
+          );
+        } catch (archiveErr) {
+          console.warn("Notice: auto-archive of 5-star reviews skipped:", archiveErr);
+        }
+      }
+    }
 
     return {
       rating: finalRating,

@@ -494,7 +494,7 @@ export default function OrdersPage() {
   const getDeliveredAlertText = (order: Order) => {
     const name = getCleanCustomerGreetingName(order.customer_name);
     const orderRefDisplay = getOrderRefLabel(order);
-    return `Hello ${name}! ✨\n\nYour fresh trout order (${orderRefDisplay}) has been successfully delivered!\n\nWe hope you and your family enjoy your fresh pan-ready trout. If you loved our service, please take 10 seconds to share your review on Google:\nhttps://g.page/r/CTVKEpV62HMmECE/review\n\nBon Appétit! — Urban Trout Aquaculture 🐟`;
+    return `Hello ${name}! ✨\n\nYour fresh trout order (${orderRefDisplay}) has been successfully delivered! We hope you and your family love the farm-fresh taste.\n\nYour feedback is truly important to us and helps our local farm grow. If you enjoyed your order, we would be grateful if you could spare 15 seconds to leave a *5-star review* on Google — your review can even get *featured in the Testimonials section on urbantrout.in*! 🌟\n\nhttps://g.page/r/CTVKEpV62HMmECE/review\n\nBon Appétit! — Urban Trout Aquaculture 🐟`;
   };
 
   // Copy alert text without opening WhatsApp / new tab (perfect on Mohd Amin's laptop)

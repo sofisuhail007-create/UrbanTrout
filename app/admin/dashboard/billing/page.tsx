@@ -1999,16 +1999,14 @@ _Fresh Himalayan Rainbow Trout · Srinagar_
 
 Dear *${cName}*,
 
-Thank you for choosing *Urban Trout*!
-We hope you loved your fresh Himalayan Rainbow Trout.
+Thank you for choosing *Urban Trout*! We hope you loved your fresh trout. 🐟
 
-Your feedback means the world to us and helps other trout lovers in Kashmir find us. If you enjoyed your order, please take 30 seconds to leave us a quick Google review:
+Your feedback is truly important to us and helps our local farm grow. If you enjoyed our quality & service, we would be grateful for a quick *5-star review* on Google — your review can even get *featured in the Testimonials section on urbantrout.in*! 🌟
 
-*Leave us a review on Google:*
+*Leave a 5-Star Review on Google:*
 ${reviewUrl}
 
-It makes a huge difference to our local farm! Thank you for your support.
-
+Thank you for your support!
 _Warm regards,_
 *Urban Trout Team, Srinagar*`;
 

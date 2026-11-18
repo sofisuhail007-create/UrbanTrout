@@ -328,7 +328,7 @@ export default function DashboardPage() {
       } else if (action === "rider") {
         msg = `Hello ${cleanName}! 🛵\n\nYour fresh trout order (#${orderNumber}) has been prepped, packed, and loaded onto our delivery bike!\n\nOur rider is en route to your location. Please ensure you are reachable on your phone.`;
       } else if (action === "delivered") {
-        msg = `Hello ${cleanName}! ✨\n\nYour Urban Trout order (#${orderNumber}) has been delivered! We hope you enjoy the farm-fresh mountain trout.\n\nPlease take a moment to share your review on Google:\nhttps://g.page/r/CU9oD5sY40EIEBM/review\n\nThank you for choosing Urban Trout! 🐟`;
+        msg = `Hello ${cleanName}! ✨\n\nYour Urban Trout order (#${orderNumber}) has been delivered! We hope you and your family love the farm-fresh taste.\n\nYour feedback is truly important to us and helps our local farm grow. If you enjoyed your order, we would be grateful for a quick *5-star review* on Google — your review can even get *featured in the Testimonials section on urbantrout.in*! 🌟\n\nhttps://g.page/r/CTVKEpV62HMmECE/review\n\nThank you for choosing Urban Trout! 🐟`;
       }
       launchWhatsApp(phone, msg);
     } catch (err) {
