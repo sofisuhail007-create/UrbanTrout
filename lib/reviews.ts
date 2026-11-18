@@ -21,65 +21,41 @@ export interface GoogleReviewsData {
   reviewsUri?: string;
   reviewSummary?: string;
   placeId: string;
+  featurableWidgetId?: string;
   items: GoogleReviewItem[];
   lastSyncedAt?: string;
   isLiveSynced?: boolean;
 }
 
+export const DEFAULT_FEATURABLE_WIDGET_ID = "04434651-2643-44d9-8fda-a3c132081f20";
+
 export const FALLBACK_REVIEW_ITEMS: GoogleReviewItem[] = [
   {
-    id: "curated-1",
-    author: "Dr. Farooq Mir",
-    locality: "Hazratbal, Srinagar",
+    id: "g-obaid-hafiz",
+    author: "Obaid Hafiz",
+    locality: "Google Maps Verified",
     rating: 5,
-    relativeTime: "Verified Google Review",
-    text: "Ordered 3 kg gutted trout for a family dinner. The fish was delivered within 90 minutes packed in clean food-grade packs. The meat was remarkably firm and sweet—lightyears ahead of what you find in local markets.",
-    source: "curated",
+    relativeTime: "Verified Review",
+    text: "Got 4 kilos of Rainbow trout caught right infront of me and it tastes super delicious. Highly recommended, and also amazed how clean, well maintained and hi-tech the farm is.",
+    source: "google",
   },
   {
-    id: "curated-2",
-    author: "Aabid Hussain",
-    locality: "Soura, Srinagar",
+    id: "g-natasha-thakur",
+    author: "Natasha Thakur",
+    locality: "Google Maps Verified",
     rating: 5,
-    relativeTime: "Verified Google Review",
-    text: "Having a live trout farm right here in Malabagh with free home delivery is a blessing. The trout was cleanly gutted and descaled, zero mud taste. Fried it in mustard oil, tasted heavenly.",
-    source: "curated",
+    relativeTime: "Verified Review",
+    text: "Clean, Fresh and tasty. One of best Trout fishes in the valley. Excellent service. Keep it up.",
+    source: "google",
   },
   {
-    id: "curated-3",
-    author: "Shabir Ahmad",
-    locality: "Lal Bazar, Srinagar",
+    id: "g-bhat-shazia",
+    author: "Bhat Shazia",
+    locality: "Google Maps Verified",
     rating: 5,
-    relativeTime: "Verified Google Review",
-    text: "Genuine 100% fresh catch. You can press the flesh with your finger and it bounces right back. No chemical smell, pure mountain-like taste. Regular customer now.",
-    source: "curated",
-  },
-  {
-    id: "curated-4",
-    author: "Tariq Ahmad Wani",
-    locality: "Nishat, Srinagar",
-    rating: 5,
-    relativeTime: "Verified Google Review",
-    text: "Visited their Malabagh farm in person — crystal clear flowing borewell tanks and live swimming rainbow trout. Best hygiene standards for fresh fish in the entire valley.",
-    source: "curated",
-  },
-  {
-    id: "curated-5",
-    author: "Sana Bashir",
-    locality: "Rajbagh, Srinagar",
-    rating: 5,
-    relativeTime: "Verified Google Review",
-    text: "Super fast WhatsApp ordering and doorstep delivery right on time. Zero ice, zero fishy odor, pan-ready cleaned steaks. My kids loved it!",
-    source: "curated",
-  },
-  {
-    id: "curated-6",
-    author: "Imran Majeed",
-    locality: "Hyderpora, Srinagar",
-    rating: 5,
-    relativeTime: "Verified Google Review",
-    text: "Transparent live scale weighing and honest pricing. You actually get what you pay for, harvested fresh minutes before dispatch. Highly recommended!",
-    source: "curated",
+    relativeTime: "Verified Review",
+    text: "Excellent service! The fish was of great quality, delivered super fast, and available at the best price. Very happy with the overall experience. Highly recommended!",
+    source: "google",
   },
 ];
 
@@ -89,11 +65,103 @@ export const DEFAULT_REVIEWS: GoogleReviewsData = {
   reviewUrl: "https://g.page/r/CTVKEpV62HMmECE/review",
   mapsUrl: "https://maps.app.goo.gl/4N8A8ywhJpys9EaDA",
   placeId: "ChIJO-ZGTo2F4TgRNUoSlXrYcyY",
+  featurableWidgetId: DEFAULT_FEATURABLE_WIDGET_ID,
   items: FALLBACK_REVIEW_ITEMS,
 };
 
+function formatRelativeDate(isoDate?: string | null): string {
+  if (!isoDate) return "Google Review";
+  const ts = Date.parse(isoDate);
+  if (isNaN(ts)) return "Google Review";
+  const diffMs = Math.max(0, Date.now() - ts);
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  if (diffHours < 24) return diffHours <= 1 ? "Just now" : `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays === 1) return "1 day ago";
+  if (diffDays < 7) return `${diffDays} days ago`;
+  const diffWeeks = Math.floor(diffDays / 7);
+  if (diffWeeks === 1) return "1 week ago";
+  if (diffWeeks < 5) return `${diffWeeks} weeks ago`;
+  const diffMonths = Math.floor(diffDays / 30);
+  if (diffMonths === 1) return "1 month ago";
+  if (diffMonths < 12) return `${diffMonths} months ago`;
+  return new Date(ts).toLocaleDateString("en-IN", { month: "short", year: "numeric" });
+}
+
+function normalizeDisplayName(rawName: string): string {
+  const clean = (rawName || "Google Reviewer").trim();
+  // Title-case names that are entirely lowercase (e.g. "om sanjay" -> "Om Sanjay")
+  if (clean === clean.toLowerCase()) {
+    return clean.replace(/\b\w/g, (ch) => ch.toUpperCase());
+  }
+  return clean;
+}
+
 /**
- * Fetches live rating, review count, and verified customer reviews from Google Places API (New).
+ * Fetches LIVE real Google Maps reviews + customer profile photos + live rating/count
+ * from Featurable v2 JSON API (cached for 1 hour via Next.js revalidate, ₹0/month).
+ */
+export async function fetchLiveFeaturableReviews(
+  widgetId: string = DEFAULT_FEATURABLE_WIDGET_ID,
+  bypassCache = false
+): Promise<{
+  rating?: number;
+  reviewCount?: number;
+  reviews: GoogleReviewItem[];
+}> {
+  if (!widgetId) return { reviews: [] };
+
+  const res = await fetch(
+    `https://featurable.com/api/v2/widgets/${encodeURIComponent(widgetId)}`,
+    bypassCache
+      ? { cache: "no-store", signal: AbortSignal.timeout(6000) }
+      : { next: { revalidate: 3600 }, signal: AbortSignal.timeout(4500) }
+  );
+
+  if (!res.ok) {
+    throw new Error(`Featurable API HTTP ${res.status}`);
+  }
+
+  const data = await res.json();
+  if (!data?.success || !data?.widget) {
+    return { reviews: [] };
+  }
+
+  const rawReviews = Array.isArray(data.widget.reviews) ? data.widget.reviews : [];
+  const parsed: GoogleReviewItem[] = rawReviews
+    .filter((r: any) => {
+      const val = Number(r?.rating?.value ?? r?.rating ?? 5);
+      const txt = String(r?.text || "").trim();
+      return val >= 4 && txt.length >= 6;
+    })
+    .map((r: any, idx: number) => {
+      const author = normalizeDisplayName(r?.author?.name || "Google Reviewer");
+      const text = String(r?.text || "").trim();
+      const publishTime = r?.publishedAt || r?.createdAt || "";
+      return {
+        id: r?.id || `f-${author.toLowerCase().replace(/[^a-z0-9]/g, "")}-${idx}`,
+        author,
+        rating: Number(r?.rating?.value ?? r?.rating ?? 5),
+        text,
+        relativeTime: formatRelativeDate(publishTime),
+        publishTime,
+        photoUrl: r?.author?.avatarUrl || r?.author?.profile_photo_url || undefined,
+        authorUrl: r?.author?.profileUrl || r?.url || undefined,
+        locality: "Google Maps Verified",
+        source: "google" as const,
+      };
+    });
+
+  const summary = data.widget.gbpLocationSummary;
+  return {
+    rating: summary?.rating !== undefined ? Number(summary.rating) : undefined,
+    reviewCount: summary?.reviewsCount !== undefined ? Number(summary.reviewsCount) : undefined,
+    reviews: parsed,
+  };
+}
+
+/**
+ * Fetches live rating, review count, official Gemini summary, and links from Google Places API (New).
  * Endpoint: https://places.googleapis.com/v1/places/{placeId}
  */
 export async function fetchLiveGooglePlacesReviews(
@@ -128,7 +196,7 @@ export async function fetchLiveGooglePlacesReviews(
   const parsedReviews: GoogleReviewItem[] = rawReviews
     .filter((r: any) => (r?.rating || 0) >= 4 && (r?.text?.text || r?.originalText?.text))
     .map((r: any, idx: number) => {
-      const author = r?.authorAttribution?.displayName || "Google Reviewer";
+      const author = normalizeDisplayName(r?.authorAttribution?.displayName || "Google Reviewer");
       const text = (r?.text?.text || r?.originalText?.text || "").trim();
       const publishTime = r?.publishTime || "";
       const stableId = `g-${author.toLowerCase().replace(/[^a-z0-9]/g, "")}-${publishTime || idx}`;
@@ -156,43 +224,59 @@ export async function fetchLiveGooglePlacesReviews(
 }
 
 /**
- * Merges newly synced live Google reviews with previously accumulated Google reviews,
- * deduplicating by author + text prefix so the live review library grows over time.
+ * Merges incoming live Google reviews (e.g. from Featurable with real photos & full text)
+ * with previously stored Supabase reviews, deduplicating cleanly by normalized author name
+ * while preserving Google Maps contributor profile links & Local Guide labels.
  */
 export function mergeGoogleReviewItems(
   incoming: GoogleReviewItem[],
   existing: GoogleReviewItem[]
 ): GoogleReviewItem[] {
-  const seen = new Map<string, GoogleReviewItem>();
+  const byAuthor = new Map<string, GoogleReviewItem>();
+  const normAuthor = (name: string) => (name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
 
-  const makeKey = (item: GoogleReviewItem) =>
-    `${(item.author || "").toLowerCase().trim()}::${(item.text || "").toLowerCase().trim().slice(0, 48)}`;
-
-  // Incoming fresh Google reviews take priority (updates relativeTime / photoUrl)
-  for (const item of incoming) {
-    if (!item.text?.trim()) continue;
-    seen.set(makeKey(item), item);
-  }
-  // Keep previously stored real Google reviews
+  // Index existing reviews first so we can preserve authorUrl / Local Guide badges
+  const existingByAuthor = new Map<string, GoogleReviewItem>();
   for (const item of existing) {
     if (!item.text?.trim()) continue;
-    const key = makeKey(item);
-    if (!seen.has(key)) {
-      seen.set(key, item);
+    const key = normAuthor(item.author);
+    if (key) existingByAuthor.set(key, item);
+  }
+
+  // Incoming fresh live reviews take priority (full untruncated text + real Google avatars + fresh relative dates)
+  for (const item of incoming) {
+    if (!item.text?.trim()) continue;
+    const key = normAuthor(item.author);
+    const prev = key ? existingByAuthor.get(key) : undefined;
+    byAuthor.set(key || item.id, {
+      ...item,
+      // Prefer longer text if one was fuller
+      text: prev && prev.text.length > item.text.length + 15 ? prev.text : item.text,
+      authorUrl: item.authorUrl || prev?.authorUrl,
+      locality: prev?.locality === "Google Local Guide" ? "Google Local Guide" : (item.locality || prev?.locality || "Google Maps Verified"),
+    });
+  }
+
+  // Append older historical verified reviews not in the latest Featurable top-15 window
+  for (const item of existing) {
+    if (!item.text?.trim()) continue;
+    const key = normAuthor(item.author);
+    if (!byAuthor.has(key || item.id)) {
+      byAuthor.set(key || item.id, item);
     }
   }
 
-  return Array.from(seen.values()).sort((a, b) => {
-    // Google-synced reviews first, newest first
-    if (a.source === "google" && b.source !== "google") return -1;
-    if (b.source === "google" && a.source !== "google") return 1;
-    return (b.publishTime || "").localeCompare(a.publishTime || "");
+  return Array.from(byAuthor.values()).sort((a, b) => {
+    // Live reviews with Google profile photos & newest publishTime first
+    const timeDiff = (b.publishTime || "").localeCompare(a.publishTime || "");
+    if (timeDiff !== 0) return timeDiff;
+    return (b.photoUrl ? 1 : 0) - (a.photoUrl ? 1 : 0);
   });
 }
 
 /**
- * Fetches dynamic Google Review metrics & review items from Supabase app_settings.
- * Falls back gracefully to DEFAULT_REVIEWS if not yet synced in database.
+ * Fetches dynamic Google Review metrics, official Gemini summary, and auto-updating live
+ * Google Maps reviews (Featurable v2 JSON + Supabase archive merged cleanly).
  */
 export async function getGoogleReviewsData(): Promise<GoogleReviewsData> {
   try {
@@ -209,21 +293,19 @@ export async function getGoogleReviewsData(): Promise<GoogleReviewsData> {
         "google_reviews_last_synced",
         "google_review_summary",
         "google_reviews_uri",
+        "featurable_widget_id",
       ]);
 
-    if (error || !rows || rows.length === 0) {
-      return DEFAULT_REVIEWS;
+    const map: Record<string, string> = {};
+    if (!error && rows) {
+      rows.forEach((r) => {
+        if (r.key && r.value !== undefined) {
+          map[r.key] = r.value;
+        }
+      });
     }
 
-    const map: Record<string, string> = {};
-    rows.forEach((r) => {
-      if (r.key && r.value !== undefined) {
-        map[r.key] = r.value;
-      }
-    });
-
-    const parsedCount = parseInt(map.google_reviews_count || "", 10);
-    const parsedRating = parseFloat(map.google_rating || "");
+    const widgetId = map.featurable_widget_id || DEFAULT_FEATURABLE_WIDGET_ID;
 
     let storedItems: GoogleReviewItem[] = [];
     if (map.google_reviews_items) {
@@ -235,23 +317,51 @@ export async function getGoogleReviewsData(): Promise<GoogleReviewsData> {
       } catch (_) {}
     }
 
-    const hasLiveGoogleReviews = storedItems.some((item) => item.source === "google");
-    const finalItems = storedItems.length > 0 ? storedItems : FALLBACK_REVIEW_ITEMS;
+    // Auto-fetch live Google Maps reviews + avatars + live rating/count from Featurable (hourly cached!)
+    let liveFeaturable: { rating?: number; reviewCount?: number; reviews: GoogleReviewItem[] } = {
+      reviews: [],
+    };
+    try {
+      liveFeaturable = await fetchLiveFeaturableReviews(widgetId);
+    } catch (featErr) {
+      console.warn("Notice: Featurable live fetch skipped, serving stored Google reviews:", featErr);
+    }
+
+    const dbCount = parseInt(map.google_reviews_count || "", 10);
+    const dbRating = parseFloat(map.google_rating || "");
+
+    const finalRating =
+      liveFeaturable.rating && liveFeaturable.rating > 0
+        ? liveFeaturable.rating
+        : !isNaN(dbRating) && dbRating > 0
+        ? dbRating
+        : DEFAULT_REVIEWS.rating;
+
+    const finalCount =
+      liveFeaturable.reviewCount && liveFeaturable.reviewCount > 0
+        ? Math.max(liveFeaturable.reviewCount, !isNaN(dbCount) ? dbCount : 0)
+        : !isNaN(dbCount) && dbCount > 0
+        ? dbCount
+        : DEFAULT_REVIEWS.reviewCount;
+
+    const mergedItems = mergeGoogleReviewItems(liveFeaturable.reviews, storedItems);
+    const finalItems = mergedItems.length > 0 ? mergedItems : FALLBACK_REVIEW_ITEMS;
 
     return {
-      rating: !isNaN(parsedRating) && parsedRating > 0 ? parsedRating : DEFAULT_REVIEWS.rating,
-      reviewCount: !isNaN(parsedCount) && parsedCount > 0 ? parsedCount : DEFAULT_REVIEWS.reviewCount,
+      rating: finalRating,
+      reviewCount: finalCount,
       reviewUrl: map.google_review_url || DEFAULT_REVIEWS.reviewUrl,
       mapsUrl: map.google_maps_url || DEFAULT_REVIEWS.mapsUrl,
       reviewsUri: map.google_reviews_uri || map.google_maps_url || DEFAULT_REVIEWS.mapsUrl,
       reviewSummary: map.google_review_summary || undefined,
       placeId: map.google_place_id || DEFAULT_REVIEWS.placeId,
+      featurableWidgetId: widgetId,
       items: finalItems,
       lastSyncedAt: map.google_reviews_last_synced || undefined,
-      isLiveSynced: hasLiveGoogleReviews || Boolean(map.google_review_summary),
+      isLiveSynced: liveFeaturable.reviews.length > 0 || Boolean(map.google_review_summary),
     };
   } catch (err) {
-    console.warn("Notice: could not load dynamic reviews from Supabase, using default:", err);
+    console.warn("Notice: could not load dynamic reviews, using default:", err);
     return DEFAULT_REVIEWS;
   }
 }

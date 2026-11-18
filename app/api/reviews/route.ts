@@ -7,6 +7,8 @@ import { requireAdminAuth } from "@/lib/adminAuth";
 import {
   getGoogleReviewsData,
   DEFAULT_REVIEWS,
+  DEFAULT_FEATURABLE_WIDGET_ID,
+  fetchLiveFeaturableReviews,
   fetchLiveGooglePlacesReviews,
   mergeGoogleReviewItems,
   type GoogleReviewItem,
@@ -50,7 +52,7 @@ export async function POST(request: Request) {
     const { data: existingSettings } = await supabase
       .from("app_settings")
       .select("key, value")
-      .in("key", ["google_places_api_key", "google_reviews_items", "google_place_id"]);
+      .in("key", ["google_places_api_key", "google_reviews_items", "google_place_id", "featurable_widget_id"]);
 
     const settingsMap: Record<string, string> = {};
     (existingSettings || []).forEach((r) => {
@@ -127,49 +129,54 @@ export async function POST(request: Request) {
     let mergedReviews: GoogleReviewItem[] | null = null;
     let syncMessage = "";
 
-    // If action is 'sync', fetch LIVE rating, count, summary, AND real reviews via Google Places API (New)
+    // If action is 'sync', fetch LIVE reviews + avatars from Featurable v2 AND official Gemini summary from Google Places API (New)
     if (action === "sync") {
       const activePlaceId = placeId || settingsMap.google_place_id || DEFAULT_REVIEWS.placeId;
       const activeKey = apiKey || settingsMap.google_places_api_key || process.env.GOOGLE_MAPS_API_KEY;
+      const activeWidgetId = settingsMap.featurable_widget_id || DEFAULT_FEATURABLE_WIDGET_ID;
 
-      if (!activeKey) {
-        return NextResponse.json(
-          {
-            success: false,
-            error:
-              "Google Places API key is required to auto-sync live reviews from Google Maps. Enable 'Places API (New)' in Google Cloud Console and paste your key.",
-          },
-          { status: 400 }
-        );
-      }
+      const [featRes, googleRes] = await Promise.allSettled([
+        fetchLiveFeaturableReviews(activeWidgetId, true),
+        activeKey ? fetchLiveGooglePlacesReviews(activePlaceId, activeKey) : Promise.resolve(null),
+      ]);
 
-      try {
-        const live = await fetchLiveGooglePlacesReviews(activePlaceId, activeKey);
-        if (live.reviewCount !== undefined) finalCount = live.reviewCount;
-        if (live.rating !== undefined) finalRating = live.rating;
-        if (live.reviewSummary) finalSummary = live.reviewSummary;
-        if (live.reviewsUri) finalReviewsUri = live.reviewsUri;
+      let incomingReviews: GoogleReviewItem[] = [];
 
-        if (live.reviews.length > 0) {
-          mergedReviews = mergeGoogleReviewItems(live.reviews, existingItems);
+      if (featRes.status === "fulfilled" && featRes.value) {
+        if (featRes.value.reviewCount !== undefined) finalCount = featRes.value.reviewCount;
+        if (featRes.value.rating !== undefined) finalRating = featRes.value.rating;
+        if (featRes.value.reviews.length > 0) {
+          incomingReviews = [...incomingReviews, ...featRes.value.reviews];
         }
-
-        syncMessage = live.reviews.length > 0
-          ? `Synced live from Google Maps: ${finalRating} ★ (${finalCount} total reviews) • ${live.reviews.length} live reviews fetched!`
-          : `Synced live from Google Maps: ${finalRating} ★ (${finalCount} total verified reviews)${finalSummary ? " + live Google AI Review Summary!" : "!"}`;
-      } catch (syncErr: any) {
-        const rawErr = String(syncErr?.message || syncErr);
-        const friendlyHint = rawErr.toLowerCase().includes("permission")
-          ? " Enable 'Places API (New)' for this API key in Google Cloud Console → APIs & Services → Library → Places API (New)."
-          : "";
-        return NextResponse.json(
-          {
-            success: false,
-            error: `Google Sync failed: ${rawErr}${friendlyHint}`,
-          },
-          { status: 502 }
-        );
       }
+
+      if (googleRes.status === "fulfilled" && googleRes.value) {
+        if (googleRes.value.reviewCount !== undefined) {
+          finalCount = Math.max(finalCount || 0, googleRes.value.reviewCount);
+        }
+        if (googleRes.value.rating !== undefined) finalRating = googleRes.value.rating;
+        if (googleRes.value.reviewSummary) finalSummary = googleRes.value.reviewSummary;
+        if (googleRes.value.reviewsUri) finalReviewsUri = googleRes.value.reviewsUri;
+        if (googleRes.value.reviews.length > 0) {
+          incomingReviews = [...incomingReviews, ...googleRes.value.reviews];
+        }
+      }
+
+      if (incomingReviews.length > 0) {
+        mergedReviews = mergeGoogleReviewItems(incomingReviews, existingItems);
+      }
+
+      if (finalRating === undefined && finalCount === undefined && incomingReviews.length === 0) {
+        const errMsg =
+          googleRes.status === "rejected"
+            ? String(googleRes.reason?.message || googleRes.reason)
+            : featRes.status === "rejected"
+            ? String(featRes.reason?.message || featRes.reason)
+            : "Could not sync live reviews";
+        return NextResponse.json({ success: false, error: `Google Sync failed: ${errMsg}` }, { status: 502 });
+      }
+
+      syncMessage = `Synced live from Google Maps: ${finalRating} ★ (${finalCount} total reviews) • ${incomingReviews.length} live reviews with photos synced (${mergedReviews?.length || existingItems.length} total in marquee)!`;
     }
 
     const updates: Array<{ key: string; value: string; description: string }> = [];
