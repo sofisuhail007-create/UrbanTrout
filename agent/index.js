@@ -26,10 +26,10 @@ process.on("unhandledRejection", (reason) => {
 // ============================================================================
 // URBAN TROUT SALES AGENT — BUILD & VERSION TRACKING
 // ============================================================================
-const BOT_VERSION = "3.0.6";
-const BOT_LAST_UPDATED = "19-Nov-2026, 09:55 AM IST";
-const BOT_RELEASE_TITLE = "Culinary Gold Standard Pitch Refinement & Rapido Driver Exclusion Guard";
-const BOT_RELEASE_NOTES = "Refined fish size pitch to international culinary gold standard (zero mention of bureaucrats/officers); blacklisted Rapido driver MS Wani (+91 9906030280) from automated messaging & mPay prompts";
+const BOT_VERSION = "3.0.7";
+const BOT_LAST_UPDATED = "19-Nov-2026, 11:15 PM IST";
+const BOT_RELEASE_TITLE = "Active Order Protection, Stale Order Guard, Friday Open Fix & Speed Slang Parser";
+const BOT_RELEASE_NOTES = "1. Active Order Protection: Prevent duplicate order generation & time-warp for already-paid customers (e.g. Zahoor Ahmad Reshi). 2. Stale Order Shield: Block weeks-old delivered orders from hallucinating as live today for new ad leads (e.g. Peerzada Baber). 3. Friday Open Routing: Thursday night accurately routes to tomorrow Friday morning when Friday operations are open. 4. Slang Parser: Block conversational speed slang ('Lkin jddi plz') from false locality geocoding. 5. Brief Welcome & Speed Rules: Clean brief greeting without polythene lecturing; dynamic delivery speed messaging (1-hour within 4km or clear queue).";
 
 // ============================================================================
 // STRICT MANUAL-ONLY & DRIVER EXCLUSION LIST (AI MUST NEVER TEXT UNDER ANY CIRCUMSTANCE)
@@ -1059,7 +1059,17 @@ async function resolveUnknownLocalityWithApi(text) {
   // Strip order weights, cuts, and quantities from locality candidate (e.g. "Aloochi bagh, 1 kg" -> "Aloochi bagh")
   candidate = candidate.replace(/[,]?\s*\d+(?:\.\d+)?\s*(?:kg|kilo|kilos|gm|grams)?\b/gi, "").trim();
   candidate = candidate.replace(/\b(?:cleaned|gutted|whole|fresh|steaks|fish|trout|pieces|order|pack)\b/gi, "").trim();
-  candidate = candidate.replace(/^[,\s\-–—]+|[,\s\-–—]+$/g, "").trim();
+
+  // Strip conversational slang, speed pleas, pleasantries, and connecting words
+  // e.g. "Lkin jddi plz", "jaldi bhejna bhai", "urgent delivery please", "asap"
+  const conversationalStopwords = /\b(?:lekin|lkin|magar|aur|and|ya|or|jddi|jldi|jaldi|fast|faster|express|urgent|urgently|asap|quick|quickly|speed|plz|please|bhejo|bhejna|send|deliver|delivery|karo|kardo|do|de\s*do|chahiye|need|want|bhai|bhaiya|sir|madam|shukriya|thanks|thank\s*you|ok|theek|sahi|ha|haan|yes|no|nahi|bro|yaar)\b/gi;
+  candidate = candidate.replace(conversationalStopwords, "").trim();
+  candidate = candidate.replace(/^[,\s\-–—.!?;:]+|[,\s\-–—.!?;:]+$/g, "").trim();
+
+  // If candidate is too short (< 3 characters) or contains only digits/symbols, it's not a locality!
+  if (candidate.length < 3 || /^[\d\s\-–—.,!?:;]+$/.test(candidate)) {
+    return null;
+  }
 
   // Filter out non-location generic greetings/phrases or standalone generic landmarks without area
   if (/^(?:hi|hello|salam|price|rate|rates|order|clean|cleaned|gutted|whole|fish|trout|yes|no|ok|kilo|kg)$/i.test(candidate)) {
@@ -2471,8 +2481,11 @@ async function lookupCustomerOrder(chatId, customerPhone, userMessage) {
   const explicitRefMatch = userMessage.match(/(?:(?:order|ord|ref|receipt|invoice)\s*(?:id|number|no|num)?[:\s#]*|#|(?:UT-WA-))([a-zA-Z0-9\-_]{4,15})/i);
   const potentialRef = explicitRefMatch ? explicitRefMatch[1].trim() : null;
 
-  // Check if customer is asking about order tracking, status, or delivery timing
-  const isAskingOrder = /(?:where\s*is\s*(?:my\s*)?order|order\s*(?:status|id|number|no|num|update|delivered|delivery|dispatch)|track\s*(?:my\s*)?order|my\s*order|delivery\s*(?:status|dispatch|time|timing|update|schedule)|dispatch\s*status|check\s*(?:my\s*)?order|when\s*will\s*(?:it|order|fish)\s*(?:arrive|deliver|reach|come)|(?:deliver|delivered|delivery)\s*(?:any\s*)?(?:1|2|one|two)\s*hours?|(?:any\s*)?(?:1|2|one|two)\s*hours?|kab\s*(?:aayega|pahonchega|deliver)|deliver\s*(?:hua|karo|hoga))/i.test(userMessage);
+  // Pre-sales inquiries (new orders, ad clicks, asking prices, how much, etc.) are NOT order tracking!
+  const isPreSalesQuery = /\b(?:like\s*to\s*order|want\s*to\s*order|place\s*(?:an?\s*)?order|buy\s*fresh|how\s*much|price|rate|rates|cost|available|order\s*karna|khareedna|chahiye|menu|options?)\b/i.test(userMessage);
+
+  // Check if customer is genuinely asking about order tracking, status, or delivery timing of an already placed order
+  const isAskingOrder = !isPreSalesQuery && /(?:where\s*is\s*(?:my\s*)?order|order\s*(?:status|id|number|no|num|update|dispatch)|track\s*(?:my\s*)?order|\bmy\s*order\b|dispatch\s*status|check\s*(?:my\s*)?order|when\s*will\s*(?:my\s*)?order\s*(?:arrive|deliver|reach|come)|order\s*kab\s*(?:aayega|pahonchega)|order\s*deliver\s*(?:hua|karo|hoga))/i.test(userMessage);
 
   // If the customer is NOT asking about an existing order AND did NOT provide an explicit order ID, DO NOT trigger order lookup!
   if (!isAskingOrder && !potentialRef) {
@@ -2501,17 +2514,30 @@ async function lookupCustomerOrder(chatId, customerPhone, userMessage) {
           }
         }
         if (matches.length > 0) {
-          // Prioritize active paid & confirmed orders, then most recently updated
+          // Prioritize active unfulfilled paid & confirmed orders, then most recently updated
           matches.sort((a, b) => {
+            const aActive = isOrderActivePending(a) ? 1 : 0;
+            const bActive = isOrderActivePending(b) ? 1 : 0;
+            if (aActive !== bActive) return bActive - aActive;
             const aConfirmed = /(?:paid|confirmed|harvest|dispatch)/i.test(a.status || "") ? 1 : 0;
             const bConfirmed = /(?:paid|confirmed|harvest|dispatch)/i.test(b.status || "") ? 1 : 0;
             if (aConfirmed !== bConfirmed) return bConfirmed - aConfirmed;
-            const aTime = new Date(a.updatedAt || a.paidAt || 0).getTime();
-            const bTime = new Date(b.updatedAt || b.paidAt || 0).getTime();
+            const aTime = new Date(a.updatedAt || a.paidAt || a.createdAt || 0).getTime();
+            const bTime = new Date(b.updatedAt || b.paidAt || b.createdAt || 0).getTime();
             return bTime - aTime;
           });
-          console.log(`[Order Recognition] Found best match for ${cleanPhone || chatId}:`, matches[0].orderRef, matches[0].status);
-          return matches[0];
+
+          const bestMatch = matches[0];
+          // If no explicit order reference was typed, only return active unfulfilled orders or orders placed today!
+          // Stale, delivered historical orders from weeks ago must NOT be returned on generic queries!
+          const isTodayOrder = (Date.now() - new Date(bestMatch.updatedAt || bestMatch.paidAt || bestMatch.createdAt || 0).getTime()) < (24 * 60 * 60 * 1000);
+          if (isOrderActivePending(bestMatch) || isTodayOrder) {
+            console.log(`[Order Recognition] Found active match for ${cleanPhone || chatId}:`, bestMatch.orderRef, bestMatch.status);
+            return bestMatch;
+          } else {
+            console.log(`[Order Recognition] Customer ${cleanPhone || chatId} has historical completed order #${bestMatch.orderRef} (${bestMatch.status}), but no active unfulfilled order today.`);
+            return null;
+          }
         }
       }
 
@@ -3028,7 +3054,8 @@ const TodayOrderPool = {
       const updatedDate = ord.updatedAt ? new Date(ord.updatedAt).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }) : null;
       
       if (this.isOrderPaid(ord)) {
-        if (paidDate === today || updatedDate === today || (ord.deliveryTime && ord.deliveryTime.includes("Today"))) {
+        // Any active unfulfilled paid order is strictly tracked for today until marked delivered/closed!
+        if (isOrderActivePending(ord) || paidDate === today || updatedDate === today || (ord.deliveryTime && ord.deliveryTime.includes("Today"))) {
           todayMap[k] = ord;
         }
       } else {
@@ -3404,7 +3431,7 @@ async function generateGeminiReply(chatId, userMessage, customerPhone, customerN
             : vipAffWeather.buildWetWeatherOutOfZoneMessage(vipProfile.locality, vipProfile.distanceKm);
         } else {
           const timeNote = isNightAfter9PM
-            ? (isThursdayToday ? "scheduled for Saturday morning (8:00 AM – 11:00 AM)" : "scheduled for tomorrow morning (8:00 AM – 11:00 AM)")
+            ? (isThursdayToday && !isFridayOpen ? "scheduled for Saturday morning (8:00 AM – 11:00 AM)" : "scheduled for tomorrow morning (8:00 AM – 11:00 AM)")
             : isEarlyPreDawn
             ? (isFridayToday ? "scheduled for Saturday morning (8:00 AM – 11:00 AM)" : "scheduled for today's morning harvest (8:00 AM – 11:00 AM)")
             : "delivered within 2 hours";
@@ -3453,7 +3480,7 @@ async function generateGeminiReply(chatId, userMessage, customerPhone, customerN
           const timeNote = isFridayToday
             ? "scheduled for Saturday morning (8:00 AM – 11:00 AM)"
             : isNightAfter9PM
-            ? (isThursdayToday ? "scheduled for Saturday morning (8:00 AM – 11:00 AM)" : "scheduled for tomorrow morning (8:00 AM – 11:00 AM)")
+            ? (isThursdayToday && !isFridayOpen ? "scheduled for Saturday morning (8:00 AM – 11:00 AM)" : "scheduled for tomorrow morning (8:00 AM – 11:00 AM)")
             : isEarlyPreDawn
             ? "scheduled for today's morning harvest (8:00 AM – 11:00 AM)"
             : "delivered within 2 hours";
@@ -3482,14 +3509,14 @@ async function generateGeminiReply(chatId, userMessage, customerPhone, customerN
     const harvestStatus = isFridayToday
       ? "Our farm is closed on Fridays for weekly maintenance. Live harvest resumes Saturday morning at 8:00 AM sharp!"
       : isNightAfter9PM
-      ? (isThursdayToday ? "Tonight's deliveries closed at 8:00 PM. Live harvest resumes Saturday morning at 8:00 AM sharp!" : "Tonight's deliveries closed at 8:00 PM. Fresh live harvest resumes tomorrow morning at 8:00 AM sharp!")
+      ? (isThursdayToday && !isFridayOpen ? "Tonight's deliveries closed at 8:00 PM. Live harvest resumes Saturday morning at 8:00 AM sharp!" : "Tonight's deliveries closed at 8:00 PM. Fresh live harvest resumes tomorrow morning at 8:00 AM sharp!")
       : isEarlyPreDawn
       ? "Our fresh live harvest for today begins at 8:00 AM sharp!"
       : "We have fresh live Himalayan Rainbow Trout harvested today.";
     const slotPrompt = isFridayToday
       ? "scheduled for Saturday morning (8:00 AM – 11:00 AM)"
       : isNightAfter9PM
-      ? (isThursdayToday ? "scheduled for Saturday morning (8:00 AM – 11:00 AM)" : "scheduled for tomorrow morning (8:00 AM – 11:00 AM)")
+      ? (isThursdayToday && !isFridayOpen ? "scheduled for Saturday morning (8:00 AM – 11:00 AM)" : "scheduled for tomorrow morning (8:00 AM – 11:00 AM)")
       : isEarlyPreDawn
       ? "scheduled for today's morning harvest (8:00 AM – 11:00 AM)"
       : "as usual";
@@ -3595,14 +3622,14 @@ CRITICAL VIP REORDERING & GREETING INSTRUCTIONS:
         if (detectedLoc.dist <= 4.0) {
         localityContext = `\n======================================================
 📍 SMART LOCALITY DETECTED: Customer mentioned "${detectedLoc.name}" (~${detectedLoc.dist} km from Malabagh).
-⚠️ STRICT MANDATE: NEVER MENTION "Zone 1", ZONE NUMBERS, "doorstep", "cold-chain", "cold chain", "chilled", "subsidized", "70%", "30%", OR "Rapido"! Speak naturally: "We offer express delivery in food-grade biodegradable polythene (0% ice) to your shared location in ${detectedLoc.name}!".
+⚠️ STRICT MANDATE: NEVER MENTION "Zone 1", ZONE NUMBERS, "doorstep", "cold-chain", "cold chain", "chilled", "subsidized", "70%", "30%", "biodegradable", "polythene", OR "Rapido"! Speak naturally: "We deliver express to ${detectedLoc.name} within 2 hours!".
 CRITICAL DELIVERY & PRICING INSTRUCTIONS:${isEveningSurge ? "\n⚡ CURRENT TIME: EVENING RUSH HOUR (4:00 PM – 8:00 PM IST) — +₹40 evening rush fee surcharge applies to 1 kg orders. 2 kg+ is 100% FREE!" : ""}
 • Express Delivery: 100% FREE on 2 kg or more (within 2 hours)!
 • Rates: Cleaned & Gutted = ₹580/kg | Whole Fresh = ₹540/kg
 • 2 kg Cleaned & Gutted = *₹1,160 total* (100% FREE delivery)
 • ⚠️ STRICT MOQ FIRST POLICY: Pitch 2 kg minimum order for free delivery upfront!
 • Pitch for ${detectedLoc.name}:
-  "Great! ${detectedLoc.name} is right in our core service area! Express delivery (packed fresh in food-grade biodegradable polythene, 0% ice) to your shared location is 100% FREE within 2 hours (minimum order 2 kg, gives 4–5 pan-ready trout for ₹1,160 total). How many Kgs of Cleaned & Gutted trout would you like, and please share a WhatsApp location pin or Google Maps link for pin-point delivery?"
+  "Great! ${detectedLoc.name} is right in our core service area! Express delivery is 100% FREE within 2 hours (minimum order 2 kg, gives 4–5 pan-ready trout for ₹1,160 total). How many kg would you like?"
 • IF CUSTOMER ASKS FOR 1 KG:
   "Express delivery is 100% FREE on 2 kg (₹1,160 total). If you'd like just 1 kg as a starter pack to taste today, we can dispatch it express for ₹580 + ₹${45 + surgeAdd} delivery fee (₹${625 + surgeAdd} total), or you can visit our Live Vending Center in Malabagh with zero delivery fee. Which works better for you?"
 • When customer confirms 2 kg Cleaned & Gutted: output [PAY_LINK: 1160 : 2 kg Cleaned & Gutted]
@@ -3612,7 +3639,7 @@ Ask for a WhatsApp location pin or Google Maps link for pin-point delivery (neve
         } else if (detectedLoc.dist <= 7.0) {
         localityContext = `\n======================================================
 📍 SMART LOCALITY DETECTED: Customer mentioned "${detectedLoc.name}" (~${detectedLoc.dist} km from Malabagh).
-⚠️ STRICT MANDATE: NEVER MENTION "Zone 2", ZONE NUMBERS, "doorstep", "cold-chain", "cold chain", "chilled", "subsidized", "70%", "30%", OR "Rapido"! Speak naturally: "We offer express delivery in food-grade biodegradable polythene (0% ice) to your shared location in ${detectedLoc.name}!".
+⚠️ STRICT MANDATE: NEVER MENTION "Zone 2", ZONE NUMBERS, "doorstep", "cold-chain", "cold chain", "chilled", "subsidized", "70%", "30%", "biodegradable", "polythene", OR "Rapido"! Speak naturally: "We deliver express to ${detectedLoc.name} within 2 hours!".
 CRITICAL DELIVERY & PRICING INSTRUCTIONS:${isEveningSurge ? "\n⚡ CURRENT TIME: EVENING RUSH HOUR (4:00 PM – 8:00 PM IST) — +₹40 evening rush fee surcharge applies to orders below 3 kg. 3 kg+ is 100% FREE!" : ""}
 • Express Delivery: 100% FREE on 3 kg or more!
 • 2 kg Order: Available with a nominal express delivery fee of only *₹${55 + surgeAdd}* (₹1,160 + ₹${55 + surgeAdd} = *₹${1215 + surgeAdd} total* for Cleaned & Gutted).
@@ -3632,7 +3659,7 @@ Ask for a WhatsApp location pin or Google Maps link for pin-point delivery (neve
         } else if (detectedLoc.dist <= 11.5) {
         localityContext = `\n======================================================
 📍 SMART LOCALITY DETECTED: Customer mentioned "${detectedLoc.name}" (~${detectedLoc.dist} km from Malabagh).
-⚠️ STRICT MANDATE: NEVER MENTION "Zone 3", ZONE NUMBERS, "doorstep", "cold-chain", "cold chain", "chilled", "subsidized", "70%", "30%", OR "Rapido"! Speak naturally: "We offer express delivery in food-grade biodegradable polythene (0% ice) to your shared location in ${detectedLoc.name}!".
+⚠️ STRICT MANDATE: NEVER MENTION "Zone 3", ZONE NUMBERS, "doorstep", "cold-chain", "cold chain", "chilled", "subsidized", "70%", "30%", "biodegradable", "polythene", OR "Rapido"! Speak naturally: "We deliver express to ${detectedLoc.name} within 2 hours!".
 CRITICAL DELIVERY & PRICING INSTRUCTIONS:${isEveningSurge ? "\n⚡ CURRENT TIME: EVENING RUSH HOUR (4:00 PM – 8:00 PM IST) — +₹40 evening rush fee surcharge applies to orders below 3 kg. 3 kg+ is 100% FREE!" : ""}
 • Express Delivery: 100% FREE on 3 kg or more!
 • 2 kg Order: Available with a nominal express delivery fee of only *₹${89 + surgeAdd}* (₹1,160 + ₹${89 + surgeAdd} = *₹${1249 + surgeAdd} total* for Cleaned & Gutted).
@@ -3652,7 +3679,7 @@ Ask for a WhatsApp location pin or Google Maps link for pin-point delivery (neve
         } else if (detectedLoc.dist <= 16.0) {
         localityContext = `\n======================================================
 📍 SMART LOCALITY DETECTED: Customer mentioned "${detectedLoc.name}" (~${detectedLoc.dist} km from Malabagh).
-⚠️ STRICT MANDATE: NEVER MENTION "Zone 4", ANY ZONE NUMBERS, KM RANGES LIKE "(11.5–16 km)", "doorstep", "cold-chain", "cold chain", "chilled", "subsidized", "70%", "30%", OR "Rapido"! Speak naturally: "We offer express delivery in food-grade biodegradable polythene (0% ice) to your shared location in ${detectedLoc.name}!".
+⚠️ STRICT MANDATE: NEVER MENTION "Zone 4", ANY ZONE NUMBERS, KM RANGES LIKE "(11.5–16 km)", "doorstep", "cold-chain", "cold chain", "chilled", "subsidized", "70%", "30%", "biodegradable", "polythene", OR "Rapido"! Speak naturally: "We deliver express to ${detectedLoc.name} within 2 hours!".
 CRITICAL DELIVERY & PRICING INSTRUCTIONS:${isEveningSurge ? "\n⚡ CURRENT TIME: EVENING RUSH HOUR (4:00 PM – 8:00 PM IST) — +₹40 evening rush fee surcharge applies to orders below 5 kg. 5 kg family pack remains 100% FREE!" : ""}
 • Express Delivery: 100% FREE on 5 kg family pack (gives 10–12 fresh trout at *₹2,900 total*)!
 • 4 kg Order: Available with a nominal express delivery fee of *₹${109 + surgeAdd}* (₹2,320 + ₹${109 + surgeAdd} = *₹${2429 + surgeAdd} total*).
@@ -3685,7 +3712,7 @@ Ask for a WhatsApp location pin or Google Maps link for pin-point delivery (neve
     } else if (detectedLoc.status === "OUT_ZONE") {
       localityContext = `\n======================================================
 📍 SMART LOCALITY DETECTED: Customer mentioned "${detectedLoc.name}", which is OUTSIDE our 16 km delivery perimeter.
-CRITICAL INSTRUCTION: Inform them politely that express delivery (packed fresh in food-grade biodegradable polythene, 0% ice) is restricted to 16 km across Srinagar to preserve live-harvest freshness (NEVER say "doorstep", "cold-chain", or "chilled"). You MUST include this exact phrase:
+CRITICAL INSTRUCTION: Inform them politely that express delivery is restricted to 16 km across Srinagar to preserve peak live-harvest freshness (NEVER say "doorstep", "cold-chain", or "chilled"). You MUST include this exact phrase:
 "However, you are warmly welcome to visit our Live Vending Center in Malabagh (Near R. P. School Girls Wing, open Saturday to Thursday) where you can pick live trout and get it cleaned on the spot!" (Maps: https://maps.app.goo.gl/6FT5iLk5n8mbKSRU9)
 ======================================================`;
     }
@@ -3965,7 +3992,7 @@ CRITICAL DIRECTIVE ON BUTCHERING & CUTTING POLICY:
   }
 
   // ─── DELIVERY SPEED / FASTER / 1-HOUR DELIVERY INTENT DECODER ───
-  const isDeliverySpeedOrUrgentIntent = /\b(?:faster|fast|jaldi|urgent|emergency|early|quick|how\s*(?:fast|soon)|kitna\s*time|kitne\s*(?:baje|ghante|time|der)|kab\s*tak|kitni\s*der|deliver(?:y)?\s*time|time\s*lagega|can\s*(?:it|you)\s*(?:reach|deliver)\s*(?:in|faster|early|within)|1\s*hour|one\s*hour|30\s*min(?:utes?)?|45\s*min(?:utes?)?|delivery\s*(?:speed|duration|window))\b/i.test(trimmedLower);
+  const isDeliverySpeedOrUrgentIntent = /\b(?:faster|fast|jaldi|jddi|jldi|urgent|emergency|early|quick|how\s*(?:fast|soon)|kitna\s*time|kitne\s*(?:baje|ghante|time|der)|kab\s*tak|kitni\s*der|deliver(?:y)?\s*time|time\s*lagega|can\s*(?:it|you)\s*(?:reach|deliver)\s*(?:in|faster|early|within)|1\s*hour|one\s*hour|30\s*min(?:utes?)?|45\s*min(?:utes?)?|delivery\s*(?:speed|duration|window))\b/i.test(trimmedLower);
   if (isDeliverySpeedOrUrgentIntent) {
     const locDist = detectedLoc?.dist ?? (chatMetadata[chatId]?.distanceKm ?? null);
     const locName = detectedLoc?.name ?? (chatMetadata[chatId]?.localityName ?? null);
@@ -4145,7 +4172,7 @@ Would you like us to schedule a fresh live-harvest delivery for you tomorrow (Sa
     const deterministicThuForFriReply = `Tomorrow is Friday, and our farm and delivery operations are strictly closed on Fridays for scheduled bio-security maintenance and filtration backwashing (zero counter walk-ins and zero express deliveries on Friday).
 
 We would be delighted to schedule your fresh live-harvest delivery for:
-1️⃣ *Today (Thursday):* Fresh express delivery to your shared location pin within 2 hours (packed in food-grade biodegradable polythene, 0% ice; open until 8:00 PM)!
+1️⃣ *Today (Thursday):* Fresh express delivery within 2 hours (open until 8:00 PM)!
 2️⃣ *Saturday:* Advance booking with your preferred slot:
 • 🕗 *Morning:* 8:00 AM – 11:00 AM
 • 🕛 *Afternoon:* 12:00 PM – 3:00 PM
@@ -4171,19 +4198,19 @@ Would you prefer fresh delivery today (Thursday) within 2 hours, or an advance b
   if (isNightAfter9PM && isAskingImmediateTonight) {
     let deterministicNightReply = "";
     if (existingOrder && !existingOrder.notFound && /(?:paid|confirmed|harvest|dispatch)/i.test(existingOrder.status || "")) {
-      deterministicNightReply = isThursdayToday
+      deterministicNightReply = (isThursdayToday && !isFridayOpen)
         ? `Our deliveries for tonight closed at 8:00 PM. Please note our farm is strictly closed on Fridays for weekly filtration and bio-security maintenance.
 
-Your order (*#${existingOrder.orderRef}* - ${existingOrder.items || "Fresh Rainbow Trout"}) is confirmed! It is scheduled for fresh morning live harvest, packed in food-grade biodegradable polythene (0% ice), and express dispatch via our Express Dispatch Partner on *Saturday morning between 8:00 AM and 11:00 AM*.
+Your order (*#${existingOrder.orderRef}* - ${existingOrder.items || "Fresh Rainbow Trout"}) is confirmed! It is scheduled for fresh morning live harvest and express dispatch via our Express Dispatch Partner on *Saturday morning between 8:00 AM and 11:00 AM*.
 
 Please keep your phone reachable — our Express Dispatch Partner calls prior to arrival for a prompt doorstep handover!`
         : `Our deliveries for tonight closed at 8:00 PM. We start fresh orders from 8:00 AM every morning!
 
-Your order (*#${existingOrder.orderRef}* - ${existingOrder.items || "Fresh Rainbow Trout"}) is confirmed! It is scheduled for fresh morning live harvest from our crystal-clear oxygen-saturated cold water tanks, packed in food-grade biodegradable polythene (0% ice), and express dispatch via our Express Dispatch Partner tomorrow morning between *8:00 AM and 11:00 AM*.
+Your order (*#${existingOrder.orderRef}* - ${existingOrder.items || "Fresh Rainbow Trout"}) is confirmed! It is scheduled for fresh morning live harvest from our crystal-clear oxygen-saturated cold water tanks and express dispatch via our Express Dispatch Partner tomorrow morning between *8:00 AM and 11:00 AM*.
 
 Please keep your phone reachable — our Express Dispatch Partner calls prior to arrival for a prompt doorstep handover!`;
     } else {
-      deterministicNightReply = isThursdayToday
+      deterministicNightReply = (isThursdayToday && !isFridayOpen)
         ? `Our deliveries for tonight closed at 8:00 PM. Please note that our farm is strictly closed on Fridays for weekly filtration and bio-security maintenance (zero counter walk-ins and zero express deliveries on Friday).
 
 We start taking fresh live-harvest orders from 8:00 AM every Saturday morning! We would be delighted to schedule your delivery for Saturday:
@@ -4286,7 +4313,7 @@ Which slot today works best for you, and how many Kgs would you like for your fa
     timeStatusDetail = `✅ CURRENT STATUS: OPEN & ACTIVELY ACCEPTING ORDERS (8:00 AM - 8:00 PM)!
 - We start taking fresh live-harvest orders from 8:00 AM every single day${isFridayOpen ? " (including Friday by special override)" : " (except Friday)"}!
 - We are currently open and actively taking orders for TODAY (${todayDayName}) right now!
-- Live-harvested Rainbow Trout packed fresh in food-grade biodegradable polythene (0% ice) and delivered to the customer's shared GPS location pin WITHIN 2 HOURS (or at their preferred scheduled time slot today up to 8:00 PM).
+- Live-harvested Rainbow Trout delivered across Srinagar within 2 hours (or at their preferred scheduled time slot today up to 8:00 PM).
 - Minimum order for FREE delivery: 2 kg for 0–4 km, 3 kg for 4–11.5 km, 5 kg for 11.5–16 km (Rajbagh, Jawahar Nagar, Batamaloo, Sanat Nagar, Peerbagh, Airport Rd, Nowgam, Hyderpora, etc.); standard express delivery fee on smaller orders.
 - ABSOLUTELY NEVER say "deliveries wrapped up" or "book for tomorrow" during daytime (8:00 AM - 8:00 PM)! Offer live delivery TODAY within 2 hours!${thuNote}`;
   } else if (isNightAfter9PM) {
@@ -4313,7 +4340,7 @@ Which slot today works best for you, and how many Kgs would you like for your fa
 - ⚠️ Under NO circumstances call tomorrow "Saturday" unless today is actually Friday!`;
     }
   } else {
-    if (isThursdayToday) {
+    if (isThursdayToday && !isFridayOpen) {
       timeStatusDetail = `🌅 CURRENT STATUS: EARLY MORNING (Pre-Dawn, current time is ${istTimeStr}).
 - Today is Thursday! We start taking fresh live-harvest orders and dispatch at 8:00 AM sharp until 8:00 PM! (Note: Tomorrow Friday is closed).`;
     } else {
@@ -4342,9 +4369,11 @@ ${timeStatusDetail}
 
   const stageInstruction = isFirstMessage
     ? `NEW CONVERSATION INITIATION (ULTRA-BRIEF & HIGH-CONVERSION):
-- Keep the opening welcome to 4–5 short, warm, scannable lines max!
+- Keep the opening welcome to 3–4 short, warm, scannable lines max!
 ${isVipCustomer ? `- 👑 VIP RETURNING CUSTOMER RULE: Address customer respectfully by name as indicated in their VIP profile (${vipProfile.salutation || "Valued Patron"}). Offer to repeat their usual order (${vipProfile.usualWeightKg} kg ${vipProfile.usualCut} to ${vipProfile.locality}).` : `- STRICT PROFESSIONAL RULE FOR NEW LEADS: NEVER address or call the customer by any personal name (e.g. no "Hello Munir!", "Dear Uzma,", "Hi Shahid,"). Greet neutrally.`}
-- DO NOT mention "polythene", "biodegradable", "0% ice", "packaging", "shared GPS location", "Google Maps link", "location pin", delivery fee ranges (₹85–₹230), or "3–5 kg" in the first message! (Only explain biodegradable polythene / 0% ice if the customer specifically asks about packaging or ice, and only ask for a location pin once they confirm their area/order.)
+- DO NOT mention "polythene", "biodegradable", "0% ice", "packaging", "shared GPS location", "Google Maps link", "location pin", delivery fee ranges (₹85–₹230), or "3–5 kg" in the first message! (Only explain packaging if the customer specifically asks about packaging or ice, and only ask for a location pin once they confirm their area/order.)
+- If customer already specified a quantity or asked for 1kg (e.g. "Price of 1kg"):
+  Do NOT ask "how many kg would you like?"! Answer their inquiry directly with price (*₹580/kg*) and ask ONLY for their area in Srinagar!
 - Follow this crisp structure:
   Hello! Welcome to Urban Trout 🐟
   Fresh Himalayan Rainbow Trout, harvested live to order from our Malabagh farm and delivered across Srinagar within 2 hours!
@@ -4352,7 +4381,7 @@ ${isVipCustomer ? `- 👑 VIP RETURNING CUSTOMER RULE: Address customer respectf
   • Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — descaled, zero kitchen mess)
   🛵 *Express delivery across Srinagar* (FREE on eligible orders)
 
-  Which area in Srinagar are you in, and how many kg would you like?
+  ${is1KgIntent ? "Which area in Srinagar are you in? I'll share your exact delivery time and total right away!" : "Which area in Srinagar are you in, and how many kg would you like?"}
 - NEVER use the word "Janab".
 - NEVER say "Malabagh Vending Center" — always use "Live Vending Center in Malabagh".`
     : `ONGOING FOLLOW-UP CONVERSATION:
@@ -4681,13 +4710,33 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
   // ── Today's Dynamic Order Pool Awareness ──
   if (todayOrderForCustomer) {
     if (TodayOrderPool.isOrderPaid(todayOrderForCustomer)) {
-      activeTurnPrompt = `[⭐ TODAY'S ORDER ALREADY PAID & CONFIRMED: #${todayOrderForCustomer.orderRef} (${todayOrderForCustomer.items}, ${todayOrderForCustomer.amount}, Slot: ${todayOrderForCustomer.deliveryTime}). Customer is texting after payment. ABSOLUTELY NEVER ASK FOR PAYMENT. NEVER GENERATE A PAYMENT LINK OR TOTAL. Acknowledge that their order is paid, confirmed, and scheduled for harvest/delivery. If they shared address or pin, confirm it is received for rider.]\n\n${activeTurnPrompt}`;
+      let slotTxt = todayOrderForCustomer.deliveryTime || "Today";
+      if (slotTxt.toLowerCase().includes("tomorrow")) {
+        slotTxt = slotTxt.replace(/tomorrow/gi, "Today");
+      }
+      activeTurnPrompt = `[⭐ TODAY'S ACTIVE ORDER ALREADY PAID & CONFIRMED: #${todayOrderForCustomer.orderRef} (${todayOrderForCustomer.items}, ${todayOrderForCustomer.amount}, Scheduled Slot: ${slotTxt}).
+Customer has ALREADY paid for this order!
+CRITICAL TEMPORAL & FINANCIAL SHIELD:
+1. ABSOLUTELY NEVER SAY 'TOMORROW' OR RESCHEDULE THIS ORDER! Today is ${todayDayName}. The order is confirmed for TODAY (${slotTxt}).
+2. ABSOLUTELY NEVER ASK FOR PAYMENT OR SEND PAYMENT LINKS OR QR CODES.
+3. NEVER GENERATE A DUPLICATE ORDER SUMMARY OR NEW ORDER NUMBER.
+4. Reassure the customer warmly that their order is confirmed and our Malabagh farm team has it scheduled for delivery today! If they shared an address/pin, confirm it is received for rider.]\n\n${activeTurnPrompt}`;
     } else if (todayOrderForCustomer.payUrl) {
       activeTurnPrompt = `[⭐ TODAY'S ORDER PENDING PAYMENT: #${todayOrderForCustomer.orderRef} (${todayOrderForCustomer.items}, ${todayOrderForCustomer.amount}, Slot: ${todayOrderForCustomer.deliveryTime}). Payment link is already generated: ${todayOrderForCustomer.payUrl}. If customer asks for payment or link, provide this exact link. DO NOT change price or generate a different link.]\n\n${activeTurnPrompt}`;
     }
   } else if (existingOrder && !existingOrder.notFound) {
-    if (isHistoricalOrderPaid(existingOrder)) {
-      activeTurnPrompt = `[⭐ EXISTING CONFIRMED ORDER ON FILE: #${existingOrder.orderRef} (${existingOrder.items}, ${existingOrder.amount}, Status: ${existingOrder.status}, Slot: ${existingOrder.deliveryTime}). Customer is asking about their confirmed order/delivery. Provide their order status and timing directly.]\n\n${activeTurnPrompt}`;
+    const isPastFulfilled = isOrderDeliveredOrClosed(existingOrder);
+    const orderDate = new Date(existingOrder.createdAt || existingOrder.updatedAt || existingOrder.paidAt || 0);
+    const isOldOrder = (Date.now() - orderDate.getTime()) > (24 * 60 * 60 * 1000);
+
+    if (!isPastFulfilled && !isOldOrder && isHistoricalOrderPaid(existingOrder)) {
+      activeTurnPrompt = `[⭐ ACTIVE CONFIRMED ORDER ON FILE: #${existingOrder.orderRef} (${existingOrder.items}, ${existingOrder.amount}, Status: ${existingOrder.status}, Slot: ${existingOrder.deliveryTime || "Today"}). Customer is asking about their confirmed order/delivery. Provide their order status and timing directly. DO NOT generate a duplicate order or ask for payment again.]\n\n${activeTurnPrompt}`;
+    } else if (isPastFulfilled || isOldOrder) {
+      activeTurnPrompt = `[⭐ RETURNING VALUED CUSTOMER: Customer has ordered from us in the past (Previous completed order #${existingOrder.orderRef}).
+CRITICAL DIRECTIVE: They are currently making a NEW inquiry or placing a NEW order today.
+1. DO NOT claim order #${existingOrder.orderRef} is currently active or being harvested today! That past order was already completed/delivered.
+2. Welcome them back warmly as a returning patron.
+3. Answer their questions and assist them in placing their fresh new order for today with current rates.]\n\n${activeTurnPrompt}`;
     } else {
       activeTurnPrompt = `[ℹ️ RETURNING LEAD / PREVIOUS UNPAID QUOTE: Customer had an older quote #${existingOrder.orderRef}. ANY PREVIOUS PAYMENT LINK HAS EXPIRED. Do NOT resend dead payment links! Always apply current updated delivery rates for their area. If they ask to proceed or pay, generate a fresh order summary with updated rates.]\n\n${activeTurnPrompt}`;
     }
@@ -4737,7 +4786,7 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
         if (isFridayToday) {
           scheduledSlot = "Saturday (Advance Scheduled)";
         } else if (isNightAfter9PM) {
-          scheduledSlot = isThursdayToday 
+          scheduledSlot = (isThursdayToday && !isFridayOpen)
             ? "Saturday Morning (8:00 AM – 11:00 AM)" 
             : "Tomorrow Morning (8:00 AM – 11:00 AM)";
         } else if (isEarlyPreDawn) {
@@ -4890,16 +4939,25 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
           const amount = Number(payMatch[1]);
           const desc = payMatch[2].trim();
 
-          // 🛡️ HARD SHIELD: Today's Order Pool Check (Never generate payment link for already-paid customers)
+          // 🛡️ HARD SHIELD: Today's Order Pool & Existing Paid Order Check (Never generate duplicate link/order for already-paid customers)
           const currentPaidToday = TodayOrderPool.getTodayOrder(customerPhone || cleanPhone, chatId);
           const isTodayOrderPaid = currentPaidToday && TodayOrderPool.isOrderPaid(currentPaidToday);
+          const activeExistingPaid = existingOrder && isHistoricalOrderPaid(existingOrder) && !isOrderDeliveredOrClosed(existingOrder);
+          const isCustomerAlreadyPaid = isTodayOrderPaid || Boolean(activeExistingPaid);
+          const paidRef = currentPaidToday?.orderRef || activeExistingPaid?.orderRef;
+          let paidSlot = currentPaidToday?.deliveryTime || activeExistingPaid?.deliveryTime || "Today";
+          if (paidSlot.toLowerCase().includes("tomorrow")) {
+            paidSlot = paidSlot.replace(/tomorrow/gi, "Today");
+          }
           const isExplicitAdditionalOrder = /\b(?:another|new|second|one more|ek aur|separate|different)\s*(?:order|kg|fish|pack)/i.test(userMessage);
 
-          if (isTodayOrderPaid && !isExplicitAdditionalOrder) {
-            console.log(`[Paid Shield] Suppressed duplicate payment link for already-paid customer ${chatId} (#${currentPaidToday.orderRef}).`);
+          if (isCustomerAlreadyPaid && !isExplicitAdditionalOrder) {
+            console.log(`[Paid Shield] Suppressed duplicate payment link for already-paid customer ${chatId} (#${paidRef}).`);
             rawReply = rawReply.replace(payMatch[0], "").trim();
-            if (!rawReply.includes(currentPaidToday.orderRef)) {
-              rawReply += `\n\nYour order (*#${currentPaidToday.orderRef}*) is already paid & confirmed! Our Malabagh farm team has it scheduled for fresh live harvest (${currentPaidToday.deliveryTime || "Today"}). 🐟`;
+            // Also scrub any hallucinated new order summary card if Gemini generated one
+            rawReply = rawReply.replace(/(?:^|\n)\s*(?:🧾\s*)?(?:URBAN TROUT\s*[•·-]\s*)?(?:Order Summary|ORDER SUMMARY)[\s\S]*?(?:Total Payable:\s*₹[\d,]+[^\n]*)/gi, "").trim();
+            if (!rawReply.includes(paidRef)) {
+              rawReply += `\n\nYour order (*#${paidRef}*) is already paid & confirmed! Our Malabagh farm team has it scheduled for fresh live harvest (${paidSlot}). 🐟`;
             }
           } else {
             // 1. Silent stock check
@@ -4965,8 +5023,7 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
               const isFarOutZone = /(?:pampore|chadoora|lawaypora|hmt|harwan|budgam|ompora|baramulla|anantnag|jammu|kanipora|bk\s*pora|bagati\s*kanipora|narbal|magam|pulwama)/i.test(recentContextForOutZone);
               const payWeatherPolicy = evaluateWeatherDeliveryPolicy(custDist);
 
-              const combinedTextPre = (rawReply + " " + userMessage + " " + history.filter(h => h.role === "user").map(h => h.text).join(" ")).toLowerCase();
-              const isExplicitTomorrowPre = /\b(?:tomorrow|tomm?or?ro?w|tmrw|2moro|kal|subah\s*kal|kal\s*subah|saturday|advance|hafta|schedule)\b/i.test(combinedTextPre) &&
+              const isExplicitTomorrowPre = /\b(?:tomorrow|tomm?or?ro?w|tmrw|2moro|kal|subah\s*kal|kal\s*subah|saturday|advance|hafta|schedule)\b/i.test(userMessage) &&
                                             !/\b(?:today|tonight|aaj|abhi|right\s*now)\b/i.test(userMessage);
               const isAdvanceScheduledOrder = isExplicitTomorrowPre;
 
@@ -4999,7 +5056,7 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
                 const sGuard = isEveningSurge ? 40 : 0;
                 rawReply = rawReply.replace(
                   payMatch[0],
-                  `🛵 *Delivery Note (South & Cross-City Srinagar):*\nYour location is ~${custDist ? custDist.toFixed(1) : "12–16"} km from our farm. Express delivery (packed fresh in food-grade biodegradable polythene, 0% ice) is 100% FREE for our *5 kg* family pack (₹2,900 Cleaned & Gutted / ₹2,700 Whole).\n\nSmaller orders are also gladly delivered via our Express Dispatch Partner:\n• 4 kg: ₹${2429 + sGuard} total (₹${109 + sGuard} delivery fee)\n• 3 kg: ₹${1869 + sGuard} total (₹${129 + sGuard} delivery fee)\n• 2 kg: ₹${1299 + sGuard} total (₹${139 + sGuard} delivery fee)\n• 1 kg: ₹${770 + sGuard} total (₹${190 + sGuard} delivery fee)\n\nWhich option would you like? 🐟`
+                  `🛵 *Delivery Note (South & Cross-City Srinagar):*\nYour location is ~${custDist ? custDist.toFixed(1) : "12–16"} km from our farm. Express delivery is 100% FREE for our *5 kg* family pack (₹2,900 Cleaned & Gutted / ₹2,700 Whole).\n\nSmaller orders are also gladly delivered via our Express Dispatch Partner:\n• 4 kg: ₹${2429 + sGuard} total (₹${109 + sGuard} delivery fee)\n• 3 kg: ₹${1869 + sGuard} total (₹${129 + sGuard} delivery fee)\n• 2 kg: ₹${1299 + sGuard} total (₹${139 + sGuard} delivery fee)\n• 1 kg: ₹${770 + sGuard} total (₹${190 + sGuard} delivery fee)\n\nWhich option would you like? 🐟`
                 );
               } else if (!isSpecialDeliveryOrder && custDist !== null && custDist > 4.0 && custDist <= 11.5 && (orderWeight < 2.95 || amount < 1620)) {
                 console.log(`[Link Guard] Blocked <3kg free-delivery payment link for ${chatId} - zone 2/3 requires 3kg MOQ for free delivery.`);
@@ -5028,14 +5085,14 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
               } else {
                 try {
                   // Determine delivery slot based on customer selection and time
-                  const combinedText = (rawReply + " " + userMessage + " " + history.filter(h => h.role === "user").map(h => h.text).join(" ")).toLowerCase();
+                  const currentTurnText = userMessage.toLowerCase();
                   
-                  // Explicit check for customer requesting tomorrow / advance day delivery
-                  const isExplicitTomorrow = /\b(?:tomorrow|tomm?or?ro?w|tmrw|2moro|kal|subah\s*kal|kal\s*subah)\b/i.test(combinedText);
-                  const isExplicitSaturday = /\b(?:saturday|advance|hafta)\b/i.test(combinedText);
+                  // Explicit check for customer requesting tomorrow / advance day delivery in current turn
+                  const isExplicitTomorrow = /\b(?:tomorrow|tomm?or?ro?w|tmrw|2moro|kal|subah\s*kal|kal\s*subah)\b/i.test(currentTurnText) && !/\b(?:today|tonight|aaj|abhi|right\s*now)\b/i.test(currentTurnText);
+                  const isExplicitSaturday = /\b(?:saturday|advance|hafta)\b/i.test(currentTurnText);
 
                   let targetDay = "Today";
-                  if (isFridayToday || (isThursdayToday && isExplicitTomorrow)) {
+                  if (isFridayToday || (isThursdayToday && !isFridayOpen && isExplicitTomorrow)) {
                     targetDay = "Saturday";
                   } else if (isExplicitTomorrow || isNightAfter9PM) {
                     targetDay = "Tomorrow";
@@ -5044,11 +5101,11 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
                   }
 
                   let scheduledSlot = "Within 90–120 Minutes (Today)";
-                  if (/\b(?:evening|shaam|sham|night|4\s*pm|5\s*pm|6\s*pm|7\s*pm|4:00|5:00|6:00|7:00|16:00)\b/i.test(combinedText)) {
+                  if (/\b(?:evening|shaam|sham|night|4\s*pm|5\s*pm|6\s*pm|7\s*pm|4:00|5:00|6:00|7:00|16:00)\b/i.test(currentTurnText)) {
                     scheduledSlot = `${targetDay} Evening (4:00 PM – 7:00 PM)`;
-                  } else if (/\b(?:afternoon|dopahar|noon|12\s*pm|1\s*pm|2\s*pm|3\s*pm|12:00|13:00|14:00|15:00)\b/i.test(combinedText)) {
+                  } else if (/\b(?:afternoon|dopahar|noon|12\s*pm|1\s*pm|2\s*pm|3\s*pm|12:00|13:00|14:00|15:00)\b/i.test(currentTurnText)) {
                     scheduledSlot = `${targetDay} Afternoon (12:00 PM – 3:00 PM)`;
-                  } else if (/\b(?:morning|subah|early|8\s*am|9\s*am|10\s*am|11\s*am|8:00|9:00|10:00|11:00)\b/i.test(combinedText)) {
+                  } else if (/\b(?:morning|subah|early|8\s*am|9\s*am|10\s*am|11\s*am|8:00|9:00|10:00|11:00)\b/i.test(currentTurnText)) {
                     scheduledSlot = `${targetDay} Morning (8:00 AM – 11:00 AM)`;
                   } else if (targetDay === "Tomorrow") {
                     scheduledSlot = "Tomorrow (Advance Scheduled)";
@@ -5155,7 +5212,7 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
         // Strict post-processing: enforce night protocol (scrub accidental promises of immediate delivery tonight)
         // ONLY applies at night (8:00 PM – 11:59 PM). Pre-dawn morning is TODAY, so never scrub morning to tomorrow!
         if (isNightAfter9PM) {
-          if (isThursdayToday) {
+          if (isThursdayToday && !isFridayOpen) {
             rawReply = rawReply.replace(/\b(?:(?:we\s*(?:can|will)?\s*)?deliver(?:y|ed)?\s+tonight(?:\s+within\s+(?:1\s*(?:to|-)\s*2|2|1)\s*hours?)?)\b/gi, "scheduled for delivery Saturday morning");
             rawReply = rawReply.replace(/\bwithin\s*(?:1\s*(?:to|-)\s*2|2|1)\s*hours?\s+tonight\b/gi, "Saturday morning");
             rawReply = rawReply.replace(/\bwe\s*(?:can|will)?\s*deliver\s+tonight\b/gi, "we can schedule delivery for Saturday morning");
@@ -7248,11 +7305,11 @@ async function startBot() {
           recordNewCustomerOrder(cleanPhone || raw10, activeOrder);
         }
 
-        const pinPolicyNote = `\n\n📌 *Pin-Point Delivery Reminder:*\nPacked fresh in *food-grade biodegradable polythene (0% ice)* — our *Express Dispatch Partner* delivers strictly to this shared GPS pin (not by house numbers). Please keep your phone reachable so our rider can call prior to arrival for a prompt, smooth doorstep handover.`;
+        const pinPolicyNote = `\n\n📌 *Express Dispatch:* Our rider navigates strictly to your shared GPS pin. Please keep your phone reachable so the rider can call prior to arrival for a smooth doorstep handover. 🐟`;
         const gpsWeatherPolicy = evaluateWeatherDeliveryPolicy(distNum);
         const weatherPinNote = gpsWeatherPolicy.deliverWithDelayWarning ? `\n\n${gpsWeatherPolicy.delayWarningText}` : "";
         const paidWeatherPinNote = gpsWeatherPolicy.weather.isBadWeather
-          ? `\n\n${gpsWeatherPolicy.weatherIcon} *${gpsWeatherPolicy.weatherNoun === "snowfall" ? "Snowfall" : "Rain"} in your area:* Deliveries are active! Since our riders are navigating extra carefully on wet roads, please allow 15–20 minutes extra transit time for your live-harvested pack (0% ice).`
+          ? `\n\n${gpsWeatherPolicy.weatherIcon} *${gpsWeatherPolicy.weatherNoun === "snowfall" ? "Snowfall" : "Rain"} in your area:* Deliveries are active! Since our riders are navigating extra carefully on wet roads, please allow 15–20 minutes extra transit time for your live-harvested pack.`
           : "";
 
         const hasExplicitTomorrowSchedule =
@@ -7397,7 +7454,7 @@ async function startBot() {
             });
           } else {
             // First time inquiry via location pin (no order discussed yet) - show tier pricing for their distance
-            const gpsPolicyLine = `📌 _Packed fresh in food-grade biodegradable polythene (0% ice). Delivered directly to your shared GPS pin. Please keep your phone reachable — our rider calls prior to arrival for a prompt doorstep handover._`;
+            const gpsPolicyLine = `📌 _Delivered directly to your shared GPS pin. Please keep your phone reachable — our rider calls prior to arrival for a prompt doorstep handover._`;
             if (distNum <= 4.0) {
               locReply = isNightGps
                 ? `📍 *Location Received & Verified!* ✅\n\nYour shared location is approximately *${distRounded} km* from our Malabagh farm.\n\n• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero mess)\n\n🛵 *Express delivery is 100% FREE* (min order 2 kg, zero extra fees)!\n${gpsPolicyLine}\nDeliveries for tonight closed at 8:00 PM. We can schedule your harvest for tomorrow (Morning 8–11 AM, Afternoon 12–3 PM, or Evening 4–7 PM).\n\nHow many Kgs and which slot tomorrow would you prefer? 🐟`
