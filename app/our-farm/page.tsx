@@ -28,6 +28,8 @@ export const metadata: Metadata = {
   },
 };
 
+export const revalidate = 86400;
+
 const C = {
   bg: "#031018", bgLow: "#06151e", bgHigh: "#10212c", bgHighest: "#152834",
   primary: "#72ddfd", primaryCont: "#3aadcc", onPrimCont: "#002730",

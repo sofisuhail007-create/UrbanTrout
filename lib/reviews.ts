@@ -107,7 +107,7 @@ function normalizeDisplayName(rawName: string): string {
 
 /**
  * Fetches LIVE real Google Maps reviews + customer profile photos + live rating/count
- * from Featurable v2 JSON API (cached for 1 hour via Next.js revalidate, ₹0/month).
+ * from Featurable v2 JSON API (cached for 24 hours via Next.js revalidate, ₹0/month).
  */
 export async function fetchLiveFeaturableReviews(
   widgetId: string = DEFAULT_FEATURABLE_WIDGET_ID,
@@ -123,7 +123,7 @@ export async function fetchLiveFeaturableReviews(
     `https://featurable.com/api/v2/widgets/${encodeURIComponent(widgetId)}`,
     bypassCache
       ? { cache: "no-store", signal: AbortSignal.timeout(6000) }
-      : { next: { revalidate: 3600 }, signal: AbortSignal.timeout(4500) }
+      : { next: { revalidate: 86400 }, signal: AbortSignal.timeout(4500) }
   );
 
   if (!res.ok) {

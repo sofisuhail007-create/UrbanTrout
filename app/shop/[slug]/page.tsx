@@ -8,8 +8,8 @@ import { supabase } from "@/lib/supabase";
 import { products } from "@/lib/data";
 import { getBusinessHoursInfo } from "@/lib/businessHours";
 
-// Enable ISR (Incremental Static Regeneration) - cached at Edge CDN and refreshed every 60s
-export const revalidate = 60;
+// 24 hours ISR cache - on-demand updates are handled instantly via revalidatePath()
+export const revalidate = 86400;
 
 const C = {
   bg: "#031018",

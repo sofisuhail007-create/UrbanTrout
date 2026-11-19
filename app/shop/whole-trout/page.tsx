@@ -42,7 +42,8 @@ const C = {
   outlineVar: "#3d4a53",
 };
 
-export const revalidate = 60;
+// 24 hours ISR cache - on-demand updates are handled instantly via revalidatePath()
+export const revalidate = 86400;
 
 export default async function WholeTroutPage() {
   // ── Fetch all product page data in ONE parallel batch (zero external API blocking!) ──
