@@ -26,10 +26,10 @@ process.on("unhandledRejection", (reason) => {
 // ============================================================================
 // URBAN TROUT SALES AGENT — BUILD & VERSION TRACKING
 // ============================================================================
-const BOT_VERSION = "3.0.4";
-const BOT_LAST_UPDATED = "18-Nov-2026, 07:20 PM IST";
-const BOT_RELEASE_TITLE = "Brief Zero-Friction Welcome & Concise 1kg Replies";
-const BOT_RELEASE_NOTES = "Shortened opening greeting & 1kg price replies (3-4 clean lines); removed unasked biodegradable polythene/0% ice/GPS pin/3-5kg friction until area is known or customer asks";
+const BOT_VERSION = "3.0.5";
+const BOT_LAST_UPDATED = "19-Nov-2026, 09:30 AM IST";
+const BOT_RELEASE_TITLE = "Faster 1hr Delivery Rule, Table-Size Gold Standard & Auto-Responder Guard";
+const BOT_RELEASE_NOTES = "Added dynamic 1-hour delivery rule for nearby areas (within 4km) & clear-queue dispatches; codified table-size culinary gold standard (400-500g); added auto-responder loop suppression; suppressed follow-ups on explicit declines";
 
 // ============================================================================
 // STRICT VVIP MANUAL-ONLY LIST (AI MUST NEVER TEXT UNDER ANY CIRCUMSTANCE)
@@ -3948,6 +3948,71 @@ CRITICAL DIRECTIVE ON BUTCHERING & CUTTING POLICY:
 ======================================================`;
   }
 
+  // ─── DELIVERY SPEED / FASTER / 1-HOUR DELIVERY INTENT DECODER ───
+  const isDeliverySpeedOrUrgentIntent = /\b(?:faster|fast|jaldi|urgent|emergency|early|quick|how\s*(?:fast|soon)|kitna\s*time|kitne\s*(?:baje|ghante|time|der)|kab\s*tak|kitni\s*der|deliver(?:y)?\s*time|time\s*lagega|can\s*(?:it|you)\s*(?:reach|deliver)\s*(?:in|faster|early|within)|1\s*hour|one\s*hour|30\s*min(?:utes?)?|45\s*min(?:utes?)?|delivery\s*(?:speed|duration|window))\b/i.test(trimmedLower);
+  if (isDeliverySpeedOrUrgentIntent) {
+    const locDist = detectedLoc?.dist ?? (chatMetadata[chatId]?.distanceKm ?? null);
+    const locName = detectedLoc?.name ?? (chatMetadata[chatId]?.localityName ?? null);
+    const isNearby = locDist !== null && locDist <= 4.0;
+
+    intentContext += `\n======================================================
+💡 QUERY INTENT DECODED: Customer inquired about delivery speed, timing, or faster/urgent delivery ("${userMessage.trim()}").
+CRITICAL DIRECTIVE ON DYNAMIC DELIVERY SPEED & 1-HOUR DELIVERY:
+• Standard live-harvest delivery across Srinagar: within 2 hours of payment confirmation (harvested live upon order from our Malabagh tanks, descaled & cleaned pan-ready, and dispatched).
+• FASTER DISPATCH QUEUE RULE:
+  Explain warmly that if there are fewer orders in our live-harvest queue at the moment, their order will be harvested immediately and dispatched even faster!
+${isNearby ? `• ⚡ NEARBY 1-HOUR FAST TRACK (${locName}, ~${locDist} km from farm):
+  Since ${locName} is within our nearby 4 km range, if the live-harvest queue is clear, they can expect delivery *within 1 hour (approx. 45–60 minutes)*!
+  Reassure them: "Since ${locName} is close to our Malabagh farm (~${locDist} km), if you place your order now and our harvest queue is clear, delivery can arrive within 1 hour (approx. 45–60 minutes)! Standard window across Srinagar is within 2 hours."` : (locDist !== null ? `• For ${locName} (~${locDist} km):
+  Standard express delivery is within 2 hours of payment confirmation. If our harvest queue is light, it dispatches immediately and reaches even sooner!` : `• If area is not yet confirmed:
+  "Our standard live-harvest express delivery is within 2 hours across Srinagar. If our harvest queue is light, orders dispatch immediately and arrive even faster!
+  For nearby areas (within 4 km like Malabagh, Soura, Hazratbal, Zakura, Lal Bazar, Buchpora), delivery can arrive *within 1 hour (approx. 45–60 minutes)* when the harvest queue is clear!
+  Which area in Srinagar are you located in?"`)}
+• Keep it confident, reassuring, and concise (2–3 short lines).
+======================================================`;
+  }
+
+  // ─── FISH SIZE / "BIG FISH" / INDIVIDUAL WEIGHT INTENT DECODER ───
+  const isSizeOrBigFishIntent = /\b(?:big\s*size|large\s*size|badi\s*machli|bada\s*size|bade\s*size|chota\s*size|small\s*size|fish\s*size|size\s*kya\s*hai|weight\s*per\s*fish|individual\s*fish|individual\s*big|1\s*fish\s*kitne|per\s*fish\s*weight|trout\s*size|kitne\s*gram|size\s*kitna|king\s*size|huge\s*size)\b/i.test(trimmedLower);
+  if (isSizeOrBigFishIntent) {
+    intentContext += `\n======================================================
+💡 QUERY INTENT DECODED: Customer asked about fish size, individual fish weight, or big/large fish ("${userMessage.trim()}").
+CRITICAL DIRECTIVE ON TABLE-SIZE CULINARY GOLD STANDARD (SUHAIL'S WINNING PITCH):
+• We do NOT sell by size categories (no small/medium/large/King). All our live Rainbow Trout are healthy, premium table-sized fish (approx. 400g–500g each; ~4 to 5 fish per 2 kg order).
+• CULINARY REASONING (WHY TABLE-SIZE IS SUPERIOR):
+  1. Internationally and locally, 400g–500g is celebrated as the culinary gold standard for Rainbow Trout: the meat is exquisitely tender, sweet, and succulent, and it absorbs Kashmiri spices, salt, and heat evenly right to the bone.
+  2. Overgrown large trout (1.5–2kg+) become fibrous, coarse, tough, and accumulate heavy visceral oil and fat.
+  3. Our 400g–500g table size is the exact size personally preferred by top IAS/IPS officers, luxury hotel chefs, and trout connoisseurs across the valley.
+• Pitch structure (warm, confident & educational):
+  "Our live Rainbow Trout are premium table-sized fish (each weighing approx. 400g–500g; a 2 kg order gives 4–5 pan-ready fish).
+  Table size (400g–500g) is the international culinary gold standard — at this size the meat is exceptionally tender, juicy, and absorbs spices evenly to the bone (overgrown large trout become fibrous and tough). This is why top valley chefs and officers specifically prefer this size!
+
+  Cleaned & Gutted is ₹580/kg (pan-ready steaks, descaled with zero kitchen mess). How many kilograms would you like to order today?"
+======================================================`;
+  }
+
+  // ─── CUSTOMER DECLINE / CANCEL / "NO NEED" INTENT DECODER ───
+  const isDeclinedIntent = /\b(?:no\s*need|no\s*thanks?|not\s*now|cancel\s*(?:it|order)?|nahi\s*chahiye|na\s*bhejo|mat\s*bhejo|rehne\s*do|nahi\s*lena|baad\s*mein|expensive|mehenga|khareed\s*liya|already\s*(?:bought|ordered|taken))\b/i.test(trimmedLower);
+  if (isDeclinedIntent) {
+    if (!chatMetadata[chatId]) chatMetadata[chatId] = {};
+    chatMetadata[chatId].declined = true;
+    chatMetadata[chatId].followUpSent = true;
+    if (customerPhone) {
+      if (!chatMetadata[customerPhone]) chatMetadata[customerPhone] = {};
+      chatMetadata[customerPhone].declined = true;
+      chatMetadata[customerPhone].followUpSent = true;
+    }
+    saveChatMetadata();
+
+    intentContext += `\n======================================================
+💡 QUERY INTENT DECODED: Customer politely declined, canceled, or said no need ("${userMessage.trim()}").
+CRITICAL COURTEOUS EXIT DIRECTIVE:
+• Respect their decision immediately with warmth and grace (zero pressure, zero pushiness):
+  "No problem at all! Feel free to message us anytime whenever you crave fresh live-harvest trout or visit our Live Vending Center in Malabagh. Have a wonderful day! 🐟"
+• Keep it to 1–2 short polite lines. DO NOT push more sales or ask more questions!
+======================================================`;
+  }
+
   // ─── MPAY / BANK ACCOUNT DETAILS INTENT DECODER ───
   const isMpayIntent = /\b(?:mpay|m-pay|m\s*pay|jkb\s*mpay|jk\s*bank\s*mpay|account\s*(?:no|number|details)|bank\s*transfer|ifsc|direct\s*transfer|google\s*pay\s*number|phonepe\s*number)\b/i.test(trimmedLower);
   if (isMpayIntent) {
@@ -4564,16 +4629,22 @@ Which area in Srinagar would you like delivery to, or please drop your WhatsApp 
 13. IDENTITY & AI DISCLOSURE ("Who are you?", "Are you AI or human?", "Bot ho ya insaan?"):
    - When asked directly about your identity, explain politely that you are Urban Trout’s digital sales assistant, working 24/7 alongside our farm and harvesting team in Malabagh, Srinagar.
    - Reassure the customer that our dedicated Malabagh farm team handles live harvesting, cleaning, food-grade biodegradable packaging (0% ice), and fast express delivery directly to their shared GPS location.
-14. QUANTITY (KG) VS FISH SIZE DIRECTIVE (CRITICAL):
+14. QUANTITY (KG) VS FISH SIZE DIRECTIVE (TABLE-SIZE CULINARY GOLD STANDARD):
    - We sell STRICTLY by total weight / quantity in kilograms (Kg) (Cleaned & Gutted at ₹580/kg).
-   - Our stock is ALWAYS 400–500 grams per fish.
+   - Our stock is ALWAYS 400–500 grams per fish (table size).
    - NEVER ask the customer "Which size do you want?" or "What size?"! Always ask for quantity in kilograms (e.g. "How many kilograms would you like to order? Minimum 2 kg for free express delivery").
-   - If a customer mentions "King size", "large fish", "badi machli", or asks about size:
-     Clarify politely: "Our live Rainbow Trout are premium table-sized fish (each fish weighs approx 400g–500g, so a 2 kg order gives ~4–5 pan-ready fish). We prepare and bill orders strictly by weight in kilograms (Kg), not individual fish sizes. How many kilograms (kg) would you like harvested fresh?"
+   - If a customer asks for "King size", "large fish", "badi machli", or asks about size:
+     Educate with culinary reasoning: Table-size (400g–500g) is internationally recognized as the culinary gold standard for Rainbow Trout: at this size, the meat is exquisitely tender, sweet, and succulent, and it absorbs Kashmiri spices and marination evenly straight to the bone. Overgrown large trout (1.5–2kg+) become fibrous, coarse, and accumulate heavy visceral fat. This is why top valley chefs and senior officers specifically insist on this size! (A 2 kg order gives 4–5 pan-ready fish).
 15. REVISED DELIVERY RATES DIRECTIVE (CUSTOMER MENTIONS PAYING LESS PREVIOUSLY):
    - If a customer or returning buyer mentions having paid a lower delivery fee previously or asks about delivery rates:
    - NEVER be blunt or defensive! Explain politely and respectfully: "To maintain our pure cold-chain live harvest delivery economics and ensure our riders navigate directly to your shared GPS pin within 90–120 minutes with 0% ice packaging, our delivery rates across Srinagar have been revised to standard actual transit costs."
    - Remind them that orders meeting the zone minimum (2 kg for nearby areas, 3–5 kg for wider Srinagar) enjoy 100% FREE express delivery!
+16. DYNAMIC DELIVERY SPEED & 1-HOUR NEARBY RULE (QUEUE-BASED DISPATCH):
+   - Standard delivery across Srinagar: within 2 hours of payment confirmation.
+   - If our live-harvest queue is light, orders dispatch immediately without waiting and arrive even faster.
+   - For nearby areas within ~4 km (Malabagh, Soura, Hazratbal, Zakura, Lal Bazar, Buchpora): when the queue is clear, delivery can arrive within 1 hour (approx. 45–60 minutes)!
+17. COURTEOUS DECLINE DIRECTIVE (ZERO PUSHINESS):
+   - When a customer says "no need", "cancel", "nahi chahiye", or "not now", acknowledge with warmth and zero pushiness ("No problem at all! Feel free to message us anytime whenever you crave fresh live-harvest trout. Have a wonderful day! 🐟"). Never argue or push further.
 STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines and bullet points, professional, and courteous. NEVER write a dense continuous paragraph. NEVER use the word "Janab".`;
 
   // Format history for Gemini using native system_instruction
@@ -5368,6 +5439,18 @@ async function checkInactiveLeadsFollowUp(sock) {
           /(?:outside\s+(?:our\s+)?(?:5|6|8|16)\s*km|outside\s+delivery\s+perimeter|outside\s+delivery\s+zone|not\s+available\s+for\s+your\s+location|limited\s+to\s+16\s*km)/i.test(historyText);
 
         if (isRefusedOutside) {
+          meta.followUpSent = true;
+          saveChatMetadata();
+          continue;
+        }
+
+        // Skip if customer explicitly declined or if auto-responder was detected
+        const isDeclined =
+          meta.declined === true ||
+          meta.autoResponder === true ||
+          /\b(?:no\s*need|no\s*thanks?|not\s*now|cancel\s*(?:it|order)?|nahi\s*chahiye|na\s*bhejo|mat\s*bhejo|expensive|mehenga|khareed\s*liya|already\s*(?:bought|ordered|taken)|don'?t\s*send|rehne\s*do|nahi\s*lena)\b/i.test(historyText);
+
+        if (isDeclined) {
           meta.followUpSent = true;
           saveChatMetadata();
           continue;
@@ -7723,6 +7806,24 @@ async function startBot() {
 
         const cleanPhone = resolveCustomerPhone(remoteJid);
         const isOwner = msg.key.fromMe || cleanPhone.endsWith("7006604148") || String(remoteJid).includes("174637916885151");
+
+        // 🛡️ AUTO-RESPONDER GUARD: Detect and silently drop WhatsApp Business automated out-of-office / away replies
+        if (!isOwner && rawText) {
+          const isAutoResponder = /\b(?:we(?:'re| are)\s+(?:currently\s+)?unavailable\s+right\s+now|will\s+respond\s+as\s+soon\s+as\s+possible|auto(?:mated)?\s+reply|out\s+of\s+office|thanks\s+for\s+contacting\s+us[.,\s]+we('ll| will)\s+get\s+back|we\s+are\s+away\s+right\s+now|thank\s+you\s+for\s+reaching\s+out[.,\s]+we'll\s+get\s+back|this\s+is\s+an\s+automated\s+(?:message|response)|automated\s+greeting)\b/i.test(rawText);
+          if (isAutoResponder) {
+            console.log(`🛡️ [Auto-Responder Ignored] Automated WhatsApp out-of-office response from ${remoteJid}: "${rawText.slice(0, 45)}...". Silently skipped.`);
+            if (!chatMetadata[remoteJid]) chatMetadata[remoteJid] = {};
+            chatMetadata[remoteJid].autoResponder = true;
+            chatMetadata[remoteJid].followUpSent = true;
+            if (cleanPhone) {
+              if (!chatMetadata[cleanPhone]) chatMetadata[cleanPhone] = {};
+              chatMetadata[cleanPhone].autoResponder = true;
+              chatMetadata[cleanPhone].followUpSent = true;
+            }
+            saveChatMetadata();
+            continue;
+          }
+        }
 
         // Duplicate text debounce: If the exact same text is received from customer within 15 seconds, drop it
         if (!isOwner && rawText) {
