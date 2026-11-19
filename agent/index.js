@@ -26,38 +26,54 @@ process.on("unhandledRejection", (reason) => {
 // ============================================================================
 // URBAN TROUT SALES AGENT — BUILD & VERSION TRACKING
 // ============================================================================
-const BOT_VERSION = "3.0.5";
-const BOT_LAST_UPDATED = "19-Nov-2026, 09:30 AM IST";
-const BOT_RELEASE_TITLE = "Faster 1hr Delivery Rule, Table-Size Gold Standard & Auto-Responder Guard";
-const BOT_RELEASE_NOTES = "Added dynamic 1-hour delivery rule for nearby areas (within 4km) & clear-queue dispatches; codified table-size culinary gold standard (400-500g); added auto-responder loop suppression; suppressed follow-ups on explicit declines";
+const BOT_VERSION = "3.0.6";
+const BOT_LAST_UPDATED = "19-Nov-2026, 09:55 AM IST";
+const BOT_RELEASE_TITLE = "Culinary Gold Standard Pitch Refinement & Rapido Driver Exclusion Guard";
+const BOT_RELEASE_NOTES = "Refined fish size pitch to international culinary gold standard (zero mention of bureaucrats/officers); blacklisted Rapido driver MS Wani (+91 9906030280) from automated messaging & mPay prompts";
 
 // ============================================================================
-// STRICT VVIP MANUAL-ONLY LIST (AI MUST NEVER TEXT UNDER ANY CIRCUMSTANCE)
-// IAS Officer / Executive contacts managed 100% manually by owner Suhail.
+// STRICT MANUAL-ONLY & DRIVER EXCLUSION LIST (AI MUST NEVER TEXT UNDER ANY CIRCUMSTANCE)
+// 1. IAS Officer / Executive contacts managed 100% manually by owner Suhail.
+// 2. Rapido / Delivery drivers (e.g. MS Wani 9906030280) managed manually for rider dispatch.
 // ============================================================================
 const VVIP_MANUAL_ONLY_PHONES = new Set([
   "9419153353",
   "919419153353",
-  "+919419153353"
+  "+919419153353",
+  "9906030280",
+  "919906030280",
+  "+919906030280"
 ]);
 
 const VVIP_MANUAL_ONLY_JIDS = new Set([
   "9419153353@s.whatsapp.net",
   "919419153353@s.whatsapp.net",
-  "208486419951677@lid" // Verified WhatsApp Baileys LID for 9419153353
+  "208486419951677@lid", // Verified WhatsApp Baileys LID for 9419153353
+  "9906030280@s.whatsapp.net",
+  "919906030280@s.whatsapp.net",
+  "177996883349738@lid" // Verified WhatsApp Baileys LID for MS Wani (Rapido Driver)
 ]);
 
-// VVIP / VIP Protection (Manual chat only - AI never replies)
+// VVIP / VIP & Driver Protection (Manual chat only - AI never replies or messages)
 
 function isVvipManualOnly(chatId, phone) {
   if (chatId) {
     const cleanJid = String(chatId).toLowerCase().trim();
     if (VVIP_MANUAL_ONLY_JIDS.has(cleanJid)) return true;
-    if (cleanJid.includes("9419153353") || cleanJid.includes("208486419951677")) return true;
+    if (
+      cleanJid.includes("9419153353") ||
+      cleanJid.includes("208486419951677") ||
+      cleanJid.includes("9906030280") ||
+      cleanJid.includes("177996883349738")
+    ) return true;
   }
   if (phone) {
     const digits = String(phone).replace(/\D/g, "");
-    if (digits.endsWith("9419153353") || VVIP_MANUAL_ONLY_PHONES.has(digits)) return true;
+    if (
+      digits.endsWith("9419153353") ||
+      digits.endsWith("9906030280") ||
+      VVIP_MANUAL_ONLY_PHONES.has(digits)
+    ) return true;
   }
   return false;
 }
@@ -3977,15 +3993,15 @@ ${isNearby ? `• ⚡ NEARBY 1-HOUR FAST TRACK (${locName}, ~${locDist} km from 
   if (isSizeOrBigFishIntent) {
     intentContext += `\n======================================================
 💡 QUERY INTENT DECODED: Customer asked about fish size, individual fish weight, or big/large fish ("${userMessage.trim()}").
-CRITICAL DIRECTIVE ON TABLE-SIZE CULINARY GOLD STANDARD (SUHAIL'S WINNING PITCH):
+CRITICAL DIRECTIVE ON TABLE-SIZE CULINARY GOLD STANDARD:
 • We do NOT sell by size categories (no small/medium/large/King). All our live Rainbow Trout are healthy, premium table-sized fish (approx. 400g–500g each; ~4 to 5 fish per 2 kg order).
 • CULINARY REASONING (WHY TABLE-SIZE IS SUPERIOR):
-  1. Internationally and locally, 400g–500g is celebrated as the culinary gold standard for Rainbow Trout: the meat is exquisitely tender, sweet, and succulent, and it absorbs Kashmiri spices, salt, and heat evenly right to the bone.
-  2. Overgrown large trout (1.5–2kg+) become fibrous, coarse, tough, and accumulate heavy visceral oil and fat.
-  3. Our 400g–500g table size is the exact size personally preferred by top IAS/IPS officers, luxury hotel chefs, and trout connoisseurs across the valley.
+  1. 400g–500g is the international culinary gold standard (meat is tender, succulent, and absorbs Kashmiri spices to the bone, whereas overgrown fish become fibrous and oily).
+  2. Overgrown large trout become fibrous, coarse, tough, and accumulate heavy visceral oil and fat.
+  3. STRICT CONSTRAINT: NEVER use words like "bureaucrats", "officers", "IAS", or "VIPs"! Keep the pitch 100% focused on tenderness, culinary excellence, and rich Kashmiri spice absorption.
 • Pitch structure (warm, confident & educational):
   "Our live Rainbow Trout are premium table-sized fish (each weighing approx. 400g–500g; a 2 kg order gives 4–5 pan-ready fish).
-  Table size (400g–500g) is the international culinary gold standard — at this size the meat is exceptionally tender, juicy, and absorbs spices evenly to the bone (overgrown large trout become fibrous and tough). This is why top valley chefs and officers specifically prefer this size!
+  400g–500g is the international culinary gold standard (meat is tender, succulent, and absorbs Kashmiri spices to the bone, whereas overgrown fish become fibrous and oily).
 
   Cleaned & Gutted is ₹580/kg (pan-ready steaks, descaled with zero kitchen mess). How many kilograms would you like to order today?"
 ======================================================`;
@@ -4634,7 +4650,7 @@ Which area in Srinagar would you like delivery to, or please drop your WhatsApp 
    - Our stock is ALWAYS 400–500 grams per fish (table size).
    - NEVER ask the customer "Which size do you want?" or "What size?"! Always ask for quantity in kilograms (e.g. "How many kilograms would you like to order? Minimum 2 kg for free express delivery").
    - If a customer asks for "King size", "large fish", "badi machli", or asks about size:
-     Educate with culinary reasoning: Table-size (400g–500g) is internationally recognized as the culinary gold standard for Rainbow Trout: at this size, the meat is exquisitely tender, sweet, and succulent, and it absorbs Kashmiri spices and marination evenly straight to the bone. Overgrown large trout (1.5–2kg+) become fibrous, coarse, and accumulate heavy visceral fat. This is why top valley chefs and senior officers specifically insist on this size! (A 2 kg order gives 4–5 pan-ready fish).
+     Educate with culinary reasoning: 400g–500g is the international culinary gold standard (meat is tender, succulent, and absorbs Kashmiri spices to the bone, whereas overgrown fish become fibrous and oily). (A 2 kg order gives 4–5 pan-ready fish). STRICT NEGATIVE CONSTRAINT: NEVER use words like "bureaucrats", "officers", "IAS", or "VIPs"! Keep the focus 100% on culinary excellence, tenderness, and optimal spice absorption.
 15. REVISED DELIVERY RATES DIRECTIVE (CUSTOMER MENTIONS PAYING LESS PREVIOUSLY):
    - If a customer or returning buyer mentions having paid a lower delivery fee previously or asks about delivery rates:
    - NEVER be blunt or defensive! Explain politely and respectfully: "To maintain our pure cold-chain live harvest delivery economics and ensure our riders navigate directly to your shared GPS pin within 90–120 minutes with 0% ice packaging, our delivery rates across Srinagar have been revised to standard actual transit costs."
