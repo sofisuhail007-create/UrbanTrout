@@ -175,7 +175,8 @@ export async function fetchLiveFeaturableReviews(
  */
 export async function fetchLiveGooglePlacesReviews(
   placeId: string,
-  apiKey: string
+  apiKey: string,
+  bypassCache = false
 ): Promise<{
   rating?: number;
   reviewCount?: number;
@@ -190,7 +191,7 @@ export async function fetchLiveGooglePlacesReviews(
         "X-Goog-Api-Key": apiKey,
         "X-Goog-FieldMask": "id,displayName,rating,userRatingCount,reviews,reviewSummary,googleMapsLinks",
       },
-      cache: "no-store",
+      ...(bypassCache ? { cache: "no-store" as const } : { next: { revalidate: 86400 } }),
       signal: AbortSignal.timeout(4500),
     }
   );

@@ -137,7 +137,7 @@ export async function POST(request: Request) {
 
       const [featRes, googleRes] = await Promise.allSettled([
         fetchLiveFeaturableReviews(activeWidgetId, true),
-        activeKey ? fetchLiveGooglePlacesReviews(activePlaceId, activeKey) : Promise.resolve(null),
+        activeKey ? fetchLiveGooglePlacesReviews(activePlaceId, activeKey, true) : Promise.resolve(null),
       ]);
 
       let incomingReviews: GoogleReviewItem[] = [];
