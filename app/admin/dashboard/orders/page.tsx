@@ -82,16 +82,16 @@ function orderToSlipData(order: Order, upi: string): InvoiceSlipData {
 }
 
 const STATUSES: { value: OrderStatus; label: string; color: string }[] = [
-  { value: "pending", label: "Awaiting Verification", color: "bg-amber-500/10 text-amber-300 border-amber-500/20" },
-  { value: "processing", label: "Confirmed", color: "bg-[#161616] text-zinc-300 border-[#333333]" },
-  { value: "out_for_delivery", label: "Out for Delivery", color: "bg-[#161616] text-zinc-300 border-[#333333]" },
-  { value: "delivered", label: "Delivered", color: "bg-[#161616] text-zinc-200 border-[#333333]" },
-  { value: "out_of_stock", label: "Out of Stock (Refund Due)", color: "bg-rose-500/10 text-rose-300 border-rose-500/20" },
-  { value: "cancelled", label: "Cancelled", color: "bg-[#161616] text-zinc-500 border-[#333333]" },
+  { value: "pending", label: "Awaiting Verification", color: "bg-amber-500/25 text-amber-200 border-amber-400/80 ring-1 ring-amber-400/30" },
+  { value: "processing", label: "Confirmed", color: "bg-cyan-500/25 text-cyan-200 border-cyan-400/80 ring-1 ring-cyan-400/40 shadow-sm shadow-cyan-950/40" },
+  { value: "out_for_delivery", label: "Out for Delivery", color: "bg-blue-500/25 text-blue-200 border-blue-400/80 ring-1 ring-blue-400/40 shadow-sm shadow-blue-950/40" },
+  { value: "delivered", label: "Delivered", color: "bg-emerald-500/30 text-emerald-200 border-emerald-400/80 ring-1 ring-emerald-400/40 shadow-sm shadow-emerald-950/40" },
+  { value: "out_of_stock", label: "Out of Stock (Refund Due)", color: "bg-rose-500/25 text-rose-200 border-rose-400/80 ring-1 ring-rose-400/30" },
+  { value: "cancelled", label: "Cancelled", color: "bg-zinc-800 text-zinc-400 border-zinc-600 line-through" },
 ];
 
 function statusStyle(s: string) {
-  if (s === "confirmed") return "bg-[#161616] text-zinc-300 border-[#333333]";
+  if (s === "confirmed" || s === "processing") return "bg-cyan-500/25 text-cyan-200 border-cyan-400/80 ring-1 ring-cyan-400/40 shadow-sm";
   return STATUSES.find((x) => x.value === s)?.color ?? "bg-slate-700 text-slate-400 border-slate-600";
 }
 function statusLabel(s: string) {
@@ -385,61 +385,41 @@ export default function OrdersPage() {
     }
   }
 
-  // Active Dispatch Queue (Pending, Processing, Out for Delivery)
-  // For Staff (Mohd Amin): strictly show OPEN orders needing fulfillment (pending, processing, confirmed, out_for_delivery).
-  // Historical delivered and cancelled orders are hidden from staff.
-  // For Owner: filtered to TODAY'S orders on 2-Hour Radar, with optional delivered toggle.
+  // Active Dispatch Queue (Pending, Processing, Confirmed, Out for Delivery)
+  // Any OPEN order awaiting fulfillment stays on active 2-Hour Radar with live ticking timer
+  // until explicitly marked as delivered or cancelled, regardless of order placement date.
+  // Delivered orders are shown when "Delivered Today" is toggled.
   const activeDispatchOrders = useMemo(() => {
     return orders
       .filter((o) => {
-        if (!isOwner) {
-          // Mohd Amin staff view: strictly open orders
-          return (
-            o.status === "processing" ||
-            o.status === "out_for_delivery" ||
-            o.status === "pending" ||
-            (o.status as any) === "confirmed"
-          );
-        }
-        if (!isOrderPlacedTodayIST(o.created_at)) return false;
-        if (includeDeliveredToday) {
-          return (
-            o.status === "processing" ||
-            o.status === "out_for_delivery" ||
-            o.status === "pending" ||
-            (o.status as any) === "confirmed" ||
-            o.status === "delivered"
-          );
-        }
-        return (
+        const isOpen =
           o.status === "processing" ||
           o.status === "out_for_delivery" ||
           o.status === "pending" ||
-          (o.status as any) === "confirmed"
-        );
+          (o.status as any) === "confirmed";
+
+        // Any open order stays on radar until delivered or cancelled
+        if (isOpen) return true;
+
+        // If toggled to show today's delivered orders, include them
+        if (includeDeliveredToday && o.status === "delivered" && isOrderPlacedTodayIST(o.created_at)) {
+          return true;
+        }
+
+        return false;
       })
       .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-  }, [orders, includeDeliveredToday, isOwner]);
+  }, [orders, includeDeliveredToday]);
 
   const activeQueueCount = useMemo(() => {
-    return orders.filter((o) => {
-      if (!isOwner) {
-        return (
-          o.status === "processing" ||
-          o.status === "out_for_delivery" ||
-          o.status === "pending" ||
-          (o.status as any) === "confirmed"
-        );
-      }
-      return (
-        isOrderPlacedTodayIST(o.created_at) &&
-        (o.status === "processing" ||
-          o.status === "out_for_delivery" ||
-          o.status === "pending" ||
-          (o.status as any) === "confirmed")
-      );
-    }).length;
-  }, [orders, isOwner]);
+    return orders.filter(
+      (o) =>
+        o.status === "processing" ||
+        o.status === "out_for_delivery" ||
+        o.status === "pending" ||
+        (o.status as any) === "confirmed"
+    ).length;
+  }, [orders]);
 
   const overdueCount = useMemo(() => {
     return activeDispatchOrders.filter((o) => o.status !== "delivered" && getDispatchCountdown(o, now).urgency === "overdue").length;
@@ -1453,16 +1433,16 @@ export default function OrdersPage() {
                           </span>
                           <span className="text-[10px] text-cyan-400">Tap anytime to notify customer</span>
                         </div>
-                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
                           {/* Harvest Alert + Copy Button */}
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1.5">
                             <button
                               type="button"
                               onClick={() => handleStartHarvest(order, true)}
-                              className={`flex-1 py-2 px-2 rounded-xl font-mono text-xs font-semibold flex items-center justify-center gap-1.5 transition-all border cursor-pointer ${
+                              className={`flex-1 py-2 px-2.5 rounded-xl font-mono text-xs font-semibold flex items-center justify-center gap-1.5 transition-all border cursor-pointer ${
                                 order.status === "processing" || (order.status as any) === "confirmed"
-                                  ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/50 shadow-sm"
-                                  : "bg-[#111111] hover:bg-[#1a1a1a] text-zinc-300 border-zinc-700/80 hover:border-zinc-500"
+                                  ? "bg-cyan-500/25 text-cyan-200 border-cyan-400/80 shadow-sm"
+                                  : "bg-[#141414] hover:bg-zinc-800 text-zinc-300 border-zinc-700/90 hover:border-zinc-500"
                               }`}
                               title="Set status to Processing & send 'Live Harvest Initiated' WhatsApp message in new tab"
                             >
@@ -1472,28 +1452,36 @@ export default function OrdersPage() {
                             <button
                               type="button"
                               onClick={(e) => copyAlertText(e, getHarvestAlertText(order), `card-harvest-${order.id}`)}
-                              className={`p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-center flex-shrink-0 ${
+                              className={`py-2 px-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-center gap-1 flex-shrink-0 text-xs font-mono font-semibold ${
                                 copiedAlertKey === `card-harvest-${order.id}`
-                                  ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/50"
-                                  : "bg-[#111111] hover:bg-zinc-800 text-zinc-400 hover:text-white border-zinc-700/80"
+                                  ? "bg-emerald-500/25 text-emerald-200 border-emerald-400"
+                                  : "bg-[#181818] hover:bg-zinc-700 text-zinc-300 hover:text-white border-zinc-700"
                               }`}
                               title="Copy Harvest Alert text to clipboard without opening WhatsApp"
                             >
-                              <span className="material-symbols-outlined text-[15px] leading-none">
-                                {copiedAlertKey === `card-harvest-${order.id}` ? "done" : "content_copy"}
-                              </span>
+                              {copiedAlertKey === `card-harvest-${order.id}` ? (
+                                <>
+                                  <span className="text-emerald-400 font-bold">✓</span>
+                                  <span className="text-emerald-300">Copied!</span>
+                                </>
+                              ) : (
+                                <>
+                                  <span>📋</span>
+                                  <span>Copy</span>
+                                </>
+                              )}
                             </button>
                           </div>
 
                           {/* Out for Delivery Alert + Copy Button */}
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1.5">
                             <button
                               type="button"
                               onClick={() => handleOutForDelivery(order, true)}
-                              className={`flex-1 py-2 px-2 rounded-xl font-mono text-xs font-semibold flex items-center justify-center gap-1.5 transition-all border cursor-pointer ${
+                              className={`flex-1 py-2 px-2.5 rounded-xl font-mono text-xs font-semibold flex items-center justify-center gap-1.5 transition-all border cursor-pointer ${
                                 order.status === "out_for_delivery"
-                                  ? "bg-blue-500/20 text-blue-300 border-blue-500/50 shadow-sm"
-                                  : "bg-[#111111] hover:bg-[#1a1a1a] text-zinc-300 border-zinc-700/80 hover:border-zinc-500"
+                                  ? "bg-blue-500/25 text-blue-200 border-blue-400/80 shadow-sm"
+                                  : "bg-[#141414] hover:bg-zinc-800 text-zinc-300 border-zinc-700/90 hover:border-zinc-500"
                               }`}
                               title="Set status to Out for Delivery & send 'Rider En Route' WhatsApp message in new tab"
                             >
@@ -1503,27 +1491,35 @@ export default function OrdersPage() {
                             <button
                               type="button"
                               onClick={(e) => copyAlertText(e, getDeliveryAlertText(order), `card-delivery-${order.id}`)}
-                              className={`p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-center flex-shrink-0 ${
+                              className={`py-2 px-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-center gap-1 flex-shrink-0 text-xs font-mono font-semibold ${
                                 copiedAlertKey === `card-delivery-${order.id}`
-                                  ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/50"
-                                  : "bg-[#111111] hover:bg-zinc-800 text-zinc-400 hover:text-white border-zinc-700/80"
+                                  ? "bg-emerald-500/25 text-emerald-200 border-emerald-400"
+                                  : "bg-[#181818] hover:bg-zinc-700 text-zinc-300 hover:text-white border-zinc-700"
                               }`}
                               title="Copy Out for Delivery Alert text to clipboard without opening WhatsApp"
                             >
-                              <span className="material-symbols-outlined text-[15px] leading-none">
-                                {copiedAlertKey === `card-delivery-${order.id}` ? "done" : "content_copy"}
-                              </span>
+                              {copiedAlertKey === `card-delivery-${order.id}` ? (
+                                <>
+                                  <span className="text-emerald-400 font-bold">✓</span>
+                                  <span className="text-emerald-300">Copied!</span>
+                                </>
+                              ) : (
+                                <>
+                                  <span>📋</span>
+                                  <span>Copy</span>
+                                </>
+                              )}
                             </button>
                           </div>
 
                           {/* Delivered Alert + Copy Button */}
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1.5">
                             <button
                               type="button"
                               onClick={() => handleMarkDelivered(order, true)}
-                              className={`flex-1 py-2 px-2 rounded-xl font-mono text-xs font-bold flex items-center justify-center gap-1.5 transition-all border cursor-pointer ${
+                              className={`flex-1 py-2 px-2.5 rounded-xl font-mono text-xs font-bold flex items-center justify-center gap-1.5 transition-all border cursor-pointer ${
                                 order.status === "delivered"
-                                  ? "bg-emerald-500/25 text-emerald-300 border-emerald-500/50 shadow-sm"
+                                  ? "bg-emerald-500/25 text-emerald-200 border-emerald-400/80 shadow-sm"
                                   : "bg-emerald-600/80 hover:bg-emerald-500 text-slate-950 border-emerald-500"
                               }`}
                               title="Set status to Delivered & send Google Review WhatsApp message in new tab"
@@ -1534,16 +1530,24 @@ export default function OrdersPage() {
                             <button
                               type="button"
                               onClick={(e) => copyAlertText(e, getDeliveredAlertText(order), `card-delivered-${order.id}`)}
-                              className={`p-2 rounded-xl border transition-all cursor-pointer flex items-center justify-center flex-shrink-0 ${
+                              className={`py-2 px-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-center gap-1 flex-shrink-0 text-xs font-mono font-semibold ${
                                 copiedAlertKey === `card-delivered-${order.id}`
-                                  ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/50"
-                                  : "bg-[#111111] hover:bg-zinc-800 text-zinc-400 hover:text-white border-zinc-700/80"
+                                  ? "bg-emerald-500/25 text-emerald-200 border-emerald-400"
+                                  : "bg-[#181818] hover:bg-zinc-700 text-zinc-300 hover:text-white border-zinc-700"
                               }`}
                               title="Copy Delivered Alert & Google Review text to clipboard without opening WhatsApp"
                             >
-                              <span className="material-symbols-outlined text-[15px] leading-none">
-                                {copiedAlertKey === `card-delivered-${order.id}` ? "done" : "content_copy"}
-                              </span>
+                              {copiedAlertKey === `card-delivered-${order.id}` ? (
+                                <>
+                                  <span className="text-emerald-400 font-bold">✓</span>
+                                  <span className="text-emerald-300">Copied!</span>
+                                </>
+                              ) : (
+                                <>
+                                  <span>📋</span>
+                                  <span>Copy</span>
+                                </>
+                              )}
                             </button>
                           </div>
                         </div>
@@ -1960,7 +1964,9 @@ export default function OrdersPage() {
                             }
                           }}
                           className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all disabled:opacity-40 cursor-pointer ${
-                            order.status === s.value ? s.color + " opacity-100 shadow-sm" : "bg-slate-800 text-slate-400 border-[#333333] hover:border-slate-500"
+                            order.status === s.value || (s.value === "processing" && (order.status as any) === "confirmed")
+                              ? s.color + " opacity-100 shadow-md font-extrabold"
+                              : "bg-[#141414] text-zinc-400 border-zinc-800 hover:border-zinc-600 hover:text-zinc-200"
                           }`}
                           title={`Switch to ${s.label} & notify customer via WhatsApp`}
                         >
@@ -1971,17 +1977,17 @@ export default function OrdersPage() {
                   </div>
 
                   {/* Actions (1-Tap WhatsApp Alerts + Copy Alert Text + Weigh/Scale + Print 4-Up + Navigate + Delete) */}
-                  <div className="space-y-2 pt-2 border-t border-[#222222]/80">
-                    <div className="flex items-center gap-2 flex-wrap">
+                  <div className="space-y-3 pt-3 border-t border-[#222222]">
+                    <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
                       {/* Harvest Alert + Copy */}
-                      <div className="flex items-center">
+                      <div className="flex items-center gap-1.5">
                         <button
                           type="button"
                           onClick={() => handleStartHarvest(order, true)}
-                          className={`py-1.5 px-2.5 rounded-l-lg font-mono text-xs font-semibold flex items-center gap-1.5 border transition-all cursor-pointer ${
+                          className={`py-2 px-3 rounded-xl font-mono text-xs font-semibold flex items-center gap-1.5 border transition-all cursor-pointer ${
                             order.status === "processing" || (order.status as any) === "confirmed"
-                              ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/50 shadow-sm"
-                              : "bg-[#141414] hover:bg-zinc-800 text-zinc-300 border-zinc-700"
+                              ? "bg-cyan-500/25 text-cyan-200 border-cyan-400/80 shadow-sm"
+                              : "bg-[#141414] hover:bg-zinc-800 text-zinc-300 border-zinc-700/90"
                           }`}
                           title="Set status to Processing & send 'Live Harvest Initiated' WhatsApp message in new tab"
                         >
@@ -1991,28 +1997,36 @@ export default function OrdersPage() {
                         <button
                           type="button"
                           onClick={(e) => copyAlertText(e, getHarvestAlertText(order), `table-harvest-${order.id}`)}
-                          className={`py-1.5 px-2 rounded-r-lg border-y border-r transition-all cursor-pointer flex items-center justify-center ${
+                          className={`py-2 px-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-center gap-1 text-xs font-mono font-semibold ${
                             copiedAlertKey === `table-harvest-${order.id}`
-                              ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/50"
-                              : "bg-[#141414] hover:bg-zinc-800 text-zinc-400 hover:text-white border-zinc-700"
+                              ? "bg-emerald-500/25 text-emerald-200 border-emerald-400"
+                              : "bg-[#181818] hover:bg-zinc-700 text-zinc-300 hover:text-white border-zinc-700"
                           }`}
                           title="Copy Harvest Alert text to clipboard without opening WhatsApp"
                         >
-                          <span className="material-symbols-outlined text-[14px] leading-none">
-                            {copiedAlertKey === `table-harvest-${order.id}` ? "done" : "content_copy"}
-                          </span>
+                          {copiedAlertKey === `table-harvest-${order.id}` ? (
+                            <>
+                              <span className="text-emerald-400 font-bold">✓</span>
+                              <span className="text-emerald-300">Copied!</span>
+                            </>
+                          ) : (
+                            <>
+                              <span>📋</span>
+                              <span>Copy</span>
+                            </>
+                          )}
                         </button>
                       </div>
 
                       {/* Out for Delivery Alert + Copy */}
-                      <div className="flex items-center">
+                      <div className="flex items-center gap-1.5">
                         <button
                           type="button"
                           onClick={() => handleOutForDelivery(order, true)}
-                          className={`py-1.5 px-2.5 rounded-l-lg font-mono text-xs font-semibold flex items-center gap-1.5 border transition-all cursor-pointer ${
+                          className={`py-2 px-3 rounded-xl font-mono text-xs font-semibold flex items-center gap-1.5 border transition-all cursor-pointer ${
                             order.status === "out_for_delivery"
-                              ? "bg-blue-500/20 text-blue-300 border-blue-500/50 shadow-sm"
-                              : "bg-[#141414] hover:bg-zinc-800 text-zinc-300 border-zinc-700"
+                              ? "bg-blue-500/25 text-blue-200 border-blue-400/80 shadow-sm"
+                              : "bg-[#141414] hover:bg-zinc-800 text-zinc-300 border-zinc-700/90"
                           }`}
                           title="Set status to Out for Delivery & send 'Rider En Route' WhatsApp message in new tab"
                         >
@@ -2022,27 +2036,35 @@ export default function OrdersPage() {
                         <button
                           type="button"
                           onClick={(e) => copyAlertText(e, getDeliveryAlertText(order), `table-delivery-${order.id}`)}
-                          className={`py-1.5 px-2 rounded-r-lg border-y border-r transition-all cursor-pointer flex items-center justify-center ${
+                          className={`py-2 px-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-center gap-1 text-xs font-mono font-semibold ${
                             copiedAlertKey === `table-delivery-${order.id}`
-                              ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/50"
-                              : "bg-[#141414] hover:bg-zinc-800 text-zinc-400 hover:text-white border-zinc-700"
+                              ? "bg-emerald-500/25 text-emerald-200 border-emerald-400"
+                              : "bg-[#181818] hover:bg-zinc-700 text-zinc-300 hover:text-white border-zinc-700"
                           }`}
                           title="Copy Out for Delivery Alert text to clipboard without opening WhatsApp"
                         >
-                          <span className="material-symbols-outlined text-[14px] leading-none">
-                            {copiedAlertKey === `table-delivery-${order.id}` ? "done" : "content_copy"}
-                          </span>
+                          {copiedAlertKey === `table-delivery-${order.id}` ? (
+                            <>
+                              <span className="text-emerald-400 font-bold">✓</span>
+                              <span className="text-emerald-300">Copied!</span>
+                            </>
+                          ) : (
+                            <>
+                              <span>📋</span>
+                              <span>Copy</span>
+                            </>
+                          )}
                         </button>
                       </div>
 
                       {/* Delivered Alert + Copy */}
-                      <div className="flex items-center">
+                      <div className="flex items-center gap-1.5">
                         <button
                           type="button"
                           onClick={() => handleMarkDelivered(order, true)}
-                          className={`py-1.5 px-2.5 rounded-l-lg font-mono text-xs font-bold flex items-center gap-1.5 border transition-all cursor-pointer ${
+                          className={`py-2 px-3 rounded-xl font-mono text-xs font-bold flex items-center gap-1.5 border transition-all cursor-pointer ${
                             order.status === "delivered"
-                              ? "bg-emerald-500/25 text-emerald-300 border-emerald-500/50 shadow-sm"
+                              ? "bg-emerald-500/25 text-emerald-200 border-emerald-400/80 shadow-sm"
                               : "bg-emerald-600/80 hover:bg-emerald-500 text-slate-950 border-emerald-500"
                           }`}
                           title="Set status to Delivered & send Google Review WhatsApp message in new tab"
@@ -2053,16 +2075,24 @@ export default function OrdersPage() {
                         <button
                           type="button"
                           onClick={(e) => copyAlertText(e, getDeliveredAlertText(order), `table-delivered-${order.id}`)}
-                          className={`py-1.5 px-2 rounded-r-lg border-y border-r transition-all cursor-pointer flex items-center justify-center ${
+                          className={`py-2 px-2.5 rounded-xl border transition-all cursor-pointer flex items-center justify-center gap-1 text-xs font-mono font-semibold ${
                             copiedAlertKey === `table-delivered-${order.id}`
-                              ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/50"
-                              : "bg-[#141414] hover:bg-zinc-800 text-zinc-400 hover:text-white border-zinc-700"
+                              ? "bg-emerald-500/25 text-emerald-200 border-emerald-400"
+                              : "bg-[#181818] hover:bg-zinc-700 text-zinc-300 hover:text-white border-zinc-700"
                           }`}
                           title="Copy Delivered Alert & Google Review text to clipboard without opening WhatsApp"
                         >
-                          <span className="material-symbols-outlined text-[14px] leading-none">
-                            {copiedAlertKey === `table-delivered-${order.id}` ? "done" : "content_copy"}
-                          </span>
+                          {copiedAlertKey === `table-delivered-${order.id}` ? (
+                            <>
+                              <span className="text-emerald-400 font-bold">✓</span>
+                              <span className="text-emerald-300">Copied!</span>
+                            </>
+                          ) : (
+                            <>
+                              <span>📋</span>
+                              <span>Copy</span>
+                            </>
+                          )}
                         </button>
                       </div>
                     </div>

@@ -17,6 +17,16 @@ export interface EodReportPayload {
   onlineCount?: number;
   cashRevenue?: number;
   cashCount?: number;
+  hdfcRevenue?: number;
+  hdfcCount?: number;
+  jkBankRevenue?: number;
+  jkBankCount?: number;
+  razorpayRevenue?: number;
+  razorpayCount?: number;
+  splitTotalRevenue?: number;
+  splitCashRevenue?: number;
+  splitOnlineRevenue?: number;
+  splitCount?: number;
   negotiationLoss?: number;
   totalBills?: number;
   liveStockRemainingKg?: number;
@@ -95,9 +105,23 @@ export function formatEodTelegramMessage(p: EodReportPayload): string {
   }
   msg += `\n`;
 
-  msg += `💳 <b>PAYMENT COLLECTION:</b>\n`;
-  msg += `• <b>Cash in Drawer:</b> ₹${cash} (${cashCount} sales)\n`;
-  msg += `• <b>UPI / Soundbox / Online:</b> ₹${online} (${onlineCount} orders)\n`;
+  msg += `💳 <b>PAYMENT COLLECTION (BY CHANNEL):</b>\n`;
+  msg += `• 💵 <b>Cash in Drawer:</b> ₹${cash} (${cashCount} sales / collections)\n`;
+  if (Number(p.hdfcRevenue || 0) > 0) {
+    msg += `• 🏦 <b>HDFC Bank (SmartHub / UPI):</b> ₹${Number(p.hdfcRevenue).toLocaleString("en-IN")} (${p.hdfcCount ?? 0} txns)\n`;
+  }
+  if (Number(p.jkBankRevenue || 0) > 0) {
+    msg += `• 🏛️ <b>JK Bank (mPay / QR):</b> ₹${Number(p.jkBankRevenue).toLocaleString("en-IN")} (${p.jkBankCount ?? 0} txns)\n`;
+  }
+  if (Number(p.razorpayRevenue || 0) > 0) {
+    msg += `• ⚡ <b>Razorpay (POS / QR):</b> ₹${Number(p.razorpayRevenue).toLocaleString("en-IN")} (${p.razorpayCount ?? 0} txns)\n`;
+  }
+  if (Number(p.splitTotalRevenue || 0) > 0) {
+    msg += `• 🔀 <b>Split (Cash + Online):</b> ₹${Number(p.splitTotalRevenue).toLocaleString("en-IN")} (${p.splitCount ?? 0} orders · 💵 ₹${Number(p.splitCashRevenue || 0).toLocaleString("en-IN")} Cash + ⚡ ₹${Number(p.splitOnlineRevenue || 0).toLocaleString("en-IN")} Online)\n`;
+  }
+  if (!p.hdfcRevenue && !p.jkBankRevenue && !p.razorpayRevenue && Number(p.onlineRevenue || 0) > 0) {
+    msg += `• 🌐 <b>UPI / Soundbox / Online:</b> ₹${online} (${onlineCount} orders)\n`;
+  }
   if (Number(p.creditSalesAmount || 0) > 0 || Number(p.allCustomersTotalCredit || 0) > 0) {
     if (Number(p.creditSalesAmount || 0) > 0) {
       msg += `• 📒 <b>Credit Given (Khata):</b> ₹${Number(p.creditSalesAmount).toLocaleString("en-IN")} (${Number(p.creditSalesKg || 0).toFixed(2)} Kg · ${p.creditSalesCount ?? 1} customer${p.creditSalesCount === 1 ? "" : "s"})\n`;

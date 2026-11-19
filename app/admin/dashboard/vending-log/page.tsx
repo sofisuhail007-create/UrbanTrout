@@ -1764,6 +1764,20 @@ export default function VendingCenterLoggerPage() {
     let cashRevenue = 0;
     let cashCount = 0;
     let cashKg = 0;
+    let hdfcRevenue = 0;
+    let hdfcCount = 0;
+    let hdfcKg = 0;
+    let jkBankRevenue = 0;
+    let jkBankCount = 0;
+    let jkBankKg = 0;
+    let razorpayRevenue = 0;
+    let razorpayCount = 0;
+    let razorpayKg = 0;
+    let splitTotalRevenue = 0;
+    let splitCashRevenue = 0;
+    let splitOnlineRevenue = 0;
+    let splitCount = 0;
+    let splitKg = 0;
     let payingCount = 0;
     let totalExtraCollected = 0;
     let guttedDeliveryCustCollected = 0;
@@ -1857,7 +1871,7 @@ export default function VendingCenterLoggerPage() {
         totalExtraCollected += extraAmt;
       }
 
-      // Split vs Cash vs Online accounting
+      // Split vs Cash vs Online accounting & channel breakdown
       const isSplit = modeStr.includes("split") || Boolean(e.custom_fields?.is_split);
       if (isSplit && rev > 0) {
         let cashPart = Number(e.custom_fields?.cash_portion);
@@ -1873,14 +1887,58 @@ export default function VendingCenterLoggerPage() {
         if (onlinePart > 0) onlineCount += 1;
         cashKg = Math.round((cashKg + (rev > 0 ? (cashPart / rev) * w : 0)) * 1000) / 1000;
         onlineKg = Math.round((onlineKg + (rev > 0 ? (onlinePart / rev) * w : 0)) * 1000) / 1000;
+
+        splitTotalRevenue += rev;
+        splitCashRevenue += cashPart;
+        splitOnlineRevenue += onlinePart;
+        splitCount += 1;
+        splitKg = Math.round((splitKg + w) * 1000) / 1000;
+
+        const onlineChan = (e.custom_fields?.online_channel || "").toLowerCase();
+        if (onlineChan.includes("jk") || modeStr.includes("jk") || modeStr.includes("mpay")) {
+          jkBankRevenue += onlinePart;
+          if (onlinePart > 0) {
+            jkBankCount += 1;
+            jkBankKg = Math.round((jkBankKg + (rev > 0 ? (onlinePart / rev) * w : 0)) * 1000) / 1000;
+          }
+        } else if (onlineChan.includes("razorpay") || modeStr.includes("razorpay")) {
+          razorpayRevenue += onlinePart;
+          if (onlinePart > 0) {
+            razorpayCount += 1;
+            razorpayKg = Math.round((razorpayKg + (rev > 0 ? (onlinePart / rev) * w : 0)) * 1000) / 1000;
+          }
+        } else {
+          // Default HDFC Bank
+          hdfcRevenue += onlinePart;
+          if (onlinePart > 0) {
+            hdfcCount += 1;
+            hdfcKg = Math.round((hdfcKg + (rev > 0 ? (onlinePart / rev) * w : 0)) * 1000) / 1000;
+          }
+        }
       } else if (modeStr === "cash" && rev > 0) {
         cashRevenue += rev;
         cashCount += 1;
         cashKg = Math.round((cashKg + w) * 1000) / 1000;
-      } else if (rev > 0) {
+      } else if (rev > 0 && !isCredit) {
         onlineRevenue += rev;
         onlineCount += 1;
         onlineKg = Math.round((onlineKg + w) * 1000) / 1000;
+
+        const onlineChan = (e.custom_fields?.online_channel || "").toLowerCase();
+        if (onlineChan.includes("jk") || modeStr.includes("jk") || modeStr.includes("mpay")) {
+          jkBankRevenue += rev;
+          jkBankCount += 1;
+          jkBankKg = Math.round((jkBankKg + w) * 1000) / 1000;
+        } else if (onlineChan.includes("razorpay") || modeStr.includes("razorpay")) {
+          razorpayRevenue += rev;
+          razorpayCount += 1;
+          razorpayKg = Math.round((razorpayKg + w) * 1000) / 1000;
+        } else {
+          // Default HDFC Bank
+          hdfcRevenue += rev;
+          hdfcCount += 1;
+          hdfcKg = Math.round((hdfcKg + w) * 1000) / 1000;
+        }
       }
 
       const mode = e.payment_mode || "Other";
@@ -2186,6 +2244,23 @@ export default function VendingCenterLoggerPage() {
       cashRevenue,
       cashCount,
       cashKg,
+      hdfcRevenue,
+      hdfcCount,
+      hdfcKg,
+      jkBankRevenue,
+      jkBankCount,
+      jkBankKg,
+      razorpayRevenue,
+      razorpayCount,
+      razorpayKg,
+      splitTotalRevenue,
+      splitCashRevenue,
+      splitOnlineRevenue,
+      splitCount,
+      splitKg,
+      creditPendingTotal: periodCreditTotal,
+      creditCount: periodCreditCount,
+      creditKg: periodCreditKg,
       byMode,
       realizedKg,
       realizedGuttedKg,
@@ -2865,21 +2940,69 @@ export default function VendingCenterLoggerPage() {
         if (filterType === "non-gutted" && !(e.product_type || "").toLowerCase().includes("non")) return false;
       }
 
-      // Payment filter
+      // Payment filter (supports Cash drawer + Split cash, HDFC, JK Bank, Razorpay, Split, Online, Credit)
       if (filterPayment !== "all") {
-        const isCash = (e.payment_mode || "").toLowerCase().trim() === "cash";
+        const modeStr = (e.payment_mode || "").toLowerCase().trim();
+        const cf = e.custom_fields || {};
+        const rev = Number(e.amount_paid) || 0;
         const isCredit =
-          (e.custom_fields?.balance_status === "pending" && Number(e.custom_fields?.balance_amount) > 0) ||
-          (e.payment_mode || "").toLowerCase().includes("credit") ||
-          (e.payment_mode || "").toLowerCase().includes("khata") ||
-          (Number(e.amount_paid) === 0 && e.custom_fields?.balance_status !== "waived_final");
+          (cf.balance_status === "pending" && Number(cf.balance_amount) > 0) ||
+          modeStr.includes("credit") ||
+          modeStr.includes("khata") ||
+          (rev === 0 && cf.balance_status !== "waived_final");
+
+        const isSplit = modeStr.includes("split") || Boolean(cf.is_split);
+
+        let cashPart = 0;
+        let onlinePart = 0;
+        if (isSplit) {
+          cashPart = Number(cf.cash_portion);
+          if (isNaN(cashPart) || cashPart <= 0) {
+            const cashMatch = (e.notes || "").match(/cash[:\s]+[₹Rs.]*(\d+)/i);
+            cashPart = cashMatch ? Number(cashMatch[1]) : Math.round(rev / 2);
+          }
+          cashPart = Math.min(rev, Math.max(0, cashPart));
+          onlinePart = Number(cf.online_portion) || Math.max(0, rev - cashPart);
+        } else if (modeStr === "cash") {
+          cashPart = rev;
+        } else {
+          onlinePart = rev;
+        }
+
+        const onlineChan = (cf.online_channel || "").toLowerCase();
+        const isHdfc =
+          onlineChan.includes("hdfc") ||
+          modeStr.includes("hdfc") ||
+          (!isSplit && !isCredit && modeStr === "online payment");
+        const isJkBank =
+          onlineChan.includes("jk") ||
+          onlineChan.includes("mpay") ||
+          modeStr.includes("jk") ||
+          modeStr.includes("mpay");
+        const isRazorpay =
+          onlineChan.includes("razorpay") ||
+          modeStr.includes("razorpay");
 
         if (filterPayment === "Credit") {
           if (!isCredit) return false;
         } else if (filterPayment === "Cash") {
-          if (!isCash || isCredit) return false;
+          // Cash filter includes pure cash sales AND split transactions where cash portion was collected!
+          if (isCredit && rev === 0) return false;
+          if (cashPart <= 0) return false;
+        } else if (filterPayment === "HDFC Bank") {
+          if (isCredit && rev === 0) return false;
+          if (!isHdfc || onlinePart <= 0) return false;
+        } else if (filterPayment === "JK Bank") {
+          if (isCredit && rev === 0) return false;
+          if (!isJkBank || onlinePart <= 0) return false;
+        } else if (filterPayment === "Razorpay") {
+          if (isCredit && rev === 0) return false;
+          if (!isRazorpay || onlinePart <= 0) return false;
+        } else if (filterPayment === "Split") {
+          if (!isSplit) return false;
         } else if (filterPayment === "Online Payment") {
-          if (isCash || isCredit) return false;
+          if (isCredit && rev === 0) return false;
+          if (onlinePart <= 0) return false;
         }
       }
 
@@ -3663,6 +3786,16 @@ export default function VendingCenterLoggerPage() {
     let cashCount = 0;
     let onlineRevenue = 0;
     let onlineCount = 0;
+    let hdfcRevenue = 0;
+    let hdfcCount = 0;
+    let jkBankRevenue = 0;
+    let jkBankCount = 0;
+    let razorpayRevenue = 0;
+    let razorpayCount = 0;
+    let splitTotalRevenue = 0;
+    let splitCashRevenue = 0;
+    let splitOnlineRevenue = 0;
+    let splitCount = 0;
 
     todayEntries.forEach((e) => {
       const w = Number(e.weight_kg) || 0;
@@ -3735,12 +3868,41 @@ export default function VendingCenterLoggerPage() {
         onlineRevenue += onlinePart;
         if (cashPart > 0) cashCount += 1;
         if (onlinePart > 0) onlineCount += 1;
+
+        splitTotalRevenue += rev;
+        splitCashRevenue += cashPart;
+        splitOnlineRevenue += onlinePart;
+        splitCount += 1;
+
+        const onlineChan = (e.custom_fields?.online_channel || "").toLowerCase();
+        if (onlineChan.includes("jk") || modeStr.includes("jk") || modeStr.includes("mpay")) {
+          jkBankRevenue += onlinePart;
+          if (onlinePart > 0) jkBankCount += 1;
+        } else if (onlineChan.includes("razorpay") || modeStr.includes("razorpay")) {
+          razorpayRevenue += onlinePart;
+          if (onlinePart > 0) razorpayCount += 1;
+        } else {
+          hdfcRevenue += onlinePart;
+          if (onlinePart > 0) hdfcCount += 1;
+        }
       } else if (modeStr === "cash" && rev > 0) {
         cashRevenue += rev;
         cashCount += 1;
-      } else if (rev > 0) {
+      } else if (rev > 0 && !isCredit) {
         onlineRevenue += rev;
         onlineCount += 1;
+
+        const onlineChan = (e.custom_fields?.online_channel || "").toLowerCase();
+        if (onlineChan.includes("jk") || modeStr.includes("jk") || modeStr.includes("mpay")) {
+          jkBankRevenue += rev;
+          jkBankCount += 1;
+        } else if (onlineChan.includes("razorpay") || modeStr.includes("razorpay")) {
+          razorpayRevenue += rev;
+          razorpayCount += 1;
+        } else {
+          hdfcRevenue += rev;
+          hdfcCount += 1;
+        }
       }
     });
 
@@ -3773,6 +3935,16 @@ export default function VendingCenterLoggerPage() {
       onlineCount,
       cashRevenue,
       cashCount,
+      hdfcRevenue,
+      hdfcCount,
+      jkBankRevenue,
+      jkBankCount,
+      razorpayRevenue,
+      razorpayCount,
+      splitTotalRevenue,
+      splitCashRevenue,
+      splitOnlineRevenue,
+      splitCount,
       negotiationLoss,
       creditSalesAmount,
       creditSalesKg,
@@ -3834,6 +4006,16 @@ export default function VendingCenterLoggerPage() {
     let cashCount = 0;
     let onlineRevenue = 0;
     let onlineCount = 0;
+    let hdfcRevenue = 0;
+    let hdfcCount = 0;
+    let jkBankRevenue = 0;
+    let jkBankCount = 0;
+    let razorpayRevenue = 0;
+    let razorpayCount = 0;
+    let splitTotalRevenue = 0;
+    let splitCashRevenue = 0;
+    let splitOnlineRevenue = 0;
+    let splitCount = 0;
 
     todayEntries.forEach((e) => {
       const w = Number(e.weight_kg) || 0;
@@ -3906,12 +4088,41 @@ export default function VendingCenterLoggerPage() {
         onlineRevenue += onlinePart;
         if (cashPart > 0) cashCount += 1;
         if (onlinePart > 0) onlineCount += 1;
+
+        splitTotalRevenue += rev;
+        splitCashRevenue += cashPart;
+        splitOnlineRevenue += onlinePart;
+        splitCount += 1;
+
+        const onlineChan = (e.custom_fields?.online_channel || "").toLowerCase();
+        if (onlineChan.includes("jk") || modeStr.includes("jk") || modeStr.includes("mpay")) {
+          jkBankRevenue += onlinePart;
+          if (onlinePart > 0) jkBankCount += 1;
+        } else if (onlineChan.includes("razorpay") || modeStr.includes("razorpay")) {
+          razorpayRevenue += onlinePart;
+          if (onlinePart > 0) razorpayCount += 1;
+        } else {
+          hdfcRevenue += onlinePart;
+          if (onlinePart > 0) hdfcCount += 1;
+        }
       } else if (modeStr === "cash" && rev > 0) {
         cashRevenue += rev;
         cashCount += 1;
-      } else if (rev > 0) {
+      } else if (rev > 0 && !isCredit) {
         onlineRevenue += rev;
         onlineCount += 1;
+
+        const onlineChan = (e.custom_fields?.online_channel || "").toLowerCase();
+        if (onlineChan.includes("jk") || modeStr.includes("jk") || modeStr.includes("mpay")) {
+          jkBankRevenue += rev;
+          jkBankCount += 1;
+        } else if (onlineChan.includes("razorpay") || modeStr.includes("razorpay")) {
+          razorpayRevenue += rev;
+          razorpayCount += 1;
+        } else {
+          hdfcRevenue += rev;
+          hdfcCount += 1;
+        }
       }
     });
 
@@ -3944,6 +4155,16 @@ export default function VendingCenterLoggerPage() {
       onlineCount,
       cashRevenue,
       cashCount,
+      hdfcRevenue,
+      hdfcCount,
+      jkBankRevenue,
+      jkBankCount,
+      razorpayRevenue,
+      razorpayCount,
+      splitTotalRevenue,
+      splitCashRevenue,
+      splitOnlineRevenue,
+      splitCount,
       negotiationLoss,
       creditSalesAmount,
       creditSalesKg,
@@ -6346,6 +6567,203 @@ export default function VendingCenterLoggerPage() {
                 </div>
               </div>
             </div>
+
+            {/* Mode of Payment EOD Audit Breakdown (Cash, HDFC, JK Bank, Razorpay, Split, Credit) */}
+            <div className="p-3.5 sm:p-4 rounded-2xl bg-[#080808] border border-[#222222] space-y-3">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="material-symbols-outlined text-cyan-400 text-lg">account_balance_wallet</span>
+                  <div>
+                    <h4 className="text-xs font-bold text-white uppercase font-mono tracking-wider">
+                      Mode of Payment Breakdown (EOD Channel Audit)
+                    </h4>
+                    <p className="text-[10.5px] text-slate-400 font-mono">
+                      Exact channel reconciliation: Cash Drawer, Banks, POS &amp; Khata · Click any card to filter ledger
+                    </p>
+                  </div>
+                </div>
+                {filterPayment !== "all" && (
+                  <button
+                    type="button"
+                    onClick={() => setFilterPayment("all")}
+                    className="px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-cyan-300 text-[10.5px] font-mono font-bold transition-all cursor-pointer flex items-center gap-1 border border-zinc-700"
+                  >
+                    <span>Clear Filter ({filterPayment})</span>
+                    <span className="material-symbols-outlined text-xs">close</span>
+                  </button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+                {/* 1. Cash (Counter Drawer + Split Cash) */}
+                <button
+                  type="button"
+                  onClick={() => setFilterPayment(filterPayment === "Cash" ? "all" : "Cash")}
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                    filterPayment === "Cash"
+                      ? "bg-teal-500/20 border-teal-400 ring-1 ring-teal-400/40 shadow-md shadow-teal-950/40"
+                      : "bg-[#0f0f0f] border-[#222222] hover:border-teal-500/50"
+                  }`}
+                  title="Filter ledger to Cash Drawer & Split Cash"
+                >
+                  <div className="flex items-center justify-between text-xs font-mono">
+                    <span className="text-teal-300 font-bold flex items-center gap-1">
+                      <span>💵</span>
+                      <span>Total Cash</span>
+                    </span>
+                    <span className="text-[10px] text-slate-400">{kpis.cashCount} txns</span>
+                  </div>
+                  <div className="mt-2">
+                    <div className="text-lg sm:text-xl font-bold font-mono text-white">
+                      ₹{kpis.cashRevenue.toLocaleString("en-IN")}
+                    </div>
+                    <div className="text-[10px] text-teal-300/80 font-mono mt-0.5 truncate">
+                      Drawer + Split Cash
+                    </div>
+                  </div>
+                </button>
+
+                {/* 2. HDFC Bank (SmartHub / UPI) */}
+                <button
+                  type="button"
+                  onClick={() => setFilterPayment(filterPayment === "HDFC Bank" ? "all" : "HDFC Bank")}
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                    filterPayment === "HDFC Bank"
+                      ? "bg-indigo-500/20 border-indigo-400 ring-1 ring-indigo-400/40 shadow-md shadow-indigo-950/40"
+                      : "bg-[#0f0f0f] border-[#222222] hover:border-indigo-500/50"
+                  }`}
+                  title="Filter ledger to HDFC Bank SmartHub / UPI"
+                >
+                  <div className="flex items-center justify-between text-xs font-mono">
+                    <span className="text-indigo-300 font-bold flex items-center gap-1">
+                      <span>🏦</span>
+                      <span>HDFC Bank</span>
+                    </span>
+                    <span className="text-[10px] text-slate-400">{kpis.hdfcCount} txns</span>
+                  </div>
+                  <div className="mt-2">
+                    <div className="text-lg sm:text-xl font-bold font-mono text-white">
+                      ₹{kpis.hdfcRevenue.toLocaleString("en-IN")}
+                    </div>
+                    <div className="text-[10px] text-indigo-300/80 font-mono mt-0.5 truncate">
+                      SmartHub / UPI
+                    </div>
+                  </div>
+                </button>
+
+                {/* 3. JK Bank (mPay / QR) */}
+                <button
+                  type="button"
+                  onClick={() => setFilterPayment(filterPayment === "JK Bank" ? "all" : "JK Bank")}
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                    filterPayment === "JK Bank"
+                      ? "bg-blue-500/20 border-blue-400 ring-1 ring-blue-400/40 shadow-md shadow-blue-950/40"
+                      : "bg-[#0f0f0f] border-[#222222] hover:border-blue-500/50"
+                  }`}
+                  title="Filter ledger to JK Bank mPay / Transfer"
+                >
+                  <div className="flex items-center justify-between text-xs font-mono">
+                    <span className="text-blue-300 font-bold flex items-center gap-1">
+                      <span>🏛️</span>
+                      <span>JK Bank</span>
+                    </span>
+                    <span className="text-[10px] text-slate-400">{kpis.jkBankCount} txns</span>
+                  </div>
+                  <div className="mt-2">
+                    <div className="text-lg sm:text-xl font-bold font-mono text-white">
+                      ₹{kpis.jkBankRevenue.toLocaleString("en-IN")}
+                    </div>
+                    <div className="text-[10px] text-blue-300/80 font-mono mt-0.5 truncate">
+                      mPay / Transfer
+                    </div>
+                  </div>
+                </button>
+
+                {/* 4. Razorpay (POS / QR) */}
+                <button
+                  type="button"
+                  onClick={() => setFilterPayment(filterPayment === "Razorpay" ? "all" : "Razorpay")}
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                    filterPayment === "Razorpay"
+                      ? "bg-purple-500/20 border-purple-400 ring-1 ring-purple-400/40 shadow-md shadow-purple-950/40"
+                      : "bg-[#0f0f0f] border-[#222222] hover:border-purple-500/50"
+                  }`}
+                  title="Filter ledger to Razorpay POS / QR / Gateway"
+                >
+                  <div className="flex items-center justify-between text-xs font-mono">
+                    <span className="text-purple-300 font-bold flex items-center gap-1">
+                      <span>⚡</span>
+                      <span>Razorpay</span>
+                    </span>
+                    <span className="text-[10px] text-slate-400">{kpis.razorpayCount} txns</span>
+                  </div>
+                  <div className="mt-2">
+                    <div className="text-lg sm:text-xl font-bold font-mono text-white">
+                      ₹{kpis.razorpayRevenue.toLocaleString("en-IN")}
+                    </div>
+                    <div className="text-[10px] text-purple-300/80 font-mono mt-0.5 truncate">
+                      POS / Instant QR
+                    </div>
+                  </div>
+                </button>
+
+                {/* 5. Split Payments */}
+                <button
+                  type="button"
+                  onClick={() => setFilterPayment(filterPayment === "Split" ? "all" : "Split")}
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                    filterPayment === "Split"
+                      ? "bg-cyan-500/20 border-cyan-400 ring-1 ring-cyan-400/40 shadow-md shadow-cyan-950/40"
+                      : "bg-[#0f0f0f] border-[#222222] hover:border-cyan-500/50"
+                  }`}
+                  title="Filter ledger to Split Payments"
+                >
+                  <div className="flex items-center justify-between text-xs font-mono">
+                    <span className="text-cyan-300 font-bold flex items-center gap-1">
+                      <span>🔀</span>
+                      <span>Split Volume</span>
+                    </span>
+                    <span className="text-[10px] text-slate-400">{kpis.splitCount} orders</span>
+                  </div>
+                  <div className="mt-2">
+                    <div className="text-lg sm:text-xl font-bold font-mono text-white">
+                      ₹{kpis.splitTotalRevenue.toLocaleString("en-IN")}
+                    </div>
+                    <div className="text-[9.5px] text-cyan-300/80 font-mono mt-0.5 truncate">
+                      ₹{kpis.splitCashRevenue} C + ₹{kpis.splitOnlineRevenue} On
+                    </div>
+                  </div>
+                </button>
+
+                {/* 6. Credit (Khata) */}
+                <button
+                  type="button"
+                  onClick={() => setFilterPayment(filterPayment === "Credit" ? "all" : "Credit")}
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                    filterPayment === "Credit"
+                      ? "bg-amber-500/20 border-amber-400 ring-1 ring-amber-400/40 shadow-md shadow-amber-950/40"
+                      : "bg-[#0f0f0f] border-[#222222] hover:border-amber-500/50"
+                  }`}
+                  title="Filter ledger to Khata / Pending Credit"
+                >
+                  <div className="flex items-center justify-between text-xs font-mono">
+                    <span className="text-amber-300 font-bold flex items-center gap-1">
+                      <span>📒</span>
+                      <span>Credit Due</span>
+                    </span>
+                    <span className="text-[10px] text-slate-400">{kpis.creditCount} sales</span>
+                  </div>
+                  <div className="mt-2">
+                    <div className="text-lg sm:text-xl font-bold font-mono text-white">
+                      ₹{kpis.creditPendingTotal.toLocaleString("en-IN")}
+                    </div>
+                    <div className="text-[10px] text-amber-300/80 font-mono mt-0.5 truncate">
+                      Khata Ledger Pending
+                    </div>
+                  </div>
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
@@ -7480,8 +7898,12 @@ export default function VendingCenterLoggerPage() {
             className="bg-[#000000] border border-[#222222] rounded-lg px-2.5 py-2 text-xs text-zinc-200 focus:outline-none focus:border-[#555555] cursor-pointer"
           >
             <option value="all">All Payments</option>
-            <option value="Cash">💵 Cash</option>
-            <option value="Online Payment">⚡ Online Payment</option>
+            <option value="Cash">💵 Cash (Drawer + Split Cash)</option>
+            <option value="HDFC Bank">🏦 HDFC Bank (SmartHub / UPI)</option>
+            <option value="JK Bank">🏛️ JK Bank (mPay / Transfer)</option>
+            <option value="Razorpay">⚡ Razorpay (QR / POS)</option>
+            <option value="Split">🔀 Split (Cash + Online)</option>
+            <option value="Online Payment">🌐 All Online Payments</option>
             <option value="Credit">📒 Credit / Khata</option>
           </select>
         </div>
@@ -8056,6 +8478,12 @@ export default function VendingCenterLoggerPage() {
                             )}
                           </div>
 
+                          {Boolean(e.payment_mode?.toLowerCase().includes("split") || e.custom_fields?.is_split) && (
+                            <div className="text-[9.5px] font-mono text-teal-300 font-bold flex items-center justify-end gap-1">
+                              <span>💵 Cash Portion: ₹{Number(e.custom_fields?.cash_portion ?? Math.round(taken / 2)).toLocaleString("en-IN")}</span>
+                            </div>
+                          )}
+
                           {isDelivery && custDelShare > 0 && (
                             <div className="text-[9px] font-mono text-slate-400 flex items-center justify-end gap-1">
                               <span className="text-slate-300">Fish: ₹{fishAmountPaid.toLocaleString("en-IN")}</span>
@@ -8530,6 +8958,11 @@ export default function VendingCenterLoggerPage() {
                         </div>
                       ) : (
                         <span className="text-cyan-300 font-black text-lg tracking-tight block mt-0.5">₹{taken.toLocaleString("en-IN")}</span>
+                      )}
+                      {Boolean(e.payment_mode?.toLowerCase().includes("split") || e.custom_fields?.is_split) && (
+                        <span className="text-[9.5px] font-mono text-teal-300 font-bold block mt-0.5">
+                          💵 Cash: ₹{Number(e.custom_fields?.cash_portion ?? Math.round(taken / 2)).toLocaleString("en-IN")} (Split)
+                        </span>
                       )}
                       {Boolean(e.custom_fields?.is_delivery || e.custom_fields?.order_channel === "delivery") && Number(e.custom_fields?.delivery_customer_share) > 0 && (
                         <span className="text-[9.5px] font-mono text-slate-400 block mt-0.5">
@@ -9973,10 +10406,10 @@ export default function VendingCenterLoggerPage() {
                 <label className="block text-[10px] uppercase font-bold text-slate-400 font-mono">
                   Mode of Payment <span className="text-emerald-400">*</span>
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3">
                   {[
-                    { id: "HDFC Bank Online", label: "🏦 HDFC Bank", sub: "SmartHub / UPI" },
                     { id: "Cash", label: "💵 Cash", sub: "Counter Drawer" },
+                    { id: "HDFC Bank Online", label: "🏦 HDFC Bank", sub: "SmartHub / UPI" },
                     { id: "JK Bank Online", label: "🏛️ JK Bank", sub: "mPay / Transfer" },
                     { id: "Razorpay Online", label: "⚡ Razorpay", sub: "QR / POS" },
                     { id: "Split (Cash + Online)", label: "🔀 Split", sub: "Cash + Online" },
@@ -10007,22 +10440,24 @@ export default function VendingCenterLoggerPage() {
                             }
                           }
                         }}
-                        className={`py-2 px-1.5 rounded-2xl font-bold text-xs transition-all cursor-pointer text-center ${
+                        className={`p-3 sm:p-3.5 rounded-2xl font-bold text-xs transition-all cursor-pointer text-center flex flex-col items-center justify-center min-h-[58px] ${
                           isSel
                             ? m.id === "Credit (Khata)"
-                              ? "bg-purple-500/25 text-purple-200 border-2 border-purple-400 shadow-md shadow-purple-950/40"
+                              ? "bg-purple-500/25 text-purple-200 border-2 border-purple-400 shadow-md shadow-purple-950/40 ring-1 ring-purple-400/40"
                               : m.id === "Split (Cash + Online)"
-                              ? "bg-cyan-500/25 text-cyan-200 border-2 border-cyan-400 shadow-md shadow-cyan-950/40"
+                              ? "bg-cyan-500/25 text-cyan-200 border-2 border-cyan-400 shadow-md shadow-cyan-950/40 ring-1 ring-cyan-400/40"
                               : m.id.includes("HDFC")
-                              ? "bg-indigo-500/25 text-indigo-200 border-2 border-indigo-400 shadow-md shadow-indigo-950/40"
+                              ? "bg-indigo-500/25 text-indigo-200 border-2 border-indigo-400 shadow-md shadow-indigo-950/40 ring-1 ring-indigo-400/40"
                               : m.id.includes("JK Bank")
-                              ? "bg-blue-500/25 text-blue-200 border-2 border-blue-400 shadow-md shadow-blue-950/40"
-                              : "bg-emerald-500/20 text-emerald-300 border-2 border-emerald-500 shadow-md shadow-emerald-950/40"
-                            : "bg-black/80 text-slate-400 border border-[#333333] hover:text-white"
+                              ? "bg-blue-500/25 text-blue-200 border-2 border-blue-400 shadow-md shadow-blue-950/40 ring-1 ring-blue-400/40"
+                              : m.id === "Cash"
+                              ? "bg-teal-500/25 text-teal-200 border-2 border-teal-400 shadow-md shadow-teal-950/40 ring-1 ring-teal-400/40"
+                              : "bg-emerald-500/20 text-emerald-300 border-2 border-emerald-500 shadow-md shadow-emerald-950/40 ring-1 ring-emerald-400/40"
+                            : "bg-[#0c0c0c] text-slate-400 border border-[#2c2c2c] hover:border-zinc-500 hover:text-white"
                         }`}
                       >
                         <span className="block text-xs sm:text-sm leading-tight font-black">{m.label}</span>
-                        <span className="text-[9.5px] opacity-80 font-mono block mt-0.5">{m.sub}</span>
+                        <span className="text-[10px] opacity-80 font-mono block mt-0.5">{m.sub}</span>
                       </button>
                     );
                   })}
