@@ -212,9 +212,25 @@ function setFridayOverrideMode(mode, updatedBy = "Suhail") {
 }
 
 function isFridayOperationsOpen() {
-  if (fridayOverride.mode === "open") return true;
+  if (fridayOverride.mode === "open") {
+    // Auto-expire owner override if set on a previous day/date
+    if (fridayOverride.updatedAt) {
+      try {
+        const setDate = new Date(fridayOverride.updatedAt).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+        const todayDate = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+        if (setDate !== todayDate) {
+          console.log(`[Friday Guard] Auto-expired previous Friday override from ${setDate} (Today is ${todayDate}). Reverting to default CLOSED.`);
+          fridayOverride.mode = "auto";
+          saveFridayOverrideState();
+          return false;
+        }
+      } catch (_) {}
+    }
+    return true;
+  }
   if (fridayOverride.mode === "closed") return false;
-  return websiteFridayAllowed === true;
+  // Standard Farm Policy: Strictly CLOSED on Fridays for filtration bio-security maintenance
+  return false;
 }
 
 let liveWeatherCache = {
@@ -2991,7 +3007,20 @@ function isOrderDeliveredOrClosed(ord) {
 function isOrderActivePending(ord) {
   if (!ord) return false;
   if (!ord.orderRef && !ord.amount && !ord.payUrl) return false;
-  return !isOrderDeliveredOrClosed(ord);
+  if (isOrderDeliveredOrClosed(ord)) return false;
+
+  // Stale Order Guard: Any order created or paid > 36 hours ago is historical unless explicitly scheduled for today or later!
+  const d = new Date(ord.paidAt || ord.updatedAt || ord.createdAt || 0);
+  const ageHours = (Date.now() - d.getTime()) / (3600 * 1000);
+  if (ageHours > 36) {
+    const sched = String(ord.deliveryTime || "").toLowerCase();
+    const todayDayName = new Date().toLocaleDateString("en-US", { weekday: "long", timeZone: "Asia/Kolkata" }).toLowerCase();
+    const isScheduledTodayOrLater = sched.includes("today") || sched.includes("tomorrow") || sched.includes(todayDayName);
+    if (!isScheduledTodayOrLater) {
+      return false; // Historical completed order
+    }
+  }
+  return true;
 }
 
 // Helper to verify if an ACTIVE order is genuinely PAID (NOT awaiting payment, NOT closed/delivered)
@@ -3054,8 +3083,9 @@ const TodayOrderPool = {
       const updatedDate = ord.updatedAt ? new Date(ord.updatedAt).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }) : null;
       
       if (this.isOrderPaid(ord)) {
-        // Any active unfulfilled paid order is strictly tracked for today until marked delivered/closed!
-        if (isOrderActivePending(ord) || paidDate === today || updatedDate === today || (ord.deliveryTime && ord.deliveryTime.includes("Today"))) {
+        // Any active unfulfilled paid order is strictly tracked for today until marked delivered/closed
+        const isFresh = (Date.now() - new Date(ord.paidAt || ord.updatedAt || ord.createdAt || 0).getTime()) < (36 * 3600 * 1000);
+        if ((isOrderActivePending(ord) && isFresh) || paidDate === today || (ord.deliveryTime && ord.deliveryTime.includes("Today"))) {
           todayMap[k] = ord;
         }
       } else {
@@ -4690,6 +4720,19 @@ Which area in Srinagar would you like delivery to, or please drop your WhatsApp 
    - For nearby areas within ~4 km (Malabagh, Soura, Hazratbal, Zakura, Lal Bazar, Buchpora): when the queue is clear, delivery can arrive within 1 hour (approx. 45–60 minutes)!
 17. COURTEOUS DECLINE DIRECTIVE (ZERO PUSHINESS):
    - When a customer says "no need", "cancel", "nahi chahiye", or "not now", acknowledge with warmth and zero pushiness ("No problem at all! Feel free to message us anytime whenever you crave fresh live-harvest trout. Have a wonderful day! 🐟"). Never argue or push further.
+18. CUSTOMER ASKS FOR PHONE CALL ("Can you call", "Call me", "Please call", "Call karo", "Phone karo"):
+   - NEVER tell the customer to call us or dump our phone number back at them!
+   - Acknowledge immediately and courteously:
+     "Understood! Our farm team will give you a call shortly on this number. 🐟"
+   - Keep it brief (1–2 lines max).
+19. AFTER-HOURS GREETING & LEAD PROTOCOL (GREETINGS AFTER 8:00 PM):
+   - If a customer sends a greeting ("Hi", "Hello", "Hu", "Salam") after 8:00 PM without specifying kilograms or items:
+   - Greet them warmly and state clearly: deliveries for tonight closed at 8:00 PM, and fresh live-harvest orders open tomorrow from 8:00 AM.
+   - Ask neutrally: "How many kilograms would you like to order, and which area in Srinagar should we deliver to tomorrow?"
+   - STRICT NEGATIVE CONSTRAINT: NEVER hallucinate or push an unsolicited "1 kg trial pack", specific bundle, or trial order unless the customer explicitly asked for it!
+20. ZERO UPGRADE DEDUCTIONS ON REORDERS:
+   - NEVER calculate partial "upgrade balances" or deduct past payments against a customer's new order request!
+   - If a returning customer asks for fish (e.g. "3 kg tomorrow"), always quote and generate payment for the full current order amount.
 STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines and bullet points, professional, and courteous. NEVER write a dense continuous paragraph. NEVER use the word "Janab".`;
 
   // Format history for Gemini using native system_instruction
@@ -4942,14 +4985,16 @@ CRITICAL DIRECTIVE: They are currently making a NEW inquiry or placing a NEW ord
           // 🛡️ HARD SHIELD: Today's Order Pool & Existing Paid Order Check (Never generate duplicate link/order for already-paid customers)
           const currentPaidToday = TodayOrderPool.getTodayOrder(customerPhone || cleanPhone, chatId);
           const isTodayOrderPaid = currentPaidToday && TodayOrderPool.isOrderPaid(currentPaidToday);
-          const activeExistingPaid = existingOrder && isHistoricalOrderPaid(existingOrder) && !isOrderDeliveredOrClosed(existingOrder);
-          const isCustomerAlreadyPaid = isTodayOrderPaid || Boolean(activeExistingPaid);
+          const existingPaidAgeHours = existingOrder ? (Date.now() - new Date(existingOrder.paidAt || existingOrder.updatedAt || existingOrder.createdAt || 0).getTime()) / (3600 * 1000) : 999;
+          const activeExistingPaid = existingOrder && isHistoricalOrderPaid(existingOrder) && !isOrderDeliveredOrClosed(existingOrder) && existingPaidAgeHours < 24;
+          const isCustomerAlreadyPaid = Boolean(isTodayOrderPaid || activeExistingPaid);
           const paidRef = currentPaidToday?.orderRef || activeExistingPaid?.orderRef;
           let paidSlot = currentPaidToday?.deliveryTime || activeExistingPaid?.deliveryTime || "Today";
           if (paidSlot.toLowerCase().includes("tomorrow")) {
             paidSlot = paidSlot.replace(/tomorrow/gi, "Today");
           }
-          const isExplicitAdditionalOrder = /\b(?:another|new|second|one more|ek aur|separate|different)\s*(?:order|kg|fish|pack)/i.test(userMessage);
+          const isExplicitAdditionalOrder = /\b(?:another|new|second|one more|ek aur|separate|different)\s*(?:order|kg|fish|pack)/i.test(userMessage) ||
+            Boolean(parsedQuantity && /\b(?:tomorrow|kal|saturday|hafta|advance)\b/i.test(userMessage));
 
           if (isCustomerAlreadyPaid && !isExplicitAdditionalOrder) {
             console.log(`[Paid Shield] Suppressed duplicate payment link for already-paid customer ${chatId} (#${paidRef}).`);
@@ -5317,6 +5362,9 @@ CRITICAL DIRECTIVE: They are currently making a NEW inquiry or placing a NEW ord
           .replace(/\bto\s+your\s+door\b/gi, "to your shared location")
           .replace(/\bdoorstep\b/gi, "location-based")
           .replace(/\ba\s+(express\b)/gi, "an $1")
+          .replace(/\b(?:1\s*kg\s*)?trial\s*pack\b/gi, "fresh live-harvest order")
+          .replace(/\btrial\s*pack\b/gi, "order")
+          .replace(/\b(?:bureaucrats|officers|IAS|VIPs)\b/gi, "top culinary chefs")
           .replace(/\*\*\s*\*\*/g, "")
           .replace(/\*\*([^\s*](?:[^*\n]*?[^\s*])?)\*\*/g, "*$1*");
         rawReply = rawReply.replace(/\([ \t]*\)/g, "");
@@ -5864,6 +5912,24 @@ async function startBot() {
     }
 
     return false;
+  }
+
+  // Bulletproof amount extractor that strictly respects Total Payable / Grand Total hierarchy
+  function extractTotalPayableAmount(text) {
+    if (!text || typeof text !== "string") return null;
+    // 1. Highest priority: Explicit Total Payable / Total Amount / Final Amount
+    const payableMatch = text.match(/(?:Total\s*Payable|Payable\s*Amount|Final\s*Amount|Net\s*Amount|Total\s*Due)[^0-9\n\r]{0,30}?₹?\s*([\d,]{3,7})\b(?!\s*\/\s*kg)/i);
+    if (payableMatch) return parseInt(payableMatch[1].replace(/,/g, ""), 10);
+
+    // 2. Official Order Summary Total
+    const summaryTotalMatch = text.match(/(?:Order\s*Total|Grand\s*Total)[^0-9\n\r]{0,30}?₹?\s*([\d,]{3,7})\b(?!\s*\/\s*kg)/i);
+    if (summaryTotalMatch) return parseInt(summaryTotalMatch[1].replace(/,/g, ""), 10);
+
+    // 3. Fallback: Any Total that is NOT preceded by "Fish "
+    const generalTotalMatch = text.match(/(?<!Fish\s*)(?:Total\s*Amount|Total|Amount)[^0-9\n\r]{0,25}?₹?\s*([\d,]{3,7})\b(?!\s*\/\s*kg)/i);
+    if (generalTotalMatch) return parseInt(generalTotalMatch[1].replace(/,/g, ""), 10);
+
+    return null;
   }
 
   // Shared helper to parse quick owner order commands (#link 2kg +149, #2kg +149, #qr 2kg +149, #qr 1740, etc.)
@@ -7521,8 +7587,7 @@ async function startBot() {
       // Proactive auto-QR dispatch when order summary card is generated on GPS pin
       if (locReply.includes("ORDER SUMMARY") && (locReply.includes("Total Payable") || /Total\s*Payable/i.test(locReply))) {
         try {
-          const mAmt = locReply.match(/(?:Total\s*Payable|Total\s*Amount|Amount|Total)[^0-9\n\r]{0,25}?₹?\s*([\d,]{3,7})\b(?!\s*\/\s*kg)/i);
-          const fAmt = mAmt ? parseInt(mAmt[1].replace(/,/g, ""), 10) : null;
+          const fAmt = extractTotalPayableAmount(locReply);
           const mR = locReply.match(/(?:#|Ref:\s*#?)(UT-WA-\d+)/i);
           const fR = mR ? mR[1] : null;
           const mItem = locReply.match(/[•\-\*]\s*(?:Item|Order):\s*([^\n•]+)/i);
@@ -7650,6 +7715,37 @@ async function startBot() {
       if (qrSent) return;
     }
 
+    // ─── 0b. CUSTOMER CALL REQUEST INTERCEPT ───
+    const isCallRequest = /^(?:can\s+you\s+call|call\s+me|please\s+call|give\s+me\s+a\s+call|call\s+karo|phone\s+karo|call\s+kijiye|call\s+kar\s+sakte\s+ho|call\s+kar\s+lo|call\s+karein)[!.,?\s]*$/i.test(text.trim());
+    if (isCallRequest) {
+      console.log(`📞 [Customer Call Request] ${customerName} (${cleanPhone || raw10}) asked for a call. Replying with polite confirmation and alerting owner.`);
+      const callReply = `Understood! Our farm team will give you a call shortly on this number. 🐟`;
+      await sock.sendMessage(remoteJid, { text: callReply });
+      await sock.sendPresenceUpdate("available", remoteJid);
+      appendDailyChatLog({
+        jid: remoteJid,
+        phone: cleanPhone || raw10,
+        name: customerName,
+        role: "ai_bot",
+        text: callReply,
+        meta: { callRequest: true }
+      });
+      chatHist.push({ role: "user", text });
+      chatHist.push({ role: "model", text: callReply });
+      if (chatHist.length > 8) chatHist.splice(0, chatHist.length - 8);
+      chatHistories.set(remoteJid, chatHist);
+      saveChatHistories();
+
+      try {
+        const ownerDeskJid = "917006604148@s.whatsapp.net";
+        await sock.sendMessage(ownerDeskJid, {
+          text: `📞 *CUSTOMER CALL REQUEST*\n\n• *Name:* ${customerName || "Customer"}\n• *Phone:* +91 ${cleanPhone || raw10}\n• *Message:* "${text}"\n\n👉 Customer asked for a phone call on WhatsApp!`
+        });
+        await sendTelegramMessage(`📞 <b>CUSTOMER CALL REQUEST</b>\n━━━━━━━━━━━━━━━━━━━━\n👤 <b>Customer:</b> ${customerName || "Customer"} (<code>+91 ${cleanPhone || raw10}</code>)\n💬 <b>Message:</b> "${text}"\n\n👉 <a href="https://wa.me/${cleanPhone || raw10}">Open WhatsApp Chat</a>`);
+      } catch (_) {}
+      return;
+    }
+
     // Register active generation turn for abort guard
     const currentTurnId = Date.now() + Math.random();
     activeChatGenerations.set(remoteJid, { turnId: currentTurnId, startTime: Date.now(), promptText: text });
@@ -7706,8 +7802,7 @@ async function startBot() {
       // ─── PROACTIVE AUTO-QR DISPATCH ALONGSIDE PAYMENT LINKS & ORDER SUMMARY ───
       // Automatically dispatch the locked UPI QR code image ONLY when an actual payment link or official order summary card
       // with a verified total amount is present! NEVER dispatch on conversational mentions of 'payment link' or 'UPI QR'!
-      const amtMatch = aiReply.match(/(?:Total\s*Payable|Total\s*Amount|Amount|Total)[^0-9\n\r]{0,25}?₹?\s*([\d,]{3,7})\b(?!\s*\/\s*kg)/i);
-      const forceAmount = amtMatch ? parseInt(amtMatch[1].replace(/,/g, ""), 10) : null;
+      const forceAmount = extractTotalPayableAmount(aiReply);
       const hasRealPayLink = /(?:https?:\/\/)?rzp\.io\/\S+/i.test(aiReply);
       const hasOfficialOrderSummary = /(?:🧾\s*)?(?:URBAN TROUT\s*[•·-]\s*)?(?:Order Summary|ORDER SUMMARY)/i.test(aiReply);
 
@@ -7734,6 +7829,10 @@ async function startBot() {
 
           setTimeout(async () => {
             try {
+              if (isChatManuallyPaused(remoteJid)) {
+                console.log(`[Auto-QR Shield] Suppressed auto-QR dispatch for ${remoteJid} — owner manual intervention active.`);
+                return;
+              }
               await dispatchLockedQrImage(sock, remoteJid, {
                 cleanPhone,
                 raw10,
