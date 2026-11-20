@@ -3012,18 +3012,32 @@ function isOrderActivePending(ord) {
   if (!ord.orderRef && !ord.amount && !ord.payUrl) return false;
   if (isOrderDeliveredOrClosed(ord)) return false;
 
-  // Stale Order Guard: Any order created or paid > 36 hours ago is historical unless explicitly scheduled for today or later!
-  const d = new Date(ord.paidAt || ord.updatedAt || ord.createdAt || 0);
-  const ageHours = (Date.now() - d.getTime()) / (3600 * 1000);
-  if (ageHours > 36) {
-    const sched = String(ord.deliveryTime || "").toLowerCase();
-    const todayDayName = new Date().toLocaleDateString("en-US", { weekday: "long", timeZone: "Asia/Kolkata" }).toLowerCase();
-    const isScheduledTodayOrLater = sched.includes("today") || sched.includes("tomorrow") || sched.includes(todayDayName);
-    if (!isScheduledTodayOrLater) {
-      return false; // Historical completed order
-    }
+  const ordTime = new Date(ord.paidAt || ord.updatedAt || ord.createdAt || 0).getTime();
+  if (!ordTime) return false;
+  const ageHours = (Date.now() - ordTime) / (3600 * 1000);
+
+  const todayIst = new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+  const ordDateIst = new Date(ordTime).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
+  const sched = String(ord.deliveryTime || "").toLowerCase();
+  const todayDayName = new Date().toLocaleDateString("en-US", { weekday: "long", timeZone: "Asia/Kolkata" }).toLowerCase();
+
+  // 1. Orders placed TODAY in IST:
+  // Active for up to 18 hours (covers standard 2-hour daytime delivery window)
+  if (ordDateIst === todayIst) {
+    return ageHours <= 18;
   }
-  return true;
+
+  // 2. Orders placed on a PREVIOUS calendar date:
+  // Can ONLY be active if it was an explicit advance booking scheduled for TODAY (and under 36 hours old)
+  if (ageHours > 36) return false;
+
+  const isAdvanceForToday = (
+    (sched.includes("tomorrow") && ageHours < 30) ||
+    (sched.includes(todayDayName) && ageHours < 36) ||
+    (sched.includes("advance") && ageHours < 36)
+  );
+
+  return isAdvanceForToday;
 }
 
 // Helper to verify if an ACTIVE order is genuinely PAID (NOT awaiting payment, NOT closed/delivered)
@@ -3086,9 +3100,8 @@ const TodayOrderPool = {
       const updatedDate = ord.updatedAt ? new Date(ord.updatedAt).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }) : null;
       
       if (this.isOrderPaid(ord)) {
-        // Any active unfulfilled paid order is strictly tracked for today until marked delivered/closed
-        const isFresh = (Date.now() - new Date(ord.paidAt || ord.updatedAt || ord.createdAt || 0).getTime()) < (36 * 3600 * 1000);
-        if ((isOrderActivePending(ord) && isFresh) || paidDate === today || (ord.deliveryTime && ord.deliveryTime.includes("Today"))) {
+        // Only track paid orders that are genuinely ACTIVE & PENDING for TODAY
+        if (isOrderActivePending(ord)) {
           todayMap[k] = ord;
         }
       } else {
@@ -3598,12 +3611,14 @@ INSTRUCTION: Politely inform the customer that Order #${existingOrder.queryRef} 
 • Reorder Payment Link: ${vipProfile.reorderPayTag}
 
 CRITICAL VIP REORDERING & GREETING INSTRUCTIONS:
-1. GREETING & TONE: Greet warmly as a valued returning patron: "Welcome back to Urban Trout!".
-2. 1-TAP REORDER RECOGNITION: The customer's usual order is *${vipProfile.usualWeightKg} kg ${vipProfile.usualCut}* delivered to *${vipProfile.locality}*.
-3. IF CUSTOMER CONFIRMS OR REPEATS USUAL ORDER (e.g. "yes", "same", "repeat", "wahi", "book it"):
+1. PAST ORDERS ARE FULLY COMPLETED: Every past order on file was ALREADY harvested, delivered, and completed in the past! Under NO circumstances should you say "Your order is confirmed", "Rider is on the way", "Farm team is harvesting your fish", or "Your delivery slot is reserved" based on past orders!
+2. GREETING & TONE: Greet warmly as a valued returning patron: "Welcome back to Urban Trout! 🐟".
+3. FRESH REORDER ASSISTANCE: Assist them in placing a fresh live-harvest order for today/tomorrow.
+4. 1-TAP REORDER RECOGNITION: The customer's usual order is *${vipProfile.usualWeightKg} kg ${vipProfile.usualCut}* delivered to *${vipProfile.locality}*.
+5. IF CUSTOMER CONFIRMS OR REPEATS USUAL ORDER (e.g. "yes", "same", "repeat", "wahi", "book it"):
    Immediately output their exact payment link: ${vipProfile.reorderPayTag}
    DO NOT ask for their address or GPS pin! It is already confirmed on file for ${vipProfile.locality}.
-4. IF CUSTOMER ASKS FOR A DIFFERENT CUT OR QUANTITY:
+6. IF CUSTOMER ASKS FOR A DIFFERENT CUT OR QUANTITY:
    Accommodate them politely, quote the correct rate, and do NOT force them into the old order.
 ======================================================`;
   } else {
@@ -4736,6 +4751,13 @@ Which area in Srinagar would you like delivery to, or please drop your WhatsApp 
 20. ZERO UPGRADE DEDUCTIONS ON REORDERS:
    - NEVER calculate partial "upgrade balances" or deduct past payments against a customer's new order request!
    - If a returning customer asks for fish (e.g. "3 kg tomorrow"), always quote and generate payment for the full current order amount.
+21. RETURNING CUSTOMERS (PREVIOUS ORDERS COMPLETED IN THE PAST):
+   - When a returning customer messages us days later (e.g. after 1, 2, 3, or more days):
+   - Every past order on their record is 100% DELIVERED, COMPLETED, AND CLOSED in the past!
+   - STRICT NEGATIVE CONSTRAINT (ABSOLUTE RULE): NEVER say "Your order is confirmed", "Your fish is on the way", "Rider dispatched", "Harvest scheduled", "Your slot is reserved", or "Your order is already paid" based on an old order!
+   - Treat them warmly as a returning patron placing a FRESH NEW ORDER:
+     "Welcome back to Urban Trout! 🐟 We would love to harvest fresh trout for you today. How many kilograms would you like to order?"
+   - Always quote the full rate and provide an official order summary and fresh payment link for their new order.
 STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines and bullet points, professional, and courteous. NEVER write a dense continuous paragraph. NEVER use the word "Janab".`;
 
   // Format history for Gemini using native system_instruction
@@ -4786,6 +4808,12 @@ CRITICAL DIRECTIVE: They are currently making a NEW inquiry or placing a NEW ord
     } else {
       activeTurnPrompt = `[ℹ️ RETURNING LEAD / PREVIOUS UNPAID QUOTE: Customer had an older quote #${existingOrder.orderRef}. ANY PREVIOUS PAYMENT LINK HAS EXPIRED. Do NOT resend dead payment links! Always apply current updated delivery rates for their area. If they ask to proceed or pay, generate a fresh order summary with updated rates.]\n\n${activeTurnPrompt}`;
     }
+  } else if (!existingOrder && vipProfile) {
+    activeTurnPrompt = `[⭐ RETURNING VALUED PATRON: Customer previously ordered from us (${vipProfile.orderCount} completed past orders). All previous orders are 100% DELIVERED & CLOSED in the past.
+CRITICAL DIRECTIVE: Customer is making a FRESH NEW INQUIRY or placing a NEW order today!
+1. DO NOT claim any past order is active, scheduled, reserved, or on the way!
+2. Welcome them back warmly ("Welcome back to Urban Trout! 🐟") and ask how many kilograms they would like to order today.
+3. If they say "same as last time", "repeat", or "wahi bhej do", output their reorder payment link: ${vipProfile.reorderPayTag}].\n\n${activeTurnPrompt}`;
   }
 
   contents.push({
@@ -5435,6 +5463,16 @@ CRITICAL DIRECTIVE: They are currently making a NEW inquiry or placing a NEW ord
             const locAsk = `📍 *To confirm your express delivery:* Which area in Srinagar should we deliver to (e.g. Soura, Lal Chowk, Rajbagh, Hyderpora)? Please share your *WhatsApp Location Pin or Google Maps link* so our Express Dispatch Partner can reach your exact shared location! 🐟`;
             rawReply = rawReply ? `${rawReply}\n\n${locAsk}` : locAsk;
           }
+        }
+
+        // ─── STRICT SHIELD: NEVER CLAIM OLD COMPLETED ORDERS ARE ACTIVE / BEING HARVESTED ───
+        if (!todayOrderForCustomer) {
+          rawReply = rawReply.replace(/Your order \(\*#UT-WA-[A-Za-z0-9\-_]+\*\) is already paid & confirmed![^\n]*/gi, "");
+          rawReply = rawReply.replace(/Our Malabagh farm team has it scheduled for fresh live harvest[^\n.]*[.]?/gi, "");
+          rawReply = rawReply.replace(/Your order is (?:already )?(?:paid & )?confirmed! Our Malabagh farm team has it scheduled[^\n.]*[.]?/gi, "");
+          rawReply = rawReply.replace(/Your (?:live-harvest )?order is (?:already )?confirmed for (?:today|tomorrow)[^\n.]*[.]?/gi, "");
+          rawReply = rawReply.replace(/(?:^|\n)[^\n]*rider\s+is\s+on\s+the\s+way[^\n]*/gi, "");
+          rawReply = rawReply.replace(/[ \t]{2,}/g, " ").trim();
         }
 
         // Normalize excessive blank lines (keep max 1 blank line between paragraphs)
