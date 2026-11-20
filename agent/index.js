@@ -2355,17 +2355,20 @@ async function checkPendingRazorpayPayments(sock) {
         }
       }
 
-      // ─── STRICT GUARD 3: ALREADY PAID / CONFIRMED / DELIVERED CHECK ───
-      // If the matched order was already marked Paid, Confirmed, or Delivered in our records,
-      // the customer has already received their confirmation. NEVER re-send!
-      if (order && (
-        order.paymentId === p.id ||
-        order.status?.includes("Paid") ||
-        order.status?.includes("Confirmed") ||
-        order.status?.includes("Delivered")
-      )) {
+      // ─── STRICT GUARD 3: ALREADY PROCESSED TRANSACTION CHECK ───
+      // If THIS specific Razorpay payment ID was already attached to this order, it is already confirmed.
+      if (order && order.paymentId === p.id) {
         markPaymentProcessed(p.id);
         continue;
+      }
+
+      // If the matched customer has an older payment from a previous order, archive it to pastOrders
+      if (order && order.paymentId && order.paymentId !== p.id) {
+        if (!order.pastOrders) order.pastOrders = [];
+        const oldCopy = { ...order };
+        delete oldCopy.pastOrders;
+        order.pastOrders.push(oldCopy);
+        console.log(`[Order Archive] Archived previous order #${order.orderRef} (${order.paymentId}) to pastOrders for returning customer ${matchedKey}`);
       }
 
       console.log(`\n🎉 [Instant Payment Confirmed via Razorpay!] Payment ID: ${p.id} for ₹${pAmt} (${pRef || pPhone || "Customer"})`);
