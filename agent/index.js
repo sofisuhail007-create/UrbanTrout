@@ -26,10 +26,10 @@ process.on("unhandledRejection", (reason) => {
 // ============================================================================
 // URBAN TROUT SALES AGENT — BUILD & VERSION TRACKING
 // ============================================================================
-const BOT_VERSION = "3.0.7";
-const BOT_LAST_UPDATED = "19-Nov-2026, 11:15 PM IST";
-const BOT_RELEASE_TITLE = "Active Order Protection, Stale Order Guard, Friday Open Fix & Speed Slang Parser";
-const BOT_RELEASE_NOTES = "1. Active Order Protection: Prevent duplicate order generation & time-warp for already-paid customers (e.g. Zahoor Ahmad Reshi). 2. Stale Order Shield: Block weeks-old delivered orders from hallucinating as live today for new ad leads (e.g. Peerzada Baber). 3. Friday Open Routing: Thursday night accurately routes to tomorrow Friday morning when Friday operations are open. 4. Slang Parser: Block conversational speed slang ('Lkin jddi plz') from false locality geocoding. 5. Brief Welcome & Speed Rules: Clean brief greeting without polythene lecturing; dynamic delivery speed messaging (1-hour within 4km or clear queue).";
+const BOT_VERSION = "3.0.8";
+const BOT_LAST_UPDATED = "20-Nov-2026, 11:15 PM IST";
+const BOT_RELEASE_TITLE = "Returning Customer Shield, Repeat Payment Confirmation & Tulip Garden Routing";
+const BOT_RELEASE_NOTES = "1. Returning Customer Isolation: Quarantined historical completed orders so older customers never receive false confirmation or rider claims. 2. Razorpay Guard 3 Fix: Enabled instant payment receipts for repeat buyers (e.g. Fahad). 3. Tulip Garden & Zone 3 Mapping: Codified Tulip Garden (~9.8 km, Zone 3) into Srinagar Zone DB. 4. Culinary Gold Standard: Codified 400g-500g table size culinary pitch without bureaucrat jargon. 5. Driver Blacklist: Guarded Rapido drivers (MS Wani) from bot replies & mPay prompts.";
 
 // ============================================================================
 // STRICT MANUAL-ONLY & DRIVER EXCLUSION LIST (AI MUST NEVER TEXT UNDER ANY CIRCUMSTANCE)
