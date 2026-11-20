@@ -233,6 +233,24 @@ function isFridayOperationsOpen() {
   return false;
 }
 
+// Bulletproof amount extractor that strictly respects Total Payable / Grand Total hierarchy
+function extractTotalPayableAmount(text) {
+  if (!text || typeof text !== "string") return null;
+  // 1. Highest priority: Explicit Total Payable / Total Amount / Final Amount
+  const payableMatch = text.match(/(?:Total\s*Payable|Payable\s*Amount|Final\s*Amount|Net\s*Amount|Total\s*Due)[^0-9\n\r]{0,30}?₹?\s*([\d,]{3,7})\b(?!\s*\/\s*kg)/i);
+  if (payableMatch) return parseInt(payableMatch[1].replace(/,/g, ""), 10);
+
+  // 2. Official Order Summary Total
+  const summaryTotalMatch = text.match(/(?:Order\s*Total|Grand\s*Total)[^0-9\n\r]{0,30}?₹?\s*([\d,]{3,7})\b(?!\s*\/\s*kg)/i);
+  if (summaryTotalMatch) return parseInt(summaryTotalMatch[1].replace(/,/g, ""), 10);
+
+  // 3. Fallback: Any Total that is NOT preceded by "Fish "
+  const generalTotalMatch = text.match(/(?<!Fish\s*)(?:Total\s*Amount|Total|Amount)[^0-9\n\r]{0,25}?₹?\s*([\d,]{3,7})\b(?!\s*\/\s*kg)/i);
+  if (generalTotalMatch) return parseInt(generalTotalMatch[1].replace(/,/g, ""), 10);
+
+  return null;
+}
+
 let liveWeatherCache = {
   fetchedAt: 0,
   ok: false,
@@ -828,6 +846,7 @@ const KNOWN_IN_ZONE_AREAS = [
   { pattern: /\b(?:balgarden|bal\s*garden)\b/i, name: "Balgarden", dist: 9.8, minKg: 3 },
   { pattern: /\b(?:brein(?:\s*nishat)?|brain\s*nishat)\b/i, name: "Brein (Nishat)", dist: 11.0, minKg: 3 },
   { pattern: /\b(?:nishat)\b/i, name: "Nishat", dist: 8.0, minKg: 3 },
+  { pattern: /\b(?:tulip\s*garden|cheshmashahi|chashmashahi|chashma\s*shahi|botanical\s*garden)\b/i, name: "Tulip Garden", dist: 9.8, minKg: 3 },
 
   // ── Zone 4: South Srinagar & Cross-City Outer Corridor (11.5 to 16.0 km, Free Delivery on 5 kg+, 2–4 kg 70/30 Split, 1 kg Full Fee ₹190) ──
   { pattern: /\b(?:baghat\s*barzulla|baghat)\b/i, name: "Baghat Barzulla", dist: 15.0, minKg: 5 },
@@ -2968,7 +2987,7 @@ function parseCustomerQuantityRequest(userMessage) {
 
   const isOrderIntent = /^(?:send|bhej|bhejo|deliver|pack|book|order|chahiye|need|want|give|lao|kar\s*do|bhej\s*do|deliver\s*karo|do\s*mujhe)\b/i.test(msg) ||
                         /\b(?:send|bhej|bhejo|deliver|pack|book|order|chahiye|need|want|give|lao|kar\s*do|bhej\s*do|deliver\s*karo)\b/i.test(msg) ||
-                        /^(?:ek|do|teen|chaar|char|paanch|panch|one|two|three|four|five|[0-9]+(?:\.[0-9]+)?)\s*(?:kg|kgs|kilos?|kilo)?(?:\s+(?:cleaned|gutted|whole|fresh|steaks|curry|cut))?(?:\s+(?:please|plz|bhai|sahib|janab))?[!.,\s]*$/i.test(msg) ||
+                        /^(?:ek|do|teen|chaar|char|paanch|panch|one|two|three|four|five|[0-9]+(?:\.[0-9]+)?)\s*(?:kg|kgs|kilos?|kilo)?(?:\s+(?:cleaned|gutted|whole|fresh|steaks|curry|cut))?(?:\s+(?:tomorrow|tomarow|tomm?or?row|kal|subah|morning|evening|aaj|today|for\s+tomorrow|for\s+saturday|please|plz|bhai|sahib|janab))?[!.,\s]*$/i.test(msg) ||
                         /\b(?:can\s*(?:i|you)\s*(?:get|send|have|order)|please\s*(?:send|deliver)|send\s*link|pay\s*link|please|plz)\b/i.test(msg);
 
   if (!isOrderIntent) return null;
@@ -4188,7 +4207,8 @@ You can choose live swimming trout from our counter tanks, watch it harvested li
   }
 
   // ─── FRIDAY DETERMINISTIC HARD LOCK (ENTIRE OPERATION 100% CLOSED) ───
-  if (isFridayToday && !/\b(?:saturday|advance|hafta)\b/i.test(trimmedLower) && !isCutPreferenceIntent && !isMpayIntent && !isPaymentLinkIntent) {
+  const isTargetOutOfZone = (detectedLoc && detectedLoc.status === "OUT_ZONE");
+  if (isFridayToday && !/\b(?:saturday|advance|hafta)\b/i.test(trimmedLower) && !isCutPreferenceIntent && !isSizeOrBigFishIntent && !isTargetOutOfZone && !isMpayIntent && !isPaymentLinkIntent) {
     const isFridayInquiry = /(?:deliver|order|open|aaj|today|now|abhi|right\s*now|available|bhej|chahiye|rate|visit|kahan|hai\s*kya|trout|fish|rate|price|cost|timing)/i.test(trimmedLower);
     if (isFridayInquiry) {
       const deterministicFridayReply = `Our Live Vending Center and express delivery operations are strictly closed today (Friday) for weekly bio-security maintenance, filtration backwashing, and staff weekly off.
@@ -5953,24 +5973,6 @@ async function startBot() {
     }
 
     return false;
-  }
-
-  // Bulletproof amount extractor that strictly respects Total Payable / Grand Total hierarchy
-  function extractTotalPayableAmount(text) {
-    if (!text || typeof text !== "string") return null;
-    // 1. Highest priority: Explicit Total Payable / Total Amount / Final Amount
-    const payableMatch = text.match(/(?:Total\s*Payable|Payable\s*Amount|Final\s*Amount|Net\s*Amount|Total\s*Due)[^0-9\n\r]{0,30}?₹?\s*([\d,]{3,7})\b(?!\s*\/\s*kg)/i);
-    if (payableMatch) return parseInt(payableMatch[1].replace(/,/g, ""), 10);
-
-    // 2. Official Order Summary Total
-    const summaryTotalMatch = text.match(/(?:Order\s*Total|Grand\s*Total)[^0-9\n\r]{0,30}?₹?\s*([\d,]{3,7})\b(?!\s*\/\s*kg)/i);
-    if (summaryTotalMatch) return parseInt(summaryTotalMatch[1].replace(/,/g, ""), 10);
-
-    // 3. Fallback: Any Total that is NOT preceded by "Fish "
-    const generalTotalMatch = text.match(/(?<!Fish\s*)(?:Total\s*Amount|Total|Amount)[^0-9\n\r]{0,25}?₹?\s*([\d,]{3,7})\b(?!\s*\/\s*kg)/i);
-    if (generalTotalMatch) return parseInt(generalTotalMatch[1].replace(/,/g, ""), 10);
-
-    return null;
   }
 
   // Shared helper to parse quick owner order commands (#link 2kg +149, #2kg +149, #qr 2kg +149, #qr 1740, etc.)
@@ -8205,6 +8207,10 @@ if (require.main === module) {
     resolveNearestLocalityName,
     resolveConfirmedCustomerLocationDetails,
     isCustomerDeliveryLocationConfirmed,
+    extractTotalPayableAmount,
+    isFridayOperationsOpen,
+    isOrderActivePending,
+    TodayOrderPool,
     __setLiveWeatherCacheForTest
   };
 }
