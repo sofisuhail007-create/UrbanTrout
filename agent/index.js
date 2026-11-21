@@ -626,10 +626,51 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
     Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * Math.sin(dLon / 2) ** 2;
   const aerial = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
-  // Srinagar Road Winding Calibration (converts straight-line aerial distance into actual driving road distance):
-  // Direct local routes <=4km have ~1.10x factor; routes >4km across Dal Lake / Jhelum bridges have ~1.32x road winding factor.
-  const roadFactor = aerial <= 4.0 ? 1.10 : 1.32;
-  return aerial * roadFactor;
+  // Srinagar Road Winding & Water Barrier Calibration (Google Maps / Rapido traveling road distance):
+  // 1. Dal Lake / Boulevard / Cheshmashahi / Tulip Garden corridor (South-East of Dal Lake):
+  // Water barrier forces all vehicles to drive all the way around Dal Lake / Foreshore / Boulevard (~1.62x road detour factor).
+  const isEastOfDalLake = (lon2 >= 74.845 && lat2 <= 34.135) || (lat2 <= 34.100 && lon2 >= 74.838);
+  if (isEastOfDalLake) {
+    return aerial * 1.62;
+  }
+  // 2. North/North-East corridor (Gulab Bagh, Zakura, Pandach, Ganderbal road): ~1.40x factor.
+  if (lat2 >= 34.150 && lon2 >= 74.815) {
+    return aerial * 1.40;
+  }
+  // 3. Central & South Srinagar across Jhelum bridges and city grid: ~1.38x factor.
+  return aerial * 1.38;
+}
+
+const liveRoadDistanceCache = new Map();
+
+// Real-time road traveling distance calculator (Google Maps / Rapido road network via OSRM with geographic fallback)
+async function fetchLiveRoadDistance(lat, lng) {
+  if (lat == null || lng == null || isNaN(lat) || isNaN(lng)) return null;
+  const key = `${Number(lat).toFixed(4)},${Number(lng).toFixed(4)}`;
+  if (liveRoadDistanceCache.has(key)) return liveRoadDistanceCache.get(key);
+
+  const fallback = parseFloat(calculateDistance(FARM_LAT, FARM_LNG, lat, lng).toFixed(1));
+
+  return new Promise((resolve) => {
+    const url = `https://router.project-osrm.org/route/v1/driving/${FARM_LNG},${FARM_LAT};${lng},${lat}?overview=false`;
+    const req = https.get(url, { headers: { "User-Agent": "UrbanTroutBot/1.0" }, timeout: 1200 }, (res) => {
+      let data = "";
+      res.on("data", (chunk) => { data += chunk; });
+      res.on("end", () => {
+        try {
+          const json = JSON.parse(data);
+          if (json.routes && json.routes[0]) {
+            const dist = parseFloat((json.routes[0].distance / 1000).toFixed(1));
+            liveRoadDistanceCache.set(key, dist);
+            return resolve(dist);
+          }
+        } catch (_) {}
+        resolve(fallback);
+      });
+    });
+    req.on("error", () => resolve(fallback));
+    req.on("timeout", () => { req.destroy(); resolve(fallback); });
+  });
 }
 
 // Unwrap WhatsApp message container across ephemeral, viewOnce, and nested wrappers
@@ -795,14 +836,12 @@ const KNOWN_IN_ZONE_AREAS = [
   { pattern: /\b(?:bagh[\s\-]?i[\s\-]?usman|baghi\s*usman)\b/i, name: "Bagh-i-Usman Colony", dist: 3.3 },
   { pattern: /\b(?:zoonimar|zooni\s*mar)\b/i, name: "Zoonimar", dist: 3.3 },
   { pattern: /\b(?:tailbal|teilbal|habak\s*shanpora)\b/i, name: "Tailbal", dist: 3.3 },
-  { pattern: /\b(?:g(?:h)?ulab\s*bagh|g(?:h)?ulabbagh|g(?:h)?ulab\s*garden)\b/i, name: "Gulab Bagh", dist: 3.6 },
   { pattern: /\b(?:bota\s*kadal|botakadal)\b/i, name: "Botakadal", dist: 3.6 },
-  { pattern: /\b(?:pandach|pandath|pandacha)\b/i, name: "Pandach", dist: 3.6 },
   { pattern: /\b(?:ashaie?\s*bagh)\b/i, name: "Ashaie Bagh", dist: 3.8 },
   { pattern: /\b(?:braiwar|braiwer)\b/i, name: "Braiwar", dist: 3.8 },
   { pattern: /\b(?:gassu)\b/i, name: "Gassu", dist: 3.9 },
-  { pattern: /\b(?:zadibal)\b/i, name: "Zadibal", dist: 4.0 },
-  // ── Zone 2 (4–6 km, MOQ 3 kg) ──
+  // ── Zone 2 (4–7 km, MOQ 3 kg for Free Delivery, 2 kg has ₹55 fee) ──
+  { pattern: /\b(?:zadibal)\b/i, name: "Zadibal", dist: 4.3 },
   { pattern: /\b(?:badamwari|badam\s*wari)\b/i, name: "Badamwari", dist: 4.2 },
   { pattern: /\b(?:madin\s*sahib)\b/i, name: "Madin Sahib", dist: 4.2 },
   { pattern: /\b(?:alamgari\s*bazar|alamgaribazar)\b/i, name: "Alamgari Bazar", dist: 4.3 },
@@ -814,10 +853,12 @@ const KNOWN_IN_ZONE_AREAS = [
   { pattern: /\b(?:kathi\s*darwaza|kati\s*darwaza)\b/i, name: "Kathi Darwaza", dist: 4.5 },
   { pattern: /\b(?:said\s*pora|saidpora)\b/i, name: "Said Pora", dist: 4.5 },
   { pattern: /\b(?:hawal)\b/i, name: "Hawal", dist: 4.6 },
+  { pattern: /\b(?:pandach|pandath|pandacha)\b/i, name: "Pandach", dist: 4.6 },
   { pattern: /\b(?:alusteng|alustang|aloo\s*steng)\b/i, name: "Alusteng", dist: 4.6 },
   { pattern: /\b(?:eidgah|idgah|eid\s*gah|aali\s*masjid)\b/i, name: "Eidgah", dist: 4.6 },
   { pattern: /\b(?:bakura)\b/i, name: "Bakura", dist: 4.8 },
   { pattern: /\b(?:gojwara|goj\s*wara)\b/i, name: "Gojwara", dist: 5.0 },
+  { pattern: /\b(?:g(?:h)?ulab\s*bagh|g(?:h)?ulabbagh|g(?:h)?ulab\s*garden)\b/i, name: "Gulab Bagh", dist: 5.0 },
   { pattern: /\b(?:shuhama)\b/i, name: "Shuhama", dist: 5.0 },
   { pattern: /\b(?:rakh\s*harran|rakh\s*haran)\b/i, name: "Rakh Harran", dist: 5.0 },
   { pattern: /\b(?:sangam)\b/i, name: "Sangam", dist: 5.1 },
@@ -844,11 +885,11 @@ const KNOWN_IN_ZONE_AREAS = [
   { pattern: /\b(?:khyber\s*(?:hospital|medical|institute)|hospital\s*khyber)\b/i, name: "Khayam", dist: 8.5, minKg: 3 },
   { pattern: /\b(?:qamarwari|qamar\s*wari|kamarwari)\b/i, name: "Qamarwari", dist: 9.5, minKg: 3 },
   { pattern: /\b(?:balgarden|bal\s*garden)\b/i, name: "Balgarden", dist: 9.8, minKg: 3 },
-  { pattern: /\b(?:brein(?:\s*nishat)?|brain\s*nishat)\b/i, name: "Brein (Nishat)", dist: 11.0, minKg: 3 },
-  { pattern: /\b(?:nishat)\b/i, name: "Nishat", dist: 8.0, minKg: 3 },
-  { pattern: /\b(?:tulip\s*garden|cheshmashahi|chashmashahi|chashma\s*shahi|botanical\s*garden)\b/i, name: "Tulip Garden", dist: 9.8, minKg: 3 },
+  { pattern: /\b(?:nishat)\b/i, name: "Nishat", dist: 8.4, minKg: 3 },
+  { pattern: /\b(?:brein(?:\s*nishat)?|brain\s*nishat)\b/i, name: "Brein (Nishat)", dist: 11.2, minKg: 3 },
 
   // ── Zone 4: South Srinagar & Cross-City Outer Corridor (11.5 to 16.0 km, Free Delivery on 5 kg+, 2–4 kg 70/30 Split, 1 kg Full Fee ₹190) ──
+  { pattern: /\b(?:tulip\s*garden|cheshmashahi|chashmashahi|chashma\s*shahi|botanical\s*garden)\b/i, name: "Tulip Garden", dist: 13.5, minKg: 5 },
   { pattern: /\b(?:baghat\s*barzulla|baghat)\b/i, name: "Baghat Barzulla", dist: 15.0, minKg: 5 },
   { pattern: /\b(?:barzulla|old\s*barzulla)\b/i, name: "Barzulla", dist: 14.2, minKg: 5 },
   { pattern: /\b(?:solina|rambagh|ram\s*bagh)\b/i, name: "Rambagh/Solina", dist: 14.3, minKg: 5 },
@@ -987,7 +1028,11 @@ function detectSrinagarLocality(text) {
       if (ignoreMalabaghStore && /^malabagh$/i.test(place.name.trim())) continue;
       const escaped = place.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
       if (new RegExp(`\\b${escaped}\\b`, "i").test(cleanText)) {
-        const dist = parseFloat(place.distance_km.toFixed(1));
+        const dist = (place.driving_km != null && !isNaN(place.driving_km))
+          ? parseFloat(Number(place.driving_km).toFixed(1))
+          : (place.lat != null && place.lon != null)
+            ? parseFloat(calculateDistance(FARM_LAT, FARM_LNG, place.lat, place.lon).toFixed(1))
+            : parseFloat(place.distance_km.toFixed(1));
         const minKg = dist <= 4.0 ? 2 : dist <= 11.5 ? 3 : 5;
         const tier = dist <= 4.0 ? "0-4km" : dist <= 7.0 ? "4-7km" : dist <= 11.5 ? "7-11.5km" : "11.5-16km";
         const status = dist <= 16.0 ? "IN_ZONE" : "OUT_ZONE";
@@ -1122,7 +1167,8 @@ async function resolveUnknownLocalityWithApi(text) {
   }
 
   if (geo && geo.lat && geo.lng) {
-    const dist = calculateDistance(FARM_LAT, FARM_LNG, geo.lat, geo.lng);
+    const liveRoadDist = await fetchLiveRoadDistance(geo.lat, geo.lng);
+    const dist = (liveRoadDist != null && !isNaN(liveRoadDist)) ? liveRoadDist : calculateDistance(FARM_LAT, FARM_LNG, geo.lat, geo.lng);
     const distRounded = parseFloat(dist.toFixed(1));
     const minKg = distRounded <= 4.0 ? 2 : distRounded <= 11.5 ? 3 : 5;
     const tier = distRounded <= 4.0 ? "0-4km" : distRounded <= 7.0 ? "4-7km" : distRounded <= 11.5 ? "7-11.5km" : "11.5-16km";
@@ -6755,7 +6801,8 @@ async function startBot() {
         try {
           const coords = await getCoordinatesFromText(locQuery);
           if (coords && coords.lat != null && coords.lng != null) {
-            const dist = parseFloat(calculateDistance(FARM_LAT, FARM_LNG, coords.lat, coords.lng).toFixed(1));
+            const liveRoadDist = await fetchLiveRoadDistance(coords.lat, coords.lng);
+            const dist = parseFloat(((liveRoadDist != null && !isNaN(liveRoadDist)) ? liveRoadDist : calculateDistance(FARM_LAT, FARM_LNG, coords.lat, coords.lng)).toFixed(1));
             const labelFromText = locQuery.replace(/https?:\/\/\S+/gi, "").replace(/-?\d{1,2}\.\d+[,\s]+-?\d{1,3}\.\d+/g, "").replace(/[,\s]+/g, " ").trim();
             const textDet = labelFromText ? detectSrinagarLocality(labelFromText) : null;
             const nearestPlace = resolveNearestLocalityName(coords.lat, coords.lng);
@@ -7338,7 +7385,8 @@ async function startBot() {
       (savedMetaLoc && !/^(?:srinagar|kashmir)$/i.test(savedMetaLoc) ? savedMetaLoc : null);
 
     if (isGpsCheck && detectedLat !== null && detectedLng !== null) {
-      const dist = calculateDistance(FARM_LAT, FARM_LNG, detectedLat, detectedLng);
+      const liveRoadDist = await fetchLiveRoadDistance(detectedLat, detectedLng);
+      const dist = (liveRoadDist != null && !isNaN(liveRoadDist)) ? liveRoadDist : calculateDistance(FARM_LAT, FARM_LNG, detectedLat, detectedLng);
       const distRounded = dist.toFixed(1);
       const istDate = new Date().toLocaleDateString("en-IN", { timeZone: "Asia/Kolkata", day: "2-digit", month: "short", year: "numeric" });
       const istTime = new Date().toLocaleTimeString("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: true });

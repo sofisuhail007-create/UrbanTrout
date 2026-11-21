@@ -3617,9 +3617,9 @@
     "group": "Locality",
     "lat": 34.1768024,
     "lon": 74.8195141,
-    "distance_km": 4.725,
-    "driving_km": 4.725,
-    "tier": "Zone 2 (4-6km, MOQ 3kg)",
+    "distance_km": 3.5,
+    "driving_km": 5,
+    "tier": "Zone 2 (4-7km, MOQ 3kg)",
     "borderline": false
   },
   {
@@ -6152,9 +6152,9 @@
     "group": "Landmark",
     "lat": 34.0847,
     "lon": 74.8778,
-    "distance_km": 9.8,
-    "driving_km": 9.8,
-    "tier": "Zone 3 (7-11.5km, MOQ 3kg)",
+    "distance_km": 8.4,
+    "driving_km": 13.5,
+    "tier": "Zone 4 (11.5-16km, MOQ 5kg)",
     "borderline": false
   }
 ]
