@@ -6156,5 +6156,161 @@
     "driving_km": 13.5,
     "tier": "Zone 4 (11.5-16km, MOQ 5kg)",
     "borderline": false
+  },
+  {
+    "name": "Beehama",
+    "name_ur": "بیہامہ",
+    "aliases": [
+      "Beehama",
+      "Bihama",
+      "Beehama Chowk",
+      "Beehama Ganderbal"
+    ],
+    "type": "village",
+    "group": "Locality",
+    "lat": 34.216,
+    "lon": 74.78,
+    "distance_km": 8.8,
+    "driving_km": 10.9,
+    "tier": "Zone 3 (7-11.5km, MOQ 3kg)",
+    "borderline": false
+  },
+  {
+    "name": "Qamaria",
+    "name_ur": "قمریہ",
+    "aliases": [
+      "Qamaria",
+      "Qamaria Ground",
+      "Qamaria Park",
+      "Qamaria Ganderbal"
+    ],
+    "type": "park",
+    "group": "Landmark",
+    "lat": 34.217,
+    "lon": 74.778,
+    "distance_km": 8.9,
+    "driving_km": 11,
+    "tier": "Zone 3 (7-11.5km, MOQ 3kg)",
+    "borderline": false
+  },
+  {
+    "name": "Ganderbal Town",
+    "name_ur": "گاندربل",
+    "aliases": [
+      "Ganderbal",
+      "Ganderbal Town",
+      "Ganderbal Market",
+      "DC Office Ganderbal"
+    ],
+    "type": "town",
+    "group": "Locality",
+    "lat": 34.218,
+    "lon": 74.775,
+    "distance_km": 9.2,
+    "driving_km": 11.8,
+    "tier": "Zone 4 (11.5-16km, MOQ 5kg)",
+    "borderline": false
+  },
+  {
+    "name": "Wayil",
+    "name_ur": "وائیل",
+    "aliases": [
+      "Wayil",
+      "Wayil Bridge",
+      "Wail Bridge",
+      "Wayil Ganderbal"
+    ],
+    "type": "village",
+    "group": "Locality",
+    "lat": 34.241,
+    "lon": 74.828,
+    "distance_km": 10.6,
+    "driving_km": 11.8,
+    "tier": "Zone 4 (11.5-16km, MOQ 5kg)",
+    "borderline": false
+  },
+  {
+    "name": "Manigam",
+    "name_ur": "منی گام",
+    "aliases": [
+      "Manigam",
+      "Mani Gam",
+      "Manigam Ganderbal"
+    ],
+    "type": "village",
+    "group": "Locality",
+    "lat": 34.245,
+    "lon": 74.845,
+    "distance_km": 11.2,
+    "driving_km": 11.8,
+    "tier": "Zone 4 (11.5-16km, MOQ 5kg)",
+    "borderline": false
+  },
+  {
+    "name": "Duderhama",
+    "name_ur": "دودرہامہ",
+    "aliases": [
+      "Duderhama",
+      "Dudurhama",
+      "Duderhama Chowk",
+      "Duderhama Ganderbal"
+    ],
+    "type": "village",
+    "group": "Locality",
+    "lat": 34.225,
+    "lon": 74.772,
+    "distance_km": 9.9,
+    "driving_km": 12.3,
+    "tier": "Zone 4 (11.5-16km, MOQ 5kg)",
+    "borderline": false
+  },
+  {
+    "name": "Saloora",
+    "name_ur": "سلورہ",
+    "aliases": [
+      "Saloora",
+      "Salora",
+      "Saloora Ganderbal"
+    ],
+    "type": "village",
+    "group": "Locality",
+    "lat": 34.232,
+    "lon": 74.765,
+    "distance_km": 10.7,
+    "driving_km": 13.3,
+    "tier": "Zone 4 (11.5-16km, MOQ 5kg)",
+    "borderline": false
+  },
+  {
+    "name": "Kurhama",
+    "name_ur": "کوڑھامہ",
+    "aliases": [
+      "Kurhama",
+      "Kurhama Ganderbal"
+    ],
+    "type": "village",
+    "group": "Locality",
+    "lat": 34.22,
+    "lon": 74.75,
+    "distance_km": 11,
+    "driving_km": 14.1,
+    "tier": "Zone 4 (11.5-16km, MOQ 5kg)",
+    "borderline": false
+  },
+  {
+    "name": "Barsoo",
+    "name_ur": "بارسو",
+    "aliases": [
+      "Barsoo",
+      "Barsoo Ganderbal"
+    ],
+    "type": "village",
+    "group": "Locality",
+    "lat": 34.23,
+    "lon": 74.745,
+    "distance_km": 12.1,
+    "driving_km": 15.5,
+    "tier": "Zone 4 (11.5-16km, MOQ 5kg)",
+    "borderline": false
   }
 ]

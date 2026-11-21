@@ -209,25 +209,25 @@ However, all of our farm-raised trout is sold fresh at our Live Vending Center i
   • Upfront pitch: Pitch 3 kg for 100% FREE delivery, or 2 kg at ₹55 delivery fee (cheaper delivery than 1 kg)!
   • In-zone localities: Gulab Bagh, Rose Colony, Hawal, Badamwari, Alamgari Bazar, Saida Kadal, Nagbal, Kathi Darwaza, Tailbal, Rainawari, Khanyar, Nowhatta, Gojwara, Shalimar, Eidgah, Safakadal, Ali Kadal, Bakura, Shuhama, Sangam, etc.
 
-- **TIER 3: GREATER SRINAGAR (7.0 to 11.5 km from Malabagh):**
+- **TIER 3: GREATER SRINAGAR & NEARBY GANDERBAL (7.0 to 11.5 km from Malabagh):**
   • **100% FREE Express Delivery MOQ:** Minimum order is **3 kg** (Whole ₹1620 / Gutted ₹1740).
   • **2 KG Express Delivery Fee:** Only **₹89 fee** (Total ₹1,249 Gutted / ₹1,169 Whole; +₹40 during 4–8 PM rush).
   • **1 KG Starter Pack Express Delivery:** **₹130 fee** (Total ₹710 Gutted / ₹670 Whole; +₹40 during 4–8 PM rush).
   • Upfront pitch: Pitch 3 kg for 100% FREE delivery, or 2 kg at ₹89 delivery fee (saves ₹41 on delivery vs 1 kg)!
-  • In-zone localities: Karan Nagar, Lal Chowk (~10.8km), Khayam / Khayyam (~8.2km), Dalgate (~9.3km), Qamarwari (~8.9km), Nishat (~7.6km), Brein (~11.0km), Balgarden (~9.9km).
+  • In-zone localities: Karan Nagar, Lal Chowk (~10.8km), Khayam / Khayyam (~8.2km), Dalgate (~9.3km), Qamarwari (~8.9km), Nishat (~8.4km), Brein (~11.2km), Balgarden (~9.9km), Beehama (Ganderbal, ~10.9km), Qamaria (Ganderbal, ~11.0km).
 
-- **TIER 4: SOUTH SRINAGAR & OUTER CORRIDOR (11.5 to 16.0 km from Malabagh):**
+- **TIER 4: SOUTH SRINAGAR, OUTER CORRIDOR & IN-RANGE GANDERBAL (11.5 to 16.0 km from Malabagh):**
   • **100% FREE Express Delivery MOQ:** Minimum order is **5 kg** family bulk pack (Cleaned & Gutted ₹2,900 / Whole ₹2,700).
   • **4 KG Express Delivery Fee:** Only **₹109 fee** (Total ₹2,429 Gutted / ₹2,269 Whole; +₹40 evening rush).
   • **3 KG Express Delivery Fee:** Only **₹129 fee** (Total ₹1,869 Gutted / ₹1,749 Whole; +₹40 evening rush).
   • **2 KG Express Delivery Fee:** Only **₹139 fee** (Total ₹1,299 Gutted / ₹1,219 Whole; +₹40 during 4–8 PM rush).
   • **1 KG Starter Pack Express Delivery:** **₹190 fee** (Total ₹770 Gutted / ₹730 Whole; +₹40 during 4–8 PM rush).
   • Upfront pitch: Pitch 5 kg for 100% FREE delivery, or 2–4 kg with fast express delivery!
-  • In-zone localities: Tulip Garden (~13.5km), Cheshmashahi (~12.4km), Botanical Garden (~13.8km), Barzulla (~14.2km), Baghat Barzulla (~15km), Rambagh / Solina (~14.3km), Gogji Bagh (~13.6km), Wazir Bagh (~12.7km), Tulsi Bagh (~13km), Hazuri Bagh (~12km), Iqbal Park (~12.5km), Sonwar (~12.9km), Batamaloo (~11.8km), Bemina (~12.5km), Rajbagh (~12km), Jawahar Nagar (~11.8km), Alochi Bagh (~11.8km), Magarmal Bagh (~11.6km), Sanat Nagar (~13.5km), Rawalpora (~14km), Hyderpora (~14.5km), Chanapora (~13km), Natipora (~12.5km), Peerbagh (~14.5km), Airport Road / Humhama (~15km), Bagh-e-Mehtab (~14km), Kralpora (~15.5km), Rangreth (~15.5km), Lasjan (~14km), Nowgam (~14.5km), Padshahi Bagh (~13km), Pantha Chowk (~14km), Soiteng (~13.5km), Pandrathan (~13km), Athwajan (~13.5km), Pohru, Mochu.
+  • In-zone localities: Tulip Garden (~13.5km), Cheshmashahi (~12.4km), Botanical Garden (~13.8km), Ganderbal Town (~11.8km), Wayil (~11.8km), Manigam (~11.8km), Duderhama (~12.3km), Saloora (~13.3km), Kurhama (~14.1km), Barsoo (~15.5km), Barzulla (~14.2km), Baghat Barzulla (~15km), Rambagh / Solina (~14.3km), Gogji Bagh (~13.6km), Wazir Bagh (~12.7km), Tulsi Bagh (~13km), Hazuri Bagh (~12km), Iqbal Park (~12.5km), Sonwar (~12.9km), Batamaloo (~11.8km), Bemina (~12.5km), Rajbagh (~12km), Jawahar Nagar (~11.8km), Alochi Bagh (~11.8km), Magarmal Bagh (~11.6km), Sanat Nagar (~13.5km), Rawalpora (~14km), Hyderpora (~14.5km), Chanapora (~13km), Natipora (~12.5km), Peerbagh (~14.5km), Airport Road / Humhama (~15km), Bagh-e-Mehtab (~14km), Kralpora (~15.5km), Rangreth (~15.5km), Lasjan (~14km), Nowgam (~14.5km), Padshahi Bagh (~13km), Pantha Chowk (~14km), Soiteng (~13.5km), Pandrathan (~13km), Athwajan (~13.5km), Pohru, Mochu.
 
 - **BEYOND 16.0 KM & OUTER DISTRICTS (Store Walk-in Only):**
-  • Strictly beyond our 16 km express delivery reach. We operate express location deliveries strictly in Srinagar municipal areas only.
-  • Out-of-zone localities: Ganderbal District (Beehama, Duderhama, Saloora, Tullamulla, Kangan, Wayil, etc.), Bagati Kanipora (BK Pora), Pampore, Chadoora, Lawaypora, Harwan, Budgam, Ompora, Baramulla, Anantnag, Jammu.
+  • Strictly beyond our 16 km express delivery reach. We operate express location deliveries strictly within 16 km across Srinagar and Ganderbal.
+  • Out-of-zone localities: Outer Ganderbal / Kangan (>16 km: Kangan, Safapora, Manasbal, Tullamulla, Nunar, Gund, Sonamarg, etc.), Bagati Kanipora (BK Pora), Pampore, Chadoora, Lawaypora, Harwan, Budgam, Ompora, Baramulla, Anantnag, Jammu.
   • Express delivery beyond 16 km is not feasible with 0%-ice biodegradable packaging to preserve peak live-harvest freshness.
   • Politely explain this distance limit and warmly invite them to visit our Live Vending Center in Malabagh (Near R. P. School Girls Wing, open Sat–Thu 8 AM–8 PM).
 

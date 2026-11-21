@@ -887,8 +887,17 @@ const KNOWN_IN_ZONE_AREAS = [
   { pattern: /\b(?:balgarden|bal\s*garden)\b/i, name: "Balgarden", dist: 9.8, minKg: 3 },
   { pattern: /\b(?:nishat)\b/i, name: "Nishat", dist: 8.4, minKg: 3 },
   { pattern: /\b(?:brein(?:\s*nishat)?|brain\s*nishat)\b/i, name: "Brein (Nishat)", dist: 11.2, minKg: 3 },
+  { pattern: /\b(?:beehama|bihama|bee\s*hama)\b/i, name: "Beehama (Ganderbal)", dist: 10.9, minKg: 3 },
+  { pattern: /\b(?:qamaria|qamaria\s*ground|qamaria\s*park)\b/i, name: "Qamaria (Ganderbal)", dist: 11.0, minKg: 3 },
 
-  // ── Zone 4: South Srinagar & Cross-City Outer Corridor (11.5 to 16.0 km, Free Delivery on 5 kg+, 2–4 kg 70/30 Split, 1 kg Full Fee ₹190) ──
+  // ── Zone 4: South Srinagar, Outer Corridor & In-Range Ganderbal (11.5 to 16.0 km, Free Delivery on 5 kg+, 2–4 kg 70/30 Split, 1 kg Full Fee ₹190) ──
+  { pattern: /\b(?:wayil|wayil\s*bridge|wail\s*bridge)\b/i, name: "Wayil (Ganderbal)", dist: 11.8, minKg: 5 },
+  { pattern: /\b(?:manigam|mani\s*gam)\b/i, name: "Manigam (Ganderbal)", dist: 11.8, minKg: 5 },
+  { pattern: /\b(?:duderhama|dudurhama|dudarhama|duder\s*hama)\b/i, name: "Duderhama (Ganderbal)", dist: 12.3, minKg: 5 },
+  { pattern: /\b(?:saloora|salora)\b/i, name: "Saloora (Ganderbal)", dist: 13.3, minKg: 5 },
+  { pattern: /\b(?:kurhama)\b/i, name: "Kurhama (Ganderbal)", dist: 14.1, minKg: 5 },
+  { pattern: /\b(?:barsoo|barsoo\s*ganderbal)\b/i, name: "Barsoo (Ganderbal)", dist: 15.5, minKg: 5 },
+  { pattern: /\b(?:ganderbal|ganderbal\s*town|ganderbal\s*chowk|dc\s*office\s*ganderbal|ganderbal\s*market)\b/i, name: "Ganderbal Town", dist: 11.8, minKg: 5 },
   { pattern: /\b(?:tulip\s*garden|cheshmashahi|chashmashahi|chashma\s*shahi|botanical\s*garden)\b/i, name: "Tulip Garden", dist: 13.5, minKg: 5 },
   { pattern: /\b(?:baghat\s*barzulla|baghat)\b/i, name: "Baghat Barzulla", dist: 15.0, minKg: 5 },
   { pattern: /\b(?:barzulla|old\s*barzulla)\b/i, name: "Barzulla", dist: 14.2, minKg: 5 },
@@ -928,7 +937,7 @@ const KNOWN_IN_ZONE_AREAS = [
 
 const KNOWN_OUT_ZONE_AREAS = [
   // ── Beyond 16 km / Outer Districts (Store Walk-in Only) ──
-  { pattern: /\b(?:ganderbal|beehama|bihama|duderhama|dudurhama|saloora|salora|tullamulla|tulmulla|kangan|wayil|manigam|safapora|wussan)\b/i, name: "Ganderbal District" },
+  { pattern: /\b(?:kangan|gund|sonamarg|wangath|safapora|manasbal|tullamulla|tulmulla|nunar|wussan)\b/i, name: "Outer Ganderbal (>16 km: Kangan/Tullamulla/Safapora)" },
   { pattern: /\b(?:bagati\s*kanipora|b\.?k\.?\s*pora|bk\s*pora|kanipora\s*budgam|kanipora)\b/i, name: "Bagati Kanipora (BK Pora)" },
   { pattern: /\b(?:pampore)\b/i, name: "Pampore" },
   { pattern: /\b(?:chadoora|chadure)\b/i, name: "Chadoora" },
@@ -1060,8 +1069,9 @@ function autoLearnColonyFromLocation() {
 // Asynchronous Geocoding Engine (Google Maps API + OpenStreetMap Nominatim Fallback)
 async function geocodeAddressWithGoogle(query) {
   if (!GOOGLE_MAPS_API_KEY) return null;
+  const suffix = /ganderbal/i.test(query) ? ", Ganderbal, Kashmir" : ", Srinagar, Kashmir";
   return new Promise((resolve) => {
-    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(query + ", Srinagar, Kashmir")}&key=${GOOGLE_MAPS_API_KEY}`;
+    const url = `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(query + suffix)}&key=${GOOGLE_MAPS_API_KEY}`;
     https.get(url, { timeout: 3500 }, (res) => {
       let data = "";
       res.on("data", chunk => data += chunk);
@@ -1085,8 +1095,9 @@ async function geocodeAddressWithGoogle(query) {
 }
 
 async function geocodeAddressWithNominatim(query) {
+  const suffix = /ganderbal/i.test(query) ? ", Ganderbal" : ", Srinagar";
   return new Promise((resolve) => {
-    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query + ", Srinagar")}&format=json&limit=1`;
+    const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query + suffix)}&format=json&limit=1`;
     https.get(url, { headers: { "User-Agent": "UrbanTroutDeliveryBot/1.0" }, timeout: 3500 }, (res) => {
       let data = "";
       res.on("data", chunk => data += chunk);
@@ -2831,8 +2842,8 @@ function buildLocationRateQuote({ name, dist, status }) {
       `📍 *Urban Trout Delivery Check — ${name}*\n` +
       (distDisplay
         ? `_(Approx. ${distDisplay} km from our Malabagh Farm — Outside 16.0 km Express Delivery Perimeter)_\n\n`
-        : `_(Outside our 16.0 km Srinagar Express Delivery Perimeter)_\n\n`) +
-      `To guarantee peak live-harvest freshness within 90–120 minutes (packed fresh in food-grade biodegradable polythene with 0% ice), express delivery operates strictly within *16.0 km* across Srinagar.\n\n` +
+        : `_(Outside our 16.0 km Express Delivery Perimeter)_\n\n`) +
+      `To guarantee peak live-harvest freshness within 90–120 minutes (packed fresh in food-grade biodegradable polythene with 0% ice), express delivery operates strictly within *16.0 km* across Srinagar & nearby Ganderbal.\n\n` +
       `🏪 *Fresh Live Counter Pickup Available at Malabagh:*\n` +
       `• *Cleaned, Gutted & Pan-Ready Pieces:* ₹580 / kg\n` +
       `• *Location:* Live Vending Center, Near R.P. School Girls Wing, Malabagh, Srinagar\n` +
@@ -4691,16 +4702,16 @@ ${fridayOperatingNote}
 
      Or scan the locked QR code below — takes 30 seconds. Which works better for you?"
 4. DELIVERY RADIUS & 4-TIER MOQ MANDATE:
-   - Fast express deliveries (packed in 100% food-grade biodegradable polythene with 0% ice) are offered up to 16 km across Srinagar!
+   - Fast express deliveries (packed in 100% food-grade biodegradable polythene with 0% ice) are offered up to 16 km across Srinagar & nearby Ganderbal!
    - TIER 1 (0 to 4.0 km): 100% FREE on 2 kg+ (Cleaned & Gutted ₹1,160). 1 kg express delivery = ₹625 (₹45 fee).
-     Confirmed areas: Malabagh, Mirza Bagh, Naseem Bagh, Hazratbal, Habak, Zakura, Batapora, Gulab Bagh, Buchpora, Soura, Ahmad Nagar, 90 Feet Road, Illahi Bagh, Nowshera, Bagh Ali Mardan Khan, Zadibal, Lal Bazar, Botakadal, Saderbal, Kanitar, Nigeen, Ashaie Bagh, Umer Colony, Usman Colony, Bilal Colony, Zoonimar, Pandach.
+     Confirmed areas: Malabagh, Mirza Bagh, Naseem Bagh, Hazratbal, Habak, Zakura, Batapora, Buchpora, Soura, Ahmad Nagar, 90 Feet Road, Illahi Bagh, Nowshera, Bagh Ali Mardan Khan, Lal Bazar, Botakadal, Saderbal, Kanitar, Nigeen, Ashaie Bagh, Umer Colony, Usman Colony, Bilal Colony, Zoonimar, Tailbal, Gassu.
    - TIER 2 (4.0 to 7.0 km): 100% FREE on 3 kg+ (Cleaned & Gutted ₹1,740). 2 kg = ₹1,215 (₹55 fee). 1 kg = ₹655 (₹75 fee).
-     Confirmed areas: Hawal, Badamwari, Madin Sahib, Alamgari Bazar, Saida Kadal, Nagbal, Kathi Darwaza, Mirak Shah Colony, Tailbal, Rainawari, Khanyar, Nowhatta, Gojwara, Shalimar, Eidgah, Safakadal, Ali Kadal, Bakura, Shuhama, Sangam.
+     Confirmed areas: Gulab Bagh, Zadibal, Pandach, Hawal, Badamwari, Madin Sahib, Alamgari Bazar, Saida Kadal, Nagbal, Kathi Darwaza, Mirak Shah Colony, Rainawari, Khanyar, Nowhatta, Gojwara, Shalimar, Eidgah, Safakadal, Ali Kadal, Bakura, Shuhama, Sangam.
    - TIER 3 (7.0 to 11.5 km): 100% FREE on 3 kg+ (Cleaned & Gutted ₹1,740). 2 kg = ₹1,249 (₹89 fee). 1 kg = ₹710 (₹130 fee).
-     Confirmed areas: Karan Nagar, Lal Chowk, Khayam, Dalgate, Qamarwari, Nishat, Brein, Balgarden.
-   - TIER 4 (11.5 to 16.0 km — South & Cross-City Corridor): 100% FREE on 5 kg family bulk pack (Cleaned & Gutted ₹2,900). 4 kg = ₹2,429 (₹109 fee). 3 kg = ₹1,869 (₹129 fee). 2 kg = ₹1,299 (₹139 fee). 1 kg = ₹770 (₹190 fee).
-     Confirmed areas: Rajbagh, Jawahar Nagar, Batamaloo, Sanat Nagar, Peerbagh, Airport Road / Humhama, Nowgam, Hyderpora, Rawalpora, Barzulla, Baghat Barzulla, Rambagh, Solina, Gogji Bagh, Wazir Bagh, Tulsi Bagh, Hazuri Bagh, Iqbal Park, Sonwar, Bemina, Alochi Bagh, Magarmal Bagh, Chanapora, Natipora, Bagh-e-Mehtab, Kralpora, Rangreth, Lasjan, Padshahi Bagh, Pantha Chowk, Soiteng, Pandrathan, Athwajan, Pohru, Mochu, HMT, Zainakote, Umerabad.
-   - CONFIRMED OUT-ZONE AREAS (> 16 km & OUTER DISTRICTS): Ganderbal District (Beehama, Duderhama, Saloora, Tullamulla, Kangan, Wayil, etc.), Bagati Kanipora (BK Pora), Pampore, Chadoora, Lawaypora, Narbal, Harwan, Budgam, Ompora, Baramulla, Anantnag, Jammu.
+     Confirmed areas: Karan Nagar, Lal Chowk, Khayam, Dalgate, Qamarwari, Nishat, Brein, Balgarden, Beehama (Ganderbal, ~10.9km), Qamaria (Ganderbal, ~11.0km).
+   - TIER 4 (11.5 to 16.0 km — South Srinagar, Outer Corridor & In-Range Ganderbal): 100% FREE on 5 kg family bulk pack (Cleaned & Gutted ₹2,900). 4 kg = ₹2,429 (₹109 fee). 3 kg = ₹1,869 (₹129 fee). 2 kg = ₹1,299 (₹139 fee). 1 kg = ₹770 (₹190 fee).
+     Confirmed areas: Tulip Garden (~13.5km), Cheshmashahi (~12.4km), Botanical Garden (~13.8km), Ganderbal Town (~11.8km), Wayil (~11.8km), Manigam (~11.8km), Duderhama (~12.3km), Saloora (~13.3km), Kurhama (~14.1km), Barsoo (~15.5km), Rajbagh, Jawahar Nagar, Batamaloo, Sanat Nagar, Peerbagh, Airport Road / Humhama, Nowgam, Hyderpora, Rawalpora, Barzulla, Baghat Barzulla, Rambagh, Solina, Gogji Bagh, Wazir Bagh, Tulsi Bagh, Hazuri Bagh, Iqbal Park, Sonwar, Bemina, Alochi Bagh, Magarmal Bagh, Chanapora, Natipora, Bagh-e-Mehtab, Kralpora, Rangreth, Lasjan, Padshahi Bagh, Pantha Chowk, Soiteng, Pandrathan, Athwajan, Pohru, Mochu, HMT, Zainakote, Umerabad.
+   - CONFIRMED OUT-ZONE AREAS (> 16 km & OUTER DISTRICTS): Outer Ganderbal / Kangan (>16 km: Kangan, Safapora, Manasbal, Tullamulla, Nunar, Gund, Sonamarg, etc.), Bagati Kanipora (BK Pora), Pampore, Chadoora, Lawaypora, Narbal, Harwan, Budgam, Ompora, Baramulla, Anantnag, Jammu.
      No delivery to outer districts or beyond 16 km to preserve live-harvest freshness with 0% ice biodegradable packaging. Direct them to visit Live Vending Center in Malabagh.
    - CRITICAL REVENUE PROTECTION RULE (NEVER BLINDLY DISCARD LEADS):
      If a customer mentions a locality, colony, or address that is NOT on the confirmed lists, NEVER ASSUME OR GUESS IT IS OUTSIDE ZONE!
@@ -7647,7 +7658,7 @@ async function startBot() {
           }
           console.log(`│ ✅ IN RANGE (<=16km, ${distRounded} km) — Saved: ${mapsUrl}`);
         } else {
-          locReply = `📍 *Location Check: Outside Delivery Perimeter* ⚠️\n\nYour location is *${distRounded} km* from our Malabagh farm. Since we pack our live-harvest trout fresh in food-grade biodegradable polythene with *0% ice*, express delivery is limited to 16 km across Srinagar.\n\nHowever, you are warmly welcome to visit our Live Vending Center in Malabagh (Near R. P. School Girls Wing, open Saturday to Thursday) where you can pick live trout and get it cleaned on the spot! 🐟\n📍 Maps: https://maps.app.goo.gl/6FT5iLk5n8mbKSRU9`;
+          locReply = `📍 *Location Check: Outside Delivery Perimeter* ⚠️\n\nYour location is *${distRounded} km* from our Malabagh farm. Since we pack our live-harvest trout fresh in food-grade biodegradable polythene with *0% ice*, express delivery is limited to 16 km across Srinagar & nearby Ganderbal.\n\nHowever, you are warmly welcome to visit our Live Vending Center in Malabagh (Near R. P. School Girls Wing, open Saturday to Thursday) where you can pick live trout and get it cleaned on the spot! 🐟\n📍 Maps: https://maps.app.goo.gl/6FT5iLk5n8mbKSRU9`;
           historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Malabagh farm. OUTSIDE 16km perimeter. Express delivery not possible. Direct them to visit Live Vending Center in Malabagh.]`;
           console.log(`│ ⚠️ OUTSIDE 16km (${distRounded} km) — Directed to visit Live Vending Center in Malabagh`);
         }
