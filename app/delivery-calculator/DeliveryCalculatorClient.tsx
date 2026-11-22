@@ -374,6 +374,22 @@ function CalculatorInner() {
         setSelectedPlace(gpsPlace);
         setSearchQuery(gpsPlace.name);
         setStatusNotice(`✓ Live GPS Location detected: ~${dist} km from Malabagh Farm Hub`);
+
+        // Asynchronously refine with live road routing (OSRM / Google Maps route - same as AI Agent)
+        fetch(`/api/route-distance?lat=${latitude}&lng=${longitude}`)
+          .then((r) => r.json())
+          .then((rd) => {
+            if (rd && typeof rd.distanceKm === "number" && !isNaN(rd.distanceKm)) {
+              const roadDist = rd.distanceKm;
+              setSelectedPlace((prev) => prev ? {
+                ...prev,
+                distKm: roadDist,
+                tier: getTierFromDistance(roadDist),
+              } : null);
+              setStatusNotice(`✓ Live GPS Location detected: ~${roadDist} km road distance from Malabagh Farm Hub`);
+            }
+          })
+          .catch(() => {});
       },
       (err) => {
         setIsGpsLoading(false);

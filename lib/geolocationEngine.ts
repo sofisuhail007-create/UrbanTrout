@@ -11,15 +11,18 @@ export interface GeocodeResult {
   tier: "0-4km" | "4-7km" | "7-11.5km" | "11.5-16km" | "Out-of-Zone";
   lat?: number;
   lng?: number;
-  source: "known_core" | "zone_db" | "nominatim" | "device_gps" | "unknown";
+  source: "known_core" | "zone_db" | "nominatim" | "device_gps" | "google_maps" | "unknown";
   isDeliverable: boolean;
   deliveryFee: number;
   message: string;
 }
 
-// Haversine formula with Srinagar Road Winding Calibration (Same as AI Agent)
+// Haversine distance formula with Srinagar Road Winding Calibration (Exact sync with AI Sales Agent)
 // Converts straight-line aerial distance into actual driving road distance:
-// Direct local routes <=4km have ~1.10x factor; routes >4km across Dal Lake / Jhelum bridges have ~1.32x road winding factor.
+// Direct local routes <=2km have ~1.10x factor.
+// East/SE Dal Lake corridor (water barrier detour): ~1.62x factor.
+// North/NE corridor (Zakura, Pandach, Gulab Bagh): ~1.40x factor.
+// Central & South Srinagar (bridges & city grid): ~1.38x factor.
 export function calculateHaversineDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371; // Earth radius in km
   const dLat = (lat2 - lat1) * (Math.PI / 180);
@@ -28,8 +31,29 @@ export function calculateHaversineDistance(lat1: number, lon1: number, lat2: num
     Math.sin(dLat / 2) ** 2 +
     Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * Math.sin(dLon / 2) ** 2;
   const aerial = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  const roadFactor = aerial <= 4.0 ? 1.10 : 1.32;
-  return aerial * roadFactor;
+
+  if (aerial <= 2.0) {
+    return aerial * 1.10;
+  }
+
+  // Identify destination coordinates
+  const isLat1Farm = Math.abs(lat1 - FARM_LAT) < 0.02 && Math.abs(lon1 - FARM_LNG) < 0.02;
+  const destLat = isLat1Farm ? lat2 : lat1;
+  const destLon = isLat1Farm ? lon2 : lon1;
+
+  // 1. Dal Lake / Boulevard / Cheshmashahi / Tulip Garden corridor (South-East of Dal Lake):
+  const isEastOfDalLake = (destLon >= 74.845 && destLat <= 34.135) || (destLat <= 34.100 && destLon >= 74.838);
+  if (isEastOfDalLake) {
+    return aerial * 1.62;
+  }
+
+  // 2. North/North-East corridor (Gulab Bagh, Zakura, Pandach, Ganderbal road): ~1.40x factor.
+  if (destLat >= 34.150 && destLon >= 74.815) {
+    return aerial * 1.40;
+  }
+
+  // 3. Central & South Srinagar across Jhelum bridges and city grid: ~1.38x factor.
+  return aerial * 1.38;
 }
 
 // 75+ Core Verified Localities in Srinagar
@@ -235,6 +259,51 @@ export function resolveLocationFromText(inputText: string, weightKg: number = 2)
   };
 }
 
+const liveRoadDistanceCache = new Map<string, number>();
+
+/**
+ * Real-time road traveling distance calculator (Google Maps / Rapido road network via OSRM with geographic fallback)
+ * Exact match with AI Sales Agent's fetchLiveRoadDistance()
+ */
+export async function fetchLiveRoadDistance(lat: number, lng: number): Promise<number> {
+  if (lat == null || lng == null || isNaN(lat) || isNaN(lng)) return 2.0;
+  const key = `${Number(lat).toFixed(4)},${Number(lng).toFixed(4)}`;
+  if (liveRoadDistanceCache.has(key)) return liveRoadDistanceCache.get(key)!;
+
+  const fallback = parseFloat(calculateHaversineDistance(FARM_LAT, FARM_LNG, lat, lng).toFixed(1));
+
+  try {
+    if (typeof window !== "undefined") {
+      // Client-side: query internal API route
+      const res = await fetch(`/api/route-distance?lat=${lat}&lng=${lng}`, { signal: AbortSignal.timeout(2000) });
+      if (res.ok) {
+        const data = await res.json();
+        if (typeof data.distanceKm === "number" && !isNaN(data.distanceKm)) {
+          liveRoadDistanceCache.set(key, data.distanceKm);
+          return data.distanceKm;
+        }
+      }
+    } else {
+      // Server-side: call OSRM driving route directly
+      const url = `https://router.project-osrm.org/route/v1/driving/${FARM_LNG},${FARM_LAT};${lng},${lat}?overview=false`;
+      const res = await fetch(url, {
+        headers: { "User-Agent": "UrbanTroutBot/1.0" },
+        signal: AbortSignal.timeout(1500),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.routes && json.routes[0] && typeof json.routes[0].distance === "number") {
+          const dist = parseFloat((json.routes[0].distance / 1000).toFixed(1));
+          liveRoadDistanceCache.set(key, dist);
+          return dist;
+        }
+      }
+    }
+  } catch (_) {}
+
+  return fallback;
+}
+
 /**
  * Resolver for Exact Device GPS Coordinates
  */
@@ -243,7 +312,13 @@ export function resolveLocationFromCoords(lat: number, lng: number, weightKg: nu
   return buildResult("GPS Verified Location", dist, "device_gps", weightKg, lat, lng);
 }
 
-function buildResult(name: string, dist: number, source: GeocodeResult["source"], weightKg: number, lat?: number, lng?: number): GeocodeResult {
+export async function resolveLocationFromCoordsAsync(lat: number, lng: number, weightKg: number = 2): Promise<GeocodeResult> {
+  const roadDist = await fetchLiveRoadDistance(lat, lng);
+  const dist = (roadDist != null && !isNaN(roadDist)) ? roadDist : parseFloat(calculateHaversineDistance(FARM_LAT, FARM_LNG, lat, lng).toFixed(1));
+  return buildResult("GPS Verified Location", dist, "device_gps", weightKg, lat, lng);
+}
+
+export function buildResult(name: string, dist: number, source: GeocodeResult["source"], weightKg: number, lat?: number, lng?: number): GeocodeResult {
   if (dist <= 4.0) {
     const minKg = 2;
     const fee = weightKg >= minKg ? 0 : 45;

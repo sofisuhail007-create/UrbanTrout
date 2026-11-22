@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   resolveLocationFromText,
-  resolveLocationFromCoords,
+  resolveLocationFromCoordsAsync,
+  fetchLiveRoadDistance,
+  buildResult,
   calculateHaversineDistance,
   FARM_LAT,
   FARM_LNG,
-  GeocodeResult
 } from "@/lib/geolocationEngine";
 
 export async function POST(req: NextRequest) {
@@ -13,9 +14,9 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { address, coords, weightKg = 2 } = body;
 
-    // 1. Direct device GPS resolution (highest precision)
+    // 1. Direct device GPS resolution (highest precision with live road routing)
     if (coords && typeof coords.lat === "number" && typeof coords.lng === "number") {
-      const result = resolveLocationFromCoords(coords.lat, coords.lng, Number(weightKg));
+      const result = await resolveLocationFromCoordsAsync(coords.lat, coords.lng, Number(weightKg));
       return NextResponse.json(result);
     }
 
@@ -44,44 +45,14 @@ export async function POST(req: NextRequest) {
             const loc = gData.results[0].geometry.location;
             const lat = loc.lat;
             const lng = loc.lng;
-            const dist = parseFloat(calculateHaversineDistance(FARM_LAT, FARM_LNG, lat, lng).toFixed(1));
+            const roadDist = await fetchLiveRoadDistance(lat, lng);
+            const dist = (roadDist != null && !isNaN(roadDist))
+              ? roadDist
+              : parseFloat(calculateHaversineDistance(FARM_LAT, FARM_LNG, lat, lng).toFixed(1));
             const name = gData.results[0].formatted_address.split(",")[0] || address;
 
-            let tier: GeocodeResult["tier"] = "Out-of-Zone";
-            let fee = 0;
-            let minKg = 2;
-
-            if (dist <= 4.0) {
-              tier = "0-4km";
-              minKg = 2;
-              fee = Number(weightKg) >= 2 ? 0 : 29;
-            } else if (dist <= 7.0) {
-              tier = "4-7km";
-              minKg = 3;
-              fee = Number(weightKg) >= 3 ? 0 : (Number(weightKg) === 2 ? 39 : 49);
-            } else if (dist <= 11.5) {
-              tier = "7-11.5km";
-              minKg = 3;
-              fee = Number(weightKg) >= 3 ? 0 : (Number(weightKg) === 2 ? 69 : 79);
-            } else if (dist <= 16.0) {
-              tier = "11.5-16km";
-              minKg = 4;
-              fee = Number(weightKg) >= 4 ? 0 : (Number(weightKg) === 3 ? 79 : (Number(weightKg) === 2 ? 99 : 139));
-            }
-
-            return NextResponse.json({
-              status: dist <= 16.0 ? "IN_ZONE" : "OUT_ZONE",
-              name,
-              dist,
-              minKg,
-              tier,
-              lat,
-              lng,
-              source: "google_maps",
-              isDeliverable: dist <= 16.0,
-              deliveryFee: fee,
-              message: `~${dist} km from Malabagh Farm Hub • ${tier}`
-            });
+            const res = buildResult(name, dist, "google_maps", Number(weightKg), lat, lng);
+            return NextResponse.json(res);
           }
         }
       } catch (_) {}
@@ -104,44 +75,14 @@ export async function POST(req: NextRequest) {
         if (Array.isArray(osmData) && osmData.length > 0 && osmData[0].lat && osmData[0].lon) {
           const lat = parseFloat(osmData[0].lat);
           const lng = parseFloat(osmData[0].lon);
-          const dist = parseFloat(calculateHaversineDistance(FARM_LAT, FARM_LNG, lat, lng).toFixed(1));
+          const roadDist = await fetchLiveRoadDistance(lat, lng);
+          const dist = (roadDist != null && !isNaN(roadDist))
+            ? roadDist
+            : parseFloat(calculateHaversineDistance(FARM_LAT, FARM_LNG, lat, lng).toFixed(1));
           const name = osmData[0].display_name ? osmData[0].display_name.split(",")[0] : address;
 
-          let tier: GeocodeResult["tier"] = "Out-of-Zone";
-          let fee = 0;
-          let minKg = 2;
-
-          if (dist <= 4.0) {
-            tier = "0-4km";
-            minKg = 2;
-            fee = Number(weightKg) >= 2 ? 0 : 29;
-          } else if (dist <= 7.0) {
-            tier = "4-7km";
-            minKg = 3;
-            fee = Number(weightKg) >= 3 ? 0 : (Number(weightKg) === 2 ? 39 : 49);
-          } else if (dist <= 11.5) {
-            tier = "7-11.5km";
-            minKg = 3;
-            fee = Number(weightKg) >= 3 ? 0 : (Number(weightKg) === 2 ? 69 : 79);
-          } else if (dist <= 16.0) {
-            tier = "11.5-16km";
-            minKg = 4;
-            fee = Number(weightKg) >= 4 ? 0 : (Number(weightKg) === 3 ? 79 : (Number(weightKg) === 2 ? 99 : 139));
-          }
-
-          return NextResponse.json({
-            status: dist <= 16.0 ? "IN_ZONE" : "OUT_ZONE",
-            name,
-            dist,
-            minKg,
-            tier,
-            lat,
-            lng,
-            source: "nominatim",
-            isDeliverable: dist <= 16.0,
-            deliveryFee: fee,
-            message: `~${dist} km from Malabagh Farm Hub • ${tier}`
-          });
+          const res = buildResult(name, dist, "nominatim", Number(weightKg), lat, lng);
+          return NextResponse.json(res);
         }
       }
     } catch (_) {}

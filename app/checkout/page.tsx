@@ -30,6 +30,7 @@ import {
   LocalityData,
   ZoneConfig,
   evaluateDeliveryZone,
+  calculateDistance,
 } from "@/lib/deliveryZones";
 import { resolveLocationFromText } from "@/lib/geolocationEngine";
 
@@ -72,20 +73,7 @@ const DELIVERY_RADIUS_KM = 16.0;
 export type SrinagarLandmark = LocalityData;
 const SRINAGAR_LANDMARKS: SrinagarLandmark[] = SRINAGAR_LOCALITY_CATALOG;
 
-// Haversine distance formula with Srinagar Road Winding Calibration (Same as AI Agent)
-// Converts straight-line aerial distance into actual driving road distance:
-// Direct local routes <=4km have ~1.10x factor; routes >4km across Dal Lake / Jhelum bridges have ~1.32x road winding factor.
-function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371; // Earth's radius in km
-  const dLat = (lat2 - lat1) * (Math.PI / 180);
-  const dLon = (lon2 - lon1) * (Math.PI / 180);
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * Math.sin(dLon / 2) ** 2;
-  const aerial = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  const roadFactor = aerial <= 4.0 ? 1.10 : 1.32;
-  return aerial * roadFactor;
-}
+
 
 function findNearestLandmark(lat: number, lng: number): { name: string; pincode: string } {
   let closest = SRINAGAR_LANDMARKS[0];
@@ -779,6 +767,28 @@ export default function CheckoutPage() {
                 : `₹${evalRes.deliveryFee} Express Delivery (Included from ${evalRes.zoneConfig.minKgFree} kg)`
             }`
           );
+
+          // Asynchronously refine to exact live road distance (OSRM / Google Maps route - same as AI Agent)
+          fetch(`/api/route-distance?lat=${latitude}&lng=${longitude}`)
+            .then((r) => r.json())
+            .then((routeData) => {
+              if (routeData && typeof routeData.distanceKm === "number" && !isNaN(routeData.distanceKm)) {
+                const roadD = routeData.distanceKm;
+                setCalculatedDistance(roadD);
+                const evalLive = evaluateDeliveryZone({
+                  coords: { lat: latitude, lng: longitude },
+                  weightKg: totalWeightKg,
+                });
+                setLocationMsg(
+                  `${roadD.toFixed(1)} km road distance • ${evalLive.zoneConfig.title} • ${
+                    evalLive.deliveryFee === 0
+                      ? "Express Delivery Included ✓"
+                      : `₹${evalLive.deliveryFee} Express Delivery (Included from ${evalLive.zoneConfig.minKgFree} kg)`
+                  }`
+                );
+              }
+            })
+            .catch(() => {});
         } else {
           setDeliveryMode("unavailable");
           setLocatingStep("locked");

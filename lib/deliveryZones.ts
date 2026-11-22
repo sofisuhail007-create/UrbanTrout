@@ -1,6 +1,7 @@
 // Srinagar Locality Intelligence & Tiered Delivery Zones
 // Synchronized with Urban Trout Sales Agent (OSM-verified coordinates from Malabagh Farm Hub)
-import { resolveLocationFromText, resolveLocationFromCoords } from "./geolocationEngine";
+import { resolveLocationFromText, resolveLocationFromCoords, fetchLiveRoadDistance } from "./geolocationEngine";
+export { fetchLiveRoadDistance };
 
 export interface LocalityData {
   name: string;
@@ -216,9 +217,12 @@ export const SRINAGAR_LOCALITY_CATALOG: LocalityData[] = [
   { name: "Chadoora", aliases: ["chadoora", "chadure"], lat: 33.9500, lng: 74.8000, pincode: "191113", distKm: 19.0, tier: "out_of_zone", minKgFree: 0 },
 ];
 
-// Haversine distance formula with Srinagar Road Winding Calibration (Same as AI Agent)
+// Haversine distance formula with Srinagar Road Winding Calibration (Exact sync with AI Sales Agent)
 // Converts straight-line aerial distance into actual driving road distance:
-// Direct local routes <=4km have ~1.10x factor; routes >4km across Dal Lake / Jhelum bridges have ~1.32x road winding factor.
+// Direct local routes <=2km have ~1.10x factor.
+// East/SE Dal Lake corridor (water barrier detour): ~1.62x factor.
+// North/NE corridor (Zakura, Pandach, Gulab Bagh): ~1.40x factor.
+// Central & South Srinagar (bridges & city grid): ~1.38x factor.
 export function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371; // Earth radius in km
   const dLat = (lat2 - lat1) * (Math.PI / 180);
@@ -227,9 +231,32 @@ export function calculateDistance(lat1: number, lon1: number, lat2: number, lon2
     Math.sin(dLat / 2) ** 2 +
     Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * Math.sin(dLon / 2) ** 2;
   const aerial = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  const roadFactor = aerial <= 4.0 ? 1.10 : 1.32;
-  return aerial * roadFactor;
+
+  if (aerial <= 2.0) {
+    return aerial * 1.10;
+  }
+
+  // Identify destination coordinates
+  const isLat1Farm = Math.abs(lat1 - FARM_COORDS.lat) < 0.02 && Math.abs(lon1 - FARM_COORDS.lng) < 0.02;
+  const destLat = isLat1Farm ? lat2 : lat1;
+  const destLon = isLat1Farm ? lon2 : lon1;
+
+  // 1. Dal Lake / Boulevard / Cheshmashahi / Tulip Garden corridor (South-East of Dal Lake):
+  // Water barrier forces all vehicles to drive all the way around Dal Lake / Foreshore / Boulevard (~1.62x road detour factor).
+  const isEastOfDalLake = (destLon >= 74.845 && destLat <= 34.135) || (destLat <= 34.100 && destLon >= 74.838);
+  if (isEastOfDalLake) {
+    return aerial * 1.62;
+  }
+
+  // 2. North/North-East corridor (Gulab Bagh, Zakura, Pandach, Ganderbal road): ~1.40x factor.
+  if (destLat >= 34.150 && destLon >= 74.815) {
+    return aerial * 1.40;
+  }
+
+  // 3. Central & South Srinagar across Jhelum bridges and city grid: ~1.38x factor.
+  return aerial * 1.38;
 }
+
 
 export interface DeliveryCheckResult {
   isDeliverable: boolean;

@@ -26,10 +26,10 @@ process.on("unhandledRejection", (reason) => {
 // ============================================================================
 // URBAN TROUT SALES AGENT — BUILD & VERSION TRACKING
 // ============================================================================
-const BOT_VERSION = "3.1.0";
-const BOT_LAST_UPDATED = "22-Nov-2026, 12:05 AM IST";
-const BOT_RELEASE_TITLE = "Discontinue Whole Trout via Sales Agent & Exclusive Cleaned/Gutted Mandate";
-const BOT_RELEASE_NOTES = "1. Discontinued selling Whole Fresh Trout (₹540/kg) via the WhatsApp Sales Agent. Agent now exclusively quotes and sells Cleaned, Gutted & Pan-Ready pieces at ₹580/kg. 2. Added intent decoder and system instructions: if a customer inquires about whole, uncleaned, or sabut fish, the agent politely states that whole trout is discontinued and offers cleaned & gutted pan-ready pieces at ₹580/kg without revealing internal margins or packaging reasons.";
+const BOT_VERSION = "3.2.0";
+const BOT_LAST_UPDATED = "22-Nov-2026, 07:45 AM IST";
+const BOT_RELEASE_TITLE = "4-Tier Bulletproof Payment Waterfall & Cashfree Zero-Fee Redundancy";
+const BOT_RELEASE_NOTES = "1. Strict 4-Tier Payment Waterfall: Tier 1 Razorpay locked UPI QR -> Tier 2 Razorpay Link -> Tier 3 Cashfree Branded Link (https://urbantrout.in/pay/...) with 0% fee -> Tier 4 J&K Bank Direct Transfer (Acc: 0724010100000499, IFSC: JAKA0MALBAG). 2. Dual payment listener polling Cashfree and Razorpay every 3.5s with instant Telegram alerts and WhatsApp confirmations.";
 
 // ============================================================================
 // STRICT MANUAL-ONLY & DRIVER EXCLUSION LIST (AI MUST NEVER TEXT UNDER ANY CIRCUMSTANCE)
@@ -104,6 +104,10 @@ function rotateGeminiKey() {
 
 const RAZORPAY_KEY_ID = process.env.RAZORPAY_KEY_ID;
 const RAZORPAY_KEY_SECRET = process.env.RAZORPAY_KEY_SECRET;
+
+const CASHFREE_APP_ID = process.env.CASHFREE_APP_ID;
+const CASHFREE_SECRET_KEY = process.env.CASHFREE_SECRET_KEY;
+const CASHFREE_API_VERSION = "2023-08-01";
 
 // Farm coordinates for automated 16km radius GPS validation
 const FARM_LAT = 34.1445563;
@@ -1468,6 +1472,114 @@ async function createRazorpayPaymentLink({ amount, customerPhone, customerName, 
   }
 }
 
+// Helper to shorten long payment links for ultra-clean WhatsApp display (e.g. 28 chars like rzp.io)
+function shortenPaymentUrl(url, timeoutMs = 1500) {
+  if (!url || typeof url !== "string") return Promise.resolve(url);
+  return new Promise((resolve) => {
+    const endpoint = `https://tinyurl.com/api-create.php?url=${encodeURIComponent(url)}`;
+    const req = https.get(endpoint, { timeout: timeoutMs }, (res) => {
+      let data = "";
+      res.on("data", c => data += c);
+      res.on("end", () => {
+        if (res.statusCode === 200 && data.startsWith("http")) {
+          resolve(data.trim());
+        } else {
+          resolve(url);
+        }
+      });
+    });
+    req.on("error", () => resolve(url));
+    req.on("timeout", () => { req.destroy(); resolve(url); });
+  });
+}
+
+// Generate official locked-amount Cashfree Payment Link (0% Fees up to 20L)
+async function createCashfreePaymentLink({ amount, customerPhone, customerName, description, orderRef }) {
+  if (!CASHFREE_APP_ID || !CASHFREE_SECRET_KEY) {
+    throw new Error("Cashfree credentials missing");
+  }
+
+  const cleanPhone = String(customerPhone || "").replace(/\D/g, "").slice(-10);
+  const isValidContact = cleanPhone && cleanPhone.length === 10 && !/^(.)\1{7,}$/.test(cleanPhone);
+  const randSuffix = Math.floor(10 + Math.random() * 90);
+  const ref = orderRef || `UT-CF-${Date.now().toString().slice(-6)}${randSuffix}`;
+  const numAmount = Number(amount);
+
+  const isGutted = (description || "").toLowerCase().includes("gutted") || !(description || "").toLowerCase().includes("whole");
+  const cutTitle = isGutted ? "Cleaned & Gutted Trout" : "Whole Fresh Trout";
+  let cleanDesc = (description || "").replace(/^urban\s*trout\s*[-–—:]*\s*/i, "").trim();
+  const weightMatch = cleanDesc.match(/(\d+(?:\.\d+)?)\s*(?:kg|kilos?)/i);
+  const weightKg = weightMatch ? parseFloat(weightMatch[1]) : null;
+
+  let cfTitle = "";
+  if (weightKg) {
+    cfTitle = `${weightKg} kg ${cutTitle}`;
+    if (/\b(?:delivery|courier)\b/i.test(cleanDesc)) cfTitle += " (+ Express Delivery)";
+  } else {
+    cfTitle = cleanDesc && !/^(?:fresh\s+trout\s+order\s*\(\s*₹?\d+\s*\)|\d+)$/i.test(cleanDesc) ? cleanDesc : `${cutTitle} Order`;
+  }
+  cfTitle = cfTitle.slice(0, 95);
+
+  const payload = {
+    link_id: `link_${ref.toLowerCase().replace(/[^a-z0-9]/g, "_")}_${Date.now().toString().slice(-4)}`,
+    link_amount: numAmount,
+    link_currency: "INR",
+    link_purpose: cfTitle,
+    customer_details: {
+      customer_phone: isValidContact ? `91${cleanPhone}` : "919999999999",
+      customer_name: customerName || "Valued Customer"
+    },
+    link_meta: {
+      upi_intent: true,
+      payment_methods: "upi"
+    }
+  };
+
+  const postData = JSON.stringify(payload);
+  return new Promise((resolve, reject) => {
+    const req = https.request("https://api.cashfree.com/pg/links", {
+      method: "POST",
+      headers: {
+        "x-client-id": CASHFREE_APP_ID,
+        "x-client-secret": CASHFREE_SECRET_KEY,
+        "x-api-version": CASHFREE_API_VERSION,
+        "Content-Type": "application/json",
+        "Content-Length": Buffer.byteLength(postData)
+      },
+      timeout: 10000
+    }, (res) => {
+      let data = "";
+      res.on("data", c => { data += c; });
+      res.on("end", () => {
+        try {
+          const json = JSON.parse(data);
+          if (res.statusCode >= 200 && res.statusCode < 300 && json.link_url) {
+            const cfSlug = json.link_url.includes("/links/") ? json.link_url.split("/links/")[1] : json.link_id;
+            const brandedUrl = `https://urbantrout.in/pay/${cfSlug}`;
+            console.log(`[Cashfree Branded Link Generated] Amount: ₹${numAmount} -> ${brandedUrl} (${json.link_id})`);
+            resolve({
+              id: json.link_id,
+              url: brandedUrl,
+              rawUrl: json.link_url,
+              slug: cfSlug,
+              qrcode: json.link_qrcode,
+              orderRef: ref
+            });
+          } else {
+            reject(new Error(json.message || `Cashfree error ${res.statusCode}`));
+          }
+        } catch (e) {
+          reject(e);
+        }
+      });
+    });
+    req.on("error", reject);
+    req.on("timeout", () => { req.destroy(); reject(new Error("Cashfree API timeout")); });
+    req.write(postData);
+    req.end();
+  });
+}
+
 // Helper to download an image buffer with redirect handling
 function downloadImageBuffer(url, timeoutMs = 12000) {
   return new Promise((resolve, reject) => {
@@ -1585,6 +1697,239 @@ async function createRazorpayQrCode({ amount, customerPhone, customerName, order
     imageUrl: qrData.image_url,
     imageBuffer,
     orderRef: ref
+  };
+}
+
+// ─── 🛡️ 4-TIER BULLETPROOF PAYMENT WATERFALL (100% RELIABILITY GUARANTEE) ───
+// Tier 1: Primary Mode — Razorpay QR (Locked UPI QR Image)
+// Tier 2: Fallback — Razorpay Payment Link
+// Tier 3: Fallback — Cashfree Link (https://urbantrout.in/pay/...)
+// Tier 4: Emergency Fallback — Jammu & Kashmir Bank Account Details (Acc: 0724010100000499)
+
+const JKB_ACCOUNT_DETAILS = {
+  bankName: "Jammu & Kashmir Bank (J&K Bank)",
+  accountName: "Urban Trout Aquaculture",
+  accountNumber: "0724010100000499",
+  ifscCode: "JAKA0MALBAG",
+  branch: "Malabagh, Srinagar",
+  accountType: "Current Account",
+  upiId: "JKBMERC00828895@jkb"
+};
+
+function formatJkbBankDetailsText(amount, orderRef) {
+  const numAmt = Number(amount) || 0;
+  return `🏦 *DIRECT BANK TRANSFER / J&K BANK mPay:*
+• *Bank:* Jammu & Kashmir Bank (J&K Bank)
+• *Account Name:* Urban Trout Aquaculture
+• *Account Number:* \`0724010100000499\`
+• *IFSC Code:* \`JAKA0MALBAG\`
+• *Branch:* Malabagh, Srinagar
+• *Account Type:* Current Account
+• *Order Ref:* #${orderRef || "LIVE"}
+• *Amount:* ₹${numAmt.toLocaleString("en-IN")}
+
+👉 *Kindly complete payment and share your transaction screenshot here. Our farm team will verify and commence your fresh live harvest within 5 minutes!* 🐟`;
+}
+
+async function generatePaymentWithWaterfall({
+  amount,
+  customerPhone,
+  customerName,
+  description,
+  orderRef,
+  preferQr = true,
+  latitude,
+  longitude,
+  distanceKm,
+  googleMapsUrl
+}) {
+  const numAmt = Number(amount);
+  const cleanPhone = String(customerPhone || "").replace(/\D/g, "").slice(-10);
+  const randSuffix = Math.floor(10 + Math.random() * 90);
+  const ref = orderRef || `UT-WA-${Date.now().toString().slice(-6)}${randSuffix}`;
+
+  // ─────────────────────────────────────────────────────────────────
+  // FLOW A: PREFER QR (Default WhatsApp Customer Experience)
+  // ─────────────────────────────────────────────────────────────────
+  if (preferQr) {
+    // ── TIER 1: RAZORPAY DYNAMIC LOCKED UPI QR (Primary) ──
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        console.log(`[Payment Waterfall] Attempting Tier 1: Razorpay Dynamic QR (Attempt ${attempt + 1}/2)...`);
+        const rzpQr = await createRazorpayQrCode({
+          amount: numAmt,
+          customerPhone: cleanPhone,
+          customerName,
+          orderRef: ref,
+          description
+        });
+        if (rzpQr && rzpQr.imageBuffer) {
+          console.log(`✅ [Payment Waterfall Tier 1 SUCCESS] Razorpay Dynamic QR generated: ${rzpQr.qrId}`);
+          return {
+            tier: 1,
+            mode: "razorpay_qr",
+            qrBuffer: rzpQr.imageBuffer,
+            qrId: rzpQr.qrId,
+            qrUrl: rzpQr.imageUrl,
+            payUrl: null,
+            orderRef: rzpQr.orderRef || ref,
+            bankDetailsText: null
+          };
+        }
+      } catch (tier1Err) {
+        console.warn(`[Payment Waterfall Tier 1 Notice] Razorpay QR failed: ${tier1Err.message}`);
+        if (attempt === 0) await new Promise(r => setTimeout(r, 1200));
+      }
+    }
+
+    // ── TIER 2: RAZORPAY PAYMENT LINK (Fallback) ──
+    try {
+      console.log(`[Payment Waterfall] Tier 1 failed. Attempting Tier 2: Razorpay Payment Link...`);
+      const rzpLink = await createRazorpayPaymentLink({
+        amount: numAmt,
+        customerPhone: cleanPhone,
+        customerName,
+        description,
+        latitude,
+        longitude,
+        distanceKm,
+        googleMapsUrl
+      });
+      if (rzpLink && rzpLink.url) {
+        const qrBuffer = await QRCode.toBuffer(rzpLink.url, {
+          width: 600,
+          margin: 2,
+          color: { dark: "#000000", light: "#ffffff" }
+        });
+        console.log(`✅ [Payment Waterfall Tier 2 SUCCESS] Razorpay Payment Link QR generated: ${rzpLink.url}`);
+        return {
+          tier: 2,
+          mode: "razorpay_link",
+          qrBuffer,
+          payUrl: rzpLink.url,
+          paymentLinkId: rzpLink.id,
+          orderRef: rzpLink.orderRef || ref,
+          bankDetailsText: null
+        };
+      }
+    } catch (tier2Err) {
+      console.warn(`[Payment Waterfall Tier 2 Notice] Razorpay Link failed: ${tier2Err.message}`);
+    }
+
+    // ── TIER 3: CASHFREE LINK (Fallback - https://urbantrout.in/pay/...) ──
+    try {
+      console.log(`[Payment Waterfall] Tier 2 failed. Attempting Tier 3: Cashfree Branded Link...`);
+      const cfLink = await createCashfreePaymentLink({
+        amount: numAmt,
+        customerPhone: cleanPhone,
+        customerName,
+        description,
+        orderRef: ref
+      });
+      if (cfLink && cfLink.url) {
+        let qrBuffer = null;
+        if (cfLink.qrcode) {
+          const b64 = cfLink.qrcode.replace(/^data:image\/\w+;base64,/, "");
+          qrBuffer = Buffer.from(b64, "base64");
+        } else {
+          qrBuffer = await QRCode.toBuffer(cfLink.url, {
+            width: 600,
+            margin: 2,
+            color: { dark: "#000000", light: "#ffffff" }
+          });
+        }
+        console.log(`✅ [Payment Waterfall Tier 3 SUCCESS] Cashfree Branded Link generated: ${cfLink.url}`);
+        return {
+          tier: 3,
+          mode: "cashfree_link",
+          qrBuffer,
+          payUrl: cfLink.url,
+          cashfreeLinkId: cfLink.id,
+          orderRef: cfLink.orderRef || ref,
+          bankDetailsText: null
+        };
+      }
+    } catch (tier3Err) {
+      console.warn(`[Payment Waterfall Tier 3 Notice] Cashfree Link failed: ${tier3Err.message}`);
+    }
+
+    // ── TIER 4: JAMMU & KASHMIR BANK ACCOUNT DETAILS (Emergency Fallback) ──
+    console.warn(`[Payment Waterfall] All gateways unavailable! Falling back to Tier 4: J&K Bank Account.`);
+    const jkbUpiUri = `upi://pay?pa=${JKB_ACCOUNT_DETAILS.upiId}&pn=Urban%20Trout%20Aquaculture&am=${numAmt.toFixed(2)}&cu=INR&tn=Order%20${encodeURIComponent(ref)}`;
+    const jkbQrBuffer = await QRCode.toBuffer(jkbUpiUri, {
+      width: 600,
+      margin: 2,
+      color: { dark: "#000000", light: "#ffffff" }
+    });
+    return {
+      tier: 4,
+      mode: "jkb_bank_details",
+      qrBuffer: jkbQrBuffer,
+      payUrl: null,
+      orderRef: ref,
+      bankDetailsText: formatJkbBankDetailsText(numAmt, ref)
+    };
+  }
+
+  // ─────────────────────────────────────────────────────────────────
+  // FLOW B: PREFER LINK (When customer explicitly requests link URL)
+  // ─────────────────────────────────────────────────────────────────
+  // ── TIER 1: RAZORPAY PAYMENT LINK (Primary) ──
+  try {
+    const rzpLink = await createRazorpayPaymentLink({
+      amount: numAmt,
+      customerPhone: cleanPhone,
+      customerName,
+      description,
+      latitude,
+      longitude,
+      distanceKm,
+      googleMapsUrl
+    });
+    if (rzpLink && rzpLink.url) {
+      return {
+        tier: 1,
+        mode: "razorpay_link",
+        payUrl: rzpLink.url,
+        paymentLinkId: rzpLink.id,
+        orderRef: rzpLink.orderRef || ref,
+        bankDetailsText: null
+      };
+    }
+  } catch (tier1LinkErr) {
+    console.warn(`[Payment Waterfall Link Tier 1 Notice] Razorpay Link failed: ${tier1LinkErr.message}`);
+  }
+
+  // ── TIER 2: CASHFREE LINK (Fallback) ──
+  try {
+    const cfLink = await createCashfreePaymentLink({
+      amount: numAmt,
+      customerPhone: cleanPhone,
+      customerName,
+      description,
+      orderRef: ref
+    });
+    if (cfLink && cfLink.url) {
+      return {
+        tier: 2,
+        mode: "cashfree_link",
+        payUrl: cfLink.url,
+        cashfreeLinkId: cfLink.id,
+        orderRef: cfLink.orderRef || ref,
+        bankDetailsText: null
+      };
+    }
+  } catch (tier2LinkErr) {
+    console.warn(`[Payment Waterfall Link Tier 2 Notice] Cashfree Link failed: ${tier2LinkErr.message}`);
+  }
+
+  // ── TIER 3: JAMMU & KASHMIR BANK ACCOUNT DETAILS (Emergency Fallback) ──
+  return {
+    tier: 3,
+    mode: "jkb_bank_details",
+    payUrl: null,
+    orderRef: ref,
+    bankDetailsText: formatJkbBankDetailsText(numAmt, ref)
   };
 }
 
@@ -2559,6 +2904,189 @@ async function checkPendingRazorpayPayments(sock) {
     // Transient error check
   } finally {
     isCheckingPayments = false;
+  }
+}
+
+// Cashfree Payment Poller: directly verifies pending Cashfree links every 3.5 seconds
+let isCheckingCashfree = false;
+async function checkPendingCashfreePayments(sock) {
+  if (isCheckingCashfree) return;
+  if (!CASHFREE_APP_ID || !CASHFREE_SECRET_KEY) return;
+  isCheckingCashfree = true;
+
+  try {
+    const ordersFilePath = path.join(__dirname, "customer_orders.json");
+    if (!fs.existsSync(ordersFilePath)) return;
+
+    let orders = {};
+    try {
+      orders = JSON.parse(fs.readFileSync(ordersFilePath, "utf-8"));
+    } catch (_) {
+      return;
+    }
+
+    // Find any order that has cashfreeLinkId and is still awaiting confirmation
+    const pendingOrders = [];
+    for (const [k, ord] of Object.entries(orders)) {
+      if (!ord) continue;
+      const cfId = ord.cashfreeLinkId || (ord.paymentLinkId && ord.paymentLinkId.startsWith("link_") ? ord.paymentLinkId : null);
+      const isPaid = /(?:paid|confirmed|harvest|dispatch)/i.test(ord.status || "");
+      if (cfId && !isPaid) {
+        pendingOrders.push({ key: k, order: ord, cfId });
+      }
+    }
+
+    if (pendingOrders.length === 0) return;
+
+    for (const { key, order, cfId } of pendingOrders) {
+      try {
+        const linkStatus = await new Promise((resolve, reject) => {
+          const req = https.request(`https://api.cashfree.com/pg/links/${cfId}`, {
+            method: "GET",
+            headers: {
+              "x-client-id": CASHFREE_APP_ID,
+              "x-client-secret": CASHFREE_SECRET_KEY,
+              "x-api-version": CASHFREE_API_VERSION,
+              "Content-Type": "application/json"
+            },
+            timeout: 8000
+          }, (res) => {
+            let data = "";
+            res.on("data", c => { data += c; });
+            res.on("end", () => {
+              try { resolve({ statusCode: res.statusCode, data: JSON.parse(data) }); }
+              catch (e) { resolve({ statusCode: res.statusCode, raw: data }); }
+            });
+          });
+          req.on("error", reject);
+          req.on("timeout", () => { req.destroy(); reject(new Error("Cashfree link check timeout")); });
+          req.end();
+        });
+
+        if (linkStatus.statusCode === 200 && linkStatus.data && (linkStatus.data.link_status === "PAID" || linkStatus.data.link_amount_paid > 0)) {
+          const paidAmt = linkStatus.data.link_amount_paid || linkStatus.data.link_amount;
+          const targetOrderRef = order.orderRef || `UT-CF-${Date.now().toString().slice(-6)}`;
+
+          if (confirmedPaymentIds.has(cfId)) continue;
+          confirmedPaymentIds.add(cfId);
+
+          console.log(`\n🎉 [Instant Payment Confirmed via Cashfree!] Link ID: ${cfId} for ₹${paidAmt} (${targetOrderRef})`);
+
+          // Fetch UPI details from order payments
+          let upiVpa = "";
+          let bankRef = "";
+          try {
+            const ordersRes = await new Promise((resolve, reject) => {
+              const req = https.request(`https://api.cashfree.com/pg/links/${cfId}/orders`, {
+                method: "GET",
+                headers: {
+                  "x-client-id": CASHFREE_APP_ID,
+                  "x-client-secret": CASHFREE_SECRET_KEY,
+                  "x-api-version": CASHFREE_API_VERSION
+                },
+                timeout: 5000
+              }, res => {
+                let d = "";
+                res.on("data", c => { d += c; });
+                res.on("end", () => { try { resolve(JSON.parse(d)); } catch (_) { resolve([]); } });
+              });
+              req.on("error", reject);
+              req.end();
+            });
+
+            if (Array.isArray(ordersRes) && ordersRes[0]?.order_id) {
+              const paymentsRes = await new Promise((resolve, reject) => {
+                const req = https.request(`https://api.cashfree.com/pg/orders/${ordersRes[0].order_id}/payments`, {
+                  method: "GET",
+                  headers: {
+                    "x-client-id": CASHFREE_APP_ID,
+                    "x-client-secret": CASHFREE_SECRET_KEY,
+                    "x-api-version": CASHFREE_API_VERSION
+                  },
+                  timeout: 5000
+                }, res => {
+                  let d = "";
+                  res.on("data", c => { d += c; });
+                  res.on("end", () => { try { resolve(JSON.parse(d)); } catch (_) { resolve([]); } });
+                });
+                req.on("error", reject);
+                req.end();
+              });
+
+              if (Array.isArray(paymentsRes) && paymentsRes.length > 0) {
+                const successfulPay = paymentsRes.find(p => p.payment_status === "SUCCESS") || paymentsRes[0];
+                upiVpa = successfulPay.payment_method?.upi?.upi_id || "";
+                bankRef = successfulPay.bank_reference || "";
+                order.paymentId = successfulPay.cf_payment_id || cfId;
+              }
+            }
+          } catch (detailErr) {
+            console.warn("[Cashfree Details Warning]:", detailErr.message);
+          }
+
+          order.status = "Paid & Confirmed (Live Harvest Pending)";
+          order.paidAt = new Date().toISOString();
+          if (!order.paymentId) order.paymentId = `cf_${cfId}`;
+          order.amount = `₹${paidAmt} [PAID via Cashfree]`;
+          order.paymentGateway = "Cashfree";
+
+          recordNewCustomerOrder(key, order);
+          markPaymentProcessed(cfId);
+
+          // Sync to Supabase
+          syncWhatsAppOrderToSupabase(order, order.paymentId).catch(() => {});
+
+          // Target WhatsApp recipient
+          const targetPhone = order.phone || key;
+          let targetJid = order.chatId;
+          if (!targetJid && targetPhone) {
+            for (const [jid, meta] of Object.entries(chatMetadata)) {
+              if (meta.phone && meta.phone.endsWith(String(targetPhone).slice(-10))) {
+                targetJid = jid;
+                break;
+              }
+            }
+          }
+          if (!targetJid && targetPhone && String(targetPhone).length >= 10) {
+            targetJid = `91${String(targetPhone).slice(-10)}@s.whatsapp.net`;
+          }
+
+          // Build Receipt
+          const targetItems = order.items || `${paidAmt} kg Cleaned & Gutted`;
+          const targetDeliverySlot = order.deliveryTime || "Within 90–120 Minutes (Today)";
+          const receiptMsg = `✅ *Payment Received & Order Confirmed!* 🐟\n\nThank you! Your payment of *₹${paidAmt}* via Cashfree UPI has been verified successfully.\n\n📋 *Order Summary:*\n• *Order Ref:* #${targetOrderRef}\n• *Items:* ${targetItems}\n• *Delivery Slot:* ${targetDeliverySlot}\n• *Status:* Confirmed (Live Harvest Scheduled)\n\nOur farm team at Malabagh is now preparing your fresh live harvest from our crystal-clear oxygen-saturated cold water tanks, packed fresh in food-grade biodegradable polythene (0% ice), for express delivery to your shared location within 2 hours!\n\n📍 *Express Dispatch Instructions:*\nYour fish is packed fresh in *100% food-grade biodegradable polythene (0% ice)*. Our *Urban Trout Express Dispatch Partner* will deliver *strictly to your shared GPS location pin*. Kindly keep your phone reachable — our rider calls prior to arrival for a prompt, smooth doorstep handover.`;
+
+          if (targetJid && sock) {
+            try {
+              await sock.sendMessage(targetJid, { text: receiptMsg });
+              console.log(`✅ [Instant Cashfree WhatsApp Receipt Sent] Delivered directly to ${targetJid}!`);
+            } catch (sendErr) {
+              console.error("Failed to send WhatsApp confirmation receipt:", sendErr.message);
+            }
+
+            if (chatHistories.has(targetJid)) {
+              const h = chatHistories.get(targetJid);
+              h.push({ role: "model", text: receiptMsg });
+              saveChatHistories();
+            }
+          }
+
+          // Send Telegram Dispatch Card
+          await sendTelegramDispatchCard(order, {
+            amount: paidAmt,
+            phone: targetPhone,
+            upiId: upiVpa || "Cashfree Instant UPI",
+            mode: "Cashfree 0% Gateway"
+          });
+        }
+      } catch (checkErr) {
+        console.warn(`[Cashfree Link Check Warning for ${cfId}]:`, checkErr.message);
+      }
+    }
+  } catch (err) {
+    // Silent catch
+  } finally {
+    isCheckingCashfree = false;
   }
 }
 
@@ -4971,16 +5499,25 @@ CRITICAL DIRECTIVE: Customer is making a FRESH NEW INQUIRY or placing a NEW orde
           if (payObj) {
             console.log(`[Link Reuse VIP] Reusing single active payment link ${payObj.url} (#${payObj.ref}) for ${cleanPhone || chatId} (Amount ₹${amount})`);
           } else {
-            payObj = await createRazorpayPaymentLink({
+            const waterfallRes = await generatePaymentWithWaterfall({
               amount,
               customerPhone,
               customerName: (vipProfile && vipProfile.cleanName) ? vipProfile.cleanName : (customerName || "Customer"),
               description: desc,
+              preferQr: false,
               latitude: (savedLoc && savedLoc.latitude) ? savedLoc.latitude : null,
               longitude: (savedLoc && savedLoc.longitude) ? savedLoc.longitude : null,
               distanceKm: custDist,
               googleMapsUrl: (savedLoc && savedLoc.googleMapsUrl) ? savedLoc.googleMapsUrl : null
             });
+            payObj = {
+              url: waterfallRes.payUrl,
+              id: waterfallRes.paymentLinkId || waterfallRes.cashfreeLinkId,
+              orderRef: waterfallRes.orderRef,
+              paymentLinkId: waterfallRes.paymentLinkId,
+              cashfreeLinkId: waterfallRes.cashfreeLinkId,
+              bankDetailsText: waterfallRes.bankDetailsText
+            };
           }
           if (payObj && payObj.url) {
             recordNewCustomerOrder(cleanPhone || chatId, {
@@ -5298,16 +5835,25 @@ CRITICAL DIRECTIVE: Customer is making a FRESH NEW INQUIRY or placing a NEW orde
                   if (payObj) {
                     console.log(`[Link Reuse] Reusing single active payment link ${payObj.url} (#${payObj.ref}) for ${customerPhone || chatId} (Amount ₹${amount})`);
                   } else {
-                    payObj = await createRazorpayPaymentLink({
+                    const waterfallRes = await generatePaymentWithWaterfall({
                       amount,
                       customerPhone,
                       customerName: (vipProfile && vipProfile.cleanName) ? vipProfile.cleanName : (customerName || "Customer"),
                       description: desc,
+                      preferQr: false,
                       latitude: savedLoc?.latitude,
                       longitude: savedLoc?.longitude,
                       distanceKm: savedLoc?.distanceKm != null ? savedLoc.distanceKm : custDist,
                       googleMapsUrl: savedLoc?.googleMapsUrl
                     });
+                    payObj = {
+                      url: waterfallRes.payUrl,
+                      ref: waterfallRes.orderRef,
+                      id: waterfallRes.paymentLinkId || waterfallRes.cashfreeLinkId,
+                      paymentLinkId: waterfallRes.paymentLinkId,
+                      cashfreeLinkId: waterfallRes.cashfreeLinkId,
+                      bankDetailsText: waterfallRes.bankDetailsText
+                    };
                   }
                   const payUrl = payObj.url;
                   recordNewCustomerOrder(customerPhone, {
@@ -6005,9 +6551,10 @@ async function startBot() {
       };
       scheduleNextQueuePoll();
 
-      // Check active pending Razorpay payment links every 3.5 seconds for instant confirmation
+      // Check active pending Razorpay & Cashfree payment links every 3.5 seconds for instant confirmation
       paymentInterval = setInterval(() => {
         checkPendingRazorpayPayments(sock);
+        checkPendingCashfreePayments(sock);
       }, 3500);
 
       // Check inactive leads (60-90 minutes old) for exactly ONE gentle follow-up every 2.5 minutes
@@ -6303,58 +6850,30 @@ async function startBot() {
       let rzpQrId = targetOrder?.razorpayQrId || null;
       let rzpQrUrl = targetOrder?.razorpayQrUrl || null;
 
-      // Try Razorpay dynamic QR up to 2 times before falling back
-      let rzpQrLastErr = null;
-      for (let rzpAttempt = 0; rzpAttempt < 2; rzpAttempt++) {
-        try {
-          const rzpQr = await createRazorpayQrCode({
-            amount: amt,
-            customerPhone: cleanPhone || raw10,
-            customerName: customerName || targetOrder?.name || "Customer",
-            orderRef: orderRef,
-            description: itemsDesc
-          });
-          qrBuffer = rzpQr.imageBuffer;
-          isRazorpayQr = true;
-          rzpQrId = rzpQr.qrId;
-          rzpQrUrl = rzpQr.imageUrl;
-          rzpQrLastErr = null;
-          break; // success
-        } catch (rzpQrErr) {
-          rzpQrLastErr = rzpQrErr;
-          console.warn(`[QR Attempt ${rzpAttempt + 1}/2] Razorpay QR failed: ${rzpQrErr.message}. ${rzpAttempt < 1 ? "Retrying in 1.5s..." : "Falling back to payment link QR."}`);
-          if (rzpAttempt < 1) await new Promise(r => setTimeout(r, 1500));
-        }
-      }
+      // 🛡️ 4-Tier Bulletproof Payment Waterfall:
+      // Tier 1: Razorpay QR -> Tier 2: Razorpay Link -> Tier 3: Cashfree Link -> Tier 4: J&K Bank Details
+      const paymentResult = await generatePaymentWithWaterfall({
+        amount: amt,
+        customerPhone: cleanPhone || raw10,
+        customerName: customerName || targetOrder?.name || "Customer",
+        orderRef: orderRef,
+        description: itemsDesc,
+        preferQr: true,
+        latitude: targetOrder?.latitude || savedLoc?.latitude,
+        longitude: targetOrder?.longitude || savedLoc?.longitude,
+        distanceKm: targetOrder?.distanceKm || savedLoc?.distanceKm,
+        googleMapsUrl: targetOrder?.googleMapsUrl || savedLoc?.googleMapsUrl
+      });
 
-      if (!qrBuffer) {
-        // Fallback: encode the Razorpay payment link URL into a local QR image
-        console.warn("Could not create Razorpay dynamic QR, falling back to secure Razorpay payment link QR:", rzpQrLastErr?.message);
-        let fallbackUrl = targetOrder?.payUrl;
-        if (!fallbackUrl) {
-          try {
-            const payObj = await createRazorpayPaymentLink({
-              amount: amt,
-              customerPhone: cleanPhone || raw10,
-              customerName: customerName || targetOrder?.name || "Customer",
-              description: itemsDesc
-            });
-            fallbackUrl = payObj.url;
-            if (targetOrder) {
-              targetOrder.payUrl = fallbackUrl;
-              targetOrder.paymentLinkId = payObj.id;
-            }
-          } catch (linkFallbackErr) {
-            console.error("Failed to generate fallback Razorpay payment link:", linkFallbackErr.message);
-          }
-        }
-        if (fallbackUrl) {
-          qrBuffer = await QRCode.toBuffer(fallbackUrl, {
-            width: 600,
-            margin: 2,
-            color: { dark: "#000000", light: "#ffffff" }
-          });
-        }
+      qrBuffer = paymentResult.qrBuffer;
+      isRazorpayQr = paymentResult.mode === "razorpay_qr";
+      rzpQrId = paymentResult.qrId || null;
+      rzpQrUrl = paymentResult.qrUrl || null;
+
+      if (paymentResult.payUrl && targetOrder) {
+        targetOrder.payUrl = paymentResult.payUrl;
+        if (paymentResult.paymentLinkId) targetOrder.paymentLinkId = paymentResult.paymentLinkId;
+        if (paymentResult.cashfreeLinkId) targetOrder.cashfreeLinkId = paymentResult.cashfreeLinkId;
       }
 
       if (!qrBuffer) {
@@ -6395,6 +6914,9 @@ async function startBot() {
         ? `• *Name:* ${customerName}\n`
         : "";
 
+      const payLinkLine = paymentResult.payUrl ? `\n📱 *Or Tap to Pay:* ${paymentResult.payUrl}\n` : "";
+      const bankDetailsLine = paymentResult.bankDetailsText ? `\n\n${paymentResult.bankDetailsText}` : "";
+
       const caption = `🐟 *URBAN TROUT • UPI QR CODE*\n` +
         `• *Order:* ${cleanItemDesc}\n` +
         custNameLine +
@@ -6403,7 +6925,8 @@ async function startBot() {
         `• *Amount:* *₹${amt.toLocaleString("en-IN")}* (Pre-filled & Locked)\n` +
         `• *Ref:* #${orderRef}\n\n` +
         `👉 *Scan & Pay with any UPI app:* PhonePe, Google Pay, Paytm, or J&K Bank mPay.\n` +
-        `_Packed fresh in 100% food-grade biodegradable polythene (0% ice). Delivered directly to your shared GPS pin (our rider calls prior to arrival for a prompt doorstep handover)._${qrWeatherLine} 🚀`;
+        payLinkLine +
+        `_Packed fresh in 100% food-grade biodegradable polythene (0% ice). Delivered directly to your shared GPS pin (our rider calls prior to arrival for a prompt doorstep handover)._${qrWeatherLine}${bankDetailsLine} 🚀`;
 
       const qrMsg = await sock.sendMessage(remoteJid, {
         image: qrBuffer,
@@ -7168,13 +7691,22 @@ async function startBot() {
 
           console.log(`\n⚡ [Owner Quick-Link] Generating link for ${targetCustName}: ${itemDesc} @ ₹${totalAmount} (Delivery: ₹${deliveryFee})`);
 
-          // Generate locked single-use Razorpay Link
-          const payObj = await createRazorpayPaymentLink({
+          // Generate locked single-use Link with 4-Tier Waterfall
+          const waterfallRes = await generatePaymentWithWaterfall({
             amount: totalAmount,
             customerPhone: targetCustPhone,
             customerName: targetCustName,
-            description: `Urban Trout - ${itemDesc}`
+            description: `Urban Trout - ${itemDesc}`,
+            preferQr: false
           });
+          const payObj = {
+            url: waterfallRes.payUrl,
+            ref: waterfallRes.orderRef,
+            id: waterfallRes.paymentLinkId || waterfallRes.cashfreeLinkId,
+            paymentLinkId: waterfallRes.paymentLinkId,
+            cashfreeLinkId: waterfallRes.cashfreeLinkId,
+            bankDetailsText: waterfallRes.bankDetailsText
+          };
 
           // Customer JID if phone number is provided or if in customer chat
           const customerJid = targetCustPhone ? `91${targetCustPhone}@s.whatsapp.net` : (!isSelfChat ? remoteJid : null);
@@ -7631,14 +8163,15 @@ async function startBot() {
                 console.log(`[Link Reuse Pin] Reusing single active payment link ${reusablePin.url} for ${cleanPhone || raw10}`);
                 generatedPayUrl = reusablePin.url || reusablePin.short_url;
               } else {
-                const rzpRes = await createRazorpayPaymentLink({
+                const waterfallRes = await generatePaymentWithWaterfall({
                   amount: totalPayable,
                   customerPhone: cleanPhone,
                   customerName: customerName,
                   orderRef: orderRef,
-                  description: itemsDesc
+                  description: itemsDesc,
+                  preferQr: false
                 });
-                generatedPayUrl = rzpRes.url || rzpRes.short_url || "https://urbantrout.in";
+                generatedPayUrl = waterfallRes.payUrl || "https://urbantrout.in";
               }
             } catch (plErr) {
               console.error("Razorpay link generation failed on location pin:", plErr.message);
@@ -8331,6 +8864,11 @@ if (require.main === module) {
     calculateDistance,
     fetchLiveRoadDistance,
     createRazorpayQrCode,
+    createCashfreePaymentLink,
+    checkPendingCashfreePayments,
+    generatePaymentWithWaterfall,
+    JKB_ACCOUNT_DETAILS,
+    formatJkbBankDetailsText,
     isCurrentEveningSurge
   };
 }
