@@ -26,10 +26,10 @@ process.on("unhandledRejection", (reason) => {
 // ============================================================================
 // URBAN TROUT SALES AGENT — BUILD & VERSION TRACKING
 // ============================================================================
-const BOT_VERSION = "3.3.0";
-const BOT_LAST_UPDATED = "22-Nov-2026, 09:00 AM IST";
-const BOT_RELEASE_TITLE = "Proactive Auto-QR Fix, Live Center Whole Trout Policy & Owner Intercept Guard";
-const BOT_RELEASE_NOTES = "1. Fixed auto-QR dispatch after Order Summary card and resolved savedLoc / isChatManuallyPaused reference errors. 2. Immediate in-flight AI turn cancellation when owner intervenes or enters #qr. 3. Whole Trout (₹540/kg) policy update: discontinued for doorstep delivery, exclusively available for walk-in self-pickup at Live Vending Center in Malabagh.";
+const BOT_VERSION = "3.4.0";
+const BOT_LAST_UPDATED = "22-Nov-2026, 11:45 PM IST";
+const BOT_RELEASE_TITLE = "Customer Experience & Conversion Polish (COD Pivot, Distant Ad Transparency & Automated Reviews)";
+const BOT_RELEASE_NOTES = "1. COD 2nd objection auto-pivot to Malabagh Live Vending Center for in-person cash purchase. 2. Distant 1kg ad price transparency with free delivery bundling to eliminate 'misleading ad' sticker shock. 3. Exact 1kg portioning answers without diverting to 2kg. 4. Local origin & zero muddy odor assurance. 5. Live location vs static pin guide. 6. Automated 5-star Google review delivery prompt via #delivered command.";
 
 // ============================================================================
 // STRICT MANUAL-ONLY & DRIVER EXCLUSION LIST (AI MUST NEVER TEXT UNDER ANY CIRCUMSTANCE)
@@ -5136,8 +5136,26 @@ CRITICAL READABILITY & MAXIMUM BREVITY MANDATE (ANSWER ONLY WHAT IS REQUIRED):
    • NEVER volunteer 1 kg or delivery fee tables upfront before knowing the customer's area!
    • If customer asks "price of 1 kg?" WITHOUT naming their area: quote ₹580/kg Cleaned & Gutted and ask which area in Srinagar they are in (3 short lines max — NEVER dump ₹45–₹230 ranges or 3–5 kg walls!).
    • Once their area IS known and they explicitly asked for 1 kg: state their exact 1 kg total and briefly mention their area's free-delivery quantity (2–3 short lines max). When they confirm 1 kg, generate the payment link immediately.
+   • AVOIDING "MISLEADING AD" COMPLAINTS ON DISTANT 1 KG INQUIRIES:
+     When a customer asks for 1 kg to a distant/outer area (e.g. Jawahar Nagar, Rajbagh, Hyderpora, Chanapora, Natipora, South Srinagar):
+     - Frame the ₹580 ad price and courier cost transparently without sticker shock:
+       "Our Meta ad features our direct farm rate of ₹580/kg for Cleaned & Gutted trout. For [Area], our express courier partner charges a ₹[Fee] courier fee for a single 1 kg trip (Total ₹[Total]).
+       💡 However, ordering 3 kg (or 5 kg for South corridor) qualifies for 100% FREE express delivery, saving you the entire courier charge!
+       Alternatively, you can pick up 1 kg directly from our Live Vending Center in Malabagh at the flat ₹580 rate with zero delivery fee. Which would you prefer?"
 
-10. MANDATORY LIVE-HARVEST WEIGHING & VISCERAL LOSS DISCLOSURE LAW:
+10. EXACT PORTIONING & PIECE COUNT LAW ("1 KG MEIN KITNE PIECES?"):
+   • If a customer asks "1 kg mein kitne pieces / kitni fish aati hain?" or "1 kg kitne logon ke liye hai?":
+     - Answer DIRECTLY for 1 kg without mentioning 2 kg or other weights:
+       "1 kg gives 2 table-sized trout (400g–500g each), expertly cleaned, descaled, and sliced into 8–10 neat pan-ready curry steaks (ideal for 2–3 people). Zero kitchen mess!"
+   • If a customer asks serving size for X persons (e.g. "12 persons", "family dinner"):
+     - Rule of thumb: 1 kg serves 2–3 people; 2 kg serves 4–5 people; 3 kg serves 6–8 people; 5 kg serves 10–14 people (Family Pack with 100% FREE delivery).
+
+10b. LOCAL SRINAGAR ORIGIN & ZERO MUDDY ODOR LAW:
+   • If a customer asks "Kaha ki fish hai?", "Trout kaha ki hai?", "Is it local?", "Kaha se aati hai?":
+     Answer with pride & authority:
+     "Our Himalayan Rainbow Trout is raised right here in Srinagar at our Govt-approved cold-water fisheries facility in Malabagh! 🐟 Reared in crystal-clear, oxygen-saturated cold-water tanks fed by mountain springs, ensuring superior taste and absolutely zero muddy odor."
+
+10c. MANDATORY LIVE-HARVEST WEIGHING & VISCERAL LOSS DISCLOSURE LAW:
    • Live trout are swimming in pure cold-water tanks and harvested live upon order.
    • Every order is scooped live from the tanks and weighed WHOLE on certified digital scales at harvest.
    • During hygienic gutting & descaling, gills, scales, and viscera are removed, naturally resulting in a standard 15% to 20% visceral weight loss.
@@ -5247,14 +5265,15 @@ ${fridayOperatingNote}
 3. 100% UPFRONT PAYMENT LAW & STRICT PRE-PAYMENT HARVEST RULE:
    - We harvest live swimming fish ONLY upon upfront payment confirmation via locked Razorpay QR code image or verified mPay screenshot. We do NOT stock dead fish or freeze pre-harvested fish.
    - CRITICAL PRE-PAYMENT HARVEST RULE: NEVER say "I've prepared your order", "Your order is confirmed", or imply live harvest or delivery dispatch has started before payment! An order is NOT confirmed and fish is NEVER harvested until payment confirmation is received. When providing order summaries and locked QR, frame it clearly: "Here is your official order summary. Please scan the locked UPI QR code below with GPay, PhonePe, Paytm, or J&K Bank mPay — live harvest begins immediately upon payment confirmation so your trout is 100% fresh from our oxygenated tanks."
-   - TRUST-BUILDER WHEN CUSTOMER ASKS FOR COD, CASH, POD, OR HESITATES TO PAY:
-     Explain concisely (maximum 4 lines):
-     "We completely understand! Here is why we operate strictly via secure upfront digital payment:
-     ✅ Fish is ALIVE in our tanks right now — harvested fresh ONLY after you confirm.
-     ✅ Govt-approved facility (Dept of Fisheries, J&K) in Malabagh.
-     ✅ Prefer cash? You are warmly welcome to visit our Live Vending Center in Malabagh to pick live trout in person!
-
-     Or scan the locked QR code below — takes 30 seconds. Which works better for you?"
+   - 🛑 COD & CASH HANDLING LAW:
+     • FIRST COD / CASH MENTION:
+       Explain why upfront digital payment is mandatory for live home delivery (max 3 lines):
+       "We completely understand! Because every fish is swimming live in our pure cold-water tanks and harvested fresh ONLY after order confirmation, doorstep delivery operates strictly via secure upfront digital payment.
+       Or scan the locked QR code below — takes 30 seconds to lock your fresh live harvest! 🐟"
+     • SECOND COD / CASH MENTION (IF CUSTOMER INSISTS ON CASH):
+       DO NOT REPEAT ADVANCE PAYMENT! Immediately pivot to our Live Vending Center in Malabagh for cash purchase:
+       "For cash payment, you are warmly welcome to visit our Live Vending Center in Malabagh (Near R. P. School Girls Wing, open Saturday to Thursday, 8:00 AM to 8:00 PM) where you can pick live trout directly from our cold-water tanks and pay with cash on the spot! 🐟
+       📍 Counter Location: https://maps.app.goo.gl/6FT5iLk5n8mbKSRU9"
 4. DELIVERY RADIUS & 4-TIER MOQ MANDATE:
    - Fast express deliveries (packed in 100% food-grade biodegradable polythene with 0% ice) are offered up to 16 km across Srinagar & nearby Ganderbal!
    - TIER 1 (0 to 4.0 km): 100% FREE on 2 kg+ (Cleaned & Gutted ₹1,160). 1 kg express delivery = ₹625 (₹45 fee).
@@ -7684,9 +7703,25 @@ async function startBot() {
           // If typed in owner self-chat or owner private chat, send admin reply.
           // In customer chats, do NOT send internal admin text to the customer!
           const isCustomerChat = !isSelfChat && !cleanPhone.endsWith("7006604148");
-          if (!isCustomerChat) {
+          const custName = (order.name && !/^(?:Customer|Valued Customer)(?:\s*\(|$)/i.test(order.name)) ? order.name : "there";
+          const reviewPrompt = `Hello ${custName}! ✨ Your fresh trout order (#${order.orderRef}) has been successfully delivered! We hope you and your family love the farm-fresh taste.\n\nYour feedback is truly important to us and helps our local farm grow. If you enjoyed your order, we would be grateful if you could spare 15 seconds to leave a *5-star review* on Google — your review can even get *featured in the Testimonials section on urbantrout.in*! 🌟\n\nhttps://g.page/r/CTVKEpV62HMmECE/review\n\nBon Appetit! — Urban Trout Aquaculture 🐟`;
+
+          const targetCustomerJid = order.chatId || (order.phone ? `91${order.phone.replace(/\D/g, "").slice(-10)}@s.whatsapp.net` : null);
+
+          if (isCustomerChat) {
+            // Typed inside customer chat -> Deliver the official 5-star review request directly!
+            await sock.sendMessage(remoteJid, { text: reviewPrompt });
+            console.log(`🌟 [5-Star Review Request Sent] Delivered to customer in chat ${remoteJid}`);
+          } else {
+            // Typed from Admin Desk -> Send review request to customer and confirmation to admin!
+            if (targetCustomerJid) {
+              try {
+                await sock.sendMessage(targetCustomerJid, { text: reviewPrompt });
+                console.log(`🌟 [5-Star Review Request Sent] Dispatched to customer ${targetCustomerJid}`);
+              } catch (_) {}
+            }
             await sock.sendMessage(remoteJid, {
-              text: `✅ *Order #${order.orderRef} Marked Delivered!* 🐟\n\nCustomer: ${order.name || "Customer"} (+91 ${order.phone || targetKey})\nItems: ${order.items || "Fresh Trout"}\nStatus: Delivered & Completed ✅\nRemoved from active dispatch queue.`
+              text: `✅ *Order #${order.orderRef} Marked Delivered!* 🐟\n\nCustomer: ${order.name || "Customer"} (+91 ${order.phone || targetKey})\nItems: ${order.items || "Fresh Trout"}\nStatus: Delivered & Completed ✅\n🌟 *5-Star Google Review Request dispatched to customer!*`
             });
           }
         } catch (delivErr) {
@@ -7902,6 +7937,7 @@ async function startBot() {
     }
 
     // 4. Check for Native WhatsApp Location Pin or Google Maps Link
+    const isLiveLoc = Boolean(innerMessage.liveLocationMessage);
     const locMsg = innerMessage.locationMessage || innerMessage.liveLocationMessage;
     let detectedLat = null;
     let detectedLng = null;
@@ -8085,7 +8121,10 @@ async function startBot() {
           recordNewCustomerOrder(cleanPhone || raw10, activeOrder);
         }
 
-        const pinPolicyNote = `\n\n📌 *Express Dispatch:* Our rider navigates strictly to your shared GPS pin. Please keep your phone reachable so the rider can call prior to arrival for a smooth doorstep handover. 🐟`;
+        const liveLocAdvice = isLiveLoc
+          ? `\n\n📌 *Friendly Note:* You shared a WhatsApp Live Location. While our system captured your coordinates, for 100% accurate doorstep delivery, kindly also drop a static pin (tap 📎 ➔ Location ➔ "Send your current location"). 📍`
+          : "";
+        const pinPolicyNote = `\n\n📌 *Express Dispatch:* Our rider navigates strictly to your shared GPS pin. Please keep your phone reachable so the rider can call prior to arrival for a smooth doorstep handover. 🐟${liveLocAdvice}`;
         const gpsWeatherPolicy = evaluateWeatherDeliveryPolicy(distNum);
         const weatherPinNote = gpsWeatherPolicy.deliverWithDelayWarning ? `\n\n${gpsWeatherPolicy.delayWarningText}` : "";
         const paidWeatherPinNote = gpsWeatherPolicy.weather.isBadWeather
