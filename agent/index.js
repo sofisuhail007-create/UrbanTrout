@@ -26,10 +26,10 @@ process.on("unhandledRejection", (reason) => {
 // ============================================================================
 // URBAN TROUT SALES AGENT — BUILD & VERSION TRACKING
 // ============================================================================
-const BOT_VERSION = "3.2.0";
-const BOT_LAST_UPDATED = "22-Nov-2026, 07:45 AM IST";
-const BOT_RELEASE_TITLE = "4-Tier Bulletproof Payment Waterfall & Cashfree Zero-Fee Redundancy";
-const BOT_RELEASE_NOTES = "1. Strict 4-Tier Payment Waterfall: Tier 1 Razorpay locked UPI QR -> Tier 2 Razorpay Link -> Tier 3 Cashfree Branded Link (https://urbantrout.in/pay/...) with 0% fee -> Tier 4 J&K Bank Direct Transfer (Acc: 0724010100000499, IFSC: JAKA0MALBAG). 2. Dual payment listener polling Cashfree and Razorpay every 3.5s with instant Telegram alerts and WhatsApp confirmations.";
+const BOT_VERSION = "3.3.0";
+const BOT_LAST_UPDATED = "22-Nov-2026, 09:00 AM IST";
+const BOT_RELEASE_TITLE = "Proactive Auto-QR Fix, Live Center Whole Trout Policy & Owner Intercept Guard";
+const BOT_RELEASE_NOTES = "1. Fixed auto-QR dispatch after Order Summary card and resolved savedLoc / isChatManuallyPaused reference errors. 2. Immediate in-flight AI turn cancellation when owner intervenes or enters #qr. 3. Whole Trout (₹540/kg) policy update: discontinued for doorstep delivery, exclusively available for walk-in self-pickup at Live Vending Center in Malabagh.";
 
 // ============================================================================
 // STRICT MANUAL-ONLY & DRIVER EXCLUSION LIST (AI MUST NEVER TEXT UNDER ANY CIRCUMSTANCE)
@@ -5114,12 +5114,15 @@ CRITICAL READABILITY & MAXIMUM BREVITY MANDATE (ANSWER ONLY WHAT IS REQUIRED):
 2. ANSWER ONLY WHAT IS ASKED: Never provide unprompted explanations, bio-security details, food-grade packaging descriptions, or unasked policies unless directly asked.
 3. ABSOLUTE BAN ON CALLING CUSTOMERS BY NAME: Under NO circumstances should you ever address or call the customer by any personal name (no "Hello Munir!", "Dear Uzma,", "Hi Shahid," etc.). Addressing customers by name looks unprofessional. Greet completely neutrally ("Hello! Welcome to Urban Trout.") or jump straight into the answer without any name.
 4. DO NOT REPEAT PRICE BULLETS OR RATE MENUS IN ONGOING CHATS: If prices or cuts were already mentioned in recent messages, NEVER recite the full rate again or ask repetitive questions. Acknowledge what the customer just said and advance the conversation forward naturally!
-5. EXCLUSIVE PRODUCT MANDATE (WHOLE TROUT IS STRICTLY DISCONTINUED):
-   • We EXCLUSIVELY sell Cleaned & Gutted (*₹580/kg*, Pan-ready steaks / curry cut pieces).
-   • 🛑 ABSOLUTE BAN ON WHOLE TROUT: Whole Fresh Trout (*₹540/kg*, round/uncleaned) is STRICTLY DISCONTINUED via our WhatsApp sales agent! Under NO circumstances should you EVER offer, quote ₹540/kg, or sell whole trout.
+5. PRODUCT & DELIVERY POLICY (WHOLE TROUT DISCONTINUED FOR DELIVERY — AVAILABLE FOR LIVE CENTER SELF-PICKUP ONLY):
+   • 🛵 FOR DOORSTEP DELIVERY ACROSS SRINAGAR:
+     - We EXCLUSIVELY deliver Cleaned & Gutted (*₹580/kg*, Pan-ready steaks / curry cut pieces, descaled & gutted with zero kitchen mess).
+     - Doorstep delivery is STRICTLY DISCONTINUED for Whole Trout (₹540/kg). We NEVER deliver whole, round, or uncleaned trout to doorsteps.
+   • 🏬 FOR WALK-IN / SELF-PICKUP AT LIVE VENDING CENTER (MALABAGH):
+     - Customers CAN order and pick up Whole Trout (*₹540/kg*, uncleaned/round) in person directly at our Live Vending Center in Malabagh and take it themselves!
    • IF A CUSTOMER ASKS FOR WHOLE / UNCLEANED / SABUT TROUT:
-     - Politely inform them: "We have discontinued Whole Trout and now exclusively offer Cleaned, Gutted & Pan-Ready pieces at ₹580/kg (completely descaled, gutted, and cut into pan-ready steaks with zero kitchen mess). Would you like to order our Cleaned & Gutted trout?"
-     - ⚠️ STRICT CONFIDENTIALITY LAW: NEVER tell them the internal reasons why (NEVER mention lower margins, bulkiness of whole fish, delivery packaging limits, or biodegradable polythene packs). Just simply and politely state that whole trout has been discontinued.
+     - Politely inform them: "Whole Trout (₹540/kg) is available exclusively for self-pickup at our Live Vending Center in Malabagh, where you can select live trout and take it yourself. For express doorstep delivery across Srinagar, we exclusively deliver Cleaned & Gutted pan-ready pieces at ₹580/kg (completely descaled, gutted, and cut into pan-ready steaks with zero kitchen mess). Would you like Cleaned & Gutted delivered, or would you like to pick up Whole Trout from our Malabagh center?"
+     - ⚠️ STRICT CONFIDENTIALITY LAW: NEVER mention internal operational reasons, lower margins, or delivery packaging constraints.
 6. DELIVERY CALLOUT LINE (SEPARATE LINE BELOW RATES — SHORT & ZERO STICKER SHOCK):
    🛵 *Express delivery across Srinagar* (FREE on eligible orders)
    • Do NOT put "3–5 kg", fee ranges, or "shared GPS location" in the opening welcome or before knowing their area! Once they tell you their area, share their exact delivery terms cleanly.
@@ -6570,6 +6573,16 @@ async function startBot() {
     }
   });
 
+  // ─── HUMAN OVERRIDE / PAUSE CHECK HELPER ───
+  function isChatManuallyPaused(jid, phone = null) {
+    if (!jid && !phone) return false;
+    const resolved = typeof resolveCustomerPhone === "function" ? resolveCustomerPhone(jid) : null;
+    const expiry = humanOverrides.get(jid) ||
+      (phone ? humanOverrides.get(phone) : null) ||
+      (resolved ? humanOverrides.get(resolved) : null);
+    return Boolean(expiry && Date.now() < expiry);
+  }
+
   // ─── DIRECT SCANNER / QR INTERCEPT HELPER FUNCTIONS ───
   function isCustomerRequestingQr(userText, chatHist = []) {
     if (!userText) return false;
@@ -6735,6 +6748,11 @@ async function startBot() {
 
   async function dispatchLockedQrImage(sock, remoteJid, { cleanPhone, raw10, customerName, forceAmount, forceRef, forceDesc, forceDeliveryFee = 0, bypassLocationGuard = false, chatHist = [] }) {
     try {
+      const savedLoc = (remoteJid && chatMetadata[remoteJid]) ||
+        (cleanPhone && chatMetadata[cleanPhone]) ||
+        (raw10 && chatMetadata[raw10]) ||
+        null;
+
       const ordersFilePath = path.join(__dirname, "customer_orders.json");
       let orders = {};
       if (fs.existsSync(ordersFilePath)) {
@@ -6859,10 +6877,10 @@ async function startBot() {
         orderRef: orderRef,
         description: itemsDesc,
         preferQr: true,
-        latitude: targetOrder?.latitude || savedLoc?.latitude,
-        longitude: targetOrder?.longitude || savedLoc?.longitude,
-        distanceKm: targetOrder?.distanceKm || savedLoc?.distanceKm,
-        googleMapsUrl: targetOrder?.googleMapsUrl || savedLoc?.googleMapsUrl
+        latitude: targetOrder?.latitude || savedLoc?.latitude || locDetails?.latitude || null,
+        longitude: targetOrder?.longitude || savedLoc?.longitude || locDetails?.longitude || null,
+        distanceKm: targetOrder?.distanceKm || savedLoc?.distanceKm || locDetails?.distanceKm || null,
+        googleMapsUrl: targetOrder?.googleMapsUrl || savedLoc?.googleMapsUrl || null
       });
 
       qrBuffer = paymentResult.qrBuffer;
@@ -7459,6 +7477,11 @@ async function startBot() {
               text: `✅ *Locked QR Code Dispatched!* 🐟\nDelivered ${finalAmt ? `*₹${finalAmt.toLocaleString("en-IN")}*` : "locked"}${parsed.deliveryFee > 0 ? ` (incl. +₹${parsed.deliveryFee} delivery)` : ""} QR image directly to ${formatPhoneDisplay(targetPhone)}${nameNote}.`
             });
           }
+        } else {
+          console.error(`⚠️ [#qr Failure] Could not generate/dispatch QR code for ${targetJid}`);
+          await sock.sendMessage(remoteJid, {
+            text: `⚠️ *QR Generation Notice:* Could not generate locked QR image automatically for ${formatPhoneDisplay(targetPhone)}. Please check connection or use #link.`
+          });
         }
         return;
       }
@@ -8520,7 +8543,7 @@ async function startBot() {
 
           setTimeout(async () => {
             try {
-              if (isChatManuallyPaused(remoteJid)) {
+              if (isChatManuallyPaused(remoteJid, cleanPhone)) {
                 console.log(`[Auto-QR Shield] Suppressed auto-QR dispatch for ${remoteJid} — owner manual intervention active.`);
                 return;
               }
@@ -8725,6 +8748,12 @@ async function startBot() {
           if (chatDebounceBuffers.has(remoteJid)) {
             clearTimeout(chatDebounceBuffers.get(remoteJid).timer);
             chatDebounceBuffers.delete(remoteJid);
+          }
+          // 🛡️ CRITICAL: If AI was actively generating a response to an earlier customer message, abort it immediately!
+          // This prevents the AI from blurting out an outdated prompt (e.g. asking for location pin) after owner intervened!
+          if (activeChatGenerations.has(remoteJid)) {
+            console.log(`🛑 [Owner Intercept] Owner messaged/intervened in ${remoteJid}. Aborting in-flight AI generation.`);
+            activeChatGenerations.delete(remoteJid);
           }
           enqueueChatMessage(remoteJid, async () => {
             await processSingleMessage(sock, msg, remoteJid, rawText);
