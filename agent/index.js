@@ -26,10 +26,10 @@ process.on("unhandledRejection", (reason) => {
 // ============================================================================
 // URBAN TROUT SALES AGENT — BUILD & VERSION TRACKING
 // ============================================================================
-const BOT_VERSION = "3.0.8";
-const BOT_LAST_UPDATED = "20-Nov-2026, 11:15 PM IST";
-const BOT_RELEASE_TITLE = "Returning Customer Shield, Repeat Payment Confirmation & Tulip Garden Routing";
-const BOT_RELEASE_NOTES = "1. Returning Customer Isolation: Quarantined historical completed orders so older customers never receive false confirmation or rider claims. 2. Razorpay Guard 3 Fix: Enabled instant payment receipts for repeat buyers (e.g. Fahad). 3. Tulip Garden & Zone 3 Mapping: Codified Tulip Garden (~9.8 km, Zone 3) into Srinagar Zone DB. 4. Culinary Gold Standard: Codified 400g-500g table size culinary pitch without bureaucrat jargon. 5. Driver Blacklist: Guarded Rapido drivers (MS Wani) from bot replies & mPay prompts.";
+const BOT_VERSION = "3.1.0";
+const BOT_LAST_UPDATED = "22-Nov-2026, 12:05 AM IST";
+const BOT_RELEASE_TITLE = "Discontinue Whole Trout via Sales Agent & Exclusive Cleaned/Gutted Mandate";
+const BOT_RELEASE_NOTES = "1. Discontinued selling Whole Fresh Trout (₹540/kg) via the WhatsApp Sales Agent. Agent now exclusively quotes and sells Cleaned, Gutted & Pan-Ready pieces at ₹580/kg. 2. Added intent decoder and system instructions: if a customer inquires about whole, uncleaned, or sabut fish, the agent politely states that whole trout is discontinued and offers cleaned & gutted pan-ready pieces at ₹580/kg without revealing internal margins or packaging reasons.";
 
 // ============================================================================
 // STRICT MANUAL-ONLY & DRIVER EXCLUSION LIST (AI MUST NEVER TEXT UNDER ANY CIRCUMSTANCE)
@@ -244,7 +244,11 @@ function extractTotalPayableAmount(text) {
   const summaryTotalMatch = text.match(/(?:Order\s*Total|Grand\s*Total)[^0-9\n\r]{0,30}?₹?\s*([\d,]{3,7})\b(?!\s*\/\s*kg)/i);
   if (summaryTotalMatch) return parseInt(summaryTotalMatch[1].replace(/,/g, ""), 10);
 
-  // 3. Fallback: Any Total that is NOT preceded by "Fish "
+  // 3. Amount followed by "total" (e.g. "₹1,215 total", "1840 total", "*₹1,215 total*")
+  const trailingTotalMatch = text.match(/₹?\s*([\d,]{3,7})\s*(?:\*)?\s*(?:total|grand\s*total)\b(?!\s*\/\s*kg)/i);
+  if (trailingTotalMatch) return parseInt(trailingTotalMatch[1].replace(/,/g, ""), 10);
+
+  // 4. Fallback: Any Total that is NOT preceded by "Fish "
   const generalTotalMatch = text.match(/(?<!Fish\s*)(?:Total\s*Amount|Total|Amount)[^0-9\n\r]{0,25}?₹?\s*([\d,]{3,7})\b(?!\s*\/\s*kg)/i);
   if (generalTotalMatch) return parseInt(generalTotalMatch[1].replace(/,/g, ""), 10);
 
@@ -1465,11 +1469,12 @@ async function createRazorpayPaymentLink({ amount, customerPhone, customerName, 
 }
 
 // Helper to download an image buffer with redirect handling
-function downloadImageBuffer(url) {
+function downloadImageBuffer(url, timeoutMs = 12000) {
   return new Promise((resolve, reject) => {
-    https.get(url, (res) => {
+    const req = https.get(url, { timeout: timeoutMs }, (res) => {
       if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-        return downloadImageBuffer(res.headers.location).then(resolve).catch(reject);
+        req.destroy();
+        return downloadImageBuffer(res.headers.location, timeoutMs).then(resolve).catch(reject);
       }
       if (res.statusCode !== 200) {
         return reject(new Error(`Failed to download QR image. Status: ${res.statusCode}`));
@@ -1477,7 +1482,9 @@ function downloadImageBuffer(url) {
       const chunks = [];
       res.on("data", c => chunks.push(c));
       res.on("end", () => resolve(Buffer.concat(chunks)));
-    }).on("error", reject);
+    });
+    req.on("error", reject);
+    req.on("timeout", () => { req.destroy(); reject(new Error(`downloadImageBuffer timed out after ${timeoutMs}ms`)); });
   });
 }
 
@@ -1586,6 +1593,7 @@ async function createRazorpayQrCode({ amount, customerPhone, customerName, order
 function formatOrderSummaryCard({
   orderRef,
   amount,
+  totalAmount,
   desc,
   deliveryArea,
   deliveryFee = 0,
@@ -1594,6 +1602,7 @@ function formatOrderSummaryCard({
   scheduledSlot,
   payUrl
 }) {
+  const numericAmount = Number(amount != null ? amount : totalAmount) || 0;
   const isWhole = /\b(?:whole|sabut)\b/i.test(desc || "");
   const cutName = isWhole ? "Whole Fresh" : "Cleaned & Gutted";
 
@@ -1616,10 +1625,10 @@ function formatOrderSummaryCard({
   let effectiveDeliveryFee = Number(deliveryFee) > 0
     ? Number(deliveryFee)
     : (descFeeMatch ? parseInt(descFeeMatch[1], 10) : 0);
-  if (effectiveDeliveryFee === 0 && weightKg && Number(amount) > 0) {
+  if (effectiveDeliveryFee === 0 && weightKg && numericAmount > 0) {
     const baseExpected = Math.round(weightKg * baseUnitRate);
-    if (Number(amount) > baseExpected + 5) {
-      effectiveDeliveryFee = Number(amount) - baseExpected;
+    if (numericAmount > baseExpected + 5) {
+      effectiveDeliveryFee = numericAmount - baseExpected;
     }
   }
 
@@ -1630,7 +1639,7 @@ function formatOrderSummaryCard({
   const cleanPlace = isGenericPlace ? "" : sanitizedPlace;
 
   const isExplicitPaidTag = effectiveDeliveryFee > 0 || /\(\s*\+?\s*(?:₹\s*\d+\s*)?(?:Special|Express)\s*Delivery\s*\)/i.test(desc || "") || /\(\s*\+\s*₹?\s*\d+\s*Delivery\s*\)/i.test(desc || "");
-  const isAmbiguousCustomTotal = !isExplicitPaidTag && !weightKg && Number(amount) > 0 && (Number(amount) % 580 !== 0) && (Number(amount) % 540 !== 0);
+  const isAmbiguousCustomTotal = !isExplicitPaidTag && !weightKg && numericAmount > 0 && (numericAmount % 580 !== 0) && (numericAmount % 540 !== 0);
 
   let deliveryDisplay;
   if (isExplicitPaidTag) {
@@ -1657,7 +1666,7 @@ function formatOrderSummaryCard({
 • *Item:* ${orderTitle}
 • *Packaging:* 100% Food-Grade Biodegradable Polythene (0% Ice)
 • *Delivery:* ${deliveryDisplay}
-• *Total Payable:* *₹${amount.toLocaleString("en-IN")}*
+• *Total Payable:* *₹${numericAmount.toLocaleString("en-IN")}*
 
 📷 *Scan the locked UPI QR Code below to pay:*
 Supports Google Pay, PhonePe, Paytm, or J&K Bank mPay.
@@ -3049,9 +3058,11 @@ function parseCustomerQuantityRequest(userMessage) {
 
   if (!isOrderIntent) return null;
 
-  let cut = null;
+  let cut = "Cleaned & Gutted";
+  let isWholeRequested = false;
   if (/\b(?:whole|round|sabut|uncleaned)\b/i.test(msg)) {
-    cut = "Whole Fresh";
+    cut = "Cleaned & Gutted";
+    isWholeRequested = true;
   } else if (/\b(?:curry|cut|steaks?)\b/i.test(msg)) {
     cut = "Cleaned & Gutted (Curry Cut)";
   } else if (/\b(?:clean|cleaned|gutted|saf)\b/i.test(msg)) {
@@ -3066,7 +3077,7 @@ function parseCustomerQuantityRequest(userMessage) {
     localityDist = locDet.dist;
   }
 
-  return { weightKg, cut, localityName, localityDist };
+  return { weightKg, cut, localityName, localityDist, isWholeRequested };
 }
 
 // Helper to determine if an order is completed, delivered, cancelled or closed
@@ -3430,13 +3441,10 @@ function lookupCustomerVipProfile(chatId, customerPhone) {
   }
 
   let usualWeightKg = 2;
-  let usualCut = "Cleaned & Gutted";
+  let usualCut = "Cleaned & Gutted"; // Whole trout is discontinued; all reorders default to Cleaned & Gutted
   if (lastOrder && lastOrder.items) {
     const wMatch = lastOrder.items.match(/(\d+(?:\.\d+)?)\s*(?:kg|kilos?)/i);
     if (wMatch) usualWeightKg = Math.round(parseFloat(wMatch[1]));
-    if (/\b(?:whole|round|sabut|uncleaned)\b/i.test(lastOrder.items)) {
-      usualCut = "Whole Fresh";
-    }
   }
 
   const reorderPricing = calculateReorderPricing(usualWeightKg, usualCut, distanceKm);
@@ -3562,9 +3570,12 @@ async function generateGeminiReply(chatId, userMessage, customerPhone, customerN
         }
       }
     } else if (parsedQuantity) {
-      // Customer asked for ANY quantity (e.g. 1kg, 2kg, 3kg, 4kg) — share payment link NO STRINGS ATTACHED!
-      const reqWeight = parsedQuantity.weightKg;
-      const reqCut = parsedQuantity.cut || vipProfile.usualCut || "Cleaned & Gutted";
+      if (parsedQuantity.isWholeRequested) {
+        fastReorderReply = `We have discontinued Whole Trout and now exclusively offer Cleaned, Gutted & Pan-Ready pieces at ₹580/kg (completely descaled, gutted, and cut into pan-ready steaks with zero kitchen mess). Would you like to order ${parsedQuantity.weightKg} kg of our Cleaned & Gutted trout? 🐟`;
+      } else {
+        // Customer asked for ANY quantity (e.g. 1kg, 2kg, 3kg, 4kg) — share payment link NO STRINGS ATTACHED!
+        const reqWeight = parsedQuantity.weightKg;
+        const reqCut = parsedQuantity.cut || vipProfile.usualCut || "Cleaned & Gutted";
 
       // Check if current chat history has an explicitly mentioned locality (e.g. customer said "Location Paraypora")
       let recentChatLoc = null;
@@ -3612,6 +3623,7 @@ async function generateGeminiReply(chatId, userMessage, customerPhone, customerN
       }
     }
   }
+}
 
   // VIP Fast Path 2: Returning Customer Greeting & 1-Tap Offer
   if (vipProfile && !existingOrder && !fastReorderReply && isPureInquiry && !isFridayToday) {
@@ -3749,7 +3761,7 @@ CRITICAL VIP REORDERING & GREETING INSTRUCTIONS:
 ⚠️ STRICT MANDATE: NEVER MENTION "Zone 1", ZONE NUMBERS, "doorstep", "cold-chain", "cold chain", "chilled", "subsidized", "70%", "30%", "biodegradable", "polythene", OR "Rapido"! Speak naturally: "We deliver express to ${detectedLoc.name} within 2 hours!".
 CRITICAL DELIVERY & PRICING INSTRUCTIONS:${isEveningSurge ? "\n⚡ CURRENT TIME: EVENING RUSH HOUR (4:00 PM – 8:00 PM IST) — +₹40 evening rush fee surcharge applies to 1 kg orders. 2 kg+ is 100% FREE!" : ""}
 • Express Delivery: 100% FREE on 2 kg or more (within 2 hours)!
-• Rates: Cleaned & Gutted = ₹580/kg | Whole Fresh = ₹540/kg
+• Rate: Cleaned, Gutted & Pan-Ready Pieces = ₹580/kg (Whole trout is discontinued)
 • 2 kg Cleaned & Gutted = *₹1,160 total* (100% FREE delivery)
 • ⚠️ STRICT MOQ FIRST POLICY: Pitch 2 kg minimum order for free delivery upfront!
 • Pitch for ${detectedLoc.name}:
@@ -3768,7 +3780,7 @@ CRITICAL DELIVERY & PRICING INSTRUCTIONS:${isEveningSurge ? "\n⚡ CURRENT TIME:
 • Express Delivery: 100% FREE on 3 kg or more!
 • 2 kg Order: Available with a nominal express delivery fee of only *₹${55 + surgeAdd}* (₹1,160 + ₹${55 + surgeAdd} = *₹${1215 + surgeAdd} total* for Cleaned & Gutted).
 • 1 kg Starter Pack: Available with express delivery fee of *₹${75 + surgeAdd}* (₹580 + ₹${75 + surgeAdd} = *₹${655 + surgeAdd} total*).
-• Rates: Cleaned & Gutted = ₹580/kg | Whole Fresh = ₹540/kg
+• Rate: Cleaned, Gutted & Pan-Ready Pieces = ₹580/kg (Whole trout is discontinued)
 • Pitch for ${detectedLoc.name}:
   "Great! We deliver express to ${detectedLoc.name}! Delivery to your shared location is 100% FREE on 3 kg (gives 6–7 fresh trout at ₹1,740 total). Or we can send 2 kg for just a nominal ₹${55 + surgeAdd} delivery fee (₹${1215 + surgeAdd} total). How many Kgs would you like, and kindly share your WhatsApp location pin or Google Maps link?"
 • IF CUSTOMER ASKS FOR 2 KG:
@@ -3788,7 +3800,7 @@ CRITICAL DELIVERY & PRICING INSTRUCTIONS:${isEveningSurge ? "\n⚡ CURRENT TIME:
 • Express Delivery: 100% FREE on 3 kg or more!
 • 2 kg Order: Available with a nominal express delivery fee of only *₹${89 + surgeAdd}* (₹1,160 + ₹${89 + surgeAdd} = *₹${1249 + surgeAdd} total* for Cleaned & Gutted).
 • 1 kg Starter Pack: Available with express delivery fee of *₹${130 + surgeAdd}* (₹580 + ₹${130 + surgeAdd} = *₹${710 + surgeAdd} total*).
-• Rates: Cleaned & Gutted = ₹580/kg | Whole Fresh = ₹540/kg
+• Rate: Cleaned, Gutted & Pan-Ready Pieces = ₹580/kg (Whole trout is discontinued)
 • Pitch for ${detectedLoc.name}:
   "Great! We deliver express to ${detectedLoc.name}! Delivery to your shared location is 100% FREE on 3 kg (gives 6–7 fresh trout at ₹1,740 total). Or we can send 2 kg with an express delivery fee of ₹${89 + surgeAdd} (₹${1249 + surgeAdd} total). How many Kgs would you like, and kindly share your WhatsApp location pin or Google Maps link?"
 • IF CUSTOMER ASKS FOR 2 KG:
@@ -3810,7 +3822,7 @@ CRITICAL DELIVERY & PRICING INSTRUCTIONS:${isEveningSurge ? "\n⚡ CURRENT TIME:
 • 3 kg Order: Available with a nominal express delivery fee of *₹${129 + surgeAdd}* (₹1,740 + ₹${129 + surgeAdd} = *₹${1869 + surgeAdd} total*).
 • 2 kg Order: Available with a nominal express delivery fee of *₹${139 + surgeAdd}* (₹1,160 + ₹${139 + surgeAdd} = *₹${1299 + surgeAdd} total*).
 • 1 kg Starter Pack: Available with express delivery fee of *₹${190 + surgeAdd}* (₹580 + ₹${190 + surgeAdd} = *₹${770 + surgeAdd} total*).
-• Rates: Cleaned & Gutted = ₹580/kg | Whole Fresh = ₹540/kg
+• Rate: Cleaned, Gutted & Pan-Ready Pieces = ₹580/kg (Whole trout is discontinued)
 • Pitch for ${detectedLoc.name}:
   "Great! We deliver express to ${detectedLoc.name}! Delivery to your shared location is 100% FREE for our 5 kg family pack (gives 10–12 fresh trout at ₹2,900 total). We can also send 2 kg for just ₹${139 + surgeAdd} delivery fee (₹${1299 + surgeAdd} total), 3 kg for ₹${129 + surgeAdd} (₹${1869 + surgeAdd} total), or 4 kg for ₹${109 + surgeAdd} (₹${2429 + surgeAdd} total). Which would you like, and kindly share your WhatsApp location pin or Google Maps link?"
 • IF CUSTOMER ASKS FOR 2 KG:
@@ -3936,8 +3948,7 @@ INSTRUCTION: If the customer is inquiring about delivery, or asked for fish/pric
     intentContext = `\n======================================================
 💡 QUERY INTENT DECODED: Customer asked price ("${userMessage.trim()}").
 CRITICAL INSTRUCTION: Answer ONLY what is required (keep it brief and organized):
-• Cleaned & Gutted: *₹580/kg* (Pan-ready, scaled & cleaned)
-• Whole Fresh: *₹540/kg*
+• Cleaned & Gutted: *₹580/kg* (Pan-ready pieces, descaled & cleaned)
 
 🛵 *Express delivery is 100% FREE* on eligible orders across Srinagar (min 2 kg for nearby areas like Malabagh, Soura, Hazratbal, Lal Bazar; 3–5 kg for other Srinagar areas; standard delivery fee on smaller orders)!
 
@@ -4051,18 +4062,30 @@ ${currentWeather.isBadWeather ? `• Note briefly: Due to active ${globalWeather
     }
   }
 
+  // ─── WHOLE / UNCLEANED TROUT INQUIRY INTENT DECODER ───
+  const isWholeTroutInquiry = /\b(?:whole(?:\s*trout|\s*fish)?|round(?:\s*trout|\s*fish)?|sabut(?:\s*machli|\s*fish)?|uncleaned|bina\s*saaf|bina\s*gut|bina\s*clean|without\s*cleaning|without\s*gutting|full\s*fish|raw\s*fish|un-cleaned)\b/i.test(trimmedLower);
+  if (isWholeTroutInquiry) {
+    intentContext += `\n======================================================
+💡 QUERY INTENT DECODED: Customer is asking about WHOLE / UNCLEANED / SABUT TROUT ("${userMessage.trim()}").
+🛑 CRITICAL POLICY: WHOLE TROUT IS DISCONTINUED!
+• We do NOT sell or deliver whole/uncleaned trout anymore.
+• We EXCLUSIVELY supply Cleaned, Gutted & Pan-Ready pieces at ₹580 / kg.
+⚠️ STRICT CONFIDENTIALITY LAW: NEVER explain why or mention margins, bulky fish, packaging, or polythene packs!
+• Simply state politely and directly:
+  "We have discontinued Whole Trout and now exclusively offer Cleaned, Gutted & Pan-Ready pieces at ₹580/kg (completely descaled, gutted, and cut into pan-ready steaks with zero kitchen mess). Would you like to order our Cleaned & Gutted trout?"
+======================================================`;
+  }
+
   // ─── CUTS & PREPARATION INTENT DECODER ───
   const isCutsIntent = /\b(?:what\s*cuts?|types?\s*of\s*cuts?|cut\s*type|kaise\s*cut|pieces?|cut\s*karke|slice|steak|fillet|cleaned\s*(?:and|&)\s*gutted\s*kya\s*hai|what\s*is\s*cleaned)\b/i.test(trimmedLower);
   if (isCutsIntent) {
     intentContext += `\n======================================================
 💡 QUERY INTENT DECODED: Customer asked about cuts & preparation ("${userMessage.trim()}").
-CRITICAL DIRECTIVE (EMPHASIZE PAN-READY CONVENIENCE):
-Directly explain the 2 options without pivoting to address or asking unrelated questions:
-• *Cleaned & Gutted (₹580/kg) — Most Popular:*
+CRITICAL DIRECTIVE (PAN-READY CONVENIENCE EXCLUSIVE):
+Directly explain our standard preparation without pivoting or asking unrelated questions:
+• *Cleaned & Gutted (₹580/kg):*
   Completely gutted, descaled (all scales removed), and cut into cooking pieces/steaks. Arrives 100% pan-ready with ZERO preparation, ZERO mess, and ZERO cleaning needed at home!
-• *Whole Fresh Trout (₹540/kg):*
-  Full round live-harvested trout with head, tail, and skin intact for whole roasting, tandoor, or custom cutting.
-Ask which cut they would prefer!
+• Note: Whole uncleaned trout has been discontinued; we exclusively supply Cleaned & Gutted pan-ready trout.
 ======================================================`;
   }
 
@@ -4275,8 +4298,7 @@ However, we are actively taking advance bookings for tomorrow, Saturday!
 • 🕛 *Afternoon Slot:* 12:00 PM – 3:00 PM
 • 🕔 *Evening Slot:* 4:00 PM – 7:00 PM
 
-• Cleaned & Gutted: *₹580/kg* (Pan-ready steaks — zero prep)
-• Whole Fresh: *₹540/kg*
+• Cleaned & Gutted: *₹580/kg* (Pan-ready pieces — zero prep)
 
 🛵 *Express delivery is 100% FREE* on eligible orders (min 2 kg for nearby areas, 3–5 kg for wider Srinagar areas; standard express delivery fee on smaller orders)!
 
@@ -4564,11 +4586,12 @@ CRITICAL READABILITY & MAXIMUM BREVITY MANDATE (ANSWER ONLY WHAT IS REQUIRED):
 2. ANSWER ONLY WHAT IS ASKED: Never provide unprompted explanations, bio-security details, food-grade packaging descriptions, or unasked policies unless directly asked.
 3. ABSOLUTE BAN ON CALLING CUSTOMERS BY NAME: Under NO circumstances should you ever address or call the customer by any personal name (no "Hello Munir!", "Dear Uzma,", "Hi Shahid," etc.). Addressing customers by name looks unprofessional. Greet completely neutrally ("Hello! Welcome to Urban Trout.") or jump straight into the answer without any name.
 4. DO NOT REPEAT PRICE BULLETS OR RATE MENUS IN ONGOING CHATS: If prices or cuts were already mentioned in recent messages, NEVER recite the full rate again or ask repetitive questions. Acknowledge what the customer just said and advance the conversation forward naturally!
-5. HERO PRODUCT MANDATE (MAXIMIZE PROFIT & ELIMINATE CHOICE FRICTION):
-   • Always quote Cleaned & Gutted (*₹580/kg*, Pan-ready steaks) by default. This is our highest-margin, advertised product.
-   • NEVER mention or push Whole Fresh Trout (*₹540/kg*) upfront!
-   • Whole Fresh Trout (*₹540/kg*, uncleaned/round) is an unadvertised on-demand fallback option. ONLY reveal it if the customer specifically asks: "bina saaf kiye", "whole fish", "sabut", "uncleaned", or pushes hard on price.
-   • When customer asks about whole/uncleaned: "Yes, we also offer Whole Fresh Trout (uncleaned/round) at ₹540/kg if you prefer cleaning it at home. However, most families choose our Cleaned & Gutted (₹580/kg) because it arrives completely descaled, gutted, and cut into pan-ready steaks with zero kitchen mess. Which would you prefer?"
+5. EXCLUSIVE PRODUCT MANDATE (WHOLE TROUT IS STRICTLY DISCONTINUED):
+   • We EXCLUSIVELY sell Cleaned & Gutted (*₹580/kg*, Pan-ready steaks / curry cut pieces).
+   • 🛑 ABSOLUTE BAN ON WHOLE TROUT: Whole Fresh Trout (*₹540/kg*, round/uncleaned) is STRICTLY DISCONTINUED via our WhatsApp sales agent! Under NO circumstances should you EVER offer, quote ₹540/kg, or sell whole trout.
+   • IF A CUSTOMER ASKS FOR WHOLE / UNCLEANED / SABUT TROUT:
+     - Politely inform them: "We have discontinued Whole Trout and now exclusively offer Cleaned, Gutted & Pan-Ready pieces at ₹580/kg (completely descaled, gutted, and cut into pan-ready steaks with zero kitchen mess). Would you like to order our Cleaned & Gutted trout?"
+     - ⚠️ STRICT CONFIDENTIALITY LAW: NEVER tell them the internal reasons why (NEVER mention lower margins, bulkiness of whole fish, delivery packaging limits, or biodegradable polythene packs). Just simply and politely state that whole trout has been discontinued.
 6. DELIVERY CALLOUT LINE (SEPARATE LINE BELOW RATES — SHORT & ZERO STICKER SHOCK):
    🛵 *Express delivery across Srinagar* (FREE on eligible orders)
    • Do NOT put "3–5 kg", fee ranges, or "shared GPS location" in the opening welcome or before knowing their area! Once they tell you their area, share their exact delivery terms cleanly.
@@ -6280,20 +6303,33 @@ async function startBot() {
       let rzpQrId = targetOrder?.razorpayQrId || null;
       let rzpQrUrl = targetOrder?.razorpayQrUrl || null;
 
-      try {
-        const rzpQr = await createRazorpayQrCode({
-          amount: amt,
-          customerPhone: cleanPhone || raw10,
-          customerName: customerName || targetOrder?.name || "Customer",
-          orderRef: orderRef,
-          description: itemsDesc
-        });
-        qrBuffer = rzpQr.imageBuffer;
-        isRazorpayQr = true;
-        rzpQrId = rzpQr.qrId;
-        rzpQrUrl = rzpQr.imageUrl;
-      } catch (rzpQrErr) {
-        console.warn("Could not create Razorpay dynamic QR, falling back to secure Razorpay payment link QR:", rzpQrErr.message);
+      // Try Razorpay dynamic QR up to 2 times before falling back
+      let rzpQrLastErr = null;
+      for (let rzpAttempt = 0; rzpAttempt < 2; rzpAttempt++) {
+        try {
+          const rzpQr = await createRazorpayQrCode({
+            amount: amt,
+            customerPhone: cleanPhone || raw10,
+            customerName: customerName || targetOrder?.name || "Customer",
+            orderRef: orderRef,
+            description: itemsDesc
+          });
+          qrBuffer = rzpQr.imageBuffer;
+          isRazorpayQr = true;
+          rzpQrId = rzpQr.qrId;
+          rzpQrUrl = rzpQr.imageUrl;
+          rzpQrLastErr = null;
+          break; // success
+        } catch (rzpQrErr) {
+          rzpQrLastErr = rzpQrErr;
+          console.warn(`[QR Attempt ${rzpAttempt + 1}/2] Razorpay QR failed: ${rzpQrErr.message}. ${rzpAttempt < 1 ? "Retrying in 1.5s..." : "Falling back to payment link QR."}`);
+          if (rzpAttempt < 1) await new Promise(r => setTimeout(r, 1500));
+        }
+      }
+
+      if (!qrBuffer) {
+        // Fallback: encode the Razorpay payment link URL into a local QR image
+        console.warn("Could not create Razorpay dynamic QR, falling back to secure Razorpay payment link QR:", rzpQrLastErr?.message);
         let fallbackUrl = targetOrder?.payUrl;
         if (!fallbackUrl) {
           try {
@@ -7427,6 +7463,27 @@ async function startBot() {
 
       const distNum = Number(distRounded);
       const mapsUrl = `https://maps.google.com/?q=${detectedLat},${detectedLng}`;
+
+      // ── GPS SANITY CHECK: bogus pin guard ──────────────────────────────────
+      // If the pin resolves to > 500 km away, the customer almost certainly
+      // shared a stale/wrong location (e.g. a previous city, a forwarded pin).
+      // Ask them to reshare rather than hard-refusing delivery.
+      if (distNum > 500) {
+        console.log(`│ ⚠️ [GPS SANITY FAIL] Pin distance ${distRounded} km is implausible — treating as bad pin, not out-of-zone.`);
+        locReply = `📍 *Location Pin Error Detected* ⚠️\n\nIt looks like the shared location pin may not be your current location (it appears to be very far from Srinagar).\n\nCould you please *reshare your current WhatsApp location?*\n👉 Tap the 📎 Attach icon → Location → *Send Current Location*\n\nOnce we receive your correct location, we'll confirm delivery details right away! 🐟`;
+        historyNote = `[GPS PIN SANITY FAIL: Distance ${distRounded} km is implausible. Likely wrong/stale pin. Asked customer to reshare current location.]`;
+        chatHist.push({ role: "user", text: historyNote });
+        chatHist.push({ role: "model", text: locReply });
+        if (chatHist.length > 8) chatHist.splice(0, chatHist.length - 8);
+        chatHistories.set(remoteJid, chatHist);
+        saveChatHistories();
+        await sock.sendMessage(remoteJid, { text: locReply });
+        await sock.sendPresenceUpdate("available", remoteJid);
+        appendDailyChatLog({ jid: remoteJid, phone: cleanPhone || raw10, name: customerName, role: "ai_bot", text: locReply, meta: { gpsSanityFail: true, distanceKm: distRounded } });
+        console.log(`└─────────────────────────────────────────────────────────────`);
+        return;
+      }
+      // ── END GPS SANITY CHECK ───────────────────────────────────────────────
       const istGps = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
       const gpsHour = istGps.getHours();
       const isNightGps = gpsHour >= 20;
@@ -7551,11 +7608,10 @@ async function startBot() {
               if (m.text) {
                 const wMatch = m.text.match(/(\d+(?:\.\d+)?)\s*(?:kg|kilo|kgs)\b/i);
                 if (wMatch) { orderWeight = parseFloat(wMatch[1]); }
-                if (/\b(?:whole|sabut)\b/i.test(m.text)) { isWhole = true; }
                 if (wMatch) break;
               }
             }
-            const rate = isWhole ? 540 : 580;
+            const rate = 580; // Whole trout is discontinued; all sales agent orders are Cleaned & Gutted @ 580/kg
             const fishCost = Math.round(orderWeight * rate);
             let courierFee = getDeliveryFeeForDistance(distNum, orderWeight, isEveningGps);
 
@@ -7916,7 +7972,7 @@ async function startBot() {
         forceAmount >= 300
       ) && !aiReply.includes("✅ *Payment Received") && !aiReply.includes("OUT FOR DELIVERY") && !isRejectedDelivery;
 
-      if (hasPaymentInReply && !isCustomerRequestingQr(text, chatHist)) {
+      if (hasPaymentInReply) {
         try {
           const refMatch = aiReply.match(/(?:#|Ref:\s*#?)(UT-WA-\d+)/i);
           const forceRef = refMatch ? refMatch[1] : null;
@@ -8270,6 +8326,11 @@ if (require.main === module) {
     isFridayOperationsOpen,
     isOrderActivePending,
     TodayOrderPool,
-    __setLiveWeatherCacheForTest
+    __setLiveWeatherCacheForTest,
+    getDeliveryFeeForDistance,
+    calculateDistance,
+    fetchLiveRoadDistance,
+    createRazorpayQrCode,
+    isCurrentEveningSurge
   };
 }
