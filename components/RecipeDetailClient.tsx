@@ -1,18 +1,82 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { RecipeItem } from "@/lib/recipes-data";
 
+export interface ClientRecipeRating {
+  sum: number;
+  count: number;
+  ratingValue: string;
+}
+
 interface Props {
   recipe: RecipeItem;
   relatedRecipes: RecipeItem[];
+  initialRating?: ClientRecipeRating | null;
 }
 
-export default function RecipeDetailClient({ recipe, relatedRecipes }: Props) {
+export default function RecipeDetailClient({ recipe, relatedRecipes, initialRating = null }: Props) {
   const [servings, setServings] = useState<number>(recipe.servings || 4);
   const [copied, setCopied] = useState(false);
+  const [ratingStats, setRatingStats] = useState<ClientRecipeRating | null>(initialRating);
+  const [userRating, setUserRating] = useState<number>(0);
+  const [hoverStar, setHoverStar] = useState<number>(0);
+  const [submittingRating, setSubmittingRating] = useState(false);
+  const [ratingStatus, setRatingStatus] = useState<string | null>(null);
+
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem("ut_rated_recipes") || "{}");
+      if (saved && typeof saved[recipe.slug] === "number") {
+        setUserRating(saved[recipe.slug]);
+      }
+    } catch {}
+
+    let active = true;
+    fetch(`/api/recipes/rate?slug=${encodeURIComponent(recipe.slug)}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (active && data?.success && data.rating) {
+          setRatingStats(data.rating);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [recipe.slug]);
+
+  const handleRateRecipe = async (stars: number) => {
+    if (submittingRating || userRating > 0) return;
+    setSubmittingRating(true);
+    setRatingStatus(null);
+    try {
+      const res = await fetch("/api/recipes/rate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ slug: recipe.slug, rating: stars }),
+      });
+      const data = await res.json();
+      if (res.ok && data?.success && data.rating) {
+        setRatingStats(data.rating);
+        setUserRating(stars);
+        setRatingStatus("Thanks for rating this recipe!");
+        try {
+          const saved = JSON.parse(localStorage.getItem("ut_rated_recipes") || "{}");
+          saved[recipe.slug] = stars;
+          localStorage.setItem("ut_rated_recipes", JSON.stringify(saved));
+        } catch {}
+      } else {
+        setRatingStatus(data?.error || "Could not save rating right now.");
+      }
+    } catch {
+      setRatingStatus("Network error while saving rating.");
+    } finally {
+      setSubmittingRating(false);
+    }
+  };
 
   const scaleFactor = servings / (recipe.servings || 4);
 
@@ -114,6 +178,14 @@ export default function RecipeDetailClient({ recipe, relatedRecipes }: Props) {
             <span className="px-3 py-1 rounded-full text-[11px] font-semibold bg-cyan-950/40 text-cyan-300 border border-cyan-500/30">
               👥 {servings} Servings
             </span>
+            {ratingStats && ratingStats.count > 0 && (
+              <a
+                href="#rate-recipe"
+                className="px-3 py-1 rounded-full text-[11px] font-semibold bg-amber-950/40 text-amber-300 border border-amber-500/35 hover:border-amber-400 transition-colors"
+              >
+                ★ {ratingStats.ratingValue} ({ratingStats.count} {ratingStats.count === 1 ? "rating" : "ratings"})
+              </a>
+            )}
           </div>
 
           {recipe.kashmiriName && (
@@ -359,23 +431,75 @@ export default function RecipeDetailClient({ recipe, relatedRecipes }: Props) {
 
               {/* Numbered Steps */}
               <div className="space-y-6">
-                {recipe.instructions.map((step, idx) => (
-                  <div key={idx} className="relative flex gap-4 items-start group">
-                    {/* Step Number Circle */}
-                    <span className="w-8 h-8 rounded-full bg-[#102434] border border-[#72ddfd]/40 text-[#72ddfd] font-bold text-xs flex items-center justify-center flex-shrink-0 group-hover:border-[#72ddfd] transition-colors shadow-sm">
-                      {String(step.step || idx + 1).padStart(2, "0")}
-                    </span>
+                {recipe.instructions.map((step, idx) => {
+                  const stepNum = step.step || idx + 1;
+                  return (
+                    <div
+                      key={idx}
+                      id={`step-${stepNum}`}
+                      className="scroll-mt-28 relative flex gap-4 items-start group"
+                    >
+                      {/* Step Number Circle */}
+                      <span className="w-8 h-8 rounded-full bg-[#102434] border border-[#72ddfd]/40 text-[#72ddfd] font-bold text-xs flex items-center justify-center flex-shrink-0 group-hover:border-[#72ddfd] transition-colors shadow-sm">
+                        {String(stepNum).padStart(2, "0")}
+                      </span>
 
-                    <div className="flex-1 pb-2">
-                      <h4 className="text-sm sm:text-base font-bold text-white mb-1.5 leading-snug">
-                        {step.title}
-                      </h4>
-                      <p className="text-xs sm:text-sm text-[#9fadb8] leading-relaxed">
-                        {step.instruction}
-                      </p>
+                      <div className="flex-1 pb-2">
+                        <h4 className="text-sm sm:text-base font-bold text-white mb-1.5 leading-snug">
+                          {step.title}
+                        </h4>
+                        <p className="text-xs sm:text-sm text-[#9fadb8] leading-relaxed">
+                          {step.instruction}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Interactive Community Recipe Rating Card */}
+            <div
+              id="rate-recipe"
+              className="scroll-mt-28 bg-[#06151f] border border-[#162e40] rounded-2xl p-5 sm:p-6 shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+            >
+              <div>
+                <h4 className="text-sm sm:text-base font-bold text-white mb-1">
+                  Rate This Recipe
+                </h4>
+                <p className="text-xs text-[#9fadb8]">
+                  {ratingStats && ratingStats.count > 0
+                    ? `Rated ${ratingStats.ratingValue} / 5 across ${ratingStats.count} ${ratingStats.count === 1 ? "home chef rating" : "home chef ratings"}`
+                    : "Tried cooking this trout dish? Share your star rating below."}
+                </p>
+                {ratingStatus && (
+                  <p className="text-[11px] text-[#72ddfd] mt-1 font-medium">{ratingStatus}</p>
+                )}
+              </div>
+
+              <div className="flex items-center gap-1.5" role="group" aria-label="Rate this recipe">
+                {[1, 2, 3, 4, 5].map((star) => {
+                  const activeLevel = hoverStar || userRating || Math.round(Number(ratingStats?.ratingValue || 0));
+                  const isFilled = star <= activeLevel;
+                  return (
+                    <button
+                      key={star}
+                      type="button"
+                      disabled={submittingRating || userRating > 0}
+                      onMouseEnter={() => userRating === 0 && setHoverStar(star)}
+                      onMouseLeave={() => setHoverStar(0)}
+                      onClick={() => handleRateRecipe(star)}
+                      aria-label={`Rate ${star} out of 5 stars`}
+                      className={`w-9 h-9 rounded-xl border text-lg flex items-center justify-center transition-all ${
+                        isFilled
+                          ? "bg-amber-500/15 border-amber-400/50 text-amber-300"
+                          : "bg-[#091a26] border-[#153448] text-[#5f7384] hover:border-amber-400/40 hover:text-amber-300"
+                      } disabled:cursor-default`}
+                    >
+                      ★
+                    </button>
+                  );
+                })}
               </div>
             </div>
 

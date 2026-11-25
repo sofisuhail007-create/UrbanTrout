@@ -38,6 +38,15 @@ export interface RecipeItem {
   pairings: string[];
   image?: string;
   imagePrompt?: string;
+  video?: {
+    name?: string;
+    description?: string;
+    thumbnailUrl?: string;
+    contentUrl?: string;
+    embedUrl?: string;
+    durationIso?: string;
+    uploadDate?: string;
+  };
 }
 
 export const RECIPES_DATA: RecipeItem[] = [

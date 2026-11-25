@@ -326,7 +326,11 @@ export default function DashboardPage() {
       if (action === "harvest") {
         msg = `Hello ${cleanName}! 🐟\n\nYour fresh trout order (#${orderNumber}) is now being prepared at Urban Trout Farm!\n\nOur team has initiated live harvest from our oxygenated mountain spring tanks in Malabagh. Express delivery is on track within our 2-hour window! 🛵`;
       } else if (action === "rider") {
-        msg = `Hello ${cleanName}! 🛵\n\nYour fresh trout order (#${orderNumber}) has been prepped, packed, and loaded onto our delivery bike!\n\nOur rider is en route to your location. Please ensure you are reachable on your phone.`;
+        const currentOrder = orders.find((o) => o.id === orderId);
+        const locality = (currentOrder?.customer_locality && !/^(?:srinagar|kashmir|area pending)$/i.test(currentOrder.customer_locality.trim()))
+          ? `${currentOrder.customer_locality} (the location shared above)`
+          : "the location shared above";
+        msg = `Hello ${cleanName}! 🛵\n\nYour fresh trout order (#${orderNumber}) is OUT FOR DELIVERY!\n\nYour package has been freshly packed in 100% food-grade biodegradable polythene packaging (zero ice) and is en route to ${locality}.\n\nOur Express Delivery Executive is on the road. Please keep your phone active and reachable for a prompt doorstep handover.\n\nThank you for choosing Urban Trout! 🐟`;
       } else if (action === "delivered") {
         msg = `Hello ${cleanName}! ✨\n\nYour Urban Trout order (#${orderNumber}) has been delivered! We hope you and your family love the farm-fresh taste.\n\nYour feedback is truly important to us and helps our local farm grow. If you enjoyed your order, we would be grateful for a quick *5-star review* on Google — your review can even get *featured in the Testimonials section on urbantrout.in*! 🌟\n\nhttps://g.page/r/CTVKEpV62HMmECE/review\n\nThank you for choosing Urban Trout! 🐟`;
       }
@@ -885,6 +889,16 @@ export default function DashboardPage() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-mono font-bold text-cyan-400 text-sm">#{o.order_number}</span>
                           <span className="font-bold text-white text-sm">{o.customer_name}</span>
+                          {cleanPhone && (
+                            <a
+                              href={`tel:${cleanPhone}`}
+                              className="text-xs font-mono font-medium text-cyan-300 bg-cyan-950/70 border border-cyan-700/50 hover:bg-cyan-900/80 px-2 py-0.5 rounded-md flex items-center gap-1 transition-colors"
+                              title="Call customer"
+                            >
+                              <span>📞</span>
+                              <span>+91 {cleanPhone}</span>
+                            </a>
+                          )}
                           {o.customer_locality && (
                             <span className="text-xs text-zinc-300 flex items-center gap-1 font-mono">
                               <span className="material-symbols-outlined text-xs text-cyan-400">location_on</span>
@@ -965,7 +979,7 @@ export default function DashboardPage() {
                           href="/admin/dashboard/orders"
                           className="ml-auto text-zinc-400 hover:text-cyan-300 text-xs flex items-center gap-1"
                         >
-                          <span>Open Locked QR &amp; Details</span>
+                          <span>{((o as any).payment_status === "PAID" || o.status === "processing" || o.status === "out_for_delivery" || o.status === "delivered") ? "Order Details" : "Open Locked QR & Details"}</span>
                           <span>→</span>
                         </Link>
                       </div>

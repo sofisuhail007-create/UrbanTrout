@@ -471,8 +471,10 @@ export default function OrdersPage() {
   const getDeliveryAlertText = (order: Order) => {
     const name = getCleanCustomerGreetingName(order.customer_name);
     const orderRefDisplay = getOrderRefLabel(order);
-    const locality = order.customer_locality || "your location";
-    return `Hello ${name}! 🛵\n\nYour fresh trout order (${orderRefDisplay}) is OUT FOR DELIVERY!\n\nYour package has been freshly packed in food-grade biodegradable polythene packaging (zero ice) and is en route to ${locality}.\n\nOur Express Delivery Executive is on the road. Please keep your phone reachable for a prompt handover.\n\nThank you for choosing Urban Trout! 🐟`;
+    const locality = (order.customer_locality && !/^(?:srinagar|kashmir|area pending)$/i.test(order.customer_locality.trim()))
+      ? `${order.customer_locality} (the location shared above)`
+      : "the location shared above";
+    return `Hello ${name}! 🛵\n\nYour fresh trout order (${orderRefDisplay}) is OUT FOR DELIVERY!\n\nYour package has been freshly packed in 100% food-grade biodegradable polythene packaging (zero ice) and is en route to ${locality}.\n\nOur Express Delivery Executive is on the road. Please keep your phone active and reachable for a prompt doorstep handover.\n\nThank you for choosing Urban Trout! 🐟`;
   };
 
   const getDeliveredAlertText = (order: Order) => {
@@ -1183,6 +1185,12 @@ export default function OrdersPage() {
                 const scaleWt = primaryItem.actualWeight || primaryItem.weightKg || orderedWt;
                 const mapsUrl = getOrderMapsUrl(order);
                 const cleanPhone = String(order.customer_phone || "").replace(/\D/g, "").slice(-10);
+                const isCardPaid =
+                  (order as any).payment_status === "PAID" ||
+                  order.status === "processing" ||
+                  order.status === "out_for_delivery" ||
+                  order.status === "delivered" ||
+                  Number((order as any).paid_amount || 0) >= Number(order.total || 0);
 
                 return (
                   <div
@@ -1312,8 +1320,18 @@ export default function OrdersPage() {
                               </button>
                             </div>
                           ) : (
-                            <div className="flex items-center gap-1.5 mt-1 group">
+                            <div className="flex items-center gap-2 mt-1 flex-wrap group">
                               <h3 className="text-base font-bold text-white">{order.customer_name}</h3>
+                              {cleanPhone && (
+                                <a
+                                  href={`tel:${cleanPhone}`}
+                                  className="text-xs font-mono font-medium text-cyan-300 bg-cyan-950/70 border border-cyan-700/50 hover:bg-cyan-900/80 px-2 py-0.5 rounded-md flex items-center gap-1 transition-colors"
+                                  title="Call customer"
+                                >
+                                  <span>📞</span>
+                                  <span>+91 {cleanPhone}</span>
+                                </a>
+                              )}
                               <button
                                 type="button"
                                 onClick={(e) => startEditingContactName(e, order)}
@@ -1602,15 +1620,17 @@ export default function OrdersPage() {
                           </button>
                         )}
 
-                        <button
-                          type="button"
-                          onClick={() => handleOpenOrderQr(order)}
-                          className="px-2.5 py-1.5 rounded-lg bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 border border-purple-500/30 flex items-center gap-1.5 transition-all cursor-pointer"
-                          title="Generate Locked UPI QR for customer"
-                        >
-                          <span>📱</span>
-                          <span>Locked QR</span>
-                        </button>
+                        {!isCardPaid && (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenOrderQr(order)}
+                            className="px-2.5 py-1.5 rounded-lg bg-purple-500/15 hover:bg-purple-500/25 text-purple-300 border border-purple-500/30 flex items-center gap-1.5 transition-all cursor-pointer"
+                            title="Generate Locked UPI QR for customer"
+                          >
+                            <span>📱</span>
+                            <span>Locked QR</span>
+                          </button>
+                        )}
 
                         <button
                           type="button"
@@ -1698,8 +1718,15 @@ export default function OrdersPage() {
       ) : (
         <>
           <div className="space-y-2">
-            {paginatedOrders.map((order) => (
-            <div key={order.id} className="bg-[#0a0a0a] border border-[#222222] rounded-xl overflow-hidden hover:border-[#333333] transition-colors">
+            {paginatedOrders.map((order) => {
+              const isRowPaid =
+                (order as any).payment_status === "PAID" ||
+                order.status === "processing" ||
+                order.status === "out_for_delivery" ||
+                order.status === "delivered" ||
+                Number((order as any).paid_amount || 0) >= Number(order.total || 0);
+              return (
+              <div key={order.id} className="bg-[#0a0a0a] border border-[#222222] rounded-xl overflow-hidden hover:border-[#333333] transition-colors">
               {/* Row */}
               <div
                 className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-[#161616]/30 transition-colors"
@@ -1749,8 +1776,19 @@ export default function OrdersPage() {
                         </button>
                       </div>
                     ) : (
-                      <div className="flex items-center gap-1.5 group/name">
+                      <div className="flex items-center gap-2 group/name flex-wrap">
                         <p className="text-sm font-medium text-white truncate">{order.customer_name}</p>
+                        {order.customer_phone && (
+                          <a
+                            href={`tel:${order.customer_phone}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="text-xs font-mono font-medium text-cyan-300 bg-cyan-950/70 border border-cyan-700/50 hover:bg-cyan-900/80 px-1.5 py-0.5 rounded flex items-center gap-1 transition-colors"
+                            title="Call customer"
+                          >
+                            <span>📞</span>
+                            <span>+91 {String(order.customer_phone).replace(/\D/g, "").slice(-10)}</span>
+                          </a>
+                        )}
                         <button
                           type="button"
                           onClick={(e) => startEditingContactName(e, order)}
@@ -1826,19 +1864,21 @@ export default function OrdersPage() {
                 </span>
                 <span className="text-sm font-semibold text-white font-mono tabular-nums">₹{order.total?.toLocaleString("en-IN")}</span>
 
-                {/* 1-Tap Instant Locked QR Button right on every row */}
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleOpenOrderQr(order);
-                  }}
-                  className="px-2.5 py-1 rounded-md bg-[#161616] hover:bg-[#222222] text-zinc-200 border border-[#333333] text-xs font-medium transition-colors flex items-center gap-1 shrink-0 cursor-pointer"
-                  title="Instant Locked QR for doorstep COD collection"
-                >
-                  <span className="material-symbols-outlined text-xs">qr_code_2</span>
-                  <span>QR</span>
-                </button>
+                {/* 1-Tap Instant Locked QR Button right on every row (unpaid only) */}
+                {!isRowPaid && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleOpenOrderQr(order);
+                    }}
+                    className="px-2.5 py-1 rounded-md bg-[#161616] hover:bg-[#222222] text-zinc-200 border border-[#333333] text-xs font-medium transition-colors flex items-center gap-1 shrink-0 cursor-pointer"
+                    title="Instant Locked QR for doorstep COD collection"
+                  >
+                    <span className="material-symbols-outlined text-xs">qr_code_2</span>
+                    <span>QR</span>
+                  </button>
+                )}
 
                 {/* 1-Tap Weigh Button right on every row */}
                 <button
@@ -2089,15 +2129,17 @@ export default function OrdersPage() {
 
                     <div className="flex items-center justify-between flex-wrap gap-2 pt-1">
                       <div className="flex items-center gap-2 flex-wrap">
-                      <button
-                        type="button"
-                        onClick={() => handleOpenOrderQr(order)}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded-lg text-xs font-bold hover:bg-emerald-500/30 transition-colors shadow-sm cursor-pointer"
-                        title="Generate instant amount-locked UPI QR (Razorpay dynamic or Direct J&K Bank) for doorstep collection"
-                      >
-                        <span className="material-symbols-outlined text-base">qr_code_scanner</span>
-                        <span>⚡ Instant Locked QR</span>
-                      </button>
+                      {!isRowPaid && (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenOrderQr(order)}
+                          className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded-lg text-xs font-bold hover:bg-emerald-500/30 transition-colors shadow-sm cursor-pointer"
+                          title="Generate instant amount-locked UPI QR (Razorpay dynamic or Direct J&K Bank) for doorstep collection"
+                        >
+                          <span className="material-symbols-outlined text-base">qr_code_scanner</span>
+                          <span>⚡ Instant Locked QR</span>
+                        </button>
+                      )}
 
                       <button
                         type="button"
@@ -2167,8 +2209,9 @@ export default function OrdersPage() {
               </div>
               )}
             </div>
-          ))}
-        </div>
+              );
+            })}
+          </div>
         <PaginationBar
           currentPage={currentPage}
           totalItems={filtered.length}

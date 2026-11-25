@@ -220,7 +220,7 @@ function sanitizeRawContactName(raw) {
   if (
     !s ||
     /^\+?\d[\d\s\-()]{5,}$/.test(s) ||
-    /^(?:Customer|Valued\s*Customer|No\s*Name|Unknown|Guest|User|None|Null|Urban\s*Trout(?:\s*Aquaculture)?|Buyer|Hot\s*Lead|Lead|Inquiry|Store\s*Visit|Doorstep\s*COD\s*Customer|\d+(?:\.\d+)?\s*k(?:g|g?s)?|Cleaned|Gutted|Whole|Assalam[-\s]*o?[-\s]*Alaikum|Assalamu\s*alaikum|Asalamualikum|Salam|Walikum\s*Assalam|Hello|Hi|Hey|Okay|Ok|Thanks|Thank\s*you)$/i.test(s)
+    /^(?:Customer|Valued\s*Customer|No\s*Name|Unknown|Guest|User|None|Null|Urban\s*Trout(?:\s*Aquaculture)?|Buyer|Hot\s*Lead|Lead|Inquiry|Store\s*Visit|Doorstep\s*COD\s*Customer|\d+(?:\.\d+)?\s*k(?:g|g?s)?|Cleaned|Gutted|Whole|Assalam[-\s]*o?[-\s]*Alaikum|Assalamu\s*alaikum|Asalamualikum|Salam|Walikum\s*Assalam|Hello|Hi|Hey|Okay|Ok|Thanks|Thank\s*you|Srinagar|Kashmir|India|J&K|Jammu\s*&\s*Kashmir)$/i.test(s)
   ) {
     return { cleanName: '', inferredArea };
   }
@@ -264,13 +264,18 @@ function loadPrimaryPhones() {
     candidateDirs.push(desktopDir);
   }
   candidateDirs.push(__dirname);
+  candidateDirs.push(path.join(__dirname, 'Contacts'));
+  if (process.platform === 'linux') {
+    candidateDirs.push('/opt/urban-trout-agent');
+    candidateDirs.push('/opt/urban-trout-agent/Contacts');
+  }
 
   const existingCandidates = [];
   for (const dir of candidateDirs) {
     if (!fs.existsSync(dir)) continue;
     try {
       for (const f of fs.readdirSync(dir)) {
-        if (/primary.*contact.*\.vcf$/i.test(f)) {
+        if (/primary.*contact.*\.vcf$/i.test(f) || /my.*primary.*\.vcf$/i.test(f)) {
           const full = path.join(dir, f);
           const stat = fs.statSync(full);
           existingCandidates.push({ path: full, mtime: stat.mtimeMs });
@@ -282,7 +287,6 @@ function loadPrimaryPhones() {
   const possiblePaths = existingCandidates.map(c => c.path);
 
   const primaryPhones = new Set(['9419153353', '919419153353']); // VVIP IAS Officer protected
-  const utaPrimaryMap = new Map();
   let loadedFrom = null;
   let totalCards = 0;
 
@@ -293,31 +297,9 @@ function loadPrimaryPhones() {
         const cards = content.split('END:VCARD').filter(c => c.includes('BEGIN:VCARD'));
         totalCards = cards.length;
         for (const card of cards) {
-          const fnMatch = card.match(/FN:(.+)/i);
-          const fn = fnMatch ? fnMatch[1].trim() : '';
-
-          // Existing Urban Trout contacts (UTA / Urban Trout / UT •) stay eligible for Urban Trout updates
-          if (/\b(?:UTA|Urban Trout)\b/i.test(fn) || /^UT\s*[★🔥•]/i.test(fn)) {
-            const lines = card.split(/\r?\n/);
-            for (const line of lines) {
-              if (line.startsWith('TEL')) {
-                const rawTel = line.substring(line.indexOf(':') + 1).replace(/\D/g, '').slice(-10);
-                if (rawTel.length === 10) {
-                  const sanitized = sanitizeRawContactName(fn);
-                  utaPrimaryMap.set(rawTel, {
-                    rawFn: fn,
-                    cleanName: sanitized.cleanName,
-                    inferredArea: sanitized.inferredArea
-                  });
-                }
-              }
-            }
-            continue;
-          }
-
           const lines = card.split(/\r?\n/);
           for (const line of lines) {
-            if (line.startsWith('TEL')) {
+            if (/(?:^|\.)TEL[;:]/i.test(line)) {
               const rawVal = line.substring(line.indexOf(':') + 1);
               const digits = rawVal.replace(/\D/g, '');
               if (digits.length >= 10) {
@@ -338,14 +320,13 @@ function loadPrimaryPhones() {
 
   if (loadedFrom) {
     console.log(
-      `🛡️ [Primary Contacts Protection] Analysed ${totalCards} cards from "${path.basename(loadedFrom)}": ` +
-      `${primaryPhones.size / 2} personal contacts protected, ${utaPrimaryMap.size} UTA business contacts synced.`
+      `🛡️ [Primary Contacts Protection] Shielded ${primaryPhones.size} primary phone formats from ${totalCards} cards in "${path.basename(loadedFrom)}". Strict zero-touch exclusion enabled.`
     );
   } else {
     console.warn(`⚠️ [Primary Contacts Protection] No primary contacts VCF found. Exclusions skipped.`);
   }
 
-  return { primaryPhones, utaPrimaryMap, loadedFrom, totalCards };
+  return { primaryPhones, loadedFrom, totalCards };
 }
 
 function loadZoneDatabases() {
@@ -567,7 +548,7 @@ function enrichContactsFromChats(options = {}) {
     return [];
   }
 
-  const { primaryPhones, utaPrimaryMap } = loadPrimaryPhones();
+  const { primaryPhones } = loadPrimaryPhones();
   const { zoneDb, customAreas } = loadZoneDatabases();
   let skippedPrimaryCount = 0;
 
@@ -829,14 +810,8 @@ function enrichContactsFromChats(options = {}) {
     if (meta && meta.pushName) candidates.push(meta.pushName);
     for (const pn of bucketPushNames || []) candidates.push(pn);
 
-    // UTA primary map (placed after live WhatsApp pushName if UTA entry was ONLY a bare area like "Sanatnagar")
-    let utaInfo = utaPrimaryMap && utaPrimaryMap.has(raw10) ? utaPrimaryMap.get(raw10) : null;
-    if (utaInfo && utaInfo.cleanName) {
-      candidates.unshift(utaInfo.cleanName);
-    }
-
     let chosenName = '';
-    let rescuedArea = utaInfo && utaInfo.inferredArea ? utaInfo.inferredArea : null;
+    let rescuedArea = null;
 
     for (const cand of candidates) {
       const res = sanitizeRawContactName(cand);
@@ -887,7 +862,12 @@ function enrichContactsFromChats(options = {}) {
   // 1. Export & enrich all contacts with chat/archive/metadata footprint
   for (const [raw10, bucket] of archiveByPhone.entries()) {
     const fullPhone = `91${raw10}`;
-    if (seenPhones.has(fullPhone) || OWNER_EXCLUDED_PHONES.has(raw10)) continue;
+    if (seenPhones.has(raw10) || OWNER_EXCLUDED_PHONES.has(raw10) || primaryPhones.has(raw10) || primaryPhones.has(fullPhone)) {
+      if (primaryPhones.has(raw10) || primaryPhones.has(fullPhone)) skippedPrimaryCount++;
+      continue;
+    }
+
+    seenPhones.add(raw10);
 
     const meta = getMergedMeta(raw10, bucket.jids);
     const matchedOrder =
@@ -907,14 +887,6 @@ function enrichContactsFromChats(options = {}) {
       !isBuyer &&
       ((matchedOrder && /payment link sent/i.test(matchedOrder.status || '')) ||
         /(?:rzp\.io|payment link)/i.test(allText));
-
-    // Skip personal primary contacts (unless UTA business contact or verified buyer)
-    if (primaryPhones.has(raw10) && !isBuyer && !(utaPrimaryMap && utaPrimaryMap.has(raw10))) {
-      skippedPrimaryCount++;
-      continue;
-    }
-
-    seenPhones.add(fullPhone);
 
     // Resolve CreatedAt timestamp cleanly
     let createdAtTs = bucket.latestTs || Number(meta.lastUserMsgTime) || Number(meta.lastBotMsgTime) || 0;
@@ -1027,8 +999,8 @@ function enrichContactsFromChats(options = {}) {
       if (altMatch) {
         const altRaw10 = altMatch[1];
         const altFull = '91' + altRaw10;
-        if (!seenPhones.has(altFull) && !(primaryPhones.has(altRaw10) && !isBuyer)) {
-          seenPhones.add(altFull);
+        if (!seenPhones.has(altRaw10) && !primaryPhones.has(altRaw10) && !primaryPhones.has(altFull) && !OWNER_EXCLUDED_PHONES.has(altRaw10)) {
+          seenPhones.add(altRaw10);
           contacts.push({
             fullName: `${fullName} (Alt)`,
             givenName,
@@ -1051,16 +1023,15 @@ function enrichContactsFromChats(options = {}) {
     if (orderPhone.length < 10) continue;
     const raw10 = orderPhone.slice(-10);
     const fullPhone = '91' + raw10;
-    if (seenPhones.has(fullPhone) || OWNER_EXCLUDED_PHONES.has(raw10)) continue;
+    if (seenPhones.has(raw10) || OWNER_EXCLUDED_PHONES.has(raw10) || primaryPhones.has(raw10) || primaryPhones.has(fullPhone)) {
+      if (primaryPhones.has(raw10) || primaryPhones.has(fullPhone)) skippedPrimaryCount++;
+      continue;
+    }
+
+    seenPhones.add(raw10);
 
     const isBuyer = /(?:paid|confirmed|harvest|deliver|out)/i.test(order.status || '');
     const isPaymentSent = !isBuyer && /payment link sent/i.test(order.status || '');
-
-    if (primaryPhones.has(raw10) && !isBuyer && !(utaPrimaryMap && utaPrimaryMap.has(raw10))) {
-      skippedPrimaryCount++;
-      continue;
-    }
-    seenPhones.add(fullPhone);
 
     const { customerName, inferredNameArea } = resolveBestCustomerName({
       raw10,
@@ -1126,6 +1097,28 @@ function enrichContactsFromChats(options = {}) {
       fs.writeFileSync(metaPath, JSON.stringify(chatMetadata, null, 2), 'utf8');
       if (!silent) console.log(`🧠 [Chat Enrichment] Updated ${enrichedMetaUpdates} locality entries across chat_metadata.json.`);
     } catch (_) {}
+  }
+
+  // Guarantee 100% Unique Full Names (FN) across all contacts
+  // Prevents Google Contacts from detecting identical names and prompting "Merge duplicates"
+  const nameFreq = new Map();
+  for (const c of contacts) {
+    nameFreq.set(c.fullName, (nameFreq.get(c.fullName) || 0) + 1);
+  }
+
+  for (const c of contacts) {
+    if (nameFreq.get(c.fullName) > 1) {
+      const last4 = c.cleanPhone.slice(-4);
+      if (!c.fullName.includes(last4)) {
+        c.fullName = `${c.fullName} (${last4})`;
+      } else {
+        const last6 = c.cleanPhone.slice(-6);
+        c.fullName = c.fullName.replace(`(${last4})`, `(${last6})`);
+      }
+      const parts = c.fullName.split(' • ');
+      c.givenName = parts[0] || 'UT';
+      c.familyName = parts.slice(1).join(' • ') || c.fullName;
+    }
   }
 
   // Sort newest first
