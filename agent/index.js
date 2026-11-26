@@ -12,6 +12,7 @@ const http = require("http");
 const pino = require("pino");
 const path = require("path");
 const fs = require("fs");
+const crypto = require("crypto");
 require("dotenv").config();
 const { sendNightlyBriefing, sendTelegramMessage } = require("./nightly_briefing.js");
 
@@ -26,10 +27,10 @@ process.on("unhandledRejection", (reason) => {
 // ============================================================================
 // URBAN TROUT SALES AGENT — BUILD & VERSION TRACKING
 // ============================================================================
-const BOT_VERSION = "3.5.4";
-const BOT_LAST_UPDATED = "26-Nov-2026, 10:30 PM IST";
-const BOT_RELEASE_TITLE = "Full Codebase Audit & Security / Payment / Concurrency Hardening";
-const BOT_RELEASE_NOTES = "1. Fixed infinite loop & SSRF in message unwrapping & Maps URL resolution; hardened name scrubbing, geocoder timeouts, and stock cache. 2. Prevented duplicate WhatsApp payment receipts, Khata false settlements, order overwrites, and `#link` QR self-suppression. 3. Hardened quantity parsing, VIP lookup, Gemini key failover, Friday/Night locks, Baileys reconnect timers, and image/voice handling.";
+const BOT_VERSION = "3.6.0";
+const BOT_LAST_UPDATED = "27-Nov-2026, 12:58 AM IST";
+const BOT_RELEASE_TITLE = "Link-Only Cashfree Checkout & Ultra-Short Branded URLs";
+const BOT_RELEASE_NOTES = "1. Removed WhatsApp QR image attachments so customers receive one clean 1-Tap Cashfree Payment Link card (plus J&K Bank fallback). 2. Added Supabase-backed 5-char short links (https://urbantrout.in/p/xxxxx) replacing long Cashfree slugs across AI replies, order cards, and manual #link/#qr commands. 3. Eliminated duplicate companion payment messages on Order Summary & GPS pins.";
 
 // ============================================================================
 // STRICT MANUAL-ONLY & DRIVER EXCLUSION LIST (AI MUST NEVER TEXT UNDER ANY CIRCUMSTANCE)
@@ -1518,6 +1519,53 @@ async function checkStockAvailable(requestedKg = 2) {
   });
 }
 
+const SHORT_LINK_ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789";
+function randomShortCode(len = 5) {
+  return Array.from(crypto.randomBytes(len), b => SHORT_LINK_ALPHABET[b % SHORT_LINK_ALPHABET.length]).join("");
+}
+
+function saveShortCodeToSupabase(code, cfSlug) {
+  if (!SUPABASE_URL || !SUPABASE_KEY || !cfSlug) return Promise.resolve(false);
+  return new Promise((resolve) => {
+    const body = JSON.stringify({
+      key: `cf_short_${code}`,
+      value: cfSlug,
+      description: "Short Cashfree Payment Link Redirect",
+      updated_at: new Date().toISOString()
+    });
+    const req = https.request(`${SUPABASE_URL}/rest/v1/app_settings?on_conflict=key`, {
+      method: "POST",
+      headers: {
+        "apikey": SUPABASE_KEY,
+        "Authorization": `Bearer ${SUPABASE_KEY}`,
+        "Content-Type": "application/json",
+        "Prefer": "resolution=merge-duplicates,return=minimal",
+        "Content-Length": Buffer.byteLength(body)
+      },
+      timeout: 2000
+    }, (res) => {
+      res.resume();
+      resolve(res.statusCode >= 200 && res.statusCode < 300);
+    });
+    req.on("error", () => resolve(false));
+    req.on("timeout", () => { req.destroy(); resolve(false); });
+    req.write(body);
+    req.end();
+  });
+}
+
+async function shortenCashfreeSlug(cfSlug) {
+  if (!cfSlug) return "https://urbantrout.in/shop";
+  try {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const code = randomShortCode(5);
+      const ok = await saveShortCodeToSupabase(code, cfSlug);
+      if (ok) return `https://urbantrout.in/p/${code}`;
+    }
+  } catch (_) {}
+  return `https://urbantrout.in/p/${cfSlug}`;
+}
+
 // Generate official locked-amount Cashfree Payment Link (Primary 0%-Fee UPI Gateway)
 async function createCashfreePaymentLink({ amount, customerPhone, customerName, description, orderRef, latitude, longitude, distanceKm, googleMapsUrl }) {
   if (!CASHFREE_APP_ID || !CASHFREE_SECRET_KEY) {
@@ -1574,7 +1622,7 @@ async function createCashfreePaymentLink({ amount, customerPhone, customerName, 
       upi_intent: true,
       payment_methods: "upi",
       notify_url: "https://urbantrout.in/api/cashfree/webhook",
-      return_url: `https://urbantrout.in/pay/${encodeURIComponent(ref)}`
+      return_url: `https://urbantrout.in/p/${encodeURIComponent(ref)}`
     },
     link_notes: {
       order_ref: String(ref).slice(0, 60),
@@ -1603,14 +1651,14 @@ async function createCashfreePaymentLink({ amount, customerPhone, customerName, 
     }, (res) => {
       let data = "";
       res.on("data", c => { data += c; });
-      res.on("end", () => {
+      res.on("end", async () => {
         try {
           const json = JSON.parse(data);
           if (res.statusCode >= 200 && res.statusCode < 300 && json.link_url) {
             const rawSlug = json.link_url.includes("/links/") ? json.link_url.split("/links/")[1] : json.link_id;
             const cfSlug = String(rawSlug || json.link_id).split("?")[0].replace(/\/+$/, "");
-            const brandedUrl = `https://urbantrout.in/pay/${cfSlug}`;
-            console.log(`[Cashfree Branded Link Generated] Amount: ₹${numAmount} -> ${brandedUrl} (${json.link_id})`);
+            const brandedUrl = await shortenCashfreeSlug(cfSlug);
+            console.log(`[Cashfree Short Link Generated] Amount: ₹${numAmount} -> ${brandedUrl} (${json.link_id})`);
             resolve({
               id: json.link_id,
               cfLinkId: json.cf_link_id,
@@ -1684,8 +1732,8 @@ function downloadImageBuffer(url, timeoutMs = 12000, redirectsLeft = 3) {
   });
 }
 
-// ─── 🛡️ BULLETPROOF CASHFREE + J&K BANK PAYMENT WATERFALL ───
-// Tier 1: Primary Mode — Cashfree Payment Link + Checkout QR Card (https://urbantrout.in/pay/...)
+// ─── 🛡️ BULLETPROOF CASHFREE LINK-ONLY + J&K BANK WATERFALL ───
+// Tier 1: Primary Mode — Short Cashfree 1-Tap Payment Link (https://urbantrout.in/p/xxxxx)
 // Tier 2: Emergency Fallback — Jammu & Kashmir Bank Account Details (Acc: 0724010100000499)
 
 const JKB_ACCOUNT_DETAILS = {
@@ -1712,39 +1760,13 @@ function formatJkbBankDetailsText(amount, orderRef) {
 👉 *Kindly complete payment and share your transaction screenshot here. Our farm team will verify and commence your fresh live harvest within 5 minutes!* 🐟`;
 }
 
-async function resolveCashfreeQrBuffer(cfLink) {
-  if (cfLink && cfLink.qrcode) {
-    const rawQr = String(cfLink.qrcode).trim();
-    if (/^data:image\/(?:png|jpe?g|webp);base64,/i.test(rawQr)) {
-      const b64 = rawQr.replace(/^data:image\/[^;]+;base64,/i, "");
-      return Buffer.from(b64, "base64");
-    }
-    if (/^[A-Za-z0-9+/=\r\n]{100,}$/.test(rawQr)) {
-      const buf = Buffer.from(rawQr, "base64");
-      if (buf.length > 100 && ((buf[0] === 0x89 && buf[1] === 0x50) || (buf[0] === 0xff && buf[1] === 0xd8))) {
-        return buf;
-      }
-    }
-    if (/^https:\/\//i.test(rawQr)) {
-      try {
-        return await downloadImageBuffer(rawQr);
-      } catch (_) {}
-    }
-  }
-  return await QRCode.toBuffer(cfLink.url, {
-    width: 600,
-    margin: 2,
-    color: { dark: "#000000", light: "#ffffff" }
-  });
-}
-
 async function generatePaymentWithWaterfall({
   amount,
   customerPhone,
   customerName,
   description,
   orderRef,
-  preferQr = true,
+  preferQr = false,
   latitude,
   longitude,
   distanceKm,
@@ -1758,7 +1780,7 @@ async function generatePaymentWithWaterfall({
   const randSuffix = Math.floor(10 + Math.random() * 90);
   const ref = orderRef || `UT-WA-${Date.now().toString().slice(-6)}${randSuffix}`;
 
-  // ── TIER 1: CASHFREE PAYMENT LINK + QR CARD (Primary Gateway) ──
+  // ── TIER 1: CASHFREE 1-TAP SHORT PAYMENT LINK (Primary Gateway) ──
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
       const cfLink = await createCashfreePaymentLink({
@@ -1773,12 +1795,11 @@ async function generatePaymentWithWaterfall({
         googleMapsUrl
       });
       if (cfLink && cfLink.url) {
-        const qrBuffer = preferQr ? await resolveCashfreeQrBuffer(cfLink) : null;
-        console.log(`✅ [Payment Waterfall Tier 1 SUCCESS] Cashfree ${preferQr ? "Link + QR" : "Link"} generated: ${cfLink.url}`);
+        console.log(`✅ [Payment Waterfall Tier 1 SUCCESS] Cashfree Short Link generated: ${cfLink.url}`);
         return {
           tier: 1,
           mode: "cashfree_link",
-          qrBuffer,
+          qrBuffer: null,
           payUrl: cfLink.url,
           cashfreeLinkId: cfLink.id,
           paymentLinkId: cfLink.id,
@@ -1899,8 +1920,8 @@ function formatOrderSummaryCard({
 • *Delivery:* ${deliveryDisplay}
 • *Total Payable:* *₹${numericAmount.toLocaleString("en-IN")}*
 
-📷 *Scan the locked UPI QR Code below (or tap link) to pay:*${validPayUrl}
-Supports Google Pay, PhonePe, Paytm, or J&K Bank mPay.
+💳 *Tap Secure 1-Tap Link to Pay:*${validPayUrl}
+Supports Google Pay, PhonePe, Paytm, J&K Bank mPay & Cards.
 *(Live harvest begins immediately upon payment confirmation)*
 
 🕒 _${slotDisplay}_${weatherCardLine}
@@ -4414,7 +4435,7 @@ CRITICAL REVENUE PROTECTION MANDATE (ZERO BLIND DISCARDING):
 NEVER ASSUME OR GUESS THAT AN UNFAMILIAR LOCALITY IS OUTSIDE OUR DELIVERY ZONE!
 NEVER tell the customer that their area is outside our delivery zone unless it is a confirmed outside city!
 ⚠️ STRICT LOCATION-FIRST LAW: DO NOT OUTPUT [PAY_LINK: ...]!
-Payment links and QR codes CANNOT be generated until the customer's delivery area / location pin in Srinagar is identified.
+Payment links CANNOT be generated until the customer's delivery area / location pin in Srinagar is identified.
 ${currentWeather.isBadWeather ? `${globalWeatherPolicy.weatherIcon} ACTIVE WEATHER NOTE: Due to active ${globalWeatherPolicy.weatherNoun} across Srinagar right now, express delivery operates within *${WEATHER_RESTRICT_RADIUS_KM} km* from Malabagh (with slight weather delay) and is temporarily paused beyond *${WEATHER_RESTRICT_RADIUS_KM} km*. Ask for their area/pin first so we can check!` : ""}
 INSTRUCTION: If the customer is inquiring about delivery, or asked for fish/price without mentioning their location, state our rates (₹580/kg Cleaned & Gutted) and politely ask for their area AND WhatsApp location pin or Google Maps link:
 "Which area in Srinagar should we deliver to (e.g. Soura, Lal Chowk, Rajbagh, Hyderpora)? Please share your WhatsApp location pin or Google Maps link so our system can calculate delivery details for pin-point express delivery (packed fresh in food-grade biodegradable polythene, 0% ice) and send your payment link right away! 🐟"
@@ -4628,7 +4649,7 @@ CRITICAL INSTRUCTION:
 • The customer asked or insisted to pay on delivery ("${userMessage.trim()}").
 • 🛑 DO NOT output [PAY_LINK: ...] or a Cashfree Order Summary card in this turn!
 • Politely and briefly explain that we operate strictly 100% Prepaid because every trout is harvested live to order from our oxygen-saturated cold water tanks at Malabagh immediately after confirmation (0% ice, zero cold-storage stock).
-• Close warmly by asking: "Would you like me to send our quick UPI QR or payment link whenever you're ready to confirm your fresh harvest?"
+• Close warmly by asking: "Would you like me to send our 1-Tap payment link whenever you're ready to confirm your fresh harvest? (Works with Google Pay, PhonePe, Paytm & J&K Bank mPay)"
 ======================================================`;
   }
 
@@ -4775,7 +4796,7 @@ CRITICAL DIRECTIVE ON MPAY & BANK ACCOUNT DETAILS:
 
   📸 *Please share your payment screenshot here once transferred!* Our team at the Recirculatory Aquaculture System at Malabagh will verify it within 5 minutes and immediately initiate your live harvest!"
 • You MUST explicitly state: "verification takes 5 minutes for our team at the Recirculatory Aquaculture System at Malabagh".
-• Also reassure them that tapping our official Cashfree payment link (or scanning the QR card) works seamlessly with the J&K Bank mPay app!
+• Also reassure them that tapping our official 1-Tap Cashfree payment link works seamlessly with the J&K Bank mPay app (as well as Google Pay, PhonePe & Paytm — no QR scan needed)!
 ======================================================`;
   }
 
@@ -4801,7 +4822,7 @@ CRITICAL DIRECTIVE ON MPAY & BANK ACCOUNT DETAILS:
     if (activePayUrl) {
       intentContext += `\n======================================================
 💡 QUERY INTENT DECODED: Customer explicitly requested an online payment link ("${userMessage.trim()}").
-CRITICAL DIRECTIVE: While we send a locked UPI QR Code image by default, the customer specifically requested an online payment link. Share their active payment link directly:
+CRITICAL DIRECTIVE: Customer requested their active payment link. Share it directly:
 "Here is your secure online payment link for Order #${activeOrderRef || 'LIVE'} (${activeOrderAmt || ''}):
 🔗 ${activePayUrl}
 
@@ -4814,7 +4835,7 @@ DO NOT alter price or create a duplicate order.
 CRITICAL DIRECTIVE: Any payment link older than 3.5 hours or from a previous day has EXPIRED. If this is a returning lead, calculate their order with current updated delivery rates. Inform the customer:
 1. Confirm their preferred quantity (e.g. 1 kg, 2 kg, 3 kg)
 2. Delivery location in Srinagar (or drop GPS pin)
-We will immediately generate a fresh payment link and locked UPI QR code!
+We will immediately generate a fresh 1-Tap payment link!
 ======================================================`;
     }
   }
@@ -4999,7 +5020,7 @@ Which slot today works best for you, and how many Kgs would you like for your fa
    - Operating Hours Today: 8:00 AM to 8:00 PM.
    - Live harvest begins immediately upon payment confirmation.
    - Express delivery within Srinagar is running within 2 hours of payment!
-   - Welcome Friday orders and issue locked Cashfree payment links & QR cards immediately.`
+   - Welcome Friday orders and issue locked 1-Tap Cashfree payment links immediately (no QR needed).`
     : (isThursdayToday && !isFridayOpen)
     ? `CRITICAL ALERT: TODAY IS THURSDAY — TOMORROW IS FRIDAY (100% CLOSED):
    - We are OPEN for orders and deliveries TODAY (Thursday) until 8:00 PM (delivered within 2 hours).
@@ -5141,8 +5162,8 @@ CRITICAL READABILITY & MAXIMUM BREVITY MANDATE (ANSWER ONLY WHAT IS REQUIRED):
    • ONLY decline with the privacy notice if the user explicitly asks to see other customers' details, "today's orders list", "all orders", "who ordered today", or #orders (NEVER trigger this refusal on a customer's own payment/status question, especially from voice notes):
      "For privacy and security, I can only check details for your own order. If you have an active order reference, please share your Order ID (e.g. #UT-WA-12345) and I will gladly assist you! 🐟"
 
-0B. CRITICAL LOCATION-FIRST LAW (PAYMENT LINKS, ORDER SUMMARIES & QR CODES STRICTLY REQUIRE CONFIRMED LOCATION):
-   • Under NO circumstances should you EVER output [PAY_LINK: ...], generate an order summary card, or share a QR code UNLESS the customer's delivery locality or area in Srinagar is confirmed!
+0B. CRITICAL LOCATION-FIRST LAW (PAYMENT LINKS & ORDER SUMMARIES STRICTLY REQUIRE CONFIRMED LOCATION):
+   • Under NO circumstances should you EVER output [PAY_LINK: ...] or generate an order summary card UNLESS the customer's delivery locality or area in Srinagar is confirmed!
    • NEVER write order summary bullet points (e.g. "Order Summary", "Total Payable: ...", "Delivery Address: ...") before knowing their location!
    • Our delivery fees and minimum order quantities depend entirely on their delivery area (0–4 km, 4–7 km, 7–11.5 km, 11.5–16 km from Malabagh). Without knowing their area, the total payable amount CANNOT be calculated!
    • If a customer says "Need 2 kg", "Send 1 kg", "Price", "Cost of 1 kg", "Send QR", "Send scanner", "QR please", "Book order", "Confirm", or asks to pay, BUT has NOT mentioned their area, colony, or landmark in Srinagar:
@@ -5302,18 +5323,21 @@ Example (Central Srinagar, 3 kg):
 Example (South / Cross-City Corridor, 5 kg):
 [PAY_LINK: 2900 : 5 kg Cleaned & Gutted]
 
-Our payment engine will automatically replace that tag with an official, organized order summary card breaking down all charges (fish price, delivery fee, clean double packaging, total amount) and immediately dispatches a locked Cashfree payment link & QR card directly to the customer's WhatsApp chat.
+Our payment engine automatically replaces that tag with an official, organized order summary card containing their 1-Tap Cashfree Payment Link directly in WhatsApp.
 NEVER write any unverified payment methods or old VPAs in text. ONLY output the [PAY_LINK: ...] tag!
 If a customer specifically requests J&K Bank mPay account details or direct bank transfer: provide Account Number 0724010100000499, IFSC JAKA0MALBAG, Name: Urban Trout Aquaculture, and ask them to share their payment screenshot for 5-minute farm team verification. STRICT NEGATIVE CONSTRAINT: Under NO circumstances should you EVER mention, send, or use JKBMERC00828895@jkb!
 
-SCANNER & QR CODE REQUEST HANDLING ("SEND QR" / "SCANNER BHEJO" / "SEND QR CODE"):
-• Customers often prefer scanning a QR code with PhonePe, Google Pay, or J&K Bank mPay.
-• When a customer asks for a "QR", "Send QR", "scanner", "QR please", "scanner bhejo", or "send scanner":
+PAYMENT LINK & QR/SCANNER REQUEST HANDLING ("SEND LINK" / "SEND QR" / "SCANNER BHEJO"):
+• We do NOT send QR code images anymore — our system uses 1-Tap Secure Cashfree Payment Links (https://urbantrout.in/p/...).
+• NEVER send or promise a QR code image or scanner image!
+• If a customer specifically asks for a QR code or scanner, ALWAYS reassure & guide them warmly:
+  "We don't use QR codes anymore — simply click our 1-Tap payment link and you can pay directly through any UPI app on your phone like Paytm, PhonePe, Google Pay, or J&K Bank mPay (even faster than scanning a QR!)."
+• When a customer asks for a "link", "QR", "Send QR", "scanner", or "scanner bhejo":
   - If their delivery area or locality in Srinagar is NOT confirmed yet:
-    Ask for their area: "Which area, locality, or landmark in Srinagar should we deliver to (e.g. Soura, Lal Chowk, Rajbagh, Hyderpora)? Or drop a quick WhatsApp location pin so our system can confirm your delivery terms and generate your exact locked QR scanner right away! 🐟"
+    Ask for their area: "Which area, locality, or landmark in Srinagar should we deliver to (e.g. Soura, Lal Chowk, Rajbagh, Hyderpora)? Or drop a quick WhatsApp location pin so I can send your 1-Tap Payment Link right away! 🐟"
     DO NOT output [PAY_LINK: ...] without a confirmed locality!
-  - If their delivery locality AND quantity are known (e.g. 2 kg to Soura), output the [PAY_LINK: TOTAL_AMOUNT : ITEM_DESCRIPTION] tag! Our payment engine will automatically render and send a locked-amount QR code scanner image directly to their WhatsApp!
-  - If quantity is not mentioned yet: "Certainly! Would you like 1 kg or 2 kg of Cleaned & Gutted trout so our automated system can generate your exact locked-amount QR scanner for you? 🐟"
+  - If their delivery locality AND quantity are known (e.g. 2 kg to Soura), output the [PAY_LINK: TOTAL_AMOUNT : ITEM_DESCRIPTION] tag!
+  - If quantity is not mentioned yet: "Certainly! Would you like 1 kg or 2 kg of Cleaned & Gutted trout so I can send your instant 1-Tap Payment Link right away? 🐟"
 
 OPERATING HOURS & DELIVERY PROTOCOLS:
 1. OPERATING HOURS & STRICT FRIDAY CLOSURE POLICY:
@@ -5324,13 +5348,13 @@ ${fridayOperatingNote}
    - Customers CAN schedule deliveries for ANY preferred future date & time slot between 8:00 AM and 8:00 PM.
    - NEVER tell a customer that we do not offer scheduled future deliveries! We happily take scheduled orders.
 3. 100% UPFRONT PAYMENT LAW & STRICT PRE-PAYMENT HARVEST RULE:
-   - We harvest live swimming fish ONLY upon upfront payment confirmation via Cashfree payment link/QR or verified mPay screenshot. We do NOT stock dead fish or freeze pre-harvested fish.
-   - CRITICAL PRE-PAYMENT HARVEST RULE: NEVER say "I've prepared your order", "Your order is confirmed", or imply live harvest or delivery dispatch has started before payment! An order is NOT confirmed and fish is NEVER harvested until payment confirmation is received. When providing order summaries and locked QR, frame it clearly: "Here is your official order summary. Please scan the locked UPI QR code below with GPay, PhonePe, Paytm, or J&K Bank mPay — live harvest begins immediately upon payment confirmation so your trout is 100% fresh from our oxygenated tanks."
+   - We harvest live swimming fish ONLY upon upfront payment confirmation via Cashfree 1-Tap Payment Link or verified mPay screenshot. We do NOT stock dead fish or freeze pre-harvested fish.
+   - CRITICAL PRE-PAYMENT HARVEST RULE: NEVER say "I've prepared your order", "Your order is confirmed", or imply live harvest or delivery dispatch has started before payment! An order is NOT confirmed and fish is NEVER harvested until payment confirmation is received. Frame payment clearly: "Here is your official order summary and 1-Tap Payment Link (works with GPay, PhonePe, Paytm & J&K Bank mPay) — live harvest begins immediately upon payment confirmation."
    - 🛑 COD & CASH HANDLING LAW:
      • FIRST COD / CASH MENTION:
        Explain why upfront digital payment is mandatory for live home delivery (max 3 lines):
        "We completely understand! Because every fish is swimming live in our pure cold-water tanks and harvested fresh ONLY after order confirmation, express delivery operates strictly via secure upfront digital payment.
-       Or scan the locked QR code below — takes 30 seconds to lock your fresh live harvest! 🐟"
+       Just tap our 1-Tap Payment Link below — takes 10 seconds with GPay, PhonePe, Paytm, or J&K Bank mPay! 🐟"
      • SECOND COD / CASH MENTION (IF CUSTOMER INSISTS ON CASH):
        DO NOT REPEAT ADVANCE PAYMENT! Immediately pivot to our Live Vending Center in Malabagh for cash purchase:
        "For cash payment, you are warmly welcome to visit our Live Vending Center in Malabagh (Near R. P. School Girls Wing, open Saturday to Thursday, 8:00 AM to 8:00 PM) where you can pick live trout directly from our cold-water tanks and pay with cash on the spot! 🐟
@@ -5514,13 +5538,13 @@ CRITICAL OUT-FOR-DELIVERY PROTOCOL:
 1. THE ORDER IS ALREADY FRESHLY HARVESTED, PACKED, AND ON THE ROAD WITH OUR RIDER EN ROUTE TO THE CUSTOMER!
 2. ABSOLUTELY NEVER say "currently being prepared at our Recirculatory Aquaculture System", "as soon as they pick up from Malabagh", or imply harvest hasn't left yet! It is ALREADY on the road!
 3. If customer asks how much time, rider phone number, or status: Inform them warmly that their fresh trout order #${todayOrderForCustomer.orderRef} is already packed & en route with our Express Dispatch Partner (+91 91037 06261 / dispatch desk), and the rider calls directly upon approaching their location. Ask them to keep their phone reachable.
-4. ABSOLUTELY NEVER ASK FOR PAYMENT OR SEND PAYMENT LINKS OR QR CODES.]\n\n${activeTurnPrompt}`;
+4. ABSOLUTELY NEVER ASK FOR PAYMENT OR SEND PAYMENT LINKS.]\n\n${activeTurnPrompt}`;
       } else {
         activeTurnPrompt = `[⭐ TODAY'S ACTIVE ORDER ALREADY PAID & CONFIRMED: #${todayOrderForCustomer.orderRef} (${todayOrderForCustomer.items}, ${todayOrderForCustomer.amount}, Scheduled Slot: ${slotTxt}).
 Customer has ALREADY paid for this order!
 CRITICAL TEMPORAL & FINANCIAL SHIELD:
 1. ABSOLUTELY NEVER SAY 'TOMORROW' OR RESCHEDULE THIS ORDER! Today is ${todayDayName}. The order is confirmed for TODAY (${slotTxt}).
-2. ABSOLUTELY NEVER ASK FOR PAYMENT OR SEND PAYMENT LINKS OR QR CODES.
+2. ABSOLUTELY NEVER ASK FOR PAYMENT OR SEND PAYMENT LINKS.
 3. NEVER GENERATE A DUPLICATE ORDER SUMMARY OR NEW ORDER NUMBER.
 4. Reassure the customer warmly that their order is confirmed and our team at the Recirculatory Aquaculture System at Malabagh is preparing their live harvest for delivery today! If they shared an address/pin, confirm it is received for rider.]\n\n${activeTurnPrompt}`;
       }
@@ -5838,8 +5862,8 @@ CRITICAL DIRECTIVE: Customer is making a FRESH NEW INQUIRY or placing a NEW orde
           if (isExplicitCodInsistence(userMessage)) {
             console.log(`[COD Shield] Suppressed unrequested payment link/QR because customer explicitly asked to pay on delivery (${chatId}).`);
             rawReply = stripInlineOrderSummaries(rawReply.replace(payMatch[0], "").trim());
-            if (!/Send QR/i.test(rawReply)) {
-              rawReply += `\n\nJust reply *"Send QR"* or *"Send Link"* whenever you're ready to lock your fresh live harvest via UPI! 🐟`;
+            if (!/Send Link/i.test(rawReply)) {
+              rawReply += `\n\nJust reply *"Send Link"* whenever you're ready — click the link to pay directly with PhonePe, Google Pay, Paytm, or J&K Bank mPay! 🐟`;
             }
           } else if (isWholeLink) {
             console.log(`[Whole Trout Guard] Blocked delivery [PAY_LINK] for Whole Trout (${chatId}).`);
@@ -6271,11 +6295,11 @@ CRITICAL DIRECTIVE: Customer is making a FRESH NEW INQUIRY or placing a NEW orde
         const alreadyGotDelayNotice = hasRecentDelayNotice(history, 4);
         const userSentBriefAck = isBriefAcknowledgement(userMessage);
         const offersDeliveryOrPayment =
-          /(?:payments\.cashfree\.com|urbantrout\.in\/pay|\[PAY_LINK|Total Payable|ORDER SUMMARY|express delivery fee|delivery fee|we (?:can|will) deliver|delivery(?:\s+to\s+[^\n]+)?\s+is\s+(?:available|active|possible)|deliver(?:ing|y)? (?:within \d|today|right away|in 2 hours)|dispatch(?:ed|ing)? (?:within|today|right away))/i.test(rawReply) &&
+          /(?:payments\.cashfree\.com|urbantrout\.in\/p(?:ay)?|\[PAY_LINK|Total Payable|ORDER SUMMARY|express delivery fee|delivery fee|we (?:can|will) deliver|delivery(?:\s+to\s+[^\n]+)?\s+is\s+(?:available|active|possible)|deliver(?:ing|y)? (?:within \d|today|right away|in 2 hours)|dispatch(?:ed|ing)? (?:within|today|right away))/i.test(rawReply) &&
           !/(?:temporarily\s*(?:paused|on\s*hold)|(?:paused|on\s*hold)\s*beyond|not\s*deliver|cannot\s*deliver|unavailable|resumes?\s*automatically|weather\s*clears)/i.test(rawReply);
 
         const userWantsAdvance = /\b(?:tomorrow|kal|saturday|advance|schedule)\b/i.test(userMessage);
-        const isAdvanceOrderCard = /(?:ORDER SUMMARY|payments\.cashfree\.com|urbantrout\.in\/pay|\[PAY_LINK)/i.test(rawReply) && /(?:Tomorrow|Saturday)/i.test(rawReply);
+        const isAdvanceOrderCard = /(?:ORDER SUMMARY|payments\.cashfree\.com|urbantrout\.in\/p(?:ay)?|\[PAY_LINK)/i.test(rawReply) && /(?:Tomorrow|Saturday)/i.test(rawReply);
         const isScheduledTomorrowOrSat = !userSentBriefAck && (userWantsAdvance || isAdvanceOrderCard);
         if (!isVisitLocationIntent && !isScheduledTomorrowOrSat) {
           if (postWeatherPolicy.blockedByWeather) {
@@ -6296,7 +6320,7 @@ CRITICAL DIRECTIVE: Customer is making a FRESH NEW INQUIRY or placing a NEW orde
             postWeatherPolicy.delayWarningText &&
             /(?:deliver|express|dispatch|location\s*pin|google\s*maps|payment\s*link|₹\d+)/i.test(rawReply) &&
             !/(?:weather|rain|snow|drizzle|delay)/i.test(rawReply) &&
-            (!alreadyGotDelayNotice || /(?:payments\.cashfree\.com|urbantrout\.in\/pay|ORDER SUMMARY|Total Payable)/i.test(rawReply)) &&
+            (!alreadyGotDelayNotice || /(?:payments\.cashfree\.com|urbantrout\.in\/p(?:ay)?|ORDER SUMMARY|Total Payable)/i.test(rawReply)) &&
             !(userSentBriefAck && alreadyGotDelayNotice)
           ) {
             rawReply = `${rawReply}\n\n${postWeatherPolicy.delayWarningText}`;
@@ -6714,7 +6738,7 @@ function isCustomerRequestingQr(userText, chatHist = []) {
     const lastBotMsg = chatHist.filter(m => m.role === "model").pop();
     if (lastBotMsg && lastBotMsg.text) {
       const isConfirmationReceipt = /\b(?:Payment\s+Received|Order\s+Confirmed|OUT\s+FOR\s+DELIVERY|successfully\s+delivered)\b/i.test(lastBotMsg.text);
-      const offeredPayment = !isConfirmationReceipt && /\b(?:scanner|qr|qr\s*code|payments\.cashfree\.com|urbantrout\.in\/pay|order\s*summary|total\s*payable|payment\s*link)\b/i.test(lastBotMsg.text);
+      const offeredPayment = !isConfirmationReceipt && /\b(?:scanner|qr|qr\s*code|payments\.cashfree\.com|urbantrout\.in\/p(?:ay)?|order\s*summary|total\s*payable|payment\s*link)\b/i.test(lastBotMsg.text);
       if (offeredPayment) return true;
     }
   }
@@ -7097,7 +7121,7 @@ async function startBot() {
 
       if (!bypassLocationGuard && !locationConfirmed) {
         console.log(`[QR Guard] Blocked QR dispatch for ${remoteJid} — location is unverified.`);
-        const askLocText = `📍 *To generate your locked QR code:* Which area, locality, or landmark in Srinagar should we deliver to (e.g. Soura, Lal Chowk, Rajbagh, Hyderpora)?\n\nOr drop a quick WhatsApp location pin so our system can confirm your delivery terms and dispatch your exact locked QR code right away! 🐟`;
+        const askLocText = `📍 *To send your 1-Tap Payment Link:* Which area, locality, or landmark in Srinagar should we deliver to (e.g. Soura, Lal Chowk, Rajbagh, Hyderpora)?\n\nOr drop a quick WhatsApp location pin so I can share your exact payment link right away! 🐟`;
         const sentLocPrompt = await sock.sendMessage(remoteJid, { text: askLocText });
         if (sentLocPrompt?.key?.id) {
           botSentMessageIds.add(sentLocPrompt.key.id);
@@ -7233,26 +7257,22 @@ async function startBot() {
         else itemsDesc = "1 kg Cleaned & Gutted (Starter Pack)";
       }
 
-      // 4. Generate Cashfree Payment Link & Locked QR Card (with J&K Bank fallback)
-      let qrBuffer = null;
-
+      // 4. Generate Cashfree 1-Tap Short Payment Link (with J&K Bank fallback)
       const paymentResult = await generatePaymentWithWaterfall({
         amount: amt,
         customerPhone: cleanPhone || raw10,
         customerName: customerName || targetOrder?.name || "Customer",
         orderRef: orderRef,
         description: itemsDesc,
-        preferQr: true,
+        preferQr: false,
         latitude: targetOrder?.latitude || savedLoc?.latitude || locDetails?.latitude || null,
         longitude: targetOrder?.longitude || savedLoc?.longitude || locDetails?.longitude || null,
         distanceKm: targetOrder?.distanceKm || savedLoc?.distanceKm || locDetails?.distanceKm || null,
         googleMapsUrl: targetOrder?.googleMapsUrl || savedLoc?.googleMapsUrl || null
       });
 
-      qrBuffer = paymentResult.qrBuffer;
-
-      if (!qrBuffer && !paymentResult.bankDetailsText) {
-        throw new Error("Failed to generate QR image buffer");
+      if (!paymentResult.payUrl && !paymentResult.bankDetailsText) {
+        throw new Error("Failed to generate payment link");
       }
 
       const qrFeeMatch = (itemsDesc || "").match(/\(\s*\+\s*₹?\s*(\d+)\s*(?:Special\s+|Express\s+)?Delivery\s*\)/i);
@@ -7293,23 +7313,22 @@ async function startBot() {
         ? `• *Name:* ${customerName}\n`
         : "";
 
-      const payLinkLine = paymentResult.payUrl ? `\n📱 *Or Tap to Pay:* ${paymentResult.payUrl}\n` : "";
+      const payLinkLine = paymentResult.payUrl
+        ? `🔗 *Tap to Pay Instantly:* ${paymentResult.payUrl}\n_(Click the link to pay directly using Paytm, PhonePe, Google Pay, or J&K Bank mPay — we no longer require scanning a QR!)_\n\n`
+        : "";
       const bankDetailsLine = paymentResult.bankDetailsText ? `\n\n${paymentResult.bankDetailsText}` : "";
 
-      const caption = (qrBuffer ? `🐟 *URBAN TROUT • UPI QR CODE*\n` : `🐟 *URBAN TROUT • PAYMENT DETAILS*\n`) +
+      const caption = (paymentResult.payUrl ? `💳 *URBAN TROUT • 1-TAP PAYMENT LINK*\n` : `🐟 *URBAN TROUT • PAYMENT DETAILS*\n`) +
         `• *Order:* ${cleanItemDesc}\n` +
         custNameLine +
         custPhoneLine +
         deliveryQrLine +
-        `• *Amount:* *₹${amt.toLocaleString("en-IN")}*${qrBuffer ? " (Pre-filled & Locked)" : ""}\n` +
+        `• *Amount:* *₹${amt.toLocaleString("en-IN")}*${paymentResult.payUrl ? " (Exact Amount Locked)" : ""}\n` +
         `• *Ref:* #${orderRef}\n\n` +
-        (qrBuffer ? `👉 *Scan QR with Phone Camera* or *Tap Link below* for 1-Tap GPay, PhonePe, Paytm, or J&K Bank mPay.\n` : "") +
         payLinkLine +
         `_Packed fresh in 100% food-grade biodegradable polythene (0% ice). Delivered directly to your shared GPS pin (our rider calls prior to arrival for a prompt handover at your shared pin)._${qrWeatherLine}${bankDetailsLine} 🚀`;
 
-      const qrMsg = qrBuffer
-        ? await sock.sendMessage(remoteJid, { image: qrBuffer, caption })
-        : await sock.sendMessage(remoteJid, { text: caption });
+      const qrMsg = await sock.sendMessage(remoteJid, { text: caption });
 
       if (qrMsg && qrMsg.key && qrMsg.key.id) {
         botSentMessageIds.add(qrMsg.key.id);
@@ -7321,11 +7340,11 @@ async function startBot() {
         phone: cleanPhone || raw10,
         name: customerName || targetOrder?.name || "Customer",
         role: "ai_bot",
-        text: `[${qrBuffer ? "Locked QR Code" : "Payment Details"} ₹${amt}] ${caption}`,
-        meta: { qrRef: orderRef, amount: amt }
+        text: `[${paymentResult.payUrl ? "1-Tap Payment Link" : "Bank Details"} ₹${amt}] ${caption}`,
+        meta: { payRef: orderRef, amount: amt }
       });
 
-      console.log(`📷 [${qrBuffer ? "Cashfree Link & QR" : "Bank Fallback"} Locked Payment Dispatched] Sent ₹${amt} to ${formatPhoneDisplay(cleanPhone || raw10)} for #${orderRef}`);
+      console.log(`💳 [${paymentResult.payUrl ? "Cashfree 1-Tap Link" : "Bank Fallback"} Dispatched] Sent ₹${amt} to ${formatPhoneDisplay(cleanPhone || raw10)} for #${orderRef}`);
 
       // Update orders store (never preserve stale payUrl/linkIds from a previous order with a different amount)
       const prevOrderAmt = targetOrder?.amount ? parseInt(String(targetOrder.amount).replace(/\D/g, ""), 10) : null;
@@ -7346,7 +7365,7 @@ async function startBot() {
         latitude: targetOrder?.latitude ?? locDetails?.latitude ?? savedLoc?.latitude ?? null,
         longitude: targetOrder?.longitude ?? locDetails?.longitude ?? savedLoc?.longitude ?? null,
         googleMapsUrl: targetOrder?.googleMapsUrl || savedLoc?.googleMapsUrl || null,
-        status: targetOrder?.status?.includes("Paid") ? targetOrder.status : (qrBuffer ? "Payment Link & QR Sent" : "Bank Transfer Details Sent"),
+        status: targetOrder?.status?.includes("Paid") ? targetOrder.status : (paymentResult.payUrl ? "Payment Link Sent" : "Bank Transfer Details Sent"),
         payUrl: paymentResult.payUrl || (isSameAmountAsPrev ? (targetOrder?.payUrl || null) : null),
         createdAt: targetOrder?.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString()
@@ -7364,12 +7383,12 @@ async function startBot() {
       if (chatMetadata[remoteJid]) {
         chatMetadata[remoteJid].lastBotMsgTime = Date.now();
         chatMetadata[remoteJid].lastMsgRole = "model";
-        chatMetadata[remoteJid].lastBotReply = `[Locked QR Code Dispatched ₹${amt}]`;
+        chatMetadata[remoteJid].lastBotReply = `[Payment Link Dispatched ₹${amt}]`;
       }
       if (raw10 && chatMetadata[raw10]) {
         chatMetadata[raw10].lastBotMsgTime = Date.now();
         chatMetadata[raw10].lastMsgRole = "model";
-        chatMetadata[raw10].lastBotReply = `[Locked QR Code Dispatched ₹${amt}]`;
+        chatMetadata[raw10].lastBotReply = `[Payment Link Dispatched ₹${amt}]`;
       }
       saveChatMetadata();
 
@@ -7618,13 +7637,13 @@ async function startBot() {
             `• *#paid 9876543210 1259* (Confirm payment for specific phone number)\n` +
             `• *#delivered* (Mark order as delivered & remove from active queue)\n` +
             `• *#delivered 9876543210* (Mark order delivered by phone or ref)\n` +
-            `• *#qr 2kg* (Cleaned & Gutted @ ₹580 * 2 = ₹1,160 locked UPI QR)\n` +
-            `• *#qr 1740* (Direct flat ₹1,740 locked UPI QR)\n` +
-            `• *#qr 2kg +149* (2kg Gutted + ₹149 delivery = ₹1,309 locked QR)\n` +
-            `• *#qr 3kg +200* (3kg Gutted + ₹200 delivery = ₹1,940 QR)\n` +
-            `• *#qr 2.5kg whole* (Whole Fresh @ ₹540 * 2.5 = ₹1,350 QR)\n` +
-            `• *#qr 2kg 9876543210* (Send locked QR image directly to customer)\n` +
-            `• *#qr* (Drop locked QR for current active order)\n\n` +
+            `• *#qr 2kg* (Cleaned & Gutted @ ₹580 * 2 = ₹1,160 1-Tap Pay Link)\n` +
+            `• *#qr 1740* (Direct flat ₹1,740 1-Tap Pay Link)\n` +
+            `• *#qr 2kg +149* (2kg Gutted + ₹149 delivery = ₹1,309 Pay Link)\n` +
+            `• *#qr 3kg +200* (3kg Gutted + ₹200 delivery = ₹1,940 Pay Link)\n` +
+            `• *#qr 2.5kg whole* (Whole Fresh @ ₹540 * 2.5 = ₹1,350 Pay Link)\n` +
+            `• *#qr 2kg 9876543210* (Send 1-Tap Pay Link directly to customer)\n` +
+            `• *#qr* (Drop 1-Tap Pay Link for current active order)\n\n` +
             `⚡ *Instant Payment Link Shortcuts:*\n` +
             `• *#2kg +149* (2kg Gutted + ₹149 delivery = ₹1,309)\n` +
             `• *#3kg +200* (3kg Gutted + ₹200 delivery = ₹1,940)\n` +
@@ -7708,7 +7727,7 @@ async function startBot() {
               `• *Website Status:* **Synced to Website!** (allow_friday_orders = true: online checkout & same-day express delivery unlocked)\n` +
               `• *Live Counter:* Malabagh Live Vending Center open 8:00 AM – 8:00 PM.\n` +
               `• *Express Delivery:* Same-day 2-hour delivery active across Srinagar.\n` +
-              `• *AI Agent:* Confirms Friday orders, quotes standard rates, and issues locked Cashfree payment links & QR cards!\n\n` +
+              `• *AI Agent:* Confirms Friday orders, quotes standard rates, and issues locked 1-Tap Cashfree payment links!\n\n` +
               `_To revert back to standard Friday closure, send *#friday off* or *#friday auto*._`
           });
           console.log(`🟢 [Owner #friday] Friday operations forced OPEN by ${cleanPhone || "Suhail"} (Synced to Website)`);
@@ -7729,7 +7748,7 @@ async function startBot() {
           await sock.sendMessage(ownerDeskJid, {
             text: `🕌 *FRIDAY OPERATIONS STATUS*\n\n` +
               `• *Current Setting:* *${isOpen ? "🟢 OPEN (Special Operations Active)" : "🔴 CLOSED (Standard Weekly Maintenance)"}*\n` +
-              `• *AI Agent:* ${isOpen ? "Accepting live Friday orders & issuing QR codes" : "Offering advance bookings for Saturday morning"}\n` +
+              `• *AI Agent:* ${isOpen ? "Accepting live Friday orders & issuing 1-Tap Cashfree payment links" : "Offering advance bookings for Saturday morning"}\n` +
               `• *Website:* ${isOpen ? "🟢 OPEN (Live checkout & same-day express dispatch active)" : "🔴 CLOSED (Friday maintenance banner active, pre-orders for Saturday)"}\n` +
               `• *Operating Hours:* ${isOpen ? "8:00 AM – 8:00 PM (Live Harvest & Express Delivery Active)" : "Zero Deliveries (Filtration Backwash & Weekly Bio-security)"}\n\n` +
               `👉 *Commands:*\n` +
@@ -7847,13 +7866,13 @@ async function startBot() {
               ? ` (${resolvedCustName})`
               : "";
             await sock.sendMessage(ownerDeskJid, {
-              text: `✅ *Locked QR Code Dispatched!* 🐟\nDelivered ${finalAmt ? `*₹${finalAmt.toLocaleString("en-IN")}*` : "locked"}${parsed.deliveryFee > 0 ? ` (incl. +₹${parsed.deliveryFee} delivery)` : ""} QR image directly to ${formatPhoneDisplay(targetPhone)}${nameNote}.`
+              text: `✅ *1-Tap Payment Link Dispatched!* 🐟\nDelivered ${finalAmt ? `*₹${finalAmt.toLocaleString("en-IN")}*` : "locked"}${parsed.deliveryFee > 0 ? ` (incl. +₹${parsed.deliveryFee} delivery)` : ""} Cashfree payment link directly to ${formatPhoneDisplay(targetPhone)}${nameNote}.`
             });
           }
         } else {
-          console.error(`⚠️ [#qr Failure] Could not generate/dispatch QR code for ${targetJid}`);
+          console.error(`⚠️ [#qr/#link Failure] Could not generate/dispatch payment link for ${targetJid}`);
           await sock.sendMessage(ownerDeskJid, {
-            text: `⚠️ *QR Generation Notice:* Could not generate locked QR image automatically for ${formatPhoneDisplay(targetPhone) || targetJid}. Please check connection or use #link.`
+            text: `⚠️ *Payment Link Notice:* Could not generate 1-Tap payment link automatically for ${formatPhoneDisplay(targetPhone) || targetJid}. Please check connection or use #link.`
           });
         }
         return;
@@ -7913,7 +7932,7 @@ async function startBot() {
             `💡 *Admin Actions:*\n` +
             `• Reply *#delivered [phone or ref]* to mark delivered\n` +
             `• Reply *#paid [amount]* in customer chat to confirm manual payments\n` +
-            `• Reply *#qr [amount]* to send locked QR code image`;
+            `• Reply *#link [amount]* to send 1-Tap payment link`;
 
           await sock.sendMessage(ownerDeskJid, { text: queueMsg });
         } catch (queueErr) {
@@ -8214,34 +8233,14 @@ async function startBot() {
               if (targetCustPhone) humanOverrides.set(targetCustPhone, cardPauseExp);
               console.log(`✅ [Direct WhatsApp Link Sent] Delivered directly to customer ${customerJid}!`);
 
-              // Auto-dispatch locked UPI QR image directly to customer
-              setTimeout(async () => {
-                try {
-                  await dispatchLockedQrImage(sock, customerJid, {
-                    cleanPhone: targetCustPhone,
-                    raw10: targetCustPhone,
-                    customerName: targetCustName,
-                    forceAmount: totalAmount,
-                    forceRef: payObj.ref,
-                    forceDesc: itemDesc,
-                    forceDeliveryFee: deliveryFee,
-                    bypassLocationGuard: true,
-                    bypassHumanOverride: true,
-                    chatHist: chatHistories.get(customerJid) || []
-                  });
-                } catch (qrErr) {
-                  console.warn("Notice: Companion QR dispatch to customer error:", qrErr.message);
-                }
-              }, 800);
-
               await sock.sendMessage(ownerDeskJid, {
                 text: `✅ *Order #${payObj.ref} Generated & Dispatched!* 🚀\n\n` +
                   `• *Customer:* ${targetCustName} (+91 ${targetCustPhone})\n` +
                   `• *Item:* ${weightKg ? `${weightKg} kg ${prodType}` : itemDesc}\n` +
                   (deliveryFee > 0 ? `• *Express Delivery Fee:* +₹${deliveryFee}\n` : "") +
                   `• *Total Payable:* *₹${totalAmount}*\n` +
-                  `• *Payment Link:* ${payObj.url || "See QR / Bank Details"}\n\n` +
-                  `📩 *Order summary and locked QR code delivered directly to customer (+91 ${targetCustPhone}) on WhatsApp!*`
+                  `• *Payment Link:* ${payObj.url || "See Bank Details"}\n\n` +
+                  `📩 *Order summary and 1-Tap payment link delivered directly to customer (+91 ${targetCustPhone}) on WhatsApp!*`
               });
               return;
             } catch (custSendErr) {
@@ -8255,25 +8254,7 @@ async function startBot() {
           await sock.sendMessage(remoteJid, { text: orderCard });
           console.log(`✅ [Direct Link in Current Chat] Order #${payObj.ref} sent to ${remoteJid}`);
 
-          // Auto-dispatch locked UPI QR image in current chat
-          setTimeout(async () => {
-            try {
-              await dispatchLockedQrImage(sock, remoteJid, {
-                cleanPhone: targetCustPhone,
-                raw10: targetCustPhone,
-                customerName: targetCustName,
-                forceAmount: totalAmount,
-                forceRef: payObj.ref,
-                forceDesc: itemDesc,
-                forceDeliveryFee: deliveryFee,
-                bypassLocationGuard: true,
-                bypassHumanOverride: true,
-                chatHist: chatHistories.get(remoteJid) || []
-              });
-            } catch (qrErr) {
-              console.warn("Notice: Companion QR dispatch in current chat error:", qrErr.message);
-            }
-          }, 800);
+          // Link-only checkout: orderCard already includes the 1-Tap payment link
           return;
         } catch (linkErr) {
           console.error(`❌ [Owner Quick-Link Error]:`, linkErr);
@@ -8671,7 +8652,7 @@ async function startBot() {
           };
           const hasAgreedOrder = isOrderIntentForPin(text || "") || userOnlyHist.some(m => isOrderIntentForPin(m.text));
           const hasExistingPaymentLink = Boolean(activeOrder && !isAlreadyPaid && activeOrder.payUrl) ||
-            chatHist.slice(-4).some(m => m.text && (m.text.includes("payments.cashfree.com") || m.text.includes("urbantrout.in/pay") || m.text.includes("Official Cashfree Payment Link")));
+            chatHist.slice(-4).some(m => m.text && (m.text.includes("payments.cashfree.com") || m.text.includes("urbantrout.in/p") || m.text.includes("Official Cashfree Payment Link")));
           const isPendingOrderDiscussed = Boolean(activeOrder && !isAlreadyPaid) || hasAgreedOrder || hasExistingPaymentLink;
 
           if (isPendingOrderDiscussed) {
@@ -8757,7 +8738,7 @@ async function startBot() {
             }
 
             locReply = `📍 *Location Received & Coordinates Locked!* ✅\nYour shared location is approximately *${distRounded} km* from our Recirculatory Aquaculture System at Malabagh (${detectedLocalityName || "Srinagar"}).\n🛵 Coordinates saved for our *Urban Trout Express Dispatch Partner*!${pinPolicyNote}\n\n${card}`;
-            historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Recirculatory Aquaculture System at Malabagh (${detectedLocalityName || "Srinagar"}). Order generated/updated: ${itemsDesc} (₹${totalPayable}). Official payment link: ${generatedPayUrl || "See Bank Details / QR"}]`;
+            historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Recirculatory Aquaculture System at Malabagh (${detectedLocalityName || "Srinagar"}). Order generated/updated: ${itemsDesc} (₹${totalPayable}). Official payment link: ${generatedPayUrl || "See Bank Details / Payment Link"}]`;
 
             const prevGpsAmt = activeOrder?.amount ? parseInt(String(activeOrder.amount).replace(/\D/g, ""), 10) : null;
             const sameAmtGps = prevGpsAmt !== null && prevGpsAmt === Math.round(totalPayable);
@@ -8860,42 +8841,7 @@ async function startBot() {
         meta: { gpsVerified: true, distanceKm: distRounded }
       });
 
-      // Proactive auto-QR dispatch when order summary card is generated on GPS pin
-      if (locReply.includes("ORDER SUMMARY") && (locReply.includes("Total Payable") || /Total\s*Payable/i.test(locReply))) {
-        try {
-          const fAmt = extractTotalPayableAmount(locReply);
-          const mR = locReply.match(/(?:#|Ref:\s*#?)(UT-WA-\d+)/i);
-          const fR = mR ? mR[1] : null;
-          const mItem = locReply.match(/[•\-\*]\s*(?:Item|Order):\s*([^\n•]+)/i);
-          const fDesc = mItem ? mItem[1].replace(/\*/g, "").trim() : null;
-          const deliveryLineMatch = locReply.match(/[•\-\*]?\s*\*?(?:Delivery(?:\s*Fee)?|Express Courier)\*?\s*:\s*\*?[^\n]*/i);
-          let fFee = 0;
-          if (deliveryLineMatch && !/\b(?:100%\s*FREE|FREE|Zero|0%)\b/i.test(deliveryLineMatch[0])) {
-            const mFee = deliveryLineMatch[0].match(/(?:\+|₹)\s*₹?\s*([\d,]+)/i);
-            if (mFee) fFee = parseInt(mFee[1].replace(/,/g, ""), 10);
-          }
-
-          setTimeout(async () => {
-            try {
-              if (isChatManuallyPaused(remoteJid, cleanPhone || raw10)) {
-                console.log(`[Auto-QR Shield] Suppressed GPS auto-QR dispatch for ${remoteJid} — owner manual intervention active.`);
-                return;
-              }
-              await dispatchLockedQrImage(sock, remoteJid, {
-                cleanPhone,
-                raw10,
-                customerName,
-                forceAmount: fAmt,
-                forceRef: fR,
-                forceDesc: fDesc,
-                forceDeliveryFee: fFee,
-                bypassLocationGuard: true,
-                chatHist
-              });
-            } catch (_) {}
-          }, 800);
-        } catch (_) {}
-      }
+      // Link-only mode: GPS ORDER SUMMARY card already contains the 1-Tap Cashfree Payment Link
       return;
     }
 
@@ -9210,59 +9156,7 @@ async function startBot() {
         meta: { responseMs: responseTimeMs, locality: activeLocality }
       });
 
-      // ─── PROACTIVE AUTO-QR DISPATCH ALONGSIDE PAYMENT LINKS & ORDER SUMMARY ───
-      // Automatically dispatch the locked UPI QR code image ONLY when an actual payment link or official order summary card
-      // with a verified total amount is present! NEVER dispatch on conversational mentions of 'payment link' or 'UPI QR'!
-      const forceAmount = extractTotalPayableAmount(aiReply);
-      const hasRealPayLink = /(?:https?:\/\/)?(?:payments\.cashfree\.com\/links|urbantrout\.in\/pay)\/\S+/i.test(aiReply);
-      const hasOfficialOrderSummary = /(?:🧾\s*)?(?:URBAN TROUT\s*[•·-]\s*)?(?:Order Summary|ORDER SUMMARY)/i.test(aiReply);
-
-      const isRejectedDelivery = /(?:Outside Delivery Zone|Express delivery is not available|Doorstep delivery is not available|harvest quota for today is fully committed|temporarily\s*(?:paused|on\s*hold)|Closed\s+today\s+\(Friday\))/i.test(aiReply);
-
-      const hasPaymentInReply = (
-        (hasRealPayLink || hasOfficialOrderSummary) &&
-        forceAmount !== null &&
-        forceAmount >= 300
-      ) && !aiReply.includes("✅ *Payment Received") && !aiReply.includes("OUT FOR DELIVERY") && !isRejectedDelivery;
-
-      if (hasPaymentInReply) {
-        try {
-          const refMatch = aiReply.match(/(?:#|Ref:\s*#?)(UT-WA-\d+)/i);
-          const forceRef = refMatch ? refMatch[1] : null;
-          const itemMatch = aiReply.match(/[•\-\*]\s*(?:Item|Order):\s*([^\n•]+)/i);
-          const forceDesc = itemMatch ? itemMatch[1].replace(/\*/g, "").trim() : null;
-          const deliveryLineMatch = aiReply.match(/[•\-\*]?\s*\*?(?:Delivery(?:\s*Fee)?|Express Courier)\*?\s*:\s*\*?[^\n]*/i);
-          let forceDeliveryFee = 0;
-          if (deliveryLineMatch && !/\b(?:100%\s*FREE|FREE|Zero|0%)\b/i.test(deliveryLineMatch[0])) {
-            const feeMatch = deliveryLineMatch[0].match(/(?:\+|₹)\s*₹?\s*([\d,]+)/i);
-            if (feeMatch) forceDeliveryFee = parseInt(feeMatch[1].replace(/,/g, ""), 10);
-          }
-
-          setTimeout(async () => {
-            try {
-              if (isChatManuallyPaused(remoteJid, cleanPhone || raw10)) {
-                console.log(`[Auto-QR Shield] Suppressed auto-QR dispatch for ${remoteJid} — owner manual intervention active.`);
-                return;
-              }
-              await dispatchLockedQrImage(sock, remoteJid, {
-                cleanPhone,
-                raw10,
-                customerName,
-                forceAmount,
-                forceRef,
-                forceDesc,
-                forceDeliveryFee,
-                bypassLocationGuard: true,
-                chatHist: chatHistories.get(remoteJid) || []
-              });
-            } catch (autoQrErr) {
-              console.warn("Notice: Proactive auto-QR dispatch error:", autoQrErr.message);
-            }
-          }, 800);
-        } catch (autoQrPrepErr) {
-          console.warn("Notice: Proactive auto-QR prep notice:", autoQrPrepErr.message);
-        }
-      }
+      // Link-only mode: Gemini ORDER SUMMARY card already contains the short 1-Tap Cashfree link (no companion QR image sent)
 
       // ─── PROACTIVE FISH PHOTO DISPATCH WHEN CUSTOMER EXPLICITLY ASKS FOR PICTURES ───
       const customerWantsFishPhoto = (

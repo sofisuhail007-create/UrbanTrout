@@ -7,6 +7,7 @@ import {
   normalizeIndianPhone,
   resolveCashfreeLinkPayment,
 } from "@/lib/cashfree";
+import { createShortCashfreeUrl } from "@/lib/payRedirect";
 
 export async function POST(request: Request) {
   const authError = await requireAdminAuth(request);
@@ -80,7 +81,7 @@ export async function POST(request: Request) {
     }
 
     const slug = extractCashfreeLinkSlug(res.data.link_url);
-    const brandedUrl = slug ? `https://urbantrout.in/pay/${slug}` : res.data.link_url;
+    const brandedUrl = slug ? await createShortCashfreeUrl(slug) : res.data.link_url;
 
     return NextResponse.json({
       success: true,

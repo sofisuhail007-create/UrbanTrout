@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { ImageResponse } from "next/og";
 import React from "react";
-import { cashfreeFetch } from "@/lib/cashfree";
+import { cashfreeFetch, extractCashfreeLinkSlug } from "@/lib/cashfree";
+import { createShortCashfreeUrl } from "@/lib/payRedirect";
 
 export const dynamic = "force-dynamic";
 
@@ -71,11 +72,14 @@ export async function GET(request: Request) {
     }
 
     if (format === "json") {
+      const slug = extractCashfreeLinkSlug(res.data.link_url);
+      const shortPayUrl = slug ? await createShortCashfreeUrl(slug, origin) : res.data.link_url;
       return NextResponse.json({
         success: true,
         qr_id: res.data.link_id,
         image_url: qrDataUri || res.data.link_url,
-        pay_url: res.data.link_url,
+        pay_url: shortPayUrl,
+        short_url: shortPayUrl,
         amount: amountNum,
         rider: riderName,
       });

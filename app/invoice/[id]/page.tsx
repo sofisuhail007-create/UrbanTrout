@@ -477,7 +477,7 @@ export default function PublicInvoicePage() {
     invoice.paymentMode === "razorpay" ||
     String(invoice.paymentMethod || "").toLowerCase().includes("cashfree") ||
     String(invoice.paymentMethod || "").toLowerCase().includes("razorpay") ||
-    (Boolean(invoice.paymentLinkUrl) && (String(invoice.paymentLinkUrl).includes("cashfree") || String(invoice.paymentLinkUrl).includes("urbantrout.in/pay") || String(invoice.paymentLinkUrl).includes("rzp")));
+    (Boolean(invoice.paymentLinkUrl) && (String(invoice.paymentLinkUrl).includes("cashfree") || String(invoice.paymentLinkUrl).includes("urbantrout.in/p") || String(invoice.paymentLinkUrl).includes("rzp")));
 
   const rawInvoiceUpi = invoice.upiId;
   // For unpaid / balance-due invoices, always prefer the store's active HDFC default over legacy J&K Bank fallback

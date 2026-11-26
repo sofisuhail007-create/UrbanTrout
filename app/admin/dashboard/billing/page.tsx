@@ -100,9 +100,11 @@ export default function POSBillingPage() {
 
   const [showInlineQr, setShowInlineQr] = useState(false);
 
-  // Cashfree Dynamic QR State (Counter)
+  // Cashfree 1-Tap Payment Link State (Counter)
   const [cfQrId, setCfQrId] = useState<string | null>(null);
   const [cfQrImageUrl, setCfQrImageUrl] = useState<string | null>(null);
+  const [cfPosShortUrl, setCfPosShortUrl] = useState<string | null>(null);
+  const [cfPosCopied, setCfPosCopied] = useState<boolean>(false);
   const [cfQrLoading, setCfQrLoading] = useState(false);
   const [cfQrError, setCfQrError] = useState<string | null>(null);
   const [cfPaid, setCfPaid] = useState(false);
@@ -893,7 +895,7 @@ export default function POSBillingPage() {
     setTimeout(() => setVoiceTesting(false), 3500);
   };
 
-  // Generate dynamic Cashfree Single-Use POS Link & QR code
+  // Generate dynamic Cashfree Single-Use 1-Tap Payment Link (Link-Only)
   const generateCashfreeQr = async (targetAmount: number, force = false) => {
     if (targetAmount <= 0) return;
     if (!force && targetAmount === lastGeneratedAmount && cfQrId && !cfPaid) return;
@@ -917,26 +919,27 @@ export default function POSBillingPage() {
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data?.error || "Could not generate Cashfree QR");
+        throw new Error(data?.error || "Could not generate Cashfree payment link");
       }
 
       setCfQrId(data.qr_id);
       setCfQrImageUrl(data.image_url);
+      setCfPosShortUrl(data.short_url || data.pay_url || data.image_url);
       setLastGeneratedAmount(targetAmount);
-      setEnlargeQrModal(true);
     } catch (err: any) {
-      console.error("Cashfree QR generation failed:", err);
-      setCfQrError(err.message || "Failed to generate Cashfree QR code");
+      console.error("Cashfree payment link generation failed:", err);
+      setCfQrError(err.message || "Failed to generate Cashfree payment link");
     } finally {
       setCfQrLoading(false);
     }
   };
 
-  // Invalidate QR if grandTotal changes so old amounts are not scanned
+  // Invalidate active link if grandTotal changes so old amounts are not paid
   useEffect(() => {
     if (cfQrId && grandTotal !== lastGeneratedAmount) {
       setCfQrId(null);
       setCfQrImageUrl(null);
+      setCfPosShortUrl(null);
       setCfPaid(false);
       setCfPaymentDetails(null);
     }
@@ -1083,7 +1086,7 @@ export default function POSBillingPage() {
       : isCfPaid
       ? (paymentMethod === "WhatsAppLink" ? "Cashfree Link (Verified)" : "Cashfree UPI (Verified)")
       : paymentMethod === "CashfreeQR"
-      ? "Cashfree QR"
+      ? "Cashfree 1-Tap Link"
       : paymentMethod === "WhatsAppLink"
       ? "Cashfree Link (Home Delivery)"
       : "Cash";
@@ -1174,8 +1177,8 @@ export default function POSBillingPage() {
       paymentId: cfPaymentDetails?.id || null,
       notes: finalNotes,
       upiId: paymentMethod === "HdfcUpi" ? HDFC_COUNTER_VPA : upiId,
-      upiQrCodeUrl: (paymentMethod === "CashfreeQR" && cfQrImageUrl)
-        ? cfQrImageUrl
+      upiQrCodeUrl: paymentMethod === "CashfreeQR"
+        ? ""
         : paymentMethod === "HdfcUpi"
         ? hdfcQrCodeUrl
         : upiQrCodeUrl,
@@ -1529,6 +1532,8 @@ Naseem Bagh / Malabagh, Srinagar`;
     setPosInputMode("scale");
     setCfQrId(null);
     setCfQrImageUrl(null);
+    setCfPosShortUrl(null);
+    setCfPosCopied(false);
     setCfPaid(false);
     setCfPaymentDetails(null);
     setLastGeneratedAmount(0);
@@ -1571,9 +1576,11 @@ Naseem Bagh / Malabagh, Srinagar`;
     } catch (_) {}
     setCfQrId(null);
     setCfQrImageUrl(null);
+    setCfPosShortUrl(null);
+    setCfPosCopied(false);
     setLastGeneratedAmount(0);
     setCfQrError(null);
-    alert("Cashfree Dynamic QR code closed & expired. Customer cannot scan or pay this QR.");
+    alert("Cashfree 1-Tap payment link closed & expired. Customer can no longer pay via this link.");
   };
 
   // 1-Click Explicit Cancellation & Expiry of Counter WhatsApp Link
@@ -2911,7 +2918,7 @@ Helpline: +91 84910 06127`;
                       <div className="text-right">
                         <span className="text-[9px] text-zinc-400 block">{isCustomAmountMode ? "Direct QR" : `${totalWeight.toFixed(2)} Kg Trout`}</span>
                         <span className="text-[10px] text-emerald-400 font-bold">
-                          {paymentMethod === "HdfcUpi" ? "HDFC SmartHub (Default)" : paymentMethod === "CashfreeQR" ? "Cashfree Link & QR" : paymentMethod === "JkBankSoundbox" ? "J&K Bank Soundbox" : "Cash"}
+                          {paymentMethod === "HdfcUpi" ? "HDFC SmartHub (Default)" : paymentMethod === "CashfreeQR" ? "Cashfree 1-Tap Link" : paymentMethod === "JkBankSoundbox" ? "J&K Bank Soundbox" : "Cash"}
                         </span>
                       </div>
                     </div>
@@ -3215,7 +3222,7 @@ Helpline: +91 84910 06127`;
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 pt-0.5">
               {[
                 { id: "HdfcUpi", label: "HDFC Bank", sub: "SmartHub Vyapar • Default" },
-                { id: "CashfreeQR", label: "Cashfree QR", sub: "Auto-Detect" },
+                { id: "CashfreeQR", label: "Cashfree Link", sub: "1-Tap Auto-Detect" },
                 { id: "JkBankSoundbox", label: "J&K Bank", sub: "Soundbox • Voice" },
                 { id: "Cash", label: "Cash", sub: "Counter" },
               ].map((channel) => {
@@ -3408,7 +3415,7 @@ Helpline: +91 84910 06127`;
                 ) : cfQrLoading ? (
                   <div className="py-10 flex flex-col items-center justify-center space-y-2 text-zinc-400">
                     <span className="material-symbols-outlined animate-spin text-xl">progress_activity</span>
-                    <p className="text-xs font-mono">Generating Cashfree QR...</p>
+                    <p className="text-xs font-mono">Generating Cashfree 1-Tap Link...</p>
                   </div>
                 ) : cfQrError ? (
                   <div className="w-full p-3 rounded-lg bg-[#0a0a0a] border border-rose-800/50 text-center space-y-1.5">
@@ -3418,66 +3425,84 @@ Helpline: +91 84910 06127`;
                       onClick={() => generateCashfreeQr(grandTotal, true)}
                       className="px-3 py-1 bg-[#161616] hover:bg-[#222222] text-white rounded-md text-xs font-medium uppercase tracking-wider cursor-pointer border border-[#333333]"
                     >
-                      Retry QR
+                      Retry Link
                     </button>
                   </div>
-                ) : cfQrImageUrl ? (
-                  <>
-                    <div
-                      onClick={() => setEnlargeQrModal(true)}
-                      className="w-44 h-44 sm:w-48 sm:h-48 bg-white border border-[#333333] rounded-xl overflow-hidden cursor-pointer group flex items-center justify-center p-1.5 transition-colors hover:border-zinc-500"
-                      title="Click to view fullscreen"
-                    >
-                      <div className="w-full h-full overflow-hidden rounded-lg flex items-center justify-center bg-white">
-                        <img
-                          src={cfQrImageUrl}
-                          alt="Cashfree Dynamic QR"
-                          className="w-full h-full object-contain p-1 select-none pointer-events-none transition-transform duration-200 group-hover:scale-105"
-                        />
+                ) : cfPosShortUrl ? (
+                  <div className="w-full space-y-2.5">
+                    <div className="p-2.5 rounded-lg bg-[#0a0a0a] border border-cyan-500/30 space-y-2 text-left">
+                      <div className="flex items-center justify-between text-[10px] font-mono">
+                        <span className="flex items-center gap-1.5 text-emerald-400">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block animate-pulse" />
+                          Listening for payment...
+                        </span>
+                        <span className="text-white font-bold">₹{grandTotal.toLocaleString("en-IN")}</span>
                       </div>
+                      <div className="p-2 rounded-md bg-black border border-[#222222] flex items-center justify-between gap-2">
+                        <a
+                          href={cfPosShortUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] font-mono text-cyan-300 hover:underline truncate"
+                        >
+                          {cfPosShortUrl}
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            navigator.clipboard.writeText(cfPosShortUrl);
+                            setCfPosCopied(true);
+                            setTimeout(() => setCfPosCopied(false), 2000);
+                          }}
+                          className="px-2 py-0.5 rounded bg-[#161616] hover:bg-[#222222] text-zinc-200 text-[10px] font-medium shrink-0 border border-[#333333] cursor-pointer"
+                        >
+                          {cfPosCopied ? "Copied" : "Copy"}
+                        </button>
+                      </div>
+                      <p className="text-[10px] text-zinc-400">
+                        Link-Only: Tap link to pay directly with Paytm, PhonePe, Google Pay, or J&amp;K Bank mPay (no QR scan needed).
+                      </p>
                     </div>
 
-                    {/* QR Status Bar & Controls */}
-                    <div className="flex items-center justify-between w-full px-1 pt-0.5">
-                      <div className="flex items-center gap-1.5 text-zinc-400 font-mono text-[11px]">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
-                        Listening for scan...
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          type="button"
-                          onClick={() => setEnlargeQrModal(true)}
-                          className="px-2 py-0.5 rounded-md bg-[#161616] hover:bg-[#222222] text-zinc-300 border border-[#333333] text-[10px] font-medium uppercase cursor-pointer"
-                        >
-                          Enlarge
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => generateCashfreeQr(grandTotal, true)}
-                          className="px-2 py-0.5 rounded-md bg-[#161616] hover:bg-[#222222] text-zinc-300 border border-[#333333] text-[10px] font-medium uppercase cursor-pointer"
-                        >
-                          Refresh
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleCancelActiveQr}
-                          className="px-2 py-0.5 rounded-md bg-[#161616] hover:bg-rose-500/20 text-zinc-400 hover:text-rose-400 border border-[#333333] text-[10px] font-medium uppercase cursor-pointer"
-                          title="Cancel and close this dynamic QR code"
-                        >
-                          ✕ Expire
-                        </button>
-                      </div>
+                    <div className="grid grid-cols-3 gap-1.5 w-full">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const clean = customerPhone.replace(/\D/g, "").slice(-10);
+                          const msg = `Hi${customerName ? ` ${customerName.trim()}` : ""}! 🐟\nHere is your Urban Trout 1-Tap payment link for *₹${grandTotal.toLocaleString("en-IN")}*:\n${cfPosShortUrl}\n\nClick the link to pay directly via Paytm, PhonePe, Google Pay, or J&K Bank mPay!`;
+                          const enc = encodeURIComponent(msg);
+                          window.open(clean.length === 10 ? `https://wa.me/91${clean}?text=${enc}` : `https://wa.me/?text=${enc}`, "_blank");
+                        }}
+                        className="py-1.5 px-2 rounded-md bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 text-[10px] font-medium uppercase cursor-pointer"
+                      >
+                        WhatsApp
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => generateCashfreeQr(grandTotal, true)}
+                        className="py-1.5 px-2 rounded-md bg-[#161616] hover:bg-[#222222] text-zinc-300 border border-[#333333] text-[10px] font-medium uppercase cursor-pointer"
+                      >
+                        Refresh
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleCancelActiveQr}
+                        className="py-1.5 px-2 rounded-md bg-[#161616] hover:bg-rose-500/20 text-zinc-400 hover:text-rose-400 border border-[#333333] text-[10px] font-medium uppercase cursor-pointer"
+                        title="Cancel and expire this payment link"
+                      >
+                        ✕ Expire
+                      </button>
                     </div>
-                  </>
+                  </div>
                 ) : (
-                  /* ─── READY STATE: ON-DEMAND BUTTON TO GENERATE QR ─── */
+                  /* ─── READY STATE: ON-DEMAND BUTTON TO GENERATE 1-TAP LINK ─── */
                   <div className="w-full py-4 px-3 text-center space-y-2.5">
-                    <div className="w-9 h-9 rounded-lg bg-[#0a0a0a] border border-[#222222] text-zinc-300 flex items-center justify-center mx-auto text-lg">
-                      <span className="material-symbols-outlined text-lg">qr_code_2</span>
+                    <div className="w-9 h-9 rounded-lg bg-[#0a0a0a] border border-[#222222] text-cyan-400 flex items-center justify-center mx-auto text-lg">
+                      <span className="material-symbols-outlined text-lg">link</span>
                     </div>
                     <div>
                       <h4 className="text-xs sm:text-sm font-semibold text-white font-['Space_Grotesk']">
-                        Customer QR Code
+                        Cashfree 1-Tap Payment Link
                       </h4>
                       <p className="text-[11px] text-zinc-400 mt-0.5">
                         Amount locked to <strong className="text-zinc-200 font-mono tabular-nums text-xs sm:text-sm">₹{grandTotal.toLocaleString("en-IN")}</strong>
@@ -3489,8 +3514,8 @@ Helpline: +91 84910 06127`;
                       disabled={grandTotal <= 0}
                       className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 active:scale-[0.99] disabled:opacity-50 text-slate-950 font-black uppercase tracking-wider text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-cyan-500/20 font-['Space_Grotesk']"
                     >
-                      <span className="material-symbols-outlined text-base">qr_code_scanner</span>
-                      Generate Customer QR (₹{grandTotal.toLocaleString("en-IN")})
+                      <span className="material-symbols-outlined text-base">bolt</span>
+                      Generate 1-Tap Pay Link (₹{grandTotal.toLocaleString("en-IN")})
                     </button>
                   </div>
                 )}
@@ -3906,7 +3931,7 @@ Helpline: +91 84910 06127`;
                 <span>{isCustomAmountMode ? "Direct QR" : `${totalWeight.toFixed(2)} Kg`}</span>
                 <span>•</span>
                 <span className="text-zinc-300 font-medium truncate">
-                  {paymentMethod === "HdfcUpi" ? "HDFC Bank (SmartHub)" : paymentMethod === "CashfreeQR" ? "Cashfree QR" : paymentMethod === "JkBankSoundbox" ? "J&K Bank" : paymentMethod === "WhatsAppLink" ? "WhatsApp" : "Cash"}
+                  {paymentMethod === "HdfcUpi" ? "HDFC Bank (SmartHub)" : paymentMethod === "CashfreeQR" ? "Cashfree Link" : paymentMethod === "JkBankSoundbox" ? "J&K Bank" : paymentMethod === "WhatsAppLink" ? "WhatsApp" : "Cash"}
                 </span>
               </div>
               <div className="text-base sm:text-lg font-bold text-white font-mono tabular-nums leading-tight">
@@ -5075,7 +5100,7 @@ Helpline: +91 84910 06127`;
                       Scan with Any UPI App (GPay / PhonePe / Paytm)
                     </p>
                     <p className="text-[11px] text-slate-500 font-mono mt-0.5">
-                      {(generatedInvoice.paymentMethod?.includes("Cashfree") || generatedInvoice.paymentMethod?.includes("Razorpay")) ? "Cashfree Verified Gateway QR" : `UPI ID: ${generatedInvoice.upiId}`}
+                      {(generatedInvoice.paymentMethod?.includes("Cashfree") || generatedInvoice.paymentMethod?.includes("Razorpay")) ? "Cashfree Verified Gateway" : `UPI ID: ${generatedInvoice.upiId}`}
                     </p>
                   </div>
                 </div>
@@ -5538,14 +5563,22 @@ Helpline: +91 84910 06127`;
 
                 {/* ─── RIGHT COLUMN: CRISP SMART UPI QR CODE & APPS (Order 1 on mobile, Order 2 on Desktop) ─── */}
                 <div className="flex flex-col items-center space-y-2.5 order-1 md:order-2">
-                  {/* Giant QR Box */}
+                  {/* Giant QR Box (Direct Counter VPA) or 1-Tap Cashfree Link */}
                   <div className="w-56 h-56 sm:w-64 sm:h-64 bg-white border-2 border-emerald-400 rounded-3xl shadow-2xl overflow-hidden relative flex items-center justify-center p-3">
-                    {paymentMethod === "CashfreeQR" && cfQrImageUrl ? (
-                      <img
-                        src={cfQrImageUrl}
-                        alt="Cashfree Dynamic QR"
-                        className="w-full h-full object-contain select-none pointer-events-none rounded-2xl"
-                      />
+                    {paymentMethod === "CashfreeQR" && cfPosShortUrl ? (
+                      <div className="flex flex-col items-center justify-center text-center p-3 space-y-2">
+                        <span className="text-3xl">🔗</span>
+                        <span className="text-xs font-black text-slate-900">1-Tap Cashfree Link</span>
+                        <a
+                          href={cfPosShortUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-[11px] font-mono text-blue-600 underline break-all"
+                        >
+                          {cfPosShortUrl}
+                        </a>
+                        <span className="text-[10px] text-slate-600">Pay via GPay, PhonePe, Paytm, mPay</span>
+                      </div>
                     ) : paymentMethod === "HdfcUpi" ? (
                       <img
                         src={hdfcQrCodeUrl}
@@ -5567,7 +5600,7 @@ Helpline: +91 84910 06127`;
                         ? "Scan with Google Pay, PhonePe, Paytm, PayZapp, or Any UPI App"
                         : paymentMethod === "JkBankSoundbox"
                         ? "Scan with J&K mPay Delight, Google Pay, PhonePe, or Paytm"
-                        : "Scan with Google Pay, PhonePe, Paytm, CRED, or BHIM"}
+                        : "Tap link to pay via Google Pay, PhonePe, Paytm, J&K Bank mPay, or Card"}
                     </p>
 
                     {/* Supported Apps Chips */}
@@ -5584,11 +5617,11 @@ Helpline: +91 84910 06127`;
 
                     {/* UPI ID + Copy */}
                     <div className="flex items-center justify-center gap-1.5 text-[10px] text-slate-400 font-mono pt-1">
-                      <span>{paymentMethod === "HdfcUpi" ? HDFC_COUNTER_VPA : paymentMethod === "CashfreeQR" ? "Cashfree Link & QR" : upiId}</span>
+                      <span>{paymentMethod === "HdfcUpi" ? HDFC_COUNTER_VPA : paymentMethod === "CashfreeQR" ? (cfPosShortUrl || "Cashfree 1-Tap Link") : upiId}</span>
                       <button
                         type="button"
                         onClick={() => {
-                          const target = paymentMethod === "HdfcUpi" ? HDFC_COUNTER_VPA : upiId;
+                          const target = paymentMethod === "HdfcUpi" ? HDFC_COUNTER_VPA : paymentMethod === "CashfreeQR" ? (cfPosShortUrl || upiId) : upiId;
                           navigator.clipboard.writeText(target);
                           setCopiedUpi(true);
                           setTimeout(() => setCopiedUpi(false), 2500);

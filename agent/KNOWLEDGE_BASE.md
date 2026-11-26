@@ -149,7 +149,7 @@
 • **100% Live Harvest Guarantee:** Unlike ordinary market fish stored dead on ice with preservatives, our trout is swimming live in our high-tech crystal-clear oxygen-saturated cold water tanks until you order. We harvest and clean it exclusively for you, so it reaches your pan jumping-fresh within 2 hours.
 • **Govt-Approved & Local Facility:** We are an official Govt-approved cold-water fisheries facility (Department of Fisheries, J&K) located right here in Malabagh (Near R. P. School Girls Wing).
 • **Prefer Cash? Visit Our Live Counter:** If you prefer paying cash, you are warmly welcome to visit our Live Vending Center counter in Malabagh directly to choose your live swimming trout and pay at the counter! 📍 https://maps.app.goo.gl/6FT5iLk5n8mbKSRU9"*
-- **Payment Method for Delivery:** Official locked Cashfree payment link or locked Cashfree/UPI QR Scanner image sent by our system. (NO Cash on Delivery/COD, and no unverified manual personal UPI IDs written in text). If a customer asks for a scanner or QR code, our system automatically generates and dispatches our official Cashfree payment link and QR card.
+- **Payment Method for Delivery:** Official locked Cashfree 1-Tap Payment Link (`https://urbantrout.in/p/...`) sent directly in chat. (NO Cash on Delivery/COD, and no unverified manual personal UPI IDs written in text). If a customer asks for a QR code or scanner, politely explain that we send a direct 1-Tap Cashfree Payment Link so they can pay straight via Google Pay, PhonePe, Paytm, J&K Bank mPay, or Card in one click without needing to scan a QR.
 
 ---
 
@@ -393,8 +393,8 @@ However, all of our farm-raised trout is sold fresh at our Live Vending Center i
 ---
 
 ## 💳 PAYMENT & LIVE HARVEST PROTOCOL (UPFRONT ONLINE PAYMENT / J&K BANK mPAY)
-- We harvest live fish specifically for the customer upon confirmation. Because freshly harvested fish cannot be returned to live tanks, **an order is ONLY confirmed once full payment is made upfront via our official locked Cashfree payment link, locked Cashfree/UPI QR card, or J&K Bank mPay account transfer.**
-- **Payment Methods Accepted:** Official locked Cashfree payment links (`https://urbantrout.in/pay/...`), locked Cashfree UPI QR cards (supports Google Pay, PhonePe, Paytm, BHIM, and J&K Bank mPay), and J&K Bank Current Account mPay when explicitly requested. When a customer asks for a QR code or payment link, our system dispatches our locked Cashfree payment link & QR image for their confirmed area. (NO Cash on Delivery/COD, and never share banned legacy UPI IDs).
+- We harvest live fish specifically for the customer upon confirmation. Because freshly harvested fish cannot be returned to live tanks, **an order is ONLY confirmed once full payment is made upfront via our official 1-Tap Cashfree Payment Link (`https://urbantrout.in/p/...`) or J&K Bank mPay account transfer.**
+- **Payment Methods Accepted:** Official locked Cashfree 1-Tap Payment Links (`https://urbantrout.in/p/...`, supporting 1-tap Google Pay, PhonePe, Paytm, BHIM, J&K Bank mPay, Cards, and Netbanking) and J&K Bank Current Account mPay when explicitly requested. If a customer asks for a QR code or scanner, share our direct 1-Tap Payment Link (`https://urbantrout.in/p/...`) so they can pay straight on their phone without scanning anything. (NO Cash on Delivery/COD, and never share banned legacy UPI IDs).
 - When the customer confirms their quantity (minimum 1 kg with courier fee, or 2–5 kg free MOQ by zone), cut, and delivery time slot across our 16.0 km perimeter, generate the locked payment link & summary.
 
 ---
@@ -467,8 +467,8 @@ However, all of our farm-raised trout is sold fresh at our Live Vending Center i
   3. **Express Delivery:** Stated clearly as either **100% FREE** or the exact **Express Delivery fee** (e.g. ₹45, ₹55, ₹75, ₹89, ₹109, ₹129, ₹130, ₹139, ₹190).
   4. **Packaging:** 100% food-grade biodegradable polythene packaging (0% ice, no melting mess).
   5. **Destination Address:** Area name and approximate distance from our Recirculatory Aquaculture System at Malabagh.
-  6. **Total Payable:** The exact sum total that matches the locked payment link & QR card.
-  7. **Official Payment Option:** Secure Cashfree payment link & locked QR card (and J&K Bank mPay when requested) supporting UPI, GPay, PhonePe, Paytm, and J&K Bank mPay.
+  6. **Total Payable:** The exact sum total that matches the 1-Tap Payment Link.
+  7. **Official Payment Option:** Secure 1-Tap Cashfree Payment Link (`https://urbantrout.in/p/...`) supporting Google Pay, PhonePe, Paytm, J&K Bank mPay & Cards (and J&K Bank account transfer when requested).
   8. **Live-Harvest Guarantee & Delivery Window:** Clear reminder that the fish is harvested live to order upon payment confirmation and delivered within 90–120 minutes (or chosen scheduled slot).
 
 

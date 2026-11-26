@@ -34,7 +34,7 @@ function QuickQrContent() {
     ? generateFastQrDataUrl(upiUri, { darkColor: "#000000", margin: 2 })
     : "";
 
-  // Fetch dynamic Cashfree link/QR if gateway is cashfree
+  // Fetch dynamic Cashfree 1-Tap link if gateway is cashfree (Link-Only)
   useEffect(() => {
     if (gateway !== "cashfree" || numAmount <= 0) {
       setCfQrData(null);
@@ -47,11 +47,11 @@ function QuickQrContent() {
     fetch(`/api/cashfree/quick-qr?amount=${numAmount}&format=json`)
       .then((res) => res.json())
       .then((data) => {
-        if (isSubscribed && data.success && data.image_url) {
+        if (isSubscribed && data.success && (data.pay_url || data.image_url)) {
           setCfQrData(data);
         }
       })
-      .catch((err) => console.warn("Failed to load Cashfree dynamic QR:", err))
+      .catch((err) => console.warn("Failed to load Cashfree payment link:", err))
       .finally(() => {
         if (isSubscribed) setCfLoading(false);
       });
@@ -133,7 +133,9 @@ function QuickQrContent() {
           <span className="text-2xl">🐟</span>
           <div>
             <h1 className="text-base font-black tracking-tight text-white leading-none">URBAN TROUT</h1>
-            <p className="text-[10px] text-cyan-400 font-bold uppercase tracking-wider mt-0.5">Rider Instant Locked QR</p>
+            <p className="text-[10px] text-cyan-400 font-bold uppercase tracking-wider mt-0.5">
+              {gateway === "cashfree" ? "Rider 1-Tap Cashfree Link" : "Rider Instant Locked QR"}
+            </p>
           </div>
         </div>
         <div className="flex items-center gap-1.5 bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 px-2.5 py-1 rounded-full text-xs font-bold font-mono">
@@ -253,15 +255,49 @@ function QuickQrContent() {
               onClick={() => setPaidCelebration(false)}
               className="mt-4 px-6 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold"
             >
-              Show QR Again
+              {gateway === "cashfree" ? "Back to Link" : "Show QR Again"}
             </button>
           </div>
         ) : cfLoading ? (
           <div className="py-16 flex flex-col items-center justify-center gap-3">
             <div className="w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
-            <span className="text-xs text-slate-400">Generating Cashfree Link &amp; QR...</span>
+            <span className="text-xs text-slate-400">Generating 1-Tap Cashfree Link...</span>
           </div>
-        ) : numAmount > 0 && activeQrImage ? (
+        ) : gateway === "cashfree" && numAmount > 0 && cfQrData?.pay_url ? (
+          <div className="flex flex-col items-center text-center w-full space-y-3 py-4">
+            <div className="w-16 h-16 rounded-2xl bg-cyan-500/15 border border-cyan-500/40 flex items-center justify-center text-3xl">
+              🔗
+            </div>
+            <div>
+              <p className="text-[11px] uppercase tracking-widest text-cyan-400 font-bold">1-Tap Payment Link Ready</p>
+              <p className="text-2xl font-black font-mono text-white mt-0.5">₹{numAmount.toLocaleString("en-IN")}</p>
+            </div>
+            <a
+              href={cfQrData.pay_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-cyan-400 to-blue-500 hover:from-cyan-300 hover:to-blue-400 text-slate-950 font-black text-sm shadow-lg shadow-cyan-500/20 transition-all"
+            >
+              Tap to Pay ₹{numAmount.toLocaleString("en-IN")} ↗
+            </a>
+            <div className="w-full px-3 py-2 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono text-cyan-300 break-all select-all">
+              {cfQrData.pay_url}
+            </div>
+            <p className="text-[11px] text-slate-400 leading-relaxed max-w-xs">
+              No QR code needed — clicking the link opens Paytm, PhonePe, Google Pay, or J&amp;K Bank mPay directly on the customer&apos;s phone.
+            </p>
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-950/90 border border-cyan-500/50 text-cyan-300 text-xs font-bold">
+              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+              <span>⚡ Auto-Detects &amp; Sends Telegram Alert</span>
+            </div>
+            <div className="pt-1 flex items-center justify-center gap-2 text-[10px] text-slate-400 font-semibold">
+              <span className="px-2 py-0.5 rounded bg-slate-950 border border-slate-800">Google Pay</span>
+              <span className="px-2 py-0.5 rounded bg-slate-950 border border-slate-800">PhonePe</span>
+              <span className="px-2 py-0.5 rounded bg-slate-950 border border-slate-800">Paytm</span>
+              <span className="px-2 py-0.5 rounded bg-slate-950 border border-slate-800">mPay</span>
+            </div>
+          </div>
+        ) : numAmount > 0 && activeQrImage && gateway !== "cashfree" ? (
           <div className="flex flex-col items-center">
             {/* Crisp High-Contrast QR Card */}
             <div className="p-3 bg-white rounded-2xl shadow-2xl border-4 border-white">
@@ -272,18 +308,10 @@ function QuickQrContent() {
               />
             </div>
 
-            {/* Mode-specific status pill */}
-            {gateway === "cashfree" ? (
-              <div className="mt-3 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-950/90 border border-cyan-500/50 text-cyan-300 text-xs font-bold">
-                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
-                <span>⚡ Auto-Detects &amp; Sends Telegram Alert</span>
-              </div>
-            ) : (
-              <div className="mt-3 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 text-xs font-bold">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
-                <span>🔒 ₹{numAmount.toLocaleString("en-IN")} Locked in Customer&apos;s UPI App</span>
-              </div>
-            )}
+            <div className="mt-3 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-950/90 border border-emerald-500/50 text-emerald-300 text-xs font-bold">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+              <span>🔒 ₹{numAmount.toLocaleString("en-IN")} Locked in Customer&apos;s UPI App</span>
+            </div>
 
             {/* Supported App Badges */}
             <div className="mt-3 flex items-center justify-center gap-2 text-[10px] text-slate-400 font-semibold">
@@ -295,8 +323,12 @@ function QuickQrContent() {
           </div>
         ) : (
           <div className="py-16 text-center text-slate-500">
-            <span className="material-symbols-outlined text-5xl mb-2 block opacity-40">qr_code_2</span>
-            <p className="text-sm font-semibold">Enter an amount above to generate QR</p>
+            <span className="material-symbols-outlined text-5xl mb-2 block opacity-40">
+              {gateway === "cashfree" ? "link" : "qr_code_2"}
+            </span>
+            <p className="text-sm font-semibold">
+              {gateway === "cashfree" ? "Enter an amount above to generate 1-Tap link" : "Enter an amount above to generate QR"}
+            </p>
           </div>
         )}
       </div>

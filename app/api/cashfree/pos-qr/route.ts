@@ -3,10 +3,12 @@ import { requireAdminAuth } from "@/lib/adminAuth";
 import {
   cancelCashfreePaymentLink,
   cashfreeFetch,
+  extractCashfreeLinkSlug,
   getCashfreeOrderPayments,
   normalizeIndianPhone,
   resolveCashfreeLinkPayment,
 } from "@/lib/cashfree";
+import { createShortCashfreeUrl } from "@/lib/payRedirect";
 
 export async function POST(request: Request) {
   const authError = await requireAdminAuth(request);
@@ -118,13 +120,17 @@ export async function POST(request: Request) {
       );
     }
 
+    const slug = extractCashfreeLinkSlug(linkRes.data.link_url);
+    const shortPayUrl = slug ? await createShortCashfreeUrl(slug, origin) : linkRes.data.link_url;
+
     return NextResponse.json({
       success: true,
       qr_id: linkRes.data.link_id,
       image_url: linkRes.data.link_qrcode || linkRes.data.link_url,
-      short_url: linkRes.data.link_url,
+      short_url: shortPayUrl,
+      pay_url: shortPayUrl,
       amount: numAmount,
-      mode: "cashfree_link_qr",
+      mode: "cashfree_link",
     });
   } catch (err: any) {
     console.error("Cashfree POS QR POST error:", err);

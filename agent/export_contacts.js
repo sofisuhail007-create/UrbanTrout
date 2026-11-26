@@ -888,7 +888,7 @@ function enrichContactsFromChats(options = {}) {
     const isPaymentSent =
       !isBuyer &&
       ((matchedOrder && /payment link sent/i.test(matchedOrder.status || '')) ||
-        /(?:urbantrout\.in\/pay|cashfree\.com|rzp\.io|payment link)/i.test(allText));
+        /(?:urbantrout\.in\/p(?:ay)?|cashfree\.com|rzp\.io|payment link)/i.test(allText));
 
     // Resolve CreatedAt timestamp cleanly
     let createdAtTs = bucket.latestTs || Number(meta.lastUserMsgTime) || Number(meta.lastBotMsgTime) || 0;
