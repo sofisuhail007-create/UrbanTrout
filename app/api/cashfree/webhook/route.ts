@@ -5,7 +5,12 @@ import { sendPaymentLinkConfirmationEmail } from "@/lib/email";
 import { enqueueWhatsAppDispatch } from "@/lib/whatsappDispatch";
 import { autoSettleKhataPayment } from "@/lib/khataAutoSettle";
 import { logOrderToVendingSales } from "@/lib/aquariumStock";
-import { getCashfreeCredentials, verifyCashfreeWebhookSignature } from "@/lib/cashfree";
+import {
+  getCashfreeCredentials,
+  getCashfreeOrder,
+  getCashfreePaymentLink,
+  verifyCashfreeWebhookSignature,
+} from "@/lib/cashfree";
 
 export const dynamic = "force-dynamic";
 
@@ -236,9 +241,30 @@ export async function POST(request: Request) {
     const timestamp = request.headers.get("x-webhook-timestamp");
     const { webhookSecret } = getCashfreeCredentials();
 
-    if (webhookSecret && (!signature || !timestamp || !verifyCashfreeWebhookSignature(rawBody, signature, timestamp))) {
-      console.error("[Cashfree Webhook] Invalid signature rejected!");
-      return NextResponse.json({ error: "Invalid webhook signature" }, { status: 401 });
+    const hmacValid = Boolean(
+      signature && timestamp && verifyCashfreeWebhookSignature(rawBody, signature, timestamp)
+    );
+
+    if (webhookSecret && !hmacValid) {
+      // Cashfree Payment Link v1 webhooks can omit v2 timestamp headers; confirm directly via Cashfree REST API before trusting.
+      let serverVerified = false;
+      try {
+        if (eventType === "PAYMENT_LINK_EVENT" && data?.link_id) {
+          const linkRes = await getCashfreePaymentLink(String(data.link_id));
+          const linkStatus = String(linkRes.data?.link_status || "").toUpperCase();
+          serverVerified = linkRes.ok && (linkStatus === "PAID" || Number(linkRes.data?.link_amount_paid || 0) > 0);
+        } else if (data?.order?.order_id || data?.order_id) {
+          const orderRes = await getCashfreeOrder(String(data.order?.order_id || data.order_id));
+          serverVerified = orderRes.ok && String(orderRes.data?.order_status || "").toUpperCase() === "PAID";
+        }
+      } catch (_) {
+        serverVerified = false;
+      }
+
+      if (!serverVerified) {
+        console.error("[Cashfree Webhook] Invalid signature and server verification failed!");
+        return NextResponse.json({ error: "Invalid webhook signature" }, { status: 401 });
+      }
     }
 
     if (eventType === "PAYMENT_FAILED_WEBHOOK" || eventType === "PAYMENT_USER_DROPPED_WEBHOOK") {
@@ -476,6 +502,7 @@ export async function POST(request: Request) {
         customerName,
         status: "payment_confirmed",
         messageText: waMsg,
+        paymentId: cfPaymentId,
       }).catch(() => {});
     }
 

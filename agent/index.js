@@ -27,10 +27,10 @@ process.on("unhandledRejection", (reason) => {
 // ============================================================================
 // URBAN TROUT SALES AGENT — BUILD & VERSION TRACKING
 // ============================================================================
-const BOT_VERSION = "3.6.0";
-const BOT_LAST_UPDATED = "27-Nov-2026, 12:58 AM IST";
-const BOT_RELEASE_TITLE = "Link-Only Cashfree Checkout & Ultra-Short Branded URLs";
-const BOT_RELEASE_NOTES = "1. Removed WhatsApp QR image attachments so customers receive one clean 1-Tap Cashfree Payment Link card (plus J&K Bank fallback). 2. Added Supabase-backed 5-char short links (https://urbantrout.in/p/xxxxx) replacing long Cashfree slugs across AI replies, order cards, and manual #link/#qr commands. 3. Eliminated duplicate companion payment messages on Order Summary & GPS pins.";
+const BOT_VERSION = "3.6.1";
+const BOT_LAST_UPDATED = "27-Nov-2026, 01:25 AM IST";
+const BOT_RELEASE_TITLE = "Link-Only Cashfree Checkout, Single-Link Reuse & Zero-Dup Alerts";
+const BOT_RELEASE_NOTES = "1. 100% Link-Only Cashfree checkout using short https://urbantrout.in/p/xxxxx URLs across WhatsApp & Website. 2. Active payment links reuse cleanly unless customer changes quantity or area. 3. Cross-process Telegram & WhatsApp dedup, botSentMessageIds receipt protection, and cleaned #help (#link only).";
 
 // ============================================================================
 // STRICT MANUAL-ONLY & DRIVER EXCLUSION LIST (AI MUST NEVER TEXT UNDER ANY CIRCUMSTANCE)
@@ -1621,8 +1621,7 @@ async function createCashfreePaymentLink({ amount, customerPhone, customerName, 
     link_meta: {
       upi_intent: true,
       payment_methods: "upi",
-      notify_url: "https://urbantrout.in/api/cashfree/webhook",
-      return_url: `https://urbantrout.in/p/${encodeURIComponent(ref)}`
+      notify_url: "https://urbantrout.in/api/cashfree/webhook"
     },
     link_notes: {
       order_ref: String(ref).slice(0, 60),
@@ -2514,11 +2513,21 @@ async function pollWhatsAppDispatchQueue(sock) {
         }
 
         const latestOrdersSnap = readOrdersCached(ordersFilePath);
-        const existingOrd = latestOrdersSnap[cleanPhone];
+        const existingEntry = latestOrdersSnap[cleanPhone]
+          ? [cleanPhone, latestOrdersSnap[cleanPhone]]
+          : Object.entries(latestOrdersSnap).find(([, o]) =>
+              o && (
+                (item.orderRef && o.orderRef === item.orderRef) ||
+                (String(o.phone || "").replace(/\D/g, "").slice(-10) === cleanPhone)
+              )
+            );
+        const existingOrdKey = existingEntry ? existingEntry[0] : cleanPhone;
+        const existingOrd = existingEntry ? existingEntry[1] : null;
 
         // Deduplicate payment_confirmed messages when Cashfree poller or #paid ALREADY sent the confirmation!
         if (item.status === "payment_confirmed" && (
           (item.paymentId && confirmedPaymentIds.has(item.paymentId)) ||
+          (existingOrd?.cashfreeLinkId && confirmedPaymentIds.has(existingOrd.cashfreeLinkId)) ||
           (existingOrd && (existingOrd.paidAt || existingOrd.paymentId || isOrderDeliveredOrClosed(existingOrd) || /(?:paid|confirmed|harvested|out\s*for\s*delivery|delivered)/i.test(existingOrd.status || "")))
         )) {
           console.log(`[Dispatch Queue Dedup] Skipped duplicate payment_confirmed WhatsApp message for +91 ${cleanPhone} (#${item.orderRef || existingOrd?.orderRef}).`);
@@ -2542,12 +2551,16 @@ async function pollWhatsAppDispatchQueue(sock) {
         console.log(`📡 Sending "${item.status}" update to +91 ${cleanPhone} for Order #${item.orderRef}...`);
 
         try {
-          await sock.sendMessage(targetJid, { text: cleanText });
+          const sentQueueMsg = await sock.sendMessage(targetJid, { text: cleanText });
+          if (sentQueueMsg?.key?.id) {
+            botSentMessageIds.add(sentQueueMsg.key.id);
+            setTimeout(() => botSentMessageIds.delete(sentQueueMsg.key.id), 10 * 60 * 1000);
+          }
           console.log(`✅ [WhatsApp Delivered] Successfully notified customer (+91 ${cleanPhone})!`);
 
           // Re-read latest orders cleanly before patching status (avoids clobbering concurrent orders!)
           const freshOrders = readOrdersCached(ordersFilePath);
-          const freshOrd = freshOrders[cleanPhone];
+          const freshOrd = freshOrders[existingOrdKey] || freshOrders[cleanPhone];
           if (freshOrd) {
             const newStatus = item.status === "out_for_delivery"
               ? "Out for Delivery (Rider Dispatched)"
@@ -2563,12 +2576,21 @@ async function pollWhatsAppDispatchQueue(sock) {
             // Never downgrade Delivered / Out for Delivery back to Paid & Confirmed
             const skipDowngrade = item.status === "payment_confirmed" && (isOrderDeliveredOrClosed(freshOrd) || /out\s*for\s*delivery|harvested/i.test(freshOrd.status || ""));
             if (!skipDowngrade) {
-              recordNewCustomerOrder(cleanPhone, {
+              recordNewCustomerOrder(existingOrdKey, {
                 ...freshOrd,
                 status: newStatus,
+                ...(item.status === "payment_confirmed" ? {
+                  paidAt: freshOrd.paidAt || new Date().toISOString(),
+                  paymentId: item.paymentId || freshOrd.paymentId || undefined
+                } : {}),
                 ...(item.status === "delivered" ? { deliveredAt: new Date().toISOString() } : {})
               });
-              console.log(`[Customer Memory Updated] Status for ${cleanPhone} set to "${newStatus}"`);
+              console.log(`[Customer Memory Updated] Status for ${existingOrdKey} set to "${newStatus}"`);
+            }
+            if (item.status === "payment_confirmed") {
+              if (item.paymentId) markPaymentProcessed(item.paymentId);
+              if (freshOrd.cashfreeLinkId) markPaymentProcessed(freshOrd.cashfreeLinkId);
+              if (freshOrd.paymentLinkId) markPaymentProcessed(freshOrd.paymentLinkId);
             }
           }
 
@@ -2645,17 +2667,38 @@ async function sendTelegramDispatchCard(order, paymentInfo = {}) {
     console.log(`[Telegram Dedup] Skipping duplicate dispatch card for #${orderRef}`);
     return;
   }
+
+  const phone = order.phone || paymentInfo.phone || "Customer";
+  const name = order.name || "Customer";
+  const amtRaw = paymentInfo.amount || (order.amount ? String(order.amount).replace(/,/g, "").match(/\d+/)?.[0] : "");
+  const amt = amtRaw ? String(amtRaw) : "";
+  const clean10 = String(phone).replace(/\D/g, "").slice(-10);
+
+  // Cross-process Supabase dedup with Vercel Cashfree webhook (`tg_lock_*` keys)
+  try {
+    const lockKeys = [
+      `tg_lock_${orderRef}`,
+      paymentInfo.paymentId ? `tg_lock_${paymentInfo.paymentId}` : null,
+      (clean10.length === 10 && Number(amt) > 0) ? `tg_lock_amt_ph_${clean10}_${Math.round(Number(amt))}` : null
+    ].filter(Boolean);
+    if (lockKeys.length > 0 && SUPABASE_URL && SUPABASE_KEY) {
+      const lockCheck = await querySupabase(`app_settings?key=in.(${lockKeys.map(k => encodeURIComponent(k)).join(",")})&select=key,updated_at`);
+      if (Array.isArray(lockCheck) && lockCheck.some(r => r.updated_at && (Date.now() - new Date(r.updated_at).getTime() < 2 * 60 * 60 * 1000))) {
+        notifiedTelegramOrderRefs.add(orderRef);
+        console.log(`[Telegram Dedup] Webhook already dispatched Telegram alert for #${orderRef} — skipping duplicate.`);
+        return;
+      }
+      await updateSupabaseAppSettings(`tg_lock_${orderRef}`, JSON.stringify({ ts: Date.now(), source: "whatsapp_agent" }));
+    }
+  } catch (_) {}
+
   if (notifiedTelegramOrderRefs.size >= 2000) {
     const oldestRef = notifiedTelegramOrderRefs.values().next().value;
     if (oldestRef !== undefined) notifiedTelegramOrderRefs.delete(oldestRef);
   }
   notifiedTelegramOrderRefs.add(orderRef);
 
-  const phone = order.phone || paymentInfo.phone || "Customer";
-  const name = order.name || "Customer";
-  const amt = paymentInfo.amount || (order.amount ? String(order.amount).replace(/\D/g, "") : "");
   const mapsLink = order.googleMapsUrl || (order.latitude && order.longitude ? `https://maps.google.com/?q=${order.latitude},${order.longitude}` : null);
-  const clean10 = String(phone).replace(/\D/g, "").slice(-10);
   const modeText = paymentInfo.mode || "J&K Bank mPay / Direct Transfer";
   const vpaLine = paymentInfo.vpa ? `🆔 <b>UPI ID:</b> <code>${paymentInfo.vpa}</code>\n` : "";
   const locationLine = mapsLink
@@ -2950,7 +2993,11 @@ async function checkPendingCashfreePayments(sock) {
 
           if (targetJid && sock) {
             try {
-              await sock.sendMessage(targetJid, { text: receiptMsg });
+              const sentReceipt = await sock.sendMessage(targetJid, { text: receiptMsg });
+              if (sentReceipt?.key?.id) {
+                botSentMessageIds.add(sentReceipt.key.id);
+                setTimeout(() => botSentMessageIds.delete(sentReceipt.key.id), 10 * 60 * 1000);
+              }
               console.log(`✅ [Instant Cashfree WhatsApp Receipt Sent] Delivered directly to ${targetJid}!`);
             } catch (sendErr) {
               console.error("Failed to send WhatsApp confirmation receipt:", sendErr.message);
@@ -2963,10 +3010,11 @@ async function checkPendingCashfreePayments(sock) {
             }
           }
 
-          // Send Telegram Dispatch Card (note sendTelegramDispatchCard expects paymentInfo.vpa)
+          // Send Telegram Dispatch Card (deduped across Vercel webhook & VPS poller)
           await sendTelegramDispatchCard(order, {
             amount: paidAmt,
             phone: targetPhone,
+            paymentId: order.paymentId,
             vpa: upiVpa || "Cashfree Instant UPI",
             mode: "Cashfree 0% Gateway"
           });
@@ -7674,15 +7722,8 @@ async function startBot() {
             `• *#paid [amount]* (e.g. *#paid 1259* inside customer chat)\n` +
             `• *#paid 9876543210 1259* (Confirm payment for specific phone number)\n` +
             `• *#delivered* (Mark order as delivered & remove from active queue)\n` +
-            `• *#delivered 9876543210* (Mark order delivered by phone or ref)\n` +
-            `• *#qr 2kg* (Cleaned & Gutted @ ₹580 * 2 = ₹1,160 1-Tap Pay Link)\n` +
-            `• *#qr 1740* (Direct flat ₹1,740 1-Tap Pay Link)\n` +
-            `• *#qr 2kg +149* (2kg Gutted + ₹149 delivery = ₹1,309 Pay Link)\n` +
-            `• *#qr 3kg +200* (3kg Gutted + ₹200 delivery = ₹1,940 Pay Link)\n` +
-            `• *#qr 2.5kg whole* (Whole Fresh @ ₹540 * 2.5 = ₹1,350 Pay Link)\n` +
-            `• *#qr 2kg 9876543210* (Send 1-Tap Pay Link directly to customer)\n` +
-            `• *#qr* (Drop 1-Tap Pay Link for current active order)\n\n` +
-            `⚡ *Instant Payment Link Shortcuts:*\n` +
+            `• *#delivered 9876543210* (Mark order delivered by phone or ref)\n\n` +
+            `⚡ *Instant 1-Tap Payment Link Shortcuts:*\n` +
             `• *#2kg +149* (2kg Gutted + ₹149 delivery = ₹1,309)\n` +
             `• *#3kg +200* (3kg Gutted + ₹200 delivery = ₹1,940)\n` +
             `• *#link 3kg +200* (3kg Gutted + ₹200 delivery)\n` +

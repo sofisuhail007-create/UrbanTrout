@@ -58,9 +58,7 @@ export async function POST(request: Request) {
       link_meta: {
         upi_intent: true,
         notify_url: `${origin}/api/cashfree/webhook`,
-        return_url: invoiceId
-          ? `${origin}/invoice/${encodeURIComponent(invoiceId)}`
-          : `${origin}/pay/${encodeURIComponent(rawRef)}`,
+        ...(invoiceId ? { return_url: `${origin}/invoice/${encodeURIComponent(invoiceId)}` } : {}),
       },
       link_notes: {
         order_ref: rawRef,

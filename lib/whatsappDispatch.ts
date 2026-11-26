@@ -11,6 +11,7 @@ export interface WhatsAppDispatchPayload {
   customerName?: string;
   status: string;
   messageText: string;
+  paymentId?: string;
 }
 
 export async function enqueueWhatsAppDispatch(dispatch: WhatsAppDispatchPayload): Promise<boolean> {
@@ -39,6 +40,7 @@ export async function enqueueWhatsAppDispatch(dispatch: WhatsAppDispatchPayload)
       customerName: dispatch.customerName || "Valued Customer",
       status: dispatch.status,
       messageText: dispatch.messageText,
+      paymentId: dispatch.paymentId || null,
       dispatched: false,
       queuedAt: new Date().toISOString(),
     };
