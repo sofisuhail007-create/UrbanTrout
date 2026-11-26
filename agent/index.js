@@ -2111,6 +2111,7 @@ function recordNewCustomerOrder(phone, orderData) {
     const storedPhone = (digitsOnly.length >= 10 && digitsOnly.length <= 13) ? digitsOnly.slice(-10) : (orderData?.phone || "");
 
     const existing = orders[orderKey];
+    const isSameOrderRef = Boolean(existing?.orderRef && orderData?.orderRef && existing.orderRef === orderData.orderRef);
     const pastOrders = Array.isArray(orderData?.pastOrders)
       ? [...orderData.pastOrders]
       : (Array.isArray(existing?.pastOrders) ? [...existing.pastOrders] : []);
@@ -2123,16 +2124,26 @@ function recordNewCustomerOrder(phone, orderData) {
 
     // Preserve all historical payment link IDs for this customer
     const allPaymentLinkIds = Array.isArray(existing?.allPaymentLinkIds) ? [...existing.allPaymentLinkIds] : (existing?.paymentLinkId ? [existing.paymentLinkId] : []);
-    if (orderData.paymentLinkId && !allPaymentLinkIds.includes(orderData.paymentLinkId)) {
-      allPaymentLinkIds.push(orderData.paymentLinkId);
+    const resolvedPaymentLinkId = orderData.paymentLinkId || (isSameOrderRef ? existing?.paymentLinkId : null) || null;
+    const resolvedCashfreeLinkId = orderData.cashfreeLinkId || (isSameOrderRef ? existing?.cashfreeLinkId : null) || null;
+    if (resolvedPaymentLinkId && !allPaymentLinkIds.includes(resolvedPaymentLinkId)) {
+      allPaymentLinkIds.push(resolvedPaymentLinkId);
     }
+
+    const nowIso = new Date().toISOString();
+    const resolvedCreatedAt = isSameOrderRef
+      ? (existing?.createdAt || orderData?.createdAt || nowIso)
+      : (orderData?.createdAt || nowIso);
 
     orders[orderKey] = {
       ...orderData,
       phone: storedPhone,
+      paymentLinkId: resolvedPaymentLinkId,
+      cashfreeLinkId: resolvedCashfreeLinkId,
       allPaymentLinkIds,
       pastOrders,
-      updatedAt: new Date().toISOString()
+      createdAt: resolvedCreatedAt,
+      updatedAt: nowIso
     };
     writeJsonAtomicSync(ordersFilePath, orders);
     _ordersFileCache = { mtimeMs: 0, data: null };
@@ -3615,7 +3626,8 @@ const TodayOrderPool = {
     const todayMap = {};
     for (const [k, ord] of Object.entries(all)) {
       if (!ord || isOrderDeliveredOrClosed(ord)) continue;
-      const createdDate = ord.createdAt ? new Date(ord.createdAt).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }) : null;
+      const refTs = ord.createdAt || ord.updatedAt || null;
+      const createdDate = refTs ? new Date(refTs).toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" }) : null;
 
       if (this.isOrderPaid(ord)) {
         if (isOrderActivePending(ord)) {
@@ -3624,7 +3636,7 @@ const TodayOrderPool = {
       } else {
         // UNPAID ORDERS: Only treat as an active order for today if created TODAY strictly within the last 3.5 hours!
         if (createdDate === today) {
-          const orderAgeMin = (Date.now() - new Date(ord.createdAt || ord.updatedAt || 0).getTime()) / (60 * 1000);
+          const orderAgeMin = (Date.now() - new Date(refTs || 0).getTime()) / (60 * 1000);
           if (orderAgeMin >= 0 && orderAgeMin < 210) {
             todayMap[k] = ord;
           }
@@ -3648,20 +3660,27 @@ const TodayOrderPool = {
     if (!activeOrder || !activeOrder.payUrl || this.isOrderPaid(activeOrder)) {
       return null;
     }
-    const orderAmt = Number(String(activeOrder.amount || "").replace(/\D/g, ""));
-    if (orderAmt && orderAmt === Number(requiredAmount)) {
-      const orderDate = new Date(activeOrder.createdAt || activeOrder.updatedAt || 0);
+    const amtMatch = String(activeOrder.amount || "").replace(/,/g, "").match(/(\d+(?:\.\d+)?)/);
+    const orderAmt = amtMatch ? Math.round(parseFloat(amtMatch[1])) : 0;
+    const targetAmt = requiredAmount ? Math.round(Number(requiredAmount)) : 0;
+    if (orderAmt && (!targetAmt || Math.abs(orderAmt - targetAmt) <= 1)) {
+      const refTs = activeOrder.createdAt || activeOrder.updatedAt || 0;
+      const orderDate = new Date(refTs);
       const today = this.getTodayDateIst();
       const orderDay = orderDate.toLocaleDateString("en-CA", { timeZone: "Asia/Kolkata" });
       const orderAgeMin = (Date.now() - orderDate.getTime()) / (60 * 1000);
       // Valid strictly under 3.5 hours AND strictly created today in IST (Cashfree links expire in 4 hours)
-      if (orderAgeMin < 210 && orderDay === today) {
+      if (orderAgeMin >= 0 && orderAgeMin < 210 && orderDay === today) {
         return {
           url: activeOrder.payUrl,
           short_url: activeOrder.payUrl,
-          id: activeOrder.paymentLinkId,
+          id: activeOrder.paymentLinkId || activeOrder.cashfreeLinkId || null,
+          paymentLinkId: activeOrder.paymentLinkId || activeOrder.cashfreeLinkId || null,
+          cashfreeLinkId: activeOrder.cashfreeLinkId || activeOrder.paymentLinkId || null,
           orderRef: activeOrder.orderRef,
           ref: activeOrder.orderRef,
+          amount: orderAmt,
+          items: activeOrder.items || null,
           isReused: true
         };
       }
@@ -3699,7 +3718,7 @@ function findActiveCustomerOrder(ordersMap, phoneNum, jid) {
     const ordPhone = String(ord.phone || "").replace(/\D/g, "").slice(-10);
 
     if (isOwner) {
-      if (!isOwnerCmd && ordPhone === "7006604148") {
+      if (!isOwnerCmd && (ordPhone === "7006604148" || (jid && ord.chatId === jid))) {
         candidates.push(ord);
       }
       continue;
@@ -5719,7 +5738,7 @@ CRITICAL DIRECTIVE: Customer is making a FRESH NEW INQUIRY or placing a NEW orde
                 googleMapsUrl: savedLoc?.googleMapsUrl || null,
                 deliveryTime: scheduledSlot,
                 payUrl: payObj.url || null,
-                createdAt: new Date().toISOString()
+                ...(payObj.isReused ? {} : { createdAt: new Date().toISOString() })
               });
               const payUrl = payObj.url || null;
               const orderCard = formatOrderSummaryCard({
@@ -7241,11 +7260,13 @@ async function startBot() {
         amt = minRequiredTotal;
       }
 
-      // 3. Resolve order reference
-      const orderRef = forceRef || targetOrder?.orderRef || `UT-WA-${Date.now().toString().slice(-8)}`;
+      // 3. Resolve order reference (reuse active unpaid ref ONLY if amount/quantity hasn't changed)
+      const prevAmtMatch = targetOrder?.amount ? String(targetOrder.amount).replace(/,/g, "").match(/(\d+(?:\.\d+)?)/) : null;
+      const prevOrderAmt = prevAmtMatch ? Math.round(parseFloat(prevAmtMatch[1])) : null;
+      const isSameAmountAsPrev = prevOrderAmt !== null && Math.abs(prevOrderAmt - Math.round(amt)) <= 1;
 
       // 4. Resolve items description
-      let itemsDesc = forceDesc || targetOrder?.items;
+      let itemsDesc = forceDesc || (isSameAmountAsPrev ? targetOrder?.items : null);
       if (!itemsDesc) {
         const cutName = isWhole ? "Whole Fresh Trout" : "Cleaned & Gutted";
         if (detectedWeightKg) {
@@ -7257,19 +7278,38 @@ async function startBot() {
         else itemsDesc = "1 kg Cleaned & Gutted (Starter Pack)";
       }
 
-      // 4. Generate Cashfree 1-Tap Short Payment Link (with J&K Bank fallback)
-      const paymentResult = await generatePaymentWithWaterfall({
-        amount: amt,
-        customerPhone: cleanPhone || raw10,
-        customerName: customerName || targetOrder?.name || "Customer",
-        orderRef: orderRef,
-        description: itemsDesc,
-        preferQr: false,
-        latitude: targetOrder?.latitude || savedLoc?.latitude || locDetails?.latitude || null,
-        longitude: targetOrder?.longitude || savedLoc?.longitude || locDetails?.longitude || null,
-        distanceKm: targetOrder?.distanceKm || savedLoc?.distanceKm || locDetails?.distanceKm || null,
-        googleMapsUrl: targetOrder?.googleMapsUrl || savedLoc?.googleMapsUrl || null
-      });
+      // 5. Reuse existing active Cashfree 1-Tap link if same amount (unless quantity/amount changed!)
+      const reusableQrLink = TodayOrderPool.findReusablePaymentLink(cleanPhone || raw10, remoteJid, amt);
+      let orderRef = forceRef || (reusableQrLink?.orderRef) || (isSameAmountAsPrev ? targetOrder?.orderRef : null) || `UT-WA-${Date.now().toString().slice(-8)}`;
+
+      let paymentResult;
+      if (reusableQrLink && reusableQrLink.url) {
+        console.log(`♻️ [Link Reuse QR-Dispatch] Reusing single active payment link ${reusableQrLink.url} (#${orderRef}) for ${cleanPhone || remoteJid} (₹${amt})`);
+        paymentResult = {
+          tier: 1,
+          mode: "cashfree_link",
+          qrBuffer: null,
+          payUrl: reusableQrLink.url,
+          cashfreeLinkId: reusableQrLink.cashfreeLinkId || reusableQrLink.id || targetOrder?.cashfreeLinkId || null,
+          paymentLinkId: reusableQrLink.paymentLinkId || reusableQrLink.id || targetOrder?.paymentLinkId || null,
+          orderRef,
+          bankDetailsText: null,
+          isReused: true
+        };
+      } else {
+        paymentResult = await generatePaymentWithWaterfall({
+          amount: amt,
+          customerPhone: cleanPhone || raw10,
+          customerName: customerName || targetOrder?.name || "Customer",
+          orderRef: orderRef,
+          description: itemsDesc,
+          preferQr: false,
+          latitude: targetOrder?.latitude || savedLoc?.latitude || locDetails?.latitude || null,
+          longitude: targetOrder?.longitude || savedLoc?.longitude || locDetails?.longitude || null,
+          distanceKm: targetOrder?.distanceKm || savedLoc?.distanceKm || locDetails?.distanceKm || null,
+          googleMapsUrl: targetOrder?.googleMapsUrl || savedLoc?.googleMapsUrl || null
+        });
+      }
 
       if (!paymentResult.payUrl && !paymentResult.bankDetailsText) {
         throw new Error("Failed to generate payment link");
@@ -7314,7 +7354,7 @@ async function startBot() {
         : "";
 
       const payLinkLine = paymentResult.payUrl
-        ? `🔗 *Tap to Pay Instantly:* ${paymentResult.payUrl}\n_(Click the link to pay directly using Paytm, PhonePe, Google Pay, or J&K Bank mPay — we no longer require scanning a QR!)_\n\n`
+        ? `🔗 *Tap to Pay Instantly:* ${paymentResult.payUrl}\n_(${paymentResult.isReused ? "Same active link for your order — c" : "C"}lick the link to pay directly using Paytm, PhonePe, Google Pay, or J&K Bank mPay — we no longer require scanning a QR!)_\n\n`
         : "";
       const bankDetailsLine = paymentResult.bankDetailsText ? `\n\n${paymentResult.bankDetailsText}` : "";
 
@@ -7346,9 +7386,7 @@ async function startBot() {
 
       console.log(`💳 [${paymentResult.payUrl ? "Cashfree 1-Tap Link" : "Bank Fallback"} Dispatched] Sent ₹${amt} to ${formatPhoneDisplay(cleanPhone || raw10)} for #${orderRef}`);
 
-      // Update orders store (never preserve stale payUrl/linkIds from a previous order with a different amount)
-      const prevOrderAmt = targetOrder?.amount ? parseInt(String(targetOrder.amount).replace(/\D/g, ""), 10) : null;
-      const isSameAmountAsPrev = prevOrderAmt !== null && prevOrderAmt === Math.round(amt);
+      // Update orders store (preserve original createdAt on reused link; reset createdAt on new link/amount)
       const updatedOrder = {
         ...(targetOrder || {}),
         orderRef,
@@ -7367,7 +7405,7 @@ async function startBot() {
         googleMapsUrl: targetOrder?.googleMapsUrl || savedLoc?.googleMapsUrl || null,
         status: targetOrder?.status?.includes("Paid") ? targetOrder.status : (paymentResult.payUrl ? "Payment Link Sent" : "Bank Transfer Details Sent"),
         payUrl: paymentResult.payUrl || (isSameAmountAsPrev ? (targetOrder?.payUrl || null) : null),
-        createdAt: targetOrder?.createdAt || new Date().toISOString(),
+        ...(paymentResult.isReused ? { createdAt: targetOrder?.createdAt || new Date().toISOString() } : { createdAt: new Date().toISOString() }),
         updatedAt: new Date().toISOString()
       };
       recordNewCustomerOrder((cleanPhone || raw10) || remoteJid, updatedOrder);
@@ -8685,19 +8723,23 @@ async function startBot() {
             const courierFee = getDeliveryFeeForDistance(distNum, orderWeight, effectiveGpsEveningSurge);
             const totalPayable = fishCost + courierFee;
             const itemsDesc = `${orderWeight} kg × ${isWhole ? "Whole Fresh Trout" : "Cleaned & Gutted (Pan-Ready)"}${courierFee > 0 ? " (+Express Delivery)" : ""}`;
-            const orderRef = activeOrder?.orderRef || `UT-WA-${Date.now().toString().slice(-6)}${Math.floor(10 + Math.random() * 90)}`;
+            const prevGpsMatch = activeOrder?.amount ? String(activeOrder.amount).replace(/,/g, "").match(/(\d+(?:\.\d+)?)/) : null;
+            const prevGpsAmt = prevGpsMatch ? Math.round(parseFloat(prevGpsMatch[1])) : null;
+            const sameAmtGps = prevGpsAmt !== null && Math.abs(prevGpsAmt - Math.round(totalPayable)) <= 1;
+
+            const reusablePin = TodayOrderPool.findReusablePaymentLink(cleanPhone || raw10, remoteJid, totalPayable);
+            const orderRef = reusablePin?.orderRef || (sameAmtGps ? activeOrder?.orderRef : null) || `UT-WA-${Date.now().toString().slice(-6)}${Math.floor(10 + Math.random() * 90)}`;
 
             let generatedPayUrl = null;
             let generatedPaymentLinkId = null;
             let generatedCashfreeLinkId = null;
             let generatedBankDetailsText = null;
             try {
-              const reusablePin = TodayOrderPool.findReusablePaymentLink(cleanPhone || raw10, remoteJid, totalPayable);
               if (reusablePin) {
-                console.log(`[Link Reuse Pin] Reusing single active payment link ${reusablePin.url} for ${cleanPhone || raw10} (₹${totalPayable})`);
+                console.log(`♻️ [Link Reuse Pin] Reusing single active payment link ${reusablePin.url} (#${orderRef}) for ${cleanPhone || raw10} (₹${totalPayable})`);
                 generatedPayUrl = reusablePin.url || reusablePin.short_url;
-                generatedPaymentLinkId = reusablePin.paymentLinkId || null;
-                generatedCashfreeLinkId = reusablePin.cashfreeLinkId || null;
+                generatedPaymentLinkId = reusablePin.paymentLinkId || reusablePin.id || null;
+                generatedCashfreeLinkId = reusablePin.cashfreeLinkId || reusablePin.id || null;
               } else {
                 const waterfallRes = await generatePaymentWithWaterfall({
                   amount: totalPayable,
@@ -8740,8 +8782,6 @@ async function startBot() {
             locReply = `📍 *Location Received & Coordinates Locked!* ✅\nYour shared location is approximately *${distRounded} km* from our Recirculatory Aquaculture System at Malabagh (${detectedLocalityName || "Srinagar"}).\n🛵 Coordinates saved for our *Urban Trout Express Dispatch Partner*!${pinPolicyNote}\n\n${card}`;
             historyNote = `[Customer shared location - Verified distance: ${distRounded} km from Recirculatory Aquaculture System at Malabagh (${detectedLocalityName || "Srinagar"}). Order generated/updated: ${itemsDesc} (₹${totalPayable}). Official payment link: ${generatedPayUrl || "See Bank Details / Payment Link"}]`;
 
-            const prevGpsAmt = activeOrder?.amount ? parseInt(String(activeOrder.amount).replace(/\D/g, ""), 10) : null;
-            const sameAmtGps = prevGpsAmt !== null && prevGpsAmt === Math.round(totalPayable);
             recordNewCustomerOrder((cleanPhone || raw10) || remoteJid, {
               orderRef,
               paymentLinkId: generatedPaymentLinkId || (sameAmtGps ? (activeOrder?.paymentLinkId || null) : null),
@@ -8760,7 +8800,7 @@ async function startBot() {
               distanceKm: distRounded,
               deliveryFee: courierFee,
               deliveryTime: gpsCardSlot,
-              createdAt: activeOrder?.createdAt || new Date().toISOString(),
+              ...(sameAmtGps && activeOrder?.createdAt ? { createdAt: activeOrder.createdAt } : { createdAt: new Date().toISOString() }),
               updatedAt: new Date().toISOString()
             });
           } else {
@@ -9047,12 +9087,19 @@ async function startBot() {
     // ─── 0. BULLETPROOF DIRECT SCANNER / QR INTERCEPT (ZERO DUPLICATE MESSAGES) ───
     const chatHist = chatHistories.get(remoteJid) || [];
     const isPausedForOwner = isChatManuallyPaused(remoteJid, cleanPhone || raw10);
-    if (!isPausedForOwner && isCustomerRequestingQr(effectiveUserText, chatHist)) {
+    const activeTodayOrd = TodayOrderPool.getTodayOrder(cleanPhone || raw10, remoteJid);
+    const newQtyMatch = effectiveUserText.match(/\b(\d+(?:\.\d+)?)\s*(?:kg|kilos?|kgs)\b/i);
+    const oldQtyMatch = activeTodayOrd?.items ? String(activeTodayOrd.items).match(/(\d+(?:\.\d+)?)\s*(?:kg|kilos?|kgs)\b/i) : null;
+    const isChangingOrderQty = Boolean(
+      activeTodayOrd && !TodayOrderPool.isOrderPaid(activeTodayOrd) &&
+      newQtyMatch && oldQtyMatch && Math.abs(parseFloat(newQtyMatch[1]) - parseFloat(oldQtyMatch[1])) > 0.01
+    );
+    if (!isPausedForOwner && !isChangingOrderQty && isCustomerRequestingQr(effectiveUserText, chatHist)) {
       const qrSent = await dispatchLockedQrImage(sock, remoteJid, {
         cleanPhone,
         raw10,
         customerName,
-        chatHist
+        chatHist: [...chatHist, { role: "user", text: effectiveUserText }]
       });
       if (qrSent) return;
     }
@@ -9563,6 +9610,7 @@ if (require.main === module) {
     isFridayOperationsOpen,
     isOrderActivePending,
     TodayOrderPool,
+    recordNewCustomerOrder,
     __setLiveWeatherCacheForTest,
     getDeliveryFeeForDistance,
     calculateDistance,
