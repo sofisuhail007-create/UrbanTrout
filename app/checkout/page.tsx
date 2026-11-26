@@ -34,12 +34,19 @@ import {
 } from "@/lib/deliveryZones";
 import { resolveLocationFromText } from "@/lib/geolocationEngine";
 
-// ─── Razorpay global type ───────────────────────────────────────
+// ─── Cashfree PG SDK v3 global type ─────────────────────────────
 declare global {
   interface Window {
-    Razorpay: new (options: Record<string, unknown>) => {
-      open(): void;
-      on(event: string, handler: (response: unknown) => void): void;
+    Cashfree?: (options: { mode: "production" | "sandbox" }) => {
+      checkout: (options: {
+        paymentSessionId: string;
+        redirectTarget?: "_modal" | "_self" | "_blank" | "_top";
+        returnUrl?: string;
+      }) => Promise<{
+        error?: { message?: string };
+        redirect?: boolean;
+        paymentDetails?: { paymentMessage?: string };
+      }>;
     };
   }
 }
@@ -349,7 +356,7 @@ export default function CheckoutPage() {
   const [upiId, setUpiId] = useState("Vyapar.178760132267@hdfcbank");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState<any>(null);
-  const [razorpayError, setRazorpayError] = useState("");
+  const [gatewayError, setGatewayError] = useState("");
   const [copiedOrderId, setCopiedOrderId] = useState(false);
   const [rememberDetails, setRememberDetails] = useState(true);
   const [showPrefillBanner, setShowPrefillBanner] = useState(false);
@@ -1036,329 +1043,343 @@ export default function CheckoutPage() {
   };
 
 
-  // ─── STEP 3: Razorpay Standard Checkout ──────────────────────
-  const handleRazorpayPayment = async () => {
-    setRazorpayError("");
+  const finalizeCashfreeOrder = async (
+    cfOrderId: string,
+    snap: {
+      items: typeof items;
+      total: number;
+      deliveryFee: number;
+      grandTotal: number;
+      deliveryMode: string;
+      formData: typeof formData;
+      detectedCoords: typeof detectedCoords;
+      calculatedDistance: typeof calculatedDistance;
+      isScheduledOrder: boolean;
+      selectedScheduledDate: string;
+      selectedScheduledSlot: string;
+      rememberDetails: boolean;
+    }
+  ) => {
+    const verifyRes = await fetch("/api/cashfree/verify-payment", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ order_id: cfOrderId }),
+    });
+
+    const verifyJson = await verifyRes.json();
+    if (!verifyJson.verified) {
+      throw new Error(verifyJson.error || "Cashfree payment verification failed.");
+    }
+
+    const cfPaymentId = verifyJson.cf_payment_id || cfOrderId;
+    const cleanPhone = snap.formData.phone.replace(/\D/g, "").slice(-10);
+    const emailNote = snap.formData.email?.trim() ? ` (Email: ${snap.formData.email.trim()})` : "";
+    const cfNote = ` (Cashfree: ${cfPaymentId})`;
+    const notesNote = snap.formData.notes?.trim() ? ` | Notes: ${snap.formData.notes.trim()}` : "";
+    const scheduleNote = snap.isScheduledOrder
+      ? ` | 📅 SCHEDULED: ${snap.selectedScheduledDate} (${snap.selectedScheduledSlot})`
+      : "";
+    const mapsUrl = snap.detectedCoords
+      ? `https://www.google.com/maps/dir/?api=1&destination=${snap.detectedCoords.lat},${snap.detectedCoords.lng}`
+      : "";
+    const gpsNote = snap.detectedCoords
+      ? ` | 📍 Exact GPS: ${mapsUrl} (~${(snap.calculatedDistance || 0).toFixed(1)} km from Urban Trout Aquaculture Farm, Malabagh)`
+      : "";
+
+    const orderPayload = {
+      customer_name: snap.formData.fullName.trim(),
+      customer_phone: cleanPhone,
+      customer_address: `${snap.formData.house.trim()}, ${snap.formData.locality.trim()}${scheduleNote}${emailNote}${cfNote}${notesNote}${gpsNote}`,
+      customer_locality: snap.formData.locality.trim(),
+      customer_pincode: snap.formData.pincode.trim(),
+      items: snap.items.map((i) => ({
+        id: i.id,
+        name: i.name,
+        quantity: i.quantity,
+        price: i.price,
+        unit: i.unit,
+        image: i.image,
+      })),
+      subtotal: snap.total,
+      delivery_fee: snap.deliveryFee,
+      total: snap.grandTotal,
+      delivery_zone: snap.deliveryMode,
+      status: "confirmed",
+      user_id: user?.id || null,
+      customer_email: snap.formData.email?.trim() || user?.email || "",
+      is_scheduled: snap.isScheduledOrder,
+      scheduled_date: snap.isScheduledOrder ? snap.selectedScheduledDate : undefined,
+      scheduled_slot: snap.isScheduledOrder ? snap.selectedScheduledSlot : undefined,
+    };
+
+    const placeRes = await fetch("/api/orders/place", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        cashfree_order_id: cfOrderId,
+        cashfree_payment_id: cfPaymentId,
+        orderData: orderPayload,
+      }),
+    });
+
+    let insertedOrder: any = null;
+    if (placeRes.ok) {
+      const placeData = await placeRes.json();
+      insertedOrder = placeData.order;
+    } else {
+      const errData = await placeRes.json().catch(() => ({}));
+      console.error("Order placement API error:", errData);
+    }
+
+    if (snap.rememberDetails) {
+      saveCustomerProfile({
+        fullName: snap.formData.fullName.trim(),
+        phone: cleanPhone,
+        email: snap.formData.email?.trim() || user?.email || "",
+        locality: snap.formData.locality.trim(),
+        house: snap.formData.house.trim(),
+        pincode: snap.formData.pincode.trim(),
+        notes: snap.formData.notes?.trim() || "",
+      });
+    }
+
+    try {
+      await supabase
+        .from("leads")
+        .update({
+          status: "converted",
+          notes: `Converted to Order #${insertedOrder?.order_number || ""}. Payment via Cashfree (${cfPaymentId})`,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("customer_phone", cleanPhone);
+    } catch (_) {}
+
+    try {
+      await supabase.from("customers").upsert(
+        {
+          phone: cleanPhone,
+          name: snap.formData.fullName,
+          locality: snap.formData.locality,
+          pincode: snap.formData.pincode,
+          notes: `Order #${insertedOrder?.order_number || ""}`,
+          total_orders: 1,
+          last_order_at: new Date().toISOString(),
+        },
+        { onConflict: "phone" }
+      );
+    } catch (_) {}
+
+    if (!insertedOrder) {
+      fetch("/api/telegram-notify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          type: "new_order",
+          data: {
+            orderNumber: "UT-" + Math.floor(1000 + Math.random() * 9000),
+            customerName: snap.formData.fullName,
+            phone: cleanPhone,
+            email: snap.formData.email?.trim() || undefined,
+            locality: snap.formData.locality,
+            address: `${snap.formData.house.trim()}, ${snap.formData.locality.trim()}${notesNote}${gpsNote}`,
+            pincode: snap.formData.pincode,
+            items: snap.items.map((i) => ({ name: i.name, quantity: i.quantity, price: i.price, unit: i.unit })),
+            subtotal: snap.total,
+            deliveryFee: snap.deliveryFee,
+            total: snap.grandTotal,
+            status: "confirmed",
+            paymentMethod: "Cashfree",
+            cashfreePaymentId: cfPaymentId,
+            cashfreeOrderId: cfOrderId,
+            googleMapsUrl: mapsUrl || undefined,
+            latitude: snap.detectedCoords?.lat,
+            longitude: snap.detectedCoords?.lng,
+            distanceKm: snap.calculatedDistance || undefined,
+          },
+        }),
+      }).catch(() => {});
+    }
+
+    try {
+      sessionStorage.removeItem("ut_pending_cf_checkout");
+    } catch (_) {}
+
+    setOrderSuccess({
+      orderNumber: insertedOrder?.order_number || "UT-" + Math.floor(1000 + Math.random() * 9000),
+      total: snap.grandTotal,
+      subtotal: snap.total,
+      deliveryFee: snap.deliveryFee,
+      phone: cleanPhone,
+      name: snap.formData.fullName,
+      email: snap.formData.email?.trim() || null,
+      house: snap.formData.house,
+      locality: snap.formData.locality,
+      pincode: snap.formData.pincode,
+      notes: snap.formData.notes,
+      paymentId: cfPaymentId,
+      orderId: cfOrderId,
+      detectedCoords: snap.detectedCoords,
+      calculatedDistance: snap.calculatedDistance,
+      googleMapsUrl: mapsUrl || null,
+      isScheduled: snap.isScheduledOrder,
+      scheduledDate: snap.selectedScheduledDate,
+      scheduledSlot: snap.selectedScheduledSlot,
+      items: snap.items.map((i) => ({
+        id: i.id,
+        name: i.name,
+        quantity: i.quantity,
+        price: i.price,
+        unit: i.unit,
+        image: i.image,
+      })),
+      date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
+      time: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
+    });
+
+    fbPurchase({
+      value: snap.grandTotal,
+      contentName: snap.items.map((i) => i.name).join(", "),
+      contentIds: snap.items.map((i) => String(i.id)),
+      numItems: snap.items.reduce((s, i) => s + i.quantity, 0),
+    });
+
+    if (clearCart) clearCart();
+  };
+
+  // Handle return_url redirect callback from Cashfree (?cf_order_id=...)
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const returnedOrderId = params.get("cf_order_id");
+    if (!returnedOrderId || orderSuccess) return;
+
+    let pendingSnap: any = null;
+    try {
+      const raw = sessionStorage.getItem("ut_pending_cf_checkout");
+      if (raw) pendingSnap = JSON.parse(raw);
+    } catch (_) {}
+
+    if (!pendingSnap || pendingSnap.order_id !== returnedOrderId) return;
+
+    setIsSubmitting(true);
+    finalizeCashfreeOrder(returnedOrderId, pendingSnap)
+      .catch((err: any) => {
+        setGatewayError(err?.message || "Payment was not completed. Please try again.");
+      })
+      .finally(() => {
+        setIsSubmitting(false);
+        const url = new URL(window.location.href);
+        url.searchParams.delete("cf_order_id");
+        window.history.replaceState({}, "", url.pathname + url.search);
+      });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ─── STEP 3: Cashfree Standard Checkout ──────────────────────
+  const handleCashfreePayment = async () => {
+    setGatewayError("");
 
     const isScheduledOrder = !storeStatus.isOpen;
     if (isScheduledOrder && !selectedScheduledSlot) {
-      setRazorpayError("Please select a delivery time slot for your scheduled order.");
+      setGatewayError("Please select a delivery time slot for your scheduled order.");
       return;
     }
 
-    if (!window.Razorpay) {
-      setRazorpayError("Payment gateway not loaded yet. Please wait a moment and try again.");
+    if (!window.Cashfree) {
+      setGatewayError("Cashfree checkout SDK is still loading. Please wait a moment and try again.");
       return;
     }
 
     setIsSubmitting(true);
     try {
-      // 1. Create Razorpay order server-side
-      const amountPaise = grandTotal * 100; // ₹ → paise
-      const orderRes = await fetch("/api/razorpay/create-order", {
+      // 1. Create Cashfree order server-side
+      const orderRes = await fetch("/api/cashfree/create-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          amount: amountPaise,
-          items: items.map((i) => ({ id: i.id, quantity: i.quantity })),
+          items: items.map((i) => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity, unit: i.unit })),
+          localityInput: formData.locality,
+          coords: detectedCoords,
           deliveryMode,
-          deliveryFee,
-          currency: "INR",
-          receipt: `ut_${Date.now()}`,
+          isScheduledOrder,
+          scheduledDate: isScheduledOrder ? selectedScheduledDate : undefined,
+          scheduledSlot: isScheduledOrder ? selectedScheduledSlot : undefined,
           customerName: formData.fullName,
           customerPhone: formData.phone,
           customerEmail: formData.email,
-          isScheduled: isScheduledOrder,
-          scheduledDate: isScheduledOrder ? selectedScheduledDate : undefined,
-          scheduledSlot: isScheduledOrder ? selectedScheduledSlot : undefined,
-        }),
-      });
-
-      if (!orderRes.ok) {
-        const err = await orderRes.json();
-        throw new Error(err.error || "Failed to create payment order.");
-      }
-
-      const { order_id, amount, currency } = await orderRes.json();
-
-      // 2. Open Razorpay modal
-      await new Promise<void>((resolve, reject) => {
-        const rzp = new window.Razorpay({
-          key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
-          amount,
-          currency,
-          order_id,
-          name: "Urban Trout",
-          description: isScheduledOrder
-            ? `Fresh Trout Scheduled (${selectedScheduledSlot})`
-            : `Fresh Trout Order — ${items.length} item${items.length > 1 ? "s" : ""}`,
-          image: "/icon.png",
-          prefill: {
-            name: formData.fullName,
-            contact: `91${formData.phone.replace(/\D/g, "").slice(-10)}`,
-            email: formData.email || "",
-          },
           notes: {
             customer_name: formData.fullName,
             customer_phone: formData.phone,
             customer_email: formData.email || "",
+            locality: formData.locality,
             address: `${formData.house}, ${formData.locality}, ${formData.pincode}`,
-            delivery_zone: deliveryMode,
+            pincode: formData.pincode,
+            delivery_zone: deliveryMode || "express_delivery",
             special_notes: formData.notes || "",
             latitude: detectedCoords ? String(detectedCoords.lat) : "",
             longitude: detectedCoords ? String(detectedCoords.lng) : "",
             distance_km: calculatedDistance ? calculatedDistance.toFixed(1) : "",
             google_maps_url: detectedCoords ? `https://maps.google.com/?q=${detectedCoords.lat},${detectedCoords.lng}` : "",
-            is_scheduled: isScheduledOrder ? "true" : "false",
-            scheduled_date: isScheduledOrder ? selectedScheduledDate : "",
-            scheduled_slot: isScheduledOrder ? selectedScheduledSlot : "",
           },
-          theme: { color: "#3aadcc" },
-          modal: {
-            ondismiss: () => {
-              setIsSubmitting(false);
-              setRazorpayError("Payment cancelled. You can try again.");
-              reject(new Error("dismissed"));
-            },
-          },
-          handler: async (response: unknown) => {
-            const rzpRes = response as {
-              razorpay_payment_id: string;
-              razorpay_order_id: string;
-              razorpay_signature: string;
-            };
-
-            try {
-              // 3. Verify signature server-side
-              const verifyRes = await fetch("/api/razorpay/verify-payment", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  razorpay_order_id: rzpRes.razorpay_order_id,
-                  razorpay_payment_id: rzpRes.razorpay_payment_id,
-                  razorpay_signature: rzpRes.razorpay_signature,
-                }),
-              });
-
-              const verifyJson = await verifyRes.json();
-              if (!verifyJson.success) {
-                throw new Error(verifyJson.error || "Payment verification failed.");
-              }
-
-              // 4. Save order to Supabase (payment confirmed)
-              let cartDetails = "";
-              items.forEach((item) => {
-                cartDetails += `- ${item.name} (${item.quantity} ${item.unit}): ₹${(
-                  item.price * item.quantity
-                ).toLocaleString("en-IN")}\n`;
-              });
-
-              const cleanPhone = formData.phone.replace(/\D/g, "").slice(-10);
-              const emailNote = formData.email?.trim() ? ` (Email: ${formData.email.trim()})` : "";
-              const rzpNote = rzpRes.razorpay_payment_id ? ` (Razorpay: ${rzpRes.razorpay_payment_id})` : "";
-              const notesNote = formData.notes?.trim() ? ` | Notes: ${formData.notes.trim()}` : "";
-              const scheduleNote = isScheduledOrder
-                ? ` | 📅 SCHEDULED: ${selectedScheduledDate} (${selectedScheduledSlot})`
-                : "";
-              const mapsUrl = detectedCoords
-                ? `https://www.google.com/maps/dir/?api=1&destination=${detectedCoords.lat},${detectedCoords.lng}`
-                : "";
-              const gpsNote = detectedCoords
-                ? ` | 📍 Exact GPS: ${mapsUrl} (~${(calculatedDistance || 0).toFixed(1)} km from Urban Trout Aquaculture Farm, Malabagh)`
-                : "";
-
-              const orderPayload = {
-                customer_name: formData.fullName.trim(),
-                customer_phone: cleanPhone,
-                customer_address: `${formData.house.trim()}, ${formData.locality.trim()}${scheduleNote}${emailNote}${rzpNote}${notesNote}${gpsNote}`,
-                customer_locality: formData.locality.trim(),
-                customer_pincode: formData.pincode.trim(),
-                items: items.map((i) => ({
-                  id: i.id,
-                  name: i.name,
-                  quantity: i.quantity,
-                  price: i.price,
-                  unit: i.unit,
-                  image: i.image,
-                })),
-                subtotal: total,
-                delivery_fee: deliveryFee,
-                total: grandTotal,
-                delivery_zone: deliveryMode,
-                status: "confirmed",
-                user_id: user?.id || null,
-                customer_email: formData.email?.trim() || user?.email || "",
-                is_scheduled: isScheduledOrder,
-                scheduled_date: isScheduledOrder ? selectedScheduledDate : undefined,
-                scheduled_slot: isScheduledOrder ? selectedScheduledSlot : undefined,
-              };
-
-              const placeRes = await fetch("/api/orders/place", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  razorpay_order_id: rzpRes.razorpay_order_id,
-                  razorpay_payment_id: rzpRes.razorpay_payment_id,
-                  razorpay_signature: rzpRes.razorpay_signature,
-                  orderData: orderPayload,
-                }),
-              });
-
-              let insertedOrder: any = null;
-              if (placeRes.ok) {
-                const placeData = await placeRes.json();
-                insertedOrder = placeData.order;
-              } else {
-                const errData = await placeRes.json().catch(() => ({}));
-                console.error("Order placement API error:", errData);
-              }
-
-              // Save to customer profile / localStorage for instant 1-tap reordering
-              if (rememberDetails) {
-                saveCustomerProfile({
-                  fullName: formData.fullName.trim(),
-                  phone: cleanPhone,
-                  email: formData.email?.trim() || user?.email || "",
-                  locality: formData.locality.trim(),
-                  house: formData.house.trim(),
-                  pincode: formData.pincode.trim(),
-                  notes: formData.notes?.trim() || "",
-                });
-              }
-
-              // Mark lead as converted
-              try {
-                await supabase
-                  .from("leads")
-                  .update({
-                    status: "converted",
-                    notes: `Converted to Order #${insertedOrder?.order_number || ""}. Payment via Razorpay (${rzpRes.razorpay_payment_id})`,
-                    updated_at: new Date().toISOString(),
-                  })
-                  .eq("customer_phone", cleanPhone);
-              } catch (e) {}
-
-              // Upsert customer profile
-              try {
-                await supabase.from("customers").upsert(
-                  {
-                    phone: cleanPhone,
-                    name: formData.fullName,
-                    locality: formData.locality,
-                    pincode: formData.pincode,
-                    notes: `Order #${insertedOrder?.order_number || ""}`,
-                    total_orders: 1,
-                    last_order_at: new Date().toISOString(),
-                  },
-                  { onConflict: "phone" }
-                );
-              } catch (e) {}
-
-              // Telegram & Email notification fallback (only if server-side orders/place did not handle it)
-              if (!insertedOrder) {
-                fetch("/api/telegram-notify", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({
-                    type: "new_order",
-                    data: {
-                      orderNumber: "UT-" + Math.floor(1000 + Math.random() * 9000),
-                      customerName: formData.fullName,
-                      phone: cleanPhone,
-                      email: formData.email?.trim() || undefined,
-                      locality: formData.locality,
-                      address: `${formData.house.trim()}, ${formData.locality.trim()}${notesNote}${gpsNote}`,
-                      pincode: formData.pincode,
-                      items: items.map((i) => ({ name: i.name, quantity: i.quantity, price: i.price, unit: i.unit })),
-                      subtotal: total,
-                      deliveryFee,
-                      total: grandTotal,
-                      status: "confirmed",
-                      paymentMethod: "Razorpay",
-                      razorpayPaymentId: rzpRes.razorpay_payment_id,
-                      razorpayOrderId: rzpRes.razorpay_order_id,
-                      googleMapsUrl: mapsUrl || undefined,
-                      latitude: detectedCoords?.lat,
-                      longitude: detectedCoords?.lng,
-                      distanceKm: calculatedDistance || undefined,
-                    },
-                  }),
-                }).catch(() => {});
-              }
-
-              setOrderSuccess({
-                orderNumber: insertedOrder?.order_number || "UT-" + Math.floor(1000 + Math.random() * 9000),
-                total: grandTotal,
-                subtotal: total,
-                deliveryFee,
-                phone: cleanPhone,
-                name: formData.fullName,
-                email: formData.email?.trim() || null,
-                house: formData.house,
-                locality: formData.locality,
-                pincode: formData.pincode,
-                notes: formData.notes,
-                paymentId: rzpRes.razorpay_payment_id,
-                orderId: rzpRes.razorpay_order_id,
-                detectedCoords,
-                calculatedDistance,
-                googleMapsUrl: mapsUrl || null,
-                isScheduled: !storeStatus.isOpen,
-                scheduledDate: selectedScheduledDate,
-                scheduledSlot: selectedScheduledSlot,
-                items: items.map((i) => ({
-                  id: i.id,
-                  name: i.name,
-                  quantity: i.quantity,
-                  price: i.price,
-                  unit: i.unit,
-                  image: i.image,
-                })),
-                date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
-                time: new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }),
-              });
-
-              // ─── FB Pixel: Confirmed Purchase ─────────────────────────
-              fbPurchase({
-                value: grandTotal,
-                contentName: items.map((i) => i.name).join(", "),
-                contentIds: items.map((i) => String(i.id)),
-                numItems: items.reduce((s, i) => s + i.quantity, 0),
-              });
-
-              if (clearCart) clearCart();
-              resolve();
-            } catch (handlerErr) {
-              console.error("Post-payment error:", handlerErr);
-              reject(handlerErr);
-            }
-          },
-        });
-
-        rzp.on("payment.failed", (response: unknown) => {
-          const r = response as { error?: { description?: string } };
-          setRazorpayError(r?.error?.description || "Payment failed. Please try again.");
-          setIsSubmitting(false);
-          reject(new Error("payment_failed"));
-        });
-
-        rzp.open();
+        }),
       });
-    } catch (err: unknown) {
-      if (err instanceof Error && (err.message === "dismissed" || err.message === "payment_failed")) {
-        // Already handled above
-      } else {
-        console.error("Razorpay payment error:", err);
-        const msg = err instanceof Error ? err.message : "Something went wrong. Please try again or contact us on WhatsApp.";
-        setRazorpayError(msg);
+
+      const orderJson = await orderRes.json();
+      if (!orderRes.ok || !orderJson.payment_session_id) {
+        throw new Error(orderJson.error || "Failed to initialize Cashfree payment order.");
       }
+
+      const snap = {
+        order_id: orderJson.order_id,
+        items,
+        total,
+        deliveryFee,
+        grandTotal,
+        deliveryMode: deliveryMode || "express_delivery",
+        formData,
+        detectedCoords,
+        calculatedDistance,
+        isScheduledOrder,
+        selectedScheduledDate,
+        selectedScheduledSlot,
+        rememberDetails,
+      };
+      try {
+        sessionStorage.setItem("ut_pending_cf_checkout", JSON.stringify(snap));
+      } catch (_) {}
+
+      const cfMode =
+        orderJson.mode === "sandbox" || process.env.NEXT_PUBLIC_CASHFREE_MODE === "sandbox"
+          ? "sandbox"
+          : "production";
+      const cashfree = window.Cashfree({ mode: cfMode });
+
+      const result = await cashfree.checkout({
+        paymentSessionId: orderJson.payment_session_id,
+        redirectTarget: "_modal",
+      });
+
+      if (result?.error) {
+        setGatewayError(result.error.message || "Payment cancelled or failed. Please try again.");
+        return;
+      }
+
+      if (result?.redirect) {
+        return;
+      }
+
+      await finalizeCashfreeOrder(orderJson.order_id, snap);
+    } catch (err: unknown) {
+      console.error("Cashfree payment error:", err);
+      const msg = err instanceof Error ? err.message : "Something went wrong. Please try again or contact us on WhatsApp.";
+      setGatewayError(msg);
     } finally {
       setIsSubmitting(false);
     }
   };
 
 
-  // ─── Success Screen (Order Confirmed via Razorpay) ───────────
+  // ─── Success Screen (Order Confirmed via Cashfree) ───────────
   if (orderSuccess) {
     const handleCopyOrderId = () => {
       navigator.clipboard.writeText(String(orderSuccess.orderNumber));
@@ -1450,7 +1471,7 @@ export default function CheckoutPage() {
               <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800">
                 <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">Total Paid</span>
                 <div className="text-base font-bold text-white font-mono mt-1">₹{orderSuccess.total.toLocaleString("en-IN")}</div>
-                <span className="text-[10px] text-emerald-400 font-semibold block">Razorpay Verified ✓</span>
+                <span className="text-[10px] text-emerald-400 font-semibold block">Cashfree Verified ✓</span>
               </div>
 
               <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800">
@@ -1498,7 +1519,7 @@ export default function CheckoutPage() {
                   <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider">1. Confirmed</span>
                 </div>
                 <p className="text-xs text-slate-300 font-semibold">Payment Verified</p>
-                <p className="text-[11px] text-slate-500 mt-0.5">Automated Razorpay verification complete.</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">Automated Cashfree verification complete.</p>
               </div>
 
               {/* Step 2: Harvesting */}
@@ -1758,9 +1779,9 @@ export default function CheckoutPage() {
 
   return (
     <div style={{ background: C.bg, minHeight: "100vh" }}>
-      {/* ─── Razorpay Checkout.js Script ─── */}
+      {/* ─── Cashfree Checkout SDK v3 Script ─── */}
       <Script
-        src="https://checkout.razorpay.com/v1/checkout.js"
+        src="https://sdk.cashfree.com/js/v3/cashfree.js"
         strategy="lazyOnload"
       />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-32 pb-24">
@@ -1975,7 +1996,7 @@ export default function CheckoutPage() {
                   className="hidden sm:block"
                   style={{ fontFamily: '"Inter", sans-serif', fontSize: "9px", color: C.onSurfVar }}
                 >
-                  Razorpay (Instant UPI)
+                  Cashfree (Instant UPI)
                 </span>
               </div>
             </button>
@@ -3251,7 +3272,7 @@ export default function CheckoutPage() {
                   </div>
                 </div>
 
-                {/* ─── Razorpay Payment Card ─── */}
+                {/* ─── Cashfree Payment Card ─── */}
                 <div
                   className="p-6 md:p-8 rounded-2xl space-y-6"
                   style={{
@@ -3331,19 +3352,19 @@ export default function CheckoutPage() {
                       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                     </svg>
                     <span style={{ fontFamily: '"Inter", sans-serif', fontSize: "11px", color: "#4ade80" }}>
-                      256-bit SSL secured · Bank-grade encrypted · Powered by Razorpay
+                      256-bit SSL secured · Bank-grade encrypted · Powered by Cashfree Payments
                     </span>
                   </div>
 
                   {/* Error message */}
-                  {razorpayError && (
+                  {gatewayError && (
                     <div
                       className="flex items-start gap-3 p-4 rounded-xl"
                       style={{ background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.35)" }}
                     >
                       <span style={{ fontSize: "16px", flexShrink: 0 }}>⚠️</span>
                       <p style={{ fontFamily: '"Manrope", sans-serif', fontSize: "0.88rem", color: "#f87171", margin: 0 }}>
-                        {razorpayError}
+                        {gatewayError}
                       </p>
                     </div>
                   )}
@@ -3377,7 +3398,7 @@ export default function CheckoutPage() {
                 {/* Pay Now CTA */}
                 <button
                   type="button"
-                  onClick={handleRazorpayPayment}
+                  onClick={handleCashfreePayment}
                   disabled={isSubmitting}
                   className="w-full flex items-center justify-center gap-3 font-bold uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed rounded-xl py-5 cursor-pointer"
                   style={{

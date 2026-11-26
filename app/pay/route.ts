@@ -11,7 +11,7 @@ export async function GET(request: NextRequest) {
 
   // 1. Direct explicit link query param
   if (link) {
-    if (link.startsWith("https://payments.cashfree.com/") || link.startsWith("https://rzp.io/")) {
+    if (link.startsWith("https://payments.cashfree.com/") || link.startsWith("https://cashfree.com/")) {
       return NextResponse.redirect(link, 307);
     }
   }

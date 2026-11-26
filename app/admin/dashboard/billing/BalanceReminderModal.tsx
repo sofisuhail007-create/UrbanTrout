@@ -68,7 +68,7 @@ export default function BalanceReminderModal({
   // Tabs: "remind" (WhatsApp link) | "settle" (Cash / Waiver)
   const [activeTab, setActiveTab] = useState<"remind" | "settle">("settle");
 
-  // Razorpay Payment Link State
+  // Cashfree Payment Link State
   const [paymentLink, setPaymentLink] = useState<string>("");
   const [paymentLinkId, setPaymentLinkId] = useState<string>("");
   const [generatingLink, setGeneratingLink] = useState(false);
@@ -76,8 +76,8 @@ export default function BalanceReminderModal({
   const [expiringLink, setExpiringLink] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
   const [msgCopied, setMsgCopied] = useState(false);
-  const [rzpPaid, setRzpPaid] = useState(false);
-  const [rzpStatus, setRzpStatus] = useState<string>("pending");
+  const [gatewayPaid, setGatewayPaid] = useState(false);
+  const [gatewayStatus, setGatewayStatus] = useState<string>("pending");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Settlement Form State
@@ -96,37 +96,39 @@ export default function BalanceReminderModal({
     if (record && isOpen) {
       setPaymentAmount((record.balance_amount ?? 0).toString());
       setSettlementNote("");
-      setRzpPaid(record.status === "settled");
+      setGatewayPaid(record.status === "settled");
       setErrorMessage(null);
       setActiveTab(initialTab || (record.balance_amount > 0 ? "settle" : "remind"));
       setPaymentMode("HDFC Bank Online");
       setPartialPaidSuccess(null);
       setIsFinalSettlement(false);
 
-      if (record.razorpay_payment_link_url) {
-        setPaymentLink(record.razorpay_payment_link_url);
-        setPaymentLinkId(record.razorpay_payment_link_id || "");
-        setRzpStatus("created");
+      const savedLinkUrl = record.payment_link_url || record.razorpay_payment_link_url;
+      const savedLinkId = record.payment_link_id || record.razorpay_payment_link_id;
+      if (savedLinkUrl) {
+        setPaymentLink(savedLinkUrl);
+        setPaymentLinkId(savedLinkId || "");
+        setGatewayStatus("created");
       } else {
         setPaymentLink("");
         setPaymentLinkId("");
-        setRzpStatus("pending");
+        setGatewayStatus("pending");
       }
     }
   }, [record, isOpen, initialTab]);
 
-  // Poll Razorpay Payment Link status while modal is open (HOOK MUST REMAIN UNCONDITIONAL AT COMPONENT ROOT)
+  // Poll Cashfree Payment Link status while modal is open (HOOK MUST REMAIN UNCONDITIONAL AT COMPONENT ROOT)
   useEffect(() => {
-    if (!isOpen || !record || !paymentLinkId || rzpPaid || record.balance_amount <= 0) return;
+    if (!isOpen || !record || !paymentLinkId || gatewayPaid || record.balance_amount <= 0) return;
 
     const interval = setInterval(async () => {
       try {
-        const res = await fetch(`/api/razorpay/payment-link?link_id=${encodeURIComponent(paymentLinkId)}`);
+        const res = await fetch(`/api/cashfree/payment-link?link_id=${encodeURIComponent(paymentLinkId)}`);
         const data = await res.json();
         if (data?.success) {
           if (data.paid || data.status === "paid") {
-            setRzpPaid(true);
-            setRzpStatus("paid");
+            setGatewayPaid(true);
+            setGatewayStatus("paid");
             playSuccessChime();
             clearInterval(interval);
 
@@ -138,23 +140,23 @@ export default function BalanceReminderModal({
                 id: record.id,
                 action: "RECORD_PAYMENT",
                 amountReceived: record.balance_amount,
-                paymentMethod: "Razorpay Link (Verified)",
-                settlementNote: `Paid in full via Razorpay Payment Link (${data.payment?.id || paymentLinkId})`,
+                paymentMethod: "Cashfree Link (Verified)",
+                settlementNote: `Paid in full via Cashfree Payment Link (${data.payment?.id || paymentLinkId})`,
               }),
             });
 
             if (onBalanceUpdated) onBalanceUpdated();
           } else if (data.status) {
-            setRzpStatus(data.status);
+            setGatewayStatus(data.status);
           }
         }
       } catch (_) {}
     }, 4000);
 
     return () => clearInterval(interval);
-  }, [isOpen, record?.id, record?.balance_amount, paymentLinkId, rzpPaid, onBalanceUpdated]);
+  }, [isOpen, record?.id, record?.balance_amount, paymentLinkId, gatewayPaid, onBalanceUpdated]);
 
-  // 1. Generate Razorpay Payment Link
+  // 1. Generate Cashfree Payment Link
   const handleGeneratePaymentLink = async (currentRecord?: CustomerBalanceRecord | null) => {
     const rec = currentRecord || record;
     if (!rec || rec.balance_amount <= 0) return null;
@@ -163,7 +165,7 @@ export default function BalanceReminderModal({
     setErrorMessage(null);
     try {
       const cleanPhone = (rec.customer_phone || "").replace(/\D/g, "").slice(-10);
-      const res = await fetch("/api/razorpay/payment-link", {
+      const res = await fetch("/api/cashfree/payment-link", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -171,17 +173,20 @@ export default function BalanceReminderModal({
           customerName: rec.customer_name || "Customer",
           customerPhone: cleanPhone,
           orderRef: `BAL-${rec.id || rec.invoice_id}`,
+          invoiceId: rec.invoice_id,
           description: `Urban Trout Balance Payment for Invoice #${rec.invoice_id}`,
         }),
       });
 
       const data = await res.json();
-      if (data?.success && data.paymentLink?.short_url) {
-        const linkUrl = data.paymentLink.short_url;
-        const linkId = data.paymentLink.id;
+      const createdUrl = data?.branded_url || data?.short_url || data?.paymentLink?.short_url;
+      const createdId = data?.id || data?.paymentLink?.id;
+      if (data?.success && createdUrl) {
+        const linkUrl = createdUrl;
+        const linkId = createdId;
         setPaymentLink(linkUrl);
         setPaymentLinkId(linkId);
-        setRzpStatus("created");
+        setGatewayStatus("created");
 
         // Sync to API
         await adminFetch("/api/customer-balance", {
@@ -190,6 +195,8 @@ export default function BalanceReminderModal({
           body: JSON.stringify({
             id: rec.id,
             action: "UPDATE_LINKS",
+            paymentLinkId: linkId,
+            paymentLinkUrl: linkUrl,
             razorpayPaymentLinkId: linkId,
             razorpayPaymentLinkUrl: linkUrl,
           }),
@@ -198,10 +205,10 @@ export default function BalanceReminderModal({
         if (onBalanceUpdated) onBalanceUpdated();
         return linkUrl;
       } else {
-        setErrorMessage(data?.error || "Failed to generate Razorpay Payment Link");
+        setErrorMessage(data?.error || "Failed to generate Cashfree Payment Link");
       }
     } catch (err: any) {
-      setErrorMessage(err?.message || "Failed to generate Razorpay Payment Link");
+      setErrorMessage(err?.message || "Failed to generate Cashfree Payment Link");
     } finally {
       setGeneratingLink(false);
     }
@@ -266,6 +273,8 @@ Helpline: +91 84910 06127`;
         body: JSON.stringify({
           id: record.id,
           action: "REMINDER_SENT",
+          paymentLinkId: paymentLinkId,
+          paymentLinkUrl: currentLink,
           razorpayPaymentLinkId: paymentLinkId,
           razorpayPaymentLinkUrl: currentLink,
         }),
@@ -280,7 +289,7 @@ Helpline: +91 84910 06127`;
     setCheckingStatus(true);
     setErrorMessage(null);
     try {
-      const res = await fetch(`/api/razorpay/payment-link?link_id=${encodeURIComponent(paymentLinkId)}`);
+      const res = await fetch(`/api/cashfree/payment-link?link_id=${encodeURIComponent(paymentLinkId)}`);
       const data = await res.json();
       if (!data?.success) {
         setErrorMessage(data?.error || "Status check failed");
@@ -288,8 +297,8 @@ Helpline: +91 84910 06127`;
       }
 
       if (data.paid || data.status === "paid") {
-        setRzpPaid(true);
-        setRzpStatus("paid");
+        setGatewayPaid(true);
+        setGatewayStatus("paid");
         playSuccessChime();
 
         await adminFetch("/api/customer-balance", {
@@ -299,16 +308,16 @@ Helpline: +91 84910 06127`;
             id: record.id,
             action: "RECORD_PAYMENT",
             amountReceived: record.balance_amount,
-            paymentMethod: "Razorpay Link (Verified)",
-            settlementNote: `Paid in full via Razorpay Payment Link (${data.payment?.id || paymentLinkId})`,
+            paymentMethod: "Cashfree Link (Verified)",
+            settlementNote: `Paid in full via Cashfree Payment Link (${data.payment?.id || paymentLinkId})`,
           }),
         });
 
         if (onBalanceUpdated) onBalanceUpdated();
         alert(`🎉 Payment Confirmed! ₹${(Number(record.balance_amount) || 0).toLocaleString("en-IN")} received from ${record.customer_name}. Ledger auto-updated.`);
       } else {
-        setRzpStatus(data.status || "created");
-        alert(`⏳ Customer has NOT paid yet (Razorpay link status: "${data.status || "pending"}").`);
+        setGatewayStatus(data.status || "created");
+        alert(`⏳ Customer has NOT paid yet (Cashfree link status: "${data.status || "pending"}").`);
       }
     } catch (e: any) {
       setErrorMessage(e?.message || "Could not check status");
@@ -317,16 +326,16 @@ Helpline: +91 84910 06127`;
     }
   };
 
-  // 4. Expire / Cancel link on Razorpay so customer cannot pay twice
+  // 4. Expire / Cancel link on Cashfree so customer cannot pay twice
   const handleExpirePaymentLink = async () => {
     if (!paymentLinkId) return;
-    if (!window.confirm(`Cancel & Expire Razorpay link (${paymentLinkId}) so the customer cannot pay it online?`)) {
+    if (!window.confirm(`Cancel & Expire Cashfree link (${paymentLinkId}) so the customer cannot pay it online?`)) {
       return;
     }
 
     setExpiringLink(true);
     try {
-      await fetch(`/api/razorpay/payment-link?link_id=${encodeURIComponent(paymentLinkId)}`, {
+      await fetch(`/api/cashfree/payment-link?link_id=${encodeURIComponent(paymentLinkId)}`, {
         method: "DELETE",
       });
 
@@ -342,9 +351,9 @@ Helpline: +91 84910 06127`;
 
       setPaymentLink("");
       setPaymentLinkId("");
-      setRzpStatus("cancelled");
+      setGatewayStatus("cancelled");
       if (onBalanceUpdated) onBalanceUpdated();
-      alert("Payment link has been cancelled and expired on Razorpay.");
+      alert("Payment link has been cancelled and expired on Cashfree.");
     } catch (e: any) {
       alert("Failed to cancel link: " + (e?.message || "Unknown error"));
     } finally {
@@ -375,7 +384,7 @@ Helpline: +91 84910 06127`;
         playSuccessChime();
         if (paymentLinkId) {
           try {
-            await fetch(`/api/razorpay/payment-link?link_id=${encodeURIComponent(paymentLinkId)}`, {
+            await fetch(`/api/cashfree/payment-link?link_id=${encodeURIComponent(paymentLinkId)}`, {
               method: "DELETE",
             });
           } catch (_) {}
@@ -431,7 +440,7 @@ Helpline: +91 84910 06127`;
         // If paid in full or final settlement with concession, expire online link
         if (isFinal && paymentLinkId) {
           try {
-            await fetch(`/api/razorpay/payment-link?link_id=${encodeURIComponent(paymentLinkId)}`, {
+            await fetch(`/api/cashfree/payment-link?link_id=${encodeURIComponent(paymentLinkId)}`, {
               method: "DELETE",
             });
           } catch (_) {}
@@ -490,10 +499,10 @@ Helpline: +91 84910 06127`;
 
       const data = await res.json();
       if (data?.success) {
-        // Expire active payment link on Razorpay
+        // Expire active payment link on Cashfree
         if (paymentLinkId) {
           try {
-            await fetch(`/api/razorpay/payment-link?link_id=${encodeURIComponent(paymentLinkId)}`, {
+            await fetch(`/api/cashfree/payment-link?link_id=${encodeURIComponent(paymentLinkId)}`, {
               method: "DELETE",
             });
           } catch (_) {}
@@ -523,7 +532,7 @@ Helpline: +91 84910 06127`;
             </div>
             <div>
               <h3 className="font-bold text-white text-base" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
-                Razorpay Payment Link &amp; Balance Reminder
+                Cashfree Payment Link &amp; Balance Reminder
               </h3>
               <div className="flex items-center gap-2 mt-0.5">
                 <span className="text-slate-400 text-xs font-mono">
@@ -577,14 +586,14 @@ Helpline: +91 84910 06127`;
               Status:{" "}
               <span
                 className={`font-bold px-2 py-0.5 rounded text-[10px] uppercase ${
-                  record.status === "settled" || rzpPaid
+                  record.status === "settled" || gatewayPaid
                     ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
                     : record.status === "waived_final"
                     ? "bg-blue-500/20 text-blue-300 border border-blue-500/40"
                     : "bg-amber-500/20 text-amber-300 border border-amber-500/40"
                 }`}
               >
-                {rzpPaid ? "PAID ✓" : record.status === "waived_final" ? "Waived Final" : record.status}
+                {gatewayPaid ? "PAID ✓" : record.status === "waived_final" ? "Waived Final" : record.status}
               </span>
             </div>
           </div>
@@ -602,7 +611,7 @@ Helpline: +91 84910 06127`;
             }`}
           >
             <span className="material-symbols-outlined text-sm">chat</span>
-            WhatsApp Razorpay Link
+            WhatsApp Cashfree Link
           </button>
 
           <button
@@ -625,24 +634,24 @@ Helpline: +91 84910 06127`;
           {activeTab === "remind" && (
             <div className="space-y-3">
               {/* Paid Banner */}
-              {rzpPaid ? (
+              {gatewayPaid ? (
                 <div className="p-4 bg-emerald-950/40 border border-emerald-500/50 rounded-2xl text-center space-y-1.5">
                   <div className="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto text-xl font-bold">
                     ✓
                   </div>
                   <h4 className="text-base font-bold text-white">Payment Received!</h4>
                   <p className="text-xs text-emerald-300">
-                    Remaining balance of ₹{(Number(record.balance_amount) || 0).toLocaleString("en-IN")} cleared via Razorpay Payment Link. Auto-logged to Vending Log.
+                    Remaining balance of ₹{(Number(record.balance_amount) || 0).toLocaleString("en-IN")} cleared via Cashfree Payment Link. Auto-logged to Vending Log.
                   </p>
                 </div>
               ) : (
-                /* Active Razorpay Link Card */
+                /* Active Cashfree Link Card */
                 <div className="p-3.5 bg-slate-950/90 border border-cyan-500/30 rounded-xl space-y-2.5">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-1.5">
                       <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
                       <span className="text-[11px] uppercase tracking-wider font-bold text-cyan-300">
-                        Official Razorpay Payment Link
+                        Official Cashfree Payment Link
                       </span>
                     </div>
                     {paymentLinkId && (
@@ -655,7 +664,7 @@ Helpline: +91 84910 06127`;
                   {generatingLink ? (
                     <div className="p-3 bg-slate-900 rounded-lg flex items-center justify-center gap-2 text-cyan-300 text-xs font-mono">
                       <div className="w-4 h-4 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
-                      Generating single-use Razorpay Link...
+                      Generating single-use Cashfree Link...
                     </div>
                   ) : paymentLink ? (
                     <div className="space-y-2">
@@ -687,7 +696,7 @@ Helpline: +91 84910 06127`;
                           onClick={handleCheckStatusNow}
                           disabled={checkingStatus}
                           className="flex-1 py-1.5 px-2.5 rounded-lg bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 border border-cyan-500/40 text-[11px] font-bold font-mono flex items-center justify-center gap-1.5 transition-all cursor-pointer disabled:opacity-50"
-                          title="Poll Razorpay status directly"
+                          title="Poll Cashfree status directly"
                         >
                           <span className={`material-symbols-outlined text-xs ${checkingStatus ? "animate-spin" : ""}`}>
                             sync
@@ -710,7 +719,7 @@ Helpline: +91 84910 06127`;
                           onClick={handleExpirePaymentLink}
                           disabled={expiringLink}
                           className="py-1.5 px-2.5 rounded-lg bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 border border-rose-500/40 text-[11px] font-bold font-mono flex items-center justify-center gap-1 transition-all cursor-pointer disabled:opacity-50"
-                          title="Cancel and expire this link on Razorpay"
+                          title="Cancel and expire this link on Cashfree"
                         >
                           <span className="material-symbols-outlined text-xs">delete_forever</span>
                           {expiringLink ? "..." : "Expire Link"}
@@ -720,7 +729,7 @@ Helpline: +91 84910 06127`;
                       <div className="flex items-center justify-between text-[10.5px] text-slate-400 font-mono pt-0.5">
                         <span className="flex items-center gap-1 text-emerald-400">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                          Live auto-monitoring payment status
+                          Live auto-monitoring payment status ({gatewayStatus})
                         </span>
                         <span>Locked: ₹{(Number(record.balance_amount) || 0).toLocaleString("en-IN")}</span>
                       </div>
@@ -732,7 +741,7 @@ Helpline: +91 84910 06127`;
                         onClick={() => handleGeneratePaymentLink()}
                         className="px-3 py-1.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-bold text-xs shadow-lg transition-all"
                       >
-                        Generate Razorpay Payment Link
+                        Generate Cashfree Payment Link
                       </button>
                     </div>
                   )}
@@ -800,7 +809,7 @@ Helpline: +91 84910 06127`;
                     How would you like to collect the remaining ₹{partialPaidSuccess.remainingBalance.toLocaleString("en-IN")}?
                   </p>
                   <div className="grid grid-cols-1 gap-2">
-                    {/* Option A: Send Razorpay Link on WhatsApp */}
+                    {/* Option A: Send Cashfree Link on WhatsApp */}
                     <button
                       type="button"
                       onClick={() => {
@@ -810,7 +819,7 @@ Helpline: +91 84910 06127`;
                       className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-green-500/20 to-emerald-500/20 hover:from-green-500/30 hover:to-emerald-500/30 border border-emerald-500/50 text-emerald-300 text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
                     >
                       <span className="text-base">📲</span>
-                      Send Razorpay Payment Link on WhatsApp (₹{partialPaidSuccess.remainingBalance.toLocaleString("en-IN")})
+                      Send Cashfree Payment Link on WhatsApp (₹{partialPaidSuccess.remainingBalance.toLocaleString("en-IN")})
                     </button>
                     {/* Option B: Done - close */}
                     <button
@@ -859,7 +868,7 @@ Helpline: +91 84910 06127`;
                         { id: "HDFC Bank Online", label: "🏦 HDFC Bank", sub: "SmartHub / UPI" },
                         { id: "Cash at Counter", label: "💵 Cash", sub: "Counter Drawer" },
                         { id: "JK Bank Online", label: "🏛️ JK Bank", sub: "mPay / Transfer" },
-                        { id: "Razorpay Online", label: "⚡ Razorpay", sub: "QR / Soundbox" },
+                        { id: "Cashfree Online", label: "⚡ Cashfree", sub: "Online / Link" },
                       ].map((m) => (
                         <button
                           key={m.id}
@@ -925,7 +934,7 @@ Helpline: +91 84910 06127`;
                         <option value="HDFC Bank Online">HDFC Bank Online (SmartHub UPI)</option>
                         <option value="Cash at Counter">Cash at Counter</option>
                         <option value="JK Bank Online">JK Bank Online (mPay)</option>
-                        <option value="Razorpay Online">Razorpay Online (QR)</option>
+                        <option value="Cashfree Online">Cashfree Online (Link / QR)</option>
                       </select>
                     </div>
                   </div>
@@ -1031,7 +1040,7 @@ Helpline: +91 84910 06127`;
 
         {/* Footer */}
         <div className="p-3 bg-slate-950 border-t border-slate-800 flex items-center justify-between text-xs">
-          <span className="text-slate-500 font-mono text-[11px]">Urban Trout · Razorpay Khata</span>
+          <span className="text-slate-500 font-mono text-[11px]">Urban Trout · Cashfree Khata</span>
           <button
             type="button"
             onClick={onClose}

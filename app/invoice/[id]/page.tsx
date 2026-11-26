@@ -99,8 +99,10 @@ function mapInvoiceData(parsed: any, fallbackNum: string): DecodedInvoice {
   const pLinkUrl = parsed.paymentLinkUrl || parsed.payUrl || parsed.payment_link_url || undefined;
   const pLinkId = parsed.paymentLinkId || parsed.payment_link_id || undefined;
   const pMode = parsed.paymentMode || (
-    rawMethod.toLowerCase().includes("razorpay") || (pLinkUrl && String(pLinkUrl).includes("rzp"))
-      ? "razorpay"
+    rawMethod.toLowerCase().includes("cashfree") ||
+    rawMethod.toLowerCase().includes("razorpay") ||
+    (pLinkUrl && (String(pLinkUrl).includes("cashfree") || String(pLinkUrl).includes("rzp")))
+      ? "cashfree"
       : undefined
   );
 
@@ -136,7 +138,7 @@ function mapInvoiceData(parsed: any, fallbackNum: string): DecodedInvoice {
     isExpired,
     expiresInHours: remainingHours,
     paymentStatus: parsed.paymentStatus || (refund > 0 ? "REFUND DUE" : (isPaidOrSettled ? "PAID" : "PAYMENT DUE")),
-    paymentMethod: parsed.paymentMethod || (pMode === "razorpay" ? "Razorpay Link (WhatsApp)" : "UPI"),
+    paymentMethod: parsed.paymentMethod || (pMode === "cashfree" ? "Cashfree Link (WhatsApp)" : "UPI"),
     paymentMode: pMode,
     paymentLinkUrl: pLinkUrl,
     paymentLinkId: pLinkId,
@@ -470,10 +472,12 @@ export default function PublicInvoicePage() {
         ? invoice.balanceAmount
         : (invoice.paidAmount !== undefined ? Math.max(0, grandTotal - invoice.paidAmount) : grandTotal));
 
-  const isRazorpay =
+  const isGatewayCheckout =
+    invoice.paymentMode === "cashfree" ||
     invoice.paymentMode === "razorpay" ||
+    String(invoice.paymentMethod || "").toLowerCase().includes("cashfree") ||
     String(invoice.paymentMethod || "").toLowerCase().includes("razorpay") ||
-    (Boolean(invoice.paymentLinkUrl) && (String(invoice.paymentLinkUrl).includes("rzp") || String(invoice.paymentLinkUrl).includes("razorpay")));
+    (Boolean(invoice.paymentLinkUrl) && (String(invoice.paymentLinkUrl).includes("cashfree") || String(invoice.paymentLinkUrl).includes("urbantrout.in/pay") || String(invoice.paymentLinkUrl).includes("rzp")));
 
   const rawInvoiceUpi = invoice.upiId;
   // For unpaid / balance-due invoices, always prefer the store's active HDFC default over legacy J&K Bank fallback
@@ -705,9 +709,9 @@ export default function PublicInvoicePage() {
                   <span className="font-mono truncate max-w-[150px]">{invoice.paymentId}</span>
                 </div>
               )}
-              {isRazorpay && invoice.paymentLinkId && (
+              {isGatewayCheckout && invoice.paymentLinkId && (
                 <div className="flex justify-between text-[10px] text-slate-500">
-                  <span>Razorpay Link Ref:</span>
+                  <span>Payment Link Ref:</span>
                   <span className="font-mono text-cyan-800 font-semibold">{invoice.paymentLinkId}</span>
                 </div>
               )}
@@ -884,8 +888,8 @@ export default function PublicInvoicePage() {
                       <span>₹{remainingAmount.toLocaleString("en-IN")}</span>
                     </div>
                     <p className="text-[10.5px] font-sans font-medium text-amber-800 mt-1 leading-tight">
-                      {isRazorpay
-                        ? "Please complete payment using the secure Razorpay payment link below."
+                      {isGatewayCheckout
+                        ? "Please complete payment using the secure Cashfree payment link below."
                         : "Please scan the UPI QR code below or pay cash upon handover."}
                     </p>
                   </div>
@@ -948,7 +952,7 @@ export default function PublicInvoicePage() {
 
           {/* 5. Payment QR Code & Settlement (Print-Friendly) */}
           {!isPaidInvoice && (!invoice.refundAmount || invoice.refundAmount === 0) && remainingAmount > 0 && (
-            isRazorpay ? (
+            isGatewayCheckout ? (
               <div className="p-4 rounded-xl bg-gradient-to-br from-slate-50 to-cyan-50/40 border-2 border-cyan-500/40 print-avoid-break flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
                 <div className="flex items-center gap-4">
                   <div className="w-32 h-32 sm:w-36 sm:h-36 bg-white border border-slate-300 rounded-xl p-1.5 shrink-0 flex items-center justify-center shadow-sm">
@@ -960,16 +964,16 @@ export default function PublicInvoicePage() {
                           ? generateFastQrDataUrl(invoice.paymentLinkUrl, { darkColor: "#020d12", margin: 2 })
                           : upiQrCodeUrl)
                       }
-                      alt="Scan to Pay via Razorpay"
+                      alt="Scan to Pay via Cashfree"
                       className="w-full h-full object-contain"
                     />
                   </div>
                   <div className="space-y-1">
                     <div className="inline-block px-2 py-0.5 rounded bg-cyan-100 text-cyan-900 text-[10px] font-bold uppercase tracking-wider">
-                      Razorpay Verified Checkout
+                      Cashfree Verified Checkout
                     </div>
                     <h3 className="text-sm font-black text-slate-900">
-                      Pay Online via Razorpay Gateway
+                      Pay Online via Cashfree Gateway
                     </h3>
                     <p className="text-xs font-mono font-bold text-slate-800">
                       Amount Due: ₹{remainingAmount.toLocaleString("en-IN")}
@@ -993,7 +997,7 @@ export default function PublicInvoicePage() {
                     className="w-full sm:w-auto px-5 py-3 rounded-xl bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-cyan-600/30 transition-all active:scale-95 cursor-pointer"
                   >
                     <span>💳</span>
-                    <span>PAY NOW VIA RAZORPAY (₹{remainingAmount.toLocaleString("en-IN")})</span>
+                    <span>PAY NOW VIA CASHFREE (₹{remainingAmount.toLocaleString("en-IN")})</span>
                     <span>→</span>
                   </a>
                   {invoice.paymentLinkUrl && (
@@ -1114,14 +1118,14 @@ export default function PublicInvoicePage() {
           {/* 6b. Statutory Declaration & Authorized Signatory Block (Commercial Standard) */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-0.5 print-avoid-break">
             {/* Left: Bank Account / Gateway Details */}
-            {isRazorpay ? (
+            {isGatewayCheckout ? (
               <div className="p-2.5 rounded-xl bg-slate-50 border border-slate-200 text-[10.5px] font-mono space-y-0.5">
                 <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-wider block font-sans">
-                  PAYMENT GATEWAY (RAZORPAY SECURE)
+                  PAYMENT GATEWAY (CASHFREE SECURE)
                 </span>
                 <div className="flex justify-between text-slate-700">
                   <span>Platform:</span>
-                  <strong className="text-slate-900">Razorpay Software Ltd</strong>
+                  <strong className="text-slate-900">Cashfree Payments India Pvt Ltd</strong>
                 </div>
                 <div className="flex justify-between text-slate-700">
                   <span>Supported Modes:</span>

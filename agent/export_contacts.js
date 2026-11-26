@@ -20,30 +20,29 @@ function haversineKm(lat1, lon1, lat2, lon2) {
   return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 }
 
-// Kashmir & Srinagar pincode mapping
+// Kashmir & Srinagar pincode mapping (synced with index.js)
 const PINCODE_MAP = {
   '190001': 'Lal Chowk',
-  '190002': 'Rainawari',
-  '190003': 'Khanyar',
-  '190004': 'Soura',
-  '190005': 'Hyderpora',
+  '190002': 'Maharaj Gunj',
+  '190003': 'Rainawari',
+  '190004': 'Nishat',
+  '190005': 'Sanat Nagar',
   '190006': 'Hazratbal',
-  '190007': 'Batamaloo',
-  '190008': 'Rajbagh',
-  '190009': 'Sanat Nagar',
-  '190010': 'Karan Nagar',
-  '190011': 'Bemina',
-  '190012': 'Khanyar',
+  '190008': 'Jawahar Nagar',
+  '190009': 'Bemina',
+  '190010': 'Batamaloo',
+  '190011': 'Soura',
+  '190012': 'HMT',
   '190014': 'Chanapora',
   '190015': 'Pantha Chowk',
-  '190018': 'Shalimar',
-  '190019': 'Zakura',
-  '190020': 'Nishat',
-  '190021': 'Ganderbal',
-  '190024': 'Parimpora',
-  '190025': 'Budgam',
-  '191111': 'Ganderbal',
-  '191121': 'Kangan'
+  '190017': 'Parimpora',
+  '190019': 'Shalimar',
+  '190020': 'Nowgam',
+  '190021': 'Humhama',
+  '190025': 'Eidgah',
+  '191121': 'Ganderbal Town',
+  '191131': 'Wayil',
+  '191201': 'Ganderbal Town'
 };
 
 // Comprehensive dictionary of Kashmir & Srinagar localities (Synchronized with AI Agent zones 1-4 & Outer)
@@ -86,7 +85,7 @@ const expandedAreas = [
   { name: 'Madin Sahib', re: /\b(?:madin\s*sahib)\b/i },
   { name: 'Alamgari Bazar', re: /\b(?:alamgari\s*bazar|alamgaribazar|alamgari)\b/i },
   { name: 'Saida Kadal', re: /\b(?:saida\s*kadal|saidakadal)\b/i },
-  { name: 'Rainawari', re: /\b(?:rainawari|raina\s*wari|reinawari)\b/i },
+  { name: 'Rainawari', re: /\b(?:rainawari|raina\s*wari|reinawari|ranvara|ranwara|ranawari|ranavari)\b/i },
   { name: 'Khanyar', re: /\b(?:khanyar|khan\s*yar|khanyaar)\b/i },
   { name: 'Nowhatta', re: /\b(?:nowhat+a?|nau\s*hat+a?|naushatta|nohat+a?)\b/i },
   { name: 'Gojwara', re: /\b(?:gojwara|goj\s*wara)\b/i },
@@ -110,7 +109,6 @@ const expandedAreas = [
   { name: 'Fateh Kadal', re: /\b(?:fateh\s*kadal|fatehkadal)\b/i },
   { name: 'Habba Kadal', re: /\b(?:habba\s*kadal|habbakadal)\b/i },
   { name: 'Karan Nagar', re: /\b(?:karan\s*nagar|karannagar)\b/i },
-  { name: 'Lal Chowk', re: /\b(?:lal\s*chowk|lalchowk|regent\s*cinema|residency\s*road|poloview|polo\s*view)\b/i },
   { name: 'Dalgate', re: /\b(?:dalgate|dal\s*gate|boulevard)\b/i },
   { name: 'Khayam', re: /\b(?:khay+am|khyam|khaiam|khyber\s*(?:hospital|medical|institute))\b/i },
   { name: 'Qamarwari', re: /\b(?:qamarwari|qamar\s*wari|kamarwari)\b/i },
@@ -120,6 +118,7 @@ const expandedAreas = [
   { name: 'Nawa Kadal', re: /\b(?:nawa\s*kadal|nawakadal|nawa\s*bazaar|nawabazar|kokermasjid)\b/i },
   { name: 'Nehru Park', re: /\b(?:nehru\s*park|dal\s*lake)\b/i },
   { name: 'Munawarabad', re: /\b(?:munawarabad|munawar\s*abad)\b/i },
+  { name: 'Parimpora', re: /\b(?:parimpora(?:\s*fruit\s*mandi)?|parim\s*pora(?:\s*fruit\s*mandi)?|fruit\s*mandi(?:\s*parimpora)?)\b/i },
 
   // Zone 4 (11.5 - 16.0 km — 5 kg Free Delivery Corridor)
   { name: 'Sanat Nagar', re: /\b(?:sanat\s*nagar|sanatnagar)\b/i },
@@ -136,7 +135,8 @@ const expandedAreas = [
   { name: 'Wazir Bagh', re: /\b(?:wazir\s*bagh|wazirbagh)\b/i },
   { name: 'Tulsi Bagh', re: /\b(?:tulsi\s*bagh|tulsibagh)\b/i },
   { name: 'Hazuri Bagh', re: /\b(?:hazuri\s*bagh|hazuribagh)\b/i },
-  { name: 'Alochi Bagh', re: /\b(?:al[ol]+chi\s*bagh|alochi|allochi|aloochi|elachi\s*bagh)\b/i },
+  { name: 'Lal Chowk', re: /\b(?:lal\s*chowk|lalchowk|regent\s*cinema|residency\s*road|poloview|polo\s*view)\b/i },
+  { name: 'Alochi Bagh', re: /\b(?:al[olu]+chi\s*bagh|al[olu]+chi|elachi\s*bagh)\b/i },
   { name: 'Magarmal Bagh', re: /\b(?:magarmal\s*bagh|magarmal)\b/i },
   { name: 'Baghat Barzulla', re: /\b(?:baghat\s*barzulla|baghat)\b/i },
   { name: 'Barzulla', re: /\b(?:barzulla|old\s*barzulla|bone\s*(?:&|and)\s*joint)\b/i },
@@ -158,7 +158,6 @@ const expandedAreas = [
   { name: 'Mochu', re: /\b(?:mochu|moochu)\b/i },
 
   // Beyond 16 km / Outer Districts / Suburbs
-  { name: 'Parimpora', re: /\b(?:parimpora|parim\s*pora|fruit\s*mandi)\b/i },
   { name: 'Shalteng', re: /\b(?:shalteng)\b/i },
   { name: 'HMT', re: /\b(?:hmt|zainakote|mustafabad)\b/i },
   { name: 'Lawaypora', re: /\b(?:lawaypora|lawapora|laway\s*pora)\b/i },
@@ -369,10 +368,12 @@ function findNearestDbLocality(lat, lng, zoneDb) {
   return best.name;
 }
 
-// Strip farm-boilerplate references so "Malabagh farm" never overrides customer's real neighbourhood
+// Strip farm-boilerplate references so "Malabagh farm" / RAS phrasing never overrides customer's real neighbourhood
 function stripFarmBoilerplate(text) {
   if (!text) return '';
   return String(text)
+    .replace(/\[(?:Customer shared location|Customer sent|GPS PIN)[^\]]*\]/gi, ' ')
+    .replace(/\b(?:recirculatory\s*aquaculture\s*system|aquaculture\s*system|ras)\s*(?:at|in|from)?\s*malabagh\b/gi, ' ')
     .replace(/\b(?:from|to|at|in|our|the|visit(?:\s+our)?|pickup\s+(?:at|from))\s+(?:our\s+)?(?:live\s+(?:trout\s+)?vending\s+cent(?:er|re)\s+(?:in|at)\s+)?malabagh(?:\s+(?:farm|hub|aquaculture|outlet|counter|tanks?))?\b/gi, ' ')
     .replace(/\bmalabagh\s+(?:farm|hub|aquaculture|outlet|counter|tanks?)\b/gi, ' ');
 }
@@ -390,12 +391,7 @@ function extractLocality({
 }) {
   const cleanUserText = stripFarmBoilerplate(userText);
 
-  // 1. Customer's own words + pincode (highest source of truth!)
-  const userPin = userText.match(/\b(19\d{4})\b/);
-  if (userPin && PINCODE_MAP[userPin[1]]) {
-    return PINCODE_MAP[userPin[1]];
-  }
-
+  // 1. Customer's own words (expandedAreas first, then custom/zoneDb, then pincode fallback!)
   if (cleanUserText) {
     for (const a of expandedAreas) {
       if (a.re.test(cleanUserText)) return a.name;
@@ -416,6 +412,10 @@ function extractLocality({
         return place.name;
       }
     }
+  }
+  const userPin = userText.match(/\b(190\d{3}|191[12]01|191121|191131)\b/);
+  if (userPin && PINCODE_MAP[userPin[1]]) {
+    return PINCODE_MAP[userPin[1]];
   }
 
   // 2. Owner manual chat text (Suhail typing locality/address note)
@@ -591,7 +591,7 @@ function enrichContactsFromChats(options = {}) {
     } catch (_) {}
   }
 
-  const OWNER_EXCLUDED_PHONES = new Set(['7006604148']);
+  const OWNER_EXCLUDED_PHONES = new Set(['7006604148', '9906030280']);
 
   // Build LID -> real phone index from chatMetadata, customer_orders, and whatsapp_contacts_map
   const lidToPhoneMap = new Map();
@@ -604,7 +604,7 @@ function enrichContactsFromChats(options = {}) {
     }
   }
   for (const o of Object.values(orders)) {
-    if (o && o.chatId && String(o.chatId).endsWith('@lid') && o.phone) {
+    if (o && o.createdBy !== 'OWNER_WHATSAPP_COMMAND' && o.chatId && String(o.chatId).endsWith('@lid') && o.phone) {
       const d = String(o.phone).replace(/\D/g, '');
       if (d.length >= 10 && d.length <= 13) lidToPhoneMap.set(o.chatId, d);
     }
@@ -618,8 +618,8 @@ function enrichContactsFromChats(options = {}) {
   function isValidMobileDigits(digits) {
     if (!digits) return false;
     if (/^(?:91)?[6-9]\d{9}$/.test(digits)) return true;
-    // Allow non-Indian international numbers only if explicitly <= 13 digits and not a 14+ digit @lid
-    return digits.length >= 10 && digits.length <= 13 && !digits.startsWith('1') && !digits.startsWith('2');
+    // Allow non-Indian international numbers explicitly <= 13 digits and reject 14+ digit LIDs
+    return digits.length >= 10 && digits.length <= 13;
   }
 
   function resolvePhoneFromJid(jid) {
@@ -733,22 +733,24 @@ function enrichContactsFromChats(options = {}) {
   // Build verified GPS pin index across metadata, orders, and merged chats
   const phoneToLocation = new Map();
   for (const [k, v] of Object.entries(chatMetadata)) {
-    if (!v) continue;
-    const phone = (v.phone || resolvePhoneFromJid(k)).replace(/\D/g, '');
+    if (!v || typeof v !== 'object') continue;
+    const phone = String(v.phone || resolvePhoneFromJid(k) || '').replace(/\D/g, '');
     if (phone.length < 10) continue;
     const last10 = phone.slice(-10);
     if (v.latitude && v.longitude) {
+      const straightKm = haversineKm(34.145, 74.825, Number(v.latitude), Number(v.longitude));
+      const isPoisonedDist = Number(v.distanceKm) === 0.2 && straightKm > 1.2;
       phoneToLocation.set(last10, {
         lat: v.latitude,
         lng: v.longitude,
         mapsUrl: v.googleMapsUrl || `https://maps.google.com/?q=${v.latitude},${v.longitude}`,
-        dist: v.distanceKm != null ? Number(v.distanceKm).toFixed(1) : null
+        dist: (!isPoisonedDist && v.distanceKm != null) ? Number(v.distanceKm).toFixed(1) : null
       });
     }
   }
   for (const o of Object.values(orders)) {
-    if (!o) continue;
-    const p = (o.customerPhone || o.phone || '').replace(/\D/g, '').slice(-10);
+    if (!o || typeof o !== 'object') continue;
+    const p = String(o.customerPhone || o.phone || '').replace(/\D/g, '').slice(-10);
     if (p.length === 10 && o.latitude && o.longitude) {
       phoneToLocation.set(p, {
         lat: o.latitude,
@@ -762,7 +764,7 @@ function enrichContactsFromChats(options = {}) {
     for (const msgText of [...bucket.userMsgs, ...bucket.modelMsgs]) {
       const urlMatch = msgText.match(/(https?:\/\/(?:maps\.google\.com|goo\.gl\/maps|maps\.app\.goo\.gl)[^\s]*)/i);
       const coordMatch = msgText.match(/(-?\d{1,2}\.\d{4,10})[,\s]+(-?\d{1,3}\.\d{4,10})/);
-      const distMatch = msgText.match(/(\d+(?:\.\d+)?)\s*km\s*from\s*(?:our\s*)?Malabagh/i);
+      const distMatch = msgText.match(/(\d+(?:\.\d+)?)\s*km\s*from\s*(?:our\s*)?(?:Recirculatory\s*Aquaculture\s*System\s*(?:at|in)\s*)?Malabagh/i);
       if (urlMatch || coordMatch) {
         if (urlMatch && /6FT5iLk5n8mbKSRU9/i.test(urlMatch[1])) continue;
         const existing = phoneToLocation.get(raw10) || {};
@@ -872,7 +874,7 @@ function enrichContactsFromChats(options = {}) {
     const meta = getMergedMeta(raw10, bucket.jids);
     const matchedOrder =
       orders[raw10] ||
-      Object.values(orders).find(o => bucket.jids.has(o.chatId) || (o.phone && o.phone.replace(/\D/g, '').endsWith(raw10)));
+      Object.values(orders).find(o => o && ((o.createdBy !== 'OWNER_WHATSAPP_COMMAND' && bucket.jids.has(o.chatId)) || (o.phone && String(o.phone).replace(/\D/g, '').endsWith(raw10))));
 
     const userText = bucket.userMsgs.join(' ');
     const ownerText = bucket.ownerMsgs.join(' ');
@@ -886,7 +888,7 @@ function enrichContactsFromChats(options = {}) {
     const isPaymentSent =
       !isBuyer &&
       ((matchedOrder && /payment link sent/i.test(matchedOrder.status || '')) ||
-        /(?:rzp\.io|payment link)/i.test(allText));
+        /(?:urbantrout\.in\/pay|cashfree\.com|rzp\.io|payment link)/i.test(allText));
 
     // Resolve CreatedAt timestamp cleanly
     let createdAtTs = bucket.latestTs || Number(meta.lastUserMsgTime) || Number(meta.lastBotMsgTime) || 0;
@@ -927,7 +929,7 @@ function enrichContactsFromChats(options = {}) {
 
     // Backfill newly discovered locality/name back into chat_metadata.json during nightly scan!
     if (updateMetadata) {
-      const targetKeys = [raw10, ...bucket.jids];
+      const targetKeys = [raw10, `91${raw10}`, ...bucket.jids];
       for (const k of targetKeys) {
         if (chatMetadata[k]) {
           if (area && area !== 'Srinagar' && chatMetadata[k].localityName !== area) {
@@ -940,6 +942,16 @@ function enrichContactsFromChats(options = {}) {
               (chatMetadata[k].localityName === 'Malabagh' && area !== 'Malabagh')
             ) {
               chatMetadata[k].localityName = area;
+              enrichedMetaUpdates++;
+            }
+          }
+          // Heal poisoned 0.2 km Malabagh distance when real verified coordinates/area differ from Malabagh
+          if (Number(chatMetadata[k].distanceKm) === 0.2 && area && area !== 'Malabagh') {
+            const repairedDist = locInfo?.dist
+              ? Number(locInfo.dist)
+              : (customAreas[area]?.dist != null ? Number(customAreas[area].dist) : null);
+            if (repairedDist && repairedDist !== 0.2) {
+              chatMetadata[k].distanceKm = repairedDist;
               enrichedMetaUpdates++;
             }
           }
@@ -969,7 +981,7 @@ function enrichContactsFromChats(options = {}) {
       ? bucket.userMsgs[bucket.userMsgs.length - 1].replace(/[\r\n",]/g, ' ').slice(0, 120).trim()
       : 'Inquiry';
 
-    const dateTag = new Date(createdAtTs).toISOString().slice(0, 10);
+    const dateTag = getISTDateObj(new Date(createdAtTs)).toISOString().slice(0, 10);
     let contactNotes = `Urban Trout Customer | Name: ${customerName || 'Inquirer'} | Locality: ${area || 'Srinagar'} | Date: ${dateTag}`;
     if (locInfo && locInfo.mapsUrl) {
       contactNotes = `📍 Google Maps: ${locInfo.mapsUrl}${locInfo.dist ? ` (~${locInfo.dist} km from farm)` : ''}\n${contactNotes}`;
@@ -1019,7 +1031,9 @@ function enrichContactsFromChats(options = {}) {
 
   // 2. Standalone orders from customer_orders.json without chat histories
   for (const [orderKey, order] of Object.entries(orders)) {
-    const orderPhone = (order.phone || (order.name && order.name.match(/\d{10}/) ? order.name.match(/\d{10}/)[0] : '') || '').replace(/\D/g, '');
+    if (!order || typeof order !== 'object') continue;
+    const rawNamePhone = order.name && String(order.name).match(/(?:\+?91[\s\-]?)?([6-9]\d{9})\b/);
+    const orderPhone = String(order.phone || (rawNamePhone ? rawNamePhone[1] : '') || '').replace(/\D/g, '');
     if (orderPhone.length < 10) continue;
     const raw10 = orderPhone.slice(-10);
     const fullPhone = '91' + raw10;
@@ -1032,10 +1046,11 @@ function enrichContactsFromChats(options = {}) {
 
     const isBuyer = /(?:paid|confirmed|harvest|deliver|out)/i.test(order.status || '');
     const isPaymentSent = !isBuyer && /payment link sent/i.test(order.status || '');
+    const custChatId = (order.chatId && order.createdBy !== 'OWNER_WHATSAPP_COMMAND') ? order.chatId : null;
 
     const { customerName, inferredNameArea } = resolveBestCustomerName({
       raw10,
-      jidsSet: new Set(order.chatId ? [order.chatId] : []),
+      jidsSet: new Set(custChatId ? [custChatId] : []),
       matchedOrder: order,
       meta: {},
       userMsgs: [],
@@ -1091,10 +1106,20 @@ function enrichContactsFromChats(options = {}) {
     });
   }
 
-  // Persist backfilled locality & cleaned names to chat_metadata.json
+  const writeAtomicText = (targetPath, content) => {
+    const tmp = `${targetPath}.tmp`;
+    try {
+      fs.writeFileSync(tmp, content, 'utf8');
+      fs.renameSync(tmp, targetPath);
+    } catch (_) {
+      try { fs.writeFileSync(targetPath, content, 'utf8'); } catch (_) {}
+    }
+  };
+
+  // Persist backfilled locality & cleaned names to chat_metadata.json atomically
   if (updateMetadata && enrichedMetaUpdates > 0) {
     try {
-      fs.writeFileSync(metaPath, JSON.stringify(chatMetadata, null, 2), 'utf8');
+      writeAtomicText(metaPath, JSON.stringify(chatMetadata, null, 2));
       if (!silent) console.log(`🧠 [Chat Enrichment] Updated ${enrichedMetaUpdates} locality entries across chat_metadata.json.`);
     } catch (_) {}
   }
@@ -1151,12 +1176,12 @@ function enrichContactsFromChats(options = {}) {
       const contactsFolder = path.join(desktopDir, 'Urban Trout', 'Contacts');
       if (!fs.existsSync(contactsFolder)) fs.mkdirSync(contactsFolder, { recursive: true });
       const desktopVcf = path.join(contactsFolder, 'Urban_Trout_Contacts.vcf');
-      fs.writeFileSync(desktopVcf, vcfContent, 'utf8');
+      writeAtomicText(desktopVcf, vcfContent);
       if (!silent) console.log(`📁 Desktop vCard: ${desktopVcf}`);
     } catch (_) {}
   }
-  fs.writeFileSync(localVcf, vcfContent, 'utf8');
-  fs.writeFileSync(jsonDbPath, JSON.stringify(contacts, null, 2), 'utf8');
+  writeAtomicText(localVcf, vcfContent);
+  writeAtomicText(jsonDbPath, JSON.stringify(contacts, null, 2));
 
   if (!silent) {
     const namedWithLoc = contacts.filter(c => c.customerName && c.area && c.area !== 'Srinagar').length;

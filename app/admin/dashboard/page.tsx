@@ -633,7 +633,7 @@ export default function DashboardPage() {
                   </span>
                 </div>
                 <p className="text-zinc-400 text-xs mt-0.5 font-['Manrope']">
-                  Polite automated WhatsApp ledger reminders and Razorpay balance settlement QR
+                  Polite automated WhatsApp ledger reminders and Cashfree balance settlement links
                 </p>
               </div>
             </div>
@@ -699,7 +699,7 @@ export default function DashboardPage() {
                         setIsBalanceModalOpen(true);
                       }}
                       className="flex-1 py-1.5 px-2 rounded-md bg-zinc-800 hover:bg-zinc-700 text-zinc-200 border border-zinc-700 text-xs font-medium flex items-center justify-center gap-1 transition-colors cursor-pointer"
-                      title="Generate Razorpay Balance QR"
+                      title="Generate Cashfree Balance Link"
                     >
                       <span className="material-symbols-outlined text-xs">qr_code_2</span>
                       Scan QR
@@ -1065,7 +1065,7 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Customer Balance Reminder & Razorpay QR Modal */}
+      {/* Customer Balance Reminder & Cashfree Link Modal */}
       <BalanceReminderModal
         isOpen={isBalanceModalOpen}
         onClose={() => {

@@ -21,6 +21,8 @@ export interface EodReportPayload {
   hdfcCount?: number;
   jkBankRevenue?: number;
   jkBankCount?: number;
+  cashfreeRevenue?: number;
+  cashfreeCount?: number;
   razorpayRevenue?: number;
   razorpayCount?: number;
   splitTotalRevenue?: number;
@@ -113,13 +115,15 @@ export function formatEodTelegramMessage(p: EodReportPayload): string {
   if (Number(p.jkBankRevenue || 0) > 0) {
     msg += `• 🏛️ <b>JK Bank (mPay / QR):</b> ₹${Number(p.jkBankRevenue).toLocaleString("en-IN")} (${p.jkBankCount ?? 0} txns)\n`;
   }
-  if (Number(p.razorpayRevenue || 0) > 0) {
-    msg += `• ⚡ <b>Razorpay (POS / QR):</b> ₹${Number(p.razorpayRevenue).toLocaleString("en-IN")} (${p.razorpayCount ?? 0} txns)\n`;
+  const gatewayRev = Number(p.cashfreeRevenue || p.razorpayRevenue || 0);
+  const gatewayCount = p.cashfreeCount ?? p.razorpayCount ?? 0;
+  if (gatewayRev > 0) {
+    msg += `• ⚡ <b>Cashfree (Online / Link):</b> ₹${gatewayRev.toLocaleString("en-IN")} (${gatewayCount} txns)\n`;
   }
   if (Number(p.splitTotalRevenue || 0) > 0) {
     msg += `• 🔀 <b>Split (Cash + Online):</b> ₹${Number(p.splitTotalRevenue).toLocaleString("en-IN")} (${p.splitCount ?? 0} orders · 💵 ₹${Number(p.splitCashRevenue || 0).toLocaleString("en-IN")} Cash + ⚡ ₹${Number(p.splitOnlineRevenue || 0).toLocaleString("en-IN")} Online)\n`;
   }
-  if (!p.hdfcRevenue && !p.jkBankRevenue && !p.razorpayRevenue && Number(p.onlineRevenue || 0) > 0) {
+  if (!p.hdfcRevenue && !p.jkBankRevenue && gatewayRev <= 0 && Number(p.onlineRevenue || 0) > 0) {
     msg += `• 🌐 <b>UPI / Soundbox / Online:</b> ₹${online} (${onlineCount} orders)\n`;
   }
   if (Number(p.creditSalesAmount || 0) > 0 || Number(p.allCustomersTotalCredit || 0) > 0) {

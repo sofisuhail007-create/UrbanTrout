@@ -127,14 +127,15 @@ export default function CustomerBalancesTab({
   };
 
   const handleCheckLinkStatus = async (record: CustomerBalanceRecord) => {
-    if (!record.razorpay_payment_link_id) {
+    const activeLinkId = record.payment_link_id || record.razorpay_payment_link_id;
+    if (!activeLinkId) {
       handleOpenAction(record);
       return;
     }
 
     setCheckingLinkId(record.id);
     try {
-      const res = await fetch(`/api/razorpay/payment-link?link_id=${encodeURIComponent(record.razorpay_payment_link_id)}`);
+      const res = await fetch(`/api/cashfree/payment-link?link_id=${encodeURIComponent(activeLinkId)}`);
       const data = await res.json();
       if (!data?.success) {
         alert(`Status check failed: ${data?.error || "Unknown error"}`);
@@ -150,15 +151,15 @@ export default function CustomerBalancesTab({
             id: record.id,
             action: "RECORD_PAYMENT",
             amountReceived: record.balance_amount,
-            paymentMethod: "Razorpay Link (Verified)",
-            settlementNote: `Paid in full via Razorpay Payment Link (${data.payment?.id || record.razorpay_payment_link_id})`,
+            paymentMethod: "Cashfree Link (Verified)",
+            settlementNote: `Paid in full via Cashfree Payment Link (${data.payment?.id || activeLinkId})`,
           }),
         });
 
         await fetchBalances();
         alert(`🎉 Payment Confirmed! ₹${(Number(record.balance_amount) || 0).toLocaleString("en-IN")} received from ${record.customer_name}. Auto-logged to Vending Log.`);
       } else {
-        alert(`⏳ Customer has NOT paid yet (Razorpay link status: "${data.status || "pending"}").`);
+        alert(`⏳ Customer has NOT paid yet (Cashfree link status: "${data.status || "pending"}").`);
       }
     } catch (err: any) {
       alert(`Could not verify status: ${err.message}`);
@@ -220,11 +221,11 @@ export default function CustomerBalancesTab({
         <div className="p-4 rounded-xl bg-[#0a0a0a] border border-[#222222] flex flex-col justify-between shadow-sm">
           <div>
             <div className="flex items-center justify-between mb-1">
-              <span className="text-[10px] uppercase font-mono tracking-wider text-cyan-400 font-bold">Razorpay Links Sent</span>
+              <span className="text-[10px] uppercase font-mono tracking-wider text-cyan-400 font-bold">Cashfree Links Sent</span>
               <span className="material-symbols-outlined text-cyan-400 text-base">link</span>
             </div>
             <div className="text-2xl font-black text-cyan-400 font-mono tabular-nums">
-              {records.filter((r) => !!r.razorpay_payment_link_id && r.status === "pending").length} Active
+              {records.filter((r) => !!(r.payment_link_id || r.razorpay_payment_link_id) && r.status === "pending").length} Active
             </div>
             <p className="text-xs text-zinc-400 mt-1">
               Live status tracking, auto-expiring links &amp; auto-sync
@@ -400,13 +401,13 @@ export default function CustomerBalancesTab({
                       <div className="text-zinc-500 text-[10px]">
                         {formatShortDate(r.created_at)}
                       </div>
-                      {r.razorpay_payment_link_id && (
+                      {(r.payment_link_id || r.razorpay_payment_link_id) && (
                         <div className="flex items-center gap-1 mt-0.5">
                           <span
                             className="text-[9.5px] font-mono text-zinc-400 bg-[#0a0a0a] border border-[#222222] px-1.5 py-0.5 rounded truncate max-w-[110px]"
-                            title={`Razorpay Link ID: ${r.razorpay_payment_link_id}`}
+                            title={`Payment Link ID: ${r.payment_link_id || r.razorpay_payment_link_id}`}
                           >
-                            🔗 {r.razorpay_payment_link_id}
+                            🔗 {r.payment_link_id || r.razorpay_payment_link_id}
                           </span>
                         </div>
                       )}
@@ -464,25 +465,25 @@ export default function CustomerBalancesTab({
                           <span>PDF</span>
                         </a>
 
-                        {/* 1. Quick Remind / Razorpay Link */}
+                        {/* 1. Quick Remind / Cashfree Link */}
                         <button
                           type="button"
                           onClick={() => handleOpenAction(r, "remind")}
                           className="px-2.5 py-1 rounded-lg bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/40 text-[11px] font-bold flex items-center gap-1 transition-colors cursor-pointer"
-                          title="Send WhatsApp Razorpay Payment Link"
+                          title="Send WhatsApp Cashfree Payment Link"
                         >
                           <span className="material-symbols-outlined text-xs">link</span>
                           Remind / Link
                         </button>
 
-                        {/* 2. Check Razorpay Status Directly */}
-                        {r.razorpay_payment_link_id && isPending && (
+                        {/* 2. Check Cashfree Status Directly */}
+                        {(r.payment_link_id || r.razorpay_payment_link_id) && isPending && (
                           <button
                             type="button"
                             onClick={() => handleCheckLinkStatus(r)}
                             disabled={checkingLinkId === r.id}
                             className="px-2 py-1 rounded-md bg-[#161616] hover:bg-[#222222] text-zinc-200 border border-[#333333] text-[11px] font-medium flex items-center gap-1 transition-colors cursor-pointer disabled:opacity-50"
-                            title="Poll Razorpay status for this payment link"
+                            title="Poll Cashfree status for this payment link"
                           >
                             <span className={`material-symbols-outlined text-xs ${checkingLinkId === r.id ? "animate-spin" : ""}`}>
                               sync

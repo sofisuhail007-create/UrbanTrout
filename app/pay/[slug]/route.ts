@@ -32,15 +32,11 @@ export async function GET(
         .maybeSingle();
 
       if (order) {
-        // Check if there is an embedded payment link in notes or metadata
+        // Check if there is an embedded Cashfree payment link in notes or metadata
         const notesStr = `${order.notes || ""} ${order.delivery_notes || ""}`;
         const cfMatch = notesStr.match(/https:\/\/payments\.cashfree\.com\/links\/([a-zA-Z0-9_\-]+)/i);
         if (cfMatch) {
           return NextResponse.redirect(cfMatch[0], 307);
-        }
-        const rzpMatch = notesStr.match(/https:\/\/rzp\.io\/(?:rzp|l)\/[a-zA-Z0-9_\-]+/i);
-        if (rzpMatch) {
-          return NextResponse.redirect(rzpMatch[0], 307);
         }
       }
     } catch (e) {

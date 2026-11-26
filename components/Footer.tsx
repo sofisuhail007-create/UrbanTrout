@@ -149,7 +149,7 @@ export default function Footer() {
           </nav>
         </div>
 
-        {/* 3. Customer Policies & Compliance (Mandatory for Razorpay) */}
+        {/* 3. Customer Policies & Compliance */}
         <div>
           <p
             className="font-bold"

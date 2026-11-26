@@ -387,7 +387,7 @@ export default function ContactPage() {
               </div>
             </div>
 
-            {/* Statutory Grievance & Legal Entity Card (Razorpay & RBI Compliance) */}
+            {/* Statutory Grievance & Legal Entity Card (Cashfree & RBI Compliance) */}
             <div
               className="p-7 rounded-2xl"
               style={{

@@ -76,8 +76,8 @@ export function formatKhataAsInvoice(cb?: any, vsl?: any, fallbackId?: string) {
     expiresInHours: 720, // Khata credit bills do not expire in 48h; they stay active until settled
     paymentStatus: isSettled ? "PAID" : "PAYMENT DUE",
     paymentMethod: vsl?.payment_mode || cb?.payment_method || "Credit (Khata)",
-    razorpayPaymentLinkId: cb?.razorpay_payment_link_id || cf.razorpay_payment_link_id,
-    razorpayPaymentLinkUrl: cb?.razorpay_payment_link_url || cf.razorpay_payment_link_url,
+    paymentLinkId: cb?.razorpay_payment_link_id || cf.payment_link_id || cf.razorpay_payment_link_id,
+    paymentLinkUrl: cb?.razorpay_payment_link_url || cf.payment_link_url || cf.razorpay_payment_link_url,
   };
 }
 

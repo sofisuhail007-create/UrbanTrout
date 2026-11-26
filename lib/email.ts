@@ -22,6 +22,8 @@ export async function sendOrderConfirmationEmail(order: {
   deliveryFee: number;
   total: number;
   paymentMethod: string;
+  cashfreePaymentId?: string;
+  cashfreeOrderId?: string;
   razorpayPaymentId?: string;
   razorpayOrderId?: string;
   utrNumber?: string;
@@ -85,7 +87,7 @@ export async function sendOrderConfirmationEmail(order: {
           <div style="display: inline-block; width: 56px; height: 56px; border-radius: 28px; background: rgba(34,197,94,0.15); line-height: 56px; font-size: 26px; color: #22c55e; text-align: center; margin-bottom: 12px; border: 1px solid rgba(34,197,94,0.3);">✓</div>
           <h2 style="margin: 0; font-size: 22px; font-weight: 800; color: #ffffff;">Order Confirmed &amp; Paid!</h2>
           <p style="margin: 8px 0 0; font-size: 13px; color: #4ade80; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">
-            Payment Verified via Razorpay
+            Payment Verified via Cashfree
           </p>
           <p style="margin: 8px 0 0; font-size: 14px; color: #9fadb8; line-height: 1.6;">
             Thank you, <strong>${order.customerName}</strong>! Your payment has been received and verified. Our aquaculture specialists at Urban Trout Aquaculture Farm, Malabagh are now preparing your fresh catch for same-day delivery.
@@ -99,10 +101,10 @@ export async function sendOrderConfirmationEmail(order: {
             <span style="font-size: 14px; color: #72ddfd; font-weight: 700;">#${order.orderNumber}</span>
           </div>
 
-          ${order.razorpayPaymentId ? `
+          ${(order.cashfreePaymentId || order.razorpayPaymentId) ? `
           <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #152834; padding-bottom: 10px; margin-bottom: 12px; font-size: 12px;">
-            <span style="color: #6a7782; text-transform: uppercase; font-weight: 700;">Razorpay Payment ID</span>
-            <span style="color: #4ade80; font-family: monospace; font-weight: 600;">${order.razorpayPaymentId}</span>
+            <span style="color: #6a7782; text-transform: uppercase; font-weight: 700;">Cashfree Payment ID</span>
+            <span style="color: #4ade80; font-family: monospace; font-weight: 600;">${order.cashfreePaymentId || order.razorpayPaymentId}</span>
           </div>
           ` : ""}
 
@@ -662,7 +664,7 @@ export async function sendFarmVisitApprovedEmail(visit: {
 }
 
 /**
- * Sends real-time payment confirmation email when a Razorpay Payment Link is paid.
+ * Sends real-time payment confirmation email when a Cashfree Payment Link or order is paid.
  * Sent to info.urbantrout@gmail.com and to the customer (if email provided).
  */
 export async function sendPaymentLinkConfirmationEmail(params: {
@@ -710,7 +712,7 @@ export async function sendPaymentLinkConfirmationEmail(params: {
       <div style="padding: 28px 24px;">
         <div style="text-align: center; margin-bottom: 24px;">
           <div style="display: inline-block; width: 52px; height: 52px; border-radius: 26px; background: rgba(34,197,94,0.15); line-height: 52px; font-size: 24px; color: #22c55e; text-align: center; margin-bottom: 10px; border: 1px solid rgba(34,197,94,0.3);">✓</div>
-          <h2 style="margin: 0; font-size: 20px; font-weight: 800; color: #ffffff;">Payment Verified via Razorpay</h2>
+          <h2 style="margin: 0; font-size: 20px; font-weight: 800; color: #ffffff;">Payment Verified via Cashfree</h2>
           <p style="margin: 6px 0 0; font-size: 13px; color: #4ade80; font-weight: 700; text-transform: uppercase; letter-spacing: 1px;">
             ₹${formattedAmt} Received Successfully
           </p>
@@ -741,7 +743,7 @@ export async function sendPaymentLinkConfirmationEmail(params: {
           ` : ""}
 
           <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #152834; padding-bottom: 10px; margin-bottom: 10px; font-size: 13px;">
-            <span style="color: #6a7782; text-transform: uppercase; font-weight: 700;">Razorpay Txn ID:</span>
+            <span style="color: #6a7782; text-transform: uppercase; font-weight: 700;">Cashfree Txn ID:</span>
             <span style="color: #4ade80; font-family: monospace; font-weight: 600;">${params.paymentId}</span>
           </div>
 

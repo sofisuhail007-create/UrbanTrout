@@ -8,7 +8,7 @@ import { generateFastQrDataUrl } from "@/lib/qrCode";
 export interface PaymentChannel {
   id: string;
   name: string;
-  type: "razorpay" | "bank_transfer" | "upi_qr" | "custom";
+  type: "cashfree" | "razorpay" | "bank_transfer" | "upi_qr" | "custom";
   vpa?: string;
   accountNumber?: string;
   ifsc?: string;
@@ -31,10 +31,10 @@ const DEFAULT_PAYMENT_CHANNELS: PaymentChannel[] = [
     isDefault: true,
   },
   {
-    id: "razorpay_dynamic",
-    name: "Razorpay Dynamic Locked QR",
-    type: "razorpay",
-    description: "Auto-generated single-use smart QR with real-time payment auto-capture",
+    id: "cashfree_dynamic",
+    name: "Cashfree Dynamic Payment Link & QR",
+    type: "cashfree",
+    description: "Auto-generated single-use payment links and checkout QR with real-time payment auto-capture",
     enabled: true,
     isDefault: false,
   },
@@ -772,7 +772,7 @@ export default function AdminSettingsPage() {
       {
         key: "payment_channels",
         value: JSON.stringify(paymentChannels),
-        description: "Multi-channel payment routes, QR options, and toggles (Razorpay, J&K Bank, Personal UPI, HDFC)",
+        description: "Multi-channel payment routes, QR options, and toggles (Cashfree, J&K Bank, Personal UPI, HDFC)",
       },
       { key: "jk_bank_account_number", value: jkBankAccountNumber.trim(), description: "J&K Bank account number for direct mPay and IMPS/NEFT transfers" },
       { key: "jk_bank_ifsc", value: jkBankIfsc.trim(), description: "J&K Bank IFSC Code" },
@@ -893,7 +893,7 @@ export default function AdminSettingsPage() {
         {
           key: "payment_channels",
           value: JSON.stringify(updated),
-          description: "Multi-channel payment routes, QR options, and toggles (Razorpay, J&K Bank, Custom UPI)",
+          description: "Multi-channel payment routes, QR options, and toggles (Cashfree, J&K Bank, Custom UPI)",
         },
       ];
       await adminFetch("/api/settings", {
@@ -933,7 +933,7 @@ export default function AdminSettingsPage() {
         {
           key: "payment_channels",
           value: JSON.stringify(updated),
-          description: "Multi-channel payment routes, QR options, and toggles (Razorpay, J&K Bank, Custom UPI)",
+          description: "Multi-channel payment routes, QR options, and toggles (Cashfree, J&K Bank, Custom UPI)",
         },
       ];
       if (newVpa) {
@@ -973,7 +973,7 @@ export default function AdminSettingsPage() {
         {
           key: "payment_channels",
           value: JSON.stringify(updated),
-          description: "Multi-channel payment routes, QR options, and toggles (Razorpay, J&K Bank, Custom UPI)",
+          description: "Multi-channel payment routes, QR options, and toggles (Cashfree, J&K Bank, Custom UPI)",
         },
       ];
       await adminFetch("/api/settings", {
@@ -1025,7 +1025,7 @@ export default function AdminSettingsPage() {
         {
           key: "payment_channels",
           value: JSON.stringify(updated),
-          description: "Multi-channel payment routes, QR options, and toggles (Razorpay, J&K Bank, Custom UPI)",
+          description: "Multi-channel payment routes, QR options, and toggles (Cashfree, J&K Bank, Custom UPI)",
         },
       ];
       await adminFetch("/api/settings", {
@@ -1103,7 +1103,7 @@ export default function AdminSettingsPage() {
         {
           key: "payment_channels",
           value: JSON.stringify(updatedChannels),
-          description: "Multi-channel payment routes, QR options, and toggles (Razorpay, J&K Bank, Personal UPI, HDFC)",
+          description: "Multi-channel payment routes, QR options, and toggles (Cashfree, J&K Bank, Personal UPI, HDFC)",
         },
       ];
       if (cleanVpa && (editingChannel.isDefault || upiId === editingChannel.vpa)) {
@@ -2402,7 +2402,7 @@ export default function AdminSettingsPage() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <span
                             className={`px-2 py-0.5 rounded-md text-[10px] font-mono font-bold uppercase tracking-wider ${
-                              chan.type === "razorpay"
+                              chan.type === "cashfree" || chan.type === "razorpay"
                                 ? "bg-blue-500/15 text-blue-400 border border-blue-500/30"
                                 : chan.type === "bank_transfer"
                                 ? "bg-amber-500/15 text-amber-400 border border-amber-500/30"
@@ -2411,8 +2411,8 @@ export default function AdminSettingsPage() {
                                 : "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
                             }`}
                           >
-                            {chan.type === "razorpay"
-                              ? "⚡ Razorpay Dynamic QR"
+                            {chan.type === "cashfree" || chan.type === "razorpay"
+                              ? "⚡ Cashfree Dynamic Link & QR"
                               : chan.type === "bank_transfer"
                               ? "🏦 J&K Bank Direct mPay"
                               : chan.type === "custom"
@@ -2792,7 +2792,7 @@ export default function AdminSettingsPage() {
                     {editingChannel.type !== "bank_transfer" && (
                       <div className="space-y-1">
                         <label className="block text-xs uppercase tracking-wider font-bold text-slate-400 font-mono">
-                          UPI ID / VPA {editingChannel.type !== "razorpay" && <span className="text-red-400">*</span>}
+                          UPI ID / VPA {editingChannel.type !== "cashfree" && editingChannel.type !== "razorpay" && <span className="text-red-400">*</span>}
                         </label>
                         <input
                           type="text"

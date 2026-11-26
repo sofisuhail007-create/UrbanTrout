@@ -76,7 +76,7 @@ function orderToSlipData(order: Order, upi: string): InvoiceSlipData {
     balanceAmount,
     refundAmount,
     paymentStatus: isPaid ? (refundAmount > 0 ? "REFUND DUE" : "PAID") : "PAYMENT DUE",
-    paymentMethod: isPaid ? "Razorpay Online / UPI" : "Cash on Delivery",
+    paymentMethod: isPaid ? "Cashfree Online / UPI" : "Cash on Delivery",
     upiId: upi,
   };
 }
@@ -243,9 +243,9 @@ export default function OrdersPage() {
   const HDFC_MERCHANT_REF = "STQU178760132267";
   const [qrModalOrder, setQrModalOrder] = useState<Order | null>(null);
   const [qrAmount, setQrAmount] = useState<string>("0");
-  const [qrMode, setQrMode] = useState<"hdfc" | "razorpay" | "direct_upi">("hdfc");
+  const [qrMode, setQrMode] = useState<"hdfc" | "cashfree" | "direct_upi">("hdfc");
   const [qrLoading, setQrLoading] = useState<boolean>(false);
-  const [posQrData, setPosQrData] = useState<{ qr_id: string; image_url: string; amount: number } | null>(null);
+  const [posQrData, setPosQrData] = useState<{ qr_id: string; image_url: string; short_url?: string; amount: number } | null>(null);
   const [posQrPaid, setPosQrPaid] = useState<boolean>(false);
   const [posQrPayment, setPosQrPayment] = useState<any>(null);
   const [qrError, setQrError] = useState<string | null>(null);
@@ -686,7 +686,7 @@ export default function OrdersPage() {
     setCopiedLink(false);
   };
 
-  const generateRazorpayQr = async (amt: number, ord: Order) => {
+  const generateCashfreeQr = async (amt: number, ord: Order) => {
     if (amt <= 0) {
       setQrError("Amount must be greater than ₹0");
       return;
@@ -694,14 +694,14 @@ export default function OrdersPage() {
     setQrLoading(true);
     setQrError(null);
     try {
-      const res = await fetch("/api/razorpay/pos-qr", {
+      const res = await fetch("/api/cashfree/pos-qr", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amount: amt,
           customerName: ord.customer_name || "Customer",
           customerPhone: ord.customer_phone || "",
-          billNumber: ord.order_number,
+          orderRef: ord.order_number,
         }),
       });
       const data = await res.json();
@@ -709,11 +709,12 @@ export default function OrdersPage() {
         setPosQrData({
           qr_id: data.qr_id,
           image_url: data.image_url,
+          short_url: data.short_url,
           amount: data.amount,
         });
       } else {
         setQrMode("hdfc");
-        setQrError(data.error || "Razorpay Dynamic QR unavailable. Showing HDFC SmartHub Soundbox QR.");
+        setQrError(data.error || "Cashfree Dynamic QR unavailable. Showing HDFC SmartHub Soundbox QR.");
       }
     } catch (err: any) {
       setQrMode("hdfc");
@@ -725,7 +726,7 @@ export default function OrdersPage() {
 
   const handleCloseQrModal = () => {
     if (posQrData?.qr_id && !posQrPaid) {
-      fetch(`/api/razorpay/pos-qr?qr_id=${encodeURIComponent(posQrData.qr_id)}`, { method: "DELETE" }).catch(() => {});
+      fetch(`/api/cashfree/pos-qr?qr_id=${encodeURIComponent(posQrData.qr_id)}`, { method: "DELETE" }).catch(() => {});
     }
     setQrModalOrder(null);
     setPosQrData(null);
@@ -734,16 +735,16 @@ export default function OrdersPage() {
     setQrError(null);
   };
 
-  // Polling for Razorpay POS QR payment
+  // Polling for Cashfree POS QR payment
   useEffect(() => {
-    if (!qrModalOrder || !posQrData?.qr_id || posQrPaid || qrMode !== "razorpay") {
+    if (!qrModalOrder || !posQrData?.qr_id || posQrPaid || qrMode !== "cashfree") {
       return;
     }
 
     let isSubscribed = true;
     const interval = setInterval(async () => {
       try {
-        const res = await fetch(`/api/razorpay/pos-qr?qr_id=${encodeURIComponent(posQrData.qr_id)}`);
+        const res = await fetch(`/api/cashfree/pos-qr?qr_id=${encodeURIComponent(posQrData.qr_id)}`);
         if (!res.ok) return;
         const data = await res.json();
         if (data.success && data.paid && isSubscribed) {
@@ -761,7 +762,7 @@ export default function OrdersPage() {
                 status: newStatus,
                 paid_amount: posQrData.amount,
                 payment_status: "PAID",
-                notes: `Paid ₹${posQrData.amount} via Razorpay Dynamic QR (${data.payment?.id || ""})`,
+                notes: `Paid ₹${posQrData.amount} via Cashfree Dynamic QR (${data.payment?.id || ""})`,
               }),
             });
             setOrders((prev) =>
@@ -881,9 +882,9 @@ export default function OrdersPage() {
     if (qrMode === "direct_upi") {
       payLink = directUpiUri;
       bankNote = `J&K Bank UPI ID: ${upiId}`;
-    } else if (qrMode === "razorpay") {
-      payLink = posQrData?.image_url ? `https://rzp.io/l/urbantrout` : hdfcUpiUri;
-      bankNote = `Razorpay Auto-Verify UPI`;
+    } else if (qrMode === "cashfree") {
+      payLink = posQrData?.short_url || `https://urbantrout.in/qr?am=${parsedQrAmount}&ord=${qrModalOrder.order_number}`;
+      bankNote = `Cashfree Auto-Verify Link`;
     }
 
     const msg = `Hi ${name}! 🐟\n\nYour Urban Trout Order #${qrModalOrder.order_number} is ready.\n\n*Amount Due: ${amountStr}* (Amount is locked in UPI)\n\nTap to pay with any UPI App (Google Pay / PhonePe / Paytm / PayZapp / mPay):\n${payLink}\n\n${bankNote}\n\nThank you for choosing Urban Trout!`;
@@ -2134,7 +2135,7 @@ export default function OrdersPage() {
                           type="button"
                           onClick={() => handleOpenOrderQr(order)}
                           className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 rounded-lg text-xs font-bold hover:bg-emerald-500/30 transition-colors shadow-sm cursor-pointer"
-                          title="Generate instant amount-locked UPI QR (Razorpay dynamic or Direct J&K Bank) for doorstep collection"
+                          title="Generate instant amount-locked UPI QR (Cashfree or Direct Bank UPI) for doorstep collection"
                         >
                           <span className="material-symbols-outlined text-base">qr_code_scanner</span>
                           <span>⚡ Instant Locked QR</span>
@@ -2628,18 +2629,18 @@ export default function OrdersPage() {
               <button
                 type="button"
                 onClick={() => {
-                  setQrMode("razorpay");
+                  setQrMode("cashfree");
                   if (!posQrData && !qrLoading) {
-                    generateRazorpayQr(parsedQrAmount, qrModalOrder);
+                    generateCashfreeQr(parsedQrAmount, qrModalOrder);
                   }
                 }}
                 className={`py-2 px-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
-                  qrMode === "razorpay"
+                  qrMode === "cashfree"
                     ? "bg-cyan-500 text-slate-950 shadow-md font-black"
                     : "text-slate-400 hover:text-white"
                 }`}
               >
-                <span>⚡ Razorpay</span>
+                <span>⚡ Cashfree</span>
                 <span className="text-[9px] font-mono opacity-80">Auto-Detect</span>
               </button>
               <button
@@ -2685,8 +2686,8 @@ export default function OrdersPage() {
                   onClick={() => {
                     const newAmt = parseFloat(qrAmount);
                     if (newAmt > 0 && qrModalOrder) {
-                      if (qrMode === "razorpay") {
-                        generateRazorpayQr(newAmt, qrModalOrder);
+                      if (qrMode === "cashfree") {
+                        generateCashfreeQr(newAmt, qrModalOrder);
                       }
                     }
                   }}
@@ -2730,7 +2731,7 @@ export default function OrdersPage() {
                       src={
                         qrMode === "hdfc"
                           ? hdfcUpiQrUrl
-                          : qrMode === "razorpay" && posQrData?.image_url
+                          : qrMode === "cashfree" && posQrData?.image_url
                           ? posQrData.image_url
                           : directUpiQrUrl
                       }
@@ -2750,7 +2751,7 @@ export default function OrdersPage() {
                         Direct to {HDFC_COUNTER_VPA} • Soundbox will speak
                       </span>
                     </div>
-                  ) : qrMode === "razorpay" ? (
+                  ) : qrMode === "cashfree" ? (
                     <div className="mt-3 flex items-center gap-2 px-3 py-1.5 rounded-full bg-cyan-950/70 border border-cyan-500/30 text-xs text-cyan-300">
                       <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
                       <span>Waiting for customer scan... (Auto-detects)</span>

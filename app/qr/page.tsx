@@ -12,11 +12,11 @@ function QuickQrContent() {
 
   const [amount, setAmount] = useState<string>(urlAm || "1160");
   const [orderRef, setOrderRef] = useState<string>(urlOrd);
-  const [gateway, setGateway] = useState<"jk_bank" | "razorpay">(urlMode === "razorpay" ? "razorpay" : "jk_bank");
+  const [gateway, setGateway] = useState<"jk_bank" | "cashfree">(urlMode === "cashfree" || urlMode === "razorpay" ? "cashfree" : "jk_bank");
   const [copied, setCopied] = useState<boolean>(false);
   const [paidCelebration, setPaidCelebration] = useState<boolean>(false);
-  const [rzpLoading, setRzpLoading] = useState<boolean>(false);
-  const [rzpQrData, setRzpQrData] = useState<{ qr_id: string; image_url: string; amount: number } | null>(null);
+  const [cfLoading, setCfLoading] = useState<boolean>(false);
+  const [cfQrData, setCfQrData] = useState<{ qr_id: string; image_url: string; pay_url?: string; amount: number } | null>(null);
 
   useEffect(() => {
     if (urlAm) setAmount(urlAm);
@@ -34,26 +34,26 @@ function QuickQrContent() {
     ? generateFastQrDataUrl(upiUri, { darkColor: "#000000", margin: 2 })
     : "";
 
-  // Fetch dynamic Razorpay QR if gateway is razorpay
+  // Fetch dynamic Cashfree link/QR if gateway is cashfree
   useEffect(() => {
-    if (gateway !== "razorpay" || numAmount <= 0) {
-      setRzpQrData(null);
+    if (gateway !== "cashfree" || numAmount <= 0) {
+      setCfQrData(null);
       return;
     }
 
     let isSubscribed = true;
-    setRzpLoading(true);
+    setCfLoading(true);
 
-    fetch(`/api/razorpay/quick-qr?amount=${numAmount}&format=json`)
+    fetch(`/api/cashfree/quick-qr?amount=${numAmount}&format=json`)
       .then((res) => res.json())
       .then((data) => {
         if (isSubscribed && data.success && data.image_url) {
-          setRzpQrData(data);
+          setCfQrData(data);
         }
       })
-      .catch((err) => console.warn("Failed to load Razorpay dynamic QR:", err))
+      .catch((err) => console.warn("Failed to load Cashfree dynamic QR:", err))
       .finally(() => {
-        if (isSubscribed) setRzpLoading(false);
+        if (isSubscribed) setCfLoading(false);
       });
 
     return () => {
@@ -61,14 +61,14 @@ function QuickQrContent() {
     };
   }, [gateway, numAmount]);
 
-  // Poll for payment when in Razorpay mode
+  // Poll for payment when in Cashfree mode
   useEffect(() => {
-    if (gateway !== "razorpay" || !rzpQrData?.qr_id || paidCelebration) return;
+    if (gateway !== "cashfree" || !cfQrData?.qr_id || paidCelebration) return;
 
     let isSubscribed = true;
     const interval = setInterval(async () => {
       try {
-        const res = await fetch(`/api/razorpay/pos-qr?qr_id=${encodeURIComponent(rzpQrData.qr_id)}`);
+        const res = await fetch(`/api/cashfree/pos-qr?qr_id=${encodeURIComponent(cfQrData.qr_id)}`);
         if (!res.ok) return;
         const data = await res.json();
         if (data.success && data.paid && isSubscribed) {
@@ -81,7 +81,7 @@ function QuickQrContent() {
       isSubscribed = false;
       clearInterval(interval);
     };
-  }, [gateway, rzpQrData?.qr_id, paidCelebration]);
+  }, [gateway, cfQrData?.qr_id, paidCelebration]);
 
   const handleQuickAmount = (val: number) => {
     setAmount(String(val));
@@ -89,15 +89,17 @@ function QuickQrContent() {
   };
 
   const handleCopyLink = () => {
-    if (!upiUri) return;
-    navigator.clipboard.writeText(upiUri);
+    const linkToCopy = gateway === "cashfree" && cfQrData?.pay_url ? cfQrData.pay_url : upiUri;
+    if (!linkToCopy) return;
+    navigator.clipboard.writeText(linkToCopy);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   const handleShareWhatsApp = () => {
-    if (!upiUri) return;
-    const msg = `Hi! 🐟\nHere is your locked UPI payment link for Urban Trout:\n\n*Amount: ₹${numAmount.toLocaleString("en-IN")}*\n\nTap to pay with Google Pay / PhonePe / Paytm / mPay:\n${upiUri}\n\nThank you!`;
+    const linkToShare = gateway === "cashfree" && cfQrData?.pay_url ? cfQrData.pay_url : upiUri;
+    if (!linkToShare) return;
+    const msg = `Hi! 🐟\nHere is your locked payment link for Urban Trout:\n\n*Amount: ₹${numAmount.toLocaleString("en-IN")}*\n\nTap to pay with Google Pay / PhonePe / Paytm / mPay:\n${linkToShare}\n\nThank you!`;
     window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, "_blank");
   };
 
@@ -121,7 +123,7 @@ function QuickQrContent() {
     setPaidCelebration(true);
   };
 
-  const activeQrImage = gateway === "razorpay" ? rzpQrData?.image_url : jkQrImageUrl;
+  const activeQrImage = gateway === "cashfree" ? cfQrData?.image_url : jkQrImageUrl;
 
   return (
     <main className="min-h-screen bg-slate-950 text-white flex flex-col items-center justify-between p-4 pb-8 max-w-md mx-auto select-none">
@@ -135,7 +137,7 @@ function QuickQrContent() {
           </div>
         </div>
         <div className="flex items-center gap-1.5 bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 px-2.5 py-1 rounded-full text-xs font-bold font-mono">
-          <span>{gateway === "razorpay" ? "⚡ Auto-Telegram" : "🔒 0% Fee J&K"}</span>
+          <span>{gateway === "cashfree" ? "⚡ Auto-Telegram" : "🔒 0% Fee J&K"}</span>
         </div>
       </div>
 
@@ -158,16 +160,16 @@ function QuickQrContent() {
         <button
           type="button"
           onClick={() => {
-            setGateway("razorpay");
+            setGateway("cashfree");
             setPaidCelebration(false);
           }}
           className={`py-2 px-3 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-            gateway === "razorpay"
+            gateway === "cashfree"
               ? "bg-cyan-500 text-slate-950 shadow-md font-black"
               : "text-slate-400 hover:text-white"
           }`}
         >
-          <span>⚡ Razorpay + Telegram</span>
+          <span>⚡ Cashfree + Telegram</span>
         </button>
       </div>
 
@@ -242,7 +244,7 @@ function QuickQrContent() {
             <div>
               <h2 className="text-2xl font-black text-emerald-400">Payment Collected!</h2>
               <p className="text-sm font-mono text-slate-300 mt-1">₹{numAmount.toLocaleString("en-IN")}</p>
-              {gateway === "razorpay" && (
+              {gateway === "cashfree" && (
                 <p className="text-xs text-cyan-300 mt-1 font-semibold">📲 Telegram notification sent to group</p>
               )}
             </div>
@@ -254,10 +256,10 @@ function QuickQrContent() {
               Show QR Again
             </button>
           </div>
-        ) : rzpLoading ? (
+        ) : cfLoading ? (
           <div className="py-16 flex flex-col items-center justify-center gap-3">
             <div className="w-8 h-8 border-2 border-cyan-500 border-t-transparent rounded-full animate-spin"></div>
-            <span className="text-xs text-slate-400">Generating Razorpay Dynamic QR...</span>
+            <span className="text-xs text-slate-400">Generating Cashfree Link &amp; QR...</span>
           </div>
         ) : numAmount > 0 && activeQrImage ? (
           <div className="flex flex-col items-center">
@@ -271,7 +273,7 @@ function QuickQrContent() {
             </div>
 
             {/* Mode-specific status pill */}
-            {gateway === "razorpay" ? (
+            {gateway === "cashfree" ? (
               <div className="mt-3 inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-950/90 border border-cyan-500/50 text-cyan-300 text-xs font-bold">
                 <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
                 <span>⚡ Auto-Detects &amp; Sends Telegram Alert</span>

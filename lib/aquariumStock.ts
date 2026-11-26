@@ -557,7 +557,7 @@ export async function logOrderToVendingSales(
     scheduled_date?: string;
     scheduled_slot?: string;
   },
-  razorpayPaymentId?: string,
+  gatewayPaymentId?: string,
   customClient?: any
 ) {
   try {
@@ -585,7 +585,7 @@ export async function logOrderToVendingSales(
       const productType = isGutted ? "Gutted" : "Non Gutted";
       const rate = Number(item.price) || (isGutted ? 550 : 500);
       const expected = Math.round(weight * rate);
-      const amountPaid = expected; // Website orders are pre-paid online via Razorpay
+      const amountPaid = expected; // Website orders are pre-paid online via Cashfree
 
       const entryId = crypto.randomUUID();
       const entry: VendingSalesEntry = {
@@ -600,12 +600,12 @@ export async function logOrderToVendingSales(
         discount_amount: 0,
         payment_mode: "Online Payment (Website)",
         logged_by: "Website Online Order",
-        notes: `Website Online Order #${orderNum} (${customerName}) | Item: ${item.name || productType} | Razorpay: ${razorpayPaymentId || "Verified"}${order.is_scheduled ? ` | 📅 Scheduled: ${order.scheduled_date} (${order.scheduled_slot})` : ""}`,
+        notes: `Website Online Order #${orderNum} (${customerName}) | Item: ${item.name || productType} | Cashfree: ${gatewayPaymentId || "Verified"}${order.is_scheduled ? ` | 📅 Scheduled: ${order.scheduled_date} (${order.scheduled_slot})` : ""}`,
         custom_fields: {
           source: "website_online_order",
           order_number: orderNum,
           order_id: String(order.id || ""),
-          razorpay_payment_id: razorpayPaymentId || "",
+          cashfree_payment_id: gatewayPaymentId || "",
           customer_name: customerName,
           customer_phone: customerPhone,
           item_id: item.id || "",

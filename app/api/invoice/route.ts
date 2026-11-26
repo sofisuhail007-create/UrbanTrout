@@ -2,20 +2,13 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { requireAdminAuth } from "@/lib/adminAuth";
 import { findKhataInvoice, isUUID } from "@/lib/khataInvoice";
-import Razorpay from "razorpay";
+import { cancelCashfreePaymentLink } from "@/lib/cashfree";
 
 // Use service role key to ensure admin operations (update/delete) succeed with RLS
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
 );
-
-function getRazorpayClient() {
-  const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
-  const keySecret = process.env.RAZORPAY_KEY_SECRET;
-  if (!keyId || !keySecret) return null;
-  return new Razorpay({ key_id: keyId, key_secret: keySecret });
-}
 
 export async function POST(request: Request) {
   const authError = await requireAdminAuth(request);
@@ -430,29 +423,14 @@ export async function DELETE(request: Request) {
       }
     } catch (_) {}
 
-    // 2. If it has a Razorpay Payment Link, CANCEL & EXPIRE IT on Razorpay!
-    if (paymentLinkId) {
+    // 2. If it has a Cashfree Payment Link or Link-based QR, CANCEL IT on Cashfree!
+    const linksToCancel = [paymentLinkId, qrId && !/^(?:UTPOS_|UT_)/i.test(qrId) ? qrId : null].filter(Boolean) as string[];
+    for (const linkId of Array.from(new Set(linksToCancel))) {
       try {
-        const rzp = getRazorpayClient();
-        if (rzp) {
-          await rzp.paymentLink.cancel(paymentLinkId);
-          console.log("Successfully cancelled Razorpay payment link on invoice deletion:", paymentLinkId);
-        }
-      } catch (rzpErr: any) {
-        console.warn("Notice: could not cancel Razorpay payment link:", rzpErr?.message || rzpErr);
-      }
-    }
-
-    // 3. If it has an active Razorpay QR, CLOSE IT on Razorpay!
-    if (qrId) {
-      try {
-        const rzp = getRazorpayClient();
-        if (rzp) {
-          await rzp.qrCode.close(qrId);
-          console.log("Successfully closed Razorpay QR code on invoice deletion:", qrId);
-        }
-      } catch (qrErr: any) {
-        console.warn("Notice: could not close Razorpay QR:", qrErr?.message || qrErr);
+        await cancelCashfreePaymentLink(linkId);
+        console.log("Successfully cancelled Cashfree payment link on invoice deletion:", linkId);
+      } catch (cfErr: any) {
+        console.warn("Notice: could not cancel Cashfree payment link:", cfErr?.message || cfErr);
       }
     }
 

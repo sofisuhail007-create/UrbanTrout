@@ -42,7 +42,7 @@ export interface BargainDealItem {
   discountAmount: number;
   discountPercent: number;
   lossPerKg: number;
-  qrEngine: "soundbox" | "razorpay" | "hdfc";
+  qrEngine: "soundbox" | "cashfree" | "hdfc";
   qrId?: string | null;
   status: "PENDING" | "PAID";
   paymentId?: string | null;
@@ -190,11 +190,11 @@ export default function DealCalculatorTab({
   );
 
   // ─── 2. LOCKED QR ENGINE STATE (ALWAYS DEFAULT TO HDFC BANK SMARTHUB ON PAGE LOAD/REFRESH) ───
-  const [qrEngine, setQrEngine] = useState<"soundbox" | "razorpay" | "hdfc">("hdfc");
-  const [rzpQrId, setRzpQrId] = useState<string | null>(null);
-  const [rzpQrImageUrl, setRzpQrImageUrl] = useState<string | null>(null);
-  const [rzpQrLoading, setRzpQrLoading] = useState<boolean>(false);
-  const [rzpQrError, setRzpQrError] = useState<string | null>(null);
+  const [qrEngine, setQrEngine] = useState<"soundbox" | "cashfree" | "hdfc">("hdfc");
+  const [cfQrId, setCfQrId] = useState<string | null>(null);
+  const [cfQrImageUrl, setCfQrImageUrl] = useState<string | null>(null);
+  const [cfQrLoading, setCfQrLoading] = useState<boolean>(false);
+  const [cfQrError, setCfQrError] = useState<string | null>(null);
 
   // Active generated deal status
   const [activeDealNumber, setActiveDealNumber] = useState<string>("");
@@ -692,33 +692,33 @@ export default function DealCalculatorTab({
     setIsDealPaid(false);
     setDealPaymentRef(null);
 
-    if (qrEngine === "razorpay") {
-      setRzpQrLoading(true);
-      setRzpQrError(null);
+    if (qrEngine === "cashfree") {
+      setCfQrLoading(true);
+      setCfQrError(null);
       try {
-        const res = await fetch("/api/razorpay/pos-qr", {
+        const res = await fetch("/api/cashfree/pos-qr", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             amount: combinedDealTotal,
             customerName: customerName.trim() || "Bargain Deal Customer",
             customerPhone: customerPhone.trim() || "N/A",
-            billNumber: dealNum,
+            orderRef: dealNum,
           }),
         });
         const data = await res.json();
         if (!res.ok || !data.success) {
-          throw new Error(data?.error || "Could not generate locked Razorpay QR");
+          throw new Error(data?.error || "Could not generate locked Cashfree QR");
         }
-        setRzpQrId(data.qr_id);
-        setRzpQrImageUrl(data.image_url);
+        setCfQrId(data.qr_id);
+        setCfQrImageUrl(data.image_url);
         setDealQrGenerated(true);
         setLastGeneratedDealAmount(combinedDealTotal);
         setCustomerDisplayOpen(true);
       } catch (err: any) {
-        setRzpQrError(err.message || "Failed to generate locked QR");
+        setCfQrError(err.message || "Failed to generate locked QR");
       } finally {
-        setRzpQrLoading(false);
+        setCfQrLoading(false);
       }
     }
 
@@ -749,17 +749,17 @@ export default function DealCalculatorTab({
     setDealsLedger((prev) => [newDealItem, ...prev.filter((d) => d.id !== dealNum)]);
   };
 
-  // ─── 7. REAL-TIME AUTO-POLLER FOR RAZORPAY LOCKED QR (IF SELECTED) ───
+  // ─── 7. REAL-TIME AUTO-POLLER FOR CASHFREE LOCKED QR (IF SELECTED) ───
   useEffect(() => {
-    if (qrEngine !== "razorpay" || !rzpQrId || isDealPaid) return;
+    if (qrEngine !== "cashfree" || !cfQrId || isDealPaid) return;
 
     const interval = setInterval(async () => {
       try {
-        const res = await fetch(`/api/razorpay/pos-qr?qr_id=${encodeURIComponent(rzpQrId)}`);
+        const res = await fetch(`/api/cashfree/pos-qr?qr_id=${encodeURIComponent(cfQrId)}`);
         const data = await res.json();
         if (data.success && data.paid) {
           setIsDealPaid(true);
-          const payId = data.payment?.id || `pay_${Date.now()}`;
+          const payId = data.payment?.id || `cf_${Date.now()}`;
           setDealPaymentRef(payId);
 
           playSuccessChime();
@@ -782,7 +782,7 @@ export default function DealCalculatorTab({
     }, 2500);
 
     return () => clearInterval(interval);
-  }, [qrEngine, rzpQrId, isDealPaid, combinedDealTotal, customerName, activeDealNumber]);
+  }, [qrEngine, cfQrId, isDealPaid, combinedDealTotal, customerName, activeDealNumber]);
 
   // ─── 7b. PAYMENT LINK POLLER (for WhatsApp deals) ───
   useEffect(() => {
@@ -795,7 +795,7 @@ export default function DealCalculatorTab({
       for (const deal of pendingWithLink) {
         try {
           const res = await fetch(
-            `/api/razorpay/payment-link?link_id=${encodeURIComponent(deal.paymentLinkId!)}`
+            `/api/cashfree/payment-link?link_id=${encodeURIComponent(deal.paymentLinkId!)}`
           );
           const data = await res.json();
           if (data.success && data.paid) {
@@ -861,7 +861,7 @@ export default function DealCalculatorTab({
       if (activePaymentLink) {
         payUrl = activePaymentLink;
       } else {
-        const res = await fetch("/api/razorpay/payment-link", {
+        const res = await fetch("/api/cashfree/payment-link", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -869,25 +869,20 @@ export default function DealCalculatorTab({
             customerName: cName,
             customerPhone: cleanPhone,
             orderRef: dealNum,
-            itemsSummary,
-            channel: "WHATSAPP_DEAL",
-            weightKg: combinedWeight,
-            productType: prodType,
-            dealRate: Math.round(combinedEffectiveRate * 100) / 100,
-            standardRate: Math.round((combinedStandardTotal / (combinedWeight || 1)) * 100) / 100,
-            standardTotal: combinedStandardTotal,
-            discountAmount: combinedDiscountAmount,
-            discountPercent: combinedDiscountPercent,
-            notes:
-              dealItems.length > 1
-                ? `Deal Desk: ${dealItems.length} items clubbed. Total Rs. ${combinedStandardTotal} negotiated to Rs. ${combinedDealTotal}. Concession: Rs. ${combinedDiscountAmount} (${combinedDiscountPercent.toFixed(1)}% OFF).`
-                : `Deal Desk: Rs. ${standardRate}/Kg standard negotiated to Rs. ${dealRate.toFixed(1)}/Kg. Concession: Rs. ${discountAmount} (${discountPercent.toFixed(1)}% OFF).`,
+            description: itemsSummary,
+            notes: {
+              channel: "WHATSAPP_DEAL",
+              weight_kg: String(combinedWeight),
+              product_type: prodType,
+              deal_rate: String(Math.round(combinedEffectiveRate * 100) / 100),
+              items_summary: itemsSummary,
+            },
           }),
         });
         const data = await res.json();
-        if (data.success && data.paymentLink?.short_url) {
-          payUrl = data.paymentLink.short_url;
-          plId = data.paymentLink.id;
+        if (data.success && (data.branded_url || data.short_url)) {
+          payUrl = data.branded_url || data.short_url;
+          plId = data.id;
           setActivePaymentLink(payUrl);
         }
       }
@@ -914,7 +909,7 @@ export default function DealCalculatorTab({
           dealItems.length > 1
             ? `Deal Desk: ${dealItems.length} items clubbed (${combinedWeight.toFixed(2)} Kg total)`
             : `Deal Desk: Rs. ${standardRate}/Kg standard negotiated to Rs. ${dealRate.toFixed(1)}/Kg`,
-        paymentMethod: "Razorpay Link (WhatsApp Deal)",
+        paymentMethod: "Cashfree Link (WhatsApp Deal)",
         paymentStatus: "PAYMENT DUE",
         paymentId: null,
         paymentLinkId: plId || undefined,
@@ -1611,15 +1606,15 @@ Naseem Bagh / Malabagh, Srinagar`;
                 </button>
                 <button
                   type="button"
-                  onClick={() => setQrEngine("razorpay")}
+                  onClick={() => setQrEngine("cashfree")}
                   className={`px-2 py-0.5 rounded font-bold cursor-pointer transition-all ${
-                    qrEngine === "razorpay"
+                    qrEngine === "cashfree"
                       ? "bg-cyan-500/20 text-cyan-200 border border-cyan-500/40 shadow-sm"
                       : "text-zinc-400 hover:text-zinc-200"
                   }`}
-                  title="Single-use amount locked BharatQR with real-time auto capture"
+                  title="Single-use amount locked Cashfree checkout QR with real-time auto capture"
                 >
-                  ⚡ Razorpay (Auto)
+                  ⚡ Cashfree (Auto)
                 </button>
               </div>
             </div>
@@ -1655,8 +1650,8 @@ Naseem Bagh / Malabagh, Srinagar`;
                     type="button"
                     onClick={() => {
                       setIsDealPaid(false);
-                      setRzpQrId(null);
-                      setRzpQrImageUrl(null);
+                      setCfQrId(null);
+                      setCfQrImageUrl(null);
                       setDealQrGenerated(false);
                       setShowInlineDealQr(false);
                     }}
@@ -1706,7 +1701,7 @@ Naseem Bagh / Malabagh, Srinagar`;
                   onClick={() => {
                     setDealQrGenerated(true);
                     setLastGeneratedDealAmount(combinedDealTotal);
-                    if (qrEngine === "razorpay" && !rzpQrImageUrl) {
+                    if (qrEngine === "cashfree" && !cfQrImageUrl) {
                       handleGenerateLockedQr(true);
                     } else if (qrEngine === "soundbox" && !activeDealNumber) {
                       handleGenerateLockedQr(false);
@@ -1794,7 +1789,7 @@ Naseem Bagh / Malabagh, Srinagar`;
                         className="relative w-36 h-36 bg-white border-2 border-emerald-400/60 rounded-2xl shadow-xl overflow-hidden cursor-pointer group flex items-center justify-center p-1.5 transition-all hover:border-emerald-300"
                       >
                         <img
-                          src={qrEngine === "razorpay" && rzpQrImageUrl ? rzpQrImageUrl : qrEngine === "hdfc" ? hdfcDealQrUrl : soundboxQrUrl}
+                          src={qrEngine === "cashfree" && cfQrImageUrl ? cfQrImageUrl : qrEngine === "hdfc" ? hdfcDealQrUrl : soundboxQrUrl}
                           alt="Locked Deal QR"
                           className="w-full h-full object-contain select-none pointer-events-none"
                         />
@@ -2135,7 +2130,7 @@ Naseem Bagh / Malabagh, Srinagar`;
                   {/* Giant QR Box */}
                   <div className="w-56 h-56 sm:w-64 sm:h-64 bg-white border-2 border-emerald-400 rounded-3xl shadow-2xl overflow-hidden relative flex items-center justify-center p-3">
                     <img
-                      src={qrEngine === "razorpay" && rzpQrImageUrl ? rzpQrImageUrl : qrEngine === "hdfc" ? hdfcDealQrUrl : soundboxQrUrl}
+                      src={qrEngine === "cashfree" && cfQrImageUrl ? cfQrImageUrl : qrEngine === "hdfc" ? hdfcDealQrUrl : soundboxQrUrl}
                       alt="Locked Deal QR"
                       className="w-full h-full object-contain select-none pointer-events-none rounded-2xl"
                     />
@@ -2160,7 +2155,7 @@ Naseem Bagh / Malabagh, Srinagar`;
 
                     {/* UPI ID + Copy */}
                     <div className="flex items-center justify-center gap-1.5 text-[10px] text-slate-400 font-mono pt-1">
-                      <span>{qrEngine === "hdfc" ? HDFC_DEAL_VPA : qrEngine === "razorpay" ? "Razorpay Smart QR" : upiId}</span>
+                      <span>{qrEngine === "hdfc" ? HDFC_DEAL_VPA : qrEngine === "cashfree" ? "Cashfree Smart QR" : upiId}</span>
                       <button
                         type="button"
                         onClick={() => {

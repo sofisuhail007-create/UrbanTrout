@@ -85,7 +85,7 @@ export default function POSBillingPage() {
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerNotes, setCustomerNotes] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<"HdfcUpi" | "RazorpayQR" | "JkBankSoundbox" | "Cash" | "WhatsAppLink">("HdfcUpi");
+  const [paymentMethod, setPaymentMethod] = useState<"HdfcUpi" | "CashfreeQR" | "JkBankSoundbox" | "Cash" | "WhatsAppLink">("HdfcUpi");
   const [upiId, setUpiId] = useState("Vyapar.178760132267@hdfcbank");
   const [soundboxPaid, setSoundboxPaid] = useState(false);
   const [soundboxQrGenerated, setSoundboxQrGenerated] = useState(false);
@@ -100,27 +100,27 @@ export default function POSBillingPage() {
 
   const [showInlineQr, setShowInlineQr] = useState(false);
 
-  // Razorpay Dynamic QR State (Counter)
-  const [rzpQrId, setRzpQrId] = useState<string | null>(null);
-  const [rzpQrImageUrl, setRzpQrImageUrl] = useState<string | null>(null);
-  const [rzpQrLoading, setRzpQrLoading] = useState(false);
-  const [rzpQrError, setRzpQrError] = useState<string | null>(null);
-  const [rzpPaid, setRzpPaid] = useState(false);
-  const [rzpPaymentDetails, setRzpPaymentDetails] = useState<any>(null);
+  // Cashfree Dynamic QR State (Counter)
+  const [cfQrId, setCfQrId] = useState<string | null>(null);
+  const [cfQrImageUrl, setCfQrImageUrl] = useState<string | null>(null);
+  const [cfQrLoading, setCfQrLoading] = useState(false);
+  const [cfQrError, setCfQrError] = useState<string | null>(null);
+  const [cfPaid, setCfPaid] = useState(false);
+  const [cfPaymentDetails, setCfPaymentDetails] = useState<any>(null);
   const [lastGeneratedAmount, setLastGeneratedAmount] = useState<number>(0);
 
-  // Razorpay WhatsApp Payment Link State (Home Delivery & Remote)
-  const [rzpLinkLoading, setRzpLinkLoading] = useState(false);
-  const [rzpLinkData, setRzpLinkData] = useState<{
+  // Cashfree WhatsApp Payment Link State (Home Delivery & Remote)
+  const [cfLinkLoading, setCfLinkLoading] = useState(false);
+  const [cfLinkData, setCfLinkData] = useState<{
     short_url: string;
     id: string;
     orderRef: string;
     amount: number;
     waMessage: string;
   } | null>(null);
-  const [rzpLinkCopied, setRzpLinkCopied] = useState(false);
-  const [rzpLinkMsgCopied, setRzpLinkMsgCopied] = useState(false);
-  const [rzpLinkError, setRzpLinkError] = useState<string | null>(null);
+  const [cfLinkCopied, setCfLinkCopied] = useState(false);
+  const [cfLinkMsgCopied, setCfLinkMsgCopied] = useState(false);
+  const [cfLinkError, setCfLinkError] = useState<string | null>(null);
   const [waMessageStyle, setWaMessageStyle] = useState<"executive" | "receipt" | "compact">("executive");
   const [showWaPreview, setShowWaPreview] = useState(false);
 
@@ -157,7 +157,7 @@ export default function POSBillingPage() {
   const [newRemoteWeight, setNewRemoteWeight] = useState<string>("2.0");
   const [newRemoteBaseRate, setNewRemoteBaseRate] = useState<string>("580");
   const [newRemoteDealRate, setNewRemoteDealRate] = useState<string>("560");
-  const [newRemotePaymentMode, setNewRemotePaymentMode] = useState<"both" | "jk_bank" | "razorpay">("both");
+  const [newRemotePaymentMode, setNewRemotePaymentMode] = useState<"both" | "jk_bank" | "cashfree">("both");
 
   // Database Customers for Autocomplete & Prefill
   const [dbCustomers, setDbCustomers] = useState<DbCustomer[]>([]);
@@ -360,7 +360,7 @@ export default function POSBillingPage() {
     total: number;
     phone: string;
     email: string;
-    mode: "both" | "jk_bank" | "razorpay";
+    mode: "both" | "jk_bank" | "cashfree";
   } | null>(null);
   const [newRemoteCopied, setNewRemoteCopied] = useState(false);
   const [newRemoteLinkCopied, setNewRemoteLinkCopied] = useState(false);
@@ -818,7 +818,7 @@ export default function POSBillingPage() {
   };
 
   // ─── COUNTER VOICE ANNOUNCEMENT ENGINE (PAYTM/SOUNDBOX STYLE) ───
-  const speakPaymentAnnouncement = (amt: number, method = "Razorpay", customer = "") => {
+  const speakPaymentAnnouncement = (amt: number, method = "Cashfree", customer = "") => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
     if (!voiceEnabled) return;
 
@@ -889,86 +889,86 @@ export default function POSBillingPage() {
   const testVoiceAnnouncement = () => {
     setVoiceTesting(true);
     playSuccessChime();
-    speakPaymentAnnouncement(grandTotal > 0 ? grandTotal : 725, "Razorpay", customerName || "Suhail");
+    speakPaymentAnnouncement(grandTotal > 0 ? grandTotal : 725, "Cashfree", customerName || "Suhail");
     setTimeout(() => setVoiceTesting(false), 3500);
   };
 
-  // Generate dynamic Razorpay Single-Use BharatQR / UPI QR code
-  const generateRazorpayQr = async (targetAmount: number, force = false) => {
+  // Generate dynamic Cashfree Single-Use POS Link & QR code
+  const generateCashfreeQr = async (targetAmount: number, force = false) => {
     if (targetAmount <= 0) return;
-    if (!force && targetAmount === lastGeneratedAmount && rzpQrId && !rzpPaid) return;
+    if (!force && targetAmount === lastGeneratedAmount && cfQrId && !cfPaid) return;
 
-    setRzpQrLoading(true);
-    setRzpQrError(null);
-    setRzpPaid(false);
-    setRzpPaymentDetails(null);
+    setCfQrLoading(true);
+    setCfQrError(null);
+    setCfPaid(false);
+    setCfPaymentDetails(null);
 
     try {
-      const res = await fetch("/api/razorpay/pos-qr", {
+      const res = await fetch("/api/cashfree/pos-qr", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           amount: targetAmount,
           customerName: customerName.trim() || "Walk-in Customer",
           customerPhone: customerPhone.trim() || "N/A",
-          billNumber: Math.floor(1000 + Math.random() * 9000),
+          orderRef: Math.floor(1000 + Math.random() * 9000),
         }),
       });
 
       const data = await res.json();
       if (!res.ok || !data.success) {
-        throw new Error(data?.error || "Could not generate Razorpay QR");
+        throw new Error(data?.error || "Could not generate Cashfree QR");
       }
 
-      setRzpQrId(data.qr_id);
-      setRzpQrImageUrl(data.image_url);
+      setCfQrId(data.qr_id);
+      setCfQrImageUrl(data.image_url);
       setLastGeneratedAmount(targetAmount);
       setEnlargeQrModal(true);
     } catch (err: any) {
-      console.error("Razorpay QR generation failed:", err);
-      setRzpQrError(err.message || "Failed to generate Razorpay QR code");
+      console.error("Cashfree QR generation failed:", err);
+      setCfQrError(err.message || "Failed to generate Cashfree QR code");
     } finally {
-      setRzpQrLoading(false);
+      setCfQrLoading(false);
     }
   };
 
   // Invalidate QR if grandTotal changes so old amounts are not scanned
   useEffect(() => {
-    if (rzpQrId && grandTotal !== lastGeneratedAmount) {
-      setRzpQrId(null);
-      setRzpQrImageUrl(null);
-      setRzpPaid(false);
-      setRzpPaymentDetails(null);
+    if (cfQrId && grandTotal !== lastGeneratedAmount) {
+      setCfQrId(null);
+      setCfQrImageUrl(null);
+      setCfPaid(false);
+      setCfPaymentDetails(null);
     }
-  }, [grandTotal, lastGeneratedAmount, rzpQrId]);
+  }, [grandTotal, lastGeneratedAmount, cfQrId]);
 
-  // Real-time polling for incoming Razorpay payment (both Counter QR and WhatsApp Payment Link)
+  // Real-time polling for incoming Cashfree payment (both Counter QR and WhatsApp Payment Link)
   useEffect(() => {
-    const isRzpQr = paymentMethod === "RazorpayQR" && rzpQrId;
-    const isWpLink = paymentMethod === "WhatsAppLink" && rzpLinkData?.id;
-    if ((!isRzpQr && !isWpLink) || rzpPaid) return;
+    const isCfQr = paymentMethod === "CashfreeQR" && cfQrId;
+    const isWpLink = paymentMethod === "WhatsAppLink" && cfLinkData?.id;
+    if ((!isCfQr && !isWpLink) || cfPaid) return;
 
     let isSubscribed = true;
 
     const checkPayment = async () => {
-      if (!isSubscribed || rzpPaid) return;
+      if (!isSubscribed || cfPaid) return;
       try {
-        if (isRzpQr && rzpQrId) {
-          const res = await fetch(`/api/razorpay/pos-qr?qr_id=${encodeURIComponent(rzpQrId)}`);
+        if (isCfQr && cfQrId) {
+          const res = await fetch(`/api/cashfree/pos-qr?qr_id=${encodeURIComponent(cfQrId)}`);
           if (!res.ok) return;
           const data = await res.json();
           if (data.success && data.paid && data.payment && isSubscribed) {
-            setRzpPaid(true);
-            setRzpPaymentDetails(data.payment);
+            setCfPaid(true);
+            setCfPaymentDetails(data.payment);
             playSuccessChime();
-            speakPaymentAnnouncement(data.payment.amount, "Razorpay QR", customerName);
+            speakPaymentAnnouncement(data.payment.amount, "Cashfree QR", customerName);
 
             // Send instant real-time Telegram alert
             fetch("/api/telegram-notify", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                type: "razorpay_payment",
+                type: "cashfree_payment",
                 data: {
                   paymentId: data.payment.id,
                   amount: data.payment.amount,
@@ -983,20 +983,20 @@ export default function POSBillingPage() {
               }),
             }).catch(() => {});
           }
-        } else if (isWpLink && rzpLinkData?.id) {
-          const res = await fetch(`/api/razorpay/payment-link?link_id=${encodeURIComponent(rzpLinkData.id)}`);
+        } else if (isWpLink && cfLinkData?.id) {
+          const res = await fetch(`/api/cashfree/payment-link?link_id=${encodeURIComponent(cfLinkData.id)}`);
           if (!res.ok) return;
           const data = await res.json();
           if (data.success && data.paid && isSubscribed) {
-            setRzpPaid(true);
-            setRzpPaymentDetails({
-              id: data.payment?.id || rzpLinkData.id,
-              amount: data.payment?.amount || rzpLinkData.amount,
-              method: "Razorpay Link",
-              vpa: null,
+            setCfPaid(true);
+            setCfPaymentDetails({
+              id: data.payment?.id || cfLinkData.id,
+              amount: data.payment?.amount || cfLinkData.amount,
+              method: "Cashfree Link",
+              vpa: data.payment?.vpa || null,
             });
             playSuccessChime();
-            speakPaymentAnnouncement(data.payment?.amount || rzpLinkData.amount, "WhatsApp Link", customerName);
+            speakPaymentAnnouncement(data.payment?.amount || cfLinkData.amount, "WhatsApp Link", customerName);
           }
         }
       } catch (err) {
@@ -1014,7 +1014,7 @@ export default function POSBillingPage() {
       clearTimeout(initialTimer);
       clearInterval(pollInterval);
     };
-  }, [paymentMethod, rzpQrId, rzpLinkData, rzpPaid, customerName, customerPhone, totalWeight]);
+  }, [paymentMethod, cfQrId, cfLinkData, cfPaid, customerName, customerPhone, totalWeight]);
 
   // ─── GENERATE SHORT CLEAN INVOICE (e.g. /invoice/UT-INV-3986) ───
   const handleGenerateInvoice = async () => {
@@ -1067,25 +1067,25 @@ export default function POSBillingPage() {
       }
     }
 
-    const isRzpPaid = (paymentMethod === "RazorpayQR" || paymentMethod === "WhatsAppLink") && rzpPaid;
+    const isCfPaid = (paymentMethod === "CashfreeQR" || paymentMethod === "WhatsAppLink") && cfPaid;
     const isSoundbox = paymentMethod === "JkBankSoundbox";
     const isHdfc = paymentMethod === "HdfcUpi";
     const paymentStatus = balanceStatus === "waived_final"
       ? "PAID (FINAL SETTLEMENT)"
       : balanceStatus === "pending"
       ? (paidAmount > 0 ? "PARTIALLY PAID" : "PAYMENT DUE")
-      : (isRzpPaid || isSoundbox || isHdfc || paymentMethod === "Cash" || soundboxPaid || hdfcPaid) ? "PAID" : "PAYMENT DUE";
+      : (isCfPaid || isSoundbox || isHdfc || paymentMethod === "Cash" || soundboxPaid || hdfcPaid) ? "PAID" : "PAYMENT DUE";
 
     const paymentMethodLabel = isHdfc
       ? "HDFC Bank (SmartHub Vyapar)"
       : isSoundbox
       ? "J&K Bank Soundbox UPI"
-      : isRzpPaid
-      ? (paymentMethod === "WhatsAppLink" ? "Razorpay Link (Verified)" : "Razorpay UPI (Verified)")
-      : paymentMethod === "RazorpayQR"
-      ? "Razorpay QR"
+      : isCfPaid
+      ? (paymentMethod === "WhatsAppLink" ? "Cashfree Link (Verified)" : "Cashfree UPI (Verified)")
+      : paymentMethod === "CashfreeQR"
+      ? "Cashfree QR"
       : paymentMethod === "WhatsAppLink"
-      ? "Razorpay Link (Home Delivery)"
+      ? "Cashfree Link (Home Delivery)"
       : "Cash";
 
     const finalNotes = balanceStatus === "waived_final"
@@ -1105,7 +1105,7 @@ export default function POSBillingPage() {
       notes: finalNotes,
       paymentMethod: paymentMethodLabel,
       paymentStatus,
-      paymentId: rzpPaymentDetails?.id || null,
+      paymentId: cfPaymentDetails?.id || null,
       ts: Date.now(), // 48-Hour validity timestamp
     };
 
@@ -1171,11 +1171,11 @@ export default function POSBillingPage() {
       balanceStatus,
       paymentMethod: paymentMethodLabel,
       paymentStatus,
-      paymentId: rzpPaymentDetails?.id || null,
+      paymentId: cfPaymentDetails?.id || null,
       notes: finalNotes,
       upiId: paymentMethod === "HdfcUpi" ? HDFC_COUNTER_VPA : upiId,
-      upiQrCodeUrl: (paymentMethod === "RazorpayQR" && rzpQrImageUrl)
-        ? rzpQrImageUrl
+      upiQrCodeUrl: (paymentMethod === "CashfreeQR" && cfQrImageUrl)
+        ? cfQrImageUrl
         : paymentMethod === "HdfcUpi"
         ? hdfcQrCodeUrl
         : upiQrCodeUrl,
@@ -1298,7 +1298,7 @@ Naseem Bagh / Malabagh, Srinagar`;
 
   // Re-generate WhatsApp message whenever the user switches message style
   useEffect(() => {
-    if (rzpLinkData?.short_url && rzpLinkData?.orderRef) {
+    if (cfLinkData?.short_url && cfLinkData?.orderRef) {
       const itemsForMsg: BillItem[] = isCustomAmountMode
         ? [
             {
@@ -1313,19 +1313,19 @@ Naseem Bagh / Malabagh, Srinagar`;
         : billItems;
       const updated = createWhatsAppMessage(
         itemsForMsg,
-        rzpLinkData.orderRef,
+        cfLinkData.orderRef,
         totalWeight,
         grandTotal,
         customerName,
-        rzpLinkData.short_url,
+        cfLinkData.short_url,
         customerNotes,
         waMessageStyle
       );
-      setRzpLinkData((prev) => (prev ? { ...prev, waMessage: updated } : null));
+      setCfLinkData((prev) => (prev ? { ...prev, waMessage: updated } : null));
     }
   }, [waMessageStyle]);
 
-  // ─── 100% UNIVERSAL CLEAN WHATSAPP MESSAGE WITH OPTIONAL RAZORPAY LINK ───
+  // ─── 100% UNIVERSAL CLEAN WHATSAPP MESSAGE WITH OPTIONAL CASHFREE LINK ───
   const handleShareWhatsApp = async () => {
     if (!generatedInvoice) return;
 
@@ -1336,11 +1336,11 @@ Naseem Bagh / Malabagh, Srinagar`;
     });
 
     let paymentLinkText = "";
-    // If unpaid and customer needs to pay remotely, generate locked single-use Razorpay link
+    // If unpaid and customer needs to pay remotely, generate locked single-use Cashfree link
     if (generatedInvoice.paymentStatus !== "PAID" && generatedInvoice.grandTotal > 0) {
       try {
         const cleanPhone = customerPhone.replace(/\D/g, "").slice(-10);
-        const plRes = await fetch("/api/razorpay/payment-link", {
+        const plRes = await fetch("/api/cashfree/payment-link", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -1348,13 +1348,13 @@ Naseem Bagh / Malabagh, Srinagar`;
             customerName: generatedInvoice.customerName || "Customer",
             customerPhone: cleanPhone,
             orderRef: generatedInvoice.invoiceNumber,
-            itemsSummary: `${generatedInvoice.totalWeight.toFixed(2)} Kg Trout`,
-            notes: `POS Invoice #${generatedInvoice.invoiceNumber}`,
+            description: `${generatedInvoice.totalWeight.toFixed(2)} Kg Trout (#${generatedInvoice.invoiceNumber})`,
           }),
         });
         const plData = await plRes.json();
-        if (plData?.paymentLink?.short_url) {
-          paymentLinkText = `*Click below to pay securely:*\n${plData.paymentLink.short_url}\n\n`;
+        const linkOut = plData?.branded_url || plData?.short_url || plData?.paymentLink?.short_url;
+        if (linkOut) {
+          paymentLinkText = `*Click below to pay securely:*\n${linkOut}\n\n`;
         }
       } catch (plErr) {
         console.warn("Could not generate inline payment link for WhatsApp:", plErr);
@@ -1393,7 +1393,7 @@ Naseem Bagh / Malabagh, Srinagar`;
     window.open(url, "_blank");
   };
 
-  // ─── 1-CLICK SEND LOCKED RAZORPAY PAYMENT LINK ON WHATSAPP (HOME DELIVERY) ───
+  // ─── 1-CLICK SEND LOCKED CASHFREE PAYMENT LINK ON WHATSAPP (HOME DELIVERY) ───
   const handleSendWhatsAppPaymentLink = async () => {
     if (isCustomAmountMode) {
       if (grandTotal <= 0) {
@@ -1423,8 +1423,8 @@ Naseem Bagh / Malabagh, Srinagar`;
         ]
       : billItems;
 
-    setRzpLinkLoading(true);
-    setRzpLinkError(null);
+    setCfLinkLoading(true);
+    setCfLinkError(null);
     try {
       const shortDigits = Math.floor(1000 + Math.random() * 9000).toString();
       const invoiceNumber = `UT-INV-${shortDigits}`;
@@ -1432,7 +1432,7 @@ Naseem Bagh / Malabagh, Srinagar`;
         .map((b) => (isCustomAmountMode ? b.name : `${b.weightKg} Kg ${b.name}`))
         .join(", ");
 
-      const res = await fetch("/api/razorpay/payment-link", {
+      const res = await fetch("/api/cashfree/payment-link", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1440,17 +1440,21 @@ Naseem Bagh / Malabagh, Srinagar`;
           customerName: customerName.trim() || "Customer",
           customerPhone: cleanPhone,
           orderRef: invoiceNumber,
-          itemsSummary,
-          notes: customerNotes ? `Delivery: ${customerNotes}` : (isCustomAmountMode ? "Direct QR Payment" : "POS Billing Home Delivery"),
+          invoiceId: invoiceNumber,
+          description: itemsSummary,
+          notes: {
+            items_summary: itemsSummary,
+            note: customerNotes ? `Delivery: ${customerNotes}` : (isCustomAmountMode ? "Direct QR Payment" : "POS Billing Home Delivery"),
+          },
         }),
       });
 
       const data = await res.json();
-      if (!data?.success || !data?.paymentLink) {
-        throw new Error(data?.error || "Failed to generate Razorpay payment link");
+      const short_url = data?.branded_url || data?.short_url || data?.paymentLink?.short_url;
+      const id = data?.id || data?.paymentLink?.id;
+      if (!data?.success || !short_url || !id) {
+        throw new Error(data?.error || "Failed to generate Cashfree payment link");
       }
-
-      const { short_url, id } = data.paymentLink;
 
       const waMsg = createWhatsAppMessage(
         effectiveBillItems,
@@ -1463,7 +1467,7 @@ Naseem Bagh / Malabagh, Srinagar`;
         waMessageStyle
       );
 
-      setRzpLinkData({
+      setCfLinkData({
         short_url,
         id,
         orderRef: invoiceNumber,
@@ -1484,7 +1488,7 @@ Naseem Bagh / Malabagh, Srinagar`;
         tw: totalWeight,
         tot: grandTotal,
         notes: customerNotes,
-        paymentMethod: "Razorpay Link (Home Delivery)",
+        paymentMethod: "Cashfree Link (Home Delivery)",
         paymentStatus: "PAYMENT DUE",
         paymentId: null,
         paymentLinkId: id,
@@ -1500,20 +1504,20 @@ Naseem Bagh / Malabagh, Srinagar`;
 
       playSuccessChime();
     } catch (err: any) {
-      setRzpLinkError(err.message || "Failed to generate payment link.");
+      setCfLinkError(err.message || "Failed to generate payment link.");
     } finally {
-      setRzpLinkLoading(false);
+      setCfLinkLoading(false);
     }
   };
 
   const handleReset = () => {
     // If an active dynamic QR was on screen, expire/close it so nobody can pay for an abandoned bill
-    if (rzpQrId) {
-      fetch(`/api/razorpay/pos-qr?qr_id=${encodeURIComponent(rzpQrId)}`, { method: "DELETE" }).catch(() => {});
+    if (cfQrId) {
+      fetch(`/api/cashfree/pos-qr?qr_id=${encodeURIComponent(cfQrId)}`, { method: "DELETE" }).catch(() => {});
     }
     // If an active WhatsApp link was on screen, cancel/expire it
-    if (rzpLinkData?.id) {
-      fetch(`/api/razorpay/payment-link?link_id=${encodeURIComponent(rzpLinkData.id)}`, { method: "DELETE" }).catch(() => {});
+    if (cfLinkData?.id) {
+      fetch(`/api/cashfree/payment-link?link_id=${encodeURIComponent(cfLinkData.id)}`, { method: "DELETE" }).catch(() => {});
     }
 
     setCustomerName("");
@@ -1523,16 +1527,16 @@ Naseem Bagh / Malabagh, Srinagar`;
     setCustomAmount("");
     setCustomNote("");
     setPosInputMode("scale");
-    setRzpQrId(null);
-    setRzpQrImageUrl(null);
-    setRzpPaid(false);
-    setRzpPaymentDetails(null);
+    setCfQrId(null);
+    setCfQrImageUrl(null);
+    setCfPaid(false);
+    setCfPaymentDetails(null);
     setLastGeneratedAmount(0);
-    setRzpQrError(null);
-    setRzpLinkData(null);
-    setRzpLinkCopied(false);
-    setRzpLinkMsgCopied(false);
-    setRzpLinkError(null);
+    setCfQrError(null);
+    setCfLinkData(null);
+    setCfLinkCopied(false);
+    setCfLinkMsgCopied(false);
+    setCfLinkError(null);
     setSoundboxPaid(false);
     setSoundboxQrGenerated(false);
     setLastSoundboxAmount(0);
@@ -1559,34 +1563,34 @@ Naseem Bagh / Malabagh, Srinagar`;
     } catch (_) {}
   };
 
-  // 1-Click Explicit Cancellation & Expiry of Counter Razorpay QR
+  // 1-Click Explicit Cancellation & Expiry of Counter Cashfree QR
   const handleCancelActiveQr = async () => {
-    if (!rzpQrId) return;
+    if (!cfQrId) return;
     try {
-      await fetch(`/api/razorpay/pos-qr?qr_id=${encodeURIComponent(rzpQrId)}`, { method: "DELETE" });
+      await fetch(`/api/cashfree/pos-qr?qr_id=${encodeURIComponent(cfQrId)}`, { method: "DELETE" });
     } catch (_) {}
-    setRzpQrId(null);
-    setRzpQrImageUrl(null);
+    setCfQrId(null);
+    setCfQrImageUrl(null);
     setLastGeneratedAmount(0);
-    setRzpQrError(null);
-    alert("Razorpay Dynamic QR code closed & expired. Customer cannot scan or pay this QR.");
+    setCfQrError(null);
+    alert("Cashfree Dynamic QR code closed & expired. Customer cannot scan or pay this QR.");
   };
 
   // 1-Click Explicit Cancellation & Expiry of Counter WhatsApp Link
   const handleCancelActiveWhatsAppLink = async () => {
-    if (!rzpLinkData) return;
+    if (!cfLinkData) return;
     try {
-      if (rzpLinkData.id) {
-        await fetch(`/api/razorpay/payment-link?link_id=${encodeURIComponent(rzpLinkData.id)}`, { method: "DELETE" });
+      if (cfLinkData.id) {
+        await fetch(`/api/cashfree/payment-link?link_id=${encodeURIComponent(cfLinkData.id)}`, { method: "DELETE" });
       }
-      if (rzpLinkData.orderRef) {
-        await adminFetch(`/api/invoice?id=${encodeURIComponent(rzpLinkData.orderRef)}`, { method: "DELETE" });
+      if (cfLinkData.orderRef) {
+        await adminFetch(`/api/invoice?id=${encodeURIComponent(cfLinkData.orderRef)}`, { method: "DELETE" });
       }
     } catch (_) {}
-    setRzpLinkData(null);
-    setRzpLinkError(null);
+    setCfLinkData(null);
+    setCfLinkError(null);
     fetchRemoteOrders();
-    alert("WhatsApp Payment Link cancelled & expired on Razorpay. Customer cannot pay on this link anymore.");
+    alert("WhatsApp Payment Link cancelled & expired on Cashfree. Customer cannot pay on this link anymore.");
   };
 
   // ─── PUSH BARGAINED DEAL FROM DEAL DESK INTO ACTIVE POS BILL ───
@@ -1644,7 +1648,7 @@ Naseem Bagh / Malabagh, Srinagar`;
     setActiveTab("pos");
   };
 
-  // Helper: Strictly identify WhatsApp / Razorpay link remote orders
+  // Helper: Strictly identify WhatsApp / Cashfree link remote orders
   const isWhatsAppOrder = (o: any) => {
     const linkId = getOrderPaymentLinkId(o);
     const pMethod = String(getOrderPaymentMethod(o) || "").toLowerCase();
@@ -1652,6 +1656,7 @@ Naseem Bagh / Malabagh, Srinagar`;
     return Boolean(
       linkId ||
       linkUrl ||
+      pMethod.includes("cashfree") ||
       pMethod.includes("razorpay") ||
       pMethod.includes("whatsapp") ||
       pMethod.includes("delivery") ||
@@ -1716,17 +1721,17 @@ Naseem Bagh / Malabagh, Srinagar`;
     return () => clearInterval(interval);
   }, [activeTab]);
 
-  // ─── CHECK STATUS FOR SPECIFIC REMOTE ORDER VIA RAZORPAY ───
+  // ─── CHECK STATUS FOR SPECIFIC REMOTE ORDER VIA CASHFREE ───
   const handleCheckRemoteOrderStatus = async (order: any) => {
     const linkId = order.data?.paymentLinkId;
     if (!linkId) {
-      alert("This order does not have a linked Razorpay payment link ID.");
+      alert("This order does not have a linked Cashfree payment link ID.");
       return;
     }
 
     setCheckingOrderId(order.id);
     try {
-      const res = await fetch(`/api/razorpay/payment-link?link_id=${encodeURIComponent(linkId)}`);
+      const res = await fetch(`/api/cashfree/payment-link?link_id=${encodeURIComponent(linkId)}`);
       const data = await res.json();
       if (!data?.success) {
         alert(`Status check failed: ${data?.error || "Unknown error"}`);
@@ -1734,7 +1739,7 @@ Naseem Bagh / Malabagh, Srinagar`;
       }
 
       if (data.paid || data.status === "paid") {
-        const paymentId = data.payment?.id || `rzp_${Date.now()}`;
+        const paymentId = data.payment?.id || `cf_${Date.now()}`;
 
         // 1. Mark as PAID in Supabase invoices
         await adminFetch("/api/invoice", {
@@ -1744,7 +1749,7 @@ Naseem Bagh / Malabagh, Srinagar`;
             invoiceId: order.id,
             paymentStatus: "PAID",
             paymentId,
-            paymentMethod: "Razorpay Link (Verified)",
+            paymentMethod: "Cashfree Link (Verified)",
           }),
         });
 
@@ -1755,7 +1760,7 @@ Naseem Bagh / Malabagh, Srinagar`;
         await fetchRemoteOrders();
         alert(`🎉 Payment Confirmed! ₹${Number(order.data.tot).toLocaleString("en-IN")} received from ${order.data.name}.`);
       } else {
-        alert(`⏳ Customer has NOT paid yet (Razorpay link status: "${data.status}").`);
+        alert(`⏳ Customer has NOT paid yet (Cashfree link status: "${data.status}").`);
       }
     } catch (err: any) {
       alert(`Could not verify status: ${err.message}`);
@@ -1810,7 +1815,7 @@ Naseem Bagh / Malabagh, Srinagar`;
   const handleDeleteRemoteOrder = async (order: any) => {
     const invNum = getOrderNum(order);
     const cName = getOrderName(order);
-    if (!confirm(`Are you sure you want to cancel and remove Order #${invNum} (${cName})?\n\nThis will permanently expire the Razorpay payment link so the customer cannot pay again.`)) {
+    if (!confirm(`Are you sure you want to cancel and remove Order #${invNum} (${cName})?\n\nThis will permanently expire the Cashfree payment link so the customer cannot pay again.`)) {
       return;
     }
 
@@ -2131,21 +2136,20 @@ Helpline: +91 84910 06127`;
       let plId: string | null = null;
 
       // 1. Determine payment method description
-      let pMethodLabel = "Razorpay Link (WhatsApp)";
+      let pMethodLabel = "Cashfree Link (WhatsApp)";
       if (newRemotePaymentMode === "jk_bank") {
         pMethodLabel = "J&K Bank UPI (Instant WhatsApp)";
       } else if (newRemotePaymentMode === "both") {
-        pMethodLabel = "J&K Bank + Razorpay Dual (WhatsApp)";
+        pMethodLabel = "J&K Bank + Cashfree Dual (WhatsApp)";
       }
 
       const itemsSummary = remoteBillItems
         .map((i) => `${i.weightKg.toFixed(2)} Kg ${i.name.split(" ")[0]} (@ ₹${i.dealRate}/Kg)`)
         .join(" + ");
 
-      // 2. If Razorpay is needed ("razorpay" or "both" mode), create Razorpay payment link
-      if (newRemotePaymentMode === "razorpay" || newRemotePaymentMode === "both") {
-        const primaryProd = remoteBillItems[0];
-        const res = await fetch("/api/razorpay/payment-link", {
+      // 2. If Cashfree is needed ("cashfree" or "both" mode), create Cashfree payment link
+      if (newRemotePaymentMode === "cashfree" || newRemotePaymentMode === "both") {
+        const res = await fetch("/api/cashfree/payment-link", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -2154,26 +2158,25 @@ Helpline: +91 84910 06127`;
             customerPhone: cleanPhone,
             customerEmail: newRemoteEmail.trim() || undefined,
             orderRef: billNum,
-            itemsSummary: itemsSummary,
-            channel: newRemotePaymentMode === "both" ? "DUAL_WHATSAPP_DEAL" : "WHATSAPP_DEAL",
-            weightKg: remoteTotalWeight,
-            productType: remoteBillItems.some((i) => i.name.toLowerCase().includes("gutted")) ? "Gutted" : "Whole",
-            dealRate: remoteBillItems.length === 1 ? primaryProd.dealRate : Math.round((remoteDealTotal / remoteTotalWeight) * 10) / 10,
-            standardRate: remoteBillItems.length === 1 ? primaryProd.baseRate : Math.round((remoteStandardTotal / remoteTotalWeight) * 10) / 10,
-            standardTotal: remoteStandardTotal,
-            discountAmount: remoteDiscountAmount,
-            discountPercent: remoteDiscountPercent,
-            notes: newRemoteNotes || `Items: ${itemsSummary}`,
+            invoiceId: billNum,
+            description: itemsSummary,
+            notes: {
+              channel: newRemotePaymentMode === "both" ? "DUAL_WHATSAPP_DEAL" : "WHATSAPP_DEAL",
+              items_summary: itemsSummary,
+              note: newRemoteNotes || `Items: ${itemsSummary}`,
+            },
           }),
         });
 
         const data = await res.json();
-        if (!data.success || !data.paymentLink?.short_url) {
-          throw new Error(data?.error || "Could not generate Razorpay payment link");
+        const createdPayUrl = data?.branded_url || data?.short_url || data?.paymentLink?.short_url;
+        const createdLinkId = data?.id || data?.paymentLink?.id;
+        if (!data.success || !createdPayUrl) {
+          throw new Error(data?.error || "Could not generate Cashfree payment link");
         }
 
-        payUrl = data.paymentLink.short_url;
-        plId = data.paymentLink.id;
+        payUrl = createdPayUrl;
+        plId = createdLinkId;
       }
 
       // 3. Build Invoice Payload for Supabase & Digital Public Invoice
@@ -2908,7 +2911,7 @@ Helpline: +91 84910 06127`;
                       <div className="text-right">
                         <span className="text-[9px] text-zinc-400 block">{isCustomAmountMode ? "Direct QR" : `${totalWeight.toFixed(2)} Kg Trout`}</span>
                         <span className="text-[10px] text-emerald-400 font-bold">
-                          {paymentMethod === "HdfcUpi" ? "HDFC SmartHub (Default)" : paymentMethod === "RazorpayQR" ? "Razorpay Auto-QR" : paymentMethod === "JkBankSoundbox" ? "J&K Bank Soundbox" : "Cash"}
+                          {paymentMethod === "HdfcUpi" ? "HDFC SmartHub (Default)" : paymentMethod === "CashfreeQR" ? "Cashfree Link & QR" : paymentMethod === "JkBankSoundbox" ? "J&K Bank Soundbox" : "Cash"}
                         </span>
                       </div>
                     </div>
@@ -2916,7 +2919,7 @@ Helpline: +91 84910 06127`;
                     <div className="grid grid-cols-4 gap-1 pt-1 border-t border-[#222222]">
                       {[
                         { id: "HdfcUpi", label: "HDFC", sub: "SmartHub" },
-                        { id: "RazorpayQR", label: "Razorpay", sub: "Auto" },
+                        { id: "CashfreeQR", label: "Cashfree", sub: "Auto" },
                         { id: "JkBankSoundbox", label: "J&K Bank", sub: "Soundbox" },
                         { id: "Cash", label: "Cash", sub: "Counter" },
                       ].map((ch) => (
@@ -2928,7 +2931,7 @@ Helpline: +91 84910 06127`;
                             paymentMethod === ch.id
                               ? ch.id === "HdfcUpi"
                                 ? "bg-emerald-500/25 border-emerald-400 text-emerald-300 font-bold"
-                                : ch.id === "RazorpayQR"
+                                : ch.id === "CashfreeQR"
                                 ? "bg-cyan-500/25 border-cyan-400 text-cyan-300 font-bold"
                                 : ch.id === "JkBankSoundbox"
                                 ? "bg-blue-500/25 border-blue-400 text-blue-300 font-bold"
@@ -3053,7 +3056,7 @@ Helpline: +91 84910 06127`;
                 {/* Helper info notice */}
                 <div className="p-2.5 rounded-lg bg-[#0a0a0a]/60 border border-[#222222] text-[11px] text-zinc-400 font-mono flex items-center gap-2">
                   <span className="material-symbols-outlined text-sm text-zinc-400">lock</span>
-                  <span>J&amp;K Bank Soundbox &amp; Razorpay QR in right column locked to ₹{(parseFloat(customAmount) || 0).toLocaleString("en-IN")}. Customer can scan immediately.</span>
+                  <span>J&amp;K Bank Soundbox &amp; Cashfree QR in right column locked to ₹{(parseFloat(customAmount) || 0).toLocaleString("en-IN")}. Customer can scan immediately.</span>
                 </div>
               </div>
             )}
@@ -3212,7 +3215,7 @@ Helpline: +91 84910 06127`;
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 pt-0.5">
               {[
                 { id: "HdfcUpi", label: "HDFC Bank", sub: "SmartHub Vyapar • Default" },
-                { id: "RazorpayQR", label: "Razorpay QR", sub: "Auto-Detect" },
+                { id: "CashfreeQR", label: "Cashfree QR", sub: "Auto-Detect" },
                 { id: "JkBankSoundbox", label: "J&K Bank", sub: "Soundbox • Voice" },
                 { id: "Cash", label: "Cash", sub: "Counter" },
               ].map((channel) => {
@@ -3226,7 +3229,7 @@ Helpline: +91 84910 06127`;
                       isSel
                         ? channel.id === "HdfcUpi"
                           ? "bg-emerald-500/20 border-emerald-400 text-emerald-200 font-bold shadow-md shadow-emerald-500/10"
-                          : channel.id === "RazorpayQR"
+                          : channel.id === "CashfreeQR"
                           ? "bg-cyan-500/20 border-cyan-400 text-cyan-200 font-bold shadow-md shadow-cyan-500/10"
                           : channel.id === "JkBankSoundbox"
                           ? "bg-blue-500/20 border-blue-400 text-blue-200 font-bold shadow-md shadow-blue-500/10"
@@ -3377,48 +3380,48 @@ Helpline: +91 84910 06127`;
               </div>
             )}
 
-            {/* 2. Razorpay Dynamic BharatQR Panel */}
-            {paymentMethod === "RazorpayQR" && grandTotal > 0 && (
+            {/* 2. Cashfree Dynamic QR & Link Panel */}
+            {paymentMethod === "CashfreeQR" && grandTotal > 0 && (
               <div className="p-3 rounded-xl bg-[#000000] border border-[#222222] flex flex-col items-center text-center space-y-2">
-                {rzpPaid ? (
+                {cfPaid ? (
                   <div className="w-full py-4 px-3 rounded-lg bg-[#0a0a0a] border border-[#333333] text-center space-y-2 animate-fadeIn">
                     <div className="w-9 h-9 rounded-full bg-[#161616] border border-[#333333] text-emerald-400 flex items-center justify-center mx-auto text-lg font-bold">
                       ✓
                     </div>
                     <div>
                       <h4 className="text-base font-semibold text-white font-['Space_Grotesk']">
-                        Payment Received: <span className="font-mono tabular-nums text-white">₹{rzpPaymentDetails?.amount || grandTotal}</span>
+                        Payment Received: <span className="font-mono tabular-nums text-white">₹{cfPaymentDetails?.amount || grandTotal}</span>
                       </h4>
                       <p className="text-xs text-zinc-400 font-mono mt-0.5">
-                        Ref: <strong className="text-zinc-200">{rzpPaymentDetails?.id || "pay_verified"}</strong>
+                        Ref: <strong className="text-zinc-200">{cfPaymentDetails?.id || "pay_verified"}</strong>
                       </p>
-                      {rzpPaymentDetails?.vpa && (
+                      {cfPaymentDetails?.vpa && (
                         <p className="text-[10px] text-zinc-500 font-mono">
-                          From: {rzpPaymentDetails.vpa}
+                          From: {cfPaymentDetails.vpa}
                         </p>
                       )}
                     </div>
                     <div className="p-1.5 rounded-md bg-[#161616]/80 border border-[#333333] text-[10px] text-zinc-300 font-mono flex items-center justify-center gap-1">
-                      <span>Verified via Razorpay. Bill marked PAID.</span>
+                      <span>Verified via Cashfree. Bill marked PAID.</span>
                     </div>
                   </div>
-                ) : rzpQrLoading ? (
+                ) : cfQrLoading ? (
                   <div className="py-10 flex flex-col items-center justify-center space-y-2 text-zinc-400">
                     <span className="material-symbols-outlined animate-spin text-xl">progress_activity</span>
-                    <p className="text-xs font-mono">Generating Razorpay QR...</p>
+                    <p className="text-xs font-mono">Generating Cashfree QR...</p>
                   </div>
-                ) : rzpQrError ? (
+                ) : cfQrError ? (
                   <div className="w-full p-3 rounded-lg bg-[#0a0a0a] border border-rose-800/50 text-center space-y-1.5">
-                    <p className="text-xs text-rose-300">{rzpQrError}</p>
+                    <p className="text-xs text-rose-300">{cfQrError}</p>
                     <button
                       type="button"
-                      onClick={() => generateRazorpayQr(grandTotal, true)}
+                      onClick={() => generateCashfreeQr(grandTotal, true)}
                       className="px-3 py-1 bg-[#161616] hover:bg-[#222222] text-white rounded-md text-xs font-medium uppercase tracking-wider cursor-pointer border border-[#333333]"
                     >
                       Retry QR
                     </button>
                   </div>
-                ) : rzpQrImageUrl ? (
+                ) : cfQrImageUrl ? (
                   <>
                     <div
                       onClick={() => setEnlargeQrModal(true)}
@@ -3427,13 +3430,9 @@ Helpline: +91 84910 06127`;
                     >
                       <div className="w-full h-full overflow-hidden rounded-lg flex items-center justify-center bg-white">
                         <img
-                          src={rzpQrImageUrl}
-                          alt="Razorpay Dynamic QR"
-                          className="w-full h-full object-cover select-none pointer-events-none transition-transform duration-200 group-hover:scale-[1.32]"
-                          style={{
-                            objectPosition: "center 51.5%",
-                            transform: "scale(1.28)",
-                          }}
+                          src={cfQrImageUrl}
+                          alt="Cashfree Dynamic QR"
+                          className="w-full h-full object-contain p-1 select-none pointer-events-none transition-transform duration-200 group-hover:scale-105"
                         />
                       </div>
                     </div>
@@ -3454,7 +3453,7 @@ Helpline: +91 84910 06127`;
                         </button>
                         <button
                           type="button"
-                          onClick={() => generateRazorpayQr(grandTotal, true)}
+                          onClick={() => generateCashfreeQr(grandTotal, true)}
                           className="px-2 py-0.5 rounded-md bg-[#161616] hover:bg-[#222222] text-zinc-300 border border-[#333333] text-[10px] font-medium uppercase cursor-pointer"
                         >
                           Refresh
@@ -3486,7 +3485,7 @@ Helpline: +91 84910 06127`;
                     </div>
                     <button
                       type="button"
-                      onClick={() => generateRazorpayQr(grandTotal, true)}
+                      onClick={() => generateCashfreeQr(grandTotal, true)}
                       disabled={grandTotal <= 0}
                       className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 active:scale-[0.99] disabled:opacity-50 text-slate-950 font-black uppercase tracking-wider text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-cyan-500/20 font-['Space_Grotesk']"
                     >
@@ -3654,7 +3653,7 @@ Helpline: +91 84910 06127`;
             {/* 3. WhatsApp Payment Link Panel (Home Delivery / Remote Pay) */}
             {paymentMethod === "WhatsAppLink" && grandTotal > 0 && (
               <div className="p-3 rounded-xl bg-[#000000] border border-[#222222] flex flex-col items-center text-center space-y-2.5">
-                {rzpPaid ? (
+                {cfPaid ? (
                   <div className="w-full py-4 px-3 rounded-lg bg-[#0a0a0a] border border-[#333333] text-center space-y-2 animate-fadeIn">
                     <div className="w-9 h-9 rounded-full bg-[#161616] border border-[#333333] text-emerald-400 flex items-center justify-center mx-auto text-lg font-bold">
                       ✓
@@ -3664,14 +3663,14 @@ Helpline: +91 84910 06127`;
                         Remote Payment Verified
                       </span>
                       <h4 className="text-base font-semibold text-white mt-1 font-['Space_Grotesk']">
-                        Payment Received: <span className="font-mono tabular-nums text-white">₹{rzpPaymentDetails?.amount || grandTotal}</span>
+                        Payment Received: <span className="font-mono tabular-nums text-white">₹{cfPaymentDetails?.amount || grandTotal}</span>
                       </h4>
                       <p className="text-xs text-zinc-400 font-mono mt-0.5">
-                        Ref: <strong className="text-zinc-200">{rzpPaymentDetails?.id || "pay_verified"}</strong>
+                        Ref: <strong className="text-zinc-200">{cfPaymentDetails?.id || "pay_verified"}</strong>
                       </p>
                     </div>
                     <div className="p-1.5 rounded-md bg-[#161616]/80 border border-[#333333] text-[10px] text-zinc-300 font-mono flex items-center justify-center gap-1">
-                      <span>Auto-captured via Razorpay. Bill marked PAID.</span>
+                      <span>Auto-captured via Cashfree. Bill marked PAID.</span>
                     </div>
                     <button
                       type="button"
@@ -3681,15 +3680,15 @@ Helpline: +91 84910 06127`;
                       View / Print Final Invoice
                     </button>
                   </div>
-                ) : rzpLinkLoading ? (
+                ) : cfLinkLoading ? (
                   <div className="py-8 flex flex-col items-center justify-center space-y-2 text-zinc-400">
                     <span className="material-symbols-outlined animate-spin text-2xl">progress_activity</span>
-                    <p className="text-xs font-mono text-zinc-200 font-medium">Creating Secure Razorpay Payment Link...</p>
+                    <p className="text-xs font-mono text-zinc-200 font-medium">Creating Secure Cashfree Payment Link...</p>
                     <p className="text-[10px] text-zinc-500 font-mono">Locking amount ₹{grandTotal.toLocaleString("en-IN")} &amp; opening WhatsApp</p>
                   </div>
-                ) : rzpLinkError ? (
+                ) : cfLinkError ? (
                   <div className="w-full p-3 rounded-lg bg-[#0a0a0a] border border-rose-800/50 text-center space-y-1.5">
-                    <p className="text-xs text-rose-300">{rzpLinkError}</p>
+                    <p className="text-xs text-rose-300">{cfLinkError}</p>
                     <button
                       type="button"
                       onClick={handleSendWhatsAppPaymentLink}
@@ -3700,20 +3699,20 @@ Helpline: +91 84910 06127`;
                   </div>
                 ) : (
                   <div className="w-full space-y-2.5">
-                    {rzpLinkData ? (
+                    {cfLinkData ? (
                       <div className="w-full space-y-2">
                         <div className="flex items-center justify-between pb-1 border-b border-[#222222] text-[10px] font-mono">
                           <span className="flex items-center gap-1.5 text-zinc-300 font-medium">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 inline-block" />
                             Listening for Customer Payment...
                           </span>
-                          <span className="text-zinc-500 font-mono">Inv #{rzpLinkData.orderRef}</span>
+                          <span className="text-zinc-500 font-mono">Inv #{cfLinkData.orderRef}</span>
                         </div>
 
                         <div className="p-2.5 rounded-lg bg-[#0a0a0a]/60 border border-[#222222] text-left space-y-1.5">
                           <div className="flex items-center justify-between text-[11px]">
                             <span className="text-zinc-400">Locked Amount:</span>
-                            <span className="text-white font-mono tabular-nums font-semibold text-sm">₹{rzpLinkData.amount.toLocaleString("en-IN")}</span>
+                            <span className="text-white font-mono tabular-nums font-semibold text-sm">₹{cfLinkData.amount.toLocaleString("en-IN")}</span>
                           </div>
                           <div className="flex items-center justify-between text-[11px]">
                             <span className="text-zinc-400">Customer Phone:</span>
@@ -3722,23 +3721,23 @@ Helpline: +91 84910 06127`;
 
                           <div className="p-2 rounded-md bg-[#000000] border border-[#222222] flex items-center justify-between gap-2">
                             <a
-                              href={rzpLinkData.short_url}
+                              href={cfLinkData.short_url}
                               target="_blank"
                               rel="noopener noreferrer"
                               className="text-[11px] font-mono text-zinc-300 hover:underline truncate"
                             >
-                              {rzpLinkData.short_url}
+                              {cfLinkData.short_url}
                             </a>
                             <button
                               type="button"
                               onClick={() => {
-                                navigator.clipboard.writeText(rzpLinkData.short_url);
-                                setRzpLinkCopied(true);
-                                setTimeout(() => setRzpLinkCopied(false), 2000);
+                                navigator.clipboard.writeText(cfLinkData.short_url);
+                                setCfLinkCopied(true);
+                                setTimeout(() => setCfLinkCopied(false), 2000);
                               }}
                               className="px-2 py-0.5 rounded bg-[#161616] hover:bg-[#222222] text-zinc-200 text-[10px] font-medium shrink-0 border border-[#333333] cursor-pointer"
                             >
-                              {rzpLinkCopied ? "Copied" : "Copy Link"}
+                              {cfLinkCopied ? "Copied" : "Copy Link"}
                             </button>
                           </div>
                         </div>
@@ -3749,7 +3748,7 @@ Helpline: +91 84910 06127`;
                             type="button"
                             onClick={() => {
                               const clean = customerPhone.replace(/\D/g, "").slice(-10);
-                              const enc = encodeURIComponent(rzpLinkData.waMessage);
+                              const enc = encodeURIComponent(cfLinkData.waMessage);
                               window.open(clean.length === 10 ? `https://wa.me/91${clean}?text=${enc}` : `https://wa.me/?text=${enc}`, "_blank");
                             }}
                             className="py-1.5 px-1.5 rounded-md bg-[#161616] hover:bg-[#222222] text-zinc-200 border border-[#333333] text-[10px] font-medium transition-colors cursor-pointer flex items-center justify-center gap-1"
@@ -3761,7 +3760,7 @@ Helpline: +91 84910 06127`;
                             type="button"
                             onClick={() => {
                               const clean = customerPhone.replace(/\D/g, "").slice(-10);
-                              const enc = encodeURIComponent(rzpLinkData.waMessage);
+                              const enc = encodeURIComponent(cfLinkData.waMessage);
                               window.open(`https://web.whatsapp.com/send?phone=91${clean}&text=${enc}`, "_blank");
                             }}
                             className="py-1.5 px-1.5 rounded-md bg-[#161616] hover:bg-[#222222] text-zinc-200 border border-[#333333] text-[10px] font-medium transition-colors cursor-pointer flex items-center justify-center gap-1"
@@ -3772,18 +3771,18 @@ Helpline: +91 84910 06127`;
                           <button
                             type="button"
                             onClick={() => {
-                              navigator.clipboard.writeText(rzpLinkData.waMessage);
-                              setRzpLinkMsgCopied(true);
-                              setTimeout(() => setRzpLinkMsgCopied(false), 2000);
+                              navigator.clipboard.writeText(cfLinkData.waMessage);
+                              setCfLinkMsgCopied(true);
+                              setTimeout(() => setCfLinkMsgCopied(false), 2000);
                             }}
                             className="py-1.5 px-1.5 rounded-md bg-[#161616] hover:bg-[#222222] text-zinc-200 border border-[#333333] text-[10px] font-medium transition-colors cursor-pointer flex items-center justify-center gap-1"
                           >
-                            <span>{rzpLinkMsgCopied ? "Copied" : "Copy Text"}</span>
+                            <span>{cfLinkMsgCopied ? "Copied" : "Copy Text"}</span>
                           </button>
                         </div>
 
                         <div className="p-2 rounded-md bg-[#0a0a0a]/60 border border-[#222222] text-[10px] text-zinc-400 font-mono text-center">
-                          Polling Razorpay for payment status. Screen updates automatically.
+                          Polling Cashfree for payment status. Screen updates automatically.
                         </div>
 
                         {/* Fast Actions for Counter Operator */}
@@ -3836,7 +3835,7 @@ Helpline: +91 84910 06127`;
                         <button
                           type="button"
                           onClick={handleSendWhatsAppPaymentLink}
-                          disabled={grandTotal <= 0 || rzpLinkLoading}
+                          disabled={grandTotal <= 0 || cfLinkLoading}
                           className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 active:scale-[0.99] disabled:opacity-50 text-slate-950 font-black uppercase tracking-wider text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-cyan-500/20 font-['Space_Grotesk']"
                         >
                           <span className="material-symbols-outlined text-base">send</span>
@@ -3865,14 +3864,14 @@ Helpline: +91 84910 06127`;
 
             {/* Primary Action Button */}
             <div className="pt-1">
-              {paymentMethod === "WhatsAppLink" && !rzpPaid ? (
+              {paymentMethod === "WhatsAppLink" && !cfPaid ? (
                 <button
                   type="button"
                   onClick={handleSendWhatsAppPaymentLink}
-                  disabled={grandTotal <= 0 || rzpLinkLoading}
+                  disabled={grandTotal <= 0 || cfLinkLoading}
                   className="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 active:scale-[0.99] disabled:from-[#1a1a1a] disabled:to-[#1a1a1a] disabled:text-[#666666] disabled:border disabled:border-[#2a2a2a] disabled:cursor-not-allowed text-slate-950 font-black uppercase tracking-wider text-xs sm:text-sm transition-all shadow-lg shadow-emerald-500/25 flex items-center justify-center gap-2 cursor-pointer font-['Space_Grotesk']"
                 >
-                  {rzpLinkLoading ? (
+                  {cfLinkLoading ? (
                     <>
                       <span className="material-symbols-outlined animate-spin text-base">progress_activity</span>
                       Generating Link...
@@ -3907,7 +3906,7 @@ Helpline: +91 84910 06127`;
                 <span>{isCustomAmountMode ? "Direct QR" : `${totalWeight.toFixed(2)} Kg`}</span>
                 <span>•</span>
                 <span className="text-zinc-300 font-medium truncate">
-                  {paymentMethod === "HdfcUpi" ? "HDFC Bank (SmartHub)" : paymentMethod === "RazorpayQR" ? "Razorpay QR" : paymentMethod === "JkBankSoundbox" ? "J&K Bank" : paymentMethod === "WhatsAppLink" ? "WhatsApp" : "Cash"}
+                  {paymentMethod === "HdfcUpi" ? "HDFC Bank (SmartHub)" : paymentMethod === "CashfreeQR" ? "Cashfree QR" : paymentMethod === "JkBankSoundbox" ? "J&K Bank" : paymentMethod === "WhatsAppLink" ? "WhatsApp" : "Cash"}
                 </span>
               </div>
               <div className="text-base sm:text-lg font-bold text-white font-mono tabular-nums leading-tight">
@@ -3916,15 +3915,15 @@ Helpline: +91 84910 06127`;
             </div>
 
             <div className="flex items-center gap-1.5 flex-shrink-0">
-              {paymentMethod === "WhatsAppLink" && !rzpPaid ? (
+              {paymentMethod === "WhatsAppLink" && !cfPaid ? (
                 <button
                   type="button"
                   onClick={handleSendWhatsAppPaymentLink}
-                  disabled={grandTotal <= 0 || rzpLinkLoading}
+                  disabled={grandTotal <= 0 || cfLinkLoading}
                   className="py-2.5 px-3.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 active:scale-95 disabled:from-zinc-800 disabled:to-zinc-800 disabled:text-zinc-600 disabled:cursor-not-allowed text-slate-950 font-black text-xs uppercase tracking-wider flex items-center gap-1.5 shadow-lg shadow-emerald-500/25 transition-all cursor-pointer font-['Space_Grotesk']"
                 >
                   <span className="material-symbols-outlined text-base">send</span>
-                  <span>{rzpLinkLoading ? "Wait..." : "Send Link"}</span>
+                  <span>{cfLinkLoading ? "Wait..." : "Send Link"}</span>
                 </button>
               ) : (
                 <>
@@ -3937,8 +3936,8 @@ Helpline: +91 84910 06127`;
                         setHdfcQrGenerated(true);
                         setLastHdfcAmount(grandTotal);
                         setEnlargeQrModal(true);
-                      } else if (paymentMethod === "RazorpayQR") {
-                        generateRazorpayQr(grandTotal, true);
+                      } else if (paymentMethod === "CashfreeQR") {
+                        generateCashfreeQr(grandTotal, true);
                       } else if (paymentMethod === "JkBankSoundbox") {
                         setSoundboxQrGenerated(true);
                         setLastSoundboxAmount(grandTotal);
@@ -4261,7 +4260,7 @@ Helpline: +91 84910 06127`;
                             </span>
                             {pMethod.toLowerCase().includes("dual") ? (
                               <span className="text-[9px] font-mono font-medium bg-[#161616] border border-[#333333] text-zinc-300 px-1.5 py-0.5 rounded-md">
-                                ✨ Dual (J&amp;K + Rzp)
+                                ✨ Dual (J&amp;K + CF)
                               </span>
                             ) : pMethod.toLowerCase().includes("jk") || pMethod.toLowerCase().includes("jkb") ? (
                               <span className="text-[9px] font-mono font-medium bg-[#161616] border border-[#333333] text-zinc-300 px-1.5 py-0.5 rounded-md">
@@ -4269,7 +4268,7 @@ Helpline: +91 84910 06127`;
                               </span>
                             ) : (
                               <span className="text-[9px] font-mono text-zinc-400 bg-[#0a0a0a] px-1.5 py-0.5 rounded-md border border-[#222222]">
-                                💳 Razorpay
+                                💳 Cashfree
                               </span>
                             )}
                             {paymentLinkId && (
@@ -4620,7 +4619,7 @@ Helpline: +91 84910 06127`;
                                   onClick={() => handleCheckRemoteOrderStatus(order)}
                                   disabled={isChecking}
                                   className="py-1.5 px-1 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
-                                  title="Poll Razorpay status directly"
+                                  title="Poll Cashfree status directly"
                                 >
                                   <span className={isChecking ? "animate-spin" : ""}>🔄</span>
                                   <span>{isChecking ? "..." : "Status"}</span>
@@ -4651,7 +4650,7 @@ Helpline: +91 84910 06127`;
                                   onClick={() => handleDeleteRemoteOrder(order)}
                                   disabled={isDeleting}
                                   className="py-1.5 px-1 rounded-xl bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 hover:text-rose-200 border border-rose-500/40 hover:border-rose-400 text-[10px] font-bold font-mono transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-50"
-                                  title="Cancel this order and expire the Razorpay payment link so customer cannot pay"
+                                  title="Cancel this order and expire the Cashfree payment link so customer cannot pay"
                                 >
                                   <span className={isDeleting ? "animate-spin" : ""}>🗑️</span>
                                   <span>{isDeleting ? "..." : "Delete"}</span>
@@ -5067,12 +5066,7 @@ Helpline: +91 84910 06127`;
                       <img
                         src={generatedInvoice.upiQrCodeUrl}
                         alt="Scan & Pay"
-                        className={`w-full h-full ${generatedInvoice.upiQrCodeUrl?.includes("rzp.io") ? "object-cover" : "object-contain p-2"}`}
-                        style={
-                          generatedInvoice.upiQrCodeUrl?.includes("rzp.io")
-                            ? { objectPosition: "center 51.5%", transform: "scale(1.28)" }
-                            : undefined
-                        }
+                        className="w-full h-full object-contain p-2"
                       />
                     </div>
                   </div>
@@ -5081,7 +5075,7 @@ Helpline: +91 84910 06127`;
                       Scan with Any UPI App (GPay / PhonePe / Paytm)
                     </p>
                     <p className="text-[11px] text-slate-500 font-mono mt-0.5">
-                      {generatedInvoice.paymentMethod?.includes("Razorpay") ? "Razorpay Dynamic Merchant QR" : `UPI ID: ${generatedInvoice.upiId}`}
+                      {(generatedInvoice.paymentMethod?.includes("Cashfree") || generatedInvoice.paymentMethod?.includes("Razorpay")) ? "Cashfree Verified Gateway QR" : `UPI ID: ${generatedInvoice.upiId}`}
                     </p>
                   </div>
                 </div>
@@ -5276,7 +5270,7 @@ Helpline: +91 84910 06127`;
               </button>
             </div>
 
-            {(soundboxPaid || rzpPaid || hdfcPaid) ? (
+            {(soundboxPaid || cfPaid || hdfcPaid) ? (
               /* ─── PAYMENT CONFIRMED CELEBRATION VIEW INSIDE MODAL ─── */
               <div className="w-full py-6 px-4 rounded-3xl bg-gradient-to-b from-emerald-950/60 to-slate-950 border-2 border-emerald-500/50 text-center space-y-4 animate-fadeIn">
                 <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 border-2 border-emerald-400 text-emerald-400 flex items-center justify-center mx-auto text-3xl font-black shadow-lg shadow-emerald-500/30">
@@ -5284,14 +5278,14 @@ Helpline: +91 84910 06127`;
                 </div>
                 <div className="space-y-1">
                   <span className="text-[11px] uppercase font-mono font-bold tracking-widest text-emerald-400 block">
-                    {rzpPaid ? "Razorpay UPI Payment Confirmed" : hdfcPaid ? "HDFC SmartHub Vyapar Payment Confirmed" : "Soundbox Payment Confirmed"}
+                    {cfPaid ? "Cashfree UPI Payment Confirmed" : hdfcPaid ? "HDFC SmartHub Vyapar Payment Confirmed" : "Soundbox Payment Confirmed"}
                   </span>
                   <h3 className="text-2xl sm:text-3xl font-black text-white" style={{ fontFamily: '"Space Grotesk", sans-serif' }}>
-                    ₹{(rzpPaymentDetails?.amount || grandTotal).toLocaleString("en-IN")}.00 PAID
+                    ₹{(cfPaymentDetails?.amount || grandTotal).toLocaleString("en-IN")}.00 PAID
                   </h3>
                   <p className="text-xs text-emerald-300 font-mono">
-                    {rzpPaid
-                      ? `⚡ Verified via Razorpay • Ref: ${rzpPaymentDetails?.id || "pay_verified"}`
+                    {cfPaid
+                      ? `⚡ Verified via Cashfree • Ref: ${cfPaymentDetails?.id || "pay_verified"}`
                       : hdfcPaid
                       ? `⚡ Collected on HDFC SmartHub Vyapar Soundbox (${HDFC_COUNTER_VPA})`
                       : `🔊 Voice announcement confirmed on counter soundbox (${terminalId})`}
@@ -5546,15 +5540,11 @@ Helpline: +91 84910 06127`;
                 <div className="flex flex-col items-center space-y-2.5 order-1 md:order-2">
                   {/* Giant QR Box */}
                   <div className="w-56 h-56 sm:w-64 sm:h-64 bg-white border-2 border-emerald-400 rounded-3xl shadow-2xl overflow-hidden relative flex items-center justify-center p-3">
-                    {paymentMethod === "RazorpayQR" && rzpQrImageUrl ? (
+                    {paymentMethod === "CashfreeQR" && cfQrImageUrl ? (
                       <img
-                        src={rzpQrImageUrl}
-                        alt="Razorpay Dynamic QR"
-                        className="w-full h-full object-cover select-none pointer-events-none rounded-2xl"
-                        style={{
-                          objectPosition: "center 51.5%",
-                          transform: "scale(1.28)",
-                        }}
+                        src={cfQrImageUrl}
+                        alt="Cashfree Dynamic QR"
+                        className="w-full h-full object-contain select-none pointer-events-none rounded-2xl"
                       />
                     ) : paymentMethod === "HdfcUpi" ? (
                       <img
@@ -5594,7 +5584,7 @@ Helpline: +91 84910 06127`;
 
                     {/* UPI ID + Copy */}
                     <div className="flex items-center justify-center gap-1.5 text-[10px] text-slate-400 font-mono pt-1">
-                      <span>{paymentMethod === "HdfcUpi" ? HDFC_COUNTER_VPA : paymentMethod === "RazorpayQR" ? "Razorpay Smart QR" : upiId}</span>
+                      <span>{paymentMethod === "HdfcUpi" ? HDFC_COUNTER_VPA : paymentMethod === "CashfreeQR" ? "Cashfree Link & QR" : upiId}</span>
                       <button
                         type="button"
                         onClick={() => {
@@ -5742,7 +5732,7 @@ Helpline: +91 84910 06127`;
 
             {/* Tip for Counter Staff */}
             <div className="p-2.5 rounded-xl bg-emerald-950/20 border border-emerald-500/20 text-[10.5px] text-emerald-400 font-mono">
-              💡 <strong>Soundbox Mode:</strong> Connect your counter PC or tablet audio to any counter Bluetooth / aux speaker. As soon as a customer pays via Razorpay or Soundbox, it announces the amount out loud so you don&apos;t have to look at the screen!
+              💡 <strong>Soundbox Mode:</strong> Connect your counter PC or tablet audio to any counter Bluetooth / aux speaker. As soon as a customer pays via Cashfree or Soundbox, it announces the amount out loud so you don&apos;t have to look at the screen!
             </div>
 
             <button
@@ -5841,7 +5831,7 @@ Helpline: +91 84910 06127`;
                         ? "⚡ Instant (0-Day, Zero Fees)"
                         : newRemotePaymentMode === "both"
                         ? "✨ Dual: J&K Bank + Gateway"
-                        : "💳 Razorpay Gateway Link"}
+                        : "💳 Cashfree Gateway Link"}
                     </span>
                   </div>
 
@@ -5874,17 +5864,17 @@ Helpline: +91 84910 06127`;
                       <div className="text-[9px] text-emerald-400 font-mono mt-0.5 font-semibold">Instant Settle</div>
                     </button>
 
-                    {/* Razorpay Only */}
+                    {/* Cashfree Only */}
                     <button
                       type="button"
-                      onClick={() => setNewRemotePaymentMode("razorpay")}
+                      onClick={() => setNewRemotePaymentMode("cashfree")}
                       className={`p-2 rounded-xl text-center border transition-all cursor-pointer ${
-                        newRemotePaymentMode === "razorpay"
+                        newRemotePaymentMode === "cashfree"
                           ? "bg-blue-500/20 border-blue-400 text-white shadow-md shadow-blue-500/10 font-bold"
                           : "bg-black border-[#222222] text-slate-400 hover:border-[#333333]"
                       }`}
                     >
-                      <div className="text-xs">💳 Razorpay</div>
+                      <div className="text-xs">💳 Cashfree</div>
                       <div className="text-[9px] text-slate-400 font-mono mt-0.5">Gateway Only</div>
                     </button>
                   </div>
@@ -6345,7 +6335,7 @@ Helpline: +91 84910 06127`;
                           ? "Generate J&K Bank Bill (0-Day Settle)"
                           : newRemotePaymentMode === "both"
                           ? "Generate Dual Bill (J&K Bank + Gateway)"
-                          : "Generate Razorpay Payment Link"}
+                          : "Generate Cashfree Payment Link"}
                       </span>
                     </>
                   )}
@@ -6370,11 +6360,11 @@ Helpline: +91 84910 06127`;
                       </span>
                     ) : newRemoteGeneratedData.mode === "both" ? (
                       <span className="text-cyan-400 flex items-center gap-1">
-                        <span>✨</span> Dual: J&amp;K Bank Instant + Razorpay Gateway
+                        <span>✨</span> Dual: J&amp;K Bank Instant + Cashfree Gateway
                       </span>
                     ) : (
                       <span className="text-blue-400 flex items-center gap-1">
-                        <span>💳</span> Razorpay Gateway Only
+                        <span>💳</span> Cashfree Gateway Only
                       </span>
                     )}
                   </div>
@@ -6600,7 +6590,7 @@ Helpline: +91 84910 06127`;
         </div>
       )}
 
-      {/* ─── CUSTOMER KHATA BALANCE REMINDER & RAZORPAY QR MODAL ─── */}
+      {/* ─── CUSTOMER KHATA BALANCE REMINDER & CASHFREE LINK MODAL ─── */}
       <BalanceReminderModal
         isOpen={isBalanceModalOpen}
         onClose={() => {

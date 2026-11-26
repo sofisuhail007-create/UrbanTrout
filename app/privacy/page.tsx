@@ -34,7 +34,7 @@ const sections = [
   },
   {
     title: "3. Payment Gateway & Card Data Security",
-    body: "• All online card, UPI, and net banking payments on Urban Trout are securely handled through our PCI-DSS Level 1 compliant payment gateway partner, Razorpay Software Private Limited.\n• Urban Trout does not collect, process, or store raw credit/debit card numbers, CVVs, card expiry dates, or banking passwords on our servers.\n• All communication with the payment gateway is encrypted with industry-standard 256-bit SSL / TLS encryption.",
+    body: "• All online card, UPI, and net banking payments on Urban Trout are securely handled through our PCI-DSS Level 1 compliant payment gateway partner, Cashfree Payments India Private Limited.\n• Urban Trout does not collect, process, or store raw credit/debit card numbers, CVVs, card expiry dates, or banking passwords on our servers.\n• All communication with the payment gateway is encrypted with industry-standard 256-bit SSL / TLS encryption.",
   },
   {
     title: "4. Data Storage & Platform Security",

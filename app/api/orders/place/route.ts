@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-import crypto from "crypto";
 import { checkRateLimit } from "@/lib/rateLimit";
+import { getCashfreeOrder, getCashfreeOrderPayments } from "@/lib/cashfree";
 
 export const dynamic = "force-dynamic";
 
@@ -22,16 +22,18 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const {
-      razorpay_order_id,
-      razorpay_payment_id,
-      razorpay_signature,
+      cashfree_order_id,
+      cashfree_payment_id,
+      order_id,
       orderData,
     } = body;
 
+    const cfOrderId = String(cashfree_order_id || order_id || "").trim();
+
     // 2. Validate Payment Information
-    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+    if (!cfOrderId) {
       return NextResponse.json(
-        { success: false, error: "Missing required Razorpay payment confirmation details." },
+        { success: false, error: "Missing required Cashfree order confirmation ID." },
         { status: 400 }
       );
     }
@@ -43,40 +45,50 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const keySecret = process.env.RAZORPAY_KEY_SECRET;
-    if (!keySecret) {
-      return NextResponse.json({ success: false, error: "Payment server configuration error." }, { status: 500 });
-    }
+    // 3. Server-to-Server Cashfree Payment Verification (never trust client-side state alone)
+    const [orderRes, paymentsRes] = await Promise.all([
+      getCashfreeOrder(cfOrderId),
+      getCashfreeOrderPayments(cfOrderId),
+    ]);
 
-    // 3. Verify Razorpay HMAC-SHA256 Cryptographic Signature
-    const expectedSignature = crypto
-      .createHmac("sha256", keySecret)
-      .update(`${razorpay_order_id}|${razorpay_payment_id}`)
-      .digest("hex");
-
-    if (expectedSignature !== razorpay_signature) {
-      console.error("[orders/place] Signature mismatch detected!", {
-        razorpay_order_id,
-        razorpay_payment_id,
-      });
+    if (!orderRes.ok) {
       return NextResponse.json(
-        { success: false, error: "Cryptographic payment verification failed. Order not placed." },
+        { success: false, error: orderRes.data?.message || "Unable to verify order with Cashfree." },
         { status: 400 }
       );
     }
+
+    const orderStatus = String(orderRes.data?.order_status || "").toUpperCase();
+    const paymentsList = Array.isArray(paymentsRes.data) ? paymentsRes.data : [];
+    const successPayment = paymentsList.find(
+      (p) => String(p.payment_status || "").toUpperCase() === "SUCCESS"
+    );
+
+    if (orderStatus !== "PAID" && !successPayment) {
+      console.error("[orders/place] Cashfree payment not settled!", { cfOrderId, orderStatus });
+      return NextResponse.json(
+        { success: false, error: "Cashfree payment verification failed or pending. Order not placed." },
+        { status: 400 }
+      );
+    }
+
+    const verifiedPaymentId = String(
+      successPayment?.cf_payment_id || cashfree_payment_id || cfOrderId
+    ).trim();
 
     // 4. Prevent Replay Attacks: Check if this payment ID was already used
     const { data: existingOrder } = await supabaseServer
       .from("orders")
       .select("id, order_number")
-      .like("customer_address", `%${razorpay_payment_id}%`)
+      .like("customer_address", `%${verifiedPaymentId}%`)
       .maybeSingle();
 
     if (existingOrder) {
-      console.warn("[orders/place] Duplicate order placement attempt for payment ID:", razorpay_payment_id);
+      console.warn("[orders/place] Duplicate order placement attempt for payment ID:", verifiedPaymentId);
       return NextResponse.json({
         success: true,
         order: existingOrder,
+        payment_id: verifiedPaymentId,
         message: "Order was already confirmed.",
       });
     }
@@ -141,7 +153,7 @@ export async function POST(req: NextRequest) {
           scheduled_date: scheduledDate,
           scheduled_slot: scheduledSlot,
         },
-        razorpay_payment_id,
+        verifiedPaymentId,
         supabaseServer
       );
     } catch (vendErr) {
@@ -154,7 +166,7 @@ export async function POST(req: NextRequest) {
         .from("leads")
         .update({
           status: "converted",
-          notes: `Converted to Order #${insertedOrder.order_number || ""}. Payment via Razorpay (${razorpay_payment_id})${isScheduled ? ` [Scheduled: ${scheduledDate} ${scheduledSlot}]` : ""}`,
+          notes: `Converted to Order #${insertedOrder.order_number || ""}. Payment via Cashfree (${verifiedPaymentId})${isScheduled ? ` [Scheduled: ${scheduledDate} ${scheduledSlot}]` : ""}`,
           updated_at: new Date().toISOString(),
         })
         .eq("customer_phone", cleanPhone);
@@ -180,8 +192,8 @@ export async function POST(req: NextRequest) {
       console.warn("[orders/place] Failed to upsert customer:", err);
     }
 
-    // 9. Dispatch Telegram Notification (Only for non-Razorpay / offline orders to avoid double alerts, since Razorpay webhook sends the single official confirmation card)
-    if (!razorpay_payment_id) {
+    // 9. Dispatch Telegram Notification (Only for non-Cashfree / offline orders to avoid double alerts, since Cashfree webhook sends the single official confirmation card)
+    if (!verifiedPaymentId) {
       try {
         const origin = req.nextUrl.origin || "https://urbantrout.in";
         fetch(`${origin}/api/telegram-notify`, {

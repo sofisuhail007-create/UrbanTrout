@@ -42,7 +42,7 @@ const sections = [
   },
   {
     title: "5. Refund Method & Processing Timeline",
-    body: "• Approved refunds are initiated immediately and processed through our authorized payment gateway partner (Razorpay).\n• The refund amount will be credited back to the original payment source (UPI ID, Debit/Credit Card, or Net Banking account) within 5 to 7 business days, in accordance with standard banking and payment gateway settlement cycles.\n• For direct UPI transfers where applicable, refunds are issued via direct UPI transfer within 24 hours of approval.",
+    body: "• Approved refunds are initiated immediately and processed through our authorized payment gateway partner (Cashfree Payments).\n• The refund amount will be credited back to the original payment source (UPI ID, Debit/Credit Card, or Net Banking account) within 5 to 7 business days, in accordance with standard banking and payment gateway settlement cycles.\n• For direct UPI transfers where applicable, refunds are issued via direct UPI transfer within 24 hours of approval.",
   },
   {
     title: "6. Non-Refundable Scenarios",

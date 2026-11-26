@@ -21,6 +21,9 @@ export interface CustomerBalanceRecord {
   payment_method?: string;
   settlement_note?: string;
   items_summary?: string;
+  payment_link_id?: string;
+  payment_link_url?: string;
+  qr_id?: string;
   razorpay_payment_link_id?: string;
   razorpay_payment_link_url?: string;
   razorpay_qr_id?: string;
@@ -227,8 +230,10 @@ export async function GET(request: Request) {
               payment_method: r.payment_mode || "Cash",
               settlement_note: r.notes ? `Vending: ${r.notes}` : `Vending Center Sale: ${w} Kg ${r.product_type}`,
               items_summary: `${w} Kg ${r.product_type} Trout (Vending Center)`,
-              razorpay_payment_link_id: cf.razorpay_payment_link_id || cf.payment_link_id || undefined,
-              razorpay_payment_link_url: cf.razorpay_payment_link_url || cf.payment_link_url || undefined,
+              payment_link_id: cf.payment_link_id || cf.razorpay_payment_link_id || undefined,
+              payment_link_url: cf.payment_link_url || cf.razorpay_payment_link_url || undefined,
+              razorpay_payment_link_id: cf.payment_link_id || cf.razorpay_payment_link_id || undefined,
+              razorpay_payment_link_url: cf.payment_link_url || cf.razorpay_payment_link_url || undefined,
               last_reminder_sent_at: cf.last_reminder_sent_at || undefined,
               created_at: formatEntryDateTime(r.entry_date, r.entry_time, r.created_at),
               updated_at: r.updated_at || r.created_at || new Date().toISOString(),
@@ -279,6 +284,8 @@ export async function GET(request: Request) {
               status: (d.balanceStatus as any) || "pending",
               payment_method: d.paymentMethod || "Cash",
               items_summary: Array.isArray(d.items) ? d.items.map((i: any) => i.n || i.name).join(", ") : undefined,
+              payment_link_id: d.payment_link_id || d.razorpay_payment_link_id || undefined,
+              payment_link_url: d.payment_link_url || d.razorpay_payment_link_url || undefined,
               razorpay_payment_link_id: d.payment_link_id || d.razorpay_payment_link_id || undefined,
               razorpay_payment_link_url: d.payment_link_url || d.razorpay_payment_link_url || undefined,
               last_reminder_sent_at: d.last_reminder_sent_at || undefined,
@@ -410,6 +417,9 @@ export async function POST(request: Request) {
       paymentMethod,
       settlementNote,
       itemsSummary,
+      paymentLinkId,
+      paymentLinkUrl,
+      qrId,
       razorpayPaymentLinkUrl,
       razorpayQrId,
     } = body;
@@ -552,6 +562,9 @@ export async function PATCH(request: Request) {
       amountReceived,
       paymentMethod,
       settlementNote,
+      paymentLinkId,
+      paymentLinkUrl,
+      qrId,
       razorpayPaymentLinkId,
       razorpayPaymentLinkUrl,
       razorpayQrId,
@@ -649,7 +662,7 @@ export async function PATCH(request: Request) {
               : `Repayment ₹${payment}: ${settlementNote}`;
           }
         }
-        current.payment_method = paymentMethod || current.payment_method || "Razorpay Link (Verified)";
+        current.payment_method = paymentMethod || current.payment_method || "Cashfree Link (Verified)";
       }
     } else if (action === "SETTLE_FINAL_WAIVER") {
       current.status = "waived_final";
@@ -657,14 +670,40 @@ export async function PATCH(request: Request) {
       current.settlement_note = settlementNote || "Agreed final payment discount waiver";
     } else if (action === "UPDATE_REMINDER" || action === "REMINDER_SENT") {
       current.last_reminder_sent_at = new Date().toISOString();
-      if (razorpayPaymentLinkUrl) current.razorpay_payment_link_url = razorpayPaymentLinkUrl;
-      if (razorpayPaymentLinkId) current.razorpay_payment_link_id = razorpayPaymentLinkId;
-      if (razorpayQrId) current.razorpay_qr_id = razorpayQrId;
+      const nextUrl = paymentLinkUrl || razorpayPaymentLinkUrl;
+      const nextId = paymentLinkId || razorpayPaymentLinkId;
+      const nextQr = qrId || razorpayQrId;
+      if (nextUrl) {
+        current.payment_link_url = nextUrl;
+        current.razorpay_payment_link_url = nextUrl;
+      }
+      if (nextId) {
+        current.payment_link_id = nextId;
+        current.razorpay_payment_link_id = nextId;
+      }
+      if (nextQr) {
+        current.qr_id = nextQr;
+        current.razorpay_qr_id = nextQr;
+      }
     } else if (action === "UPDATE_LINKS") {
-      if (razorpayPaymentLinkUrl) current.razorpay_payment_link_url = razorpayPaymentLinkUrl;
-      if (razorpayPaymentLinkId) current.razorpay_payment_link_id = razorpayPaymentLinkId;
-      if (razorpayQrId) current.razorpay_qr_id = razorpayQrId;
+      const nextUrl = paymentLinkUrl || razorpayPaymentLinkUrl;
+      const nextId = paymentLinkId || razorpayPaymentLinkId;
+      const nextQr = qrId || razorpayQrId;
+      if (nextUrl) {
+        current.payment_link_url = nextUrl;
+        current.razorpay_payment_link_url = nextUrl;
+      }
+      if (nextId) {
+        current.payment_link_id = nextId;
+        current.razorpay_payment_link_id = nextId;
+      }
+      if (nextQr) {
+        current.qr_id = nextQr;
+        current.razorpay_qr_id = nextQr;
+      }
     } else if (action === "CANCEL_LINK") {
+      current.payment_link_url = undefined;
+      current.payment_link_id = undefined;
       current.razorpay_payment_link_url = undefined;
       current.razorpay_payment_link_id = undefined;
     }
@@ -759,10 +798,18 @@ export async function PATCH(request: Request) {
 
         cf.balance_amount = current.balance_amount;
         cf.balance_status = current.status;
-        if (current.razorpay_payment_link_id) cf.razorpay_payment_link_id = current.razorpay_payment_link_id;
-        if (current.razorpay_payment_link_url) cf.razorpay_payment_link_url = current.razorpay_payment_link_url;
+        if (current.payment_link_id || current.razorpay_payment_link_id) {
+          cf.payment_link_id = current.payment_link_id || current.razorpay_payment_link_id;
+          cf.razorpay_payment_link_id = cf.payment_link_id;
+        }
+        if (current.payment_link_url || current.razorpay_payment_link_url) {
+          cf.payment_link_url = current.payment_link_url || current.razorpay_payment_link_url;
+          cf.razorpay_payment_link_url = cf.payment_link_url;
+        }
         if (current.last_reminder_sent_at) cf.last_reminder_sent_at = current.last_reminder_sent_at;
         if (action === "CANCEL_LINK") {
+          delete cf.payment_link_id;
+          delete cf.payment_link_url;
           delete cf.razorpay_payment_link_id;
           delete cf.razorpay_payment_link_url;
         }
@@ -779,7 +826,7 @@ export async function PATCH(request: Request) {
             amount: Number(amountReceived || current.paid_amount),
             concession: concession > 0 ? concession : undefined,
             is_final_settlement: isFinal,
-            method: current.payment_method || "Razorpay QR (Verified)",
+            method: current.payment_method || "Cashfree QR (Verified)",
             timestamp: nowIso,
             note: settlementNote || (isFinal ? `Final settlement: Received ₹${amountReceived}, waived ₹${concession} concession` : "Balance payment cleared"),
           });
@@ -808,13 +855,13 @@ export async function PATCH(request: Request) {
         const expAmt = Number(cf.expected_amount) || Number(vslMatch.expected_amount) || (Number(vslMatch.weight_kg) * Number(vslMatch.rate_per_kg));
         const updatedDiscount = Math.max(0, expAmt - updatedAmountPaid);
 
-        // Payment mode update (e.g. Cash, JK Bank Online, Razorpay Online, Split)
+        // Payment mode update (e.g. Cash, JK Bank Online, Cashfree Online, Split)
         let updatedMode = vslMatch.payment_mode || "Cash";
         const wasCredit = updatedMode.toLowerCase().includes("credit") || updatedMode.toLowerCase().includes("khata");
         const hadCash = updatedMode.toLowerCase().includes("cash") && !wasCredit;
         const methodStr = (current.payment_method || "").toLowerCase();
-        const isOnlinePay = methodStr.includes("qr") || methodStr.includes("online") || methodStr.includes("razorpay") || methodStr.includes("jk bank") || methodStr.includes("mpay");
-        const isCashPay = methodStr.includes("cash");
+        const isOnlinePay = methodStr.includes("qr") || methodStr.includes("online") || methodStr.includes("cashfree") || methodStr.includes("razorpay") || methodStr.includes("jk bank") || methodStr.includes("mpay");
+        const isCashPay = methodStr.includes("cash") && !methodStr.includes("cashfree");
 
         if (isSettled) {
           if (wasCredit) {
@@ -823,16 +870,16 @@ export async function PATCH(request: Request) {
               updatedMode = "Cash";
             } else if (current.payment_method?.includes("JK Bank")) {
               updatedMode = "JK Bank Online";
-            } else if (current.payment_method?.includes("Razorpay")) {
-              updatedMode = "Razorpay Online";
+            } else if (current.payment_method?.includes("Cashfree") || current.payment_method?.includes("Razorpay")) {
+              updatedMode = "Cashfree Online";
             } else if (isOnlinePay) {
               updatedMode = current.payment_method || "Online Payment";
             } else {
               updatedMode = current.payment_method || "Cash";
             }
           } else if (hadCash && isOnlinePay) {
-            updatedMode = current.payment_method?.includes("Razorpay")
-              ? "Split (Cash + Razorpay)"
+            updatedMode = (current.payment_method?.includes("Cashfree") || current.payment_method?.includes("Razorpay"))
+              ? "Split (Cash + Cashfree)"
               : "Split (Cash + JK Bank)";
             cf.is_split = true;
             const existingCash = Number(vslMatch.amount_paid || 0);

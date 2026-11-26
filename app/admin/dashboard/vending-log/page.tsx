@@ -682,7 +682,7 @@ export default function VendingCenterLoggerPage() {
   const [formPayment, setFormPayment] = useState<string>("HDFC Bank Online");
   const [formSplitCash, setFormSplitCash] = useState<string>("");
   const [formSplitOnline, setFormSplitOnline] = useState<string>("");
-  const [formOnlineChannel, setFormOnlineChannel] = useState<"HDFC Bank" | "JK Bank" | "Razorpay">("HDFC Bank");
+  const [formOnlineChannel, setFormOnlineChannel] = useState<"HDFC Bank" | "JK Bank" | "Cashfree">("HDFC Bank");
   const [formCustomFields, setFormCustomFields] = useState<Record<string, any>>({});
   const [formNotes, setFormNotes] = useState("");
     const [formLoggedBy, setFormLoggedBy] = useState("Mohd Amin");
@@ -1770,9 +1770,9 @@ export default function VendingCenterLoggerPage() {
     let jkBankRevenue = 0;
     let jkBankCount = 0;
     let jkBankKg = 0;
-    let razorpayRevenue = 0;
-    let razorpayCount = 0;
-    let razorpayKg = 0;
+    let cashfreeRevenue = 0;
+    let cashfreeCount = 0;
+    let cashfreeKg = 0;
     let splitTotalRevenue = 0;
     let splitCashRevenue = 0;
     let splitOnlineRevenue = 0;
@@ -1901,11 +1901,11 @@ export default function VendingCenterLoggerPage() {
             jkBankCount += 1;
             jkBankKg = Math.round((jkBankKg + (rev > 0 ? (onlinePart / rev) * w : 0)) * 1000) / 1000;
           }
-        } else if (onlineChan.includes("razorpay") || modeStr.includes("razorpay")) {
-          razorpayRevenue += onlinePart;
+        } else if (onlineChan.includes("cashfree") || modeStr.includes("cashfree") || onlineChan.includes("razorpay") || modeStr.includes("razorpay")) {
+          cashfreeRevenue += onlinePart;
           if (onlinePart > 0) {
-            razorpayCount += 1;
-            razorpayKg = Math.round((razorpayKg + (rev > 0 ? (onlinePart / rev) * w : 0)) * 1000) / 1000;
+            cashfreeCount += 1;
+            cashfreeKg = Math.round((cashfreeKg + (rev > 0 ? (onlinePart / rev) * w : 0)) * 1000) / 1000;
           }
         } else {
           // Default HDFC Bank
@@ -1929,10 +1929,10 @@ export default function VendingCenterLoggerPage() {
           jkBankRevenue += rev;
           jkBankCount += 1;
           jkBankKg = Math.round((jkBankKg + w) * 1000) / 1000;
-        } else if (onlineChan.includes("razorpay") || modeStr.includes("razorpay")) {
-          razorpayRevenue += rev;
-          razorpayCount += 1;
-          razorpayKg = Math.round((razorpayKg + w) * 1000) / 1000;
+        } else if (onlineChan.includes("cashfree") || modeStr.includes("cashfree") || onlineChan.includes("razorpay") || modeStr.includes("razorpay")) {
+          cashfreeRevenue += rev;
+          cashfreeCount += 1;
+          cashfreeKg = Math.round((cashfreeKg + w) * 1000) / 1000;
         } else {
           // Default HDFC Bank
           hdfcRevenue += rev;
@@ -2250,9 +2250,9 @@ export default function VendingCenterLoggerPage() {
       jkBankRevenue,
       jkBankCount,
       jkBankKg,
-      razorpayRevenue,
-      razorpayCount,
-      razorpayKg,
+      cashfreeRevenue,
+      cashfreeCount,
+      cashfreeKg,
       splitTotalRevenue,
       splitCashRevenue,
       splitOnlineRevenue,
@@ -2940,7 +2940,7 @@ export default function VendingCenterLoggerPage() {
         if (filterType === "non-gutted" && !(e.product_type || "").toLowerCase().includes("non")) return false;
       }
 
-      // Payment filter (supports Cash drawer + Split cash, HDFC, JK Bank, Razorpay, Split, Online, Credit)
+      // Payment filter (supports Cash drawer + Split cash, HDFC, JK Bank, Cashfree, Split, Online, Credit)
       if (filterPayment !== "all") {
         const modeStr = (e.payment_mode || "").toLowerCase().trim();
         const cf = e.custom_fields || {};
@@ -2979,8 +2979,8 @@ export default function VendingCenterLoggerPage() {
           onlineChan.includes("mpay") ||
           modeStr.includes("jk") ||
           modeStr.includes("mpay");
-        const isRazorpay =
-          onlineChan.includes("razorpay") ||
+        const isCashfree =
+          onlineChan.includes("cashfree") || modeStr.includes("cashfree") || onlineChan.includes("razorpay") ||
           modeStr.includes("razorpay");
 
         if (filterPayment === "Credit") {
@@ -2995,9 +2995,9 @@ export default function VendingCenterLoggerPage() {
         } else if (filterPayment === "JK Bank") {
           if (isCredit && rev === 0) return false;
           if (!isJkBank || onlinePart <= 0) return false;
-        } else if (filterPayment === "Razorpay") {
+        } else if (filterPayment === "Cashfree") {
           if (isCredit && rev === 0) return false;
-          if (!isRazorpay || onlinePart <= 0) return false;
+          if (!isCashfree || onlinePart <= 0) return false;
         } else if (filterPayment === "Split") {
           if (!isSplit) return false;
         } else if (filterPayment === "Online Payment") {
@@ -3224,7 +3224,7 @@ export default function VendingCenterLoggerPage() {
 
     if (formBalanceAction === "balance" && difference > 0) {
       if (!formCustomerPhone.trim()) {
-        alert("Please enter Customer Phone Number (WhatsApp) so balance reminders & Razorpay QR can be sent.");
+        alert("Please enter Customer Phone Number (WhatsApp) so balance reminders & Cashfree Link/QR can be sent.");
         return;
       }
     }
@@ -3285,8 +3285,8 @@ export default function VendingCenterLoggerPage() {
       resolvedPaymentMode = "HDFC Bank Online";
     } else if (formPayment === "JK Bank Online") {
       resolvedPaymentMode = "JK Bank Online";
-    } else if (formPayment === "Razorpay Online") {
-      resolvedPaymentMode = "Razorpay Online";
+    } else if (formPayment === "Cashfree Online") {
+      resolvedPaymentMode = "Cashfree Online";
     } else if (formPayment === "Cash") {
       resolvedPaymentMode = "Cash";
     }
@@ -3320,7 +3320,7 @@ export default function VendingCenterLoggerPage() {
       } : {}),
       ...(formPayment === "HDFC Bank Online" ? { online_channel: "HDFC Bank" } : {}),
       ...(formPayment === "JK Bank Online" ? { online_channel: "JK Bank" } : {}),
-      ...(formPayment === "Razorpay Online" ? { online_channel: "Razorpay" } : {}),
+      ...(formPayment === "Cashfree Online" ? { online_channel: "Cashfree" } : {}),
     };
 
     setSaving(true);
@@ -3790,8 +3790,8 @@ export default function VendingCenterLoggerPage() {
     let hdfcCount = 0;
     let jkBankRevenue = 0;
     let jkBankCount = 0;
-    let razorpayRevenue = 0;
-    let razorpayCount = 0;
+    let cashfreeRevenue = 0;
+    let cashfreeCount = 0;
     let splitTotalRevenue = 0;
     let splitCashRevenue = 0;
     let splitOnlineRevenue = 0;
@@ -3878,9 +3878,9 @@ export default function VendingCenterLoggerPage() {
         if (onlineChan.includes("jk") || modeStr.includes("jk") || modeStr.includes("mpay")) {
           jkBankRevenue += onlinePart;
           if (onlinePart > 0) jkBankCount += 1;
-        } else if (onlineChan.includes("razorpay") || modeStr.includes("razorpay")) {
-          razorpayRevenue += onlinePart;
-          if (onlinePart > 0) razorpayCount += 1;
+        } else if (onlineChan.includes("cashfree") || modeStr.includes("cashfree") || onlineChan.includes("razorpay") || modeStr.includes("razorpay")) {
+          cashfreeRevenue += onlinePart;
+          if (onlinePart > 0) cashfreeCount += 1;
         } else {
           hdfcRevenue += onlinePart;
           if (onlinePart > 0) hdfcCount += 1;
@@ -3896,9 +3896,9 @@ export default function VendingCenterLoggerPage() {
         if (onlineChan.includes("jk") || modeStr.includes("jk") || modeStr.includes("mpay")) {
           jkBankRevenue += rev;
           jkBankCount += 1;
-        } else if (onlineChan.includes("razorpay") || modeStr.includes("razorpay")) {
-          razorpayRevenue += rev;
-          razorpayCount += 1;
+        } else if (onlineChan.includes("cashfree") || modeStr.includes("cashfree") || onlineChan.includes("razorpay") || modeStr.includes("razorpay")) {
+          cashfreeRevenue += rev;
+          cashfreeCount += 1;
         } else {
           hdfcRevenue += rev;
           hdfcCount += 1;
@@ -3939,8 +3939,8 @@ export default function VendingCenterLoggerPage() {
       hdfcCount,
       jkBankRevenue,
       jkBankCount,
-      razorpayRevenue,
-      razorpayCount,
+      cashfreeRevenue,
+      cashfreeCount,
       splitTotalRevenue,
       splitCashRevenue,
       splitOnlineRevenue,
@@ -4010,8 +4010,8 @@ export default function VendingCenterLoggerPage() {
     let hdfcCount = 0;
     let jkBankRevenue = 0;
     let jkBankCount = 0;
-    let razorpayRevenue = 0;
-    let razorpayCount = 0;
+    let cashfreeRevenue = 0;
+    let cashfreeCount = 0;
     let splitTotalRevenue = 0;
     let splitCashRevenue = 0;
     let splitOnlineRevenue = 0;
@@ -4098,9 +4098,9 @@ export default function VendingCenterLoggerPage() {
         if (onlineChan.includes("jk") || modeStr.includes("jk") || modeStr.includes("mpay")) {
           jkBankRevenue += onlinePart;
           if (onlinePart > 0) jkBankCount += 1;
-        } else if (onlineChan.includes("razorpay") || modeStr.includes("razorpay")) {
-          razorpayRevenue += onlinePart;
-          if (onlinePart > 0) razorpayCount += 1;
+        } else if (onlineChan.includes("cashfree") || modeStr.includes("cashfree") || onlineChan.includes("razorpay") || modeStr.includes("razorpay")) {
+          cashfreeRevenue += onlinePart;
+          if (onlinePart > 0) cashfreeCount += 1;
         } else {
           hdfcRevenue += onlinePart;
           if (onlinePart > 0) hdfcCount += 1;
@@ -4116,9 +4116,9 @@ export default function VendingCenterLoggerPage() {
         if (onlineChan.includes("jk") || modeStr.includes("jk") || modeStr.includes("mpay")) {
           jkBankRevenue += rev;
           jkBankCount += 1;
-        } else if (onlineChan.includes("razorpay") || modeStr.includes("razorpay")) {
-          razorpayRevenue += rev;
-          razorpayCount += 1;
+        } else if (onlineChan.includes("cashfree") || modeStr.includes("cashfree") || onlineChan.includes("razorpay") || modeStr.includes("razorpay")) {
+          cashfreeRevenue += rev;
+          cashfreeCount += 1;
         } else {
           hdfcRevenue += rev;
           hdfcCount += 1;
@@ -4159,8 +4159,8 @@ export default function VendingCenterLoggerPage() {
       hdfcCount,
       jkBankRevenue,
       jkBankCount,
-      razorpayRevenue,
-      razorpayCount,
+      cashfreeRevenue,
+      cashfreeCount,
       splitTotalRevenue,
       splitCashRevenue,
       splitOnlineRevenue,
@@ -4972,7 +4972,7 @@ export default function VendingCenterLoggerPage() {
       setFormSplitOnline((cf.online_portion ?? "").toString());
       setFormOnlineChannel(
         cf.online_channel ||
-          (mode.includes("Razorpay") ? "Razorpay" : mode.includes("JK Bank") ? "JK Bank" : "HDFC Bank")
+          ((mode.includes("Cashfree") || mode.includes("Razorpay")) ? "Cashfree" : mode.includes("JK Bank") ? "JK Bank" : "HDFC Bank")
       );
     } else if (mode.includes("HDFC")) {
       setFormPayment("HDFC Bank Online");
@@ -4982,8 +4982,8 @@ export default function VendingCenterLoggerPage() {
       setFormPayment("JK Bank Online");
       setFormSplitCash("");
       setFormSplitOnline("");
-    } else if (mode.includes("Razorpay")) {
-      setFormPayment("Razorpay Online");
+    } else if (mode.includes("Cashfree") || mode.includes("Razorpay")) {
+      setFormPayment("Cashfree Online");
       setFormSplitCash("");
       setFormSplitOnline("");
     } else if (mode.toLowerCase().includes("credit") || mode.toLowerCase().includes("khata")) {
@@ -6568,7 +6568,7 @@ export default function VendingCenterLoggerPage() {
               </div>
             </div>
 
-            {/* Mode of Payment EOD Audit Breakdown (Cash, HDFC, JK Bank, Razorpay, Split, Credit) */}
+            {/* Mode of Payment EOD Audit Breakdown (Cash, HDFC, JK Bank, Cashfree, Split, Credit) */}
             <div className="p-3.5 sm:p-4 rounded-2xl bg-[#080808] border border-[#222222] space-y-3">
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-2">
@@ -6679,27 +6679,27 @@ export default function VendingCenterLoggerPage() {
                   </div>
                 </button>
 
-                {/* 4. Razorpay (POS / QR) */}
+                {/* 4. Cashfree (Link / QR) */}
                 <button
                   type="button"
-                  onClick={() => setFilterPayment(filterPayment === "Razorpay" ? "all" : "Razorpay")}
+                  onClick={() => setFilterPayment(filterPayment === "Cashfree" ? "all" : "Cashfree")}
                   className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
-                    filterPayment === "Razorpay"
+                    filterPayment === "Cashfree"
                       ? "bg-purple-500/20 border-purple-400 ring-1 ring-purple-400/40 shadow-md shadow-purple-950/40"
                       : "bg-[#0f0f0f] border-[#222222] hover:border-purple-500/50"
                   }`}
-                  title="Filter ledger to Razorpay POS / QR / Gateway"
+                  title="Filter ledger to Cashfree Payment Links & QR"
                 >
                   <div className="flex items-center justify-between text-xs font-mono">
                     <span className="text-purple-300 font-bold flex items-center gap-1">
                       <span>⚡</span>
-                      <span>Razorpay</span>
+                      <span>Cashfree</span>
                     </span>
-                    <span className="text-[10px] text-slate-400">{kpis.razorpayCount} txns</span>
+                    <span className="text-[10px] text-slate-400">{kpis.cashfreeCount} txns</span>
                   </div>
                   <div className="mt-2">
                     <div className="text-lg sm:text-xl font-bold font-mono text-white">
-                      ₹{kpis.razorpayRevenue.toLocaleString("en-IN")}
+                      ₹{kpis.cashfreeRevenue.toLocaleString("en-IN")}
                     </div>
                     <div className="text-[10px] text-purple-300/80 font-mono mt-0.5 truncate">
                       POS / Instant QR
@@ -7901,7 +7901,7 @@ export default function VendingCenterLoggerPage() {
             <option value="Cash">💵 Cash (Drawer + Split Cash)</option>
             <option value="HDFC Bank">🏦 HDFC Bank (SmartHub / UPI)</option>
             <option value="JK Bank">🏛️ JK Bank (mPay / Transfer)</option>
-            <option value="Razorpay">⚡ Razorpay (QR / POS)</option>
+            <option value="Cashfree">⚡ Cashfree (Link / QR)</option>
             <option value="Split">🔀 Split (Cash + Online)</option>
             <option value="Online Payment">🌐 All Online Payments</option>
             <option value="Credit">📒 Credit / Khata</option>
@@ -8524,7 +8524,7 @@ export default function VendingCenterLoggerPage() {
                               </span>
                             ) : (e.payment_mode || "").toLowerCase().includes("split") || Boolean(e.custom_fields?.is_split) ? (
                               <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-cyan-500/20 border border-cyan-500/40 text-cyan-200 text-[9px] font-bold font-mono">
-                                💵 ₹{e.custom_fields?.cash_portion ?? Math.round(taken / 2)} + {(e.payment_mode?.includes("Razorpay") || e.custom_fields?.online_channel === "Razorpay") ? "⚡ Rzp" : (e.payment_mode?.includes("JK") || e.custom_fields?.online_channel === "JK Bank") ? "🏛️ JK" : "🏦 HDFC"} ₹{e.custom_fields?.online_portion ?? (taken - Math.round(taken / 2))}
+                                💵 ₹{e.custom_fields?.cash_portion ?? Math.round(taken / 2)} + {(e.payment_mode?.includes("Cashfree") || e.custom_fields?.online_channel === "Cashfree" || e.payment_mode?.includes("Razorpay") || e.custom_fields?.online_channel === "Razorpay") ? "⚡ CF" : (e.payment_mode?.includes("JK") || e.custom_fields?.online_channel === "JK Bank") ? "🏛️ JK" : "🏦 HDFC"} ₹{e.custom_fields?.online_portion ?? (taken - Math.round(taken / 2))}
                               </span>
                             ) : (e.payment_mode || "").includes("HDFC") || e.custom_fields?.online_channel === "HDFC Bank" ? (
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-500/25 border border-indigo-400/50 text-indigo-200 text-[9.5px] font-bold">
@@ -8534,9 +8534,9 @@ export default function VendingCenterLoggerPage() {
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-500/20 border border-blue-500/40 text-blue-200 text-[9.5px] font-bold">
                                 🏛️ JK Bank
                               </span>
-                            ) : (e.payment_mode || "").includes("Razorpay Online") || e.payment_mode === "Razorpay" ? (
+                            ) : (e.payment_mode || "").includes("Cashfree") || e.payment_mode === "Cashfree" || (e.payment_mode || "").includes("Razorpay Online") || e.payment_mode === "Razorpay" ? (
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-indigo-500/20 border border-indigo-500/40 text-indigo-200 text-[9.5px] font-bold">
-                                ⚡ Razorpay
+                                ⚡ Cashfree
                               </span>
                             ) : isCash ? (
                               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-teal-500/20 border border-teal-500/40 text-teal-200 text-[9.5px] font-bold">
@@ -9100,7 +9100,7 @@ export default function VendingCenterLoggerPage() {
                       </span>
                     ) : (e.payment_mode || "").toLowerCase().includes("split") || Boolean(e.custom_fields?.is_split) ? (
                       <span className="inline-flex items-center gap-1 px-2 py-1 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-200 text-[9.5px] font-bold font-mono">
-                        💵 ₹{e.custom_fields?.cash_portion ?? Math.round(taken / 2)} + {(e.payment_mode?.includes("Razorpay") || e.custom_fields?.online_channel === "Razorpay") ? "⚡ Rzp" : (e.payment_mode?.includes("JK") || e.custom_fields?.online_channel === "JK Bank") ? "🏛️ JK" : "🏦 HDFC"} ₹{e.custom_fields?.online_portion ?? (taken - Math.round(taken / 2))}
+                        💵 ₹{e.custom_fields?.cash_portion ?? Math.round(taken / 2)} + {(e.payment_mode?.includes("Cashfree") || e.custom_fields?.online_channel === "Cashfree" || e.payment_mode?.includes("Razorpay") || e.custom_fields?.online_channel === "Razorpay") ? "⚡ CF" : (e.payment_mode?.includes("JK") || e.custom_fields?.online_channel === "JK Bank") ? "🏛️ JK" : "🏦 HDFC"} ₹{e.custom_fields?.online_portion ?? (taken - Math.round(taken / 2))}
                       </span>
                     ) : (e.payment_mode || "").includes("HDFC") || e.custom_fields?.online_channel === "HDFC Bank" ? (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-indigo-500/20 border border-indigo-400/40 text-indigo-200 text-[10px] font-bold font-sans">
@@ -9110,9 +9110,9 @@ export default function VendingCenterLoggerPage() {
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-blue-500/15 border border-blue-500/30 text-blue-300 text-[10px] font-bold font-sans">
                         🏛️ JK Bank
                       </span>
-                    ) : (e.payment_mode || "").includes("Razorpay Online") || e.payment_mode === "Razorpay" ? (
+                    ) : (e.payment_mode || "").includes("Cashfree") || e.payment_mode === "Cashfree" || (e.payment_mode || "").includes("Razorpay Online") || e.payment_mode === "Razorpay" ? (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 text-[10px] font-bold font-sans">
-                        ⚡ Razorpay
+                        ⚡ Cashfree
                       </span>
                     ) : e.payment_mode === "Cash + Online QR" || (e.custom_fields?.settled_at && (e.payment_mode || "").toLowerCase().includes("qr")) ? (
                       <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[10px] font-bold font-sans">
@@ -10365,7 +10365,7 @@ export default function VendingCenterLoggerPage() {
                               </div>
                             </div>
                             <p className="text-[10px] text-purple-300/80 font-mono">
-                              💡 This balance will appear on your Executive Dashboard Flashcard and Khata tab with one-click Razorpay QR & polite WhatsApp reminders.
+                              💡 This balance will appear on your Executive Dashboard Flashcard and Khata tab with one-click Cashfree Link & polite WhatsApp reminders.
                             </p>
                           </div>
                         )}
@@ -10411,7 +10411,7 @@ export default function VendingCenterLoggerPage() {
                     { id: "Cash", label: "💵 Cash", sub: "Counter Drawer" },
                     { id: "HDFC Bank Online", label: "🏦 HDFC Bank", sub: "SmartHub / UPI" },
                     { id: "JK Bank Online", label: "🏛️ JK Bank", sub: "mPay / Transfer" },
-                    { id: "Razorpay Online", label: "⚡ Razorpay", sub: "QR / POS" },
+                    { id: "Cashfree Online", label: "⚡ Cashfree", sub: "Link / QR" },
                     { id: "Split (Cash + Online)", label: "🔀 Split", sub: "Cash + Online" },
                     { id: "Credit (Khata)", label: "📒 Credit", sub: "Khata Ledger" },
                   ].map((m) => {
@@ -10544,12 +10544,12 @@ export default function VendingCenterLoggerPage() {
                         {[
                           { id: "HDFC Bank", label: "🏦 HDFC Bank", sub: "SmartHub / UPI (Default)" },
                           { id: "JK Bank", label: "🏛️ JK Bank", sub: "mPay / Transfer" },
-                          { id: "Razorpay", label: "⚡ Razorpay", sub: "Razorpay QR / POS" },
+                          { id: "Cashfree", label: "⚡ Cashfree", sub: "Cashfree Link / QR" },
                         ].map((ch) => (
                           <button
                             key={ch.id}
                             type="button"
-                            onClick={() => setFormOnlineChannel(ch.id as "HDFC Bank" | "JK Bank" | "Razorpay")}
+                            onClick={() => setFormOnlineChannel(ch.id as "HDFC Bank" | "JK Bank" | "Cashfree")}
                             className={`py-2 px-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer text-left ${
                               formOnlineChannel === ch.id
                                 ? "bg-indigo-500/25 text-indigo-200 border-2 border-indigo-400 shadow-sm"
@@ -10580,7 +10580,7 @@ export default function VendingCenterLoggerPage() {
                           }`}
                         >
                           <span>
-                            Total: 💵 ₹{cVal} + {formOnlineChannel === "Razorpay" ? "⚡ Razorpay" : formOnlineChannel === "JK Bank" ? "🏛️ JK Bank" : "🏦 HDFC Bank"} ₹{oVal} = <strong>₹{splitTot}</strong>
+                            Total: 💵 ₹{cVal} + {formOnlineChannel === "Cashfree" ? "⚡ Cashfree" : formOnlineChannel === "JK Bank" ? "🏛️ JK Bank" : "🏦 HDFC Bank"} ₹{oVal} = <strong>₹{splitTot}</strong>
                           </span>
                           {match ? (
                             <span className="font-bold text-[10px] text-emerald-400">✓ Matches Total</span>
@@ -12849,7 +12849,7 @@ export default function VendingCenterLoggerPage() {
       )}
 
       {/* ══════════════════════════════════════════════════════════
-          BALANCE REMINDER & RAZORPAY QR MODAL
+          BALANCE REMINDER & CASHFREE LINK MODAL
           ══════════════════════════════════════════════════════════ */}
       <BalanceReminderModal
         isOpen={balanceModalOpen}

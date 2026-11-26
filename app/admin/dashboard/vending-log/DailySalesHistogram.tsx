@@ -175,7 +175,7 @@ export default function DailySalesHistogram({
         const onlinePart = Math.max(0, rev - cashPart);
         map[dStr].cashRevenue += cashPart;
         map[dStr].onlineRevenue += onlinePart;
-      } else if (payMethod.includes("upi") || payMethod.includes("razorpay") || payMethod.includes("card") || payMethod.includes("online")) {
+      } else if (payMethod.includes("upi") || payMethod.includes("cashfree") || payMethod.includes("razorpay") || payMethod.includes("card") || payMethod.includes("online")) {
         map[dStr].onlineRevenue += rev;
       } else {
         map[dStr].cashRevenue += rev;

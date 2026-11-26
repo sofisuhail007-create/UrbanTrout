@@ -335,6 +335,7 @@ export function formatOrderTelegramText(order: {
   status?: string;
   total: number;
   paymentMethod?: string;
+  cashfreePaymentId?: string;
   razorpayPaymentId?: string;
   utrNumber?: string;
   customerName: string;
@@ -373,8 +374,9 @@ export function formatOrderTelegramText(order: {
     ? order.items.map(i => `• <b>${i.name}</b> x ${i.quantity} ${i.unit || "Kg"} (₹${i.price * i.quantity})`).join("\n")
     : "• Rainbow Trout Order";
 
-  const paymentText = order.razorpayPaymentId
-    ? `RAZORPAY ✅ (ID: <code>${order.razorpayPaymentId}</code>)`
+  const gatewayPaymentId = order.cashfreePaymentId || order.razorpayPaymentId;
+  const paymentText = gatewayPaymentId
+    ? `CASHFREE ✅ (ID: <code>${gatewayPaymentId}</code>)`
     : (order.paymentMethod || "UPI").toUpperCase() + (order.utrNumber ? ` (UTR: <code>${order.utrNumber}</code>)` : "");
 
   // Resolve Google Maps 1-tap navigation link from parameters or parse from address if embedded
@@ -423,6 +425,7 @@ export async function notifyNewOrder(order: {
   items: Array<{ name: string; quantity: number; unit?: string; price: number }>;
   total: number;
   paymentMethod: string;
+  cashfreePaymentId?: string;
   razorpayPaymentId?: string;
   utrNumber?: string;
   status?: string;
@@ -440,7 +443,7 @@ export async function notifyNewOrder(order: {
   const amtPhoneKey = cleanPhone && order.total ? `amt_ph_${cleanPhone}_${Math.round(order.total)}` : null;
   const isDup = await isTelegramDuplicate([
     order.orderNumber,
-    order.razorpayPaymentId,
+    order.cashfreePaymentId || order.razorpayPaymentId,
     amtPhoneKey,
   ]);
   if (isDup) {
@@ -714,17 +717,9 @@ export function formatPaymentSource(params: {
     sourceText = `💳 <b>${escapeHtml(methodRaw.toUpperCase())}</b>`;
   }
 
-  // Calculate Fee & Tax Breakdown
-  // Razorpay returns fee and tax in paise (e.g. 2552 paise = Rs 25.52, 460 paise = Rs 4.60)
-  let feeRupees = 0;
-  let taxRupees = 0;
-
-  if (typeof params.fee === "number" && params.fee > 0) {
-    feeRupees = params.fee > 100 ? params.fee / 100 : params.fee;
-  }
-  if (typeof params.tax === "number" && params.tax > 0) {
-    taxRupees = params.tax > 100 ? params.tax / 100 : params.tax;
-  }
+  // Calculate Fee & Tax Breakdown (Cashfree reports charges in INR rupees)
+  const feeRupees = typeof params.fee === "number" && params.fee > 0 ? params.fee : 0;
+  const taxRupees = typeof params.tax === "number" && params.tax > 0 ? params.tax : 0;
 
   const totalFeeDeducted = feeRupees + taxRupees;
   const grossAmount = params.amount || 0;
@@ -744,7 +739,7 @@ export function formatPaymentSource(params: {
   return { sourceText, feeText, netText };
 }
 
-export async function notifyRazorpayPayment(params: {
+export async function notifyCashfreePayment(params: {
   paymentId: string;
   orderId?: string | null;
   amount: number;

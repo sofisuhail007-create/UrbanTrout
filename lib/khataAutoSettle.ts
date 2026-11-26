@@ -24,7 +24,7 @@ export async function autoSettleKhataPayment({
   customerPhone,
   customerName,
   notes,
-  method = "Razorpay Link (Verified)"
+  method = "Cashfree Link (Verified)"
 }: AutoSettleParams): Promise<{ settled: boolean; invoiceId?: string; customerName?: string; newBalance?: number }> {
   try {
     const cleanPhone = customerPhone ? String(customerPhone).replace(/\D/g, "").slice(-10) : "";
@@ -43,9 +43,9 @@ export async function autoSettleKhataPayment({
       console.log(`[khataAutoSettle] Matched by explicit orderRef BAL prefix: "${targetInvoiceId}"`);
     }
 
-    // ── Strategy 2: Direct match by Razorpay Payment Link ID ──
+    // ── Strategy 2: Direct match by Cashfree Payment Link ID ──
     if (!targetInvoiceId && paymentLinkId) {
-      // Check customer_balances table
+      // Check customer_balances table (preserves existing DB column name)
       try {
         const { data: cbByLink } = await supabase
           .from("customer_balances")
@@ -66,7 +66,7 @@ export async function autoSettleKhataPayment({
           const { data: vslByLink } = await supabase
             .from("vending_sales_log")
             .select("id, custom_fields")
-            .eq("custom_fields->>razorpay_payment_link_id", paymentLinkId)
+            .or(`custom_fields->>payment_link_id.eq.${paymentLinkId},custom_fields->>razorpay_payment_link_id.eq.${paymentLinkId}`)
             .maybeSingle();
 
           if (vslByLink) {
@@ -129,7 +129,7 @@ export async function autoSettleKhataPayment({
             const candidate = cachedList.find((item: any) => {
               if (item.status === "settled") return false;
               const phoneMatch = cleanPhone && item.customer_phone && String(item.customer_phone).includes(cleanPhone);
-              const linkMatch = paymentLinkId && item.razorpay_payment_link_id === paymentLinkId;
+              const linkMatch = paymentLinkId && (item.payment_link_id === paymentLinkId || item.razorpay_payment_link_id === paymentLinkId);
               const nameMatch = customerName && item.customer_name && item.customer_name.toLowerCase().includes(customerName.toLowerCase().trim());
               const amountMatch = Math.abs(Number(item.balance_amount) - numAmount) <= 10;
               return linkMatch || (phoneMatch && (amountMatch || item.balance_amount > 0)) || (nameMatch && amountMatch);
@@ -183,32 +183,32 @@ export async function autoSettleKhataPayment({
         cf.balance_status = isSettled ? "settled" : "pending";
         cf.is_full_payment = isSettled;
         cf.settled_at = nowIso;
-        cf.settled_payment_method = `Razorpay (Verified ${paymentId})`;
+        cf.settled_payment_method = `Cashfree (Verified ${paymentId})`;
 
         if (!Array.isArray(cf.payment_history)) cf.payment_history = [];
         cf.payment_history.push({
           amount: numAmount,
-          method: method || "Razorpay Link (Verified)",
+          method: method || "Cashfree Link (Verified)",
           payment_id: paymentId,
           timestamp: nowIso,
-          note: `Khata payment auto-settled via Razorpay (Payment ID: ${paymentId})`,
+          note: `Khata payment auto-settled via Cashfree (Payment ID: ${paymentId})`,
         });
 
         if (!Array.isArray(cf.edit_history)) cf.edit_history = [];
         cf.edit_history.push({
-          summary: `Khata cleared automatically via Razorpay payment ${paymentId} (₹${numAmount})`,
+          summary: `Khata cleared automatically via Cashfree payment ${paymentId} (₹${numAmount})`,
           timestamp: nowIso,
-          actor_name: "Razorpay (Auto-Settle)",
+          actor_name: "Cashfree (Auto-Settle)",
           actor_role: "System",
         });
 
         const updatedMode = isSettled
-          ? ((vslMatch.payment_mode || "").toLowerCase().includes("cash") ? "Cash + Online (Razorpay)" : "Online Payment (Khata Cleared via Razorpay)")
+          ? ((vslMatch.payment_mode || "").toLowerCase().includes("cash") ? "Cash + Online (Cashfree)" : "Online Payment (Khata Cleared via Cashfree)")
           : vslMatch.payment_mode;
 
         const updatedNotes = (vslMatch.notes || "").trim()
-          ? `${vslMatch.notes} [KHATA PAID ✓ ₹${numAmount} via Razorpay ${paymentId}]`
-          : `[KHATA PAID ✓ ₹${numAmount} via Razorpay ${paymentId}]`;
+          ? `${vslMatch.notes} [KHATA PAID ✓ ₹${numAmount} via Cashfree ${paymentId}]`
+          : `[KHATA PAID ✓ ₹${numAmount} via Cashfree ${paymentId}]`;
 
         await supabase
           .from("vending_sales_log")
@@ -250,8 +250,8 @@ export async function autoSettleKhataPayment({
             paid_amount: updatedPaid,
             balance_amount: updatedBal,
             status: isSettled ? "settled" : "pending",
-            settlement_note: `Paid in full via Razorpay Online Link (Payment ID: ${paymentId})`,
-            payment_method: "Razorpay Link (Verified)",
+            settlement_note: `Paid in full via Cashfree Online Link (Payment ID: ${paymentId})`,
+            payment_method: "Cashfree Link (Verified)",
             updated_at: nowIso,
           })
           .eq("id", cbRecord.id);
@@ -285,7 +285,7 @@ export async function autoSettleKhataPayment({
               item.paid_amount = (Number(item.paid_amount) || 0) + numAmount;
               item.balance_amount = updatedBal;
               item.status = updatedBal <= 0 ? "settled" : "pending";
-              item.settlement_note = `Paid in full via Razorpay Online Link (Payment ID: ${paymentId})`;
+              item.settlement_note = `Paid in full via Cashfree Online Link (Payment ID: ${paymentId})`;
               item.updated_at = nowIso;
               updatedCache = true;
               console.log(`✅ [khataAutoSettle] app_settings customer_balances_data entry ${item.id} updated!`);
@@ -312,8 +312,8 @@ export async function autoSettleKhataPayment({
       try {
         const isFullyCleared = newCalculatedBalance <= 0;
         const confirmationMsg = isFullyCleared
-          ? `✅ *Khata Payment Received & Balance Cleared!* 🐟\n\nDear *${matchedCustomerName}*,\nThank you! Your payment of *₹${numAmount}* has been verified via Razorpay.\n\n📋 *Account Statement:*\n• *Status:* Outstanding Balance Fully Cleared (₹0)\n• *Payment ID:* ${paymentId}\n\nYour khata account with Urban Trout is completely settled. Thank you for your valued patronage!`
-          : `✅ *Partial Payment Received!* 🐟\n\nDear *${matchedCustomerName}*,\nThank you! Your partial repayment of *₹${numAmount}* has been verified via Razorpay.\n\n📋 *Account Statement:*\n• *Remaining Balance Due:* *₹${newCalculatedBalance}*\n• *Payment ID:* ${paymentId}\n\nYour khata record has been updated. Thank you!`;
+          ? `✅ *Khata Payment Received & Balance Cleared!* 🐟\n\nDear *${matchedCustomerName}*,\nThank you! Your payment of *₹${numAmount}* has been verified via Cashfree.\n\n📋 *Account Statement:*\n• *Status:* Outstanding Balance Fully Cleared (₹0)\n• *Payment ID:* ${paymentId}\n\nYour khata account with Urban Trout is completely settled. Thank you for your valued patronage!`
+          : `✅ *Partial Payment Received!* 🐟\n\nDear *${matchedCustomerName}*,\nThank you! Your partial repayment of *₹${numAmount}* has been verified via Cashfree.\n\n📋 *Account Statement:*\n• *Remaining Balance Due:* *₹${newCalculatedBalance}*\n• *Payment ID:* ${paymentId}\n\nYour khata record has been updated. Thank you!`;
 
         await enqueueWhatsAppDispatch({
           orderRef: targetInvoiceId || `BAL-${paymentId.slice(-6)}`,

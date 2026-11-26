@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { notifyNewOrder, notifyAbandonedLead, notifyBioAlarm, notifyRazorpayPayment, notifyPosInvoice } from "@/lib/telegram";
+import { notifyNewOrder, notifyAbandonedLead, notifyBioAlarm, notifyCashfreePayment, notifyPosInvoice } from "@/lib/telegram";
 import { sendOrderConfirmationEmail } from "@/lib/email";
 import { checkRateLimit } from "@/lib/rateLimit";
 
@@ -25,8 +25,8 @@ export async function POST(request: Request) {
       await notifyNewOrder(data);
       // 2. Send Resend Email Confirmation (to customer & admin)
       await sendOrderConfirmationEmail(data);
-    } else if (type === "razorpay_payment") {
-      await notifyRazorpayPayment(data);
+    } else if (type === "cashfree_payment" || type === "razorpay_payment") {
+      await notifyCashfreePayment(data);
     } else if (type === "pos_invoice") {
       await notifyPosInvoice(data);
     } else if (type === "abandoned_lead") {
