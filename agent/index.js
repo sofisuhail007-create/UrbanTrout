@@ -27,10 +27,10 @@ process.on("unhandledRejection", (reason) => {
 // ============================================================================
 // URBAN TROUT SALES AGENT — BUILD & VERSION TRACKING
 // ============================================================================
-const BOT_VERSION = "3.7.2";
-const BOT_LAST_UPDATED = "27-Nov-2026, 09:30 AM IST";
-const BOT_RELEASE_TITLE = "Locked HDFC SmartHub QR (No Raw VPA Leak) & #qr Help Restoration";
-const BOT_RELEASE_NOTES = "1. Removed raw HDFC UPI ID text from customer QR captions so customers scan the exact-amount locked QR directly (or request Send Link). 2. Restored HDFC SmartHub #qr / $qr docs in #help. 3. Fixed website Cashfree PG /orders order_tags sanitization.";
+const BOT_VERSION = "3.7.3";
+const BOT_LAST_UPDATED = "27-Nov-2026, 10:05 AM IST";
+const BOT_RELEASE_TITLE = "Smart #paid Weight/Fee/Amount Disambiguation & Quoted QR Reply";
+const BOT_RELEASE_NOTES = "1. #paid / $paid now supports #paid 2kg +200, #paid 2kg, #Paid 1000, and swipe-replying #paid on any specific QR/link. 2. Auto-matches flat #paid amounts against multiple QRs/links in chat history without falsely inflating or mislabeling kg.";
 
 // ============================================================================
 // STRICT MANUAL-ONLY & DRIVER EXCLUSION LIST (AI MUST NEVER TEXT UNDER ANY CIRCUMSTANCE)
@@ -6898,12 +6898,16 @@ function isCustomerRequestingQr(userText, chatHist = []) {
   return false;
 }
 
-// Shared helper to parse quick owner order commands (#link 2kg +149, #2kg +149, #qr 2kg +149, #qr 1740, etc.)
+// Shared helper to parse quick owner order commands (#link 2kg +149, #2kg +149, #qr 2kg +149, #paid 2kg +200, #paid 2kg, #Paid 1000, etc.)
 function parseQuickOrderParams(text, defaultPhone = null, { defaultWeightIfMissing = null } = {}) {
+  const sanitizedCmd = String(text || "")
+    .replace(/\bUT-[A-Z0-9-]+\b/gi, " ")
+    .replace(/,/g, "");
+
   let deliveryFee = 0;
-  const plusDelMatch = text.match(/\+\s*(?:delivery|del|charge|charges|fee)?\s*(?:charge|charges|fee)?\s*(?:rs\.?|inr|₹)?\s*(\d+)\b/i);
-  const delFeeMatch = text.match(/\b(?:delivery|del|d|shipping|charge|charges|fee)\b\s*(?:fee|charges?)?\s*(?:is|=|:|\+)?\s*(?:rs\.?|inr|₹)?\s*(\d+)\b(?!\s*(?:kg|kilos?|kgs|feet|ft|sector|phase|lane|st|road|rd|floor|pin|days?))/i);
-  const numDelFeeMatch = text.match(/\b(\d+)\s*(?:rs\.?|inr|₹)?\s*(?:delivery|del|shipping|charges?|fee)\b/i);
+  const plusDelMatch = sanitizedCmd.match(/\+\s*(?:delivery|del|charge|charges|fee)?\s*(?:charge|charges|fee)?\s*(?:rs\.?|inr|₹)?\s*(\d+)\b/i);
+  const delFeeMatch = sanitizedCmd.match(/\b(?:delivery|del|d|shipping|charge|charges|fee)\b\s*(?:fee|charges?)?\s*(?:is|=|:|\+)?\s*(?:rs\.?|inr|₹)?\s*(\d+)\b(?!\s*(?:kg|kilos?|kgs|feet|ft|sector|phase|lane|st|road|rd|floor|pin|days?))/i);
+  const numDelFeeMatch = sanitizedCmd.match(/\b(\d+)\s*(?:rs\.?|inr|₹)?\s*(?:delivery|del|shipping|charges?|fee)\b/i);
 
   if (plusDelMatch) {
     deliveryFee = parseInt(plusDelMatch[1], 10) || 0;
@@ -6913,31 +6917,43 @@ function parseQuickOrderParams(text, defaultPhone = null, { defaultWeightIfMissi
     deliveryFee = parseInt(numDelFeeMatch[1], 10) || 0;
   }
 
-  // Direct flat amount ONLY if not attached to kg/kilos and >= 300 (e.g. #qr 1740, #link 1309, #1309)
-  let directTotalAmount = null;
-  const directAmtMatch = text.match(/(?:#\s*(?:qr|scanner|link|pay|order|amount|total)?)\s*(?:rs\.?|inr|₹)?\s*(\d{3,6})\b(?!\s*(?:kg|kilos?|kgs|feet|ft|sector|pin)\b)/i);
-  if (directAmtMatch) {
-    const possibleAmt = parseInt(directAmtMatch[1], 10);
-    if (possibleAmt >= 300 && !/\b[6-9]\d{9}\b/.test(directAmtMatch[1])) {
-      directTotalAmount = possibleAmt;
-    }
-  }
+  // Strip 10-digit phones, explicit +fees, and command keywords before extracting weight/flat amount
+  const withoutPhonesAndPlusFees = sanitizedCmd
+    .replace(/\b[6-9]\d{9}\b/g, " ")
+    .replace(/\+\s*(?:delivery|del|charge|charges|fee)?\s*(?:charge|charges|fee)?\s*(?:rs\.?|inr|₹)?\s*\d+\b/gi, " ")
+    .replace(/\b(?:delivery|del|d|shipping|charge|charges|fee)\b\s*(?:fee|charges?)?\s*(?:is|=|:|\+)?\s*(?:rs\.?|inr|₹)?\s*\d+\b/gi, " ")
+    .replace(/\b\d+\s*(?:rs\.?|inr|₹)?\s*(?:delivery|del|shipping|charges?|fee)\b/gi, " ");
 
   // Parse weight: matches e.g. 2kg, 2 kg, 2.5kg, 3 kilos, or #2 +89 (excluding +fee, 10-digit phones, road/feet numbers)
   let weightKg = null;
-  const weightMatchWithUnit = text.match(/(\d+(?:\.\d+)?)\s*(?:kg|kilos?|kgs)\b/i);
+  const weightMatchWithUnit = withoutPhonesAndPlusFees.match(/(\d+(?:\.\d+)?)\s*(?:kg|kilos?|kgs)\b/i);
   if (weightMatchWithUnit) {
     weightKg = Math.round(parseFloat(weightMatchWithUnit[1]) * 100) / 100;
-  } else if (!directTotalAmount) {
-    const withoutFeesAndPhones = text
-      .replace(/\+\s*(?:delivery|del|charge|fee)?\s*(?:rs\.?|inr|₹)?\s*\d+/gi, " ")
-      .replace(/\b[6-9]\d{9}\b/g, " ");
-    const smallNumMatch = withoutFeesAndPhones.match(/#?\s*(?:qr|scanner|link|order|pay)?\s*(\d+(?:\.\d+)?)\b(?!\s*(?:feet|ft|sector|phase|lane|st|road|rd|floor|pin|days?))/i);
-    if (smallNumMatch) {
-      const val = parseFloat(smallNumMatch[1]);
+  } else {
+    // Only treat a bare number <= 50 as weight when there's no flat >=300 total amount right next to command
+    const candidateSmall = withoutPhonesAndPlusFees.match(/#?\s*(?:qr|scanner|link|order|pay|paid|confirm)?\s*(\d+(?:\.\d+)?)\b(?!\s*(?:feet|ft|sector|phase|lane|st|road|rd|floor|pin|days?))/i);
+    if (candidateSmall) {
+      const val = parseFloat(candidateSmall[1]);
       if (val > 0 && val <= 50) {
         weightKg = Math.round(val * 100) / 100;
       }
+    }
+  }
+
+  // Extract flat custom total amount:
+  // - With explicit weight (e.g. #paid 2kg 1000): only treat >= 600 as flat agreed total (30..599 remains standalone fee e.g. #2kg 149)
+  // - Without weight (e.g. #Paid 1000, #paid 9876543210 1259, #qr 1740): treat any >= 300 as flat total
+  let directTotalAmount = null;
+  const withoutWeights = withoutPhonesAndPlusFees
+    .replace(/\b\d+(?:\.\d+)?\s*(?:kg|kilos?|kgs)\b/gi, " ")
+    .replace(/#\s*(?:qr|scanner|link|pay|order|amount|total|paid|confirm)?/gi, " ");
+  const minDirectThreshold = weightKg ? 600 : 300;
+  const flatMatches = withoutWeights.matchAll(/(?:rs\.?|inr|₹)?\s*(\d{3,6})\b(?!\s*(?:feet|ft|sector|phase|lane|st|road|rd|floor|pin|days?)\b)/gi);
+  for (const m of flatMatches) {
+    const val = parseInt(m[1], 10);
+    if (val >= minDirectThreshold && val <= 100000) {
+      directTotalAmount = val;
+      break;
     }
   }
 
@@ -6945,12 +6961,10 @@ function parseQuickOrderParams(text, defaultPhone = null, { defaultWeightIfMissi
     weightKg = defaultWeightIfMissing;
   }
 
-  // Fallback standalone delivery fee if owner typed e.g. "#2kg 149" or "#qr 2kg 89" without '+' sign
+  // Fallback standalone delivery fee if owner typed e.g. "#2kg 149" or "#paid 2kg 200" without '+' sign
   if (deliveryFee === 0 && weightKg && !directTotalAmount) {
-    const stripped = text
-      .replace(new RegExp(`\\b${weightKg}\\s*(?:kg|kilos?|kgs)?\\b`, "gi"), "")
-      .replace(/\b[6-9]\d{9}\b/g, "")
-      .replace(/#\s*(?:qr|scanner|link|order|pay)?/gi, "");
+    const stripped = withoutWeights
+      .replace(new RegExp(`\\b${weightKg}\\b`, "gi"), " ");
     const standaloneFee = stripped.match(/\b([3-9]\d|[1-5]\d{2})\b(?!\s*(?:feet|ft|sector|phase|lane|st|road|rd|floor|pin|days?))/i);
     if (standaloneFee) {
       deliveryFee = parseInt(standaloneFee[1], 10) || 0;
@@ -6961,6 +6975,7 @@ function parseQuickOrderParams(text, defaultPhone = null, { defaultWeightIfMissi
   const isWhole = /\b(?:whole|sabut)\b/i.test(text);
   const rate = isWhole ? 540 : 580;
   const prodType = isWhole ? "Whole Fresh Trout" : "Cleaned & Gutted (Pan-ready)";
+  const shortProdType = isWhole ? "Whole Fresh Trout" : "Cleaned & Gutted";
 
   let totalAmount = null;
   let itemDesc = null;
@@ -6981,7 +6996,7 @@ function parseQuickOrderParams(text, defaultPhone = null, { defaultWeightIfMissi
   // 10-digit customer phone
   let explicitPhone = null;
   let targetCustPhone = null;
-  const phoneMatch = text.match(/\b([6-9]\d{9})\b/);
+  const phoneMatch = sanitizedCmd.match(/\b([6-9]\d{9})\b/);
   if (phoneMatch) {
     explicitPhone = phoneMatch[1];
     targetCustPhone = phoneMatch[1];
@@ -6990,8 +7005,8 @@ function parseQuickOrderParams(text, defaultPhone = null, { defaultWeightIfMissi
   }
 
   // Customer / Area Notes
-  let notesText = text
-    .replace(/#\s*(?:qr|scanner|link|order|pay|amount|total)?/gi, "")
+  let notesText = sanitizedCmd
+    .replace(/#\s*(?:qr|scanner|link|order|pay|amount|total|paid|confirm)?/gi, "")
     .replace(/\b\d+(?:\.\d+)?\s*(?:kg|kilos?|kgs)\b/gi, "")
     .replace(/\b(?:cleaned|gutted|whole|sabut|kg|kilos?|kgs)\b/gi, "")
     .replace(/\b[6-9]\d{9}\b/g, "")
@@ -7001,7 +7016,7 @@ function parseQuickOrderParams(text, defaultPhone = null, { defaultWeightIfMissi
     .replace(/\b(?:delivery|charge|charges|fee|shipping|express)\b/gi, "")
     .replace(/\b([3-9]\d|[1-5]\d{2})\b/g, "")
     .replace(/\b\d{3,6}\b/g, "")
-    .replace(/[+*#]/g, " ")
+    .replace(/[+*#$]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 
@@ -7021,11 +7036,201 @@ function parseQuickOrderParams(text, defaultPhone = null, { defaultWeightIfMissi
     isWhole,
     rate,
     prodType,
+    shortProdType,
     totalAmount,
     itemDesc,
     targetCustPhone,
     targetCustName,
     notesText
+  };
+}
+
+// Parse amount, items, delivery fee & order ref from any WhatsApp QR / 1-Tap Link / Summary caption
+function parsePaymentMessageSnapshot(rawText = "") {
+  const txt = String(rawText || "").replace(/\*/g, "");
+  if (!txt) return null;
+
+  const amtMatch =
+    txt.match(/(?:Amount|Total Payable|Total)\s*:\s*₹?\s*([\d,]{3,7})\b/i) ||
+    txt.match(/\[(?:HDFC SmartHub QR|1-Tap Payment Link|Bank Details)\s+₹\s*([\d,]{3,7})\]/i);
+  const amount = amtMatch ? parseInt(amtMatch[1].replace(/,/g, ""), 10) : null;
+
+  const itemMatch = txt.match(/^\s*[•\-*]?\s*(?:Order|Items?)\s*:\s*([^\n\r]+)/im);
+  const items = itemMatch ? itemMatch[1].trim() : null;
+
+  const feeMatch = txt.match(/Delivery Fee\s*:\s*\+?\s*₹?\s*(\d+)/i) || txt.match(/\(\s*\+\s*₹?\s*(\d+)\s*(?:Express\s+|Special\s+)?Delivery\s*\)/i);
+  const deliveryFee = feeMatch ? parseInt(feeMatch[1], 10) : 0;
+
+  const refMatch = txt.match(/\b(UT-[A-Z0-9-]+)\b/i);
+  const orderRef = refMatch ? refMatch[1].toUpperCase() : null;
+
+  const isHdfcQr = /HDFC SMARTHUB|HDFC SmartHub QR|Scan this Locked Amount QR/i.test(txt);
+  const isCashfree = /1-TAP PAYMENT LINK|urbantrout\.in\/p\/|payments\.cashfree\.com/i.test(txt);
+
+  if (!amount && !items && !orderRef) return null;
+  return { amount, items, deliveryFee, orderRef, isHdfcQr, isCashfree };
+}
+
+// Infer clean standard catalog weight ONLY when an exact price matches a whole/half-kg cut
+function inferExactCatalogItemForFlatAmount(paidAmt) {
+  const n = Number(paidAmt);
+  if (!n || n <= 0) return null;
+  const standardWeights = [1, 1.5, 2, 2.5, 3, 4, 5, 6, 7, 8, 10];
+  for (const w of standardWeights) {
+    if (Math.round(w * 580) === n) return `${w} kg Cleaned & Gutted`;
+  }
+  for (const w of standardWeights) {
+    if (Math.round(w * 540) === n) return `${w} kg Whole Fresh Trout`;
+  }
+  return null;
+}
+
+// Resolve exact paidAmt, itemsDesc, deliveryFee, orderRef & gateway for #paid / $paid commands
+function resolveManualPaidOrderDetails({ cmdText, targetPhone, targetJid, orders = {}, chatHist = [], quotedText = "" }) {
+  const parsed = parseQuickOrderParams(cmdText, targetPhone, { defaultWeightIfMissing: null });
+  const cmdRefMatch = String(cmdText || "").match(/\b(UT-[A-Z0-9-]+)\b/i);
+  const cmdRef = cmdRefMatch ? cmdRefMatch[1].toUpperCase() : null;
+  const quotedSnap = parsePaymentMessageSnapshot(quotedText);
+
+  const histSnaps = [];
+  if (Array.isArray(chatHist)) {
+    for (let i = chatHist.length - 1; i >= 0; i--) {
+      if (chatHist[i]?.role !== "model") continue;
+      const snap = parsePaymentMessageSnapshot(chatHist[i].text);
+      if (snap && (snap.amount || snap.orderRef)) histSnaps.push(snap);
+    }
+  }
+
+  // Build ordered candidate orders matching targetRef, targetPhone, or targetJid
+  const allMatchedOrders = [];
+  for (const o of Object.values(orders || {})) {
+    if (!o) continue;
+    const oPhone10 = String(o.phone || "").replace(/\D/g, "").slice(-10);
+    const phoneOk = targetPhone && oPhone10 === targetPhone;
+    const jidOk = targetJid && o.chatId === targetJid;
+    if (phoneOk || jidOk || (cmdRef && o.orderRef?.toUpperCase() === cmdRef)) {
+      allMatchedOrders.push(o);
+    }
+    if (Array.isArray(o.pastOrders) && (phoneOk || jidOk)) {
+      for (let idx = o.pastOrders.length - 1; idx >= 0; idx--) {
+        if (o.pastOrders[idx]) allMatchedOrders.push(o.pastOrders[idx]);
+      }
+    }
+  }
+
+  const preferredRef = cmdRef || quotedSnap?.orderRef || null;
+  let existingOrder = (preferredRef && allMatchedOrders.find(o => o.orderRef?.toUpperCase() === preferredRef)) ||
+    allMatchedOrders.find(o => !isOrderDeliveredOrClosed(o) && !o.status?.includes("Paid")) ||
+    allMatchedOrders.find(o => !isOrderDeliveredOrClosed(o)) ||
+    allMatchedOrders[0] ||
+    null;
+
+  const parseOrderAmt = (ord) => {
+    if (!ord?.amount) return 0;
+    const m = String(ord.amount).replace(/,/g, "").match(/\d+/);
+    return m ? parseInt(m[0], 10) : 0;
+  };
+
+  let paidAmt = 0;
+  let itemsDesc = "";
+  let effectiveDeliveryFee = 0;
+  let matchedSnap = null;
+  let orderRef = null;
+
+  if (parsed.weightKg) {
+    // Explicit weight specified in #paid (#paid 2kg +200, #paid 2kg, #paid 2kg 1000, #paid 3kg whole +149)
+    paidAmt = parsed.totalAmount || Math.round(parsed.weightKg * parsed.rate) + parsed.deliveryFee;
+    effectiveDeliveryFee = parsed.deliveryFee || 0;
+    itemsDesc = `${parsed.weightKg} kg ${parsed.shortProdType}${effectiveDeliveryFee > 0 ? ` (+₹${effectiveDeliveryFee} Express Delivery)` : ""}`;
+    matchedSnap = [quotedSnap, ...histSnaps].find(s => s && s.amount && Math.abs(s.amount - paidAmt) <= 2) || null;
+    if (preferredRef) {
+      orderRef = preferredRef;
+    } else if (matchedSnap?.orderRef) {
+      orderRef = matchedSnap.orderRef;
+    } else if (existingOrder && !existingOrder.status?.includes("Paid") && !isOrderDeliveredOrClosed(existingOrder)) {
+      orderRef = existingOrder.orderRef;
+    }
+  } else if (parsed.directTotalAmount) {
+    // Flat amount ONLY in #paid (#Paid 1000, #paid 1299, #paid 1740)
+    paidAmt = parsed.directTotalAmount;
+    matchedSnap = [quotedSnap, ...histSnaps].find(s => s && s.amount && Math.abs(s.amount - paidAmt) <= 2) || null;
+    const exactAmtOrder = allMatchedOrders.find(o => {
+      const a = parseOrderAmt(o);
+      return a > 0 && Math.abs(a - paidAmt) <= 2;
+    }) || null;
+
+    if (matchedSnap) {
+      itemsDesc = matchedSnap.items || exactAmtOrder?.items || inferExactCatalogItemForFlatAmount(paidAmt) || "Fresh Trout Order (Agreed Total)";
+      effectiveDeliveryFee = matchedSnap.deliveryFee || 0;
+      if (effectiveDeliveryFee > 0 && itemsDesc && !/\bdelivery\b/i.test(itemsDesc)) {
+        itemsDesc = `${itemsDesc} (+₹${effectiveDeliveryFee} Express Delivery)`;
+      }
+      orderRef = preferredRef || matchedSnap.orderRef || exactAmtOrder?.orderRef || null;
+      if (exactAmtOrder) existingOrder = exactAmtOrder;
+    } else if (exactAmtOrder) {
+      existingOrder = exactAmtOrder;
+      itemsDesc = exactAmtOrder.items || inferExactCatalogItemForFlatAmount(paidAmt) || "Fresh Trout Order";
+      effectiveDeliveryFee = Number(exactAmtOrder.deliveryFee) || 0;
+      orderRef = preferredRef || (!exactAmtOrder.status?.includes("Paid") ? exactAmtOrder.orderRef : null);
+    } else {
+      effectiveDeliveryFee = 0;
+      itemsDesc = inferExactCatalogItemForFlatAmount(paidAmt) || "Fresh Trout Order (Agreed Total)";
+      orderRef = preferredRef || (existingOrder && !existingOrder.status?.includes("Paid") && !isOrderDeliveredOrClosed(existingOrder) ? existingOrder.orderRef : null);
+    }
+  } else {
+    // Plain #paid / $paid (relying on quoted message, active unpaid order, or newest QR/link in chat)
+    const fallbackSnap = quotedSnap || histSnaps[0] || null;
+    const existingAmt = parseOrderAmt(existingOrder);
+    if (quotedSnap && quotedSnap.amount) {
+      matchedSnap = quotedSnap;
+      paidAmt = quotedSnap.amount;
+      itemsDesc = quotedSnap.items || existingOrder?.items || inferExactCatalogItemForFlatAmount(paidAmt) || "Fresh Trout Order";
+      effectiveDeliveryFee = quotedSnap.deliveryFee || 0;
+      if (effectiveDeliveryFee > 0 && itemsDesc && !/\bdelivery\b/i.test(itemsDesc)) {
+        itemsDesc = `${itemsDesc} (+₹${effectiveDeliveryFee} Express Delivery)`;
+      }
+      orderRef = quotedSnap.orderRef || existingOrder?.orderRef || null;
+    } else if (existingOrder && !isOrderDeliveredOrClosed(existingOrder) && existingAmt > 0) {
+      paidAmt = existingAmt;
+      itemsDesc = existingOrder.items || inferExactCatalogItemForFlatAmount(paidAmt) || "Fresh Trout Order";
+      effectiveDeliveryFee = Number(existingOrder.deliveryFee) || 0;
+      orderRef = existingOrder.orderRef || null;
+    } else if (fallbackSnap && fallbackSnap.amount) {
+      matchedSnap = fallbackSnap;
+      paidAmt = fallbackSnap.amount;
+      itemsDesc = fallbackSnap.items || inferExactCatalogItemForFlatAmount(paidAmt) || "Fresh Trout Order";
+      effectiveDeliveryFee = fallbackSnap.deliveryFee || 0;
+      orderRef = fallbackSnap.orderRef || null;
+    } else {
+      paidAmt = 1160;
+      itemsDesc = "2 kg Cleaned & Gutted";
+      effectiveDeliveryFee = 0;
+      orderRef = existingOrder && !existingOrder.status?.includes("Paid") ? existingOrder.orderRef : null;
+    }
+  }
+
+  if (!orderRef) {
+    orderRef = `UT-WA-${Date.now().toString().slice(-8)}`;
+  }
+
+  const refMatchedOrder = allMatchedOrders.find(o => o.orderRef === orderRef) || existingOrder;
+  const isHdfcPayment = Boolean(
+    matchedSnap?.isHdfcQr ||
+    (!matchedSnap?.isCashfree && (
+      refMatchedOrder?.paymentGateway?.toLowerCase().includes("hdfc") ||
+      /hdfc|vyapar|qr/i.test(refMatchedOrder?.status || "") ||
+      refMatchedOrder?.upiVpa === HDFC_COUNTER_VPA
+    ))
+  );
+
+  return {
+    parsed,
+    existingOrder: refMatchedOrder,
+    paidAmt,
+    itemsDesc,
+    effectiveDeliveryFee,
+    orderRef,
+    isHdfcPayment
   };
 }
 
@@ -7832,9 +8037,10 @@ async function startBot() {
             `• *#loc bemina* / *#location airport road* / *#location <maps link>*\n\n` +
             `🛵 *Mobile Order Dispatch (iPhone Control):*\n` +
             `• *#orders* (View all active undelivered orders right now)\n` +
-            `• *#paid* or *$paid* (Confirm HDFC QR / manual payment in chat & sync Order Dashboard)\n` +
-            `• *#paid [amount]* or *$paid [amount]* (e.g. *$paid 1299* inside customer chat)\n` +
-            `• *#paid 9876543210 1259* (Confirm payment for specific phone number)\n` +
+            `• *#paid 2kg +200* or *$paid 2kg* (Confirm exact weight + optional fee when multiple QRs/links were sent)\n` +
+            `• *#paid 1000* or *#Paid 1000* (Confirm flat/custom amount or match QR by exact total)\n` +
+            `• *#paid* or *$paid* (Auto-match active order, or swipe-reply *$paid* directly on any QR message!)\n` +
+            `• *#paid 9876543210 2kg +200* (Confirm for specific customer phone number)\n` +
             `• *#delivered* (Mark order as delivered & remove from active queue)\n` +
             `• *#delivered 9876543210* (Mark order delivered by phone or ref)\n\n` +
             `⚡ *Instant 1-Tap Payment Link Shortcuts:*\n` +
@@ -8152,7 +8358,7 @@ async function startBot() {
         return;
       }
 
-      // Owner Command: #paid / $paid or #confirm - Manually confirm payment, send official receipt, and sync Order Dashboard
+      // Owner Command: #paid / $paid or #confirm - Manually confirm payment (#paid 2kg +200, #paid 2kg, #Paid 1000, or swipe-reply on QR)
       if (lower.startsWith("#paid") || lower.startsWith("#confirm")) {
         try {
           const ordersFilePath = path.join(__dirname, "customer_orders.json");
@@ -8161,57 +8367,74 @@ async function startBot() {
             try { orders = JSON.parse(fs.readFileSync(ordersFilePath, "utf8")); } catch (_) {}
           }
 
-          // Parse target phone and amount from command (e.g. $paid 1299, #paid 9419084032 1259)
           const phoneInCmd = cmdText.match(/\b([6-9]\d{9})\b/);
-          const cleanedPaidArgs = cmdText.replace(/[#$](?:paid|confirm)/gi, "").replace(/\b[6-9]\d{9}\b/g, "").replace(/\bUT-[A-Z0-9-]+\b/gi, "").replace(/,/g, "");
-          const amtInCmd = cleanedPaidArgs.match(/\b(\d{3,6})\b/);
-
           let targetPhone = phoneInCmd ? phoneInCmd[1] : (cleanPhone || raw10);
-          let existingOrder = (targetPhone && (orders[targetPhone] || Object.values(orders).find(o => o && (o.phone || "").replace(/\D/g, "").slice(-10) === targetPhone && !isOrderDeliveredOrClosed(o)))) || null;
           let targetJid = phoneInCmd
-            ? (existingOrder?.chatId || `91${targetPhone}@s.whatsapp.net`)
+            ? (`91${targetPhone}@s.whatsapp.net`)
             : (!isOwnerAdminDesk ? remoteJid : (targetPhone ? `91${targetPhone}@s.whatsapp.net` : null));
-
-          if (!existingOrder && targetJid) {
-            existingOrder = Object.values(orders).find(o => o && o.chatId === targetJid && !isOrderDeliveredOrClosed(o)) ||
-              Object.values(orders).find(o => o && o.chatId === targetJid) ||
-              null;
-          }
 
           if (!targetPhone && !targetJid) {
             await sock.sendMessage(ownerDeskJid, {
-              text: `⚠️ *Please specify customer phone or run inside customer chat:*\nExample: *$paid 1299* or *#paid 9419084032 1259*`
+              text: `⚠️ *Please specify customer phone or run inside customer chat:*\nExamples:\n• *#paid 2kg +200*\n• *#paid 2kg*\n• *#Paid 1000*\n• *#paid 9419084032 2kg +200*`
             });
             return;
           }
 
-          const metaForCust = (targetJid && chatMetadata[targetJid]) || (targetPhone && chatMetadata[targetPhone]) || null;
-          const existingAmtParsed = existingOrder?.amount
-            ? parseInt(String(existingOrder.amount).replace(/,/g, "").match(/\d+/)?.[0] || "", 10)
-            : 0;
-          const paidAmt = (amtInCmd ? parseInt(amtInCmd[1], 10) : 0) || existingAmtParsed || 1160;
-          const orderRef = existingOrder?.orderRef || `UT-WA-${Date.now().toString().slice(-8)}`;
-          const itemsDesc = existingOrder?.items || (paidAmt >= 1700 ? "3 kg Cleaned & Gutted" : "2 kg Cleaned & Gutted");
+          // Load chat history (with @lid / phone fallback) and any WhatsApp quoted message text (swipe-reply)
+          let paidChatHist = (targetJid && chatHistories.get(targetJid)) || [];
+          if (paidChatHist.length === 0 && targetPhone) {
+            paidChatHist = chatHistories.get(`91${targetPhone}@s.whatsapp.net`) || [];
+            if (paidChatHist.length === 0) {
+              for (const [hJid, hArr] of chatHistories.entries()) {
+                if (resolveCustomerPhone(hJid).slice(-10) === targetPhone && Array.isArray(hArr) && hArr.length > 0) {
+                  paidChatHist = hArr;
+                  if (phoneInCmd) targetJid = hJid;
+                  break;
+                }
+              }
+            }
+          }
 
-          const isHdfcPayment = Boolean(
-            existingOrder?.paymentGateway?.toLowerCase().includes("hdfc") ||
-            /hdfc|vyapar|qr/i.test(existingOrder?.status || "") ||
-            existingOrder?.upiVpa === HDFC_COUNTER_VPA
-          );
+          const qMsg = innerMessage?.extendedTextMessage?.contextInfo?.quotedMessage || null;
+          const quotedText = qMsg
+            ? (qMsg.conversation || qMsg.extendedTextMessage?.text || qMsg.imageMessage?.caption || "")
+            : "";
+
+          const {
+            existingOrder,
+            paidAmt,
+            itemsDesc,
+            effectiveDeliveryFee,
+            orderRef,
+            isHdfcPayment
+          } = resolveManualPaidOrderDetails({
+            cmdText,
+            targetPhone,
+            targetJid,
+            orders,
+            chatHist: paidChatHist,
+            quotedText
+          });
+
+          const resolvedTargetJid = targetJid || existingOrder?.chatId || (targetPhone ? `91${targetPhone}@s.whatsapp.net` : null);
+          const metaForCust = (resolvedTargetJid && chatMetadata[resolvedTargetJid]) || (targetPhone && chatMetadata[targetPhone]) || null;
           const gatewayLabel = isHdfcPayment ? "HDFC SmartHub UPI" : "Verified UPI Transfer";
           const manualPayId = isHdfcPayment ? `HDFC-SMARTHUB-${Date.now()}` : `MANUAL-PAY-${Date.now()}`;
+          const isUpdatingSameRef = Boolean(existingOrder?.orderRef && existingOrder.orderRef === orderRef);
 
           const metaCustName = metaForCust?.pushName || null;
           const updatedOrder = {
-            ...(existingOrder || {}),
+            ...(isUpdatingSameRef ? existingOrder : {}),
             orderRef,
-            chatId: targetJid,
-            phone: targetPhone,
+            chatId: resolvedTargetJid,
+            phone: targetPhone || existingOrder?.phone || "",
             name: existingOrder?.name || metaCustName || "Customer",
             items: itemsDesc,
+            deliveryFee: effectiveDeliveryFee,
             amount: `₹${paidAmt} [PAID via ${gatewayLabel}]`,
             status: "Paid & Confirmed (Live Harvest Pending)",
             paymentGateway: gatewayLabel,
+            upiVpa: isHdfcPayment ? HDFC_COUNTER_VPA : null,
             paymentId: manualPayId,
             paidAt: new Date().toISOString(),
             deliveryArea: existingOrder?.deliveryArea || metaForCust?.localityName || "Srinagar",
@@ -8224,10 +8447,10 @@ async function startBot() {
 
           const hasGps = Boolean(updatedOrder.latitude || metaForCust?.latitude);
           const manualWeatherPolicy = evaluateWeatherDeliveryPolicy(updatedOrder?.distanceKm);
-          const { slot: finalManualSlot, commitment: deliveryCommitmentManual } = resolveOrderDeliveryCommitment(updatedOrder, targetJid, manualWeatherPolicy);
+          const { slot: finalManualSlot, commitment: deliveryCommitmentManual } = resolveOrderDeliveryCommitment(updatedOrder, resolvedTargetJid, manualWeatherPolicy);
           updatedOrder.deliveryTime = finalManualSlot;
 
-          recordNewCustomerOrder(targetPhone || targetJid, updatedOrder);
+          recordNewCustomerOrder(targetPhone || resolvedTargetJid, updatedOrder);
           syncWhatsAppOrderToSupabase(updatedOrder, updatedOrder.paymentId).catch((syncErr) => {
             console.warn("[Supabase Order Sync Notice]:", syncErr?.message || syncErr);
           });
@@ -8246,8 +8469,8 @@ async function startBot() {
             gatewayLabel
           });
 
-          if (targetJid) {
-            const sentManualReceipt = await sock.sendMessage(targetJid, { text: receiptMsg });
+          if (resolvedTargetJid) {
+            const sentManualReceipt = await sock.sendMessage(resolvedTargetJid, { text: receiptMsg });
             if (sentManualReceipt?.key?.id) {
               botSentMessageIds.add(sentManualReceipt.key.id);
               setTimeout(() => botSentMessageIds.delete(sentManualReceipt.key.id), 10 * 60 * 1000);
@@ -8263,10 +8486,10 @@ async function startBot() {
             mode: gatewayLabel
           });
 
-          // 3. Confirm to owner
-          if (targetJid !== ownerDeskJid) {
+          // 3. Confirm to owner with exact resolved items & amount
+          if (resolvedTargetJid !== ownerDeskJid) {
             await sock.sendMessage(ownerDeskJid, {
-              text: `✅ *Order #${orderRef} Confirmed!* 🐟\n\n• Customer: ${updatedOrder.name} (+91 ${targetPhone || "N/A"})\n• Amount: ₹${paidAmt} [PAID via ${gatewayLabel}]\n• Automated WhatsApp receipt delivered to customer\n• Synced to Order Dashboard & Telegram!`
+              text: `✅ *Order #${orderRef} Confirmed!* 🐟\n\n• Customer: ${updatedOrder.name} (+91 ${targetPhone || "N/A"})\n• Items: ${itemsDesc}\n• Amount: ₹${paidAmt} [PAID via ${gatewayLabel}]\n• Automated WhatsApp receipt delivered to customer\n• Synced to Order Dashboard & Telegram!`
             });
           }
         } catch (payErr) {
@@ -9852,6 +10075,8 @@ if (require.main === module) {
     isCustomerRequestingQr,
     isExplicitQrScannerAsk,
     parseQuickOrderParams,
+    parsePaymentMessageSnapshot,
+    resolveManualPaidOrderDetails,
     HDFC_COUNTER_VPA,
     HDFC_MERCHANT_REF,
     buildHdfcSmartHubUpiUri,
