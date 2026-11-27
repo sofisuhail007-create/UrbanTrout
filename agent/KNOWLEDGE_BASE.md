@@ -149,7 +149,7 @@
 • **100% Live Harvest Guarantee:** Unlike ordinary market fish stored dead on ice with preservatives, our trout is swimming live in our high-tech crystal-clear oxygen-saturated cold water tanks until you order. We harvest and clean it exclusively for you, so it reaches your pan jumping-fresh within 2 hours.
 • **Govt-Approved & Local Facility:** We are an official Govt-approved cold-water fisheries facility (Department of Fisheries, J&K) located right here in Malabagh (Near R. P. School Girls Wing).
 • **Prefer Cash? Visit Our Live Counter:** If you prefer paying cash, you are warmly welcome to visit our Live Vending Center counter in Malabagh directly to choose your live swimming trout and pay at the counter! 📍 https://maps.app.goo.gl/6FT5iLk5n8mbKSRU9"*
-- **Payment Method for Delivery:** Official locked Cashfree 1-Tap Payment Link (`https://urbantrout.in/p/...`) sent directly in chat (default), plus **HDFC SmartHub Vyapar UPI QR Code** (`Vyapar.178760132267@hdfcbank`) whenever a customer explicitly asks for a QR code or scanner to scan & pay. (NO Cash on Delivery/COD, and never share banned legacy UPI IDs).
+- **Payment Method for Delivery:** Official locked Cashfree 1-Tap Payment Link (`https://urbantrout.in/p/...`) sent directly in chat (default), plus our **exact-amount Locked HDFC SmartHub UPI QR Code** whenever a customer explicitly asks for a QR code or scanner to scan & pay. (NO Cash on Delivery/COD, and NEVER write or share any raw UPI ID / VPA address in chat text so the locked amount cannot be altered).
 
 ---
 
@@ -394,7 +394,7 @@ However, all of our farm-raised trout is sold fresh at our Live Vending Center i
 
 ## 💳 PAYMENT & LIVE HARVEST PROTOCOL (UPFRONT ONLINE PAYMENT / J&K BANK mPAY)
 - We harvest live fish specifically for the customer upon confirmation. Because freshly harvested fish cannot be returned to live tanks, **an order is ONLY confirmed once full payment is made upfront via our official 1-Tap Cashfree Payment Link (`https://urbantrout.in/p/...`) or J&K Bank mPay account transfer.**
-- **Payment Methods Accepted:** Official locked Cashfree 1-Tap Payment Links (`https://urbantrout.in/p/...`, supporting 1-tap Google Pay, PhonePe, Paytm, BHIM & J&K Bank mPay — UPI apps only), **HDFC SmartHub Vyapar Locked UPI QR** (`Vyapar.178760132267@hdfcbank`) whenever a customer specifically asks for a QR code or scanner (`"do you have QR"`, `"send scanner"`, `"QR please"`), and J&K Bank Current Account mPay when explicitly requested. (NO Cash on Delivery/COD, and never share banned legacy UPI IDs).
+- **Payment Methods Accepted:** Official locked Cashfree 1-Tap Payment Links (`https://urbantrout.in/p/...`, supporting 1-tap Google Pay, PhonePe, Paytm, BHIM & J&K Bank mPay — UPI apps only), **exact-amount Locked HDFC SmartHub UPI QR** whenever a customer specifically asks for a QR code or scanner (`"do you have QR"`, `"send scanner"`, `"QR please"` — never write out any raw UPI ID / VPA address in chat text), and J&K Bank Current Account mPay when explicitly requested. (NO Cash on Delivery/COD, and never share banned legacy UPI IDs).
 - When the customer confirms their quantity (minimum 1 kg with courier fee, or 2–5 kg free MOQ by zone), cut, and delivery time slot across our 16.0 km perimeter, generate the locked payment link & summary.
 
 ---

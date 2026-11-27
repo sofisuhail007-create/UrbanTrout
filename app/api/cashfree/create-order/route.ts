@@ -15,6 +15,23 @@ const DEFAULT_PRICES: Record<string, number> = {
   "whole-trout": 540,
 };
 
+/**
+ * Cashfree PG /orders strictly rejects order_tags values that are empty, >100 chars,
+ * contain non-ASCII chars (e.g. en-dash, emojis, ₹), HTML brackets, URLs, or `&`.
+ */
+function sanitizeOrderTagValue(value: unknown, fallback = "na", maxLen = 80): string {
+  const cleaned = String(value ?? "")
+    .replace(/&/g, "and")
+    .replace(/[\u2013\u2014\u2212]/g, "-")
+    .replace(/[^\x20-\x7E]/g, " ")
+    .replace(/[<>]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, maxLen)
+    .trim();
+  return cleaned || fallback;
+}
+
 export async function POST(request: Request) {
   const { limited } = checkRateLimit(request, 15, 60 * 1000);
   if (limited) {
@@ -217,14 +234,14 @@ export async function POST(request: Request) {
         return_url: `${origin}/checkout?cf_order_id={order_id}`,
         notify_url: `${origin}/api/cashfree/webhook`,
       },
-      order_note: `Urban Trout: ${itemSummaries.join(", ")}`.slice(0, 200),
+      order_note: sanitizeOrderTagValue(`Urban Trout: ${itemSummaries.join(", ")}`, "Urban Trout Express Order", 180),
       order_tags: {
         channel: "WEBSITE_CHECKOUT",
-        customer_phone: cleanPhone,
-        customer_name: cleanName.slice(0, 40),
+        customer_phone: sanitizeOrderTagValue(cleanPhone, "9999999999", 20),
+        customer_name: sanitizeOrderTagValue(cleanName, "Valued Customer", 40),
         is_scheduled: isScheduledOrder ? "true" : "false",
-        scheduled_slot: isScheduledOrder ? String(scheduledSlot || "").slice(0, 30) : "express",
-        items_summary: itemSummaries.join(", ").slice(0, 120),
+        scheduled_slot: isScheduledOrder ? sanitizeOrderTagValue(scheduledSlot, "scheduled", 40) : "express",
+        items_summary: sanitizeOrderTagValue(itemSummaries.join(", "), "Fresh Rainbow Trout", 80),
       },
     };
 

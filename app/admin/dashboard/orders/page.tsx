@@ -886,7 +886,7 @@ export default function OrdersPage() {
     const name = getCleanCustomerGreetingName(qrModalOrder.customer_name);
 
     let payLink = hdfcUpiUri;
-    let bankNote = `HDFC Bank SmartHub UPI: ${HDFC_COUNTER_VPA}`;
+    let bankNote = `HDFC Bank SmartHub UPI (Exact Amount Locked)`;
     if (qrMode === "direct_upi") {
       payLink = directUpiUri;
       bankNote = `J&K Bank UPI ID: ${upiId}`;

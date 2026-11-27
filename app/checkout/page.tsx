@@ -1782,7 +1782,7 @@ export default function CheckoutPage() {
       {/* ─── Cashfree Checkout SDK v3 Script ─── */}
       <Script
         src="https://sdk.cashfree.com/js/v3/cashfree.js"
-        strategy="lazyOnload"
+        strategy="afterInteractive"
       />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-32 pb-24">
 

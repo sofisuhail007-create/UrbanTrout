@@ -27,10 +27,10 @@ process.on("unhandledRejection", (reason) => {
 // ============================================================================
 // URBAN TROUT SALES AGENT — BUILD & VERSION TRACKING
 // ============================================================================
-const BOT_VERSION = "3.7.1";
-const BOT_LAST_UPDATED = "27-Nov-2026, 09:05 AM IST";
-const BOT_RELEASE_TITLE = "UPI-Only Cashfree Link Copy, Contact Phone in Link Purpose & Weekday Slots";
-const BOT_RELEASE_NOTES = "1. Removed Cards wording from Cashfree UPI payment links (UPI apps only: GPay, PhonePe, Paytm, J&K Bank mPay). 2. Added customer contact number to Cashfree link_purpose description (e.g. 3 kg Cleaned & Gutted Trout Steaks - Express Delivery - +91 XXXXXXXXXX). 3. Fixed named weekday slot parsing (Sunday/Monday/etc.) in order cards.";
+const BOT_VERSION = "3.7.2";
+const BOT_LAST_UPDATED = "27-Nov-2026, 09:30 AM IST";
+const BOT_RELEASE_TITLE = "Locked HDFC SmartHub QR (No Raw VPA Leak) & #qr Help Restoration";
+const BOT_RELEASE_NOTES = "1. Removed raw HDFC UPI ID text from customer QR captions so customers scan the exact-amount locked QR directly (or request Send Link). 2. Restored HDFC SmartHub #qr / $qr docs in #help. 3. Fixed website Cashfree PG /orders order_tags sanitization.";
 
 // ============================================================================
 // STRICT MANUAL-ONLY & DRIVER EXCLUSION LIST (AI MUST NEVER TEXT UNDER ANY CIRCUMSTANCE)
@@ -5428,7 +5428,7 @@ If the customer EXPLICITLY asks for a QR code or scanner to scan & pay ("if you 
 output this EXACT tag on its own line instead:
 [HDFC_QR: TOTAL_AMOUNT : ITEM_DESCRIPTION]
 Our engine sends our official HDFC SmartHub Vyapar UPI QR code image locked to the exact amount (which alerts Suhail's phone on HDFC SmartHub Vyapar).
-NEVER write any unverified payment methods or old VPAs in text. ONLY output the [PAY_LINK: ...] or [HDFC_QR: ...] tag!
+NEVER write ANY raw UPI ID / VPA address (including @hdfcbank, @jkb, or any other UPI ID) or unverified payment method in text — otherwise customers could enter arbitrary amounts. ONLY output the [PAY_LINK: ...] or [HDFC_QR: ...] tag!
 If a customer specifically requests J&K Bank mPay account details or direct bank transfer: provide Account Number 0724010100000499, IFSC JAKA0MALBAG, Name: Urban Trout Aquaculture, and ask them to share their payment screenshot for 5-minute farm team verification. STRICT NEGATIVE CONSTRAINT: Under NO circumstances should you EVER mention, send, or use JKBMERC00828895@jkb!
 
 PAYMENT LINK & HDFC QR/SCANNER REQUEST HANDLING:
@@ -7503,7 +7503,7 @@ async function startBot() {
         : "";
 
       const payLinkLine = paymentResult.isHdfcQr
-        ? `📲 *Scan with Any UPI App* (Google Pay, PhonePe, Paytm, or J&K Bank mPay)\n• *UPI ID:* \`${HDFC_COUNTER_VPA}\`\n👉 _Once paid, kindly share your payment screenshot here so our team can confirm on HDFC SmartHub and begin your fresh live harvest immediately!_\n_(Paying from this same phone without scanning? Reply *"Send Link"* for a 1-Tap link.)_\n\n`
+        ? `📲 *Scan this Locked Amount QR with Any UPI App* (Google Pay, PhonePe, Paytm, or J&K Bank mPay)\n🔒 _Amount is pre-filled & locked automatically upon scanning._\n👉 _Once paid, kindly share your payment screenshot here so our team can confirm on HDFC SmartHub and begin your fresh live harvest immediately!_\n_(Paying from this same phone without scanning? Reply *"Send Link"* for a 1-Tap link.)_\n\n`
         : paymentResult.payUrl
         ? `🔗 *Tap to Pay Instantly:* ${paymentResult.payUrl}\n_(${paymentResult.isReused ? "Same active link for your order — c" : "C"}lick the link to pay directly using Paytm, PhonePe, Google Pay, or J&K Bank mPay!)_\n\n`
         : "";
@@ -7847,6 +7847,12 @@ async function startBot() {
             `• *#link 1940* (Direct flat amount of ₹1,940)\n` +
             `• *#3kg +200 9876543210* (With customer phone number)\n` +
             `• *#3kg +200 9876543210 Farooq Sb Lalbazar* (With phone & name/address)\n\n` +
+            `📸 *HDFC SmartHub Locked UPI QR Commands:*\n` +
+            `• *#qr* or *$qr* (Send locked HDFC SmartHub QR for customer's order in this chat)\n` +
+            `• *#qr 2kg +149* (Locked ₹1,309 HDFC SmartHub QR directly into chat)\n` +
+            `• *#qr 1740* (Locked flat ₹1,740 HDFC SmartHub QR)\n` +
+            `• *#qr 3kg 9876543210* (Send locked HDFC QR directly to customer phone)\n` +
+            `• _After customer pays & shares screenshot, reply *$paid* in chat to confirm!_\n\n` +
             `👥 *Contacts & Nightly Scan:*\n` +
             `• *#contacts* or *#scanchats* (Scan all chats for Name - Location & export .vcf)\n` +
             `• Automated 8:00 PM nightly chat scan runs daily with the executive report\n\n` +
@@ -8028,7 +8034,18 @@ async function startBot() {
           targetPhone = cleanPhone || raw10 || (remoteJid.includes("@s.whatsapp.net") ? remoteJid.split("@")[0].replace(/\D/g, "").slice(-10) : null);
         }
 
-        const chatHist = chatHistories.get(targetJid) || [];
+        let chatHist = chatHistories.get(targetJid) || [];
+        if (chatHist.length === 0 && targetPhone) {
+          chatHist = chatHistories.get(`91${targetPhone}@s.whatsapp.net`) || [];
+          if (chatHist.length === 0) {
+            for (const [hJid, hArr] of chatHistories.entries()) {
+              if (resolveCustomerPhone(hJid).slice(-10) === targetPhone && Array.isArray(hArr) && hArr.length > 0) {
+                chatHist = hArr;
+                break;
+              }
+            }
+          }
+        }
         const finalAmt = parsed.totalAmount || null;
         const finalDesc = parsed.itemDesc || null;
         const storedMetaName = (targetJid && chatMetadata[targetJid]?.pushName) ||
