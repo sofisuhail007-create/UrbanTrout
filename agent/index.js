@@ -27,10 +27,10 @@ process.on("unhandledRejection", (reason) => {
 // ============================================================================
 // URBAN TROUT SALES AGENT — BUILD & VERSION TRACKING
 // ============================================================================
-const BOT_VERSION = "3.6.1";
-const BOT_LAST_UPDATED = "27-Nov-2026, 01:25 AM IST";
-const BOT_RELEASE_TITLE = "Link-Only Cashfree Checkout, Single-Link Reuse & Zero-Dup Alerts";
-const BOT_RELEASE_NOTES = "1. 100% Link-Only Cashfree checkout using short https://urbantrout.in/p/xxxxx URLs across WhatsApp & Website. 2. Active payment links reuse cleanly unless customer changes quantity or area. 3. Cross-process Telegram & WhatsApp dedup, botSentMessageIds receipt protection, and cleaned #help (#link only).";
+const BOT_VERSION = "3.7.0";
+const BOT_LAST_UPDATED = "27-Nov-2026, 08:40 AM IST";
+const BOT_RELEASE_TITLE = "Cashfree 1-Tap Links + HDFC SmartHub UPI QR & $paid Flow";
+const BOT_RELEASE_NOTES = "1. Default Cashfree 1-Tap short links (https://urbantrout.in/p/xxxxx) with single-link reuse unless quantity/area changes. 2. On-demand HDFC SmartHub Vyapar locked UPI QR image (Vyapar.178760132267@hdfcbank) when customer asks for QR/scanner. 3. $paid / #paid manual verification command with instant customer receipt, Telegram alert, and Supabase Order Dashboard sync.";
 
 // ============================================================================
 // STRICT MANUAL-ONLY & DRIVER EXCLUSION LIST (AI MUST NEVER TEXT UNDER ANY CIRCUMSTANCE)
@@ -1735,6 +1735,27 @@ function downloadImageBuffer(url, timeoutMs = 12000, redirectsLeft = 3) {
 // Tier 1: Primary Mode — Short Cashfree 1-Tap Payment Link (https://urbantrout.in/p/xxxxx)
 // Tier 2: Emergency Fallback — Jammu & Kashmir Bank Account Details (Acc: 0724010100000499)
 
+const HDFC_COUNTER_VPA = "Vyapar.178760132267@hdfcbank";
+const HDFC_MERCHANT_REF = "STQU178760132267";
+
+function buildHdfcSmartHubUpiUri(amount, orderRef) {
+  const numAmt = Number(amount);
+  const tn = encodeURIComponent(`Urban Trout ${orderRef || "Order"}`.slice(0, 45));
+  return `upi://pay?pa=${HDFC_COUNTER_VPA}&pn=Urban%20Trout%20Aquaculture&mc=8999&tr=${HDFC_MERCHANT_REF}&am=${numAmt.toFixed(2)}&cu=INR&tn=${tn}`;
+}
+
+async function generateHdfcSmartHubQrBuffer(amount, orderRef) {
+  const upiUri = buildHdfcSmartHubUpiUri(amount, orderRef);
+  const qrBuffer = await QRCode.toBuffer(upiUri, {
+    type: "png",
+    width: 640,
+    margin: 3,
+    errorCorrectionLevel: "M",
+    color: { dark: "#020d12", light: "#ffffff" }
+  });
+  return { qrBuffer, upiUri, vpa: HDFC_COUNTER_VPA };
+}
+
 const JKB_ACCOUNT_DETAILS = {
   bankName: "Jammu & Kashmir Bank (J&K Bank)",
   accountName: "Urban Trout Aquaculture",
@@ -2255,6 +2276,7 @@ async function syncWhatsAppOrderToSupabase(order, paymentId) {
     const ref = order.orderRef || "";
     const pId = paymentId || order.paymentId || "";
     const cleanPhone = String(order.phone || "").replace(/\D/g, "").slice(-10);
+    const dbCustomerPhone = cleanPhone || String(order.chatId || "").replace(/@.*/, "").slice(0, 15) || "WhatsApp";
 
     // 1. Check if already exists in Supabase orders
     if (ref || pId) {
@@ -2319,9 +2341,15 @@ async function syncWhatsAppOrderToSupabase(order, paymentId) {
     };
     const inferredPin = order.pincode || AREA_PIN_REVERSE[localityClean.toLowerCase()] || "";
 
+    const gatewayTag = (pId && /^(?:HDFC-|STQU)/i.test(pId)) || /hdfc|vyapar/i.test(String(order.paymentGateway || ""))
+      ? `HDFC SmartHub: ${pId}`
+      : (pId && /^MANUAL-/i.test(pId))
+      ? `Manual UPI: ${pId}`
+      : `Cashfree: ${pId}`;
+
     let addressStr = deliveryArea;
     if (ref || pId) {
-      addressStr += ` (Ref: #${ref}${ref && pId ? ", " : ""}${pId ? `Cashfree: ${pId}` : ""})`;
+      addressStr += ` (Ref: #${ref}${ref && pId ? ", " : ""}${pId ? gatewayTag : ""})`;
     }
     if (order.deliveryTime) {
       addressStr += ` | Slot: ${order.deliveryTime}`;
@@ -2332,7 +2360,7 @@ async function syncWhatsAppOrderToSupabase(order, paymentId) {
 
     const payload = {
       customer_name: order.name || "WhatsApp Customer",
-      customer_phone: cleanPhone,
+      customer_phone: dbCustomerPhone,
       customer_address: addressStr,
       customer_locality: localityClean,
       customer_pincode: inferredPin,
@@ -5391,20 +5419,24 @@ Example (South / Cross-City Corridor, 5 kg):
 [PAY_LINK: 2900 : 5 kg Cleaned & Gutted]
 
 Our payment engine automatically replaces that tag with an official, organized order summary card containing their 1-Tap Cashfree Payment Link directly in WhatsApp.
-NEVER write any unverified payment methods or old VPAs in text. ONLY output the [PAY_LINK: ...] tag!
+If the customer EXPLICITLY asks for a QR code or scanner to scan & pay ("if you have QR", "send scanner", "QR please", "scanner bhejo"):
+output this EXACT tag on its own line instead:
+[HDFC_QR: TOTAL_AMOUNT : ITEM_DESCRIPTION]
+Our engine sends our official HDFC SmartHub Vyapar UPI QR code image locked to the exact amount (which alerts Suhail's phone on HDFC SmartHub Vyapar).
+NEVER write any unverified payment methods or old VPAs in text. ONLY output the [PAY_LINK: ...] or [HDFC_QR: ...] tag!
 If a customer specifically requests J&K Bank mPay account details or direct bank transfer: provide Account Number 0724010100000499, IFSC JAKA0MALBAG, Name: Urban Trout Aquaculture, and ask them to share their payment screenshot for 5-minute farm team verification. STRICT NEGATIVE CONSTRAINT: Under NO circumstances should you EVER mention, send, or use JKBMERC00828895@jkb!
 
-PAYMENT LINK & QR/SCANNER REQUEST HANDLING ("SEND LINK" / "SEND QR" / "SCANNER BHEJO"):
-• We do NOT send QR code images anymore — our system uses 1-Tap Secure Cashfree Payment Links (https://urbantrout.in/p/...).
-• NEVER send or promise a QR code image or scanner image!
-• If a customer specifically asks for a QR code or scanner, ALWAYS reassure & guide them warmly:
-  "We don't use QR codes anymore — simply click our 1-Tap payment link and you can pay directly through any UPI app on your phone like Paytm, PhonePe, Google Pay, or J&K Bank mPay (even faster than scanning a QR!)."
+PAYMENT LINK & HDFC QR/SCANNER REQUEST HANDLING:
+• Default checkout mode is our 1-Tap Secure Cashfree Payment Link (https://urbantrout.in/p/..., opens Google Pay, PhonePe, Paytm, or J&K Bank mPay directly on the customer's phone).
+• If a customer specifically asks for a QR code or scanner ("do you have QR", "if you have QR", "QR please", "send QR", "send scanner", "scanner bhejo"), we HAPPILY send our locked HDFC SmartHub Vyapar UPI QR image!
 • When a customer asks for a "link", "QR", "Send QR", "scanner", or "scanner bhejo":
   - If their delivery area or locality in Srinagar is NOT confirmed yet:
-    Ask for their area: "Which area, locality, or landmark in Srinagar should we deliver to (e.g. Soura, Lal Chowk, Rajbagh, Hyderpora)? Or drop a quick WhatsApp location pin so I can send your 1-Tap Payment Link right away! 🐟"
-    DO NOT output [PAY_LINK: ...] without a confirmed locality!
-  - If their delivery locality AND quantity are known (e.g. 2 kg to Soura), output the [PAY_LINK: TOTAL_AMOUNT : ITEM_DESCRIPTION] tag!
-  - If quantity is not mentioned yet: "Certainly! Would you like 1 kg or 2 kg of Cleaned & Gutted trout so I can send your instant 1-Tap Payment Link right away? 🐟"
+    Ask for their area: "Which area, locality, or landmark in Srinagar should we deliver to (e.g. Soura, Lal Chowk, Rajbagh, Hyderpora)? Or drop a quick WhatsApp location pin so I can send your exact QR / payment link right away! 🐟"
+    DO NOT output [PAY_LINK: ...] or [HDFC_QR: ...] without a confirmed locality!
+  - If their delivery locality AND quantity are known (e.g. 2 kg to Soura):
+    • Use [HDFC_QR: TOTAL_AMOUNT : ITEM_DESCRIPTION] if they asked for QR/scanner!
+    • Otherwise use [PAY_LINK: TOTAL_AMOUNT : ITEM_DESCRIPTION] for the 1-Tap Cashfree link!
+  - If quantity is not mentioned yet: "Certainly! Would you like 1 kg or 2 kg of Cleaned & Gutted trout so I can share the payment link or HDFC QR right away? 🐟"
 
 OPERATING HOURS & DELIVERY PROTOCOLS:
 1. OPERATING HOURS & STRICT FRIDAY CLOSURE POLICY:
@@ -5904,11 +5936,13 @@ CRITICAL DIRECTIVE: Customer is making a FRESH NEW INQUIRY or placing a NEW orde
         }
         lastActiveGeminiModel = model;
 
-        // Check for [PAY_LINK: amount : desc] tag in reply
-        const payMatch = rawReply.match(/\[PAY_LINK:\s*(\d+)\s*:\s*([^\]]+)\]/i);
+        // Check for [PAY_LINK: amount : desc] or [HDFC_QR: amount : desc] tag in reply
+        const rawPayMatch = rawReply.match(/\[(PAY_LINK|HDFC_QR):\s*(\d+)\s*:\s*([^\]]+)\]/i);
+        const payMatch = rawPayMatch;
+        const isTagHdfcQr = Boolean(rawPayMatch && rawPayMatch[1].toUpperCase() === "HDFC_QR");
         if (payMatch) {
-          let amount = Number(payMatch[1]);
-          let desc = payMatch[2].trim();
+          let amount = Number(payMatch[2]);
+          let desc = payMatch[3].trim();
 
           // 🛡️ HARD SHIELD: Today's Order Pool & Existing Paid Order Check (Never generate duplicate link/order for already-paid customers)
           const currentPaidToday = TodayOrderPool.getTodayOrder(customerPhone || cleanPhone, chatId);
@@ -6123,6 +6157,29 @@ CRITICAL DIRECTIVE: Customer is making a FRESH NEW INQUIRY or placing a NEW orde
                 }
 
                 try {
+                  const wantHdfcQrForTag = isTagHdfcQr || isExplicitQrScannerAsk(userMessage);
+                  if (wantHdfcQrForTag && typeof options?.onDispatchHdfcQr === "function") {
+                    const hdfcTagOrderRef = `UT-WA-${Date.now().toString().slice(-6)}${Math.floor(10 + Math.random() * 90)}`;
+                    const hdfcParsedW = (desc || "").match(/(\d+(?:\.\d+)?)\s*(?:kg|kilos?)/i);
+                    const hdfcFee = hdfcParsedW ? Math.max(0, amount - Math.round(parseFloat(hdfcParsedW[1]) * 580)) : 0;
+                    const destLocality = activeLocalityName || (detectedLocMatch && detectedLocMatch.status === "IN_ZONE" ? detectedLocMatch.name : (savedLoc?.localityName || null));
+
+                    options.onDispatchHdfcQr({
+                      orderRef: hdfcTagOrderRef,
+                      amount,
+                      desc,
+                      deliveryFee: hdfcFee,
+                      distanceKm: custDist,
+                      localityName: destLocality,
+                      scheduledSlot,
+                      latitude: savedLoc?.latitude || null,
+                      longitude: savedLoc?.longitude || null,
+                      googleMapsUrl: savedLoc?.googleMapsUrl || null
+                    });
+
+                    const introText = stripInlineOrderSummaries(rawReply.replace(payMatch[0], "").trim());
+                    rawReply = introText || "__HDFC_QR_ONLY__";
+                  } else {
                   const orderStorageKey = (isCustomerAlreadyPaid && isExplicitAdditionalOrder)
                     ? `${cleanPhone || customerPhone || chatId}_ADD_${Date.now()}`
                     : (cleanPhone || customerPhone || chatId);
@@ -6199,6 +6256,7 @@ CRITICAL DIRECTIVE: Customer is making a FRESH NEW INQUIRY or placing a NEW orde
                   const introText = stripInlineOrderSummaries(rawReply.replace(payMatch[0], "").trim());
 
                   rawReply = introText ? `${introText}\n\n${orderCard}${bankFallback}` : `${orderCard}${bankFallback}`;
+                  }
                 } catch (cfErr) {
                   console.error("Error creating Cashfree link:", cfErr.message);
                   rawReply = rawReply.replace(payMatch[0], `(Our team will dispatch your secure payment link shortly)`);
@@ -6773,6 +6831,19 @@ async function checkNightlyReportSchedule() {
 }
 
 // ─── DIRECT SCANNER / QR INTERCEPT HELPER FUNCTIONS ───
+function isExplicitQrScannerAsk(userText = "") {
+  if (!userText) return false;
+  const clean = String(userText || "").trim();
+  if (clean.length > 180) return false;
+  if (/\b(?:already\s+paid|paid\s+(?:via|through|by)\s*(?:qr|upi|gpay|phonepe|paytm)|payment\s*(?:done|sent|made|completed)|not\s+via\s+qr)\b/i.test(clean)) {
+    return false;
+  }
+  const isAskingAccountDetails = /\b(?:account\s*(?:no|num|number|details)|bank\s*transfer|ifsc|direct\s*transfer|khata\s*(?:no|number)|mpay\s*(?:no|num|number|details|account))\b/i.test(clean);
+  if (isAskingAccountDetails) return false;
+
+  return /\b(?:(?:do\s*you|did\s*you|u|if\s*(?:you|u))\s*have\s*(?:a\s*)?(?:qr|scanner|barcode)|(?:send|bhej|bhejo|share|give|provide|want|need|chahiye)\s*(?:me\s*)?(?:a\s*|the\s*)?(?:qr|qr\s*code|scanner|barcode)|(?:qr\s*code|qr|scanner|barcode)\s*(?:bhejo|bhej|send|please|plz|photo|image|pic|code|hai|chahiye|available|milega|\?)?|(?:pay|scan)\s*(?:via|through|using|by|with|karke)?\s*(?:qr|scanner|barcode)|scan\s*(?:and|&|n)\s*pay)\b/i.test(clean);
+}
+
 function isCustomerRequestingQr(userText, chatHist = []) {
   if (!userText) return false;
   const clean = userText.trim();
@@ -6788,6 +6859,9 @@ function isCustomerRequestingQr(userText, chatHist = []) {
   // 0a. Account Number / Bank Transfer exemption (handled by AI / mPay intent decoder)
   const isAskingAccountDetails = /\b(?:account\s*(?:no|num|number|details)|bank\s*transfer|ifsc|direct\s*transfer|khata\s*(?:no|number)|mpay\s*(?:no|num|number|details|account)|m-pay\s*(?:no|num|number|details|account)|(?:google\s*pay|gpay|phonepe)\s*(?:number|no|num))\b/i.test(clean);
   if (isAskingAccountDetails) return false;
+
+  // 0a-2. Explicit QR / Scanner requests ("if you have QR", "do you have QR", "send scanner", "QR please") -> ALWAYS route to HDFC SmartHub QR!
+  if (isExplicitQrScannerAsk(clean)) return true;
 
   // 0b. General payment question or failure exemption -> Pass to Gemini to answer properly!
   const isQuestionOrProblem = /\b(?:do\s*you\s*(?:accept|take|have)|is\s*(?:it|there|upi|gpay|phonepe|cash|online)|kya\s*(?:upi|gpay|phonepe|cash|online)|accept\s*kart?e|chalega|chalta\s*hai|available|possible|failed|error|rejected|decline|nahi\s*chal\s*raha|dont\s*have|not\s*have|later|baad\s*mein|cash\s*on\s*delivery|cod)\b/i.test(clean);
@@ -7149,7 +7223,7 @@ async function startBot() {
     }
   });
 
-  async function dispatchLockedQrImage(sock, remoteJid, { cleanPhone, raw10, customerName, forceAmount, forceRef, forceDesc, forceDeliveryFee = 0, bypassLocationGuard = false, bypassHumanOverride = false, chatHist = [] }) {
+  async function dispatchLockedQrImage(sock, remoteJid, { cleanPhone, raw10, customerName, forceAmount, forceRef, forceDesc, forceDeliveryFee = 0, preferHdfcQr = false, bypassLocationGuard = false, bypassHumanOverride = false, chatHist = [] }) {
     try {
       if (!bypassHumanOverride && isChatManuallyPaused(remoteJid, cleanPhone || raw10)) {
         console.log(`[Locked QR Shield] Suppressed QR dispatch for ${remoteJid} — owner manual intervention active.`);
@@ -7188,7 +7262,7 @@ async function startBot() {
 
       if (!bypassLocationGuard && !locationConfirmed) {
         console.log(`[QR Guard] Blocked QR dispatch for ${remoteJid} — location is unverified.`);
-        const askLocText = `📍 *To send your 1-Tap Payment Link:* Which area, locality, or landmark in Srinagar should we deliver to (e.g. Soura, Lal Chowk, Rajbagh, Hyderpora)?\n\nOr drop a quick WhatsApp location pin so I can share your exact payment link right away! 🐟`;
+        const askLocText = `📍 *To send your ${preferHdfcQr ? "HDFC SmartHub UPI QR" : "1-Tap Payment Link"}:* Which area, locality, or landmark in Srinagar should we deliver to (e.g. Soura, Lal Chowk, Rajbagh, Hyderpora)?\n\nOr drop a quick WhatsApp location pin so I can share your exact ${preferHdfcQr ? "locked UPI QR" : "payment link"} right away! 🐟`;
         const sentLocPrompt = await sock.sendMessage(remoteJid, { text: askLocText });
         if (sentLocPrompt?.key?.id) {
           botSentMessageIds.add(sentLocPrompt.key.id);
@@ -7221,15 +7295,9 @@ async function startBot() {
         return true; // Handled
       }
 
-      // 1. Resolve requested weight & cut type up-front (prevents circular quantity/rate errors)
-      let detectedWeightKg = null;
-      const descWeight = (forceDesc || targetOrder?.items || "").match(/(\d+(?:\.\d+)?)\s*(?:kg|kilos?)/i);
-      if (descWeight) {
-        detectedWeightKg = parseFloat(descWeight[1]);
-      } else if (Array.isArray(chatHist)) {
-        // 🔴 CRITICAL FIX: ONLY search CUSTOMER (user role) messages for the requested weight.
-        // Bot (model role) messages contain "2 kg" in pitches like "minimum order 2 kg" or
-        // "2 kg Cleaned & Gutted = ₹1,160" which must NEVER override the customer's actual ask.
+      // 1. Resolve requested weight & cut type up-front (latest explicit customer weight overrides stale order weight)
+      let latestUserWeightKg = null;
+      if (!forceAmount && !forceDesc && Array.isArray(chatHist)) {
         for (let i = chatHist.length - 1; i >= 0; i--) {
           if (chatHist[i].role !== "user") continue; // ← SKIP ALL BOT MESSAGES
           const msgText = chatHist[i].text || "";
@@ -7237,21 +7305,28 @@ async function startBot() {
           if (wm) {
             const w = parseFloat(wm[1]);
             if (w >= 1 && w <= 50) {
-              detectedWeightKg = w;
+              latestUserWeightKg = w;
               break;
             }
           }
         }
       }
 
+      const descWeight = (forceDesc || targetOrder?.items || "").match(/(\d+(?:\.\d+)?)\s*(?:kg|kilos?)/i);
+      const existingOrderWeightKg = descWeight ? parseFloat(descWeight[1]) : null;
+      const detectedWeightKg = (!forceAmount && !forceDesc && latestUserWeightKg)
+        ? latestUserWeightKg
+        : (existingOrderWeightKg || latestUserWeightKg);
+      const weightChangedVsOrder = Boolean(detectedWeightKg && existingOrderWeightKg && Math.abs(detectedWeightKg - existingOrderWeightKg) > 0.01);
+
       // Only check explicit forceDesc or targetOrder.items — NEVER bot disclaimers in chatHist!
       const isWhole = /\b(?:whole|sabut)\b/i.test(forceDesc || targetOrder?.items || "");
       const baseUnitRate = isWhole ? 540 : 580;
       const minExpectedBase = detectedWeightKg ? Math.round(detectedWeightKg * baseUnitRate) : 0;
 
-      // 2. Resolve numeric amount
+      // 2. Resolve numeric amount (ignore stale order amount when customer changed weight)
       let amt = forceAmount ? parseInt(String(forceAmount).replace(/,/g, ""), 10) : null;
-      if (!amt && targetOrder && targetOrder.amount) {
+      if (!amt && !weightChangedVsOrder && targetOrder && targetOrder.amount) {
         const m = String(targetOrder.amount).replace(/,/g, "").match(/(\d+)/);
         if (m) amt = parseFloat(m[1]);
       }
@@ -7311,7 +7386,7 @@ async function startBot() {
       // 3. Resolve order reference (reuse active unpaid ref ONLY if amount/quantity hasn't changed)
       const prevAmtMatch = targetOrder?.amount ? String(targetOrder.amount).replace(/,/g, "").match(/(\d+(?:\.\d+)?)/) : null;
       const prevOrderAmt = prevAmtMatch ? Math.round(parseFloat(prevAmtMatch[1])) : null;
-      const isSameAmountAsPrev = prevOrderAmt !== null && Math.abs(prevOrderAmt - Math.round(amt)) <= 1;
+      const isSameAmountAsPrev = !weightChangedVsOrder && prevOrderAmt !== null && Math.abs(prevOrderAmt - Math.round(amt)) <= 1;
 
       // 4. Resolve items description
       let itemsDesc = forceDesc || (isSameAmountAsPrev ? targetOrder?.items : null);
@@ -7326,12 +7401,27 @@ async function startBot() {
         else itemsDesc = "1 kg Cleaned & Gutted (Starter Pack)";
       }
 
-      // 5. Reuse existing active Cashfree 1-Tap link if same amount (unless quantity/amount changed!)
-      const reusableQrLink = TodayOrderPool.findReusablePaymentLink(cleanPhone || raw10, remoteJid, amt);
+      // 5. Route between HDFC SmartHub Vyapar UPI QR (explicit QR/scanner ask) vs Cashfree 1-Tap Short Link (default)
+      const reusableQrLink = preferHdfcQr ? null : TodayOrderPool.findReusablePaymentLink(cleanPhone || raw10, remoteJid, amt);
       let orderRef = forceRef || (reusableQrLink?.orderRef) || (isSameAmountAsPrev ? targetOrder?.orderRef : null) || `UT-WA-${Date.now().toString().slice(-8)}`;
 
       let paymentResult;
-      if (reusableQrLink && reusableQrLink.url) {
+      if (preferHdfcQr) {
+        const hdfcQr = await generateHdfcSmartHubQrBuffer(amt, orderRef);
+        console.log(`📸 [HDFC SmartHub QR Generated] Locked ₹${amt} UPI QR (${HDFC_COUNTER_VPA}) for #${orderRef} -> ${cleanPhone || remoteJid}`);
+        paymentResult = {
+          tier: 1,
+          mode: "hdfc_smarthub_qr",
+          qrBuffer: hdfcQr.qrBuffer,
+          upiUri: hdfcQr.upiUri,
+          payUrl: null,
+          cashfreeLinkId: isSameAmountAsPrev ? (targetOrder?.cashfreeLinkId || null) : null,
+          paymentLinkId: isSameAmountAsPrev ? (targetOrder?.paymentLinkId || null) : null,
+          orderRef,
+          bankDetailsText: null,
+          isHdfcQr: true
+        };
+      } else if (reusableQrLink && reusableQrLink.url) {
         console.log(`♻️ [Link Reuse QR-Dispatch] Reusing single active payment link ${reusableQrLink.url} (#${orderRef}) for ${cleanPhone || remoteJid} (₹${amt})`);
         paymentResult = {
           tier: 1,
@@ -7359,8 +7449,8 @@ async function startBot() {
         });
       }
 
-      if (!paymentResult.payUrl && !paymentResult.bankDetailsText) {
-        throw new Error("Failed to generate payment link");
+      if (!paymentResult.qrBuffer && !paymentResult.payUrl && !paymentResult.bankDetailsText) {
+        throw new Error("Failed to generate payment QR or link");
       }
 
       const qrFeeMatch = (itemsDesc || "").match(/\(\s*\+\s*₹?\s*(\d+)\s*(?:Special\s+|Express\s+)?Delivery\s*\)/i);
@@ -7401,22 +7491,30 @@ async function startBot() {
         ? `• *Name:* ${customerName}\n`
         : "";
 
-      const payLinkLine = paymentResult.payUrl
-        ? `🔗 *Tap to Pay Instantly:* ${paymentResult.payUrl}\n_(${paymentResult.isReused ? "Same active link for your order — c" : "C"}lick the link to pay directly using Paytm, PhonePe, Google Pay, or J&K Bank mPay — we no longer require scanning a QR!)_\n\n`
+      const payLinkLine = paymentResult.isHdfcQr
+        ? `📲 *Scan with Any UPI App* (Google Pay, PhonePe, Paytm, or J&K Bank mPay)\n• *UPI ID:* \`${HDFC_COUNTER_VPA}\`\n👉 _Once paid, kindly share your payment screenshot here so our team can confirm on HDFC SmartHub and begin your fresh live harvest immediately!_\n_(Paying from this same phone without scanning? Reply *"Send Link"* for a 1-Tap link.)_\n\n`
+        : paymentResult.payUrl
+        ? `🔗 *Tap to Pay Instantly:* ${paymentResult.payUrl}\n_(${paymentResult.isReused ? "Same active link for your order — c" : "C"}lick the link to pay directly using Paytm, PhonePe, Google Pay, or J&K Bank mPay!)_\n\n`
         : "";
       const bankDetailsLine = paymentResult.bankDetailsText ? `\n\n${paymentResult.bankDetailsText}` : "";
 
-      const caption = (paymentResult.payUrl ? `💳 *URBAN TROUT • 1-TAP PAYMENT LINK*\n` : `🐟 *URBAN TROUT • PAYMENT DETAILS*\n`) +
+      const caption = (paymentResult.isHdfcQr
+        ? `📸 *URBAN TROUT • HDFC SMARTHUB UPI QR*\n`
+        : paymentResult.payUrl
+        ? `💳 *URBAN TROUT • 1-TAP PAYMENT LINK*\n`
+        : `🐟 *URBAN TROUT • PAYMENT DETAILS*\n`) +
         `• *Order:* ${cleanItemDesc}\n` +
         custNameLine +
         custPhoneLine +
         deliveryQrLine +
-        `• *Amount:* *₹${amt.toLocaleString("en-IN")}*${paymentResult.payUrl ? " (Exact Amount Locked)" : ""}\n` +
+        `• *Amount:* *₹${amt.toLocaleString("en-IN")}*${(paymentResult.isHdfcQr || paymentResult.payUrl) ? " (Exact Amount Locked)" : ""}\n` +
         `• *Ref:* #${orderRef}\n\n` +
         payLinkLine +
         `_Packed fresh in 100% food-grade biodegradable polythene (0% ice). Delivered directly to your shared GPS pin (our rider calls prior to arrival for a prompt handover at your shared pin)._${qrWeatherLine}${bankDetailsLine} 🚀`;
 
-      const qrMsg = await sock.sendMessage(remoteJid, { text: caption });
+      const qrMsg = paymentResult.qrBuffer
+        ? await sock.sendMessage(remoteJid, { image: paymentResult.qrBuffer, caption })
+        : await sock.sendMessage(remoteJid, { text: caption });
 
       if (qrMsg && qrMsg.key && qrMsg.key.id) {
         botSentMessageIds.add(qrMsg.key.id);
@@ -7428,11 +7526,11 @@ async function startBot() {
         phone: cleanPhone || raw10,
         name: customerName || targetOrder?.name || "Customer",
         role: "ai_bot",
-        text: `[${paymentResult.payUrl ? "1-Tap Payment Link" : "Bank Details"} ₹${amt}] ${caption}`,
+        text: `[${paymentResult.isHdfcQr ? "HDFC SmartHub QR" : paymentResult.payUrl ? "1-Tap Payment Link" : "Bank Details"} ₹${amt}] ${caption}`,
         meta: { payRef: orderRef, amount: amt }
       });
 
-      console.log(`💳 [${paymentResult.payUrl ? "Cashfree 1-Tap Link" : "Bank Fallback"} Dispatched] Sent ₹${amt} to ${formatPhoneDisplay(cleanPhone || raw10)} for #${orderRef}`);
+      console.log(`💳 [${paymentResult.isHdfcQr ? "HDFC SmartHub UPI QR" : paymentResult.payUrl ? "Cashfree 1-Tap Link" : "Bank Fallback"} Dispatched] Sent ₹${amt} to ${formatPhoneDisplay(cleanPhone || raw10)} for #${orderRef}`);
 
       // Update orders store (preserve original createdAt on reused link; reset createdAt on new link/amount)
       const updatedOrder = {
@@ -7440,6 +7538,7 @@ async function startBot() {
         orderRef,
         paymentLinkId: paymentResult.paymentLinkId || (isSameAmountAsPrev ? (targetOrder?.paymentLinkId || null) : null),
         cashfreeLinkId: paymentResult.cashfreeLinkId || (isSameAmountAsPrev ? (targetOrder?.cashfreeLinkId || null) : null),
+        ...(paymentResult.isHdfcQr ? { paymentGateway: "HDFC SmartHub UPI", upiVpa: HDFC_COUNTER_VPA } : { paymentGateway: paymentResult.payUrl ? "Cashfree" : (targetOrder?.paymentGateway || "Bank Transfer") }),
         chatId: remoteJid,
         phone: cleanPhone || raw10,
         name: customerName || targetOrder?.name || "Customer",
@@ -7451,7 +7550,9 @@ async function startBot() {
         latitude: targetOrder?.latitude ?? locDetails?.latitude ?? savedLoc?.latitude ?? null,
         longitude: targetOrder?.longitude ?? locDetails?.longitude ?? savedLoc?.longitude ?? null,
         googleMapsUrl: targetOrder?.googleMapsUrl || savedLoc?.googleMapsUrl || null,
-        status: targetOrder?.status?.includes("Paid") ? targetOrder.status : (paymentResult.payUrl ? "Payment Link Sent" : "Bank Transfer Details Sent"),
+        status: targetOrder?.status?.includes("Paid")
+          ? targetOrder.status
+          : (paymentResult.isHdfcQr ? "HDFC UPI QR Sent — Awaiting Confirmation" : paymentResult.payUrl ? "Payment Link Sent" : "Bank Transfer Details Sent"),
         payUrl: paymentResult.payUrl || (isSameAmountAsPrev ? (targetOrder?.payUrl || null) : null),
         ...(paymentResult.isReused ? { createdAt: targetOrder?.createdAt || new Date().toISOString() } : { createdAt: new Date().toISOString() }),
         updatedAt: new Date().toISOString()
@@ -7535,8 +7636,9 @@ async function startBot() {
     }
 
     // ─── STRICT ADMIN COMMAND AUTHENTICATION LOCK ───
-    // ONLY Admin Suhail (+91 7006604148 / msg.key.fromMe / 174637916885151) is allowed to execute ANY '#' commands!
-    if (text.startsWith("#")) {
+    // ONLY Admin Suhail (+91 7006604148 / msg.key.fromMe / 174637916885151) is allowed to execute ANY '#' or '$cmd' commands!
+    const isAdminCmdText = text.startsWith("#") || /^\$(?:paid|confirm|delivered|done|complete|orders|queue|dispatch|status|help|commands|link|qr|scanner|pause|resume|bot|report|weather|friday|location|loc|contacts|scanchats|restart|reboot|reload)\b/i.test(text);
+    if (isAdminCmdText) {
       if (!isOwner) {
         console.warn(`🚨 [UNAUTHORIZED ADMIN COMMAND ATTEMPT BLOCKED] Caller ${formatPhoneDisplay(cleanPhone)} (${remoteJid}) attempted to run command "${text}". ACCESS DENIED.`);
         return; // SILENTLY DROP - Never execute, never reveal internal orders, never pass to Gemini!
@@ -7544,8 +7646,9 @@ async function startBot() {
     }
 
     // 1. Check for Owner Messages & Commands from Phone (Vendor phone OR Suhail's phone 7006604148)
-    if (isOwner && text.startsWith("#")) {
-      const lower = text.toLowerCase().trim();
+    const cmdText = isAdminCmdText && text.startsWith("$") ? `#${text.slice(1)}` : text;
+    if (isOwner && isAdminCmdText) {
+      const lower = cmdText.toLowerCase().trim();
       const resolvedCustPhone = resolveCustomerPhone(remoteJid);
       const chatPauseKeys = Array.from(new Set([remoteJid, cleanPhone, raw10, resolvedCustPhone].filter(Boolean)));
 
@@ -7718,8 +7821,8 @@ async function startBot() {
             `• *#loc bemina* / *#location airport road* / *#location <maps link>*\n\n` +
             `🛵 *Mobile Order Dispatch (iPhone Control):*\n` +
             `• *#orders* (View all active undelivered orders right now)\n` +
-            `• *#paid* (Confirm payment inside customer chat & auto-send official receipt)\n` +
-            `• *#paid [amount]* (e.g. *#paid 1259* inside customer chat)\n` +
+            `• *#paid* or *$paid* (Confirm HDFC QR / manual payment in chat & sync Order Dashboard)\n` +
+            `• *#paid [amount]* or *$paid [amount]* (e.g. *$paid 1299* inside customer chat)\n` +
             `• *#paid 9876543210 1259* (Confirm payment for specific phone number)\n` +
             `• *#delivered* (Mark order as delivered & remove from active queue)\n` +
             `• *#delivered 9876543210* (Mark order delivered by phone or ref)\n\n` +
@@ -7841,7 +7944,7 @@ async function startBot() {
 
       // Owner Command: #location / #loc / #zone - Admin-only GPS/locality rate lookup (never auto-sends to customers)
       if (/^#(?:location|loc|zone|checkloc)\b/i.test(lower)) {
-        const locQuery = text
+        const locQuery = cmdText
           .replace(/^#(?:location|loc|zone|checkloc)\b/i, "")
           .replace(/\s+/g, " ")
           .trim();
@@ -7897,9 +8000,9 @@ async function startBot() {
         return;
       }
 
-      // Owner Command: #qr or #scanner - Send locked QR image into customer chat (#qr 2kg +149, #qr 1740, etc.)
+      // Owner Command: #qr or #scanner - Send locked HDFC SmartHub UPI QR image into customer chat (#qr 2kg +149, $qr 1740, etc.)
       if (lower.startsWith("#qr") || lower.startsWith("#scanner")) {
-        const parsed = parseQuickOrderParams(text, cleanPhone || raw10, { defaultWeightIfMissing: null });
+        const parsed = parseQuickOrderParams(cmdText, cleanPhone || raw10, { defaultWeightIfMissing: null });
 
         let targetJid = null;
         let targetPhone = null;
@@ -7931,6 +8034,7 @@ async function startBot() {
           forceAmount: finalAmt,
           forceDesc: finalDesc,
           forceDeliveryFee: parsed.deliveryFee || 0,
+          preferHdfcQr: true,
           bypassLocationGuard: true,
           bypassHumanOverride: true,
           chatHist
@@ -7945,13 +8049,13 @@ async function startBot() {
               ? ` (${resolvedCustName})`
               : "";
             await sock.sendMessage(ownerDeskJid, {
-              text: `✅ *1-Tap Payment Link Dispatched!* 🐟\nDelivered ${finalAmt ? `*₹${finalAmt.toLocaleString("en-IN")}*` : "locked"}${parsed.deliveryFee > 0 ? ` (incl. +₹${parsed.deliveryFee} delivery)` : ""} Cashfree payment link directly to ${formatPhoneDisplay(targetPhone)}${nameNote}.`
+              text: `✅ *HDFC SmartHub UPI QR Dispatched!* 🐟\nDelivered ${finalAmt ? `*₹${finalAmt.toLocaleString("en-IN")}*` : "locked"}${parsed.deliveryFee > 0 ? ` (incl. +₹${parsed.deliveryFee} delivery)` : ""} locked HDFC QR directly to ${formatPhoneDisplay(targetPhone)}${nameNote}.\n\n👉 _Once paid on SmartHub, reply *$paid* in chat to confirm._`
             });
           }
         } else {
-          console.error(`⚠️ [#qr/#link Failure] Could not generate/dispatch payment link for ${targetJid}`);
+          console.error(`⚠️ [#qr/#link Failure] Could not generate/dispatch HDFC QR for ${targetJid}`);
           await sock.sendMessage(ownerDeskJid, {
-            text: `⚠️ *Payment Link Notice:* Could not generate 1-Tap payment link automatically for ${formatPhoneDisplay(targetPhone) || targetJid}. Please check connection or use #link.`
+            text: `⚠️ *HDFC QR Notice:* Could not generate locked HDFC QR automatically for ${formatPhoneDisplay(targetPhone) || targetJid}. Please check connection or use #link.`
           });
         }
         return;
@@ -8020,7 +8124,7 @@ async function startBot() {
         return;
       }
 
-      // Owner Command: #paid or #confirm - Manually confirm payment and send official receipt
+      // Owner Command: #paid / $paid or #confirm - Manually confirm payment, send official receipt, and sync Order Dashboard
       if (lower.startsWith("#paid") || lower.startsWith("#confirm")) {
         try {
           const ordersFilePath = path.join(__dirname, "customer_orders.json");
@@ -8029,10 +8133,10 @@ async function startBot() {
             try { orders = JSON.parse(fs.readFileSync(ordersFilePath, "utf8")); } catch (_) {}
           }
 
-          // Parse target phone and amount from command (e.g. #paid 9419084032 1259)
-          const phoneInCmd = text.match(/\b([6-9]\d{9})\b/);
-          const cleanedPaidArgs = text.replace(/#paid|#confirm/gi, "").replace(/\b[6-9]\d{9}\b/g, "").replace(/\bUT-[A-Z0-9-]+\b/gi, "");
-          const amtInCmd = cleanedPaidArgs.match(/\b(\d{3,5})\b/);
+          // Parse target phone and amount from command (e.g. $paid 1299, #paid 9419084032 1259)
+          const phoneInCmd = cmdText.match(/\b([6-9]\d{9})\b/);
+          const cleanedPaidArgs = cmdText.replace(/[#$](?:paid|confirm)/gi, "").replace(/\b[6-9]\d{9}\b/g, "").replace(/\bUT-[A-Z0-9-]+\b/gi, "").replace(/,/g, "");
+          const amtInCmd = cleanedPaidArgs.match(/\b(\d{3,6})\b/);
 
           let targetPhone = phoneInCmd ? phoneInCmd[1] : (cleanPhone || raw10);
           let existingOrder = (targetPhone && (orders[targetPhone] || Object.values(orders).find(o => o && (o.phone || "").replace(/\D/g, "").slice(-10) === targetPhone && !isOrderDeliveredOrClosed(o)))) || null;
@@ -8048,11 +8152,12 @@ async function startBot() {
 
           if (!targetPhone && !targetJid) {
             await sock.sendMessage(ownerDeskJid, {
-              text: `⚠️ *Please specify customer phone:*\nExample: *#paid 9419084032 1259*`
+              text: `⚠️ *Please specify customer phone or run inside customer chat:*\nExample: *$paid 1299* or *#paid 9419084032 1259*`
             });
             return;
           }
 
+          const metaForCust = (targetJid && chatMetadata[targetJid]) || (targetPhone && chatMetadata[targetPhone]) || null;
           const existingAmtParsed = existingOrder?.amount
             ? parseInt(String(existingOrder.amount).replace(/,/g, "").match(/\d+/)?.[0] || "", 10)
             : 0;
@@ -8060,9 +8165,15 @@ async function startBot() {
           const orderRef = existingOrder?.orderRef || `UT-WA-${Date.now().toString().slice(-8)}`;
           const itemsDesc = existingOrder?.items || (paidAmt >= 1700 ? "3 kg Cleaned & Gutted" : "2 kg Cleaned & Gutted");
 
-          const metaCustName = (targetJid && chatMetadata[targetJid]?.pushName) ||
-            (targetPhone && chatMetadata[targetPhone]?.pushName) ||
-            null;
+          const isHdfcPayment = Boolean(
+            existingOrder?.paymentGateway?.toLowerCase().includes("hdfc") ||
+            /hdfc|vyapar|qr/i.test(existingOrder?.status || "") ||
+            existingOrder?.upiVpa === HDFC_COUNTER_VPA
+          );
+          const gatewayLabel = isHdfcPayment ? "HDFC SmartHub UPI" : "Verified UPI Transfer";
+          const manualPayId = isHdfcPayment ? `HDFC-SMARTHUB-${Date.now()}` : `MANUAL-PAY-${Date.now()}`;
+
+          const metaCustName = metaForCust?.pushName || null;
           const updatedOrder = {
             ...(existingOrder || {}),
             orderRef,
@@ -8070,14 +8181,20 @@ async function startBot() {
             phone: targetPhone,
             name: existingOrder?.name || metaCustName || "Customer",
             items: itemsDesc,
-            amount: `₹${paidAmt} (Manual Payment Verified)`,
+            amount: `₹${paidAmt} [PAID via ${gatewayLabel}]`,
             status: "Paid & Confirmed (Live Harvest Pending)",
-            paymentId: `MANUAL-PAY-${Date.now()}`,
+            paymentGateway: gatewayLabel,
+            paymentId: manualPayId,
             paidAt: new Date().toISOString(),
+            deliveryArea: existingOrder?.deliveryArea || metaForCust?.localityName || "Srinagar",
+            distanceKm: existingOrder?.distanceKm ?? metaForCust?.distanceKm ?? null,
+            latitude: existingOrder?.latitude ?? metaForCust?.latitude ?? null,
+            longitude: existingOrder?.longitude ?? metaForCust?.longitude ?? null,
+            googleMapsUrl: existingOrder?.googleMapsUrl || metaForCust?.googleMapsUrl || null,
             deliveryTime: existingOrder?.deliveryTime || "Within 90–120 Minutes (Today)"
           };
 
-          const hasGps = Boolean(updatedOrder.latitude || (targetJid && chatMetadata[targetJid]?.latitude));
+          const hasGps = Boolean(updatedOrder.latitude || metaForCust?.latitude);
           const manualWeatherPolicy = evaluateWeatherDeliveryPolicy(updatedOrder?.distanceKm);
           const { slot: finalManualSlot, commitment: deliveryCommitmentManual } = resolveOrderDeliveryCommitment(updatedOrder, targetJid, manualWeatherPolicy);
           updatedOrder.deliveryTime = finalManualSlot;
@@ -8086,6 +8203,9 @@ async function startBot() {
           syncWhatsAppOrderToSupabase(updatedOrder, updatedOrder.paymentId).catch((syncErr) => {
             console.warn("[Supabase Order Sync Notice]:", syncErr?.message || syncErr);
           });
+          if (targetPhone && paidAmt > 0) {
+            autoSettleKhataInSupabase(targetPhone, paidAmt, updatedOrder.paymentId, orderRef);
+          }
 
           // 1. Send official WhatsApp confirmation receipt to customer
           const receiptMsg = buildPaymentConfirmedReceipt({
@@ -8094,24 +8214,35 @@ async function startBot() {
             paidAmt,
             finalSlot: finalManualSlot,
             deliveryCommitment: deliveryCommitmentManual,
-            hasGps
+            hasGps,
+            gatewayLabel
           });
 
           if (targetJid) {
-            await sock.sendMessage(targetJid, { text: receiptMsg });
+            const sentManualReceipt = await sock.sendMessage(targetJid, { text: receiptMsg });
+            if (sentManualReceipt?.key?.id) {
+              botSentMessageIds.add(sentManualReceipt.key.id);
+              setTimeout(() => botSentMessageIds.delete(sentManualReceipt.key.id), 10 * 60 * 1000);
+            }
           }
 
           // 2. Send instant Telegram dispatch card to Suhail
-          await sendTelegramDispatchCard(updatedOrder, { amount: paidAmt, phone: targetPhone });
+          await sendTelegramDispatchCard(updatedOrder, {
+            amount: paidAmt,
+            phone: targetPhone,
+            paymentId: updatedOrder.paymentId,
+            vpa: isHdfcPayment ? HDFC_COUNTER_VPA : undefined,
+            mode: gatewayLabel
+          });
 
           // 3. Confirm to owner
           if (targetJid !== ownerDeskJid) {
             await sock.sendMessage(ownerDeskJid, {
-              text: `✅ *Order #${orderRef} Confirmed!* 🐟\n\n• Customer: ${updatedOrder.name} (+91 ${targetPhone || "N/A"})\n• Amount: ₹${paidAmt} [PAID]\n• Automated WhatsApp receipt delivered to customer\n• Dispatch alert posted to Telegram!`
+              text: `✅ *Order #${orderRef} Confirmed!* 🐟\n\n• Customer: ${updatedOrder.name} (+91 ${targetPhone || "N/A"})\n• Amount: ₹${paidAmt} [PAID via ${gatewayLabel}]\n• Automated WhatsApp receipt delivered to customer\n• Synced to Order Dashboard & Telegram!`
             });
           }
         } catch (payErr) {
-          console.error("Error in #paid command:", payErr);
+          console.error("Error in #paid/$paid command:", payErr);
           await sock.sendMessage(ownerDeskJid, { text: `⚠️ Error recording payment: ${payErr.message}` });
         }
         return;
@@ -9125,21 +9256,23 @@ async function startBot() {
     }
     saveChatMetadata();
 
-    // ─── 0. BULLETPROOF DIRECT SCANNER / QR INTERCEPT (ZERO DUPLICATE MESSAGES) ───
+    // ─── 0. BULLETPROOF DIRECT SCANNER / QR & LINK INTERCEPT (ZERO DUPLICATE MESSAGES) ───
     const chatHist = chatHistories.get(remoteJid) || [];
     const isPausedForOwner = isChatManuallyPaused(remoteJid, cleanPhone || raw10);
     const activeTodayOrd = TodayOrderPool.getTodayOrder(cleanPhone || raw10, remoteJid);
+    const wantsHdfcQr = isExplicitQrScannerAsk(effectiveUserText);
     const newQtyMatch = effectiveUserText.match(/\b(\d+(?:\.\d+)?)\s*(?:kg|kilos?|kgs)\b/i);
     const oldQtyMatch = activeTodayOrd?.items ? String(activeTodayOrd.items).match(/(\d+(?:\.\d+)?)\s*(?:kg|kilos?|kgs)\b/i) : null;
     const isChangingOrderQty = Boolean(
       activeTodayOrd && !TodayOrderPool.isOrderPaid(activeTodayOrd) &&
       newQtyMatch && oldQtyMatch && Math.abs(parseFloat(newQtyMatch[1]) - parseFloat(oldQtyMatch[1])) > 0.01
     );
-    if (!isPausedForOwner && !isChangingOrderQty && isCustomerRequestingQr(effectiveUserText, chatHist)) {
+    if (!isPausedForOwner && (!isChangingOrderQty || wantsHdfcQr) && isCustomerRequestingQr(effectiveUserText, chatHist)) {
       const qrSent = await dispatchLockedQrImage(sock, remoteJid, {
         cleanPhone,
         raw10,
         customerName,
+        preferHdfcQr: wantsHdfcQr,
         chatHist: [...chatHist, { role: "user", text: effectiveUserText }]
       });
       if (qrSent) return;
@@ -9192,9 +9325,13 @@ async function startBot() {
     // Maintain typing presence while Gemini prepares the response (non-blocking)
     sock.sendPresenceUpdate("composing", remoteJid).catch(() => {});
 
+    let pendingHdfcQrTagPayload = null;
     try {
       const aiReply = await generateGeminiReply(remoteJid, effectiveUserText, cleanPhone, customerName, {
         isVoiceNote: Boolean(transcribedVoice),
+        onDispatchHdfcQr: (qrPayload) => {
+          pendingHdfcQrTagPayload = qrPayload;
+        },
         isAborted: () => {
           const g = activeChatGenerations.get(remoteJid);
           return !g || g.turnId !== currentTurnId;
@@ -9228,21 +9365,38 @@ async function startBot() {
       console.log(`│ 📤 Reply: "${aiReply.replace(/\n+/g, ' ')}"`);
       console.log(`└──────────────────────────────────────────────────────────────────────────\n`);
 
-      // Send verified text reply to customer
-      const sentMsg = await sock.sendMessage(remoteJid, { text: aiReply });
-      if (sentMsg && sentMsg.key && sentMsg.key.id) {
-        botSentMessageIds.add(sentMsg.key.id);
-        setTimeout(() => botSentMessageIds.delete(sentMsg.key.id), 10 * 60 * 1000);
+      // Send verified text reply (unless reply is strictly a [HDFC_QR] dispatch)
+      if (aiReply && aiReply.trim() !== "__HDFC_QR_ONLY__") {
+        const sentMsg = await sock.sendMessage(remoteJid, { text: aiReply });
+        if (sentMsg && sentMsg.key && sentMsg.key.id) {
+          botSentMessageIds.add(sentMsg.key.id);
+          setTimeout(() => botSentMessageIds.delete(sentMsg.key.id), 10 * 60 * 1000);
+        }
+        await sock.sendPresenceUpdate("available", remoteJid).catch(() => {});
+        appendDailyChatLog({
+          jid: remoteJid,
+          phone: cleanPhone || raw10,
+          name: customerName,
+          role: "ai_bot",
+          text: aiReply,
+          meta: { responseMs: responseTimeMs, locality: activeLocality }
+        });
       }
-      await sock.sendPresenceUpdate("available", remoteJid).catch(() => {});
-      appendDailyChatLog({
-        jid: remoteJid,
-        phone: cleanPhone || raw10,
-        name: customerName,
-        role: "ai_bot",
-        text: aiReply,
-        meta: { responseMs: responseTimeMs, locality: activeLocality }
-      });
+
+      if (pendingHdfcQrTagPayload) {
+        await dispatchLockedQrImage(sock, remoteJid, {
+          cleanPhone,
+          raw10,
+          customerName,
+          forceAmount: pendingHdfcQrTagPayload.amount,
+          forceRef: pendingHdfcQrTagPayload.orderRef,
+          forceDesc: pendingHdfcQrTagPayload.desc,
+          forceDeliveryFee: pendingHdfcQrTagPayload.deliveryFee || 0,
+          preferHdfcQr: true,
+          bypassLocationGuard: true,
+          chatHist: [...(chatHistories.get(remoteJid) || [])]
+        });
+      }
 
       // Link-only mode: Gemini ORDER SUMMARY card already contains the short 1-Tap Cashfree link (no companion QR image sent)
 
@@ -9576,7 +9730,7 @@ async function startBot() {
         } catch (_) {}
 
         // 5. Smart Adaptive Multi-Message Buffer (waits 4000ms for regular typing, 1200ms for captionless image/doc, 600ms for quick actions)
-        const isQuickAction = isCustomerRequestingQr(rawText) || rawText.startsWith("#");
+        const isQuickAction = isCustomerRequestingQr(rawText) || rawText.startsWith("#") || /^\$(?:paid|confirm|delivered|orders|link|qr|help|status)/i.test(rawText);
         const isDocMsg = Boolean(inner.documentMessage || inner.documentWithCaptionMessage?.message?.documentMessage);
         const isCaptionlessImage = (Boolean(inner.imageMessage) || isDocMsg) && !rawText;
         const DEBOUNCE_DELAY_MS = isQuickAction ? 600 : (isCaptionlessImage ? 1200 : 4000);
@@ -9668,7 +9822,12 @@ if (require.main === module) {
     stripInlineOrderSummaries,
     isExplicitCodInsistence,
     isCustomerRequestingQr,
+    isExplicitQrScannerAsk,
     parseQuickOrderParams,
+    HDFC_COUNTER_VPA,
+    HDFC_MERCHANT_REF,
+    buildHdfcSmartHubUpiUri,
+    generateHdfcSmartHubQrBuffer,
     BOT_VERSION,
     saveChatMetadata,
     chatMetadata,

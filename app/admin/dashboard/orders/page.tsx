@@ -76,7 +76,15 @@ function orderToSlipData(order: Order, upi: string): InvoiceSlipData {
     balanceAmount,
     refundAmount,
     paymentStatus: isPaid ? (refundAmount > 0 ? "REFUND DUE" : "PAID") : "PAYMENT DUE",
-    paymentMethod: isPaid ? "Cashfree Online / UPI" : "Cash on Delivery",
+    paymentMethod: !isPaid
+      ? "Cash on Delivery"
+      : /HDFC SmartHub|HDFC-SMARTHUB|STQU178760132267/i.test(order.customer_address || "")
+      ? "HDFC SmartHub UPI"
+      : /J&K Bank|mPay|JKBMERC/i.test(order.customer_address || "")
+      ? "J&K Bank mPay"
+      : /Manual UPI|MANUAL-PAY/i.test(order.customer_address || "")
+      ? "Manual UPI Transfer"
+      : "Cashfree Online / UPI",
     upiId: upi,
   };
 }
