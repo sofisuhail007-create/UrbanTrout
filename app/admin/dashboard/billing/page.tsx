@@ -1237,7 +1237,7 @@ STATUS: Awaiting Remote Payment
 *Tap below to pay securely:*
 ${linkUrl}
 
-_(Supports Google Pay, PhonePe, Paytm, UPI & Cards)_
+_(Supports Google Pay, PhonePe, Paytm, J&K Bank mPay & All UPI Apps)_
 ${notes ? `\n> *Note:* ${notes}\n` : ""}
 - Amount is locked to ensure exact billing.
 - Order is confirmed automatically once paid.
@@ -1263,7 +1263,7 @@ ${notes ? `- *Delivery Note:* ${notes}\n` : ""}
 *Click here to pay securely:*
 ${linkUrl}
 
-_(Pay via UPI / GPay / PhonePe / Paytm / Card)_
+_(Pay via Google Pay / PhonePe / Paytm / J&K Bank mPay / Any UPI App)_
 Your payment confirms automatically without screenshots.
 
 *Farm Helpline:* +91 84910 06127`;
@@ -1293,7 +1293,7 @@ ${notes ? `- *Delivery Note:* ${notes}\n` : ""}
 ${linkUrl}
 
 > *Amount Locked:* Rs. ${amtFormatted} (Exact billing)
-> *Instant Confirmation:* Payment verifies automatically via UPI, Google Pay, PhonePe, Paytm, or Card. No screenshot required.
+> *Instant Confirmation:* Payment verifies automatically via Google Pay, PhonePe, Paytm, J&K Bank mPay, or any UPI app. No screenshot required.
 
 *Urban Trout Farm Helpline:* +91 84910 06127
 Naseem Bagh / Malabagh, Srinagar`;
@@ -2321,7 +2321,7 @@ ${itemsFormattedText}
 • *A/C No:* ${jkBankAccountNumber || "0724010100000499"} (IFSC: ${jkBankIfsc || "JAKA0MALBAG"})
 • *A/C Name:* ${jkBankAccountName || "Urban Trout Aquaculture"}
 
-*2. Online Gateway (Cards / UPI / NetBanking):*
+*2. Online Gateway (All UPI Apps — GPay / PhonePe / Paytm / mPay):*
 ${payUrl}
 
 *View Bill & Scan QR:*
@@ -2338,7 +2338,7 @@ Here is your order summary for *#${billNum}*:
 
 ${itemsFormattedText}
 
-*Pay Online (UPI, Cards, NetBanking):*
+*Pay Online via 1-Tap UPI (GPay, PhonePe, Paytm, mPay):*
 ${payUrl}
 
 *View Bill & Download PDF:*
@@ -5600,7 +5600,7 @@ Helpline: +91 84910 06127`;
                         ? "Scan with Google Pay, PhonePe, Paytm, PayZapp, or Any UPI App"
                         : paymentMethod === "JkBankSoundbox"
                         ? "Scan with J&K mPay Delight, Google Pay, PhonePe, or Paytm"
-                        : "Tap link to pay via Google Pay, PhonePe, Paytm, J&K Bank mPay, or Card"}
+                        : "Tap link to pay via Google Pay, PhonePe, Paytm, J&K Bank mPay, or BHIM UPI"}
                     </p>
 
                     {/* Supported Apps Chips */}

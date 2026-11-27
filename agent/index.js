@@ -27,10 +27,10 @@ process.on("unhandledRejection", (reason) => {
 // ============================================================================
 // URBAN TROUT SALES AGENT — BUILD & VERSION TRACKING
 // ============================================================================
-const BOT_VERSION = "3.7.0";
-const BOT_LAST_UPDATED = "27-Nov-2026, 08:40 AM IST";
-const BOT_RELEASE_TITLE = "Cashfree 1-Tap Links + HDFC SmartHub UPI QR & $paid Flow";
-const BOT_RELEASE_NOTES = "1. Default Cashfree 1-Tap short links (https://urbantrout.in/p/xxxxx) with single-link reuse unless quantity/area changes. 2. On-demand HDFC SmartHub Vyapar locked UPI QR image (Vyapar.178760132267@hdfcbank) when customer asks for QR/scanner. 3. $paid / #paid manual verification command with instant customer receipt, Telegram alert, and Supabase Order Dashboard sync.";
+const BOT_VERSION = "3.7.1";
+const BOT_LAST_UPDATED = "27-Nov-2026, 09:05 AM IST";
+const BOT_RELEASE_TITLE = "UPI-Only Cashfree Link Copy, Contact Phone in Link Purpose & Weekday Slots";
+const BOT_RELEASE_NOTES = "1. Removed Cards wording from Cashfree UPI payment links (UPI apps only: GPay, PhonePe, Paytm, J&K Bank mPay). 2. Added customer contact number to Cashfree link_purpose description (e.g. 3 kg Cleaned & Gutted Trout Steaks - Express Delivery - +91 XXXXXXXXXX). 3. Fixed named weekday slot parsing (Sunday/Monday/etc.) in order cards.";
 
 // ============================================================================
 // STRICT MANUAL-ONLY & DRIVER EXCLUSION LIST (AI MUST NEVER TEXT UNDER ANY CIRCUMSTANCE)
@@ -1585,7 +1585,7 @@ async function createCashfreePaymentLink({ amount, customerPhone, customerName, 
   const descLower = (description || "").toLowerCase();
   const isGutted = descLower.includes("gutted") || (!descLower.includes("whole") && !descLower.includes("sabut"));
   const rate = isGutted ? 580 : 540;
-  const cutTitle = isGutted ? "Cleaned & Gutted Trout" : "Whole Fresh Trout";
+  const cutTitle = isGutted ? "Cleaned & Gutted Trout Steaks" : "Whole Fresh Trout";
   let cleanDesc = (description || "").replace(/^urban\s*trout\s*[-–—:]*\s*/i, "").trim();
   const weightMatch = cleanDesc.match(/(\d+(?:\.\d+)?)\s*(?:kg|kilos?)\b/i);
   const weightKg = weightMatch ? parseFloat(weightMatch[1]) : null;
@@ -1595,13 +1595,16 @@ async function createCashfreePaymentLink({ amount, customerPhone, customerName, 
   let cfTitle = "";
   if (weightKg) {
     cfTitle = `${weightKg} kg ${cutTitle}`;
-    if (hasDelivery) cfTitle += " (+ Express Delivery)";
-    else if (isFreeDelivery) cfTitle += " (Free Express Delivery)";
+    if (hasDelivery || isFreeDelivery || isGutted) cfTitle += " - Express Delivery";
+    else cfTitle += " - Self Pickup";
   } else {
     cfTitle = cleanDesc && !/^(?:fresh\s+trout\s+order\s*\(\s*₹?\d+\s*\)|\d+)$/i.test(cleanDesc) ? cleanDesc : `${cutTitle} Order`;
-    if (/\b(?:delivery|courier)\b/i.test(cleanDesc)) cfTitle += " (+ Express Delivery)";
+    if (/\b(?:delivery|courier)\b/i.test(cleanDesc)) cfTitle += " - Express Delivery";
   }
-  cfTitle = cfTitle.slice(0, 95);
+  if (isValidContact) {
+    cfTitle += ` - +91 ${cleanPhone}`;
+  }
+  cfTitle = cfTitle.slice(0, 100);
 
   const safeCustomerName = String(customerName || "Valued Customer").trim().slice(0, 45) || "Valued Customer";
   const expiryIso = new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString();
@@ -1941,7 +1944,7 @@ function formatOrderSummaryCard({
 • *Total Payable:* *₹${numericAmount.toLocaleString("en-IN")}*
 
 💳 *Tap Secure 1-Tap Link to Pay:*${validPayUrl}
-Supports Google Pay, PhonePe, Paytm, J&K Bank mPay & Cards.
+Supports Google Pay, PhonePe, Paytm, J&K Bank mPay & All UPI Apps.
 *(Live harvest begins immediately upon payment confirmation)*
 
 🕒 _${slotDisplay}_${weatherCardLine}
@@ -2762,7 +2765,7 @@ function resolveOrderDeliveryCommitment(order, targetJid, weatherPolicy) {
   let slot = order?.deliveryTime || "";
 
   // Check order deliveryTime
-  if (/(?:tomorrow|kal|saturday|advance|morning\s*slot|afternoon\s*slot|evening\s*slot|today\s*(?:morning|afternoon|evening)|evening|afternoon)/i.test(slot)) {
+  if (/(?:tomorrow|kal|sunday|monday|tuesday|wednesday|thursday|saturday|advance|morning\s*slot|afternoon\s*slot|evening\s*slot|today\s*(?:morning|afternoon|evening)|evening|afternoon)/i.test(slot)) {
     isAdvance = true;
   }
 
@@ -2774,9 +2777,11 @@ function resolveOrderDeliveryCommitment(order, targetJid, weatherPolicy) {
       if (!m || m.role !== "user") continue;
       const t = m.text || "";
       if (/^\[(?:SYSTEM|ADMIN|HOST)/i.test(t.trim()) || t.includes("[SYSTEM NOTE")) continue;
-      if (/\b(?:saturday\s*morning|saturday)\b/i.test(t)) {
+      const weekdayM = t.match(/\b(sunday|monday|tuesday|wednesday|thursday|saturday)\b/i);
+      if (weekdayM) {
+        const dayCap = weekdayM[1].charAt(0).toUpperCase() + weekdayM[1].slice(1).toLowerCase();
         isAdvance = true;
-        slot = /\bmorning\b/i.test(t) ? "Saturday Morning (8:00 AM – 11:00 AM)" : (/\bafternoon\b/i.test(t) ? "Saturday Afternoon (12:00 PM – 3:00 PM)" : (/\bevening\b/i.test(t) ? "Saturday Evening (4:00 PM – 7:00 PM)" : "Saturday (Advance Scheduled)"));
+        slot = /\bmorning\b/i.test(t) ? `${dayCap} Morning (8:00 AM – 11:00 AM)` : (/\bafternoon\b/i.test(t) ? `${dayCap} Afternoon (12:00 PM – 3:00 PM)` : (/\bevening\b/i.test(t) ? `${dayCap} Evening (4:00 PM – 7:00 PM)` : `${dayCap} (Advance Scheduled)`));
         break;
       } else if (/\b(?:tomorrow\s*morning|kal\s*subah|tomorrow\s*8\s*[-–]\s*11)\b/i.test(t)) {
         isAdvance = true;
@@ -4921,7 +4926,7 @@ CRITICAL DIRECTIVE: Customer requested their active payment link. Share it direc
 "Here is your secure online payment link for Order #${activeOrderRef || 'LIVE'} (${activeOrderAmt || ''}):
 🔗 ${activePayUrl}
 
-You can pay securely via UPI, Credit/Debit Card, or Netbanking. Once payment is completed, your fresh live harvest will be immediately initiated at our Recirculatory Aquaculture System at Malabagh!"
+You can pay securely via Google Pay, PhonePe, Paytm, J&K Bank mPay, or any UPI app. Once payment is completed, your fresh live harvest will be immediately initiated at our Recirculatory Aquaculture System at Malabagh!"
 DO NOT alter price or create a duplicate order.
 ======================================================`;
     } else {
@@ -6060,10 +6065,16 @@ CRITICAL DIRECTIVE: Customer is making a FRESH NEW INQUIRY or placing a NEW orde
               const userExplicitTodayNow = /\b(?:today|tonight|aaj|abhi|right\s*now)\b/i.test(userMessage.toLowerCase());
               const isExplicitTomorrow = !userExplicitTodayNow && /\b(?:tomorrow|tomm?or?ro?w|tmrw|2moro|kal|subah\s*kal|kal\s*subah)\b/i.test(cleanCurrentSlotText);
               const isExplicitSaturday = /\b(?:saturday|advance|hafta)\b/i.test(cleanCurrentSlotText);
-              const isAdvanceScheduledOrder = isExplicitTomorrow || isExplicitSaturday;
+              const explicitWeekdayMatch = cleanCurrentSlotText.match(/\b(sunday|monday|tuesday|wednesday|thursday|saturday)\b/i);
+              const explicitWeekdayCap = explicitWeekdayMatch
+                ? explicitWeekdayMatch[1].charAt(0).toUpperCase() + explicitWeekdayMatch[1].slice(1).toLowerCase()
+                : null;
+              const isAdvanceScheduledOrder = isExplicitTomorrow || isExplicitSaturday || Boolean(explicitWeekdayCap);
 
               let targetDay = "Today";
-              if (isFridayToday || (isThursdayToday && !isFridayOpen && (isExplicitTomorrow || isNightAfter9PM))) {
+              if (explicitWeekdayCap) {
+                targetDay = explicitWeekdayCap;
+              } else if (isFridayToday || (isThursdayToday && !isFridayOpen && (isExplicitTomorrow || isNightAfter9PM))) {
                 targetDay = "Saturday";
               } else if (isExplicitTomorrow || isNightAfter9PM) {
                 targetDay = "Tomorrow";
@@ -6080,8 +6091,8 @@ CRITICAL DIRECTIVE: Customer is making a FRESH NEW INQUIRY or placing a NEW orde
                 scheduledSlot = `${targetDay} Morning (8:00 AM – 11:00 AM)`;
               } else if (targetDay === "Tomorrow") {
                 scheduledSlot = "Tomorrow Morning (8:00 AM – 11:00 AM)";
-              } else if (targetDay === "Saturday") {
-                scheduledSlot = "Saturday Morning (8:00 AM – 11:00 AM)";
+              } else if (explicitWeekdayCap || targetDay === "Saturday") {
+                scheduledSlot = `${explicitWeekdayCap || "Saturday"} Morning (8:00 AM – 11:00 AM)`;
               } else if (isEarlyPreDawn) {
                 scheduledSlot = "Today Morning (8:00 AM – 11:00 AM)";
               }

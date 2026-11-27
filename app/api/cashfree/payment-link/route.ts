@@ -39,11 +39,16 @@ export async function POST(request: Request) {
     const expiryDate = new Date(Date.now() + Math.max(1, Number(expiryHours) || 168) * 3600 * 1000).toISOString();
     const origin = new URL(request.url).origin || "https://urbantrout.in";
 
+    const basePurpose = String(description || `Urban Trout Order #${rawRef}`).trim();
+    const linkPurpose = hasRealPhone && !basePurpose.includes(cleanPhone)
+      ? `${basePurpose} - +91 ${cleanPhone}`.slice(0, 100)
+      : basePurpose.slice(0, 100);
+
     const linkPayload = {
       link_id: safeLinkId,
       link_amount: Number(numAmount.toFixed(2)),
       link_currency: "INR",
-      link_purpose: String(description || `Urban Trout Order #${rawRef}`).slice(0, 100),
+      link_purpose: linkPurpose,
       link_expiry_time: expiryDate,
       link_partial_payments: false,
       customer_details: {
@@ -57,6 +62,7 @@ export async function POST(request: Request) {
       },
       link_meta: {
         upi_intent: true,
+        payment_methods: "upi",
         notify_url: `${origin}/api/cashfree/webhook`,
         ...(invoiceId ? { return_url: `${origin}/invoice/${encodeURIComponent(invoiceId)}` } : {}),
       },

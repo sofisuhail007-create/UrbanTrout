@@ -85,13 +85,18 @@ export async function POST(request: Request) {
     const safeLinkId = `pos_${rawRef.toLowerCase().replace(/[^a-z0-9]/g, "_")}_${Date.now().toString().slice(-5)}`.slice(0, 48);
     const expiryIso = new Date(Date.now() + 4 * 3600 * 1000).toISOString();
 
+    const basePurpose = String(description || `Urban Trout POS #${rawRef}`).trim();
+    const posLinkPurpose = hasRealPhone && !basePurpose.includes(cleanPhone)
+      ? `${basePurpose} - +91 ${cleanPhone}`.slice(0, 100)
+      : basePurpose.slice(0, 100);
+
     const linkRes = await cashfreeFetch("/links", {
       method: "POST",
       body: {
         link_id: safeLinkId,
         link_amount: Number(numAmount.toFixed(2)),
         link_currency: "INR",
-        link_purpose: String(description || `Urban Trout POS #${rawRef}`).slice(0, 100),
+        link_purpose: posLinkPurpose,
         link_expiry_time: expiryIso,
         link_partial_payments: false,
         customer_details: {
