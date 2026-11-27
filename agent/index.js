@@ -27,10 +27,10 @@ process.on("unhandledRejection", (reason) => {
 // ============================================================================
 // URBAN TROUT SALES AGENT — BUILD & VERSION TRACKING
 // ============================================================================
-const BOT_VERSION = "3.7.3";
-const BOT_LAST_UPDATED = "27-Nov-2026, 10:05 AM IST";
-const BOT_RELEASE_TITLE = "Smart #paid Weight/Fee/Amount Disambiguation & Quoted QR Reply";
-const BOT_RELEASE_NOTES = "1. #paid / $paid now supports #paid 2kg +200, #paid 2kg, #Paid 1000, and swipe-replying #paid on any specific QR/link. 2. Auto-matches flat #paid amounts against multiple QRs/links in chat history without falsely inflating or mislabeling kg.";
+const BOT_VERSION = "3.7.4";
+const BOT_LAST_UPDATED = "27-Nov-2026, 07:05 PM IST";
+const BOT_RELEASE_TITLE = "Friday-to-Saturday Flow Fix, Area Switch Recalculation & Multi-Turn QR History";
+const BOT_RELEASE_NOTES = "1. Exempted tomorrow/kal/payment-transfer/area-update turns from generic Friday closed wall-of-text (fixes Qamar & Saba scenarios). 2. Enforced Friday closure disclosure on Friday location/kg quotes + auto-recalculates pending link when customer changes locality (e.g. Hawal -> 90 Feet). 3. Saved user turns & Saturday slots inside quick QR/link dispatch and filtered empty protocol debounce noise.";
 
 // ============================================================================
 // STRICT MANUAL-ONLY & DRIVER EXCLUSION LIST (AI MUST NEVER TEXT UNDER ANY CIRCUMSTANCE)
@@ -4092,8 +4092,14 @@ async function generateGeminiReply(chatId, userMessage, customerPhone, customerN
   const isNightAfter9PM = istHour >= 20;                 // 8:00 PM to 11:59 PM (Night After-Hours / Winter Closing)
   const isEarlyPreDawn = istHour < 8;                    // 12:00 AM to 7:59 AM (Pre-Dawn)
 
-  // EVENING RUSH SURGE WINDOW: 4:00 PM to 7:59 PM (16:00 – 19:59 IST)
-  const isEveningSurge = istHour >= 16 && istHour < 20;
+  const trimmedLower = userMessage.trim().toLowerCase();
+  const isAdvanceScheduleReq = /\b(?:tomorrow|tomm?or?ro?w|tmrw|2moro|kal|saturday|hafta|advance|sunday|monday|tuesday|wednesday|thursday)\b/i.test(trimmedLower) && !/\b(?:today|tonight|aaj|abhi)\b/i.test(trimmedLower);
+  const isFutureEveningSlotReq = /\b(?:evening|shaam|sham|4\s*[-–]\s*7|4\s*pm|5\s*pm|6\s*pm|7\s*pm)\b/i.test(trimmedLower);
+
+  // EVENING RUSH SURGE WINDOW: Applies ONLY for same-day 4:00 PM - 7:59 PM dispatches on open days
+  // (NEVER on Friday closures or Saturday/Tomorrow Morning-Afternoon bookings unless Evening slot requested!)
+  const isClockEveningWindow = !isFridayToday && istHour >= 16 && istHour < 20;
+  const isEveningSurge = (isFridayToday || isAdvanceScheduleReq) ? isFutureEveningSlotReq : isClockEveningWindow;
   const surgeAdd = isEveningSurge ? 40 : 0;
 
   // Real-time Srinagar Weather Radar refresh (auto cached every 15 mins; respects manual #weather overrides)
@@ -4111,14 +4117,12 @@ async function generateGeminiReply(chatId, userMessage, customerPhone, customerN
   const vipProfile = lookupCustomerVipProfile(chatId, customerPhone);
   const isVipCustomer = Boolean(vipProfile && vipProfile.orderCount > 0);
 
-  const trimmedLower = userMessage.trim().toLowerCase();
   const isCustomerSalamEarly = /\b(?:as+al+am(?:[\s\-]*[uo])?[\s\-]*[ao]?lai?kum|as+lam(?:[\s\-]*[uo])?[\s\-]*[ao]?lai?kum|salam(?:[\s\-]*[uo])?[\s\-]*[ao]?lai?kum|salam|salaam|aoa)\b/i.test(trimmedLower);
   const isReorderAffirmative = /^(?:yes|haan|ha|ji|ji\s*haan|same|repeat|same\s*as\s*last\s*time|wahi|wahi\s*bhej\s*do|same\s*bhej\s*do|book\s*it|kardo\s*book|send\s*link|pay\s*link|same\s*order|haan\s*kardo|yes\s*please|done|ok\s*send|send|bhej\s*do|bhejo|haan\s*bhejo)[!.,\s]*$/i.test(trimmedLower) || /\b(?:repeat\s*(?:my\s*)?order|same\s*as\s*last\s*time|wahi\s*order|phir\s*se\s*bhej\s*do|usual\s*order)\b/i.test(trimmedLower);
   const parsedQuantity = parseCustomerQuantityRequest(userMessage);
   const isPureInquiry = isGreeting || /^(?:fish\s*available|trout\s*available|fresh\s*trout|order\s*karna\s*hai|fresh\s*fish|trout\s*hai|fish\s*hai|check\s+delivery\s+time\s+to\s+my\s+area)[!.,?\s]*$/i.test(trimmedLower);
   const isThuForFriRequest = isThursdayToday && !isFridayOpen && /\b(?:tomorrow|kal|friday|jumma|juma)\b/i.test(trimmedLower) && !/\b(?:saturday|hafta|aaj|today|tonight)\b/i.test(trimmedLower);
-  const isAdvanceScheduleReq = /\b(?:tomorrow|tomm?or?ro?w|tmrw|2moro|kal|saturday|hafta|advance)\b/i.test(trimmedLower) && !/\b(?:today|tonight|aaj|abhi)\b/i.test(trimmedLower);
-  const fastSurgeActive = isAdvanceScheduleReq ? /\b(?:evening|shaam|sham|4\s*[-–]\s*7|4\s*pm|5\s*pm|6\s*pm)\b/i.test(trimmedLower) : isEveningSurge;
+  const fastSurgeActive = isAdvanceScheduleReq ? isFutureEveningSlotReq : isEveningSurge;
 
   // VIP Fast Path 1: 1-Tap Reorder (Affirmative or Direct Quantity Request)
   let fastReorderReply = null;
@@ -4963,9 +4967,37 @@ You can choose live swimming trout from our counter tanks, watch it harvested li
 ======================================================`;
   }
 
-  // ─── FRIDAY DETERMINISTIC HARD LOCK (ENTIRE OPERATION 100% CLOSED) ───
+  // Shared conversation-level advance/tomorrow & payment intent signals (prevents Friday hard-lock from hijacking Saturday orders)
+  const tomorrowOrSatRegex = /\b(?:saturday|sat|advance|hafta|tomorrow|tomm?or?ro?w|tmrw|2moro|kal|sunday|monday|tuesday|wednesday|thursday)\b/i;
+  const recentUserTextsForFriday = history
+    .filter(h => h && h.role === "user" && h.text && !isSyntheticSystemNote(h.text))
+    .slice(-5)
+    .map(h => h.text)
+    .join(" ");
+  const hasTomorrowOrSatInCurrentMsg = tomorrowOrSatRegex.test(trimmedLower);
+  const hasTomorrowOrSatInConv = hasTomorrowOrSatInCurrentMsg || tomorrowOrSatRegex.test(recentUserTextsForFriday);
+  const isPaymentOrTransferIntent =
+    isMpayIntent ||
+    isPaymentLinkIntent ||
+    isExplicitQrScannerAsk(trimmedLower) ||
+    /\b(?:screenshot\s*(?:bhej|send|share|do|dena|de\s*do)|payment\s*(?:transfer|kar\s*d[uo]ng?[ia]?|karna\s*hai|bhej|link|qr)|send\s*(?:me\s*)?(?:qr|scanner|link|details|upi|account))\b/i.test(trimmedLower);
+  const hasPriorQuoteOrSaturdayContext = history.slice(-4).some(h =>
+    h && h.role === "model" && h.text &&
+    /\b(?:saturday|1-tap payment link|order summary|total payable|hdfc smarthub|slot would you prefer|morning slot)\b/i.test(h.text)
+  );
+  const isLocalityUpdateMidFlow = Boolean(detectedLoc && detectedLoc.status === "IN_ZONE" && hasPriorQuoteOrSaturdayContext);
+
+  // ─── FRIDAY DETERMINISTIC HARD LOCK (ENTIRE OPERATION 100% CLOSED TODAY ONLY) ───
   const isTargetOutOfZone = (detectedLoc && detectedLoc.status === "OUT_ZONE");
-  if (isFridayToday && !/\b(?:saturday|advance|hafta)\b/i.test(trimmedLower) && !isCutPreferenceIntent && !isSizeOrBigFishIntent && !isTargetOutOfZone && !isMpayIntent && !isPaymentLinkIntent) {
+  if (
+    isFridayToday &&
+    !hasTomorrowOrSatInConv &&
+    !isPaymentOrTransferIntent &&
+    !isLocalityUpdateMidFlow &&
+    !isCutPreferenceIntent &&
+    !isSizeOrBigFishIntent &&
+    !isTargetOutOfZone
+  ) {
     const isFridayInquiry = /(?:deliver|order|open|aaj|today|now|abhi|right\s*now|available|bhej|chahiye|rate|visit|kahan|hai\s*kya|trout|fish|rate|price|cost|timing)/i.test(trimmedLower);
     if (isFridayInquiry) {
       const deterministicFridayReply = `Our Live Vending Center and express delivery operations are strictly closed today (Friday) for weekly bio-security maintenance, filtration backwashing, and staff weekly off.
@@ -5610,6 +5642,13 @@ STRICT FORMATTING RULE: Keep messages SHORT, visually organized with empty lines
   }
 
   let activeTurnPrompt = userMessage;
+  if (isFridayToday) {
+    if (!hasTomorrowOrSatInConv) {
+      activeTurnPrompt = `[🛑 FRIDAY CLOSURE DISCLOSURE REQUIRED: Today is Friday — farm counter & same-day deliveries are STRICTLY CLOSED today for bio-security maintenance. You MUST state clearly that today (Friday) is closed and frame ANY price/order quote strictly for TOMORROW (Saturday: Morning 8–11 AM, Afternoon 12–3 PM, or Evening 4–7 PM). Ask for their preferred Saturday slot & GPS pin!]\n\n${activeTurnPrompt}`;
+    } else {
+      activeTurnPrompt = `[📅 SATURDAY ADVANCE BOOKING (FRIDAY TODAY): Customer is booking/updating an order for TOMORROW (Saturday) or requesting payment to lock their Saturday slot! Do NOT ask "Would you like Saturday?" all over again — confirm their exact Saturday delivery details, pricing, and output the [PAY_LINK: TOTAL : DESCRIPTION] (or [HDFC_QR: ...] if QR requested) immediately if weight & location are known!]\n\n${activeTurnPrompt}`;
+    }
+  }
   if (isNightAfter9PM) {
     activeTurnPrompt = `[🛑 STRICT NIGHT PROTOCOL ACTIVE: Current time in Srinagar is ${istTimeStr}. Same-day deliveries CLOSED at 8:00 PM. Physical tanks and harvest are closed for the night. We start taking fresh live-harvest orders tomorrow morning from 8:00 AM sharp! ABSOLUTELY NEVER promise delivery tonight or within 1-2 hours! Offer/schedule delivery ONLY for TOMORROW (Morning 8-11 AM, Afternoon 12-3 PM, Evening 4-7 PM).]\n\n${activeTurnPrompt}`;
   } else if (isEarlyPreDawn) {
@@ -5653,7 +5692,25 @@ CRITICAL TEMPORAL & FINANCIAL SHIELD:
 4. Reassure the customer warmly that their order is confirmed and our team at the Recirculatory Aquaculture System at Malabagh is preparing their live harvest for delivery today! If they shared an address/pin, confirm it is received for rider.]\n\n${activeTurnPrompt}`;
       }
     } else if (todayOrderForCustomer.payUrl) {
-      activeTurnPrompt = `[⭐ TODAY'S ORDER PENDING PAYMENT: #${todayOrderForCustomer.orderRef} (${todayOrderForCustomer.items}, ${todayOrderForCustomer.amount}, Slot: ${todayOrderForCustomer.deliveryTime}). Payment link is already generated: ${todayOrderForCustomer.payUrl}. If customer asks for payment or link, provide this exact link. DO NOT change price or generate a different link.]\n\n${activeTurnPrompt}`;
+      const updatedAreaLoc = (detectedLoc && detectedLoc.status === "IN_ZONE") ? detectedLoc : null;
+      const oldAreaName = String(todayOrderForCustomer.deliveryArea || "").toLowerCase();
+      const areaChanged = Boolean(
+        updatedAreaLoc &&
+        updatedAreaLoc.name &&
+        (!oldAreaName || (!oldAreaName.includes(updatedAreaLoc.name.toLowerCase()) && !updatedAreaLoc.name.toLowerCase().includes(oldAreaName)))
+      );
+      if (areaChanged) {
+        const prevWeightMatch = String(todayOrderForCustomer.items || "").match(/(\d+(?:\.\d+)?)\s*(?:kg|kilos?)/i);
+        const wKg = prevWeightMatch ? parseFloat(prevWeightMatch[1]) : 2;
+        const useAreaEveningSurge = hasTomorrowOrSatInConv
+          ? /\b(?:evening|shaam|sham|4\s*[-–]\s*7|4\s*pm|5\s*pm|6\s*pm)\b/i.test(userMessage)
+          : isEveningSurge;
+        const newFee = getDeliveryFeeForDistance(updatedAreaLoc.distanceKm, wKg, useAreaEveningSurge);
+        const newTotal = Math.round(wKg * 580) + newFee;
+        activeTurnPrompt = `[🔄 CUSTOMER UPDATED DELIVERY LOCATION TO: ${updatedAreaLoc.name} (${updatedAreaLoc.distanceKm} km from Malabagh)! Previous unpaid quote #${todayOrderForCustomer.orderRef} (${todayOrderForCustomer.deliveryArea || "previous area"}, ${todayOrderForCustomer.amount}) is now SUPERSEDED! Recalculate ${wKg} kg Cleaned & Gutted @ ₹580 + Delivery Fee ₹${newFee} = Total ₹${newTotal}${newFee === 0 ? " (100% FREE delivery unlocked!)" : ""}. Output a fresh [PAY_LINK: ${newTotal} : ${wKg} kg Cleaned & Gutted${newFee > 0 ? ` (+₹${newFee} Delivery)` : ""}] tag right now!]\n\n${activeTurnPrompt}`;
+      } else {
+        activeTurnPrompt = `[⭐ TODAY'S ORDER PENDING PAYMENT: #${todayOrderForCustomer.orderRef} (${todayOrderForCustomer.items}, ${todayOrderForCustomer.amount}, Slot: ${todayOrderForCustomer.deliveryTime}). Payment link is already generated: ${todayOrderForCustomer.payUrl}. If customer asks for payment or link, provide this exact link. DO NOT change price or generate a different link.]\n\n${activeTurnPrompt}`;
+      }
     }
   } else if (ownerMarkedOutForDelivery) {
     activeTurnPrompt = `[⭐ TODAY'S ORDER IS ALREADY OUT FOR DELIVERY (confirmed via dispatch message above):
@@ -6151,6 +6208,8 @@ CRITICAL DIRECTIVE: Customer is making a FRESH NEW INQUIRY or placing a NEW orde
               } else if (
                 (isThursdayToday && !isFridayOpen && /\b(?:tomorrow|kal|friday|jumma|juma)\b/i.test(userMessage) && !/\b(?:saturday|hafta|aaj|today|tonight)\b/i.test(userMessage)) ||
                 (isFridayToday &&
+                  !hasTomorrowOrSatInConv &&
+                  !isPaymentOrTransferIntent &&
                   !/\b(?:saturday|sat|advance|hafta|tomorrow|tomm?or?ro?w|tmrw|2moro|kal|morning|subah|afternoon|evening|slot|\d+\s*(?:am|pm)|yes|ok|sure|please|bhejo|book)\b/i.test(userMessage) &&
                   !/\b(?:advance\s*bookings?|saturday|closed\s*today\s*\(friday\)|bio-security)\b/i.test(history.filter(h => h.role === "model").pop()?.text || "")
                 )
@@ -6161,7 +6220,7 @@ CRITICAL DIRECTIVE: Customer is making a FRESH NEW INQUIRY or placing a NEW orde
                   `⚠️ *Friday Closure Notice:*\nOur Recirculatory Aquaculture System at Malabagh and express deliveries are strictly closed on Fridays for weekly filtration bio-security maintenance. We cannot harvest or deliver on Friday.\n\nWe would be delighted to schedule fresh delivery for *Saturday* (Morning 8:00 AM – 11:00 AM, Afternoon 12:00 PM – 3:00 PM, or Evening 4:00 PM – 7:00 PM)${isThursdayToday ? " or *today (Thursday)* within 2 hours" : ""}.\n\nPlease let us know if Saturday works, and we will immediately provide your payment link! 🐟`
                 );
               } else {
-                if (expectedPricing && amount < expectedPricing.amount - 5) {
+                if (expectedPricing && (amount < expectedPricing.amount - 5 || (!isSlotEvening && Math.abs(amount - (expectedPricing.amount + 40)) <= 2))) {
                   console.warn(`🛡️ [Fee Guard] Corrected ${desc} from ₹${amount} to ₹${expectedPricing.amount} for ${custDist} km (Evening: ${isSlotEvening}).`);
                   amount = expectedPricing.amount;
                   desc = expectedPricing.tagDesc;
@@ -7439,7 +7498,7 @@ async function startBot() {
     }
   });
 
-  async function dispatchLockedQrImage(sock, remoteJid, { cleanPhone, raw10, customerName, forceAmount, forceRef, forceDesc, forceDeliveryFee = 0, preferHdfcQr = false, bypassLocationGuard = false, bypassHumanOverride = false, chatHist = [] }) {
+  async function dispatchLockedQrImage(sock, remoteJid, { cleanPhone, raw10, customerName, forceAmount, forceRef, forceDesc, forceDeliveryFee = 0, preferHdfcQr = false, bypassLocationGuard = false, bypassHumanOverride = false, triggerUserText = null, chatHist = [] }) {
     try {
       if (!bypassHumanOverride && isChatManuallyPaused(remoteJid, cleanPhone || raw10)) {
         console.log(`[Locked QR Shield] Suppressed QR dispatch for ${remoteJid} — owner manual intervention active.`);
@@ -7555,9 +7614,16 @@ async function startBot() {
         }
       }
 
-      // 🛡️ Resolve customer distance and exact zone delivery fee
+      // 🛡️ Resolve customer distance and exact zone delivery fee (no evening rush surge on closed Friday / future non-evening slots)
       const custDist = locDetails?.distanceKm ?? (savedLoc?.distanceKm != null ? savedLoc.distanceKm : null);
-      const isSurgeNow = isCurrentEveningSurge();
+      const istQrNow = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+      const qrClosedFriday = istQrNow.getDay() === 5 && !isFridayOperationsOpen();
+      const qrSlotStr = String(targetOrder?.deliveryTime || "").toLowerCase();
+      const qrTriggerLower = String(triggerUserText || "").toLowerCase();
+      const qrWantsFutureNonEvening = /\b(?:tomorrow|tomm?or?ro?w|tmrw|2moro|kal|saturday|morning|subah|afternoon)\b/i.test(qrTriggerLower) && !/\b(?:evening|shaam|sham|4\s*pm|5\s*pm|6\s*pm)\b/i.test(qrTriggerLower);
+      const isSurgeNow = (qrClosedFriday || qrWantsFutureNonEvening || (qrSlotStr && !qrSlotStr.includes("today") && !qrSlotStr.includes("within")))
+        ? /\b(?:evening|shaam)\b/i.test(`${qrSlotStr} ${qrTriggerLower}`)
+        : isCurrentEveningSurge();
       const zoneDeliveryFee = (custDist !== null && detectedWeightKg)
         ? getDeliveryFeeForDistance(custDist, detectedWeightKg, isSurgeNow)
         : 0;
@@ -7714,6 +7780,18 @@ async function startBot() {
         : "";
       const bankDetailsLine = paymentResult.bankDetailsText ? `\n\n${paymentResult.bankDetailsText}` : "";
 
+      const istNowQr = new Date(new Date().toLocaleString("en-US", { timeZone: "Asia/Kolkata" }));
+      const qrIsFridayClosed = istNowQr.getDay() === 5 && !isFridayOperationsOpen();
+      const qrIsThuNightClosed = istNowQr.getDay() === 4 && istNowQr.getHours() >= 20 && !isFridayOperationsOpen();
+      const qrSlotHint = targetOrder?.deliveryTime ||
+        ((qrIsFridayClosed || qrIsThuNightClosed) ? "Saturday Delivery (Morning 8–11 AM / Afternoon 12–3 PM / Evening 4–7 PM)" : null);
+      const { slot: qrResolvedSlot } = resolveOrderDeliveryCommitment(
+        { deliveryTime: qrSlotHint },
+        remoteJid,
+        qrWeatherPolicy
+      );
+      const qrSlotLine = qrResolvedSlot ? `• *Delivery Slot:* ${qrResolvedSlot}\n` : "";
+
       const caption = (paymentResult.isHdfcQr
         ? `📸 *URBAN TROUT • HDFC SMARTHUB UPI QR*\n`
         : paymentResult.payUrl
@@ -7724,6 +7802,7 @@ async function startBot() {
         custPhoneLine +
         deliveryQrLine +
         `• *Amount:* *₹${amt.toLocaleString("en-IN")}*${(paymentResult.isHdfcQr || paymentResult.payUrl) ? " (Exact Amount Locked)" : ""}\n` +
+        qrSlotLine +
         `• *Ref:* #${orderRef}\n\n` +
         payLinkLine +
         `_Packed fresh in 100% food-grade biodegradable polythene (0% ice). Delivered directly to your shared GPS pin (our rider calls prior to arrival for a prompt handover at your shared pin)._${qrWeatherLine}${bankDetailsLine} 🚀`;
@@ -7769,14 +7848,21 @@ async function startBot() {
         status: targetOrder?.status?.includes("Paid")
           ? targetOrder.status
           : (paymentResult.isHdfcQr ? "HDFC UPI QR Sent — Awaiting Confirmation" : paymentResult.payUrl ? "Payment Link Sent" : "Bank Transfer Details Sent"),
+        deliveryTime: qrResolvedSlot || targetOrder?.deliveryTime || null,
         payUrl: paymentResult.payUrl || (isSameAmountAsPrev ? (targetOrder?.payUrl || null) : null),
         ...(paymentResult.isReused ? { createdAt: targetOrder?.createdAt || new Date().toISOString() } : { createdAt: new Date().toISOString() }),
         updatedAt: new Date().toISOString()
       };
       recordNewCustomerOrder((cleanPhone || raw10) || remoteJid, updatedOrder);
 
-      // Track in chat histories
+      // Track in chat histories (persist triggering user message so follow-up turns remember tomorrow/slot context!)
       let hist = chatHistories.get(remoteJid) || [];
+      if (triggerUserText && String(triggerUserText).trim()) {
+        const lastH = hist[hist.length - 1];
+        if (!lastH || lastH.role !== "user" || lastH.text !== triggerUserText) {
+          hist.push({ role: "user", text: triggerUserText });
+        }
+      }
       hist.push({ role: "model", text: caption });
       if (hist.length > 8) hist.splice(0, hist.length - 8);
       chatHistories.set(remoteJid, hist);
@@ -9524,6 +9610,7 @@ async function startBot() {
         raw10,
         customerName,
         preferHdfcQr: wantsHdfcQr,
+        triggerUserText: effectiveUserText,
         chatHist: [...chatHist, { role: "user", text: effectiveUserText }]
       });
       if (qrSent) return;
@@ -9864,6 +9951,10 @@ async function startBot() {
             role: "customer",
             text: rawText || fallbackLabel
           });
+          if (!rawText && !fallbackLabel) {
+            // Skip empty reaction / protocol / reactionless stubs cleanly without triggering 4s empty debounce timers
+            continue;
+          }
         }
 
         // 1. If message is from owner (either manual message or # command)
